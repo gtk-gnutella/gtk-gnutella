@@ -757,7 +757,7 @@ url_normalize(char *url, url_policy_t pol)
 		};
 		uint i;
 
-		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
+		for (i = 0; i < N_ITEMS(static_types); i++)
     		if (
 				0 == ascii_strcasecmp(q - static_types[i].len,
 						static_types[i].ext)

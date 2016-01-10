@@ -200,7 +200,7 @@ setup_map(void)
 	if (done)
 		return;
 
-	for (i = 0; i < G_N_ELEMENTS(map); i++)	{
+	for (i = 0; i < N_ITEMS(map); i++)	{
 		uchar c;
 
 		if (i > 0 && utf8_byte_is_allowed(i)) {
@@ -241,7 +241,7 @@ st_initialize(search_table_t *table)
 	 * The indexing map is used to avoid having 256*256 bins.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(table->index_map); i++) {
+	for (i = 0; i < N_ITEMS(table->index_map); i++) {
 		uchar map_char = map[i];
 
 		if (table->fold_map[map_char]) {

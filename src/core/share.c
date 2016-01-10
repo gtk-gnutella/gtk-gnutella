@@ -657,7 +657,7 @@ share_special_load(const struct special_file *sp)
 
 	length = settings_file_path_load(fp, sp->file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(sp->what, fp, length, &idx);
 
@@ -760,7 +760,7 @@ share_special_init(void)
 
 	special_names = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(specials); i++) {
+	for (i = 0; i < N_ITEMS(specials); i++) {
 		shared_file_t *sf = share_special_load(&specials[i]);
 		if (sf != NULL)
 			htable_insert(special_names, specials[i].path, shared_file_ref(sf));
@@ -2831,7 +2831,7 @@ share_rescan_create_task(bgsched_t *bs)
 	ctx = recursive_scan_new(shared_dirs, tm_time());
 
 	return ctx->task = bg_task_create(bs, "recursive scan",
-				steps, G_N_ELEMENTS(steps),
+				steps, N_ITEMS(steps),
 				ctx, recursive_scan_context_free,
 				recursive_scan_done, NULL);
 }
@@ -2861,7 +2861,7 @@ share_update_qrp_create_task(bgsched_t *bs)
 	ctx = recursive_scan_new(NULL, tm_time());
 
 	return ctx->task = bg_task_create(bs, "QRP update",
-				steps, G_N_ELEMENTS(steps),
+				steps, N_ITEMS(steps),
 				ctx, recursive_scan_context_free,
 				recursive_scan_done, NULL);
 }
@@ -3970,7 +3970,7 @@ share_init(void)
 
 	share_media_types = htable_create(HASH_KEY_SELF, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(media_type_map); i++) {
+	for (i = 0; i < N_ITEMS(media_type_map); i++) {
 		htable_insert(share_media_types,
 			int_to_pointer(media_type_map[i].type),
 			int_to_pointer(media_type_map[i].flags));

@@ -502,7 +502,7 @@ ghc_init(void)
 	g_return_if_fail(NULL == ghc_list);
 	ghc_list = list_new();
 
-	for (i = 0; i < G_N_ELEMENTS(boot_url); i++) {
+	for (i = 0; i < N_ITEMS(boot_url); i++) {
 		struct ghc *ghc;
 		ghc = ghc_new(boot_url[i]);
 		ghc_list_add(ghc);

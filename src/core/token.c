@@ -54,7 +54,7 @@
 #define TOKEN_CLOCK_SKEW	3600		/**< +/- 1 hour */
 #define TOKEN_LIFE			60			/**< lifetime of our tokens */
 #define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/**< base64 size */
-#define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/**< at most */
+#define LEVEL_SIZE			(2 * N_ITEMS(token_keys))	/**< at most */
 #define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)	/**< +2 for == tail */
 
 #define GIT_SWITCH			1315692000		/* 2011-09-11 */
@@ -627,7 +627,7 @@ static const char *keys_101_8[] = {
 	"645a f525 9f98 7838 5beb eb45 06b4 dd52",
 };
 
-#define KEYS(x)		keys_ ## x, G_N_ELEMENTS(keys_ ## x)
+#define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
  * Describes the keys to use depending on the version.
@@ -689,9 +689,9 @@ static const char *tok_errstr[] = {
 const char *
 tok_strerror(tok_error_t errnum)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
+	STATIC_ASSERT(N_ITEMS(tok_errstr) == TOK_MAX_ERROR);
 
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(tok_errstr))
+	if (UNSIGNED(errnum) >= N_ITEMS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];
@@ -714,7 +714,7 @@ find_tokkey_upto(time_t now, size_t count)
 			G_STRFUNC, count, stacktrace_caller_name(1));
 	}
 
-	g_assert(count <= G_N_ELEMENTS(token_keys));
+	g_assert(count <= N_ITEMS(token_keys));
 
 	for (i = 0; i < count; i++) {
 		const struct tokkey *tk = &token_keys[i];
@@ -749,7 +749,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 
 
 	if (NULL == tk) {
-		g_assert(count <= G_N_ELEMENTS(token_keys));
+		g_assert(count <= N_ITEMS(token_keys));
 		tk = &token_keys[count - 1];
 
 		if (GNET_PROPERTY(version_debug) > 4) {
@@ -776,7 +776,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 static inline const struct tokkey *
 find_tokkey(time_t now)
 {
-	return find_tokkey_upto(now, G_N_ELEMENTS(token_keys));
+	return find_tokkey_upto(now, N_ITEMS(token_keys));
 }
 
 /**
@@ -819,7 +819,7 @@ find_tokkey_version(const version_t *ver, time_t now)
 	 * and we look for the token up to that index only.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		const struct tokkey *tk = &token_keys[i];
 		if (version_cmp(ver, &tk->ver) <= 0) {
 			if (GNET_PROPERTY(version_debug) > 4) {
@@ -832,11 +832,11 @@ find_tokkey_version(const version_t *ver, time_t now)
 
 	if (GNET_PROPERTY(version_debug) > 4) {
 		g_debug("%s: fallback max=%u (/%zu)",
-			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
+			G_STRFUNC, i, N_ITEMS(token_keys));
 	}
 
 	i++;									/* We need a count, not an index */
-	i = MIN(i, G_N_ELEMENTS(token_keys));	/* In case loop did not match */
+	i = MIN(i, N_ITEMS(token_keys));	/* In case loop did not match */
 
 	return find_tokkey_upto_fallback(now, i);
 }
@@ -851,7 +851,7 @@ find_latest(const version_t *rver)
 	const struct tokkey *tk;
 	const struct tokkey *result = NULL;
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		tk = &token_keys[i];
 		if (version_build_cmp(&tk->ver, rver) > 0)
 			break;
@@ -882,10 +882,10 @@ token_random_key(time_t now, uint *idx, const struct tokkey **tkused)
 			warned = TRUE;
 		}
 
-		STATIC_ASSERT(G_N_ELEMENTS(token_keys) >= 1);
+		STATIC_ASSERT(N_ITEMS(token_keys) >= 1);
 
 		/* Pick the latest (most recent) key set from the array */
-		tk = &token_keys[G_N_ELEMENTS(token_keys) - 1];
+		tk = &token_keys[N_ITEMS(token_keys) - 1];
 	}
 
 	random_idx = random_value(tk->count - 1);
@@ -954,7 +954,7 @@ tok_generate(time_t now, const char *version)
 	 * Compute level.
 	 */
 
-	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	lvlsize = N_ITEMS(token_keys) - (tk - token_keys);
 	crc32 = crc32_update(0, VARLEN(digest));
 
 	for (i = 0; i < lvlsize; i++) {
@@ -1173,7 +1173,7 @@ tok_version_valid(
 	 */
 
 	lvllen /= 2;							/* # of keys held remotely */
-	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	lvlsize = N_ITEMS(token_keys) - (tk - token_keys);
 	lvlsize = MIN(lvllen, lvlsize);
 
 	g_assert(lvlsize >= 1);
@@ -1188,7 +1188,7 @@ tok_version_valid(
 	if (peek_be16(&lvldigest[2*lvlsize]) != crc)
 		return TOK_INVALID_LEVEL;
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		rtk = &token_keys[i];
 		if (rtk->ver.timestamp > rver.timestamp) {
 			rtk--;							/* `rtk' could not exist remotely */

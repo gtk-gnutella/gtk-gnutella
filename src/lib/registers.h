@@ -67,7 +67,7 @@
 
 #if defined(HAS_UCONTEXT_MCONTEXT_GREGS)
 
-#define REGISTER_COUNT(u)	G_N_ELEMENTS((u)->uc_mcontext.gregs)
+#define REGISTER_COUNT(u)	N_ITEMS((u)->uc_mcontext.gregs)
 #define REGISTER_BASE(u)	((ulong *) (u)->uc_mcontext.gregs)
 #define REGISTER_VALUE(u,x)	((ulong) (u)->uc_mcontext.gregs[x])
 

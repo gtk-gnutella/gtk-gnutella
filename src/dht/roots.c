@@ -394,7 +394,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	 * are no longer present among the k-closest roots will be deleted.
 	 */
 
-	STATIC_ASSERT(G_N_ELEMENTS(rd->dbkeys) == G_N_ELEMENTS(previous));
+	STATIC_ASSERT(N_ITEMS(rd->dbkeys) == N_ITEMS(previous));
 
 	existing = map_create_patricia(KUID_RAW_BITSIZE);
 
@@ -427,7 +427,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	iter = patricia_metric_iterator_lazy(nodes, kuid, TRUE);
 	i = 0;
 
-	while (patricia_iter_has_next(iter) && i < G_N_ELEMENTS(rd->dbkeys)) {
+	while (patricia_iter_has_next(iter) && i < N_ITEMS(rd->dbkeys)) {
 		knode_t *kn = patricia_iter_next_value(iter);
 		uint64 *dbkey_ptr;
 
@@ -819,7 +819,7 @@ deserialize_rootdata(bstr_t *bs, void *valptr, size_t len)
 
 	bstr_read_u8(bs, &rd->count);
 	bstr_read_time(bs, &rd->last_update);
-	g_assert(rd->count <= G_N_ELEMENTS(rd->dbkeys));
+	g_assert(rd->count <= N_ITEMS(rd->dbkeys));
 
 	for (i = 0; i < rd->count; i++) {
 		bstr_read_be64(bs, &rd->dbkeys[i]);

@@ -134,7 +134,7 @@ magnet_key_check(void)
 static enum magnet_key
 magnet_key_get(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
+	STATIC_ASSERT(N_ITEMS(magnet_keys) == NUM_MAGNET_KEYS);
 	g_assert(s != NULL);
 
 	ONCE_FLAG_RUN(magnet_keys_checked, magnet_key_check);

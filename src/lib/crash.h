@@ -86,13 +86,13 @@ G_STMT_START { \
 	const char *print_str_text_ = (text); \
 	if ( \
 		print_str_text_ && \
-		print_str_iov_cnt_ < G_N_ELEMENTS(print_str_iov_) \
+		print_str_iov_cnt_ < N_ITEMS(print_str_iov_) \
 	) { \
 		iovec_set(&print_str_iov_[print_str_iov_cnt_], \
 			print_str_text_, strlen(print_str_text_)); \
 		print_str_iov_cnt_++; \
 	} else { \
-		iovec_set(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+		iovec_set(&print_str_iov_[N_ITEMS(print_str_iov_) - 1], \
 			TRUNCATION_STR, sizeof TRUNCATION_STR - 1); \
 	} \
 } G_STMT_END

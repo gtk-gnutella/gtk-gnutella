@@ -1148,11 +1148,11 @@ deserialize_keydata(bstr_t *bs, void *valptr, size_t len)
 	if (!bstr_read_u8(bs, &kd->values))
 		return;
 
-	if (kd->values > G_N_ELEMENTS(kd->creators))
+	if (kd->values > N_ITEMS(kd->creators))
 		return;
 
-	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->dbkeys));
-	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->expire));
+	STATIC_ASSERT(N_ITEMS(kd->creators) == N_ITEMS(kd->dbkeys));
+	STATIC_ASSERT(N_ITEMS(kd->creators) == N_ITEMS(kd->expire));
 
 	for (i = 0; i < kd->values; i++) {
 		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
@@ -1365,7 +1365,7 @@ keys_decimation_factor(const kuid_t *key)
 
 	delta = kball.furthest_bits - common;
 
-	g_assert(delta > 0 && UNSIGNED(delta) < G_N_ELEMENTS(decimation_factor));
+	g_assert(delta > 0 && UNSIGNED(delta) < N_ITEMS(decimation_factor));
 
 	return decimation_factor[delta];
 }
@@ -1627,7 +1627,7 @@ keys_init(void)
 		kv, packing, KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
+	for (i = 0; i < N_ITEMS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
 
 	values_init();
@@ -1736,9 +1736,9 @@ keys_offload(const knode_t *kn)
 	 */
 
 	n = dht_fill_closest(ctx.our_kuid, kclosest,
-			G_N_ELEMENTS(kclosest), ctx.remote_kuid, TRUE);
+			N_ITEMS(kclosest), ctx.remote_kuid, TRUE);
 
-	if (n < G_N_ELEMENTS(kclosest)) {
+	if (n < N_ITEMS(kclosest)) {
 		if (debug)
 			g_warning("DHT got only %u closest alive nodes, cannot offload", n);
 		return;
@@ -1750,7 +1750,7 @@ keys_offload(const knode_t *kn)
 	 */
 
 	ctx.kclosest = patricia_create(KUID_RAW_BITSIZE);
-	for (n = 0; n < G_N_ELEMENTS(kclosest); n++) {
+	for (n = 0; n < N_ITEMS(kclosest); n++) {
 		patricia_insert(ctx.kclosest, kclosest[n]->id, kclosest[n]->id);
 	}
 	patricia_insert(ctx.kclosest, ctx.our_kuid, ctx.our_kuid);

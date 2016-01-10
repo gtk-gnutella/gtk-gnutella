@@ -1097,7 +1097,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 		gnet_host_t hvec[G2_BUILD_QH2_MAX_ALT];
 		int hcnt = 0;
 
-		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+		hcnt = dmesh_fill_alternate(sha1, hvec, N_ITEMS(hvec));
 
 		if (hcnt > 0) {
 			int i;

@@ -143,7 +143,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		str_cpy(s, pointer_to_string(addr));
 		STR_CAT(s, "  ");
 
-		for (i = 0; i < G_N_ELEMENTS(data); i++) {
+		for (i = 0; i < N_ITEMS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 
@@ -160,7 +160,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		}
 		STR_CAT(s, " |");
 
-		for (i = 0; i < G_N_ELEMENTS(data); i++) {
+		for (i = 0; i < N_ITEMS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 				c = is_ascii_print(c) ? c : '.';
@@ -172,11 +172,11 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		STR_CAT(s, "|\n");
 		shell_write(sh, str_2c(s));
 
-		if (length < G_N_ELEMENTS(data))
+		if (length < N_ITEMS(data))
 			break;
 
-		length -= G_N_ELEMENTS(data);
-		addr += G_N_ELEMENTS(data);
+		length -= N_ITEMS(data);
+		addr += N_ITEMS(data);
 	}
 	str_destroy(s);
 	fd_close(&fd[0]);
@@ -299,7 +299,7 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 	v[2].cb = shell_vtable_settings_log;
 	v[2].prefix = NULL;
 
-	return memory_run_showerv(sh, v, G_N_ELEMENTS(v));
+	return memory_run_showerv(sh, v, N_ITEMS(v));
 }
 
 static enum shell_reply
@@ -508,7 +508,7 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -582,7 +582,7 @@ shell_exec_memory_check(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 

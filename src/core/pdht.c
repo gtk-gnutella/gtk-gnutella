@@ -342,9 +342,9 @@ static const char *pdht_errstr[] = {
 const char *
 pdht_strerror(pdht_error_t code)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(pdht_errstr) == PDHT_E_MAX);
+	STATIC_ASSERT(N_ITEMS(pdht_errstr) == PDHT_E_MAX);
 
-	if (UNSIGNED(code) >= G_N_ELEMENTS(pdht_errstr))
+	if (UNSIGNED(code) >= N_ITEMS(pdht_errstr))
 		return "invalid PDHT error code";
 
 	return pdht_errstr[code];
@@ -1443,9 +1443,9 @@ pdht_prox_update_list(void)
 	size_t n;
 	size_t i;
 
-	n = pdht_prox_fill_vector(proxies, G_N_ELEMENTS(proxies));
+	n = pdht_prox_fill_vector(proxies, N_ITEMS(proxies));
 
-	g_assert(n <= G_N_ELEMENTS(proxies));
+	g_assert(n <= N_ITEMS(proxies));
 
 	if (n != pdht_proxy.proxies_count)
 		goto new_proxies;
@@ -1459,7 +1459,7 @@ pdht_prox_update_list(void)
 
 new_proxies:
 
-	g_assert(G_N_ELEMENTS(proxies) == G_N_ELEMENTS(pdht_proxy.proxies));
+	g_assert(N_ITEMS(proxies) == N_ITEMS(pdht_proxy.proxies));
 
 	memcpy(pdht_proxy.proxies, proxies, n * sizeof proxies[0]);
 	pdht_proxy.proxies_count = n;

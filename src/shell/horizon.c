@@ -166,13 +166,13 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
 	shell_write(sh, "100~\n");
 
-	hsep_get_global_table(globaltable, G_N_ELEMENTS(globaltable));
+	hsep_get_global_table(globaltable, N_ITEMS(globaltable));
 	hsep_get_non_hsep_triple(non_hsep);
 
 	num_hsep = globaltable[1][HSEP_IDX_NODES];
@@ -206,7 +206,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 			shell_write(sh, buf);
 			shell_write(sh, "\n\n");
 
-			hsep_get_connection_table(n, table, G_N_ELEMENTS(table));
+			hsep_get_connection_table(n, table, N_ITEMS(table));
 			print_hsep_table(sh, table, NODE_IS_LEAF(n) ? 1 : HSEP_N_MAX, NULL);
 		}
 	}

@@ -205,7 +205,7 @@ vmea_stacktrace(size_t size, bool success)
 	if (NULL == st)
 		return;
 
-	st->count = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 2);
+	st->count = stacktrace_unwind(st->stack, N_ITEMS(st->stack), 2);
 	st->requested = size;
 	st->success = success;
 

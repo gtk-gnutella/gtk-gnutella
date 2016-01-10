@@ -60,7 +60,7 @@ shell_cmd_lookup(const char *argv0)
 
 	g_return_val_if_fail(argv0, NULL);
 
-	for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+	for (i = 0; i < N_ITEMS(commands); i++) {
 		if (0 == ascii_strcasecmp(commands[i].name, argv0))
 			return &commands[i];
 	}
@@ -107,7 +107,7 @@ shell_exec_help(struct gnutella_shell *sh, int argc, const char *argv[])
 			"Use \"help <cmd>\" for additional help about a command.\n");
 	   	shell_write(sh, "The following commands are available:\n");
 
-		for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+		for (i = 0; i < N_ITEMS(commands); i++) {
 			const char *name = commands[i].name;
 
 			if (NULL == name || '\0' == name[0])

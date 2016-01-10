@@ -382,7 +382,7 @@ atom_get_mc(size_t size)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+	for (i = 0; i < N_ITEMS(mem_cache); i++) {
 		if (size <= mem_cache[i]->size)
 			return mem_cache[i];
 	}
@@ -969,16 +969,16 @@ atoms_init_once(void)
 
 	ZERO(&settings);
 
-	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
+	STATIC_ASSERT(NUM_ATOM_TYPES == N_ITEMS(atoms));
 	STATIC_ASSERT(4 == sizeof(void *) || sizeof(void *) == sizeof(ulong));
 
 #ifdef PROTECT_ATOMS
-	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+	for (i = 0; i < N_ITEMS(mem_cache); i++) {
 		mem_cache[i] = mem_new((2 * sizeof (union mem_chunk)) << i);
 	}
 #endif /* PROTECT_ATOMS */
 
-	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
+	for (i = 0; i < N_ITEMS(atoms); i++) {
 		atom_desc_t *ad = &atoms[i];
 
 		ad->table = htable_create_any(ad->hash_func, NULL, ad->eq_func);
@@ -1101,7 +1101,7 @@ atom_get(enum atom_type type, const void *key)
 	STATIC_ASSERT(ARENA_OFFSET >= sizeof(atom_t));
 
     g_assert(key != NULL);
-	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < N_ITEMS(atoms));
 	ATOM_TRACK_IS_LOCKED();
 
 	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
@@ -1184,7 +1184,7 @@ atom_free(enum atom_type type, const void *key)
 	const void *orig_key;
 
     g_assert(key != NULL);
-	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < N_ITEMS(atoms));
 	ATOM_TRACK_IS_LOCKED();
 
 	ad = &atoms[type];		/* Where atoms of this type are held */
@@ -1469,7 +1469,7 @@ atoms_close(void)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
+	for (i = 0; i < N_ITEMS(atoms); i++) {
 		atom_desc_t *ad = &atoms[i];
 
 		ATOM_TABLE_LOCK(ad);

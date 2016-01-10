@@ -193,12 +193,12 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
 	points[2].y = 0;
 	gdk_gc_set_foreground(v->context->gc, &colors.arrow);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
-		TRUE, points, G_N_ELEMENTS(points));
+		TRUE, points, N_ITEMS(points));
 
 	/* Draw a black border around the arrow */
 	gdk_gc_set_foreground(v->context->gc, &colors.black);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
-		FALSE, points, G_N_ELEMENTS(points));
+		FALSE, points, N_ITEMS(points));
 }
 
 /**

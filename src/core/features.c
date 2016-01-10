@@ -66,7 +66,7 @@ features_get(xfeature_t xf)
 	uint i;
 
 	i = (uint) xf;
-	g_return_val_if_fail(i < G_N_ELEMENTS(features), NULL);
+	g_return_val_if_fail(i < N_ITEMS(features), NULL);
 	return &features[i];
 }
 

@@ -597,10 +597,10 @@ dbg_tree_init(void)
 	GtkTreeView *tv;
 	guint i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(columns) == (guint) num_dbg_cols);
+	STATIC_ASSERT(N_ITEMS(columns) == (guint) num_dbg_cols);
 
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
-	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
+	store = GTK_LIST_STORE(gtk_list_store_new(N_ITEMS(columns),
 				G_TYPE_STRING,		/* Saved? */
 				G_TYPE_STRING,		/* Internal? */
 				G_TYPE_STRING,		/* Type */
@@ -611,7 +611,7 @@ dbg_tree_init(void)
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
 	g_object_unref(store);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 

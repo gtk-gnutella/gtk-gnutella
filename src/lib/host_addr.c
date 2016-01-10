@@ -317,7 +317,7 @@ ipv4_addr_is_routable(uint32 ip)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(net); i++) {
+	for (i = 0; i < N_ITEMS(net); i++) {
 		if ((ip & net[i].mask) == net[i].addr)
 			return FALSE;
 	}

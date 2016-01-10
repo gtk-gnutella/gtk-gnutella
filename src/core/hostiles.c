@@ -417,7 +417,7 @@ hostiles_retrieve(hostiles_t which)
 			file_path_set(&fp_private[0], settings_config_dir(), hostiles_file);
 			f = file_config_open_read_norename_chosen(
 					hostiles_what[HOSTILE_PRIVATE],
-					fp_private, G_N_ELEMENTS(fp_private), &idx);
+					fp_private, N_ITEMS(fp_private), &idx);
 
 			if (f) {
 				hostiles_retrieve_from_file(f, HOSTILE_PRIVATE,
@@ -436,7 +436,7 @@ hostiles_retrieve(hostiles_t which)
 
 			length = settings_file_path_load(fp, hostiles_file, SFP_NO_CONFIG);
 
-			g_assert(length <= G_N_ELEMENTS(fp));
+			g_assert(length <= N_ITEMS(fp));
 
 			f = file_config_open_read_norename_chosen(
 					hostiles_what[HOSTILE_GLOBAL], fp, length, &idx);

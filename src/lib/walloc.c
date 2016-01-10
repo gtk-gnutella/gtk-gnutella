@@ -803,7 +803,7 @@ walloc_active_limit(void)
 
 	WALLOC_LOCK;
 
-	for (i = 0; i < G_N_ELEMENTS(wzone); i++) {
+	for (i = 0; i < N_ITEMS(wzone); i++) {
 		zone_t *z = wzone[i];
 
 		if (z != NULL) {

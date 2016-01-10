@@ -516,7 +516,7 @@ search_stats_gui_init(void)
 	GtkTreeModel *model;
     GtkTreeView *treeview;
 
-	STATIC_ASSERT(G_N_ELEMENTS(cols) == G_N_ELEMENTS(types));
+	STATIC_ASSERT(N_ITEMS(cols) == N_ITEMS(types));
 
 	treeview_search_stats =
         GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_stats"));
@@ -526,12 +526,12 @@ search_stats_gui_init(void)
 	treeview = treeview_search_stats;
 
     /* set up the treeview to be sorted properly */
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 	gtk_tree_view_set_model(treeview, model);
     store_search_stats = GTK_LIST_STORE(model);
 	g_object_unref(model);
 
-	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
+	for (i = 0; i < N_ITEMS(cols); i++) {
 		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
 	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);

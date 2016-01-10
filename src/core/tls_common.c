@@ -403,7 +403,7 @@ tls_generate_self_signed_cert(const char *file, const char *keyfile)
 		p = poke_le32(serial, now.tv_sec);
 		p = poke_be32(p, now.tv_usec);
 
-		if (TRY(gnutls_x509_crt_set_serial)(crt, serial, G_N_ELEMENTS(serial)))
+		if (TRY(gnutls_x509_crt_set_serial)(crt, serial, N_ITEMS(serial)))
 			goto failed;
 	}
 

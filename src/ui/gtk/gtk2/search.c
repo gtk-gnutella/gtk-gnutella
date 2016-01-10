@@ -1019,9 +1019,9 @@ add_list_columns(GtkTreeView *tv)
 	};
 	guint i;
 
-	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == N_ITEMS(columns));
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		GtkTreeViewColumn *column;
 
 		column = add_column(tv, _(columns[i].title), columns[i].id,
@@ -1062,13 +1062,13 @@ search_details_treeview_init(void)
 	g_return_if_fail(tv);
 
 	model = GTK_TREE_MODEL(
-				gtk_list_store_new(G_N_ELEMENTS(tab),
+				gtk_list_store_new(N_ITEMS(tab),
 				G_TYPE_STRING, G_TYPE_STRING));
 
 	gtk_tree_view_set_model(tv, model);
 	g_object_unref(model);
 
-	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+	for (i = 0; i < N_ITEMS(tab); i++) {
     	GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 
@@ -1100,9 +1100,9 @@ create_searches_model(void)
 	GtkListStore *store;
 	guint i;
 
-	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_sl_num == N_ITEMS(columns));
 #define SET(c, x) case (c): columns[i] = (x); break
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		switch (i) {
 		SET(c_sl_name, G_TYPE_STRING);
 		SET(c_sl_hit, G_TYPE_INT);
@@ -1116,7 +1116,7 @@ create_searches_model(void)
 	}
 #undef SET
 
-	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	store = gtk_list_store_newv(N_ITEMS(columns), columns);
 	return GTK_TREE_MODEL(store);
 }
 

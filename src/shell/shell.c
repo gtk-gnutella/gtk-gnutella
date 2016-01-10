@@ -583,7 +583,7 @@ shell_cmd_get_handler(const char *cmd, bool *threaded)
 	if G_UNLIKELY(NULL == shell_cmds) {
 		shell_cmds = htable_create(HASH_KEY_STRING, 0);
 
-		for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+		for (i = 0; i < N_ITEMS(commands); i++) {
 			char *name = xstrdup(commands[i].cmd);
 
 			ascii_strlower(name, name);		/* In-place conversion */

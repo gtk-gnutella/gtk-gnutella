@@ -674,7 +674,7 @@ g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
 	 * If we have more SHA1s already than we can hold, stop.
 	 */
 
-	if (sri->exv_sha1cnt == G_N_ELEMENTS(sri->exv_sha1))
+	if (sri->exv_sha1cnt == N_ITEMS(sri->exv_sha1))
 		return;
 
 	p = g2_tree_node_payload(t, &paylen);
@@ -695,7 +695,7 @@ g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
 	 * we can use clamp_memcmp() to see whether we have a known prefix.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(g2_q2_urn); i++) {
+	for (i = 0; i < N_ITEMS(g2_q2_urn); i++) {
 		const char *prefix = g2_q2_urn[i];
 		size_t len = strlen(prefix) + 1;	/* Wants trailing NUL as well */
 
@@ -708,7 +708,7 @@ g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
 			if (paylen >= SHA1_RAW_SIZE) {
 				uint idx = sri->exv_sha1cnt++;
 
-				g_assert(idx < G_N_ELEMENTS(sri->exv_sha1));
+				g_assert(idx < N_ITEMS(sri->exv_sha1));
 
 				memcpy(&sri->exv_sha1[idx].sha1, p, SHA1_RAW_SIZE);
 			}

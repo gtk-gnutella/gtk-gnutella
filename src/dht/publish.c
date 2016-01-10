@@ -334,9 +334,9 @@ static const char *publish_errstr[] = {
 const char *
 publish_strerror(publish_error_t error)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(publish_errstr) == PUBLISH_E_MAX);
+	STATIC_ASSERT(N_ITEMS(publish_errstr) == PUBLISH_E_MAX);
 
-	if (UNSIGNED(error) >= G_N_ELEMENTS(publish_errstr))
+	if (UNSIGNED(error) >= N_ITEMS(publish_errstr))
 		return "Invalid publish error code";
 
 	return publish_errstr[error];
@@ -1841,7 +1841,7 @@ publish_offload_iterate(publish_t *pb)
 
 		pb->hops++;
 		key = slist_shift(pb->target.o.keys);
-		valcnt = keys_get_all(key, valvec, G_N_ELEMENTS(valvec));
+		valcnt = keys_get_all(key, valvec, N_ITEMS(valvec));
 
 		if (GNET_PROPERTY(dht_publish_debug) > 3) {
 			tm_t now;

@@ -3359,7 +3359,7 @@ dmesh_retrieve(void)
 	file_path_t fp[1];
 
 	file_path_set(fp, settings_config_dir(), dmesh_file);
-	f = file_config_open_read("download mesh", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read("download mesh", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 

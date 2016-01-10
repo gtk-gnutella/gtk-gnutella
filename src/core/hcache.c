@@ -631,7 +631,7 @@ const char *
 hcache_type_to_string(hcache_type_t type)
 {
 	g_assert((uint) type < HCACHE_MAX);
-	STATIC_ASSERT(HCACHE_MAX == G_N_ELEMENTS(names));
+	STATIC_ASSERT(HCACHE_MAX == N_ITEMS(names));
 
 	return names[type];
 }
@@ -643,7 +643,7 @@ const char *
 host_type_to_string(host_type_t type)
 {
 	g_assert((uint) type < HOST_MAX);
-	STATIC_ASSERT(HOST_MAX == G_N_ELEMENTS(host_type_names));
+	STATIC_ASSERT(HOST_MAX == N_ITEMS(host_type_names));
 
 	return host_type_names[type];
 }
@@ -1885,7 +1885,7 @@ hcache_retrieve(hostcache_t *hc, const char *filename)
 	FILE *f;
 
 	file_path_set(fp, settings_config_dir(), filename);
-	f = file_config_open_read(hc->name, fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read(hc->name, fp, N_ITEMS(fp));
 	if (f) {
 		hcache_load_file(hc, f);
 		fclose(f);
@@ -2251,7 +2251,7 @@ hcache_close(void)
      * hcache_require_caught will crash if we free certain hostcaches.
      */
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		uint j;
 		hcache_type_t type = types[i];
 
@@ -2266,7 +2266,7 @@ hcache_close(void)
     		g_assert(hash_list_length(caches[j]->hostlist) == 0);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		hcache_type_t type = types[i];
 
 		hcache_free_null(&caches[type]);

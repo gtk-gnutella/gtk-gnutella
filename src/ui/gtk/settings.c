@@ -2474,7 +2474,7 @@ expert_mode_changed(property_t prop)
     gui_prop_get_boolean_val(prop, &expert);
 
 	/* Enable/Disable main_window expert widgets */
-    for (i = 0; i < G_N_ELEMENTS(expert_widgets_main); i++) {
+    for (i = 0; i < N_ITEMS(expert_widgets_main); i++) {
        w = gui_main_window_lookup(expert_widgets_main[i]);
        if (w == NULL)
 			continue;
@@ -2486,7 +2486,7 @@ expert_mode_changed(property_t prop)
     }
 
 	/* Enable/Disable preferences dialog expert widgets */
-    for (i = 0; i < G_N_ELEMENTS(expert_widgets_prefs); i++) {
+    for (i = 0; i < N_ITEMS(expert_widgets_prefs); i++) {
        w = gui_dlg_prefs_lookup(expert_widgets_prefs[i]);
        if (w == NULL)
 			continue;
@@ -6118,13 +6118,13 @@ settings_gui_init_prop_map(void)
 
     if (GUI_PROPERTY(gui_debug) >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n",
-            (guint) G_N_ELEMENTS(property_map));
+            (guint) N_ITEMS(property_map));
     }
 
     /*
      * Fill in automatic fields in property_map.
      */
-    for (n = 0; n < G_N_ELEMENTS(property_map); n++) {
+    for (n = 0; n < N_ITEMS(property_map); n++) {
         property_t prop = property_map[n].prop;
         prop_def_t *def;
 
@@ -6160,7 +6160,7 @@ settings_gui_init_prop_map(void)
     /*
      * Now the map is complete and can be processed.
      */
-    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
+    for (n = 0; n < N_ITEMS(property_map); n ++) {
         property_t  prop      = property_map[n].prop;
         prop_def_t *def       = property_map[n].stub->get_def(prop);
         guint32     idx       = prop - property_map[n].stub->offset;
@@ -6225,7 +6225,7 @@ settings_gui_save_panes(void)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+	for (i = 0; i < N_ITEMS(panes); i++) {
 		GtkPaned *paned;
 
 		paned = GTK_PANED(gui_main_window_lookup(panes[i].name));
@@ -6239,7 +6239,7 @@ settings_gui_restore_panes(void)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+	for (i = 0; i < N_ITEMS(panes); i++) {
 		GtkPaned *paned;
 
 		paned = GTK_PANED(gui_main_window_lookup(panes[i].name));
@@ -6307,7 +6307,7 @@ settings_gui_shutdown(void)
      * Remove the listeners
      */
 
-    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
+    for (n = 0; n < N_ITEMS(property_map); n ++) {
         if (property_map[n].cb != IGNORE_CB) {
             property_map[n].stub->prop_changed_listener.remove(
                 property_map[n].prop,

@@ -1754,7 +1754,7 @@ http_range_test_load(const http_range_t ranges[], size_t cnt)
 	return hrs;
 }
 
-#define HTTP_RANGE_TEST_LOAD(x)	http_range_test_load((x), G_N_ELEMENTS(x))
+#define HTTP_RANGE_TEST_LOAD(x)	http_range_test_load((x), N_ITEMS(x))
 
 /**
  * Perform unit tests for HTTP ranges.
@@ -1768,20 +1768,20 @@ http_range_test(void)
 	uint test = 0;
 	str_t *s;
 
-	hrs_even = http_range_test_load(hrtest_even, G_N_ELEMENTS(hrtest_even));
-	hrs_odd = http_range_test_load(hrtest_odd, G_N_ELEMENTS(hrtest_odd));
+	hrs_even = http_range_test_load(hrtest_even, N_ITEMS(hrtest_even));
+	hrs_odd = http_range_test_load(hrtest_odd, N_ITEMS(hrtest_odd));
 
-	g_assert(G_N_ELEMENTS(hrtest_even) == http_rangeset_length(hrs_even));
-	g_assert(G_N_ELEMENTS(hrtest_even) == http_rangeset_count(hrs_even));
-	g_assert(G_N_ELEMENTS(hrtest_odd) == http_rangeset_length(hrs_odd));
-	g_assert(G_N_ELEMENTS(hrtest_odd) == http_rangeset_count(hrs_odd));
+	g_assert(N_ITEMS(hrtest_even) == http_rangeset_length(hrs_even));
+	g_assert(N_ITEMS(hrtest_even) == http_rangeset_count(hrs_even));
+	g_assert(N_ITEMS(hrtest_odd) == http_rangeset_length(hrs_odd));
+	g_assert(N_ITEMS(hrtest_odd) == http_rangeset_count(hrs_odd));
 
 	HTTP_RANGE_FOREACH(hrs_odd, hr) {
 		http_rangeset_insert(hrs_even, hr->start, hr->end);
 	}
 
 	g_assert(http_rangeset_length(hrs_even) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_even));
 
 	http_rangeset_free_null(&hrs_even);
@@ -1791,7 +1791,7 @@ http_range_test(void)
 	http_rangeset_merge(hrs_even, hrs_odd);
 
 	g_assert(http_rangeset_length(hrs_even) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_even));
 
 	http_rangeset_free_null(&hrs_even);
@@ -1806,7 +1806,7 @@ http_range_test(void)
 	}
 
 	g_assert(http_rangeset_length(hrs_odd) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_odd));
 
 	http_rangeset_free_null(&hrs_odd);
@@ -1816,7 +1816,7 @@ http_range_test(void)
 	http_rangeset_merge(hrs_odd, hrs_even);
 
 	g_assert(http_rangeset_length(hrs_odd) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_odd));
 
 	http_rangeset_free_null(&hrs_even);
@@ -1831,7 +1831,7 @@ http_range_test(void)
 	}
 
 	g_assert(http_rangeset_length(hrs_over) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_over));
 
 	http_rangeset_free_null(&hrs_over);
@@ -1844,7 +1844,7 @@ http_range_test(void)
 	}
 
 	g_assert(http_rangeset_length(hrs_even) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_even));
 
 	http_rangeset_free_null(&hrs_even);
@@ -1859,11 +1859,11 @@ http_range_test(void)
 	http_rangeset_merge(hrs_even, hrs_over);
 
 	g_assert(http_rangeset_length(hrs_even) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd));
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd));
 	g_assert(1 == http_rangeset_count(hrs_even));
 
 	g_assert(http_rangeset_length(hrs_odd) ==
-		G_N_ELEMENTS(hrtest_even) + G_N_ELEMENTS(hrtest_odd) - 1);
+		N_ITEMS(hrtest_even) + N_ITEMS(hrtest_odd) - 1);
 	g_assert(2 == http_rangeset_count(hrs_odd));	/* 0-1, 3-9 */
 
 	http_rangeset_free_null(&hrs_even);

@@ -720,7 +720,7 @@ add_file(const shared_file_t *sf)
 		found_insert(sha1);		/* SHA1 are atoms, address is unique */
 
 		needed += 9 + SHA1_BASE32_SIZE;
-		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+		hcnt = dmesh_fill_alternate(sha1, hvec, N_ITEMS(hvec));
 		needed += hcnt * 18 + 6;	/* Conservative, assumes IPv6 only */
 	}
 

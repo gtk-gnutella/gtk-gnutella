@@ -637,7 +637,7 @@ uhc_init(void)
 	g_return_if_fail(NULL == uhc_list);
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
 
-	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
+	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
 		const char *host, *ep, *uhc;
 		uint16 port;
 

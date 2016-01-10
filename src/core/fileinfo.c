@@ -1355,7 +1355,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 	}
 
-	for (/* NOTHING */; i < G_N_ELEMENTS(tr); i++) {
+	for (/* NOTHING */; i < N_ITEMS(tr); i++) {
 		uint32 v = ntohl(tr[i]);
 
 		switch (i) {
@@ -2449,7 +2449,7 @@ file_info_close(void)
 	g_assert(0 == idtable_count(src_handle_map));
 	idtable_destroy(src_handle_map);
 
-	for (i = 0; i < G_N_ELEMENTS(src_events); i++) {
+	for (i = 0; i < N_ITEMS(src_events); i++) {
 		event_destroy(src_events[i]);
 	}
 
@@ -2462,7 +2462,7 @@ file_info_close(void)
 	g_assert(0 == idtable_count(fi_handle_map));
 	idtable_destroy(fi_handle_map);
 
-	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
+	for (i = 0; i < N_ITEMS(fi_events); i++) {
 		event_destroy(fi_events[i]);
 	}
 	hikset_free_null(&fi_by_sha1);

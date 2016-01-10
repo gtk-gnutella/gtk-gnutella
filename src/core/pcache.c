@@ -591,7 +591,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			gnet_host_set(&evec[0], info->addr, info->port);
 			gnet_host_set(&evec[1], sender_addr, sender_port);
 
-			ggept_ipp_pack(&gs, host, hcount, evec, G_N_ELEMENTS(evec),
+			ggept_ipp_pack(&gs, host, hcount, evec, N_ITEMS(evec),
 				flags & PING_F_IPV6, flags & PING_F_NO_IPV4);
 		}
 	}
@@ -608,7 +608,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		gnet_host_t host[PCACHE_DHT_MAX_IP];
 		int hcount;
 
-		hcount = dht_fill_random(host, G_N_ELEMENTS(host));
+		hcount = dht_fill_random(host, N_ITEMS(host));
 
 		if (hcount > 0) {
 			ggept_dhtipp_pack(&gs, host, hcount,
@@ -1038,7 +1038,7 @@ pcache_guess_acknowledge(gnutella_node_t *n,
 	 * for a host different from the one sending us the message.
 	 */
 
-	hcount = guess_fill_caught_array(net, FALSE, host, G_N_ELEMENTS(host));
+	hcount = guess_fill_caught_array(net, FALSE, host, N_ITEMS(host));
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;
@@ -1547,7 +1547,7 @@ pcache_close(void)
 
 	pcache_expire();
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);

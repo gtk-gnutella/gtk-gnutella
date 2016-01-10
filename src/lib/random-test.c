@@ -311,7 +311,7 @@ dump_raw(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 	while (0 == dumpcnt || n != 0) {
 		uint32 v[1024];
 		size_t i;
-		size_t g = 0 == dumpcnt ? G_N_ELEMENTS(v) : MIN(G_N_ELEMENTS(v), n);
+		size_t g = 0 == dumpcnt ? N_ITEMS(v) : MIN(N_ITEMS(v), n);
 
 		for (i = 0; i < g; i++) {
 			v[i] = (*fn)() & mask;
@@ -535,7 +535,7 @@ add_entropy(void *p)
 
 		thread_sleep_ms(500);
 
-		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+		for (i = 0; i < N_ITEMS(v); i++) {
 			v[i] = rand31_u32();
 		}
 
@@ -779,14 +779,14 @@ G_STMT_START {			\
 		unsigned bits[32];
 		unsigned nbits;
 
-		nbits = G_N_ELEMENTS(bits);
+		nbits = N_ITEMS(bits);
 
 		if ((random_fn_t) rand31 == fn) {
 			nbits = 31;
 			period &= ~(1U << 31);
 		}
 
-		g_assert(nbits <= G_N_ELEMENTS(bits));
+		g_assert(nbits <= N_ITEMS(bits));
 
 		count_bits(fn, period, bits, nbits);
 		display_bits(bits, nbits, period);

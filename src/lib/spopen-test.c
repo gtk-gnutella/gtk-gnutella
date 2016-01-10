@@ -596,7 +596,7 @@ spopenve_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(spopenve_tests); i++) {
+	for (i = 0; i < N_ITEMS(spopenve_tests); i++) {
 		htable_insert(tv, spopenve_tests[i].name, spopenve_tests[i].cb);
 	}
 }

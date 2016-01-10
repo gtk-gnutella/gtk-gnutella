@@ -298,9 +298,9 @@ boot_status_to_string(enum dht_bootsteps status)
 {
 	size_t i = status;
 
-	STATIC_ASSERT(DHT_BOOT_MAX_VALUE == G_N_ELEMENTS(boot_status_str));
+	STATIC_ASSERT(DHT_BOOT_MAX_VALUE == N_ITEMS(boot_status_str));
 
-	if (i >= G_N_ELEMENTS(boot_status_str))
+	if (i >= N_ITEMS(boot_status_str))
 		return "invalid boot status";
 
 	return boot_status_str[i];
@@ -3781,7 +3781,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	cumulative[0] = prefix[0];
 
-	for (b_min = 0, i = 1; i < G_N_ELEMENTS(prefix); i++) {
+	for (b_min = 0, i = 1; i < N_ITEMS(prefix); i++) {
 		cumulative[i] = cumulative[i - 1] + prefix[i];
 		if (0 == b_min && cumulative[i] >= retained / 2)
 			b_min = i;
@@ -3984,7 +3984,7 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 
 	st = statx_make_nodata();
 
-	for (sum = 0, i = 0; i < G_N_ELEMENTS(estimate); i++) {
+	for (sum = 0, i = 0; i < N_ITEMS(estimate); i++) {
 		statx_add(st, (double) estimate[i]);
 		sum = uint64_saturate_add(sum, estimate[i]);
 	}
@@ -3999,7 +3999,7 @@ dht_compute_size_estimate(patricia_t *pt, const kuid_t *kuid, int amount)
 
 	statx_free(st);
 
-	return mean > sdev ? sum / G_N_ELEMENTS(estimate) : 0;
+	return mean > sdev ? sum / N_ITEMS(estimate) : 0;
 }
 
 /**
@@ -5462,7 +5462,7 @@ dht_route_parse(FILE *f)
 
 				/* All other tags are mandatory */
 
-				for (i = 0; i < G_N_ELEMENTS(dht_route_tags); i++) {
+				for (i = 0; i < N_ITEMS(dht_route_tags); i++) {
 					if (!bit_array_get(tag_used, dht_route_tags[i].value)) {
 						g_warning("%s(): missing %s tag near line %u",
 							G_STRFUNC, dht_route_tags[i].token, line_no);
@@ -5595,7 +5595,7 @@ dht_route_retrieve(void)
 	TOKENIZE_CHECK_SORTED(dht_route_tags);
 
 	file_path_set(fp, settings_config_dir(), node_file);
-	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read(file_what, fp, N_ITEMS(fp));
 
 	if (f) {
 		dht_route_parse(f);

@@ -541,7 +541,7 @@ gui_init_dlg_about(void)
         GTK_LABEL(gui_dlg_about_lookup("label_about_title")),
         guc_version_get_version_string());
 
-  	for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
+  	for (i = 0; i < N_ITEMS(contributors); i++) {
 		if (i > 0)
 			text_widget_append(GTK_WIDGET(text), "\n");
 		text_widget_append(GTK_WIDGET(text),
@@ -791,9 +791,9 @@ void main_gui_init_osx()
 
 	GtkActionGroup *actions = gtk_action_group_new ("Actions");
 	gtk_action_group_add_actions (actions, entries,
-								  G_N_ELEMENTS (entries), NULL);
+								  N_ITEMS (entries), NULL);
 	gtk_action_group_add_toggle_actions(actions, toggle_entries,
-										G_N_ELEMENTS (toggle_entries), NULL);
+										N_ITEMS (toggle_entries), NULL);
 	gtk_ui_manager_insert_action_group (mgr, actions, 0);
 
 	menubar = gtk_ui_manager_get_widget(mgr, "/MenuBar");
@@ -993,10 +993,10 @@ main_gui_run(const gchar *geometry_spec, const gboolean minimized)
 	if (geometry_spec) {
 		guint32 coord[4] = { 0, 0, 0, 0 };
 
-    	gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
+    	gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, N_ITEMS(coord));
 		if (0 == gui_parse_geometry_spec(geometry_spec, coord)) {
     		gui_prop_set_guint32(PROP_WINDOW_COORDS,
-				coord, 0, G_N_ELEMENTS(coord));
+				coord, 0, N_ITEMS(coord));
 		}
 	}
 	gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
@@ -1117,7 +1117,7 @@ main_gui_shutdown(void)
 
 	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 
-	for (i = 0; i < G_N_ELEMENTS(visibility_listeners); i++) {
+	for (i = 0; i < N_ITEMS(visibility_listeners); i++) {
 		gm_slist_free_null(&visibility_listeners[i]);
 	}
 	slist_free(&timers);

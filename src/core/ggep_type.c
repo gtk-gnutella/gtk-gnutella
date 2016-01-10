@@ -163,7 +163,7 @@ static const char *gtkgv_osname[] = {
 static const char *
 ggept_gtkgv_osname(uint8 value)
 {
-	return value >= G_N_ELEMENTS(gtkgv_osname) ?
+	return value >= N_ITEMS(gtkgv_osname) ?
 		gtkgv_osname[0] : gtkgv_osname[value];
 }
 
@@ -192,7 +192,7 @@ ggept_gtkgv_osname_encode(const char *sysname)
 	 * something more specific to use than the defaults.
 	 */
 
-	for (i = 3; i < G_N_ELEMENTS(gtkgv_osname); i++) {
+	for (i = 3; i < N_ITEMS(gtkgv_osname); i++) {
 		if (0 == strcasecmp(sysname, gtkgv_osname[i])) {
 			result = i;
 			break;
@@ -219,7 +219,7 @@ ggept_gtkgv_osname_value(void)
 	 * Computation only happens once.
 	 */
 
-	if (result >= G_N_ELEMENTS(gtkgv_osname)) {
+	if (result >= N_ITEMS(gtkgv_osname)) {
 #ifdef HAS_UNAME
 		{
 			struct utsname un;

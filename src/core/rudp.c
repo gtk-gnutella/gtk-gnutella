@@ -676,7 +676,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 		 * Remove all ACKed messages from the outbuf buffers. The
 		 * ACK qualifies for `seq_no' and all up to `start - 1'.
 		 */
-		for (i = 0; i < G_N_ELEMENTS(con->out.buffers); i++) {
+		for (i = 0; i < N_ITEMS(con->out.buffers); i++) {
 			pmsg_t *mb;
 
 			mb = con->out.buffers[i];
@@ -694,7 +694,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 		}
 
 		pending = FALSE;
-		for (i = 0; i < G_N_ELEMENTS(con->out.buffers); i++) {
+		for (i = 0; i < N_ITEMS(con->out.buffers); i++) {
 			if (con->out.buffers[con->out.rd]) {
 				pending = TRUE;
 				break;
@@ -703,7 +703,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 				break;
 			}
 			con->out.rd++;
-			con->out.rd %= G_N_ELEMENTS(con->out.buffers);
+			con->out.rd %= N_ITEMS(con->out.buffers);
 		}
 		rudp_set_pending(con, pending);
 	}
@@ -714,7 +714,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 	} else {
 		con->out.start = MAX(start, con->out.start);
 	}
-	con->out.space = MIN(space, G_N_ELEMENTS(con->out.buffers));
+	con->out.space = MIN(space, N_ITEMS(con->out.buffers));
 }
 
 static void
@@ -768,9 +768,9 @@ rudp_handle_data(struct rudp_con *con, const void *data)
 	RUDP_DEBUG(("RUDP DATA: seq_no=%u", seq_no));
 
 	i = seq_no - con->in.seq_no;
-	g_return_if_fail(i < G_N_ELEMENTS(con->in.buffers));
+	g_return_if_fail(i < N_ITEMS(con->in.buffers));
 
-	i = ((uint32) i + con->in.rd) % G_N_ELEMENTS(con->in.buffers);
+	i = ((uint32) i + con->in.rd) % N_ITEMS(con->in.buffers);
 
 	if (con->in.buffers[i]) {
 		RUDP_DEBUG(("RUDP DATA: Received duplicate"));
@@ -831,7 +831,7 @@ rudp_send_data(struct rudp_con *con, const void *data, size_t size)
 
 	con->out.buffers[con->out.wr] = mb;
 	con->out.wr++;
-	con->out.wr %= G_N_ELEMENTS(con->out.buffers);
+	con->out.wr %= N_ITEMS(con->out.buffers);
 
 	return TRUE;
 }
@@ -1006,7 +1006,7 @@ rudp_read(struct rudp_con *con, void *data, size_t size)
 		}
 		pmsg_free(mb);
 		con->in.buffers[i] = NULL;
-		i = (i + 1) % G_N_ELEMENTS(con->in.buffers);
+		i = (i + 1) % N_ITEMS(con->in.buffers);
 		con->in.seq_no++;
 	}
 	con->in.rd = i;

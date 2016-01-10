@@ -459,7 +459,7 @@ spam_retrieve(void)
 
 	length = settings_file_path_load(fp, spam_text_file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(spam_what, fp, length, &idx);
 	if (f != NULL) {

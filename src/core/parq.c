@@ -5096,7 +5096,7 @@ parq_upload_load_queue(void)
 	bool resync = FALSE;
 
 	file_path_set(fp, settings_config_dir(), file_parq_file);
-	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read("PARQ upload queue data", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 

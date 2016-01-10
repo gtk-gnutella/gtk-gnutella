@@ -1059,7 +1059,7 @@ mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe, int *error)
 static void
 mingw_sha1_process_entry(PROCESSENTRY32W *pe, sha1_t *digest)
 {
-	size_t n = G_N_ELEMENTS(pe->szExeFile);
+	size_t n = N_ITEMS(pe->szExeFile);
 	SHA1_context c;
 
 	SHA1_reset(&c);
@@ -1499,8 +1499,8 @@ mingw_environment_block(char * const envp[], int *flags)
 	if (envp != NULL) {
 		size_t i, cnt, acnt = 0;
 		const char *mandatory[] = { "PATH", "SYSTEMROOT" };
-		bool has_mandatory[G_N_ELEMENTS(mandatory)];
-		char *added[G_N_ELEMENTS(mandatory)];
+		bool has_mandatory[N_ITEMS(mandatory)];
+		char *added[N_ITEMS(mandatory)];
 		char **e;
 		char *env;
 
@@ -1518,7 +1518,7 @@ mingw_environment_block(char * const envp[], int *flags)
 		for (i = 0; NULL != envp[i]; i++) {
 			size_t j;
 
-			for (j = 0; j < G_N_ELEMENTS(mandatory); j++) {
+			for (j = 0; j < N_ITEMS(mandatory); j++) {
 				const char *p;
 
 				if (has_mandatory[j])
@@ -1539,7 +1539,7 @@ mingw_environment_block(char * const envp[], int *flags)
 		 * then propagate it from the environment of the current process.
 		 */
 
-		for (i = 0; i < G_N_ELEMENTS(mandatory); i++) {
+		for (i = 0; i < N_ITEMS(mandatory); i++) {
 			if (!has_mandatory[i]) {
 				const char *v = getenv(mandatory[i]);
 
@@ -1552,7 +1552,7 @@ mingw_environment_block(char * const envp[], int *flags)
 			}
 		}
 
-		g_assert(acnt <= G_N_ELEMENTS(added));
+		g_assert(acnt <= N_ITEMS(added));
 
 		/*
 		 * Windows requires that environment variables be sorted.
@@ -4355,8 +4355,8 @@ mingw_fopen(const char *pathname, const char *mode)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
-			G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, N_ITEMS(wmode)) >=
+			N_ITEMS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -4389,8 +4389,8 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
-			G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, N_ITEMS(wmode)) >=
+			N_ITEMS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -4442,13 +4442,13 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 
 	ZERO(&mountp);
 
-	ret = GetVolumePathNameW(pncs.utf16, mountp, G_N_ELEMENTS(mountp));
+	ret = GetVolumePathNameW(pncs.utf16, mountp, N_ITEMS(mountp));
 	root = ret ? mountp : pncs.utf16;
 
 	ZERO(&vname);
 
 	ret = GetVolumeInformationW(root,
-		vname, G_N_ELEMENTS(vname),		/* VolumeName{Buffer,Size} */
+		vname, N_ITEMS(vname),		/* VolumeName{Buffer,Size} */
 		NULL,							/* VolumeSerialNumber */
 		&MaxComponentLength,			/* MaximumComponentLength */
 		&FileSystemFlags,				/* FileSystemFlags */
@@ -4463,8 +4463,8 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 		 * All we want is a stable file system ID, so we hash the volume name.
 		 */
 
-		utf16_to_utf8(vname, volume, G_N_ELEMENTS(volume));
-		volume[G_N_ELEMENTS(volume) - 1] = '\0';
+		utf16_to_utf8(vname, volume, N_ITEMS(volume));
+		volume[N_ITEMS(volume) - 1] = '\0';
 		buf->f_fsid = string_mix_hash(volume);
 	}
 
@@ -5145,7 +5145,7 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	uint64 result = 0;
 
 	len = size_saturate_mult(cpus, sizeof *p);
-	if (cpus <= G_N_ELEMENTS(powarray)) {
+	if (cpus <= N_ITEMS(powarray)) {
 		p = powarray;
 	} else {
 		p = walloc(len);
@@ -7329,7 +7329,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		int count;
 
 		count = mingw_stack_unwind(
-			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
+			mingw_stack, N_ITEMS(mingw_stack), ei->ContextRecord, 0);
 
 		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
 		if (log_stdout_is_distinct())

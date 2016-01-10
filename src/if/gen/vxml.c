@@ -66,7 +66,7 @@ static const char *vxml_error_str[] = {
 const char *
 vxml_strerror(vxml_error_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(vxml_error_str)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(vxml_error_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid vxml_error_t code: %d", (int) x);
 		return str_2c(s);

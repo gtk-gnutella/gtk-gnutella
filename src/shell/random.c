@@ -111,7 +111,7 @@ shell_exec_random_stats(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -155,7 +155,7 @@ shell_exec_random_val(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 

@@ -161,7 +161,7 @@ shell_exec_thread_stats(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -199,7 +199,7 @@ shell_exec_thread_elements(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 

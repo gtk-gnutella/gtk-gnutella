@@ -205,7 +205,7 @@ prop_parse_boolean(const char *name,
 	g_assert(name);
 	g_assert(str);
 
-	for (j = 0; j < G_N_ELEMENTS(tab); j++) {
+	for (j = 0; j < N_ITEMS(tab); j++) {
 		if (NULL != (p = is_strcaseprefix(str, tab[j].s))) {
 			b = tab[j].v;
 			break;
@@ -1361,7 +1361,7 @@ const char *
 prop_type_to_string(prop_set_t *ps, property_t prop)
 {
 	g_assert(PROP(ps,prop).type < NUM_PROP_TYPES);
-	STATIC_ASSERT(NUM_PROP_TYPES == G_N_ELEMENTS(prop_type_str));
+	STATIC_ASSERT(NUM_PROP_TYPES == N_ITEMS(prop_type_str));
 	return prop_type_str[PROP(ps,prop).type].name;
 }
 

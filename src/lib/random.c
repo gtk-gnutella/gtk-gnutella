@@ -616,7 +616,7 @@ random_cpu_noise(void)
 	/* No need to make this routine thread-safe as we want noise anyway */
 
 	r = well_thread_rand() ^ mt_thread_rand() ^ arc4_thread_rand();
-	i = r % G_N_ELEMENTS(data);
+	i = r % N_ITEMS(data);
 	data[i] = r;
 
 	SHA1_reset(&ctx);
@@ -769,7 +769,7 @@ random_add_pool(void *buf, size_t len)
 	}
 
 	g_assert(size_is_non_negative(idx));
-	g_assert(idx < G_N_ELEMENTS(data));
+	g_assert(idx < N_ITEMS(data));
 
 	for (p = buf, n = len; n != 0; p++, n--) {
 		data[idx++] = *p;
@@ -778,7 +778,7 @@ random_add_pool(void *buf, size_t len)
 		 * Feed extra bytes when we have enough.
 		 */
 
-		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
+		if G_UNLIKELY(idx >= N_ITEMS(data)) {
 			random_add(data, sizeof data);
 			ZERO(&data);		/* Hide them now */
 			idx = 0;
@@ -1051,7 +1051,7 @@ random_entropy(void *unused)
 	 * AJE, and only a marginal presence for WELL and CMWC.
 	 */
 
-	i = random_value(G_N_ELEMENTS(prngs) - 1);
+	i = random_value(N_ITEMS(prngs) - 1);
 
 	switch (prngs[i]) {
 	case RANDOM_AJE:
@@ -1082,7 +1082,7 @@ random_entropy(void *unused)
 
 	aje_random_bytes(entropy, ELEN);	/* New random bytes */
 
-	i = random_value(G_N_ELEMENTS(prngs) - 1);
+	i = random_value(N_ITEMS(prngs) - 1);
 
 	random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
 

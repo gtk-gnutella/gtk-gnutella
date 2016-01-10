@@ -1030,7 +1030,7 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 		stacktrace_stack_print_decorated(fd, stack, count, flags);
 	}
 
@@ -1138,7 +1138,7 @@ crash_reset_signals(void)
 	 * are about to re-exec() ourselves from a signal handler!
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		signal_set(signals[i], SIG_DFL);
 		signal_unblock(signals[i]);
 	}
@@ -3177,7 +3177,7 @@ crash_handler(int signo)
 		crash_set_var(pause_process, f);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		int sig = signals[i];
 		switch (sig) {
 #ifdef SIGBUS
@@ -3550,7 +3550,7 @@ crash_init(const char *argv0, const char *progname,
 	iv.pid = getpid();
 	iv.ppid = getppid();
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		signal_set(signals[i], crash_handler);
 	}
 
@@ -4249,7 +4249,7 @@ crash_fill_stack(void *arg)
 {
 	struct crash_stack *t = arg;
 
-	t->count = stacktrace_unwind(t->stack, G_N_ELEMENTS(t->stack), 2);
+	t->count = stacktrace_unwind(t->stack, N_ITEMS(t->stack), 2);
 	return NULL;
 }
 
@@ -4521,8 +4521,8 @@ crash_save_stackframe(void *stack[], size_t count)
 {
 	crash_mode(CRASH_LVL_BASIC);
 
-	if (count > G_N_ELEMENTS(vars->stack))
-		count = G_N_ELEMENTS(vars->stack);
+	if (count > N_ITEMS(vars->stack))
+		count = N_ITEMS(vars->stack);
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		ck_memcpy(vars->mem,
@@ -4547,7 +4547,7 @@ crash_save_current_stackframe(unsigned offset)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 		crash_save_stackframe(stack, count);
 	}
 }

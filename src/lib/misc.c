@@ -1034,7 +1034,7 @@ hex2int_init(void)
 
 	/* Initialize hex2int_tab */
 
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[0]); i++) {
+	for (i = 0; i < N_ITEMS(char2int_tabs[0]); i++) {
 		static const char hexa[] = "0123456789abcdef";
 		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
 
@@ -1082,7 +1082,7 @@ dec2int_init(void)
 
 	/* Initialize dec2int_tab */
 
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[1]); i++) {
+	for (i = 0; i < N_ITEMS(char2int_tabs[1]); i++) {
 		static const char deca[] = "0123456789";
 		const char *p = i ? strchr(deca, i): NULL;
 
@@ -1119,7 +1119,7 @@ alnum2int_init(void)
 
 	/* Initialize alnum2int_tab */
 
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[2]); i++) {
+	for (i = 0; i < N_ITEMS(char2int_tabs[2]); i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
@@ -2051,7 +2051,7 @@ html_entities_init(void)
 	size_t i;
 
 	html_entities_lut = htable_create(HASH_KEY_STRING, 0);
-	for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
+	for (i = 0; i < N_ITEMS(html_entities); i++) {
 		htable_insert(html_entities_lut, html_entities[i].name,
 			uint_to_pointer(html_entities[i].uc));
 	}
@@ -2630,7 +2630,7 @@ misc_init_once(void)
 		};
 		uint i;
 
-		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		for (i = 0; i < N_ITEMS(tests); i++) {
 			const char *endptr;
 			int error;
 			uint64 v;

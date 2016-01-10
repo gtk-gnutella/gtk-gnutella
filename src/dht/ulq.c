@@ -227,7 +227,7 @@ ulq_sched_reset(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
+	for (i = 0; i < N_ITEMS(ulq); i++) {
 		struct ulq *uq = ulq[i];
 
 		g_assert(!uq->runnable);
@@ -381,7 +381,7 @@ ulq_queue_status(void)
 	static char buf[120];
 	size_t i, offset = 0;
 
-	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
+	for (i = 0; i < N_ITEMS(ulq); i++) {
 		struct ulq *uq = ulq[i];
 
 		offset += str_bprintf(&buf[offset], sizeof(buf) - offset,
@@ -849,7 +849,7 @@ ulq_init_queue(const char *name, int weight)
 void G_COLD
 ulq_init(void)
 {
-	STATIC_ASSERT(ULQ_QUEUE_COUNT == G_N_ELEMENTS(ulq));
+	STATIC_ASSERT(ULQ_QUEUE_COUNT == N_ITEMS(ulq));
 
 	g_assert(NULL == ulq[ULQ_PROX]);
 	g_assert(NULL == ulq[ULQ_ALOC]);
@@ -923,7 +923,7 @@ ulq_close(bool exiting)
 	cq_cancel(&service_ev);
 	slist_free(&sched.runq);
 
-	for (i = 0; i < G_N_ELEMENTS(ulq); i++) {
+	for (i = 0; i < N_ITEMS(ulq); i++) {
 		struct ulq *uq = ulq[i];
 
 		if (uq) {

@@ -271,7 +271,7 @@ signal_name(int signo)
 	buf_t *b, bs;
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		if (signals[i].signo == signo)
 			return signals[i].name;
 	}
@@ -1140,7 +1140,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	g_assert(handler != SIG_ERR);
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
-	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
+	STATIC_ASSERT(SIGNAL_COUNT == N_ITEMS(signal_handler));
 
 	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
@@ -1502,7 +1502,7 @@ signal_init_once(void)
 	int regnum;
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
+	for (i = 0; i < N_ITEMS(signal_handler); i++) {
 		signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 	}
 

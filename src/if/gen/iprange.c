@@ -29,7 +29,7 @@ static const char *iprange_error_str[] = {
 const char *
 iprange_strerror(iprange_err_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(iprange_error_str)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(iprange_error_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid iprange_err_t code: %d", (int) x);
 		return str_2c(s);

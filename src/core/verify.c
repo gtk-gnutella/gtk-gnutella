@@ -411,7 +411,7 @@ verify_thread_local_id(unsigned stid, bool panic)
 {
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(verify_threads); i++) {
+	for (i = 0; i < N_ITEMS(verify_threads); i++) {
 		if (verify_threads[i] == stid)
 			return i;
 	}
@@ -1027,7 +1027,7 @@ verify_create_task(struct verify *ctx)
 		}
 
 		ctx->task = bg_task_create(ctx->sched, verify_hash_name(ctx),
-							step, G_N_ELEMENTS(step),
+							step, N_ITEMS(step),
 			  				ctx, verify_context_free,
 							verify_bg_done, NULL);
 	}

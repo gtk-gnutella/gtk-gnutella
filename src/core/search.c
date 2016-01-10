@@ -916,7 +916,7 @@ is_evil_filename(const char *filename)
 
 	win[0] = '/';	/* Implicit by "/get/<index>/<filename>" */
 
-	for (i = 1; i < G_N_ELEMENTS(win); i++) {
+	for (i = 1; i < N_ITEMS(win); i++) {
 		win[i] = url_normalize_char(p, &endptr);
 		if ('\0' == *p)
 			break;
@@ -998,7 +998,7 @@ search_rs_status_to_string(const gnet_results_set_t *rs)
 
 	str_reset(s);
 
-	for (i = 0; i < G_N_ELEMENTS(rs_status_flags); i++) {
+	for (i = 0; i < N_ITEMS(rs_status_flags); i++) {
 		if (rs->status & rs_status_flags[i].flag) {
 			if (0 != str_len(s))
 				STR_CAT(s, ", ");
@@ -1042,7 +1042,7 @@ search_rc_flags_to_string(const gnet_record_t *rc)
 
 	str_reset(s);
 
-	for (i = 0; i < G_N_ELEMENTS(rc_flags); i++) {
+	for (i = 0; i < N_ITEMS(rc_flags); i++) {
 		if (rc->flags & rc_flags[i].flag) {
 			if (0 != str_len(s))
 				STR_CAT(s, ", ");
@@ -1289,7 +1289,7 @@ sha1_check:
 static bool
 is_odd_guid(const guid_t *guid)
 {
-	size_t i = G_N_ELEMENTS(guid->v);
+	size_t i = N_ITEMS(guid->v);
 
 	do {
 		unsigned char c = guid->v[--i];
@@ -7292,7 +7292,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 
 		atom_sha1_change(&rc->sha1, shared_file_sha1(sf));
 		atom_tth_change(&rc->tth, shared_file_tth(sf));
-		hcnt = dmesh_fill_alternate(rc->sha1, hvec, G_N_ELEMENTS(hvec));
+		hcnt = dmesh_fill_alternate(rc->sha1, hvec, N_ITEMS(hvec));
 
 		/*
 		 * Propagate them to the results so that they can see how many entries
@@ -8184,7 +8184,7 @@ search_request_preprocess(gnutella_node_t *n,
 		exvcnt = ext_parse(search + sri->search_len + 1,
 			extra, exv, MAX_EXTVEC);
 
-		if (G_N_ELEMENTS(exv) == UNSIGNED(exvcnt)) {
+		if (N_ITEMS(exv) == UNSIGNED(exvcnt)) {
 			g_warning("%s has at least %d extensions!",
 				gmsg_node_infostr(n), exvcnt);
 			if (GNET_PROPERTY(query_debug) > 10)
@@ -9242,7 +9242,7 @@ search_request(gnutella_node_t *n,
 			size_t cnt, i;
 
 			cnt = GNET_PROPERTY(query_answer_whats_new)
-				? share_fill_newest(sfv, G_N_ELEMENTS(sfv),
+				? share_fill_newest(sfv, N_ITEMS(sfv),
 					sri->media_types,
 					sri->size_restrictions, sri->minsize, sri->maxsize)
 				: 0;

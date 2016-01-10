@@ -567,7 +567,7 @@ entropy_collect_user_id(SHA1_context *ctx)
 	id[1] = entropy_minirand();
 #endif	/* HAS_GETUID */
 
-	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
+	entropy_array_ulong_collect(ctx, id, N_ITEMS(id));
 }
 
 /**
@@ -581,7 +581,7 @@ entropy_collect_process_id(SHA1_context *ctx)
 	id[0] = getppid();
 	id[1] = getpid();
 
-	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
+	entropy_array_ulong_collect(ctx, id, N_ITEMS(id));
 }
 
 /**
@@ -595,7 +595,7 @@ entropy_collect_compile_time(SHA1_context *ctx)
 	str[0] = __DATE__;
 	str[1] = __TIME__;
 
-	entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+	entropy_array_string_collect(ctx, str, N_ITEMS(str));
 }
 
 /**
@@ -617,7 +617,7 @@ entropy_collect_user(SHA1_context *ctx)
 
 	str[1] = g_get_user_name();
 	str[2] = g_get_real_name();
-	entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+	entropy_array_string_collect(ctx, str, N_ITEMS(str));
 #else
 	{
 		char user[UINT32_DEC_BUFLEN];
@@ -627,7 +627,7 @@ entropy_collect_user(SHA1_context *ctx)
 		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
 		str[1] = user;
 		str[2] = real;
-		entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+		entropy_array_string_collect(ctx, str, N_ITEMS(str));
 	}
 #endif	/* GLib >= 2.0 */
 }
@@ -723,7 +723,7 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = "/var/run";
 	}
 
-	g_assert(i <= G_N_ELEMENTS(path));
+	g_assert(i <= N_ITEMS(path));
 
 	entropy_array_stat_collect(ctx, path, i);
 	entropy_array_statvfs_collect(ctx, path, i);
@@ -741,7 +741,7 @@ entropy_collect_stdio(SHA1_context *ctx)
 	fd[1] = STDOUT_FILENO;
 	fd[2] = STDERR_FILENO;
 
-	entropy_array_fstat_collect(ctx, fd, G_N_ELEMENTS(fd));
+	entropy_array_fstat_collect(ctx, fd, N_ITEMS(fd));
 }
 
 /**
@@ -756,7 +756,7 @@ entropy_collect_free_space(SHA1_context *ctx)
 	fs[1] = fs_free_space_pct("/");
 	fs[2] = fs_free_space_pct(".");
 
-	entropy_array_double_collect(ctx, fs, G_N_ELEMENTS(fs));
+	entropy_array_double_collect(ctx, fs, N_ITEMS(fs));
 }
 
 /**
@@ -838,7 +838,7 @@ entropy_collect_pointers(SHA1_context *ctx)
 	ptr[4] = &errno;
 	ptr[5] = &ptr;
 
-	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+	entropy_array_pointer_collect(ctx, ptr, N_ITEMS(ptr));
 }
 
 /**
@@ -909,7 +909,7 @@ entropy_collect_minirand(SHA1_context *ctx)
 		rn[i++] = entropy_minirand();
 	}
 
-	entropy_array_ulong_collect(ctx, rn, G_N_ELEMENTS(rn));
+	entropy_array_ulong_collect(ctx, rn, N_ITEMS(rn));
 }
 
 /**
@@ -936,7 +936,7 @@ entropy_collect_garbage(SHA1_context *ctx)
 	ZERO(&garbage);
 #endif
 
-	entropy_array_ulong_collect(ctx, garbage, G_N_ELEMENTS(garbage));
+	entropy_array_ulong_collect(ctx, garbage, N_ITEMS(garbage));
 }
 
 /**
@@ -959,7 +959,7 @@ entropy_collect_vfs(SHA1_context *ctx)
 		path[i++] = "/var/run";
 	}
 
-	g_assert(i <= G_N_ELEMENTS(path));
+	g_assert(i <= N_ITEMS(path));
 
 	entropy_array_statvfs_collect(ctx, path, i);
 }
@@ -1031,7 +1031,7 @@ entropy_collect_vmm(SHA1_context *ctx)
 	ptr[1] = p = vmm_alloc(1);
 	ptr[2] = q = vmm_alloc(1);
 
-	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+	entropy_array_pointer_collect(ctx, ptr, N_ITEMS(ptr));
 
 	vmm_free(p, 1);
 	vmm_free(q, 1);
@@ -1059,7 +1059,7 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 	tm_precise_time(&after);
 	v[3] = tm_precise_elapsed_f(&after, &before);
 
-	entropy_array_double_collect(ctx, v, G_N_ELEMENTS(v));
+	entropy_array_double_collect(ctx, v, N_ITEMS(v));
 }
 
 /**
@@ -1144,7 +1144,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_host;
 		fn[i++] = entropy_collect_vfs;
 
-		g_assert(i <= G_N_ELEMENTS(fn));
+		g_assert(i <= N_ITEMS(fn));
 	}
 
 	fn[i++] = entropy_collect_cpu;
@@ -1162,7 +1162,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_garbage;
 	fn[i++] = entropy_self_feed;
 
-	g_assert(i <= G_N_ELEMENTS(fn));
+	g_assert(i <= N_ITEMS(fn));
 
 	entropy_array_cb_collect(&ctx, fn, i);
 
@@ -1183,7 +1183,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		SHA1_INPUT(&ctx, end);
 		v[1] = tm_precise_elapsed_f(&end, &start);
 
-		entropy_array_double_collect(&ctx, v, G_N_ELEMENTS(v));
+		entropy_array_double_collect(&ctx, v, N_ITEMS(v));
 	}
 
 	/*
@@ -1236,7 +1236,7 @@ entropy_seed(struct entropy_minictx *c)
 #define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
 	size_t x;													\
 	SHUFFLE_ARRAY_WITH(rand31_u32, a);							\
-	for (x = 0; x < G_N_ELEMENTS(a); x++)						\
+	for (x = 0; x < N_ITEMS(a); x++)						\
 		f(&ctx, a[x]);											\
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END

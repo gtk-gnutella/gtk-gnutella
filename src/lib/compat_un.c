@@ -714,12 +714,12 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		if (*p++ != ' ')
 			goto not_a_socket;
 
-		for (i = 0; i < G_N_ELEMENTS(client); i++) {
+		for (i = 0; i < N_ITEMS(client); i++) {
 			if (!sock_un_parse_cookie(p, &endptr, &client[i]))
 				goto not_a_socket;
 
 			p = endptr;
-			if (i != G_N_ELEMENTS(client) - 1 && *p++ != '-')
+			if (i != N_ITEMS(client) - 1 && *p++ != '-')
 				goto not_a_socket;
 		}
 

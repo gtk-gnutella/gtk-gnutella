@@ -581,13 +581,13 @@ fi_gui_details_treeview_init(void)
 	g_return_if_fail(tv);
 	treeview_download_details = tv;
 
-	model = GTK_TREE_MODEL(gtk_list_store_new(G_N_ELEMENTS(tab),
+	model = GTK_TREE_MODEL(gtk_list_store_new(N_ITEMS(tab),
 				G_TYPE_UINT, G_TYPE_STRING, G_TYPE_STRING));
 
 	gtk_tree_view_set_model(tv, model);
 	g_object_unref(model);
 
-	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+	for (i = 0; i < N_ITEMS(tab); i++) {
     	GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 
@@ -770,7 +770,7 @@ fi_gui_init(void)
 		GtkTreeView *tv;
 		unsigned i;
 
-		STATIC_ASSERT(c_src_num == G_N_ELEMENTS(tab));
+		STATIC_ASSERT(c_src_num == N_ITEMS(tab));
 
 		tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_download_sources"));
 		treeview_download_sources = tv;
@@ -778,7 +778,7 @@ fi_gui_init(void)
 		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
 		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
 
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			GtkCellRenderer *renderer;
 
 			renderer = tab[i].id == c_src_progress

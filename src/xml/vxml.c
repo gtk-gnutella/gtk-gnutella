@@ -1827,7 +1827,7 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 
 			m = vb->u.m;
 
-			g_assert(filled < G_N_ELEMENTS(head));
+			g_assert(filled < N_ITEMS(head));
 			g_assert(len + filled <= sizeof head);
 
 			/*
@@ -1841,7 +1841,7 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 
 	vp->flags |= VXML_F_INTUITED;		/* No longer come here */
 
-	if (filled < G_N_ELEMENTS(head))
+	if (filled < N_ITEMS(head))
 		return TRUE;
 
 	fourcc = peek_be32(head);
@@ -1928,7 +1928,7 @@ done:
 static void
 vxml_unread_char(vxml_parser_t *vp, uint32 uc)
 {
-	g_assert(vp->unread_offset < G_N_ELEMENTS(vp->unread));
+	g_assert(vp->unread_offset < N_ITEMS(vp->unread));
 	g_assert(size_is_non_negative(vp->unread_offset));
 
 	vp->unread[vp->unread_offset++] = uc;
@@ -1973,7 +1973,7 @@ vxml_read_char(vxml_parser_t *vp, uint32 *uc)
 	 */
 
 	if (vp->unread_offset != 0) {
-		g_assert(vp->unread_offset <= G_N_ELEMENTS(vp->unread));
+		g_assert(vp->unread_offset <= N_ITEMS(vp->unread));
 		g_assert(size_is_positive(vp->unread_offset));
 
 		*uc = vp->last_uc = vp->unread[--(vp->unread_offset)];
@@ -2586,7 +2586,7 @@ vxml_token_to_string_load(tokenizer_t *tokens, size_t count)
 		size_t value = tokens[i].value;
 
 		g_assert(size_is_non_negative(value));
-		g_assert(value < G_N_ELEMENTS(vxml_token_strings));
+		g_assert(value < N_ITEMS(vxml_token_strings));
 		g_assert_log(0 == vxml_token_strings[value],
 			"%s(): token value %zu already assigned to \"%s\"",
 			G_STRFUNC, value, tokens[i].token);
@@ -2605,18 +2605,18 @@ vxml_token_to_string(enum vxml_parser_token_value token)
 
 	if (!inited) {
 		vxml_token_to_string_load(vxml_declaration_tokens,
-			G_N_ELEMENTS(vxml_declaration_tokens));
+			N_ITEMS(vxml_declaration_tokens));
 		vxml_token_to_string_load(vxml_misc_tokens,
-			G_N_ELEMENTS(vxml_misc_tokens));
+			N_ITEMS(vxml_misc_tokens));
 		vxml_token_to_string_load(vxml_immediate_tokens,
-			G_N_ELEMENTS(vxml_immediate_tokens));
+			N_ITEMS(vxml_immediate_tokens));
 		inited = TRUE;
 	}
 
 	if (VXT_UNKNOWN == token)
 		return "unknown token";
 
-	if (token < 1 || token >= G_N_ELEMENTS(vxml_token_strings))
+	if (token < 1 || token >= N_ITEMS(vxml_token_strings))
 		return "invalid token";
 
 	return vxml_token_strings[token];
@@ -6445,7 +6445,7 @@ vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
 	ostream_t *os = ostream_open_file(f);
 
 	xfmt_tree_extended(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS,
-		vxml_xfmt_prefixes, G_N_ELEMENTS(vxml_xfmt_prefixes), default_ns);
+		vxml_xfmt_prefixes, N_ITEMS(vxml_xfmt_prefixes), default_ns);
 
 	ostream_close(os);
 }
@@ -6665,7 +6665,7 @@ subparse_start(vxml_parser_t *vp,
 	ops.tokenized_end = subparse_token_end;
 	ops.tokenized_text = subparse_token_text;
 
-	e = vxml_parse_callbacks_tokens(vp, &ops, tvec, G_N_ELEMENTS(tvec), data);
+	e = vxml_parse_callbacks_tokens(vp, &ops, tvec, N_ITEMS(tvec), data);
 
 	g_assert(VXML_E_OK == e);
 }

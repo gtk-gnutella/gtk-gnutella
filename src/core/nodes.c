@@ -5557,7 +5557,7 @@ node_intuit_address(gnutella_node_t *n,  header_t *header)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(fields); i++) {
+	for (i = 0; i < N_ITEMS(fields); i++) {
 		const char *val = header_get(header, fields[i]);
 		host_addr_t addr;
 		uint16 port;
@@ -5631,7 +5631,7 @@ feed_host_cache_from_headers(header_t *header,
     g_assert(UNSIGNED(sender) < HOST_MAX);
 
 	for (;;) {
-		for (i = 0; i < G_N_ELEMENTS(headers); i++) {
+		for (i = 0; i < N_ITEMS(headers); i++) {
 			const char *val, *name, *p;
 			host_type_t type;
 			uint r;
@@ -10937,7 +10937,7 @@ node_bye_all(bool all)
 	 * the UDP socket very shortly...
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(udp_nodes); i++) {
+	for (i = 0; i < N_ITEMS(udp_nodes); i++) {
 		gnutella_node_t *n = udp_nodes[i];
 		if (n && n->outq) {
 			mq_clear(n->outq);
@@ -11614,7 +11614,7 @@ node_close(void)
 
 		udp_route->outq = NULL;		/* Using that of udp_node or udp6_node */
 
-		for (i = 0; i < G_N_ELEMENTS(special_nodes); i++) {
+		for (i = 0; i < N_ITEMS(special_nodes); i++) {
 			gnutella_node_t *n;
 
 			n = special_nodes[i];

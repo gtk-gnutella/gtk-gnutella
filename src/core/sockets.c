@@ -874,12 +874,12 @@ connect_http(struct gnutella_socket *s)
 				{ "CONNECT " }, { NULL }, { " HTTP/1.0\r\nHost: " }, { NULL },
 				{ "\r\n\r\n" },
 			};
-			iovec_t iov[G_N_ELEMENTS(parts)];
+			iovec_t iov[N_ITEMS(parts)];
 			const char *host_port = host_addr_port_to_string(s->addr, s->port);
 			size_t size = 0;
 			uint i;
 
-			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
+			for (i = 0; i < N_ITEMS(iov); i++) {
 				size_t n;
 
 				iovec_set_base(&iov[i], deconstify_char(
@@ -889,7 +889,7 @@ connect_http(struct gnutella_socket *s)
 				size += n;
 			}
 
-			ret = s_writev(s->file_desc, iov, G_N_ELEMENTS(iov));
+			ret = s_writev(s->file_desc, iov, N_ITEMS(iov));
 			if ((size_t) ret != size) {
 				g_warning("sending info to HTTP proxy failed: %s",
 					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");

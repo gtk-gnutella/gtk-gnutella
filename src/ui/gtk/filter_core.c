@@ -2555,7 +2555,7 @@ filter_init_presets(void)
 	};
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+	for (i = 0; i < N_ITEMS(tab); i++) {
 		filter_preset_init(_(tab[i].name), tab[i].regex, tab[i].minsize);
 	}
 	filter_apply_changes();

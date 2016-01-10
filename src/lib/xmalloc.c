@@ -1298,7 +1298,7 @@ xfl_index(const struct xfreelist *fl)
 	size_t idx;
 
 	idx = fl - &xfreelist[0];
-	g_assert(size_is_non_negative(idx) && idx < G_N_ELEMENTS(xfreelist));
+	g_assert(size_is_non_negative(idx) && idx < N_ITEMS(xfreelist));
 
 	return idx;
 }
@@ -1561,7 +1561,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 			xfreelist_maxidx = (size_t) -1 == i ? 0 : i;
 
 			g_assert(size_is_non_negative(xfreelist_maxidx));
-			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+			g_assert(xfreelist_maxidx < N_ITEMS(xfreelist));
 
 			if (xmalloc_debugging(2)) {
 				s_debug("XM max frelist index decreased to %zu",
@@ -2403,7 +2403,7 @@ plain_insert:
 
 		if (xfreelist_maxidx < fidx) {
 			xfreelist_maxidx = fidx;
-			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+			g_assert(xfreelist_maxidx < N_ITEMS(xfreelist));
 
 			if (xmalloc_debugging(1)) {
 				s_debug("XM max frelist index increased to %zu",
@@ -2598,7 +2598,7 @@ xmalloc_freelist_init_once(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		fl->blocksize = xfl_block_size_idx(i);
@@ -2624,7 +2624,7 @@ xmalloc_freelist_init_once(void)
 		}
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(xcross); i++) {
+	for (i = 0; i < N_ITEMS(xcross); i++) {
 		struct xcross *xcr = &xcross[i];
 		spinlock_init(&xcr->lock);
 	}
@@ -2654,7 +2654,7 @@ xmalloc_freelist_setup(void)
 	if (!xmalloc_grows_up) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		for (i = 0; i < N_ITEMS(xfreelist); i++) {
 			struct xfreelist *fl = &xfreelist[i];
 
 			mutex_lock_hidden(&fl->lock);
@@ -2714,7 +2714,7 @@ xmalloc_split_setup(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(xsplit); i++) {
+	for (i = 0; i < N_ITEMS(xsplit); i++) {
 		struct xsplit *xs = &xsplit[i];
 		size_t len = (i + 1) * XMALLOC_ALIGNBYTES;
 
@@ -4043,7 +4043,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 	size_t n, size = 0;
 
 	g_assert(size_is_non_negative(stid));
-	g_assert(stid < G_N_ELEMENTS(xcross));
+	g_assert(stid < N_ITEMS(xcross));
 
 	xcr = &xcross[stid];
 
@@ -6238,7 +6238,7 @@ xgc(void)
 	 * shrink buckets that are too large, return deferred blocks if any.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		G_PREFETCH_R(&xfreelist[i + 1]);
@@ -6323,7 +6323,7 @@ xgc(void)
 	 * the available room in each bucket.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		G_PREFETCH_R(&xfreelist[i + 1].count);
@@ -6353,7 +6353,7 @@ xgc(void)
 
 	erbtree_init(&rbt, xgc_range_cmp, offsetof(struct xgc_range, node));
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize;
 
@@ -6411,7 +6411,7 @@ xgc(void)
 
 	tmp = vmm_core_alloc(xgctx.largest * sizeof(void *));
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize, old_count, sorted_stripped;
 		void const **q = tmp;
@@ -6492,7 +6492,7 @@ xgc(void)
 	 */
 
 unlock:
-	for (i = G_N_ELEMENTS(xfreelist); i != 0; i--) {
+	for (i = N_ITEMS(xfreelist); i != 0; i--) {
 		G_PREFETCH_W(&xfreelist[i - 2]);
 		G_PREFETCH_W(&xfreelist[i - 2].lock);
 		if (xgctx.locked[i - 1]) {
@@ -6810,7 +6810,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		size_t shared;
 	} tstats[XM_THREAD_COUNT];
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		if (0 == fl->capacity)
@@ -8309,7 +8309,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 	thread_suspend_others(FALSE);
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
 		const void *prev = NULL;

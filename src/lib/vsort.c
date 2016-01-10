@@ -386,7 +386,7 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 	unsigned i;
 
 	g_assert(uint_is_non_negative(idx));
-	g_assert(idx < G_N_ELEMENTS(vsort_table));
+	g_assert(idx < N_ITEMS(vsort_table));
 
 	vt.data = vmm_alloc(len);
 	vt.copy = vmm_alloc(len);
@@ -400,7 +400,7 @@ vsort_init_items(size_t items, unsigned idx, int verbose, const char *which)
 	/* The -1 below is to avoid benchmarking smsort() for the general case */
 
 retry_random:
-	for (i = 0; i < G_N_ELEMENTS(tests) - 1; i++) {
+	for (i = 0; i < N_ITEMS(tests) - 1; i++) {
 		tests[i].v_elapsed = vsort_timeit(tests[i].v_timer, &vt, &loops);
 
 		if (verbose > 1) {
@@ -428,7 +428,7 @@ retry_random:
 		for (j = 0; j < 2; j++) {
 			random_bytes(vt.data, len);
 
-			for (i = 0; i < G_N_ELEMENTS(tests) - 1; i++) {
+			for (i = 0; i < N_ITEMS(tests) - 1; i++) {
 				tests[i].v_elapsed +=
 					vsort_timeit(tests[i].v_timer, &vt, &loops);
 
@@ -448,7 +448,7 @@ retry_random:
 		}
 	}
 
-	xqsort(tests, G_N_ELEMENTS(tests) - 1, sizeof tests[0], vsort_testing_cmp);
+	xqsort(tests, N_ITEMS(tests) - 1, sizeof tests[0], vsort_testing_cmp);
 
 	vsort_table[idx].v_sort = vsort_routine(tests[0].v_routine, items);
 
@@ -466,7 +466,7 @@ retry_random:
 	vsort_perturb_sorted_array(vt.data, vt.items, vt.isize);
 
 retry_sorted:
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		tests[i].v_elapsed = vsort_timeit(tests[i].v_timer, &vt, &loops);
 
 		if (verbose > 1) {
@@ -483,7 +483,7 @@ retry_sorted:
 		}
 	}
 
-	xqsort(tests, G_N_ELEMENTS(tests), sizeof tests[0], vsort_testing_cmp);
+	xqsort(tests, N_ITEMS(tests), sizeof tests[0], vsort_testing_cmp);
 
 	vsort_table[idx].v_sort_almost = vsort_routine(tests[0].v_routine, items);
 

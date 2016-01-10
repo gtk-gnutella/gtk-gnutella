@@ -328,7 +328,7 @@ whitelist_retrieve(void)
 	whitelist_generation++;
 
 	file_path_set(fp, settings_config_dir(), whitelist_file);
-	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read_norename("Host Whitelist", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 

@@ -186,7 +186,7 @@ gnet_stats_gui_init(void)
     gchar *titles[10];
     guint n;
 
-    for (n = 0; n < G_N_ELEMENTS(titles); n ++)
+    for (n = 0; n < N_ITEMS(titles); n ++)
         titles[n] = "-";
 
     clist_stats_msg = GTK_CLIST(

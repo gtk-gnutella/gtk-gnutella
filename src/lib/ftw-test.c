@@ -170,7 +170,7 @@ ftwflags(uint32 flags)
 	if (NULL == s)
 		s = str_new(0);
 
-	strflags(s, flags, ftwflagv, G_N_ELEMENTS(ftwflagv));
+	strflags(s, flags, ftwflagv, N_ITEMS(ftwflagv));
 	return str_2c(s);
 }
 
@@ -182,7 +182,7 @@ cbflags(uint32 flags)
 	if (NULL == s)
 		s = str_new(0);
 
-	strflags(s, flags, cbflagv, G_N_ELEMENTS(cbflagv));
+	strflags(s, flags, cbflagv, N_ITEMS(cbflagv));
 	return str_2c(s);
 }
 

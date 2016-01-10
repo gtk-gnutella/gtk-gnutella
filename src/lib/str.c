@@ -3765,7 +3765,7 @@ str_test(bool verbose)
 #define TEST(what, vfmt) G_STMT_START {							\
 	unsigned i;													\
 																\
-	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {		\
+	for (i = 0; i < N_ITEMS(test_##what##s); i++) {		\
 		char buf[MLEN];											\
 		const struct t##what *t = &test_##what##s[i];			\
 																\
@@ -3782,7 +3782,7 @@ str_test(bool verbose)
 		g_assert_log(0 == strcmp(buf, t->result),				\
 			"%s test #%u/%zu fmt=\"%s\", len=%zu, "				\
 			"returned=\"%s\", expected=\"%s\"",					\
-			#what, i + 1, G_N_ELEMENTS(test_##what##s),			\
+			#what, i + 1, N_ITEMS(test_##what##s),			\
 			t->fmt, t->buflen, buf, t->result);					\
 																\
 		if (t->std) {											\
@@ -3803,7 +3803,7 @@ str_test(bool verbose)
 					"\"%s\" with snprintf() but "				\
 					"\"%s\" with str_vncatf()",					\
 					#what, value,								\
-					i + 1, G_N_ELEMENTS(test_##what##s),		\
+					i + 1, N_ITEMS(test_##what##s),		\
 					t->fmt, std, buf);							\
 			}													\
 		}														\

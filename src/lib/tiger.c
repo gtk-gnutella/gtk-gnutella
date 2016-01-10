@@ -261,7 +261,7 @@ tiger_check(void)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		char hash[24];
 		char buf[40];
 		bool ok;
@@ -269,7 +269,7 @@ tiger_check(void)
 		ZERO(&buf);
 		tiger(tests[i].s, tests[i].len, hash);
 		base32_encode(buf, sizeof buf, hash, sizeof hash);
-		buf[G_N_ELEMENTS(buf) - 1] = '\0';
+		buf[N_ITEMS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);
 		if (!ok) {

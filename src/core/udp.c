@@ -346,7 +346,7 @@ log:
 				iovec_t iov[2];
 				iovec_set(&iov[0], header, GTA_HEADER_SIZE);
 				iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
-				dump_hex_vec(stderr, "UDP datagram", iov, G_N_ELEMENTS(iov));
+				dump_hex_vec(stderr, "UDP datagram", iov, N_ITEMS(iov));
 			}
 		}
 	}

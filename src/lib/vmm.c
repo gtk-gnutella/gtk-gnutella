@@ -4393,7 +4393,7 @@ vmm_get_magazine(size_t npages)
 {
 	tmalloc_t *depot;
 
-	g_assert(npages <= G_N_ELEMENTS(vmm_magazine));
+	g_assert(npages <= N_ITEMS(vmm_magazine));
 	g_assert(npages != 0);
 
 	if G_UNLIKELY(NULL == (depot = vmm_magazine[npages - 1])) {
@@ -4889,7 +4889,7 @@ page_cache_timer(void *unused_udata)
 	pc->expired += expired;
 	spinunlock(&pc->lock);
 
-	g_assert(expired <= G_N_ELEMENTS(freed));
+	g_assert(expired <= N_ITEMS(freed));
 
 	if G_UNLIKELY(expired > 0) {
 		/*
@@ -4947,7 +4947,7 @@ page_cache_free_all(bool locked)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(page_cache); i++) {
+	for (i = 0; i < N_ITEMS(page_cache); i++) {
 		struct page_cache *pc = &page_cache[i];
 		size_t j;
 		void *freed[VMM_CACHE_SIZE];
@@ -6124,7 +6124,7 @@ static void
 buffer_operation(enum track_operation op,
 	const void *p, size_t size, bool user_mem, const char *file, int line)
 {
-	if (vmm_buffer.idx >= G_N_ELEMENTS(vmm_buffered)) {
+	if (vmm_buffer.idx >= N_ITEMS(vmm_buffered)) {
 		vmm_buffer.missed++;
 		if (vmm_debugging(0)) {
 			s_warning("VMM unable to defer tracking of "
@@ -6370,7 +6370,7 @@ unbuffer_first(struct track_buffer *dest)
 {
 	g_assert(dest != NULL);
 	g_assert(size_is_positive(vmm_buffer.idx));
-	g_assert(vmm_buffer.idx <= G_N_ELEMENTS(vmm_buffered));
+	g_assert(vmm_buffer.idx <= N_ITEMS(vmm_buffered));
 
 	*dest = vmm_buffered[0];		/* Struct copy */
 
@@ -6442,7 +6442,7 @@ vmm_not_leaking(const void *o)
 		 * Buffer the event until we're initialized.
 		 */
 
-		if (vmm_nl_buffer.idx >= G_N_ELEMENTS(vmm_nl_buffered)) {
+		if (vmm_nl_buffer.idx >= N_ITEMS(vmm_nl_buffered)) {
 			vmm_nl_buffer.missed++;
 		} else {
 			size_t i = vmm_nl_buffer.idx++;

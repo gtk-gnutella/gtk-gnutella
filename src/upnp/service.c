@@ -584,7 +584,7 @@ upnp_service_extract(const char *data, size_t len, const char *desc_url)
 
 	e = vxml_parse_callbacks_tokens(vp,
 		&upnp_service_ops,
-		upnp_service_tokens, G_N_ELEMENTS(upnp_service_tokens),
+		upnp_service_tokens, N_ITEMS(upnp_service_tokens),
 		&ctx);
 
 	if (VXML_E_OK == e) {

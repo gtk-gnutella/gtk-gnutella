@@ -89,7 +89,7 @@ hcache_gui_init(void)
     const gchar *titles[5];
     guint i;
 
-    for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+    for (i = 0; i < N_ITEMS(titles); i++) {
         titles[i] = "-";
 	}
     clist = GTK_CLIST(gui_main_window_lookup("clist_hcache"));

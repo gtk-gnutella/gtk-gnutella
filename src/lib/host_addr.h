@@ -327,7 +327,7 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 		{
 			uint i;
 
-			for (i = 0; i < G_N_ELEMENTS(a.addr.ipv6); i++) {
+			for (i = 0; i < N_ITEMS(a.addr.ipv6); i++) {
 				r = CMP(a.addr.ipv6[i], b.addr.ipv6[i]);
 				if (0 != r)
 					break;

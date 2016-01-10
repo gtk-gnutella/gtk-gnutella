@@ -297,11 +297,11 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 
 	in_unwind = TRUE;
 
-	if (count >= G_N_ELEMENTS(trace)) {
+	if (count >= N_ITEMS(trace)) {
 		depth = backtrace(stack, count);
 		memcpy(trace, stack, depth * sizeof trace[0]);
 	} else {
-		depth = backtrace(trace, G_N_ELEMENTS(trace));
+		depth = backtrace(trace, N_ITEMS(trace));
 	}
 
 	in_unwind = FALSE;
@@ -463,7 +463,7 @@ stacktrace_auto_tune(void)
 	size_t count;
 	size_t i;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 0);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 0);
 
 	/*
 	 * Look at the first item in the stack that is after ourselves.
@@ -731,7 +731,7 @@ stacktrace_post_init(void)
 void NO_INLINE
 stacktrace_get(struct stacktrace *st)
 {
-	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
+	st->len = stacktrace_unwind(st->stack, N_ITEMS(st->stack), 1);
 }
 
 /**
@@ -741,7 +741,7 @@ stacktrace_get(struct stacktrace *st)
 void NO_INLINE
 stacktrace_get_offset(struct stacktrace *st, size_t offset)
 {
-	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
+	st->len = stacktrace_unwind(st->stack, N_ITEMS(st->stack), offset + 1);
 }
 
 /**
@@ -1442,7 +1442,7 @@ stacktrace_caller(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
 
 	return n < count ? stack[n] : NULL;
 }
@@ -1467,7 +1467,7 @@ stacktrace_caller_name(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
 	if (n >= count)
 		return "";
 
@@ -1566,7 +1566,7 @@ stacktrace_where_print(FILE *f)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1592,7 +1592,7 @@ stacktrace_where_sym_print(FILE *f)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
@@ -1612,7 +1612,7 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
 }
 
@@ -1631,7 +1631,7 @@ stacktrace_where_plain_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 	stack_safe_print(fd, stack, count);
 }
 
@@ -1715,7 +1715,7 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 	stacktrace_stack_safe_print(fd, stack, count);
 }
 
@@ -1747,7 +1747,7 @@ stacktrace_where_print_decorated(FILE *f, uint flags)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stacktrace_load_symbols();
 	stack_print_decorated(f, stack, count, flags);
 }
@@ -1837,7 +1837,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 	printing[stid] = TRUE;
 	print_context[stid].fd = fd;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 
 	/*
 	 * Protect stack printing.

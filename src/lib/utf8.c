@@ -204,8 +204,8 @@ utf8_name_to_cd(const char *name)
 {
 	uint i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
-	for (i = 0; i < G_N_ELEMENTS(utf8_cd_tab); i++)
+	STATIC_ASSERT(N_ITEMS(utf8_cd_tab) == NUM_UTF8_CDS);
+	for (i = 0; i < N_ITEMS(utf8_cd_tab); i++)
 		if (0 == strcmp(name, utf8_cd_tab[i].name))
 			return utf8_cd_tab[i].id;
 
@@ -220,8 +220,8 @@ utf8_cd_to_name(enum utf8_cd id)
 {
 	uint i = (uint) id;
 
-	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
-	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
+	g_assert(i < N_ITEMS(utf8_cd_tab));
+	STATIC_ASSERT(N_ITEMS(utf8_cd_tab) == NUM_UTF8_CDS);
 
 	g_assert(utf8_cd_tab[i].id == id);
 	return utf8_cd_tab[i].name;
@@ -235,7 +235,7 @@ utf8_cd_get(enum utf8_cd id)
 {
 	uint i = (uint) id;
 
-	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
+	g_assert(i < N_ITEMS(utf8_cd_tab));
 
 	if (!utf8_cd_tab[i].initialized) {
 		const char *cs;
@@ -451,7 +451,7 @@ utf32_combining_class(uint32 uc)
 #define FOUND(i)	return utf32_comb_class_lut[(i)].cc
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_comb_class_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_comb_class_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -478,7 +478,7 @@ utf32_block_id(uint32 uc)
 #define FOUND(i)	return 1 + (i)
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_block_id_lut), block_id_cmp,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_block_id_lut), block_id_cmp,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -494,7 +494,7 @@ utf32_composition_exclude(uint32 uc)
 #define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_composition_exclusions), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_composition_exclusions), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -525,7 +525,7 @@ utf32_general_category(uint32 uc)
 #define FOUND(i)	return utf32_general_category_lut[(i)].gc
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_general_category_lut),
+	BINARY_SEARCH(size_t, uc, N_ITEMS(utf32_general_category_lut),
 		general_category_cmp, GET_ITEM, FOUND);
 
 #undef FOUND
@@ -556,7 +556,7 @@ utf32_is_normalization_special(uint32 uc)
 #define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_normalization_specials),
+	BINARY_SEARCH(size_t, uc, N_ITEMS(utf32_normalization_specials),
 		normalization_special_cmp, GET_ITEM, FOUND);
 
 #undef FOUND
@@ -1979,7 +1979,7 @@ locale_init(void)
 
 	textdomain_init(charset);
 
-	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++) {
+	for (i = 0; i < N_ITEMS(latin_sets); i++) {
 		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
 			latin_locale = TRUE;
 			break;
@@ -3663,7 +3663,7 @@ utf32_decompose_lookup(uint32 uc, bool nfkd)
 } G_STMT_END
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_nfkd_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_nfkd_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3687,7 +3687,7 @@ utf32_uppercase(uint32 uc)
 #define FOUND(i)	return utf32_uppercase_lut[(i)].upper
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_uppercase_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3715,7 +3715,7 @@ utf32_lowercase(uint32 uc)
 #define FOUND(i)	return utf32_lowercase_lut[(i)].lower
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_lowercase_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3740,7 +3740,7 @@ utf32_special_folding(uint32 uc)
 #define FOUND(i)	return utf32_special_folding_lut[(i)].folded
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_special_folding_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_special_folding_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3988,7 +3988,7 @@ utf8_sort_canonical(char *src)
 	size32 = 1 + utf8_to_utf32(src, NULL, 0);
 
 	/* Use an auto buffer for reasonably small strings */
-	if (size32 > G_N_ELEMENTS(a)) {
+	if (size32 > N_ITEMS(a)) {
 		d = g_malloc(size32 * sizeof *buf32);
 		buf32 = d;
 	} else {
@@ -4138,7 +4138,7 @@ utf32_decompose_single_char(uint32 uc, size_t *len, bool nfkd)
 		*p++ = uc;
 	}
 
-	g_assert(p > buf && p <= &buf[G_N_ELEMENTS(buf)]);
+	g_assert(p > buf && p <= &buf[N_ITEMS(buf)]);
 	*len = p - buf;
 	return buf;
 }
@@ -4188,7 +4188,7 @@ utf32_decompose_char(uint32 uc, size_t *len, bool nfkd)
 
 		mod = NULL;
 		p = &cur[start];
-		avail = G_N_ELEMENTS(buf[0]) - start;
+		avail = N_ITEMS(buf[0]) - start;
 
 		for (i = start; i < size; i++) {
 			const uint32 *q;
@@ -4317,7 +4317,7 @@ utf8_decompose(const char *src, char *out, size_t size, bool nfkd)
 				char *p = utf8_buf;
 
 				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
-				g_assert((size_t) (&buf[G_N_ELEMENTS(buf)] - q) >= utf8_len);
+				g_assert((size_t) (&buf[N_ITEMS(buf)] - q) >= utf8_len);
 				while (utf8_len-- > 0)
 					*q++ = *p++;
 			}
@@ -5516,9 +5516,9 @@ utf32_normalize(const uint32 *src, uni_norm_t norm)
 	}
 
 	/* Decompose string to NFD or NFKD  */
-	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), compat);
+	n = utf32_decompose(src, buf, N_ITEMS(buf), compat);
 	size = n + 1;
-	if (n < G_N_ELEMENTS(buf)) {
+	if (n < N_ITEMS(buf)) {
 		dst = buf;
 	} else {
 		dst = g_malloc(size * sizeof *dst);
@@ -5583,8 +5583,8 @@ utf8_normalize(const char *src, uni_norm_t norm)
 		uint32 buf[1024];
 		uint32 *s;
 
-		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
-		if (n < G_N_ELEMENTS(buf)) {
+		n = utf8_to_utf32(src, buf, N_ITEMS(buf));
+		if (n < N_ITEMS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
@@ -5681,8 +5681,8 @@ utf8_canonize(const char *src)
 		uint32 buf[1024];
 		uint32 *s;
 
-		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
-		if (n < G_N_ELEMENTS(buf)) {
+		n = utf8_to_utf32(src, buf, N_ITEMS(buf));
+		if (n < N_ITEMS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
@@ -5711,8 +5711,8 @@ compose_root_cmp(const void *a, const void *b)
 {
 	uint i = GPOINTER_TO_UINT(a), j = GPOINTER_TO_UINT(b);
 
-	g_assert(i < G_N_ELEMENTS(utf32_nfkd_lut));
-	g_assert(j < G_N_ELEMENTS(utf32_nfkd_lut));
+	g_assert(i < N_ITEMS(utf32_nfkd_lut));
+	g_assert(j < N_ITEMS(utf32_nfkd_lut));
 	return CMP(utf32_nfkd_lut[i].d[1], utf32_nfkd_lut[j].d[1]);
 }
 
@@ -5741,7 +5741,7 @@ unicode_compose_init(void)
 	size_t i;
 
 	/* Check order and consistency of the general category lookup table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_general_category_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_general_category_lut); i++) {
 		size_t len;
 		uint32 uc;
 		uni_gc_t gc;
@@ -5775,7 +5775,7 @@ unicode_compose_init(void)
 	}
 
 	/* Check order and consistency of the composition exclusions table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_composition_exclusions); i++) {
+	for (i = 0; i < N_ITEMS(utf32_composition_exclusions); i++) {
 		uint32 uc;
 
 		uc = utf32_composition_exclusions[i];
@@ -5784,7 +5784,7 @@ unicode_compose_init(void)
 	}
 
 	/* Check order and consistency of the block ID lookup table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_block_id_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_block_id_lut); i++) {
 		uint32 start, end;
 
 		start = utf32_block_id_lut[i].start;
@@ -5798,7 +5798,7 @@ unicode_compose_init(void)
 	/* Create the composition lookup table */
 	utf32_compose_roots = htable_create(HASH_KEY_SELF, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_nfkd_lut); i++) {
 		uint32 uc;
 
 		uc = utf32_nfkd_lut[i].c;
@@ -5845,7 +5845,7 @@ utf8_latinize_char(const uint32 uc)
 #define GET_ITEM(i)	(jap_tab[(i)].uc)
 #define FOUND(i)	return jap_tab[(i)].s
 
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(jap_tab), CMP, GET_ITEM, FOUND);
+	BINARY_SEARCH(uint32, uc, N_ITEMS(jap_tab), CMP, GET_ITEM, FOUND);
 
 #undef FOUND
 #undef GET_ITEM
@@ -6004,7 +6004,7 @@ regression_normalization_test_txt(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(normalization_test_txt); i++) {
+	for (i = 0; i < N_ITEMS(normalization_test_txt); i++) {
 		const uint32 *c[6];
 		size_t j;
 
@@ -6013,7 +6013,7 @@ regression_normalization_test_txt(void)
 		 * refers to the columns as c1..c5.
 		 */
 		c[0] = NULL;
-		for (j = 1; j < G_N_ELEMENTS(c); j++) {
+		for (j = 1; j < N_ITEMS(c); j++) {
 			const uint32 *src;
 			uint32 buf[256];
 			uchar chars[256];
@@ -6023,7 +6023,7 @@ regression_normalization_test_txt(void)
 			len = utf32_to_utf8(src, chars, sizeof chars);
 			g_assert(len > 0);
 			g_assert(len < sizeof chars);
-			n = utf8_to_utf32(chars, buf, G_N_ELEMENTS(buf));
+			n = utf8_to_utf32(chars, buf, N_ITEMS(buf));
 			g_assert(n == utf32_strlen(src));
 			g_assert(0 == utf32_strcmp(src, buf));
 
@@ -6198,7 +6198,7 @@ regression_normalization_issue(void)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		uint32 *s, *t;
 		bool eq;
 
@@ -6504,7 +6504,7 @@ regression_utf8_vs_glib2(void)
 		char s[1024], t[1024], *s_nfc;
 		size_t size;
 
-		for (i = 0; i < G_N_ELEMENTS(test) - 1; i++) {
+		for (i = 0; i < N_ITEMS(test) - 1; i++) {
 			uint32 uc;
 
 			do {
@@ -6602,7 +6602,7 @@ regression_utf8_vs_glib2(void)
 #endif
 
 		g_assert(s_nfc != NULL);
-		utf8_to_utf32(s_nfc, q, G_N_ELEMENTS(q));
+		utf8_to_utf32(s_nfc, q, N_ITEMS(q));
 
 		if (0 != strcmp(s_nfc, t))
 			G_BREAKPOINT();
@@ -6631,7 +6631,7 @@ regression_utf8_vs_glib2(void)
 		size = g_unichar_to_utf8(i, utf8_char);
 		g_assert(size < sizeof utf8_char);
 		utf8_char[size] = '\0';
-		utf8_decompose_nfd(utf8_char, buf, G_N_ELEMENTS(buf));
+		utf8_decompose_nfd(utf8_char, buf, N_ITEMS(buf));
 #if 1  /* !defined(xxxUSE_ICU) */
 		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFD);
 #else
@@ -6699,8 +6699,8 @@ regression_utf8_vs_glib2(void)
 		size_t j, utf8_len, utf32_len, m, n;
 
 		/* Check random strings */
-		utf32_len = random_value(G_N_ELEMENTS(test) - 2) + 1;
-		g_assert(utf32_len < G_N_ELEMENTS(test));
+		utf32_len = random_value(N_ITEMS(test) - 2) + 1;
+		g_assert(utf32_len < N_ITEMS(test));
 		for (j = 0; j < utf32_len; j++) {
 			uint32 uc;
 
@@ -6777,7 +6777,7 @@ regression_utf8_vs_glib2(void)
 #endif
 
 
-		utf8_len = utf32_to_utf8(test, buf, G_N_ELEMENTS(buf));
+		utf8_len = utf32_to_utf8(test, buf, N_ITEMS(buf));
 		g_assert(utf8_len < sizeof buf);
 		g_assert(utf32_len <= utf8_len);
 
@@ -6787,7 +6787,7 @@ regression_utf8_vs_glib2(void)
 		g_assert(utf8_is_valid_data(buf, utf8_len));
 		g_assert(n == utf8_data_char_count(buf, utf8_len));
 
-		n = utf8_to_utf32(buf, out, G_N_ELEMENTS(out));
+		n = utf8_to_utf32(buf, out, N_ITEMS(out));
 		g_assert(n == utf32_len);
 		g_assert(0 == memcmp(test, out, n * sizeof test[0]));
 

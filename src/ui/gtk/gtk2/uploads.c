@@ -484,9 +484,9 @@ create_uploads_model(void)
 	GtkListStore *store;
 	guint i;
 
-	STATIC_ASSERT(c_ul_num == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_ul_num == N_ITEMS(columns));
 #define SET(c, x) case (c): columns[i] = (x); break
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		switch (i) {
 		SET(c_ul_filename, G_TYPE_STRING);
 		SET(c_ul_host, G_TYPE_STRING);
@@ -504,7 +504,7 @@ create_uploads_model(void)
 	}
 #undef SET
 
-	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	store = gtk_list_store_newv(N_ITEMS(columns), columns);
 	return GTK_LIST_STORE(store);
 }
 
@@ -684,7 +684,7 @@ uploads_gui_init(void)
 	};
 	size_t i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
+	STATIC_ASSERT(N_ITEMS(cols) == UPLOADS_GUI_VISIBLE_COLUMNS);
 	store_uploads = create_uploads_model();
 
 	button_uploads_clear_completed =
@@ -694,7 +694,7 @@ uploads_gui_init(void)
 	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
 	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
-	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
+	for (i = 0; i < N_ITEMS(cols); i++) {
 		GtkTreeViewColumn *column;
 
 		column = add_column(cols[i].id, cols[i].sortfunc,

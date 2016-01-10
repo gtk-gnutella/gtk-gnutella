@@ -379,7 +379,7 @@ static const char * const store_errstr[] = {
 const char *
 dht_store_error_to_string(uint16 errnum)
 {
-	if (errnum == 0 || errnum >= G_N_ELEMENTS(store_errstr))
+	if (errnum == 0 || errnum >= N_ITEMS(store_errstr))
 		return "Invalid error code";
 
 	return store_errstr[errnum];
@@ -617,7 +617,7 @@ dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 
 		poke_be32(&tmp[0], type);
 
-		for (i = 0; i < G_N_ELEMENTS(tmp) - 1; i++) {
+		for (i = 0; i < N_ITEMS(tmp) - 1; i++) {
 			if (!is_ascii_print(tmp[i]))
 				tmp[i] = '.';
 		}

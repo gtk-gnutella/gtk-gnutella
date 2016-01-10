@@ -147,7 +147,7 @@ static const char *error_str[] = {
 const char *
 header_strerror(uint errnum)
 {
-	if (errnum >= G_N_ELEMENTS(error_str))
+	if (errnum >= N_ITEMS(error_str))
 		return "Invalid error code";
 
 	return error_str[errnum];

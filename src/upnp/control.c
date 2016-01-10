@@ -988,7 +988,7 @@ upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
 	argv[2] = nv_pair_make_static_str(ARG_PROTOCOL, protocol);
 
 	return upnp_ctrl_launch(usd, "GetSpecificPortMappingEntry",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		upnp_ctrl_ret_GetSpecificPortMappingEntry);
 }
 
@@ -1058,7 +1058,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	 */
 
 	return upnp_ctrl_launch(usd, "AddPortMapping",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		NULL);
 }
 
@@ -1091,7 +1091,7 @@ upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	argv[2] = nv_pair_make_static_str(ARG_PROTOCOL, protocol);
 
 	return upnp_ctrl_launch(usd, "DeletePortMapping",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		NULL);
 }
 

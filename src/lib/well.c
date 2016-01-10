@@ -265,7 +265,7 @@ well_state_discard(well_state_t *ws)
 	 * end up producing zeros...
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(ws->state); i++) {
+	for (i = 0; i < N_ITEMS(ws->state); i++) {
 		if G_LIKELY(ws->state[i] != 0)
 			goto good;
 	}
@@ -377,7 +377,7 @@ well_state_patch(well_state_t *ws, const void *data, size_t len)
 	g_assert(len <= sizeof ws->state);
 	g_assert(0 == (len & 0x3));			/* Multiple of 4 */
 
-	for (n = 0; n < G_N_ELEMENTS(ws->state) && len != 0; n++, len -= 4) {
+	for (n = 0; n < N_ITEMS(ws->state) && len != 0; n++, len -= 4) {
 		ws->state[n] ^= peek_be32(data);
 		data = const_ptr_add_offset(data, 4);
 	}

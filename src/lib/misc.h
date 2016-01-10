@@ -690,7 +690,7 @@ G_STMT_START { \
 #define BINARY_ARRAY_SORTED(bs_array, bs_type, bs_field, bs_cmp, bs_field2str) \
 G_STMT_START { \
 	size_t bs_index; \
-	size_t bs_size = G_N_ELEMENTS(bs_array); \
+	size_t bs_size = N_ITEMS(bs_array); \
 \
 	for (bs_index = 1; bs_index < bs_size; bs_index++) { \
 		const bs_type *prev = &bs_array[bs_index - 1]; \

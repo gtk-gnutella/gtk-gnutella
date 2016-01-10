@@ -277,7 +277,7 @@ ctl_get_flags(char opt)
 #define FOUND(i)	return ctl_options[(i)].flag
 
 	/* Perform a binary search to find ``opt'' */
-	BINARY_SEARCH(char, opt, G_N_ELEMENTS(ctl_options), charcmp, GET, FOUND);
+	BINARY_SEARCH(char, opt, N_ITEMS(ctl_options), charcmp, GET, FOUND);
 
 #undef FOUND
 #undef GET

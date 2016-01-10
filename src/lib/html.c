@@ -178,22 +178,22 @@ parse_attribute(const struct array attr)
 	size_t i, len;
 	char name[32];
 
-	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_ATTR - 1);
+	STATIC_ASSERT(N_ITEMS(tab) == NUM_HTML_ATTR - 1);
 
 	len = 0;
 	for (i = 0; i < attr.size; i++) {
 		const unsigned char c = attr.data[i];
 
-		if (G_N_ELEMENTS(name) == len || !is_ascii_alpha(c))
+		if (N_ITEMS(name) == len || !is_ascii_alpha(c))
 			break;
 
 		name[len] = ascii_toupper(c);
 		len++;
 	}
 
-	if (len > 0 && len < G_N_ELEMENTS(name)) {
+	if (len > 0 && len < N_ITEMS(name)) {
 		name[len] = '\0';
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].attr;
 		}
@@ -258,13 +258,13 @@ parse_tag(const struct array tag)
 	size_t i, len;
 	char name[32];
 
-	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_TAG);
+	STATIC_ASSERT(N_ITEMS(tab) == NUM_HTML_TAG);
 
 	len = 0;
 	for (i = 0; i < tag.size; i++) {
 		const unsigned char c = tag.data[i];
 
-		if (G_N_ELEMENTS(name) == len)
+		if (N_ITEMS(name) == len)
 			break;
 
 		if (0 == len) {
@@ -279,9 +279,9 @@ parse_tag(const struct array tag)
 		len++;
 	}
 
-	if (len > 0 && len < G_N_ELEMENTS(name)) {
+	if (len > 0 && len < N_ITEMS(name)) {
 		name[len] = '\0';
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].tag;
 		}
@@ -407,7 +407,7 @@ parse_named_entity(const struct array entity)
 	size_t i, len;
 	char name[16 + 2];
 
-	if (entity.size >= G_N_ELEMENTS(name) - 2)
+	if (entity.size >= N_ITEMS(name) - 2)
 		goto error;
 
 	len = 0;

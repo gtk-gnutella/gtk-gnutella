@@ -1779,7 +1779,7 @@ guess_entry_still_alive(const struct qkdata *qk)
 	if G_UNLIKELY(!inited) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(decimation); i++) {
+		for (i = 0; i < N_ITEMS(decimation); i++) {
 			decimation[i] = pow(GUESS_ALIVE_DECIMATION, (double) (i + 1));
 		}
 
@@ -1805,7 +1805,7 @@ guess_entry_still_alive(const struct qkdata *qk)
 	) {
 		return p;
 	} else {
-		size_t i = MIN(qk->timeouts, G_N_ELEMENTS(decimation)) - 1;
+		size_t i = MIN(qk->timeouts, N_ITEMS(decimation)) - 1;
 		return p * decimation[i];
 	}
 }

@@ -2200,7 +2200,7 @@ download_server_info_changed(const struct dl_server *server)
 
 	g_assert(dl_server_valid(server));
 
-	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
+	for (i = 0; i < N_ITEMS(listnum); i++) {
 		enum dl_list idx = listnum[i];
 		list_iter_t *iter;
 
@@ -3337,7 +3337,7 @@ server_has_same_download(struct dl_server *server,
 	 * running!
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(listnum); i++) {
+	for (i = 0; i < N_ITEMS(listnum); i++) {
 		d = server_list_lookup(server, i, sha1, file, size);
 		if (d) {
 			download_check(d);
@@ -3663,7 +3663,7 @@ download_remove_all_from_peer(const struct guid *guid,
 		if (server[i] == NULL)
 			continue;
 
-		for (j = 0; j < G_N_ELEMENTS(listnum); j++) {
+		for (j = 0; j < N_ITEMS(listnum); j++) {
 			enum dl_list idx = listnum[j];
 			list_iter_t *iter;
 
@@ -7763,7 +7763,7 @@ download_index_changed(const host_addr_t addr, uint16 port,
 
 	g_assert(dl_server_valid(server));
 
-	for (n = 0; n < G_N_ELEMENTS(listnum); n++) {
+	for (n = 0; n < N_ITEMS(listnum); n++) {
 		list_iter_t *iter;
 
 		iter = list_iter_before_head(server->list[n]);
@@ -15086,7 +15086,7 @@ download_retrieve(void)
 	FILE *f;
 
 	file_path_set(fp, settings_config_dir(), download_file);
-	f = file_config_open_read(file_what, fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read(file_what, fp, N_ITEMS(fp));
 	if (f) {
 		retrieving = TRUE;			/* Prevent download_store() runs */
 
@@ -17345,7 +17345,7 @@ download_is_completed_filename(const char *name)
 
 	namelen = strlen(name);
 
-	for (i = 0; i < G_N_ELEMENTS(ext); i++) {
+	for (i = 0; i < N_ITEMS(ext); i++) {
 		if (is_strsuffix(name, namelen, ext[i]))
 			return TRUE;
 	}

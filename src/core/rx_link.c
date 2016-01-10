@@ -66,7 +66,7 @@ is_readable(void *data, int unused_source, inputevt_cond_t cond)
 	rxdrv_t *rx = data;
 	struct attr *attr = rx->opaque;
 	pdata_t *db[32];
-	iovec_t iov[G_N_ELEMENTS(db)];
+	iovec_t iov[N_ITEMS(db)];
 	pmsg_t *mb;
 	ssize_t r;
 	uint i, iov_cnt;
@@ -102,7 +102,7 @@ is_readable(void *data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	i = 0;
-	for (i = 0; i < G_N_ELEMENTS(db); /* NOTHING */) {
+	for (i = 0; i < N_ITEMS(db); /* NOTHING */) {
 		size_t len;
 
 		db[i] = rxbuf_new();

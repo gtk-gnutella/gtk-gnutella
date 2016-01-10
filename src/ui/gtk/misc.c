@@ -561,7 +561,7 @@ gui_restore_window(GtkWidget *widget, property_t prop)
     guint32 coord[4] = { 0, 0, 0, 0 };
 	int x, y, width, height;
 
-    gui_prop_get_guint32(prop, coord, 0, G_N_ELEMENTS(coord));
+    gui_prop_get_guint32(prop, coord, 0, N_ITEMS(coord));
 	gui_fix_coords(coord);
 	x = coord[0];
 	y = coord[1];
@@ -594,7 +594,7 @@ gui_save_window(GtkWidget *widget, property_t prop)
 	coord[1] = y;
 	coord[2] = w;
 	coord[3] = h;
-    gui_prop_set_guint32(prop, coord, 0, G_N_ELEMENTS(coord));
+    gui_prop_set_guint32(prop, coord, 0, N_ITEMS(coord));
 }
 
 #ifdef USE_GTK2

@@ -174,7 +174,7 @@ mts_seed_with(random_fn_t rf, mt_state_t *mts)
 	 * supersede them with another non-zero random value.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(mts->vec); i++) {
+	for (i = 0; i < N_ITEMS(mts->vec); i++) {
 		if G_UNLIKELY(0 == mts->vec[i]) {
 			uint32 v, n = 0;
 

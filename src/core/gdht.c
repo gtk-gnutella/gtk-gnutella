@@ -705,7 +705,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 				while (
 					bstr_unread_size(bs) > 0 &&
-					UNSIGNED(proxy_count) < G_N_ELEMENTS(proxies)
+					UNSIGNED(proxy_count) < N_ITEMS(proxies)
 				) {
 					host_addr_t a;
 					uint16 p;

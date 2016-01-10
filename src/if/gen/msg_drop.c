@@ -74,7 +74,7 @@ static const char *msg_drop_reasons[] = {
 const char *
 gnet_stats_drop_reason_name(msg_drop_reason_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(msg_drop_reasons)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(msg_drop_reasons)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid msg_drop_reason_t code: %d", (int) x);
 		return str_2c(s);
@@ -146,7 +146,7 @@ static const char *msg_drop_reason_text[] = {
 const char *
 gnet_stats_drop_reason_to_string(msg_drop_reason_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(msg_drop_reason_text)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(msg_drop_reason_text)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid msg_drop_reason_t code: %d", (int) x);
 		return str_2c(s);

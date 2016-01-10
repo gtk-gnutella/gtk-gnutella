@@ -115,8 +115,8 @@ g2_msg_build_map(void)
 {
 	uint i;
 
-	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_english_names));
-	STATIC_ASSERT(G2_MSG_MAX == G_N_ELEMENTS(g2_msg_symbolic_names));
+	STATIC_ASSERT(G2_MSG_MAX == N_ITEMS(g2_msg_english_names));
+	STATIC_ASSERT(G2_MSG_MAX == N_ITEMS(g2_msg_symbolic_names));
 
 	g_assert(NULL == g2_msg_pt);
 
@@ -128,7 +128,7 @@ g2_msg_build_map(void)
 
 	g2_msg_pt = patricia_create(G2_FRAME_NAME_LEN_MAX * 8);	/* Size in bits */
 
-	for (i = 0; i < G_N_ELEMENTS(g2_msg_symbolic_names); i++) {
+	for (i = 0; i < N_ITEMS(g2_msg_symbolic_names); i++) {
 		const char *key = g2_msg_symbolic_names[i];
 		size_t len = strlen(key);
 

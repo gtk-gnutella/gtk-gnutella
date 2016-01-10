@@ -235,10 +235,10 @@ drag_attach(GtkWidget *widget, drag_get_data_cb callback, gboolean uri_list)
 
 	if (uri_list) {
 		targets = uri_targets;
-		num_targets = G_N_ELEMENTS(uri_targets);
+		num_targets = N_ITEMS(uri_targets);
 	} else {
 		targets = text_targets;
-		num_targets = G_N_ELEMENTS(text_targets);
+		num_targets = N_ITEMS(text_targets);
 	}
 
 	/* Initialize drag support */

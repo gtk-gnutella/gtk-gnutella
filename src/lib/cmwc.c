@@ -241,7 +241,7 @@ cmwc_state_patch(cmwc_state_t *cs, const void *data, size_t len)
 	g_assert(len <= sizeof cs->Q);
 	g_assert(0 == (len & 0x3));			/* Multiple of 4 */
 
-	for (n = 0; n < G_N_ELEMENTS(cs->Q) && len != 0; n++, len -= 4) {
+	for (n = 0; n < N_ITEMS(cs->Q) && len != 0; n++, len -= 4) {
 		cs->Q[n] ^= peek_be32(data);
 		data = const_ptr_add_offset(data, 4);
 	}

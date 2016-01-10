@@ -85,7 +85,7 @@ hcache_gui_init(void)
     GtkTreeModel *model;
     gint n;
 
-	STATIC_ASSERT(G_N_ELEMENTS(hcache_col_labels) ==
+	STATIC_ASSERT(N_ITEMS(hcache_col_labels) ==
 		HCACHE_STATS_VISIBLE_COLUMNS);
 
     treeview_hcache = GTK_TREE_VIEW(gui_main_window_lookup("treeview_hcache"));
@@ -108,7 +108,7 @@ hcache_gui_init(void)
             (-1));
 	}
 
-	for (n = 0; (guint) n < G_N_ELEMENTS(hcache_col_labels); n++) {
+	for (n = 0; (guint) n < N_ITEMS(hcache_col_labels); n++) {
 		add_column(treeview_hcache, n, (gfloat) (n != 0),
 			_(hcache_col_labels[n].text));
 	}

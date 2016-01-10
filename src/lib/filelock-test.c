@@ -361,7 +361,7 @@ test_lock_concurrency(const char *lock)
 
 	tm_now_exact(&start);
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		int pipefd[2];
 
 		/*
@@ -407,7 +407,7 @@ test_lock_concurrency(const char *lock)
 	 * Unblock children.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		char b = '\0';
 
 		if (-1 == write(pfd[i], &b, 1)) {
@@ -423,7 +423,7 @@ test_lock_concurrency(const char *lock)
 	 * Now see who could lock.
 	 */
 
-	for (locked = 0, i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (locked = 0, i = 0; i < N_ITEMS(procs); i++) {
 		char b;
 
 		if (-1 == read(procs[i], &b, 1)) {
@@ -451,7 +451,7 @@ test_lock_concurrency(const char *lock)
 	 * lock will exit with status 100.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		int status;
 
 		/* Closing writing end will unblock read(STDIN) in child */
@@ -653,7 +653,7 @@ filelock_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(filelock_tests); i++) {
+	for (i = 0; i < N_ITEMS(filelock_tests); i++) {
 		htable_insert(tv, filelock_tests[i].name, filelock_tests[i].cb);
 	}
 }

@@ -877,7 +877,7 @@ symbols_check_consistency(symbols_t *st)
 	 * Make sure the offset is constant among all our probed symbols.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(symbols_known); i++) {
+	for (i = 0; i < N_ITEMS(symbols_known); i++) {
 		const char *name = symbols_known[i].name;
 		const void *pc = cast_func_to_pointer(symbols_known[i].fn);
 		const void *loaded_pc = htable_lookup(sym_pc, name);
@@ -904,7 +904,7 @@ symbols_check_consistency(symbols_t *st)
 	 * Now verify whether we can match symbols.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(symbols_known); i++) {
+	for (i = 0; i < N_ITEMS(symbols_known); i++) {
 		struct symbol *s;
 		const void *pc = cast_func_to_pointer(symbols_known[i].fn);
 
@@ -918,12 +918,12 @@ symbols_check_consistency(symbols_t *st)
 	}
 
 	g_assert(size_is_non_negative(matching));
-	g_assert(matching <= G_N_ELEMENTS(symbols_known));
+	g_assert(matching <= N_ITEMS(symbols_known));
 
-	mismatches = G_N_ELEMENTS(symbols_known) - matching;
+	mismatches = N_ITEMS(symbols_known) - matching;
 
 	if (mismatches != 0) {
-		if (mismatches >= G_N_ELEMENTS(symbols_known) / 2) {
+		if (mismatches >= N_ITEMS(symbols_known) / 2) {
 			st->garbage = TRUE;
 		} else {
 			st->mismatch = TRUE;

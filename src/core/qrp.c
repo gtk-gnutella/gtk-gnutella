@@ -1577,7 +1577,7 @@ mrg_compute(bgdone_cb_t done_cb)
 		merge_ctx->magic = MERGE_MAGIC;
 
 		merge_comp = bg_task_create_stopped(NULL, "Leaf QRT merging",
-			merge_steps, G_N_ELEMENTS(merge_steps),
+			merge_steps, N_ITEMS(merge_steps),
 			merge_ctx, merge_context_free,
 			done_cb, NULL);
 
@@ -2614,7 +2614,7 @@ qrp_finalize_computation(htable_t *words)
 	g_soft_assert(NULL == qrp_comp);
 
 	qrp_comp = bg_task_create_stopped(NULL, "QRP computation",
-		qrp_compute_steps, G_N_ELEMENTS(qrp_compute_steps),
+		qrp_compute_steps, N_ITEMS(qrp_compute_steps),
 		ctx, qrp_comp_context_free,
 		qrp_comp_done, NULL);
 
@@ -2663,7 +2663,7 @@ qrp_update_routing_table(void)
 	g_soft_assert(NULL == qrp_merge);
 
 	qrp_merge = bg_task_create_stopped(NULL, "QRP merging",
-		qrp_merge_steps, G_N_ELEMENTS(qrp_merge_steps),
+		qrp_merge_steps, N_ITEMS(qrp_merge_steps),
 		ctx, qrp_merge_context_free,
 		qrp_merge_done, NULL);
 
@@ -5711,13 +5711,13 @@ test_hash(void)
 	CHECK(qrp_hash("3nja9", 10)==581);
 
 	/* Non-ASCII test cases */
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		char buf[1024];
 		size_t n;
 		uint32 h;
 
-		n = utf32_to_utf8(tests[i].s, buf, G_N_ELEMENTS(buf));
-		g_assert(n < G_N_ELEMENTS(buf));
+		n = utf32_to_utf8(tests[i].s, buf, N_ITEMS(buf));
+		g_assert(n < N_ITEMS(buf));
 
 		h = qrp_hash(buf, 10);
 		if (h != tests[i].hash) {

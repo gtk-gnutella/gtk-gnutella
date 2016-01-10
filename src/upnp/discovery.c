@@ -546,7 +546,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	upnp_dscv_ctrl_cb_t cb;
 
 	g_assert(size_is_non_negative(ucd_ctx->probe_idx));
-	g_assert(ucd_ctx->probe_idx < G_N_ELEMENTS(upnp_dscv_probes));
+	g_assert(ucd_ctx->probe_idx < N_ITEMS(upnp_dscv_probes));
 
 	dc = &upnp_dscv_probes[ucd_ctx->probe_idx++];
 
@@ -576,7 +576,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	 * Move on to the next control probe if any left.
 	 */
 
-	if (G_N_ELEMENTS(upnp_dscv_probes) == ucd_ctx->probe_idx) {
+	if (N_ITEMS(upnp_dscv_probes) == ucd_ctx->probe_idx) {
 		/*
 		 * All probes were successful, so we have a device with which we
 		 * can interact to do port mappings.
@@ -609,7 +609,7 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 	struct upnp_mcb *mcb;
 
 	g_assert(size_is_non_negative(ucd_ctx->probe_idx));
-	g_assert(ucd_ctx->probe_idx <= G_N_ELEMENTS(upnp_dscv_probes));
+	g_assert(ucd_ctx->probe_idx <= N_ITEMS(upnp_dscv_probes));
 
 	mcb = ucd_ctx->mcb;
 	upnp_mcb_check(mcb);
@@ -618,7 +618,7 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 	 * The index of the next command to launch is given by ucd_ctx->probe_idx.
 	 */
 
-	if (G_N_ELEMENTS(upnp_dscv_probes) == ucd_ctx->probe_idx)
+	if (N_ITEMS(upnp_dscv_probes) == ucd_ctx->probe_idx)
 		return FALSE;
 
 	/*
@@ -1148,7 +1148,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 
 			addr = addrinfo_to_addr(p);
 
-			while (devidx < G_N_ELEMENTS(devlist)) {
+			while (devidx < N_ITEMS(devlist)) {
 				const char *type = devlist[devidx++];
 
 				if (upnp_msearch_send(s, addr, type, mx))
@@ -1166,7 +1166,7 @@ upnp_discover(unsigned timeout, upnp_discover_cb_t cb, void *arg)
 #endif	/* HAS_GETADDRINFO */
 
 LABEL(no_getaddrinfo)
-	while (devidx < G_N_ELEMENTS(devlist)) {
+	while (devidx < N_ITEMS(devlist)) {
 		const char *type = devlist[devidx++];
 
 		if (upnp_msearch_send(s, mcast, type, mx))

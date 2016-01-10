@@ -349,11 +349,11 @@ x_launchve_plain(const htable_t *xv)
 	} else if (x_wants(xv, "x.quoted")) {
 		size_t i;
 
-		x_check_log(G_N_ELEMENTS(qargs) + 3 == main_argc,
+		x_check_log(N_ITEMS(qargs) + 3 == main_argc,
 			"main_argc=%d", main_argc);
 		x_check(0 == strcmp(main_argv[1], "-X"));
 
-		for (i = 0; i < G_N_ELEMENTS(qargs); i++) {
+		for (i = 0; i < N_ITEMS(qargs); i++) {
 			x_check_log(0 == strcmp(main_argv[3+i], qargs[i]),
 				"main_argv[3+%zu] = \"%s\", qargs[%zu] = \"%s\"",
 				i, main_argv[3+i], i, qargs[i]);
@@ -484,7 +484,7 @@ launchve_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(launchve_tests); i++) {
+	for (i = 0; i < N_ITEMS(launchve_tests); i++) {
 		htable_insert(tv, launchve_tests[i].name, launchve_tests[i].cb);
 	}
 }

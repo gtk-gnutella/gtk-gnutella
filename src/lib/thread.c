@@ -749,7 +749,7 @@ thread_backtrace_capture(
 
 	tm_now_exact(&bt->stamp);
 	bt->type = type;
-	bt->count = stacktrace_unwind(bt->frames, G_N_ELEMENTS(bt->frames), 2);
+	bt->count = stacktrace_unwind(bt->frames, N_ITEMS(bt->frames), 2);
 }
 
 /**
@@ -1070,7 +1070,7 @@ thread_qid_cache_force(unsigned stid, thread_qid_t low, thread_qid_t high)
 		"%s(): stid=%u, low=%'zu, high=%'zu",
 		G_STRFUNC, stid, low, high);
 
-	for (i = 0; i < G_N_ELEMENTS(thread_qid_cache); i++) {
+	for (i = 0; i < N_ITEMS(thread_qid_cache); i++) {
 		uint8 id = thread_qid_cache[i];
 		struct thread_element *te = threads[id];
 
@@ -1624,7 +1624,7 @@ thread_local_clear(struct thread_element *te)
 	unsigned l1;
 	size_t cleared = 0;
 
-	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
+	for (l1 = 0; l1 < N_ITEMS(te->locals); l1++) {
 		void **l2page = te->locals[l1];
 
 		if G_UNLIKELY(l2page != NULL) {
@@ -1681,7 +1681,7 @@ thread_local_count(struct thread_element *te)
 	unsigned l1;
 	size_t count = 0;
 
-	for (l1 = 0; l1 < G_N_ELEMENTS(te->locals); l1++) {
+	for (l1 = 0; l1 < N_ITEMS(te->locals); l1++) {
 		void **l2page = te->locals[l1];
 
 		if G_UNLIKELY(l2page != NULL) {
@@ -2203,7 +2203,7 @@ thread_stid_tie(unsigned stid, thread_t t)
 {
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+	for (i = 0; i < N_ITEMS(tstid); i++) {
 		if G_UNLIKELY(i >= thread_next_stid)
 			break;
 		if G_UNLIKELY(i == stid) {
@@ -2641,7 +2641,7 @@ thread_update_next_stid(void)
 
 	spinlock_raw(&thread_next_stid_slk);
 
-	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+	for (i = 0; i < N_ITEMS(threads); i++) {
 		if G_UNLIKELY(NULL == threads[i])
 			break;
 	}
@@ -3191,7 +3191,7 @@ thread_find_tid(thread_t t)
 
 	THREAD_STATS_INCX(lookup_by_tid);
 
-	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+	for (i = 0; i < N_ITEMS(tstid); i++) {
 		/* Allow look-ahead of to-be-created slot, hence the ">=" */
 		if G_UNLIKELY(i >= atomic_uint_get(&thread_allocated_stid))
 			break;
@@ -4094,7 +4094,7 @@ thread_stid_from_thread(const thread_t t)
 	if G_UNLIKELY(thread_eq(THREAD_INVALID, t))
 		return -1;
 
-	for (i = 0; i < G_N_ELEMENTS(tstid); i++) {
+	for (i = 0; i < N_ITEMS(tstid); i++) {
 		/* Allow look-ahead of to-be-created slot, hence the ">" */
 		if G_UNLIKELY(i > thread_next_stid)
 			break;
@@ -11139,7 +11139,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 			stacktrace_function_name(te->div->divert), te->div->arg);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(te->sigh); i++) {
+	for (i = 0; i < N_ITEMS(te->sigh); i++) {
 		if (NULL != te->sigh[i]) {
 			char buf[10];
 
@@ -11169,7 +11169,7 @@ thread_dump_thread_elements_log(logagent_t *la, unsigned options)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(threads); i++) {
+	for (i = 0; i < N_ITEMS(threads); i++) {
 		if G_UNLIKELY(i >= thread_next_stid)
 			break;
 		if G_UNLIKELY(i == thread_next_stid)

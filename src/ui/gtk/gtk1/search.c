@@ -1123,7 +1123,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			/* A parent exists with that sha1, add as child to that parent */
 			node = gtk_ctree_insert_node(ctree, parent, NULL,
 						(gchar **) titles, /* override const */
-						G_N_ELEMENTS(titles), NULL, NULL, NULL, NULL, 0, 0);
+						N_ITEMS(titles), NULL, NULL, NULL, NULL, 0, 0);
 
 			/* Update the "#" column of the parent, +1 for parent */
 			count = gtk_ctree_count_node_children(ctree, parent);
@@ -1146,7 +1146,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			/* Add node as a parent */
 			node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
 						(gchar **) titles, /* override const */
-						G_N_ELEMENTS(titles), NULL, NULL, NULL, NULL, 0, 0);
+						N_ITEMS(titles), NULL, NULL, NULL, NULL, 0, 0);
 			add_parent_with_sha1(sch, key, node);
 
 			/* Update count in the records (use for column sorting) */
@@ -1159,7 +1159,7 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 
 		node = gtk_ctree_insert_node(ctree, parent = NULL, NULL,
 					(gchar **) titles, /* override */
-					G_N_ELEMENTS(titles), NULL, NULL, NULL, NULL, 0, 0);
+					N_ITEMS(titles), NULL, NULL, NULL, NULL, 0, 0);
 		/* Update count in the records (use for column sorting) */
 		gui_rc->num_children = 0;
 		is_parent = TRUE;

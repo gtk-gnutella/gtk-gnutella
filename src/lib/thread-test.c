@@ -228,9 +228,9 @@ static void
 test_create_one(bool repeat, bool join)
 {
 	unsigned i;
-	int launched[G_N_ELEMENTS(names)];
+	int launched[N_ITEMS(names)];
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		int r;
 		int flags = 0;
 
@@ -293,8 +293,8 @@ test_create_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
-		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
+		emit("now joining the %u threads", (uint) N_ITEMS(launched));
+		for (i = 0; i < N_ITEMS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
@@ -446,9 +446,9 @@ static void
 test_cancel_one(bool repeat, bool join)
 {
 	unsigned i;
-	int launched[G_N_ELEMENTS(names)];
+	int launched[N_ITEMS(names)];
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		int r;
 		int flags = 0;
 
@@ -494,8 +494,8 @@ test_cancel_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
-		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
+		emit("now joining the %u threads", (uint) N_ITEMS(launched));
+		for (i = 0; i < N_ITEMS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
@@ -677,7 +677,7 @@ test_semaphore(bool emulated)
 
 	emit("main waiting for subthreads");
 
-	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
+	for (i = 0; UNSIGNED(i) < N_ITEMS(r); i++) {
 		if (-1 == thread_join(r[i], NULL))
 			s_error("failed to join with %s: %m", thread_id_name(r[i]));
 	}
@@ -722,7 +722,7 @@ enum game_state other[] = { PLAYER_B, PLAYER_A };
 static void
 create_player(process_fn_t start, int n)
 {
-	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(name));
+	g_assert(n >= 0 && n < (int) N_ITEMS(name));
 
 	if (-1 == thread_create(start, int_to_pointer(n), THREAD_F_DETACH, 8192))
 		s_error("cannot launch player %s: %m", name[n]);
@@ -791,7 +791,7 @@ player_stats(int n)
 {
 	struct game_stats *stats;
 
-	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(game_stats));
+	g_assert(n >= 0 && n < (int) N_ITEMS(game_stats));
 
 	stats = &game_stats[n];
 
@@ -819,7 +819,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	g_assert(0 == cond_pending_count(&game_state_change));
 	g_assert(0 == cond_signal_count(&game_state_change));
 
-	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		create_player(player, i);
 	}
 
@@ -855,7 +855,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 			if (tm_elapsed_f(&end, &now) <= 0.0)
 				break;
 
-			ret = compat_poll(wfd, G_N_ELEMENTS(wfd), 1000);
+			ret = compat_poll(wfd, N_ITEMS(wfd), 1000);
 			if (ret < 0) {
 				s_warning("poll() failed: %m");
 			} else {
@@ -908,7 +908,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	g_assert(0 == cond_waiting_count(&game_state_change));
 	g_assert(0 == cond_pending_count(&game_state_change));
 
-	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		player_stats(i);
 	}
 	if (monitor) {
@@ -1120,7 +1120,7 @@ test_aqueue(bool emulated)
 
 	t = thread_create(aqt_processor, &arg, THREAD_F_PANIC, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		ulong res;
 
 		emit("computing length of \"%s\"", names[i]);
@@ -1227,13 +1227,13 @@ test_rwlock(void)
 
 	emit("%s(): multi-threaded tests...", G_STRFUNC);
 
-	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+	for (i = 0; i < N_ITEMS(t); i++) {
 		t[i] = thread_create(test_rwthreads, NULL, 0, 0);
 		if (-1 == t[i])
 			s_error("%s() cannot create thread %u: %m", G_STRFUNC, i);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+	for (i = 0; i < N_ITEMS(t); i++) {
 		thread_join(t[i], NULL);
 	}
 
@@ -1499,7 +1499,7 @@ test_barrier_one(bool emulated)
 	int t[2], i, n;
 	barrier_t *cb;
 
-	n = (int) G_N_ELEMENTS(t);
+	n = (int) N_ITEMS(t);
 	cb = barrier_new_full(n + 1, emulated);
 	counter = 0;
 
@@ -1608,7 +1608,7 @@ test_dam_one(bool emulated)
 	barrier_t *b;
 	uint key;
 
-	n = (int) G_N_ELEMENTS(t);
+	n = (int) N_ITEMS(t);
 	d = dam_new_full(&key, emulated);
 	b = barrier_new_full(n + 1, emulated);
 	atomic_int_set(&dam_counter, 0);

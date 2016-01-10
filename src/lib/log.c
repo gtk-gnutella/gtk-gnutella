@@ -733,7 +733,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 		iovec_t iov[2];
 		iovec_set(&iov[0], msg, strlen(msg));
 		iovec_set(&iov[1], "\n", 1);
-		atio_writev(lf->crash_fd, iov, G_N_ELEMENTS(iov));
+		atio_writev(lf->crash_fd, iov, N_ITEMS(iov));
 	}
 
 #undef FORMAT_STR
@@ -828,7 +828,7 @@ log_abort(void)
 	 * current stack before crashing.
 	 */
 
-	count = stacktrace_safe_unwind(log_stack, G_N_ELEMENTS(log_stack), 0);
+	count = stacktrace_safe_unwind(log_stack, N_ITEMS(log_stack), 0);
 	crash_save_stackframe(log_stack, count);
 
 	/*
@@ -998,9 +998,9 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		iovec_set(&iov[0], data, clamp_strlen(data, sizeof data));
 		iovec_set(&iov[1], "\n", 1);
 		if (raw)
-			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+			IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
 		else
-			atio_writev(fd, iov, G_N_ELEMENTS(iov));
+			atio_writev(fd, iov, N_ITEMS(iov));
 	}
 }
 
@@ -1271,7 +1271,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			iovec_t iov[2];
 			iovec_set(&iov[0], str_2c(msg), str_len(msg));
 			iovec_set(&iov[1], "\n", 1);
-			atio_writev(fd, iov, G_N_ELEMENTS(iov));
+			atio_writev(fd, iov, N_ITEMS(iov));
 		}
 	}
 
@@ -2011,7 +2011,7 @@ s_line_writef(int fd, const char *fmt, ...)
 	iovec_set(&iov[0], str_2c(&str), str_len(&str));
 	iovec_set(&iov[1], "\n", 1);
 
-	IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+	IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
 }
 
 /**
@@ -2226,7 +2226,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 	if (domain) {
 		unsigned i;
 
-		for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+		for (i = 0; i < N_ITEMS(log_domains); i++) {
 			const char *dom = log_domains[i];
 			if (dom && 0 == strcmp(domain, dom)) {
 				raise(SIGTRAP);
@@ -2376,7 +2376,7 @@ log_reopen_all(bool daemonized)
 	size_t i;
 	bool success = TRUE;
 
-	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+	for (i = 0; i < N_ITEMS(logfile); i++) {
 		struct logfile *lf = &logfile[i];
 
 		if (NULL == lf->path) {
@@ -2587,7 +2587,7 @@ log_init(void)
 {
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+	for (i = 0; i < N_ITEMS(log_domains); i++) {
 		g_log_set_handler(log_domains[i],
 			G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
 			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
@@ -2688,7 +2688,7 @@ log_close(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+	for (i = 0; i < N_ITEMS(logfile); i++) {
 		struct logfile *lf = &logfile[i];
 
 		if (lf->path_is_atom)

@@ -60,7 +60,7 @@ shell_exec_stats_general(struct gnutella_shell *sh,
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -148,7 +148,7 @@ shell_exec_stats_drop(struct gnutella_shell *sh,
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 

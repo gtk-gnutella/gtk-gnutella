@@ -374,7 +374,7 @@ sha1_read_cache(void)
 	g_return_if_fail(settings_config_dir());
 
 	file_path_set(fp, settings_config_dir(), "sha1_cache");
-	f = file_config_open_read("SHA-1 cache", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read("SHA-1 cache", fp, N_ITEMS(fp));
 	if (f) {
 		for (;;) {
 			char buffer[4096];

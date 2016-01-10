@@ -244,7 +244,7 @@ filter_gui_filter_clear_list(void)
 			fl_nodes[FILTER_NODE_BUILTIN]);
 
 
-	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
+	for (i = 0; i < N_ITEMS(nodes); i++) {
     	const gchar *titles[3];
 
     	titles[0] = deconstify_gchar(_(nodes[i].title));
@@ -286,7 +286,7 @@ filter_gui_filter_clear_list(void)
     tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_filters"));
 	model = gtk_tree_view_get_model(tv);
 
-	for (i = 0; i < G_N_ELEMENTS(nodes); i++) {
+	for (i = 0; i < N_ITEMS(nodes); i++) {
 		GtkTreeIter iter;
 
 		gtk_tree_store_append(GTK_TREE_STORE(model), &iter, NULL);
@@ -317,7 +317,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
     GtkCTreeNode *parent;
     guint count;
     GtkCTree *ctree_filter_filters;
-	gchar buf[G_N_ELEMENTS(titles)][256];
+	gchar buf[N_ITEMS(titles)][256];
 
     g_assert(f != NULL);
 
@@ -581,7 +581,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
 
     if (f != NULL) {
         gtk_mass_widget_set_sensitive(gui_filter_dialog(),
-			widgets, G_N_ELEMENTS(widgets), filter_is_modifiable(f));
+			widgets, N_ITEMS(widgets), filter_is_modifiable(f));
 
         gtk_widget_set_sensitive
             (gui_filter_dialog_lookup("button_filter_remove"), removable);
@@ -659,7 +659,7 @@ filter_gui_filter_set(filter_t *f, gboolean removable,
         gtk_widget_set_sensitive
             (gui_filter_dialog_lookup("button_filter_remove"), FALSE);
         gtk_mass_widget_set_sensitive(gui_filter_dialog(),
-			widgets, G_N_ELEMENTS(widgets), FALSE);
+			widgets, N_ITEMS(widgets), FALSE);
     }
 }
 
@@ -967,7 +967,7 @@ filter_gui_rebuild_target_combos(GList *filters)
     if (gui_filter_dialog() != NULL) {
     	guint i;
 
-        for (i = 0; i < G_N_ELEMENTS(opt_menus); i++) {
+        for (i = 0; i < N_ITEMS(opt_menus); i++) {
             m = GTK_MENU(gtk_menu_new());
 
             for (l_iter = buf; l_iter != NULL; l_iter = g_list_next(l_iter)) {
@@ -1853,7 +1853,7 @@ filter_update_size(GtkEntry *entry)
 
 		error = EINVAL;
 
-		for (i = 0; i < G_N_ELEMENTS(suffixes); i++) {
+		for (i = 0; i < N_ITEMS(suffixes); i++) {
 			gboolean base2 = 0 != (i & 1);
 			const gchar *q;
 
@@ -2318,7 +2318,7 @@ filter_gui_init(void)
         FALSE);
 
     m = GTK_MENU(gtk_menu_new());
-	for (i = 0; i < G_N_ELEMENTS(menu_items); i++) {
+	for (i = 0; i < N_ITEMS(menu_items); i++) {
 		guint id = menu_items[i].id;
     	menu_new_item_with_data(m, _(rule_text_type_labels[id]),
         	GUINT_TO_POINTER(id));
@@ -2332,7 +2332,7 @@ filter_gui_init(void)
      * The user_data set here is later relevant for filter_gui_get_flag_rule()
      */
 
-	for (i = 0; i < G_N_ELEMENTS(radio_buttons); i++) {
+	for (i = 0; i < N_ITEMS(radio_buttons); i++) {
     	gtk_object_set_user_data(
 			GTK_OBJECT(gui_filter_dialog_lookup(radio_buttons[i].name)),
 			GUINT_TO_POINTER(radio_buttons[i].id));

@@ -190,7 +190,7 @@ gui_color_init(GtkWidget *widget)
 		return;
 
 	initialized = TRUE;
-	STATIC_ASSERT(NUM_GUI_COLORS == G_N_ELEMENTS(colors));
+	STATIC_ASSERT(NUM_GUI_COLORS == N_ITEMS(colors));
 	cmap = gdk_colormap_get_system();
     g_assert(cmap);
 
@@ -2019,7 +2019,7 @@ search_gui_set_record_info(results_set_t *rs)
 		STR_CAT(vinfo, "GUID");
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(open_flags); i++) {
+	for (i = 0; i < N_ITEMS(open_flags); i++) {
 		if (rs->status & open_flags[i].flag) {
 			if (str_len(vinfo) > 0)
 				STR_CAT(vinfo, ", ");
@@ -3112,7 +3112,7 @@ search_gui_handle_query(const gchar *query_str, guint32 flags,
 		};
 		guint i;
 
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			if (is_strcaseprefix(query_str, tab[i].prefix)) {
 				tab[i].handler(query_str, error_str);
 				return NULL;
@@ -3713,7 +3713,7 @@ search_gui_refresh_popup(void)
 	gtk_widget_set_sensitive(gui_main_window_lookup("button_search_download"),
 		has_selected && !is_local);
 
-	for (i = 0; i < G_N_ELEMENTS(menu); i++) {
+	for (i = 0; i < N_ITEMS(menu); i++) {
 		GtkWidget *w = gui_popup_search_lookup(menu[i].name);
 		if (w) {
 			gtk_widget_set_sensitive(w,
@@ -4288,7 +4288,7 @@ drag_data_received(GtkWidget *widget, GdkDragContext *dc,
 		}
 
 		if (gui_main_window_lookup("entry_search") != widget) {
-			for (i = 0; i < G_N_ELEMENTS(proto_handlers); i++) {
+			for (i = 0; i < N_ITEMS(proto_handlers); i++) {
 				const char *endptr;
 
 				endptr = is_strcaseprefix(text, proto_handlers[i].proto);

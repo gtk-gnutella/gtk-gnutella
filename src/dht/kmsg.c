@@ -1631,7 +1631,7 @@ k_handle_find_value(knode_t *kn, gnutella_node_t *n,
 	 */
 
 	vcnt = keys_get(id, type, secondary, count,
-		vvec, G_N_ELEMENTS(vvec), &load, &cached);
+		vvec, N_ITEMS(vvec), &load, &cached);
 
 	/*
 	 * If we have no items of the requested value type, we need to act
@@ -2598,7 +2598,7 @@ kmsg_find(uint8 function)
 {
 	const struct kmsg *km;
 
-	if (function == 0 || function >= G_N_ELEMENTS(kmsg_map))
+	if (function == 0 || function >= N_ITEMS(kmsg_map))
 		return NULL;
 
 	km = &kmsg_map[function];
@@ -2614,7 +2614,7 @@ kmsg_find(uint8 function)
 const char *
 kmsg_name(uint function)
 {
-	if (function >= G_N_ELEMENTS(kmsg_map))
+	if (function >= N_ITEMS(kmsg_map))
 		return "invalid";
 
 	return kmsg_map[function].name;
@@ -2682,7 +2682,7 @@ kmsg_init(void)
 	g_assert(NULL == kmsg_aging_pings);
 	g_assert(NULL == kmsg_aging_finds);
 
-	for (i = 0; i < G_N_ELEMENTS(kmsg_map); i++) {
+	for (i = 0; i < N_ITEMS(kmsg_map); i++) {
 		const struct kmsg *entry = &kmsg_map[i];
 
 		g_assert(entry->function == i);

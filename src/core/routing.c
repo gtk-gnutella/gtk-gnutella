@@ -1490,7 +1490,7 @@ routing_init(void)
 
 	ht_banned_push = hset_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
-	for (i = 0; i < G_N_ELEMENTS(banned_push); i++) {
+	for (i = 0; i < N_ITEMS(banned_push); i++) {
 		struct guid guid;
 		const char *hex = banned_push[i];
 

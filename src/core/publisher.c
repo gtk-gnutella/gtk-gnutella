@@ -961,7 +961,7 @@ publisher_init(void)
 
 	cq_periodic_add(publish_cq, PUBLISH_SYNC_PERIOD, publisher_sync, NULL);
 
-	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+	for (i = 0; i < N_ITEMS(inverse_decimation); i++) {
 		double n = i + 1.0;
 		double v = log(n / KDA_K);
 
@@ -973,7 +973,7 @@ publisher_init(void)
 		}
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+	for (i = 0; i < N_ITEMS(inverse_decimation); i++) {
 		if (inverse_decimation[i] >= PUBLISH_MIN_DECIMATION) {
 			publisher_minimum = i + 1;
 			break;

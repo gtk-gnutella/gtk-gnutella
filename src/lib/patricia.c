@@ -2894,13 +2894,13 @@ patricia_test(void)
 	};
 	patricia_t *pt = patricia_create(32);
 
-	test_keys(keys, G_N_ELEMENTS(keys));
+	test_keys(keys, N_ITEMS(keys));
 
 	keys[0] = 0x1U;		/* Ensure 1 embedded data at least */
 
 	patricia_insert(pt, &keys[0], NULL);
 
-	for (i = 1; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 1; i < N_ITEMS(keys); i++) {
 		int j;
 
 		for (j = 0; j < 10; j++) {
@@ -2915,7 +2915,7 @@ patricia_test(void)
 		patricia_insert(pt, &keys[i], NULL);
 	}
 
-	test_keys(keys, G_N_ELEMENTS(keys));
+	test_keys(keys, N_ITEMS(keys));
 
 	/* all tests passed */
 

@@ -178,7 +178,7 @@ bogons_retrieve(void)
 
 	length = settings_file_path_load(fp, bogons_file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(bogons_what, fp, length, &idx);
 

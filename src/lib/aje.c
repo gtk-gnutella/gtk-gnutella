@@ -197,7 +197,7 @@ aje_counter_inc(aje_state_t *as)
 
 	aje_check(as);
 
-	for (i = 0; i < G_N_ELEMENTS(as->counter); i++) {
+	for (i = 0; i < N_ITEMS(as->counter); i++) {
 		if G_LIKELY(0 != ++as->counter[i])
 			break;
 	}
@@ -286,7 +286,7 @@ aje_reseed(aje_state_t *as)
 
 	SHA1_reset(&kctx);
 
-	for (k = 0; k < G_N_ELEMENTS(as->pool) && n != 0; k++, n >>= 1) {
+	for (k = 0; k < N_ITEMS(as->pool) && n != 0; k++, n >>= 1) {
 		/*
 		 * The SHA1 is finalized, but the SHA1 context is kept intact so that
 		 * new entropy added to the pool will add to the previous hash context.
@@ -314,7 +314,7 @@ aje_reseed(aje_state_t *as)
 		 */
 
 		STATIC_ASSERT(IS_POWER_OF_2(AJE_EXTRABYTES));
-		g_assert(as->krnd < G_N_ELEMENTS(as->key));
+		g_assert(as->krnd < N_ITEMS(as->key));
 
 		offset = as->key[as->krnd] & (AJE_EXTRABYTES - 1);
 	} else {
@@ -416,7 +416,7 @@ aje_random_byte(aje_state_t *as)
 	uint8 b;
 
 	aje_check(as);
-	g_assert(as->krnd < G_N_ELEMENTS(as->key));
+	g_assert(as->krnd < N_ITEMS(as->key));
 
 	/*
 	 * Use the key bytes as our random source.
@@ -424,7 +424,7 @@ aje_random_byte(aje_state_t *as)
 
 	b = as->key[as->krnd++];
 
-	if G_UNLIKELY(as->krnd >= G_N_ELEMENTS(as->key))
+	if G_UNLIKELY(as->krnd >= N_ITEMS(as->key))
 		aje_rekey(as);				/* Get fresh randomness source */
 
 	return b;
@@ -442,9 +442,9 @@ aje_random_pool(aje_state_t *as)
 	 * The modulo bias is OK: it will slightly prefer lower pools.
 	 */
 
-	STATIC_ASSERT(MAX_INT_VAL(uint8) >= G_N_ELEMENTS(as->pool));
+	STATIC_ASSERT(MAX_INT_VAL(uint8) >= N_ITEMS(as->pool));
 
-	return aje_random_byte(as) % G_N_ELEMENTS(as->pool);
+	return aje_random_byte(as) % N_ITEMS(as->pool);
 }
 
 /**
@@ -500,7 +500,7 @@ aje_distribute_entropy(aje_state_t *as, const void *data, size_t len)
 	else
 		n = aje_random_pool(as);
 
-	g_assert(n < G_N_ELEMENTS(as->pool));
+	g_assert(n < N_ITEMS(as->pool));
 
 	/*
 	 * Hash a random portion of the data we are given into the pool.
@@ -579,7 +579,7 @@ aje_spread(aje_state_t *as)
 	 * Now feed entropy to the pools, excluding pool #0.
 	 */
 
-	for (i = 1; i < G_N_ELEMENTS(as->pool); i++) {
+	for (i = 1; i < N_ITEMS(as->pool); i++) {
 		size_t j;
 
 		for (j = 0; j < 2; j++) {
@@ -674,7 +674,7 @@ aje_init(aje_state_t *as)
 	ZERO(as);
 	as->magic = AJE_MAGIC;
 
-	for (i = 0; i < G_N_ELEMENTS(as->pool); i++) {
+	for (i = 0; i < N_ITEMS(as->pool); i++) {
 		SHA1_reset(&as->pool[i]);
 	}
 
@@ -781,7 +781,7 @@ aje_refresh(aje_state_t *as)
 	aje_check(as);
 
 	aje_extract(as, as->vec, sizeof as->vec);
-	as->sp = G_N_ELEMENTS(as->vec);
+	as->sp = N_ITEMS(as->vec);
 }
 
 /**

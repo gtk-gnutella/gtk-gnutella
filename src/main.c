@@ -1133,7 +1133,7 @@ option_pretty_name(const char *name)
 	static char buf[128];
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
+	for (i = 0; i < N_ITEMS(buf) - 1; i++) {
 		if ('\0' == name[i])
 			break;
 		buf[i] = underscore_to_hyphen(name[i]);
@@ -1214,7 +1214,7 @@ static void G_NORETURN
 option_ambiguous(const char *name, struct option *item)
 {
 	struct option *min = item, *max = item, *o;
-	struct option *end = &options[G_N_ELEMENTS(options)];
+	struct option *end = &options[N_ITEMS(options)];
 
 	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
 	fprintf(stderr, "Could mean either of:\n");
@@ -1259,7 +1259,7 @@ option_find(const char *name, bool fatal)
 	struct option *item;
 
 	item = bsearch(name,
-		options, G_N_ELEMENTS(options), sizeof options[0], option_name_prefix);
+		options, N_ITEMS(options), sizeof options[0], option_name_prefix);
 
 	if (NULL == item)
 		return NULL;
@@ -1269,7 +1269,7 @@ option_find(const char *name, bool fatal)
 			goto ambiguous;
 	}
 
-	if (ptr_cmp(item, options + G_N_ELEMENTS(options) - 1) < 0) {
+	if (ptr_cmp(item, options + N_ITEMS(options) - 1) < 0) {
 		if (option_strprefix((item + 1)->name, name))
 			goto ambiguous;
 	}
@@ -1292,10 +1292,10 @@ usage(int exit_code)
 	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
 	fprintf(f, "Usage: %s [ options ... ]\n", getprogname());
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	STATIC_ASSERT(N_ITEMS(options) == num_main_args);
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 
 		if (options[i].summary) {
@@ -1321,7 +1321,7 @@ prehandle_arguments(char **argv)
 	OPT(topless) = TRUE;
 #endif	/* USE_TOPLESS */
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_name_cmp);
 
 	while (argv[0]) {
 		const char *s;
@@ -1362,9 +1362,9 @@ prehandle_arguments(char **argv)
 	}
 
 done:
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 }
@@ -1394,12 +1394,12 @@ parse_arguments(int argc, char **argv)
 {
 	unsigned i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	STATIC_ASSERT(N_ITEMS(options) == num_main_args);
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_name_cmp);
 
 	argv++;		/* Skip argv[0] */
 	argc--;
@@ -1450,9 +1450,9 @@ parse_arguments(int argc, char **argv)
 		}
 	}
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 }
@@ -1786,9 +1786,9 @@ callout_queue_idle(void *unused_data)
 
 		if (0 == random_value(1)) {
 			n = ridx;
-			ridx = (ridx + 1) % G_N_ELEMENTS(random_source);
+			ridx = (ridx + 1) % N_ITEMS(random_source);
 		} else {
-			n = random_value(G_N_ELEMENTS(random_source) - 1);
+			n = random_value(N_ITEMS(random_source) - 1);
 		}
 
 		(*random_source[n])(&digest);

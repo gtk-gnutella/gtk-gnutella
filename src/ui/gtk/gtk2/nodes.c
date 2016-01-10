@@ -195,7 +195,7 @@ create_nodes_model(void)
 	GtkListStore *store;
 
 	columns[0] = G_TYPE_POINTER;
-	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	store = gtk_list_store_newv(N_ITEMS(columns), columns);
 	return store;
 }
 
@@ -298,7 +298,7 @@ nodes_gui_create_treeview_nodes(void)
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++)
+	for (i = 0; i < N_ITEMS(columns); i++)
 		add_column(tree, _(columns[i].title), cell_renderer_func,
 			GUINT_TO_POINTER(columns[i].id));
 }

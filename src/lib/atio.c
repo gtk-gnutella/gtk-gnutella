@@ -65,7 +65,7 @@ static spinlock_t atio_access[] = {
 	SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT,	/* 32 */
 };
 
-#define ATIO_HASH_MASK	(G_N_ELEMENTS(atio_access) - 1)
+#define ATIO_HASH_MASK	(N_ITEMS(atio_access) - 1)
 
 /*
  * Get spinlock to use based on file descriptor.

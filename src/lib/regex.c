@@ -4738,7 +4738,7 @@ regerror (errcode, unused_preg, errbuf, errbuf_size)
   (void) unused_preg;
 
   if (errcode < 0
-      || UNSIGNED(errcode) >= G_N_ELEMENTS(re_error_msg))
+      || UNSIGNED(errcode) >= N_ITEMS(re_error_msg))
     /* Only error codes returned by the rest of the code should be passed
        to this routine.  If we are given anything else, or if other regex
        code generates an invalid error code, then the program has a bug.

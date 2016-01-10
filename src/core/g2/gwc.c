@@ -301,12 +301,12 @@ gwc_retrieve(void)
 
 	len = settings_file_path_load(fp, gwc_file, SFP_ALL);
 
-	g_assert(len <= G_N_ELEMENTS(fp));
+	g_assert(len <= N_ITEMS(fp));
 
 	fpv = &fp[0];
 
 retry:
-	g_assert(ptr_cmp(fpv, &fp[G_N_ELEMENTS(fp)]) < 0);
+	g_assert(ptr_cmp(fpv, &fp[N_ITEMS(fp)]) < 0);
 
 	if (&fp[0] == fpv)
 		in = file_config_open_read_chosen(gwc_what, fpv, len, &idx);
@@ -373,7 +373,7 @@ gwc_init(void)
 
 	gwc_retrieve();
 	if (0 == hset_count(gwc_known_url)) {
-		for (i = 0; i < G_N_ELEMENTS(boot_url) && boot_url[i]; i++)
+		for (i = 0; i < N_ITEMS(boot_url) && boot_url[i]; i++)
 			gwc_add(boot_url[i]);
 	}
 }

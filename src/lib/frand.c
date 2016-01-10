@@ -106,8 +106,8 @@ frand_merge(const char *path, randfill_fn_t rfn, size_t len)
 	if (-1 == fd)
 		return -1;
 
-	STATIC_ASSERT(G_N_ELEMENTS(buf) == G_N_ELEMENTS(data));
-	STATIC_ASSERT(G_N_ELEMENTS(buf) == sizeof buf);
+	STATIC_ASSERT(N_ITEMS(buf) == N_ITEMS(data));
+	STATIC_ASSERT(N_ITEMS(buf) == sizeof buf);
 
 	while (len != 0) {
 		size_t i, n = MIN(len, sizeof buf);

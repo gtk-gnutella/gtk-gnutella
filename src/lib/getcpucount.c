@@ -67,7 +67,7 @@ getcpucount(void)
 	long count;
 	size_t len = sizeof count;
 
-	if (-1 == sysctl(mib, G_N_ELEMENTS(mib), &count, &len, NULL, 0)) {
+	if (-1 == sysctl(mib, N_ITEMS(mib), &count, &len, NULL, 0)) {
 		g_warning("%s: sysctl() for HW_AVAILCPU failed: %m", G_STRFUNC);
 		return 1;
 	}
@@ -79,7 +79,7 @@ getcpucount(void)
 	long count;
 	size_t len = sizeof count;
 
-	if (-1 == sysctl(mib, G_N_ELEMENTS(mib), &count, &len, NULL, 0)) {
+	if (-1 == sysctl(mib, N_ITEMS(mib), &count, &len, NULL, 0)) {
 		g_warning("%s: sysctl() for HW_NCPU failed: %m", G_STRFUNC);
 		return 1;
 	}

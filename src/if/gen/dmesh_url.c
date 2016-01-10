@@ -30,7 +30,7 @@ static const char *dmesh_url_error_str[] = {
 const char *
 dmesh_url_error_to_string(dmesh_url_error_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(dmesh_url_error_str)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(dmesh_url_error_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid dmesh_url_error_t code: %d", (int) x);
 		return str_2c(s);

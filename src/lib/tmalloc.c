@@ -963,7 +963,7 @@ tmalloc_thread_layer_free(void *data)
 
 	atomic_int_dec(&d->tma_threads);		/* Thread is exiting */
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 		if (m != NULL) {
 			tmt->tmt_mag[i] = NULL;
@@ -1213,7 +1213,7 @@ tmalloc_thread_clear(struct tmalloc_thread *tmt)
 			(uint) delta_time(tm_time(), tmt->tmt_last_op), thread_name());
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 		if (m != NULL) {
 			tmt->tmt_mag[i] = NULL;
@@ -1749,7 +1749,7 @@ tmalloc_reset_thread(const void *data, void *udata)
 	 * its magazines: NULL is a valid value that is handled properly.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 
 		tmt->tmt_mag[i] = NULL;		/* Thread is suspended */
@@ -1834,7 +1834,7 @@ tmalloc_reset(tmalloc_t *tma)
 	if (tmt != NULL) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+		for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 			tmalloc_magazine_t *m = tmt->tmt_mag[i];
 			if (m != NULL) {
 				if (tmalloc_debugging(1)) {

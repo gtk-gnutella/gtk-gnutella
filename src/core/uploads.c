@@ -2099,7 +2099,7 @@ upload_http_extra_callback_add(struct upload *u,
 	http_status_cb_t callback, void *user_arg)
 {
 	upload_check(u);
-	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
 	u->hevcnt++;
@@ -2114,7 +2114,7 @@ upload_http_extra_callback_remove(struct upload *u, http_status_cb_t callback)
 	uint i;
 
 	upload_check(u);
-	g_assert(u->hevcnt <= G_N_ELEMENTS(u->hev));
+	g_assert(u->hevcnt <= N_ITEMS(u->hev));
 
 	for (i = 0; i < u->hevcnt; /* empty */) {
 		if G_UNLIKELY(http_extra_callback_matches(&u->hev[i], callback)) {
@@ -2136,7 +2136,7 @@ upload_http_extra_callback_add_once(struct upload *u,
 	uint i;
 
 	upload_check(u);
-	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	for (i = 0; i < u->hevcnt; i++) {
 		if (http_extra_callback_matches(&u->hev[i], callback))
@@ -2155,7 +2155,7 @@ static void
 upload_http_extra_line_add(struct upload *u, const char *msg)
 {
 	upload_check(u);
-	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	http_extra_line_set(&u->hev[u->hevcnt], msg);
 	u->hevcnt++;
@@ -2168,7 +2168,7 @@ static void
 upload_http_extra_body_add(struct upload *u, const char *body)
 {
 	upload_check(u);
-	g_return_if_fail(u->hevcnt < G_N_ELEMENTS(u->hev));
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	http_extra_body_set(&u->hev[u->hevcnt], body);
 	u->hevcnt++;
@@ -5159,7 +5159,7 @@ upload_sink_data(void *data, int unused_source, inputevt_cond_t cond)
 	}
 
 	while (ctx->amount != 0) {
-		size_t n = MIN(ctx->amount, G_N_ELEMENTS(buf));
+		size_t n = MIN(ctx->amount, N_ITEMS(buf));
 		r = bws_read(BSCHED_BWS_IN, &u->socket->wio, buf, n);
 		if (-1 == r) {
 			upload_remove(u, _("Read error while sinking: %m"));

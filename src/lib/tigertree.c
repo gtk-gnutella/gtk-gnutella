@@ -172,7 +172,7 @@ tt_good_depth(filesize_t filesize)
 	};
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(thresholds); i++) {
+	for (i = 0; i < N_ITEMS(thresholds); i++) {
 		if (filesize < thresholds[i])
 			break;
 	}
@@ -263,7 +263,7 @@ tt_collapse(TTH_CONTEXT *ctx)
 		tt_compose(ctx);
 		n /= 2;
 		if (ctx->bpl > 1 && 0 == (ctx->n % ctx->bpl) && 2 == x) {
-			g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+			g_assert(ctx->li < N_ITEMS(ctx->leaves));
 			ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 			ctx->li++;
 		}
@@ -318,7 +318,7 @@ tt_finish(TTH_CONTEXT *ctx)
 			depth--;
 			n_blocks = (n_blocks + 1) / 2;
 			if (depth == ctx->good_depth) {
-				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+				g_assert(ctx->li < N_ITEMS(ctx->leaves));
 				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 				ctx->li++;
 			}
@@ -465,7 +465,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 
 	ZERO(&digest);
 	base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
-	digest[G_N_ELEMENTS(digest) - 1] = '\0';
+	digest[N_ITEMS(digest) - 1] = '\0';
 
 	if (0 != strcmp(expected, digest)) {
 		g_warning("tt_check_digest:\nExpected: \"%s\"\nGot:      \"%s\"",

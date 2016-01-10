@@ -134,7 +134,7 @@
  * Same as ARRAY_MAKEROOM, used when the size of the array is statically known.
  */
 #define ARRAY_FIXED_MAKEROOM(ary,i,f) \
-	ARRAY_MAKEROOM(ary,(i),(f),G_N_ELEMENTS(ary))
+	ARRAY_MAKEROOM(ary,(i),(f),N_ITEMS(ary))
 
 #endif /* _array_util_h_ */
 

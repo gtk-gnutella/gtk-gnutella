@@ -755,7 +755,7 @@ settings_init(void)
 			system_precision = tm_precise_granularity(&tn);
 			nano = tmn2ns(&tn);
 
-			for (p = 0, val = nano; p < G_N_ELEMENTS(prefix); p++) {
+			for (p = 0, val = nano; p < N_ITEMS(prefix); p++) {
 				if (1000UL * (val / 1000UL) != val)
 					break;
 				val /= 1000UL;
@@ -1170,7 +1170,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 	 * recent peers who have reported a new address before.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		if (host_addr_matches(peer, peers[i], 16)) /* CIDR /16 */
 			return;
 	}
@@ -1182,15 +1182,15 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
-	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	g_assert(same_addr_count > 0 && same_addr_count < N_ITEMS(peers));
 	peers[same_addr_count] = peer;
 
-	if (++same_addr_count < G_N_ELEMENTS(peers))
+	if (++same_addr_count < N_ITEMS(peers))
 		return;
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		peers[i] = zero_host_addr;
 	}
 
@@ -1230,7 +1230,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 	 * recent peers who have reported a new address before.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		if (host_addr_matches(peer, peers[i], 64)) /* CIDR /64 */
 			return;
 	}
@@ -1242,15 +1242,15 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
-	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	g_assert(same_addr_count > 0 && same_addr_count < N_ITEMS(peers));
 	peers[same_addr_count] = peer;
 
-	if (++same_addr_count < G_N_ELEMENTS(peers))
+	if (++same_addr_count < N_ITEMS(peers))
 		return;
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		peers[i] = zero_host_addr;
 	}
 
@@ -3434,7 +3434,7 @@ static prop_map_t property_map[] = {
  *** Control functions
  ***/
 
-#define PROPERTY_MAP_SIZE G_N_ELEMENTS(property_map)
+#define PROPERTY_MAP_SIZE N_ITEMS(property_map)
 
 static bool init_list[GNET_PROPERTY_NUM];
 

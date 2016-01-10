@@ -314,7 +314,7 @@ static const struct {
 	/* Above line intentionally left blank for vi sorting */
 };
 
-static iso3166_entry_t iso3166_entries[G_N_ELEMENTS(iso3166_tab)];
+static iso3166_entry_t iso3166_entries[N_ITEMS(iso3166_tab)];
 
 static iso3166_entry_t *iso3166_countries[ISO3166_NUM_CODES];
 
@@ -331,7 +331,7 @@ iso3166_decode_cc(uint16 code)
     static char s[3];
     uint i;
 
-    if (code >= G_N_ELEMENTS(iso3166_countries))
+    if (code >= N_ITEMS(iso3166_countries))
         return NULL;
 
     if (NULL == iso3166_countries[code])
@@ -364,7 +364,7 @@ iso3166_encode_cc(const char *cc)
 
 		code = parse_uint16(cc, NULL, 36, &error);
 
-		if (code >= G_N_ELEMENTS(iso3166_countries))
+		if (code >= N_ITEMS(iso3166_countries))
 			return ISO3166_INVALID;
 
 		g_assert(0 == error);
@@ -383,7 +383,7 @@ iso3166_init(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(iso3166_tab); i++) {
+	for (i = 0; i < N_ITEMS(iso3166_tab); i++) {
 		iso3166_entry_t *entry;
 
 		entry = &iso3166_entries[i];
@@ -399,7 +399,7 @@ iso3166_init(void)
 			code = parse_uint16(entry->cc, &endptr, 36, &error);
 			g_assert(*endptr == '\0');
 			g_assert(!error);
-			g_assert((size_t) code < G_N_ELEMENTS(iso3166_countries));
+			g_assert((size_t) code < N_ITEMS(iso3166_countries));
 			iso3166_countries[code] = entry;
 		}
 	}
@@ -410,7 +410,7 @@ iso3166_close(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(iso3166_entries); i++) {
+	for (i = 0; i < N_ITEMS(iso3166_entries); i++) {
 		iso3166_entry_t *entry = &iso3166_entries[i];
 		atom_str_free_null(&entry->country);
 	}
@@ -424,7 +424,7 @@ iso3166_country_entry(uint16 code)
 		return &unknown;
 	} else {
 		static const iso3166_entry_t none = { "(null)", "??" };
-		g_assert(code < G_N_ELEMENTS(iso3166_countries));
+		g_assert(code < N_ITEMS(iso3166_countries));
 		return iso3166_countries[code] ? iso3166_countries[code] : &none;
 	}
 }

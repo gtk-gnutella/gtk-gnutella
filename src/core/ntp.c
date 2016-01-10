@@ -249,7 +249,7 @@ ntp_send_probes(void)
 	 *			delay startup. Thus, use ADNS for this.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(hosts); i++) {
+	for (i = 0; i < N_ITEMS(hosts); i++) {
 		host_addr_t addr;
 
 		addr = name_to_single_host_addr(hosts[i].addr, settings_dns_net());

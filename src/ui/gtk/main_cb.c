@@ -96,7 +96,7 @@ load_faq(void)
 		initialized = i;
 	}
 
-	g_assert(i <= G_N_ELEMENTS(fp));
+	g_assert(i <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename("FAQ", fp, i);
 	if (f) {

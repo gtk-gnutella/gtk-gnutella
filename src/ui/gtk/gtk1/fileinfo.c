@@ -218,7 +218,7 @@ fi_gui_file_show(struct fileinfo_data *file)
 	if (row < 0) {
 		const char *titles[c_fi_num];
 
-		for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+		for (i = 0; i < N_ITEMS(titles); i++) {
 			titles[i] = "";
 		}
 		row = gtk_clist_append(clist_download_files, (char **) &titles);
@@ -394,7 +394,7 @@ fi_gui_source_show(struct download *key)
 	g_return_if_fail(clist);
 	g_return_if_fail(!htable_contains(fi_sources, key));
 
-	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+	for (i = 0; i < N_ITEMS(titles); i++) {
 		titles[i] = "";
 	}
 
@@ -411,7 +411,7 @@ fi_gui_source_show(struct download *key)
 
 	gtk_clist_set_row_data_full(clist, row, key,
 		on_clist_download_sources_row_removed);
-	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+	for (i = 0; i < N_ITEMS(titles); i++) {
 		render_sources(key, row, i);
 	}
 	gtk_clist_thaw(clist);

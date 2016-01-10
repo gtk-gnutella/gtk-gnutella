@@ -1743,17 +1743,17 @@ vmsg_send_node_info_ans(gnutella_node_t *n, const rnode_info_t *ri)
 
 	/* General information always returned */
 
-	for (i = 0; i < G_N_ELEMENTS(ri->vendor); i++)
+	for (i = 0; i < N_ITEMS(ri->vendor); i++)
 		p = poke_u8(p, ri->vendor[i]);
 
 	p = poke_u8(p, ri->mode);
 	p = poke_be32(p, ri->answer_flags);
 	p = poke_be32(p, ri->op_flags);
-	p = poke_u8(p, G_N_ELEMENTS(ri->features));
+	p = poke_u8(p, N_ITEMS(ri->features));
 
-	g_assert(ri->features_count == G_N_ELEMENTS(ri->features));
+	g_assert(ri->features_count == N_ITEMS(ri->features));
 
-	for (i = 0; i < G_N_ELEMENTS(ri->features); i++)
+	for (i = 0; i < N_ITEMS(ri->features); i++)
 		p = poke_be32(p, ri->features[i]);
 
 	p = poke_u8(p, ri->max_ultra_up);
@@ -2109,7 +2109,7 @@ vmsg_send_head_pong_v1(gnutella_node_t *n, const struct sha1 *sha1,
 			int hcnt = 0;
 
 			if (sha1) {
-				hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+				hcnt = dmesh_fill_alternate(sha1, hvec, N_ITEMS(hvec));
 			}
 			if (hcnt > 0) {
 				int i;
@@ -2190,7 +2190,7 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 				gnet_host_t hvec[15];	/* 15 * 18 = 270 bytes (max) */
 				unsigned hcnt;
 
-				hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+				hcnt = dmesh_fill_alternate(sha1, hvec, N_ITEMS(hvec));
 				if (hcnt > 0) {
 					if (GGEP_OK != ggept_a_pack(&gs, hvec, hcnt))
 						goto failure;
@@ -3366,7 +3366,7 @@ vmsg_send_messages_supported(gnutella_node_t *n)
 	 * Fill one entry per message type supported, excepted ourselves.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
+	for (i = 0; i < N_ITEMS(vmsg_map); i++) {
 		const struct vmsg *msg = &vmsg_map[i];
 
 		if (msg->vendor == T_0000)		/* Don't send info about ourselves */
@@ -3539,7 +3539,7 @@ vmsg_init_weight(void)
 
 	pt_weight = patricia_create(VMSG_TYPE_BITLEN);
 
-	for (i = 0; i < G_N_ELEMENTS(vmsg_weight_map); i++) {
+	for (i = 0; i < N_ITEMS(vmsg_weight_map); i++) {
 		const struct vmsg_weight *vw = &vmsg_weight_map[i];
 		gnutella_vendor_t *key = walloc(VMSG_TYPE_LEN);
 
@@ -3585,7 +3585,7 @@ vmsg_init(void)
 
 	hs_vmsg = hset_create_any(vmsg_hash_func, vmsg_hash_func2, vmsg_eq_func);
 
-	for (i = 0; i < G_N_ELEMENTS(vmsg_map); i++) {
+	for (i = 0; i < N_ITEMS(vmsg_map); i++) {
 		const void *key = &vmsg_map[i];
 		hset_insert(hs_vmsg, key);
 

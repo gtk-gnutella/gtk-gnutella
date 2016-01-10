@@ -333,7 +333,7 @@ rw_ggep_screen(char *word, const char **retkw)
 {
 	ext_token_t t;
 
-	t = rw_screen(TRUE, ggeptable, G_N_ELEMENTS(ggeptable), word, retkw);
+	t = rw_screen(TRUE, ggeptable, N_ITEMS(ggeptable), word, retkw);
 
 	return (t == EXT_T_UNKNOWN) ? EXT_T_UNKNOWN_GGEP : t;
 }
@@ -347,7 +347,7 @@ rw_urn_screen(const char *word, const char **retkw)
 {
 	ext_token_t t;
 
-	t = rw_screen(FALSE, urntable, G_N_ELEMENTS(urntable), word, retkw);
+	t = rw_screen(FALSE, urntable, N_ITEMS(urntable), word, retkw);
 
 	return EXT_T_UNKNOWN == t ? EXT_T_URN_UNKNOWN : t;
 }
@@ -1235,7 +1235,7 @@ ext_ggep_nextblock(const char *buf, int len)
 	if (len <= 2)
 		return NULL;	/* Cannot hold a valid GGEP block in so few bytes */
 
-	ext_prepare(exv, G_N_ELEMENTS(exv));
+	ext_prepare(exv, N_ITEMS(exv));
 
 	while (p < end) {
 		const char *old_p = p;
@@ -1251,24 +1251,24 @@ ext_ggep_nextblock(const char *buf, int len)
 			return deconstify_pointer(p);	/* Start of GGEP data */
 		case 'u':
 		case 'U':
-			found = ext_huge_parse(&p, len, exv, G_N_ELEMENTS(exv));
+			found = ext_huge_parse(&p, len, exv, N_ITEMS(exv));
 			break;
 		case '<':
-			found = ext_xml_parse(&p, len, exv, G_N_ELEMENTS(exv));
+			found = ext_xml_parse(&p, len, exv, N_ITEMS(exv));
 			break;
 		case HUGE_FS:
 		case '\0':
 			p++;
 			if (p == end)
 				return NULL;
-			found = ext_none_parse(&p, len-1, exv, G_N_ELEMENTS(exv));
+			found = ext_none_parse(&p, len-1, exv, N_ITEMS(exv));
 			if (!found) {
 				len--;
 				continue;			/* Single separator, no bloat then */
 			}
 			break;
 		default:
-			found = ext_unknown_parse(&p, len, exv, G_N_ELEMENTS(exv), FALSE);
+			found = ext_unknown_parse(&p, len, exv, N_ITEMS(exv), FALSE);
 			break;
 		}
 
@@ -1281,16 +1281,16 @@ ext_ggep_nextblock(const char *buf, int len)
 
 		if (found == 0) {
 			g_assert(p == old_p);
-			found = ext_unknown_parse(&p, len, exv, G_N_ELEMENTS(exv), TRUE);
+			found = ext_unknown_parse(&p, len, exv, N_ITEMS(exv), TRUE);
 		}
 
 		g_assert(found > 0);
-		g_assert(UNSIGNED(found) <= G_N_ELEMENTS(exv));
+		g_assert(UNSIGNED(found) <= N_ITEMS(exv));
 		g_assert(p != old_p);
 
 		len -= p - old_p;
 
-		ext_reset(exv, G_N_ELEMENTS(exv));
+		ext_reset(exv, N_ITEMS(exv));
 	}
 
 	return NULL;	/* Did not find any GGEP start */
@@ -2243,7 +2243,7 @@ ext_ggep_name(ext_token_t id)
 	g_assert(id >= ggeptable[0].rw_token);
 
 	i = id - ggeptable[0].rw_token;
-	g_assert(i < G_N_ELEMENTS(ggeptable));
+	g_assert(i < N_ITEMS(ggeptable));
 	g_assert(id == ggeptable[i].rw_token);
 
 	return ggeptable[i].rw_name;
@@ -2261,8 +2261,8 @@ ext_init(void)
 {
 	ext_names = htable_create(HASH_KEY_STRING, 0);
 
-	rw_is_sorted("ggeptable", ggeptable, G_N_ELEMENTS(ggeptable));
-	rw_is_sorted("urntable", urntable, G_N_ELEMENTS(urntable));
+	rw_is_sorted("ggeptable", ggeptable, N_ITEMS(ggeptable));
+	rw_is_sorted("urntable", urntable, N_ITEMS(urntable));
 }
 
 /**

@@ -379,9 +379,7 @@ typedef int socket_fd_t;
 /*
  * Array size determination
  */
-#ifndef G_N_ELEMENTS
-#define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
-#endif
+#define N_ITEMS(arr) (sizeof (arr) / sizeof ((arr)[0]))
 
 /*
  * Portability macros.

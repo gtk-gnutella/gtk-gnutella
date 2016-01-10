@@ -171,7 +171,7 @@ static spinlock_t cond_access[] = {
 	SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT,	/* 32 */
 };
 
-#define COND_HASH_MASK	(G_N_ELEMENTS(cond_access) - 1)
+#define COND_HASH_MASK	(N_ITEMS(cond_access) - 1)
 
 static void cond_time_adjust(int delta);
 
