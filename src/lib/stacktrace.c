@@ -806,20 +806,21 @@ static void
 stack_print(FILE *f, void * const *stack, size_t count)
 {
 	size_t i;
+	int stid = -1;
+	bool locked = TRUE;
 
 	stacktrace_load_symbols();
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	if (!stack_sym_trylock(G_STRFUNC))
-		return;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		stid = thread_safe_small_id();
+		locked = FALSE;
+	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -827,12 +828,17 @@ stack_print(FILE *f, void * const *stack, size_t count)
 		if (!valid_ptr(stack[i]))
 			break;
 
-		fprintf(f, "\t%s\n", where);
+		if (stid >= 0)
+			fprintf(f, "\t[%d] %s\n", stid, where);
+		else
+			fprintf(f, "\t%s\n", where);
+
 		if (stack_reached_main(where))
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -846,20 +852,21 @@ static void
 stack_log(logagent_t *la, void * const *stack, size_t count)
 {
 	size_t i;
+	int stid = -1;
+	bool locked = TRUE;
 
 	stacktrace_load_symbols();
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	if (!stack_sym_trylock(G_STRFUNC))
-		return;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		stid = thread_safe_small_id();
+		locked = FALSE;
+	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -867,12 +874,17 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 		if (!valid_ptr(stack[i]))
 			break;
 
-		log_info(la, "\t%s", where);
+		if (stid >= 0)
+			log_info(la, "\t[%d] %s", stid, where);
+		else
+			log_info(la, "\t%s", where);
+
 		if (stack_reached_main(where))
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -886,26 +898,35 @@ static void
 stack_safe_print(int fd, void * const *stack, size_t count)
 {
 	size_t i;
+	int stid = -1;
+	bool locked = TRUE;
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	if (!stack_sym_trylock(G_STRFUNC))
-		return;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		stid = thread_safe_small_id();
+		locked = FALSE;
+	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
-		DECLARE_STR(3);
+		char sbuf[UINT_DEC_BUFLEN];
+		const char *snum;
+		DECLARE_STR(6);
 
 		print_str("\t");		/* 0 */
-		print_str(where);		/* 1 */
-		print_str("\n");		/* 2 */
+		if (stid >= 0) {
+			snum = PRINT_NUMBER(sbuf, stid);
+			print_str("[");		/* 1 */
+			print_str(snum);	/* 2 */
+			print_str("] ");	/* 3 */
+		}
+		print_str(where);		/* 4 */
+		print_str("\n");		/* 5 */
 		flush_str(fd);
 
 		if (!valid_ptr(stack[i]))
@@ -915,7 +936,8 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -1073,7 +1095,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	static char tid[32];
 	str_t s;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
-	bool reached_main = FALSE;
+	bool reached_main = FALSE, locked = TRUE;
 	int saved_errno = errno;
 
 	/*
@@ -1101,11 +1123,13 @@ stack_print_decorated_to(struct sxfile *xf,
 	 *
 	 * This critical section alone also ensures that we never mix the outputs
 	 * of two threads attempting to dump a stack at the same time.
-	 *		--RAM, 2015-10-01
+	 * Otherwise, force the thread small ID to be output.
 	 */
 
-	if (!stack_sym_trylock(G_STRFUNC))
-		return;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		flags |= STACKTRACE_F_THREAD;
+		locked = FALSE;
+	}
 
 	/*
 	 * The BFD environment is only opened once.
@@ -1122,7 +1146,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	 */
 
 	if (flags & STACKTRACE_F_THREAD) {
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		if (stid != 0)
 			str_bprintf(tid, sizeof tid, "[%u] ", stid);
 		else
@@ -1154,7 +1178,8 @@ stack_print_decorated_to(struct sxfile *xf,
 		 */
 
 		if G_UNLIKELY(stacktrace_crashing) {
-			STACKTRACE_SYM_UNLOCK;
+			if (locked)
+				STACKTRACE_SYM_UNLOCK;
 			stack_safe_print_to(xf, &stack[i], count - i);
 			return;
 		}
@@ -1388,7 +1413,8 @@ stack_print_decorated_to(struct sxfile *xf,
 
 	errno = saved_errno;
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
