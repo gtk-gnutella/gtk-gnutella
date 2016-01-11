@@ -1515,8 +1515,6 @@ stacktrace_caller_name(size_t n)
 	if (NULL == symbols)
 		return "??";
 
-	STACKTRACE_SYM_LOCK;
-
 	name = symbols_name(symbols, stack[n], FALSE);
 
 	/*
@@ -1526,8 +1524,6 @@ stacktrace_caller_name(size_t n)
 
 	if (!in_sigh && !thread_in_crash_mode())
 		name = constant_str(name);
-
-	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }
@@ -1551,8 +1547,6 @@ stacktrace_routine_name(const void *pc, bool offset)
 	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	STACKTRACE_SYM_LOCK;
-
 	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
 
 	/*
@@ -1573,8 +1567,6 @@ stacktrace_routine_name(const void *pc, bool offset)
 		str_bprintf(buf, sizeof buf, "%p", pc);
 		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
-
-	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }

@@ -828,7 +828,7 @@ rwlock_is_owned(const rwlock_t *rw)
 }
 
 /**
- * Is write lock taken by current thread (either read or write)?
+ * Is lock taken by current thread (either read or write)?
  */
 bool
 rwlock_is_taken(const rwlock_t *rw)

@@ -172,7 +172,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		symbol_info syminfo;
 
 		sym = bfd_minisymbol_to_symbol(bc->handle, bc->dynamic, p, empty);
-		bfd_get_symbol_info (bc->handle, sym, &syminfo);
+		bfd_get_symbol_info(bc->handle, sym, &syminfo);
 
 		if ('T' == syminfo.type || 't' == syminfo.type) {
 			const char *name = bfd_asymbol_name(sym);

@@ -53,6 +53,7 @@
 #include "misc.h"
 #include "parse.h"
 #include "path.h"
+#include "rwlock.h"
 #include "sha1.h"
 #include "spinlock.h"
 #include "stacktrace.h"
@@ -86,6 +87,7 @@ struct symbols {
 	unsigned garbage:1;			/**< Symbols are probably pure garbage */
 	unsigned sorted:1;			/**< Symbols were sorted */
 	unsigned once:1;			/**< Whether symbol names are "once" atoms */
+	rwlock_t lock;				/**< Thread-safe lock */
 };
 
 static inline void
@@ -94,6 +96,13 @@ symbols_check(const struct symbols * const s)
 	g_assert(s != NULL);
 	g_assert(SYMBOLS_MAGIC == s->magic);
 }
+
+#define SYMBOLS_READ_LOCK(x)	rwlock_rlock(deconstify_pointer(&(x)->lock))
+#define SYMBOLS_READ_TRYLOCK(x)	rwlock_rlock_try(deconstify_pointer(&(x)->lock))
+#define SYMBOLS_READ_UNLOCK(x)	rwlock_runlock(deconstify_pointer(&(x)->lock))
+
+#define SYMBOLS_WRITE_LOCK(x)	rwlock_wlock(&(x)->lock)
+#define SYMBOLS_WRITE_UNLOCK(x)	rwlock_wunlock(&(x)->lock)
 
 enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
 
@@ -256,6 +265,14 @@ symbols_count(const symbols_t *st)
 {
 	symbols_check(st);
 
+	/*
+	 * This routine must not take any locks, so read the symbol count after
+	 * issuing a memory barrier: another thread could be in the process of
+	 * loading symbols, in which case the write-lock is taken and we'd block
+	 * getting the read lock, risking a deadlock if we already hold locks.
+	 */
+
+	atomic_mb();
 	return st->count;
 }
 
@@ -265,9 +282,15 @@ symbols_count(const symbols_t *st)
 size_t
 symbols_memory_size(const symbols_t *st)
 {
+	size_t mem;
+
 	symbols_check(st);
 
-	return st->size * sizeof st->base[0];
+	SYMBOLS_READ_LOCK(st);
+	mem = st->size * sizeof st->base[0];
+	SYMBOLS_READ_UNLOCK(st);
+
+	return mem;
 }
 
 /**
@@ -278,7 +301,9 @@ symbols_mark_stale(symbols_t *st)
 {
 	symbols_check(st);
 
+	SYMBOLS_WRITE_LOCK(st);
 	st->stale = TRUE;
+	SYMBOLS_WRITE_UNLOCK(st);
 }
 
 /**
@@ -301,6 +326,7 @@ symbols_make(size_t capacity, bool once)
 	s->magic = SYMBOLS_MAGIC;
 	s->once = booleanize(once);
 	s->size = capacity;
+	rwlock_init(&s->lock);
 
 	len = capacity * sizeof s->base[0];
 
@@ -319,6 +345,7 @@ symbols_free(symbols_t *st)
 	symbols_check(st);
 
 	vmm_free(st->base, st->size * sizeof st->base[0]);
+	rwlock_destroy(&st->lock);
 	st->magic = 0;
 	xfree(st);
 }
@@ -400,6 +427,9 @@ symbols_normalize(const char *name, bool atom)
 /**
  * Append a new symbol to the table.
  *
+ * @attention
+ * This routine MUST be called with the symbol table write-locked
+ *
  * @param st		the symbol table
  * @param addr		the address of the symbol
  * @param name		the name of the symbol
@@ -411,6 +441,7 @@ symbols_append(symbols_t *st, const void *addr, const char *name)
 
 	symbols_check(st);
 	g_assert(name != NULL);
+	g_assert(rwlock_is_owned(&st->lock));
 
 	if (st->count >= st->size) {
 		size_t osize, nsize;
@@ -455,6 +486,7 @@ symbols_remove(symbols_t *st, size_t i)
 {
 	symbols_check(st);
 	g_assert(size_is_non_negative(i));
+	g_assert(rwlock_is_owned(&st->lock));
 
 	if (!st->once)
 		xfree(deconstify_pointer(st->base[i].name));
@@ -477,12 +509,14 @@ symbols_sort(symbols_t *st)
 
 	symbols_check(st);
 
-	if G_UNLIKELY(st->sorted || 0 == st->count)
-		return 0;
-
-	xqsort(st->base, st->count, sizeof st->base[0], symbol_cmp);
+	SYMBOLS_WRITE_LOCK(st);
 
 	ocount = st->count;
+
+	if G_UNLIKELY(st->sorted || 0 == st->count)
+		goto done;
+
+	xqsort(st->base, st->count, sizeof st->base[0], symbol_cmp);
 
 	while (i < st->count) {
 		struct symbol *s = &st->base[i];
@@ -513,7 +547,11 @@ symbols_sort(symbols_t *st)
 	st->size = st->count;
 	st->sorted = TRUE;
 
-	return ocount - st->count;
+done:
+	ocount -= st->count;
+	SYMBOLS_WRITE_UNLOCK(st);
+
+	return ocount;
 }
 
 /**
@@ -540,19 +578,22 @@ symbols_lookup(const symbols_t *st, const void *addr)
 	while (low <= high) {
 		mid = low + (high - low) / 2;
 		if (laddr >= mid->addr && (mid == high || laddr < (mid+1)->addr))
-			return mid;			/* Found it! */
+			return mid;
 		else if (laddr < mid->addr)
 			high = mid - 1;		/* -1 OK, since pointers cannot reach page 0 */
 		else
 			low = mid + 1;
 	}
 
-	return NULL;				/* Not found */
+	return NULL;	/* Not found */
 }
 
 /**
  * Find symbol, avoiding the last entry (supposed to be the end) and
  * ignoring garbage / stale symbol tables.
+ *
+ * @attention
+ * This routine must be called with the symbols read-locked at least.
  *
  * @param st		the symbol table
  * @param pc		the PC within the routine
@@ -648,40 +689,49 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 const char *
 symbols_name(const symbols_t *st, const void *pc, bool offset)
 {
-	static char buf[256];
+	static char buf[THREAD_MAX][128];
+	static char emergency[128];
+	unsigned stid = thread_safe_small_id();
+	char *b;
+
+	STATIC_ASSERT(sizeof buf[0] == sizeof emergency);
+
+	b = stid >= THREAD_MAX ? emergency : &buf[stid][0];
 
 	if G_UNLIKELY(NULL == st) {
-		symbols_fmt_pointer(buf, sizeof buf, pc);
-		return buf;
+		symbols_fmt_pointer(b, sizeof buf[0], pc);
+		return b;
 	}
 
 	symbols_check(st);
 
-	if G_UNLIKELY(!st->sorted || 0 == st->count) {
-		symbols_fmt_pointer(buf, sizeof buf, pc);
+	if (!SYMBOLS_READ_TRYLOCK(st)) {
+		symbols_fmt_pointer(b, sizeof buf[0], pc);
+	} else if G_UNLIKELY(!st->sorted || 0 == st->count) {
+		symbols_fmt_pointer(b, sizeof buf[0], pc);
 	} else {
 		struct symbol *s;
 
 		s = symbols_lookup(st, pc);
 
 		if (NULL == s || &st->base[st->count - 1] == s) {
-			symbols_fmt_pointer(buf, sizeof buf, pc);
+			symbols_fmt_pointer(b, sizeof buf[0], pc);
 		} else {
 			size_t off = 0;
 			const void *addr = const_ptr_add_offset(pc, st->offset);
 
 			if (st->garbage) {
-				buf[0] = '?';
+				b[0] = '?';
 				off = 1;
 			} else if (st->mismatch) {
-				buf[0] = '!';
+				b[0] = '!';
 				off = 1;
 			} else if (st->stale) {
-				buf[0] = '~';
+				b[0] = '~';
 				off = 1;
 			}
 
-			symbols_fmt_name(&buf[off], sizeof buf - off, s->name,
+			symbols_fmt_name(&b[off], sizeof buf[0] - off, s->name,
 				offset ? ptr_diff(addr, s->addr) : 0);
 
 			/*
@@ -696,12 +746,14 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 				g_strlcpy(ptr, " (", sizeof ptr);
 				pointer_to_string_buf(pc, &ptr[2], sizeof ptr - 2);
 				clamp_strcat(ptr, sizeof ptr, ")");
-				clamp_strcat(buf, sizeof buf, ptr);
+				clamp_strcat(b, sizeof buf[0], ptr);
 			}
 		}
 	}
 
-	return buf;
+	SYMBOLS_READ_UNLOCK(st);
+
+	return b;
 }
 
 /**
@@ -716,15 +768,22 @@ const void *
 symbols_addr(const symbols_t *st, const void *pc)
 {
 	struct symbol *s;
+	const void *p;
 
 	if G_UNLIKELY(NULL == st)
 		return NULL;
 
 	symbols_check(st);
 
-	s = symbols_find(st, pc);
+	if (!SYMBOLS_READ_TRYLOCK(st))
+		return NULL;	/* Avoid deadlocks if symbols still being loaded */
 
-	return NULL == s ? NULL : const_ptr_add_offset(s->addr, st->offset);
+	s = symbols_find(st, pc);
+	p = NULL == s ? NULL : const_ptr_add_offset(s->addr, st->offset);
+
+	SYMBOLS_READ_UNLOCK(st);
+
+	return p;
 }
 
 /*
@@ -739,25 +798,41 @@ symbols_addr(const symbols_t *st, const void *pc)
 const char *
 symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 {
-	static char buf[256];
+	static char buf[THREAD_MAX][128];
+	static char emergency[128];
+	unsigned stid = thread_safe_small_id();
+	char *b;
 	struct symbol *s;
 	const void *addr;
+	const char *name = NULL;
+
+	STATIC_ASSERT(sizeof buf[0] == sizeof emergency);
+
+	b = stid >= THREAD_MAX ? emergency : &buf[stid][0];
 
 	symbols_check(st);
+
+	if (!SYMBOLS_READ_TRYLOCK(st))
+		return NULL;	/* Avoid deadlocks if symbols still being loaded */
 
 	s = symbols_find(st, pc);
 
 	if (NULL == s)
-		return NULL;
+		goto done;
 
-	if (!offset)
-		return s->name;
+	if (!offset) {
+		name = s->name;
+	} else {
+		name = b;
+		addr = const_ptr_add_offset(pc, st->offset);
+		symbols_fmt_name(b, sizeof buf[0], s->name,
+				offset ? ptr_diff(addr, s->addr) : 0);
+	}
 
-	addr = const_ptr_add_offset(pc, st->offset);
-	symbols_fmt_name(buf, sizeof buf, s->name,
-			offset ? ptr_diff(addr, s->addr) : 0);
+done:
+	SYMBOLS_READ_UNLOCK(st);
 
-	return buf;
+	return name;
 }
 
 /**
@@ -1244,6 +1319,8 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 	const char *method = "nothing";
 	tm_t start, end;
 
+	symbols_check(st);
+
 	/*
 	 * We're going to need some of the parsing routines like alnum2int(),
 	 * hence make sure they are initialized since these do not auto-init
@@ -1252,6 +1329,8 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 
 	misc_init();
 	tm_now_exact(&start);
+
+	SYMBOLS_WRITE_LOCK(st);
 
 	/*
 	 * If we are compiled with the BFD library, try to load symbols directly
@@ -1395,6 +1474,8 @@ done:
 
 	if (!retried && !st->indirect && st->garbage)
 		goto use_pre_computed;
+
+	SYMBOLS_WRITE_UNLOCK(st);
 }
 
 /**
