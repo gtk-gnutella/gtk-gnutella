@@ -6558,7 +6558,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 			if (!problematic) {
 				const struct thread_lock *l = &te->waiting;
 
-				s_rawwarn("%s(): ignoring new %s %p at %s:%u, "
+				s_rawcrit("%s(): ignoring new %s %p at %s:%u, "
 					"still waiting for %s %p at %s:%u",
 					G_STRFUNC, thread_lock_kind_to_string(kind),
 					lock, file, line,
