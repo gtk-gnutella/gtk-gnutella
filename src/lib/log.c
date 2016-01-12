@@ -829,7 +829,7 @@ log_abort(void)
 	 */
 
 	count = stacktrace_safe_unwind(log_stack, N_ITEMS(log_stack), 0);
-	crash_save_stackframe(log_stack, count);
+	crash_save_stackframe(thread_safe_small_id(), log_stack, count);
 
 	/*
 	 * This is a synchronous error from the logging layer, so make sure we

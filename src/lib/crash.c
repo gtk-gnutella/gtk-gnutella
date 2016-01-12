@@ -172,6 +172,7 @@ struct crash_vars {
 	pid_t ppid;				/**< Parent PID, when supervising */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
+	int stackid;			/**< Known thread ID to which stack[] belongs */
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
@@ -966,7 +967,8 @@ crash_stack_print(int fd, size_t offset)
 {
 	if (vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
-		stacktrace_stack_safe_print(fd, vars->stack, vars->stackcnt);
+		stacktrace_stack_safe_print(fd,
+			vars->stackid, vars->stack, vars->stackcnt);
 	} else {
 		stacktrace_where_cautious_print_offset(fd, offset + 1);
 	}
@@ -1025,13 +1027,13 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 	if (!in_child && vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
 		stacktrace_stack_print_decorated(fd,
-			vars->stack, vars->stackcnt, flags);
+			vars->stackid, vars->stack, vars->stackcnt, flags);
 	} else {
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
 		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
-		stacktrace_stack_print_decorated(fd, stack, count, flags);
+		stacktrace_stack_print_decorated(fd, stid, stack, count, flags);
 	}
 
 	/* FALL THROUGH */
@@ -3083,15 +3085,6 @@ crash_handler_process(void *arg)
 	if (vars->invoke_inspector) {
 		bool hooks;
 
-		/*
-		 * If we have no stackframe, then we're probably not on an assertion
-		 * failure path.  Capture the stack including the crash handler so
-		 * that we know were the capture was made from.
-		 */
-
-		if (0 == vars->stackcnt)
-			crash_save_current_stackframe(0);
-
 		hooks = crash_inspect(v->signo, v->cwd);
 		if (!hooks) {
 			uint8 f = FALSE;
@@ -3284,6 +3277,15 @@ crash_handler(int signo)
 	}
 
 	v.trace = v.recursive ? FALSE : !stacktrace_cautious_was_logged();
+
+	/*
+	 * If we have no stackframe, then we're probably not on an assertion
+	 * failure path.  Capture the stack including the crash handler so
+	 * that we know were the capture was made from.
+	 */
+
+	if (0 == vars->stackcnt)
+		crash_save_current_stackframe(0);
 
 	/*
 	 * If we're not running in the main thread, try to divert processing
@@ -4515,9 +4517,13 @@ crash_append_error(const char * const msg)
 /**
  * Save given stack trace, which will be displayed during crashes instead
  * of the current stack frame.
+ *
+ * @param stid		small thread ID to which stack belong
+ * @param stack		the captured stack
+ * @param count		how many items are valid in stack[]
  */
 void G_COLD
-crash_save_stackframe(void *stack[], size_t count)
+crash_save_stackframe(int stid, void *stack[], size_t count)
 {
 	crash_mode(CRASH_LVL_BASIC);
 
@@ -4528,6 +4534,7 @@ crash_save_stackframe(void *stack[], size_t count)
 		ck_memcpy(vars->mem,
 			(void *) &vars->stack, (void *) stack, count * sizeof(void *));
 		crash_set_var(stackcnt, count);
+		crash_set_var(stackid,  stid);
 	}
 }
 
@@ -4548,7 +4555,7 @@ crash_save_current_stackframe(unsigned offset)
 		size_t count;
 
 		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
-		crash_save_stackframe(stack, count);
+		crash_save_stackframe(thread_safe_small_id(), stack, count);
 	}
 }
 

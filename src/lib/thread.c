@@ -849,13 +849,13 @@ thread_backtrace_dump_type_fd(int fd,
 	}
 	print_str(" (");										/* 6 */
 	print_str(str_2c(s));									/* 7 */
-	print_str(" )} ");										/* 8 */
+	print_str(")} ");										/* 8 */
 
 	print_str(delta);										/* 9 */
 	print_str(" ago:\n");									/* 10 */
 	flush_str(fd);
 
-	stacktrace_stack_safe_print(fd, bt->frames, bt->count);
+	stacktrace_stack_safe_print(fd, te->stid, bt->frames, bt->count);
 
 	rewind_str(0);
 	print_str("---- done with ");							/* 0 */

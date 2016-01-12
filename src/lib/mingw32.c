@@ -7331,11 +7331,11 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		count = mingw_stack_unwind(
 			mingw_stack, N_ITEMS(mingw_stack), ei->ContextRecord, 0);
 
-		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
+		stacktrace_stack_safe_print(STDERR_FILENO, stid, mingw_stack, count);
 		if (log_stdout_is_distinct())
-			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
+			stacktrace_stack_safe_print(STDOUT_FILENO, stid, mingw_stack, count);
 
-		crash_save_stackframe(mingw_stack, count);
+		crash_save_stackframe(stid, mingw_stack, count);
 	} else if (signal_in_exception() > 5) {
 		DECLARE_STR(1);
 

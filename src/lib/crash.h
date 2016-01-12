@@ -240,7 +240,7 @@ void crash_set_filename(const char * const filename);
 void crash_set_error(const char * const msg);
 void crash_append_error(const char * const msg);
 void crash_save_current_stackframe(unsigned offset);
-void crash_save_stackframe(void *stack[], size_t count);
+void crash_save_stackframe(int stid, void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const callback_fn_t hook);

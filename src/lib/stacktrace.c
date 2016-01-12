@@ -891,14 +891,14 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
  * Safely print array of PCs, using symbolic names if possible.
  *
  * @param fd		where to print the stack
+ * @param stid		thread ID to which stack belongs to
  * @param stack		array of Program Counters making up the stack
  * @param count		number of items in stack[] to print, at most.
  */
 static void
-stack_safe_print(int fd, void * const *stack, size_t count)
+stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 {
 	size_t i;
-	int stid = -1;
 	bool locked = TRUE;
 
 	/*
@@ -907,10 +907,8 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 	 * we display the thread STID.
 	 */
 
-	if (!stack_sym_trylock(G_STRFUNC)) {
-		stid = thread_safe_small_id();
+	if (!stack_sym_trylock(G_STRFUNC))
 		locked = FALSE;
-	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -919,7 +917,7 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 		DECLARE_STR(6);
 
 		print_str("\t");		/* 0 */
-		if (stid >= 0) {
+		if (stid > 0 || !locked) {
 			snum = PRINT_NUMBER(sbuf, stid);
 			print_str("[");		/* 1 */
 			print_str(snum);	/* 2 */
@@ -1009,6 +1007,7 @@ enum sxfiletype {
 
 struct sxfile {
 	enum sxfiletype type;	/* Union discriminant */
+	int stid;				/* Thread ID for which we're printing */
 	union {
 		FILE *f;
 		int fd;
@@ -1033,10 +1032,10 @@ stack_safe_print_to(struct sxfile *xf, void * const *stack, size_t count)
 	switch (xf->type) {
 	case SXFILE_STDIO:
 		fflush(xf->u.f);
-		stack_safe_print(fileno(xf->u.f), stack, count);
+		stack_safe_print(fileno(xf->u.f), xf->stid, stack, count);
 		return;
 	case SXFILE_FD:
-		stack_safe_print(xf->u.fd, stack, count);
+		stack_safe_print(xf->u.fd, xf->stid, stack, count);
 		return;
 	}
 
@@ -1421,11 +1420,13 @@ stack_print_decorated_to(struct sxfile *xf,
  * Convenience wrapper to print a decorated stack to a file descriptor.
  */
 static void
-stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
+stack_safe_print_decorated(int fd, int stid,
+	void * const *stack, size_t count, int flags)
 {
 	struct sxfile xf;
 
 	xf.type = SXFILE_FD;
+	xf.stid = stid;
 	xf.u.fd = fd;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
@@ -1435,11 +1436,13 @@ stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
  * Convenience wrapper to print a decorated stack to a FILE.
  */
 static void
-stack_print_decorated(FILE *f, void * const *stack, size_t count, int flags)
+stack_print_decorated(FILE *f, int stid,
+	void * const *stack, size_t count, int flags)
 {
 	struct sxfile xf;
 
 	xf.type = SXFILE_STDIO;
+	xf.stid = stid;
 	xf.u.f = f;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
@@ -1476,7 +1479,7 @@ stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
 {
 	g_assert(st != NULL);
 
-	stack_print_decorated(f, st->stack, st->len, flags);
+	stack_print_decorated(f, thread_small_id(), st->stack, st->len, flags);
 }
 
 /**
@@ -1644,12 +1647,14 @@ stacktrace_where_sym_print(FILE *f)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+	int stid;
 
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
-	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
+	stid = thread_small_id();
+	stack_print_decorated(f, stid, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1664,12 +1669,14 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+	int stid;
 
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
-	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
+	stid = thread_small_id();
+	stack_print_decorated(f, stid, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1688,7 +1695,7 @@ stacktrace_where_plain_print_offset(int fd, size_t offset)
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
-	stack_safe_print(fd, stack, count);
+	stack_safe_print(fd, thread_small_id(), stack, count);
 }
 
 /**
@@ -1702,7 +1709,7 @@ stacktrace_where_plain_print_offset(int fd, size_t offset)
 void
 stacktrace_stack_plain_print(int fd, void * const *stack, size_t count)
 {
-	stack_safe_print(fd, stack, count);
+	stack_safe_print(fd, thread_small_id(), stack, count);
 }
 
 /**
@@ -1716,7 +1723,8 @@ stacktrace_stack_plain_print(int fd, void * const *stack, size_t count)
 void
 stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count)
 {
-	stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+	int stid = thread_small_id();
+	stack_safe_print_decorated(fd, stid, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1728,15 +1736,17 @@ stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count)
  * executable if they haven't already and we're in a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
+ * @param stid		the thread ID to which the thread stack belongs
  * @param stack		the stack trace
- * @param count		amount of items in stack
+ * @param count		amount of items in stack[]
  */
 void
-stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
+stacktrace_stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 {
 	if (!signal_in_handler()) {
 		stacktrace_load_symbols();
-		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+		stack_safe_print_decorated(fd, stid,
+			stack, count, STACKTRACE_DECORATION);
 	} else if (signal_in_exception() && crash_is_supervised()) {
 		/*
 		 * We're crashing in supervised mode, so even if we get a fatal error
@@ -1749,9 +1759,10 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 		 * the symbols were already loaded.
 		 */
 
-		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+		stack_safe_print_decorated(fd, stid,
+			stack, count, STACKTRACE_DECORATION);
 	} else {
-		stack_safe_print(fd, stack, count);
+		stack_safe_print(fd, stid, stack, count);
 	}
 }
 
@@ -1772,7 +1783,7 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
-	stacktrace_stack_safe_print(fd, stack, count);
+	stacktrace_stack_safe_print(fd, thread_safe_small_id(), stack, count);
 }
 
 /**
@@ -1782,16 +1793,17 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
  * This routine is NOT safe and could crash if called from a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
+ * @param stid		the thread ID to which the stack belongs
  * @param stack		the stack trace
  * @param count		amount of items in stack
  * @param flags		decoration flags (STACKTRACE_F_* values)
  */
 void
-stacktrace_stack_print_decorated(int fd,
+stacktrace_stack_print_decorated(int fd, int stid,
 	void * const *stack, size_t count, uint flags)
 {
 	stacktrace_load_symbols();
-	stack_safe_print_decorated(fd, stack, count, flags);
+	stack_safe_print_decorated(fd, stid, stack, count, flags);
 }
 
 /**
@@ -1805,7 +1817,7 @@ stacktrace_where_print_decorated(FILE *f, uint flags)
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stacktrace_load_symbols();
-	stack_print_decorated(f, stack, count, flags);
+	stack_print_decorated(f, thread_small_id(), stack, count, flags);
 }
 
 /**
@@ -1852,7 +1864,7 @@ stacktrace_got_signal(int signo)
 }
 
 /**
- * Like stacktrace_where_safe_print_offset() but with extra caution.
+ * Print given stacktrace.
  *
  * Caution comes from the fact that we trap all SIGSEGV and other harmful
  * signals that could result from improper memory access during stack
@@ -1860,40 +1872,40 @@ stacktrace_got_signal(int signo)
  * in our symbol mapping logic).
  *
  * @param fd		file descriptor where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
+ * @param stid		the thread ID to which stack belongs
+ * @param stack		the stack to print
+ * @param count		amount of valid stack entries in stack[]
  */
 void G_COLD
-stacktrace_where_cautious_print_offset(int fd, size_t offset)
+stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 {
-	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
-	size_t count;
-	int stid;
 	static volatile sig_atomic_t printing[THREAD_MAX];
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
 #endif
 
-	stid = thread_small_id();
-
 	if (printing[stid]) {
 		char time_buf[CRASH_TIME_BUFLEN];
-		DECLARE_STR(5);
+		char sbuf[UINT_DEC_BUFLEN];
+		DECLARE_STR(7);
 
 		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);
-		print_str(" WARNING: ignoring ");
-		print_str("recursive ");
-		print_str(G_STRFUNC);
-		print_str("() call\n");
+		print_str(time_buf);						/* 0 */
+		print_str(" (WARNING");						/* 1 */
+		if (stid != 0) {
+			print_str("-");							/* 2 */
+			print_str(PRINT_NUMBER(sbuf, stid));	/* 3 */
+		}
+		print_str("): ignoring recursive");			/* 4 */
+		print_str(G_STRFUNC);						/* 5 */
+		print_str("() call\n");						/* 6 */
 		flush_str(fd);
 		return;
 	}
 
 	printing[stid] = TRUE;
 	print_context[stid].fd = fd;
-
-	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
 
 	/*
 	 * Protect stack printing.
@@ -1927,7 +1939,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
-		stacktrace_stack_safe_print(fd, stack, count);
+		stacktrace_stack_safe_print(fd, stid, stack, count);
 	}
 
 	print_context[stid].done = TRUE;
@@ -1939,6 +1951,29 @@ restore:
 #ifdef SIGBUS
 	signal_set(SIGBUS, old_sigbus);
 #endif
+}
+
+/**
+ * Like stacktrace_where_safe_print_offset() but with extra caution.
+ *
+ * Caution comes from the fact that we trap all SIGSEGV and other harmful
+ * signals that could result from improper memory access during stack
+ * unwinding (due to a corrupted stack) and printing (due to possible bugs
+ * in our symbol mapping logic).
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void G_COLD
+stacktrace_where_cautious_print_offset(int fd, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
+	size_t count;
+	int stid = thread_small_id();
+
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+
+	stacktrace_cautious_print(fd, stid, stack, count);
 }
 
 /**
