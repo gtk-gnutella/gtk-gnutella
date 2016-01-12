@@ -1639,8 +1639,10 @@ s_minierror(const char *format, ...)
 	va_list args;
 	char data[LOG_MSG_MAXLEN];
 	char time_buf[LOG_TIME_BUFLEN];
-	DECLARE_STR(6);
+	char sbuf[UINT_DEC_BUFLEN];
+	DECLARE_STR(9);
 	bool recursing;
+	int stid = thread_safe_small_id();
 
 	recursing = 0 != atomic_int_inc(&recursion);
 
@@ -1648,14 +1650,21 @@ s_minierror(const char *format, ...)
 	str_vbprintf(data, sizeof data, format, args);
 	va_end(args);
 
+	crash_set_error(data);
+
 	log_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
-	print_str(" (ERROR)");					/* 1 */
+	print_str(" (ERROR");					/* 1 */
+	if (stid != 0) {
+		print_str("-");						/* 2 */
+		print_str(PRINT_NUMBER(sbuf, stid));/* 3 */
+	}
+	print_str(")");							/* 4 */
 	if (recursing)
-		print_str(" [RECURSIVE]");			/* 2 */
-	print_str(": ");						/* 3 */
-	print_str(data);						/* 4 */
-	print_str("\n");						/* 5 */
+		print_str(" [RECURSIVE]");			/* 5 */
+	print_str(": ");						/* 6 */
+	print_str(data);						/* 7 */
+	print_str("\n");						/* 8 */
 	log_flush_err_atomic();
 	if (log_stdout_is_distinct())
 		log_flush_out_atomic();
