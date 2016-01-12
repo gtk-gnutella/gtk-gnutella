@@ -6658,7 +6658,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 					s_rawwarn("%s overflowing its waiting stack at %s:%u",
 						thread_element_name_raw(te), file, line);
 					thread_lock_dump(te);
-					s_error("too many nested lock waiting");
+					s_minierror("too many nested lock waiting");
 				}
 				return te;		/* Already signaled, we're crashing */
 			}
@@ -6998,7 +6998,7 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;				/* Crashing or exiting already */
-		s_error("too many locks grabbed simultaneously");
+		s_minierror("too many locks grabbed simultaneously");
 	}
 
 	/*
@@ -7101,7 +7101,7 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;			/* Crashing or exiting already */
-		s_error("too many locks grabbed simultaneously");
+		s_minierror("too many locks grabbed simultaneously");
 	}
 
 	/*
