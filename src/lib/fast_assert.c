@@ -48,6 +48,8 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#define STACK_OFF	2			/* 2 extra calls: calling routine, then here */
+
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
  *       even use assertions in signal handlers. See also:
@@ -127,17 +129,23 @@ assertion_message(const assertion_data * const data, int fatal)
 }
 
 /**
+ * Argument passed to assertion_abort_process().
+ */
+struct assertion_abort_process_arg {
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+	int stid;
+};
+
+/**
  * Abort execution, possibly dumping a stack frame.
  */
 static void * G_COLD G_NORETURN
-assertion_abort_process(void *unused)
+assertion_abort_process(void *arg)
 {
 	static volatile sig_atomic_t seen_fatal;
 	sig_atomic_t depth;
-
-	(void) unused;
-
-#define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
+	struct assertion_abort_process_arg *v = arg;
 
 	/*
 	 * We're going to stop the execution.
@@ -153,17 +161,19 @@ assertion_abort_process(void *unused)
 		 * If the thread holds any locks, dump them.
 		 */
 
-		thread_lock_dump_self_if_any(STDERR_FILENO);
+		thread_lock_dump_if_any(STDERR_FILENO, v->stid);
 		if (log_stdout_is_distinct())
-			thread_lock_dump_self_if_any(STDOUT_FILENO);
+			thread_lock_dump_if_any(STDOUT_FILENO, v->stid);
 
 		/*
 		 * Dump stacktrace.
 		 */
 
-		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
-		if (log_stdout_is_distinct())
-			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
+		stacktrace_cautious_print(STDERR_FILENO, v->stid, v->stack, v->count);
+		if (log_stdout_is_distinct()) {
+			stacktrace_cautious_print(STDOUT_FILENO,
+				v->stid, v->stack, v->count);
+		}
 
 		/*
 		 * Before calling abort(), which will generate a SIGABRT and invoke
@@ -172,7 +182,7 @@ assertion_abort_process(void *unused)
 		 * longer be possible to get the frame of the assertion failure.
 		 */
 
-		crash_save_current_stackframe(STACK_OFF);
+		crash_save_stackframe(v->stid, v->stack, v->count);
 	}
 
 	/*
@@ -206,8 +216,6 @@ assertion_abort_process(void *unused)
 
 	crash_abort();
 
-#undef STACK_OFF
-
 	g_assert_not_reached();
 }
 
@@ -217,7 +225,19 @@ assertion_abort_process(void *unused)
 static void G_COLD G_NORETURN
 assertion_abort(void)
 {
-	crash_divert_main(G_STRFUNC, assertion_abort_process, NULL);
+	struct assertion_abort_process_arg v;
+
+	/*
+	 * Since crash_divert_main() can potentially redirect processing
+	 * to another thread, we need to capture the current stack and
+	 * the current thread ID to pass it along to the diversion routine.
+	 */
+
+	ZERO(&v);
+	v.stid = thread_safe_small_id();
+	v.count = stacktrace_safe_unwind(v.stack, N_ITEMS(v.stack), STACK_OFF);
+
+	crash_divert_main(G_STRFUNC, assertion_abort_process, &v);
 	g_assert_not_reached();
 }
 
@@ -227,7 +247,6 @@ assertion_abort(void)
 static NO_INLINE void G_COLD
 assertion_stacktrace(void)
 {
-#define STACK_OFF	2		/* 2 extra calls: assertion_warning(), then here */
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, STACK_OFF);
 	if (log_stdout_is_distinct())

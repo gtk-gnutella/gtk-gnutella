@@ -244,7 +244,7 @@ size_t thread_lock_held_count(const void *lock);
 bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
-void thread_lock_dump_self_if_any(int fd);
+void thread_lock_dump_if_any(int fd, uint id);
 void thread_assert_no_locks(const char *routine);
 void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,

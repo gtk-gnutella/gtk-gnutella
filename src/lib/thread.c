@@ -6445,23 +6445,27 @@ thread_lock_dump_all(int fd)
 }
 
 /**
- * Dump locks held or waited for by current thread to specified file descriptor.
+ * Dump locks held or waited for by given thread to specified file descriptor.
  *
  * If the thread holds no locks or is not waiting, nothing is printed.
+ *
+ * @param fd		file descriptor to which to print
+ * @param id		the thread ID
  */
 void
-thread_lock_dump_self_if_any(int fd)
+thread_lock_dump_if_any(int fd, uint id)
 {
 	struct thread_element *te;
-	unsigned stid;
+
+	if (id >= THREAD_MAX)
+		return;
 
 	/*
 	 * We don't call thread_get_element() because this routine can be used on
 	 * the assertion failure path and we must be as robust as possible.
 	 */
 
-	stid = thread_small_id();
-	te = threads[stid];
+	te = threads[id];
 
 	if (te != NULL && te->valid) {
 		if (0 != thread_element_lock_count(te))
