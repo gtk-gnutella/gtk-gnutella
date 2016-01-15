@@ -63,6 +63,9 @@ size_t symbols_memory_size(const symbols_t *st);
 size_t symbols_sort(symbols_t *st);
 void symbols_append(symbols_t *st, const void *addr, const char *name);
 
+void symbols_lock(symbols_t *st);
+void symbols_unlock(symbols_t *st);
+
 #endif /* _symbols_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

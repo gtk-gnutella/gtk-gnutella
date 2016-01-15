@@ -162,6 +162,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	g_assert(bc->symbols != NULL);
 
 	empty = bfd_make_empty_symbol(bc->handle);
+	symbols_lock(st);
 
 	for (
 		i = 0, p = bc->symbols;
@@ -184,6 +185,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		}
 	}
 
+	symbols_unlock(st);
 	mutex_unlock_fast(&bc->lock);
 }
 

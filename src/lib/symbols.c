@@ -1496,4 +1496,24 @@ symbols_quality(const symbols_t *st)
 		return STACKTRACE_SYM_GOOD;
 }
 
+/**
+ * Write-lock symbols.
+ */
+void
+symbols_lock(symbols_t *st)
+{
+	symbols_check(st);
+	SYMBOLS_WRITE_LOCK(st);
+}
+
+/**
+ * Write-unlock symbols.
+ */
+void
+symbols_unlock(symbols_t *st)
+{
+	symbols_check(st);
+	SYMBOLS_WRITE_UNLOCK(st);
+}
+
 /* vi: set ts=4 sw=4 cindent: */
