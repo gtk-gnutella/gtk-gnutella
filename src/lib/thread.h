@@ -34,7 +34,8 @@
 #ifndef _thread_h_
 #define _thread_h_
 
-#include "tsig.h"		/* For tsigset_t */
+#include "tsig.h"				/* For tsigset_t */
+#include "compat_gettid.h"		/* For systid_t */
 
 /**
  * Thread exiting callback, which will be invoked asynchronously in the
@@ -129,6 +130,7 @@ typedef struct thread_info {
 	thread_qid_t high_qid;		/**< Highest QID */
 	thread_qid_t top_qid;		/**< Topmost QID seen on the stack */
 	unsigned stid;				/**< Small thread ID */
+	systid_t system_thread_id;	/**< System thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
 	time_t last_seen;			/**< Last seen activity of discovered thread */
 	const char *name;			/**< Thread name, NULL if none set */
@@ -176,6 +178,43 @@ typedef struct thread_sigsets {
 	sigset_t kset;				/**< Kernel set */
 	tsigset_t tset;				/**< Thread-layer set */
 } thread_sigsets_t;
+
+/*
+ * Define the signal we are going to use for thread interrupts.
+ *
+ * The SIGEMT (EMulated [instruction] Trap) signal is used because
+ * it is highly unlikely to be triggered and visible from the
+ * application under normal circumstances.  It is not even a POSIX
+ * signal but is commonly defined, which makes it even more likely
+ * to be unsed -- a perfect candidate for our purpose here!
+ *
+ * The SIGUNUSED (unused!) signal is a very good choice since, by
+ * construction, that signal is not used on the platform, but can
+ * still be a valid argument for sending signals.
+ *
+ * The next good signals to use are SIGLOST (file lock lost) which is
+ * rather unused under normal circumstances, and SIGIO (I/O is possible).
+ *
+ * The SIGPWR (power lost) and SIGXFSZ (file size limit exceeded) are
+ * our last fallback signals if we have no other choice.  We select them
+ * as a last resort because it is conceivable that these signals could be
+ * useful.
+ */
+#if defined(SIGEMT)
+#define THREAD_SIGINTR	SIGEMT
+#elif defined(SIGUNUSED)
+#define THREAD_SIGINTR	SIGUNUSED
+#elif defined(SIGLOST)
+#define THREAD_SIGINTR	SIGLOST
+#elif defined(SIGIO)
+#define THREAD_SIGINTR	SIGIO
+#elif defined(SIGPWR)
+#define THREAD_SIGINTR	SIGPWR
+#elif defined(SIGXFSZ)
+#define THREAD_SIGINTR	SIGXFSZ
+#else
+#define THREAD_SIGINTR	(SIGRTMAX - 1)
+#endif
 
 /*
  * Public interface.
@@ -316,6 +355,10 @@ bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);
 
 void thread_enter_critical(thread_sigsets_t *set);
 void thread_leave_critical(const thread_sigsets_t *set);
+
+int thread_os_kill(unsigned id, int signo);
+int thread_interrupt(uint id, process_fn_t cb, void *arg,
+	notify_data_fn_t completed, void *udata);
 
 void *thread_sp(void);
 

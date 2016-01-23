@@ -3199,6 +3199,16 @@ crash_handler(int signo)
 
 	for (i = 0; i < N_ITEMS(signals); i++) {
 		int sig = signals[i];
+
+		/*
+		 * Do not change disposition of the signal used by the thread layer
+		 * to generate thread interrupts.  It may be harmful if received,
+		 * but it is caught and handled.
+		 */
+
+		if G_UNLIKELY(THREAD_SIGINTR == sig)
+			continue;
+
 		switch (sig) {
 #ifdef SIGBUS
 		case SIGBUS:
@@ -3580,6 +3590,8 @@ crash_init(const char *argv0, const char *progname,
 	iv.ppid = getppid();
 
 	for (i = 0; i < N_ITEMS(signals); i++) {
+		if G_UNLIKELY(THREAD_SIGINTR == signals[i])
+			continue;
 		signal_set(signals[i], crash_handler);
 	}
 

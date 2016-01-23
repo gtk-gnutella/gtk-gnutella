@@ -779,6 +779,10 @@ mingw_signal(int signo, signal_handler_t handler)
 } G_STMT_END
 
 /**
+ * Sends a signal to specified thread.
+ */
+
+/**
  * Synthesize a fatal signal as the kernel would on an exception.
  */
 static void G_COLD
@@ -888,6 +892,298 @@ mingw_gettid(void)
 		0, FALSE, DUPLICATE_SAME_ACCESS);
 
 	return (systid_t) mt->h;
+}
+
+/**
+ * Atomically record signal in supplied memory location.
+ */
+static void
+mingw_thread_add_sig(uint32 *dest, int signum)
+{
+	/*
+	 * We merge the signal bit into the value atomically without having
+	 * to take any lock.
+	 */
+
+	for (;;) {
+		uint32 current, merged;
+
+		atomic_mb();
+		merged = current = *dest;
+		merged |= tsig_mask(signum);
+
+		if (merged == current)
+			break;
+
+		if (atomic_uint_xchg_if_eq(dest, current, merged))
+			break;
+	}
+}
+
+/**
+ * Atomically clear signal in supplied memory location.
+ */
+static void
+mingw_thread_del_sig(uint32 *dest, int signum)
+{
+	/*
+	 * We clear the signal bit within the value atomically without having
+	 * to take any lock.
+	 */
+
+	for (;;) {
+		uint32 current, cleared;
+
+		atomic_mb();
+		cleared = current = *dest;
+		cleared &= ~tsig_mask(signum);
+
+		if (cleared == current)
+			break;
+
+		if (atomic_uint_xchg_if_eq(dest, current, cleared))
+			break;
+	}
+}
+
+/**
+ * Handle pending unblocked signals for the thread.
+ *
+ * @return TRUE if we handled any signal.
+ */
+static bool
+mingw_sig_handle(struct mingw_thread *mt)
+{
+	uint32 pending;
+	bool handled = FALSE;
+
+	while (0 != (pending = ~mt->sig_mask & mt->sig_pending)) {
+		int s;
+
+		/*
+		 * There is no signal #0, hence bit 0 in the pending mask represents
+		 * signal #1.  That's why the loop starts with 1.
+		 */
+
+		for (s = 1; pending != 0; s++, pending >>= 1) {
+			if (pending & 0x1) {
+				/*
+				 * Before delivering the signal, we need to block further
+				 * invocations of the very same signal, restoring it
+				 * afterwards.
+				 *
+				 * Note that the sig_mask field is only handled by the
+				 * thread hence it could be modified freely.  It is being
+				 * read by other threads though, so using atomic operations
+				 * ensures synchronization, acting as a memory write barrier.
+				 */
+
+				mingw_thread_add_sig(&mt->sig_mask,    s);
+				mingw_thread_del_sig(&mt->sig_pending, s);
+
+				mingw_sigraise(s, FALSE);
+
+				mingw_thread_del_sig(&mt->sig_mask,    s);
+
+				handled = TRUE;
+			}
+		}
+	}
+
+	return handled;
+}
+
+/**
+ * We are magically dispatched here in the context of the thread for which
+ * we need to deliver signals thanks to thread context patching.
+ */
+static void
+mingw_sig_trampoline(void)
+{
+	int id;
+	struct mingw_thread *mt;
+	CONTEXT ctx;
+
+	id = thread_small_id();
+	mt = &mingw_threads[id];
+
+	g_assert(mt->lock);		/* Busy! */
+
+	/*
+	 * We need to take a copy of the original context on the stack since,
+	 * before we return from the interruption, we're going to release the
+	 * context lock in the mingw_thread structure (thereby allowing any other
+	 * thread from superseding it to interrupt us again).
+	 *
+	 * Since we need to release the lock before resuming, we need to get the
+	 * copy.  Do that now before dispatching interrupts to minimize the race
+	 * condition window (see the FIXME below).
+	 */
+
+	ctx = mt->c;			/* Struct copy */
+	ctx.Eip = mt->pc;		/* Restore original PC */
+
+	/*
+	 * Dispatch all the pending signals.
+	 */
+
+	mingw_sig_handle(mt);
+
+	/*
+	 * Time to resume to our original context.
+	 *
+	 * FIXME:
+	 * We need to release the lock, because we're going to return from the
+	 * interrupt.  Unfortunately, this is not an atomic operation: if an
+	 * interrupt is posted between the time we exited the loop above and now,
+	 * we'll miss it!  And there's no way we can retest for pending signals
+	 * after restoring the context, because we'll be out of here.
+	 */
+
+	atomic_release(&mt->lock);
+
+	/*
+	 * We're cheating: we restore the context in the same thread, without
+	 * stopping its execution (we would need an external thread to do that,
+	 * requiring us to launch that new thread...).
+	 *
+	 * We're not checking the return of SetThreadContext() for a good reason:
+	 * if it succeeds, it will not return!  Note the use of the pseudo handle
+	 * for the current thread, and not mt->h.
+	 */
+
+	SetThreadContext(GetCurrentThread(), &ctx);
+	g_assert_not_reached();
+}
+
+static int
+mingw_thread_sig_deliver(struct mingw_thread *mt)
+{
+	DWORD cnt;
+	const char *what = NULL;
+
+	/*
+	 * Check whether we have unmasked pending signals to deliver.
+	 */
+
+	atomic_mb();
+	if (0 == (~mt->sig_mask & mt->sig_pending))
+		return 0;		/* Queued, will be handled later */
+
+	/*
+	 * We have signals to deliver.
+	 */
+
+	if (!atomic_acquire(&mt->lock))
+		return 0;		/* Busy with another signal dispatch */
+
+	cnt = SuspendThread(mt->h);
+
+	if ((DWORD) -1 == cnt) {
+		what = "SuspendThread";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	ZERO(&mt->c);
+	mt->c.ContextFlags = CONTEXT_FULL;
+
+	if (!GetThreadContext(mt->h ,&mt->c)) {
+		what = "GetThreadContext";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	/*
+	 * Patch the instruction pointer (aka. PC) to move execution to our
+	 * signal dispatching routine.
+	 */
+
+	mt->pc = mt->c.Eip;
+	mt->c.Eip = (DWORD) mingw_sig_trampoline;
+
+	if (!SetThreadContext(mt->h, &mt->c)) {
+		what = "SetThreadContext";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	cnt = ResumeThread(mt->h);
+
+	if ((DWORD) -1 == cnt) {
+		what = "ResumeThread";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	if (1 != cnt) {
+		g_assert(cnt != 0);		/* Thread was suspended above */
+		what = "ResumeThread";
+		errno = EBUSY;			/* Thread already suspended from elsewhere */
+		goto failed;
+	}
+
+	return 0;		/* OK, keep the lock since context is now active! */
+
+failed:
+	atomic_release(&mt->lock);
+	s_warning("%s(): %s() failed: %m ", G_STRFUNC, what);
+	return -1;
+}
+
+/**
+ * Synchronously check for OS signals in the current thread (whose ID was
+ * already computed) and deliver those which are unblocked.
+ *
+ * We need this routine to periodically check for signals that could be
+ * missed (recorded as pending but not processed) due to an unavoidable
+ * race condition in mingw_sig_trampoline().
+ *
+ * @return TRUE if we handled any signal.
+ */
+bool
+mingw_signal_check(uint id)
+{
+	g_assert(id < THREAD_MAX);
+
+	return mingw_sig_handle(&mingw_threads[id]);
+}
+
+/**
+ * Send a signal to specified thread.
+ *
+ * This mimics pthread_kill() semantics on UNIX, which unfortunately is not
+ * supported by the Windows implementation of pthreads.
+ *
+ * @param id		the thread ID (our internal small thread ID) to signal
+ * @param sysid		the system thread ID (the thread HANDLE)
+ * @param signo		the signal to deliver
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_thread_kill(uint id, systid_t sysid, int signo)
+{
+	struct mingw_thread *mt;
+
+	STATIC_ASSERT(sizeof(uint32) * 8 >= SIGNAL_COUNT);
+	g_assert(id < N_ITEMS(mingw_threads));
+	g_assert(id != thread_small_id());		/* Cannot use for current thread */
+	g_assert(sysid != mingw_gettid());		/* Cannot use for current thread */
+
+	/*
+	 * We have room for one context, so we just queue signals when we are
+	 * busy handling signals in the thread.
+	 */
+
+	mt = &mingw_threads[id];
+
+	g_assert(mt->stid == id);
+	g_assert(mt->h == (HANDLE) sysid);
+
+	mingw_thread_add_sig(&mt->sig_pending, signo);
+
+	return mingw_thread_sig_deliver(mt);
 }
 
 int

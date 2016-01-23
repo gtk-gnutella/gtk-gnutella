@@ -67,6 +67,10 @@
  * The TSIG_DIVERT signal is asynchronously delivered to a thread which we
  * want to execute some diversion code.  See thread_divert().
  *		--RAM, 2015-12-30
+ *
+ * The TSIG_INTACK signal is asynchronously delivered to a thread when an
+ * interrupt it sent has been fully processed.  See thread_interrupt().
+ *		--RAM, 2016-01-23
  */
 
 #define TSIG_TEQ	10			/**< Something is in the Thread Event Queue */
@@ -74,8 +78,9 @@
 #define TSIG_EVQ	12			/**< Dispatching a thread event */
 #define TSIG_OVFLOW	13			/**< Thread stack overflow detected */
 #define TSIG_DIVERT	14			/**< Thread diversion requested */
+#define TSIG_INTACK	15			/**< Thread interrupt acknowledgement */
 
-#define TSIG_COUNT	15
+#define TSIG_COUNT	16
 
 #define tsig_mask(sig)	(1U << ((sig) - 1))		/* 0 is not a signal */
 

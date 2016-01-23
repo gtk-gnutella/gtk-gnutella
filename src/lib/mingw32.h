@@ -133,6 +133,10 @@
 
 #define signal(n, h) mingw_signal((n), (h))
 
+#ifndef SIGEMT
+#define SIGEMT 7		/* Simulated, unassigned signal number in MingGW32 */
+#endif
+
 #ifndef SIGBUS
 #define SIGBUS	10		/* Simulated, unassigned signal number in MinGW32 */
 #endif
@@ -790,6 +794,8 @@ void mingw_file_rotate(const char *pathname, int keep);
 
 systid_t mingw_gettid(void);
 void mingw_gettid_reset(uint id);
+int mingw_thread_kill(uint id, systid_t system_thread_id, int signo);
+bool mingw_signal_check(uint id);
 
 int mingw_last_error(void);
 

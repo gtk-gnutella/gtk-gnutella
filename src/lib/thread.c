@@ -289,15 +289,55 @@ struct thread_exit_cb {
 /**
  * A thread diversion.
  *
- * A diversion is a notification callback that we can install through
- * thread_divert() and which will be invoked as soon as a suspended thread
- * is released, before resuming normal operations.
+ * A diversion is a processing callback that we can install through
+ * thread_divert() and which will be invoked by a suspended or blocked
+ * thread.
  */
 struct thread_divert_cb {
 	process_fn_t divert;			/**< Diversion routine */
 	void *arg;						/**< Argument to pass */
 	int suspend;					/**< Original suspend count in thread */
 };
+
+enum thread_interrupt_magic { THREAD_INTR_MAGIC = 0x4be53278 };
+
+/**
+ * A thread interrupt.
+ *
+ * An interrupt is a processing callback that we can install through
+ * thread_interrupt() and which will be invoked immediately by the thread
+ * before resuming its normal operations.
+ *
+ * Contrary to a diversion, this can really interrupt any processing, meaning
+ * the interrupt routine can run in a context where locks are already held.
+ *
+ * Optionally, a completion callback can be installed and it will be invoked
+ * as soon as the interrupted thread terminates the execution of intr().
+ * The first argument of completed() will be the result of intr(), the second
+ * is the user argument passed when the interrupt was registered.
+ *
+ * The optional completion callback is invoked in the context of the thread
+ * that launched the interrupt request, through the reception of a TSIG_INTACK
+ * signal.  It is imperative that the TSIG_INTACK signal be not blocked by the
+ * thread which attempts to use thread_interrupt().
+ */
+struct thread_interrupt_cb {
+	enum thread_interrupt_magic magic;
+	process_fn_t intr;				/**< Interrupt routine */
+	void *arg;						/**< Argument to pass to intr() */
+	void *result;					/**< Result of the intr() routine */
+	notify_data_fn_t completed;		/**< Optional completion callback */
+	void *udata;					/**< User argument to pass to completed() */
+	slink_t lnk;					/**< Forward embedded pointer */
+	uint stid;						/**< Interrupting thread */
+};
+
+static inline void
+thread_interrupt_cb_check(const struct thread_interrupt_cb * const ti)
+{
+	g_assert(ti != NULL);
+	g_assert(THREAD_INTR_MAGIC == ti->magic);
+}
 
 #define THREAD_DIVERT_DELAY		5000	/* us */
 
@@ -401,6 +441,10 @@ struct thread_element {
 	spinlock_t lock;				/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
 	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
+	eslist_t interrupt_list;		/**< List of interrupts to invoke */
+	eslist_t interrupt_ack_list;	/**< List of interrupts to invoke */
+	mutex_t interrupt_lock;			/**< Mutex protecting interrupt_list */
+	mutex_t interrupt_ack_lock;		/**< Mutex protecting interrupt_ack_list */
 	struct thread_backtrace btrace;	/**< Captured backtrace */
 	tsighandler_t sigh[TSIG_COUNT - 1];		/**< Signal handlers */
 	void **locals[THREAD_LOCAL_L1_SIZE];	/**< Thread-local variables */
@@ -596,6 +640,8 @@ static void thread_crash_hook(void);
 static void thread_stack_overflow(struct thread_element *te) G_NORETURN;
 static void thread_divert_run(struct thread_element *te);
 static void thread_divert_handle(int signo);
+static void thread_interrupt_handle(int signo);
+static void thread_interrupt_ack_handle(int signo);
 
 /**
  * Low-level unique thread ID.
@@ -880,9 +926,20 @@ thread_backtrace_dump_type_fd(int fd,
 }
 
 /**
+ * Prepare the global signal handler to process thread interrupts.
+ */
+static void G_COLD
+thread_interrupt_setup(void)
+{
+	STATIC_ASSERT(THREAD_SIGINTR < SIGNAL_COUNT);
+
+	signal_set(THREAD_SIGINTR, thread_interrupt_handle);
+}
+
+/**
  * Initialize global configuration.
  */
-static void
+static void G_COLD
 thread_init(void)
 {
 	static spinlock_t thread_init_slk = SPINLOCK_INIT;
@@ -893,8 +950,9 @@ thread_init(void)
 		thread_pagesize = compat_pagesize();
 		thread_pageshift = ctz(thread_pagesize);
 		thread_sp_direction = alloca_stack_direction();
-
 		thread_inited = TRUE;
+
+		thread_interrupt_setup();
 	}
 
 	spinunlock_hidden(&thread_init_slk);
@@ -2158,6 +2216,50 @@ thread_element_clear_name(struct thread_element *te)
 }
 
 /**
+ * Free a thread interrupt callback structure.
+ */
+static void
+thread_interrupt_cb_free(struct thread_interrupt_cb *ti)
+{
+	thread_interrupt_cb_check(ti);
+
+	ti->magic = 0;
+	WFREE(ti);
+}
+
+/**
+ * List iterator to free an interrupt request.
+ */
+static void
+thread_interrupt_free(void *data, void *udata)
+{
+	(void) udata;
+	thread_interrupt_cb_free(data);
+}
+
+/**
+ * Free any present interrupt item (requests or acknowledgments).
+ */
+static void
+thread_element_interrupt_clear(struct thread_element *te, const char *what,
+	const char *caller, mutex_t *lock, eslist_t *list)
+{
+	mutex_lock_fast(lock);
+	{
+		size_t cnt = eslist_count(list);
+
+		if G_UNLIKELY(0 != cnt) {
+			s_rawwarn("%s(): thread #%u had %zu pending interrupt %s%s",
+				caller, te->stid, cnt, what, plural(cnt));
+
+			eslist_foreach(list, thread_interrupt_free, NULL);
+			eslist_clear(list);
+		}
+	}
+	mutex_unlock_fast(lock);
+}
+
+/**
  * Reset important fields from a reused thread element.
  */
 static void
@@ -2226,11 +2328,18 @@ thread_element_reset(struct thread_element *te)
 	slist_free(&te->cond_stack);
 	ZERO(&te->btrace);
 
+	thread_element_interrupt_clear(te, "request", G_STRFUNC,
+		&te->interrupt_lock, &te->interrupt_list);
+
+	thread_element_interrupt_clear(te, "acknowledgment", G_STRFUNC,
+		&te->interrupt_ack_lock, &te->interrupt_ack_list);
+
 	/*
-	 * This is a mandatory signal we're installing for each thread.
+	 * These are mandatory signal handlers we're installing for each thread.
 	 */
 
 	te->sigh[TSIG_DIVERT - 1] = thread_divert_handle;
+	te->sigh[TSIG_INTACK - 1] = thread_interrupt_ack_handle;
 
 	THREAD_UNLOCK(te);
 }
@@ -2628,6 +2737,23 @@ thread_preallocate_element(void)
 }
 
 /**
+ * Initialize expanded data structures in thread element.
+ */
+static void
+thread_init_element(struct thread_element *te)
+{
+	size_t interrupt_offset = offsetof(struct thread_interrupt_cb, lnk);
+
+	spinlock_init(&te->lock);
+	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
+	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
+	eslist_init(&te->interrupt_list, interrupt_offset);
+	eslist_init(&te->interrupt_ack_list, interrupt_offset);
+	mutex_init(&te->interrupt_lock);
+	mutex_init(&te->interrupt_ack_lock);
+}
+
+/**
  * Allocate a new thread element, partially initialized.
  *
  * The ``tid'' field is left uninitialized and will have to be filled-in
@@ -2668,9 +2794,9 @@ thread_new_element(unsigned stid)
 	te->last_qid = (thread_qid_t) -1;
 	te->stid = stid;
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
-	spinlock_init(&te->lock);
-	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
-	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
+
+	thread_init_element(te);
+
 	thread_stack_init_shape(te, &te);
 	te->valid = TRUE;				/* Minimally ready */
 	te->discovered = TRUE;			/* Assume it was discovered */
@@ -2722,7 +2848,8 @@ thread_time_adjust(int unused_delta)
 		if (te->timed_blocked) {
 			THREAD_LOCK(te);
 			if (0 == te->signalled) {
-				te->signalled++;		/* Will send an unblocking byte */
+				/* Will send an unblocking byte */
+				atomic_uint_inc(&te->signalled);
 				unblock = TRUE;
 			}
 			THREAD_UNLOCK(te);
@@ -2731,6 +2858,7 @@ thread_time_adjust(int unused_delta)
 		if G_UNLIKELY(unblock) {
 			char c = '\0';
 			if (-1 == s_write(te->wfd[1], &c, 1)) {
+				atomic_uint_dec(&te->signalled);
 				s_miniwarn("%s(): cannot unblock %s via write(%u): %m",
 					G_STRFUNC, thread_element_name(te), te->wfd[1]);
 			}
@@ -2789,10 +2917,11 @@ thread_main_element(thread_t t)
 	te->cancelable = FALSE;
 	te->cancelled = FALSE;
 	te->cancl = THREAD_CANCEL_DISABLE;
-	spinlock_init(&te->lock);
-	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
-	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
+
+	thread_init_element(te);
+
 	te->sigh[TSIG_DIVERT - 1] = thread_divert_handle;
+	te->sigh[TSIG_INTACK - 1] = thread_interrupt_ack_handle;
 
 	tls = &te->locks;
 	tls->arena = locks_arena_main;
@@ -4525,12 +4654,24 @@ done:
 static inline bool
 thread_signal_check(struct thread_element *te)
 {
+	bool processed = FALSE;
+
 	if (thread_sig_pending(te)) {
 		THREAD_STATS_INCX(sig_handled_while_check);
-		return thread_sig_handle(te);
+		processed = thread_sig_handle(te);
 	}
 
-	return FALSE;
+#ifdef MINGW32
+	/*
+	 * On Windows, due to an unavoidable race condition in
+	 * mingw_sig_trampoline(), we need to check for pending "OS"
+	 * signals, i.e. those sent by thread_os_kill().
+	 */
+
+	processed |= mingw_signal_check(te->stid);
+#endif	/* MINGW32*/
+
+	return processed;
 }
 
 /**
@@ -8202,7 +8343,7 @@ retry:
 	if G_UNLIKELY(te->signalled != 0) {
 		bool limited_blocking = FALSE;
 
-		te->signalled--;		/* Consumed one signaling byte */
+		atomic_uint_dec(&te->signalled);	/* Consumed one signaling byte */
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
@@ -10169,6 +10310,205 @@ thread_signal(int signum, tsighandler_t handler)
 }
 
 /**
+ * Atomically record signal as pending in the thread element.
+ *
+ * @note
+ * This routine does not require the thread element to be locked.
+ *
+ * @param te		the thread element
+ * @param signum	the signal to record as pending
+ */
+static void
+thread_element_add_pending_sig(struct thread_element *te, int signum)
+{
+	STATIC_ASSERT(sizeof(tsigset_t) == sizeof(uint));
+
+	/*
+	 * Because signal delivery is a rare event, we are going to attempt
+	 * to atomically merge the signal into the sig_pending field.  This
+	 * is necessarily going to succeed very quickly.
+	 */
+
+	for (;;) {
+		tsigset_t pending, merged;
+
+		atomic_mb();
+		merged = pending = te->sig_pending;
+		merged |= tsig_mask(signum);
+
+		if (atomic_uint_xchg_if_eq(&te->sig_pending, pending, merged))
+			break;
+	}
+}
+
+/**
+ * Deliver signal to specified thread.
+ *
+ * @param te		targeted thread to signal
+ * @param signo		signal to send
+ * @param stid		calling thread ID
+ * @param safe		whether we are running in an interrupt handler
+ */
+static void
+thread_element_signal_deliver(struct thread_element *te, int signum,
+	uint stid, bool safe)
+{
+	bool unblock = FALSE, process;
+	cond_t cv = NULL;
+
+	g_assert(TSIG_0 != signum);
+
+	thread_element_add_pending_sig(te, signum);
+	process = thread_sig_present(te);	/* Unblocked signals present? */
+
+	if (!process)
+		return;			/* Signal blocked or already handled concurrently */
+
+	/*
+	 * This routine can be called within an interrupt handler (kernel signal
+	 * handler as opposed to our internal thread signals) and it is possible
+	 * that we were interrupted whilst being the holder of the lock on the
+	 * thread element.
+	 *
+	 * Since this is a spinlock, it is difficult to know for sure who holds
+	 * it currently, so we loop for a while trying to get it and if we cannot
+	 * lock the thread element, we'll use another strategy.
+	 */
+
+	if G_UNLIKELY(safe) {
+		size_t i;
+		bool locked = FALSE;
+
+		for (i = 0; i < 10000; i++) {
+			if (THREAD_TRY_LOCK(te)) {
+				locked = TRUE;
+				break;
+			}
+		}
+
+		if (!locked)
+			goto alternate;
+	} else {
+		THREAD_LOCK(te);
+	}
+
+	/*
+	 * We got the lock on the thread element.
+	 */
+
+	process = thread_sig_present(te);	/* Unblocked signals present? */
+
+	/*
+	 * If posting a signal to the current thread, handle pending signals.
+	 */
+
+	if G_UNLIKELY(stid == te->stid) {
+		THREAD_UNLOCK(te);
+		if (process && 0 == thread_element_lock_count(te)) {
+			THREAD_STATS_INCX(sig_handled_while_check);
+			thread_sig_handle(te);
+		}
+		return;
+	}
+
+	/*
+	 * If the thread is blocked and has pending signals, then unblock it.
+	 * If the thread is waiting on a condition variable, wake it up.
+	 */
+
+	if G_UNLIKELY(te->blocked && process) {
+		/*
+		 * Only send one "signal pending" unblocking byte.
+		 */
+
+		if (0 == te->signalled) {
+			/* About to send an unblocking byte */
+			atomic_uint_inc(&te->signalled);
+			unblock = TRUE;
+		}
+	} else if G_UNLIKELY(te->cond != NULL && process) {
+		/*
+		 * Avoid any race condition: whilst we hold the thread lock, nobody
+		 * can change the te->cond value, but as soon as we release it,
+		 * the thread could be awoken concurrently and reset the te->cond
+		 * field, then possibly destroy the condition variable.
+		 *
+		 * By taking a reference, we get the underlying condition variable
+		 * value and ensure nobody can free up that object.
+		 */
+
+		cv = cond_refcnt_inc(te->cond);
+	}
+	THREAD_UNLOCK(te);
+
+	THREAD_STATS_INCX(signals_posted);
+
+	/*
+	 * The unblocking byte is sent outside the critical section, but
+	 * we already incremented the te->signalled field.  Therefore, regardless
+	 * of whether somebody already unblocked the thread since we checked,
+	 * the unblocked thread will go back to sleep, until we resend an
+	 * unblocking byte, and no event will be lost.
+	 *
+	 * See the critical section in thread_block_self() after calling read().
+	 *
+	 * For condition variables, we systematically wakeup all parties
+	 * waiting on the variable, even if the thread to which the signal
+	 * is targeted is not yet blocked on the condition variable (since
+	 * there is a time window between the registration of the waiting
+	 * and the actual blocking on the condition variable).
+	 */
+
+	if G_UNLIKELY(unblock) {
+		char c = '\0';
+		if (-1 == s_write(te->wfd[1], &c, 1)) {
+			atomic_uint_dec(&te->signalled);
+			s_minicarp("%s(): "
+				"cannot unblock %s via write(%u) to send signal #%d: %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[1], signum);
+		}
+	} else if G_UNLIKELY(cv != NULL) {
+		cond_wakeup_all(cv);
+		cond_refcnt_dec(cv);
+	}
+
+	return;
+
+alternate:
+
+	g_assert(stid != te->stid);		/* Necessarily in a foreign thread */
+
+	/*
+	 * We did not get the lock on the thread element, hence we need an
+	 * alternate, more complex but still thread-safe strategy.
+	 *
+	 * We re-check for unblocked signals since we spent some time waiting
+	 * for the lock, and the signal could have been already handled by
+	 * the other thread.
+	 */
+
+	atomic_mb();
+	process = thread_sig_present(te);	/* Unblocked signals present? */
+
+	if (!process)
+		return;			/* Signal blocked or already handled concurrently */
+
+	if G_UNLIKELY(te->blocked) {
+		char c = '\0';
+		atomic_uint_inc(&te->signalled);
+		if (-1 == s_write(te->wfd[1], &c, 1)) {
+			atomic_uint_dec(&te->signalled);
+			s_rawwarn("%s(): "
+				"cannot unblock %s via write(%u) to send signal #%d: %m",
+				G_STRFUNC, thread_element_name(te), te->wfd[1], signum);
+		}
+	} else if (NULL != (cv = cond_refcnt_inc(te->cond))) {
+		cond_wakeup_all(cv);
+		cond_refcnt_dec(cv);
+	}
+}
+
+/**
  * Send signal to specified thread.
  *
  * The signal will be processed when the target thread does not hold any lock,
@@ -10194,91 +10534,11 @@ thread_kill(unsigned id, int signum)
 		return -1;		/* errno set by thread_get_element_by_id() */
 
 	/*
-	 * Deliver signal
+	 * Deliver signal if needed.
 	 */
 
-	if G_LIKELY(TSIG_0 != signum) {
-		bool unblock = FALSE, process;
-		cond_t cv = NULL;
-		uint stid = thread_small_id();
-
-		THREAD_LOCK(te);
-
-		te->sig_pending |= tsig_mask(signum);
-		process = thread_sig_present(te);	/* Unblocked signals present? */
-
-		/*
-		 * If posting a signal to the current thread, handle pending signals.
-		 */
-
-		if G_UNLIKELY(stid == id) {
-			THREAD_UNLOCK(te);
-			if (process && 0 == thread_element_lock_count(te)) {
-				THREAD_STATS_INCX(sig_handled_while_check);
-				thread_sig_handle(te);
-			}
-			return 0;
-		}
-
-		/*
-		 * If the thread is blocked and has pending signals, then unblock it.
-		 * If the thread is waiting on a condition variable, wake it up.
-		 */
-
-		if G_UNLIKELY(te->blocked && process) {
-			/*
-			 * Only send one "signal pending" unblocking byte.
-			 */
-
-			if (0 == te->signalled) {
-				te->signalled++;		/* About to send an unblocking byte */
-				unblock = TRUE;
-			}
-		} else if G_UNLIKELY(te->cond != NULL && process) {
-			/*
-			 * Avoid any race condition: whilst we hold the thread lock, nobody
-			 * can change the te->cond value, but as soon as we release it,
-			 * the thread could be awoken concurrently and reset the te->cond
-			 * field, then possibly destroy the condition variable.
-			 *
-			 * By taking a reference, we get the underlying condition variable
-			 * value and ensure nobody can free up that object.
-			 */
-
-			cv = cond_refcnt_inc(te->cond);
-		}
-		THREAD_UNLOCK(te);
-
-		THREAD_STATS_INCX(signals_posted);
-
-		/*
-		 * The unblocking byte is sent outside the critical section, but
-		 * we already increment the te->signalled field.  Therefore, regardless
-		 * of whether somebody already unblocked the thread since we checked,
-		 * the unblocked thread will go back to sleep, until we resend an
-		 * unblocking byte, and no event will be lost.
-		 *
-		 * See the critical section in thread_block_self() after calling read().
-		 *
-		 * For condition variables, we systematically wakeup all parties
-		 * waiting on the variable, even if the thread to which the signal
-		 * is targeted is not yet blocked on the condition variable (since
-		 * there is a time window between the registration of the waiting
-		 * and the actual blocking on the condition variable).
-		 */
-
-		if G_UNLIKELY(unblock) {
-			char c = '\0';
-			if (-1 == s_write(te->wfd[1], &c, 1)) {
-				s_minicarp("%s(): "
-					"cannot unblock %s via write(%u) to send signal #%d: %m",
-					G_STRFUNC, thread_element_name(te), te->wfd[1], signum);
-			}
-		} else if G_UNLIKELY(cv != NULL) {
-			cond_wakeup_all(cv);
-			cond_refcnt_dec(cv);
-		}
-	}
+	if G_LIKELY(TSIG_0 != signum)
+		thread_element_signal_deliver(te, signum, thread_small_id(), FALSE);
 
 	return 0;
 }
@@ -10399,7 +10659,7 @@ thread_sigblock_element(struct thread_element *te,
 
 	THREAD_LOCK(te);
 	if G_UNLIKELY(te->signalled != 0) {
-		te->signalled--;		/* Consumed one signaling byte */
+		atomic_uint_dec(&te->signalled);	/* Consumed one signaling byte */
 		signalled = TRUE;
 	} else {
 		signalled = FALSE;
@@ -10747,6 +11007,271 @@ thread_leave_critical(const thread_sigsets_t *set)
 }
 
 /**
+ * Send an operating system signal (delivered by the kernel) to a thread.
+ *
+ * This will act as an interrupt for the thread, as opposed to internal signals
+ * sent by thread_kill() which are only delivered outside of critical sections,
+ * as defined by registered locks.
+ *
+ * Note that the signal handler attached to the processing of the signal is
+ * defined at the process-level, not the thread-level.
+ *
+ * Use with caution, if at all.
+ *
+ * @param id		the thread ID we wish to signal
+ * @param signo		the OS signal to send to the thread
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+thread_os_kill(uint id, int signo)
+{
+	struct thread_element *te;
+
+	if G_UNLIKELY(signo < 0 || signo >= SIGNAL_COUNT) {
+		errno = EINVAL;
+		return -1;
+	}
+
+	te = thread_get_element_by_id(id);
+	if (NULL == te)
+		return -1;		/* errno set by thread_get_element_by_id() */
+
+#ifdef MINGW32
+	return mingw_thread_kill(id, te->system_thread_id, signo);
+#else	/* !MINGW32 */
+	{
+		int err;
+
+		err = pthread_kill(te->ptid, signo);
+		if (0 != err) {
+			errno = err;
+			return -1;
+		}
+
+		return 0;
+	}
+#endif	/* MINGW32 */
+}
+
+/**
+ * This is the main process-wide signal handler for thread interrupts.
+ */
+static void
+thread_interrupt_handle(int signo)
+{
+	struct thread_element *te, *cte;
+	struct thread_interrupt_cb *ti;
+
+	g_assert(THREAD_SIGINTR == signo);
+
+	/*
+	 * We do not call thread_get_element() because we do not want to create
+	 * a new thread if none exists and we do not want to take any locks
+	 * nor allocate any memory.
+	 */
+
+	te = thread_find(&te);
+
+	if G_UNLIKELY(NULL == te) {
+		s_rawwarn("%s(): no thread to handle %s",
+			G_STRFUNC, signal_name(signo));
+		return;
+	}
+
+	/*
+	 * Detach the interrupt requests in FIFO order.
+	 *
+	 * The lock is necessary because this structure is filled by remote
+	 * threads.  We cannot just use the thread element lock because this
+	 * thread can be interrupted anywhere and it could already have the
+	 * lock.  Hence we need a mutex, which guarantees that the same thread
+	 * will be able to at least recursively grab the same lock.
+	 *
+	 * We rely on the fact that no further interrupt can occur since we are
+	 * in the middle of handling one -- the kernel must block the signal that
+	 * got us here until we return from the signal handler.
+	 *
+	 * Fear no deadlock here as the eslist_xxx() routines take no lock and
+	 * they cannot be interrupted whilst running since we are already within
+	 * an interrupt.
+	 */
+
+	for (;;) {
+		mutex_lock_fast(&te->interrupt_lock);
+		ti = eslist_shift(&te->interrupt_list);
+		mutex_unlock_fast(&te->interrupt_lock);
+	
+		if G_UNLIKELY(NULL == ti)
+			return;
+
+		/*
+		 * Proceed with the requested interruption -- invoke the registered
+		 * routine in the context of the interrupted thread.
+		 */
+
+		thread_interrupt_cb_check(ti);
+		g_assert(ti->stid != te->stid);	/* Interrupting thread is foreign */
+
+		ti->result = (*ti->intr)(ti->arg);
+
+		/*
+		 * Now that the interrupt is completed and we have a result, let the
+		 * interrupting thread clean this up and optionally invoke a completion
+		 * callback.
+		 *
+		 * We call back the interrupting thread by sending it a TSIG_INTACK
+		 * signal.  This is our own inter-thread signal, and it will be
+		 * processed by the thread when it is safe to do so.
+		 *
+		 * Before sending the signal back, we link the result into the calling
+		 * thread interrupt-ack list.  If that thread is dead already, loudly
+		 * warn as this will result in a memory leak.
+		 */
+
+		g_assert(ti->stid < THREAD_MAX);
+
+		cte = threads[ti->stid];	/* Calling thread, which interrupted us */
+
+		/*
+		 * We rely on the fact that no further interrupt can occur since we are
+		 * in the middle of handling one -- the kernel must block the signal
+		 * that got us here until we return from the signal handler.
+		 *
+		 * Therefore, we cannot be interrupted whilst holding the mutex of the
+		 * foreign thread, which means we cannot create any deadlock.
+		 */
+
+		mutex_lock_fast(&cte->interrupt_ack_lock);
+		eslist_append(&cte->interrupt_ack_list, ti);
+		mutex_unlock_fast(&cte->interrupt_ack_lock);
+
+		/*
+		 * We do not use thread_kill() here to send the signal because we are
+		 * within an interrupt and we need to inform the delivery layer that
+		 * the targeted thread element could be already locked (by ourselves
+		 * unfortunately).
+		 */
+
+		thread_element_signal_deliver(cte, TSIG_INTACK, te->stid, TRUE);
+	}
+}
+
+/**
+ * Signal handler for TSIG_INTACK.
+ */
+static void
+thread_interrupt_ack_handle(int signo)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_interrupt_cb *ti;
+
+	g_assert(TSIG_INTACK == signo);
+
+	mutex_lock(&te->interrupt_ack_lock);
+	ti = eslist_shift(&te->interrupt_ack_list);
+	mutex_unlock(&te->interrupt_ack_lock);
+
+	if G_UNLIKELY(NULL == ti) {
+		s_rawwarn("%s(): spurious signal in %s",
+			G_STRFUNC, thread_element_name(te));
+		return;
+	}
+
+	thread_interrupt_cb_check(ti);
+	g_assert(ti->stid == te->stid);		/* We were the interrupting thread */
+
+	/*
+	 * If there is a completion callback, invoke it with the result of
+	 * the interrupt processing.
+	 */
+
+	if (NULL != ti->completed)
+		(*ti->completed)(ti->result, ti->udata);
+
+	thread_interrupt_cb_free(ti);
+}
+
+/**
+ * Request a thread interrupt.
+ *
+ * The targeted thread will immediately handle the requested processing.
+ *
+ * If a result is expected, there must be a completion callback specified which
+ * will be invoked in this thread (the one requesting the interrupt, not the
+ * one being interrupted, unless they are identical).
+ *
+ * The completion callback is invoked with two arguments: the first is the
+ * result of the interrupt routine, the second is the user-supplied "udata"
+ * argument.
+ *
+ * @param id			the thread we want to interrupt
+ * @param cb			the interrupt routine called by the thread
+ * @param arg			the argument to pass to the interrupt routine
+ * @param completed		(optional) completion callback to invoke
+ * @param udata			(optional) additional argument passed on completion
+ *
+ * @return 0 if OK, an error code otherwise.
+ */
+int
+thread_interrupt(uint id, process_fn_t cb, void *arg,
+	notify_data_fn_t completed, void *udata)
+{
+	struct thread_element *te;
+	struct thread_interrupt_cb *ti;
+
+	if (id >= THREAD_MAX)
+		return EINVAL;
+
+	te = threads[id];
+	if (NULL == te || !te->valid)
+		return ESRCH;
+
+	/*
+	 * This data structure represents the interrupt and can hold the result
+	 * of the processing.
+	 *
+	 * It is going to be enqueued to the targeted thread, and then we'll notify
+	 * the thread via a kernel signal.  Upon reception of the kernel signal,
+	 * processing will begin and the structure will be dequeued, then requeued
+	 * in our acknowledgment queue for us to propagate completion notification,
+	 * if any, and reclaim of the structure.
+	 *
+	 * Therefore, no memory allocation is done by the interrupted thread.
+	 */
+
+	WALLOC0(ti);
+	ti->magic = THREAD_INTR_MAGIC;
+	ti->stid = thread_small_id();
+	ti->intr = cb;
+	ti->arg = arg;
+	ti->completed = completed;
+	ti->udata = udata;
+
+	/*
+	 * To enqueue in the targeted thread, we need to lock the structure.
+	 * We do not lock the thread element, and therefore risk a reset of
+	 * the thread whilst we enqueue the item.
+	 *
+	 * That's OK though, because thread_element_reset() will carefully
+	 * cleanup the data structure when the thread is re-created.
+	 */
+
+	mutex_lock(&te->interrupt_lock);
+	eslist_append(&te->interrupt_list, ti);
+	mutex_unlock(&te->interrupt_lock);
+
+	if (-1 == thread_os_kill(id, THREAD_SIGINTR)) {
+		int error = errno;
+		s_minicarp("%s(): cannot signal %s with %s (chosen THREAD_SIGINTR): %m",
+			G_STRFUNC, thread_element_name(te), signal_name(THREAD_SIGINTR));
+		return error;
+	}
+
+	return 0;
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
@@ -10756,6 +11281,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	g_assert(te != NULL);
 
 	thread_set(info->tid, te->tid);
+	info->system_thread_id = te->system_thread_id;
 	info->last_qid = te->last_qid;
 	info->low_qid = te->low_qid;
 	info->high_qid = te->high_qid;
