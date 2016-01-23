@@ -101,7 +101,60 @@ static const struct {
 #ifdef SIGTRAP
 	D(SIGTRAP),
 #endif
+#ifdef SIGHUP
+	D(SIGHUP),
+#endif
+#ifdef SIGEMT
+	D(SIGEMT),
+#endif
+#ifdef SIGQUIT
+	D(SIGQUIT),
+#endif
+#ifdef SIGALRM
+	D(SIGALRM),
+#endif
+#ifdef SIGPOLL
+	D(SIGPOLL),
+#endif
+#ifdef SIGURG
+	D(SIGURG),
+#endif
+#ifdef SIGIO
+	D(SIGIO),
+#endif
+#ifdef SIGSYS
+	D(SIGSYS),
+#endif
+#ifdef SIGCHLD
+	D(SIGCHLD),
+#endif
+#ifdef SIGVTALRM
+	D(SIGVTALRM),
+#endif
+#ifdef SIGUSR1
+	D(SIGUSR1),
+#endif
+#ifdef SIGUSR2
+	D(SIGUSR2),
+#endif
+#ifdef SIGPWR
+	D(SIGPWR),
+#endif
+#ifdef SIGLOST
+	D(SIGLOST),
+#endif
+#ifdef SIGXCPU
+	D(SIGXCPU),
+#endif
+#ifdef SIGXFSZ
+	D(SIGXFSZ),
+#endif
+#ifdef SIGUNUSED
+	D(SIGUNUSED),
+#endif
 	D(SIGABRT),
+	D(SIGINT),
+	D(SIGTERM),
 	D(SIGFPE),
 	D(SIGPIPE),
 	D(SIGILL),
@@ -110,11 +163,16 @@ static const struct {
 };
 
 /**
+ * Cached signal names, from the signals[] table above.
+ */
+static const char *signal_str[SIGNAL_COUNT];
+
+/**
  * Array mapping a signal number to a signal name (leading "SIG" ommitted).
  * This is used in case the signal is not found in the signals[] table.
  * There are SIG_COUNT entries in that array (also computed by Configure).
  */
-static char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
+static const char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
 
 /**
  * Array recording signal handlers for signals.
@@ -271,9 +329,29 @@ signal_name(int signo)
 	buf_t *b, bs;
 	unsigned i;
 
+	/*
+	 * Look in the cache first.
+	 */
+
+	if G_LIKELY(UNSIGNED(signo) < SIGNAL_COUNT && NULL != signal_str[signo])
+		return signal_str[signo];
+
+	/*
+	 * Linear lookup in the table of known common signals.
+	 *
+	 * The result of the linear lookup is cached so that subsequent requests
+	 * for the same signal from the signals[] array is immediately answered.
+	 */
+
 	for (i = 0; i < N_ITEMS(signals); i++) {
-		if (signals[i].signo == signo)
+		if (signals[i].signo == signo) {
+			if G_LIKELY(
+				UNSIGNED(signo) < SIGNAL_COUNT &&
+				NULL == signal_str[signo]
+			)
+				signal_str[signo] = signals[i].name;	/* Cache result */
 			return signals[i].name;
+		}
 	}
 
 	/*
