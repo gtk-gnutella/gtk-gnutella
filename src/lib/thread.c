@@ -84,6 +84,7 @@
 #include "atoms.h"
 #include "barrier.h"
 #include "buf.h"
+#include "compat_gettid.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
 #include "compat_usleep.h"
@@ -329,6 +330,7 @@ enum thread_element_magic { THREAD_ELEMENT_MAGIC = 0x3240eacc };
  */
 struct thread_element {
 	enum thread_element_magic magic;
+	systid_t system_thread_id;		/**< System thread ID (for Windows) */
 	pthread_t ptid;					/**< Full thread info, for joining */
 	thread_t tid;					/**< The thread ID */
 	thread_qid_t last_qid;			/**< The last QID used to access record */
@@ -2174,6 +2176,10 @@ thread_element_reset(struct thread_element *te)
 	te->waits.count = 0;
 	thread_element_clear_name(te);
 
+#ifdef MINGW32
+	mingw_gettid_reset(te->stid);
+#endif
+
 	thread_set(te->tid, THREAD_INVALID);
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
@@ -2566,6 +2572,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_set(te->tid, t);
 	thread_stack_init_shape(te, &te);
 	thread_element_common_init(te, t);
+	te->system_thread_id = compat_gettid();
 	thread_monitor_exit(te);
 }
 
@@ -2801,6 +2808,7 @@ thread_main_element(thread_t t)
 
 	threads[0] = te;
 	thread_set(tstid[0], te->tid);
+	te->system_thread_id = compat_gettid();
 	thread_update_next_stid();
 
 	/*
@@ -8579,6 +8587,7 @@ thread_launch_register(struct thread_element *te)
 	te->ptid = pthread_self();
 	thread_element_tie(te, t, stack);
 	thread_qid_cache_set(idx, te, qid);
+	te->system_thread_id = compat_gettid();
 
 	g_assert(0 == thread_element_lock_count(te));
 	g_assert(qid >= te->low_qid && qid <= te->high_qid);

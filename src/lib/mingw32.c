@@ -826,6 +826,70 @@ mingw_abort(void)
 	ExitProcess(EXIT_FAILURE);
 }
 
+/***
+ *** Thread signal emulation.
+ ***/
+
+static struct mingw_thread {
+	HANDLE h;
+	CONTEXT c;
+	DWORD pc;
+	uint32 sig_pending;
+	uint32 sig_mask;
+	uint stid;
+	atomic_lock_t lock;
+} mingw_threads[THREAD_MAX];
+
+/**
+ * Clear cached system handle for dead thread and reset signal information.
+ */
+void
+mingw_gettid_reset(uint id)
+{
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (NULL != mt->h) {
+		mt->h = NULL;
+		CloseHandle(mt->h);
+	}
+
+	mt->sig_pending = mt->sig_mask = 0;
+	mt->lock = 0;
+}
+
+/**
+ * Return a system thread "ID", which needs to be cast back to a HANDLE
+ * to be perused by thread-specific system calls.
+ *
+ * @return the system thread ID of the current thread.
+ */
+systid_t
+mingw_gettid(void)
+{
+	uint id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+	HANDLE p;
+
+	if (mt->h != NULL)
+		return (systid_t) mt->h;
+
+	/*
+	 * We need to duplicate (and cache) the pseudo thread handle to get a
+	 * real handle that represents this thread.
+	 *
+	 * The mingw_gettid_reset() routine is called by the thread layer when
+	 * the old thread exits and we can dispose of the thread handle.
+	 */
+
+	mt->stid = id;
+	p = GetCurrentProcess();
+
+	DuplicateHandle(p, GetCurrentThread(), p, &mt->h,
+		0, FALSE, DUPLICATE_SAME_ACCESS);
+
+	return (systid_t) mt->h;
+}
+
 int
 mingw_fcntl(int fd, int cmd, ... /* arg */ )
 {

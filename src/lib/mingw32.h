@@ -49,7 +49,8 @@
 #include <sys/stat.h>
 #include <glib.h>
 
-#include "signal.h"		/* For signal_handler_t */
+#include "signal.h"				/* For signal_handler_t */
+#include "compat_gettid.h"		/* For systid_t */
 
 /*
  * Winsock to UNIX symbolic error code remapping.
@@ -786,6 +787,9 @@ char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 const char *mingw_get_supervisor_log_path(void);
 void mingw_file_rotate(const char *pathname, int keep);
+
+systid_t mingw_gettid(void);
+void mingw_gettid_reset(uint id);
 
 int mingw_last_error(void);
 

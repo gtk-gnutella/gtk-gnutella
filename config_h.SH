@@ -846,6 +846,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sync_atomic HAS_SYNC_ATOMIC	/**/
 
+/* HAS_SYSCALL:
+ *	This symbol, if defined, indicates that the syscall routine is
+ *	available to call arbitrary system calls. If undefined, that's tough.
+ */
+#$d_syscall HAS_SYSCALL	/**/
+
 /* HAS_SYSCTL:
  *	This symbol, if defined, indicates that the sysctl routine is
  *	available.
