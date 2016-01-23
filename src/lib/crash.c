@@ -4365,7 +4365,7 @@ crash_dump_stacks(int fd)
 				trace.fancy = f;
 				trace.fd = fd;
 				crash_offload_main(crash_thread_stack_print, &trace);
-			} else if (e != EINVAL) {
+			} else if (e != ESRCH) {
 				errno = e;
 				s_line_writef(fd, "WARNING: cannot get stack for %s: %m",
 					thread_safe_id_name(i));

@@ -5067,11 +5067,14 @@ thread_divert_run(struct thread_element *te)
  * @param reply		where reply will be stored (NULL if no reply is expected)
  *
  * @return 0 if the diversion was successful, an error code otherwise which
- * can be EBUSY if the thread is running and not suspended currently, ECANCELED
- * if the thread did not execute in the allocated time slot, EINVAL if the
- * targeted thread is invalid, EAGAIN if there is already a diversion installed
- * and EINPROGRESS if the diversion started but the thread did not finish it
- * in the allocated waiting time.
+ * can be:
+ *
+ *   EBUSY if the thread is running and not suspended currently
+ *   ECANCELED if the thread did not execute in the allocated time slot
+ *   EINVAL if the given thread ID is invalid
+ *   ESRCH if the targeted thread does not exist
+ *   EAGAIN if there is already a diversion installed
+ *   EINPROGRESS if execution did not finish in the allocated waiting time.
  */
 int
 thread_divert(uint id, process_fn_t cb, void *arg, void **reply)
@@ -5086,7 +5089,7 @@ thread_divert(uint id, process_fn_t cb, void *arg, void **reply)
 
 	te = threads[id];
 	if (NULL == te || !te->valid)
-		return EINVAL;
+		return ESRCH;
 
 	d.divert = cb;
 	d.arg = arg;
