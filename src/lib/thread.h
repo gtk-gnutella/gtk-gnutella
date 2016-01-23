@@ -66,6 +66,7 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_F_PANIC		(1U << 5)	/**< Panic if we cannot create thread */
 #define THREAD_F_CLEARSIG	(1U << 6)	/**< Clear signal mask of new thread */
 #define THREAD_F_UNSUSPEND	(1U << 7)	/**< Launch even if global suspension */
+#define THREAD_F_WAIT		(1U << 8)	/**< Wait for thread to start */
 
 /**
  * Special free routine for thread-local value which indicates that the

@@ -82,6 +82,7 @@
 #include "alloca.h"				/* For alloca_stack_direction() */
 #include "atomic.h"
 #include "atoms.h"
+#include "barrier.h"
 #include "buf.h"
 #include "compat_poll.h"
 #include "compat_sleep_ms.h"
@@ -8467,6 +8468,7 @@ struct thread_launch_context {
 	struct thread_element *te;
 	process_fn_t routine;
 	void *arg;
+	barrier_t *b;
 	uint flags;
 	tsigset_t sig_mask;
 };
@@ -8658,6 +8660,19 @@ thread_launch_trampoline(void *arg)
 	thread_sigstack_allocate(u.ctx->te);
 
 	/*
+	 * If thread_create() is waiting for the thread to start, then signal
+	 * we have started.  Note that this also delays the actual execution
+	 * of the new thread until the launching thread is about to return, when
+	 * the launching thread was context-switched after calling pthread_create()
+	 * for instance.
+	 */
+
+	if (u.ctx->flags & THREAD_F_WAIT) {
+		barrier_wait(u.ctx->b);
+		barrier_free_null(&u.ctx->b);
+	}
+
+	/*
 	 * If there was a global suspension, then also suspend this newly
 	 * created thread unless they explicitly gave the THREAD_F_UNSUSPEND
 	 * at creation time to bypass this.
@@ -8713,6 +8728,7 @@ thread_launch(struct thread_element *te,
 	struct thread_launch_context *ctx;
 	const struct thread_element *tself;
 	size_t stacksize;
+	barrier_t *b;
 
 	pthread_attr_init(&attr);
 
@@ -8837,7 +8853,7 @@ thread_launch(struct thread_element *te,
 
 	tself = thread_get_element();
 
-	WALLOC(ctx);
+	WALLOC0(ctx);
 	ctx->te = te;
 	ctx->routine = routine;
 	ctx->arg = arg;
@@ -8858,7 +8874,21 @@ thread_launch(struct thread_element *te,
 	xmalloc_thread_disable_local_pool(te->stid,
 		booleanize(flags & THREAD_F_NO_POOL));
 
+	/*
+	 * If they used THREAD_F_WAIT, then we must wait until the thread
+	 * has started before returning a success.  Use a barrier to perform
+	 * the required synchronization.
+	 */
+
+	if (flags & THREAD_F_WAIT) {
+		b = barrier_new(2);
+		ctx->b = barrier_refcnt_inc(b);
+	} else {
+		b = NULL;
+	}
+
 	error = pthread_create(&t, &attr, thread_launch_trampoline, ctx);
+
 	pthread_attr_destroy(&attr);
 
 	if (error != 0) {
@@ -8867,9 +8897,24 @@ thread_launch(struct thread_element *te,
 		if (te->stack != NULL)
 			thread_stack_free(te);
 		thread_element_mark_reusable(te);
+		barrier_free_null(&b);
+		if (ctx->b != NULL) {
+			ctx->b = barrier_refcnt_dec(ctx->b);
+			g_assert(NULL == ctx->b);		/* Was last reference */
+		}
 		WFREE(ctx);
 		errno = error;
 		return -1;
+	}
+
+	/*
+	 * Wait for the thread to be physically launched and running before
+	 * returning when THREAD_F_WAIT was used.
+	 */
+
+	if (b != NULL) {
+		barrier_wait(b);
+		barrier_free_null(&b);
 	}
 
 	return te->stid;
