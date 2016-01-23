@@ -234,7 +234,7 @@ static eslist_t crash_hooks = ESLIST_INIT(offsetof(crash_hook_item_t, link));
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
 /**
- * Signals that usually lead to a crash.
+ * Signals that usually lead to a crash and which we don't normally expect.
  */
 static const int signals[] = {
 #ifdef SIGBUS
@@ -242,6 +242,9 @@ static const int signals[] = {
 #endif
 #ifdef SIGTRAP
 	SIGTRAP,
+#endif
+#ifdef SIGSYS
+	SIGSYS,
 #endif
 	SIGABRT,
 	SIGFPE,
