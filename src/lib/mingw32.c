@@ -844,6 +844,7 @@ static struct mingw_thread {
 	uint32 sig_pending;
 	uint32 sig_mask;
 	uint stid;
+	bool sig_suspend;
 	atomic_lock_t lock;
 } mingw_threads[THREAD_MAX];
 
@@ -861,6 +862,7 @@ mingw_gettid_reset(uint id)
 	}
 
 	mt->sig_pending = mt->sig_mask = 0;
+	mt->sig_suspend = FALSE;
 	mt->lock = 0;
 }
 
@@ -1080,6 +1082,13 @@ mingw_thread_sig_deliver(struct mingw_thread *mt)
 	if (!atomic_acquire(&mt->lock))
 		return 0;		/* Busy with another signal dispatch */
 
+	/*
+	 * If we are within a sigsuspend(), then we can notify that we were
+	 * interrupted by a signal and therefore sigsuspend() can return.
+	 */
+
+	mt->sig_suspend = FALSE;
+
 	cnt = SuspendThread(mt->h);
 
 	if ((DWORD) -1 == cnt) {
@@ -1150,6 +1159,104 @@ mingw_signal_check(uint id)
 	g_assert(id < THREAD_MAX);
 
 	return mingw_sig_handle(&mingw_threads[id]);
+}
+
+/**
+ * Emulate sigprocmask(), necessary now that we support inter-thread
+ * "kernel" signals (i.e. interrupts).  These are UNIX-like signals,
+ * not our thread signals implemented by thread_kill() which can only
+ * be delivered at specific checkpoints.
+ *
+ * Because these inter-thread signals can interrupt the processing at
+ * random places, the application needs to be able to block delivery of
+ * the signals to create critical sections.
+ */
+int
+mingw_sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (oldset != NULL)
+		*oldset = mt->sig_mask;
+
+	switch (how) {
+	case SIG_SETMASK:
+		g_assert(set != NULL);
+		mt->sig_mask = *set;
+		atomic_mb();
+		goto check;
+	case SIG_BLOCK:
+		g_assert(set != NULL);
+		mt->sig_mask |= *set;
+		break;
+	case SIG_UNBLOCK:
+		g_assert(set != NULL);
+		mt->sig_mask &= ~*set;
+		goto check;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+
+	return 0;
+
+check:
+	/*
+	 * When unblocking signals, we need to check whether there are
+	 * pending signals to process now, and deliver them to the thread.
+	 */
+
+	return mingw_thread_sig_deliver(mt);
+}
+
+int
+mingw_sigpending(sigset_t *set)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (set != NULL) {
+		atomic_mb();
+		*set = mt->sig_pending;
+	}
+
+	return 0;
+}
+
+int
+mingw_sigsuspend(const sigset_t *mask)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+	sigset_t old;
+
+	if (NULL == mask) {
+		errno = EFAULT;
+		return -1;
+	}
+
+	atomic_mb();
+	old = mt->sig_mask;
+	mt->sig_mask = *mask;
+
+	/*
+	 * Suspend the process until delivery of a signal whose action is to
+	 * invoke a signal handler or terminate the process.
+	 *
+	 * If the signal is caught, return after the signal handler returns,
+	 * restoring the signal mask to the old value.
+	 */
+
+	mt->sig_suspend = TRUE;
+
+	while (mt->sig_suspend) {
+		Sleep(100);		/* ms */
+	}
+
+	mt->sig_mask = old;
+	errno = EINTR;
+	return -1;
 }
 
 /**

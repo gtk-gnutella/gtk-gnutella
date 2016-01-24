@@ -1501,16 +1501,6 @@ signal_enter_critical(sigset_t *oset)
 
 	g_assert(oset != NULL);
 
-	/*
-	 * There are no signals on Windows, so there is no risk we can be
-	 * interrupted by a signal on that platform.
-	 */
-
-	if (is_running_on_mingw()) {
-		in_critical_section[id]++;
-		goto ok;
-	}
-
 #ifdef HAS_SIGPROCMASK
 	{
 		sigset_t set;
@@ -1534,12 +1524,12 @@ signal_enter_critical(sigset_t *oset)
 		if (-1 == sigprocmask(SIG_SETMASK, &set, oset))
 			return FALSE;
 	}
+ok:
 #else
 	(void) oset;
-	return FALSE;
+	in_critical_section[id]++;
 #endif
 
-ok:
 	return TRUE;
 }
 
@@ -1554,9 +1544,6 @@ signal_leave_critical(const sigset_t *oset)
 	g_assert(in_critical_section[id] > 0);
 
 	in_critical_section[id]--;
-
-	if (is_running_on_mingw())
-		return;
 
 #ifdef HAS_SIGPROCMASK
 	if (0 == in_critical_section[id]) {
