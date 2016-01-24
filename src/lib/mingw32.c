@@ -762,12 +762,10 @@ mingw_signal(int signo, signal_handler_t handler)
 	 */
 
 	switch (signo) {
-	case SIGBUS:
-	case SIGTRAP:
-	case SIGPIPE:
+	case SIGSEGV:
+		signal(signo, handler);
 		break;
 	default:
-		signal(signo, handler);
 		break;
 	}
 
