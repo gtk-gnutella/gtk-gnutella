@@ -782,11 +782,12 @@ mingw_signal(int signo, signal_handler_t handler)
  * Synthesize a fatal signal as the kernel would on an exception.
  */
 static void G_COLD
-mingw_sigraise(int signo)
+mingw_sigraise(int signo, bool verbose)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
-	s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
+	if (verbose)
+		s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
 
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
@@ -821,7 +822,7 @@ mingw_sigraise(int signo)
 void
 mingw_abort(void)
 {
-	mingw_sigraise(SIGABRT);
+	mingw_sigraise(SIGABRT, TRUE);
 	ExitProcess(EXIT_FAILURE);
 }
 
@@ -3139,7 +3140,7 @@ mingw_write(int fd, const void *buf, size_t count)
 				s_error("%s(): write to fd #%d caused SIGPIPE",
 					G_STRFUNC, fd);
 			} else if (SIG_IGN != mingw_sighandler[SIGPIPE]) {
-				mingw_sigraise(SIGPIPE);
+				mingw_sigraise(SIGPIPE, FALSE);
 			}
 		}
 	}
@@ -7347,7 +7348,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 */
 
 	if (signo != 0)
-		mingw_sigraise(signo);
+		mingw_sigraise(signo, TRUE);
 
 	signal_uncrashing();
 	if (stid >= 0 && stid < THREAD_MAX)
