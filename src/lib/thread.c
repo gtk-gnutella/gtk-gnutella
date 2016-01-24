@@ -8311,7 +8311,7 @@ retry:
 		r = compat_poll(&fds, 1, remain);
 
 		if (-1 == r) {
-			if (errno == EINTR)
+			if (EINTR == errno)
 				goto retry;
 			s_error("%s(): %s could not block itself on poll() for fd #%u: %m",
 				G_STRFUNC, thread_element_name(te), te->wfd[0]);
@@ -8324,6 +8324,8 @@ retry:
 	}
 
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
+		if (EINTR == errno)
+			goto retry;
 		s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}

@@ -548,8 +548,9 @@ mingw_wsa_last_error(void)
 
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
-	case WSAEINTR:			result = EINTR; break;
+	case WSAEINTR:			result = EINTR;  break;
 	case WSAEINVAL:			result = EINVAL; break;
+	case ERROR_IO_PENDING:	result = EINTR;  break;
 	}
 
 	if (mingw_syscall_debug()) {
@@ -632,6 +633,8 @@ mingw_win2posix(int error)
 	case ERROR_INVALID_ADDRESS:
 	case ERROR_INVALID_USER_BUFFER:
 		return EFAULT;
+	case ERROR_IO_PENDING:			/* System call "interrupted" by signal */
+		return EINTR;
 	/*
 	 * The following remapped because their number is in the POSIX range
 	 */
