@@ -129,7 +129,7 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 				G_STRFUNC, stacktrace_function_name(routine),
 				thread_id_name(stid));
 			thread_lock_dump_all(STDERR_FILENO);
-			s_minierror("%s(): %s() timed out", G_STRFUNC, thread_name());
+			s_minierror("%s(): %s timed out", G_STRFUNC, thread_name());
 		}
 
 		g_assert(ONCE_F_DONE == *flag);
