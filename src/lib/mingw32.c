@@ -6313,8 +6313,15 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 *  MOV  EBP, ESP
 			 *
 			 * to create the frame pointer link.
+			 *
+			 * When using the Windows call API, the EBP register is saved
+			 * immediately at entry, but more registers can be saved as well
+			 * before the ESP is altered (so the EBP value immediately follows
+			 * the return PC pushed on the stack by the CALL instruction).
 			 */
 			first_opcode = p + 1;	/* Expects the MOV operation to follow */
+			if (0 == pushes)
+				saved_ebp = TRUE;	/* EBP was the first to be pushed */
 			/* FALL THROUGH */
 		case OPCODE_PUSH_EAX:
 		case OPCODE_PUSH_EBX:
@@ -6337,7 +6344,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			break;
 		case OPCODE_MOV_REG:
 			if (OPMODE_REG_ESP_EBP == p[1])
-				saved_ebp = p == first_opcode;
+				saved_ebp = saved_ebp || p == first_opcode;
 			p += 1;				/* Skip mode byte */
 			break;
 		case OPCODE_CALL:
@@ -6689,7 +6696,7 @@ found_offset:
 				"%s: invalid fp %p (not a stack pointer)", G_STRFUNC, fp);
 			has_frame = FALSE;
 		}
-		*next_sf = has_frame ? sf : NULL;
+		*next_sf = has_frame ? fp : NULL;
 	} else {
 		*next_sf = NULL;
 	}
