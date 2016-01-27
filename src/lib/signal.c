@@ -48,6 +48,7 @@
 #include "registers.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "unsigned.h"
 
 #include "override.h"	/* Must be the last header included */
@@ -1436,8 +1437,9 @@ signal_unblock(int signo)
 #endif	/* HAS_SIGPROCMASK */
 }
 
-static volatile sig_atomic_t in_critical_section;
 static volatile sig_atomic_t in_exception_handler;
+
+static sig_atomic_t in_critical_section[THREAD_MAX];
 
 /**
  * Are we in an exception?
@@ -1481,6 +1483,8 @@ signal_uncrashing(void)
 bool
 signal_enter_critical(sigset_t *oset)
 {
+	int id = thread_small_id();
+
 	g_assert(oset != NULL);
 
 	/*
@@ -1489,7 +1493,7 @@ signal_enter_critical(sigset_t *oset)
 	 */
 
 	if (is_running_on_mingw()) {
-		ATOMIC_INC(&in_critical_section);
+		in_critical_section[id]++;
 		goto ok;
 	}
 
@@ -1504,10 +1508,14 @@ signal_enter_critical(sigset_t *oset)
 		 * leave the outermost one.
 		 */
 
-		if (ATOMIC_INC(&in_critical_section))
+		if (in_critical_section[id]++ != 0)
 			goto ok;
 
-		sigfillset(&set);		/* Block everything */
+		sigfillset(&set);			/* Block everything but SIGSEGV / SIGBUS */
+		sigdelset(&set, SIGSEGV);
+#ifdef SIGBUS
+		sigdelset(&set, SIGBUS);
+#endif
 
 		if (-1 == sigprocmask(SIG_SETMASK, &set, oset))
 			return FALSE;
@@ -1527,15 +1535,17 @@ ok:
 void
 signal_leave_critical(const sigset_t *oset)
 {
-	g_assert(ATOMIC_GET(&in_critical_section) > 0);
+	int id = thread_small_id();
 
-	ATOMIC_DEC(&in_critical_section);
+	g_assert(in_critical_section[id] > 0);
+
+	in_critical_section[id]--;
 
 	if (is_running_on_mingw())
 		return;
 
 #ifdef HAS_SIGPROCMASK
-	if (0 == ATOMIC_GET(&in_critical_section)) {
+	if (0 == in_critical_section[id]) {
 		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
 			s_error("cannot leave critical section: %m");
 	}
@@ -1555,6 +1565,8 @@ signal_leave_critical(const sigset_t *oset)
 void
 signal_abort(void)
 {
+	int id = thread_safe_small_id();
+
 	/*
 	 * In case the error occurs within a critical section with all the
 	 * signals blocked, make sure to unblock SIGABRT.  In that case, we
@@ -1563,7 +1575,7 @@ signal_abort(void)
 	 * ``in_signal_abort'' flag.
 	 */
 
-	if (0 != ATOMIC_GET(&in_critical_section))
+	if (id >= 0 && 0 != in_critical_section[id])
 		signal_unblock(SIGABRT);
 	else
 		ATOMIC_SET(&in_signal_abort, TRUE);
