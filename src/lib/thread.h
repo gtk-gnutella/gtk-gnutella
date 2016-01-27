@@ -165,6 +165,18 @@ enum thread_sighow {
 	TSIG_SETMASK				/**< Set thread's signal mask explicitly */
 };
 
+/**
+ * Thread signal sets (OS and thread-layer).
+ *
+ * This is used by thread_enter_critical() and thread_leave_critical() to
+ * capture both the kernel and our own internal signal masks, and restore
+ * them when we leave.
+ */
+typedef struct thread_sigsets {
+	sigset_t kset;				/**< Kernel set */
+	tsigset_t tset;				/**< Thread-layer set */
+} thread_sigsets_t;
+
 /*
  * Public interface.
  */
@@ -301,6 +313,9 @@ void thread_halt(void) G_NORETURN;
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
 bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);
+
+void thread_enter_critical(thread_sigsets_t *set);
+void thread_leave_critical(const thread_sigsets_t *set);
 
 void *thread_sp(void);
 

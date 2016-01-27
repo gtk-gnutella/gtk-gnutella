@@ -10711,6 +10711,43 @@ thread_timed_sigsuspend(const tsigset_t *mask, const tm_t *timeout)
 }
 
 /**
+ * Block all signals, for entering a critical section.
+ *
+ * @param set		the old set, to be passed to thread_leave_critical().
+ */
+void
+thread_enter_critical(thread_sigsets_t *set)
+{
+	struct thread_element *te = thread_get_element();
+	tsigset_t all;
+
+	tsig_fillset(&all);
+
+	/* inlined version of thread_sigmask(TSIG_SETMASK) */
+	set->tset = te->sig_mask;
+	te->sig_mask = all;
+
+	signal_enter_critical(&set->kset);
+}
+
+/**
+ * Restore original signal mask at the start of the critical section.
+ *
+ * @param set		the set to restore, as captured by thread_enter_critical()
+ */
+void
+thread_leave_critical(const thread_sigsets_t *set)
+{
+	struct thread_element *te = thread_get_element();
+
+	/* inlined version of thread_sigmask(TSIG_SETMASK) */
+	te->sig_mask = set->tset;
+
+	signal_leave_critical(&set->kset);
+	thread_signal_check(te);
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
