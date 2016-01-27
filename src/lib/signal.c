@@ -220,7 +220,7 @@ static mutex_t signal_lock = MUTEX_INIT;
  */
 static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
 
-static volatile sig_atomic_t in_signal_handler;
+static sig_atomic_t in_signal_handler[THREAD_MAX];
 static once_flag_t signal_inited;
 static bool signal_catch_segv;
 
@@ -650,10 +650,12 @@ static volatile sig_atomic_t in_signal_abort;
 bool
 signal_in_handler(void)
 {
-	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
+	int id = thread_safe_small_id();
+
+	if (ATOMIC_GET(&in_signal_abort) && id >= 0 && in_signal_handler[id])
 		return FALSE;		/* Handle signal_abort() specially */
 
-	return 0 != ATOMIC_GET(&in_signal_handler) && !signal_in_exception();
+	return id < 0 || (0 != in_signal_handler[id] && !signal_in_exception());
 }
 
 /**
@@ -863,6 +865,7 @@ static void
 signal_trampoline(int signo)
 {
 	signal_handler_t handler;
+	int id = thread_safe_small_id();
 
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
@@ -882,9 +885,13 @@ signal_trampoline(int signo)
 	 * a signal handler through signal_in_handler().
 	 */
 
-	ATOMIC_INC(&in_signal_handler);
+	if (id >= 0)
+		in_signal_handler[id]++;
+
 	(*handler)(signo);
-	ATOMIC_DEC(&in_signal_handler);
+
+	if (id >= 0)
+		in_signal_handler[id]--;
 
 	/*
 	 * When leaving the last signal handler, cleanup the emergency chunk.
@@ -1109,7 +1116,8 @@ sig_exception_format(char *dest, size_t size,
 static void
 signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 {
-	static volatile sig_atomic_t extended;
+	static sig_atomic_t extended[THREAD_MAX];
+	int id = thread_safe_small_id();
 	sigset_t set;
 
 	/*
@@ -1127,9 +1135,10 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		thread_stack_check_overflow(si->si_addr);
 #endif
 
-	ATOMIC_INC(&in_signal_handler);
-	ATOMIC_INC(&extended);
-	atomic_mb();
+	if (id >= 0) {
+		in_signal_handler[id]++;
+		extended[id]++;
+	}
 
 	/*
 	 * Check whether signal is still pending.
@@ -1145,7 +1154,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 
 	if (-1 == sigpending(&set)) {
 		s_miniwarn("%s: sigpending() failed: %m", G_STRFUNC);
-	} else if (extended <= 2) {
+	} else if (id >= 0 && extended[id] <= 2) {
 		int i;
 
 		for (i = 1; i < SIG_COUNT; i++) {
@@ -1170,13 +1179,13 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		 * gradually do less and less, until explicit immediate termination.
 		 */
 
-		if (extended > 1) {
-			if (2 == extended) {
+		if (id >= 0 && extended[id] > 1) {
+			if (2 == extended[id]) {
 				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
 				s_rawwarn("%s", data);
 				crash_set_error(data);
 				crash_abort();
-			} else if (3 == extended) {
+			} else if (3 == extended[id]) {
 				abort();
 			} else {
 				_exit(EXIT_FAILURE);
@@ -1188,8 +1197,13 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		}
 	}
 
-	ATOMIC_DEC(&in_signal_handler);
+	if (id >= 0)
+		in_signal_handler[id]--;
+
 	signal_trampoline(signo);
+
+	if (id >= 0)
+		extended[id]--;
 }
 #endif	/* HAS_SIGACTION && SA_SIGINFO */
 
