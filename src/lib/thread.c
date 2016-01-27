@@ -6484,11 +6484,14 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 }
 
 /*
- * Dump list of locks held by thread to stderr.
+ * Dump list of locks waited-for and held by thread to stderr.
  */
 static void
 thread_lock_dump(const struct thread_element *te)
 {
+	if (0 != te->waits.count)
+		thread_lock_waiting_dump_fd(STDERR_FILENO, te);
+
 	thread_lock_dump_fd(STDERR_FILENO, te);
 }
 
