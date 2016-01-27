@@ -67,7 +67,6 @@
 #include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
-#include "tsig.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -91,10 +90,9 @@ enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
 struct rwlock_waiting {
 	struct rwlock_waiting *next;	/* Next in the queue */
 	enum rwlock_waiting_magic magic;/* Magic number */
-	tsigset_t oset;					/* Old signal mask, before queuing */
 	uint8 reading;					/* Set if waiting for reading */
 	volatile uint8 ok;				/* Set to TRUE when the lock is granted */
-	uint8 stid;						/* For write locks, thread's small ID */
+	uint8 stid;						/* Thread small ID */
 };
 
 static long rwlock_cpus;			/* Amount of CPUs in the system */
@@ -271,28 +269,70 @@ static inline void
 rwlock_append_waiter(struct rwlock *rw, struct rwlock_waiting *wc)
 {
 	struct rwlock_waiting *tail = rw->wait_tail;
-	tsigset_t all;
 
 	/*
-	 * When we wait for a rwlock, it is necessary to block all signals: if
-	 * we are enqueued for a write lock, say, and we were interrupted and the
-	 * handler would need to grab the read lock, we would re-enqueue ourselves
-	 * and deadlock.
+	 * When we wait for a rwlock, it is necessary to check whether we are
+	 * running in a signal handler: indeed if we are enqueued for a write lock,
+	 * say, and we were interrupted and the handler would need to grab the
+	 * read lock, we would re-enqueue ourselves and deadlock.
 	 *
-	 * We are currently holding the lock on the rw, so we are immune against
-	 * signals.  We will not be able to restore the old signal mask until
-	 * we got and accounted the lock (to prevent signal delivery, delaying
-	 * it until after we release the rwlock).
+	 * We are currently holding the lock on the rw, but it is a hidden lock,
+	 * not preventing signals.
+	 *
+	 * If we are running in a signal handler (which will be happening only
+	 * on rare occasions, hence it's OK to have more complex processing in
+	 * that case), we will append ourselves to the waiting list only if the
+	 * current thread is not waiting.  Otherwise, we prepend ourselves right
+	 * before any other waiting instance for this thread: indeed, if we are
+	 * running in a signal handler, we pre-empted ourselves and we must run
+	 * ahead of ourselves, so to speak.
+	 *
+	 * This will ensure we do not deadlock ourselves.
 	 */
-
-	tsig_fillset(&all);
-	thread_sigmask(TSIG_SETMASK, &all, &wc->oset);
 
 	if G_UNLIKELY(NULL == tail) {
 		rw->wait_head = rw->wait_tail = wc;
 	} else {
 		g_assert(RWLOCK_WAITING_MAGIC == tail->magic);
-		tail->next = rw->wait_tail = wc;
+
+		if G_LIKELY(0 == thread_sighandler_level()) {
+			tail->next = rw->wait_tail = wc;
+		} else {
+			uint id = thread_small_id();
+			struct rwlock_waiting *w;
+
+			/* Hah, running in a signal handler, be careful! */
+
+			w = rw->wait_head;
+
+			g_assert(RWLOCK_WAITING_MAGIC == w->magic);
+
+			if (id == w->stid) {
+				/* Prepend `wc' to the list */
+				wc->next = w;
+				rw->wait_head = wc;
+			} else {
+				struct rwlock_waiting *wnext;
+
+				for(;; w = wnext) {
+					wnext = w->next;
+					if (NULL == wnext) {
+						/* Append `wc' to the list */
+						tail->next = rw->wait_tail = wc;
+						break;
+					} else {
+						g_assert(RWLOCK_WAITING_MAGIC == wnext->magic);
+
+						if (id == wnext->stid) {
+							/* Insert `wc' between `w' and `wnext` */
+							wc->next = wnext;
+							w->next = wc;
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -929,7 +969,6 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 		rwlock_readers_record(rw, file, line);
 		if (account)
 			rwlock_read_account(rw, file, line);
-		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
 	} else if (account) {
 		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
@@ -1034,7 +1073,6 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		if (account)
 			rwlock_write_account(rw, file, line);
-		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
 
 		g_assert(1 == rw->writers || rwlock_pass_through);
 	}

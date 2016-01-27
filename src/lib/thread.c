@@ -4536,12 +4536,6 @@ thread_sighandler_level(void)
 {
 	struct thread_element *te = thread_get_element();
 
-	/*
-	 * Use this opportunity to check for pending signals.
-	 */
-
-	thread_signal_check(te);
-
 	return te->in_signal_handler;
 }
 
@@ -4562,12 +4556,6 @@ unsigned
 thread_sig_generation(void)
 {
 	struct thread_element *te = thread_get_element();
-
-	/*
-	 * Use this opportunity to check for pending signals.
-	 */
-
-	thread_signal_check(te);
 
 	return te->sig_generation;
 }
