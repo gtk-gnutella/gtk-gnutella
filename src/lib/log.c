@@ -1105,6 +1105,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	void *saved;
 	bool recursing;
 	unsigned stid;
+	thread_sigsets_t set;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -1115,11 +1116,27 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	}
 
 	/*
-	 * Detect recursion, but don't make it fatal.
+	 * The per-thread log object allows us to track recursion and contains
+	 * our small thread-ID.  It is allocated once per thread.
+	 *
+	 * We don't attempt to grab a new one when logging a fatal condition
+	 * because the state of the application may be corrupted and could
+	 * fail the memory allocation.
 	 */
 
 	if G_UNLIKELY(NULL == lt && 0 == (level & G_LOG_FLAG_FATAL))
 		lt = logthread_object(FALSE);
+
+	/*
+	 * Block all signals, to preserve the ability to log from a signal
+	 * handler without causing recursions.
+	 */
+
+	thread_enter_critical(&set);
+
+	/*
+	 * Detect recursion, but don't make it fatal.
+	 */
 
 	if G_LIKELY(lt != NULL) {
 		recursing = lt->in_log_handler;
@@ -1305,6 +1322,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		s_stacktrace(TRUE, 2);		/* Copied to stdout if different */
 
 done:
+	thread_leave_critical(&set);
 	errno = saved_errno;
 }
 
