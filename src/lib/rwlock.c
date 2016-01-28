@@ -74,7 +74,7 @@
 #define RWLOCK_DELAY	200		/* Wait 200 us before looping again */
 #define RWLOCK_DEAD		32768	/* # of loops before flagging deadlock */
 #define RWLOCK_DEADMASK	(RWLOCK_DEAD - 1)
-#define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds */
+#define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds of inactivity */
 
 enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
 
@@ -569,6 +569,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	gentime_t start = GENTIME_ZERO;
 	int loops = RWLOCK_LOOP;
 	const void *element = NULL;
+	const void *head;
 
 	rwlock_check(rw);
 
@@ -595,6 +596,17 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	if (1 == rwlock_cpus)
 		loops /= 10;
 #endif
+
+	/*
+	 * We're using the head of the waiting queue on the lock to determine
+	 * whether there is still application activity, for deadlock detection
+	 * purposes.  We don't want to flag a deadlock whilst there is movement
+	 * on the waiting queue because it means some threads (ahead of us in
+	 * the queue) are working and we just have to be patient.
+	 *		--RAM, 2016-01-28
+	 */
+
+	head = rw->wait_head;
 
 	for (i = 1; /* empty */; i++) {
 		int j;
@@ -659,7 +671,19 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
 				file, line);
 		} else {
-			time_delta_t d = gentime_diff(gentime_now_exact(), start);
+			time_delta_t d;
+
+			/*
+			 * Reset the waiting start time whenever we witness movement on the
+			 * waiting queue, meaning we're not completely deadlocked yet.
+			 */
+
+			if (head != rw->wait_head) {
+				head = rw->wait_head;
+				start = gentime_now_exact();
+			}
+
+			d = gentime_diff(gentime_now_exact(), start);
 
 			if G_UNLIKELY(d > RWLOCK_TIMEOUT)
 				rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
