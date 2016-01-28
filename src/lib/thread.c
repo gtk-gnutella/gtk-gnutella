@@ -4023,9 +4023,6 @@ thread_safe_small_id(void)
 	thread_qid_t qid;
 	int stid;
 
-	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0]))
-		return 0;
-
 	/*
 	 * Look in the QID cache for a match.
 	 */
@@ -4033,6 +4030,9 @@ thread_safe_small_id(void)
 	te = thread_qid_lookup(&te);
 	if G_LIKELY(NULL != te)
 		return te->stid;
+
+	if G_UNLIKELY(thread_eq(THREAD_NONE, tstid[0]))
+		return 0;
 
 	/*
 	 * A light version of thread_find_via_qid() which does not update the QID
@@ -4071,6 +4071,14 @@ thread_small_id(void)
 	int stid;
 
 	/*
+	 * Look in the QID cache for a match.
+	 */
+
+	te = thread_qid_lookup(&te);
+	if G_LIKELY(NULL != te)
+		return te->stid;
+
+	/*
 	 * First thread not even known yet, say we are the first thread.
 	 */
 
@@ -4096,14 +4104,6 @@ thread_small_id(void)
 	 * to register the current calling thread if not already done, so try
 	 * to call thread_get_element() when it is safe.
 	 */
-
-	/*
-	 * Look in the QID cache for a match.
-	 */
-
-	te = thread_qid_lookup(&te);
-	if G_LIKELY(NULL != te)
-		return te->stid;
 
 	if G_LIKELY(!mutex_is_owned(&thread_insert_mtx))
 		return thread_get_element()->stid;
