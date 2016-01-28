@@ -219,13 +219,22 @@ mutex_is_owned_by(const mutex_t *m, const thread_t t)
 bool
 mutex_is_owned(const mutex_t *m)
 {
+	mutex_check(m);
+
+	/*
+	 * Avoid call to thread_self() if we can.
+	 */
+
+	if (!spinlock_is_held_fast(&m->lock))
+		return FALSE;
+
 	/*
 	 * This is mostly used during assertions, so we do not need to call
 	 * thread_current().  Use thread_self() for speed and safety, in case
 	 * something goes wrong in the thread-checking code.
 	 */
 
-	return mutex_is_owned_by(m, thread_self());
+	return thread_eq(m->owner, thread_self());
 }
 
 /**
