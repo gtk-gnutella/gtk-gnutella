@@ -428,10 +428,10 @@ struct thread_element {
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
 	uint gone:1;					/**< Discovered thread is gone */
-	uint gone_seen:1;				/**< Flagged activity from gone thread */
-	uint add_monitoring:1;			/**< Must reinstall thread monitoring */
 	uint atomic_name:1;				/**< Whether name is an atomic string */
 	uint stack_overflow:1;			/**< Stack overflow was detected */
+	bool add_monitoring;			/**< Must reinstall thread monitoring */
+	bool gone_seen;					/**< Flagged activity from gone thread */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock_stack waits;	/**< Locks on which thread is waiting */
@@ -1214,12 +1214,23 @@ thread_monitor_exit(struct thread_element *te)
 static void
 thread_element_mark_gone_seen(struct thread_element *te)
 {
-	THREAD_LOCK(te);
+	/*
+	 * We cannot lock the thread element because we are on the
+	 * thread_small_id() execution path, which cannot take locks since
+	 * we could be interrupted by an operating system signal and the
+	 * first thing the signal handler will do is call thread_small_id()!
+	 *
+	 * On this execution path, speed is important so we cannot create a
+	 * critical section to block signals.  Hence we use atomic operations,
+	 * which means the "gone_seen" and "add_monitoring" fields must be
+	 * individual fields and not part of a bit field!
+	 */
+
 	if G_UNLIKELY(te->gone && !te->gone_seen) {
 		te->gone_seen = TRUE;
 		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
+		atomic_mb();
 	}
-	THREAD_UNLOCK(te);
 }
 
 /**
@@ -1282,9 +1293,7 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 				thread_element_mark_gone_seen(te);
 			} else if G_UNLIKELY(te->add_monitoring) {
 				/* No longer flagged as "gone", re-install monitoring */
-				THREAD_LOCK(te);
 				te->add_monitoring = FALSE;
-				THREAD_UNLOCK(te);
 				thread_monitor_exit(te);
 			}
 
