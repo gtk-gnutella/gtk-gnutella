@@ -78,6 +78,7 @@
 #include "palloc.h"
 #include "pow2.h"
 #include "sha1.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -4294,9 +4295,14 @@ xmalloc_thread_alloc(const size_t len)
 	 * amount of allocations done for the given size.  That way, if the thread
 	 * only allocates a few blocks, we'll avoid dedicating a whole page to it
 	 * for that block size.
+	 *
+	 * If we are in a signal handler, do NOT use this allocation path as it
+	 * is done without locks and is therefore totally unsafe when running
+	 * within an asynchronous signal handler!
 	 */
 
-	stid = thread_small_id();
+	if (signal_in_handler_stid(&stid))
+		return NULL;
 
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return NULL;

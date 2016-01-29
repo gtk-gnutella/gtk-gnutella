@@ -645,17 +645,65 @@ sig_get_pc(const void *u)
 static volatile sig_atomic_t in_signal_abort;
 
 /**
+ * Check whether thread ID is within an asychronous signal handler.
+ *
+ * @return TRUE if we are in an asynchronous signal handler or when the given
+ * thread ID is negative.
+ */
+static inline bool ALWAYS_INLINE
+signal_thread_in_handler(const int id)
+{
+	if G_UNLIKELY(id < 0)
+		return TRUE;
+
+	if G_UNLIKELY(in_signal_handler[id]) {
+		/*
+		 * Handle signal_abort() specially: it's a synchronous signal handler
+		 * and it does not "interrupt" anything in the current thread.
+		 */
+
+		if (ATOMIC_GET(&in_signal_abort))
+			return FALSE;
+
+		/*
+		 * An exception is also a synchronous signal in the current thread.
+		 */
+
+		return !signal_in_exception();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether we are within an asynchronous signal handler and return
+ * the compute thread ID at the same time.
+ *
+ * The returned thread ID must NOT be used if the routine returns TRUE since
+ * it can potentially be a negative number in disguise, i.e. a very large value.
+ *
+ * This routine exists to optimize operations duing memory allocation when
+ * we need to compute the thread ID and at the same time ensure we are not
+ * within a signal handler.
+ *
+ * @param id	locstion where thread ID is written to
+ *
+ * @return TRUE if we are in an asynchronous signal handler or when we cannot
+ * compute a proper thread ID.
+ */
+bool
+signal_in_handler_stid(uint *id)
+{
+	return signal_thread_in_handler(*id = thread_safe_small_id());
+}
+
+/**
  * Are we in an asynchronous signal handler?
  */
 bool
 signal_in_handler(void)
 {
-	int id = thread_safe_small_id();
-
-	if (ATOMIC_GET(&in_signal_abort) && id >= 0 && in_signal_handler[id])
-		return FALSE;		/* Handle signal_abort() specially */
-
-	return id < 0 || (0 != in_signal_handler[id] && !signal_in_exception());
+	return signal_thread_in_handler(thread_safe_small_id());
 }
 
 /**
