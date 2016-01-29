@@ -266,15 +266,31 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
     size_t amount;		/* Amount of entries we can copy in result */
 	size_t i, idx;
 	int id = thread_safe_small_id();
+	static bool called;
 
 	g_assert(size_is_non_negative(offset));
 
 	/*
 	 * backtrace() can call malloc(), which can cause fatal recursion here when
-	 * compiled with xmalloc() trapping malloc()...
+	 * compiled with xmalloc() trapping malloc()...  This usually happens
+	 * on i386 linux when dlopen() is used at init time, the first time the
+	 * routine is called, to fetch symbols from libgcc_s.so.1.
+	 *
+	 * If we are in a signal handler, we cannot invoke backtrace if we are
+	 * holding a lock from xmalloc.c, for fear of deadlocking or starting
+	 * to corrupt data structures.  This is not race-safe though as there is
+	 * some time between grabbing a lock and registering it in the thread,
+	 * time during which we can be interrupted by a signal.  Fortunately, this
+	 * check is only required when we never called backtrace() before, so the
+	 * failing window is quite narrow.
+	 *		--RAM, 2016-01-29
 	 */
 
-	if (id >= 0 && in_unwind[id]) {
+	if (
+		(id >= 0 && in_unwind[id]) ||
+		(!called &&
+			signal_in_handler() && thread_lock_holds_from("lib/xmalloc.c"))
+	) {
 		/*
 		 * Don't "return" here, to avoid tail recursion since we increase the
 		 * stack offsetting.
@@ -307,6 +323,14 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	} else {
 		depth = backtrace(trace, N_ITEMS(trace));
 	}
+
+	/*
+	 * Flag that backtrace() was called once, meaning it has performed its
+	 * internal one-time initialization.  Subsequent calls should not have
+	 * to call malloc().
+	 */
+
+	called = TRUE;		/* backtrace() should no longer invoke malloc() */
 
 	if (id >= 0)
 		in_unwind[id] = FALSE;
