@@ -58,6 +58,7 @@
 #include "str.h"
 #include "stringify.h"
 #include "symbols.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
 
@@ -259,11 +260,12 @@ NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
-	static bool in_unwind;
+	static uint8 in_unwind[THREAD_MAX];
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
 	size_t i, idx;
+	int id = thread_safe_small_id();
 
 	g_assert(size_is_non_negative(offset));
 
@@ -272,7 +274,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	 * compiled with xmalloc() trapping malloc()...
 	 */
 
-	if (in_unwind) {
+	if (id >= 0 && in_unwind[id]) {
 		/*
 		 * Don't "return" here, to avoid tail recursion since we increase the
 		 * stack offsetting.
@@ -296,7 +298,8 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	 * will have already filled some items in stack[].
 	 */
 
-	in_unwind = TRUE;
+	if (id >= 0)
+		in_unwind[id] = TRUE;
 
 	if (count >= N_ITEMS(trace)) {
 		depth = backtrace(stack, count);
@@ -305,7 +308,9 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 		depth = backtrace(trace, N_ITEMS(trace));
 	}
 
-	in_unwind = FALSE;
+	if (id >= 0)
+		in_unwind[id] = FALSE;
+
 	idx = size_saturate_add(offset, stack_auto_offset);
 
 	g_assert(size_is_non_negative(idx));
