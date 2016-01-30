@@ -90,7 +90,7 @@ compat_sleep_ms(unsigned int ms)
 	}
 #else
 	{
-		compat_poll(NULL, 0, d);
+		compat_poll(NULL, 0, ms);
 	}
 #endif	/* HAS_NANOSLEEP || HAS_USLEEP */
 
