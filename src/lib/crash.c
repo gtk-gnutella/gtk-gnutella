@@ -2480,17 +2480,17 @@ crash_mode(enum crash_level level)
 	 */
 
 	if (0 == depth) {
-		s_rawdebug("%s(): initial call, level=%s",
-			G_STRFUNC, crash_level_to_string(level));
+		s_rawdebug("%s(): initial call, level=%s from %s",
+			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
 
 		crash_thread_id = thread_safe_small_id();
 		atomic_mb();
 	} else if (!crash_is_crashing_thread()) {
-		s_rawwarn("%s(): concurrent call, level=%s",
-			G_STRFUNC, crash_level_to_string(level));
+		s_rawwarn("%s(): concurrent call, level=%s from %s",
+			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
 
 		thread_halt();		/* No coming back */
-	} else {
+	} else if (level > crash_current_level) {
 		s_rawdebug("%s(): subsequent call, level=%s",
 			G_STRFUNC, crash_level_to_string(level));
 	}
