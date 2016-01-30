@@ -3065,7 +3065,7 @@ thread_suspend_loop(struct thread_element *te)
 	 * immediately suspend the other threads.
 	 */
 
-	if (crash_is_crashing_thread()) {
+	if (crash_is_crashing_thread(NULL)) {
 		s_rawwarn("%s(): %s is the crashing thread",
 			G_STRFUNC, thread_element_name_raw(te));
 
@@ -10504,6 +10504,8 @@ thread_halt(void)
 	for (;;) {
 		thread_sigblock_element(te, set, NULL);
 	}
+
+	g_assert_not_reached();
 }
 
 /**

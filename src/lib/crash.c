@@ -80,6 +80,7 @@
 #include "atomic.h"
 #include "ckalloc.h"
 #include "compat_pause.h"
+#include "compat_poll.h"
 #include "cq.h"
 #include "eslist.h"
 #include "evq.h"
@@ -2467,8 +2468,10 @@ static bool G_COLD
 crash_mode(enum crash_level level)
 {
 	static int done;
+	static int halted[THREAD_MAX];
 	enum crash_level old_level, new_level;
 	int depth = atomic_int_inc(&done);
+	int stid;
 
 	g_assert(level != CRASH_LVL_NONE);
 
@@ -2485,7 +2488,28 @@ crash_mode(enum crash_level level)
 
 		crash_thread_id = thread_safe_small_id();
 		atomic_mb();
-	} else if (!crash_is_crashing_thread()) {
+	} else if (!crash_is_crashing_thread(&stid)) {
+		/*
+		 * Ensure we do not endlessly log concurrent calls because for some
+		 * reason there is another cause for calling crash_mode() during
+		 * the processing of s_rawarn() or thread_halt().
+		 */
+
+		if (stid >= 0) {
+			if (halted[stid]) {
+				/*
+				 * Something is wrong, the thread was supposed to be halted.
+				 * Use the simplest system call we can to definitely stop
+				 * the thread forever!
+				 */
+				for (;;) {
+					compat_poll(NULL, 0, 1000);
+				}
+			} else {
+				halted[stid] = TRUE;		/* About to stop thread */
+			}
+		}
+
 		s_rawwarn("%s(): concurrent call, level=%s from %s",
 			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
 
@@ -3959,14 +3983,22 @@ crash_is_supervised(void)
 
 /**
  * Are we running in the crashing thread?
+ *
+ * @param stid		if non-NULL, where stid of current thread is returned
+ *
+ * @return TRUE if the thread is the crashing thread.  The returned thread ID
+ * may be THREAD_UNKNOWN_ID if we cannot determine the ID of the thread.
  */
 bool
-crash_is_crashing_thread(void)
+crash_is_crashing_thread(int *stid)
 {
-	int stid = thread_safe_small_id();
+	int id = thread_safe_small_id();
+
+	if (stid != NULL)
+		*stid = id;
 
 	atomic_mb();
-	return crash_thread_id == stid && crash_thread_id >= 0;
+	return crash_thread_id == id && crash_thread_id >= 0;
 }
 
 /**
