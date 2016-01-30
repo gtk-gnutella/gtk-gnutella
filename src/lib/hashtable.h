@@ -101,6 +101,7 @@ void **hash_table_values(const hash_table_t *ht, size_t *count);
 void hash_table_thread_safe(hash_table_t *ht);
 void hash_table_lock(hash_table_t *ht);
 void hash_table_unlock(hash_table_t *ht);
+bool hash_table_is_locked(const hash_table_t *ht);
 
 double hash_table_clustering(const hash_table_t *ht) G_PURE;
 

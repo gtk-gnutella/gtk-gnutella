@@ -1246,6 +1246,24 @@ hash_table_unlock(hash_table_t *ht)
 }
 
 /**
+ * Is the hash table locked?
+ *
+ * If the table is not marked thread-safe, then this returns FALSE.
+ *
+ * @return whether the table is locked by the calling thread.
+ */
+bool
+hash_table_is_locked(const hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if G_UNLIKELY(!ht->thread_safe)
+		return FALSE;
+
+	return mutex_is_owned(&ht->lock);
+}
+
+/**
  * Get memory used by the hash table structures, not counting memory used
  * to store the elements themselves but including the size of the arena
  * and that of the hash table object.
