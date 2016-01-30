@@ -4605,6 +4605,14 @@ recheck:
 		goto done;
 
 	/*
+	 * Do not process thread signals if we are already running in an
+	 * interrupt handler, i.e. a signal handler (for kernel signals).
+	 */
+
+	if G_UNLIKELY(signal_in_handler())
+		goto done;
+
+	/*
 	 * We count reception of signals to let thread_sleep_interruptible()
 	 * determine whether the thread sleeping got signals when it wakes up.
 	 */
