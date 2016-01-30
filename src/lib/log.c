@@ -934,17 +934,28 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	prefix = log_prefix(level);
 
 	/*
+	 * In a signal handler, always use "raw" mode.
+	 *
+	 * Note that we use this call to compute the (safe) small ID as a side
+	 * effect, since checking for us running in a signal handler already
+	 * requires the computation to be made.
+	 */
+
+	if (signal_in_handler_stid(&stid))
+		raw = TRUE;
+
+	/*
 	 * In "raw" mode, use minimalistic routines, which of course may not
 	 * yield correct information all the time.
 	 */
 
 	if G_UNLIKELY(raw) {
-		stid = thread_safe_small_id();
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
 		log_time_raw(time_buf, sizeof time_buf);	/* Raw, no locks! */
 	} else {
-		stid = thread_small_id();
+		if (THREAD_UNKNOWN_ID == stid)
+			stid = thread_small_id();				/* New discovered thread! */
 		log_time(time_buf, sizeof time_buf);
 	}
 
