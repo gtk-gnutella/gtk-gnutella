@@ -71,11 +71,14 @@
 #include "common.h"		/* For RCSID */
 
 #include "omalloc.h"
+
+#include "atomic.h"
 #include "dump_options.h"
 #include "glib-missing.h"
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "unsigned.h"
@@ -157,6 +160,7 @@ static struct ostats {
 	size_t align_ro;		/**< Space wasted in ro chunks for alignment */
 	size_t wasted_ro;		/**< Space wasted at tail of ro chunks */
 	size_t zeroed;			/**< Zeroed objects at allocation time */
+	size_t in_handler;		/**< Allocations from signal handler */
 } ostats;
 static spinlock_t ostats_slk = SPINLOCK_INIT;
 
@@ -683,6 +687,17 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 	/*
+	 * Loudly warn if called from a signal handler.
+	 */
+
+	if (signal_in_handler()) {
+		ATOMIC_INC(&ostats.in_handler);
+		s_minicarp("%s(): %s allocating %zu bytes (%s) from signal handler",
+			G_STRFUNC, thread_safe_name(),
+			size, OMALLOC_RW == mode ? "rw" : "ro");
+	}
+
+	/*
 	 * This routine is fast and used infrequently enough to justify a
 	 * coarse-grained multi-threading protection via a global spinlock.
 	 *
@@ -1078,6 +1093,7 @@ omalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP_VAR(align);
 	DUMP_VAR(wasted);
 	DUMP(zeroed);
+	DUMP(in_handler);
 
 #undef DUMP
 #undef DUMP_VAR
