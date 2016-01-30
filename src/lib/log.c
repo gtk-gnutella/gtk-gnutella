@@ -1025,6 +1025,12 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	errno = saved_errno;
 }
 
+enum stacktrace_stack_level {
+	STACKTRACE_NONE = 0,
+	STACKTRACE_NORMAL,
+	STACKTRACE_PLAIN
+};
+
 /**
  * Emit stacktrace to stderr and stdout (if distinct from stderr).
  *
@@ -1034,19 +1040,32 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 void NO_INLINE
 s_stacktrace(bool no_stdio, unsigned offset)
 {
-	static bool tracing[THREAD_MAX];
+	static enum stacktrace_stack_level tracing[THREAD_MAX];
+	static bool warned[THREAD_MAX];
 	unsigned stid = thread_small_id();
 
 	/*
 	 * Protect thread, in case any of the tracing causes a recursion.
 	 * Indeed, recursion would probably be fatal (endless) and would prevent
 	 * further important debugging messages to be emitted by the thread.
+	 *
+	 * Initialally, the tracing level is STACKTRACE_NONE.  The first time
+	 * we attempt a trace, we move to STACKTRACE_NORMAL.  If a recursion
+	 * happens we raise to STACKTRACE_PLAIN, at which point a further recursion
+	 * causes us to skip the tracing, warning once.
 	 */
 
-	if (tracing[stid]) {
-		s_rawwarn("skipping trace for %s (already in progress)",
-			thread_id_name(stid));
-		return;
+	if (STACKTRACE_NONE != tracing[stid]) {
+		if (STACKTRACE_PLAIN == tracing[stid]) {
+			if (!warned[stid]) {
+				warned[stid] = TRUE;
+				s_rawwarn("skipping trace for %s (already in progress)",
+					thread_id_name(stid));
+			}
+			return;
+		} else {
+			tracing[stid] = STACKTRACE_PLAIN;
+		}
 	}
 
 	/*
@@ -1056,30 +1075,46 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	 */
 
 	if (thread_in_crash_mode() && !thread_is_crashing()) {
-		s_rawwarn("skipping trace for %s (crash mode)", thread_id_name(stid));
+		if (!warned[stid]) {
+			warned[stid] = TRUE;
+			s_rawwarn("skipping trace for %s (crash mode)",
+				thread_safe_id_name(stid));
+		}
 		thread_check_suspended();		/* Probably was already suspended? */
 		return;
 	}
 
-	tracing[stid] = TRUE;
+	if (STACKTRACE_NONE == tracing[stid])
+		tracing[stid] = STACKTRACE_NORMAL;
 
-	if (no_stdio) {
-		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
-	} else {
-		stacktrace_where_sym_print_offset(stderr, offset + 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_sym_print_offset(stdout, offset + 1);
+	if (STACKTRACE_NORMAL == tracing[stid]) {
+		if (no_stdio) {
+			stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
+			if (log_stdout_is_distinct())
+				stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
+		} else {
+			stacktrace_where_sym_print_offset(stderr, offset + 1);
+			if (log_stdout_is_distinct())
+				stacktrace_where_sym_print_offset(stdout, offset + 1);
 
-		if (is_running_on_mingw()) {
-			/* Unbuffering does not work on Windows, flush both */
-			fflush(stderr);
-			fflush(stdout);
+			if (is_running_on_mingw()) {
+				/* Unbuffering does not work on Windows, flush both */
+				fflush(stderr);
+				fflush(stdout);
+			}
 		}
+	} else {
+		stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
 	}
 
-	tracing[stid] = FALSE;
+	if (STACKTRACE_PLAIN == tracing[stid]) {
+		tracing[stid] = STACKTRACE_NORMAL;
+		warned[stid] = FALSE;
+	} else {
+		tracing[stid] = STACKTRACE_NONE;
+	}
 }
 
 /**
