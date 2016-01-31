@@ -1245,13 +1245,12 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		}
 	}
 
-	if (id >= 0)
-		in_signal_handler[id]--;
-
 	signal_trampoline(signo);
 
-	if (id >= 0)
+	if (id >= 0) {
+		in_signal_handler[id]--;
 		extended[id]--;
+	}
 }
 #endif	/* HAS_SIGACTION && SA_SIGINFO */
 
