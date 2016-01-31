@@ -692,7 +692,8 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 
 	if (signal_in_handler()) {
 		ATOMIC_INC(&ostats.in_handler);
-		s_minicarp("%s(): %s allocating %zu bytes (%s) from signal handler",
+		s_minicarp_once("%s(): %s allocating %zu bytes (%s) "
+			"from signal handler",
 			G_STRFUNC, thread_safe_name(),
 			size, OMALLOC_RW == mode ? "rw" : "ro");
 	}

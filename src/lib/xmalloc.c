@@ -4419,7 +4419,7 @@ xmalloc_thread_free(void *p)
 			stid = thread_small_id();
 		} else {
 			XSTATS_INCX(freeings_in_handler);
-			s_minicarp("%s(): %s freeing %p from signal handler",
+			s_minicarp_once("%s(): %s freeing %p from signal handler",
 				G_STRFUNC, thread_safe_id_name(stid), p);
 		}
 	}
@@ -4608,7 +4608,8 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	if (signal_in_handler_stid(&stid) && THREAD_UNKNOWN_ID != stid) {
 		can_thread = FALSE;
 		XSTATS_INCX(allocations_in_handler);
-		s_minicarp("%s(): %s trying to allocate %zu bytes from signal handler",
+		s_minicarp_once("%s(): %s trying to allocate %zu bytes "
+			"from signal handler",
 			G_STRFUNC, thread_safe_id_name(stid), size);
 	}
 
@@ -5101,7 +5102,8 @@ xreallocate(void *p, size_t size, bool can_thread)
 			stid = thread_small_id();
 		} else {
 			XSTATS_INCX(allocations_in_handler);
-			s_minicarp("%s(): %s reallocating to %zu bytes from signal handler",
+			s_minicarp_once("%s(): %s reallocating to %zu bytes "
+				"from signal handler",
 				G_STRFUNC, thread_safe_id_name(stid), size);
 		}
 	}

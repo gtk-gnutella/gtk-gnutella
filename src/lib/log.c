@@ -1668,6 +1668,39 @@ s_minicarp(const char *format, ...)
 }
 
 /**
+ * Safe verbose minimal warning message, emitted once per calling stack.
+ *
+ * We guarantee no memory allocation during the check for known stacks
+ * by relying on a circular buffer that will hold the stacks while we
+ * are in a signal handler.
+ */
+void
+s_minicarp_once(const char *format, ...)
+{
+	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
+		return;
+
+	if (!stacktrace_caller_known(2))	{	/* Caller of our caller */
+		va_list args;
+
+		/*
+		 * We use a CRITICAL level because "once" carping denotes a
+		 * potentially dangerous situation something that we want to
+		 * note loudly in case there is a problem later.
+		 *
+		 * This will NOT automatically trigger stack tracing in s_minilogv()
+		 * so we need to do it explicitly.
+		 */
+
+		va_start(args, format);
+		s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
+		va_end(args);
+
+		s_stacktrace(TRUE, 0);		/* Copied to stdout if different */
+	}
+}
+
+/**
  * Safe logging with minimal resource consumption.
  *
  * This is intended to be used in emergency situations when higher-level

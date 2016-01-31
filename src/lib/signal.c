@@ -938,9 +938,6 @@ signal_trampoline(int signo)
 
 	(*handler)(signo);
 
-	if (id >= 0)
-		in_signal_handler[id]--;
-
 	/*
 	 * When leaving the last signal handler, cleanup the emergency chunk.
 	 *
@@ -957,6 +954,9 @@ signal_trampoline(int signo)
 			signal_leave_critical(&set);
 		}
 	}
+
+	if (id >= 0)
+		in_signal_handler[id]--;
 }
 
 #if defined(HAS_SIGACTION) && defined(SA_SIGINFO)

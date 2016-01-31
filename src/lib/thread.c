@@ -11209,6 +11209,13 @@ thread_interrupt_ack_handle(int signo)
 		(*ti->completed)(ti->result, ti->udata);
 
 	thread_interrupt_cb_free(ti);
+
+	/*
+	 * If we collected stacktraces during warnings when running the interrupt,
+	 * make sure these stacks are flushed back to the main atom table.
+	 */
+
+	stacktrace_atom_circular_flush();
 }
 
 /**

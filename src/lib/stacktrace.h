@@ -122,6 +122,8 @@ bool stacktrace_caller_known(size_t offset);
 const void *stacktrace_routine_start(const void *pc);
 bool stacktrace_pc_within_our_text(const void *pc);
 
+void stacktrace_atom_circular_flush(void);
+
 void stacktrace_init(const char *argv0, bool deferred);
 void stacktrace_load_symbols(void);
 void stacktrace_post_init(void);

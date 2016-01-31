@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2010-2012 Raphael Manfredi
+ * Copyright (c) 2004, 2010-2012, 2016 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Stack unwinding and printing support.
  *
  * @author Raphael Manfredi
- * @date 2004, 2010-2012
+ * @date 2004, 2010-2012, 2016
  */
 
 #include "common.h"		/* For RCSID */
@@ -95,15 +95,24 @@ static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
 
-static mutex_t stacktrace_atom_mtx = MUTEX_INIT;
 static mutex_t stacktrace_sym_mtx  = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
 
-#define STACKTRACE_ATOM_LOCK	mutex_lock(&stacktrace_atom_mtx)
-#define STACKTRACE_ATOM_UNLOCK	mutex_unlock(&stacktrace_atom_mtx)
+#define STACKTRACE_CIRCULAR_LEN		THREAD_MAX
 
-#define assert_stacktrace_atom_locked() \
-	assert_mutex_is_owned(&stacktrace_atom_mtx)
+static struct {
+	struct stacktrace circular[STACKTRACE_CIRCULAR_LEN];
+	unsigned idx;
+	bool dirty;
+} stacktrace_atom_buffer;
+
+static hash_table_t *stack_atoms;
+
+#define STACKTRACE_ATOM_LOCK		hash_table_lock(stack_atoms)
+#define STACKTRACE_ATOM_UNLOCK		hash_table_unlock(stack_atoms)
+#define STACKTRACE_ATOM_IS_LOCKED	hash_table_is_locked(stack_atoms)
+
+#define assert_stacktrace_atom_locked() g_assert(STACKTRACE_ATOM_IS_LOCKED)
 
 #define STACKTRACE_SYM_LOCK		mutex_lock(&stacktrace_sym_mtx)
 #define STACKTRACE_SYM_UNLOCK	mutex_unlock(&stacktrace_sym_mtx)
@@ -117,8 +126,6 @@ static once_flag_t stacktrace_atom_inited;
  * to do.
  */
 static size_t stack_auto_offset;
-
-static hash_table_t *stack_atoms;
 
 #ifndef MINGW32
 static void *getreturnaddr(size_t level);
@@ -2075,7 +2082,7 @@ stacktrace_chop_length(const struct stacktrace *st)
 	return i;
 }
 
-/*
+/**
  * Initialize the stack atom table.
  */
 static void
@@ -2088,10 +2095,69 @@ stacktrace_atom_init(void)
 }
 
 /**
+ * Lookup stacktrace in our circular buffer to see whether we already
+ * have it, and possibly store it there.
+ *
+ * @param st		full stacktrace
+ * @param len		amount of topmost items to consider from stack
+ *
+ * @return TRUE if we had a match.
+ */
+static bool
+stacktrace_atom_lookup_and_store(const struct stacktrace *st, size_t len)
+{
+	uint i;
+	const struct stacktrace *ct = &stacktrace_atom_buffer.circular[0];
+
+	/*
+	 * If the buffer is not marked dirty, then there is nothing to look for.
+	 */
+
+	if (!stacktrace_atom_buffer.dirty)
+		goto insert;
+
+	for (i = 0; i < N_ITEMS(stacktrace_atom_buffer.circular); i++, ct++) {
+		size_t n = MIN(ct->len, len);
+
+		if (0 == n)
+			continue;
+
+		if (0 == memcmp(&ct->stack[0], &st->stack[0], n * sizeof st->stack[0]))
+			return TRUE;
+	}
+
+insert:
+
+	/*
+	 * No match found, need to record new entry, possibly superseding an
+	 * older one (we do not maintain the buffer in an LRU way) for simplicity.
+	 *
+	 * Indeed, we're managing the circular buffer without locking, counting
+	 * on the atomicity of the index increment and the size of the buffer
+	 * to avoid two threads filling up the same entry.
+	 */
+
+	i = atomic_uint_inc(&stacktrace_atom_buffer.idx);
+	i %= STACKTRACE_CIRCULAR_LEN;
+
+	stacktrace_atom_buffer.dirty = TRUE;
+	stacktrace_atom_buffer.circular[i].len = 0;		/* Invalid */
+	atomic_mb();
+
+	memcpy(&stacktrace_atom_buffer.circular[i].stack,
+		&st->stack, len * sizeof st->stack[0]);
+
+	stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
+	atomic_mb();
+
+	return FALSE;
+}
+
+/**
  * Lookup stacktrace to see whether we already have an atom for it.
  *
  * @param st		full stacktrace
- * @param len		amount of topmoar items to consider from stack
+ * @param len		amount of topmost items to consider from stack
  *
  * @return stack atom if we have one, NULL if it is unknown.
  */
@@ -2142,6 +2208,26 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 }
 
 /**
+ * Insert given stack trace as an atom into the stack_atoms table if it does
+ * not already exist there.
+ *
+ * @return the stack atom.
+ */
+static const struct stackatom *
+stacktrace_atom_insert(const struct stacktrace *t, size_t len)
+{
+	const struct stackatom *item;
+
+	STACKTRACE_ATOM_LOCK;
+	item = stacktrace_atom_lookup(t, len);
+	if (NULL == item)
+		item = stacktrace_atom_record(t, len);
+	STACKTRACE_ATOM_UNLOCK;
+
+	return item;
+}
+
+/**
  * Get a stack trace atom (read-only, never freed).
  */
 const struct stackatom *
@@ -2153,15 +2239,90 @@ stacktrace_get_atom(const struct stacktrace *st)
 	len = stacktrace_chop_length(st);
 	result = stacktrace_atom_lookup(st, len);
 
-	if G_UNLIKELY(NULL == result) {
-		STACKTRACE_ATOM_LOCK;
-		result = stacktrace_atom_lookup(st, len);
-		if (NULL == result)
-			result = stacktrace_atom_record(st, len);
-		STACKTRACE_ATOM_UNLOCK;
-	}
+	if G_UNLIKELY(NULL == result)
+		result = stacktrace_atom_insert(st, len);
 
 	return result;
+}
+
+/**
+ * Move stacktrace entries in the circular buffer back to the atom table.
+ *
+ * The circular buffer is filled when stacktrace atom lookups are performed
+ * whilst running in a signal handler (for asynchronous signals received).
+ *
+ * Once the signal handler processing is completed, this routine can be
+ * called to possibly record the items stored in the table, if any, since
+ * memory allocation is mostly forbidden during signal processing.
+ */
+void
+stacktrace_atom_circular_flush(void)
+{
+	uint original_idx, i, j;
+
+	if (signal_in_handler())
+		return;
+
+	if (!stacktrace_atom_buffer.dirty)
+		return;
+
+	ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);
+
+	i = original_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+
+	for (j = 0; j < N_ITEMS(stacktrace_atom_buffer.circular); j++, i++) {
+		uint old_idx, new_idx;
+		struct stacktrace *st, cst;
+
+		i %= STACKTRACE_CIRCULAR_LEN;
+		st = &stacktrace_atom_buffer.circular[i];
+		if (0 == st->len)
+			continue;
+
+		old_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+		cst = *st;		/* Struct copy */
+		st->len = 0;	/* Invalidate entry */
+		new_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+
+		if (0 == cst.len)
+			continue;
+
+		/*
+		 * If the index changed, it means someone entered a new entry in
+		 * the circular buffer.  Hence we need to check whether the copy
+		 * we made is valid.
+		 */
+
+		if G_UNLIKELY(old_idx != new_idx) {
+			uint d = new_idx - old_idx;
+			uint oi, ni;
+
+			if G_UNLIKELY(d >= N_ITEMS(stacktrace_atom_buffer.circular))
+				continue;		/* We wrapped around, copy is probably bad */
+
+			/*
+			 * Does the change of index encompass the slot we copied above?
+			 */
+
+			oi = old_idx % STACKTRACE_CIRCULAR_LEN;
+			ni = new_idx % STACKTRACE_CIRCULAR_LEN;
+
+			if (ni < oi)
+				ni += STACKTRACE_CIRCULAR_LEN;
+
+			if (oi <= i && i <= ni)
+				continue;		/* Unfortunately, it does, so skip slot */
+		}
+
+		/*
+		 * Good, we have a new entry.
+		 */
+
+		stacktrace_atom_insert(&cst, cst.len);
+	}
+
+	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx)
+		stacktrace_atom_buffer.dirty = FALSE;	/* Flushed everything */
 }
 
 /**
@@ -2188,14 +2349,25 @@ stacktrace_caller_known(size_t offset)
 	if G_UNLIKELY(0 == len)
 		return FALSE;
 
-	result = stacktrace_atom_lookup(&t, len);
+	if G_LIKELY(ONCE_DONE(stacktrace_atom_inited))
+		result = stacktrace_atom_lookup(&t, len);
+	else
+		result = NULL;
 
 	if G_UNLIKELY(NULL == result) {
-		STACKTRACE_ATOM_LOCK;
-		result = stacktrace_atom_lookup(&t, len);
-		if (NULL == result)
-			(void) stacktrace_atom_record(&t, len);
-		STACKTRACE_ATOM_UNLOCK;
+
+		/*
+		 * If we are running in a signal handler, we cannot allocate
+		 * memory hence use a circular buffer to store the stacks until
+		 * it is safe to re-insert them into the table.
+		 */
+
+		if (signal_in_handler())
+			return stacktrace_atom_lookup_and_store(&t, len);
+
+		ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);
+
+		stacktrace_atom_insert(&t, len);
 		return FALSE;
 	} else {
 		return TRUE;
