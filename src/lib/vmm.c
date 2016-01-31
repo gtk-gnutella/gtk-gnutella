@@ -125,6 +125,7 @@
 #include "pow2.h"
 #include "rwlock.h"
 #include "sha1.h"
+#include "signal.h"			/* For signal_in_handler() */
 #include "spinlock.h"
 #include "stacktrace.h"
 #include "str.h"			/* For str_bprintf() */
@@ -263,9 +264,11 @@ static struct vmm_stats {
 	uint64 allocations_zeroed;		/**< Total number of zeroing in allocs */
 	uint64 allocations_core;		/**< Core memory allocations */
 	uint64 allocations_user;		/**< User memory allocations */
+	AU64(allocations_in_handler);	/**< Allocations done from signal handler */
 	uint64 freeings;				/**< Total number of freeings */
 	uint64 freeings_core;			/**< Core memory freeings */
 	uint64 freeings_user;			/**< User memory freeings */
+	AU64(freeings_in_handler);		/**< Freeings done from signal handler */
 	uint64 shrinkings;				/**< Total number of shrinks */
 	uint64 shrinkings_core;			/**< Core memory shrinkings */
 	uint64 shrinkings_user;			/**< User memory shrinkings */
@@ -4103,6 +4106,17 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	if G_UNLIKELY(vmm_crashing)
 		return vmm_crashing_alloc(size, zero_mem);
 
+	/*
+	 * Loudly warn if attempting to allocate memory from a signal handler.
+	 */
+
+	if (signal_in_handler()) {
+		VMM_STATS_INCX(allocations_in_handler);
+		s_minicarp_once("%s(): %s allocating %zu bytes of %s memory"
+			" from signal handler",
+			G_STRFUNC, thread_safe_name(), size, user_mem ? "user" : "core");
+	}
+
 	n = pagecount_fast(size);
 
 	/*
@@ -4284,6 +4298,17 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			return;			/* Returned to emergency region */
 	}
 
+	/*
+	 * Loudly warn if attempting to allocate memory from a signal handler.
+	 */
+
+	if (signal_in_handler()) {
+		VMM_STATS_INCX(freeings_in_handler);
+		s_minicarp_once("%s(): %s freeing %zu bytes of %s memory at %p"
+			" from signal handler",
+			G_STRFUNC, thread_safe_name(), size, user_mem ? "user" : "core", p);
+	}
+
 	if (p != NULL) {
 		size_t n;
 
@@ -4383,13 +4408,14 @@ vmm_free_raw(void *p, size_t size)
 /**
  * Get a magazine depot for the given amount of pages.
  *
- * @param npages	amount of pages we want to allocate
+ * @param npages	amount of pages we want to allocate / free
+ * @param alloc		if TRUE, this is for an allocation, otherwise we are freeing
  *
  * @return the magazine depot corresponding to the requested size, NULL if
  * we cannot get any suitable depot at this time.
  */
 static tmalloc_t *
-vmm_get_magazine(size_t npages)
+vmm_get_magazine(size_t npages, bool alloc)
 {
 	tmalloc_t *depot;
 
@@ -4441,6 +4467,22 @@ vmm_get_magazine(size_t npages)
 		mutex_unlock(&vmm_magazine_mtx);
 	}
 
+	/*
+	 * Loudly warn if attempting to use a depot from a signal handler.
+	 */
+
+	if G_UNLIKELY(depot != NULL && signal_in_handler()) {
+		if (alloc)
+			VMM_STATS_INCX(allocations_in_handler);
+		else
+			VMM_STATS_INCX(freeings_in_handler);
+
+		s_minicarp_once("%s(): %s attempting to %s %zu page%s"
+			" from signal handler",
+			G_STRFUNC, thread_safe_name(), alloc ? "allocate" : "free",
+			npages, plural(npages));
+	}
+
 	return depot;
 }
 
@@ -4455,7 +4497,7 @@ vmm_get_magazine(size_t npages)
 static void *
 vmm_magazine_alloc(size_t npages, bool zero)
 {
-	tmalloc_t *depot = vmm_get_magazine(npages);
+	tmalloc_t *depot = vmm_get_magazine(npages, TRUE);
 
 	if G_UNLIKELY(NULL == depot)
 		return NULL;
@@ -4555,7 +4597,7 @@ vmm_free(void *p, size_t size)
 			goto user_free;
 		}
 
-		depot = vmm_get_magazine(npages);
+		depot = vmm_get_magazine(npages, FALSE);
 
 		if G_LIKELY(depot != NULL) {
 			VMM_STATS_LOCK;
@@ -5174,7 +5216,9 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 
 	DUMP(allocations);
 	DUMP(allocations_zeroed);
+	DUMP64(allocations_in_handler);
 	DUMP(freeings);
+	DUMP64(freeings_in_handler);
 	DUMP(shrinkings);
 	DUMP64(resizings);
 	DUMP(allocations_core);
