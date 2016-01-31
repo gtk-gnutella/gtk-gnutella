@@ -4571,6 +4571,15 @@ thread_sig_handle(struct thread_element *te)
 	if G_UNLIKELY(te->sig_handling)
 		return FALSE;
 
+	/*
+	 * If the thread is supposed to be blocked, we're running code that is
+	 * preceding the blocking and we must not handle signals now.
+	 *		--RAM, 2016-01-31
+	 */
+
+	if G_UNLIKELY(te->blocked)
+		return FALSE;
+
 	te->sig_handling = TRUE;
 
 recheck:
