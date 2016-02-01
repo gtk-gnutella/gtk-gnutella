@@ -296,7 +296,8 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	if (
 		(id >= 0 && in_unwind[id]) ||
 		(!called &&
-			signal_in_handler() && thread_lock_holds_from("lib/xmalloc.c"))
+			signal_in_unsafe_handler() &&
+			thread_lock_holds_from("lib/xmalloc.c"))
 	) {
 		/*
 		 * Don't "return" here, to avoid tail recursion since we increase the
@@ -1564,7 +1565,7 @@ stacktrace_caller_name(size_t n)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
-	bool in_sigh = signal_in_handler();
+	bool in_sigh = signal_in_unsafe_handler();
 	const char *name;
 
 	g_assert(size_is_non_negative(n));
@@ -1607,7 +1608,7 @@ const char *
 stacktrace_routine_name(const void *pc, bool offset)
 {
 	const char *name;
-	bool in_sigh = signal_in_handler();
+	bool in_sigh = signal_in_unsafe_handler();
 
 	if (!in_sigh)
 		stacktrace_load_symbols();
@@ -1646,7 +1647,7 @@ stacktrace_routine_name(const void *pc, bool offset)
 const void *
 stacktrace_routine_start(const void *pc)
 {
-	if (!signal_in_handler())
+	if (!signal_in_unsafe_handler())
 		stacktrace_load_symbols();
 
 	return symbols_addr(symbols, pc);
@@ -1779,7 +1780,7 @@ stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count)
 void
 stacktrace_stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 {
-	if (!signal_in_handler()) {
+	if (!signal_in_unsafe_handler()) {
 		stacktrace_load_symbols();
 		stack_safe_print_decorated(fd, stid,
 			stack, count, STACKTRACE_DECORATION);
@@ -2260,7 +2261,7 @@ stacktrace_atom_circular_flush(void)
 {
 	uint original_idx, i, j;
 
-	if (signal_in_handler())
+	if (signal_in_unsafe_handler())
 		return;
 
 	if (!stacktrace_atom_buffer.dirty)
@@ -2362,7 +2363,7 @@ stacktrace_caller_known(size_t offset)
 		 * it is safe to re-insert them into the table.
 		 */
 
-		if (signal_in_handler())
+		if (signal_in_unsafe_handler())
 			return stacktrace_atom_lookup_and_store(&t, len);
 
 		ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);

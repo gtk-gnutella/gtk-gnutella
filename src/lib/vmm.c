@@ -4110,7 +4110,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	 * Loudly warn if attempting to allocate memory from a signal handler.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		VMM_STATS_INCX(allocations_in_handler);
 		s_minicarp_once("%s(): %s allocating %zu bytes of %s memory"
 			" from signal handler",
@@ -4302,7 +4302,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	 * Loudly warn if attempting to allocate memory from a signal handler.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		VMM_STATS_INCX(freeings_in_handler);
 		s_minicarp_once("%s(): %s freeing %zu bytes of %s memory at %p"
 			" from signal handler",
@@ -4471,7 +4471,7 @@ vmm_get_magazine(size_t npages, bool alloc)
 	 * Loudly warn if attempting to use a depot from a signal handler.
 	 */
 
-	if G_UNLIKELY(depot != NULL && signal_in_handler()) {
+	if G_UNLIKELY(depot != NULL && signal_in_unsafe_handler()) {
 		if (alloc)
 			VMM_STATS_INCX(allocations_in_handler);
 		else

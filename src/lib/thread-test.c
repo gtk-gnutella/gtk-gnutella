@@ -2227,7 +2227,8 @@ intr_process(void *arg)
 {
 	int n = pointer_to_int(arg);
 
-	s_info("%s(): got interrupt n=%d", G_STRFUNC, n);
+	s_info("%s(): got %sinterrupt n=%d",
+		G_STRFUNC, signal_in_unsafe_handler() ? "UNSAFE " : "", n);
 
 	atomic_int_inc(&interrupt_count);
 

@@ -221,6 +221,7 @@ static mutex_t signal_lock = MUTEX_INIT;
 static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
 
 static sig_atomic_t in_signal_handler[THREAD_MAX];
+static bool in_safe_handler[THREAD_MAX];
 static once_flag_t signal_inited;
 static bool signal_catch_segv;
 
@@ -360,7 +361,7 @@ signal_name(int signo)
 	 * There is no "SIG" prefix in names from this array.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char sig_buf[32];	/* Do not allocate memory in handler */
 		b = buf_init(&bs, sig_buf, sizeof sig_buf);
 	} else {
@@ -707,6 +708,61 @@ signal_in_handler(void)
 }
 
 /**
+ * Check whether thread ID is within an unsafe asychronous signal handler.
+ *
+ * @return TRUE if we are in an unsafe asynchronous signal handler or when
+ * the given thread ID is negative (i.e. we assume the worst).
+ */
+static inline bool ALWAYS_INLINE
+signal_thread_in_unsafe_handler(const int id)
+{
+	if G_UNLIKELY(id < 0)
+		return TRUE;
+
+	if G_UNLIKELY(in_safe_handler[id])
+		return FALSE;
+
+	return signal_thread_in_handler(id);
+}
+
+/**
+ * Are we in an asynchronous unsafe signal handler?
+ *
+ * If this rerturn FALSE, we are either not in a signal handler, or this is
+ * a safe signal handler because it interrupted a system call and we know
+ * we were not allocating memory nor holding any locks at that time.
+ *
+ * @return TRUE if thread is in a signal handler that is deemed unsafe.
+ */
+bool
+signal_in_unsafe_handler(void)
+{
+	return signal_thread_in_unsafe_handler(thread_safe_small_id());
+}
+
+/**
+ * Check whether we are within an unsafe asynchronous signal handler and return
+ * the compute thread ID at the same time.
+ *
+ * The returned thread ID must NOT be used if the routine returns TRUE since
+ * it can potentially be a negative number in disguise, i.e. a very large value.
+ *
+ * This routine exists to optimize operations duing memory allocation when
+ * we need to compute the thread ID and at the same time ensure we are not
+ * within a signal handler.
+ *
+ * @param id	locstion where thread ID is written to
+ *
+ * @return TRUE if we are in an unsafe asynchronous signal handler or when
+ * we cannot compute a proper thread ID.
+ */
+bool
+signal_in_unsafe_handler_stid(uint *id)
+{
+	return signal_thread_in_unsafe_handler(*id = thread_safe_small_id());
+}
+
+/**
  * Returns the pre-allocated safe chunk for allocating memory within
  * a signal handler.
  */
@@ -913,10 +969,12 @@ static void
 signal_trampoline(int signo)
 {
 	signal_handler_t handler;
-	int id = thread_safe_small_id();
+	int id;
+	bool in_syscall, was_safe = FALSE;
 
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
+	in_syscall = thread_was_in_syscall(&id);
 	handler = signal_handler[signo];
 
 	g_soft_assert_log(handler != SIG_DFL && handler != SIG_IGN,
@@ -926,15 +984,27 @@ signal_trampoline(int signo)
 		SIG_IGN == handler ? "SIG_IGN" : "<BUG>");
 
 	if G_UNLIKELY(SIG_DFL == handler || SIG_IGN == handler)
-		return;
+		goto done;
 
 	/*
 	 * Wrapping the signal handler allows us to know whether we are in
 	 * a signal handler through signal_in_handler().
+	 *
+	 * If this is the first handler and we were in a syscall, then it is
+	 * a safe handler (we can allocate memory,  we were not holding any
+	 * locks when we got interrupted), otherwise flag the handler as unsafe.
 	 */
 
-	if (id >= 0)
-		in_signal_handler[id]++;
+	if (id >= 0) {
+		was_safe = in_safe_handler[id];
+
+		if (0 == in_signal_handler[id]++) {
+			g_assert(!was_safe);
+			in_safe_handler[id] = in_syscall;
+		} else {
+			in_safe_handler[id] = FALSE;
+		}
+	}
 
 	(*handler)(signo);
 
@@ -955,8 +1025,20 @@ signal_trampoline(int signo)
 		}
 	}
 
-	if (id >= 0)
-		in_signal_handler[id]--;
+	if (id >= 0) {
+		sig_atomic_t old = in_signal_handler[id]--;
+
+		if (2 == old)
+			in_safe_handler[id] = was_safe;
+		else if (1 == old)
+			in_safe_handler[id] = FALSE;
+	}
+
+	/* FALL THROUGH */
+
+done:
+	if (in_syscall)
+		thread_in_syscall_set(TRUE);
 }
 
 #if defined(HAS_SIGACTION) && defined(SA_SIGINFO)
@@ -1537,15 +1619,15 @@ signal_uncrashing(void)
 /**
  * Block all signals, for entering a critical section.
  *
+ * @param id		thread ID of current thread
  * @param oset		the old signal set, to be passed to signal_leave_critical()
  *
  * @return TRUE if OK, FALSE on error with errno set.
  */
 bool
-signal_enter_critical(sigset_t *oset)
+signal_thread_enter_critical(int id, sigset_t *oset)
 {
-	int id = thread_small_id();
-
+	g_assert(id >= 0);
 	g_assert(oset != NULL);
 
 #ifdef HAS_SIGPROCMASK
@@ -1581,13 +1663,28 @@ ok:
 }
 
 /**
+ * Block all signals, for entering a critical section.
+ *
+ * @param oset		the old signal set, to be passed to signal_leave_critical()
+ *
+ * @return TRUE if OK, FALSE on error with errno set.
+ */
+bool
+signal_enter_critical(sigset_t *oset)
+{
+	return signal_thread_enter_critical(thread_small_id(), oset);
+}
+
+/**
  * Unblock signals that were blocked when we entered the critical section.
+ *
+ * @param id		thread ID of current thread
+ * @param oset		original signal set to restore
  */
 void
-signal_leave_critical(const sigset_t *oset)
+signal_thread_leave_critical(int id, const sigset_t *oset)
 {
-	int id = thread_small_id();
-
+	g_assert(id >= 0);
 	g_assert(in_critical_section[id] > 0);
 
 	in_critical_section[id]--;
@@ -1600,6 +1697,15 @@ signal_leave_critical(const sigset_t *oset)
 #else
 	(void) oset;
 #endif
+}
+
+/**
+ * Unblock signals that were blocked when we entered the critical section.
+ */
+void
+signal_leave_critical(const sigset_t *oset)
+{
+	signal_thread_leave_critical(thread_small_id(), oset);
 }
 
 /**

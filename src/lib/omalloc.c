@@ -690,7 +690,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	 * Loudly warn if called from a signal handler.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		ATOMIC_INC(&ostats.in_handler);
 		s_minicarp_once("%s(): %s allocating %zu bytes (%s) "
 			"from signal handler",

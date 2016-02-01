@@ -934,14 +934,14 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	prefix = log_prefix(level);
 
 	/*
-	 * In a signal handler, always use "raw" mode.
+	 * In a unsafe signal handler, always use "raw" mode.
 	 *
 	 * Note that we use this call to compute the (safe) small ID as a side
 	 * effect, since checking for us running in a signal handler already
 	 * requires the computation to be made.
 	 */
 
-	if (signal_in_handler_stid(&stid))
+	if (signal_in_unsafe_handler_stid(&stid))
 		raw = TRUE;
 
 	/*
@@ -1144,7 +1144,7 @@ static void G_PRINTF(3, 0)
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	int saved_errno = errno;
-	bool in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_unsafe_handler();
 	const char *prefix;
 	str_t *msg;
 	ckhunk_t *ck;
@@ -1595,7 +1595,7 @@ s_error_from(const char *file, const char *format, ...)
 void
 s_carp(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_unsafe_handler();
 	va_list args;
 
 	thread_pending_add(+1);
@@ -1784,7 +1784,7 @@ s_minierror(const char *format, ...)
 void
 s_rawcrit(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_unsafe_handler();
 	va_list args;
 
 	va_start(args, format);

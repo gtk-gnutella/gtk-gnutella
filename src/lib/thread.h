@@ -355,6 +355,9 @@ bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);
 
 void thread_enter_critical(thread_sigsets_t *set);
 void thread_leave_critical(const thread_sigsets_t *set);
+void thread_in_syscall_set(bool value);
+void thread_in_syscall_reset(void);
+bool thread_was_in_syscall(int *stid);
 
 int thread_os_kill(unsigned id, int signo);
 int thread_interrupt(uint id, process_fn_t cb, void *arg,

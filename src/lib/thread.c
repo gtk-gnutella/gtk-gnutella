@@ -430,6 +430,7 @@ struct thread_element {
 	uint gone:1;					/**< Discovered thread is gone */
 	uint atomic_name:1;				/**< Whether name is an atomic string */
 	uint stack_overflow:1;			/**< Stack overflow was detected */
+	uint in_syscall:1;				/**< Thread in a system call, no locks */
 	bool add_monitoring;			/**< Must reinstall thread monitoring */
 	bool gone_seen;					/**< Flagged activity from gone thread */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
@@ -515,11 +516,20 @@ static struct thread_stats {
 	AU64(thread_self_calls);		/* Amount of thread_self() calls made */
 	AU64(thread_forks);				/* Amount of thread_fork() calls made */
 	AU64(thread_yields);			/* Amount of thread_yield() calls made */
+	AU64(thread_syscalls);			/* Amount of syscalls declared */
+	AU64(thread_syscalls_dups);		/* Syscalls declared whilst in syscall! */
+	AU64(thread_syscalls_with_locks);	/* Amount of syscalls made with locks */
+	AU64(thread_syscalls_recursions);	/* Recursions avoided */
+	AU64(thread_syscalls_locking);	/* Locks taken whilst in syscall mode */
+	AU64(thread_interrupts);		/* Amount of interrupts (kernel signals) */
+	AU64(thread_safe_interrupts);	/* Amount of interrupts deemded safe */
 	AU64(thread_stats_digest);		/* Amount of calls to compute SHA1 digest */
 } thread_stats;
 
 #define THREAD_STATS_INCX(name) AU64_INC(&thread_stats.name)
 #define THREAD_STATS_INC(name)	atomic_uint_inc(&thread_stats.name)
+
+#define THREAD_STATS_DECX(name) AU64_DEC(&thread_stats.name)
 
 /**
  * Private zones.
@@ -1370,7 +1380,7 @@ thread_element_name_to_buf(const struct thread_element *te,
 				if (
 					symbolic != NULL &&
 					!signal_in_exception() &&
-					!signal_in_handler()
+					!signal_in_unsafe_handler()
 				) {
 					struct thread_element *wte = deconstify_pointer(te);
 
@@ -2326,6 +2336,7 @@ thread_element_reset(struct thread_element *te)
 	te->gone_seen = FALSE;
 	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
+	te->in_syscall = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
@@ -7153,6 +7164,33 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	}
 
 	/*
+	 * We cannot be grabbing a lock if the current thread declared it was
+	 * in a system call: it means we forgot to clear that state, and this
+	 * will lead a signal handler into thinking it is running in a safe
+	 * environment.
+	 */
+
+	if G_UNLIKELY(te->in_syscall) {
+		/*
+		 * Obviously we need to turn off "syscall mode": since we're grabbing
+		 * locks it is not true that we are stuck in a system call, and we
+		 * want to avoid further warnings down the warning path, which would
+		 * cause further recursions.
+		 */
+
+		THREAD_STATS_INCX(thread_syscalls_locking);
+
+		THREAD_LOCK(te);
+		te->in_syscall = FALSE;
+		THREAD_UNLOCK(te);
+
+		s_minicarp_once("%s(): %s attempting to grab %s at %s:%u "
+			"whilst in syscall mode",
+			G_STRFUNC, thread_element_name_raw(te),
+			thread_lock_kind_to_string(kind), file, line);
+	}
+
+	/*
 	 * Make sure we have room to record the lock in our tracking stack.
 	 */
 
@@ -8191,6 +8229,193 @@ thread_block_timeout(void *arg)
 }
 
 /**
+ * Set or clear the "in syscall" state.
+ */
+static void
+thread_element_in_syscall_set(struct thread_element *te, bool value)
+{
+	static bool inset[THREAD_MAX];
+	sigset_t set;
+	bool isdup;
+
+	/*
+	 * Since spinlock_raw() can sleep and call thread_in_syscall_set(),
+	 * we need to protect against recursions.
+	 */
+
+	if G_UNLIKELY(inset[te->stid]) {
+		THREAD_STATS_INCX(thread_syscalls_recursions);
+		return;
+	}
+
+	inset[te->stid] = TRUE;
+
+	if (value)
+		THREAD_STATS_INCX(thread_syscalls);
+
+	/*
+	 * We can only set the flag to TRUE if we are not holding any locks.
+	 */
+
+	if G_UNLIKELY(value && 0 != thread_element_lock_count(te)) {
+		THREAD_STATS_INCX(thread_syscalls_with_locks);
+		goto done;
+	}
+
+	/*
+	 * The signal critical section ensures nothing can interrupt us whilst
+	 * we are setting the "in syscall" status.  This lets us know that when
+	 * a signal arrives, and the te->in_syscall status is set, the thread
+	 * was in a "safe" state and the signal handler will be able to call
+	 * malloc() and friends.
+	 *		--RAM, 2016-01-31
+	 */
+
+	if (!signal_thread_enter_critical(te->stid, &set))
+		s_error("%s(): unable to establish critical section", G_STRFUNC);
+
+	THREAD_LOCK(te);
+	isdup = value && te->in_syscall;
+	te->in_syscall = booleanize(value);
+	THREAD_UNLOCK(te);
+
+	signal_thread_leave_critical(te->stid, &set);
+
+	if G_UNLIKELY(isdup) {
+		THREAD_STATS_INCX(thread_syscalls_dups);
+		s_minicarp_once("%s(): duplicate system call accounting", G_STRFUNC);
+	}
+
+done:
+	inset[te->stid] = FALSE;
+}
+
+/**
+ * State whether thread is issuing a blocking system call.
+ */
+void
+thread_in_syscall_set(bool value)
+{
+	int stid = thread_safe_small_id();
+
+	/*
+	 * Since spinlock_raw() can sleep and call thread_in_syscall_set(),
+	 * we need to protect against recursions.  Hence we cannot use
+	 * thread_get_element() here, since it can take hidden locks.
+	 */
+
+	if G_UNLIKELY(stid < 0)
+		return;
+
+	thread_element_in_syscall_set(threads[stid], value);
+}
+
+/**
+ * Reset the "in syscall" state, undoing the accounting made earlier if we
+ * are really in that state.
+ *
+ * This routine is necessary when emulating a system call, for instance on
+ * Windows for the nanosleep() routine.  Being a system call on UNIX, the
+ * caller can optionally flag the thread as going to enter a system call.
+ * But in the emulation, we need to reset the state, especially if we can
+ * call allocation routines, take locks, log, etc...  Until we are ready to
+ * actually block in a safe state.
+ */
+void
+thread_in_syscall_reset(void)
+{
+	struct thread_element *te = thread_get_element();
+	sigset_t set;
+	bool was_in_syscall;
+
+	/*
+	 * Quick shortcut: if not already flagged as being in a system call, there
+	 * is nothing to do.
+	 */
+
+	if (!te->in_syscall)
+		return;
+
+	/*
+	 * The signal critical section ensures nothing can interrupt us whilst
+	 * we are setting the "in syscall" status.  This lets us know that when
+	 * a signal arrives, and the te->in_syscall status is set, the thread
+	 * was in a "safe" state and the signal handler will be able to call
+	 * malloc() and friends.
+	 *		--RAM, 2016-01-31
+	 */
+
+	if (!signal_thread_enter_critical(te->stid, &set))
+		s_error("%s(): unable to establish critical section", G_STRFUNC);
+
+	THREAD_LOCK(te);
+	was_in_syscall = te->in_syscall;
+	te->in_syscall = FALSE;
+	THREAD_UNLOCK(te);
+
+	signal_thread_leave_critical(te->stid, &set);
+
+	if G_LIKELY(was_in_syscall) {
+		THREAD_STATS_DECX(thread_syscalls);
+
+		if G_UNLIKELY(0 != thread_element_lock_count(te))
+			THREAD_STATS_DECX(thread_syscalls_with_locks);
+	}
+}
+
+/**
+ * Upon reception of a kernel signal, check whether we were in a system call.
+ *
+ * If the thread was in a system call, the flag is reset (in case another
+ * signal triggers and interrupts the thread again, we will no longer be in
+ * a system call), and it will need to be reset before leaving the signal
+ * handler, by calling thread_in_syscall_set() again.
+ *
+ * As a side effect, also returns the thread ID of the interrupted thread,
+ * assuming we can determine it, or THREAD_UNKNOWN_ID if we can't figure it out.
+ *
+ * @param stid		where the small thread ID is returned
+ *
+ * @return TRUE if we were in a system call.
+ */
+bool
+thread_was_in_syscall(int *stid)
+{
+	struct thread_element *te;
+	bool in_syscall = FALSE;
+
+	g_assert(stid != NULL);
+
+	THREAD_STATS_INCX(thread_interrupts);
+
+	if (0 > (*stid = thread_safe_small_id()))
+		return FALSE;
+
+	te = threads[*stid];
+
+	if (te->in_syscall) {
+		THREAD_LOCK(te);
+		if (te->in_syscall) {
+			in_syscall = TRUE;
+			te->in_syscall = FALSE;
+		}
+		THREAD_UNLOCK(te);
+
+		/*
+		 * If there is a lock held, someone lied.
+		 */
+
+		if G_UNLIKELY(in_syscall && 0 != thread_element_lock_count(te))
+			in_syscall = FALSE;
+
+		if (in_syscall)
+			THREAD_STATS_INCX(thread_safe_interrupts);
+	}
+
+	return in_syscall;
+}
+
+/**
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
@@ -8302,6 +8527,24 @@ thread_element_block_until(struct thread_element *te,
 retry:
 	thread_cancel_test_element(te);
 
+	/*
+	 * Handle pending signals, unless the `te->signalled' flag is set,
+	 * in which case someone sent us an "unblocking byte" and the poll()
+	 * below will immediately trigger and we'll handle signals afterwards.
+	 */
+
+	while (thread_sig_pending(te) && 0 == te->signalled) {
+		THREAD_LOCK(te);
+		te->blocked = FALSE;
+		THREAD_UNLOCK(te);
+
+		(void) thread_signal_check(te);
+
+		THREAD_LOCK(te);
+		te->blocked = TRUE;
+		THREAD_UNLOCK(te);
+	}
+
 	if (end != NULL) {
 		long upper, remain = tm_remaining_ms(end);
 		gentime_t gnow;
@@ -8333,6 +8576,13 @@ retry:
 
 		fds.fd = te->wfd[0];
 		fds.events = POLLIN;
+
+		/*
+		 * Note that compat_poll() is flagging itself as being in a system call
+		 * which will let us know that an interrupting signal runs in a safe
+		 * environment where it can call malloc() freely since we are not
+		 * interrupting any memory allocation and are not holding any lock.
+		 */
 
 		r = compat_poll(&fds, 1, remain);
 
@@ -10634,6 +10884,7 @@ thread_sigblock_element(struct thread_element *te,
 {
 	bool signalled, has_signals;
 	char c;
+	int r;
 
 	g_assert(!te->blocked);
 
@@ -10670,8 +10921,13 @@ thread_sigblock_element(struct thread_element *te,
 	}
 
 	thread_cancel_test_element(te);
+	thread_element_in_syscall_set(te, TRUE);
 
-	if (-1 == s_read(te->wfd[0], &c, 1)) {
+	r = s_read(te->wfd[0], &c, 1);
+
+	thread_element_in_syscall_set(te, FALSE);
+
+	if (-1 == r) {
 		s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
@@ -10845,6 +11101,14 @@ thread_sleeping(bool sleeping)
 	/* Boolean field, must be atomically updated */
 	te->sleeping = booleanize(sleeping);
 	THREAD_UNLOCK(te);
+
+	/*
+	 * A sleeping thread is going to call select(), usleep(), nanosleep(),
+	 * and is therefore in a system call, in a safe place should a signal
+	 * interrupt it.
+	 */
+
+	thread_element_in_syscall_set(te, sleeping);
 }
 
 /**
@@ -11014,7 +11278,7 @@ thread_enter_critical(thread_sigsets_t *set)
 	set->tset = te->sig_mask;
 	te->sig_mask = all;
 
-	signal_enter_critical(&set->kset);
+	signal_thread_enter_critical(te->stid, &set->kset);
 }
 
 /**
@@ -11030,7 +11294,7 @@ thread_leave_critical(const thread_sigsets_t *set)
 	/* inlined version of thread_sigmask(TSIG_SETMASK) */
 	te->sig_mask = set->tset;
 
-	signal_leave_critical(&set->kset);
+	signal_thread_leave_critical(te->stid, &set->kset);
 	thread_signal_check(te);
 }
 
@@ -11343,7 +11607,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->exiting = te->exit_started;
 	info->suspended = te->suspended;
 	info->blocked = te->blocked || te->cond != NULL;
-	info->sleeping = te->sleeping;
+	info->sleeping = te->sleeping || te->in_syscall;
 	info->cancelled = te->cancelled;
 	info->main_thread = te->main_thread;
 	info->sig_mask = te->sig_mask;
@@ -11536,6 +11800,13 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(thread_self_calls);
 	DUMP64(thread_forks);
 	DUMP64(thread_yields);
+	DUMP64(thread_syscalls);
+	DUMP64(thread_syscalls_dups);
+	DUMP64(thread_syscalls_with_locks);
+	DUMP64(thread_syscalls_recursions);
+	DUMP64(thread_syscalls_locking);
+	DUMP64(thread_interrupts);
+	DUMP64(thread_safe_interrupts);
 	DUMP64(thread_stats_digest);
 
 	{
@@ -11662,6 +11933,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%d",  cancelable);
 	DUMPF("%d",  sleeping);
 	DUMPF("%d",  exit_started);
+	DUMPF("%d",  in_syscall);
 	DUMPF("%d",  gone);
 	DUMPF("%d",  gone_seen);
 	DUMPF("%d",  add_monitoring);

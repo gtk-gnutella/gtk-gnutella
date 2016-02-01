@@ -4409,12 +4409,13 @@ xmalloc_thread_free(void *p)
 	 * We need to compute the thread small ID, but we use this opportunity to
 	 * also check whether we are being called from a signal handler.
 	 *
-	 * Note that the signal_in_handler_stid() routine will return TRUE if it
-	 * cannot compute a proper thread ID, meaning we're probably discovering
-	 * a new thread: we thus need to call thread_small_id() in that case.
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
 	 */
 
-	if (signal_in_handler_stid(&stid)) {
+	if (signal_in_unsafe_handler_stid(&stid)) {
 		if (THREAD_UNKNOWN_ID == stid) {
 			stid = thread_small_id();
 		} else {
@@ -4605,7 +4606,7 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	 * it gets registered in the thread element).
 	 */
 
-	if (signal_in_handler_stid(&stid) && THREAD_UNKNOWN_ID != stid) {
+	if (signal_in_unsafe_handler_stid(&stid) && THREAD_UNKNOWN_ID != stid) {
 		can_thread = FALSE;
 		XSTATS_INCX(allocations_in_handler);
 		s_minicarp_once("%s(): %s trying to allocate %zu bytes "
@@ -5092,12 +5093,13 @@ xreallocate(void *p, size_t size, bool can_thread)
 	 * We need to compute the thread small ID, but we use this opportunity to
 	 * also check whether we are being called from a signal handler.
 	 *
-	 * Note that the signal_in_handler_stid() routine will return TRUE if it
-	 * cannot compute a proper thread ID, meaning we're probably discovering
-	 * a new thread: we thus need to call thread_small_id() in that case.
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
 	 */
 
-	if (signal_in_handler_stid(&stid)) {
+	if (signal_in_unsafe_handler_stid(&stid)) {
 		if (THREAD_UNKNOWN_ID == stid) {
 			stid = thread_small_id();
 		} else {

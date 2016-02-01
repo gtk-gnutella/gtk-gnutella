@@ -54,6 +54,8 @@ compat_usleep_internal(unsigned int us, bool cancel)
 	if (cancel) {
 		thread_cancel_test();
 		thread_sleeping(TRUE);
+	} else {
+		thread_in_syscall_set(TRUE);
 	}
 
 #if defined(HAS_NANOSLEEP)
@@ -110,6 +112,8 @@ compat_usleep_internal(unsigned int us, bool cancel)
 	if (cancel) {
 		thread_sleeping(FALSE);
 		thread_cancel_test();
+	} else {
+		thread_in_syscall_set(FALSE);
 	}
 }
 

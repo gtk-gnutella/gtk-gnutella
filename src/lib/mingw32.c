@@ -333,7 +333,7 @@ get_native_path(const char *pathname, int *error)
 	 * In a signal handler, don't allocate memory.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN];
 		b = buf_init(&bs, buf, sizeof buf);
 	} else {
@@ -458,7 +458,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	 * In a signal handler, don't allocate memory.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
 		b = buf_init(&bs, buf, sizeof buf);
 	} else {
@@ -2687,7 +2687,8 @@ pid_t
 mingw_waitpid(pid_t pid, int *status, int options)
 {
 	dualhash_t *dh = mingw_launched;
-	int ms, res;
+	int ms;
+	ulong res;
 	HANDLE proc = NULL;
 	pid_t exiting_pid;
 
@@ -2702,7 +2703,11 @@ mingw_waitpid(pid_t pid, int *status, int options)
 		if (NULL == h)
 			goto no_child;
 
-		switch (WaitForSingleObject(h, ms)) {
+		thread_in_syscall_set(TRUE);
+		res = WaitForSingleObject(h, ms);
+		thread_in_syscall_set(FALSE);
+
+		switch (res) {
 		case WAIT_TIMEOUT:
 			return 0;
 		case WAIT_ABANDONED:
@@ -2735,7 +2740,9 @@ mingw_waitpid(pid_t pid, int *status, int options)
 		dualhash_foreach(dh, mingw_child_add, &arg);
 		dualhash_unlock(dh);
 
+		thread_in_syscall_set(TRUE);
 		res = WaitForMultipleObjects(count, hv, FALSE, ms);
+		thread_in_syscall_set(FALSE);
 
 		if (res < WAIT_ABANDONED_0)
 			proc = hv[res - WAIT_OBJECT_0];		/* This process has exited */
@@ -2848,9 +2855,12 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 		errno = WSAEOPNOTSUPP;
 		return -1;
 	}
+
 	res = WSAPoll(fds, nfds, timeout);
+
 	if (SOCKET_ERROR == res)
 		errno = mingw_wsa_last_error();
+
 	return res;
 }
 
@@ -3356,7 +3366,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			 * In a signal handler, don't allocate memory.
 			 */
 
-			if (signal_in_handler()) {
+			if (signal_in_unsafe_handler()) {
 				static char path[MAX_PATH_LEN];
 
 				clamp_strncpy(path, sizeof path, pathname, len);
@@ -3895,6 +3905,12 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	laddr.sin_port = 0;
 
+	/*
+	 * We're starting a succession of system calls.
+	 */
+
+	thread_in_syscall_set(TRUE);
+
 	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
 	if (-1 == r)
 		goto failed;
@@ -3951,9 +3967,13 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	sv[0] = cs;
 	sv[1] = as;
 
+	thread_in_syscall_set(FALSE);
+
 	return 0;
 
 failed:
+	thread_in_syscall_set(FALSE);
+
 	errno = mingw_wsa_last_error();
 	if (INVALID_SOCKET != ls)
 		s_close(ls);
@@ -5435,6 +5455,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	HANDLE t;
 	LARGE_INTEGER dueTime;
 	uint64 value;
+	ulong r;
 
 	/*
 	 * There's no residual time, there cannot be early terminations.
@@ -5452,6 +5473,14 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 		errno = EINVAL;
 		return -1;
 	}
+
+	/*
+	 * On UNIX, nanosleep() is a system call but it is not on Windows.
+	 * Therefore we need to clear the "in syscall" state for now, until
+	 * we are ready to block, waiting for the timer to expire.
+	 */
+
+	thread_in_syscall_reset();
 
 	/*
 	 * We need one timer per thread, but since nanosleep() is called by
@@ -5512,7 +5541,11 @@ found:
 		return -1;
 	}
 
-	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
+	thread_in_syscall_set(TRUE);
+	r = WaitForSingleObject(t, INFINITE);
+	thread_in_syscall_set(FALSE);
+
+	if (WAIT_OBJECT_0 != r) {
 		atomic_release(&tt->lock);
 		errno = mingw_last_error();
 		s_carp("timer returned an unexpected value, nanosleep() failed: %m");
@@ -6337,7 +6370,9 @@ mingw_semtimedop(int semid, struct sembuf *sops,
 		/* See comment in mingw_semctl() about the following sequence */
 
 		spinunlock(&s->lock);
+		thread_in_syscall_set(TRUE);
 		w = WaitForSingleObject(h, ms);
+		thread_in_syscall_set(FALSE);
 		spinlock(&s->lock);
 
 		if G_UNLIKELY(s->destroyed) {
