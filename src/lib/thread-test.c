@@ -2217,10 +2217,11 @@ test_evq(unsigned repeat)
 	}
 }
 
-#define INTERRUPTS	4	/* Amount of interrupts we're sending */
+#define INTERRUPTS	5	/* Amount of interrupts we're sending */
 
 static int interrupt_count;
 static int interrupt_acks;
+static volatile bool interrupt_seen_2;
 
 static void *
 intr_process(void *arg)
@@ -2235,13 +2236,16 @@ intr_process(void *arg)
 	switch (n) {
 	case 0:
 	case 1:
+	case 3:
 		if (unsafe)
 			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
 		break;
 	case 2:
 		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
+		interrupt_seen_2 = TRUE;
+		atomic_mb();
 		break;
-	case 3:
+	case 4:
 		if (-1 == thread_cancel(thread_small_id()))
 			s_warning("thread_cancel(self) failed: %m");
 		break;
@@ -2295,6 +2299,14 @@ test_interrupts(void)
 	for (i = 0; i < INTERRUPTS; i++) {
 		void *arg = NULL;
 		notify_data_fn_t cb = NULL;
+
+		/* Signalled thread needs to have seen interrupt #2 before continuing */
+		if (i > 2 && !interrupt_seen_2) {
+			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
+			while (!interrupt_seen_2) {
+				thread_sleep_ms(100);
+			}
+		}
 
 		s_message("%s(): sending interrupt #%d", G_STRFUNC, i);
 
