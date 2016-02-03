@@ -2267,7 +2267,7 @@ mingw_waitpid(pid_t pid, int *status, int options)
 
 		res = WaitForMultipleObjects(count, hv, FALSE, ms);
 
-		if (res >= WAIT_OBJECT_0 && res < WAIT_ABANDONED_0)
+		if (res < WAIT_ABANDONED_0)
 			proc = hv[res - WAIT_OBJECT_0];		/* This process has exited */
 
 		HFREE_NULL(hv);
