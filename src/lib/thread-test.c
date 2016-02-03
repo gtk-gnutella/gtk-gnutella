@@ -2226,18 +2226,20 @@ static void *
 intr_process(void *arg)
 {
 	int n = pointer_to_int(arg);
+	bool unsafe = signal_in_unsafe_handler();
 
-	s_info("%s(): got %sinterrupt n=%d",
-		G_STRFUNC, signal_in_unsafe_handler() ? "UNSAFE " : "", n);
+	s_info("%s(): got %sinterrupt n=%d", G_STRFUNC, unsafe ? "UNSAFE " : "", n);
 
 	atomic_int_inc(&interrupt_count);
 
 	switch (n) {
 	case 0:
 	case 1:
+		if (unsafe)
+			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
 		break;
 	case 2:
-		s_carp("%s(): showing trace", G_STRFUNC);
+		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
 		break;
 	case 3:
 		if (-1 == thread_cancel(thread_small_id()))
