@@ -237,12 +237,7 @@ static struct logfile logfile[LOG_MAX_FILES];
 	flush_str_atomic(			\
 		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
-/**
- * This is used to detect recursions.
- */
-static volatile sig_atomic_t in_safe_handler;	/* in s_logv() */
 static bool log_crashing;
-
 static const char DEV_NULL[] = "/dev/null";
 
 /**
@@ -524,12 +519,17 @@ log_agent_free_null(logagent_t **la_ptr)
 
 /**
  * Allocate a thread-private logging data descriptor.
+ *
+ * @return newly created logging descriptor, NULL if we can't allocate memory.
  */
 static logthread_t *
 log_thread_alloc(void)
 {
 	logthread_t *lt;
 	ckhunk_t *ck;
+
+	if (signal_in_unsafe_handler())
+		return NULL;	/* Can't allocate memory right now */
 
 	ck = ck_init_not_leaking(2 * LOG_MSG_MAXLEN, 0);
 	lt = ck_alloc(ck, sizeof *lt);
@@ -556,7 +556,8 @@ log_okey_init(void)
  *
  * @param once		if TRUE, don't record the object as it will be used once
  *
- * @return valid logging data object for the current thread.
+ * @return valid logging data object for the current thread, NULL if we cannot
+ * allocate one.
  */
 static logthread_t *
 logthread_object(bool once)
@@ -569,6 +570,8 @@ logthread_object(bool once)
 
 	if G_UNLIKELY(NULL == lt) {
 		lt = log_thread_alloc();
+		if (NULL == lt)
+			return NULL;
 		if (!once)
 			thread_local_set(log_okey, lt);
 	}
@@ -1143,6 +1146,7 @@ s_stacktrace(bool no_stdio, unsigned offset)
 static void G_PRINTF(3, 0)
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
+	static volatile sig_atomic_t logging[THREAD_MAX];
 	int saved_errno = errno;
 	bool in_signal_handler = signal_in_unsafe_handler();
 	const char *prefix;
@@ -1187,7 +1191,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	if G_LIKELY(lt != NULL) {
 		recursing = lt->in_log_handler;
 	} else {
-		recursing = in_safe_handler;
+		recursing = logging[thread_small_id()];
 	}
 
 	if G_UNLIKELY(recursing) {
@@ -1245,8 +1249,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	if G_UNLIKELY(NULL == lt) {
-		in_safe_handler = TRUE;
 		stid = thread_small_id();
+		logging[stid] = TRUE;
 		ck = in_signal_handler ? signal_chunk() : log_chunk();
 	} else {
 		lt->in_log_handler = TRUE;
@@ -1270,7 +1274,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str("\n");		/* 5 */
 		log_flush_err_atomic();
 		ck_restore(ck, saved);
-		goto done;
+		goto log_done;
 	}
 
 	g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
@@ -1338,6 +1342,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		}
 	}
 
+log_done:
+
 	/*
 	 * Free up the string memory by restoring the allocation context
 	 * using the checkpoint we made before allocating that string.
@@ -1350,7 +1356,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	ck_restore(ck, saved);
 
 	if (G_LIKELY(NULL == lt)) {
-		in_safe_handler = FALSE;
+		logging[stid] = FALSE;
 	} else {
 		lt->in_log_handler = FALSE;
 	}
