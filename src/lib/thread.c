@@ -6398,6 +6398,8 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 		const struct thread_lock *l = &w->arena[i];
 		const struct thread_element *owner;
 
+		rewind_str(0);
+
 		print_str(thread_element_name(te));	/* 0 */
 		print_str(" waiting for ");			/* 1 */
 
