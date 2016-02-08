@@ -98,7 +98,7 @@
       
     <h3><a name="general1">This eats up too much bandwidth!</a></h3>
     <p>At the moment you can try one or more of the following things if you are
-      a user on a slow line (modem):</p>
+      a user on a slow line:</p>
     <ul>
         <li>Run as a leaf node. You change the peermode setting in the
         configuration panel under GnutellaNet. An icon in the statusbar
@@ -109,11 +109,13 @@
         <li>Even if you are on a slow connection, it's still important to share
         files. With <a href="#down3">swarming</a>, people can upload small
         chunks of files from you, so even a slow connection, multiplied by many
-        sources on the gnet, makes a tremendous contribution. If you have a 56K
-        modem, you can set <em>Bandwidth limits for HTTP traffic</em> - <em>Cumulative
-          upload rate</em> to 1K/s so you still have the majority of your
-        bandwidth for downloading.</li>
-      <li>Depress the lower-left button in the GUI after your downloads have
+        sources on the gnet, makes a tremendous contribution.
+        Setting <em>Bandwidth limits for HTTP traffic</em> - <em>Cumulative
+          upload rate</em> up to 50% of your available outboing bandwidth should not affect
+          your web experience.</li>
+          <li>If you are behind an ADSL router consider configuring <em>Quality of Service</em> (QoS) in order
+          to optimally distribute the available bandwidth following customizable rules.</li>
+        <li>Depress the lower-left button in the GUI after your downloads have
         started. This will disconnect from the Gnutella network. We strongly
         advise you to NOT do that. You won't be able to get more alternate
         locations from the net and people won't be able to search your files.</li>
