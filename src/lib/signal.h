@@ -62,10 +62,13 @@ signal_handler_t signal_catch(int signo, signal_handler_t handler);
 void signal_cleanup_add(signal_cleanup_t cleanup);
 void signal_perform_cleanup(void);
 const char *signal_name(int signo);
+
 bool signal_in_handler(void);
 bool signal_in_unsafe_handler(void);
 bool signal_in_handler_stid(uint *id);
 bool signal_in_unsafe_handler_stid(uint *id);
+void signal_thread_reset(uint id);
+
 struct ckhunk *signal_chunk(void);
 void signal_unblock(int signo);
 void signal_abort(void);

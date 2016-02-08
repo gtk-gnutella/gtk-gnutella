@@ -763,6 +763,18 @@ signal_in_unsafe_handler_stid(uint *id)
 }
 
 /**
+ * Reset the signal handler flags for a dead thread.
+ */
+void
+signal_thread_reset(uint id)
+{
+	g_assert(id < THREAD_MAX);
+
+	in_signal_handler[id] = 0;
+	in_safe_handler[id] = 0;
+}
+
+/**
  * Returns the pre-allocated safe chunk for allocating memory within
  * a signal handler.
  */

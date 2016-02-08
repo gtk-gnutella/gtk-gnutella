@@ -2362,6 +2362,8 @@ thread_element_reset(struct thread_element *te)
 	te->sigh[TSIG_INTACK - 1] = thread_interrupt_ack_handle;
 
 	THREAD_UNLOCK(te);
+
+	signal_thread_reset(te->stid);
 }
 
 /**
