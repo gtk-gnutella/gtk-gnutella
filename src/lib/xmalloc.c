@@ -78,6 +78,7 @@
 #include "palloc.h"
 #include "pow2.h"
 #include "sha1.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -478,11 +479,13 @@ static struct xstats {
 	uint64 allocations_aligned;			/**< Total # of aligned allocations */
 	AU64(allocations_heap);				/**< Total # of xhmalloc() calls */
 	AU64(allocations_physical);			/**< Total # of xpmalloc() calls */
+	AU64(allocations_in_handler);		/**< Allocations from sig handler */
 	uint64 alloc_via_freelist;			/**< Allocations from freelist */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
 	uint64 freeings;					/**< Total # of freeings */
+	AU64(freeings_in_handler);			/**< Freeings from sig handler */
 	AU64(free_sbrk_core);				/**< Freeing sbrk()-allocated core */
 	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
 	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
@@ -4276,13 +4279,15 @@ xmalloc_thread_ended(unsigned stid)
 /**
  * Allocate a block from the thread-specific pool.
  *
+ * @param stid		thread small ID
+ * @param len		size of block to allocate
+ *
  * @return allocated block of requested size, or NULL if no allocation was
  * possible.
  */
 static void *
-xmalloc_thread_alloc(const size_t len)
+xmalloc_thread_alloc(unsigned stid, const size_t len)
 {
-	unsigned stid;			/* Thread small ID */
 	struct xchunkhead *ch;
 	size_t idx;
 
@@ -4295,8 +4300,6 @@ xmalloc_thread_alloc(const size_t len)
 	 * only allocates a few blocks, we'll avoid dedicating a whole page to it
 	 * for that block size.
 	 */
-
-	stid = thread_small_id();
 
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return NULL;
@@ -4402,7 +4405,25 @@ xmalloc_thread_free(void *p)
 	unsigned stid;
 	struct xchunkhead *ch;
 
-	stid = thread_small_id();
+	/*
+	 * We need to compute the thread small ID, but we use this opportunity to
+	 * also check whether we are being called from a signal handler.
+	 *
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid)) {
+		if (THREAD_UNKNOWN_ID == stid) {
+			stid = thread_small_id();
+		} else {
+			XSTATS_INCX(freeings_in_handler);
+			s_minicarp_once("%s(): %s freeing %p from signal handler",
+				G_STRFUNC, thread_safe_id_name(stid), p);
+		}
+	}
 
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
@@ -4541,6 +4562,7 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 {
 	size_t len;
 	void *p;
+	uint stid;
 
 	g_assert(size_is_non_negative(size));
 
@@ -4574,6 +4596,26 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	}
 
 	/*
+	 * If we are in a signal handler, do NOT use a thread-specific allocation
+	 * path since it is done without locks and is therefore totally unsafe
+	 * when running within an asynchronous signal handler!
+	 *
+	 * Not that the other common path is much safer, but at least we have locks
+	 * and we can see whether the lock is taken from the outside (albeit with
+	 * a race condition window between the time the lock is taken and the time
+	 * it gets registered in the thread element).
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid) && THREAD_UNKNOWN_ID != stid) {
+		can_thread = FALSE;
+		XSTATS_INCX(allocations_in_handler);
+		s_minicarp_once("%s(): %s trying to allocate %zu bytes "
+			"from signal handler",
+			G_STRFUNC, thread_safe_id_name(stid), size);
+	}
+
+
+	/*
 	 * If we can allocate a block from a thread-specific pool, we'll
 	 * avoid any locking and also limit the block overhead.
 	 */
@@ -4602,7 +4644,11 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 		}
 
 		allocated = xmalloc_round(size);	/* No malloc header */
-		p = xmalloc_thread_alloc(allocated);
+
+		if (THREAD_UNKNOWN_ID == stid)
+			stid = thread_small_id();		/* Discovering a new thread */
+
+		p = xmalloc_thread_alloc(stid, allocated);
 
 		if G_LIKELY(p != NULL) {
 			XSTATS_LOCK;
@@ -5044,12 +5090,32 @@ xreallocate(void *p, size_t size, bool can_thread)
 	}
 
 	/*
+	 * We need to compute the thread small ID, but we use this opportunity to
+	 * also check whether we are being called from a signal handler.
+	 *
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid)) {
+		if (THREAD_UNKNOWN_ID == stid) {
+			stid = thread_small_id();
+		} else {
+			XSTATS_INCX(allocations_in_handler);
+			s_minicarp_once("%s(): %s reallocating to %zu bytes "
+				"from signal handler",
+				G_STRFUNC, thread_safe_id_name(stid), size);
+		}
+	}
+
+	/*
 	 * Handle blocks from a thread-specific pool specially, since they have
 	 * no malloc header and cannot be coalesced because they are allocated
 	 * from zones with fix-sized blocks.
 	 */
 
-	stid = thread_small_id();
 	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
@@ -6682,11 +6748,13 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(allocations_aligned);
 	DUMP64(allocations_heap);
 	DUMP64(allocations_physical);
+	DUMP64(allocations_in_handler);
 	DUMP(alloc_via_freelist);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(alloc_via_thread_pool);
 	DUMP(freeings);
+	DUMP64(freeings_in_handler);
 	DUMP64(free_sbrk_core);
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);

@@ -89,7 +89,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
+		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
 		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
 		"       [-z fn1,fn2...]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
@@ -113,6 +113,7 @@ usage(void)
 		"  -D : test synchronization dams\n"
 		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
+		"  -H : test thread interrupts\n"
 		"  -I : test inter-thread waiter signaling\n"
 		"  -K : test thread cancellation\n"
 		"  -M : monitors tennis match via waiters\n"
@@ -2216,6 +2217,138 @@ test_evq(unsigned repeat)
 	}
 }
 
+#define INTERRUPTS	5	/* Amount of interrupts we're sending */
+
+static int interrupt_count;
+static int interrupt_acks;
+static volatile bool interrupt_seen_2;
+
+static void *
+intr_process(void *arg)
+{
+	int n = pointer_to_int(arg);
+	bool unsafe = signal_in_unsafe_handler();
+
+	s_info("%s(): got %sinterrupt n=%d", G_STRFUNC, unsafe ? "UNSAFE " : "", n);
+
+	atomic_int_inc(&interrupt_count);
+
+	switch (n) {
+	case 0:
+	case 1:
+	case 3:
+		if (unsafe)
+			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
+		break;
+	case 2:
+		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
+		interrupt_seen_2 = TRUE;
+		atomic_mb();
+		break;
+	case 4:
+		if (-1 == thread_cancel(thread_small_id()))
+			s_warning("thread_cancel(self) failed: %m");
+		break;
+	}
+
+	s_info("%s(): done with interrupt n=%d", G_STRFUNC, n);
+
+	return arg;
+}
+
+static void *
+intr_thread(void *unused)
+{
+	int i;
+
+	(void) unused;
+
+	for (i = 0; i < 20; i++) {
+		s_message("%s(): sleeping for 1 sec", G_STRFUNC);
+		thread_sleep_ms(1000);
+	}
+
+	s_error("%s(): something is wrong, missed an interrupt? (got %d)",
+		G_STRFUNC, interrupt_count);
+
+	return NULL;
+}
+
+static void
+intr_acknowledge(void *arg, void *udata)
+{
+	g_assert(udata == (void *) intr_thread);
+	g_assert_log(arg == int_to_pointer(1), "arg=%d", pointer_to_int(arg));
+
+	s_message("%s(): got ack for interrupt n=%d",
+		G_STRFUNC, pointer_to_int(arg));
+
+	interrupt_acks++;
+}
+
+static void
+test_interrupts(void)
+{
+	int i, t, err;
+
+	TESTING(G_STRFUNC);
+
+	t = thread_create(intr_thread, NULL,
+			THREAD_F_PANIC | THREAD_F_WAIT, THREAD_STACK_DFLT);
+
+	for (i = 0; i < INTERRUPTS; i++) {
+		void *arg = NULL;
+		notify_data_fn_t cb = NULL;
+
+		/* Signalled thread needs to have seen interrupt #2 before continuing */
+		if (i > 2 && !interrupt_seen_2) {
+			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
+			while (!interrupt_seen_2) {
+				thread_sleep_ms(100);
+			}
+		}
+
+		s_message("%s(): sending interrupt #%d", G_STRFUNC, i);
+
+		/* Interrupt #1 will be acknowledged */
+		if (1 == i) {
+			arg = (void *) intr_thread;
+			cb = intr_acknowledge;
+		}
+
+		err = thread_interrupt(t, intr_process, int_to_pointer(i), cb, arg);
+		if (0 != err)
+			break;
+		thread_sleep_ms(100);	/* Space interrupts to allow races */
+	}
+	if (err != 0) {
+		errno = err;
+		s_warning("%s(): thread_interrupt() failed: %m", G_STRFUNC);
+		if (-1 == thread_cancel(t))
+			s_error("%s(): thread_cancel() failed: %m", G_STRFUNC);
+	} else {
+		tm_t start, end;
+		tm_now_exact(&start);
+		for (
+			i = 0;
+			i < 300 && INTERRUPTS != atomic_int_get(&interrupt_count);
+			i++
+		) {
+			thread_sleep_ms(10);	/* Give it time to process interrupts */
+		}
+		tm_now_exact(&end);
+		s_message("%s(): waited %ld ms for completion", G_STRFUNC,
+			tm_elapsed_ms(&end, &start));
+	}
+	if (-1 == thread_join(t, NULL))
+		s_warning("%s(): thread_join() failed: %m", G_STRFUNC);
+
+	g_assert_log(INTERRUPTS == atomic_int_get(&interrupt_count),
+		"interrupt_count=%d (expected %d)", interrupt_count, INTERRUPTS);
+	g_assert_log(1 == interrupt_acks,
+		"interrupt_acks=%d (expected 1)", interrupt_acks);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
@@ -2243,8 +2376,9 @@ main(int argc, char **argv)
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
+	bool interrupts = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:VWX";
 
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
@@ -2271,6 +2405,9 @@ main(int argc, char **argv)
 			break;
 		case 'F':			/* test thread_fork() */
 			forking = TRUE;
+			break;
+		case 'H':			/* test thread interrupts */
+			interrupts = TRUE;
 			break;
 		case 'I':			/* test inter-thread signaling */
 			inter = TRUE;
@@ -2378,6 +2515,9 @@ main(int argc, char **argv)
 	}
 
 	g_assert(0 == thread_by_name("main"));
+
+	if (interrupts)
+		test_interrupts();
 
 	if (aqueue)
 		test_aqueue(emulated);

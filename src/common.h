@@ -236,6 +236,23 @@
 #endif
 
 /*
+ * These macros determine the maximum/minimum value of the given integer type
+ * "t". This works for signed as well as unsigned types. This code does
+ * carefully avoid integer overflows and undefined behaviour.
+ * However, it's assumed the type consists of exactly sizeof(type) * CHAR_BIT
+ * bits.
+ */
+
+#define MAX_INT_VAL_STEP(t) \
+	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
+
+#define MAX_INT_VAL(t) \
+	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
+
+#define MIN_INT_VAL(t) \
+	((t) -MAX_INT_VAL(t) - 1)
+
+/*
  * For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings.
  */
@@ -441,23 +458,6 @@ typedef int socket_fd_t;
 #ifndef HAS_LSTAT
 #define lstat(_p,_b)	stat((_p),(_b))
 #endif
-
-/*
- * These macros determine the maximum/minimum value of the given integer type
- * "t". This works for signed as well as unsigned types. This code does
- * carefully avoid integer overflows and undefined behaviour.
- * However, it's assumed the type consists of exactly sizeof(type) * CHAR_BIT
- * bits.
- */
-
-#define MAX_INT_VAL_STEP(t) \
-	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
-
-#define MAX_INT_VAL(t) \
-	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
-
-#define MIN_INT_VAL(t) \
-	((t) -MAX_INT_VAL(t) - 1)
 
 #ifndef TIME_T_MAX
 /* This assumes time_t is an integer, not a float */
@@ -702,8 +702,13 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
  *
  * On linux, sigprocmask() always manipulates the thread's signal mask, but
  * this is not guaranteed by POSIX.
+ *
+ * On Windows, we are implementing our own sigprocmask() which will correctly
+ * manipulate the thread's signal mask.
  */
-#if defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
+#ifdef MINGW32
+#define sigprocmask(h,s,o)	mingw_sigprocmask((h), (s), (o))
+#elif defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
 #define sigprocmask(h,s,o)	pthread_sigmask((h), (s), (o))
 #endif
 

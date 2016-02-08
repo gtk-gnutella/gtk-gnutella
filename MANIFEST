@@ -677,6 +677,8 @@ src/lib/cmwc.c
 src/lib/cmwc.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/compat_gettid.c
+src/lib/compat_gettid.h
 src/lib/compat_misc.c
 src/lib/compat_misc.h
 src/lib/compat_pause.c

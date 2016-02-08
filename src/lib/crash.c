@@ -81,6 +81,7 @@
 #include "ckalloc.h"
 #include "compat_pause.h"
 #include "compat_poll.h"
+#include "compat_usleep.h"
 #include "cq.h"
 #include "eslist.h"
 #include "evq.h"
@@ -3199,6 +3200,16 @@ crash_handler(int signo)
 
 	for (i = 0; i < N_ITEMS(signals); i++) {
 		int sig = signals[i];
+
+		/*
+		 * Do not change disposition of the signal used by the thread layer
+		 * to generate thread interrupts.  It may be harmful if received,
+		 * but it is caught and handled.
+		 */
+
+		if G_UNLIKELY(THREAD_SIGINTR == sig)
+			continue;
+
 		switch (sig) {
 #ifdef SIGBUS
 		case SIGBUS:
@@ -3580,6 +3591,8 @@ crash_init(const char *argv0, const char *progname,
 	iv.ppid = getppid();
 
 	for (i = 0; i < N_ITEMS(signals); i++) {
+		if G_UNLIKELY(THREAD_SIGINTR == signals[i])
+			continue;
 		signal_set(signals[i], crash_handler);
 	}
 
@@ -4290,6 +4303,62 @@ crash_fill_stack(void *arg)
 	return NULL;
 }
 
+static uint8 crash_interrupt_acks[THREAD_MAX];
+
+/**
+ * Thread interrupt acknowledgment.
+ */
+static void
+crash_interrupt_ack(void *unused_result, void *user_data)
+{
+	uint id = pointer_to_uint(user_data);
+
+	(void) unused_result;
+
+	g_assert(id < N_ITEMS(crash_interrupt_acks));
+
+	crash_interrupt_acks[id] = TRUE;
+}
+
+/**
+ * Send an interrupt to the thread, waiting for the acknowledge.
+ *
+ * @param id		the targeted thread ID
+ * @param cb		the callback to invoke when interrupted
+ * @param trace		where to put the stack trace
+ *
+ * @return 0 if OK, an error code otherwise.
+ */
+static int
+crash_interrupt(uint id, process_fn_t cb, struct crash_stack *trace)
+{
+	int error;
+	int i;
+
+	g_assert(id < N_ITEMS(crash_interrupt_acks));
+
+	crash_interrupt_acks[id] = FALSE;
+
+	error = thread_interrupt(id, cb, trace,
+				crash_interrupt_ack, uint_to_pointer(id));
+
+	if (0 != error)
+		return error;
+
+	/*
+	 * We interrupted, now wait for the indication that the interrupt
+	 * was processed, for roughly 2.5 secs.
+	 */
+
+	for (i = 0; i < 500; i++) {
+		if (crash_interrupt_acks[id])
+			return 0;
+		compat_usleep_nocancel(5000);	/* in usecs */
+	}
+
+	return EINPROGRESS;		/* Execution did not finish in time */
+}
+
 /**
  * Attempt to fetch a stack trace from given thread.
  *
@@ -4307,12 +4376,28 @@ crash_get_stack(uint id, struct crash_stack *trace)
 		crash_fill_stack(trace);
 	} else {
 		void *res;
-		int error;
+		int e;
 
-		if (0 != (error = thread_divert(id, crash_fill_stack, trace, &res)))
-			return error;
+		if (0 != (e = thread_divert(id, crash_fill_stack, trace, &res))) {
+			/*
+			 * If we get EBUSY, the targeted thread is neither suspended
+			 * nor blocked.  The only way we can get a stack trace is to
+			 * attempt an interrupt.
+			 */
+
+			if (EBUSY == e) {
+				s_line_writef(trace->fd, "WARNING: interrupting busy %s",
+					thread_safe_id_name(id));
+
+				if (0 != (e = crash_interrupt(id, crash_fill_stack, trace)))
+					goto done;
+			}
+
+			return e;
+		}
 	}
 
+done:
 	trace->stid = id;
 	return 0;
 }

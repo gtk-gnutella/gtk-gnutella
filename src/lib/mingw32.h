@@ -49,7 +49,8 @@
 #include <sys/stat.h>
 #include <glib.h>
 
-#include "signal.h"		/* For signal_handler_t */
+#include "signal.h"				/* For signal_handler_t */
+#include "compat_gettid.h"		/* For systid_t */
 
 /*
  * Winsock to UNIX symbolic error code remapping.
@@ -131,6 +132,10 @@
 #define S_IFLNK 0120000 /* Symbolic link */
 
 #define signal(n, h) mingw_signal((n), (h))
+
+#ifndef SIGEMT
+#define SIGEMT 7		/* Simulated, unassigned signal number in MingGW32 */
+#endif
 
 #ifndef SIGBUS
 #define SIGBUS	10		/* Simulated, unassigned signal number in MinGW32 */
@@ -704,6 +709,75 @@ int mingw_semtimedop(int semid, struct sembuf *sops, unsigned nsops,
 	struct timespec *timeout);
 
 /*
+ * sigprocmask(), sigsuspend(), etc... emulation.
+ */
+
+#define HAS_SIGPROCMASK
+
+/* sigset_t is already defined by system includes, even on Windows */
+
+#define SIG_BLOCK	1
+#define SIG_UNBLOCK	2
+#define SIG_SETMASK	3
+
+int mingw_sigprocmask(int how, const sigset_t *set, sigset_t *oldset);
+int mingw_sigpending(sigset_t *set);
+int mingw_sigsuspend(const sigset_t *mask);
+
+/* The sigprocmask() macro is defined in common.h, since needed also on UNIX */
+
+#define sigpending(s)	mingw_sigpending(s)
+#define sigsuspend(m)	mingw_sigsuspend(m)
+
+#define sigmask(s)		(1U << ((s) - 1))		/* 0 is not a signal */
+
+static inline int
+sigemptyset(sigset_t *s)
+{
+	*s = 0;
+	return 0;
+}
+
+static inline int
+sigfillset(sigset_t *s)
+{
+	*s = MAX_INT_VAL(sigset_t);
+	return 0;
+}
+
+static inline int
+sigaddset(sigset_t *s, int n)
+{
+	if G_UNLIKELY(n <= 0 || n >= SIGNAL_COUNT) {
+		errno = EINVAL;
+		return -1;
+	}
+	*s |= sigmask(n);
+	return 0;
+}
+
+static inline int
+sigdelset(sigset_t *s, int n)
+{
+	if G_UNLIKELY(n <= 0 || n >= SIGNAL_COUNT) {
+		errno = EINVAL;
+		return -1;
+	}
+	*s &= ~sigmask(n);
+	return 0;
+}
+
+static inline int
+sigismember(sigset_t *s, int n)
+{
+	if G_UNLIKELY(n <= 0 || n >= SIGNAL_COUNT) {
+		errno = EINVAL;
+		return -1;
+	}
+	return (*s & ~sigmask(n)) ? 1 : 0;
+}
+
+/*
  * Additional error codes we want to map.
  */
 
@@ -786,6 +860,11 @@ char *mingw_patch_personal_path(const char *pathname);
 const char *mingw_native_path(const char *pathname);
 const char *mingw_get_supervisor_log_path(void);
 void mingw_file_rotate(const char *pathname, int keep);
+
+systid_t mingw_gettid(void);
+void mingw_gettid_reset(uint id);
+int mingw_thread_kill(uint id, systid_t system_thread_id, int signo);
+bool mingw_signal_check(uint id);
 
 int mingw_last_error(void);
 

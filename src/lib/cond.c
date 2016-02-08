@@ -1454,6 +1454,9 @@ cond_wakeup_all(cond_t cv)
 cond_t
 cond_refcnt_inc(cond_t *c)
 {
+	if G_UNLIKELY(NULL == c)
+		return NULL;
+
 	return cond_get(c);
 }
 

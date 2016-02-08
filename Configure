@@ -18,7 +18,7 @@
 
 # $Id: Head.U 167 2013-05-08 17:58:00Z rmanfredi $
 #
-# Generated on Thu Dec  3 23:16:39 CET 2015 [metaconfig 3.5-200]
+# Generated on Sat Jan 23 12:12:15 CET 2016 [metaconfig 3.5-200]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -444,6 +444,7 @@ d_strchr=''
 d_strlcat=''
 d_strlcpy=''
 d_sync_atomic=''
+d_syscall=''
 d_sysctl=''
 d_system=''
 clocktype=''
@@ -8323,6 +8324,24 @@ cyn="whether atomic memory operations are possible"
 set d_sync_atomic
 eval $trylink
 
+: see if syscall exists
+$cat >try.c <<EOC
+#include <sys/syscall.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
+int main(void)
+{
+	static int ret, number;
+	ret |= syscall(number, 0);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=syscall
+set d_syscall
+eval $trylink
+
 : see if sysctl exists
 $cat >try.c <<EOC
 #include <sys/param.h>
@@ -11562,6 +11581,7 @@ d_strchr='$d_strchr'
 d_strlcat='$d_strlcat'
 d_strlcpy='$d_strlcpy'
 d_sync_atomic='$d_sync_atomic'
+d_syscall='$d_syscall'
 d_sysctl='$d_sysctl'
 d_system='$d_system'
 d_times='$d_times'

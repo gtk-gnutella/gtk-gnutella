@@ -812,6 +812,11 @@ win32dlp_msize(void *p)
  ***   only possible when they attempt to use malloc() and we already patched
  ***   up the IAT of the modules they are using.
  ***
+ *** - they clear the "in system call" state for simplicity.  Sure we could
+ ***   save the state and restore it, but the LoadLibrary() will only occur
+ ***   once to get the DLL for a certain call and for that one intercepted
+ ***   call, we will be in an unsafe state when we get an interrupt.
+ ***
  *** This strategy assumes that we will always intercept the LoadLibrary()
  *** calls a module can make (most likely to happen) and that no code from
  *** the loaded library will be run until the intercepted LoadLibrary() calls
@@ -825,6 +830,8 @@ win32dlp_LoadLibraryA(const char *file)
 	HMODULE ret;
 
 	WIN32DLP_STATS_INCX(trapped_LoadLibraryA);
+
+	thread_in_syscall_reset();	/* About to take locks and allocate memory */
 
 	hash_table_lock(win32dlp_loaded);
 	thread_suspend_others(FALSE);
@@ -848,6 +855,8 @@ win32dlp_LoadLibraryW(const uint16 *file)
 	HMODULE ret;
 
 	WIN32DLP_STATS_INCX(trapped_LoadLibraryW);
+
+	thread_in_syscall_reset();	/* About to take locks and allocate memory */
 
 	hash_table_lock(win32dlp_loaded);
 	thread_suspend_others(FALSE);

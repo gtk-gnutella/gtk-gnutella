@@ -151,6 +151,7 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
 	compat_pio.c \
@@ -348,6 +349,7 @@ LOBJ = \
 	ckalloc.o \
 	cmwc.o \
 	cobs.o \
+	compat_gettid.o \
 	compat_misc.o \
 	compat_pause.o \
 	compat_pio.o \

@@ -96,6 +96,7 @@ int s_error_expr(const char *format, ...) G_PRINTF(1, 2);
 void s_carp(const char *format, ...) G_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_PRINTF(1, 2);
 void s_minicarp(const char *format, ...) G_PRINTF(1, 2);
+void s_minicarp_once(const char *format, ...) G_PRINTF(1, 2);
 void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_PRINTF(2, 3);
 void s_warning(const char *format, ...) G_PRINTF(1, 2);
 void s_message(const char *format, ...) G_PRINTF(1, 2);
