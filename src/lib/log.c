@@ -767,6 +767,20 @@ log_prefix(GLogLevelFlags level)
 }
 
 /**
+ * Same as log_time(), albeit optionally use the raw time computation version.
+ */
+static void
+log_time_careful(char *buf, size_t size, bool raw)
+{
+	if G_UNLIKELY(raw)
+		crash_time_raw(buf, size);
+	else
+		crash_time(buf, size);
+
+	clamp_strcat(buf, size, logpid);
+}
+
+/**
  * Fill supplied buffer with the current time formatted as yy-mm-dd HH:MM:SS.sss
  * and optionally the process PID, if configured to do so.
  *
@@ -778,8 +792,7 @@ log_prefix(GLogLevelFlags level)
 static void
 log_time(char *buf, size_t size)
 {
-	crash_time(buf, size);
-	clamp_strcat(buf, size, logpid);
+	log_time_careful(buf, size, FALSE);
 }
 
 /**
@@ -791,8 +804,7 @@ log_time(char *buf, size_t size)
 static void
 log_time_raw(char *buf, size_t size)
 {
-	crash_time_raw(buf, size);
-	clamp_strcat(buf, size, logpid);
+	log_time_careful(buf, size, TRUE);
 }
 
 /**
@@ -1148,7 +1160,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
 	static volatile sig_atomic_t logging[THREAD_MAX];
 	int saved_errno = errno;
-	bool in_signal_handler = signal_in_unsafe_handler();
+	bool in_signal_handler = signal_in_handler();
 	const char *prefix;
 	str_t *msg;
 	ckhunk_t *ck;
@@ -1203,7 +1215,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_raw(time_buf, sizeof time_buf);
 		print_str(time_buf);		/* 0 */
 		print_str(" (CRITICAL");	/* 1 */
 		if (0 != stid) {
@@ -1265,7 +1277,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(6);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
 		print_str(format);		/* 2 */
@@ -1296,7 +1308,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(11);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (");		/* 1 */
 		print_str(prefix);		/* 2 */
