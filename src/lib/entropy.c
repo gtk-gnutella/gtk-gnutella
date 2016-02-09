@@ -856,7 +856,7 @@ entropy_collect_cpu(SHA1_context *ctx)
 
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 
-	if (setjmp(env)) {
+	if (Setjmp(env)) {
 		/* We will never longjmp() back here */
 		g_assert_not_reached();
 	}

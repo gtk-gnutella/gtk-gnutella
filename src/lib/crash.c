@@ -979,7 +979,7 @@ crash_stack_print(int fd, size_t offset)
 	}
 }
 
-static Sigjmp_buf crash_safe_env[THREAD_MAX];
+static sigjmp_buf crash_safe_env[THREAD_MAX];
 
 /**
  * Invoked on a fatal signal during decorated stack building.
@@ -990,7 +990,7 @@ crash_decorated_got_signal(int signo)
 	int stid = thread_small_id();
 
 	s_miniwarn("got %s during stack dump generation", signal_name(signo));
-	Siglongjmp(crash_safe_env[stid], signo);
+	siglongjmp(crash_safe_env[stid], signo);
 }
 
 /**
@@ -1152,7 +1152,7 @@ crash_reset_signals(void)
 }
 
 #ifdef HAS_FORK
-static Sigjmp_buf crash_fork_env;
+static sigjmp_buf crash_fork_env;
 
 /**
  * Handle fork() timeouts.
@@ -1168,7 +1168,7 @@ crash_fork_timeout(int signo)
 	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
 	flush_err_str();
 
-	Siglongjmp(crash_fork_env, signo);
+	siglongjmp(crash_fork_env, signo);
 }
 #endif	/* HAS_FORK */
 

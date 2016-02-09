@@ -156,8 +156,6 @@
 #include <dirent.h>
 #endif
 
-#include <setjmp.h>
-
 #ifdef I_TIME
 #include <time.h>
 #endif
@@ -717,6 +715,7 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
  */
 
 #include "casts.h"
+#include "lib/compat_setjmp.h"
 #include "lib/fast_assert.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
 #include "lib/glog.h"

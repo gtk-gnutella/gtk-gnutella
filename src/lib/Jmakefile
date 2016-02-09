@@ -88,6 +88,7 @@ LSRC = \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sendfile.c \
+	compat_setjmp.c \
 	compat_sleep_ms.c \
 	compat_statvfs.c \
 	compat_un.c \

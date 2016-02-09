@@ -386,7 +386,7 @@ gtk_gnutella_atexit(void)
 #ifdef SIGALRM
 		signal_set(SIGALRM, sig_alarm);
 #endif
-		if (setjmp(atexit_env)) {
+		if (Setjmp(atexit_env)) {
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}

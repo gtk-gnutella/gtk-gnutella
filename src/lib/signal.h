@@ -54,6 +54,15 @@ typedef void (*signal_handler_t)(int signo);
 typedef void (*signal_cleanup_t)(void);
 
 /*
+ * Private calls, reserved to compat_setjmp() and compat_longjmp().
+ */
+
+#ifdef SETJMP_SOURCE
+sig_atomic_t signal_thread_handler_level(uint stid);
+void signal_thread_handler_level_set(uint stid, sig_atomic_t level);
+#endif	/* SETJMP_SOURCE */
+
+/*
  * Public interface.
  */
 

@@ -289,7 +289,7 @@ test_file_closed(int fd, const char *what)
 	}
 }
 
-static Sigjmp_buf jmpbuf;
+static sigjmp_buf jmpbuf;
 static bool got_sigpipe;
 
 static void
@@ -298,7 +298,7 @@ caught_sigpipe(int signo)
 	s_info("got %s", signal_name(signo));
 	if (SIGPIPE == signo)
 		ATOMIC_INC(&got_sigpipe);
-	Siglongjmp(jmpbuf, signo);
+	siglongjmp(jmpbuf, signo);
 }
 
 static void

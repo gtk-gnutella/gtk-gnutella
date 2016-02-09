@@ -81,7 +81,7 @@ dl_util_done(void)
 	}
 }
 
-static Sigjmp_buf dl_util_env[THREAD_MAX];
+static sigjmp_buf dl_util_env[THREAD_MAX];
 
 /**
  * Invoked when a fatal signal is received during dladdr().
@@ -93,7 +93,7 @@ dl_util_got_signal(int signo)
 
 	(void) signo;
 
-	Siglongjmp(dl_util_env[stid], signo);
+	siglongjmp(dl_util_env[stid], signo);
 }
 
 /**

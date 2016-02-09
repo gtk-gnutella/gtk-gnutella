@@ -2034,7 +2034,7 @@ bg_sched_timer(void *arg)
 		 * may call bg_task_exit() and immediately come back here.
 		 */
 
-		if ((status = setjmp(bt->env))) {
+		if ((status = Setjmp(bt->env))) {
 			/*
 			 * So they exited, or someone is killing the task.
 			 */

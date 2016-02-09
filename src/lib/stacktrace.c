@@ -378,7 +378,7 @@ done:
 }
 #endif	/* HAS_BACKTRACE */
 
-static Sigjmp_buf stacktrace_safe_env[THREAD_MAX];
+static sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 
 /**
  * Invoked when a fatal signal is received during stack unwinding.
@@ -393,7 +393,7 @@ stacktrace_safe_got_signal(int signo)
 	 * thread that caused it.
 	 */
 
-	Siglongjmp(stacktrace_safe_env[stid], signo);
+	siglongjmp(stacktrace_safe_env[stid], signo);
 }
 
 /**
@@ -1878,7 +1878,7 @@ stacktrace_where_print_decorated(FILE *f, uint flags)
  */
 static struct {
 	int fd;
-	Sigjmp_buf env;
+	sigjmp_buf env;
 	unsigned done:1;
 } print_context[THREAD_MAX];
 

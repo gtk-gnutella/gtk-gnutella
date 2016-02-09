@@ -689,6 +689,8 @@ src/lib/compat_poll.c
 src/lib/compat_poll.h
 src/lib/compat_sendfile.c
 src/lib/compat_sendfile.h
+src/lib/compat_setjmp.c
+src/lib/compat_setjmp.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
 src/lib/compat_statvfs.c

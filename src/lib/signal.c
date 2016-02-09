@@ -433,7 +433,7 @@ signal_cleanup_add(signal_cleanup_t cleanup)
 	}
 }
 
-static Sigjmp_buf sig_cleanup_env;
+static sigjmp_buf sig_cleanup_env;
 
 static void
 signal_cleanup_got_signal(int signo)
@@ -441,7 +441,7 @@ signal_cleanup_got_signal(int signo)
 	s_rawwarn("%s(): %s received, continuing...",
 		G_STRFUNC, signal_name(signo));
 
-	Siglongjmp(sig_cleanup_env, signo);
+	siglongjmp(sig_cleanup_env, signo);
 }
 
 /**
@@ -511,7 +511,7 @@ signal_perform_cleanup(void)
  * is close to the address of the routine.
  */
 
-static Sigjmp_buf sig_pc_env;
+static sigjmp_buf sig_pc_env;
 
 /**
  * Compute the PC register index into ``sig_pc_regnum''.
@@ -644,6 +644,49 @@ sig_get_pc(const void *u)
 #endif	/* USE_UC_MCONTEXT && SA_SIGINFO */
 
 static volatile sig_atomic_t in_signal_abort;
+
+/**
+ * Get the signal handler level, 0 meaning we are not in a signal handler.
+ *
+ * This is only meant to be used by compat_setjmp() and compat_sigsetjmp().
+ *
+ * @param stid		the small thread ID for which we want the handler level
+ *
+ * @return the signal handler level for the specified thread.
+ */
+sig_atomic_t
+signal_thread_handler_level(uint stid)
+{
+	g_assert(stid < THREAD_MAX);
+
+	return in_signal_handler[stid];
+}
+
+/**
+ * Set the current signal handler level for the calling thread.
+ *
+ * This is only meant to be used by compat_longjmp() and compat_siglongjmp().
+ *
+ * @param stid		the thread ID for which we want to set the handler level
+ * @param level		the new handler level we want to set
+ */
+void
+signal_thread_handler_level_set(uint stid, sig_atomic_t level)
+{
+	sig_atomic_t old_level;
+
+	g_assert(stid < THREAD_MAX);
+	g_assert(level >= 0);
+
+	old_level = in_signal_handler[stid];
+
+	g_assert_log(level <= old_level,
+		"%s(): level=%ld, old_level=%ld, attempt to use stale context?",
+		G_STRFUNC, (long) level, (long) old_level);
+
+	in_signal_handler[stid] = level;
+	in_safe_handler[stid] = FALSE;		/* Assume the worst */
+}
 
 /**
  * Check whether thread ID is within an asychronous signal handler.
