@@ -1625,8 +1625,23 @@ stacktrace_routine_name(const void *pc, bool offset)
 	 * memory allocation may not be safe anyway.
 	 */
 
-	if (NULL == name)
-		name = dl_util_get_name(pc);
+	if (NULL == name) {
+		static bool computing[THREAD_MAX];
+		int id = thread_safe_small_id();
+
+		/*
+		 * Prevent recursion through dl_util_get_name() in case we're very
+		 * early in the process and not all the routines that need to be
+		 * initialized have been properly setup.
+		 *		--RAM, 2016-02-09
+		 */
+
+		if (id >= 0 && !computing[id]) {
+			computing[id] = TRUE;
+			name = dl_util_get_name(pc);
+			computing[id] = FALSE;
+		}
+	}
 
 	if (NULL == name) {
 		static char buf[POINTER_BUFLEN];
