@@ -388,7 +388,7 @@ test_spopenve(void)
 
 		signal_catch(SIGPIPE, caught_sigpipe);
 
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 20; i++) {
 			if (Sigsetjmp(jmpbuf, TRUE)) {
 				g_assert(got_sigpipe);
 				goto good;
@@ -415,8 +415,7 @@ test_spopenve(void)
 
 		signal_catch(SIGPIPE, SIG_IGN);
 
-
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 20; i++) {
 			if (Sigsetjmp(jmpbuf, TRUE)) {
 				g_assert(got_sigpipe);
 				goto unexpected_signal;
