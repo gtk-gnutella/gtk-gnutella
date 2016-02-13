@@ -147,6 +147,7 @@ extra_files/el/Makefile.SH
 extra_files/en/FAQ
 extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
+extra_files/en/glossary
 extra_files/favicon.png      GTKG's favorite web icon
 extra_files/fr/FAQ
 extra_files/fr/Jmakefile
