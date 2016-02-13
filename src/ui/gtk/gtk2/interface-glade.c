@@ -1345,10 +1345,10 @@ create_main_window (void)
   GtkWidget *menu_file;
   GtkWidget *menu_file_menu;
   GtkWidget *menu_prefs;
-  GtkWidget *image2240;
+  GtkWidget *image2291;
   GtkWidget *separator27;
   GtkWidget *quit;
-  GtkWidget *image2241;
+  GtkWidget *image2292;
   GtkWidget *menu_view;
   GtkWidget *menu_view_menu;
   GtkWidget *menu_searchbar_visible;
@@ -1382,9 +1382,10 @@ create_main_window (void)
   GtkWidget *menu_help;
   GtkWidget *menu_help_menu;
   GtkWidget *menu_faq;
-  GtkWidget *image2242;
+  GtkWidget *image2293;
+  GtkWidget *menu_glossary;
   GtkWidget *menu_about;
-  GtkWidget *image2243;
+  GtkWidget *image2294;
   GtkWidget *viewport_searchbar;
   GtkWidget *vbox160;
   GtkWidget *hbox9350;
@@ -1602,10 +1603,10 @@ create_main_window (void)
                               GDK_p, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image2240 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2240, "image2240");
-  gtk_widget_show (image2240);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_prefs), image2240);
+  image2291 = gtk_image_new_from_stock ("gtk-preferences", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2291, "image2291");
+  gtk_widget_show (image2291);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_prefs), image2291);
 
   separator27 = gtk_separator_menu_item_new ();
   gtk_widget_set_name (separator27, "separator27");
@@ -1621,10 +1622,10 @@ create_main_window (void)
                               GDK_q, (GdkModifierType) GDK_CONTROL_MASK,
                               GTK_ACCEL_VISIBLE);
 
-  image2241 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2241, "image2241");
-  gtk_widget_show (image2241);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image2241);
+  image2292 = gtk_image_new_from_stock ("gtk-quit", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2292, "image2292");
+  gtk_widget_show (image2292);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (quit), image2292);
 
   menu_view = gtk_menu_item_new_with_mnemonic (_("_View"));
   gtk_widget_set_name (menu_view, "menu_view");
@@ -1803,20 +1804,26 @@ create_main_window (void)
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_faq);
   gtk_tooltips_set_tip (tooltips, menu_faq, _("Frequently Asked Questions"), NULL);
 
-  image2242 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2242, "image2242");
-  gtk_widget_show (image2242);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image2242);
+  image2293 = gtk_image_new_from_stock ("gtk-info", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2293, "image2293");
+  gtk_widget_show (image2293);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_faq), image2293);
+
+  menu_glossary = gtk_menu_item_new_with_mnemonic (_("Glossary"));
+  gtk_widget_set_name (menu_glossary, "menu_glossary");
+  gtk_widget_show (menu_glossary);
+  gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_glossary);
+  gtk_tooltips_set_tip (tooltips, menu_glossary, _("Glossary"), NULL);
 
   menu_about = gtk_image_menu_item_new_with_mnemonic (_("_About"));
   gtk_widget_set_name (menu_about, "menu_about");
   gtk_widget_show (menu_about);
   gtk_container_add (GTK_CONTAINER (menu_help_menu), menu_about);
 
-  image2243 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image2243, "image2243");
-  gtk_widget_show (image2243);
-  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image2243);
+  image2294 = gtk_image_new_from_stock ("gtk-about", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2294, "image2294");
+  gtk_widget_show (image2294);
+  gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (menu_about), image2294);
 
   viewport_searchbar = gtk_viewport_new (NULL, NULL);
   gtk_widget_set_name (viewport_searchbar, "viewport_searchbar");
@@ -2863,6 +2870,9 @@ create_main_window (void)
   g_signal_connect ((gpointer) menu_faq, "activate",
                     G_CALLBACK (on_menu_faq_activate),
                     NULL);
+  g_signal_connect ((gpointer) menu_glossary, "activate",
+                    G_CALLBACK (on_menu_glossary_activate),
+                    NULL);
   g_signal_connect ((gpointer) menu_about, "activate",
                     G_CALLBACK (on_menu_about_activate),
                     NULL);
@@ -2898,10 +2908,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_file, "menu_file");
   GLADE_HOOKUP_OBJECT (main_window, menu_file_menu, "menu_file_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_prefs, "menu_prefs");
-  GLADE_HOOKUP_OBJECT (main_window, image2240, "image2240");
+  GLADE_HOOKUP_OBJECT (main_window, image2291, "image2291");
   GLADE_HOOKUP_OBJECT (main_window, separator27, "separator27");
   GLADE_HOOKUP_OBJECT (main_window, quit, "quit");
-  GLADE_HOOKUP_OBJECT (main_window, image2241, "image2241");
+  GLADE_HOOKUP_OBJECT (main_window, image2292, "image2292");
   GLADE_HOOKUP_OBJECT (main_window, menu_view, "menu_view");
   GLADE_HOOKUP_OBJECT (main_window, menu_view_menu, "menu_view_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_searchbar_visible, "menu_searchbar_visible");
@@ -2935,9 +2945,10 @@ create_main_window (void)
   GLADE_HOOKUP_OBJECT (main_window, menu_help, "menu_help");
   GLADE_HOOKUP_OBJECT (main_window, menu_help_menu, "menu_help_menu");
   GLADE_HOOKUP_OBJECT (main_window, menu_faq, "menu_faq");
-  GLADE_HOOKUP_OBJECT (main_window, image2242, "image2242");
+  GLADE_HOOKUP_OBJECT (main_window, image2293, "image2293");
+  GLADE_HOOKUP_OBJECT (main_window, menu_glossary, "menu_glossary");
   GLADE_HOOKUP_OBJECT (main_window, menu_about, "menu_about");
-  GLADE_HOOKUP_OBJECT (main_window, image2243, "image2243");
+  GLADE_HOOKUP_OBJECT (main_window, image2294, "image2294");
   GLADE_HOOKUP_OBJECT (main_window, viewport_searchbar, "viewport_searchbar");
   GLADE_HOOKUP_OBJECT (main_window, vbox160, "vbox160");
   GLADE_HOOKUP_OBJECT (main_window, hbox9350, "hbox9350");
@@ -17350,5 +17361,52 @@ create_popup_tray (void)
   gtk_menu_set_accel_group (GTK_MENU (popup_tray), accel_group);
 
   return popup_tray;
+}
+
+GtkWidget*
+create_dlg_glossary (void)
+{
+  GtkWidget *dlg_glossary;
+  GdkPixbuf *dlg_glossary_icon_pixbuf;
+  GtkWidget *scrolledwindow902;
+  GtkWidget *textview_glossary;
+
+  dlg_glossary = gtk_window_new (GTK_WINDOW_TOPLEVEL);
+  gtk_widget_set_name (dlg_glossary, "dlg_glossary");
+  gtk_window_set_position (GTK_WINDOW (dlg_glossary), GTK_WIN_POS_MOUSE);
+  gtk_window_set_default_size (GTK_WINDOW (dlg_glossary), 600, 400);
+  dlg_glossary_icon_pixbuf = create_pixbuf ("icon.48x48.xpm");
+  if (dlg_glossary_icon_pixbuf)
+    {
+      gtk_window_set_icon (GTK_WINDOW (dlg_glossary), dlg_glossary_icon_pixbuf);
+      g_object_unref (dlg_glossary_icon_pixbuf);
+    }
+
+  scrolledwindow902 = gtk_scrolled_window_new (NULL, NULL);
+  gtk_widget_set_name (scrolledwindow902, "scrolledwindow902");
+  gtk_widget_show (scrolledwindow902);
+  gtk_container_add (GTK_CONTAINER (dlg_glossary), scrolledwindow902);
+  gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow902), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
+
+  textview_glossary = gtk_text_view_new ();
+  gtk_widget_set_name (textview_glossary, "textview_glossary");
+  gtk_widget_show (textview_glossary);
+  gtk_container_add (GTK_CONTAINER (scrolledwindow902), textview_glossary);
+  gtk_text_view_set_editable (GTK_TEXT_VIEW (textview_glossary), FALSE);
+  gtk_text_view_set_wrap_mode (GTK_TEXT_VIEW (textview_glossary), GTK_WRAP_WORD);
+  gtk_text_view_set_left_margin (GTK_TEXT_VIEW (textview_glossary), 4);
+  gtk_text_view_set_right_margin (GTK_TEXT_VIEW (textview_glossary), 4);
+
+  g_signal_connect ((gpointer) dlg_glossary, "delete_event",
+                    G_CALLBACK (on_dlg_glossary_delete_event),
+                    NULL);
+
+  /* Store pointers to all widgets, for use by lookup_widget(). */
+  GLADE_HOOKUP_OBJECT_NO_REF (dlg_glossary, dlg_glossary, "dlg_glossary");
+  GLADE_HOOKUP_OBJECT (dlg_glossary, scrolledwindow902, "scrolledwindow902");
+  GLADE_HOOKUP_OBJECT (dlg_glossary, textview_glossary, "textview_glossary");
+
+  gtk_widget_grab_focus (textview_glossary);
+  return dlg_glossary;
 }
 

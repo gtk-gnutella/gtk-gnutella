@@ -123,6 +123,7 @@ gui_ ## name ## _lookup(const gchar *id) \
 
 WIDGET(dlg_about)
 WIDGET(dlg_faq)
+WIDGET(dlg_glossary)
 WIDGET(dlg_ancient)
 WIDGET(dlg_prefs)
 WIDGET(dlg_quit)
@@ -885,6 +886,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	gui_init_dlg_about();
 
     gui_dlg_faq_set(create_dlg_faq());
+    gui_dlg_glossary_set(create_dlg_glossary());
     gui_dlg_ancient_set(create_dlg_ancient());
 
     gui_dlg_prefs_set(create_dlg_prefs());

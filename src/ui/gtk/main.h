@@ -44,6 +44,7 @@
 WIDGET(dlg_about)
 WIDGET(dlg_ancient)
 WIDGET(dlg_faq)
+WIDGET(dlg_glossary)
 WIDGET(dlg_prefs)
 WIDGET(dlg_quit)
 WIDGET(main_window)
