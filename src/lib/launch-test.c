@@ -37,6 +37,7 @@
 #endif
 
 #include "concat.h"
+#include "exit2str.h"
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
