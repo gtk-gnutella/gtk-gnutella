@@ -6400,8 +6400,8 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 
 		rewind_str(0);
 
-		print_str(thread_element_name(te));	/* 0 */
-		print_str(" waiting for ");			/* 1 */
+		print_str(thread_element_name_raw(te));	/* 0 */
+		print_str(" waiting for ");				/* 1 */
 
 		pointer_to_string_buf(l->lock, buf, sizeof buf);
 		type = thread_lock_kind_to_string(l->kind);
@@ -6478,7 +6478,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 	DECLARE_STR(22);
 
 	if G_UNLIKELY(0 == tls->count) {
-		print_str(thread_element_name(te));					/* 0 */
+		print_str(thread_element_name_raw(te));				/* 0 */
 		print_str(" currently holds no recorded locks.\n");	/* 1 */
 		flush_str(fd);
 		return;
@@ -6504,7 +6504,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			print_str(" locks ");					/* 2 */
 
 		print_str("owned by ");						/* 3 */
-		print_str(thread_element_name(te));			/* 4 */
+		print_str(thread_element_name_raw(te));		/* 4 */
 		print_str(", most recent first:\n");		/* 5 */
 		flush_str(fd);
 	}
