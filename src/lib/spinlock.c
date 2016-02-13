@@ -340,6 +340,7 @@ spinlock_loop(volatile spinlock_t *s,
 
 		if G_UNLIKELY(gentime_is_zero(start)) {
 			enum thread_lock_kind kind = THREAD_LOCK_SPINLOCK;
+			g_assert(NULL == element);
 			start = gentime_now_exact();
 			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
 				kind = THREAD_LOCK_MUTEX;

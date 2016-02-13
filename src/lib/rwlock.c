@@ -666,6 +666,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD, file, line);
 
 		if G_UNLIKELY(gentime_is_zero(start)) {
+			g_assert(NULL == element);
 			start = gentime_now_exact();
 			element = thread_lock_waiting_element(rw,
 				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
