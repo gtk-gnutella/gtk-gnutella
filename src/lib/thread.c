@@ -431,6 +431,7 @@ struct thread_element {
 	uint atomic_name:1;				/**< Whether name is an atomic string */
 	uint stack_overflow:1;			/**< Stack overflow was detected */
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
+	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
 	bool add_monitoring;			/**< Must reinstall thread monitoring */
 	bool gone_seen;					/**< Flagged activity from gone thread */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
@@ -2337,6 +2338,7 @@ thread_element_reset(struct thread_element *te)
 	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
+	te->recursive_lockwait = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
 	tsig_emptyset(&te->sig_pending);
@@ -6849,8 +6851,28 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 			}
 		}
 
-		if (0 == tls->count)
+		/*
+		 * Detect recursion if we are registered to wait for a lock and
+		 * we come back here stating that we are going to wait for the same
+		 * exact lock!
+		 */
+
+		if (0 == tls->count) {
 			thread_backtrace_capture(te, THREAD_BT_LOCK);
+		} else if (!te->recursive_lockwait) {
+			size_t i;
+
+			for (i = 0; i < tls->count; i++) {
+				if (lock == tls->arena[i].lock) {
+					te->recursive_lockwait = TRUE;
+					s_miniwarn("recursive waiting on %s %p at %s:%u",
+						thread_lock_kind_to_string(kind), lock, file, line);
+					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
+					s_stacktrace(TRUE, 1);
+					break;
+				}
+			}
+		}
 
 		l = &tls->arena[tls->count++];
 		l->lock = lock;
@@ -6940,8 +6962,10 @@ thread_lock_waiting_done(const void *element, const void *lock)
 		const struct thread_lock *l = &tls->arena[tls->count - 1];
 		if G_LIKELY(lock == l->lock) {
 			tls->count--;
-			if (0 == tls->count)
+			if (0 == tls->count) {
+				te->recursive_lockwait = FALSE;
 				thread_backtrace_invalidate(te, THREAD_BT_LOCK);
+			}
 		} else {
 			size_t i;
 
