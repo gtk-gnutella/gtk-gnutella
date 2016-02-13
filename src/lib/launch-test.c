@@ -211,7 +211,8 @@ test_child_expect_where(pid_t p, bool success, const char *where)
 		emitz("exit status for PID %lu is %d (PASSED) at %s",
 			(ulong) p, WEXITSTATUS(status), where);
 	} else {
-		s_error("abnormal exit for PID %lu at %s", (ulong) p, where);
+		s_error("abnormal exit for PID %lu at %s: %s", (ulong) p, where,
+			exit2str(status));
 	}
 }
 
