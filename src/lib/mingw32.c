@@ -3603,19 +3603,40 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
-	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
-	if (-1 == res) {
-		errno = mingw_last_error();
+	HANDLE h = (HANDLE) _get_osfhandle(fd);
+	DWORD written;
 
-		/*
-		 * If we get EPIPE back, see whether there is a signal handler
-		 * installed for SIGPIPE and raise the signal if there is.
-		 * When there is no signal handler (still set to SIG_DFL),
-		 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
-		 *		--RAM, 2015-11-13
-		 */
+	/*
+	 * Apparently, on Win 7 (but not on XP and I do not know what
+	 * happens on later version after 7), the C runtime causes write()
+	 * to return ENOTSOCK on ERROR_NOACCESS, which should really
+	 * be translated to EFAULT.  Experiments calling WriteFile()
+	 * directly show that it is write() which incorrectly remaps the
+	 * error code, not WriteFile() that returns a different code.
+	 *
+	 * Hence we now provide our own implementation on top of the Windows
+	 * API, without calling write(), to ensure proper errno setting.
+	 *		--RAM, 2016-02-16
+	 */
+
+	if G_UNLIKELY(INVALID_HANDLE_VALUE == h) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if (!WriteFile(h, buf, MIN(count, UINT_MAX), &written, NULL)) {
+		errno = mingw_last_error();
+		written = (ssize_t) -1;
 
 		if G_UNLIKELY(EPIPE == errno) {
+			/*
+			 * If we get EPIPE back, see whether there is a signal handler
+			 * installed for SIGPIPE and raise the signal if there is.
+			 * When there is no signal handler (still set to SIG_DFL),
+			 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
+			 *		--RAM, 2015-11-13
+			 */
+
 			if (SIG_DFL == mingw_sighandler[SIGPIPE]) {
 				s_error("%s(): write to fd #%d caused SIGPIPE",
 					G_STRFUNC, fd);
@@ -3624,7 +3645,8 @@ mingw_write(int fd, const void *buf, size_t count)
 			}
 		}
 	}
-	return res;
+
+	return written;
 }
 
 ssize_t
