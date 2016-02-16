@@ -994,28 +994,27 @@ entropy_collect_gateway(SHA1_context *ctx)
 /**
  * Collect entropy from host.
  *
- * This uses the host's name and its IP addresses.
+ * This uses the name of the host.
  */
 static void
 entropy_collect_host(SHA1_context *ctx)
 {
 	const char *name;
-	pslist_t *hosts, *sl;
 
 	name = local_hostname();
 	sha1_feed_string(ctx, name);
 
-	hosts = name_to_host_addr(name, NET_TYPE_NONE);
-	hosts = pslist_shuffle_with(entropy_minirand, hosts);
-
-	PSLIST_FOREACH(hosts, sl) {
-		host_addr_t *addr = sl->data;
-		struct packed_host_addr packed = host_addr_pack(*addr);
-
-		SHA1_input(ctx, &packed, packed_host_addr_size(packed));
-	}
-
-	host_addr_free_list(&hosts);
+	/*
+	 * We used to call
+	 *
+	 * 	name_to_host_addr(name, NET_TYPE_NONE);
+	 *
+	 * to also lookup the host name and get its IP address but depending
+	 * on the DNS configuration, that could cause long delays, even up to
+	 * a timeout, causing the auto-initialization phase to also timeout,
+	 * leading to a crash!
+	 *		--RAM, 2016-02-16
+	 */
 }
 
 /**
