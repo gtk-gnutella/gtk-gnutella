@@ -516,10 +516,10 @@ upnp_discovered(pslist_t *devlist, void *unused_arg)
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		} else {
-			selected = sl->data;		/* Pick the first */
+			selected = devlist->data;		/* Pick the first */
 
 			if (GNET_PROPERTY(upnp_debug) > 2) {
-				g_message("UPNP randomly picking device \"%s\" among the "
+				g_warning("UPNP randomly picking device \"%s\" among the "
 					"%zu discovered, has external IP %s",
 					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
