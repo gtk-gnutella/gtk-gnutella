@@ -304,6 +304,72 @@ local_hostname(void)
 	return name;
 }
 
+#define ONEMASK ((size_t) (-1) / 0xff)	/* 0x01010101 on 32-bit machine */
+
+/**
+ * Determines the length of a NUL-terminated string looking only at the first
+ * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
+ * returned. Otherwise, the returned value is identical to strlen(str). Thus,
+ * it is safe to pass a possibly non-terminated buffer.
+ *
+ * @param src An initialized buffer.
+ * @param src_size The size of src in number of bytes. IF AND ONLY IF,
+ *        src is NUL-terminated, src_size may exceed the actual buffer length.
+ * @return The number of bytes in "src" before the first found NUL or src_size
+ *		   if there is no NUL.
+ */
+size_t
+clamp_strlen(const char *src, size_t src_size)
+{
+	const char * s;
+
+	/*
+	 * Handle any initial misaligned bytes.
+	 */
+
+	for (s = src; pointer_to_ulong(s) & (sizeof(size_t) - 1); s++) {
+		if G_UNLIKELY(UNSIGNED(s - src) >= src_size)
+			goto done;
+		if G_UNLIKELY(*s == '\0')
+			goto done;		/* Exit if we hit a zero byte. */
+	}
+
+	/*
+	 * Handle complete blocks, using the same processing as utf8_strlen()
+	 * to inspect a whole "size_t" word at a time.
+	 *
+	 * This may read more bytes than are present in the string, should the
+	 * trailing NUL byte be in the middle of a block.
+	 *
+	 * However, this is safe because we cannot cross any page boundary
+	 * by doing so, hence we cannot incur a memory fault as long as the first
+	 * bytes we're reading falls within the given src_size boundaries.
+	 */
+
+	for (; UNSIGNED(s - src) < src_size; s += sizeof(size_t)) {
+		size_t u = *(size_t *) s;	/* Grab 4 or 8 bytes of data */
+
+		if ((u - ONEMASK) & (~u) & (ONEMASK * 0x80))
+			break;				/* Exit loop if there are any zero bytes */
+	}
+
+	if G_UNLIKELY(UNSIGNED(s - src) > src_size)
+		s = src + src_size;
+
+	/*
+	 * Take care of the left-over bytes (at most a "size_t" word) to find
+	 * the exact NUL inside.
+	 */
+
+	for (; UNSIGNED(s - src) < src_size; s++) {
+		if G_UNLIKELY(*s == '\0')
+			break;			/* Exit if we hit a zero byte */
+	}
+
+done:
+	return s - src;
+}
+
 /**
  * Remove antepenultimate char of string if it is a "\r" followed by "\n".
  * Remove final char of string if it is a "\n" or "\r".
@@ -2667,6 +2733,63 @@ misc_init_once(void)
 		}
 	}
 
+	{
+		static const struct {
+			const char *s;
+			const uint src_len;
+			const uint res;
+		} t[] = {
+			{ "",					1, 	0 },
+			{ "ab",					3, 	2 },
+			{ "ab",					2, 	2 },
+			{ "ab",					1, 	1 },
+			{ "abcdefghi",			10,	9 },
+			{ "abcdefghi",			7,	7 },
+			{ "abcdefgh",			9,	8 },
+			{ "abcdefg",			8,	7 },
+			{ "abcdef",				7,	6 },
+			{ "abcdefghijklmnop",	17,	16 },
+			{ "abcdefghijklmno\0p",	17,	15 },
+			{ "abcdefghijklmn\0op",	17,	14 },
+			{ "abcdefghijklm\0nop",	17,	13 },
+			{ "abcdefghijkl\0mnop",	17,	12 },
+			{ "abcdefghijk\0lmnop",	17,	11 },
+			{ "abcdefghij\0klmnop",	17,	10 },
+			{ "abcdefghi\0jklmnop",	17,	9 },
+			{ "abcdefgh\0ijklmnop",	17,	8 },
+			{ "abcdefg",			8,	7 },
+			{ "abcdef\0g",			8,	6 },
+			{ "abcde\0fg",			8,	5 },
+			{ "abcd\0efg",			8,	4 },
+			{ "abc\0defg",			8,	3 },
+			{ "ab\0cdefg",			8,	2 },
+			{ "a\0bcdefg",			8,	1 },
+			{ "\0abcdefg",			8,	0 },
+		};
+		uint i;
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			const char *s = t[i].s;
+			uint src_len = t[i].src_len;
+			uint res = t[i].res;
+
+			g_assert(res <= src_len);
+
+			g_assert_log(res == clamp_strlen(s, src_len),
+				"clamp_strlen(\"%s\", %d) = %zu, expected %u",
+				s, src_len, clamp_strlen(s, src_len), res);
+
+			while (res != 0) {
+				s++;
+				src_len--;
+				res--;
+
+				g_assert_log(res == clamp_strlen(s, src_len),
+					"clamp_strlen(\"%s\", %d) = %zu, expected %u",
+					s, src_len, clamp_strlen(s, src_len), res);
+			}
+		}
+	}
 }
 
 /**

@@ -311,6 +311,8 @@ void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 int bitcmp(const void *s1, const void *s2, size_t n);
 
+size_t clamp_strlen(const char *src, size_t src_size);
+
 /**
  * Returns the length of the string plus one, i.o.w.
  * the required buffer size in bytes.
@@ -342,32 +344,6 @@ strcpy_len(char *dest, const char *src)
 	*q = '\0';
 
 	return q - dest;
-}
-
-/**
- * Determines the length of a NUL-terminated string looking only at the first
- * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
- * returned. Otherwise, the returned value is identical to strlen(str). Thus,
- * it is safe to pass a possibly non-terminated buffer.
- *
- * @param src An initialized buffer.
- * @param src_size The size of src in number of bytes. IF AND ONLY IF,
- *        src is NUL-terminated, src_size may exceed the actual buffer length.
- * @return The number of bytes in "src" before the first found NUL or src_size
- *		   if there is no NUL.
- */
-static inline size_t
-clamp_strlen(const char *src, size_t src_size)
-{
-	const char *p;
-
-	/* @NOTE: memchr() is intentionally NOT used because 'src_size' is allowed
-	 *        to exceed the size of the memory object 'src'.
-	 */
-	for (p = src; src_size-- > 0 && '\0' != *p; p++)
-		continue;
-
-	return p - src;
 }
 
 /**
