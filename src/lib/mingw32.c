@@ -91,6 +91,7 @@
 #include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
+#include "progname.h"
 #include "pslist.h"
 #include "sha1.h"
 #include "signal.h"
@@ -210,9 +211,23 @@ static void
 getlog(bool initial)
 {
 	char buf[128];
+	char *exe;
 
-	str_bprintf(buf, sizeof buf,
-		"%s/%s-log.txt", MINGW_STARTUP_LOGDIR, product_nickname());
+	/*
+	 * Because this is used at startup and progstart() invokes the MINGW32
+	 * startup code before stripping the .exe from the tail of the program
+	 * name, we have to do it here as well.
+	 *
+	 * Normal user code of getprogname() does not have to do that since upon
+	 * return from progstart(), the returned value is correctly stripped if
+	 * necessary.
+	 */
+
+	str_bprintf(buf, sizeof buf, "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
+	exe = is_strcasesuffix(buf, (size_t) -1, ".exe");
+	if (exe != NULL)
+		*exe = '\0';
+	clamp_strcat(buf, sizeof buf, "-log.txt");
 
 	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
