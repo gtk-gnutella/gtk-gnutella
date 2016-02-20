@@ -720,6 +720,7 @@ can_become_ultra(time_t now)
 	bool enough_bw;
 	const char *ok = "** OK **";
 	const char *no = "-- NO --";
+	size_t provision_fd;
 
 	/* Uptime requirements */
 	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
@@ -754,18 +755,27 @@ can_become_ultra(time_t now)
 	 * provision for possible PARQ active queuing, which is why we scale the
 	 * `max_uploads' parameter.
 	 *
-	 * Likewise, we assume that at most 1/4th of the downloads will actually
+	 * Likewise, we assume that at most 1/8th of the downloads will actually
 	 * be active at one time (meaning one fd for the connection and one fd
 	 * for the file being written to).  We count "max_uploads" twice because
 	 * those have one also two fd (for the connection and the file).
 	 */
 
-	enough_fd = (GNET_PROPERTY(max_leaves) + GNET_PROPERTY(max_connections)
-			+ GNET_PROPERTY(max_downloads) + (GNET_PROPERTY(max_downloads) / 4)
-			+ (GNET_PROPERTY(max_uploads) * (1 + NODE_UPLOAD_QUEUE_FD))
-		   	+ GNET_PROPERTY(max_uploads)
-			+ (GNET_PROPERTY(max_banned_fd) / 10) + NODE_CASUAL_FD)
-					< GNET_PROPERTY(sys_nofile);
+	provision_fd = GNET_PROPERTY(max_leaves)
+			+ GNET_PROPERTY(max_connections)
+			+ (GNET_PROPERTY(max_downloads) / 4)
+			+ (GNET_PROPERTY(max_banned_fd) / 10) + NODE_CASUAL_FD;
+
+	/*
+	 * The file descriptors we need to provision for upload are only taken
+	 * into account when upload is possible: it is physically enabled, and
+	 * there are some files actually shared.
+	 */
+
+	if (upload_is_enabled() && 0 != shared_files_scanned())
+		provision_fd += GNET_PROPERTY(max_uploads) * (2 + NODE_UPLOAD_QUEUE_FD);
+
+	enough_fd = provision_fd < GNET_PROPERTY(sys_nofile);
 
 	enough_mem = (GNET_PROPERTY(max_leaves) * NODE_AVG_LEAF_MEM +
 		(GNET_PROPERTY(max_leaves) + GNET_PROPERTY(max_connections))
