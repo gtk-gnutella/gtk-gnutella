@@ -104,7 +104,7 @@ progstart(int argc, char * const *argv)
 	 * mem_is_valid_ptr(), we need to ensure this table is already allocated.
 	 *
 	 * If is also useful on UNIX systems because the first time we're going
-	 * to attempt to caputre a backtrace, we'll call valid_ptr() through
+	 * to attempt to capture a backtrace, we'll call valid_ptr() through
 	 * stacktrace_unwind() and we do not want memory allocation then either.
 	 *
 	 * Hence call mem_is_valid_ptr() now, which, as a side effect, will
