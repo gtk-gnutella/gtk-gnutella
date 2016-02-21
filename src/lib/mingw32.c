@@ -3232,7 +3232,36 @@ mingw_getphysmemsize(void)
 int
 mingw_getdtablesize(void)
 {
-	return _getmaxstdio();
+	/*
+	 * Traditionally, on Windows, the stdio layer can only fopen() 512 files,
+	 * but the low-level I/O layer on top of which it is built can open()
+	 * up to 2048 files.
+	 *
+	 * An application can use _setmaxstdio() to increase the amount of files
+	 * we can fopen(), up to the maximum of 2048.
+	 *
+	 * See: https://msdn.microsoft.com/en-us/library/6e3b887c(v=vs.140).aspx
+	 *
+	 * For our purpose here, we're attempting to return a number that
+	 * quantifies how many "file descriptors" we can have, knowing that we
+	 * do not count sockets in the mix, whereas the UNIX version of
+	 * getdtablesize() does include sockets since they are identified as
+	 * file descriptors.
+	 *
+	 * Hence calling _getmaxstdio() is meaningless.  We know there are going
+	 * to be sockets used, but we do not know exactly how many compared to
+	 * files, since that is application-specific.
+	 *
+	 * Therefore, hardwire 2048, which is a known C runtime maximum and does
+	 * not represent the maximum number of Windows HANDLE we can open, which
+	 * is far larger, but represents the maximum amount of files we're going
+	 * to be able to manage with file descriptors: the size of the table
+	 * mapping a fd to its HANDLE.
+	 *
+	 *		--RAM, 2016-02-21
+	 */
+
+	return 2048;
 }
 
 int
