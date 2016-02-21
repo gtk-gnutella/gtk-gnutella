@@ -812,11 +812,11 @@ vmm_dump_pmap_log(logagent_t *la)
 		 * ``vmf'' before making the call though.
 		 */
 
-		log_debug(la, "VMM [%p, %p] %zuKiB %s%s%s%s (%s)%s",
+		log_debug(la, "VMM [%p, %p] %'zuKiB %s%s%s%s (%s)%s",
 			vmf->start, const_ptr_add_offset(vmf->end, -1),
 			vmf_size(vmf) / 1024, vmf_type_str(vmf->type),
 			hole ? " + " : "",
-			hole ? size_t_to_string(hole / 1024) : "",
+			hole ? size_t_to_gstring(hole / 1024) : "",
 			hole ? "KiB hole" : "",
 			compact_time(delta_time(now, vmf->mtime)),
 			size_is_non_negative(hole) ? "" : " *UNSORTED*");
@@ -5900,17 +5900,17 @@ vmm_close(void)
 
 	if (pages != 0) {
 		s_warning("VMM still holds %zu non-attributed page%s totaling %s KiB",
-			pages, plural(pages), size_t_to_string(memory));
+			pages, plural(pages), size_t_to_gstring(memory));
 		if (vmm_stats.user_pages != 0) {
 			s_warning("VMM holds %zu user page%s (%zu block%s) totaling %s KiB",
 				vmm_stats.user_pages, plural(vmm_stats.user_pages),
 				vmm_stats.user_blocks, plural(vmm_stats.user_blocks),
-				size_t_to_string(vmm_stats.user_memory / 1024));
+				size_t_to_gstring(vmm_stats.user_memory / 1024));
 		}
 		if (vmm_stats.core_pages != 0) {
 			s_message("VMM holds %zu core page%s totaling %s KiB",
 				vmm_stats.core_pages, plural(vmm_stats.core_pages),
-				size_t_to_string(vmm_stats.core_memory / 1024));
+				size_t_to_gstring(vmm_stats.core_memory / 1024));
 		}
 	}
 	if (native_pages != vmm_stats.user_pages + vmm_stats.core_pages) {
@@ -5921,7 +5921,7 @@ vmm_close(void)
 	if (mapped_pages != 0) {
 		s_warning("VMM still holds %zu memory-mapped page%s totaling %s KiB",
 			mapped_pages, plural(mapped_pages),
-			size_t_to_string(mapped_memory));
+			size_t_to_gstring(mapped_memory));
 	}
 }
 
