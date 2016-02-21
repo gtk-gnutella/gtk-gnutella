@@ -9151,6 +9151,13 @@ thread_launch_trampoline(void *arg)
 	thread_exit_internal(u.result, NULL);
 }
 
+/*
+ * In case PTHREAD_STACK_MIN is not defined by <pthread.h>.
+ */
+#ifndef PTHREAD_STACK_MIN
+#define PTHREAD_STACK_MIN 0
+#endif
+
 /**
  * Internal routine to launch new thread.
  *
