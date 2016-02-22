@@ -190,8 +190,18 @@ failure:
 static void
 shell_vtable_settings_log(logagent_t *la)
 {
+	/*
+	 * Since g_mem_is_system_malloc() is deprecated, use pragmas to shut down
+	 * the warning for now.
+	 *		--RAM, 2016-02-22
+	 */
+
+	G_IGNORE_PUSH(-Wdeprecated-declarations);
+
 	log_info(la, "glib's g_malloc() is %s the system's malloc()",
 		g_mem_is_system_malloc() ? "using" : "distinct from");
+
+	G_IGNORE_POP;
 }
 
 typedef void (*shower_cb_t)(logagent_t *la);

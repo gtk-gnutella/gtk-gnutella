@@ -3003,6 +3003,8 @@ malloc_init_vtable(void)
 	hash_table_thread_safe(unknowns);
 #endif
 
+	G_IGNORE_PUSH(-Wdeprecated-declarations);	/* For g_mem_set_vtable() */
+
 #ifdef MALLOC_VTABLE
 	{
 		static GMemVTable vtable;
@@ -3034,6 +3036,8 @@ malloc_init_vtable(void)
 		g_mem_set_vtable(&vtable);
 	}
 #endif	/* MALLOC_VTABLE */
+
+	G_IGNORE_POP;			/* For g_mem_set_vtable() */
 
 	malloc_sanity_checks();
 }
