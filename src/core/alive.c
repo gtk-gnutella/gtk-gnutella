@@ -390,7 +390,7 @@ alive_ack_ping(alive_t *a, const guid_t *muid)
 	struct alive_ping *ap;
 
 	alive_check(a);
-	g_assert(!NODE_TALKS_G2(a->node) == (muid != NULL));
+	g_assert(equiv(NODE_TALKS_G2(a->node), NULL == muid));
 
 	if (NULL == muid) {
 		/*
