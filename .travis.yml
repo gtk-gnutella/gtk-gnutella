@@ -3,24 +3,13 @@ os:
   - osx
   - linux
 
-osx_image: xcode6.4
+osx_image: xcode7.3
 
 before_install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.bz2 | tar -jx  -C ~/gtk-gnutella || echo "Nothing prebuild" ; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl https://git.gnome.org/browse/gtk-osx/plain/gtk-osx-build-setup.sh | sh; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella && cp -v osx/gtk-gnutella.modules ~/gtk-gnutella.modules; fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then git clone https://github.com/jralls/gtk-mac-bundler.git; fi
+  - ./scripts/travis.$TRAVIS_OS_NAME.sh before_install
 
 install:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact bootstrap 2>&1 | tee jhbuild-bootstrap.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-bootstrap.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build meta-gtk-osx-bootstrap 2>&1 | tee jhbuild-meta-gtk-osx-bootstrap.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-bootstrap.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 1." ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build meta-gtk-osx-core 2>&1 | tee jhbuild-meta-gtk-osx-core.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-core.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 2." ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build 2>&1 | tee jhbuild-build.log | grep -e "\*\*\*" -e Making ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-build.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 3." ;fi
-
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then pushd gtk-mac-bundler; make install; popd; fi
+  - ./scripts/travis.$TRAVIS_OS_NAME.sh install
 
 script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export PATH=$PATH:~/.local/bin; JHB=gtk-gnutella ~/.local/bin/jhbuild run ./build.sh --target=osxbundle 2>&1 | tee build.log ;fi

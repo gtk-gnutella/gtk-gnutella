@@ -19,3 +19,5 @@ modules = [ 'meta-gtk-osx-bootstrap', 'meta-gtk-osx-core', 'gtk-gnutella-deps' ]
 if os.environ["MACOSX_DEPLOYMENT_TARGET"] > 10.7:
 	skip.append("openssl")
 #append_autogenargs("libxslt", "--without-python")
+
+append_autogenargs("libxml2", "--with-python-install-dir=" + prefix + "/lib/python2.7/site-packages")
