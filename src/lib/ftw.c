@@ -1337,6 +1337,7 @@ got_cwd:
 
 			if (flags & FTW_O_CHDIR) {
 				char *dir = filepath_directory(dirpath);
+				bool error = FALSE;
 				if (dir != NULL) {
 					if (-1 == chdir(dir)) {
 						if (0 == (flags & FTW_O_SILENT)) {
@@ -1345,9 +1346,11 @@ got_cwd:
 						}
 						HFREE_NULL(fx.calldir);		/* Have not changed cwd! */
 						result = FTW_STATUS_ERROR;
-						goto done;
+						error = TRUE;
 					}
 					HFREE_NULL(dir);
+					if (error)
+						goto done;
 				}
 			}
 
