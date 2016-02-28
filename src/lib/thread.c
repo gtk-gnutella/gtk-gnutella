@@ -7888,7 +7888,7 @@ thread_lock_deadlock(const volatile void *lock)
 	}
 
 	if (NULL == towner) {
-		if (lock == l->lock) {
+		if (l != NULL && lock == l->lock) {
 			kind = l->kind;			/* Normal case: lock is last waited-for */
 		} else {
 			known_kind = FALSE;		/* Not yet known as being waited-for */
