@@ -820,13 +820,12 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		goto done;
 
-	if (!offset) {
+	if (0 == offset) {
 		name = s->name;
 	} else {
 		name = b;
 		addr = const_ptr_add_offset(pc, st->offset);
-		symbols_fmt_name(b, sizeof buf[0], s->name,
-				offset ? ptr_diff(addr, s->addr) : 0);
+		symbols_fmt_name(b, sizeof buf[0], s->name, ptr_diff(addr, s->addr));
 	}
 
 done:
