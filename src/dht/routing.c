@@ -5357,7 +5357,7 @@ dht_route_parse(FILE *f)
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_DHT_ROUTE_TAGS + 1)];
 	char line[1024];
 	unsigned line_no = 0;
-	bool done = FALSE;
+	bool done = TRUE;
 	time_delta_t most_recent = REFRESH_PERIOD;
 	time_t now = tm_time();
 	patricia_t *nodes;
@@ -5366,9 +5366,9 @@ dht_route_parse(FILE *f)
 	host_addr_t addr;
 	uint16 port;
 	kuid_t kuid;
-	vendor_code_t vcode = { 0 };
-	time_t seen = (time_t) -1;
-	time_t ctim = (time_t) -1;
+	vendor_code_t vcode;
+	time_t seen;
+	time_t ctim;
 	uint32 major, minor;
 
 	g_return_if_fail(f);
@@ -5380,6 +5380,18 @@ dht_route_parse(FILE *f)
 		const char *tag_name, *value;
 		char *sp;
 		dht_route_tag_t tag;
+
+		if G_UNLIKELY(done) {
+			/* Reset state */
+			done = FALSE;
+			bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
+			ZERO(&addr);
+			ZERO(&kuid);
+			ZERO(&vcode);
+			port = 0;
+			seen = ctim = (time_t) -1;
+			major = minor = 0;
+		}
 
 		line_no++;
 
@@ -5515,9 +5527,7 @@ dht_route_parse(FILE *f)
 				patricia_insert(nodes, kn->id, kn);
 			}
 
-			/* Reset state */
-			done = FALSE;
-			bit_array_clear_range(tag_used, 0, NUM_DHT_ROUTE_TAGS);
+			/* State will be reset in the loop since "done" is TRUE */
 		}
 		continue;
 
