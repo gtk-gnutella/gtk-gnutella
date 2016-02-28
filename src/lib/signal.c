@@ -1074,7 +1074,7 @@ signal_trampoline(int signo)
 		sigset_t set;
 
 		if (signal_enter_critical(&set)) {
-			if (0 == ATOMIC_GET(&in_signal_handler))
+			if (0 == ATOMIC_GET(&in_signal_handler[id]))
 				ck_free_all(sig_chunk);
 			signal_leave_critical(&set);
 		}
