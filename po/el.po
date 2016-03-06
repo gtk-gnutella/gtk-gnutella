@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Greek (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/el/)\n"
@@ -590,9 +590,8 @@ msgstr "Προστατευμένος κόμβος"
 msgid "Protocol not acceptable"
 msgstr "Μη αποδεκτό πρωτόκολλο"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Συντελεστής συγκρούσεων:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -933,13 +932,12 @@ msgstr ""
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Σφάλμα ανάγνωσης: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Πολύ μεγάλο"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -3208,13 +3206,10 @@ msgstr ""
 "πολλές συνδέσεις να είναι ενεργές καθώς θα προσπαθεί να γεμίσει τις υποδοχές "
 "λήψης."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Μέγιστος αριθμός δικτυακών κόμβων που γίνονται αποδεκτοί.  Για να προαχθείτε "
-"σε υπερ-κόμβο, πρέπει να παραχωρείτε 32-bytes εύρους ανά δικτυακό κόμβο."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Τι γίνεται με τα αρχεία που παραβλέπονται για λήψη."
@@ -8566,6 +8561,9 @@ msgstr ""
 msgid "_Auto-hide leaf traffic stats"
 msgstr ""
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "_Αναζήτηση"
 
@@ -8841,6 +8839,11 @@ msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -9298,9 +9301,8 @@ msgstr[1] "%u/%u λήψεις"
 msgid "Queue frozen"
 msgstr "Η λίστα αναμονής πάγωσε"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Αυτός ο χρόνος"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Επιλέξτε μία ιδιότητα για να δείτε την περιγραφή της."

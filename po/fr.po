@@ -8,9 +8,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-06-25 14:28+0000\n"
-"Last-Translator: mauron\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/fr/)\n"
 "Language: fr\n"
@@ -590,9 +590,8 @@ msgstr "Noeud feuille sous écran"
 msgid "Protocol not acceptable"
 msgstr "Protocole non acceptable"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Proportion de conflits :"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -935,13 +934,12 @@ msgstr "Échec THEX"
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Erreur de lecture : %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Trop grand"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Étiquette de protocole inconnu ou manquant"
@@ -3312,13 +3310,10 @@ msgstr ""
 "Pour se connecter plus vite, gtk-gnutella permet d'établir ce nombre de "
 "connexions actives tant qu'il essaye d'en trouver."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Nombre maximum de feuilles que l'on peut recevoir. Pour être élu ultrapeer, "
-"vous devriez réserver 32 octets de bande passante par feuille."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Que faire avec les fichiers qui seront ignorés pour le téléchargement."
@@ -6461,9 +6456,8 @@ msgstr "Propriété inconnue"
 msgid "Value missing"
 msgstr "Valeur manquante"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "Motif de propriété :"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -9052,6 +9046,9 @@ msgstr "Stats du _trafic Gnutella"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "Cacher _automatiquement les stats du trafic de feuille"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "_Recherche"
 
@@ -9338,6 +9335,11 @@ msgstr ""
 "document FAQ ne peut pas être chargé. Merci de lire la <a href=\"http://gtk-"
 "gnutella.sourceforge.net/?page=faq\">FAQ en ligne</a> à la place.</p></"
 "body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9809,9 +9811,8 @@ msgstr[1] "%u/%u téléchargements"
 msgid "Queue frozen"
 msgstr "File d'attente figée"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Cet intervalle"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Sélectionnez une propriété pour voir sa description."
@@ -9877,9 +9878,3 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
-
-#~ msgid "You seem to have left another gtk-gnutella running"
-#~ msgstr "Vous semblez avoir un autre gtk-gnutella qui tourne"
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "Impossible de créer des sockets d'écoute"

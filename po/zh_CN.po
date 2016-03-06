@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
 "gnutella/language/zh_CN/)\n"
@@ -584,9 +584,8 @@ msgstr "被防御的节点"
 msgid "Protocol not acceptable"
 msgstr "协议不可接受"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "冲突比率："
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -926,13 +925,12 @@ msgstr ""
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "读取错误：%s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "太大"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -8194,6 +8192,9 @@ msgstr "Gnutella 流量统计(_T)："
 msgid "_Auto-hide leaf traffic stats"
 msgstr "自动隐藏叶节点流量统计(_A)："
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "搜索(_S)"
 
@@ -8467,6 +8468,11 @@ msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -8906,9 +8912,8 @@ msgstr[0] "下载 %1$u/%2$u"
 msgid "Queue frozen"
 msgstr "队列已冻结"
 
-#, fuzzy
 msgid "Internal"
-msgstr "本次"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr ""
@@ -8974,6 +8979,3 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "创建监听套接字失败"
