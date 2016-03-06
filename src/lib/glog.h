@@ -213,7 +213,7 @@ typedef void (*gl_log_handler_t)(const char *, GLogLevelFlags,
 
 void gl_log_set_handler(gl_log_handler_t handler, void *data);
 void gl_logv(const char *domain, GLogLevelFlags flags,
-	const char *format, va_list args);
+	const char *format, va_list args) G_PRINTF(3, 0);
 void gl_log(const char *domain, GLogLevelFlags flags,
 	const char *format, ...) G_PRINTF(3, 4);
 void gl_error(const char *domain, const char *format, ...)
