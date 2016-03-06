@@ -316,7 +316,7 @@ whitelist_dns_resolve(struct whitelist *item, bool revalidate)
 /**
  * Loads the whitelist into memory.
  */
-static G_GNUC_COLD void
+static void G_COLD
 whitelist_retrieve(void)
 {
 	char line[1024];
@@ -328,7 +328,7 @@ whitelist_retrieve(void)
 	whitelist_generation++;
 
 	file_path_set(fp, settings_config_dir(), whitelist_file);
-	f = file_config_open_read_norename("Host Whitelist", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read_norename("Host Whitelist", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 
@@ -397,7 +397,7 @@ whitelist_retrieve(void)
 			}
 
 			/* Terminate the string for name_to_host_addr() */
-			hname = h_strndup(start, endptr - start); 
+			hname = h_strndup(start, endptr - start);
 		} else {
             g_warning("%s(): line %d: expected hostname or IP address \"%s\"",
 				G_STRFUNC, linenum, line);
@@ -638,7 +638,7 @@ whitelist_periodic_dns(void *unused_obj)
  * Ensure we will monitor the file to reloead the whitelist soon after
  * the file is modified (or created if missing initially).
  */
-G_GNUC_COLD void
+void G_COLD
 whitelist_init(void)
 {
 	char *path;
@@ -664,7 +664,7 @@ whitelist_init(void)
 /**
  * Frees all entries in the whitelist.
  */
-G_GNUC_COLD void
+void G_COLD
 whitelist_close(void)
 {
     pslist_t *sl;

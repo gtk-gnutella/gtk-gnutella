@@ -36,32 +36,32 @@
 
 /*
  *  Multithreaded Demo Source
- * 
+ *
  *  Copyright (C) 1995 by Sun Microsystems, Inc.
  *  All rights reserved.
- * 
+ *
  *  This file is a product of SunSoft, Inc. and is provided for
  *  unrestricted use provided that this legend is included on all
  *  media and as a part of the software program in whole or part.
  *  Users may copy, modify or distribute this file at will.
- * 
+ *
  *  THIS FILE IS PROVIDED AS IS WITH NO WARRANTIES OF ANY KIND INCLUDING
  *  THE WARRANTIES OF DESIGN, MERCHANTIBILITY AND FITNESS FOR A PARTICULAR
  *  PURPOSE, OR ARISING FROM A COURSE OF DEALING, USAGE OR TRADE PRACTICE.
- * 
+ *
  *  This file is provided with no support and without any obligation on the
  *  part of SunSoft, Inc. to assist in its use, correction, modification or
  *  enhancement.
- * 
+ *
  *  SUNSOFT AND SUN MICROSYSTEMS, INC. SHALL HAVE NO LIABILITY WITH RESPECT
  *  TO THE INFRINGEMENT OF COPYRIGHTS, TRADE SECRETS OR ANY PATENTS BY THIS
  *  FILE OR ANY PART THEREOF.
- * 
+ *
  *  IN NO EVENT WILL SUNSOFT OR SUN MICROSYSTEMS, INC. BE LIABLE FOR ANY
  *  LOST REVENUE OR PROFITS OR OTHER SPECIAL, INDIRECT AND CONSEQUENTIAL
  *  DAMAGES, EVEN IF THEY HAVE BEEN ADVISED OF THE POSSIBILITY OF SUCH
  *  DAMAGES.
- * 
+ *
  *  SunSoft, Inc.
  *  2550 Garcia Avenue
  *  Mountain View, California  94043
@@ -174,7 +174,7 @@ enum tqstate {
  *
  * This is only called when sorting at least TQSORT_THRESH items.
  */
-static G_GNUC_HOT void *
+static void * G_HOT
 tquicksort(void *arg)
 {
 	sort_args_t *sargs = (sort_args_t *) arg;

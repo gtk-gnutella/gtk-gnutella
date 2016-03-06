@@ -100,7 +100,7 @@ clist_sync_rows(GtkCList *clist, void (*func)(int, void *))
 
 	g_return_if_fail(clist);
 	g_return_if_fail(func);
-	
+
 	i = 0;
 	for (iter = clist->row_list; NULL != iter; iter = g_list_next(iter), i++) {
 		GtkCListRow *row;
@@ -116,7 +116,7 @@ clist_copy_text(GtkCList *clist, int row, int column)
 	char *text;
 
 	g_return_val_if_fail(clist, NULL);
-	
+
 	if (
 		row < 0 ||
 		column < 0 ||
@@ -163,7 +163,7 @@ clist_get_cursor_row(GtkCList *clist)
 	int row;
 
 	g_return_val_if_fail(clist, -1);
-	
+
 	row = clist_get_focus_row(clist);
 	return row >= 0 && clist_row_is_selected(clist, row) ? row : -1;
 }
@@ -474,7 +474,7 @@ typedef struct collect_data_struct {
     GSList *results;
     GSList *to_unselect;
 	GCompareFunc cfn;
-	tree_selection_get_data_func gdf;	
+	tree_selection_get_data_func gdf;
 	GtkTreeView *tv;
 	const gchar *name; /* name of the treeview widget (for debugging) */
 	guint column;
@@ -610,7 +610,7 @@ on_tree_view_motion_notify(GtkWidget *widget,
 	g_assert(tvm != NULL);
 	g_assert(tvm->cb != NULL);
 
-#if 0 
+#if 0
 	{
 		gchar type[32];
 #define EVENT_TYPE(x) case x: str_bprintf(type, sizeof type, "%s", #x); break;
@@ -739,7 +739,7 @@ void
 tree_view_set_fixed_height_mode(GtkTreeView *tv, gboolean fixed)
 {
 	g_return_if_fail(tv);
-	
+
 #if GTK_CHECK_VERSION(2, 4, 0)
     g_object_set(GTK_TREE_VIEW(tv), "fixed_height_mode", fixed, NULL_PTR);
 #endif /* GTK+ >= 2.4.0 */
@@ -837,7 +837,7 @@ widget_init_choices(GtkWidget *widget, GtkSignalFunc func,
 		GtkCombo *combo = GTK_COMBO(widget);
 		const gchar *title;
     	guint i;
-		
+
 		for (i = 0; (title = def->data.guint32.choices[i].title) != NULL; i++) {
 			GtkWidget *list_item;
 			GList *l;

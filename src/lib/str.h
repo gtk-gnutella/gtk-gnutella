@@ -79,7 +79,7 @@ struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
  * Public interface.
  */
 
-size_t str_len(const str_t *s) G_GNUC_PURE;
+size_t str_len(const str_t *s) G_PURE;
 str_t *str_new(size_t szhint);
 str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);
@@ -135,22 +135,22 @@ str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
 size_t str_vprintf(str_t *str, const char *fmt, va_list args);
-size_t str_catf(str_t *str, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+size_t str_catf(str_t *str, const char *fmt, ...) G_PRINTF(2, 3);
 size_t str_ncatf(str_t *str, size_t n, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
-size_t str_printf(str_t *str, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+	G_PRINTF(3, 4);
+size_t str_printf(str_t *str, const char *fmt, ...) G_PRINTF(2, 3);
 size_t str_nprintf(str_t *str, size_t n, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
-str_t *str_msg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
-char *str_cmsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+	G_PRINTF(3, 4);
+str_t *str_msg(const char *fmt, ...) G_PRINTF(1, 2);
+char *str_cmsg(const char *fmt, ...) G_PRINTF(1, 2);
 char *str_vcmsg(const char *fmt, va_list args);
-const char *str_smsg(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
-const char *str_smsg2(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+const char *str_smsg(const char *fmt, ...) G_PRINTF(1, 2);
+const char *str_smsg2(const char *fmt, ...) G_PRINTF(1, 2);
 size_t str_bprintf(char *dst, size_t size, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
+	G_PRINTF(3, 4);
 size_t str_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
 size_t str_bcatf(char *dst, size_t size, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
+	G_PRINTF(3, 4);
 size_t str_vbcatf(char *dst, size_t size, const char *fmt, va_list args);
 
 size_t str_test(bool verbose);

@@ -94,7 +94,7 @@ dbmw_check(const dbmw_t *dw)
 }
 
 /**
- * A cached entry (deserialized value). 
+ * A cached entry (deserialized value).
  *
  * A clean item found in the DB has dirty=FALSE, absent=FALSE.
  * A dirty item (new or modified) has dirty=TRUE, absent=FALSE.
@@ -963,7 +963,7 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
 		fill_entry(dw, entry, value, length);
 		dw->count_needs_sync = TRUE;	/* Does not know whether key exists */
 
-	} else { 
+	} else {
 		if (dbg_ds_debugging(dw->dbg, 2, DBG_DSF_CACHING | DBG_DSF_UPDATE)) {
 			dbg_ds_log(dw->dbg, dw, "%s: writing key=%s",
 				G_STRFUNC, dbg_ds_keystr(dw->dbg, key, (size_t) -1));
@@ -989,7 +989,7 @@ dbmw_write(dbmw_t *dw, const void *key, void *value, size_t length)
  * @return pointer to value, or NULL if it was either not found or the
  * deserialization failed.
  */
-G_GNUC_HOT void *
+void * G_HOT
 dbmw_read(dbmw_t *dw, const void *key, size_t *lenptr)
 {
 	struct cached *entry;

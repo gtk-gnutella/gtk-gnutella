@@ -39,7 +39,7 @@
  */
 
 #ifndef HAS_SETPROCTITLE
-void setproctitle(const char *fmt, ...) G_GNUC_PRINTF(1, 2);
+void setproctitle(const char *fmt, ...) G_PRINTF(1, 2);
 #endif
 
 #endif	/* _setproctitle_h_ */

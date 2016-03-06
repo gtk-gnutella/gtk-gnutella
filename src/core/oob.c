@@ -210,7 +210,7 @@ static void
 results_free_remove(struct oob_results *r)
 {
 	oob_results_check(r);
-	
+
 	if (r->ev_expire) {
 		cq_cancel(&r->ev_expire);
 		g_assert(r->refcount > 0);
@@ -287,7 +287,7 @@ results_timeout(cqueue_t *cq, void *obj)
 	}
 
 	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
-	
+
 	/*
 	 * Record an "event" that the OOB results went unclaimed.
 	 *
@@ -535,7 +535,7 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 		 * dynamic IP addresses are very common. The sender might also
 		 * have multiple network interfaces.
 		 */
-		
+
 		g_warning("OOB query #%s might have been proxied: it had IP %s, "
 			"but the LIME/11v2 ACK comes from %s", guid_hex_str(muid),
 			gnet_host_to_string(&r->dest), node_addr(n));
@@ -759,7 +759,7 @@ oob_got_results(gnutella_node_t *n, pslist_t *files,
 /**
  * Initialize out-of-band query hit delivery.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_init(void)
 {
 	results_by_muid = hikset_create(
@@ -771,7 +771,7 @@ oob_init(void)
 /**
  * Cleanup oob_results -- hash table iterator callback
  */
-G_GNUC_COLD static void
+static void G_COLD
 free_oob_kv(void *value, void *unused_udata)
 {
 	struct oob_results *r = value;
@@ -805,7 +805,7 @@ free_servent_kv(void *value, void *unused_udata)
 /**
  * Cleanup at shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_shutdown(void)
 {
 	oob_shutdowning = TRUE;
@@ -822,7 +822,7 @@ oob_shutdown(void)
 /**
  * Final cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 oob_close(void)
 {
 	oob_shutdown_running = TRUE;

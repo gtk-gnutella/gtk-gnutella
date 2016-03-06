@@ -47,6 +47,16 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Some of the generated const variables can be unused, avoid warnings.
+ *
+ * The -Wunused-const-variable warning may not be available with a particular
+ * compiler, so the -Wpragmas that is issued before prevents a warning to be
+ * emitted in that case...
+ */
+G_IGNORE(-Wunknown-pragmas);		/* clang does not know -Wpragmas */
+G_IGNORE(-Wpragmas);				/* For gcc, not clang */
+G_IGNORE(-Wunused-const-variable);	/* Appears in clang version 3.4.1 */
 
 gboolean gui_property_variable_monitor_enabled     = FALSE;
 static const gboolean gui_property_variable_monitor_enabled_default = FALSE;
@@ -174,7 +184,7 @@ gboolean gui_property_variable_search_jump_to_created     = TRUE;
 static const gboolean gui_property_variable_search_jump_to_created_default = TRUE;
 guint32  gui_property_variable_search_stats_mode     = 0;
 static const guint32  gui_property_variable_search_stats_mode_default = 0;
-prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = { 
+prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = {
     {N_("disable"), 0},
     {N_("by words"), 1},
     {N_("by whole query"), 2},
@@ -199,7 +209,7 @@ gboolean gui_property_variable_gnet_stats_hops     = FALSE;
 static const gboolean gui_property_variable_gnet_stats_hops_default = FALSE;
 guint32  gui_property_variable_gnet_stats_source     = 0;
 static const guint32  gui_property_variable_gnet_stats_source_default = 0;
-prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = { 
+prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
     {N_("TCP & UDP"), GNET_STATS_FULL},
     {N_("TCP only"), GNET_STATS_TCP_ONLY},
     {N_("UDP only"), GNET_STATS_UDP_ONLY},
@@ -207,7 +217,7 @@ prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
 };
 guint32  gui_property_variable_gnet_stats_drop_reasons_type     = MSG_TOTAL;
 static const guint32  gui_property_variable_gnet_stats_drop_reasons_type_default = MSG_TOTAL;
-prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] = { 
+prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] = {
     {N_("Unknown"), MSG_UNKNOWN},
     {N_("Ping"), MSG_INIT},
     {N_("Pong"), MSG_INIT_RESPONSE},
@@ -296,7 +306,7 @@ guint32  gui_property_variable_gnet_stats_byte_col_widths[6]     = { 60, 20, 20,
 static const guint32  gui_property_variable_gnet_stats_byte_col_widths_default[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gui_property_variable_config_toolbar_style     = 4;
 static const guint32  gui_property_variable_config_toolbar_style_default = 4;
-prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = { 
+prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = {
     {N_("Icons"), 1},
     {N_("Text"), 2},
     {N_("Both (vertical)"), 3},
@@ -305,7 +315,7 @@ prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = {
 };
 guint32  gui_property_variable_search_lifetime     = 0;
 static const guint32  gui_property_variable_search_lifetime_default = 0;
-prop_def_choice_t gui_property_variable_search_lifetime_choices[] = { 
+prop_def_choice_t gui_property_variable_search_lifetime_choices[] = {
     {N_("This session"), 0},
     {N_("1 hour"), 1},
     {N_("4 hours"), 4},
@@ -350,7 +360,7 @@ static const gboolean gui_property_variable_guess_stats_show_total_default = TRU
 
 static prop_set_t *gui_property;
 
-G_GNUC_COLD prop_set_t *
+prop_set_t * G_COLD
 gui_prop_init(void) {
     guint32 n;
 
@@ -2822,7 +2832,7 @@ gui_prop_init(void) {
 /**
  * Free memory allocated by the property set.
  */
-G_GNUC_COLD void
+void G_COLD
 gui_prop_shutdown(void) {
     guint32 n;
 
@@ -3061,7 +3071,7 @@ gui_prop_get_by_regex(const char *pattern, int *error)
 void
 gui_prop_set_from_string(property_t prop, const char *val)
 {
-	prop_set_from_string(gui_property, prop, val, FALSE);	
+	prop_set_from_string(gui_property, prop, val, FALSE);
 }
 
 /**

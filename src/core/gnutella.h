@@ -274,7 +274,7 @@ gnutella_msg_search_results_set_host_speed(gnutella_msg_search_results_t *msg,
  */
 
 typedef	uint8 gnutella_search_t[2];
-	
+
 /* The logic layout of the QUERY message is as follows:
  *
  *  struct gnutella_msg_search_ {
@@ -355,7 +355,7 @@ gnutella_msg_push_request_set_guid(gnutella_msg_push_request_t *msg,
 	const struct guid *guid)
 {
 	uint8 *u8 = (void *) msg;
-	memcpy(&u8[GTA_HEADER_SIZE], guid, 16);	
+	memcpy(&u8[GTA_HEADER_SIZE], guid, 16);
 }
 
 static inline void
@@ -489,7 +489,7 @@ gnutella_msg_qrp_reset_set_infinity(gnutella_msg_qrp_reset_t *msg,
  */
 
 typedef uint8 gnutella_qrp_patch_t[5];
-	
+
 static inline uint8
 gnutella_qrp_patch_get_variant(const void *data)
 {
@@ -596,7 +596,7 @@ gnutella_msg_qrp_patch_set_entry_bits(gnutella_msg_qrp_patch_t *msg,
  */
 
 typedef uint8 gnutella_vendor_t[8];
-	
+
 static inline uint32
 gnutella_vendor_get_code(const void *data)
 {
@@ -674,13 +674,13 @@ gnutella_msg_size_check(void)
 
 	STATIC_ASSERT(14 == sizeof(gnutella_init_response_t));
 	STATIC_ASSERT(23 + 14 == sizeof(gnutella_msg_init_response_t));
-	
+
 	STATIC_ASSERT(11 == sizeof(gnutella_search_results_t));
 	STATIC_ASSERT(23 + 11 == sizeof(gnutella_msg_search_results_t));
-	
+
 	STATIC_ASSERT(2 == sizeof(gnutella_search_t));
 	STATIC_ASSERT(23 + 2 == sizeof(gnutella_msg_search_t));
-	
+
 	STATIC_ASSERT(26 == sizeof(gnutella_push_request_t));
 	STATIC_ASSERT(23 + 26 == sizeof(gnutella_msg_push_request_t));
 
@@ -688,10 +688,10 @@ gnutella_msg_size_check(void)
 
 	STATIC_ASSERT(6 == sizeof(gnutella_qrp_reset_t));
 	STATIC_ASSERT(23 + 6 == sizeof(gnutella_msg_qrp_reset_t));
-	
+
 	STATIC_ASSERT(5 == sizeof(gnutella_qrp_patch_t));
 	STATIC_ASSERT(23 + 5 == sizeof(gnutella_msg_qrp_patch_t));
-	
+
 	STATIC_ASSERT(8 == sizeof(gnutella_vendor_t));
 
 	STATIC_ASSERT(23 + 24 == sizeof(gnutella_msg_hsep_t));

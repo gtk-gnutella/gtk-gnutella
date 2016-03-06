@@ -150,7 +150,7 @@ send_ping(gnutella_node_t *n, uint8 ttl)
 	node_check(n);
 	g_assert(!NODE_IS_UDP(n));
 
-	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);	
+	STATIC_ASSERT(GTA_HEADER_SIZE == sizeof *m);
 	m = build_ping_msg(NULL, ttl, FALSE, &size);
 
 	if (NODE_IS_WRITABLE(n)) {
@@ -211,7 +211,7 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 
 		ggep = cast_to_pointer(&m[1]);
 		ggep_stream_init(&gs, ggep, sizeof msg_init.buf - sizeof *m);
-		
+
 		spp = settings_is_leaf() ? 0 : SCP_F_ULTRA;
 		spp |= tls_enabled() ? SCP_F_TLS : 0;
 
@@ -591,7 +591,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			gnet_host_set(&evec[0], info->addr, info->port);
 			gnet_host_set(&evec[1], sender_addr, sender_port);
 
-			ggept_ipp_pack(&gs, host, hcount, evec, G_N_ELEMENTS(evec),
+			ggept_ipp_pack(&gs, host, hcount, evec, N_ITEMS(evec),
 				flags & PING_F_IPV6, flags & PING_F_NO_IPV4);
 		}
 	}
@@ -608,7 +608,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		gnet_host_t host[PCACHE_DHT_MAX_IP];
 		int hcount;
 
-		hcount = dht_fill_random(host, G_N_ELEMENTS(host));
+		hcount = dht_fill_random(host, N_ITEMS(host));
 
 		if (hcount > 0) {
 			ggept_dhtipp_pack(&gs, host, hcount,
@@ -847,7 +847,7 @@ send_personal_info(gnutella_node_t *n, bool control, enum ping_flag flags)
 
 	if (settings_is_ultra()) {
 		uint32 next, prev;
-		
+
 		next = next_pow2(kbytes);
 		prev = next / 2;
 		/* Pick power of 2 which is closest to the actual value. */
@@ -1038,7 +1038,7 @@ pcache_guess_acknowledge(gnutella_node_t *n,
 	 * for a host different from the one sending us the message.
 	 */
 
-	hcount = guess_fill_caught_array(net, FALSE, host, G_N_ELEMENTS(host));
+	hcount = guess_fill_caught_array(net, FALSE, host, N_ITEMS(host));
 
 	meta.guess = (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR;
 	meta.flags = PONG_META_HAS_GUE;
@@ -1062,7 +1062,7 @@ pcache_guess_acknowledge(gnutella_node_t *n,
 
 			if (info.port == n->port && host_addr_equiv(info.addr, n->addr))
 				continue;	/* Don't send pong for the host contacting us */
-	
+
 			goto send_pong;
 		}
 	}
@@ -1182,7 +1182,7 @@ cached_pong_eq(const void *v1, const void *v2)
 /**
  * Initialization.
  */
-G_GNUC_COLD void
+void G_COLD
 pcache_init(void)
 {
 	int h;
@@ -1539,7 +1539,7 @@ pcache_expire(void)
 /**
  * Final shutdown.
  */
-G_GNUC_COLD void
+void G_COLD
 pcache_close(void)
 {
 	static host_type_t types[] = { HOST_ANY, HOST_ULTRA };
@@ -1547,7 +1547,7 @@ pcache_close(void)
 
 	pcache_expire();
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		host_type_t type = types[i];
 
 		pcache_clear_recent(type);
@@ -1901,7 +1901,7 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 
 	for (h = 0; n->pong_missing; h++) {
 		struct cache_line *cl;
-	   
+
 		if (h >= gnutella_header_get_ttl(&n->header))
 			break;
 
@@ -2536,7 +2536,7 @@ pcache_udp_pong_received(gnutella_node_t *n)
 			gnet_host_to_string(&host),
 			host_addr_port_to_string(ipv4_addr, port));
 	}
-	
+
 	/*
 	 * We pretty much ignore pongs we get from UDP, unless they bear
 	 * the GGEP "IPP" or "DHTIPP" extensions, containing a packed set
@@ -2561,10 +2561,10 @@ pcache_udp_pong_received(gnutella_node_t *n)
 			payload = ext_payload(e);
 
 			switch (e->ext_token) {
-			case EXT_T_GGEP_IPP:		len = 6;	nt = NET_TYPE_IPV4; break;	
-			case EXT_T_GGEP_DHTIPP:		len = 6;	nt = NET_TYPE_IPV4; break;	
-			case EXT_T_GGEP_IPP6:		len = 18;	nt = NET_TYPE_IPV6; break;	
-			case EXT_T_GGEP_DHTIPP6:	len = 18;	nt = NET_TYPE_IPV6; break;	
+			case EXT_T_GGEP_IPP:		len = 6;	nt = NET_TYPE_IPV4; break;
+			case EXT_T_GGEP_DHTIPP:		len = 6;	nt = NET_TYPE_IPV4; break;
+			case EXT_T_GGEP_IPP6:		len = 18;	nt = NET_TYPE_IPV6; break;
+			case EXT_T_GGEP_DHTIPP6:	len = 18;	nt = NET_TYPE_IPV6; break;
 			default:
 				g_assert_not_reached();
 			}
@@ -2581,11 +2581,11 @@ pcache_udp_pong_received(gnutella_node_t *n)
 				switch (e->ext_token) {
 				case EXT_T_GGEP_IPP:
 				case EXT_T_GGEP_IPP6:
-					uhc_ipp_extract(n, payload, paylen, nt); 
+					uhc_ipp_extract(n, payload, paylen, nt);
 					break;
 				case EXT_T_GGEP_DHTIPP:
 				case EXT_T_GGEP_DHTIPP6:
-					dht_ipp_extract(n, payload, paylen, nt); 
+					dht_ipp_extract(n, payload, paylen, nt);
 					break;
 				default:
 					g_assert_not_reached();
@@ -2697,7 +2697,7 @@ pcache_pong_received(gnutella_node_t *n)
 	addr = host_addr_peek_ipv4(&n->data[2]);
 	files_count = peek_le32(&n->data[6]);
 	kbytes_count = peek_le32(&n->data[10]);
-	
+
 	meta = pong_extract_metadata(n);
 
 	/*

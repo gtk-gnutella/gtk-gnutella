@@ -63,7 +63,7 @@ typedef struct short_string {
 	char str[SIZE_FIELD_MAX];
 } short_string_t;
 
-static inline G_GNUC_CONST ALWAYS_INLINE int 
+static inline G_CONST ALWAYS_INLINE int
 is_dir_separator(int c)
 {
 	return '/' == c || G_DIR_SEPARATOR == c;
@@ -76,11 +76,11 @@ is_dir_separator(int c)
  * @param x An integer between 0 and 15.
  * @return The ASCII character corresponding to the hex digit [0-9a-f].
  */
-static inline G_GNUC_PURE ALWAYS_INLINE uchar
+static inline G_PURE ALWAYS_INLINE uchar
 hex_digit(uchar x)
 {
 	extern const char hex_alphabet_lower[];
-	return hex_alphabet_lower[x & 0xf]; 
+	return hex_alphabet_lower[x & 0xf];
 }
 
 #if !GLIB_CHECK_VERSION(2,4,0)
@@ -155,7 +155,7 @@ char *sha1_to_base16_buf(const struct sha1 *, char *dst, size_t size);
 const char *sha1_base16(const struct sha1 *);
 const struct sha1 *base32_sha1(const char *base32);
 
-static inline G_GNUC_PURE int
+static inline G_PURE int
 sha1_cmp(const struct sha1 *a, const struct sha1 *b)
 {
 	return memcmp(a, b, SHA1_RAW_SIZE);
@@ -280,7 +280,7 @@ bool is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t common_leading_bits(
 	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
-	G_GNUC_PURE;
+	G_PURE;
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
@@ -311,6 +311,8 @@ void normalize_dir_separators(char *);
 size_t memcmp_diff(const void *a, const void *b, size_t n);
 int bitcmp(const void *s1, const void *s2, size_t n);
 
+size_t clamp_strlen(const char *src, size_t src_size);
+
 /**
  * Returns the length of the string plus one, i.o.w.
  * the required buffer size in bytes.
@@ -335,7 +337,7 @@ strcpy_len(char *dest, const char *src)
 
 	if (NULL == src)
 		return 0;
-	
+
 	while ((c = *p++))
 		*q++ = c;
 
@@ -345,37 +347,11 @@ strcpy_len(char *dest, const char *src)
 }
 
 /**
- * Determines the length of a NUL-terminated string looking only at the first
- * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
- * returned. Otherwise, the returned value is identical to strlen(str). Thus,
- * it is safe to pass a possibly non-terminated buffer.
- *
- * @param src An initialized buffer.
- * @param src_size The size of src in number of bytes. IF AND ONLY IF,
- *        src is NUL-terminated, src_size may exceed the actual buffer length.
- * @return The number of bytes in "src" before the first found NUL or src_size
- *		   if there is no NUL.
- */
-static inline size_t
-clamp_strlen(const char *src, size_t src_size)
-{
-	const char *p;
-
-	/* @NOTE: memchr() is intentionally NOT used because 'src_size' is allowed
-	 *        to exceed the size of the memory object 'src'.
-	 */
-	for (p = src; src_size-- > 0 && '\0' != *p; p++)
-		continue;
-
-	return p - src;
-}
-
-/**
  * Copies at most MIN(dst_size, src_len) bytes from "src" to "dst".
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
- * @param src the source buffer. 
+ * @param dst_size the size of dst in number of bytes.
+ * @param src the source buffer.
  * @param src_len the length of src in number of bytes.
  *
  * @return The number of copied bytes.
@@ -395,7 +371,7 @@ clamp_memcpy(void *dst, size_t dst_size, const void *src, size_t src_len)
  *
  * @param dst the destination buffer.
  * @param dst_size the size of dst in number of bytes.
- * @param c the value to set each byte to. 
+ * @param c the value to set each byte to.
  * @param n the number of bytes to set.
  *
  * @return The number of set bytes.
@@ -434,7 +410,7 @@ clamp_memcmp(const void *a, size_t a_len, const void *b, size_t b_len)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string or at an initialized buffer of least
  *        "src_len" bytes.
  * @param src_len the length of src in number of bytes to copy at maximum. May
@@ -467,7 +443,7 @@ clamp_strncpy(char *dst, size_t dst_size, const char *src, size_t src_len)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string.
  *
  * @return The length of the resulting string in number of bytes.
@@ -486,7 +462,7 @@ clamp_strcpy(char *dst, size_t dst_size, const char *src)
  * @NOTE: The 'dst' buffer is NOT padded with NUL-bytes.
  *
  * @param dst the destination buffer. Must be initialized.
- * @param dst_size the size of dst in number of bytes. 
+ * @param dst_size the size of dst in number of bytes.
  * @param src a NUL-terminated string.
  *
  * @return The length of the resulting string in number of bytes.
@@ -530,7 +506,7 @@ is_null_or_empty(const char *s)
  *
  * @returns the value of i after swapping its byte order.
  */
-static inline G_GNUC_CONST uint32
+static inline G_CONST uint32
 swap_uint32(uint32 i)
 {
 	uint32 a;
@@ -540,7 +516,7 @@ swap_uint32(uint32 i)
 	b = (i & 0xff00ff00) >> 8;    /* b -> 0A0C */
 	i = a | b;                    /* i -> BADC */
 	i = (i << 16) | (i >> 16);    /* i -> DCBA */
-    
+
 	return i;
 }
 
@@ -552,7 +528,7 @@ swap_uint32(uint32 i)
  * @param netmask an IPv4 netmask in host byte order.
  * @return The CIDR prefix length (0..32).
  */
-static inline G_GNUC_CONST WARN_UNUSED_RESULT uint8
+static inline G_CONST WARN_UNUSED_RESULT uint8
 netmask_to_cidr(uint32 netmask)
 #ifdef HAS_BUILTIN_POPCOUNT
 {
@@ -577,7 +553,7 @@ netmask_to_cidr(uint32 netmask)
  * @param bits A value between 1..32.
  * @return The equivalent netmask in host byte order.
  */
-static inline ALWAYS_INLINE G_GNUC_CONST WARN_UNUSED_RESULT uint32
+static inline ALWAYS_INLINE G_CONST WARN_UNUSED_RESULT uint32
 cidr_to_netmask(uint bits)
 {
 	return (uint32)-1 << (32 - bits);
@@ -690,7 +666,7 @@ G_STMT_START { \
 #define BINARY_ARRAY_SORTED(bs_array, bs_type, bs_field, bs_cmp, bs_field2str) \
 G_STMT_START { \
 	size_t bs_index; \
-	size_t bs_size = G_N_ELEMENTS(bs_array); \
+	size_t bs_size = N_ITEMS(bs_array); \
 \
 	for (bs_index = 1; bs_index < bs_size; bs_index++) { \
 		const bs_type *prev = &bs_array[bs_index - 1]; \
@@ -731,14 +707,14 @@ dec_digit(uchar x)
  * @return The resulting length of string not counting the termating NUL.
  *         Note that NULs that might have been copied from "src" are
  *         included in this count. Thus strlen(dst) would return a lower
- *         value in this case. 
+ *         value in this case.
  */
 static inline size_t
 reverse_strlcpy(char * const dst, size_t size,
 	const char *src, size_t src_len)
 {
 	char *p = dst;
-	
+
 	if (size-- > 0) {
 		const char *q = &src[src_len], *end = &dst[MIN(src_len, size)];
 

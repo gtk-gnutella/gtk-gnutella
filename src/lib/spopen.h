@@ -61,9 +61,9 @@ int spopenvpe(const char *path, const char *mode, int fd[2],
 		char *const argv[], char *const envp[]);
 
 int spopenl(const char *path, const char *mode, int fd[2],
-		const char *arg, ...) G_GNUC_NULL_TERMINATED;
+		const char *arg, ...) G_NULL_TERMINATED;
 int spopenlp(const char *path, const char *mode, int fd[2],
-		const char *arg, ...) G_GNUC_NULL_TERMINATED;
+		const char *arg, ...) G_NULL_TERMINATED;
 int spopenle(const char *path, const char *mode, int fd[2],
 		const char *arg, ...);
 

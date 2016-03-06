@@ -66,7 +66,7 @@ static int main_argc;
 static const char **main_argv;
 static const char **main_env;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -121,7 +121,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -131,7 +131,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -146,7 +146,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 
 #define emitz(fmt, ...) emit_zap(G_STRFUNC, (fmt), __VA_ARGS__)
 
-static int G_GNUC_NULL_TERMINATED
+static int G_NULL_TERMINATED
 verbose_spopen(char * const envp[],
 	const char *path, const char *mode, int fd[2], ...)
 {
@@ -289,7 +289,7 @@ test_file_closed(int fd, const char *what)
 	}
 }
 
-static Sigjmp_buf jmpbuf;
+static sigjmp_buf jmpbuf;
 static bool got_sigpipe;
 
 static void
@@ -298,7 +298,7 @@ caught_sigpipe(int signo)
 	s_info("got %s", signal_name(signo));
 	if (SIGPIPE == signo)
 		ATOMIC_INC(&got_sigpipe);
-	Siglongjmp(jmpbuf, signo);
+	siglongjmp(jmpbuf, signo);
 }
 
 static void
@@ -388,7 +388,7 @@ test_spopenve(void)
 
 		signal_catch(SIGPIPE, caught_sigpipe);
 
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 20; i++) {
 			if (Sigsetjmp(jmpbuf, TRUE)) {
 				g_assert(got_sigpipe);
 				goto good;
@@ -415,8 +415,7 @@ test_spopenve(void)
 
 		signal_catch(SIGPIPE, SIG_IGN);
 
-
-		for (i = 0; i < 10; i++) {
+		for (i = 0; i < 20; i++) {
 			if (Sigsetjmp(jmpbuf, TRUE)) {
 				g_assert(got_sigpipe);
 				goto unexpected_signal;
@@ -461,7 +460,7 @@ x_expr_check(bool expr, const char *estr, const char *fn, const char *wh)
 	}
 }
 
-static void G_GNUC_PRINTF(5,6)
+static void G_PRINTF(5,6)
 x_expr_check_log(bool expr, const char *estr, const char *fn, const char *wh,
 	const char *fmt, ...)
 {
@@ -596,7 +595,7 @@ spopenve_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(spopenve_tests); i++) {
+	for (i = 0; i < N_ITEMS(spopenve_tests); i++) {
 		htable_insert(tv, spopenve_tests[i].name, spopenve_tests[i].cb);
 	}
 }

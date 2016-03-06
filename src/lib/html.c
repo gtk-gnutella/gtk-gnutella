@@ -178,22 +178,22 @@ parse_attribute(const struct array attr)
 	size_t i, len;
 	char name[32];
 
-	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_ATTR - 1);
-	
+	STATIC_ASSERT(N_ITEMS(tab) == NUM_HTML_ATTR - 1);
+
 	len = 0;
 	for (i = 0; i < attr.size; i++) {
 		const unsigned char c = attr.data[i];
 
-		if (G_N_ELEMENTS(name) == len || !is_ascii_alpha(c))
+		if (N_ITEMS(name) == len || !is_ascii_alpha(c))
 			break;
 
 		name[len] = ascii_toupper(c);
 		len++;
 	}
 
-	if (len > 0 && len < G_N_ELEMENTS(name)) {
+	if (len > 0 && len < N_ITEMS(name)) {
 		name[len] = '\0';
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].attr;
 		}
@@ -258,13 +258,13 @@ parse_tag(const struct array tag)
 	size_t i, len;
 	char name[32];
 
-	STATIC_ASSERT(G_N_ELEMENTS(tab) == NUM_HTML_TAG);
-	
+	STATIC_ASSERT(N_ITEMS(tab) == NUM_HTML_TAG);
+
 	len = 0;
 	for (i = 0; i < tag.size; i++) {
 		const unsigned char c = tag.data[i];
 
-		if (G_N_ELEMENTS(name) == len)
+		if (N_ITEMS(name) == len)
 			break;
 
 		if (0 == len) {
@@ -279,9 +279,9 @@ parse_tag(const struct array tag)
 		len++;
 	}
 
-	if (len > 0 && len < G_N_ELEMENTS(name)) {
+	if (len > 0 && len < N_ITEMS(name)) {
 		name[len] = '\0';
-		for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+		for (i = 0; i < N_ITEMS(tab); i++) {
 			if (0 == strcmp(name, tab[i].name))
 				return tab[i].tag;
 		}
@@ -323,7 +323,7 @@ html_get_attribute(const struct array *tag, enum html_attr attribute)
 	/**
 	   <tag-name>([<space>][<attr>[<space>]'='[<space>]'"'<value>'"'])*
 	 */
-			
+
 	/* skip <tag-name> */
 	while (i < tag->size && !is_ascii_space(tag->data[i]))
 		i++;
@@ -385,7 +385,7 @@ html_get_attribute(const struct array *tag, enum html_attr attribute)
 			return value;
 	}
 
-not_found:	
+not_found:
 	return zero_array;
 }
 
@@ -407,7 +407,7 @@ parse_named_entity(const struct array entity)
 	size_t i, len;
 	char name[16 + 2];
 
-	if (entity.size >= G_N_ELEMENTS(name) - 2)
+	if (entity.size >= N_ITEMS(name) - 2)
 		goto error;
 
 	len = 0;
@@ -452,7 +452,7 @@ parse_numeric_entity(const struct array entity)
 		v = 0;
 		while (i < entity.size) {
 			unsigned d;
-			
+
 			d = hex2int_inline(entity.data[i++]);
 			if (d >= base)
 				goto error;
@@ -575,7 +575,7 @@ html_render(struct render_context *ctx)
 {
 	const struct html_node *node;
 
-	for (node = ctx->root; node != NULL; node = node->next) {	
+	for (node = ctx->root; node != NULL; node = node->next) {
 		switch (node->type) {
 		case HTML_NODE_ROOT:
 			break;
@@ -616,7 +616,7 @@ html_parse(struct html_output *output, const struct array array)
 	nodes = root;
 
 	tag = zero_array;
-	text = array_init(array.data, 0); 
+	text = array_init(array.data, 0);
 
 	for (i = 0; i < array.size; i += c_len) {
 		const char *next_ptr;
@@ -649,7 +649,7 @@ html_parse(struct html_output *output, const struct array array)
 				tag.size = 0;
 			}
 			break;
-			
+
 		case '>':
 			if (!tag.data) {
 				g_warning("'>' but no open tag");
@@ -670,7 +670,7 @@ html_parse(struct html_output *output, const struct array array)
 				nodes->next = node;
 				nodes = node;
 				tag = zero_array;
-				text = array_init(next_ptr, 0); 
+				text = array_init(next_ptr, 0);
 			}
 			break;
 

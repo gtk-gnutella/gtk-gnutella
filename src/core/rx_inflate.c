@@ -229,7 +229,7 @@ rx_inflate_destroy(rxdrv_t *rx)
 /**
  * Got data from lower layer.
  */
-static bool 
+static bool
 rx_inflate_recv(rxdrv_t *rx, pmsg_t *mb)
 {
 	struct attr *attr = rx->opaque;

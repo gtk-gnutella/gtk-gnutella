@@ -60,7 +60,7 @@ static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 #define PROP_DEF_UNLOCK(d)	mutex_unlock(&d->lock)
 
 const struct {
-	const char *name; 
+	const char *name;
 } prop_type_str[] = {
 	{ "boolean" 	},
 	{ "guint32" 	},
@@ -123,7 +123,7 @@ prop_parse_timestamp(const char *name,
 		ep = strchr(str, ',');
 		ep = ep ? ep : strchr(str, '\0');
 	}
-	
+
 	if (!error && vec)
 		((time_t *) vec)[i] = t;
 
@@ -165,7 +165,7 @@ prop_parse_ip(const char *name,
 	ep = is_strprefix(str, "<none>");
 	if (ep) {
 		error = 0;
-		addr = zero_host_addr;	
+		addr = zero_host_addr;
 		if (endptr) {
 			*endptr = ep;
 		}
@@ -177,7 +177,7 @@ prop_parse_ip(const char *name,
 	} else if (vec) {
 		((host_addr_t *) vec)[i] = addr;
 	}
-	
+
 	return error;
 }
 
@@ -205,7 +205,7 @@ prop_parse_boolean(const char *name,
 	g_assert(name);
 	g_assert(str);
 
-	for (j = 0; j < G_N_ELEMENTS(tab); j++) {
+	for (j = 0; j < N_ITEMS(tab); j++) {
 		if (NULL != (p = is_strcaseprefix(str, tab[j].s))) {
 			b = tab[j].v;
 			break;
@@ -311,7 +311,7 @@ prop_parse_boolean_vector(const char *name, const char *str,
  *
  * @return TRUE if the data was fully parsed. FALSE on failure.
  */
-static gboolean 
+static gboolean
 prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 {
 	size_t i;
@@ -476,7 +476,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 	case PROP_TYPE_STORAGE:
 		buf->data.storage.value = hcopy(d->data.storage.value, d->vector_size);
 		break;
-		
+
 	case NUM_PROP_TYPES:
 		g_assert_not_reached();
 	}
@@ -1361,7 +1361,7 @@ const char *
 prop_type_to_string(prop_set_t *ps, property_t prop)
 {
 	g_assert(PROP(ps,prop).type < NUM_PROP_TYPES);
-	STATIC_ASSERT(NUM_PROP_TYPES == G_N_ELEMENTS(prop_type_str));
+	STATIC_ASSERT(NUM_PROP_TYPES == N_ITEMS(prop_type_str));
 	return prop_type_str[PROP(ps,prop).type].name;
 }
 
@@ -1544,7 +1544,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	const prop_def_t *p = &PROP(ps, prop);
 
 	/* Default value is a constant, no need to lock */
-	
+
 	switch (p->type) {
 	case PROP_TYPE_GUINT32:
 		str_printf(s, "%u", (guint) p->data.guint32.def[0]);
@@ -1965,12 +1965,22 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 */
 
 	if (0 == file_sync_fclose(config)) {
-		if (-1 == rename(newfile, pathname))
+		if (-1 == rename(newfile, pathname)) {
 			s_warning("%s(): could not rename \"%s\" as \"%s\": %m",
 				G_STRFUNC, newfile, pathname);
-		PROP_SET_LOCK(ps);
-		ps->mtime = tm_time_exact();
-		PROP_SET_UNLOCK(ps);
+		} else {
+			if (-1 == stat(pathname, &sb)) {
+				s_warning("%s(): could not stat \"%s\": %m",
+					G_STRFUNC, pathname);
+				PROP_SET_LOCK(ps);
+				ps->mtime = tm_time_exact();
+				PROP_SET_UNLOCK(ps);
+			} else {
+				PROP_SET_LOCK(ps);
+				ps->mtime = sb.st_mtime;
+				PROP_SET_UNLOCK(ps);
+			}
+		}
 	} else {
 		s_warning("%s(): could not flush \"%s\": %m", G_STRFUNC, newfile);
 	}

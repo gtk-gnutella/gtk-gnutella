@@ -71,6 +71,7 @@ struct vmea_stacktrace {
 	void *stack[VMEA_STACKTRACE_DEPTH];		/* PC of callers */
 	size_t count;							/* Number of valid entries */
 	size_t requested;						/* Requested memory size */
+	int stid;								/* Thread where trace was taken */
 	bool success;							/* Whether allocation succeeded */
 };
 
@@ -160,7 +161,7 @@ vmea_close(void)
 	while (count-- != 0) {
 		s_message("%s(): emergency allocation stack for %'zu bytes (%s):",
 			G_STRFUNC, st->requested, st->success ? "OK" : "FAILED");
-		stacktrace_stack_print_decorated(STDERR_FILENO,
+		stacktrace_stack_print_decorated(STDERR_FILENO, st->stid,
 			st->stack, st->count, STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 		st++;
 	}
@@ -205,7 +206,8 @@ vmea_stacktrace(size_t size, bool success)
 	if (NULL == st)
 		return;
 
-	st->count = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 2);
+	st->count = stacktrace_unwind(st->stack, N_ITEMS(st->stack), 2);
+	st->stid = thread_safe_small_id();
 	st->requested = size;
 	st->success = success;
 

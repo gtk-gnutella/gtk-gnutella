@@ -45,7 +45,7 @@ bool
 compat_is_superuser(void)
 {
 	bool ret = FALSE;	/* Assume luser by default */
-	
+
 #ifdef HAS_GETUID
 	ret |= 0 == getuid();
 #endif /* HAS_GETUID */
@@ -174,7 +174,7 @@ compat_memmem(const void *data, size_t data_size,
 	const void *pattern, size_t pattern_size)
 {
 	const char *next, *p, *pat;
-	
+
 	pat = pattern;
 	for (p = data; NULL != p; p = next) {
 		if (data_size < pattern_size) {
@@ -193,7 +193,7 @@ compat_memmem(const void *data, size_t data_size,
 /**
  * See posix_fadvise(2).
  *
- * @param fd A valid file descriptor of a regular file. 
+ * @param fd A valid file descriptor of a regular file.
  * @param offset Start of range.
  * @param size Size of range. Zero means up to end of file but see note below.
  * @param hint One of the POSIX_FADVISE_* values. These CANNOT be combined.

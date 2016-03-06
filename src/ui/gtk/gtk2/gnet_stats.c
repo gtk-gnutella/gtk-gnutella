@@ -242,7 +242,7 @@ gnet_stats_update_messages(const gnet_stats_t *stats)
 	gboolean bytes = FALSE;
 	gint n;
 
-	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(msg_stats_label));
+	STATIC_ASSERT(num_c_gs == N_ITEMS(msg_stats_label));
 
 	gui_prop_get_boolean_val(PROP_GNET_STATS_PERC, &perc);
 	gui_prop_get_boolean_val(PROP_GNET_STATS_BYTES, &bytes);
@@ -368,14 +368,14 @@ gnet_stats_gui_horizon_init(void)
 	guint32 width[num_c_horizon];
 	c_horizon_t n;
 
-	STATIC_ASSERT(num_c_horizon == G_N_ELEMENTS(types));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(num_c_horizon == N_ITEMS(types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 	treeview = treeview_gnet_stats_horizon = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_horizon"));
 
 	gui_prop_get_guint32(PROP_GNET_STATS_HORIZON_COL_WIDTHS,
-		width, 0, G_N_ELEMENTS(width));
-	for (n = 0; n < G_N_ELEMENTS(width); n++) {
+		width, 0, N_ITEMS(width));
+	for (n = 0; n < N_ITEMS(width); n++) {
 		GtkTreeIter iter;
 		gint i;
 
@@ -415,8 +415,8 @@ gnet_stats_gui_flowc_init(void)
 	guint32 width[STATS_FLOWC_COLUMNS];
 	guint n;
 
-	STATIC_ASSERT(STATS_FLOWC_COLUMNS == G_N_ELEMENTS(types));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(STATS_FLOWC_COLUMNS == N_ITEMS(types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 
 	treeview = treeview_gnet_stats_flowc = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_flowc"));
@@ -434,7 +434,7 @@ gnet_stats_gui_flowc_init(void)
 
 	gui_prop_get_guint32(PROP_GNET_STATS_FC_COL_WIDTHS,
 		width, 0, STATS_FLOWC_COLUMNS);
-	for (n = 0; n < G_N_ELEMENTS(width); n++) {
+	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
 
 		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
@@ -456,18 +456,18 @@ gnet_stats_gui_drop_reasons_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING
 	};
-	guint32 width[G_N_ELEMENTS(types)];
+	guint32 width[N_ITEMS(types)];
 	guint n;
 
-	STATIC_ASSERT(2 == G_N_ELEMENTS(types));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(2 == N_ITEMS(types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 
 	treeview = treeview_gnet_stats_drop_reasons = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_drop_reasons"));
 	gui_prop_get_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
-		width, 0, G_N_ELEMENTS(width));
+		width, 0, N_ITEMS(width));
 
-	for (n = 0; n < G_N_ELEMENTS(types); n++) {
+	for (n = 0; n < N_ITEMS(types); n++) {
 		GtkTreeIter iter;
 		gint i;
 
@@ -494,18 +494,18 @@ gnet_stats_gui_general_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING
 	};
-	guint32 width[G_N_ELEMENTS(types)];
+	guint32 width[N_ITEMS(types)];
 	guint n;
 
-	STATIC_ASSERT(2 == G_N_ELEMENTS(types));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(2 == N_ITEMS(types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 
 	treeview = treeview_gnet_stats_general = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_general"));
 	gui_prop_get_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-		width, 0, G_N_ELEMENTS(width));
+		width, 0, N_ITEMS(width));
 
-	for (n = 0; n < G_N_ELEMENTS(types); n++) {
+	for (n = 0; n < N_ITEMS(types); n++) {
 		GtkTreeIter iter;
 		gint i;
 
@@ -537,12 +537,12 @@ gnet_stats_gui_messages_init(void)
 		G_TYPE_STRING,	/* c_gs_gen_queued */
 		G_TYPE_STRING	/* c_gs_generated */
 	};
-	guint32 width[G_N_ELEMENTS(types)];
+	guint32 width[N_ITEMS(types)];
 	guint n;
 
-	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(msg_stats_label));
-	STATIC_ASSERT(num_c_gs == G_N_ELEMENTS(types));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(num_c_gs == N_ITEMS(msg_stats_label));
+	STATIC_ASSERT(num_c_gs == N_ITEMS(types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 
 	treeview = treeview_gnet_stats_messages = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_messages"));
@@ -552,7 +552,7 @@ gnet_stats_gui_messages_init(void)
 		gint i;
 
 		gtk_list_store_append(GTK_LIST_STORE(model), &iter);
-		for (i = 0; (guint) i < G_N_ELEMENTS(msg_stats_label); i++) {
+		for (i = 0; (guint) i < N_ITEMS(msg_stats_label); i++) {
 			gtk_list_store_set(GTK_LIST_STORE(model), &iter,
 				i, i == 0 ? msg_type_str(n) : "-",
 				(-1));
@@ -560,9 +560,9 @@ gnet_stats_gui_messages_init(void)
 	}
 
 	gui_prop_get_guint32(PROP_GNET_STATS_MSG_COL_WIDTHS,
-		width, 0, G_N_ELEMENTS(width));
+		width, 0, N_ITEMS(width));
 
-	for (n = 0; (guint) n < G_N_ELEMENTS(msg_stats_label); n++) {
+	for (n = 0; (guint) n < N_ITEMS(msg_stats_label); n++) {
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			_(msg_stats_label[n]));
 	}
@@ -589,19 +589,19 @@ gnet_stats_gui_recv_init(void)
 		G_TYPE_STRING,
 		G_TYPE_STRING
 	};
-	guint32 width[G_N_ELEMENTS(types)];
+	guint32 width[N_ITEMS(types)];
 	guint n;
 
-	STATIC_ASSERT(STATS_RECV_COLUMNS == G_N_ELEMENTS(types));
-	STATIC_ASSERT(STATS_RECV_COLUMNS == G_N_ELEMENTS(width));
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	STATIC_ASSERT(STATS_RECV_COLUMNS == N_ITEMS(types));
+	STATIC_ASSERT(STATS_RECV_COLUMNS == N_ITEMS(width));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 
 	treeview = treeview_gnet_stats_recv = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_recv"));
 	gui_prop_get_guint32(PROP_GNET_STATS_RECV_COL_WIDTHS,
-		width, 0, G_N_ELEMENTS(width));
+		width, 0, N_ITEMS(width));
 
-	for (n = 0; n < G_N_ELEMENTS(width); n++) {
+	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
 
 		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
@@ -678,7 +678,7 @@ gnet_stats_gui_shutdown(void)
 	guc_hsep_remove_global_table_listener(
 	    (callback_fn_t) gnet_stats_gui_horizon_update);
 
-	for (i = 0; i < G_N_ELEMENTS(widths); i++) {
+	for (i = 0; i < N_ITEMS(widths); i++) {
 		tree_view_save_widths(*widths[i].tv, widths[i].prop);
 	}
 }

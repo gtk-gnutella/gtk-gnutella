@@ -68,22 +68,22 @@ static inline void *
 bsearch(const void *key,
 	const void *base, size_t count, size_t size, cmp_fn_t cmp)
 {
-	size_t low = 0, high = count - 1;
+	size_t low = 0, high = count;
 
 	g_assert(size_is_non_negative(count));
 	g_assert(size_is_positive(size));
 
 	/* Binary search */
 
-	while (low <= high && size_is_non_negative(high)) {
-		size_t mid = low + (high - low) / 2;
+	while (low < high) {
+		size_t mid = (low + high) / 2;
 		const void *item = const_ptr_add_offset(base, mid * size);
 		int c = (*cmp)(key, item);
 
 		if (c > 0)
 			low = mid + 1;
 		else if (c < 0)
-			high = mid - 1;
+			high = mid;		/* Not -1 since high is unsigned */
 		else
 			return deconstify_pointer(item);
 	}
@@ -122,15 +122,15 @@ static inline void *
 blookup(const void *key,
 	const void *base, size_t count, size_t size, cmp_fn_t cmp, get_fn_t gkey)
 {
-	size_t low = 0, high = count - 1;
+	size_t low = 0, high = count;
 
 	g_assert(size_is_non_negative(count));
 	g_assert(size_is_positive(size));
 
 	/* Binary search */
 
-	while (low <= high && size_is_non_negative(high)) {
-		size_t mid = low + (high - low) / 2;
+	while (low < high) {
+		size_t mid = (low + high) / 2;
 		const void *item = const_ptr_add_offset(base, mid * size);
 		const void *ikey = (*gkey)(item);
 		int c = (*cmp)(key, ikey);
@@ -138,7 +138,7 @@ blookup(const void *key,
 		if (c > 0)
 			low = mid + 1;
 		else if (c < 0)
-			high = mid - 1;
+			high = mid;		/* Not -1 since high is unsigned */
 		else
 			return deconstify_pointer(item);
 	}

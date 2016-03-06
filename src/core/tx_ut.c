@@ -1359,7 +1359,7 @@ ut_frag_send(const struct ut_frag *uf)
 			um->fragcnt, plural(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag));
 	}
-	
+
 	if (
 		0 == eslist_count(&attr->pending[prio]) &&
 		0 != tx_sendto(attr->tx->lower, mb, um->to)
@@ -1467,7 +1467,7 @@ ut_pending_send(struct attr *attr)
 	ut_attr_check(attr);
 	g_assert(attr->lower_flowc);	/* Lower layer flow-controlled us */
 
-	for (i = G_N_ELEMENTS(attr->pending); i != 0; i--) {
+	for (i = N_ITEMS(attr->pending); i != 0; i--) {
 		eslist_t *list = &attr->pending[i - 1];
 		struct ut_queued *uq;
 
@@ -1537,7 +1537,7 @@ ut_pending_discard(struct attr *attr)
 
 	ut_attr_check(attr);
 
-	for (i = 0; i < G_N_ELEMENTS(attr->pending); i++) {
+	for (i = 0; i < N_ITEMS(attr->pending); i++) {
 		eslist_t *list = &attr->pending[i];
 		struct ut_queued *uq;
 
@@ -2373,7 +2373,7 @@ tx_ut_init(txdrv_t *tx, void *args)
 	attr->improved_acks = booleanize(targs->advertise_improved_acks);
 	attr->ear_support = booleanize(targs->ear_support);
 
-	for (i = 0; i < G_N_ELEMENTS(attr->pending); i++) {
+	for (i = 0; i < N_ITEMS(attr->pending); i++) {
 		eslist_init(&attr->pending[i], offsetof(struct ut_queued, lk));
 	}
 

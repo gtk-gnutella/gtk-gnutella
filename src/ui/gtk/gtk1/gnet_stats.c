@@ -186,7 +186,7 @@ gnet_stats_gui_init(void)
     gchar *titles[10];
     guint n;
 
-    for (n = 0; n < G_N_ELEMENTS(titles); n ++)
+    for (n = 0; n < N_ITEMS(titles); n ++)
         titles[n] = "-";
 
     clist_stats_msg = GTK_CLIST(
@@ -297,7 +297,7 @@ gnet_stats_gui_shutdown(void)
 {
 	guc_hsep_remove_global_table_listener(
 		(callback_fn_t) gnet_stats_gui_horizon_update);
-	
+
 	clist_save_widths(
 		GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_msg")),
 		PROP_GNET_STATS_MSG_COL_WIDTHS);

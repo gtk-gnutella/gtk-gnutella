@@ -170,7 +170,7 @@ static char base32_map[(size_t) (unsigned char) -1 + 1];
  *
  * @return the amount of bytes decoded into the destination.
  */
-G_GNUC_HOT size_t
+size_t G_HOT
 base32_decode(void *dst, size_t size, const char *data, size_t len)
 {
 	const char *end = ptr_add_offset(dst, size);
@@ -181,7 +181,7 @@ base32_decode(void *dst, size_t size, const char *data, size_t len)
 	size_t i, si;
 
 	if (0 == base32_map[0]) {
-		for (i = 0; i < G_N_ELEMENTS(base32_map); i++) {
+		for (i = 0; i < N_ITEMS(base32_map); i++) {
 			const char *x;
 
 			x = memchr(base32_alphabet, ascii_toupper(i),
@@ -210,11 +210,11 @@ base32_decode(void *dst, size_t size, const char *data, size_t len)
 
 		s[si++] = c;
 
-		if (G_N_ELEMENTS(s) == si || pad > 0 || i == len) {
+		if (N_ITEMS(s) == si || pad > 0 || i == len) {
 			char b[5];
 			size_t bi;
 
-			memset(&s[si], 0, G_N_ELEMENTS(s) - si);
+			memset(&s[si], 0, N_ITEMS(s) - si);
 			si = 0;
 
 			b[0] =
@@ -235,7 +235,7 @@ base32_decode(void *dst, size_t size, const char *data, size_t len)
 				((s[6] & 0x07) << 5) |
 				(s[7] & 0x1f);
 
-			for (bi = 0; bi < G_N_ELEMENTS(b) && q != end; bi++) {
+			for (bi = 0; bi < N_ITEMS(b) && q != end; bi++) {
 				*q++ = b[bi];
 			}
 		}

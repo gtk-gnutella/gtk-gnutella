@@ -182,7 +182,7 @@ uhc_new(const char *host)
 static void
 uhc_free(struct uhc **ptr)
 {
-	if (*ptr) {	
+	if (*ptr) {
 		struct uhc *uu = *ptr;
 		atom_str_free_null(&uu->host);
 		WFREE(uu);
@@ -223,7 +223,7 @@ uhc_list_append(const char *host)
 
 	if (GNET_PROPERTY(bootstrap_debug) > 1)
 		g_debug("adding UHC %s", host);
-			
+
 	hash_list_append(uhc_list, uhc);
 }
 
@@ -239,7 +239,7 @@ uhc_get_next(void)
 	size_t n;
 
 	g_return_val_if_fail(uhc_list, NULL);
-	
+
 	now = tm_time();
 
 	n = hash_list_count(uhc_list);
@@ -345,7 +345,7 @@ uhc_try_next(void)
 
 	if (string_to_host_addr(uhc_ctx.host, NULL, &addr)) {
 		uhc_ctx.addr = addr;
-		
+
 		if (GNET_PROPERTY(bootstrap_debug))
 			g_debug("BOOT UDP host cache \"%s\"", uhc_ctx.host);
 
@@ -381,7 +381,7 @@ uhc_send_ping(void)
 {
 	g_assert(uhc_connecting);
 
-	guid_random_muid(&uhc_ctx.muid);	
+	guid_random_muid(&uhc_ctx.muid);
 
 	if (udp_send_ping(&uhc_ctx.muid, uhc_ctx.addr, uhc_ctx.port, TRUE)) {
 
@@ -445,7 +445,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 		host_addr_t *hav;
 		/* Current UHC was moved to tail by uhc_get_next() */
 		struct uhc *uhc = hash_list_tail(uhc_list);
-		
+
 		/*
 		 * UHC resolved to multiple endpoints. Could be roundrobbin or
 		 * IPv4 and IPv6 addresss. Adding them as seperate entries: if the
@@ -463,10 +463,10 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 			const char *host = host_addr_port_to_string(hav[i], uhc_ctx.port);
 			g_debug("BOOT UDP host cache \"%s\" resolved to %s (#%zu)",
 				uhc_ctx.host, host, i + 1);
-			
+
 			uhc_list_append(host);
 		}
-		
+
 		hash_list_remove(uhc_list, uhc);	/* Replaced by IP address list */
 		uhc_free(&uhc);
 
@@ -629,7 +629,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 /**
  * Initializations.
  */
-G_GNUC_COLD void
+void G_COLD
 uhc_init(void)
 {
 	uint i;
@@ -637,7 +637,7 @@ uhc_init(void)
 	g_return_if_fail(NULL == uhc_list);
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
 
-	for (i = 0; i < G_N_ELEMENTS(boot_hosts); i++) {
+	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
 		const char *host, *ep, *uhc;
 		uint16 port;
 
@@ -661,7 +661,7 @@ uhc_init(void)
 /**
  * Cleanup during process termination.
  */
-G_GNUC_COLD void
+void G_COLD
 uhc_close(void)
 {
 	cq_cancel(&uhc_ctx.timeout_ev);

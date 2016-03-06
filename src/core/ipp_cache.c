@@ -205,7 +205,7 @@ ipp_cache_dump(ipp_cache_t *ic, FILE *f)
 	iter = hash_list_iterator(ic->hosts);
 	while (hash_list_iter_has_next(iter)) {
 		const struct ipp_cache_item *item;
-		
+
 		item = hash_list_iter_next(iter);
 		fprintf(f, "HOST %s\nSEEN %s\nEND\n\n",
 			gnet_host_to_string(&item->host), timestamp_to_string(item->seen));
@@ -251,7 +251,7 @@ static void
 ipp_cache_remove_oldest(ipp_cache_t *ic)
 {
 	struct ipp_cache_item *item;
-	
+
 	item = hash_list_head(ic->hosts);
 	if (item) {
 		hash_list_remove(ic->hosts, item);
@@ -300,7 +300,7 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 		if (++removed >= IPP_CACHE_REMOVE)
 			break;
 	}
-	
+
 	item = hash_list_head(ic->hosts);
 	if (item && ipp_cache_item_expired(ic, item->seen, tm_time())) {
 		ipp_cache_remove_oldest(ic);
@@ -356,7 +356,7 @@ ipp_cache_lookup_intern(const ipp_cache_t *ic,
 		gnet_host_set(&item.host, addr, port);
 		if (hash_list_find(ic->hosts, &item, &key)) {
 			struct ipp_cache_item *item_ptr = deconstify_pointer(key);
-			
+
 			if (!ipp_cache_item_expired(ic, item_ptr->seen, tm_time()))
 				return item_ptr;
 
@@ -410,7 +410,7 @@ ipp_cache_remove_intern(const ipp_cache_t *ic,
 		gnet_host_set(&item.host, addr, port);
 		if (hash_list_find(ic->hosts, &item, &key)) {
 			struct ipp_cache_item *item_ptr = deconstify_pointer(key);
-			
+
 			hash_list_remove(ic->hosts, item_ptr);
 			WFREE(item_ptr);
 			return TRUE;
@@ -434,7 +434,7 @@ ipp_cache_remove(enum ipp_cache_id cid, const host_addr_t addr, uint16 port)
 /**
  * Parse persisted cache.
  */
-static G_GNUC_COLD void
+static void G_COLD
 ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 {
 	bit_array_t tag_used[BIT_ARRAY_SIZE(NUM_IPP_CACHE_TAGS)];
@@ -494,7 +494,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 				G_STRFUNC, ic->name, tag_name, line_no);
 			break;
 		}
-		
+
 		switch (tag) {
 		case IPP_CACHE_TAG_HOST:
 			{
@@ -515,7 +515,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 				damaged = TRUE;
 			}
 			break;
-			
+
 		case IPP_CACHE_TAG_END:
 			if (!bit_array_get(tag_used, IPP_CACHE_TAG_HOST)) {
 				g_warning("%s(): missing HOST tag", G_STRFUNC);
@@ -531,7 +531,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		case IPP_CACHE_TAG_UNKNOWN:
 			/* Ignore */
 			break;
-			
+
 		case NUM_IPP_CACHE_TAGS:
 			g_assert_not_reached();
 			break;
@@ -556,7 +556,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 			} else if (!ipp_cache_item_expired(ic, item.seen, tm_time())) {
 				ipp_cache_insert_intern(ic, &item);
 			}
-			
+
 			/* Reset state */
 			done = FALSE;
 			item = zero_item;
@@ -581,7 +581,7 @@ ipp_cache_clear(ipp_cache_t *ic)
 /**
  * Retrieve cache from disk file.
  */
-static G_GNUC_COLD void
+static void G_COLD
 ipp_cache_load(ipp_cache_t *ic)
 {
 	FILE *f;
@@ -589,7 +589,7 @@ ipp_cache_load(ipp_cache_t *ic)
 	f = file_config_open_read(ic->name, &ic->fp, 1);
 	if (f) {
 		uint n;
-		
+
 		ipp_cache_clear(ic);
 		ipp_cache_parse(ic, f);
 		n = hash_list_length(ic->hosts);
@@ -638,7 +638,7 @@ ipp_cache_invalidate(enum ipp_cache_id cid)
  * structures, as some callbacks may insert data in the caches.  Later on,
  * the caches can be loaded when we know the properties are all initialized.
  */
-G_GNUC_COLD void
+void G_COLD
 ipp_cache_init(void)
 {
 	TOKENIZE_CHECK_SORTED(ipp_cache_tags);

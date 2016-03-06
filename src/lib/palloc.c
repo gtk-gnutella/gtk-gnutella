@@ -212,7 +212,7 @@ pool_gc_idle(void *unused_data)
 /**
  * Install periodic idle callback to run the pool garbage collector.
  */
-static G_GNUC_COLD void
+static void G_COLD
 pool_gc_install(void)
 {
 	evq_raw_idle_add(pool_gc_idle, NULL);
@@ -475,7 +475,7 @@ pool_free(pool_t *p)
 /**
  * Allocate buffer from the pool.
  */
-G_GNUC_HOT void *
+void * G_HOT
 palloc(pool_t *p)
 {
 	void *obj;
@@ -881,20 +881,19 @@ palloc_stats_digest(sha1_t *digest)
 /**
  * Dump consolidated palloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 palloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	pool_info_t stats;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	palloc_all_stats(&stats);
 
 #define DUMPS(x)	log_info(la, "PALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+	size_t_to_string_grp(stats.x, groupped))
 
 #define DUMPV(x)		log_info(la, "PALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?								\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 	DUMPS(allocated);
 	DUMPS(available);
@@ -953,7 +952,7 @@ pool_info_size_cmp(const void *a, const void *b)
 /**
  * Dump per-pool statistics to specified logagent.
  */
-G_GNUC_COLD void
+void G_COLD
 palloc_dump_pool_log(logagent_t *la)
 {
 	pslist_t *sl = pool_info_list();
@@ -966,7 +965,7 @@ palloc_dump_pool_log(logagent_t *la)
 /**
  * Dump palloc statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 palloc_dump_stats(void)
 {
 	s_info("PALLOC running statistics:");

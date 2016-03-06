@@ -1742,7 +1742,7 @@ static void
 cq_subqueue_free(struct csubqueue *csq)
 {
 	csubqueue_check(csq);
-	
+
 	cq_periodic_remove(&csq->heartbeat);
 	csq->sub_cq.cq_magic = 0;
 	WFREE(csq);

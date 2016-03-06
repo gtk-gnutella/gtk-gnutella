@@ -298,7 +298,7 @@ parse_target(const char *buf, gint *error)
  * @param do_reset if TRUE, the ID counter is reset to an initial value.
  * @return a 32-bit integer stuffed into a pointer
  */
-static void * 
+static void *
 target_new_id(gboolean do_reset)
 {
 	static uint32 id_counter;
@@ -420,7 +420,7 @@ search_store_xml(void)
  * This is the new xml version. The searches are normally
  * retrieved from  ~/.gtk-gnutella/searches.xml.
  */
-G_GNUC_COLD gboolean
+gboolean G_COLD
 search_retrieve_xml(void)
 {
     xnode_t *root, *xn;
@@ -431,7 +431,7 @@ search_retrieve_xml(void)
 	vxml_error_t e;
 
 	file_path_set(&fp[0], settings_gui_config_dir(), search_file_xml);
-	fd = file_config_open_read(search_file_type, fp, G_N_ELEMENTS(fp));
+	fd = file_config_open_read(search_file_type, fp, N_ITEMS(fp));
 	if (NULL == fd)
 		return FALSE;
 
@@ -605,7 +605,7 @@ builtin_to_xml(xnode_t *parent)
     g_assert(parent != NULL);
 
     xn = xml_new_empty_child(parent, NODE_BUILTIN);
-	for (i = 0; i < G_N_ELEMENTS(builtins); i++) {
+	for (i = 0; i < N_ITEMS(builtins); i++) {
     	xnode_prop_set(xn, builtins[i].tag,
 			target_to_string(builtins[i].target()));
 	}
@@ -642,7 +642,7 @@ search_to_xml(xnode_t *parent, const struct search *search)
     g_assert(parent != NULL);
 
 	if (guc_search_is_browse(search_handle))
-		return;	
+		return;
 
 	if (guc_search_is_local(search_handle))
 		return;
@@ -1480,7 +1480,7 @@ xml_to_jump_rule(xnode_t *xn, void *data)
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
 	return;
-	
+
 failure:
 	XML_BAD_NODE(xn);
 }
@@ -1537,7 +1537,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
 
     filter->ruleset = g_list_append(filter->ruleset, rule);
 	return;
-	
+
 failure:
 	XML_BAD_NODE(xn);
 }

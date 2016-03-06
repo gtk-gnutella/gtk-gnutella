@@ -52,7 +52,7 @@ update_sensitivity(gboolean sensitive)
 	};
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(items); i++) {
+	for (i = 0; i < N_ITEMS(items); i++) {
 		gtk_widget_set_sensitive(gui_popup_nodes_lookup(items[i].name),
 			sensitive);
 	}

@@ -54,7 +54,7 @@
 #define TOKEN_CLOCK_SKEW	3600		/**< +/- 1 hour */
 #define TOKEN_LIFE			60			/**< lifetime of our tokens */
 #define TOKEN_BASE64_SIZE	(TOKEN_VERSION_SIZE * 4 / 3)	/**< base64 size */
-#define LEVEL_SIZE			(2 * G_N_ELEMENTS(token_keys))	/**< at most */
+#define LEVEL_SIZE			(2 * N_ITEMS(token_keys))	/**< at most */
 #define LEVEL_BASE64_SIZE	(LEVEL_SIZE * 4 / 3 + 3)	/**< +2 for == tail */
 
 #define GIT_SWITCH			1315692000		/* 2011-09-11 */
@@ -627,7 +627,38 @@ static const char *keys_101_8[] = {
 	"645a f525 9f98 7838 5beb eb45 06b4 dd52",
 };
 
-#define KEYS(x)		keys_ ## x, G_N_ELEMENTS(keys_ ## x)
+static const char *keys_101_9[] = {
+	"0e6f 2f6d 8da7 cb51 2a7d eb89 0922 9cd6",
+	"403c 3714 199e 8813 e207 d01b 940d e437",
+	"625a e6c5 5d1f e26b d419 f5e9 05bf f9b9",
+	"041a 27b8 3d17 b670 a9af 4777 6bbc be00",
+	"f7f3 bb5f efb5 c3ae ec4f 5c69 1cdf df27",
+	"2e94 be67 f27f d02d 7eb2 6652 84c3 a341",
+	"d912 c05c 4d11 d5da 5c2a 25d0 80c3 74f3",
+	"0033 a4e7 b00b 1c54 87c0 3e6f a319 709c",
+	"e12d 8b7c 5b39 81e9 6159 8d7a 114a 91fe",
+	"1575 36a3 4232 66b4 4a06 bd7c 4cc5 e479",
+	"83dc 334c 3231 2cf9 9d0c 8f8e 84c7 2f48",
+	"8c27 8287 aeb0 1ce7 39bb 9494 8c1f b58e",
+	"4f21 faf4 fb61 8b6c 7596 df7f 07e2 30d3",
+	"fd8e 3a57 9526 1665 6f8b 0355 f0b7 0a9d",
+	"06b3 ecdd a6f9 9041 b237 de69 096c b912",
+	"b0aa 033d b7a4 3f5b 5eda d3b8 f07b 0520",
+	"8ee5 423e 6c67 465c 3cb7 a165 ec64 e4aa",
+	"a838 a2f8 3129 2ddb 3045 72c0 b859 dd8f",
+	"902c 4a02 d79b fbfa b98f d88e e52b 8772",
+	"2c3a dc95 58b3 51e9 5d83 6644 0cc5 f669",
+	"8f08 629d 0145 183f 9435 267b fbe7 773e",
+	"aa91 2e8b 10a4 9f1c 051d 801b 8f61 19f5",
+	"009d 7610 f444 fec6 6dcf db47 74bf 0e52",
+	"2214 b567 0734 8577 003b 7cea d5b2 9371",
+	"7758 074e b632 d84a e463 2cda bda2 2cd6",
+	"4609 1c68 dfd8 8eb7 a551 103f 5bb9 93ff",
+	"cf8b 4db0 af43 c5ae 5053 a833 7926 9f21",
+	"86e1 e20b 5edd 3261 10d1 7912 6686 ba90",
+};
+
+#define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
  * Describes the keys to use depending on the version.
@@ -656,6 +687,7 @@ struct tokkey {
 	{ { 1, 1,  6, '\0', 0, 0, 1446937200 }, KEYS(101_6) },	/* 2015-11-08 */
 	{ { 1, 1,  7, '\0', 0, 0, 1449961200 }, KEYS(101_7) },	/* 2015-12-13 */
 	{ { 1, 1,  8, '\0', 0, 0, 1450393200 }, KEYS(101_8) },	/* 2015-12-18 */
+	{ { 1, 1,  9, '\0', 0, 0, 1457218800 }, KEYS(101_9) },	/* 2016-03-06 */
 };
 
 #undef KEYS
@@ -689,9 +721,9 @@ static const char *tok_errstr[] = {
 const char *
 tok_strerror(tok_error_t errnum)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(tok_errstr) == TOK_MAX_ERROR);
+	STATIC_ASSERT(N_ITEMS(tok_errstr) == TOK_MAX_ERROR);
 
-	if (UNSIGNED(errnum) >= G_N_ELEMENTS(tok_errstr))
+	if (UNSIGNED(errnum) >= N_ITEMS(tok_errstr))
 		return "Invalid error code";
 
 	return tok_errstr[errnum];
@@ -714,7 +746,7 @@ find_tokkey_upto(time_t now, size_t count)
 			G_STRFUNC, count, stacktrace_caller_name(1));
 	}
 
-	g_assert(count <= G_N_ELEMENTS(token_keys));
+	g_assert(count <= N_ITEMS(token_keys));
 
 	for (i = 0; i < count; i++) {
 		const struct tokkey *tk = &token_keys[i];
@@ -749,7 +781,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 
 
 	if (NULL == tk) {
-		g_assert(count <= G_N_ELEMENTS(token_keys));
+		g_assert(count <= N_ITEMS(token_keys));
 		tk = &token_keys[count - 1];
 
 		if (GNET_PROPERTY(version_debug) > 4) {
@@ -776,7 +808,7 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 static inline const struct tokkey *
 find_tokkey(time_t now)
 {
-	return find_tokkey_upto(now, G_N_ELEMENTS(token_keys));
+	return find_tokkey_upto(now, N_ITEMS(token_keys));
 }
 
 /**
@@ -819,7 +851,7 @@ find_tokkey_version(const version_t *ver, time_t now)
 	 * and we look for the token up to that index only.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		const struct tokkey *tk = &token_keys[i];
 		if (version_cmp(ver, &tk->ver) <= 0) {
 			if (GNET_PROPERTY(version_debug) > 4) {
@@ -832,11 +864,11 @@ find_tokkey_version(const version_t *ver, time_t now)
 
 	if (GNET_PROPERTY(version_debug) > 4) {
 		g_debug("%s: fallback max=%u (/%zu)",
-			G_STRFUNC, i, G_N_ELEMENTS(token_keys));
+			G_STRFUNC, i, N_ITEMS(token_keys));
 	}
 
 	i++;									/* We need a count, not an index */
-	i = MIN(i, G_N_ELEMENTS(token_keys));	/* In case loop did not match */
+	i = MIN(i, N_ITEMS(token_keys));	/* In case loop did not match */
 
 	return find_tokkey_upto_fallback(now, i);
 }
@@ -851,7 +883,7 @@ find_latest(const version_t *rver)
 	const struct tokkey *tk;
 	const struct tokkey *result = NULL;
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		tk = &token_keys[i];
 		if (version_build_cmp(&tk->ver, rver) > 0)
 			break;
@@ -882,10 +914,10 @@ token_random_key(time_t now, uint *idx, const struct tokkey **tkused)
 			warned = TRUE;
 		}
 
-		STATIC_ASSERT(G_N_ELEMENTS(token_keys) >= 1);
+		STATIC_ASSERT(N_ITEMS(token_keys) >= 1);
 
 		/* Pick the latest (most recent) key set from the array */
-		tk = &token_keys[G_N_ELEMENTS(token_keys) - 1];
+		tk = &token_keys[N_ITEMS(token_keys) - 1];
 	}
 
 	random_idx = random_value(tk->count - 1);
@@ -954,7 +986,7 @@ tok_generate(time_t now, const char *version)
 	 * Compute level.
 	 */
 
-	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	lvlsize = N_ITEMS(token_keys) - (tk - token_keys);
 	crc32 = crc32_update(0, VARLEN(digest));
 
 	for (i = 0; i < lvlsize; i++) {
@@ -1173,7 +1205,7 @@ tok_version_valid(
 	 */
 
 	lvllen /= 2;							/* # of keys held remotely */
-	lvlsize = G_N_ELEMENTS(token_keys) - (tk - token_keys);
+	lvlsize = N_ITEMS(token_keys) - (tk - token_keys);
 	lvlsize = MIN(lvllen, lvlsize);
 
 	g_assert(lvlsize >= 1);
@@ -1188,7 +1220,7 @@ tok_version_valid(
 	if (peek_be16(&lvldigest[2*lvlsize]) != crc)
 		return TOK_INVALID_LEVEL;
 
-	for (i = 0; i < G_N_ELEMENTS(token_keys); i++) {
+	for (i = 0; i < N_ITEMS(token_keys); i++) {
 		rtk = &token_keys[i];
 		if (rtk->ver.timestamp > rver.timestamp) {
 			rtk--;							/* `rtk' could not exist remotely */

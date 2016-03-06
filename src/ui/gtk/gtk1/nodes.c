@@ -58,14 +58,14 @@ static void nodes_gui_update_node_info(gnet_node_info_t *n, gint row);
 static void nodes_gui_update_node_flags(const struct nid *node_id,
 				gnet_node_flags_t *flags, gint row);
 
-static bool 
+static bool
 remove_item(hset_t *hs, const struct nid *node_id)
 {
 	const void *orig_key;
 
 	g_return_val_if_fail(hs, FALSE);
 	g_return_val_if_fail(node_id, FALSE);
-	
+
 	if (hset_contains_extended(hs, node_id, &orig_key)) {
     	hset_remove(hs, orig_key);
 		nid_unref(orig_key);
@@ -238,8 +238,8 @@ nodes_gui_early_init(void)
 		{ "popup_nodes_browse_host" },
 	};
 	guint i;
-	
-	for (i = 0; i < G_N_ELEMENTS(items); i++) {
+
+	for (i = 0; i < N_ITEMS(items); i++) {
     	gtk_widget_set_sensitive(gui_popup_nodes_lookup(items[i].name),
 			FALSE);
 	}
@@ -267,7 +267,7 @@ nodes_gui_column_title(int column)
 /**
  * Initialize the nodes controller. Register callbacks in the backend.
  */
-G_GNUC_COLD void
+void G_COLD
 nodes_gui_init(void)
 {
 	unsigned i;
@@ -303,7 +303,7 @@ free_node_id(const void *key, void *unused_udata)
 	return TRUE;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 nodes_gui_remove_all_nodes(void)
 {
 	GtkCList *clist;
@@ -324,7 +324,7 @@ nodes_gui_remove_all_nodes(void)
 /**
  * Unregister callbacks in the backend and clean up.
  */
-G_GNUC_COLD void
+void G_COLD
 nodes_gui_shutdown(void)
 {
 	GtkCList *clist;

@@ -57,7 +57,7 @@ ostream_t *ostream_open_pmsg(pmsg_t *mb);
 bool ostream_close(ostream_t *os);
 
 ssize_t ostream_write(ostream_t *os, const void *data, size_t len);
-ssize_t ostream_printf(ostream_t *os, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+ssize_t ostream_printf(ostream_t *os, const char *fmt, ...) G_PRINTF(2, 3);
 ssize_t ostream_putc(ostream_t *os, int c);
 ssize_t ostream_puts(ostream_t *os, const char *s);
 

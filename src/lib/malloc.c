@@ -439,7 +439,7 @@ real_malloc_safe_size(size_t size)
 /**
  * Mark allocated block trailer.
  */
-static void G_GNUC_UNUSED
+static void G_UNUSED
 block_write_trailer(void *o, size_t size)
 {
 	size_t trailer = MALLOC_TRAILER_LEN;
@@ -463,7 +463,7 @@ block_write_trailer(void *o, size_t size)
  *
  * @return whether an error was detected.
  */
-static bool G_GNUC_UNUSED
+static bool G_UNUSED
 block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
 	bool showstack)
@@ -548,12 +548,12 @@ block_check_marks(const void *o, struct block *b,
 #endif	/* TRACK_MALLOC */
 
 #else	/* !MALLOC_SAFE */
-static inline void G_GNUC_UNUSED
+static inline void G_UNUSED
 block_write_trailer(void *o, size_t size)
 {
 	(void) o; (void) size;
 }
-static inline bool G_GNUC_UNUSED
+static inline bool G_UNUSED
 block_check_trailer(const void *o, size_t size,
 	const char *file, int line, const char *op_file, int op_line,
 	bool showstack)
@@ -732,7 +732,7 @@ malloc_periodic(void *unused_obj)
 	static unsigned errors;
 	char tracked_size[SIZE_FIELD_MAX];
 	char real_size[SIZE_FIELD_MAX];
-	
+
 	(void) unused_obj;
 
 	if (0 == errors) {
@@ -2733,7 +2733,7 @@ stats_fill_array(const void *unused_key, void *value, void *user)
 /**
  * Dump the stats held in the specified array.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stats_array_dump(FILE *f, struct afiller *filler)
 {
 	int i;
@@ -2926,7 +2926,7 @@ alloc_reset(FILE *f, bool total)
  * This routine checks whether calling a simple memory allocation
  * function from glib will cause real_malloc() to be called.
  */
-static G_GNUC_COLD void
+static void G_COLD
 malloc_glib12_check(void)
 {
 	vtable_works = TRUE;
@@ -2958,7 +2958,7 @@ malloc_glib12_check(void)
 /*
  * Sanity checks of malloc settings.
  */
-static G_GNUC_COLD void
+static void G_COLD
 malloc_sanity_checks(void)
 {
 	static const char test_string[] = "test string";
@@ -2992,7 +2992,7 @@ malloc_sanity_checks(void)
  * enables us to see frees for blocks we track but give to GTK, and never
  * see again otherwise.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_init_vtable(void)
 {
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
@@ -3002,6 +3002,8 @@ malloc_init_vtable(void)
 	hash_table_thread_safe(reals);
 	hash_table_thread_safe(unknowns);
 #endif
+
+	G_IGNORE_PUSH(-Wdeprecated-declarations);	/* For g_mem_set_vtable() */
 
 #ifdef MALLOC_VTABLE
 	{
@@ -3035,13 +3037,15 @@ malloc_init_vtable(void)
 	}
 #endif	/* MALLOC_VTABLE */
 
+	G_IGNORE_POP;			/* For g_mem_set_vtable() */
+
 	malloc_sanity_checks();
 }
 
 /**
  * Called from main() to log settings at startup.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_show_settings_log(logagent_t *la)
 {
 	bool has_setting = FALSE;
@@ -3178,7 +3182,7 @@ malloc_show_settings_log(logagent_t *la)
 /**
  * Called from main() to log settings at startup.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_show_settings(void)
 {
 	malloc_show_settings_log(log_agent_stderr_get());
@@ -3187,7 +3191,7 @@ malloc_show_settings(void)
 /**
  * @return amount of VMM memory used by internal tracking structures.
  */
-G_GNUC_COLD size_t
+size_t G_COLD
 malloc_memory_used(void)
 {
 	size_t res = 0;
@@ -3211,7 +3215,7 @@ malloc_memory_used(void)
 /**
  * Dump all the blocks that are still used.
  */
-G_GNUC_COLD void
+void G_COLD
 malloc_close(void)
 {
 #ifdef TRACK_MALLOC

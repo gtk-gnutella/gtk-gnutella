@@ -58,7 +58,7 @@ struct socket_tls_ctx {
 	bool				 	enabled;
 	enum socket_tls_stage	stage;
 	size_t snarf;			/**< Pending bytes if write failed temporarily. */
-	
+
 	inputevt_cond_t			cb_cond;
 	inputevt_handler_t		cb_handler;
 	void *					cb_data;

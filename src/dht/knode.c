@@ -476,7 +476,7 @@ knode_still_alive_probability(const knode_t *kn)
 	if (G_UNLIKELY(!inited)) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(decimation); i++) {
+		for (i = 0; i < N_ITEMS(decimation); i++) {
 			decimation[i] = pow(KNODE_ALIVE_DECIMATION, (double) (i + 1));
 		}
 
@@ -496,7 +496,7 @@ knode_still_alive_probability(const knode_t *kn)
 	if (0 == kn->rpc_timeouts)
 		return p;
 	else {
-		size_t i = MIN(kn->rpc_timeouts, G_N_ELEMENTS(decimation)) - 1;
+		size_t i = MIN(kn->rpc_timeouts, N_ITEMS(decimation)) - 1;
 		return p * decimation[i];
 	}
 }

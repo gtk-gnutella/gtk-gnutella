@@ -342,9 +342,9 @@ static const char *pdht_errstr[] = {
 const char *
 pdht_strerror(pdht_error_t code)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(pdht_errstr) == PDHT_E_MAX);
+	STATIC_ASSERT(N_ITEMS(pdht_errstr) == PDHT_E_MAX);
 
-	if (UNSIGNED(code) >= G_N_ELEMENTS(pdht_errstr))
+	if (UNSIGNED(code) >= N_ITEMS(pdht_errstr))
 		return "invalid PDHT error code";
 
 	return pdht_errstr[code];
@@ -602,7 +602,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 
 	value = walloc(DHT_VALUE_MAX_LEN);
 	ggep_stream_init(&gs, value, DHT_VALUE_MAX_LEN);
-	
+
 	ok = ggep_stream_pack(&gs, GGEP_NAME(client_id),
 		GNET_PROPERTY(servent_guid), GUID_RAW_SIZE, 0);
 
@@ -924,7 +924,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	/*
 	 * Step #2: generate the DHT value
 	 */
-	
+
 	switch (pp->type) {
 	case PDHT_T_ALOC:
 		{
@@ -1443,9 +1443,9 @@ pdht_prox_update_list(void)
 	size_t n;
 	size_t i;
 
-	n = pdht_prox_fill_vector(proxies, G_N_ELEMENTS(proxies));
+	n = pdht_prox_fill_vector(proxies, N_ITEMS(proxies));
 
-	g_assert(n <= G_N_ELEMENTS(proxies));
+	g_assert(n <= N_ITEMS(proxies));
 
 	if (n != pdht_proxy.proxies_count)
 		goto new_proxies;
@@ -1459,7 +1459,7 @@ pdht_prox_update_list(void)
 
 new_proxies:
 
-	g_assert(G_N_ELEMENTS(proxies) == G_N_ELEMENTS(pdht_proxy.proxies));
+	g_assert(N_ITEMS(proxies) == N_ITEMS(pdht_proxy.proxies));
 
 	memcpy(pdht_proxy.proxies, proxies, n * sizeof proxies[0]);
 	pdht_proxy.proxies_count = n;
@@ -1793,7 +1793,7 @@ error:
 /**
  * Initialize the Gnutella DHT layer.
  */
-G_GNUC_COLD void
+void G_COLD
 pdht_init(void)
 {
 	aloc_publishes = hikset_create(
@@ -1822,7 +1822,7 @@ free_publish_kv(void *val, void *unused_x)
 /**
  * Shutdown the Gnutella DHT layer.
  */
-G_GNUC_COLD void
+void G_COLD
 pdht_close(void)
 {
 	if (pdht_proxy.pp != NULL) {

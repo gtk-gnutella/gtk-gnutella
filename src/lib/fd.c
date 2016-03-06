@@ -43,10 +43,13 @@
 #include "glib-missing.h"		/* For g_info() */
 #include "hset.h"
 #include "log.h"				/* For s_carp() */
+#include "once.h"
 
 #include "override.h"			/* Must be the last header included */
 
 static hset_t *fd_sockets;
+static hset_t *fd_preserved;
+static once_flag_t fd_preserved_allocated;
 
 void
 fd_set_close_on_exec(int fd)
@@ -125,25 +128,51 @@ fd_socket_close(const void *data, void *udata)
 }
 
 /**
- * Closes all file descriptors greater or equal to ``first_fd''.
+ * Allocate the fd_preserved set if not done already.
+ */
+static void
+fd_preserved_allocate(void)
+{
+	fd_preserved = hset_create(HASH_KEY_SELF, 0);
+	hset_thread_safe(fd_preserved);
+}
+
+/**
+ * Mark a file descriptor as being preserved from closing by
+ * fd_close_unpreserved_from().
  */
 void
-fd_close_from(const int first_fd)
+fd_preserve(int fd)
+{
+	g_assert(!is_a_socket(fd));
+
+	ONCE_FLAG_RUN(fd_preserved_allocated, fd_preserved_allocate);
+	hset_insert(fd_preserved, int_to_pointer(fd));
+}
+
+/**
+ * Closes all file descriptors greater or equal to ``first_fd'', skipping
+ * preserved ones if ``preserve'' is TRUE.
+ */
+static void
+fd_close_from_internal(const int first_fd, bool preserve)
 {
 	int fd;
 
 	g_return_if_fail(first_fd >= 0);
 
-	if (try_close_from(first_fd))
+	if (!preserve && try_close_from(first_fd))
 		return;
 
 	fd = getdtablesize() - 1;
 	while (fd >= first_fd) {
+		if (preserve && hset_contains(fd_preserved, int_to_pointer(fd)))
+			goto next;
 
 #ifdef HAVE_GTKOSXAPPLICATION
 		/* OS X doesn't allow fds being closed not opened by us. During
 		 * GUI initialisation a new kqueue fd is created for UI events. This
-		 * is visible to us as a fifo which we are not allowed to close. 
+		 * is visible to us as a fifo which we are not allowed to close.
 		 * Set close on exec on all fifo's so we won't leak any of our other
 		 * fifo's
 		 *	-- JA 2011-11-28 */
@@ -160,6 +189,7 @@ fd_close_from(const int first_fd)
 #endif	/* F_MAXFD */
 			}
 		}
+	next:
 		fd--;
 	}
 
@@ -171,7 +201,10 @@ fd_close_from(const int first_fd)
 	 *		--RAM, 2015-04-05
 	 */
 
-	if (is_running_on_mingw() && 3 == first_fd && NULL != fd_sockets) {
+	if (
+		is_running_on_mingw() && !preserve &&
+		3 == first_fd && NULL != fd_sockets
+	) {
 		hset_t *fds = fd_sockets;
 
 		/*
@@ -184,7 +217,28 @@ fd_close_from(const int first_fd)
 
 		fd_sockets = NULL;		/* We don't expect race conditions here */
 		hset_foreach(fds, fd_socket_close, NULL);
+
+		/* Don't bother freeing / clearing set, we're about to exec() */
 	}
+}
+
+/**
+ * Closes all file descriptors greater or equal to ``first_fd''.
+ */
+void
+fd_close_from(const int first_fd)
+{
+	fd_close_from_internal(first_fd, FALSE);
+}
+
+/**
+ * Closes all file descriptors greater or equal to ``first_fd'', skipping
+ * all the ones that were marked as preserved via fd_preserve().
+ */
+void
+fd_close_unpreserved_from(const int first_fd)
+{
+	fd_close_from_internal(first_fd, fd_preserved != NULL);
 }
 
 /**
@@ -192,7 +246,7 @@ fd_close_from(const int first_fd)
  *
  * @return 0 on success, -1 on failure.
  */
-G_GNUC_COLD int
+int G_COLD
 reserve_standard_file_descriptors(void)
 {
 	int fd;
@@ -213,7 +267,7 @@ reserve_standard_file_descriptors(void)
 		/* The following shouldn't happen on POSIX */
 		if (fd != ret) {
 			int fd2 = ret;
-			
+
 			ret = dup2(fd2, fd);
 			close(fd2);
 			if (-1 == ret || !is_open_fd(fd))
@@ -223,7 +277,7 @@ reserve_standard_file_descriptors(void)
 	return 0;
 }
 
-G_GNUC_COLD bool
+bool G_COLD
 fd_need_non_stdio(void)
 {
 	static int needed = -1;
@@ -373,6 +427,8 @@ fd_close(int *fd_ptr)
 	if (fd < 0) {
 		ret = 0;
 	} else {
+		if (fd_preserved != NULL)
+			hset_remove(fd_preserved, int_to_pointer(fd));
 		ret = close(fd);
 		*fd_ptr = -1;
 	}

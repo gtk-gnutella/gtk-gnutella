@@ -242,25 +242,25 @@ net_type_to_string(enum net_type net)
 	return NULL;
 }
 
-static inline G_GNUC_CONST enum net_type 
+static inline G_CONST enum net_type
 host_addr_net(const host_addr_t ha)
 {
 	return ha.net;
 }
 
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 host_addr_is_ipv4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net;
 }
 
-static inline G_GNUC_CONST bool
+static inline G_CONST bool
 host_addr_is_ipv6(const host_addr_t ha)
 {
 	return NET_TYPE_IPV6 == ha.net;
 }
 
-static inline G_GNUC_CONST uint32
+static inline G_CONST uint32
 host_addr_ipv4(const host_addr_t ha)
 {
 	return NET_TYPE_IPV4 == ha.net ? ha.addr.ipv4 : 0;
@@ -272,7 +272,7 @@ host_addr_ipv6(const host_addr_t *ha)
 	return NET_TYPE_IPV6 == ha->net ? ha->addr.ipv6 : NULL;
 }
 
-static inline G_GNUC_CONST host_addr_t
+static inline G_CONST host_addr_t
 host_addr_get_ipv4(uint32 ip)
 {
 	host_addr_t ha;
@@ -286,13 +286,13 @@ host_addr_get_ipv4(uint32 ip)
 	return ha;
 }
 
-static inline G_GNUC_PURE host_addr_t
+static inline G_PURE host_addr_t
 host_addr_peek_ipv4(const void *ipv4)
 {
 	return host_addr_get_ipv4(peek_be32(ipv4));
 }
 
-static inline G_GNUC_PURE host_addr_t
+static inline G_PURE host_addr_t
 host_addr_peek_ipv6(const void *ipv6)
 {
 	host_addr_t ha;
@@ -327,7 +327,7 @@ host_addr_cmp(host_addr_t a, host_addr_t b)
 		{
 			uint i;
 
-			for (i = 0; i < G_N_ELEMENTS(a.addr.ipv6); i++) {
+			for (i = 0; i < N_ITEMS(a.addr.ipv6); i++) {
 				r = CMP(a.addr.ipv6[i], b.addr.ipv6[i]);
 				if (0 != r)
 					break;
@@ -384,7 +384,7 @@ host_addr_matches(const host_addr_t a, const host_addr_t b, uint8 bits)
 }
 
 
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 is_host_addr(const host_addr_t ha)
 {
 	switch (host_addr_net(ha)) {
@@ -513,7 +513,7 @@ unsigned host_addr_hash(host_addr_t ha);
 unsigned host_addr_hash2(host_addr_t ha);
 unsigned host_addr_port_hash(host_addr_t ha, uint16 port);
 unsigned host_addr_port_hash2(host_addr_t ha, uint16 port);
-bool host_addr_equal(const host_addr_t a, const host_addr_t b) G_GNUC_PURE;
+bool host_addr_equal(const host_addr_t a, const host_addr_t b) G_PURE;
 bool host_addr_equiv(const host_addr_t a, const host_addr_t b);
 
 uint host_addr_hash_func(const void *key);
@@ -531,7 +531,7 @@ bool host_addr_is_unspecified(const host_addr_t addr);
 static inline bool
 host_addr_is_ipv4_mapped(const host_addr_t addr)
 {
-	return host_addr_is_ipv6(addr) && 
+	return host_addr_is_ipv6(addr) &&
 		host_addr_matches(addr, ipv6_ipv4_mapped, 96);
 }
 

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, 2010-2012 Raphael Manfredi
+ * Copyright (c) 2004, 2010-2012, 2016 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Stack unwinding and printing support.
  *
  * @author Raphael Manfredi
- * @date 2004, 2010-2012
+ * @date 2004, 2010-2012, 2016
  */
 
 #include "common.h"		/* For RCSID */
@@ -58,6 +58,7 @@
 #include "str.h"
 #include "stringify.h"
 #include "symbols.h"
+#include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
 
@@ -94,18 +95,28 @@ static bool symbols_loaded;
 static symbols_t *symbols;
 static bool stacktrace_inited;
 
-static mutex_t stacktrace_atom_mtx = MUTEX_INIT;
 static mutex_t stacktrace_sym_mtx  = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
 
-#define STACKTRACE_ATOM_LOCK	mutex_lock(&stacktrace_atom_mtx)
-#define STACKTRACE_ATOM_UNLOCK	mutex_unlock(&stacktrace_atom_mtx)
+#define STACKTRACE_CIRCULAR_LEN		THREAD_MAX
 
-#define assert_stacktrace_atom_locked() \
-	assert_mutex_is_owned(&stacktrace_atom_mtx)
+static struct {
+	struct stacktrace circular[STACKTRACE_CIRCULAR_LEN];
+	unsigned idx;
+	bool dirty;
+} stacktrace_atom_buffer;
+
+static hash_table_t *stack_atoms;
+
+#define STACKTRACE_ATOM_LOCK		hash_table_lock(stack_atoms)
+#define STACKTRACE_ATOM_UNLOCK		hash_table_unlock(stack_atoms)
+#define STACKTRACE_ATOM_IS_LOCKED	hash_table_is_locked(stack_atoms)
+
+#define assert_stacktrace_atom_locked() g_assert(STACKTRACE_ATOM_IS_LOCKED)
 
 #define STACKTRACE_SYM_LOCK		mutex_lock(&stacktrace_sym_mtx)
 #define STACKTRACE_SYM_UNLOCK	mutex_unlock(&stacktrace_sym_mtx)
+#define STACKTRACE_SYM_TRYLOCK	mutex_trylock(&stacktrace_sym_mtx)
 
 /**
  * Auto-tuning stack trace offset.
@@ -115,8 +126,6 @@ static once_flag_t stacktrace_atom_inited;
  * to do.
  */
 static size_t stack_auto_offset;
-
-static hash_table_t *stack_atoms;
 
 #ifndef MINGW32
 static void *getreturnaddr(size_t level);
@@ -136,7 +145,7 @@ stacktrace_crash_mode(void)
 /**
  * Is PC a valid routine address?
  */
-static inline bool G_GNUC_CONST
+static inline bool G_CONST
 valid_ptr(const void *pc)
 {
 	ulong v = pointer_to_ulong(pc);
@@ -149,7 +158,7 @@ valid_ptr(const void *pc)
 /**
  * Is SP a valid stack address?
  */
-static inline bool G_GNUC_PURE
+static inline bool G_PURE
 valid_stack_ptr(const void *sp)
 {
 	return vmm_is_stack_pointer(sp, NULL);
@@ -158,7 +167,7 @@ valid_stack_ptr(const void *sp)
 /**
  * Is PC a routine address for something within our code?
  */
-static inline bool G_GNUC_CONST
+static inline bool G_CONST
 stack_is_our_text(const void *pc)
 {
 #if defined(HAS_ETEXT_SYMBOL)
@@ -258,20 +267,38 @@ NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
 #ifdef HAS_BACKTRACE
 {
-	static bool in_unwind;
+	static uint8 in_unwind[THREAD_MAX];
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
 	size_t i, idx;
+	int id = thread_safe_small_id();
+	static bool called;
 
 	g_assert(size_is_non_negative(offset));
 
 	/*
 	 * backtrace() can call malloc(), which can cause fatal recursion here when
-	 * compiled with xmalloc() trapping malloc()...
+	 * compiled with xmalloc() trapping malloc()...  This usually happens
+	 * on i386 linux when dlopen() is used at init time, the first time the
+	 * routine is called, to fetch symbols from libgcc_s.so.1.
+	 *
+	 * If we are in a signal handler, we cannot invoke backtrace if we are
+	 * holding a lock from xmalloc.c, for fear of deadlocking or starting
+	 * to corrupt data structures.  This is not race-safe though as there is
+	 * some time between grabbing a lock and registering it in the thread,
+	 * time during which we can be interrupted by a signal.  Fortunately, this
+	 * check is only required when we never called backtrace() before, so the
+	 * failing window is quite narrow.
+	 *		--RAM, 2016-01-29
 	 */
 
-	if (in_unwind) {
+	if (
+		(id >= 0 && in_unwind[id]) ||
+		(!called &&
+			signal_in_unsafe_handler() &&
+			thread_lock_holds_from("lib/xmalloc.c"))
+	) {
 		/*
 		 * Don't "return" here, to avoid tail recursion since we increase the
 		 * stack offsetting.
@@ -295,16 +322,27 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	 * will have already filled some items in stack[].
 	 */
 
-	in_unwind = TRUE;
+	if (id >= 0)
+		in_unwind[id] = TRUE;
 
-	if (count >= G_N_ELEMENTS(trace)) {
+	if (count >= N_ITEMS(trace)) {
 		depth = backtrace(stack, count);
 		memcpy(trace, stack, depth * sizeof trace[0]);
 	} else {
-		depth = backtrace(trace, G_N_ELEMENTS(trace));
+		depth = backtrace(trace, N_ITEMS(trace));
 	}
 
-	in_unwind = FALSE;
+	/*
+	 * Flag that backtrace() was called once, meaning it has performed its
+	 * internal one-time initialization.  Subsequent calls should not have
+	 * to call malloc().
+	 */
+
+	called = TRUE;		/* backtrace() should no longer invoke malloc() */
+
+	if (id >= 0)
+		in_unwind[id] = FALSE;
+
 	idx = size_saturate_add(offset, stack_auto_offset);
 
 	g_assert(size_is_non_negative(idx));
@@ -340,12 +378,12 @@ done:
 }
 #endif	/* HAS_BACKTRACE */
 
-static Sigjmp_buf stacktrace_safe_env[THREAD_MAX];
+static sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 
 /**
  * Invoked when a fatal signal is received during stack unwinding.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stacktrace_safe_got_signal(int signo)
 {
 	int stid = thread_small_id();
@@ -355,7 +393,7 @@ stacktrace_safe_got_signal(int signo)
 	 * thread that caused it.
 	 */
 
-	Siglongjmp(stacktrace_safe_env[stid], signo);
+	siglongjmp(stacktrace_safe_env[stid], signo);
 }
 
 /**
@@ -456,14 +494,14 @@ stacktrace_quality_string(const enum stacktrace_sym_quality sq)
 /**
  * Tune the level of offsetting we have to do to get the current caller.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 stacktrace_auto_tune(void)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 	size_t i;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 0);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 0);
 
 	/*
 	 * Look at the first item in the stack that is after ourselves.
@@ -493,9 +531,22 @@ stacktrace_auto_tune(void)
 /**
  * Get symbols from the executable.
  */
-static void G_GNUC_COLD
+static void G_COLD
 stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 {
+	static int done;
+
+	/*
+	 * Make sure we're only doing this once.
+	 *
+	 * This cuts down recursion when there are stack traces to emit during
+	 * symbol loading (e.g. an assertion failure, or a critical message
+	 * requiring a trace).
+	 */
+
+	if (0 != atomic_int_inc(&done))
+		return;
+
 	/*
 	 * In case we're crashing so early that stacktrace_init() has not been
 	 * called, initialize properly.
@@ -523,7 +574,7 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
  * @param argv0		the value of argv[0], from main(): the program's filename
  * @param deferred	if TRUE, do not load symbols until it's needed
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_init(const char *argv0, bool deferred)
 {
 	char *path, *apath;
@@ -604,7 +655,7 @@ stacktrace_memory_used(void)
 /**
  * Close stack tracing.
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_close(void)
 {
 	symbols_free_null(&symbols);
@@ -617,7 +668,7 @@ stacktrace_close(void)
 /**
  * Load symbols if not done already.
  */
-G_GNUC_COLD void
+void G_COLD
 stacktrace_load_symbols(void)
 {
 	static spinlock_t sym_load_slk = SPINLOCK_INIT;
@@ -718,7 +769,7 @@ stacktrace_post_init(void)
 void NO_INLINE
 stacktrace_get(struct stacktrace *st)
 {
-	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), 1);
+	st->len = stacktrace_unwind(st->stack, N_ITEMS(st->stack), 1);
 }
 
 /**
@@ -728,7 +779,7 @@ stacktrace_get(struct stacktrace *st)
 void NO_INLINE
 stacktrace_get_offset(struct stacktrace *st, size_t offset)
 {
-	st->len = stacktrace_unwind(st->stack, G_N_ELEMENTS(st->stack), offset + 1);
+	st->len = stacktrace_unwind(st->stack, N_ITEMS(st->stack), offset + 1);
 }
 
 /**
@@ -749,6 +800,39 @@ stack_reached_main(const char *where)
 }
 
 /**
+ * Attempt to grab the symbol lock to dump a stack trace.
+ *
+ * If we cannot grab the lock and we are already holding locks, fail as this
+ * could create deadlocks.
+ *
+ * @param caller	caller routine, for logging purposes
+ *
+ * @return TRUE if we got the lock, FALSE if we could not get it.
+ */
+static bool
+stack_sym_trylock(const char *caller)
+{
+	if (!STACKTRACE_SYM_TRYLOCK) {
+		size_t cnt = thread_lock_count();
+
+		/*
+		 * Do not sleep if we are holding any locks, this could create
+		 * deadlocks.
+		 */
+
+		if (0 != cnt) {
+			s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
+				caller, thread_safe_name(), cnt, plural(cnt));
+			return FALSE;
+		}
+
+		STACKTRACE_SYM_LOCK;
+	}
+
+	return TRUE;
+}
+
+/**
  * Print array of PCs, using symbolic names if possible.
  *
  * @param f			where to print the stack
@@ -759,19 +843,21 @@ static void
 stack_print(FILE *f, void * const *stack, size_t count)
 {
 	size_t i;
+	int stid = -1;
+	bool locked = TRUE;
 
 	stacktrace_load_symbols();
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		stid = thread_safe_small_id();
+		locked = FALSE;
+	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -779,12 +865,17 @@ stack_print(FILE *f, void * const *stack, size_t count)
 		if (!valid_ptr(stack[i]))
 			break;
 
-		fprintf(f, "\t%s\n", where);
+		if (stid >= 0)
+			fprintf(f, "\t[%d] %s\n", stid, where);
+		else
+			fprintf(f, "\t%s\n", where);
+
 		if (stack_reached_main(where))
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -798,19 +889,21 @@ static void
 stack_log(logagent_t *la, void * const *stack, size_t count)
 {
 	size_t i;
+	int stid = -1;
+	bool locked = TRUE;
 
 	stacktrace_load_symbols();
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		stid = thread_safe_small_id();
+		locked = FALSE;
+	}
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
@@ -818,44 +911,57 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 		if (!valid_ptr(stack[i]))
 			break;
 
-		log_info(la, "\t%s", where);
+		if (stid >= 0)
+			log_info(la, "\t[%d] %s", stid, where);
+		else
+			log_info(la, "\t%s", where);
+
 		if (stack_reached_main(where))
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
  * Safely print array of PCs, using symbolic names if possible.
  *
  * @param fd		where to print the stack
+ * @param stid		thread ID to which stack belongs to
  * @param stack		array of Program Counters making up the stack
  * @param count		number of items in stack[] to print, at most.
  */
 static void
-stack_safe_print(int fd, void * const *stack, size_t count)
+stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 {
 	size_t i;
+	bool locked = TRUE;
 
 	/*
-	 * Since symbols_name() returns pointer to static data, we need to protect
-	 * against concurrent calls.
-	 *
-	 * As a side effect, this prevents two stacks from two threads from being
-	 * inter-mixed in the output.
-	 *		--RAM, 2015-10-01
+	 * This attempts to avoid concurrent stack traces from being emitted,
+	 * as long as the calling thread holds no lock.  Otherwise make sure
+	 * we display the thread STID.
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC))
+		locked = FALSE;
 
 	for (i = 0; i < count; i++) {
 		const char *where = symbols_name(symbols, stack[i], TRUE);
-		DECLARE_STR(3);
+		char sbuf[UINT_DEC_BUFLEN];
+		const char *snum;
+		DECLARE_STR(6);
 
 		print_str("\t");		/* 0 */
-		print_str(where);		/* 1 */
-		print_str("\n");		/* 2 */
+		if (stid > 0 || !locked) {
+			snum = PRINT_NUMBER(sbuf, stid);
+			print_str("[");		/* 1 */
+			print_str(snum);	/* 2 */
+			print_str("] ");	/* 3 */
+		}
+		print_str(where);		/* 4 */
+		print_str("\n");		/* 5 */
 		flush_str(fd);
 
 		if (!valid_ptr(stack[i]))
@@ -865,7 +971,8 @@ stack_safe_print(int fd, void * const *stack, size_t count)
 			break;
 	}
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
@@ -937,6 +1044,7 @@ enum sxfiletype {
 
 struct sxfile {
 	enum sxfiletype type;	/* Union discriminant */
+	int stid;				/* Thread ID for which we're printing */
 	union {
 		FILE *f;
 		int fd;
@@ -961,10 +1069,10 @@ stack_safe_print_to(struct sxfile *xf, void * const *stack, size_t count)
 	switch (xf->type) {
 	case SXFILE_STDIO:
 		fflush(xf->u.f);
-		stack_safe_print(fileno(xf->u.f), stack, count);
+		stack_safe_print(fileno(xf->u.f), xf->stid, stack, count);
 		return;
 	case SXFILE_FD:
-		stack_safe_print(xf->u.fd, stack, count);
+		stack_safe_print(xf->u.fd, xf->stid, stack, count);
 		return;
 	}
 
@@ -1023,7 +1131,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	static char tid[32];
 	str_t s;
 	bool gdb_like = booleanize(flags & STACKTRACE_F_GDB);
-	bool reached_main = FALSE;
+	bool reached_main = FALSE, locked = TRUE;
 	int saved_errno = errno;
 
 	/*
@@ -1051,10 +1159,13 @@ stack_print_decorated_to(struct sxfile *xf,
 	 *
 	 * This critical section alone also ensures that we never mix the outputs
 	 * of two threads attempting to dump a stack at the same time.
-	 *		--RAM, 2015-10-01
+	 * Otherwise, force the thread small ID to be output.
 	 */
 
-	STACKTRACE_SYM_LOCK;
+	if (!stack_sym_trylock(G_STRFUNC)) {
+		flags |= STACKTRACE_F_THREAD;
+		locked = FALSE;
+	}
 
 	/*
 	 * The BFD environment is only opened once.
@@ -1071,7 +1182,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	 */
 
 	if (flags & STACKTRACE_F_THREAD) {
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		if (stid != 0)
 			str_bprintf(tid, sizeof tid, "[%u] ", stid);
 		else
@@ -1103,7 +1214,8 @@ stack_print_decorated_to(struct sxfile *xf,
 		 */
 
 		if G_UNLIKELY(stacktrace_crashing) {
-			STACKTRACE_SYM_UNLOCK;
+			if (locked)
+				STACKTRACE_SYM_UNLOCK;
 			stack_safe_print_to(xf, &stack[i], count - i);
 			return;
 		}
@@ -1337,18 +1449,21 @@ stack_print_decorated_to(struct sxfile *xf,
 
 	errno = saved_errno;
 
-	STACKTRACE_SYM_UNLOCK;
+	if (locked)
+		STACKTRACE_SYM_UNLOCK;
 }
 
 /**
  * Convenience wrapper to print a decorated stack to a file descriptor.
  */
 static void
-stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
+stack_safe_print_decorated(int fd, int stid,
+	void * const *stack, size_t count, int flags)
 {
 	struct sxfile xf;
 
 	xf.type = SXFILE_FD;
+	xf.stid = stid;
 	xf.u.fd = fd;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
@@ -1358,11 +1473,13 @@ stack_safe_print_decorated(int fd, void * const *stack, size_t count, int flags)
  * Convenience wrapper to print a decorated stack to a FILE.
  */
 static void
-stack_print_decorated(FILE *f, void * const *stack, size_t count, int flags)
+stack_print_decorated(FILE *f, int stid,
+	void * const *stack, size_t count, int flags)
 {
 	struct sxfile xf;
 
 	xf.type = SXFILE_STDIO;
+	xf.stid = stid;
 	xf.u.f = f;
 
 	stack_print_decorated_to(&xf, stack, count, flags);
@@ -1399,7 +1516,7 @@ stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
 {
 	g_assert(st != NULL);
 
-	stack_print_decorated(f, st->stack, st->len, flags);
+	stack_print_decorated(f, thread_small_id(), st->stack, st->len, flags);
 }
 
 /**
@@ -1429,7 +1546,7 @@ stacktrace_caller(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
 
 	return n < count ? stack[n] : NULL;
 }
@@ -1448,13 +1565,13 @@ stacktrace_caller_name(size_t n)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
-	bool in_sigh = signal_in_handler();
+	bool in_sigh = signal_in_unsafe_handler();
 	const char *name;
 
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
 	if (n >= count)
 		return "";
 
@@ -1463,8 +1580,6 @@ stacktrace_caller_name(size_t n)
 
 	if (NULL == symbols)
 		return "??";
-
-	STACKTRACE_SYM_LOCK;
 
 	name = symbols_name(symbols, stack[n], FALSE);
 
@@ -1475,8 +1590,6 @@ stacktrace_caller_name(size_t n)
 
 	if (!in_sigh && !thread_in_crash_mode())
 		name = constant_str(name);
-
-	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }
@@ -1495,12 +1608,10 @@ const char *
 stacktrace_routine_name(const void *pc, bool offset)
 {
 	const char *name;
-	bool in_sigh = signal_in_handler();
+	bool in_sigh = signal_in_unsafe_handler();
 
 	if (!in_sigh)
 		stacktrace_load_symbols();
-
-	STACKTRACE_SYM_LOCK;
 
 	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
 
@@ -1514,16 +1625,29 @@ stacktrace_routine_name(const void *pc, bool offset)
 	 * memory allocation may not be safe anyway.
 	 */
 
-	if (NULL == name)
-		name = dl_util_get_name(pc);
+	if (NULL == name) {
+		static bool computing[THREAD_MAX];
+		int id = thread_safe_small_id();
+
+		/*
+		 * Prevent recursion through dl_util_get_name() in case we're very
+		 * early in the process and not all the routines that need to be
+		 * initialized have been properly setup.
+		 *		--RAM, 2016-02-09
+		 */
+
+		if (id >= 0 && !computing[id]) {
+			computing[id] = TRUE;
+			name = dl_util_get_name(pc);
+			computing[id] = FALSE;
+		}
+	}
 
 	if (NULL == name) {
-		static char buf[POINTER_BUFLEN + CONST_STRLEN("0x")];
+		static char buf[POINTER_BUFLEN];
 		str_bprintf(buf, sizeof buf, "%p", pc);
 		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
-
-	STACKTRACE_SYM_UNLOCK;
 
 	return name;
 }
@@ -1538,7 +1662,7 @@ stacktrace_routine_name(const void *pc, bool offset)
 const void *
 stacktrace_routine_start(const void *pc)
 {
-	if (!signal_in_handler())
+	if (!signal_in_unsafe_handler())
 		stacktrace_load_symbols();
 
 	return symbols_addr(symbols, pc);
@@ -1553,7 +1677,7 @@ stacktrace_where_print(FILE *f)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stack_print(f, stack, count);
 }
 
@@ -1575,28 +1699,14 @@ stacktrace_where_sym_print(FILE *f)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+	int stid;
 
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
-	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
-}
-
-/**
- * Print current stack trace to specified file, with specified offset.
- *
- * @param f			file where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
- */
-void
-stacktrace_where_print_offset(FILE *f, size_t offset)
-{
-	void *stack[STACKTRACE_DEPTH_MAX];
-	size_t count;
-
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
+	stid = thread_small_id();
+	stack_print_decorated(f, stid, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1611,12 +1721,62 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
+	int stid;
 
 	if (!stacktrace_got_symbols())
 		return;		/* No symbols loaded */
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stack_print_decorated(f, stack, count, STACKTRACE_DECORATION);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+	stid = thread_small_id();
+	stack_print_decorated(f, stid, stack, count, STACKTRACE_DECORATION);
+}
+
+/**
+ * Print current stack trace to specified file, with specified offset,
+ * regardless of whether symbols were loaded.
+ *
+ * The stack trace is NOT decorated with line numbers.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void
+stacktrace_where_plain_print_offset(int fd, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+	stack_safe_print(fd, thread_small_id(), stack, count);
+}
+
+/**
+ * Print supplied trace to specified file as a plain symbolic stack,
+ * if possible.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ */
+void
+stacktrace_stack_plain_print(int fd, void * const *stack, size_t count)
+{
+	stack_safe_print(fd, thread_small_id(), stack, count);
+}
+
+/**
+ * Print supplied trace to specified file in fully decorated mode
+ * if possible.
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param stack		the stack trace
+ * @param count		amount of items in stack
+ */
+void
+stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count)
+{
+	int stid = thread_small_id();
+	stack_safe_print_decorated(fd, stid, stack, count, STACKTRACE_DECORATION);
 }
 
 /**
@@ -1628,15 +1788,17 @@ stacktrace_where_sym_print_offset(FILE *f, size_t offset)
  * executable if they haven't already and we're in a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
+ * @param stid		the thread ID to which the thread stack belongs
  * @param stack		the stack trace
- * @param count		amount of items in stack
+ * @param count		amount of items in stack[]
  */
 void
-stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
+stacktrace_stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 {
-	if (!signal_in_handler()) {
+	if (!signal_in_unsafe_handler()) {
 		stacktrace_load_symbols();
-		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+		stack_safe_print_decorated(fd, stid,
+			stack, count, STACKTRACE_DECORATION);
 	} else if (signal_in_exception() && crash_is_supervised()) {
 		/*
 		 * We're crashing in supervised mode, so even if we get a fatal error
@@ -1649,9 +1811,10 @@ stacktrace_stack_safe_print(int fd, void * const *stack, size_t count)
 		 * the symbols were already loaded.
 		 */
 
-		stack_safe_print_decorated(fd, stack, count, STACKTRACE_DECORATION);
+		stack_safe_print_decorated(fd, stid,
+			stack, count, STACKTRACE_DECORATION);
 	} else {
-		stack_safe_print(fd, stack, count);
+		stack_safe_print(fd, stid, stack, count);
 	}
 }
 
@@ -1671,8 +1834,8 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-	stacktrace_stack_safe_print(fd, stack, count);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+	stacktrace_stack_safe_print(fd, thread_safe_small_id(), stack, count);
 }
 
 /**
@@ -1682,16 +1845,17 @@ stacktrace_where_safe_print_offset(int fd, size_t offset)
  * This routine is NOT safe and could crash if called from a signal handler.
  *
  * @param fd		file descriptor where stack should be printed
+ * @param stid		the thread ID to which the stack belongs
  * @param stack		the stack trace
  * @param count		amount of items in stack
  * @param flags		decoration flags (STACKTRACE_F_* values)
  */
 void
-stacktrace_stack_print_decorated(int fd,
+stacktrace_stack_print_decorated(int fd, int stid,
 	void * const *stack, size_t count, uint flags)
 {
 	stacktrace_load_symbols();
-	stack_safe_print_decorated(fd, stack, count, flags);
+	stack_safe_print_decorated(fd, stid, stack, count, flags);
 }
 
 /**
@@ -1703,9 +1867,9 @@ stacktrace_where_print_decorated(FILE *f, uint flags)
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), 1);
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
 	stacktrace_load_symbols();
-	stack_print_decorated(f, stack, count, flags);
+	stack_print_decorated(f, thread_small_id(), stack, count, flags);
 }
 
 /**
@@ -1714,7 +1878,7 @@ stacktrace_where_print_decorated(FILE *f, uint flags)
  */
 static struct {
 	int fd;
-	Sigjmp_buf env;
+	sigjmp_buf env;
 	unsigned done:1;
 } print_context[THREAD_MAX];
 
@@ -1732,7 +1896,7 @@ stacktrace_cautious_was_logged(void)
 /**
  * Invoked when a fatal signal is received during stack unwinding.
  */
-static G_GNUC_COLD void
+static void G_COLD
 stacktrace_got_signal(int signo)
 {
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -1752,7 +1916,7 @@ stacktrace_got_signal(int signo)
 }
 
 /**
- * Like stacktrace_where_safe_print_offset() but with extra caution.
+ * Print given stacktrace.
  *
  * Caution comes from the fact that we trap all SIGSEGV and other harmful
  * signals that could result from improper memory access during stack
@@ -1760,40 +1924,40 @@ stacktrace_got_signal(int signo)
  * in our symbol mapping logic).
  *
  * @param fd		file descriptor where stack should be printed
- * @param offset	amount of immediate callers to remove (ourselves excluded)
+ * @param stid		the thread ID to which stack belongs
+ * @param stack		the stack to print
+ * @param count		amount of valid stack entries in stack[]
  */
-G_GNUC_COLD void
-stacktrace_where_cautious_print_offset(int fd, size_t offset)
+void G_COLD
+stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 {
-	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
-	size_t count;
-	int stid;
 	static volatile sig_atomic_t printing[THREAD_MAX];
 	signal_handler_t old_sigsegv;
 #ifdef SIGBUS
 	signal_handler_t old_sigbus;
 #endif
 
-	stid = thread_small_id();
-
 	if (printing[stid]) {
 		char time_buf[CRASH_TIME_BUFLEN];
-		DECLARE_STR(5);
+		char sbuf[UINT_DEC_BUFLEN];
+		DECLARE_STR(7);
 
 		crash_time(time_buf, sizeof time_buf);
-		print_str(time_buf);
-		print_str(" WARNING: ignoring ");
-		print_str("recursive ");
-		print_str(G_STRFUNC);
-		print_str("() call\n");
+		print_str(time_buf);						/* 0 */
+		print_str(" (WARNING");						/* 1 */
+		if (stid != 0) {
+			print_str("-");							/* 2 */
+			print_str(PRINT_NUMBER(sbuf, stid));	/* 3 */
+		}
+		print_str("): ignoring recursive");			/* 4 */
+		print_str(G_STRFUNC);						/* 5 */
+		print_str("() call\n");						/* 6 */
 		flush_str(fd);
 		return;
 	}
 
 	printing[stid] = TRUE;
 	print_context[stid].fd = fd;
-
-	count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
 
 	/*
 	 * Protect stack printing.
@@ -1827,7 +1991,7 @@ stacktrace_where_cautious_print_offset(int fd, size_t offset)
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
 	} else {
-		stacktrace_stack_safe_print(fd, stack, count);
+		stacktrace_stack_safe_print(fd, stid, stack, count);
 	}
 
 	print_context[stid].done = TRUE;
@@ -1839,6 +2003,29 @@ restore:
 #ifdef SIGBUS
 	signal_set(SIGBUS, old_sigbus);
 #endif
+}
+
+/**
+ * Like stacktrace_where_safe_print_offset() but with extra caution.
+ *
+ * Caution comes from the fact that we trap all SIGSEGV and other harmful
+ * signals that could result from improper memory access during stack
+ * unwinding (due to a corrupted stack) and printing (due to possible bugs
+ * in our symbol mapping logic).
+ *
+ * @param fd		file descriptor where stack should be printed
+ * @param offset	amount of immediate callers to remove (ourselves excluded)
+ */
+void G_COLD
+stacktrace_where_cautious_print_offset(int fd, size_t offset)
+{
+	void *stack[STACKTRACE_DEPTH_MAX + 5];	/* See stacktrace_unwind() */
+	size_t count;
+	int stid = thread_small_id();
+
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+
+	stacktrace_cautious_print(fd, stid, stack, count);
 }
 
 /**
@@ -1890,7 +2077,7 @@ stacktrace_chop_length(const struct stacktrace *st)
 	 * running as part of a statically linked program or whether the whole
 	 * program is held in shared libraries, the main() entry point being
 	 * just there to load the initial shared libraray.
-	 * 
+	 *
 	 * This means stack_is_our_text() is unsafe.
 	 *
 	 * NB: This is only really needed when this library is used outside
@@ -1911,7 +2098,7 @@ stacktrace_chop_length(const struct stacktrace *st)
 	return i;
 }
 
-/*
+/**
  * Initialize the stack atom table.
  */
 static void
@@ -1924,10 +2111,69 @@ stacktrace_atom_init(void)
 }
 
 /**
+ * Lookup stacktrace in our circular buffer to see whether we already
+ * have it, and possibly store it there.
+ *
+ * @param st		full stacktrace
+ * @param len		amount of topmost items to consider from stack
+ *
+ * @return TRUE if we had a match.
+ */
+static bool
+stacktrace_atom_lookup_and_store(const struct stacktrace *st, size_t len)
+{
+	uint i;
+	const struct stacktrace *ct = &stacktrace_atom_buffer.circular[0];
+
+	/*
+	 * If the buffer is not marked dirty, then there is nothing to look for.
+	 */
+
+	if (!stacktrace_atom_buffer.dirty)
+		goto insert;
+
+	for (i = 0; i < N_ITEMS(stacktrace_atom_buffer.circular); i++, ct++) {
+		size_t n = MIN(ct->len, len);
+
+		if (0 == n)
+			continue;
+
+		if (0 == memcmp(&ct->stack[0], &st->stack[0], n * sizeof st->stack[0]))
+			return TRUE;
+	}
+
+insert:
+
+	/*
+	 * No match found, need to record new entry, possibly superseding an
+	 * older one (we do not maintain the buffer in an LRU way) for simplicity.
+	 *
+	 * Indeed, we're managing the circular buffer without locking, counting
+	 * on the atomicity of the index increment and the size of the buffer
+	 * to avoid two threads filling up the same entry.
+	 */
+
+	i = atomic_uint_inc(&stacktrace_atom_buffer.idx);
+	i %= STACKTRACE_CIRCULAR_LEN;
+
+	stacktrace_atom_buffer.dirty = TRUE;
+	stacktrace_atom_buffer.circular[i].len = 0;		/* Invalid */
+	atomic_mb();
+
+	memcpy(&stacktrace_atom_buffer.circular[i].stack,
+		&st->stack, len * sizeof st->stack[0]);
+
+	stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
+	atomic_mb();
+
+	return FALSE;
+}
+
+/**
  * Lookup stacktrace to see whether we already have an atom for it.
  *
  * @param st		full stacktrace
- * @param len		amount of topmoar items to consider from stack
+ * @param len		amount of topmost items to consider from stack
  *
  * @return stack atom if we have one, NULL if it is unknown.
  */
@@ -1978,6 +2224,26 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 }
 
 /**
+ * Insert given stack trace as an atom into the stack_atoms table if it does
+ * not already exist there.
+ *
+ * @return the stack atom.
+ */
+static const struct stackatom *
+stacktrace_atom_insert(const struct stacktrace *t, size_t len)
+{
+	const struct stackatom *item;
+
+	STACKTRACE_ATOM_LOCK;
+	item = stacktrace_atom_lookup(t, len);
+	if (NULL == item)
+		item = stacktrace_atom_record(t, len);
+	STACKTRACE_ATOM_UNLOCK;
+
+	return item;
+}
+
+/**
  * Get a stack trace atom (read-only, never freed).
  */
 const struct stackatom *
@@ -1989,15 +2255,90 @@ stacktrace_get_atom(const struct stacktrace *st)
 	len = stacktrace_chop_length(st);
 	result = stacktrace_atom_lookup(st, len);
 
-	if G_UNLIKELY(NULL == result) {
-		STACKTRACE_ATOM_LOCK;
-		result = stacktrace_atom_lookup(st, len);
-		if (NULL == result)
-			result = stacktrace_atom_record(st, len);
-		STACKTRACE_ATOM_UNLOCK;
-	}
+	if G_UNLIKELY(NULL == result)
+		result = stacktrace_atom_insert(st, len);
 
 	return result;
+}
+
+/**
+ * Move stacktrace entries in the circular buffer back to the atom table.
+ *
+ * The circular buffer is filled when stacktrace atom lookups are performed
+ * whilst running in a signal handler (for asynchronous signals received).
+ *
+ * Once the signal handler processing is completed, this routine can be
+ * called to possibly record the items stored in the table, if any, since
+ * memory allocation is mostly forbidden during signal processing.
+ */
+void
+stacktrace_atom_circular_flush(void)
+{
+	uint original_idx, i, j;
+
+	if (signal_in_unsafe_handler())
+		return;
+
+	if (!stacktrace_atom_buffer.dirty)
+		return;
+
+	ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);
+
+	i = original_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+
+	for (j = 0; j < N_ITEMS(stacktrace_atom_buffer.circular); j++, i++) {
+		uint old_idx, new_idx;
+		struct stacktrace *st, cst;
+
+		i %= STACKTRACE_CIRCULAR_LEN;
+		st = &stacktrace_atom_buffer.circular[i];
+		if (0 == st->len)
+			continue;
+
+		old_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+		cst = *st;		/* Struct copy */
+		st->len = 0;	/* Invalidate entry */
+		new_idx = atomic_uint_get(&stacktrace_atom_buffer.idx);
+
+		if (0 == cst.len)
+			continue;
+
+		/*
+		 * If the index changed, it means someone entered a new entry in
+		 * the circular buffer.  Hence we need to check whether the copy
+		 * we made is valid.
+		 */
+
+		if G_UNLIKELY(old_idx != new_idx) {
+			uint d = new_idx - old_idx;
+			uint oi, ni;
+
+			if G_UNLIKELY(d >= N_ITEMS(stacktrace_atom_buffer.circular))
+				continue;		/* We wrapped around, copy is probably bad */
+
+			/*
+			 * Does the change of index encompass the slot we copied above?
+			 */
+
+			oi = old_idx % STACKTRACE_CIRCULAR_LEN;
+			ni = new_idx % STACKTRACE_CIRCULAR_LEN;
+
+			if (ni < oi)
+				ni += STACKTRACE_CIRCULAR_LEN;
+
+			if (oi <= i && i <= ni)
+				continue;		/* Unfortunately, it does, so skip slot */
+		}
+
+		/*
+		 * Good, we have a new entry.
+		 */
+
+		stacktrace_atom_insert(&cst, cst.len);
+	}
+
+	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx)
+		stacktrace_atom_buffer.dirty = FALSE;	/* Flushed everything */
 }
 
 /**
@@ -2024,14 +2365,25 @@ stacktrace_caller_known(size_t offset)
 	if G_UNLIKELY(0 == len)
 		return FALSE;
 
-	result = stacktrace_atom_lookup(&t, len);
+	if G_LIKELY(ONCE_DONE(stacktrace_atom_inited))
+		result = stacktrace_atom_lookup(&t, len);
+	else
+		result = NULL;
 
 	if G_UNLIKELY(NULL == result) {
-		STACKTRACE_ATOM_LOCK;
-		result = stacktrace_atom_lookup(&t, len);
-		if (NULL == result)
-			(void) stacktrace_atom_record(&t, len);
-		STACKTRACE_ATOM_UNLOCK;
+
+		/*
+		 * If we are running in a signal handler, we cannot allocate
+		 * memory hence use a circular buffer to store the stacks until
+		 * it is safe to re-insert them into the table.
+		 */
+
+		if (signal_in_unsafe_handler())
+			return stacktrace_atom_lookup_and_store(&t, len);
+
+		ONCE_FLAG_RUN(stacktrace_atom_inited, stacktrace_atom_init);
+
+		stacktrace_atom_insert(&t, len);
 		return FALSE;
 	} else {
 		return TRUE;

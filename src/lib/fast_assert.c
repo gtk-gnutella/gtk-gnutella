@@ -1,5 +1,6 @@
 /*
- * Copyright (c) 2006, Christian Biere
+ * Copyright (c) 2012-2016 Raphael Manfredi
+ * Copyright (c) 2006 Christian Biere
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,13 +30,15 @@
  *
  * @author Christian Biere
  * @date 2006
+ * @author Raphael Manfredi
+ * @date 2012-2016
  */
 
 #include "common.h"
 
 #include "fast_assert.h"
 #include "atomic.h"
-#include "crash.h"				/* For print_str() and crash_time() */
+#include "crash.h"				/* For print_str() and crash_time_raw() */
 #include "log.h"
 #include "misc.h"				/* For CONST_STRLEN() */
 #include "stacktrace.h"
@@ -45,12 +48,14 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#define STACK_OFF	2			/* 2 extra calls: calling routine, then here */
+
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
  *       even use assertions in signal handlers. See also:
  * http://www.opengroup.org/onlinepubs/009695399/functions/xsh_chap02_04.html
  */
-static G_GNUC_COLD void
+static void G_COLD
 assertion_message(const assertion_data * const data, int fatal)
 {
 	char line_buf[ULONG_DEC_BUFLEN];
@@ -60,8 +65,19 @@ assertion_message(const assertion_data * const data, int fatal)
 	bool assertion;
 	DECLARE_STR(16);
 
-	crash_time(time_buf, sizeof time_buf);
-	stid = thread_small_id();
+	/*
+	 * Something is wrong, hence use the raw time computation and get the
+	 * current thread ID using thread_safe_small_id(): we need to avoid
+	 * thread_small_id() in case we're having problems in the thread layer.
+	 *
+	 * Because we're displaying the thread ID as an unsigned value, any
+	 * problem into computing the proper ID will be immediately visible
+	 * as a very large integer will be displayed!
+	 *		--RAM, 2016-01-02
+	 */
+
+	crash_time_raw(time_buf, sizeof time_buf);
+	stid = thread_safe_small_id();
 
 	/*
 	 * When an assertion failed in some thread, things are likely to break in
@@ -113,15 +129,23 @@ assertion_message(const assertion_data * const data, int fatal)
 }
 
 /**
+ * Argument passed to assertion_abort_process().
+ */
+struct assertion_abort_process_arg {
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+	int stid;
+};
+
+/**
  * Abort execution, possibly dumping a stack frame.
  */
-static G_GNUC_COLD G_GNUC_NORETURN void
-assertion_abort(void)
+static void * G_COLD G_NORETURN
+assertion_abort_process(void *arg)
 {
 	static volatile sig_atomic_t seen_fatal;
 	sig_atomic_t depth;
-
-#define STACK_OFF	2		/* 2 extra calls: assertion_failure(), then here */
+	struct assertion_abort_process_arg *v = arg;
 
 	/*
 	 * We're going to stop the execution.
@@ -137,17 +161,19 @@ assertion_abort(void)
 		 * If the thread holds any locks, dump them.
 		 */
 
-		thread_lock_dump_self_if_any(STDERR_FILENO);
+		thread_lock_dump_if_any(STDERR_FILENO, v->stid);
 		if (log_stdout_is_distinct())
-			thread_lock_dump_self_if_any(STDOUT_FILENO);
+			thread_lock_dump_if_any(STDOUT_FILENO, v->stid);
 
 		/*
 		 * Dump stacktrace.
 		 */
 
-		stacktrace_where_cautious_print_offset(STDERR_FILENO, STACK_OFF);
-		if (log_stdout_is_distinct())
-			stacktrace_where_cautious_print_offset(STDOUT_FILENO, STACK_OFF);
+		stacktrace_cautious_print(STDERR_FILENO, v->stid, v->stack, v->count);
+		if (log_stdout_is_distinct()) {
+			stacktrace_cautious_print(STDOUT_FILENO,
+				v->stid, v->stack, v->count);
+		}
 
 		/*
 		 * Before calling abort(), which will generate a SIGABRT and invoke
@@ -156,7 +182,7 @@ assertion_abort(void)
 		 * longer be possible to get the frame of the assertion failure.
 		 */
 
-		crash_save_current_stackframe(STACK_OFF);
+		crash_save_stackframe(v->stid, v->stack, v->count);
 	}
 
 	/*
@@ -190,16 +216,37 @@ assertion_abort(void)
 
 	crash_abort();
 
-#undef STACK_OFF
+	g_assert_not_reached();
+}
+
+/**
+ * Abort execution, possibly dumping a stack frame.
+ */
+static void G_COLD G_NORETURN
+assertion_abort(void)
+{
+	struct assertion_abort_process_arg v;
+
+	/*
+	 * Since crash_divert_main() can potentially redirect processing
+	 * to another thread, we need to capture the current stack and
+	 * the current thread ID to pass it along to the diversion routine.
+	 */
+
+	ZERO(&v);
+	v.stid = thread_safe_small_id();
+	v.count = stacktrace_safe_unwind(v.stack, N_ITEMS(v.stack), STACK_OFF);
+
+	crash_divert_main(G_STRFUNC, assertion_abort_process, &v);
+	g_assert_not_reached();
 }
 
 /*
  * Trace the code path leading to this assertion.
  */
-static NO_INLINE void G_GNUC_COLD
+static NO_INLINE void G_COLD
 assertion_stacktrace(void)
 {
-#define STACK_OFF	2		/* 2 extra calls: assertion_warning(), then here */
 
 	stacktrace_where_safe_print_offset(STDERR_FILENO, STACK_OFF);
 	if (log_stdout_is_distinct())
@@ -216,14 +263,14 @@ assertion_stacktrace(void)
  *		--RAM, 2009-10-31
  */
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_warning(const assertion_data * const data)
 {
 	assertion_message(data, FALSE);
 	assertion_stacktrace();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_warning_log(const assertion_data * const data,
 	const char * const fmt, ...)
 {
@@ -246,10 +293,10 @@ assertion_warning_log(const assertion_data * const data,
 	{
 		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time_raw(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
 		if (0 == stid) {
@@ -268,7 +315,7 @@ assertion_warning_log(const assertion_data * const data,
 	assertion_stacktrace();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_failure(const assertion_data * const data)
 {
 	assertion_message(data, TRUE);
@@ -282,7 +329,7 @@ assertion_failure(const assertion_data * const data)
 	assertion_abort();
 }
 
-NO_INLINE void G_GNUC_COLD
+NO_INLINE void G_COLD
 assertion_failure_log(const assertion_data * const data,
 	const char * const fmt, ...)
 {
@@ -313,10 +360,10 @@ assertion_failure_log(const assertion_data * const data,
 	if (msg != NULL) {
 		char time_buf[CRASH_TIME_BUFLEN];
 		char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (FATAL-): ")];
-		unsigned stid = thread_small_id();
+		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time_raw(time_buf, sizeof time_buf);
 
 		print_str(time_buf);
 		if (0 == stid) {

@@ -92,7 +92,7 @@
 #define UINT64_HEX_BUFLEN	TYPE_HEX_BUFLEN(uint64)
 #define ULONG_HEX_BUFLEN	TYPE_HEX_BUFLEN(unsigned long)
 
-#define POINTER_BUFLEN			TYPE_HEX_BUFLEN(unsigned long)
+#define POINTER_BUFLEN			(TYPE_HEX_BUFLEN(ulong) + sizeof "0x" - 1)
 #define HOST_ADDR_BUFLEN		(MAX(IPV4_ADDR_BUFLEN, IPV6_ADDR_BUFLEN))
 #define HOST_ADDR_PORT_BUFLEN	(HOST_ADDR_BUFLEN + sizeof ":[65535]")
 
@@ -150,6 +150,16 @@ const char *uint64_to_gstring(uint64);
 const char *uint_to_gstring(unsigned v);
 const char *size_t_to_gstring(size_t v);
 const char *filesize_to_gstring(filesize_t v);
+
+/*
+ * Optionally groupped by thousands.
+ */
+
+const char *uint32_to_string_grp(uint32, bool);
+const char *uint64_to_string_grp(uint64, bool);
+const char *uint_to_string_grp(unsigned, bool);
+const char *size_t_to_string_grp(size_t, bool);
+const char *filesize_to_string_grp(filesize_t, bool);
 
 /*
  * Time string conversions

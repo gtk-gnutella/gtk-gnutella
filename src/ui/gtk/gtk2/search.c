@@ -176,7 +176,7 @@ on_search_list_column_clicked(GtkTreeViewColumn *column, gpointer unused_udata)
 }
 
 static void
-cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell, 
+cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
 	GtkTreeModel *model, GtkTreeIter *iter, gpointer udata)
 {
 	const struct result_data *data;
@@ -286,7 +286,7 @@ static GtkCellRenderer *
 create_cell_renderer(gfloat xalign)
 {
 	GtkCellRenderer *renderer;
-	
+
 	renderer = gtk_cell_renderer_text_new();
 	gtk_cell_renderer_text_set_fixed_height_from_font(
 		GTK_CELL_RENDERER_TEXT(renderer), TRUE);
@@ -334,7 +334,7 @@ add_column(
 	if (bg_col >= 0)
 		gtk_tree_view_column_add_attribute(column, renderer,
 			"background-gdk", bg_col);
-			
+
 	g_object_set(column,
 		"fixed-width", 100,
 		"min-width", 1,
@@ -342,7 +342,7 @@ add_column(
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL_PTR);
-	
+
     gtk_tree_view_append_column(tv, column);
 
 	return column;
@@ -408,7 +408,7 @@ prepare_remove_record(GtkTreeModel *model, GtkTreePath *unused_path,
 
 	if (rc->sha1) {
 		struct result_data *parent;
-		
+
 		parent = find_parent(search, rd);
 		if (rd == parent) {
 			htable_remove(search->parents, rd);
@@ -558,11 +558,11 @@ search_gui_get_local_file_url(GtkWidget *widget)
 	data = get_result_data(model, &iter);
 	if (!(ST_LOCAL & data->record->results_set->status))
 		return NULL;
-	
+
 	pathname = data->record->tag;
 	if (NULL == pathname)
 		return NULL;
-	 
+
 	return url_from_absolute_path(pathname);
 }
 
@@ -593,7 +593,7 @@ search_gui_init_tree(search_t *sch)
 {
 	GtkListStore *model;
 	GtkTreeIter iter;
-	
+
 	g_assert(sch);
 
 	g_assert(NULL == sch->parents);
@@ -704,7 +704,7 @@ search_gui_cmp_info(const struct result_data *a, const struct result_data *b)
 static int
 search_gui_cmp_route(const struct result_data *a, const struct result_data *b)
 {
-	
+
 	return host_addr_cmp(a->record->results_set->last_hop,
 				b->record->results_set->last_hop);
 }
@@ -759,7 +759,7 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 	const struct result_data *a, *b;
 	enum c_sr_columns column;
 	int ret = 0;
-	
+
 	column = GPOINTER_TO_UINT(user_data);
 	a = get_result_data(model, iter1);
 	b = get_result_data(model, iter2);
@@ -1019,11 +1019,11 @@ add_list_columns(GtkTreeView *tv)
 	};
 	guint i;
 
-	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == N_ITEMS(columns));
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		GtkTreeViewColumn *column;
-		
+
 		column = add_column(tv, _(columns[i].title), columns[i].id,
 					columns[i].align, NULL, c_sl_fg, c_sl_bg);
 		gtk_tree_view_column_set_sort_column_id(column, columns[i].id);
@@ -1062,16 +1062,16 @@ search_details_treeview_init(void)
 	g_return_if_fail(tv);
 
 	model = GTK_TREE_MODEL(
-				gtk_list_store_new(G_N_ELEMENTS(tab),
+				gtk_list_store_new(N_ITEMS(tab),
 				G_TYPE_STRING, G_TYPE_STRING));
 
 	gtk_tree_view_set_model(tv, model);
 	g_object_unref(model);
 
-	for (i = 0; i < G_N_ELEMENTS(tab); i++) {
+	for (i = 0; i < N_ITEMS(tab); i++) {
     	GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
-		
+
 		renderer = create_cell_renderer(tab[i].xalign);
 		g_object_set(G_OBJECT(renderer),
 			"editable", tab[i].editable,
@@ -1100,9 +1100,9 @@ create_searches_model(void)
 	GtkListStore *store;
 	guint i;
 
-	STATIC_ASSERT(c_sl_num == G_N_ELEMENTS(columns));
+	STATIC_ASSERT(c_sl_num == N_ITEMS(columns));
 #define SET(c, x) case (c): columns[i] = (x); break
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		switch (i) {
 		SET(c_sl_name, G_TYPE_STRING);
 		SET(c_sl_hit, G_TYPE_INT);
@@ -1116,7 +1116,7 @@ create_searches_model(void)
 	}
 #undef SET
 
-	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	store = gtk_list_store_newv(N_ITEMS(columns), columns);
 	return GTK_TREE_MODEL(store);
 }
 
@@ -1124,11 +1124,11 @@ static void
 search_list_tree_view_init(void)
 {
 	GtkTreeView *tv;
-	
+
     tv = GTK_TREE_VIEW(gui_main_window_lookup("tree_view_search"));
     tree_view_search = tv;
 
-	gtk_tree_view_set_reorderable(tv, TRUE);	
+	gtk_tree_view_set_reorderable(tv, TRUE);
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tv),
 		GTK_SELECTION_MULTIPLE);
 	gtk_tree_view_set_model(tv, create_searches_model());
@@ -1302,7 +1302,7 @@ search_by_regex(GtkTreeModel *model, gint column, const gchar *key,
 
 	{
 		const struct result_data *rd;
-		
+
 		rd = get_result_data(model, iter);
 		g_return_val_if_fail(NULL != rd, !found);
 		g_return_val_if_fail(NULL != rd->record->utf8_name, !found);
@@ -1445,7 +1445,7 @@ search_gui_create_tree(void)
 	gui_signal_connect(tv,
 		"cursor-changed", on_tree_view_search_results_select_row, tv);
     gui_signal_connect(tv, "leave-notify-event", on_leave_notify, NULL);
-	
+
 	return GTK_WIDGET(tv);
 }
 
@@ -1506,7 +1506,7 @@ search_gui_search_list_clicked(void)
 
 		model = gtk_tree_view_get_model(tv);
 		if (gtk_tree_model_get_iter(model, &iter, path)) {
-			gpointer p = NULL; 
+			gpointer p = NULL;
 			gtk_tree_model_get(model, &iter, c_sl_sch, &p, (-1));
 			if (p) {
 				search_t *search = p;
@@ -1521,7 +1521,7 @@ record_t *
 search_gui_record_get_parent(search_t *search, record_t *record)
 {
 	struct result_data *parent;
-	
+
 	g_return_val_if_fail(search, NULL);
 	g_return_val_if_fail(record, NULL);
 	record_check(record);
@@ -1595,7 +1595,7 @@ search_gui_flush_queue(search_t *search)
 {
 	g_return_if_fail(search);
 	g_return_if_fail(search->tree);
-	
+
 	if (slist_length(search->queue) > 0) {
 		GtkTreeModel *model;
 		guint max_items;
@@ -1632,7 +1632,7 @@ search_gui_queue_length(const struct search *search)
 {
 	g_return_val_if_fail(search, 0);
 	g_return_val_if_fail(search->queue, 0);
-	
+
 	return slist_length(search->queue);
 }
 

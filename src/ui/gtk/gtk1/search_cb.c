@@ -62,9 +62,9 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-static record_t *selected_record; 
+static record_t *selected_record;
 
-char * 
+char *
 search_gui_details_get_text(GtkWidget *widget)
 {
 	char *text = NULL;
@@ -137,7 +137,7 @@ search_gui_append_detail(const gchar *name, const gchar *value)
 	titles[1] = EMPTY_STRING(value);
     gtk_clist_append(clist_search_details, (gchar **) titles);
 }
-	
+
 /**
  *	Activates/deactivates buttons and popups based on what is selected
  */
@@ -241,7 +241,7 @@ static void
 selected_row_changed(GtkCTree *ctree)
 {
 	int row;
-	
+
 	if (selected_record) {
 		search_gui_unref_record(selected_record);
 		selected_record = NULL;

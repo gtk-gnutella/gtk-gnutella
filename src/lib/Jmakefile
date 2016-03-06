@@ -82,11 +82,13 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sendfile.c \
+	compat_setjmp.c \
 	compat_sleep_ms.c \
 	compat_statvfs.c \
 	compat_un.c \
@@ -244,6 +246,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	well.c \
+	win32dlp.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \

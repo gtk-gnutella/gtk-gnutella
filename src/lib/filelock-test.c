@@ -59,7 +59,7 @@
 const char *progpath;
 static bool debugging, pid_only;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -114,7 +114,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -124,7 +124,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -148,7 +148,7 @@ verbose_unlink(const char *lock)
 		emitz("could not unlink \"%s\": %m", lock);
 }
 
-static pid_t G_GNUC_NULL_TERMINATED
+static pid_t G_NULL_TERMINATED
 verbose_launch(const char *path, ...)
 {
 	pid_t p;
@@ -215,7 +215,8 @@ test_child_expect_where(pid_t p, bool success, const char *where)
 		emitz("exit status for PID %lu is %d (PASSED) at %s",
 			(ulong) p, WEXITSTATUS(status), where);
 	} else {
-		s_error("abnormal exit for PID %lu at %s", (ulong) p, where);
+		s_error("abnormal exit for PID %lu at %s: %s", (ulong) p, where,
+			exit2str(status));
 	}
 }
 
@@ -361,7 +362,7 @@ test_lock_concurrency(const char *lock)
 
 	tm_now_exact(&start);
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		int pipefd[2];
 
 		/*
@@ -407,7 +408,7 @@ test_lock_concurrency(const char *lock)
 	 * Unblock children.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		char b = '\0';
 
 		if (-1 == write(pfd[i], &b, 1)) {
@@ -423,7 +424,7 @@ test_lock_concurrency(const char *lock)
 	 * Now see who could lock.
 	 */
 
-	for (locked = 0, i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (locked = 0, i = 0; i < N_ITEMS(procs); i++) {
 		char b;
 
 		if (-1 == read(procs[i], &b, 1)) {
@@ -451,7 +452,7 @@ test_lock_concurrency(const char *lock)
 	 * lock will exit with status 100.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(procs); i++) {
+	for (i = 0; i < N_ITEMS(procs); i++) {
 		int status;
 
 		/* Closing writing end will unblock read(STDIN) in child */
@@ -521,7 +522,7 @@ x_expr_check(bool expr, const char *estr, const char *fn, const char *wh)
 	}
 }
 
-static void G_GNUC_PRINTF(5,6)
+static void G_PRINTF(5,6)
 x_expr_check_log(bool expr, const char *estr, const char *fn, const char *wh,
 	const char *fmt, ...)
 {
@@ -653,7 +654,7 @@ filelock_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(filelock_tests); i++) {
+	for (i = 0; i < N_ITEMS(filelock_tests); i++) {
 		htable_insert(tv, filelock_tests[i].name, filelock_tests[i].cb);
 	}
 }

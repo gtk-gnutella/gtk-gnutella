@@ -31,7 +31,7 @@
  *
  * @todo Make colors into properties so that they can be stored in config,
  *       should keep hardcoded backups.
- * @todo Add progress data also to fileinfo table, so that the info is shown 
+ * @todo Add progress data also to fileinfo table, so that the info is shown
  *       for all current files.
  * @todo Do not redraw the bar too often, only on event for actual file and
  *       perhaps max once a second.
@@ -193,12 +193,12 @@ vp_draw_arrow(vp_info_t *v, filesize_t at)
 	points[2].y = 0;
 	gdk_gc_set_foreground(v->context->gc, &colors.arrow);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
-		TRUE, points, G_N_ELEMENTS(points));
+		TRUE, points, N_ITEMS(points));
 
 	/* Draw a black border around the arrow */
 	gdk_gc_set_foreground(v->context->gc, &colors.black);
 	gdk_draw_polygon(v->context->drawable, v->context->gc,
-		FALSE, points, G_N_ELEMENTS(points));
+		FALSE, points, N_ITEMS(points));
 }
 
 /**
@@ -400,7 +400,7 @@ vp_info_free(vp_info_t **v_ptr)
 
 	if (*v_ptr) {
 		vp_info_t *v = *v_ptr;
-		
+
 		guc_fi_free_chunks(v->chunks_list);
 		guc_fi_free_chunks(v->chunks_initial);
 		guc_fi_free_ranges(v->ranges_list);
@@ -776,7 +776,7 @@ vp_free_key_value(const void *key, void *value, void *user_data)
  * notified of fileinfo events, and get a permanent handle to the
  * drawing area for later reuse.
  */
-G_GNUC_COLD void
+void G_COLD
 vp_gui_init(void)
 {
     GdkColormap *cmap;
@@ -822,7 +822,7 @@ vp_gui_init(void)
 /**
  * Undo everything set up in vp_gui_init.
  */
-G_GNUC_COLD void
+void G_COLD
 vp_gui_shutdown(void)
 {
     guc_fi_remove_listener(vp_gui_fi_removed, EV_FI_REMOVED);

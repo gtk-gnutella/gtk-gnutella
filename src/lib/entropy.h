@@ -47,9 +47,9 @@ void entropy_aje_inited();
 void entropy_harvest_time(void);
 void entropy_harvest_single(const void *p, size_t len);
 void entropy_harvest_small(
-	const void *p, size_t len, ...) G_GNUC_NULL_TERMINATED;
+	const void *p, size_t len, ...) G_NULL_TERMINATED;
 void entropy_harvest_many(
-	const void *p, size_t len, ...) G_GNUC_NULL_TERMINATED;
+	const void *p, size_t len, ...) G_NULL_TERMINATED;
 
 #endif /* _entropy_h_ */
 

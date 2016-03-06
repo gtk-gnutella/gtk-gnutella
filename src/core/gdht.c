@@ -626,7 +626,7 @@ gdht_find_sha1(fileinfo_t *fi)
 	hikset_insert_key(sha1_lookups, &slk->id);
 	file_info_dht_query_queued(fi);
 
-	ulq_find_value(slk->id, DHT_VT_ALOC, 
+	ulq_find_value(slk->id, DHT_VT_ALOC,
 		gdht_sha1_found, gdht_sha1_looking, gdht_sha1_not_found, slk);
 }
 
@@ -705,7 +705,7 @@ gdht_handle_prox(const lookup_val_rc_t *rc, struct guid_lookup *glk)
 
 				while (
 					bstr_unread_size(bs) > 0 &&
-					UNSIGNED(proxy_count) < G_N_ELEMENTS(proxies)
+					UNSIGNED(proxy_count) < N_ITEMS(proxies)
 				) {
 					host_addr_t a;
 					uint16 p;

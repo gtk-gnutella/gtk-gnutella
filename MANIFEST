@@ -147,6 +147,7 @@ extra_files/el/Makefile.SH
 extra_files/en/FAQ
 extra_files/en/Jmakefile
 extra_files/en/Makefile.SH
+extra_files/en/glossary
 extra_files/favicon.png      GTKG's favorite web icon
 extra_files/fr/FAQ
 extra_files/fr/Jmakefile
@@ -532,6 +533,7 @@ src/dht/ulq.c
 src/dht/ulq.h
 src/dht/values.c
 src/dht/values.h
+src/gcc.h
 src/gtk-gnutella.h
 src/gtk-gnutella.man
 src/if/Jmakefile
@@ -676,6 +678,8 @@ src/lib/cmwc.c
 src/lib/cmwc.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/compat_gettid.c
+src/lib/compat_gettid.h
 src/lib/compat_misc.c
 src/lib/compat_misc.h
 src/lib/compat_pause.c
@@ -686,6 +690,8 @@ src/lib/compat_poll.c
 src/lib/compat_poll.h
 src/lib/compat_sendfile.c
 src/lib/compat_sendfile.h
+src/lib/compat_setjmp.c
+src/lib/compat_setjmp.h
 src/lib/compat_sleep_ms.c
 src/lib/compat_sleep_ms.h
 src/lib/compat_statvfs.c
@@ -1024,6 +1030,8 @@ src/lib/wd.c
 src/lib/wd.h
 src/lib/well.c
 src/lib/well.h
+src/lib/win32dlp.c
+src/lib/win32dlp.h
 src/lib/wordvec.c
 src/lib/wordvec.h
 src/lib/wq.c

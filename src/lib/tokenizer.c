@@ -91,7 +91,7 @@ tokenizer_lookup(const char *s, const tokenizer_t *tvec, size_t tcnt)
  * @param tcnt	the amount of items in the token vector
  * @param cmp	the string comparison routine to use
  */
-void G_GNUC_COLD
+void G_COLD
 tokenizer_check_sorted_with(const char *name,
 	const tokenizer_t *tvec, size_t tcnt, strcmp_fn_t cmp)
 {
@@ -115,7 +115,7 @@ tokenizer_check_sorted_with(const char *name,
  * @param tvec	the vector of tokenizer_t items
  * @param tcnt	the amount of items in the token vector
  */
-void G_GNUC_COLD
+void G_COLD
 tokenizer_check_sorted(const char *name, const tokenizer_t *tvec, size_t tcnt)
 {
 	tokenizer_check_sorted_with(name, tvec, tcnt, strcmp);

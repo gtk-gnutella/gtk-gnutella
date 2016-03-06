@@ -38,7 +38,7 @@
  * Get the enclosing data item from an embedded node.
  */
 #ifdef __GNUC__
-#define etree_item(lnk, type, field) G_GNUC_EXTENSION({		\
+#define etree_item(lnk, type, field) G_EXTENSION({		\
 	const struct node *__mptr = (lnk);						\
 	(type *)((char *) __mptr - offsetof(type, field));})
 #else

@@ -41,6 +41,7 @@
 #include "compat_poll.h"
 #include "fd.h"					/* For assertions */
 #include "log.h"
+#include "thread.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -101,7 +102,7 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 			fds[i].revents = POLLERR;
 			continue;
 		}
-		
+
 		max_fd = MAX(fd, max_fd);
 		fds[i].revents = 0;
 
@@ -114,16 +115,13 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
 		FD_SET(socket_fd(fd), &efds);
 	}
 
-	if (timeout < 0) {
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-	} else {
+	if (timeout >= 0) {
 		tv.tv_sec = timeout / 1000;
 		tv.tv_usec = (timeout % 1000) * 1000UL;
 	}
 
 	ret = select(max_fd + 1, &rfds, &wfds, &efds, timeout < 0 ? NULL : &tv);
-	
+
 	if (ret > 0) {
 
 		n = MIN(n, FD_SETSIZE);	/* POLLERR is already set above */
@@ -155,25 +153,31 @@ emulate_poll_with_select(struct pollfd *fds, unsigned int n, int timeout)
  */
 int
 compat_poll(struct pollfd *fds, unsigned int n, int timeout)
+{
+	int r;
+
+	if (timeout != 0)
+		thread_in_syscall_set(TRUE);
+
 #ifdef USE_SELECT_FOR_POLL
-{
-	return emulate_poll_with_select(fds, n, timeout);
-}
+	r = emulate_poll_with_select(fds, n, timeout);
 #elif defined(MINGW32)
-{
 	/*
 	 * Only Windows versions starting at Vista have WSAPoll(), but we
 	 * know all Windows have select() under MinGW.
 	 */
 	if (mingw_has_wsapoll())
-		return mingw_poll(fds, n, timeout);
+		r = mingw_poll(fds, n, timeout);
 	else
-		return emulate_poll_with_select(fds, n, timeout);
-}
+		r = emulate_poll_with_select(fds, n, timeout);
 #else	/* !USE_SELECT_FOR_POLL */
-{
-	return poll(fds, n, timeout);
-}
+	r = poll(fds, n, timeout);
 #endif	/* USE_SELECT_FOR_POLL */
+
+	if (timeout != 0)
+		thread_in_syscall_set(FALSE);
+
+	return r;
+}
 
 /* vi: set ts=4 sw=4 cindent: */

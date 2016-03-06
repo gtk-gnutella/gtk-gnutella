@@ -279,7 +279,7 @@ browse_host_read_html(struct special_upload *ctx,
 					{
 						const char *dir;
 						char *name;
-						
+
 						dir = shared_file_relative_path(sf);
 						if (dir) {
 							name = h_strconcat(dir, "/", name_nfc, NULL_PTR);
@@ -434,7 +434,7 @@ browse_host_read_qhits(struct special_upload *ctx,
 
 			if (SHARE_REBUILDING == sf || NULL == sf)
 				break;
-			
+
 			files = pslist_prepend(files, sf);
 		}
 

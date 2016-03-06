@@ -57,25 +57,25 @@ drop_widget_init(GtkWidget *widget, drag_data_received_cb callback,
 	g_return_if_fail(callback);
 
 	gtk_drag_dest_set(widget, GTK_DEST_DEFAULT_ALL, targets,
-		G_N_ELEMENTS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);
+		N_ITEMS(targets), GDK_ACTION_COPY | GDK_ACTION_MOVE);
 
 #if GTK_CHECK_VERSION(2,0,0)
 	{
 		static GtkClipboard *clipboard;
-	
+
 		if (!clipboard) {
 			clipboard = gtk_clipboard_get(GDK_SELECTION_PRIMARY);
 		}
 	}
-	
+
 	gtk_drag_dest_set_target_list(widget, gtk_target_list_new(targets,
-		G_N_ELEMENTS(targets)));
+		N_ITEMS(targets)));
 #endif /* USE_GTK2 */
 
 #if !GTK_CHECK_VERSION(2,0,0)
 
 	gtk_selection_add_targets(widget, GDK_SELECTION_TYPE_STRING,
-		targets, G_N_ELEMENTS(targets));
+		targets, N_ITEMS(targets));
 #endif /* USE_GTK1 */
 
 	gui_signal_connect(GTK_OBJECT(widget), "drag-data-received",

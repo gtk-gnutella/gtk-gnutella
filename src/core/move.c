@@ -403,7 +403,7 @@ error:
 			download_basename(md->d),
 			filesize_to_gstring(md->size / md->elapsed), md->error);
 	}
- 
+
 	/* FALL THROUGH */
 
 finish:
@@ -663,7 +663,7 @@ move_thread_main(void *arg)
 /**
  * Initializes the background moving/copying task.
  */
-G_GNUC_COLD void
+void G_COLD
 move_init(void)
 {
 	struct moved *md;

@@ -45,7 +45,7 @@
  *
  */
 /* (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * $Bitzi: tigertree.h,v 1.3 2003/02/24 10:59:29 gojomo Exp $

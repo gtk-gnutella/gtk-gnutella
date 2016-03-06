@@ -200,7 +200,7 @@ urlinfo_eq(const void *a, const void *b)
 /**
  * Initialize the download mesh.
  */
-G_GNUC_COLD void
+void G_COLD
 dmesh_init(void)
 {
 	mesh = hikset_create(offsetof(struct dmesh, sha1),
@@ -562,7 +562,7 @@ dmesh_url_parse(const char *url, dmesh_urlinfo_t *info)
 		}
 	} else {
 		struct sha1 sha1;
-		
+
 		if (!urn_get_sha1(file, &sha1)) {
 			dmesh_url_errno = DMESH_URL_BAD_URI_RES;
 			return FALSE;
@@ -608,7 +608,7 @@ dm_free(struct dmesh *dm)
 	 * Values in the dme->by_host table were the dmesh_entry structures
 	 * we just disposed of above, so we only need to get rid of the keys.
 	 */
-	
+
 	htable_foreach_key(dm->by_host, wfree_packed_host, NULL);
 	htable_free_null(&dm->by_host);
 
@@ -726,7 +726,7 @@ sha1_of_finished_file(const struct sha1 *sha1)
  * Compute suitable life time for mesh entries.
  *
  * Complete files have no download HTTP transactions, hence the alt-locs
- * we get are only from uploaders.  To keep only the ones that are fresh-enough, 
+ * we get are only from uploaders.  To keep only the ones that are fresh-enough,
  * reduce the lifetime of each entry.
  */
 static long
@@ -2499,18 +2499,18 @@ dmesh_parse_addr_port_list(const struct sha1 *sha1, const char *value,
 		 * was advertised in X-Features.
 		 *
 		 * Therefore, we only parse a list of IP:port in X-Alt and X-Nalt.
-		 */	
+		 */
 
 		ok = string_to_host_addr(start, &endptr, &addr);
 		if (ok && ':' == *endptr) {
 			int error;
-				
+
 			port = parse_uint16(&endptr[1], &endptr, 10, &error);
-			ok = !error && port > 0; 
+			ok = !error && port > 0;
 		} else {
 			port = GTA_PORT;
 		}
-		
+
 		if (ok) {
 			(*func)(sha1, addr, port, udata);
 		} else {
@@ -2875,7 +2875,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 
 		if (info.idx == URN_INDEX) {
 			struct sha1 digest;
-		
+
 			ok = urn_get_sha1(info.name, &digest);
 			g_assert(ok);
 
@@ -3197,7 +3197,7 @@ dmesh_check_results_set(gnet_results_set_t *rs)
 
 				for (i = gnet_host_vec_count(alt) - 1; i >= 0; i--) {
 					struct gnutella_host host;
-				   
+
 					host = gnet_host_vec_get(alt, i);
 					dmesh_fill_info(&info, rc->sha1,
 						gnet_host_get_addr(&host), gnet_host_get_port(&host),
@@ -3347,7 +3347,7 @@ dmesh_store(void)
  * Retrieve download mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh.
  */
-static G_GNUC_COLD void
+static void G_COLD
 dmesh_retrieve(void)
 {
 	FILE *f;
@@ -3359,7 +3359,7 @@ dmesh_retrieve(void)
 	file_path_t fp[1];
 
 	file_path_set(fp, settings_config_dir(), dmesh_file);
-	f = file_config_open_read("download mesh", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read("download mesh", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 
@@ -3463,7 +3463,7 @@ dmesh_ban_store(void)
  * Retrieve banned mesh and add entries that have not expired yet.
  * The mesh is normally retrieved from ~/.gtk-gnutella/dmesh_ban.
  */
-static G_GNUC_COLD void
+static void G_COLD
 dmesh_ban_retrieve(void)
 {
 	FILE *in;
@@ -3548,7 +3548,7 @@ dmesh_ban_prepend_list(void *value, void *user)
 /**
  * Called at servent shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 dmesh_close(void)
 {
 	pslist_t *banned = NULL;

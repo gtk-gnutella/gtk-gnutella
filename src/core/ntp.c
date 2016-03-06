@@ -228,7 +228,7 @@ ntp_send_probe(const host_addr_t addr)
 		ntp_received, NULL);
 }
 
-static G_GNUC_COLD bool
+static bool G_COLD
 ntp_send_probes(void)
 {
 	static const struct {
@@ -249,13 +249,13 @@ ntp_send_probes(void)
 	 *			delay startup. Thus, use ADNS for this.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(hosts); i++) {
+	for (i = 0; i < N_ITEMS(hosts); i++) {
 		host_addr_t addr;
 
 		addr = name_to_single_host_addr(hosts[i].addr, settings_dns_net());
 		if (!is_host_addr(addr))
 			continue;
-		
+
 		if (ntp_send_probe(addr)) {
 			/* Send probes to all addresses because a successful sendto()
 			 * does not guarantee anything. */

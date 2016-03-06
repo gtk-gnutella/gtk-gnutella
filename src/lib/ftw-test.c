@@ -44,7 +44,7 @@
 #include "strtok.h"
 #include "walloc.h"
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -91,7 +91,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -101,7 +101,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -170,7 +170,7 @@ ftwflags(uint32 flags)
 	if (NULL == s)
 		s = str_new(0);
 
-	strflags(s, flags, ftwflagv, G_N_ELEMENTS(ftwflagv));
+	strflags(s, flags, ftwflagv, N_ITEMS(ftwflagv));
 	return str_2c(s);
 }
 
@@ -182,7 +182,7 @@ cbflags(uint32 flags)
 	if (NULL == s)
 		s = str_new(0);
 
-	strflags(s, flags, cbflagv, G_N_ELEMENTS(cbflagv));
+	strflags(s, flags, cbflagv, N_ITEMS(cbflagv));
 	return str_2c(s);
 }
 

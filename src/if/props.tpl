@@ -329,6 +329,16 @@ void [=(. func-prefix)=]_shutdown(void);
 [= ENDFOR uses =]
 #include "lib/override.h"		/* Must be the last header included */
 
+/*
+ * Some of the generated const variables can be unused, avoid warnings.
+ *
+ * The -Wunused-const-variable warning may not be available with a particular
+ * compiler, so the -Wpragmas that is issued before prevents a warning to be
+ * emitted in that case...
+ */
+G_IGNORE(-Wunknown-pragmas);		/* clang does not know -Wpragmas */
+G_IGNORE(-Wpragmas);				/* For gcc, not clang */
+G_IGNORE(-Wunused-const-variable);	/* Appears in clang version 3.4.1 */
 [=
 FOR prop =][=
 	(define item (sprintf "%s_variable_%s"
@@ -375,7 +385,7 @@ static const [=  (. vtype)=][=(. item)=]_default[[=vector_size=]] = [=(. vdef)=]
 static const [=  (. vtype)=][=(. item)=]_default = [=(. vdef)=];[=
         ENDIF=][=
     IF (= (get "type") "multichoice")=]
-prop_def_choice_t [=(. item)=]_choices[] = { [=
+prop_def_choice_t [=(. item)=]_choices[] = {[=
             FOR choice =]
     {N_("[=name=]"), [=value=]},[=
             ENDFOR choice =]
@@ -387,7 +397,7 @@ ENDFOR prop =]
 
 static prop_set_t *[=(. prop-set)=];
 
-G_GNUC_COLD prop_set_t *
+prop_set_t * G_COLD
 [=(. func-prefix)=]_init(void) {
     guint32 n;
 
@@ -566,7 +576,7 @@ ENDFOR prop=]
 /**
  * Free memory allocated by the property set.
  */
-G_GNUC_COLD void
+void G_COLD
 [=(. func-prefix)=]_shutdown(void) {
     guint32 n;
 
@@ -805,7 +815,7 @@ pslist_t *
 void
 [=(. func-prefix)=]_set_from_string(property_t prop, const char *val)
 {
-	prop_set_from_string([=(. prop-set)=], prop, val, FALSE);	
+	prop_set_from_string([=(. prop-set)=], prop, val, FALSE);
 }
 
 /**

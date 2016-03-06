@@ -294,7 +294,7 @@ void http_timer(time_t now);
 
 bool http_send_status(http_layer_t layer, struct gnutella_socket *s,
 	int code, bool keep_alive, http_extra_desc_t *hev, int hevcnt,
-	const char *reason, ...) G_GNUC_PRINTF(7, 8);
+	const char *reason, ...) G_PRINTF(7, 8);
 
 size_t http_hostname_add(
 	char *buf, size_t size, void *arg, uint32 flags);

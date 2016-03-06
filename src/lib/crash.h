@@ -66,10 +66,10 @@
  *		// or flush_err_str() can be used multiple times.
  *
  *		rewind_str(after_header); // rewind to offset 1; keep the first string
- *		print_str(some_other_text); 
+ *		print_str(some_other_text);
  *		flush_str(fd);	// Sent all strings to file descriptor fd with writev()
  *	}
- * 
+ *
  * @attention
  * There is no formatting done here, this is not a printf()-like function.
  * It only records an array of constant strings in a vector.
@@ -86,13 +86,13 @@ G_STMT_START { \
 	const char *print_str_text_ = (text); \
 	if ( \
 		print_str_text_ && \
-		print_str_iov_cnt_ < G_N_ELEMENTS(print_str_iov_) \
+		print_str_iov_cnt_ < N_ITEMS(print_str_iov_) \
 	) { \
 		iovec_set(&print_str_iov_[print_str_iov_cnt_], \
 			print_str_text_, strlen(print_str_text_)); \
 		print_str_iov_cnt_++; \
 	} else { \
-		iovec_set(&print_str_iov_[G_N_ELEMENTS(print_str_iov_) - 1], \
+		iovec_set(&print_str_iov_[N_ITEMS(print_str_iov_) - 1], \
 			TRUNCATION_STR, sizeof TRUNCATION_STR - 1); \
 	} \
 } G_STMT_END
@@ -214,38 +214,42 @@ void crash_init(const char *argv0, const char *progname,
 void crash_exited(uint32 pid);
 void crash_close(void);
 bool crash_is_closed(void);
+bool crash_is_deadlocked(void);
+bool crash_is_crashing_thread(int *stid);
 bool crash_is_pausing(void);
 bool crash_is_logged(void);
 bool crash_is_supervised(void);
 void crash_ctl(enum crash_alter_mode mode, int flags);
 void crash_time(char *buf, size_t buflen);
-void crash_time_cached(char *buf, size_t size);
+void crash_time_raw(char *buf, size_t size);
 void crash_time_iso(char *buf, size_t size);
 const char *crash_signame(int signo);
 void crash_handler(int signo);
-void crash_abort(void) G_GNUC_NORETURN;
+void crash_abort(void) G_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
 void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(void);
-void crash_oom(const char *format, ...) G_GNUC_NORETURN;
+void crash_oom(const char *format, ...) G_NORETURN G_PRINTF(1, 2);
 void crash_oom_condition(void);
+void crash_deadlocked(const char *file, unsigned line);
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);
 void crash_set_error(const char * const msg);
 void crash_append_error(const char * const msg);
 void crash_save_current_stackframe(unsigned offset);
-void crash_save_stackframe(void *stack[], size_t count);
+void crash_save_stackframe(int stid, void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const callback_fn_t hook);
 void crash_set_restart(action_fn_t cb);
-void crash_reexec(void) G_GNUC_NORETURN;
-void crash_restart(const char *format, ...);
+void crash_reexec(void) G_NORETURN;
+void crash_restart(const char *format, ...) G_PRINTF(1, 2);
 void crash_restarting(void);
 void crash_print_decorated_stack(int fd);
+void crash_divert_main(const char *caller, process_fn_t cb, void *arg);
 
 #endif	/* _crash_h_ */
 

@@ -143,7 +143,7 @@ typedef struct {
  * @return TRUE if OK, FALSE when we decide to bail-out.
  */
 #define insertsort		CAT2(insertsort,TAG)
-static G_GNUC_HOT bool
+static bool G_HOT
 insertsort(void *const pbase, size_t lastoff, size_t size,
 	CMP_FN_T cmp, bool can_bail_out UDATA_DECL)
 {
@@ -299,7 +299,7 @@ median_three(void *a, void *b, void *c, CMP_FN_T cmp UDATA_DECL)
  */
 
 #define quicksort	CAT2(quicksort,TAG)
-static G_GNUC_HOT void
+static void G_HOT
 quicksort(void *const pbase, size_t total_elems, size_t size,
 	CMP_FN_T cmp UDATA_DECL)
 {

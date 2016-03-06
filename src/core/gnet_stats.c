@@ -79,18 +79,18 @@ static spinlock_t gnet_stats_slk = SPINLOCK_INIT;
  *** Public functions
  ***/
 
-G_GNUC_COLD void
+void G_COLD
 gnet_stats_init(void)
 {
 	uint i;
 
 	/* Guarantees that our little hack below can succeed */
 	STATIC_ASSERT(
-		UNSIGNED(KDA_MSG_MAX_ID + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+		UNSIGNED(KDA_MSG_MAX_ID + MSG_DHT_BASE) < N_ITEMS(stats_lut));
 	STATIC_ASSERT(
 		UNSIGNED(MSG_G2_BASE + G2_MSG_MAX) < GTA_MSG_QRP);
 
-	for (i = 0; i < G_N_ELEMENTS(stats_lut); i++) {
+	for (i = 0; i < N_ITEMS(stats_lut); i++) {
 		uchar m = MSG_UNKNOWN;
 
 		/*
@@ -169,10 +169,10 @@ gnet_stats_init(void)
 	}
 
 	/* gnet_stats_count_received_payload() relies on this for G2 messages */
-	g_assert(MSG_UNKNOWN == stats_lut[G_N_ELEMENTS(stats_lut) - 1]);
+	g_assert(MSG_UNKNOWN == stats_lut[N_ITEMS(stats_lut) - 1]);
 
 #undef CASE
-		
+
     ZERO(&gnet_stats);
     ZERO(&gnet_udp_stats);
 }
@@ -363,7 +363,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 		if (f != G2_MSG_MAX) {
 			f += MSG_G2_BASE;
 		} else {
-			f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+			f = N_ITEMS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
 		}
 		ttl = 1;
 		hops = NODE_USES_UDP(n) ? 0 : 1;
@@ -399,7 +399,7 @@ gnet_stats_count_received_payload(const gnutella_node_t *n, const void *payload)
 	if (GTA_MSG_DHT == f && size + GTA_HEADER_SIZE >= KDA_HEADER_SIZE) {
 		uint8 opcode = peek_u8(payload);	/* Kademlia Opcode */
 
-		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < N_ITEMS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
 			gnet_stats_count_kademlia_header(n, t);
 		}
@@ -471,7 +471,7 @@ gnet_stats_count_queued(const gnutella_node_t *n,
 	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
 		uint8 opcode = kademlia_header_get_function(base);
 
-		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < N_ITEMS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
 		}
 		hops = 0;
@@ -500,7 +500,7 @@ gnet_stats_g2_count_queued(const gnutella_node_t *n,
 	if (f != G2_MSG_MAX) {
 		f += MSG_G2_BASE;
 	} else {
-		f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+		f = N_ITEMS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
 	}
 
 	t = stats_lut[f];
@@ -558,7 +558,7 @@ gnet_stats_count_sent(const gnutella_node_t *n,
 	if (GTA_MSG_DHT == type && size >= KDA_HEADER_SIZE) {
 		uint8 opcode = kademlia_header_get_function(base);
 
-		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < N_ITEMS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
 		}
 		hops = 0;
@@ -651,7 +651,7 @@ gnet_stats_count_dropped(gnutella_node_t *n, msg_drop_reason_t reason)
 		if (f != G2_MSG_MAX) {
 			f += MSG_G2_BASE;
 		} else {
-			f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+			f = N_ITEMS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
 		}
 		type = stats_lut[f];
 		size = n->size;
@@ -702,7 +702,7 @@ gnet_dht_stats_count_dropped(gnutella_node_t *n, kda_msg_t opcode,
 
 	g_assert(UNSIGNED(reason) < MSG_DROP_REASON_COUNT);
 	g_assert(opcode <= KDA_MSG_MAX_ID);
-	g_assert(UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut));
+	g_assert(UNSIGNED(opcode + MSG_DHT_BASE) < N_ITEMS(stats_lut));
 	g_assert(thread_is_main());
 
     size = n->size + sizeof(n->header);
@@ -884,7 +884,7 @@ gnet_stats_count_flowc(const void *head, bool head_only)
 	if (GTA_MSG_DHT == function && size >= KDA_HEADER_SIZE && !head_only) {
 		uint8 opcode = kademlia_header_get_function(head);
 
-		if (UNSIGNED(opcode + MSG_DHT_BASE) < G_N_ELEMENTS(stats_lut)) {
+		if (UNSIGNED(opcode + MSG_DHT_BASE) < N_ITEMS(stats_lut)) {
 			t = stats_lut[opcode + MSG_DHT_BASE];
 		} else {
 			t = stats_lut[function];		/* Invalid opcode? */
@@ -915,7 +915,7 @@ gnet_stats_g2_count_flowc(const gnutella_node_t *n,
 	if (f != G2_MSG_MAX) {
 		f += MSG_G2_BASE;
 	} else {
-		f = G_N_ELEMENTS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
+		f = N_ITEMS(stats_lut) - 1;	/* Last, holds MSG_UNKNOWN */
 	}
 
 	ttl = NODE_USES_UDP(n) ? 1 : 2;		/* Purely made up, but cannot be 0 */

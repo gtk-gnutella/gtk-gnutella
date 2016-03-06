@@ -91,6 +91,7 @@
 #include "once.h"
 #include "path.h"				/* For filepath_basename() */
 #include "product.h"
+#include "progname.h"
 #include "pslist.h"
 #include "sha1.h"
 #include "signal.h"
@@ -105,6 +106,7 @@
 #include "vmm.h"				/* For vmm_page_start() */
 #include "vsort.h"
 #include "walloc.h"
+#include "win32dlp.h"
 #include "xmalloc.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -168,7 +170,6 @@
 
 #define VMM_MINSIZE		(1024*1024*100)	/* At least 100 MiB */
 #define VMM_GRANULARITY	(1024*1024*4)	/* 4 MiB during initalization */
-#define VMM_THRESH_PCT	0.9				/* Bail out at 90% of memory */
 #define WS2_LIBRARY		"ws2_32.dll"
 
 #define TM_MILLION		1000000L
@@ -210,9 +211,23 @@ static void
 getlog(bool initial)
 {
 	char buf[128];
+	char *exe;
 
-	str_bprintf(buf, sizeof buf,
-		"%s/%s-log.txt", MINGW_STARTUP_LOGDIR, product_nickname());
+	/*
+	 * Because this is used at startup and progstart() invokes the MINGW32
+	 * startup code before stripping the .exe from the tail of the program
+	 * name, we have to do it here as well.
+	 *
+	 * Normal user code of getprogname() does not have to do that since upon
+	 * return from progstart(), the returned value is correctly stripped if
+	 * necessary.
+	 */
+
+	str_bprintf(buf, sizeof buf, "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
+	exe = is_strcasesuffix(buf, (size_t) -1, ".exe");
+	if (exe != NULL)
+		*exe = '\0';
+	clamp_strcat(buf, sizeof buf, "-log.txt");
 
 	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
@@ -229,7 +244,7 @@ closelog(void)
 	if (mingw_debug_lf != NULL) {			\
 		FILE *lf = mingw_debug_lf;			\
 		char tb[CRASH_TIME_BUFLEN];			\
-		crash_time_cached(tb, sizeof tb);	\
+		crash_time_raw(tb, sizeof tb);		\
 		fputs(tb, lf);						\
 		fputc(' ', lf);						\
 		fprintf(lf, __VA_ARGS__);			\
@@ -333,7 +348,7 @@ get_native_path(const char *pathname, int *error)
 	 * In a signal handler, don't allocate memory.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN];
 		b = buf_init(&bs, buf, sizeof buf);
 	} else {
@@ -458,7 +473,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 	 * In a signal handler, don't allocate memory.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
 		b = buf_init(&bs, buf, sizeof buf);
 	} else {
@@ -548,8 +563,9 @@ mingw_wsa_last_error(void)
 
 	switch (error) {
 	case WSAEWOULDBLOCK:	result = EAGAIN; break;
-	case WSAEINTR:			result = EINTR; break;
+	case WSAEINTR:			result = EINTR;  break;
 	case WSAEINVAL:			result = EINVAL; break;
+	case ERROR_IO_PENDING:	result = EINTR;  break;
 	}
 
 	if (mingw_syscall_debug()) {
@@ -599,6 +615,7 @@ mingw_win2posix(int error)
 	case ERROR_NOT_ENOUGH_MEMORY:
 	case ERROR_COMMITMENT_LIMIT:
 	case ERROR_OUTOFMEMORY:
+	case ERROR_NO_SYSTEM_RESOURCES:
 		return ENOMEM;
 	case ERROR_ACCESS_DENIED:
 	case ERROR_INVALID_ACCESS:
@@ -629,7 +646,10 @@ mingw_win2posix(int error)
 	case WSAENOTSOCK:				/* For fstat() calls */
 		return ENOTSOCK;
 	case ERROR_INVALID_ADDRESS:
+	case ERROR_INVALID_USER_BUFFER:
 		return EFAULT;
+	case ERROR_IO_PENDING:			/* System call "interrupted" by signal */
+		return EINTR;
 	/*
 	 * The following remapped because their number is in the POSIX range
 	 */
@@ -706,7 +726,7 @@ mingw_win2posix(int error)
  * Get last Windows error, remapping Windows-specific errors into POSIX ones
  * and clearing the POSIX range so that strerror() works.
  */
-static int
+int
 mingw_last_error(void)
 {
 	int error = GetLastError();
@@ -760,12 +780,10 @@ mingw_signal(int signo, signal_handler_t handler)
 	 */
 
 	switch (signo) {
-	case SIGBUS:
-	case SIGTRAP:
-	case SIGPIPE:
+	case SIGSEGV:
+		signal(signo, handler);
 		break;
 	default:
-		signal(signo, handler);
 		break;
 	}
 
@@ -779,14 +797,19 @@ mingw_signal(int signo, signal_handler_t handler)
 } G_STMT_END
 
 /**
+ * Sends a signal to specified thread.
+ */
+
+/**
  * Synthesize a fatal signal as the kernel would on an exception.
  */
-static G_GNUC_COLD void
-mingw_sigraise(int signo)
+static void G_COLD
+mingw_sigraise(int signo, bool verbose)
 {
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
-	s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
+	if (verbose)
+		s_rawwarn("%s(): raising %s", G_STRFUNC, signal_name(signo));
 
 	if (SIG_IGN == mingw_sighandler[signo]) {
 		/* Nothing */
@@ -821,8 +844,471 @@ mingw_sigraise(int signo)
 void
 mingw_abort(void)
 {
-	mingw_sigraise(SIGABRT);
+	mingw_sigraise(SIGABRT, TRUE);
 	ExitProcess(EXIT_FAILURE);
+}
+
+/***
+ *** Thread signal emulation.
+ ***/
+
+static struct mingw_thread {
+	HANDLE h;
+	CONTEXT c;
+	DWORD pc;
+	uint32 sig_pending;
+	uint32 sig_mask;
+	uint stid;
+	bool sig_suspend;
+	atomic_lock_t lock;
+} mingw_threads[THREAD_MAX];
+
+/**
+ * Clear cached system handle for dead thread and reset signal information.
+ */
+void
+mingw_gettid_reset(uint id)
+{
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (NULL != mt->h) {
+		mt->h = NULL;
+		CloseHandle(mt->h);
+	}
+
+	mt->sig_pending = mt->sig_mask = 0;
+	mt->sig_suspend = FALSE;
+	mt->lock = 0;
+}
+
+/**
+ * Return a system thread "ID", which needs to be cast back to a HANDLE
+ * to be perused by thread-specific system calls.
+ *
+ * @return the system thread ID of the current thread.
+ */
+systid_t
+mingw_gettid(void)
+{
+	uint id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+	HANDLE p;
+
+	if (mt->h != NULL)
+		return (systid_t) mt->h;
+
+	/*
+	 * We need to duplicate (and cache) the pseudo thread handle to get a
+	 * real handle that represents this thread.
+	 *
+	 * The mingw_gettid_reset() routine is called by the thread layer when
+	 * the old thread exits and we can dispose of the thread handle.
+	 */
+
+	mt->stid = id;
+	p = GetCurrentProcess();
+
+	DuplicateHandle(p, GetCurrentThread(), p, &mt->h,
+		0, FALSE, DUPLICATE_SAME_ACCESS);
+
+	return (systid_t) mt->h;
+}
+
+/**
+ * Atomically record signal in supplied memory location.
+ */
+static void
+mingw_thread_add_sig(uint32 *dest, int signum)
+{
+	/*
+	 * We merge the signal bit into the value atomically without having
+	 * to take any lock.
+	 */
+
+	for (;;) {
+		uint32 current, merged;
+
+		atomic_mb();
+		merged = current = *dest;
+		merged |= tsig_mask(signum);
+
+		if (merged == current)
+			break;
+
+		if (atomic_uint_xchg_if_eq(dest, current, merged))
+			break;
+	}
+}
+
+/**
+ * Atomically clear signal in supplied memory location.
+ */
+static void
+mingw_thread_del_sig(uint32 *dest, int signum)
+{
+	/*
+	 * We clear the signal bit within the value atomically without having
+	 * to take any lock.
+	 */
+
+	for (;;) {
+		uint32 current, cleared;
+
+		atomic_mb();
+		cleared = current = *dest;
+		cleared &= ~tsig_mask(signum);
+
+		if (cleared == current)
+			break;
+
+		if (atomic_uint_xchg_if_eq(dest, current, cleared))
+			break;
+	}
+}
+
+/**
+ * Handle pending unblocked signals for the thread.
+ *
+ * @return TRUE if we handled any signal.
+ */
+static bool
+mingw_sig_handle(struct mingw_thread *mt)
+{
+	uint32 pending;
+	bool handled = FALSE;
+
+	while (0 != (pending = ~mt->sig_mask & mt->sig_pending)) {
+		int s;
+
+		/*
+		 * There is no signal #0, hence bit 0 in the pending mask represents
+		 * signal #1.  That's why the loop starts with 1.
+		 */
+
+		for (s = 1; pending != 0; s++, pending >>= 1) {
+			if (pending & 0x1) {
+				/*
+				 * Before delivering the signal, we need to block further
+				 * invocations of the very same signal, restoring it
+				 * afterwards.
+				 *
+				 * Note that the sig_mask field is only handled by the
+				 * thread hence it could be modified freely.  It is being
+				 * read by other threads though, so using atomic operations
+				 * ensures synchronization, acting as a memory write barrier.
+				 */
+
+				mingw_thread_add_sig(&mt->sig_mask,    s);
+				mingw_thread_del_sig(&mt->sig_pending, s);
+
+				mingw_sigraise(s, FALSE);
+
+				mingw_thread_del_sig(&mt->sig_mask,    s);
+
+				handled = TRUE;
+			}
+		}
+	}
+
+	return handled;
+}
+
+/**
+ * We are magically dispatched here in the context of the thread for which
+ * we need to deliver signals thanks to thread context patching.
+ */
+static void
+mingw_sig_trampoline(void)
+{
+	int id;
+	struct mingw_thread *mt;
+	CONTEXT ctx;
+
+	id = thread_small_id();
+	mt = &mingw_threads[id];
+
+	g_assert(mt->lock);		/* Busy! */
+
+	/*
+	 * We need to take a copy of the original context on the stack since,
+	 * before we return from the interruption, we're going to release the
+	 * context lock in the mingw_thread structure (thereby allowing any other
+	 * thread from superseding it to interrupt us again).
+	 *
+	 * Since we need to release the lock before resuming, we need to get the
+	 * copy.  Do that now before dispatching interrupts to minimize the race
+	 * condition window (see the FIXME below).
+	 */
+
+	ctx = mt->c;			/* Struct copy */
+	ctx.Eip = mt->pc;		/* Restore original PC */
+
+	/*
+	 * Dispatch all the pending signals.
+	 */
+
+	mingw_sig_handle(mt);
+
+	/*
+	 * Time to resume to our original context.
+	 *
+	 * FIXME:
+	 * We need to release the lock, because we're going to return from the
+	 * interrupt.  Unfortunately, this is not an atomic operation: if an
+	 * interrupt is posted between the time we exited the loop above and now,
+	 * we'll miss it!  And there's no way we can retest for pending signals
+	 * after restoring the context, because we'll be out of here.
+	 */
+
+	atomic_release(&mt->lock);
+
+	/*
+	 * We're cheating: we restore the context in the same thread, without
+	 * stopping its execution (we would need an external thread to do that,
+	 * requiring us to launch that new thread...).
+	 *
+	 * We're not checking the return of SetThreadContext() for a good reason:
+	 * if it succeeds, it will not return!  Note the use of the pseudo handle
+	 * for the current thread, and not mt->h.
+	 */
+
+	SetThreadContext(GetCurrentThread(), &ctx);
+	g_assert_not_reached();
+}
+
+static int
+mingw_thread_sig_deliver(struct mingw_thread *mt)
+{
+	DWORD cnt;
+	const char *what = NULL;
+
+	/*
+	 * Check whether we have unmasked pending signals to deliver.
+	 */
+
+	atomic_mb();
+	if (0 == (~mt->sig_mask & mt->sig_pending))
+		return 0;		/* Queued, will be handled later */
+
+	/*
+	 * We have signals to deliver.
+	 */
+
+	if (!atomic_acquire(&mt->lock))
+		return 0;		/* Busy with another signal dispatch */
+
+	/*
+	 * If we are within a sigsuspend(), then we can notify that we were
+	 * interrupted by a signal and therefore sigsuspend() can return.
+	 */
+
+	mt->sig_suspend = FALSE;
+
+	cnt = SuspendThread(mt->h);
+
+	if ((DWORD) -1 == cnt) {
+		what = "SuspendThread";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	ZERO(&mt->c);
+	mt->c.ContextFlags = CONTEXT_FULL;
+
+	if (!GetThreadContext(mt->h ,&mt->c)) {
+		what = "GetThreadContext";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	/*
+	 * Patch the instruction pointer (aka. PC) to move execution to our
+	 * signal dispatching routine.
+	 */
+
+	mt->pc = mt->c.Eip;
+	mt->c.Eip = (DWORD) mingw_sig_trampoline;
+
+	if (!SetThreadContext(mt->h, &mt->c)) {
+		what = "SetThreadContext";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	cnt = ResumeThread(mt->h);
+
+	if ((DWORD) -1 == cnt) {
+		what = "ResumeThread";
+		errno = mingw_last_error();
+		goto failed;
+	}
+
+	if (1 != cnt) {
+		g_assert(cnt != 0);		/* Thread was suspended above */
+		what = "ResumeThread";
+		errno = EBUSY;			/* Thread already suspended from elsewhere */
+		goto failed;
+	}
+
+	return 0;		/* OK, keep the lock since context is now active! */
+
+failed:
+	atomic_release(&mt->lock);
+	s_warning("%s(): %s() failed: %m ", G_STRFUNC, what);
+	return -1;
+}
+
+/**
+ * Synchronously check for OS signals in the current thread (whose ID was
+ * already computed) and deliver those which are unblocked.
+ *
+ * We need this routine to periodically check for signals that could be
+ * missed (recorded as pending but not processed) due to an unavoidable
+ * race condition in mingw_sig_trampoline().
+ *
+ * @return TRUE if we handled any signal.
+ */
+bool
+mingw_signal_check(uint id)
+{
+	g_assert(id < THREAD_MAX);
+
+	return mingw_sig_handle(&mingw_threads[id]);
+}
+
+/**
+ * Emulate sigprocmask(), necessary now that we support inter-thread
+ * "kernel" signals (i.e. interrupts).  These are UNIX-like signals,
+ * not our thread signals implemented by thread_kill() which can only
+ * be delivered at specific checkpoints.
+ *
+ * Because these inter-thread signals can interrupt the processing at
+ * random places, the application needs to be able to block delivery of
+ * the signals to create critical sections.
+ */
+int
+mingw_sigprocmask(int how, const sigset_t *set, sigset_t *oldset)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (oldset != NULL)
+		*oldset = mt->sig_mask;
+
+	switch (how) {
+	case SIG_SETMASK:
+		g_assert(set != NULL);
+		mt->sig_mask = *set;
+		atomic_mb();
+		goto check;
+	case SIG_BLOCK:
+		g_assert(set != NULL);
+		mt->sig_mask |= *set;
+		break;
+	case SIG_UNBLOCK:
+		g_assert(set != NULL);
+		mt->sig_mask &= ~*set;
+		goto check;
+	default:
+		errno = EINVAL;
+		return -1;
+	}
+
+	return 0;
+
+check:
+	/*
+	 * When unblocking signals, we need to check whether there are
+	 * pending signals to process now, and deliver them to the thread.
+	 */
+
+	return mingw_thread_sig_deliver(mt);
+}
+
+int
+mingw_sigpending(sigset_t *set)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+
+	if (set != NULL) {
+		atomic_mb();
+		*set = mt->sig_pending;
+	}
+
+	return 0;
+}
+
+int
+mingw_sigsuspend(const sigset_t *mask)
+{
+	int id = thread_small_id();
+	struct mingw_thread *mt = &mingw_threads[id];
+	sigset_t old;
+
+	if (NULL == mask) {
+		errno = EFAULT;
+		return -1;
+	}
+
+	atomic_mb();
+	old = mt->sig_mask;
+	mt->sig_mask = *mask;
+
+	/*
+	 * Suspend the process until delivery of a signal whose action is to
+	 * invoke a signal handler or terminate the process.
+	 *
+	 * If the signal is caught, return after the signal handler returns,
+	 * restoring the signal mask to the old value.
+	 */
+
+	mt->sig_suspend = TRUE;
+
+	while (mt->sig_suspend) {
+		Sleep(100);		/* ms */
+	}
+
+	mt->sig_mask = old;
+	errno = EINTR;
+	return -1;
+}
+
+/**
+ * Send a signal to specified thread.
+ *
+ * This mimics pthread_kill() semantics on UNIX, which unfortunately is not
+ * supported by the Windows implementation of pthreads.
+ *
+ * @param id		the thread ID (our internal small thread ID) to signal
+ * @param sysid		the system thread ID (the thread HANDLE)
+ * @param signo		the signal to deliver
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+mingw_thread_kill(uint id, systid_t sysid, int signo)
+{
+	struct mingw_thread *mt;
+
+	STATIC_ASSERT(sizeof(uint32) * 8 >= SIGNAL_COUNT);
+	g_assert(id < N_ITEMS(mingw_threads));
+	g_assert(id != thread_small_id());		/* Cannot use for current thread */
+	g_assert(sysid != mingw_gettid());		/* Cannot use for current thread */
+
+	/*
+	 * We have room for one context, so we just queue signals when we are
+	 * busy handling signals in the thread.
+	 */
+
+	mt = &mingw_threads[id];
+
+	g_assert(mt->stid == id);
+	g_assert(mt->h == (HANDLE) sysid);
+
+	mingw_thread_add_sig(&mt->sig_pending, signo);
+
+	return mingw_thread_sig_deliver(mt);
 }
 
 int
@@ -1057,7 +1543,7 @@ mingw_find_process_entry(pid_t pid, PROCESSENTRY32W *pe, int *error)
 static void
 mingw_sha1_process_entry(PROCESSENTRY32W *pe, sha1_t *digest)
 {
-	size_t n = G_N_ELEMENTS(pe->szExeFile);
+	size_t n = N_ITEMS(pe->szExeFile);
 	SHA1_context c;
 
 	SHA1_reset(&c);
@@ -1271,7 +1757,7 @@ mingw_quotestr(const char *str, char *dest, size_t len)
 
 	dest[0] = '"';			/* Opening quote */
 	q = &dest[1];
-	
+
 	while (q < end) {
 		char c = *p++;
 
@@ -1497,8 +1983,8 @@ mingw_environment_block(char * const envp[], int *flags)
 	if (envp != NULL) {
 		size_t i, cnt, acnt = 0;
 		const char *mandatory[] = { "PATH", "SYSTEMROOT" };
-		bool has_mandatory[G_N_ELEMENTS(mandatory)];
-		char *added[G_N_ELEMENTS(mandatory)];
+		bool has_mandatory[N_ITEMS(mandatory)];
+		char *added[N_ITEMS(mandatory)];
 		char **e;
 		char *env;
 
@@ -1516,7 +2002,7 @@ mingw_environment_block(char * const envp[], int *flags)
 		for (i = 0; NULL != envp[i]; i++) {
 			size_t j;
 
-			for (j = 0; j < G_N_ELEMENTS(mandatory); j++) {
+			for (j = 0; j < N_ITEMS(mandatory); j++) {
 				const char *p;
 
 				if (has_mandatory[j])
@@ -1537,7 +2023,7 @@ mingw_environment_block(char * const envp[], int *flags)
 		 * then propagate it from the environment of the current process.
 		 */
 
-		for (i = 0; i < G_N_ELEMENTS(mandatory); i++) {
+		for (i = 0; i < N_ITEMS(mandatory); i++) {
 			if (!has_mandatory[i]) {
 				const char *v = getenv(mandatory[i]);
 
@@ -1550,7 +2036,7 @@ mingw_environment_block(char * const envp[], int *flags)
 			}
 		}
 
-		g_assert(acnt <= G_N_ELEMENTS(added));
+		g_assert(acnt <= N_ITEMS(added));
 
 		/*
 		 * Windows requires that environment variables be sorted.
@@ -2216,7 +2702,8 @@ pid_t
 mingw_waitpid(pid_t pid, int *status, int options)
 {
 	dualhash_t *dh = mingw_launched;
-	int ms, res;
+	int ms;
+	ulong res;
 	HANDLE proc = NULL;
 	pid_t exiting_pid;
 
@@ -2231,7 +2718,11 @@ mingw_waitpid(pid_t pid, int *status, int options)
 		if (NULL == h)
 			goto no_child;
 
-		switch (WaitForSingleObject(h, ms)) {
+		thread_in_syscall_set(TRUE);
+		res = WaitForSingleObject(h, ms);
+		thread_in_syscall_set(FALSE);
+
+		switch (res) {
 		case WAIT_TIMEOUT:
 			return 0;
 		case WAIT_ABANDONED:
@@ -2264,9 +2755,11 @@ mingw_waitpid(pid_t pid, int *status, int options)
 		dualhash_foreach(dh, mingw_child_add, &arg);
 		dualhash_unlock(dh);
 
+		thread_in_syscall_set(TRUE);
 		res = WaitForMultipleObjects(count, hv, FALSE, ms);
+		thread_in_syscall_set(FALSE);
 
-		if (res >= WAIT_OBJECT_0 && res < WAIT_ABANDONED_0)
+		if (res < WAIT_ABANDONED_0)
 			proc = hv[res - WAIT_OBJECT_0];		/* This process has exited */
 
 		HFREE_NULL(hv);
@@ -2377,9 +2870,12 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 		errno = WSAEOPNOTSUPP;
 		return -1;
 	}
+
 	res = WSAPoll(fds, nfds, timeout);
+
 	if (SOCKET_ERROR == res)
 		errno = mingw_wsa_last_error();
+
 	return res;
 }
 
@@ -2694,7 +3190,7 @@ mingw_patch_personal_path(const char *pathname)
 	if (p != NULL && !is_directory(pathname)) {
 		char *patched;
 		if (is_strsuffix(pathname, -1, "gtk-gnutella-downloads/complete")) {
-			/* 
+			/*
 			 * Put the gtk-gnutella-downloads/complete into the downloads folder
 			 * as this is where the user would expect completed downloads to be
 			 * be placed
@@ -2736,7 +3232,36 @@ mingw_getphysmemsize(void)
 int
 mingw_getdtablesize(void)
 {
-	return _getmaxstdio();
+	/*
+	 * Traditionally, on Windows, the stdio layer can only fopen() 512 files,
+	 * but the low-level I/O layer on top of which it is built can open()
+	 * up to 2048 files.
+	 *
+	 * An application can use _setmaxstdio() to increase the amount of files
+	 * we can fopen(), up to the maximum of 2048.
+	 *
+	 * See: https://msdn.microsoft.com/en-us/library/6e3b887c(v=vs.140).aspx
+	 *
+	 * For our purpose here, we're attempting to return a number that
+	 * quantifies how many "file descriptors" we can have, knowing that we
+	 * do not count sockets in the mix, whereas the UNIX version of
+	 * getdtablesize() does include sockets since they are identified as
+	 * file descriptors.
+	 *
+	 * Hence calling _getmaxstdio() is meaningless.  We know there are going
+	 * to be sockets used, but we do not know exactly how many compared to
+	 * files, since that is application-specific.
+	 *
+	 * Therefore, hardwire 2048, which is a known C runtime maximum and does
+	 * not represent the maximum number of Windows HANDLE we can open, which
+	 * is far larger, but represents the maximum amount of files we're going
+	 * to be able to manage with file descriptors: the size of the table
+	 * mapping a fd to its HANDLE.
+	 *
+	 *		--RAM, 2016-02-21
+	 */
+
+	return 2048;
 }
 
 int
@@ -2851,7 +3376,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
-   
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
@@ -2885,7 +3410,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			 * In a signal handler, don't allocate memory.
 			 */
 
-			if (signal_in_handler()) {
+			if (signal_in_unsafe_handler()) {
 				static char path[MAX_PATH_LEN];
 
 				clamp_strncpy(path, sizeof path, pathname, len);
@@ -2910,7 +3435,7 @@ int
 mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
-   
+
 	res = _fstati64(fd, buf);
 	if (-1 == res)
 		errno = mingw_last_error();
@@ -2923,7 +3448,7 @@ mingw_unlink(const char *pathname)
 {
 	pncs_t pncs;
 	int res;
-   
+
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
@@ -2947,7 +3472,7 @@ int
 mingw_dup2(int oldfd, int newfd)
 {
 	int res;
-  
+
 	if (oldfd == newfd) {
 		/* Windows does not like dup2(fd, fd) */
 		if (is_open_fd(oldfd))
@@ -3084,7 +3609,7 @@ mingw_read(int fd, void *buf, size_t count)
 
 	res = read(fd, buf, MIN(count, UINT_MAX));
 	g_assert(-1 == res || (res >= 0 && UNSIGNED(res) <= count));
-	
+
 	if (-1 == res)
 		errno = mingw_last_error();
 	return res;
@@ -3100,7 +3625,7 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
      */
 	int i;
     ssize_t total_read = 0, r = -1;
-	
+
 	for (i = 0; i < iov_cnt; i++) {
 		r = mingw_read(fd, iovec_base(&iov[i]), iovec_len(&iov[i]));
 
@@ -3122,28 +3647,50 @@ mingw_readv(int fd, iovec_t *iov, int iov_cnt)
 ssize_t
 mingw_write(int fd, const void *buf, size_t count)
 {
-	ssize_t res = write(fd, buf, MIN(count, UINT_MAX));
-	if (-1 == res) {
-		errno = mingw_last_error();
+	HANDLE h = (HANDLE) _get_osfhandle(fd);
+	DWORD written;
 
-		/*
-		 * If we get EPIPE back, see whether there is a signal handler
-		 * installed for SIGPIPE and raise the signal if there is.
-		 * When there is no signal handler (still set to SIG_DFL),
-		 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
-		 *		--RAM, 2015-11-13
-		 */
+	/*
+	 * Apparently, on Win 7 (but not on XP and I do not know what
+	 * happens on later version after 7), the C runtime causes write()
+	 * to return ENOTSOCK on ERROR_NOACCESS, which should really
+	 * be translated to EFAULT.  Experiments calling WriteFile()
+	 * directly show that it is write() which incorrectly remaps the
+	 * error code, not WriteFile() that returns a different code.
+	 *
+	 * Hence we now provide our own implementation on top of the Windows
+	 * API, without calling write(), to ensure proper errno setting.
+	 *		--RAM, 2016-02-16
+	 */
+
+	if G_UNLIKELY(INVALID_HANDLE_VALUE == h) {
+		errno = EBADF;
+		return -1;
+	}
+
+	if (!WriteFile(h, buf, MIN(count, UINT_MAX), &written, NULL)) {
+		errno = mingw_last_error();
+		written = (ssize_t) -1;
 
 		if G_UNLIKELY(EPIPE == errno) {
+			/*
+			 * If we get EPIPE back, see whether there is a signal handler
+			 * installed for SIGPIPE and raise the signal if there is.
+			 * When there is no signal handler (still set to SIG_DFL),
+			 * SIGPIPE is fatal -- this is done to mimic UNIX semantics.
+			 *		--RAM, 2015-11-13
+			 */
+
 			if (SIG_DFL == mingw_sighandler[SIGPIPE]) {
 				s_error("%s(): write to fd #%d caused SIGPIPE",
 					G_STRFUNC, fd);
 			} else if (SIG_IGN != mingw_sighandler[SIGPIPE]) {
-				mingw_sigraise(SIGPIPE);
+				mingw_sigraise(SIGPIPE, FALSE);
 			}
 		}
 	}
-	return res;
+
+	return written;
 }
 
 ssize_t
@@ -3225,8 +3772,8 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 /***
  *** Socket wrappers
  ***/
- 
-int 
+
+int
 mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	fd_set *exceptfds, struct timeval *timeout)
 {
@@ -3235,7 +3782,7 @@ mingw_select(int nfds, fd_set *readfds, fd_set *writefds,
 	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	res = select(nfds, readfds, writefds, exceptfds, timeout);
-	
+
 	if (res < 0)
 		errno = mingw_wsa_last_error();
 
@@ -3424,6 +3971,12 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	laddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
 	laddr.sin_port = 0;
 
+	/*
+	 * We're starting a succession of system calls.
+	 */
+
+	thread_in_syscall_set(TRUE);
+
 	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
 	if (-1 == r)
 		goto failed;
@@ -3480,9 +4033,13 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	sv[0] = cs;
 	sv[1] = as;
 
+	thread_in_syscall_set(FALSE);
+
 	return 0;
 
 failed:
+	thread_in_syscall_set(FALSE);
+
 	errno = mingw_wsa_last_error();
 	if (INVALID_SOCKET != ls)
 		s_close(ls);
@@ -3531,7 +4088,7 @@ mingw_setsockopt(socket_fd_t sockfd, int level, int optname,
 	  const void *optval, socklen_t optlen)
 {
 	int res;
-	
+
 	/* Initialize the socket layer */
 	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
@@ -3547,7 +4104,7 @@ s_write(socket_fd_t fd, const void *buf, size_t count)
 {
 	ssize_t res;
 
- 	count = MIN(count, UNSIGNED(INT_MAX));	
+	count = MIN(count, UNSIGNED(INT_MAX));
 	res = send(fd, buf, count, 0);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -3558,8 +4115,8 @@ ssize_t
 s_read(socket_fd_t fd, void *buf, size_t count)
 {
 	ssize_t res;
-   
- 	count = MIN(count, UNSIGNED(INT_MAX));	
+
+	count = MIN(count, UNSIGNED(INT_MAX));
 	res = recv(fd, buf, count, 0);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -3643,7 +4200,7 @@ mingw_recvmsg(socket_fd_t s, struct msghdr *hdr, int flags)
 		return -1;
 	}
 	return received;
-}	
+}
 #endif	/* HAS_WSARECVMSG */
 
 ssize_t
@@ -3655,7 +4212,7 @@ mingw_recvfrom(socket_fd_t s, void *data, size_t len, int flags,
 	INT ifromLen = *addrlen;
 	int res;
 
- 	len = MIN(len, UNSIGNED(INT_MAX));	
+	len = MIN(len, UNSIGNED(INT_MAX));
 	buf.buf = data;
 	buf.len = len;
 	res = WSARecvFrom(s, &buf, 1, &received, &dflags,
@@ -3675,8 +4232,8 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
 	  const struct sockaddr *dest_addr, socklen_t addrlen)
 {
 	ssize_t res;
-	
- 	len = MIN(len, UNSIGNED(INT_MAX));	
+
+	len = MIN(len, UNSIGNED(INT_MAX));
 	res = sendto(sockfd, buf, len, flags, dest_addr, addrlen);
 	if (-1 == res)
 		errno = mingw_wsa_last_error();
@@ -3697,7 +4254,6 @@ static struct {
 	size_t physical;		/* Physical RAM available */
 	size_t available;		/* Virtual memory initially available */
 	size_t allocated;		/* Memory we allocated */
-	size_t threshold;		/* High-memory usage threshold */
 	size_t baseline;		/* Committed memory at VMM init time */
 	bool stop_vfree;		/* VMM no longer freeing allocated memory */
 	int hinted;
@@ -3771,7 +4327,7 @@ mingw_vmm_init(void)
 
 	/*
 	 * Declare some space for future allocations without hinting.
-	 * We initially reserve about 34% of the virtual address space,
+	 * We initially reserve about 80% of the virtual address space,
 	 * with VMM_MINSIZE at least but we make sure we have also room
 	 * available for non-VMM allocations.
 	 */
@@ -3825,15 +4381,15 @@ reserve_less:
 	 * satisfying:
 	 *
 	 *		available = X + size
-	 *		size = 34% * available
+	 *		size = 80% * available
 	 *
-	 * This trivially solves to: X = 66% * available.  The assumption
+	 * This trivially solves to: X = 20% * available.  The assumption
 	 * made here is that the total memory size we computed above as
 	 * "mem_available" is going to be constant.
 	 *		--RAM, 2015-11-04
 	 */
 
-	mem_latersize = 0.66 * mem_available;
+	mem_latersize = 0.2 * mem_available;
 	mingw_vmm.later = mem_latersize;
 	mingw_vmm.size = mem_available - mem_latersize;
 
@@ -3857,83 +4413,12 @@ reserve_less:
 
 	mingw_vmm.base = mingw_vmm.reserved;
 	mingw_vmm_inited = TRUE;
-
-	/*
-	 * Set our memory allocation threshold as a fraction of the later memory
-	 * we left to the other parts of the application we do not control.
-	 * Since we'll only be able to monitor that space when we allocate memory
-	 * from the parts we control, we cannot let that space fill up.
-	 */
-
-	mingw_vmm.threshold = VMM_THRESH_PCT * mingw_vmm.later;
 }
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
 	void *p = NULL;
-
-	/*
-	 * Be careful on Windows: if we over-allocate memory, the C runtime can
-	 * fail with critical and cryptic errors, such as:
-	 *
-	 *	Fatal error: Not enough space
-	 *
-	 * The problem is:
-	 *	- That usually triggers a popup window, blocking the application until
-	 *    the user decides what to do.  Not really convenient if unattended!
-	 *  - There is no known way to catch this and do something about it.
-	 *
-	 * Therefore, we monitor how much memory is being allocated for the
-	 * process (total commit charge), understanding that there will be memory
-	 * allocated that we do not see here (other Windows DLLs loaded, for which
-	 * we cannot trap memory allocations and account for them).
-	 *
-	 * When the total commit charge in the "unreserved" space is larger than
-	 * the initial threshold we computed, we crash the process -- better do it
-	 * whilst there is still memory to allow for the process to restart than
-	 * have it crash soon without us being able to control anything!
-	 *
-	 * Naturally, for the memory we reserved for our VMM layer, we do not
-	 * have anything to do: we allocate there and we will be able to crash
-	 * properly when that reserve becomes exhausted.
-	 *		--RAM, 2015-03-29
-	 */
-
-	if G_LIKELY(mingw_vmm_inited) {
-		size_t committed = mingw_mem_committed();
-		size_t allocated = size_saturate_sub(committed, mingw_vmm.baseline);
-		size_t unreserved = size_saturate_sub(allocated, mingw_vmm.allocated);
-		size_t data = 0;
-
-		/*
-		 * If we reached the threshold, compute the current break to see
-		 * how much of the data segment we're counting in the unreserved
-		 * space, and deduce it appropriately.
-		 */
-
-		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
-			void *cur_brk = mingw_sbrk(0);
-
-			data = ptr_diff(cur_brk, mingw_vmm.heap_break);
-			unreserved = size_saturate_sub(unreserved, data);
-		}
-
-		if G_UNLIKELY(unreserved > mingw_vmm.threshold) {
-			/* We don't want a stacktrace, use s_minilog() directly */
-			s_minilog(G_LOG_LEVEL_CRITICAL,
-				"%s(): allocating %'zu bytes when %'zu are already used "
-					"with %'zu allocated here and %'zu allocated overall "
-					"since startup (%'zu in unreserved region, upper "
-					"threshold was set to %'zu, %'zu in data segment)",
-				G_STRFUNC, size, committed,
-				mingw_vmm.allocated, allocated,
-				unreserved, mingw_vmm.threshold, data);
-
-			crash_restart("%s(): nearing out of memory condition", G_STRFUNC);
-			/* Continue nonetheless, restart may be asynchronous */
-		}
-	}
 
 	if G_UNLIKELY(NULL == hint) {
 		if (mingw_vmm.hinted >= 0) {
@@ -4419,14 +4904,14 @@ mingw_fopen(const char *pathname, const char *mode)
 		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
-	
+
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
-			G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, N_ITEMS(wmode)) >=
+			N_ITEMS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -4456,11 +4941,11 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 		bin_mode[l] = '\0';
 		mode = bin_mode;
 	}
-	
+
 	if (
 		!is_ascii_string(mode) ||
-		utf8_to_utf16(mode, wmode, G_N_ELEMENTS(wmode)) >=
-			G_N_ELEMENTS(wmode)
+		utf8_to_utf16(mode, wmode, N_ITEMS(wmode)) >=
+			N_ITEMS(wmode)
 	) {
 		errno = EINVAL;
 		return NULL;
@@ -4512,13 +4997,13 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 
 	ZERO(&mountp);
 
-	ret = GetVolumePathNameW(pncs.utf16, mountp, G_N_ELEMENTS(mountp));
+	ret = GetVolumePathNameW(pncs.utf16, mountp, N_ITEMS(mountp));
 	root = ret ? mountp : pncs.utf16;
 
 	ZERO(&vname);
 
 	ret = GetVolumeInformationW(root,
-		vname, G_N_ELEMENTS(vname),		/* VolumeName{Buffer,Size} */
+		vname, N_ITEMS(vname),		/* VolumeName{Buffer,Size} */
 		NULL,							/* VolumeSerialNumber */
 		&MaxComponentLength,			/* MaximumComponentLength */
 		&FileSystemFlags,				/* FileSystemFlags */
@@ -4533,8 +5018,8 @@ mingw_statvfs(const char *pathname, struct mingw_statvfs *buf)
 		 * All we want is a stable file system ID, so we hash the volume name.
 		 */
 
-		utf16_to_utf8(vname, volume, G_N_ELEMENTS(volume));
-		volume[G_N_ELEMENTS(volume) - 1] = '\0';
+		utf16_to_utf8(vname, volume, N_ITEMS(volume));
+		volume[N_ITEMS(volume) - 1] = '\0';
 		buf->f_fsid = string_mix_hash(volume);
 	}
 
@@ -5036,6 +5521,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	HANDLE t;
 	LARGE_INTEGER dueTime;
 	uint64 value;
+	ulong r;
 
 	/*
 	 * There's no residual time, there cannot be early terminations.
@@ -5055,6 +5541,14 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	}
 
 	/*
+	 * On UNIX, nanosleep() is a system call but it is not on Windows.
+	 * Therefore we need to clear the "in syscall" state for now, until
+	 * we are ready to block, waiting for the timer to expire.
+	 */
+
+	thread_in_syscall_reset();
+
+	/*
 	 * We need one timer per thread, but since nanosleep() is called by
 	 * spinlock_loop() indirectly through compat_sleep_ms(), we have to
 	 * manage this expectation specially.
@@ -5066,7 +5560,7 @@ mingw_nanosleep(const struct timespec *req, struct timespec *rem)
 	 * Each timer is locked using a low-level lock (since we cannot recurse
 	 * into the spinlock code).
 	 */
-	
+
 	for (i = 0; i < 1000; i++) {
 		uint j, k;
 		for (k = 0, j = atomic_uint_inc(&idx); k < THREAD_MAX; k++, j++) {
@@ -5113,7 +5607,11 @@ found:
 		return -1;
 	}
 
-	if (WaitForSingleObject(t, INFINITE) != WAIT_OBJECT_0) {
+	thread_in_syscall_set(TRUE);
+	r = WaitForSingleObject(t, INFINITE);
+	thread_in_syscall_set(FALSE);
+
+	if (WAIT_OBJECT_0 != r) {
 		atomic_release(&tt->lock);
 		errno = mingw_last_error();
 		s_carp("timer returned an unexpected value, nanosleep() failed: %m");
@@ -5215,7 +5713,7 @@ mingw_cpufreq(enum mingw_cpufreq freq)
 	uint64 result = 0;
 
 	len = size_saturate_mult(cpus, sizeof *p);
-	if (cpus <= G_N_ELEMENTS(powarray)) {
+	if (cpus <= N_ITEMS(powarray)) {
 		p = powarray;
 	} else {
 		p = walloc(len);
@@ -5938,7 +6436,9 @@ mingw_semtimedop(int semid, struct sembuf *sops,
 		/* See comment in mingw_semctl() about the following sequence */
 
 		spinunlock(&s->lock);
+		thread_in_syscall_set(TRUE);
 		w = WaitForSingleObject(h, ms);
+		thread_in_syscall_set(FALSE);
 		spinlock(&s->lock);
 
 		if G_UNLIKELY(s->destroyed) {
@@ -5984,13 +6484,10 @@ void mingw_vmm_post_init(void)
 		ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size));
 	s_info("VMM left %s of virtual space unreserved",
 		compact_size(mingw_vmm.later, FALSE));
-	s_info("VMM upper threshold for unreserved space set to %s",
-		compact_size(mingw_vmm.threshold, FALSE));
 	s_info("VMM had %s already committed at startup",
 		compact_size(mingw_vmm.baseline, FALSE));
 	s_info("VMM will be using %s of VM space at most",
-		compact_size(
-			mingw_vmm.size + mingw_vmm.threshold + mingw_vmm.baseline, FALSE));
+		compact_size(mingw_vmm.size + mingw_vmm.baseline, FALSE));
 
 	/*
 	 * On Windows, VM address space grows up, but starts far enough from
@@ -6337,8 +6834,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 	const void *maxscan;
 	const uint8 *p = start;
 	const uint8 *first_opcode = p;
-	bool saved_ebp = FALSE;
-	size_t pushes = 0;
+	bool saved_ebp = FALSE, mov_immediate_eax = FALSE;
+	size_t pushes = 0, calls = 0;
 
 	maxscan = const_ptr_add_offset(start, MINGW_FORWARD_SCAN);
 	if (ptr_cmp(maxscan, max) > 0)
@@ -6387,8 +6884,15 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 *  MOV  EBP, ESP
 			 *
 			 * to create the frame pointer link.
+			 *
+			 * When using the Windows call API, the EBP register is saved
+			 * immediately at entry, but more registers can be saved as well
+			 * before the ESP is altered (so the EBP value immediately follows
+			 * the return PC pushed on the stack by the CALL instruction).
 			 */
 			first_opcode = p + 1;	/* Expects the MOV operation to follow */
+			if (0 == pushes)
+				saved_ebp = TRUE;	/* EBP was the first to be pushed */
 			/* FALL THROUGH */
 		case OPCODE_PUSH_EAX:
 		case OPCODE_PUSH_EBX:
@@ -6400,6 +6904,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			pushes++;
 			break;
 		case OPCODE_MOV_IMM_EAX:
+			mov_immediate_eax = TRUE;
+			/* FALL THROUGH */
 		case OPCODE_MOV_IMM_EBX:
 		case OPCODE_MOV_IMM_ECX:
 		case OPCODE_MOV_IMM_EDX:
@@ -6411,12 +6917,28 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			break;
 		case OPCODE_MOV_REG:
 			if (OPMODE_REG_ESP_EBP == p[1])
-				saved_ebp = p == first_opcode;
+				saved_ebp = saved_ebp || p == first_opcode;
 			p += 1;				/* Skip mode byte */
 			break;
 		case OPCODE_CALL:
-			/* Stackframe link created, no stack adjustment */
-			if (saved_ebp)
+			/*
+			 * Stackframe link created, no stack adjustment
+			 *
+			 * If this is the first CALL instruction and we have seen
+			 * a "MOV EAX, val" (move immediate value into EAX), then
+			 * we need to continue a little bit because this is the
+			 * pattern generated by gcc for large stack frames:
+			 *
+			 *    movl    $65564, %eax
+			 *    call    ___chkstk_ms
+			 *    subl    %eax, %esp
+			 *
+			 * If we have not seen this pattern or this is the second
+			 * CALL we see, assume there is no stack pointer adjustment
+			 * when we saw a leading "PUSH EBB" instruction already.
+			 */
+			calls++;
+			if (saved_ebp && !(1 == calls && mov_immediate_eax))
 				return MINGW_EMPTY_STACKFRAME;
 			p += 4;				/* Skip offset */
 			break;
@@ -6548,21 +7070,38 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			if (op != OPCODE_MOV_IMM_EAX)
 				return FALSE;
 
-			*offset = peek_le32(sub + 1);
-			return TRUE;
+			*offset = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
+			goto check_offset;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
 			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_le32(sub + 2);
-			return TRUE;
+			goto check_offset;
 		case OPCODE_SUB_3:
 			/* subl    $28, %esp */
 			g_assert(OPMODE_SUB_ESP == sub[1]);
 			*offset = peek_u8(sub + 2);
-			return TRUE;
+			goto check_offset;
 		}
 		g_assert_not_reached();
 	}
+
+	return FALSE;
+
+check_offset:
+	/*
+	 * Offsets must be a multiple of 4.  Otherwise, we're not parsing
+	 * the opcodes correctly, or rather they are not what we think
+	 * they are (random garbage due to wrong location, for instance).
+	 */
+
+	if (0 == (*offset & 3))
+		return TRUE;
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: offset was %u, not a multiple of 4 bytes, "
+		"pc=%p, opcode=0x%x, mod=0x%x",
+		G_STRFUNC, *offset, sub, sub[0], sub[1]);
 
 	return FALSE;
 }
@@ -6634,7 +7173,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
 		uint8 op, pop;
-		
+
 		const uint8 *next;
 
 		if (!valid_ptr(p) || !valid_ptr(p - 1))
@@ -6746,7 +7285,7 @@ found_offset:
 				"%s: invalid fp %p (not a stack pointer)", G_STRFUNC, fp);
 			has_frame = FALSE;
 		}
-		*next_sf = has_frame ? sf : NULL;
+		*next_sf = has_frame ? fp : NULL;
 	} else {
 		*next_sf = NULL;
 	}
@@ -7074,7 +7613,7 @@ skip_init:
 
 	info->dli_fbase = ulong_to_pointer(
 		SymGetModuleBase(process, pointer_to_ulong(addr)));
-	
+
 	if (NULL == info->dli_fbase) {
 		mingw_dl_error = GetLastError();
 		return 0;		/* Unknown, error */
@@ -7129,7 +7668,7 @@ skip_init:
 /**
  * Convert exception code to string.
  */
-static G_GNUC_COLD const char *
+static const char * G_COLD
 mingw_exception_to_string(int code)
 {
 	switch (code) {
@@ -7161,7 +7700,7 @@ mingw_exception_to_string(int code)
 /*
  * Format an error message to propagate into the crash log.
  */
-static void G_GNUC_COLD
+static void G_COLD
 mingw_crash_record(int code, const void *pc,
 	const char *routine, const char *file)
 {
@@ -7183,8 +7722,8 @@ mingw_crash_record(int code, const void *pc,
 /**
  * Log reported exception.
  */
-static void G_GNUC_COLD
-mingw_exception_log(int stid, int code, const void *pc)
+static void G_COLD
+mingw_exception_log(int stid, uint code, const void *pc)
 {
 	DECLARE_STR(13);
 	char time_buf[CRASH_TIME_BUFLEN];
@@ -7192,11 +7731,11 @@ mingw_exception_log(int stid, int code, const void *pc)
 	const char *s, *name, *file = NULL;
 
 	crash_time(time_buf, sizeof time_buf);
-	name = stacktrace_routine_name(pc, TRUE);
+	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
 
-	if (!stacktrace_pc_within_our_text(pc))
+	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
 
 	print_str(time_buf);								/* 0 */
@@ -7205,7 +7744,7 @@ mingw_exception_log(int stid, int code, const void *pc)
 		stid += 256;
 	s = PRINT_NUMBER(buf, stid);
 	print_str(s);										/* 2 */
-	print_str("): received exception at PC=0x");		/* 3 */
+	print_str("): received exception at PC=");			/* 3 */
 	print_str(pointer_to_string(pc));					/* 4 */
 	if (name != NULL) {
 		print_str(" (");								/* 5 */
@@ -7234,7 +7773,7 @@ mingw_exception_log(int stid, int code, const void *pc)
 /**
  * Log extra information on memory faults.
  */
-static G_GNUC_COLD void
+static void G_COLD
 mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 {
 	DECLARE_STR(8);
@@ -7262,7 +7801,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	print_str(s);						/* 2 */
 	print_str("): memory fault (");		/* 3 */
 	print_str(prot);					/* 4 */
-	print_str(") at VA=0x");			/* 5 */
+	print_str(") at VA=");				/* 5 */
 	print_str(pointer_to_string(va));	/* 6 */
 	print_str("\n");					/* 7 */
 
@@ -7286,7 +7825,7 @@ static uint8 mingw_excpt[THREAD_MAX];
 /**
  * Our default exception handler.
  */
-static G_GNUC_COLD LONG WINAPI
+static LONG WINAPI G_COLD
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
 	EXCEPTION_RECORD *er;
@@ -7383,15 +7922,15 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		)
 	) {
 		int count;
-		
+
 		count = mingw_stack_unwind(
-			mingw_stack, G_N_ELEMENTS(mingw_stack), ei->ContextRecord, 0);
+			mingw_stack, N_ITEMS(mingw_stack), ei->ContextRecord, 0);
 
-		stacktrace_stack_safe_print(STDERR_FILENO, mingw_stack, count);
+		stacktrace_stack_safe_print(STDERR_FILENO, stid, mingw_stack, count);
 		if (log_stdout_is_distinct())
-			stacktrace_stack_safe_print(STDOUT_FILENO, mingw_stack, count);
+			stacktrace_stack_safe_print(STDOUT_FILENO, stid, mingw_stack, count);
 
-		crash_save_stackframe(mingw_stack, count);
+		crash_save_stackframe(stid, mingw_stack, count);
 	} else if (signal_in_exception() > 5) {
 		DECLARE_STR(1);
 
@@ -7405,7 +7944,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	 */
 
 	if (signo != 0)
-		mingw_sigraise(signo);
+		mingw_sigraise(signo, TRUE);
 
 	signal_uncrashing();
 	if (stid >= 0 && stid < THREAD_MAX)
@@ -7417,12 +7956,12 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 static inline void WINAPI
 mingw_invalid_parameter(const wchar_t * expression,
 	const wchar_t * function, const wchar_t * file, unsigned int line,
-   uintptr_t pReserved) 
+   uintptr_t pReserved)
 {
 	(void) expression;
 	(void) function;
 	(void) pReserved;
-	
+
 	wprintf(L"mingw: Invalid parameter in %s %s:%d\r\n", function, file, line);
 }
 
@@ -7519,7 +8058,7 @@ mingw_sbrk(long incr)
 
 static char mingw_stdout_buf[1024];		/* Used as stdout buffer */
 
-static G_GNUC_COLD void
+static void G_COLD
 mingw_stdio_reset(bool console)
 {
 	/*
@@ -7535,7 +8074,7 @@ mingw_stdio_reset(bool console)
 
 	if (console) {
 		int tty;
-		
+
 		tty = isatty(STDIN_FILENO);
 		STARTUP_DEBUG("stdin is%s a tty", tty ? "" : "n't");
 		if (tty) {
@@ -7600,7 +8139,7 @@ mingw_stdio_reset(bool console)
  * Rotate pathname at startup time, renaming existing paths with a .0, .1, .2
  * extension, etc..., up to the maximum specified.
  */
-void G_GNUC_COLD
+void G_COLD
 mingw_file_rotate(const char *pathname, int keep)
 {
 	static char npath[MAX_PATH_LEN];
@@ -7626,7 +8165,7 @@ mingw_file_rotate(const char *pathname, int keep)
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
 }
 
-G_GNUC_COLD void
+void G_COLD
 mingw_early_init(void)
 {
 	int console_err;
@@ -7729,16 +8268,17 @@ mingw_early_init(void)
 #endif	/* EMULATE_GETPPID */
 
 	set_folder_basepath_func(mingw_get_folder_basepath);
+	win32dlp_init(mingw_vmm.reserved, mingw_vmm.size);
 
 	closelog();
 }
 
-void 
+void
 mingw_close(void)
 {
 	if (libws2_32 != NULL) {
 		FreeLibrary(libws2_32);
-		
+
 		libws2_32 = NULL;
 		WSAPoll = NULL;
 	}

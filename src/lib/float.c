@@ -476,7 +476,7 @@ float_qr(bignum_t *r, bignum_t *s,
  *
  * This routine will be called once, as needed the first time the API is used.
  */
-static G_GNUC_COLD void
+static void G_COLD
 float_init_once(void)
 {
 	int n, i, l;
@@ -519,7 +519,7 @@ float_init_once(void)
  * This routine is made public to allow setting a baseline when doing
  * timing measurements.
  */
-G_GNUC_COLD void
+void G_COLD
 float_init(void)
 {
 	ONCE_FLAG_RUN(float_inited, float_init_once);
@@ -661,7 +661,7 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 		else
 			use_mp = 1, f_n = 2, s_n = 2-e, m_n = 0;
 	}
-   
+
 	/* Scale it! */
 	if (k == 0) {
 		short_shift_left(f, f_n, &R);
@@ -674,7 +674,7 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 		s_n += k;
 		if (m_n >= s_n)
 			f_n -= s_n, m_n -= s_n, s_n = 0;
-		else 
+		else
 			f_n -= m_n, s_n -= m_n, m_n = 0;
 		short_shift_left(f, f_n, &R);
 		big_shift_left(&five[k-1], s_n, &S);
@@ -713,7 +713,7 @@ float_dragon(char *dest, size_t len, double v, int *exponent)
 	putchar('\n');
 	fflush(0);
 #endif	/* FLOAT_DEBUG */
-   
+
 	if (qr_shift) {
 		sl = s_n / 64;
 		slr = s_n % 64;
@@ -871,7 +871,7 @@ float_fixed(char *dest, size_t len, double v, int prec, int *exponent)
 		s_n += k;
 		if (f_n >= s_n)
 			f_n -= s_n, s_n = 0;
-		else 
+		else
 			s_n -= f_n, f_n = 0;
 		short_shift_left(f, f_n, &R);
 		big_shift_left(&five[k-1], s_n, &S);

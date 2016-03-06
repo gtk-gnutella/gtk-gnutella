@@ -224,9 +224,9 @@ mime_type_to_string(enum mime_type type)
 #undef MIME_TYPE
 	};
 	size_t i;
-	
-	STATIC_ASSERT(MIME_TYPE_NUM == G_N_ELEMENTS(names));
-	i = (size_t) type < G_N_ELEMENTS(names)
+
+	STATIC_ASSERT(MIME_TYPE_NUM == N_ITEMS(names));
+	i = (size_t) type < N_ITEMS(names)
 			? type : MIME_TYPE_APPLICATION_OCTET_STREAM;
 	return names[i];
 }
@@ -247,7 +247,7 @@ mime_type_from_extension(const char *extension)
 #define FOUND(i) 	return mime_type_map[(i)].type;
 
 		BINARY_SEARCH(const char *, extension,
-			G_N_ELEMENTS(mime_type_map),
+			N_ITEMS(mime_type_map),
 			ascii_strcasecmp, GET_KEY, FOUND);
 
 #undef FOUND
@@ -271,7 +271,7 @@ enum mime_type
 mime_type_from_filename(const char *filename)
 {
 	const char *extension;
-	
+
 	g_return_val_if_fail(filename, MIME_TYPE_APPLICATION_OCTET_STREAM);
 	extension = strrchr(filename, '.');
 	return mime_type_from_extension(extension ? &extension[1] : NULL);
@@ -280,7 +280,7 @@ mime_type_from_filename(const char *filename)
 /**
  * Initialize the MIME table.
  */
-G_GNUC_COLD void
+void G_COLD
 mime_type_init(void)
 {
 	size_t i;
@@ -289,7 +289,7 @@ mime_type_init(void)
 	 * Ensure the MIME table is sorted.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(mime_type_map); i++) {
+	for (i = 0; i < N_ITEMS(mime_type_map); i++) {
 		enum mime_type ret;
 
 		ret = mime_type_from_extension(mime_type_map[i].extension);

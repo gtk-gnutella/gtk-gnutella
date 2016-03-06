@@ -153,7 +153,7 @@ statusbar_gui_push(sb_types_t type, guint scid, guint timeout,
 }
 
 /**
- * Put an informational message on the statusbar. The message will be 
+ * Put an informational message on the statusbar. The message will be
  * displayed for the number of seconds given by timeout. If timeout is 0
  * the message will not be automatically removed.
  *
@@ -299,7 +299,7 @@ statusbar_gui_free_timeout_list(void)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 statusbar_gui_init(void)
 {
     GtkStatusbar *sb;

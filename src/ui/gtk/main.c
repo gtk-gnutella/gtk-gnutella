@@ -123,6 +123,7 @@ gui_ ## name ## _lookup(const gchar *id) \
 
 WIDGET(dlg_about)
 WIDGET(dlg_faq)
+WIDGET(dlg_glossary)
 WIDGET(dlg_ancient)
 WIDGET(dlg_prefs)
 WIDGET(dlg_quit)
@@ -412,7 +413,7 @@ gui_init_main_window(void)
 		on_main_gui_map_event, NULL);
 }
 
-static void 
+static void
 gui_init_dlg_prefs(void)
 {
 #ifdef USE_GTK2
@@ -535,13 +536,13 @@ gui_init_dlg_about(void)
     };
 	GtkWidget *text;
     guint i;
-	
+
 	text = gui_dlg_about_lookup("textview_about_contributors");
     gtk_label_set_text(
         GTK_LABEL(gui_dlg_about_lookup("label_about_title")),
         guc_version_get_version_string());
 
-  	for (i = 0; i < G_N_ELEMENTS(contributors); i++) {
+  	for (i = 0; i < N_ITEMS(contributors); i++) {
 		if (i > 0)
 			text_widget_append(GTK_WIDGET(text), "\n");
 		text_widget_append(GTK_WIDGET(text),
@@ -610,7 +611,7 @@ void
 main_gui_show_prefences(void)
 {
 	g_return_if_fail(gui_dlg_prefs());
-	
+
     gtk_widget_show(gui_dlg_prefs());
 	gui_restore_window(gui_dlg_prefs(), PROP_PREFS_DLG_COORDS);
 	gdk_window_raise(gui_dlg_prefs()->window);
@@ -625,15 +626,15 @@ void main_gui_init_osx()
 	GtkWidget *item;
 	GtkWidget *sep;
 	GtkWidget *menubar;
-	
+
 	g_signal_connect(theApp, "NSApplicationBlockTermination",
 					 G_CALLBACK(on_button_quit_clicked), NULL);
 	g_signal_connect(theApp, "NSApplicationDidBecomeActive",
 					 G_CALLBACK(on_NSApplicationDidBecomeActive), NULL);
 	g_signal_connect(theApp, "NSApplicationOpenFile",
 					 G_CALLBACK(on_NSApplicationOpenFile), NULL);
-	
-	gtk_ui_manager_add_ui_from_string(mgr, 
+
+	gtk_ui_manager_add_ui_from_string(mgr,
 		"<ui>"
 		"<menubar name='MenuBar'>"
 		"<menu name='File' action='FileAction'>"
@@ -652,23 +653,23 @@ void main_gui_init_osx()
 		"    <menuitem action='menu_uploads_visible'/>"
 		"    <menuitem action='menu_connections_visible'/>"
 		"  </menu>"
-		
+
 		"  <menu action='menu_http_stats_visible'>"
 		"    <menuitem action='menu_bws_in_visible'/>"
 		"    <menuitem action='menu_bws_out_visible'/>"
 		"  </menu>"
-		
+
 		"  <menu action='menu_gnet_stats_visible'>"
 		"    <menuitem action='menu_bws_gin_visible'/>"
 		"    <menuitem action='menu_bws_gout_visible'/>"
 		"  </menu>"
-		
+
 		"  <menu action='menu_gnet_leaf_stats_visible'>"
 		"    <menuitem action='menu_autohide_bws_gleaf'/>"
 		"    <menuitem action='menu_bws_glin_visible'/>"
 		"    <menuitem action='menu_bws_glout_visible'/>"
 		"  </menu>"
-		
+
 		"  <menu action='menu_dht_traffic_stats_visible'>"
 		"    <menuitem action='menu_autohide_bws_dht'/>"
 		"    <menuitem action='menu_bws_dht_in_visible'/>"
@@ -682,151 +683,151 @@ void main_gui_init_osx()
 		"</menubar>"
 		"</ui>",
 		-1, &err);
-	
-	
+
+
 	if (err != NULL) {
 		g_error("%s", err->message);
 	}
 	static GtkActionEntry entries[] = {
 		{ "FileAction", NULL, "_File", NULL, NULL, NULL },
-		{ "PreferencesAction", GTK_STOCK_PREFERENCES, "Preferences", 
-			NULL, "Set Viewing Preferences", 
+		{ "PreferencesAction", GTK_STOCK_PREFERENCES, "Preferences",
+			NULL, "Set Viewing Preferences",
 			G_CALLBACK(on_menu_prefs_activate) },
-		
-		{ "CloseWindow", NULL, "Close window", 
+
+		{ "CloseWindow", NULL, "Close window",
 			"<meta>W", NULL,
 			G_CALLBACK(on_main_window_delete_event_hide) },
-		
-		{ "QuitAction", GTK_STOCK_QUIT, "_Quit", 
-			"<control>q", "Quit Gtk-Gnutella", 
+
+		{ "QuitAction", GTK_STOCK_QUIT, "_Quit",
+			"<control>q", "Quit Gtk-Gnutella",
 			G_CALLBACK (on_button_quit_clicked) },
-		
-		{ "ViewAction", NULL, "View", NULL, NULL, NULL },		
-		
+
+		{ "ViewAction", NULL, "View", NULL, NULL, NULL },
+
 		{ "connection_counters1", NULL,
 			"Connection counters", NULL, NULL, NULL },
-		
-		{ "menu_http_stats_visible", NULL, 
+
+		{ "menu_http_stats_visible", NULL,
 			"_HTTP traffic stats", NULL, NULL, NULL },
-		
-		{ "menu_gnet_stats_visible", NULL, 
+
+		{ "menu_gnet_stats_visible", NULL,
 			"Gnutella _traffic stats", NULL, NULL, NULL },
-		
-		{ "menu_gnet_leaf_stats_visible", NULL, 
+
+		{ "menu_gnet_leaf_stats_visible", NULL,
 			"Gnutella _leaf traffic stats", NULL, NULL, NULL },
-		
-		{ "menu_dht_traffic_stats_visible", NULL, 
+
+		{ "menu_dht_traffic_stats_visible", NULL,
 			"DHT traffic stats", NULL, NULL, NULL },
-		
-		
+
+
 		{ "HelpAction", NULL, "_Help", NULL, NULL, NULL },
 		{ "FAQAction", NULL, "_FAQ",
-			NULL, "Show Frequently Asked Questions", 
+			NULL, "Show Frequently Asked Questions",
 			G_CALLBACK(on_menu_faq_activate) },
-		{ "AboutAction", NULL, 
-			"_About Gtk-Gnutella", "<control>a", "About Gtk-Gnutella", 
+		{ "AboutAction", NULL,
+			"_About Gtk-Gnutella", "<control>a", "About Gtk-Gnutella",
 			G_CALLBACK(on_menu_about_activate) }
 	};
-	
+
 	static const GtkToggleActionEntry toggle_entries[] = {
-		{ "menu_searchbar_visible", NULL, 
-			"Show Search_bar", "F2", NULL, 
+		{ "menu_searchbar_visible", NULL,
+			"Show Search_bar", "F2", NULL,
 			G_CALLBACK(on_menu_searchbar_visible_activate), TRUE },
-		{ "menu_sidebar_visible", NULL, 
-			"Show _Sidebar", "F8", NULL, 
+		{ "menu_sidebar_visible", NULL,
+			"Show _Sidebar", "F8", NULL,
 			G_CALLBACK(on_menu_sidebar_visible_activate), TRUE },
-		{ "menu_menubar_visible", NULL, 
-			"Show _Menubar", "F9", NULL, 
+		{ "menu_menubar_visible", NULL,
+			"Show _Menubar", "F9", NULL,
 			G_CALLBACK(on_menu_menubar_visible_activate), TRUE },
-		{ "menu_statusbar_visible", NULL, 
+		{ "menu_statusbar_visible", NULL,
 			"Show _Statusbar", NULL, NULL,
 			G_CALLBACK(on_menu_statusbar_visible_activate), TRUE},
-		
-		{ "menu_downloads_visible", NULL, 
+
+		{ "menu_downloads_visible", NULL,
 			"Show _Downloads", NULL, NULL,
 			G_CALLBACK(on_menu_downloads_visible_activate), TRUE },
-		{ "menu_uploads_visible", NULL, 
+		{ "menu_uploads_visible", NULL,
 			"Show _Uploads", NULL, NULL,
 			G_CALLBACK(on_menu_uploads_visible_activate), TRUE },
-		{ "menu_connections_visible", NULL, 
+		{ "menu_connections_visible", NULL,
 			"Show _Peers", NULL, NULL,
 			G_CALLBACK(on_menu_connections_visible_activate), TRUE },
-		
-		
-		{ "menu_bws_in_visible", NULL, 
+
+
+		{ "menu_bws_in_visible", NULL,
 			"Show _inbound HTTP traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_in_visible_activate), TRUE },
-		{ "menu_bws_out_visible", NULL, 
+		{ "menu_bws_out_visible", NULL,
 			"Show _outbound HTTP traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_out_visible_activate), TRUE },
-		
-		{ "menu_bws_gin_visible", NULL, 
+
+		{ "menu_bws_gin_visible", NULL,
 			"Show _inbound Gnutella traffic" ,NULL, NULL,
 			G_CALLBACK(on_menu_bws_gin_visible_activate), TRUE },
-		{ "menu_bws_gout_visible", NULL, 
+		{ "menu_bws_gout_visible", NULL,
 			"Show _outbound Gnutella traffic",  NULL, NULL,
 			G_CALLBACK(on_menu_bws_gout_visible_activate), TRUE },
-		
-		{ "menu_autohide_bws_gleaf", NULL, 
+
+		{ "menu_autohide_bws_gleaf", NULL,
 			"_Auto-hide leaf traffic stats", NULL, NULL,
 			G_CALLBACK(on_menu_autohide_bws_gleaf_activate), TRUE },
-		{ "menu_bws_glin_visible", NULL, 
+		{ "menu_bws_glin_visible", NULL,
 			"Show _inbound leaf traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_glin_visible_activate), TRUE },
-		{ "menu_bws_glout_visible", NULL, 
+		{ "menu_bws_glout_visible", NULL,
 			"Show _outbound leaf traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_glout_visible_activate), TRUE },
-		
-		{ "menu_autohide_bws_dht", NULL, 
+
+		{ "menu_autohide_bws_dht", NULL,
 			"auto-hide DHT traffic stats", NULL,  NULL,
 			G_CALLBACK(on_menu_autohide_bws_dht_activate), TRUE },
-		{ "menu_bws_dht_in_visible", NULL, 
+		{ "menu_bws_dht_in_visible", NULL,
 			"Show inbound DHT traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_dht_in_visible_activate), TRUE },
-		{ "menu_bws_dht_out_visible", NULL, 
+		{ "menu_bws_dht_out_visible", NULL,
 			"Show outbound DHT traffic", NULL, NULL,
 			G_CALLBACK(on_menu_bws_dht_out_visible_activate), TRUE },
-		
+
 	};
-	
+
 	GtkActionGroup *actions = gtk_action_group_new ("Actions");
-	gtk_action_group_add_actions (actions, entries, 
-								  G_N_ELEMENTS (entries), NULL);
-	gtk_action_group_add_toggle_actions(actions, toggle_entries, 
-										G_N_ELEMENTS (toggle_entries), NULL);
+	gtk_action_group_add_actions (actions, entries,
+								  N_ITEMS (entries), NULL);
+	gtk_action_group_add_toggle_actions(actions, toggle_entries,
+										N_ITEMS (toggle_entries), NULL);
 	gtk_ui_manager_insert_action_group (mgr, actions, 0);
-	
+
 	menubar = gtk_ui_manager_get_widget(mgr, "/MenuBar");
-	
-	
+
+
 	gtkosx_application_set_menu_bar(theApp, GTK_MENU_SHELL(menubar));
 	gtkosx_application_set_use_quartz_accelerators(theApp, TRUE);
-	
-	
+
+
 	item = gtk_ui_manager_get_widget(mgr, "/MenuBar/File/Quit");
 	gtk_widget_hide(GTK_WIDGET(item));
-	
+
 	item = gtk_ui_manager_get_widget(mgr, "/MenuBar/View/menu_statusbar_visible");
 	gtk_widget_hide(GTK_WIDGET(item));
-	
+
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/Help/About");
 	gtkosx_application_insert_app_menu_item  (theApp, item, 0);
 	sep = gtk_separator_menu_item_new();
 	g_object_ref(sep);
-	gtkosx_application_insert_app_menu_item  (theApp, sep, 1);	
-	
+	gtkosx_application_insert_app_menu_item  (theApp, sep, 1);
+
 	item = gtk_ui_manager_get_widget(mgr,"/MenuBar/File/Preferences");
 	gtkosx_application_insert_app_menu_item  (theApp, item, 2);
-	
-	
+
+
 	GtkWidget *dock_menu = gtk_menu_new();
-	
+
 	item = gtk_menu_item_new_with_label("Toon");
 	g_signal_connect_data (item, "activate", G_CALLBACK (on_NSApplicationDidBecomeActive),0,0, 0);
 	gtk_menu_append(dock_menu, item);
-	
+
 	gtkosx_application_set_dock_menu(theApp, GTK_MENU_SHELL(dock_menu));
-	
+
 	gtkosx_application_ready(theApp);
 }
 #endif
@@ -850,7 +851,7 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 #ifdef HAVE_GTKOSXAPPLICATION
 	main_gui_init_osx();
 #endif
-	
+
 	if (disable_xshm)
 		gdk_set_use_xshm(FALSE);
 
@@ -880,11 +881,12 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 
     gui_shutdown_window_set(create_shutdown_window());
     gui_dlg_quit_set(create_dlg_quit());
-	
+
     gui_dlg_about_set(create_dlg_about());
 	gui_init_dlg_about();
 
     gui_dlg_faq_set(create_dlg_faq());
+    gui_dlg_glossary_set(create_dlg_glossary());
     gui_dlg_ancient_set(create_dlg_ancient());
 
     gui_dlg_prefs_set(create_dlg_prefs());
@@ -993,10 +995,10 @@ main_gui_run(const gchar *geometry_spec, const gboolean minimized)
 	if (geometry_spec) {
 		guint32 coord[4] = { 0, 0, 0, 0 };
 
-    	gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, G_N_ELEMENTS(coord));
+    	gui_prop_get_guint32(PROP_WINDOW_COORDS, coord, 0, N_ITEMS(coord));
 		if (0 == gui_parse_geometry_spec(geometry_spec, coord)) {
     		gui_prop_set_guint32(PROP_WINDOW_COORDS,
-				coord, 0, G_N_ELEMENTS(coord));
+				coord, 0, N_ITEMS(coord));
 		}
 	}
 	gui_restore_window(gui_main_window(), PROP_WINDOW_COORDS);
@@ -1114,10 +1116,10 @@ void
 main_gui_shutdown(void)
 {
 	unsigned i;
-	
+
 	gui_save_window(gui_main_window(), PROP_WINDOW_COORDS);
 
-	for (i = 0; i < G_N_ELEMENTS(visibility_listeners); i++) {
+	for (i = 0; i < N_ITEMS(visibility_listeners); i++) {
 		gm_slist_free_null(&visibility_listeners[i]);
 	}
 	slist_free(&timers);

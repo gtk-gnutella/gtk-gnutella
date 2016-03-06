@@ -80,6 +80,8 @@
 #include "atomic.h"
 #include "ckalloc.h"
 #include "compat_pause.h"
+#include "compat_poll.h"
+#include "compat_usleep.h"
 #include "cq.h"
 #include "eslist.h"
 #include "evq.h"
@@ -143,6 +145,7 @@ enum crash_level {
 	CRASH_LVL_NONE = 0,				/**< No crash yet */
 	CRASH_LVL_BASIC,				/**< Basic crash level */
 	CRASH_LVL_OOM,					/**< Out of memory */
+	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_FAILURE,				/**< Assertion failure */
 	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
 	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
@@ -171,10 +174,13 @@ struct crash_vars {
 	pid_t ppid;				/**< Parent PID, when supervising */
 	time_t start_time;		/**< Launch time (at crash_init() call) */
 	size_t stackcnt;		/**< Valid stack items in stack[] */
+	int stackid;			/**< Known thread ID to which stack[] belongs */
 	str_t *logstr;			/**< String to build and hold error message */
 	str_t *fmtstr;			/**< String to allow log formatting during crash */
 	hash_table_t *hooks;	/**< Records crash hooks by file name */
 	action_fn_t restart;	/**< Optional restart callback to invoke */
+	const char *lock_file;	/**< Deadlocking file */
+	unsigned lock_line;		/**< Deadlocking line */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
 	int argc;				/**< Saved argv[] count */
@@ -185,6 +191,7 @@ struct crash_vars {
 	uint8 crashing;			/**< True when we enter crash mode */
 	uint8 recursive;		/**< True when we are in a recursive crash */
 	uint8 closed;			/**< True when crash_close() was called */
+	uint8 deadlocked;		/**< True when the application deadlocked */
 	uint8 invoke_inspector;
 	uint8 has_numbers;		/**< True if major/minor/patchlevel were inited */
 	/* Not boolean fields because we need to update them individually */
@@ -211,6 +218,9 @@ static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
 static bool crash_restart_initiated;
 static const struct assertion_data *crash_last_assertion_failure;
+static const char *crash_last_deadlock_file;
+static int crash_thread_id = THREAD_INVALID_ID;
+static enum crash_level crash_current_level;
 
 /**
  * An item in the crash_hooks list.
@@ -226,7 +236,7 @@ static eslist_t crash_hooks = ESLIST_INIT(offsetof(crash_hook_item_t, link));
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
 /**
- * Signals that usually lead to a crash.
+ * Signals that usually lead to a crash and which we don't normally expect.
  */
 static const int signals[] = {
 #ifdef SIGBUS
@@ -235,6 +245,9 @@ static const int signals[] = {
 #ifdef SIGTRAP
 	SIGTRAP,
 #endif
+#ifdef SIGSYS
+	SIGSYS,
+#endif
 	SIGABRT,
 	SIGFPE,
 	SIGILL,
@@ -242,6 +255,7 @@ static const int signals[] = {
 };
 
 static void crash_directory_cleanup(const char *crashdir);
+static void crash_dump_stacks(int fd);
 
 /**
  * Determines whether coredumps are disabled.
@@ -275,7 +289,7 @@ typedef struct cursor {
 /**
  * Append positive value to buffer, formatted as "%02lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_02u(cursor_t *cursor, long v)
 {
 	if (cursor->size < 2 || v < 0)
@@ -299,7 +313,7 @@ crash_append_fmt_02u(cursor_t *cursor, long v)
 /**
  * Append positive value to buffer, formatted as "%03lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_03u(cursor_t *cursor, long v)
 {
 	if (cursor->size < 3 || v < 0)
@@ -334,7 +348,7 @@ crash_append_fmt_03u(cursor_t *cursor, long v)
 /**
  * Append positive value to buffer, formatted as "%lu".
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 {
 	char buf[ULONG_DEC_BUFLEN];
@@ -354,7 +368,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 /**
  * Append a character to supplied buffer.
  */
-static G_GNUC_COLD void
+static void
 crash_append_fmt_c(cursor_t *cursor, unsigned char c)
 {
 	if (cursor->size < 1)
@@ -374,10 +388,10 @@ crash_append_fmt_c(cursor_t *cursor, unsigned char c)
  *
  * @param buf		buffer where current time is formatted
  * @param size		length of buffer
- * @param cached	whether to use cached time
+ * @param raw		whether to use raw time computation
  */
 static void
-crash_time_internal(char *buf, size_t size, bool cached)
+crash_time_internal(char *buf, size_t size, bool raw)
 {
 	const size_t num_reserved = 1;
 	struct tm tm;
@@ -392,10 +406,13 @@ crash_time_internal(char *buf, size_t size, bool cached)
 	cursor.buf = buf;
 	cursor.size = size - num_reserved;	/* Reserve one byte for NUL */
 
-	if G_UNLIKELY(cached) {
-		tm_now_raw(&tv);
-		if (0 == tv.tv_sec)				/* Too soon to have cached copy? */
-			tm_current_time(&tv);		/* Get system value, no caching! */
+	/*
+	 * Within crashes, force raw time computation to avoid doing further
+	 * thread_check_suspended() calls during time computation.
+	 */
+
+	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level) {
+		tm_current_time(&tv);			/* Get system value, no locks */
 		loc = tm_localtime_raw();
 	} else {
 		tm_now_exact(&tv);
@@ -447,8 +464,8 @@ crash_time(char *buf, size_t size)
  * and should be at least CRASH_TIME_BUFLEN byte-long or the string will be
  * truncated.
  *
- * The difference with crash_time() is that the routine uses the cached time
- * and therefore does not take any locks.
+ * The difference with crash_time() is that the routine uses a direct time
+ * computation and therefore does not take any locks.
  *
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
@@ -457,7 +474,7 @@ crash_time(char *buf, size_t size)
  * @param size		length of buffer
  */
 void
-crash_time_cached(char *buf, size_t size)
+crash_time_raw(char *buf, size_t size)
 {
 	crash_time_internal(buf, size, TRUE);
 }
@@ -470,7 +487,7 @@ crash_time_cached(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-G_GNUC_COLD void
+void
 crash_time_iso(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -511,7 +528,7 @@ crash_time_iso(char *buf, size_t size)
  * This routine can safely be used in a signal handler as it does not rely
  * on unsafe calls.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_run_time(char *buf, size_t size)
 {
 	const size_t num_reserved = 1;
@@ -562,11 +579,30 @@ crash_run_time(char *buf, size_t size)
 }
 
 /**
+ * Stringify a crash level.
+ */
+static const char *
+crash_level_to_string(const enum crash_level level)
+{
+	switch (level) {
+	case CRASH_LVL_NONE:		return "none";
+	case CRASH_LVL_BASIC:		return "basic";
+	case CRASH_LVL_OOM:			return "OOM";
+	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
+	case CRASH_LVL_FAILURE:		return "failure";
+	case CRASH_LVL_EXCEPTION:	return "exception";
+	case CRASH_LVL_RECURSIVE:	return "recursive";
+	}
+
+	return "UNKNOWN";
+}
+
+/**
  * Get the hook function that we have to run in order to log more context.
  *
  * @return the hook function to run, NULL if nothing.
  */
-static G_GNUC_COLD callback_fn_t
+static callback_fn_t G_COLD
 crash_get_hook(void)
 {
 	const char *file;
@@ -586,6 +622,8 @@ crash_get_hook(void)
 		file = vars->failure->file;
 	else if (vars->filename != NULL)
 		file = vars->filename;
+	else if (vars->lock_file != NULL)
+		file = vars->lock_file;
 	else
 		file = NULL;
 
@@ -596,12 +634,27 @@ crash_get_hook(void)
 }
 
 /**
+ * Get the PID of the running process.
+ *
+ * This routine uses the cached pid computed at crash_init() time to get
+ * the proper PID, even if we are in the fork()ed child presently.
+ */
+static pid_t
+crash_getpid(void)
+{
+	if (vars != NULL)
+		return vars->pid;
+
+	return getpid();
+}
+
+/**
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
  * @param logfd			if not -1, the opened file where we should log to
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_run_hooks(const char *logfile, int logfd)
 {
 	callback_fn_t hook;
@@ -630,7 +683,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str(" invoking crash hook \"");	/* 4 */
 	print_str(routine);						/* 5 */
@@ -678,7 +731,7 @@ crash_run_hooks(const char *logfile, int logfd)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");						/* 3 */
 	print_str("done with hook \"");			/* 4 */
 	print_str(routine);						/* 5 */
@@ -708,7 +761,7 @@ crash_run_hooks(const char *logfile, int logfd)
 /**
  * Emit leading crash information: who crashed and why.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_message(const char *signame, bool trace, bool recursive)
 {
 	DECLARE_STR(11);
@@ -764,7 +817,7 @@ crash_message(const char *signame, bool trace, bool recursive)
 /**
  * Signal that we are attempting to print a decorated stack trace.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_decorating_stack(void)
 {
 	DECLARE_STR(5);
@@ -777,7 +830,7 @@ crash_decorating_stack(void)
 	crash_time(time_buf, sizeof time_buf);
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	print_str("attempting to dump a decorated stack trace:\n");	/* 4 */
 	flush_err_str();
@@ -788,7 +841,7 @@ crash_decorating_stack(void)
 /**
  * Marks end of crash logging and potential pausing or debugger hook calling.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_end_of_line(bool forced)
 {
 	DECLARE_STR(7);
@@ -802,7 +855,7 @@ crash_end_of_line(bool forced)
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
-	print_str(PRINT_NUMBER(pid_buf, getpid()));	/* 2 */
+	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
 	print_str(") ");				/* 3 */
 	if (forced) {
 		print_str("recursively crashing -- end of line.");	/* 4 */
@@ -829,7 +882,7 @@ crash_end_of_line(bool forced)
 /**
  * Construct name of GTKG crash log.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_logname(char *buf, size_t len, const char *pidstr)
 {
 	clamp_strcpy(buf, len, EMPTY_STRING(vars->progname));
@@ -893,14 +946,14 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 /**
  * Fill specified buffer with the full path of the crashlog file.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_logpath(char *buf, size_t len)
 {
 	const char *pid_str;
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char filename[80];
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(buf, len,
@@ -914,29 +967,30 @@ crash_logpath(char *buf, size_t len)
  * Emit the current stack frame to specified file, or the assertion stack
  * if we have one.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 crash_stack_print(int fd, size_t offset)
 {
 	if (vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
-		stacktrace_stack_safe_print(fd, vars->stack, vars->stackcnt);
+		stacktrace_stack_safe_print(fd,
+			vars->stackid, vars->stack, vars->stackcnt);
 	} else {
 		stacktrace_where_cautious_print_offset(fd, offset + 1);
 	}
 }
 
-static Sigjmp_buf crash_safe_env[THREAD_MAX];
+static sigjmp_buf crash_safe_env[THREAD_MAX];
 
 /**
  * Invoked on a fatal signal during decorated stack building.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_decorated_got_signal(int signo)
 {
 	int stid = thread_small_id();
 
 	s_miniwarn("got %s during stack dump generation", signal_name(signo));
-	Siglongjmp(crash_safe_env[stid], signo);
+	siglongjmp(crash_safe_env[stid], signo);
 }
 
 /**
@@ -944,7 +998,7 @@ crash_decorated_got_signal(int signo)
  *
  * @return TRUE on success, FALSE if we caught a harmful signal
  */
-static G_GNUC_COLD NO_INLINE bool
+static NO_INLINE bool G_COLD
 crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 {
 	int stid = thread_small_id();
@@ -978,13 +1032,13 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 	if (!in_child && vars != NULL && vars->stackcnt != 0) {
 		/* Saved assertion stack preferred over current stack trace */
 		stacktrace_stack_print_decorated(fd,
-			vars->stack, vars->stackcnt, flags);
+			vars->stackid, vars->stack, vars->stackcnt, flags);
 	} else {
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-		stacktrace_stack_print_decorated(fd, stack, count, flags);
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+		stacktrace_stack_print_decorated(fd, stid, stack, count, flags);
 	}
 
 	/* FALL THROUGH */
@@ -1019,7 +1073,7 @@ crash_print_decorated_stack(int fd)
 /**
  * Emit a decorated stack.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 crash_emit_decorated_stack(size_t offset, bool in_child)
 {
 	crash_decorating_stack();
@@ -1037,7 +1091,7 @@ crash_emit_decorated_stack(size_t offset, bool in_child)
  *
  * @return TRUE on success.
  */
-static G_GNUC_COLD NO_INLINE bool
+static NO_INLINE bool G_COLD
 crash_append_decorated_stack(size_t offset)
 {
 	int clf;
@@ -1080,7 +1134,7 @@ done:
 /**
  * Reset the handler of all the signals we trap, and unblock them.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_reset_signals(void)
 {
 	unsigned i;
@@ -1091,19 +1145,19 @@ crash_reset_signals(void)
 	 * are about to re-exec() ourselves from a signal handler!
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		signal_set(signals[i], SIG_DFL);
 		signal_unblock(signals[i]);
 	}
 }
 
 #ifdef HAS_FORK
-static Sigjmp_buf crash_fork_env;
+static sigjmp_buf crash_fork_env;
 
 /**
  * Handle fork() timeouts.
  */
-static G_GNUC_COLD void
+static void G_COLD
 crash_fork_timeout(int signo)
 {
 	DECLARE_STR(2);
@@ -1114,14 +1168,14 @@ crash_fork_timeout(int signo)
 	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
 	flush_err_str();
 
-	Siglongjmp(crash_fork_env, signo);
+	siglongjmp(crash_fork_env, signo);
 }
 #endif	/* HAS_FORK */
 
 /**
  * A fork() wrapper to handle multi-threaded environments "safely".
  */
-static G_GNUC_COLD pid_t
+static pid_t G_COLD
 crash_fork(void)
 {
 #ifdef HAS_FORK
@@ -1199,6 +1253,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char sbuf[ULONG_DEC_BUFLEN];
 	char nbuf[ULONG_DEC_BUFLEN];
 	char lbuf[ULONG_DEC_BUFLEN];
+	char pbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1252,6 +1307,14 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("Crash-Signal: ");		/* 12 */
 	print_str(signal_name(signo));		/* 13 */
 	print_str("\n");					/* 14 */
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Crash-PID: ");			/* 0 */
+	print_str(PRINT_NUMBER(pbuf, crash_getpid()));	/* 1 */
+	print_str("\n");					/* 2 */
+	print_str("Crash-Level: ");			/* 3 */
+	print_str(crash_level_to_string(crash_current_level));	/* 4 */
+	print_str("\n");					/* 5 */
 	flush_str(clf);
 	rewind_str(0);
 	print_str("Crash-Time: ");			/* 0 */
@@ -1311,6 +1374,12 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str("Error-Message: ");		/* 3 */
 		print_str(vars->message);			/* 4 */
 		print_str("\n");					/* 5 */
+	} else if (vars->deadlocked) {
+		print_str("Deadlocked-At: ");		/* 3 */
+		print_str(vars->lock_file);			/* 4 */
+		print_str(":");						/* 5 */
+		print_str(PRINT_NUMBER(lbuf, vars->lock_line));	/* 6 */
+		print_str("\n");					/* 7 */
 	}
 	flush_str(clf);
 
@@ -1406,7 +1475,7 @@ crash_fd_close(int fd)
  *
  * This is used when there is no inspector run, to leave a trace of the crash.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_generate_crashlog(int signo)
 {
 	static char crashlog[MAX_PATH_LEN];
@@ -1426,6 +1495,7 @@ crash_generate_crashlog(int signo)
 	thread_lock_dump_all(clf);
 	crash_stack_print_decorated(clf, 2, FALSE);
 	crash_run_hooks(NULL, clf);
+	crash_dump_stacks(clf);
 	close(clf);
 	s_minimsg("trace left in %s", crashlog);
 	if (vars != NULL) {
@@ -1481,7 +1551,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_invoke_inspector(int signo, const char *cwd)
 {
    	const char *pid_str;
@@ -1495,7 +1565,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	int parent_stdout = STDOUT_FILENO;
 	int spfd = -1;		/* set if we use spopenlp(), on Windows only */
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 
 #ifdef HAS_WAITPID
 retry_child:
@@ -1503,7 +1573,7 @@ retry_child:
 	child_signal = FALSE;	/* set if fork()ed child dies via a signal */
 
 	/* Make sure we don't exceed the system-wide file descriptor limit */
-	fd_close_from(3);
+	fd_close_unpreserved_from(3);
 
 	if (has_fork()) {
 		/* In case fork() fails, make sure we leave stdout open */
@@ -1768,6 +1838,7 @@ retry_child:
 				thread_lock_dump_all(clf);
 				IGNORE_RESULT(write(clf, "\n", 1));
 				crash_stack_print_decorated(clf, 2, FALSE);
+				crash_dump_stacks(clf);
 				crash_fd_close(clf);
 				goto parent_process;
 			}
@@ -1801,6 +1872,13 @@ retry_child:
 				 */
 
 				crash_stack_print_decorated(STDOUT_FILENO, 2, FALSE);
+
+				/*
+				 * Unfortunately, we cannot run crash_dump_stacks() in the
+				 * child because fork() is not going to recreate all the
+				 * threads: only the one running fork() will end up remaining
+				 * in the child process.
+				 */
 
 				log_set_disabled(LOG_STDOUT, FALSE);
 			}
@@ -1854,7 +1932,7 @@ retry_child:
 				PARENT_STDERR_FILENO, STDOUT_FILENO, parent_stdout);
 
 			_exit(EXIT_FAILURE);
-		}	
+		}
 		break;
 
 	default:	/* executed by parent */
@@ -2170,12 +2248,12 @@ crash_inspect_thread(void *args)
 /**
  * The threaded version of crash_invoke_inspector(), for Windows.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_invoke_threaded_inspector(int signo, const char *cwd)
 {
 	struct crash_inspect_args v;
 	int done = 0;
-	uint flags = THREAD_F_DETACH | THREAD_F_NO_CANCEL;
+	uint flags = THREAD_F_DETACH | THREAD_F_NO_CANCEL | THREAD_F_UNSUSPEND;
 
 	/*
 	 * Generate a first crashlog, as if there was no inspector being run,
@@ -2209,7 +2287,7 @@ crash_invoke_threaded_inspector(int signo, const char *cwd)
  *
  * @return TRUE if we were able to invoke the crash hooks.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_inspect(int signo, const char *cwd)
 {
 	/*
@@ -2233,7 +2311,7 @@ crash_inspect(int signo, const char *cwd)
 /**
  * Record failing thread information.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_record_thread(void)
 {
 	if (vars != NULL && NULL == vars->fail_name) {
@@ -2246,7 +2324,7 @@ crash_record_thread(void)
 		} else {
 			crash_set_var(fail_stid, stid);
 			if (vars->logck != NULL) {
-				const char *tname = thread_id_name(stid);
+				const char *tname = thread_safe_id_name(stid);
 				name = ck_strdup_readonly(vars->logck, tname);
 				if (NULL == name)
 					name = "could not allocate name";
@@ -2266,7 +2344,7 @@ crash_record_thread(void)
  * We are running on thin memory, burning our reserves so limit consumption
  * of memory when logging or dumping stacks.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_oom_condition(void)
 {
 	log_crash_mode();
@@ -2287,7 +2365,7 @@ crash_oom_condition(void)
  * @return TRUE if the last assertion failure occurred in the file or if
  * we are currently holding a lock from that file.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_is_from(const char *file)
 {
 	if (
@@ -2295,6 +2373,19 @@ crash_is_from(const char *file)
 		0 == strcmp(file, crash_last_assertion_failure->file)
 	)
 		return TRUE;
+
+	if (
+		NULL != crash_last_deadlock_file &&
+		0 == strcmp(file, crash_last_deadlock_file)
+	)
+		return TRUE;
+
+	if (vars != NULL) {
+		if (NULL != vars->failure && 0 == strcmp(file, vars->failure->file))
+			return TRUE;
+		if (vars->deadlocked && 0 == strcmp(file, vars->lock_file))
+			return TRUE;
+	}
 
 	return thread_lock_holds_from(file);
 }
@@ -2324,7 +2415,7 @@ crash_disable_init(void)
  * @param name		name of the memory allocator
  * @param cb		disabling callback to invoke
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_disable(const char *name, callback_fn_t cb)
 {
 	once_flag_run(&disable_inited, crash_disable_init);
@@ -2343,26 +2434,25 @@ crash_disable(const char *name, callback_fn_t cb)
  * @param name		name of the memory allocator
  * @param cb		disabling callback to invoke
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_disable_if_from(const char *file, const char *name, callback_fn_t cb)
 {
 	if (crash_is_from(file))
 		crash_disable(name, cb);
 }
 
-static enum crash_level current_crash_level;
 static spinlock_t crash_mode_slk = SPINLOCK_INIT;
 
 /**
  * Get current crash level.
  */
-static enum crash_level G_GNUC_COLD
+static enum crash_level G_COLD
 crash_level(void)
 {
 	enum crash_level level;
 
 	spinlock_hidden(&crash_mode_slk);
-	level = current_crash_level;
+	level = crash_current_level;
 	spinunlock_hidden(&crash_mode_slk);
 
 	return level;
@@ -2375,12 +2465,60 @@ crash_level(void)
  *
  * @return FALSE if we had already entered crash_mode(), TRUE the first time.
  */
-static bool G_GNUC_COLD
+static bool G_COLD
 crash_mode(enum crash_level level)
 {
+	static int done;
+	static int halted[THREAD_MAX];
 	enum crash_level old_level, new_level;
+	int depth = atomic_int_inc(&done);
+	int stid;
 
 	g_assert(level != CRASH_LVL_NONE);
+
+	/*
+	 * Record the ID of the first crashing thread.
+	 *
+	 * This thread can never be suspended or it will not be able to
+	 * continue gathering the crashing information.
+	 */
+
+	if (0 == depth) {
+		s_rawdebug("%s(): initial call, level=%s from %s",
+			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
+
+		crash_thread_id = thread_safe_small_id();
+		atomic_mb();
+	} else if (!crash_is_crashing_thread(&stid)) {
+		/*
+		 * Ensure we do not endlessly log concurrent calls because for some
+		 * reason there is another cause for calling crash_mode() during
+		 * the processing of s_rawarn() or thread_halt().
+		 */
+
+		if (stid >= 0) {
+			if (halted[stid]) {
+				/*
+				 * Something is wrong, the thread was supposed to be halted.
+				 * Use the simplest system call we can to definitely stop
+				 * the thread forever!
+				 */
+				for (;;) {
+					compat_poll(NULL, 0, 1000);
+				}
+			} else {
+				halted[stid] = TRUE;		/* About to stop thread */
+			}
+		}
+
+		s_rawwarn("%s(): concurrent call, level=%s from %s",
+			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
+
+		thread_halt();		/* No coming back */
+	} else if (level > crash_current_level) {
+		s_rawdebug("%s(): subsequent call, level=%s",
+			G_STRFUNC, crash_level_to_string(level));
+	}
 
 	spinlock_hidden(&crash_mode_slk);
 
@@ -2388,7 +2526,7 @@ crash_mode(enum crash_level level)
 	 * Crash level can only increase.
 	 */
 
-	old_level = current_crash_level;
+	old_level = crash_current_level;
 	new_level = MAX(old_level, level);
 
 	/*
@@ -2399,7 +2537,7 @@ crash_mode(enum crash_level level)
 	if (level != CRASH_LVL_BASIC && old_level > CRASH_LVL_OOM)
 		new_level = CRASH_LVL_RECURSIVE;
 
-	current_crash_level = new_level;
+	crash_current_level = new_level;
 
 	spinunlock_hidden(&crash_mode_slk);
 
@@ -2431,10 +2569,12 @@ crash_mode(enum crash_level level)
 
 		signal_crashing();
 		log_crash_mode();
+		thread_lock_disable(FALSE);
 
 		/* FALL THROUGH */
 
 	case CRASH_LVL_FAILURE:
+	case CRASH_LVL_DEADLOCKED:
 		/*
 		 * Put our main allocators in crash mode, which will limit risks if we
 		 * are crashing due to a data structure corruption or an assertion
@@ -2494,6 +2634,13 @@ done:
 		crash_oom_condition();
 
 	/*
+	 * Specifically for deadlock conditions, disable all locks.
+	 */
+
+	if (CRASH_LVL_DEADLOCKED == level)
+		thread_lock_disable(FALSE);
+
+	/*
 	 * Activate crash mode.
 	 */
 
@@ -2545,7 +2692,7 @@ done:
 /**
  * Report on emergency memory usage, once, if needed at all.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_vmea_usage(void)
 {
 	static bool done;
@@ -2580,7 +2727,7 @@ crash_vmea_usage(void)
 /**
  * Called when we're about to re-exec() ourselves in some way to auto-restart.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_restart_notify(const char *caller)
 {
 	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
@@ -2620,7 +2767,7 @@ crash_restart_notify(const char *caller)
  *
  * This function only returns when exec()ing fails.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
@@ -2748,7 +2895,7 @@ crash_try_reexec(void)
  * Handle possible auto-restart, if configured.
  * This function does not return when auto-restart succeeds
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_auto_restart(void)
 {
 	crash_restart_notify(G_STRFUNC);
@@ -2918,18 +3065,92 @@ crash_pause(void)
 }
 
 /**
+ * Context variable for crash_handler().
+ */
+struct crash_handler_ctx {
+	const char *cwd;
+	const char *name;
+	bool trace;
+	bool recursive;
+	bool in_child;
+	int signo;
+};
+
+static volatile sig_atomic_t crash_count;
+
+/**
+ * Heavy processing from crash_handler() that we attempt to divert to the
+ * main thread if possible (hence it being done in a separate routine, with
+ * all the variable gathered by crash_handler() already passed in a structure.
+ */
+static void * G_COLD
+crash_handler_process(void *arg)
+{
+	struct crash_handler_ctx *v = arg;
+
+	crash_message(v->name, v->trace, v->recursive);
+	if (v->trace) {
+		crash_stack_print(STDERR_FILENO, 1);
+		if (log_stdout_is_distinct())
+			crash_stack_print(STDOUT_FILENO, 1);
+
+		/*
+		 * If we are in a signal handler and are not going to invoke an
+		 * inspector, dump a decorated stack.
+		 */
+
+		if (signal_in_handler() && !vars->invoke_inspector)
+			crash_emit_decorated_stack(1, v->in_child);
+	}
+	if ((v->recursive && 1 == ATOMIC_GET(&crash_count)) || v->in_child) {
+		crash_emit_decorated_stack(1, v->in_child);
+		crash_end_of_line(TRUE);
+		goto the_end;
+	}
+	if (!vars->invoke_inspector)
+		crash_generate_crashlog(v->signo);
+	crash_end_of_line(FALSE);
+	if (vars->invoke_inspector) {
+		bool hooks;
+
+		hooks = crash_inspect(v->signo, v->cwd);
+		if (!hooks) {
+			uint8 f = FALSE;
+			crash_run_hooks(NULL, -1);
+			crash_set_var(invoke_inspector, f);
+			crash_end_of_line(FALSE);
+		}
+	}
+	if (vars->pause_process && vars->invoke_inspector) {
+		uint8 f = FALSE;
+		crash_set_var(invoke_inspector, f);
+		crash_end_of_line(FALSE);
+	}
+	if (vars->pause_process) {
+		crash_pause();
+	}
+
+the_end:
+	if (!v->in_child)
+		crash_auto_restart();
+	raise(SIGABRT);			/* This is the end of our road */
+
+	g_assert_not_reached();
+	return NULL;			/* Never used by caller! */
+}
+/**
  * The signal handler used to trap harmful signals.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_handler(int signo)
 {
-	static volatile sig_atomic_t crashed;
-	const char *name;
-	const char *cwd = "";
+	struct crash_handler_ctx v;
 	unsigned i;
-	bool trace;
-	bool recursive = ATOMIC_GET(&crashed) > 0;
-	bool in_child = FALSE;
+
+	ZERO(&v);
+	v.cwd = "";
+	v.recursive = ATOMIC_GET(&crash_count) > 0;
+	v.signo = signo;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -2941,15 +3162,15 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (ATOMIC_INC(&crashed) > 1) {
-		if (2 == ATOMIC_GET(&crashed)) {
+	if (ATOMIC_INC(&crash_count) > 1) {
+		if (2 == ATOMIC_GET(&crash_count)) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == ATOMIC_GET(&crashed)) {
+		} else if (3 == ATOMIC_GET(&crash_count)) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -2962,7 +3183,7 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crashed))
+	if (1 == ATOMIC_GET(&crash_count))
 		signal_perform_cleanup();
 
 	/*
@@ -2971,14 +3192,24 @@ crash_handler(int signo)
 
 	if (vars != NULL && vars->pid != getpid()) {
 		uint8 f = FALSE;
-		in_child = TRUE;
+		v.in_child = TRUE;
 		crash_set_var(invoke_inspector, f);
 		crash_set_var(may_restart, f);
 		crash_set_var(pause_process, f);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
 		int sig = signals[i];
+
+		/*
+		 * Do not change disposition of the signal used by the thread layer
+		 * to generate thread interrupts.  It may be harmful if received,
+		 * but it is caught and handled.
+		 */
+
+		if G_UNLIKELY(THREAD_SIGINTR == sig)
+			continue;
+
 		switch (sig) {
 #ifdef SIGBUS
 		case SIGBUS:
@@ -3021,7 +3252,7 @@ crash_handler(int signo)
 	 * Enter crash mode and configure safe logging parameters.
 	 */
 
-	if (recursive)
+	if (v.recursive)
 		crash_mode(CRASH_LVL_RECURSIVE);
 	else if (signal_in_exception())
 		crash_mode(CRASH_LVL_EXCEPTION);
@@ -3032,7 +3263,7 @@ crash_handler(int signo)
 	else
 		crash_mode(CRASH_LVL_BASIC);
 
-	if (recursive) {
+	if (v.recursive) {
 		if (!vars->recursive) {
 			uint8 t = TRUE;
 			crash_set_var(recursive, t);
@@ -3043,12 +3274,12 @@ crash_handler(int signo)
 	 * When crash_close() was called, print minimal error message and exit.
 	 */
 
-	name = signal_name(signo);
+	v.name = signal_name(signo);
 
 	if (vars->closed) {
-		crash_message(name, FALSE, recursive);
-		if (!recursive)
-			crash_emit_decorated_stack(1, in_child);
+		crash_message(v.name, FALSE, v.recursive);
+		if (!v.recursive)
+			crash_emit_decorated_stack(1, v.in_child);
 		crash_end_of_line(FALSE);
 		_exit(EXIT_FAILURE);
 	}
@@ -3059,87 +3290,79 @@ crash_handler(int signo)
 	 * even if we're daemonized.
 	 */
 
-	if (!recursive && NULL != vars->crashdir && vars->invoke_inspector) {
+	if (!v.recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		if (-1 == chdir(vars->crashdir)) {
 			if (NULL != vars->cwd) {
 				s_miniwarn("cannot chdir() back to \"%s\", "
 					"staying in \"%s\" (errno = %d)",
 					vars->crashdir, vars->cwd, errno);
-				cwd = vars->cwd;
+				v.cwd = vars->cwd;
 			} else {
 				s_miniwarn("cannot chdir() back to \"%s\" (errno = %d)",
 					vars->crashdir, errno);
 			}
 		} else {
-			cwd = vars->crashdir;
+			v.cwd = vars->crashdir;
 		}
 	}
 
-	if (recursive && NULL != vars->crashdir && vars->invoke_inspector) {
+	if (v.recursive && NULL != vars->crashdir && vars->invoke_inspector) {
 		/*
 		 * We've likely chdir-ed back there when recursing.  It's a better
 		 * default value than "" anyway.
 		 */
-		cwd = vars->crashdir;
+		v.cwd = vars->crashdir;
 	}
 
-	trace = recursive ? FALSE : !stacktrace_cautious_was_logged();
+	v.trace = v.recursive ? FALSE : !stacktrace_cautious_was_logged();
 
-	crash_message(name, trace, recursive);
-	if (trace) {
-		crash_stack_print(STDERR_FILENO, 1);
-		if (log_stdout_is_distinct())
-			crash_stack_print(STDOUT_FILENO, 1);
+	/*
+	 * If we have no stackframe, then we're probably not on an assertion
+	 * failure path.  Capture the stack including the crash handler so
+	 * that we know were the capture was made from.
+	 */
 
-		/*
-		 * If we are in a signal handler and are not going to invoke an
-		 * inspector, dump a decorated stack.
-		 */
+	if (0 == vars->stackcnt)
+		crash_save_current_stackframe(0);
 
-		if (signal_in_handler() && !vars->invoke_inspector)
-			crash_emit_decorated_stack(1, in_child);
-	}
-	if ((recursive && 1 == ATOMIC_GET(&crashed)) || in_child) {
-		crash_emit_decorated_stack(1, in_child);
-		crash_end_of_line(TRUE);
-		goto the_end;
-	}
-	if (!vars->invoke_inspector)
-		crash_generate_crashlog(signo);
-	crash_end_of_line(FALSE);
-	if (vars->invoke_inspector) {
-		bool hooks;
+	/*
+	 * If we're not running in the main thread, try to divert processing
+	 * there as there is likely more stack space available than in another
+	 * runtime thread.
+	 */
 
-		/*
-		 * If we have no stackframe, then we're probably not on an assertion
-		 * failure path.  Capture the stack including the crash handler so
-		 * that we know were the capture was made from.
-		 */
+	crash_divert_main(G_STRFUNC, crash_handler_process, &v);
+}
 
-		if (0 == vars->stackcnt)
-			crash_save_current_stackframe(0);
+/**
+ * Attempt to divert heavy crash processing to the main thread if possible,
+ * since sub-threads may not have enough stack space available to run
+ * everything whereas the kernel can usually extend the stack of the main
+ * thread on demand, within limits of course.
+ *
+ * @param caller	the calling routine, for logging purposes
+ * @param cb		the function to invoke in the main thread if possible
+ * @param arg		argument to pass to function
+ */
+void G_COLD
+crash_divert_main(const char *caller, process_fn_t cb, void *arg)
+{
+	if (!thread_is_main()) {
+		int crashing = crash_thread_id;
 
-		hooks = crash_inspect(signo, cwd);
-		if (!hooks) {
-			uint8 f = FALSE;
-			crash_run_hooks(NULL, -1);
-			crash_set_var(invoke_inspector, f);
-			crash_end_of_line(FALSE);
-		}
-	}
-	if (vars->pause_process && vars->invoke_inspector) {
-		uint8 f = FALSE;
-		crash_set_var(invoke_inspector, f);
-		crash_end_of_line(FALSE);
-	}
-	if (vars->pause_process) {
-		crash_pause();
+		s_miniwarn("%s(): trying to divert into main thread", caller);
+
+		crash_thread_id = THREAD_MAIN;		/* Assume success */
+		errno = thread_divert(THREAD_MAIN, cb, arg, NULL);
+		crash_thread_id = crashing;			/* Still in crashing thread */
+
+		g_assert(errno != 0);	/* If we return, there was a problem */
+
+		s_miniwarn("%s(): can't divert to main thread: %m", caller);
+		/* FALL THROUGH */
 	}
 
-the_end:
-	if (!in_child)
-		crash_auto_restart();
-	raise(SIGABRT);			/* This is the end of our road */
+	(void) (*cb)(arg);
 }
 
 static void *
@@ -3151,7 +3374,7 @@ crash_ck_allocator(void *allocator, size_t len)
 /**
  * Alter crash flags.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_ctl(enum crash_alter_mode mode, int flags)
 {
 	uint8 value;
@@ -3182,7 +3405,7 @@ crash_ctl(enum crash_alter_mode mode, int flags)
  *
  * @param pid		PID of the previous process
  */
-void G_GNUC_COLD
+void G_COLD
 crash_exited(uint32 pid)
 {
 	str_t *cfile;
@@ -3266,7 +3489,7 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
@@ -3287,13 +3510,13 @@ crash_hook_install(void *data, void *udata)
  *
  * Of course, when CRASH_F_SUPERVISED is given, the process will not honor the
  * CRASH_F_RESTART flag, unless the supervising parent is gone.
- * 
+ *
  * @param argv0		the original argv[0] from main().
  * @param progname	the program name, to generate the proper crash file
  * @param flags		combination of CRASH_F_GDB, CRASH_F_PAUSE, CRASH_F_RESTART
  * @parah exec_path	pathname of custom program to execute on crash
  */
-void G_GNUC_COLD
+void G_COLD
 crash_init(const char *argv0, const char *progname,
 	int flags, const char *exec_path)
 {
@@ -3319,7 +3542,7 @@ crash_init(const char *argv0, const char *progname,
 
 		if (
 			-1 == stat(exec_path, &buf) ||
-			!S_ISREG(buf.st_mode) || 
+			!S_ISREG(buf.st_mode) ||
 			-1 == access(exec_path, X_OK)
 		) {
 			s_fatal_exit(EXIT_FAILURE, "%s(): unusable program \"%s\"",
@@ -3367,7 +3590,9 @@ crash_init(const char *argv0, const char *progname,
 	iv.pid = getpid();
 	iv.ppid = getppid();
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
+	for (i = 0; i < N_ITEMS(signals); i++) {
+		if G_UNLIKELY(THREAD_SIGINTR == signals[i])
+			continue;
 		signal_set(signals[i], crash_handler);
 	}
 
@@ -3461,7 +3686,7 @@ crash_init(const char *argv0, const char *progname,
  *
  * @return Required buffer size.
  */
-static size_t G_GNUC_COLD
+static size_t G_COLD
 crashfile_name(char *dst, size_t dst_size, const char *pathname)
 {
 	const char *pid_str, *item;
@@ -3469,7 +3694,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	char filename[80];
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
-	pid_str = PRINT_NUMBER(pid_buf, getpid());
+	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
 	crash_logname(filename, sizeof filename, pid_str);
 
 	if (NULL == dst) {
@@ -3501,7 +3726,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
  *
  * @param pathname		the absolute pathname of the crash directory
  */
-void G_GNUC_COLD
+void G_COLD
 crash_setdir(const char *pathname)
 {
 	const char *curdir = NULL;
@@ -3566,7 +3791,7 @@ crash_setdir(const char *pathname)
 /**
  * Record program's version string.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_setver(const char *version)
 {
 	const char *value;
@@ -3736,6 +3961,15 @@ crash_is_closed(void)
 }
 
 /**
+ * Are we deadlocked?
+ */
+bool
+crash_is_deadlocked(void)
+{
+	return crash_last_deadlock_file != NULL;
+}
+
+/**
  * Are we pausing?
  *
  * @return TRUE if the process is voluntarily pausing.
@@ -3758,6 +3992,26 @@ crash_is_supervised(void)
 		return FALSE;
 
 	return vars->supervised && 1 != getppid();
+}
+
+/**
+ * Are we running in the crashing thread?
+ *
+ * @param stid		if non-NULL, where stid of current thread is returned
+ *
+ * @return TRUE if the thread is the crashing thread.  The returned thread ID
+ * may be THREAD_UNKNOWN_ID if we cannot determine the ID of the thread.
+ */
+bool
+crash_is_crashing_thread(int *stid)
+{
+	int id = thread_safe_small_id();
+
+	if (stid != NULL)
+		*stid = id;
+
+	atomic_mb();
+	return crash_thread_id == id && crash_thread_id >= 0;
 }
 
 /**
@@ -3787,7 +4041,7 @@ crash_abort(void)
  *
  * This function does not return: either it succeeds exec()ing or it exits.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_reexec(void)
 {
 	crash_mode(CRASH_LVL_RECURSIVE);	/* Prevent any memory allocation */
@@ -3799,7 +4053,7 @@ crash_reexec(void)
 /**
  * Callout queue event to force application restart.
  */
-static void G_GNUC_COLD
+static void G_COLD
 crash_force_restart(cqueue_t *cq, void *unused)
 {
 	char buf[CRASH_RUNTIME_BUFLEN];
@@ -3834,7 +4088,7 @@ crash_force_restart(cqueue_t *cq, void *unused)
  *
  * This routine may return, hence the caller must be prepared for it.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_restart(const char *format, ...)
 {
 	static int registered;
@@ -3983,7 +4237,7 @@ crash_restarting(void)
  * Log the error and try to auto-restart the program if configured to do
  * so, otherwise crash immediately.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_oom(const char *format, ...)
 {
 	static int recursive;
@@ -4027,12 +4281,248 @@ crash_oom(const char *format, ...)
 	crash_abort();
 }
 
+#define CRASH_STACK_DUMP_DEPTH	64
+
+struct crash_stack {
+	void *stack[CRASH_STACK_DUMP_DEPTH];	/* The frames */
+	size_t count;							/* How many frames were captured */
+	int stid;								/* Thread to which stack belongs */
+	int fd;									/* File descriptor for dumping */
+	bool fancy;								/* Whether to dump fancy or plain */
+};
+
+/**
+ * Diversion callback to get a stack trace from current thread.
+ */
+static void *
+crash_fill_stack(void *arg)
+{
+	struct crash_stack *t = arg;
+
+	t->count = stacktrace_unwind(t->stack, N_ITEMS(t->stack), 2);
+	return NULL;
+}
+
+static uint8 crash_interrupt_acks[THREAD_MAX];
+
+/**
+ * Thread interrupt acknowledgment.
+ */
+static void
+crash_interrupt_ack(void *unused_result, void *user_data)
+{
+	uint id = pointer_to_uint(user_data);
+
+	(void) unused_result;
+
+	g_assert(id < N_ITEMS(crash_interrupt_acks));
+
+	crash_interrupt_acks[id] = TRUE;
+}
+
+/**
+ * Send an interrupt to the thread, waiting for the acknowledge.
+ *
+ * @param id		the targeted thread ID
+ * @param cb		the callback to invoke when interrupted
+ * @param trace		where to put the stack trace
+ *
+ * @return 0 if OK, an error code otherwise.
+ */
+static int
+crash_interrupt(uint id, process_fn_t cb, struct crash_stack *trace)
+{
+	int error;
+	int i;
+
+	g_assert(id < N_ITEMS(crash_interrupt_acks));
+
+	crash_interrupt_acks[id] = FALSE;
+
+	error = thread_interrupt(id, cb, trace,
+				crash_interrupt_ack, uint_to_pointer(id));
+
+	if (0 != error)
+		return error;
+
+	/*
+	 * We interrupted, now wait for the indication that the interrupt
+	 * was processed, for roughly 2.5 secs.
+	 */
+
+	for (i = 0; i < 500; i++) {
+		if (crash_interrupt_acks[id])
+			return 0;
+		compat_usleep_nocancel(5000);	/* in usecs */
+	}
+
+	return EINPROGRESS;		/* Execution did not finish in time */
+}
+
+/**
+ * Attempt to fetch a stack trace from given thread.
+ *
+ * @param id		thread whose stack we want
+ * @param trace		where to put the stack trace
+ *
+ * @return 0 if OK, a POSIX error code otherwise.
+ */
+static int
+crash_get_stack(uint id, struct crash_stack *trace)
+{
+	ZERO(trace);
+
+	if (thread_small_id() == id) {
+		crash_fill_stack(trace);
+	} else {
+		void *res;
+		int e;
+
+		if (0 != (e = thread_divert(id, crash_fill_stack, trace, &res))) {
+			/*
+			 * If we get EBUSY, the targeted thread is neither suspended
+			 * nor blocked.  The only way we can get a stack trace is to
+			 * attempt an interrupt.
+			 */
+
+			if (EBUSY == e) {
+				s_line_writef(trace->fd, "WARNING: interrupting busy %s",
+					thread_safe_id_name(id));
+
+				if (0 != (e = crash_interrupt(id, crash_fill_stack, trace)))
+					goto done;
+			}
+
+			return e;
+		}
+	}
+
+done:
+	trace->stid = id;
+	return 0;
+}
+
+/**
+ * Print a light version of the stack trace.
+ */
+static void * G_COLD
+crash_thread_stack_print(void *arg)
+{
+	const struct crash_stack *t = arg;
+	const char *type = t->fancy ? "decorated" : "light";
+
+	if (0 == t->count) {
+		s_line_writef(t->fd, "stack trace for %s is empty",
+			thread_safe_id_name(t->stid));
+		return NULL;
+	}
+
+	s_line_writef(t->fd, "---- dumping %zu-frame long %s stack trace for %s:",
+		t->count, type, thread_safe_id_name(t->stid));
+
+	if (t->fancy)
+		stacktrace_stack_fancy_print(t->fd, t->stack, t->count);
+	else
+		stacktrace_stack_plain_print(t->fd, t->stack, t->count);
+
+	s_line_writef(t->fd, "---- end of %s stack trace for %s.",
+		type, thread_safe_id_name(t->stid));
+
+	return NULL;
+}
+
+/**
+ * Attempt to offload processing to the main thread if possible.
+ *
+ * Contrary to crash_divert_main(), this does not attempt to permanently
+ * transfer control to the main thread.
+ *
+ * @param cb		the function to invoke in the main thread if possible
+ * @param arg		argument to pass to function
+ */
+static void G_COLD
+crash_offload_main(process_fn_t cb, void *arg)
+{
+	if (!thread_is_main()) {
+		void *res;		/* Supplied result, to make this an RPC to main */
+		if (0 == thread_divert(THREAD_MAIN, cb, arg, &res))
+			return;
+		/* FALL THROUGH */
+	}
+
+	(void) (*cb)(arg);
+}
+
+/*
+ * Attempt to collect stack traces from all the threads that are
+ * now hopefully supended, then dump their stack.
+ *
+ * @param fd	where to print the stack traces
+ */
+static void G_COLD
+crash_dump_stacks(int fd)
+{
+	int i, e;
+	bool f;
+	struct crash_stack trace;
+
+	s_line_writef(fd, "Attempting to dump stacks for all the known threads...");
+
+	/*
+	 * We first try to get stack and dump them in plain form, which is
+	 * less stressful from a resource point of view.
+	 *
+	 * Once we were able to get all the stacks, we redo the same operation
+	 * dumping decorated stacks.
+	 */
+
+	for (f = FALSE; f <= TRUE; f++) {
+		for (i = 0; i < THREAD_MAX; i++) {
+			if (0 == (e = crash_get_stack(i, &trace))) {
+				trace.fancy = f;
+				trace.fd = fd;
+				crash_offload_main(crash_thread_stack_print, &trace);
+			} else if (e != ESRCH) {
+				errno = e;
+				s_line_writef(fd, "WARNING: cannot get stack for %s: %m",
+					thread_safe_id_name(i));
+			}
+		}
+	}
+}
+
+/**
+ * Record that we are deadlocked.
+ */
+void G_COLD
+crash_deadlocked(const char *file, unsigned line)
+{
+	crash_last_deadlock_file = file;
+
+	/*
+	 * Avoid endless recursions, record the deadlock the first time only.
+	 */
+
+	if (crash_mode(CRASH_LVL_DEADLOCKED)) {
+		if (vars != NULL) {
+			uint8 t = TRUE;
+			crash_set_var(deadlocked, t);
+			crash_set_var(lock_file, file);
+			crash_set_var(lock_line, line);
+		}
+
+		crash_dump_stacks(STDERR_FILENO);
+	}
+}
+
 /**
  * Record failed assertion data.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_assert_failure(const struct assertion_data *a)
 {
+	crash_last_assertion_failure = a;
+
 	/*
 	 * Avoid endless recursions, record the failure the first time only.
 	 */
@@ -4041,8 +4531,6 @@ crash_assert_failure(const struct assertion_data *a)
 		if (vars != NULL)
 			crash_set_var(failure, a);
 	}
-
-	crash_last_assertion_failure = a;
 }
 
 /**
@@ -4050,7 +4538,7 @@ crash_assert_failure(const struct assertion_data *a)
  *
  * @return formatted message string, NULL if it could not be built
  */
-const char * G_GNUC_COLD
+const char * G_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
 	crash_mode(CRASH_LVL_FAILURE);
@@ -4083,7 +4571,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
  *
  * This allows triggering of crash hooks, if any defined for the file.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_set_filename(const char * const filename)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4097,7 +4585,7 @@ crash_set_filename(const char * const filename)
 /**
  * Record crash error message.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_set_error(const char * const msg)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4124,7 +4612,7 @@ crash_set_error(const char * const msg)
 /**
  * Append information to existing error message.
  */
-void G_GNUC_COLD
+void G_COLD
 crash_append_error(const char * const msg)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4149,19 +4637,24 @@ crash_append_error(const char * const msg)
 /**
  * Save given stack trace, which will be displayed during crashes instead
  * of the current stack frame.
+ *
+ * @param stid		small thread ID to which stack belong
+ * @param stack		the captured stack
+ * @param count		how many items are valid in stack[]
  */
-G_GNUC_COLD void
-crash_save_stackframe(void *stack[], size_t count)
+void G_COLD
+crash_save_stackframe(int stid, void *stack[], size_t count)
 {
 	crash_mode(CRASH_LVL_BASIC);
 
-	if (count > G_N_ELEMENTS(vars->stack))
-		count = G_N_ELEMENTS(vars->stack);
+	if (count > N_ITEMS(vars->stack))
+		count = N_ITEMS(vars->stack);
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		ck_memcpy(vars->mem,
 			(void *) &vars->stack, (void *) stack, count * sizeof(void *));
 		crash_set_var(stackcnt, count);
+		crash_set_var(stackid,  stid);
 	}
 }
 
@@ -4172,7 +4665,7 @@ crash_save_stackframe(void *stack[], size_t count)
  * is to protect against SIGABRT signal delivery happening on a dedicated
  * signal stack.
  */
-G_GNUC_COLD void
+void G_COLD
 crash_save_current_stackframe(unsigned offset)
 {
 	crash_mode(CRASH_LVL_BASIC);
@@ -4181,8 +4674,8 @@ crash_save_current_stackframe(unsigned offset)
 		void *stack[STACKTRACE_DEPTH_MAX];
 		size_t count;
 
-		count = stacktrace_safe_unwind(stack, G_N_ELEMENTS(stack), offset + 1);
-		crash_save_stackframe(stack, count);
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), offset + 1);
+		crash_save_stackframe(thread_safe_small_id(), stack, count);
 	}
 }
 

@@ -122,7 +122,7 @@ ctl_token_free(struct ctl_tok *tok)
 /**
  * Free parsed token and nullify holding variable.
  */
-static void 
+static void
 ctl_token_free_null(struct ctl_tok **tok_ptr)
 {
 	struct ctl_tok *tok = *tok_ptr;
@@ -250,7 +250,7 @@ ctl_flags2str(unsigned flags)
 	if (flags & CTL_D_CACHE)		*p++ = 'c';
 	if (flags & CTL_D_WHITELIST)	*p++ = 'w';
 	if (flags & CTL_D_QHITS)		*p++ = 'r';
-	
+
 	*p++ = '\0';
 	return buf;
 }
@@ -277,7 +277,7 @@ ctl_get_flags(char opt)
 #define FOUND(i)	return ctl_options[(i)].flag
 
 	/* Perform a binary search to find ``opt'' */
-	BINARY_SEARCH(char, opt, G_N_ELEMENTS(ctl_options), charcmp, GET, FOUND);
+	BINARY_SEARCH(char, opt, N_ITEMS(ctl_options), charcmp, GET, FOUND);
 
 #undef FOUND
 #undef GET

@@ -70,7 +70,7 @@
 #define UNI_GC_LM UNI_GC_LETTER_MODIFIER
 #define UNI_GC_LO UNI_GC_LETTER_OTHER
 
-#define UNI_GC_MN UNI_GC_MARK_NONSPACING 
+#define UNI_GC_MN UNI_GC_MARK_NONSPACING
 #define UNI_GC_MC UNI_GC_MARK_SPACING_COMBINE
 #define UNI_GC_ME UNI_GC_MARK_ENCLOSING
 
@@ -10042,7 +10042,7 @@ static const struct {
 				printf("{ 0x%s }%s", $i, i < 5 ? ", " : " } },\n" );
 			}
 		}
-	' NormalizationTest.txt 
+	' NormalizationTest.txt
 */
 
 #if defined(TEST_NORMALIZATION_TEST_TXT)
@@ -10066,7 +10066,7 @@ static const struct {
 			gsub(" ", "\n", $1);
 			print $1 }
 	' NormalizationTest.txt | \
-	gawk '{ 
+	gawk '{
 		uc = strtonum("0x" $1);
 		printf("0x%06X\n", uc);
 	}' | sort | uniq | \
@@ -10081,7 +10081,7 @@ static const struct {
 			n++;
 		}
 		last = uc;
-		
+
 	}
 	END {
 		if (n)
@@ -10429,7 +10429,7 @@ static const struct {
 		/(HIRAGANA|KATAKANA)/ {
 			p = "(HALFWIDTH|KATAKANA|HIRAGANA|CIRCLED|LETTER|SMALL|.*MARK.*| )";
 			gsub(p, "", $2);
-			
+
 			c = $1;
             if (c == 3057 || c == "30B7")
 				s = "shi";
@@ -10448,7 +10448,7 @@ static const struct {
 
             printf("\t{ 0x%s, \042%s\042 },\n", c, s);
 		}' UnicodeData.txt
- *  
+ *
  */
 static const struct {
 	uint16 uc;

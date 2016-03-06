@@ -117,14 +117,14 @@ verify_tth_leave_count(const struct verify *ctx)
 	return tt_leave_count(verify_tth.context);
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 verify_tth_init_once(void)
 {
 	verify_tth.context = halloc(tt_size());
 	verify_tth.verify = verify_new(&verify_hash_tth);
 }
 
-G_GNUC_COLD void
+void G_COLD
 verify_tth_init(void)
 {
 	static once_flag_t initialized;
@@ -145,7 +145,7 @@ verify_tth_init(void)
 /**
  * Stops the background task for tigertree verification.
  */
-G_GNUC_COLD void
+void G_COLD
 verify_tth_shutdown(void)
 {
 	verify_free(&verify_tth.verify);
@@ -154,13 +154,13 @@ verify_tth_shutdown(void)
 /**
  * Release memory resources used by tigertree verification.
  */
-G_GNUC_COLD void
+void G_COLD
 verify_tth_close(void)
 {
 	HFREE_NULL(verify_tth.context);
 }
 
-static bool 
+static bool
 request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	void *user_data)
 {
@@ -201,7 +201,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
-			
+
 			huge_update_hashes(sf, shared_file_sha1(sf), tth);
 			tth_cache_insert(tth, verify_tth_leaves(ctx),
 				verify_tth_leave_count(ctx));

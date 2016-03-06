@@ -95,7 +95,7 @@ char *
 absolute_pathname(const char *file)
 {
 	g_assert(file != NULL);
-	
+
 	if (is_absolute_path(file)) {
 		return h_strdup(file);
 	} else if ('\0' == file[0]) {
@@ -133,7 +133,7 @@ is_absolute_path(const char *path)
 
 	/* On Windows also check for something like C:\ and x:/ */
 	return is_running_on_mingw() &&
-			is_ascii_alpha(path[0]) && 
+			is_ascii_alpha(path[0]) &&
 			':' == path[1] &&
 			is_dir_separator(path[2]);
 }
@@ -170,9 +170,9 @@ const char *
 filepath_basename(const char *pathname)
 {
 	const char *p;
-	
+
 	g_assert(pathname);
-	
+
 	p = strrchr(pathname, '/');
 	if (p) {
 		p++;
@@ -191,7 +191,7 @@ static const char *
 filepath_directory_end(const char *pathname, char separator)
 {
 	const char *p;
-	
+
 	p = strrchr(pathname, separator);
 	if (p) {
 		while (p != pathname && is_dir_separator(p[-1])) {
@@ -287,7 +287,7 @@ get_folder_basepath(enum special_folder folder)
 	case SPECIAL_FOLDER_COUNT:
 		g_assert_not_reached();
 	}
-	
+
 	return special_path;
 }
 

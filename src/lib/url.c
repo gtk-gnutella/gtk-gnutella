@@ -223,7 +223,7 @@ char *
 url_from_absolute_path(const char *path)
 {
 	char *escaped, *url;
-	
+
 	g_return_val_if_fail(is_absolute_path(path), NULL);
 	escaped = url_escape_mask(path, SHELL_MASK);
 	url = g_strconcat("file://", escaped, NULL_PTR);
@@ -757,7 +757,7 @@ url_normalize(char *url, url_policy_t pol)
 		};
 		uint i;
 
-		for (i = 0; i < G_N_ELEMENTS(static_types); i++)
+		for (i = 0; i < N_ITEMS(static_types); i++)
     		if (
 				0 == ascii_strcasecmp(q - static_types[i].len,
 						static_types[i].ext)
@@ -840,7 +840,7 @@ url_absolute_within(const char *base, const char *relative)
 
 	if (is_strprefix(relative, "/")) {
 		char *p;
-		
+
 		dbase = h_strdup(base);
 		p = is_strprefix(dbase, http_prefix);
 		g_assert(p != NULL);		/* base was absolute */

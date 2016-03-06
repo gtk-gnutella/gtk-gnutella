@@ -357,7 +357,7 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
     gchar *text = STRTRACK(gtk_editable_get_chars(editable, 0, -1));
 
 	(void) unused_udata;
-	
+
 	g_strstrip(text);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_give_server_hostname"),
@@ -371,11 +371,11 @@ enum dbg_cols {
 	dbg_col_type,
 	dbg_col_name,
 	dbg_col_value,
-	
-#ifdef USE_GTK2	
+
+#ifdef USE_GTK2
 	dbg_col_property,
 #endif /* USE_GTK2 */
-	
+
 	num_dbg_cols
 };
 
@@ -534,7 +534,7 @@ dbg_property_update_selection(void)
 	} else {
 		text = _("<no property selected>");
 	}
-	
+
     widget = gui_dlg_prefs_lookup("label_dbg_property_default");
 	gtk_label_set_text(GTK_LABEL(widget), text);
 }
@@ -597,10 +597,10 @@ dbg_tree_init(void)
 	GtkTreeView *tv;
 	guint i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(columns) == (guint) num_dbg_cols);
-	
+	STATIC_ASSERT(N_ITEMS(columns) == (guint) num_dbg_cols);
+
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
-	store = GTK_LIST_STORE(gtk_list_store_new(G_N_ELEMENTS(columns),
+	store = GTK_LIST_STORE(gtk_list_store_new(N_ITEMS(columns),
 				G_TYPE_STRING,		/* Saved? */
 				G_TYPE_STRING,		/* Internal? */
 				G_TYPE_STRING,		/* Type */
@@ -611,7 +611,7 @@ dbg_tree_init(void)
 	gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store));
 	g_object_unref(store);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++) {
+	for (i = 0; i < N_ITEMS(columns); i++) {
 		GtkTreeViewColumn *column;
 		GtkCellRenderer *renderer;
 
@@ -643,7 +643,7 @@ dbg_tree_init(void)
 				"resizable", TRUE,
 				"reorderable", FALSE,
 				NULL_PTR);
-		
+
 		if (columns[i].width) {
 			g_object_set(column,
 				"fixed-width", columns[i].width,
@@ -654,7 +654,7 @@ dbg_tree_init(void)
 				"sizing", GTK_TREE_VIEW_COLUMN_AUTOSIZE,
 				NULL_PTR);
 		}
-		
+
 
 		gtk_tree_view_column_set_sort_column_id(column, i);
 		gtk_tree_view_append_column(tv, column);
@@ -677,18 +677,18 @@ dbg_property_show_list(const pslist_t *props)
 	const pslist_t *sl;
 	GtkTreeView *tv;
 	GtkListStore *store;
-	
+
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
 	if (!gtk_tree_view_get_model(tv))
 		dbg_tree_init();
-		
+
 	store = GTK_LIST_STORE(gtk_tree_view_get_model(tv));
 	gtk_list_store_clear(store);
 
 	if (!props) {
 		const gchar *text = _("<no property selected>");
 		GtkWidget *widget;
-		
+
 		widget = gui_dlg_prefs_lookup("label_dbg_property_limits");
 		gtk_label_set_text(GTK_LABEL(widget), text);
 		/* Gtk+ 2.x has editable column cells */
@@ -816,9 +816,9 @@ dbg_property_show_list(const pslist_t *props)
 			{ "", "", "", "", "", };
 		property_t prop = GPOINTER_TO_UINT(sl->data);
 		gint row;
-		
+
     	row = gtk_clist_append(clist, deconstify_gpointer(titles));
-		dbg_property_set_row(clist, row, prop);	
+		dbg_property_set_row(clist, row, prop);
 	}
 	gtk_clist_sort(clist);
 	gtk_clist_columns_autosize(clist);
@@ -867,7 +867,7 @@ on_clist_dbg_property_select_row(GtkCList *unused_clist, gint unused_row,
 }
 
 static gboolean dbg_property_cmp_name_inverted = TRUE;
-static gint 
+static gint
 dbg_property_cmp_name(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -881,7 +881,7 @@ dbg_property_cmp_name(GtkCList *unused_clist,
 }
 
 static gboolean dbg_property_cmp_type_inverted = TRUE;
-static gint 
+static gint
 dbg_property_cmp_type(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -895,7 +895,7 @@ dbg_property_cmp_type(GtkCList *unused_clist,
 }
 
 static gboolean dbg_property_cmp_saved_inverted = TRUE;
-static gint 
+static gint
 dbg_property_cmp_saved(GtkCList *unused_clist,
 	gconstpointer ptr1, gconstpointer ptr2)
 {
@@ -914,7 +914,7 @@ on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	gpointer unused_udata)
 {
 	gboolean do_sort = FALSE;
-	
+
 	(void) unused_udata;
 
 	g_assert(column >= 0 && column < num_dbg_cols);
@@ -941,7 +941,7 @@ on_clist_dbg_property_click_column(GtkCList *clist, gint column,
 	case num_dbg_cols:
 		g_assert_not_reached();
 	}
-			
+
 	if (do_sort)
 		gtk_clist_sort(clist);
 }
@@ -970,7 +970,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 		if (!props)
 			statusbar_gui_warning(10,
 				_("No property name matches the pattern \"%s\"."), text);
-		
+
 		dbg_property_show_list(props);
 		dbg_property_update_selection();
 		pslist_free_null(&props);
@@ -999,7 +999,7 @@ on_menu_sidebar_visible_activate(GtkMenuItem *menuitem, gpointer unused_udata)
 	 * visibility status changes.
 	 */
 #ifdef USE_GTK1
-	{	
+	{
 		GtkPaned *paned;
 		gboolean sidebar;
 

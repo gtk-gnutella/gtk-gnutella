@@ -237,12 +237,7 @@ static struct logfile logfile[LOG_MAX_FILES];
 	flush_str_atomic(			\
 		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
 
-/**
- * This is used to detect recursions.
- */
-static volatile sig_atomic_t in_safe_handler;	/* in s_logv() */
 static bool log_crashing;
-
 static const char DEV_NULL[] = "/dev/null";
 
 /**
@@ -253,7 +248,7 @@ static const char DEV_NULL[] = "/dev/null";
  * This is used during emergency crashing conditions to ensure logging is
  * always going to use a safe logging mode.
  */
-void G_GNUC_COLD
+void G_COLD
 log_crash_mode(void)
 {
 	log_crashing = TRUE;
@@ -524,12 +519,17 @@ log_agent_free_null(logagent_t **la_ptr)
 
 /**
  * Allocate a thread-private logging data descriptor.
+ *
+ * @return newly created logging descriptor, NULL if we can't allocate memory.
  */
 static logthread_t *
 log_thread_alloc(void)
 {
 	logthread_t *lt;
 	ckhunk_t *ck;
+
+	if (signal_in_unsafe_handler())
+		return NULL;	/* Can't allocate memory right now */
 
 	ck = ck_init_not_leaking(2 * LOG_MSG_MAXLEN, 0);
 	lt = ck_alloc(ck, sizeof *lt);
@@ -556,7 +556,8 @@ log_okey_init(void)
  *
  * @param once		if TRUE, don't record the object as it will be used once
  *
- * @return valid logging data object for the current thread.
+ * @return valid logging data object for the current thread, NULL if we cannot
+ * allocate one.
  */
 static logthread_t *
 logthread_object(bool once)
@@ -569,6 +570,8 @@ logthread_object(bool once)
 
 	if G_UNLIKELY(NULL == lt) {
 		lt = log_thread_alloc();
+		if (NULL == lt)
+			return NULL;
 		if (!once)
 			thread_local_set(log_okey, lt);
 	}
@@ -733,7 +736,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 		iovec_t iov[2];
 		iovec_set(&iov[0], msg, strlen(msg));
 		iovec_set(&iov[1], "\n", 1);
-		atio_writev(lf->crash_fd, iov, G_N_ELEMENTS(iov));
+		atio_writev(lf->crash_fd, iov, N_ITEMS(iov));
 	}
 
 #undef FORMAT_STR
@@ -755,12 +758,26 @@ log_prefix(GLogLevelFlags level)
 	switch (level & LOG_LEVEL_MASK) {
 	case G_LOG_LEVEL_CRITICAL: return "CRITICAL";
 	case G_LOG_LEVEL_ERROR:    return "ERROR";
-	case G_LOG_LEVEL_WARNING:  return "WARNING"; 
+	case G_LOG_LEVEL_WARNING:  return "WARNING";
 	case G_LOG_LEVEL_MESSAGE:  return "MESSAGE";
-	case G_LOG_LEVEL_INFO:     return "INFO"; 
+	case G_LOG_LEVEL_INFO:     return "INFO";
 	case G_LOG_LEVEL_DEBUG:    return "DEBUG";
 	default:                   return "UNKNOWN";
 	}
+}
+
+/**
+ * Same as log_time(), albeit optionally use the raw time computation version.
+ */
+static void
+log_time_careful(char *buf, size_t size, bool raw)
+{
+	if G_UNLIKELY(raw)
+		crash_time_raw(buf, size);
+	else
+		crash_time(buf, size);
+
+	clamp_strcat(buf, size, logpid);
 }
 
 /**
@@ -775,21 +792,19 @@ log_prefix(GLogLevelFlags level)
 static void
 log_time(char *buf, size_t size)
 {
-	crash_time(buf, size);
-	clamp_strcat(buf, size, logpid);
+	log_time_careful(buf, size, FALSE);
 }
 
 /**
- * Same as log_time() but uses cached time, and therefore does not take locks.
+ * Same as log_time() but uses raw time, and therefore does not take locks.
  *
  * @param buf		buffer where current time is formatted
  * @param size		length of buffer
  */
 static void
-log_time_cached(char *buf, size_t size)
+log_time_raw(char *buf, size_t size)
 {
-	crash_time_cached(buf, size);
-	clamp_strcat(buf, size, logpid);
+	log_time_careful(buf, size, TRUE);
 }
 
 /**
@@ -828,8 +843,8 @@ log_abort(void)
 	 * current stack before crashing.
 	 */
 
-	count = stacktrace_safe_unwind(log_stack, G_N_ELEMENTS(log_stack), 0);
-	crash_save_stackframe(log_stack, count);
+	count = stacktrace_safe_unwind(log_stack, N_ITEMS(log_stack), 0);
+	crash_save_stackframe(thread_safe_small_id(), log_stack, count);
 
 	/*
 	 * This is a synchronous error from the logging layer, so make sure we
@@ -934,17 +949,28 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	prefix = log_prefix(level);
 
 	/*
+	 * In a unsafe signal handler, always use "raw" mode.
+	 *
+	 * Note that we use this call to compute the (safe) small ID as a side
+	 * effect, since checking for us running in a signal handler already
+	 * requires the computation to be made.
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid))
+		raw = TRUE;
+
+	/*
 	 * In "raw" mode, use minimalistic routines, which of course may not
 	 * yield correct information all the time.
 	 */
 
 	if G_UNLIKELY(raw) {
-		stid = thread_safe_small_id();
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
-		log_time_cached(time_buf, sizeof time_buf);	/* Raw, no locks! */
+		log_time_raw(time_buf, sizeof time_buf);	/* Raw, no locks! */
 	} else {
-		stid = thread_small_id();
+		if (THREAD_UNKNOWN_ID == stid)
+			stid = thread_small_id();				/* New discovered thread! */
 		log_time(time_buf, sizeof time_buf);
 	}
 
@@ -998,9 +1024,9 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 		iovec_set(&iov[0], data, clamp_strlen(data, sizeof data));
 		iovec_set(&iov[1], "\n", 1);
 		if (raw)
-			IGNORE_RESULT(writev(fd, iov, G_N_ELEMENTS(iov)));
+			IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
 		else
-			atio_writev(fd, iov, G_N_ELEMENTS(iov));
+			atio_writev(fd, iov, N_ITEMS(iov));
 	}
 }
 
@@ -1025,6 +1051,12 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 	errno = saved_errno;
 }
 
+enum stacktrace_stack_level {
+	STACKTRACE_NONE = 0,
+	STACKTRACE_NORMAL,
+	STACKTRACE_PLAIN
+};
+
 /**
  * Emit stacktrace to stderr and stdout (if distinct from stderr).
  *
@@ -1034,19 +1066,32 @@ s_minilogv(GLogLevelFlags level, bool copy, const char *fmt, va_list args)
 void NO_INLINE
 s_stacktrace(bool no_stdio, unsigned offset)
 {
-	static bool tracing[THREAD_MAX];
+	static enum stacktrace_stack_level tracing[THREAD_MAX];
+	static bool warned[THREAD_MAX];
 	unsigned stid = thread_small_id();
 
 	/*
 	 * Protect thread, in case any of the tracing causes a recursion.
 	 * Indeed, recursion would probably be fatal (endless) and would prevent
 	 * further important debugging messages to be emitted by the thread.
+	 *
+	 * Initialally, the tracing level is STACKTRACE_NONE.  The first time
+	 * we attempt a trace, we move to STACKTRACE_NORMAL.  If a recursion
+	 * happens we raise to STACKTRACE_PLAIN, at which point a further recursion
+	 * causes us to skip the tracing, warning once.
 	 */
 
-	if (tracing[stid]) {
-		s_rawwarn("skipping trace for %s (already in progress)",
-			thread_id_name(stid));
-		return;
+	if (STACKTRACE_NONE != tracing[stid]) {
+		if (STACKTRACE_PLAIN == tracing[stid]) {
+			if (!warned[stid]) {
+				warned[stid] = TRUE;
+				s_rawwarn("skipping trace for %s (already in progress)",
+					thread_id_name(stid));
+			}
+			return;
+		} else {
+			tracing[stid] = STACKTRACE_PLAIN;
+		}
 	}
 
 	/*
@@ -1056,30 +1101,46 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	 */
 
 	if (thread_in_crash_mode() && !thread_is_crashing()) {
-		s_rawwarn("skipping trace for %s (crash mode)", thread_id_name(stid));
+		if (!warned[stid]) {
+			warned[stid] = TRUE;
+			s_rawwarn("skipping trace for %s (crash mode)",
+				thread_safe_id_name(stid));
+		}
 		thread_check_suspended();		/* Probably was already suspended? */
 		return;
 	}
 
-	tracing[stid] = TRUE;
+	if (STACKTRACE_NONE == tracing[stid])
+		tracing[stid] = STACKTRACE_NORMAL;
 
-	if (no_stdio) {
-		stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
-	} else {
-		stacktrace_where_sym_print_offset(stderr, offset + 1);
-		if (log_stdout_is_distinct())
-			stacktrace_where_sym_print_offset(stdout, offset + 1);
+	if (STACKTRACE_NORMAL == tracing[stid]) {
+		if (no_stdio) {
+			stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
+			if (log_stdout_is_distinct())
+				stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
+		} else {
+			stacktrace_where_sym_print_offset(stderr, offset + 1);
+			if (log_stdout_is_distinct())
+				stacktrace_where_sym_print_offset(stdout, offset + 1);
 
-		if (is_running_on_mingw()) {
-			/* Unbuffering does not work on Windows, flush both */
-			fflush(stderr);
-			fflush(stdout);
+			if (is_running_on_mingw()) {
+				/* Unbuffering does not work on Windows, flush both */
+				fflush(stderr);
+				fflush(stdout);
+			}
 		}
+	} else {
+		stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
+		if (log_stdout_is_distinct())
+			stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
 	}
 
-	tracing[stid] = FALSE;
+	if (STACKTRACE_PLAIN == tracing[stid]) {
+		tracing[stid] = STACKTRACE_NORMAL;
+		warned[stid] = FALSE;
+	} else {
+		tracing[stid] = STACKTRACE_NONE;
+	}
 }
 
 /**
@@ -1094,9 +1155,10 @@ s_stacktrace(bool no_stdio, unsigned offset)
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(3, 0)
 s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
+	static volatile sig_atomic_t logging[THREAD_MAX];
 	int saved_errno = errno;
 	bool in_signal_handler = signal_in_handler();
 	const char *prefix;
@@ -1105,6 +1167,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	void *saved;
 	bool recursing;
 	unsigned stid;
+	thread_sigsets_t set;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -1115,16 +1178,32 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	}
 
 	/*
-	 * Detect recursion, but don't make it fatal.
+	 * The per-thread log object allows us to track recursion and contains
+	 * our small thread-ID.  It is allocated once per thread.
+	 *
+	 * We don't attempt to grab a new one when logging a fatal condition
+	 * because the state of the application may be corrupted and could
+	 * fail the memory allocation.
 	 */
 
 	if G_UNLIKELY(NULL == lt && 0 == (level & G_LOG_FLAG_FATAL))
 		lt = logthread_object(FALSE);
 
+	/*
+	 * Block all signals, to preserve the ability to log from a signal
+	 * handler without causing recursions.
+	 */
+
+	thread_enter_critical(&set);
+
+	/*
+	 * Detect recursion, but don't make it fatal.
+	 */
+
 	if G_LIKELY(lt != NULL) {
 		recursing = lt->in_log_handler;
 	} else {
-		recursing = in_safe_handler;
+		recursing = logging[thread_small_id()];
 	}
 
 	if G_UNLIKELY(recursing) {
@@ -1136,7 +1215,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_raw(time_buf, sizeof time_buf);
 		print_str(time_buf);		/* 0 */
 		print_str(" (CRITICAL");	/* 1 */
 		if (0 != stid) {
@@ -1182,8 +1261,8 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 */
 
 	if G_UNLIKELY(NULL == lt) {
-		in_safe_handler = TRUE;
 		stid = thread_small_id();
+		logging[stid] = TRUE;
 		ck = in_signal_handler ? signal_chunk() : log_chunk();
 	} else {
 		lt->in_log_handler = TRUE;
@@ -1198,7 +1277,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(6);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
 		print_str(format);		/* 2 */
@@ -1207,7 +1286,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str("\n");		/* 5 */
 		log_flush_err_atomic();
 		ck_restore(ck, saved);
-		goto done;
+		goto log_done;
 	}
 
 	g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
@@ -1229,7 +1308,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(11);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (");		/* 1 */
 		print_str(prefix);		/* 2 */
@@ -1271,9 +1350,11 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 			iovec_t iov[2];
 			iovec_set(&iov[0], str_2c(msg), str_len(msg));
 			iovec_set(&iov[1], "\n", 1);
-			atio_writev(fd, iov, G_N_ELEMENTS(iov));
+			atio_writev(fd, iov, N_ITEMS(iov));
 		}
 	}
+
+log_done:
 
 	/*
 	 * Free up the string memory by restoring the allocation context
@@ -1287,7 +1368,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	ck_restore(ck, saved);
 
 	if (G_LIKELY(NULL == lt)) {
-		in_safe_handler = FALSE;
+		logging[stid] = FALSE;
 	} else {
 		lt->in_log_handler = FALSE;
 	}
@@ -1305,6 +1386,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		s_stacktrace(TRUE, 2);		/* Copied to stdout if different */
 
 done:
+	thread_leave_critical(&set);
 	errno = saved_errno;
 }
 
@@ -1361,7 +1443,7 @@ log_check_recursive(const char *format, va_list ap)
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(5, 0)
 s_logv_once_per(long period, const char *origin,
 	logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 {
@@ -1531,7 +1613,7 @@ s_error_from(const char *file, const char *format, ...)
 void
 s_carp(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_unsafe_handler();
 	va_list args;
 
 	thread_pending_add(+1);
@@ -1604,6 +1686,39 @@ s_minicarp(const char *format, ...)
 }
 
 /**
+ * Safe verbose minimal warning message, emitted once per calling stack.
+ *
+ * We guarantee no memory allocation during the check for known stacks
+ * by relying on a circular buffer that will hold the stacks while we
+ * are in a signal handler.
+ */
+void
+s_minicarp_once(const char *format, ...)
+{
+	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
+		return;
+
+	if (!stacktrace_caller_known(2))	{	/* Caller of our caller */
+		va_list args;
+
+		/*
+		 * We use a CRITICAL level because "once" carping denotes a
+		 * potentially dangerous situation something that we want to
+		 * note loudly in case there is a problem later.
+		 *
+		 * This will NOT automatically trigger stack tracing in s_minilogv()
+		 * so we need to do it explicitly.
+		 */
+
+		va_start(args, format);
+		s_minilogv(G_LOG_LEVEL_CRITICAL, TRUE, format, args);
+		va_end(args);
+
+		s_stacktrace(TRUE, 0);		/* Copied to stdout if different */
+	}
+}
+
+/**
  * Safe logging with minimal resource consumption.
  *
  * This is intended to be used in emergency situations when higher-level
@@ -1639,8 +1754,10 @@ s_minierror(const char *format, ...)
 	va_list args;
 	char data[LOG_MSG_MAXLEN];
 	char time_buf[LOG_TIME_BUFLEN];
-	DECLARE_STR(6);
+	char sbuf[UINT_DEC_BUFLEN];
+	DECLARE_STR(9);
 	bool recursing;
+	int stid = thread_safe_small_id();
 
 	recursing = 0 != atomic_int_inc(&recursion);
 
@@ -1648,14 +1765,21 @@ s_minierror(const char *format, ...)
 	str_vbprintf(data, sizeof data, format, args);
 	va_end(args);
 
+	crash_set_error(data);
+
 	log_time(time_buf, sizeof time_buf);
 	print_str(time_buf);					/* 0 */
-	print_str(" (ERROR)");					/* 1 */
+	print_str(" (ERROR");					/* 1 */
+	if (stid != 0) {
+		print_str("-");						/* 2 */
+		print_str(PRINT_NUMBER(sbuf, stid));/* 3 */
+	}
+	print_str(")");							/* 4 */
 	if (recursing)
-		print_str(" [RECURSIVE]");			/* 2 */
-	print_str(": ");						/* 3 */
-	print_str(data);						/* 4 */
-	print_str("\n");						/* 5 */
+		print_str(" [RECURSIVE]");			/* 5 */
+	print_str(": ");						/* 6 */
+	print_str(data);						/* 7 */
+	print_str("\n");						/* 8 */
 	log_flush_err_atomic();
 	if (log_stdout_is_distinct())
 		log_flush_out_atomic();
@@ -1678,7 +1802,7 @@ s_minierror(const char *format, ...)
 void
 s_rawcrit(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_handler();
+	bool in_signal_handler = signal_in_unsafe_handler();
 	va_list args;
 
 	va_start(args, format);
@@ -1704,6 +1828,45 @@ s_rawwarn(const char *format, ...)
 
 	va_start(args, format);
 	s_rawlogv(G_LOG_LEVEL_WARNING, TRUE, FALSE, format, args);
+	va_end(args);
+}
+
+/**
+ * Safe logging of message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ *
+ * @attention
+ * This routine can clobber "errno" if an error occurs.
+ */
+void
+s_rawmsg(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_rawlogv(G_LOG_LEVEL_MESSAGE, TRUE, FALSE, format, args);
+	va_end(args);
+}
+
+
+/**
+ * Safe logging of informational message with minimal resource consumption.
+ *
+ * This is intended to be used in emergency situations when higher-level
+ * logging mechanisms can't be used (recursion possibility, logging layer).
+ *
+ * @attention
+ * This routine can clobber "errno" if an error occurs.
+ */
+void
+s_rawinfo(const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	s_rawlogv(G_LOG_LEVEL_INFO, TRUE, FALSE, format, args);
 	va_end(args);
 }
 
@@ -1937,6 +2100,45 @@ s_debug_once_per_from(long period, const char *origin,
 }
 
 /**
+ * Write formatted string to specified file descriptor.
+ *
+ * @note
+ * This routine is very low-level and is meant to be used as a building block
+ * for higher-level routines or when we are operating under dire circumstances.
+ *
+ * There is no leading timestamp nor thread indication prepended to the log.
+ * A trailing "\n" is appended to the formatted string automatically though.
+ *
+ * The maximum message length is hardwired to LOG_MSG_MAXLEN (512 bytes).
+ *
+ * No memory allocation is performed by this routine and a direct system call
+ * is issued to the specified file descriptor without any locking.
+ *
+ * @param fd		the file descriptor
+ * @param fmt		the printf()-like formatting string
+ * @param ...		the arguments to be formatted
+ */
+void G_PRINTF(2, 3)
+s_line_writef(int fd, const char *fmt, ...)
+{
+	char buf[LOG_MSG_MAXLEN];
+	str_t str;
+	va_list args;
+	iovec_t iov[2];
+
+	str_new_buffer(&str, buf, 0, sizeof buf);
+
+	va_start(args, fmt);
+	str_vprintf(&str, fmt, args);
+	va_end(args);
+
+	iovec_set(&iov[0], str_2c(&str), str_len(&str));
+	iovec_set(&iov[1], "\n", 1);
+
+	IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
+}
+
+/**
  * Print message to stdout.
  */
 static void
@@ -1985,7 +2187,7 @@ log_str_logv(struct logstring *s,
  * @param format	formatting string
  * @param args		variable argument list to format
  */
-static void
+static void G_PRINTF(3, 0)
 log_logv(logagent_t *la, GLogLevelFlags level, const char *format, va_list args)
 {
 	logagent_check(la);
@@ -2148,7 +2350,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 	if (domain) {
 		unsigned i;
 
-		for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+		for (i = 0; i < N_ITEMS(log_domains); i++) {
 			const char *dom = log_domains[i];
 			if (dom && 0 == strcmp(domain, dom)) {
 				raise(SIGTRAP);
@@ -2298,7 +2500,7 @@ log_reopen_all(bool daemonized)
 	size_t i;
 	bool success = TRUE;
 
-	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+	for (i = 0; i < N_ITEMS(logfile); i++) {
 		struct logfile *lf = &logfile[i];
 
 		if (NULL == lf->path) {
@@ -2504,12 +2706,12 @@ log_stat(enum log_file which, struct logstat *buf)
 /**
  * Initialization of logging layer.
  */
-G_GNUC_COLD void
+void G_COLD
 log_init(void)
 {
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(log_domains); i++) {
+	for (i = 0; i < N_ITEMS(log_domains); i++) {
 		g_log_set_handler(log_domains[i],
 			G_LOG_FLAG_RECURSION | G_LOG_FLAG_FATAL |
 			G_LOG_LEVEL_ERROR | G_LOG_LEVEL_CRITICAL | G_LOG_LEVEL_WARNING |
@@ -2605,12 +2807,12 @@ log_get_fd(enum log_file which)
 /**
  * Shutdown the logging layer.
  */
-G_GNUC_COLD void
+void G_COLD
 log_close(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(logfile); i++) {
+	for (i = 0; i < N_ITEMS(logfile); i++) {
 		struct logfile *lf = &logfile[i];
 
 		if (lf->path_is_atom)

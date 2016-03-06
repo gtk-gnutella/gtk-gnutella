@@ -40,7 +40,7 @@
 
 pid_t launchve(const char *path, char *const argv[], char *const envp[]);
 
-pid_t launchl(const char *path, const char *arg, ...) G_GNUC_NULL_TERMINATED;
+pid_t launchl(const char *path, const char *arg, ...) G_NULL_TERMINATED;
 pid_t launchle(const char *path, const char *arg, ...);
 
 pid_t launchl_v(const char *path, const char *arg, va_list ap);

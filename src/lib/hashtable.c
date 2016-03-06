@@ -159,7 +159,7 @@ static size_t hash_min_bins;
 static bool hash_offset_inited;
 static once_flag_t hash_min_bins_computed;
 
-static G_GNUC_COLD void
+static void G_COLD
 hash_offset_init_once(void)
 {
 	/*
@@ -207,7 +207,7 @@ hash_offset_init(void)
 /**
  * Computes the minimum amount of bins we can have to fill one VMM page.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hash_compute_min_bins_once(void)
 {
 	size_t n;
@@ -1243,6 +1243,24 @@ hash_table_unlock(hash_table_t *ht)
 	g_assert(ht->thread_safe);
 
 	mutex_unlock(&ht->lock);
+}
+
+/**
+ * Is the hash table locked?
+ *
+ * If the table is not marked thread-safe, then this returns FALSE.
+ *
+ * @return whether the table is locked by the calling thread.
+ */
+bool
+hash_table_is_locked(const hash_table_t *ht)
+{
+	hash_table_check(ht);
+
+	if G_UNLIKELY(!ht->thread_safe)
+		return FALSE;
+
+	return mutex_is_owned(&ht->lock);
 }
 
 /**

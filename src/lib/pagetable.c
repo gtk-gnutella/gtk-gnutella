@@ -74,7 +74,7 @@ page_table_destroy(page_table_t *tab)
 	if (tab) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(tab->slice); i++) {
+		for (i = 0; i < N_ITEMS(tab->slice); i++) {
 			if (tab->slice[i]) {
 				vmm_free(tab->slice[i], sizeof tab->slice[i][0]);
 			}
@@ -92,7 +92,7 @@ page_table_lookup(page_table_t *tab, const void *p)
 
 		i = k >> SLICE_BITSHIFT;
 		j = (k & ~SLICE_BITMASK) >> PAGE_BITSHIFT;
-		if G_LIKELY(i < G_N_ELEMENTS(tab->slice))
+		if G_LIKELY(i < N_ITEMS(tab->slice))
 			return tab->slice[i] ? tab->slice[i]->size[j] : 0;
 
 		/* FALLTHROUGH */
@@ -165,11 +165,11 @@ page_table_foreach(page_table_t *tab, page_table_foreach_func func, void *data)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(tab->slice); i++) {
+	for (i = 0; i < N_ITEMS(tab->slice); i++) {
 		if (tab->slice[i]) {
 			size_t j;
 
-			for (j = 0; j < G_N_ELEMENTS(tab->slice[i]->size); j++) {
+			for (j = 0; j < N_ITEMS(tab->slice[i]->size); j++) {
 				if (tab->slice[i]->size[j]) {
 					size_t p = (i << SLICE_BITSHIFT) + (j << PAGE_BITSHIFT);
 

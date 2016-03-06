@@ -84,7 +84,7 @@
  *    encoded in the packet and its children are encoded in big-endian
  *    byte order - including the length in the packet header.
  *
- * Other bits are reserved. 
+ * Other bits are reserved.
  *
  * The Length Field
  *

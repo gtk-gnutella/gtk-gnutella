@@ -249,7 +249,7 @@ product_build_full(void)
 /*
  * Initialize product information.
  */
-G_GNUC_COLD void
+void G_COLD
 product_init(const char *name,
 	uint8 major, uint8 minor, uint8 patchlevel, const char *revchar,
 	const char *date, const char *version, const char *revision,
@@ -265,5 +265,5 @@ product_init(const char *name,
 	product_info.p_revision = revision;
 	product_info.p_build = build;
 }
- 
+
 /* vi: set ts=4 sw=4 cindent: */

@@ -366,7 +366,7 @@ tx_chunk_writev(txdrv_t *tx, iovec_t *iov, int iovcnt)
 	 */
 
 	while (iovcnt--) {
-		ssize_t r = tx_chunk_write(tx, 
+		ssize_t r = tx_chunk_write(tx,
 			  iovec_base(iov), iovec_len(iov));
 		if (-1 == r)
 			return -1;

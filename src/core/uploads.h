@@ -183,7 +183,7 @@ struct g2_tree;
 
 bool upload_is_enabled(void);
 void upload_timer(time_t now);
-void upload_remove(struct upload *, const char *, ...) G_GNUC_PRINTF(2, 3);
+void upload_remove(struct upload *, const char *, ...) G_PRINTF(2, 3);
 void handle_push_request(struct gnutella_node *, const struct g2_tree *t);
 void upload_add(struct gnutella_socket *);
 void upload_init(void);

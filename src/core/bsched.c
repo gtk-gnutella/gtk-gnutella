@@ -231,7 +231,7 @@ bsched_get(bsched_bws_t bws)
 	uint i = (uint) bws;
 
 	g_assert(i < NUM_BSCHED_BWS);
-	bsched_check(bws_set[i]);	
+	bsched_check(bws_set[i]);
 	return bws_set[i];
 }
 
@@ -248,7 +248,7 @@ bsched_free(bsched_t *bs)
 	plist_t *iter;
 
 	bsched_check(bs);
-	
+
 	PLIST_FOREACH(bs->sources, iter) {
 		bio_source_t *bio = iter->data;
 
@@ -354,7 +354,7 @@ static void
 bsched_add_stealer(bsched_bws_t bws, bsched_bws_t bws_stealer)
 {
 	bsched_t *bs, *stealer;
-   	
+
 	g_assert(bws != bws_stealer);
 
 	bs = bsched_get(bws);
@@ -378,7 +378,7 @@ bsched_reset_stealers(bsched_t *bs)
 /**
  * Configure outband DHT traffic cross-stealing with Gnutella UDP
  */
-static G_GNUC_COLD void
+static void G_COLD
 bsched_dht_cross_stealing(void)
 {
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
@@ -388,7 +388,7 @@ bsched_dht_cross_stealing(void)
 /**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_config_steal_http_gnet(void)
 {
 	pslist_t *iter;
@@ -438,7 +438,7 @@ bsched_config_steal_http_gnet(void)
 /**
  * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_config_steal_gnet(void)
 {
 	pslist_t *iter;
@@ -459,7 +459,7 @@ bsched_config_steal_gnet(void)
  * This is called BEFORE settings_init(), bandwidth values are the default
  * values, not the configured ones.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_early_init(void)
 {
 	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
@@ -567,7 +567,7 @@ bsched_early_init(void)
 /**
  * Configure schedules with actual limits set by the user.
  */
-static G_GNUC_COLD void
+static void G_COLD
 bsched_correct_init(void)
 {
 	bsched_set_bandwidth(BSCHED_BWS_OUT, GNET_PROPERTY(bw_http_out));
@@ -585,7 +585,7 @@ bsched_correct_init(void)
 /**
  * Initialize global bandwidth schedulers.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_init(void)
 {
 	bsched_correct_init();	/* Fix badnwidth using user-configured values */
@@ -607,7 +607,7 @@ bsched_init(void)
 /**
  * Discard global bandwidth schedulers.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_close(void)
 {
 	pslist_t *iter;
@@ -771,7 +771,7 @@ bsched_enable_all(void)
  * Disable all known bandwidth schedulers, so that any pending I/O can
  * go through as quickly as possible.
  */
-G_GNUC_COLD void
+void G_COLD
 bsched_shutdown(void)
 {
 	pslist_t *sl;
@@ -1202,7 +1202,7 @@ static void
 bsched_bio_remove(bsched_bws_t bws, bio_source_t *bio)
 {
 	bsched_t *bs;
-	
+
 	bs = bsched_get(bws);
 	bio_check(bio);
 
@@ -2095,7 +2095,7 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 
 		g_assert(start >= ctx->map_start);
 		data = &data[start - ctx->map_start];
-		
+
 		g_assert(ctx->map_end > start);
 		amount = MIN((size_t) (ctx->map_end - start), amount);
 
@@ -2235,7 +2235,7 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 
 			if (curlen > available) {
 				slen = iovec_len(siov);	/* Save for later restore */
-				iovec_set_len(siov, 
+				iovec_set_len(siov,
 					iovec_len(siov) - (curlen - available)
 				);
 				iovcnt = r + 1;

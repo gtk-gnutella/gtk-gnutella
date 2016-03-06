@@ -57,7 +57,7 @@
 #define VALUES_REMEMBERED	128
 #define MIN_PERIOD			4
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 warning(const char *msg, ...)
 {
 	va_list args;
@@ -70,7 +70,7 @@ warning(const char *msg, ...)
 	fprintf(stderr, "%s: WARNING: %s\n", getprogname(), buf);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -187,7 +187,7 @@ count_values(random_fn_t fn, unsigned period, unsigned mask, unsigned value)
 	return cnt;
 }
 
-static G_GNUC_HOT uint64
+static uint64 G_HOT
 compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 {
 	size_t n;
@@ -221,7 +221,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 
 	if (0 != (period = small_period(values, count, min_period)))
 		goto done;
-		
+
 	for (; n != 0; n++) {
 		unsigned val = (*fn)() & mask;
 		if G_UNLIKELY(val == values[didx]) {
@@ -311,7 +311,7 @@ dump_raw(random_fn_t fn, unsigned mask, unsigned dumpcnt)
 	while (0 == dumpcnt || n != 0) {
 		uint32 v[1024];
 		size_t i;
-		size_t g = 0 == dumpcnt ? G_N_ELEMENTS(v) : MIN(G_N_ELEMENTS(v), n);
+		size_t g = 0 == dumpcnt ? N_ITEMS(v) : MIN(N_ITEMS(v), n);
 
 		for (i = 0; i < g; i++) {
 			v[i] = (*fn)() & mask;
@@ -457,7 +457,7 @@ timeit(random_fn_t fn, unsigned amount, const char *name)
 	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 
-	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",	
+	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
 		name, tm_elapsed_f(&end, &start), uend - ustart);
 
 	fflush(stdout);
@@ -480,9 +480,9 @@ again:
 		double elapsed = tm_elapsed_f(&end, &start);
 		double cpu = uend - ustart;
 
-		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",	
+		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
 			name, generated, elapsed, cpu, generated / elapsed);
-		
+
 	}
 }
 
@@ -491,7 +491,7 @@ get_number(const char *arg, int opt)
 {
 	int error;
 	uint32 val;
-	
+
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
@@ -535,7 +535,7 @@ add_entropy(void *p)
 
 		thread_sleep_ms(500);
 
-		for (i = 0; i < G_N_ELEMENTS(v); i++) {
+		for (i = 0; i < N_ITEMS(v); i++) {
 			v[i] = rand31_u32();
 		}
 
@@ -779,14 +779,14 @@ G_STMT_START {			\
 		unsigned bits[32];
 		unsigned nbits;
 
-		nbits = G_N_ELEMENTS(bits);
+		nbits = N_ITEMS(bits);
 
 		if ((random_fn_t) rand31 == fn) {
 			nbits = 31;
 			period &= ~(1U << 31);
 		}
 
-		g_assert(nbits <= G_N_ELEMENTS(bits));
+		g_assert(nbits <= N_ITEMS(bits));
 
 		count_bits(fn, period, bits, nbits);
 		display_bits(bits, nbits, period);

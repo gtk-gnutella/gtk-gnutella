@@ -57,7 +57,7 @@
  * @param in	start of data to be encrypted (at least 8 bytes)
  * @param len	length in bytes of data to be encrypted (multiple of 4 bytes)
  */
-G_GNUC_HOT void
+void G_HOT
 xxtea_encrypt(const xxtea_key_t *key, uint32 *out, const void *in, size_t len)
 {
 	uint32 y, z, sum, *v = out;
@@ -94,7 +94,7 @@ xxtea_encrypt(const xxtea_key_t *key, uint32 *out, const void *in, size_t len)
  * @param len	length in bytes of data to be decrypted (multiple of 4 bytes)
  *
  */
-G_GNUC_HOT void
+void G_HOT
 xxtea_decrypt(const xxtea_key_t *key, uint32 *out, const void *in, size_t len)
 {
 	uint32 y, z, sum, *v = out;
@@ -124,7 +124,7 @@ xxtea_decrypt(const xxtea_key_t *key, uint32 *out, const void *in, size_t len)
 /**
  * Test implementation.
  */
-G_GNUC_COLD void
+void G_COLD
 xxtea_test(void)
 {
 	xxtea_key_t key;

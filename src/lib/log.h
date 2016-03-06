@@ -61,8 +61,8 @@ typedef struct logagent logagent_t;
 
 struct str;
 
-const char *log_prefix(GLogLevelFlags loglvl) G_GNUC_CONST;
-void log_abort(void) G_GNUC_NORETURN;
+const char *log_prefix(GLogLevelFlags loglvl) G_CONST;
+void log_abort(void) G_NORETURN;
 
 void log_init(void);
 void log_crash_mode(void);
@@ -90,32 +90,39 @@ int log_get_fd(enum log_file which);
  * Safe logging interface (to avoid recursive logging, or from signal handlers).
  */
 
-void s_critical(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_error(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
-int s_error_expr(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_carp(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_carp_once(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_minicarp(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_GNUC_PRINTF(2, 3);
-void s_warning(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_message(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_info(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_debug(const char *format, ...) G_GNUC_PRINTF(1, 2);
+void s_critical(const char *format, ...) G_PRINTF(1, 2);
+void s_error(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
+int s_error_expr(const char *format, ...) G_PRINTF(1, 2);
+void s_carp(const char *format, ...) G_PRINTF(1, 2);
+void s_carp_once(const char *format, ...) G_PRINTF(1, 2);
+void s_minicarp(const char *format, ...) G_PRINTF(1, 2);
+void s_minicarp_once(const char *format, ...) G_PRINTF(1, 2);
+void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_PRINTF(2, 3);
+void s_warning(const char *format, ...) G_PRINTF(1, 2);
+void s_message(const char *format, ...) G_PRINTF(1, 2);
+void s_info(const char *format, ...) G_PRINTF(1, 2);
+void s_debug(const char *format, ...) G_PRINTF(1, 2);
 void s_fatal_exit(int status, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+	G_PRINTF(2, 3) G_NORETURN;
 void s_error_from(const char *file, const char *fmt, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
-void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args);
-void s_minierror(const char *format, ...) G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN;
-void s_minicrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_miniwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_minimsg(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_miniinfo(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_minidbg(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a);
-void s_rawcrit(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_rawwarn(const char *format, ...) G_GNUC_PRINTF(1, 2);
-void s_rawdebug(const char *format, ...) G_GNUC_PRINTF(1, 2);
+	G_PRINTF(2, 3) G_NORETURN;
+void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args)
+	G_PRINTF(3, 0);
+void s_minierror(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
+void s_minicrit(const char *format, ...) G_PRINTF(1, 2);
+void s_miniwarn(const char *format, ...) G_PRINTF(1, 2);
+void s_minimsg(const char *format, ...) G_PRINTF(1, 2);
+void s_miniinfo(const char *format, ...) G_PRINTF(1, 2);
+void s_minidbg(const char *format, ...) G_PRINTF(1, 2);
+void s_rawcrit(const char *format, ...) G_PRINTF(1, 2);
+void s_rawwarn(const char *format, ...) G_PRINTF(1, 2);
+void s_rawmsg(const char *format, ...) G_PRINTF(1, 2);
+void s_rawinfo(const char *format, ...) G_PRINTF(1, 2);
+void s_rawdebug(const char *format, ...) G_PRINTF(1, 2);
+void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a)
+	G_PRINTF(4, 0);
+
+void s_line_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
 
 void s_stacktrace(bool no_stdio, unsigned offset);
 
@@ -123,15 +130,15 @@ void s_stacktrace(bool no_stdio, unsigned offset);
  * These routines should not be called directly, use the macros below.
  */
 void s_critical_once_per_from(long period, const char *origin,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 void s_warning_once_per_from(long period, const char *origin,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 void s_message_once_per_from(long period, const char *origin,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 void s_info_once_per_from(long period, const char *origin,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 void s_debug_once_per_from(long period, const char *origin,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 
 #define s_critical_once_per(p,fmt,...) \
 	s_critical_once_per_from((p), G_STRLOC, (fmt), __VA_ARGS__)
@@ -169,11 +176,11 @@ const char *log_agent_string_get(const logagent_t *la);
 char *log_agent_string_get_null(logagent_t **la_ptr);
 void log_agent_free_null(logagent_t **la_ptr);
 
-void log_critical(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void log_warning(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void log_message(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void log_info(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
-void log_debug(logagent_t *la, const char *format, ...) G_GNUC_PRINTF(2, 3);
+void log_critical(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
+void log_warning(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
+void log_message(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
+void log_info(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
+void log_debug(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
 
 #endif /* _log_h_ */
 

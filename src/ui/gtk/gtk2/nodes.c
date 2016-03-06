@@ -89,14 +89,14 @@ static void nodes_gui_node_added(const struct nid *);
 static void nodes_gui_node_info_changed(const struct nid *);
 static void nodes_gui_node_flags_changed(const struct nid *);
 
-static gboolean 
+static gboolean
 remove_item(hset_t *hs, const struct nid *node_id)
 {
 	void *orig_key;
 
 	g_return_val_if_fail(hs, FALSE);
 	g_return_val_if_fail(node_id, FALSE);
-	
+
 	orig_key = hset_lookup(hs, node_id);
 	if (orig_key) {
     	hset_remove(hs, orig_key);
@@ -114,7 +114,7 @@ remove_item(hset_t *hs, const struct nid *node_id)
  * the foreground color for the whole row.
  */
 static void
-add_column(GtkTreeView *tree, const gchar *title, 
+add_column(GtkTreeView *tree, const gchar *title,
 	GtkTreeCellDataFunc cell_data_func, gpointer udata)
 {
 	GtkCellRenderer *renderer;
@@ -136,7 +136,7 @@ add_column(GtkTreeView *tree, const gchar *title,
 		"resizable", TRUE,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL_PTR);
-	
+
 	if (cell_data_func != NULL)
 		gtk_tree_view_column_set_cell_data_func(column, renderer,
 			cell_data_func, udata, NULL);
@@ -179,12 +179,12 @@ free_node_id(const void *key, void *unused_udata)
 	nid_unref(key);
 }
 
-static void 
+static void
 free_node_data(const void *unused_key, void *value, void *unused_udata)
 {
 	(void) unused_key;
 	(void) unused_udata;
-	
+
 	node_data_free(value);
 }
 
@@ -195,7 +195,7 @@ create_nodes_model(void)
 	GtkListStore *store;
 
 	columns[0] = G_TYPE_POINTER;
-	store = gtk_list_store_newv(G_N_ELEMENTS(columns), columns);
+	store = gtk_list_store_newv(N_ITEMS(columns), columns);
 	return store;
 }
 
@@ -298,7 +298,7 @@ nodes_gui_create_treeview_nodes(void)
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
-	for (i = 0; i < G_N_ELEMENTS(columns); i++)
+	for (i = 0; i < N_ITEMS(columns); i++)
 		add_column(tree, _(columns[i].title), cell_renderer_func,
 			GUINT_TO_POINTER(columns[i].id));
 }
@@ -358,7 +358,7 @@ static void
 nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 {
 	gboolean ultra;
-	
+
 	g_assert(NULL != data);
 
 	concat_strings(data->flags, sizeof data->flags,
@@ -380,7 +380,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 
 	if (path) {
 		GtkTreeIter parent;
-		
+
 		model = gtk_tree_view_get_model(tv);
 		if (!gtk_tree_model_get_iter(model, &iter, path)) {
 			g_warning("gtk_tree_model_get_iter() failed");
@@ -463,13 +463,13 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 
 	guc_node_fill_info(node_id, &info);
 	g_assert(node_id == info.node_id);
-	
+
 	addr = info.addr;
 	port = info.port;
 	guc_node_clear_info(&info);
 
 	WFREE_NULL(data->host, data->host_size);
-	
+
 	if (hostname) {
 		const gchar *host;
 		gchar *to_free;
@@ -481,7 +481,7 @@ host_lookup_callback(const gchar *hostname, gpointer key)
 			to_free = locale_to_utf8_normalized(hostname, UNI_NORM_GUI);
 			host = to_free;
 		}
-		
+
 		data->host_size = w_concat_strings(&data->host,
 							host, " (",
 							host_addr_port_to_string(addr, port), ")",
@@ -538,7 +538,7 @@ void
 nodes_gui_init(void)
 {
 	GtkTreeView *tv;
-	
+
 	tv = GTK_TREE_VIEW(gui_main_window_lookup( "treeview_nodes"));
 	treeview_nodes = tv;
 
@@ -700,10 +700,10 @@ update_row(const void *key, void *value, void *user_data)
 		data->uptime = delta_time(now, status.up_date);
 
 	/* Update the status line */
-	{	
+	{
 		const gchar *s;
 		size_t size;
-		
+
 		s = nodes_gui_common_status_str(&status);
 		size = 1 + strlen(s);
 		if (size > data->info_size) {
@@ -882,7 +882,7 @@ nodes_gui_browse_selected_helper(GtkTreeModel *model,
 
 	(void) unused_path;
 	(void) unused_data;
-	
+
 	gtk_tree_model_get(model, iter, 0, &data, (-1));
 	info = guc_node_get_info(data->node_id);
 	if (!info->is_pseudo) {
@@ -902,7 +902,7 @@ nodes_gui_browse_selected(void)
 	selection = gtk_tree_view_get_selection(tv);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_browse_selected_helper, NULL);
-	
+
 }
 
 /* vi: set ts=4 sw=4 cindent: */

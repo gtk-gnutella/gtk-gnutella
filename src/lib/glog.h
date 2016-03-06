@@ -126,7 +126,7 @@
 									   G_LOG_LEVEL_DEBUG,	\
 									   format)
 #else	/* !__GNUC__ */
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_carp(const char *format, ...)
 {
   va_list args;
@@ -136,7 +136,7 @@ g_carp(const char *format, ...)
   stacktrace_where_sym_print(stderr);
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_carp_once(const char *format, ...)
 {
   if (!stacktrace_caller_known(1)) {
@@ -148,7 +148,7 @@ g_carp_once(const char *format, ...)
   }
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_error(const char *format, ...)
 {
   va_list args;
@@ -158,7 +158,7 @@ g_error(const char *format, ...)
   log_abort();
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_critical(const char *format, ...)
 {
   va_list args;
@@ -167,7 +167,7 @@ g_critical(const char *format, ...)
   va_end(args);
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_warning(const char *format, ...)
 {
   va_list args;
@@ -176,7 +176,7 @@ g_warning(const char *format, ...)
   va_end(args);
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_message(const char *format, ...)
 {
   va_list args;
@@ -185,7 +185,7 @@ g_message(const char *format, ...)
   va_end(args);
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_info(const char *format, ...)
 {
   va_list args;
@@ -194,7 +194,7 @@ g_info(const char *format, ...)
   va_end(args);
 }
 
-static inline G_GNUC_PRINTF(1, 2) void
+static inline void G_PRINTF(1, 2)
 g_debug(const char *format, ...)
 {
   va_list args;
@@ -215,9 +215,9 @@ void gl_log_set_handler(gl_log_handler_t handler, void *data);
 void gl_logv(const char *domain, GLogLevelFlags flags,
 	const char *format, va_list args);
 void gl_log(const char *domain, GLogLevelFlags flags,
-	const char *format, ...) G_GNUC_PRINTF(3, 4);
+	const char *format, ...) G_PRINTF(3, 4);
 void gl_error(const char *domain, const char *format, ...)
-	G_GNUC_PRINTF(2, 3) G_GNUC_NORETURN;
+	G_PRINTF(2, 3) G_NORETURN;
 
 #endif /* _glog_h_ */
 

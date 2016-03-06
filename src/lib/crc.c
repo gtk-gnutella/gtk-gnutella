@@ -102,7 +102,7 @@ crc32_gen_crc_table(void)
  * @param len		no brief description.
  *
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 crc32_update(uint32 crc_accum, const void *data, size_t len)
 {
 	const uchar *p = data;

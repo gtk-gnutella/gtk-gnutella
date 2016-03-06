@@ -588,12 +588,12 @@ shared_file_slist_free_null(pslist_t **l_ptr)
 static bool
 shared_file_set_names(shared_file_t *sf, const char *filename)
 {
-  	shared_file_check(sf);	
+	shared_file_check(sf);
 	g_assert(NULL == sf->name_nfc);
 	g_assert(NULL == sf->name_canonic);
 
 	/* Set the NFC normalized name. */
-	{	
+	{
 		char *name = filename_to_utf8_normalized(filename, UNI_NORM_NETWORK);
 		sf->name_nfc = atom_str_get(name);
 		G_FREE_NULL(name);
@@ -646,7 +646,7 @@ static const uint SPECIAL_FILE = -3;		/**< Special served files */
  * Initialize special file entry, returning shared_file_t structure if
  * the file exists, NULL otherwise.
  */
-static G_GNUC_COLD shared_file_t *
+static shared_file_t * G_COLD
 share_special_load(const struct special_file *sp)
 {
 	FILE *f;
@@ -657,8 +657,8 @@ share_special_load(const struct special_file *sp)
 
 	length = settings_file_path_load(fp, sp->file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
-	
+	g_assert(length <= N_ITEMS(fp));
+
 	f = file_config_open_read_norename_chosen(sp->what, fp, length, &idx);
 
 	if (NULL == f)
@@ -753,14 +753,14 @@ shared_files_match(const char *query,
 /**
  * Initialize the special files we're sharing.
  */
-static G_GNUC_COLD void
+static void G_COLD
 share_special_init(void)
 {
 	uint i;
 
 	special_names = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(specials); i++) {
+	for (i = 0; i < N_ITEMS(specials); i++) {
 		shared_file_t *sf = share_special_load(&specials[i]);
 		if (sf != NULL)
 			htable_insert(special_names, specials[i].path, shared_file_ref(sf));
@@ -1219,11 +1219,11 @@ shared_file_valid_extension(const char *filename)
 		/*
 		 * Filenames without any extension are not shared, unless
 		 * "--all--" is used.
-		 */	
+		 */
 
 		filename_ext++;	/* skip the dot */
 
-		/* 
+		/*
 		 * Match the file extension (if any) against the extensions list.
 		 * All valid extensions start with '.'.  Matching is case-insensitive
 		 */
@@ -1243,7 +1243,7 @@ shared_file_valid_extension(const char *filename)
  * return On success a shared_file_t for the file is returned. Otherwise,
  *		  NULL is returned.
  */
-static shared_file_t * 
+static shared_file_t *
 share_scan_add_file(const char *relative_path,
 	const char *pathname, const filestat_t *sb)
 {
@@ -1325,7 +1325,7 @@ share_scan_add_file(const char *relative_path,
 			return NULL;
 		}
 	}
-	
+
 	/*
 	 * NOTE: An `else'-clause here would be if the file WAS found in the
 	 * sha1_cache.  Good place to set the SHA1 in "sf".
@@ -1607,7 +1607,7 @@ share_free(void)
 }
 
 /**
- * Sort function - shared files by ascending mtime (oldest first). 
+ * Sort function - shared files by ascending mtime (oldest first).
  */
 static int
 shared_file_sort_by_mtime(const void *f1, const void *f2)
@@ -1676,7 +1676,7 @@ recursive_scan_opendir(struct recursive_scan *ctx, const char * const dir)
 
 	/**
 	 * FIXME: On Windows FindFirstFile/FindNextFile/FindClose
-	 *		  must be used to get the Unicode filenames.		
+	 *		  must be used to get the Unicode filenames.
 	 */
 	if (!(ctx->directory = opendir(dir))) {
 		g_warning("can't open directory %s: %m", dir);
@@ -1792,7 +1792,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 				g_warning("broken symlink %s: %m", fullpath);
 				goto finish;
 			}
-			
+
 			/*
 			 * For symlinks, we check whether we are supposed to process
 			 * symlinks for that type of entry, then either proceed or skip the
@@ -1816,7 +1816,7 @@ recursive_scan_readdir(struct recursive_scan *ctx)
 				goto finish;
 			}
 		}
-		
+
 		if (S_ISDIR(sb.st_mode)) {
 			/* If a directory, add to list for later processing */
 			slist_prepend(ctx->sub_dirs, fullpath);
@@ -1960,7 +1960,7 @@ recursive_scan_step_setup(struct bgtask *bt, void *data, int uticks)
 /**
  * @return TRUE if finished.
  */
-static bool 
+static bool
 recursive_scan_next_dir(struct recursive_scan *ctx)
 {
 	recursive_scan_check(ctx);
@@ -2831,7 +2831,7 @@ share_rescan_create_task(bgsched_t *bs)
 	ctx = recursive_scan_new(shared_dirs, tm_time());
 
 	return ctx->task = bg_task_create(bs, "recursive scan",
-				steps, G_N_ELEMENTS(steps),
+				steps, N_ITEMS(steps),
 				ctx, recursive_scan_context_free,
 				recursive_scan_done, NULL);
 }
@@ -2861,7 +2861,7 @@ share_update_qrp_create_task(bgsched_t *bs)
 	ctx = recursive_scan_new(NULL, tm_time());
 
 	return ctx->task = bg_task_create(bs, "QRP update",
-				steps, G_N_ELEMENTS(steps),
+				steps, N_ITEMS(steps),
 				ctx, recursive_scan_context_free,
 				recursive_scan_done, NULL);
 }
@@ -3135,7 +3135,7 @@ share_special_close(void)
 /**
  * Shutdown cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 share_close(void)
 {
 	if (THREAD_MAIN != share_thread_id)
@@ -3211,7 +3211,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 		if (current) {
 			shared_file_check(current);
 			g_assert(SHARE_F_INDEXED & current->flags);
-			
+
 			/*
 			 * There can be multiple shared files with the same SHA-1.
 			 * Only the first found is inserted into the tree.
@@ -3226,7 +3226,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * New SHA-1 known for this file entry.
 			 * Record in the set of shared SHA-1s and publish to the DHT.
 			 */
-		
+
 			hikset_insert_key(sha1_to_share, &sf->sha1);
 
 			/*
@@ -3927,7 +3927,7 @@ share_update_matching_information(void)
 /**
  * Initialization of the sharing library.
  */
-G_GNUC_COLD void
+void G_COLD
 share_init(void)
 {
 	size_t i;
@@ -3970,7 +3970,7 @@ share_init(void)
 
 	share_media_types = htable_create(HASH_KEY_SELF, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(media_type_map); i++) {
+	for (i = 0; i < N_ITEMS(media_type_map); i++) {
 		htable_insert(share_media_types,
 			int_to_pointer(media_type_map[i].type),
 			int_to_pointer(media_type_map[i].flags));

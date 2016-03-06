@@ -101,7 +101,7 @@ struct hash_list_iter {
 	struct hash_list_item *item;
 };
 
-static G_GNUC_HOT void
+static void G_HOT
 hash_list_iter_check(const hash_list_iter_t * const iter)
 {
 	g_assert(NULL != iter);
@@ -161,7 +161,7 @@ hash_list_regression(const hash_list_t * const hl)
 #define hash_list_regression(hl)
 #endif
 
-static G_GNUC_HOT void
+static void G_HOT
 hash_list_check(const hash_list_t * const hl)
 {
 	g_assert(NULL != hl);
@@ -589,7 +589,7 @@ hash_list_rotate_right(hash_list_t *hl)
  *
  * @return the original key.
  */
-static void * 
+static void *
 hash_list_remove_item(hash_list_t *hl, struct hash_list_item *item)
 {
 	void *key;
@@ -1102,7 +1102,7 @@ hash_list_iterator_at(hash_list_t *hl, const void *key)
 /**
  * Get the next data item from the iterator, or NULL if none.
  */
-G_GNUC_HOT void *
+void * G_HOT
 hash_list_iter_next(hash_list_iter_t *iter)
 {
 	link_t *next;
@@ -1142,7 +1142,7 @@ hash_list_iter_has_next(const hash_list_iter_t *iter)
 /**
  * Get the previous data item from the iterator, or NULL if none.
  */
-G_GNUC_HOT void *
+void * G_HOT
 hash_list_iter_previous(hash_list_iter_t *iter)
 {
 	link_t *prev;
@@ -1395,7 +1395,7 @@ void
 hash_list_foreach(const hash_list_t *hl, data_fn_t func, void *user_data)
 {
 	link_t *lk;
-	
+
 	hash_list_check(hl);
 	g_assert(NULL != func);
 
@@ -1421,7 +1421,7 @@ hash_list_foreach_remove(hash_list_t *hl, data_rm_fn_t func, void *data)
 {
 	link_t *lk, *next;
 	size_t removed = 0;
-	
+
 	hash_list_check(hl);
 	g_assert(func != NULL);
 

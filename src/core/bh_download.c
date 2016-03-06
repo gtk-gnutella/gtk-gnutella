@@ -430,7 +430,7 @@ browse_rx_given(void *o, ssize_t r)
 	download_data_received(bc->owner, r);
 }
 
-static G_GNUC_PRINTF(2, 3) void
+static G_PRINTF(2, 3) void
 browse_rx_error(void *o, const char *reason, ...)
 {
 	struct browse_ctx *bc = o;
@@ -605,7 +605,7 @@ browse_host_dl_free(struct browse_ctx **ptr)
 {
 	struct browse_ctx *bc = *ptr;
 
-	if (bc) {	
+	if (bc) {
 		atom_str_free_null(&bc->vendor);
 		if (bc->rx) {
 			rx_free(bc->rx);

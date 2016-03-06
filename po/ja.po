@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/ja/)\n"
@@ -582,9 +582,8 @@ msgstr "保護ノードです"
 msgid "Protocol not acceptable"
 msgstr "このプロトコルは受け付けられません"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "競合比率:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -924,13 +923,12 @@ msgstr ""
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "読込エラー: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "大き過ぎる"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -3203,13 +3201,10 @@ msgstr ""
 "より素早く接続するため、接続ソケットを一杯にする間にこの数の接続を有効にする"
 "ようにします。"
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"受け付け可能なリーフの最大数です。ウルトラピアへと昇格するには、リーフ毎に "
-"32 バイトの帯域幅が必要になります。"
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "無視するファイルの表示方法です。"
@@ -6055,9 +6050,8 @@ msgstr "不明なプロパティ"
 msgid "Value missing"
 msgstr "値がありません"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "プロパティのパターン:"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -8610,6 +8604,9 @@ msgstr "Gnutellaトラフィック統計(_T)"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "自動的に隠す(_A)"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "検索(_S)"
 
@@ -8889,6 +8886,11 @@ msgstr ""
 "<html><head><title>よくある質問</title></head><body><p>FAQ ドキュメントがロー"
 "ドされませんでした。代わりに <a href=\"http://gtk-gnutella.sourceforge.net/?"
 "page=faq\">FAQ オンライン</a> をご覧ください。</p></body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9334,9 +9336,8 @@ msgstr[0] "%u/%u 件のダウンロード"
 msgid "Queue frozen"
 msgstr "キューが凍結されました"
 
-#, fuzzy
 msgid "Internal"
-msgstr "このモニター間"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "説明を見るにはプロパティを選択して下さい。"
@@ -9402,9 +9403,3 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
-
-#~ msgid "You seem to have left another gtk-gnutella running"
-#~ msgstr "他の gtk-gnutella を走らせたままにしているようです"
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "待ち受けポートの作成に失敗しました"

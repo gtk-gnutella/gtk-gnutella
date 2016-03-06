@@ -771,7 +771,7 @@ elist_foreach_remove(elist_t *list, data_rm_fn_t cbr, void *data)
  *
  * @return the head of the list
  */
-static link_t * G_GNUC_HOT
+static link_t * G_HOT
 elist_merge_sort(elist_t *list, link_t *sublist, size_t count,
 	cmp_data_fn_t cmp, void *data)
 {

@@ -78,8 +78,8 @@ typedef struct rnode_info {
 	uint32 file_hits;			/**< Hits on shared files */
 	uint32 qhits_tcp;			/**< Query hits returned via TCP */
 	uint32 qhits_udp;			/**< Claimed query hits returned via UDP */
-	uint64 qhits_tcp_bytes;		/**< Total size of TCP qhits (with header) */ 
-	uint64 qhits_udp_bytes;		/**< Total size of UDP qhits (with header) */ 
+	uint64 qhits_tcp_bytes;		/**< Total size of TCP qhits (with header) */
+	uint64 qhits_udp_bytes;		/**< Total size of UDP qhits (with header) */
 	/* CPU statistics */
 	uint64 cpu_usr;				/**< Total user CPU time used, in ms */
 	uint64 cpu_sys;				/**< Total kernel CPU time used, in ms */
@@ -348,7 +348,7 @@ typedef enum {
 	GTA_NODE_REMOVING			= 5,	/**< Removing node */
 	GTA_NODE_RECEIVING_HELLO	= 6,	/**< Receiving 0.6 headers */
 	GTA_NODE_SHUTDOWN			= 7		/**< Connection being shutdown */
-	
+
 } gnet_node_state_t;
 
 #define GTA_NORMAL_TTL			4		/**< Regular TTL, for hops-flow */

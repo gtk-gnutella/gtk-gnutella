@@ -81,7 +81,7 @@ strtok_t *
 strtok_make(const char *string, bool no_lead, bool no_end)
 {
 	strtok_t *s;
-	
+
 	WALLOC(s);
 	s->magic = STRTOK_MAGIC;
 	s->string = string;
@@ -620,7 +620,7 @@ strtok_case_has(const char *string, const char *delim, const char *what)
 /**
  * Tokenizer unit tests.
  */
-G_GNUC_COLD void
+void G_COLD
 strtok_test(void)
 {
 	const char *string = "a; b, c ; d/e";

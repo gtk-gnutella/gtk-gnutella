@@ -264,7 +264,7 @@ listen_addr_by_net(enum net_type net)
 	}
 	return zero_host_addr;
 }
-	
+
 bool
 is_my_address(const host_addr_t addr)
 {
@@ -284,7 +284,7 @@ is_my_address_and_port(const host_addr_t addr, uint16 port)
  * @return a filelock object on success, NULL if we could not lock with
  * errno set.
  */
-static G_GNUC_COLD filelock_t *
+static filelock_t * G_COLD
 ensure_unicity(const char *file, bool check_only)
 {
 	filelock_params_t params;
@@ -321,7 +321,7 @@ settings_mkdir(const char *path, bool fatal)
 /**
  * Initializes "config_dir", "home_dir", "crash_dir", etc...
  */
-G_GNUC_COLD void
+void G_COLD
 settings_early_init(void)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
@@ -340,7 +340,7 @@ settings_early_init(void)
 			s_fatal_exit(EXIT_FAILURE,
 				_("$GTK_GNUTELLA_DIR must point to an absolute path!"));
 		}
-	} else { 
+	} else {
 		config_dir = make_pathname(home_dir,
 			is_running_on_mingw() ? "gtk-gnutella" : ".gtk-gnutella");
 	}
@@ -584,7 +584,7 @@ settings_random_save(bool verbose)
 /**
  * Handle cleanup operation when upgrading from an older version.
  */
-static void G_GNUC_COLD
+static void G_COLD
 settings_handle_upgrades(void)
 {
 	/* 2014-05-02 -- Bitzi is now gone for version 1.1 */
@@ -596,7 +596,7 @@ settings_handle_upgrades(void)
  *
  * @param is_supervisor		TRUE if dealing with the supervisor process
  */
-void G_GNUC_COLD
+void G_COLD
 settings_unique_instance(bool is_supervisor)
 {
 	pid_t lpid;
@@ -611,7 +611,7 @@ settings_unique_instance(bool is_supervisor)
 	}
 }
 
-void G_GNUC_COLD
+void G_COLD
 settings_init(void)
 {
 	uint64 memory = getphysmemsize();
@@ -626,7 +626,7 @@ settings_init(void)
 #if defined(HAS_GETRLIMIT) && defined(RLIMIT_AS)
 	{
 		struct rlimit lim;
-	
+
 		if (-1 != getrlimit(RLIMIT_AS, &lim)) {
 			maxvm = lim.rlim_max / 1024;
 			amount = MIN(amount, maxvm);		/* For our purposes */
@@ -636,7 +636,7 @@ settings_init(void)
 
     properties = gnet_prop_init();
 	max_fd = getdtablesize();
-	
+
 	gnet_prop_set_guint32_val(PROP_SYS_NOFILE, max_fd);
 	gnet_prop_set_guint64_val(PROP_SYS_PHYSMEM, amount);
 
@@ -755,7 +755,7 @@ settings_init(void)
 			system_precision = tm_precise_granularity(&tn);
 			nano = tmn2ns(&tn);
 
-			for (p = 0, val = nano; p < G_N_ELEMENTS(prefix); p++) {
+			for (p = 0, val = nano; p < N_ITEMS(prefix); p++) {
 				if (1000UL * (val / 1000UL) != val)
 					break;
 				val /= 1000UL;
@@ -1170,7 +1170,7 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 	 * recent peers who have reported a new address before.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		if (host_addr_matches(peer, peers[i], 16)) /* CIDR /16 */
 			return;
 	}
@@ -1182,15 +1182,15 @@ addr_ipv4_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
-	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	g_assert(same_addr_count > 0 && same_addr_count < N_ITEMS(peers));
 	peers[same_addr_count] = peer;
 
-	if (++same_addr_count < G_N_ELEMENTS(peers))
+	if (++same_addr_count < N_ITEMS(peers))
 		return;
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		peers[i] = zero_host_addr;
 	}
 
@@ -1230,7 +1230,7 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 	 * recent peers who have reported a new address before.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		if (host_addr_matches(peer, peers[i], 64)) /* CIDR /64 */
 			return;
 	}
@@ -1242,15 +1242,15 @@ addr_ipv6_changed(const host_addr_t new_addr, const host_addr_t peer)
 		return;
 	}
 
-	g_assert(same_addr_count > 0 && same_addr_count < G_N_ELEMENTS(peers));
+	g_assert(same_addr_count > 0 && same_addr_count < N_ITEMS(peers));
 	peers[same_addr_count] = peer;
 
-	if (++same_addr_count < G_N_ELEMENTS(peers))
+	if (++same_addr_count < N_ITEMS(peers))
 		return;
 
 	last_addr_seen = zero_host_addr;
 	same_addr_count = 0;
-	for (i = 0; i < G_N_ELEMENTS(peers); i++) {
+	for (i = 0; i < N_ITEMS(peers); i++) {
 		peers[i] = zero_host_addr;
 	}
 
@@ -1340,7 +1340,7 @@ settings_max_msg_size(void)
 /**
  * Called at exit time to flush the property files.
  */
-G_GNUC_COLD void
+void G_COLD
 settings_shutdown(void)
 {
 	/*
@@ -1462,11 +1462,11 @@ get_average_ip_lifetime(time_t now, enum net_type net)
 	time_t stamp;
 
 	switch (net) {
-	case NET_TYPE_IPV4: 
+	case NET_TYPE_IPV4:
 		stamp = GNET_PROPERTY(current_ip_stamp);
 		average = GNET_PROPERTY(average_ip_uptime);
 		break;
-	case NET_TYPE_IPV6: 
+	case NET_TYPE_IPV6:
 		stamp = GNET_PROPERTY(current_ip6_stamp);
 		average = GNET_PROPERTY(average_ip6_uptime);
 		break;
@@ -1942,7 +1942,7 @@ static bool
 enable_local_socket_changed(property_t prop)
 {
 	bool enabled;
-	
+
     gnet_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		if (!s_local_listen) {
@@ -2026,7 +2026,7 @@ request_new_sockets(uint16 port, bool check_firewalled)
 			}
 		}
 	}
-	
+
 	if (GNET_PROPERTY(enable_udp)) {
 		node_update_udp_socket();
 	}
@@ -2398,7 +2398,7 @@ save_file_path_changed(property_t prop)
 			return TRUE; /* Force changed value */
 		}
 	}
-	
+
 	G_FREE_NULL(old_path);
 	old_path = NOT_LEAKING(path);
 	return FALSE;
@@ -2787,7 +2787,7 @@ local_addr_changed(property_t prop)
 	/* If the address is invalid or does not match the network type;
 	 * reset it and try to guess the correct one by looking at all
 	 * network interfaces.
-	 */	
+	 */
 	if (
 		!is_host_addr(addr) ||
 		net != host_addr_net(addr) ||
@@ -2829,7 +2829,7 @@ configured_peermode_changed(property_t prop)
 	 *		mode, it can be assumed that he knows what he's doing. Also,
 	 *		while it's sub-optimal it's not absolutely required for an
 	 *		ultrapeer to accept incoming connections (from external hosts).
-	 * 
+	 *
 	 *		--cbiere, 2005-05-14
 	 */
 #if 0
@@ -3434,11 +3434,11 @@ static prop_map_t property_map[] = {
  *** Control functions
  ***/
 
-#define PROPERTY_MAP_SIZE G_N_ELEMENTS(property_map)
+#define PROPERTY_MAP_SIZE N_ITEMS(property_map)
 
 static bool init_list[GNET_PROPERTY_NUM];
 
-static G_GNUC_COLD void
+static void G_COLD
 settings_callbacks_init(void)
 {
     unsigned n;

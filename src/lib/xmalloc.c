@@ -78,6 +78,7 @@
 #include "palloc.h"
 #include "pow2.h"
 #include "sha1.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_vbprintf() */
 #include "stringify.h"
@@ -85,6 +86,7 @@
 #include "tm.h"
 #include "unsigned.h"
 #include "vmm.h"
+#include "win32dlp.h"
 #include "xsort.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -477,11 +479,13 @@ static struct xstats {
 	uint64 allocations_aligned;			/**< Total # of aligned allocations */
 	AU64(allocations_heap);				/**< Total # of xhmalloc() calls */
 	AU64(allocations_physical);			/**< Total # of xpmalloc() calls */
+	AU64(allocations_in_handler);		/**< Allocations from sig handler */
 	uint64 alloc_via_freelist;			/**< Allocations from freelist */
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
 	uint64 freeings;					/**< Total # of freeings */
+	AU64(freeings_in_handler);			/**< Freeings from sig handler */
 	AU64(free_sbrk_core);				/**< Freeing sbrk()-allocated core */
 	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
 	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
@@ -643,7 +647,7 @@ set_xmalloc_debug(uint32 level)
  * In crashing mode, allocations are done without any freelist updating,
  * and no freeing will occur.  The simplest algorithms are always chosen.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_crash_mode(void)
 {
 	xmalloc_crashing = TRUE;
@@ -711,7 +715,7 @@ xpages_pool_init(void)
 /**
  * Install periodic idle callback to run the freelist compactor.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_xgc_install(void)
 {
 	evq_raw_idle_add(xmalloc_idle_collect, NULL);
@@ -720,7 +724,7 @@ xmalloc_xgc_install(void)
 /**
  * Minimal setup once the VMM layer is started.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_vmm_setup_once(void)
 {
 	xmalloc_grows_up = vmm_grows_upwards();
@@ -728,7 +732,7 @@ xmalloc_vmm_setup_once(void)
 	xmalloc_freelist_setup();
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_vmm_setup(void)
 {
 	once_flag_run(&xmalloc_vmm_setup_done, xmalloc_vmm_setup_once);
@@ -737,7 +741,7 @@ xmalloc_vmm_setup(void)
 /**
  * Called when the VMM layer has been initialized.
  */
-void G_GNUC_COLD
+void G_COLD
 xmalloc_vmm_inited(void)
 {
 	STATIC_ASSERT(sizeof(struct xheader) == sizeof(size_t));
@@ -767,7 +771,7 @@ xmalloc_vmm_inited(void)
  * A short-term process is not going to require aggressive strategies to
  * compact unused memory, hence it will not require that we install xgc().
  */
-void G_GNUC_COLD
+void G_COLD
 xmalloc_long_term(void)
 {
 	/*
@@ -789,7 +793,7 @@ xmalloc_long_term(void)
  * Initialize the VMM layer minimally if not already done, and setup the
  * thread allocation pools.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_early_init(void)
 {
 	vmm_early_init();
@@ -799,11 +803,20 @@ xmalloc_early_init(void)
 /**
  * Called to log which malloc() is used on the specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_show_settings_log(logagent_t *la)
 {
 	log_info(la, "using %s", xmalloc_is_malloc() ?
 		"our own malloc() replacement" : "native malloc()");
+
+	/*
+	 * On Windows, we're performing dynamic patching of loaded libraries
+	 * to redirect them to our malloc().
+	 */
+
+#ifdef MINGW32
+	win32dlp_show_settings_log(la);
+#endif
 }
 
 /**
@@ -813,7 +826,7 @@ xmalloc_show_settings_log(logagent_t *la)
  * This is called very early, and is used to record crash hooks for the
  * file as a side effect.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_show_settings(void)
 {
 	xmalloc_show_settings_log(log_agent_stderr_get());
@@ -1259,7 +1272,7 @@ xmalloc_is_valid_length(const void *p, size_t len)
 /**
  * Computes physical size of blocks in a chunk list given the chunk index.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xch_block_size_idx(size_t idx)
 {
 	return (idx + 1) << XMALLOC_ALIGNSHIFT;
@@ -1268,7 +1281,7 @@ xch_block_size_idx(size_t idx)
 /**
  * Find chunk index for a given block size.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xch_find_chunkhead_index(size_t len)
 {
 	g_assert(size_is_positive(len));
@@ -1288,7 +1301,7 @@ xfl_index(const struct xfreelist *fl)
 	size_t idx;
 
 	idx = fl - &xfreelist[0];
-	g_assert(size_is_non_negative(idx) && idx < G_N_ELEMENTS(xfreelist));
+	g_assert(size_is_non_negative(idx) && idx < N_ITEMS(xfreelist));
 
 	return idx;
 }
@@ -1296,7 +1309,7 @@ xfl_index(const struct xfreelist *fl)
 /**
  * Computes physical size of blocks in a given free list index.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xfl_block_size_idx(size_t idx)
 {
 	return (idx <= XMALLOC_BUCKET_CUTOVER) ?
@@ -1308,7 +1321,7 @@ xfl_block_size_idx(size_t idx)
 /**
  * Find freelist index for a given block size.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 xfl_find_freelist_index(size_t len)
 {
 	g_assert_log(size_is_positive(len), "len=%zd", len);
@@ -1316,7 +1329,7 @@ xfl_find_freelist_index(size_t len)
 	g_assert(len <= XMALLOC_MAXSIZE);
 	g_assert(len >= XMALLOC_SPLIT_MIN);
 
-	return (len <= XMALLOC_FACTOR_MAXSIZE) ? 
+	return (len <= XMALLOC_FACTOR_MAXSIZE) ?
 		(len >> XMALLOC_BUCKET_SHIFT) - 1 - XMALLOC_BUCKET_OFFSET :
 		XMALLOC_BUCKET_CUTOVER +
 			((len - XMALLOC_FACTOR_MAXSIZE) >> XMALLOC_BLOCK_SHIFT);
@@ -1551,7 +1564,7 @@ xfl_count_decreased(struct xfreelist *fl, bool may_shrink)
 			xfreelist_maxidx = (size_t) -1 == i ? 0 : i;
 
 			g_assert(size_is_non_negative(xfreelist_maxidx));
-			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+			g_assert(xfreelist_maxidx < N_ITEMS(xfreelist));
 
 			if (xmalloc_debugging(2)) {
 				s_debug("XM max frelist index decreased to %zu",
@@ -1976,7 +1989,7 @@ xfl_ptr_cmp(const void *a, const void *b)
  * @param fmt		explaination message, printf()-like
  * @param ...		variable printf arguments for message
  */
-static void G_GNUC_PRINTF(4, 5)
+static void G_PRINTF(4, 5)
 assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
 	const char *fmt, ...)
 {
@@ -2082,7 +2095,7 @@ xfl_sort(struct xfreelist *fl)
  *
  * @return index within the sorted array where ``p'' is stored, -1 if not found.
  */
-static G_GNUC_HOT inline size_t
+static inline size_t G_HOT
 xfl_binary_lookup(void **array, const void *p,
 	size_t low, size_t high, size_t *low_ptr)
 {
@@ -2122,16 +2135,17 @@ xfl_binary_lookup(void **array, const void *p,
 
 	XSTATS_INCX(freelist_binary_lookups);
 
-	mid = low + (high - low) / 2;
+	high++;		/* Refers to first off-bound item */
 
 	for (;;) {
 		int c;
 
-		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
-			mid = -1;		/* Not found */
+		if G_UNLIKELY(low >= high) {
+			mid = (size_t) -1;	/* Not found */
 			break;
 		}
 
+		mid = (low + high) / 2;
 		c = xm_ptr_cmp(p, array[mid]);
 
 		if G_UNLIKELY(0 == c)
@@ -2139,10 +2153,8 @@ xfl_binary_lookup(void **array, const void *p,
 		else if (c > 0)
 			low = mid + 1;
 		else
-			high = mid - 1;
+			high = mid;			/* Not -1 since high is unsigned */
 
-		mid = low + (high - low) / 2;
-		G_PREFETCH_R(&array[mid]);
 	}
 
 	if (low_ptr != NULL)
@@ -2160,7 +2172,7 @@ xfl_binary_lookup(void **array, const void *p,
  * @return index within the ``pointers'' sorted array where ``p'' is stored,
  * -1 if not found.
  */
-static G_GNUC_HOT size_t
+static size_t G_HOT
 xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 {
 	size_t unsorted;
@@ -2394,7 +2406,7 @@ plain_insert:
 
 		if (xfreelist_maxidx < fidx) {
 			xfreelist_maxidx = fidx;
-			g_assert(xfreelist_maxidx < G_N_ELEMENTS(xfreelist));
+			g_assert(xfreelist_maxidx < N_ITEMS(xfreelist));
 
 			if (xmalloc_debugging(1)) {
 				s_debug("XM max frelist index increased to %zu",
@@ -2584,12 +2596,12 @@ xfl_insert_careful(struct xfreelist *fl, void *p, bool burst)
 /**
  * Initialize freelist buckets once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_freelist_init_once(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		fl->blocksize = xfl_block_size_idx(i);
@@ -2615,7 +2627,7 @@ xmalloc_freelist_init_once(void)
 		}
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(xcross); i++) {
+	for (i = 0; i < N_ITEMS(xcross); i++) {
 		struct xcross *xcr = &xcross[i];
 		spinlock_init(&xcr->lock);
 	}
@@ -2632,7 +2644,7 @@ xmalloc_freelist_init_once(void)
  * Initial setup of the free list that cannot be conveniently initialized
  * by static declaration.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_freelist_setup(void)
 {
 	once_flag_run(&xmalloc_freelist_inited, xmalloc_freelist_init_once);
@@ -2645,7 +2657,7 @@ xmalloc_freelist_setup(void)
 	if (!xmalloc_grows_up) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+		for (i = 0; i < N_ITEMS(xfreelist); i++) {
 			struct xfreelist *fl = &xfreelist[i];
 
 			mutex_lock_hidden(&fl->lock);
@@ -2705,7 +2717,7 @@ xmalloc_split_setup(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(xsplit); i++) {
+	for (i = 0; i < N_ITEMS(xsplit); i++) {
 		struct xsplit *xs = &xsplit[i];
 		size_t len = (i + 1) * XMALLOC_ALIGNBYTES;
 
@@ -2874,7 +2886,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
 }
 
 /**
- * Coalesce block initially given by the values pointed at by ``base'' and 
+ * Coalesce block initially given by the values pointed at by ``base'' and
  * ``len'' with contiguous blocks that are present in the freelists.
  *
  * The resulting block is not part of any freelist, just as the initial block
@@ -2886,7 +2898,7 @@ xmalloc_freelist_lookup(size_t len, const struct xfreelist *exclude,
  * @return TRUE if coalescing did occur, updating ``base_ptr'' and ``len_ptr''
  * to reflect the coalesced block..
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 	bool burst, uint32 flags)
 {
@@ -3722,7 +3734,7 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	 *       +------------------+ |
 	 *       | Aligned block #n | |
 	 *       +------------------+ v
-	 * 
+	 *
 	 * Compute the offset within the page of the first aligned block,
 	 * on its natural alignment boundary (not necessarily a power of 2).
 	 */
@@ -4034,7 +4046,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 	size_t n, size = 0;
 
 	g_assert(size_is_non_negative(stid));
-	g_assert(stid < G_N_ELEMENTS(xcross));
+	g_assert(stid < N_ITEMS(xcross));
 
 	xcr = &xcross[stid];
 
@@ -4267,13 +4279,15 @@ xmalloc_thread_ended(unsigned stid)
 /**
  * Allocate a block from the thread-specific pool.
  *
+ * @param stid		thread small ID
+ * @param len		size of block to allocate
+ *
  * @return allocated block of requested size, or NULL if no allocation was
  * possible.
  */
 static void *
-xmalloc_thread_alloc(const size_t len)
+xmalloc_thread_alloc(unsigned stid, const size_t len)
 {
-	unsigned stid;			/* Thread small ID */
 	struct xchunkhead *ch;
 	size_t idx;
 
@@ -4286,8 +4300,6 @@ xmalloc_thread_alloc(const size_t len)
 	 * only allocates a few blocks, we'll avoid dedicating a whole page to it
 	 * for that block size.
 	 */
-
-	stid = thread_small_id();
 
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return NULL;
@@ -4393,7 +4405,25 @@ xmalloc_thread_free(void *p)
 	unsigned stid;
 	struct xchunkhead *ch;
 
-	stid = thread_small_id();
+	/*
+	 * We need to compute the thread small ID, but we use this opportunity to
+	 * also check whether we are being called from a signal handler.
+	 *
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid)) {
+		if (THREAD_UNKNOWN_ID == stid) {
+			stid = thread_small_id();
+		} else {
+			XSTATS_INCX(freeings_in_handler);
+			s_minicarp_once("%s(): %s freeing %p from signal handler",
+				G_STRFUNC, thread_safe_id_name(stid), p);
+		}
+	}
 
 	if G_UNLIKELY(stid >= XM_THREAD_COUNT)
 		return FALSE;
@@ -4532,6 +4562,7 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 {
 	size_t len;
 	void *p;
+	uint stid;
 
 	g_assert(size_is_non_negative(size));
 
@@ -4565,6 +4596,26 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	}
 
 	/*
+	 * If we are in a signal handler, do NOT use a thread-specific allocation
+	 * path since it is done without locks and is therefore totally unsafe
+	 * when running within an asynchronous signal handler!
+	 *
+	 * Not that the other common path is much safer, but at least we have locks
+	 * and we can see whether the lock is taken from the outside (albeit with
+	 * a race condition window between the time the lock is taken and the time
+	 * it gets registered in the thread element).
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid) && THREAD_UNKNOWN_ID != stid) {
+		can_thread = FALSE;
+		XSTATS_INCX(allocations_in_handler);
+		s_minicarp_once("%s(): %s trying to allocate %zu bytes "
+			"from signal handler",
+			G_STRFUNC, thread_safe_id_name(stid), size);
+	}
+
+
+	/*
 	 * If we can allocate a block from a thread-specific pool, we'll
 	 * avoid any locking and also limit the block overhead.
 	 */
@@ -4593,7 +4644,11 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 		}
 
 		allocated = xmalloc_round(size);	/* No malloc header */
-		p = xmalloc_thread_alloc(allocated);
+
+		if (THREAD_UNKNOWN_ID == stid)
+			stid = thread_small_id();		/* Discovering a new thread */
+
+		p = xmalloc_thread_alloc(stid, allocated);
 
 		if G_LIKELY(p != NULL) {
 			XSTATS_LOCK;
@@ -5035,12 +5090,32 @@ xreallocate(void *p, size_t size, bool can_thread)
 	}
 
 	/*
+	 * We need to compute the thread small ID, but we use this opportunity to
+	 * also check whether we are being called from a signal handler.
+	 *
+	 * Note that the signal_in_unsafe_handler_stid() routine will return TRUE
+	 * if it cannot compute a proper thread ID, meaning we're probably
+	 * discovering a new thread: we thus need to call thread_small_id() in
+	 * that case.
+	 */
+
+	if (signal_in_unsafe_handler_stid(&stid)) {
+		if (THREAD_UNKNOWN_ID == stid) {
+			stid = thread_small_id();
+		} else {
+			XSTATS_INCX(allocations_in_handler);
+			s_minicarp_once("%s(): %s reallocating to %zu bytes "
+				"from signal handler",
+				G_STRFUNC, thread_safe_id_name(stid), size);
+		}
+	}
+
+	/*
 	 * Handle blocks from a thread-specific pool specially, since they have
 	 * no malloc header and cannot be coalesced because they are allocated
 	 * from zones with fix-sized blocks.
 	 */
 
-	stid = thread_small_id();
 	xck = xmalloc_thread_get_chunk(p, stid, TRUE);
 
 	if (xck != NULL) {
@@ -5063,7 +5138,7 @@ xreallocate(void *p, size_t size, bool can_thread)
 
 		goto realloc_from_thread;	/* Move block around */
 	}
-		
+
 #ifdef XMALLOC_PTR_SAFETY
 	if G_UNLIKELY(!xmalloc_is_valid_pointer(xh, FALSE)) {
 		s_error_from(_WHERE_, "attempt to realloc invalid pointer %p: %s",
@@ -6229,7 +6304,7 @@ xgc(void)
 	 * shrink buckets that are too large, return deferred blocks if any.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		G_PREFETCH_R(&xfreelist[i + 1]);
@@ -6314,7 +6389,7 @@ xgc(void)
 	 * the available room in each bucket.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		G_PREFETCH_R(&xfreelist[i + 1].count);
@@ -6344,7 +6419,7 @@ xgc(void)
 
 	erbtree_init(&rbt, xgc_range_cmp, offsetof(struct xgc_range, node));
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize;
 
@@ -6402,7 +6477,7 @@ xgc(void)
 
 	tmp = vmm_core_alloc(xgctx.largest * sizeof(void *));
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		size_t j, blksize, old_count, sorted_stripped;
 		void const **q = tmp;
@@ -6483,7 +6558,7 @@ xgc(void)
 	 */
 
 unlock:
-	for (i = G_N_ELEMENTS(xfreelist); i != 0; i--) {
+	for (i = N_ITEMS(xfreelist); i != 0; i--) {
 		G_PREFETCH_W(&xfreelist[i - 2]);
 		G_PREFETCH_W(&xfreelist[i - 2].lock);
 		if (xgctx.locked[i - 1]) {
@@ -6546,7 +6621,7 @@ avoided:
 /**
  * Signal that we're about to close down all activity.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_pre_close(void)
 {
 	/*
@@ -6561,7 +6636,7 @@ xmalloc_pre_close(void)
  * Called later in the initialization chain once the properties have
  * been loaded.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_post_init(void)
 {
 	/*
@@ -6597,7 +6672,7 @@ xmalloc_post_init(void)
  *
  * This is mostly useful during final cleanup when xmalloc() replaces malloc().
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_stop_freeing(void)
 {
 	memusage_free_null(&xstats.user_mem);
@@ -6623,7 +6698,7 @@ xmalloc_stats_digest(sha1_t *digest)
 /**
  * Dump xmalloc usage statistics to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_usage_log(struct logagent *la, unsigned options)
 {
 	if (NULL == xstats.user_mem) {
@@ -6636,7 +6711,7 @@ xmalloc_dump_usage_log(struct logagent *la, unsigned options)
 /**
  * Dump xmalloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct xstats stats;
@@ -6644,32 +6719,42 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	XSTATS_LOCK;
 	stats = xstats;		/* struct copy under lock protection */
 	XSTATS_UNLOCK;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMP(x)	log_info(la, "XM %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&xstats.x);						\
 	log_info(la, "XM %s = %s", #x,							\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 #define DUMPV(x)	log_info(la, "XM %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?							\
-		size_t_to_gstring(x) : size_t_to_string(x))
+	size_t_to_string_grp(x, groupped))
+
+	/*
+	 * On Windows, we're performing dynamic patching of loaded libraries
+	 * to redirect them to our malloc(), hence we need to include the
+	 * status of our patching activity as part of the malloc() stats.
+	 */
+
+#ifdef MINGW32
+	win32dlp_dump_stats_log(la, options);
+#endif
 
 	DUMP(allocations);
 	DUMP64(allocations_zeroed);
 	DUMP(allocations_aligned);
 	DUMP64(allocations_heap);
 	DUMP64(allocations_physical);
+	DUMP64(allocations_in_handler);
 	DUMP(alloc_via_freelist);
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(alloc_via_thread_pool);
 	DUMP(freeings);
+	DUMP64(freeings_in_handler);
 	DUMP64(free_sbrk_core);
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
@@ -6779,7 +6864,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump freelist status to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_freelist_log(logagent_t *la)
 {
 	size_t i, j;
@@ -6793,7 +6878,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 		size_t shared;
 	} tstats[XM_THREAD_COUNT];
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 
 		if (0 == fl->capacity)
@@ -6893,7 +6978,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 /**
  * Dump xmalloc statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 xmalloc_dump_stats(void)
 {
 	s_info("XM running statistics:");
@@ -7114,41 +7199,44 @@ xalign_type_str(const struct xaligned *xa)
  *
  * @return index within the array where ``p'' is stored, * -1 if not found.
  */
-static G_GNUC_HOT size_t
+static size_t G_HOT
 xa_lookup(const void *p, size_t *low_ptr)
 {
-	size_t low = 0, high = aligned_count - 1;
-	size_t mid = low + (high - low) / 2;
+	const struct xaligned
+		*low = &aligned[0],
+		*high = &aligned[aligned_count - 1],
+		*mid;
 
 	XSTATS_INCX(aligned_lookups);
+
+	if G_UNLIKELY(0 == aligned_count) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return (size_t) -1;
+	}
 
 	/* Binary search */
 
 	for (;;) {
-		const struct xaligned *item;
-
-		if G_UNLIKELY(low > high || high > SIZE_MAX / 2) {
-			mid = -1;		/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
 
-		item = &aligned[mid];
+		mid = low + (high - low) / 2;
 
-		if (p > item->start)
+		if (p > mid->start)
 			low = mid + 1;
-		else if (p < item->start)
-			high = mid - 1;
+		else if (p < mid->start)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;				/* Found */
-
-		mid = low + (high - low) / 2;
-		G_PREFETCH_R(&aligned[mid].start);
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = low - &aligned[0];
 
-	return mid;
+	return NULL == mid ? (size_t) -1 : (size_t) (mid - &aligned[0]);
 }
 
 /**
@@ -7278,7 +7366,7 @@ xa_insert_set(const void *p, size_t size)
 /**
  * Initialize the array of zones.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xzones_init(void)
 {
 	g_assert(spinlock_is_held(&xmalloc_zone_slk));
@@ -7711,7 +7799,7 @@ xalign_free(const void *p)
  */
 enum truncation {
 	TRUNCATION_NONE 		= 0,
-	TRUNCATION_BEFORE		= (1 << 0),	
+	TRUNCATION_BEFORE		= (1 << 0),
 	TRUNCATION_AFTER		= (1 << 1),
 	TRUNCATION_BOTH			= (TRUNCATION_BEFORE | TRUNCATION_AFTER)
 };
@@ -7967,7 +8055,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		/*
 		 * Align starting user address.
 		 */
-		
+
 		if ((addr & ~mask) != addr) {
 			addr = size_saturate_add(pointer_to_ulong(u), mask) & ~mask;
 			u = ulong_to_pointer(addr);
@@ -8289,7 +8377,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 
 	thread_suspend_others(FALSE);
 
-	for (i = 0; i < G_N_ELEMENTS(xfreelist); i++) {
+	for (i = 0; i < N_ITEMS(xfreelist); i++) {
 		struct xfreelist *fl = &xfreelist[i];
 		unsigned j;
 		const void *prev = NULL;
@@ -8446,7 +8534,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 /**
  * In case of crash, dump statistics and make some sanity checks.
  */
-static G_GNUC_COLD void
+static void G_COLD
 xmalloc_crash_hook(void)
 {
 	/*

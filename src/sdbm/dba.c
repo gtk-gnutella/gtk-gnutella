@@ -11,7 +11,7 @@
 
 #include "sdbm.h"
 
-extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
+extern void oops(char *fmt, ...) G_PRINTF(1, 2);
 void sdump(int, long);
 void bdump(int);
 
@@ -19,7 +19,7 @@ static bool summary_only;
 static bool filled_only;
 static bool on_tty;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,

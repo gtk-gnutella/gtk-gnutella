@@ -519,7 +519,7 @@ static void
 anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 {
 	int ax, ay, dx, dy;
-	
+
 	/* First, move the window to the supposed location. Next make the
 	 * window visible by gtk_window_get_position()... */
 
@@ -542,7 +542,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 
 	if (abs(dx) > 64 || abs(dy) > 64)
 		return;
-	
+
 	g_debug("anti_window_shift_hack: "
 		"x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
 			x, y, ax, ay, dx, dy);
@@ -551,7 +551,7 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
 	if (ax == x && ay == y)
 		return;
-		
+
 	g_debug("anti_window_shift_hack failed: ax=%d, ay=%d", ax, ay);
 }
 
@@ -561,7 +561,7 @@ gui_restore_window(GtkWidget *widget, property_t prop)
     guint32 coord[4] = { 0, 0, 0, 0 };
 	int x, y, width, height;
 
-    gui_prop_get_guint32(prop, coord, 0, G_N_ELEMENTS(coord));
+    gui_prop_get_guint32(prop, coord, 0, N_ITEMS(coord));
 	gui_fix_coords(coord);
 	x = coord[0];
 	y = coord[1];
@@ -594,7 +594,7 @@ gui_save_window(GtkWidget *widget, property_t prop)
 	coord[1] = y;
 	coord[2] = w;
 	coord[3] = h;
-    gui_prop_set_guint32(prop, coord, 0, G_N_ELEMENTS(coord));
+    gui_prop_set_guint32(prop, coord, 0, N_ITEMS(coord));
 }
 
 #ifdef USE_GTK2
@@ -709,11 +709,11 @@ tree_find_iter_by_data_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 		ctx->found = TRUE;
 		return TRUE;	/* stop traversal */
 	}
-		
+
 	return FALSE; /* continue traversal */
 }
 
-gboolean 
+gboolean
 tree_find_iter_by_data(GtkTreeModel *model,
 	guint column, gconstpointer data, GtkTreeIter *iter)
 {
@@ -736,7 +736,7 @@ void
 paned_save_position(GtkPaned *paned, property_t prop)
 {
 	guint32 pos;
-	
+
 	g_return_if_fail(paned);
 
 	pos = gtk_paned_get_position(paned);
@@ -747,7 +747,7 @@ void
 paned_restore_position(GtkPaned *paned, property_t prop)
 {
 	guint32 pos;
-	
+
 	g_return_if_fail(paned);
 
 	gui_prop_get_guint32_val(prop, &pos);
@@ -919,7 +919,7 @@ show_popup_menu(widget_popup_menu_cb handler)
 	menu = (*handler)();
 	if (menu) {
 		int button;
-		
+
 		/*
 		 * NOTE: Use 0 as button here even though 3 was probably pressed
 		 * (right-click) because under Gtk+ 1.2 the popup will otherwise

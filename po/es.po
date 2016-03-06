@@ -9,8 +9,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/es/)\n"
@@ -591,9 +591,8 @@ msgstr "Nodo acorazado"
 msgid "Protocol not acceptable"
 msgstr "Protocolo no aceptable"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Grado de conflicto:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -935,13 +934,12 @@ msgstr ""
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Error de lectura: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Muy grande"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -3258,13 +3256,10 @@ msgstr ""
 "Para conectar más rápidamente, gtk-gnutella permitirá este número de "
 "conexiones activas mientras no se completen las ranuras de conexión."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Número máximo de nodos hoja aceptados. Para ser ascendido al modo ultra, "
-"debería reservar al menos 32 bytes del ancho de banda por hoja."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Qué hacer con los archivos para descargar ignorados."
@@ -6218,9 +6213,8 @@ msgstr "Propiedad desconocida"
 msgid "Value missing"
 msgstr "Falta el valor"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "Patrón de propiedad:"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -8793,6 +8787,9 @@ msgstr "Estadísticas del _tráfico Gnutella"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "Ocultar _automáticamente tráfico de nodos hoja"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "_Buscar"
 
@@ -9074,6 +9071,11 @@ msgstr ""
 "que contiene las Preguntas Frecuentes no ha podido ser cargado. Por favor, "
 "lea las <a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">Preguntas "
 "Frecuentes en línea</a>.</p></body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9539,9 +9541,8 @@ msgstr[1] "%u/%u bajadas"
 msgid "Queue frozen"
 msgstr "Cola congelada"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Este Intervalo"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Selecciona una propiedad para ver su descripción."
@@ -9607,6 +9608,3 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "Fallo al crear sockets de escucha"

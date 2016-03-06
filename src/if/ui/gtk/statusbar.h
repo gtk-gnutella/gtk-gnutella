@@ -43,10 +43,10 @@ typedef struct {
 #ifdef GUI_SOURCES
 
 statusbar_msgid_t statusbar_gui_message(guint timeout,
-		const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+		const gchar *fmt, ...) G_PRINTF(2, 3);
 
 statusbar_msgid_t statusbar_gui_warning(guint timeout,
-		const gchar *fmt, ...) G_GNUC_PRINTF(2, 3);
+		const gchar *fmt, ...) G_PRINTF(2, 3);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_statusbar_h_ */

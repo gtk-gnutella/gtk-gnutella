@@ -237,7 +237,7 @@ host_addr_family(const host_addr_t ha)
 {
 	if (!host_addr_initialized(ha)) {
 		g_error("host_addr_family(): ha.net=%u", (uint8) ha.net);
-    }	
+    }
 	switch (ha.net) {
 	case NET_TYPE_IPV4:
 		return AF_INET;
@@ -317,7 +317,7 @@ ipv4_addr_is_routable(uint32 ip)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(net); i++) {
+	for (i = 0; i < N_ITEMS(net); i++) {
 		if ((ip & net[i].mask) == net[i].addr)
 			return FALSE;
 	}
@@ -408,10 +408,10 @@ bool
 host_addr_is_loopback(const host_addr_t addr)
 {
 	host_addr_t ha;
-	
+
 	if (!host_addr_convert(addr, &ha, NET_TYPE_IPV4))
 		ha = addr;
-	
+
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV4:
 		return host_addr_ipv4(ha) == 0x7f000001; /* 127.0.0.1 in host endian */
@@ -533,7 +533,7 @@ host_addr_can_convert(const host_addr_t from, enum net_type to_net)
  * @param from The address to convert.
  * @param to Will hold the converted address.
  * @param to_net The network type to convert the address to.
- * 
+ *
  * @return TRUE if the address could be converted, FALSE otherwise.
  */
 bool
@@ -685,7 +685,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 }
 
 /**
- * Prints the host address ``ha'' followed by ``port'' to a static buffer. 
+ * Prints the host address ``ha'' followed by ``port'' to a static buffer.
  *
  * @param ha the host address.
  * @param port the port number.
@@ -755,7 +755,7 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 }
 
 /**
- * Prints the host address ``ha'' followed by ``port'' to a static buffer. 
+ * Prints the host address ``ha'' followed by ``port'' to a static buffer.
  *
  * @param ha the host address.
  * @param port the port number.
@@ -1307,7 +1307,7 @@ resolve_hostname(const char *host, enum net_type net)
 	int error;
 
 	g_assert(host);
-	
+
 	hints = zero_hints;
 	hints.ai_family = net_type_to_pf(net);
 
@@ -1372,7 +1372,7 @@ resolve_hostname(const char *host, enum net_type net)
 			return NULL;
 		}
 		break;
-		
+
 #ifdef HAS_IPV6
 	case AF_INET6:
 		if (16 != he->h_length) {
@@ -1382,11 +1382,11 @@ resolve_hostname(const char *host, enum net_type net)
 		}
 		break;
 #endif /* HAS_IPV6 */
-		
+
 	default:
 		return NULL;
 	}
-	
+
 	sl_addr = NULL;
 	hs = hset_create_any(host_addr_hash_func, NULL, host_addr_eq_func);
 	for (i = 0; NULL != he->h_addr_list[i]; i++) {
@@ -1439,7 +1439,7 @@ name_to_host_addr(const char *host, enum net_type net)
 {
 	const char *endptr;
 	host_addr_t addr;
-	
+
 	g_assert(host);
 
 	/* As far as I know, some broken implementations won't resolve numeric
@@ -1484,7 +1484,7 @@ name_to_single_host_addr(const char *host, enum net_type net)
 {
 	pslist_t *sl_addr;
 	host_addr_t addr;
-	
+
 	addr = zero_host_addr;
 	sl_addr = name_to_host_addr(host, net);
 	if (sl_addr) {
@@ -1574,7 +1574,7 @@ host_addr_get_interface_addrs(const enum net_type net)
 
 		if (AF_INET == ifa->ifa_addr->sa_family) {
             const struct sockaddr_in *sin4;
-			
+
 			sin4 = cast_to_constpointer(ifa->ifa_addr);
 			addr = host_addr_peek_ipv4(&sin4->sin_addr.s_addr);
 #ifdef HAS_IPV6
@@ -1721,7 +1721,7 @@ host_pack(const host_addr_t addr, uint16 port)
 	return phost;
 }
 
-G_GNUC_HOT void
+void G_HOT
 packed_host_unpack_addr(
 	const struct packed_host *phost,	/* MUST be a pointer */
 	host_addr_t *addr_ptr)
@@ -1733,7 +1733,7 @@ packed_host_unpack_addr(
 		if (addr_ptr) {
 			/*
 			 * Compiler hack alert!
-			 * 
+			 *
 			 * Ensure generated code will NEVER try to access the whole array
 			 * since only the necessary bytes may have been allocated to hold
 			 * the packed representation! When "phost->ha.addr" causes a

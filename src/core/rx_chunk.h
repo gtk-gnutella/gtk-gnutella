@@ -45,7 +45,7 @@ const struct rxdrv_ops* rx_chunk_get_ops(void);
  */
 struct rx_chunk_cb {
 	void (*chunk_error)(void *owner,
-			const char *reason, ...) PRINTF_FUNC_PTR(2, 3);
+			const char *reason, ...) G_PRINTF_PTR(2, 3);
 	void (*chunk_end)(void *owner);
 };
 

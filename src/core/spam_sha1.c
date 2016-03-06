@@ -85,7 +85,7 @@ struct sha1_lut {
 
 static struct sha1_lut sha1_lut;
 
-static inline G_GNUC_PURE int
+static inline G_PURE int
 sha1_cmp_func(const void *a, const void *b)
 {
 	return sha1_cmp(a, b);
@@ -187,7 +187,7 @@ spam_sha1_sync(void)
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD ulong
+static ulong G_COLD
 spam_sha1_load(FILE *f)
 {
 	char line[1024];
@@ -235,7 +235,7 @@ spam_sha1_load(FILE *f)
 			g_warning("%s(): bad SHA-1 in line %u.", G_STRFUNC, line_no);
 			continue;
 		}
-		
+
 		sha1 = base32_sha1(line);
 		if (NULL == sha1) {
 			g_warning("%s(): could not parse SHA-1 in line %u.",
@@ -256,7 +256,7 @@ spam_sha1_load(FILE *f)
 }
 
 /**
- * Watcher callback, invoked when the file from which we read the spam 
+ * Watcher callback, invoked when the file from which we read the spam
  * changed.
  */
 static void
@@ -311,7 +311,7 @@ spam_sha1_retrieve(void)
 
 	length = settings_file_path_load(fp, spam_sha1_file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(spam_sha1_what, fp, length, &idx);
 	if (f != NULL) {

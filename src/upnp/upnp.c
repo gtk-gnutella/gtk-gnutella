@@ -119,7 +119,7 @@ enum upnp_method {
 	UPNP_M_ANY = 0,				/**< Not attempted or no success yet */
 	UPNP_M_UPNP,				/**< UPnP */
 	UPNP_M_NATPMP,				/**< NAT-PMP */
-	
+
 	UPNP_M_MAX
 };
 
@@ -516,10 +516,10 @@ upnp_discovered(pslist_t *devlist, void *unused_arg)
 					host_addr_to_string(selected->u.igd.wan_ip));
 			}
 		} else {
-			selected = sl->data;		/* Pick the first */
+			selected = devlist->data;		/* Pick the first */
 
 			if (GNET_PROPERTY(upnp_debug) > 2) {
-				g_message("UPNP randomly picking device \"%s\" among the "
+				g_warning("UPNP randomly picking device \"%s\" among the "
 					"%zu discovered, has external IP %s",
 					selected->desc_url, count,
 					host_addr_to_string(selected->u.igd.wan_ip));
@@ -666,7 +666,7 @@ upnp_packets_igd_callback(int code, void *value, size_t size, void *unused_arg)
 		}
 		if (UPNP_ERR_INVALID_ACTION == code) {
 			upnp_service_t *usd; /* They lied about supporting this action */
-			
+
 			usd = upnp_service_get_common_if(igd.dev->services);
 			upnp_service_cannot(usd, UPNP_GET_TOTAL_RX_PACKETS);
 		}

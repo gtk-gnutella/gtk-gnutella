@@ -2,7 +2,7 @@
  * sdbm - ndbm work-alike hashed database library
  * based on Per-Ake Larson's Dynamic Hashing algorithms. BIT 18 (1978).
  * author: oz@nexus.yorku.ca
- * status: public domain. 
+ * status: public domain.
  */
 
 #ifndef _sdbm_h_
@@ -69,7 +69,7 @@ int sdbm_exists(DBM *, datum);
  * other
  */
 DBM *sdbm_prep(const char *, const char *, const char *, int, int);
-long sdbm_hash(const char *, size_t) G_GNUC_PURE;
+long sdbm_hash(const char *, size_t) G_PURE;
 bool sdbm_rdonly(const DBM *);
 bool sdbm_error(const DBM *);
 void sdbm_clearerr(DBM *);
@@ -81,11 +81,11 @@ void sdbm_set_name(DBM *, const char *);
 const char *sdbm_name(const DBM *);
 ssize_t sdbm_sync(DBM *);
 int sdbm_set_cache(DBM *db, long pages);
-long sdbm_get_cache(const DBM *) G_GNUC_PURE;
+long sdbm_get_cache(const DBM *) G_PURE;
 int sdbm_set_wdelay(DBM *db, bool on);
-bool sdbm_get_wdelay(const DBM *) G_GNUC_PURE;
+bool sdbm_get_wdelay(const DBM *) G_PURE;
 int sdbm_set_volatile(DBM *db, bool yes);
-bool sdbm_is_volatile(const DBM *) G_GNUC_PURE;
+bool sdbm_is_volatile(const DBM *) G_PURE;
 bool sdbm_shrink(DBM *db);
 int sdbm_clear(DBM *db);
 void sdbm_unlink(DBM *);

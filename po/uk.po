@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-11-27 15:08+0000\n"
-"Last-Translator: Igor Seryogin <igor.v.seryogin@gmail.com>\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/uk/)\n"
 "Language: uk\n"
@@ -947,9 +947,8 @@ msgstr ""
 msgid "Read error while sinking: %m"
 msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Завелике"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -8188,6 +8187,9 @@ msgstr ""
 msgid "_Auto-hide leaf traffic stats"
 msgstr ""
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "Пошук"
 
@@ -8461,6 +8463,11 @@ msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
 "document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+msgstr ""
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
 msgstr ""
 
 #, c-format
@@ -8931,9 +8938,8 @@ msgstr[2] ""
 msgid "Queue frozen"
 msgstr "Черга затримана"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Цей інтервал"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr ""

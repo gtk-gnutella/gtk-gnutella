@@ -89,7 +89,7 @@ shell_help_search(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	if (argc > 1) {	
+	if (argc > 1) {
 		/* FIXME */
 		return NULL;
 	} else {

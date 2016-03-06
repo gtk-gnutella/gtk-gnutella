@@ -118,7 +118,7 @@ static bool
 thex_download_data_read(struct thex_download *ctx, pmsg_t *mb)
 {
 	size_t size;
-	
+
 	g_assert(ctx);
 	g_assert((NULL != ctx->data) ^ (0 == ctx->data_size));
 	g_assert(ctx->pos <= ctx->data_size);
@@ -174,7 +174,7 @@ thex_download_data_ind(rxdrv_t *rx, pmsg_t *mb)
 }
 
 /* XML helper functions */
-static xnode_t * 
+static xnode_t *
 find_element_by_name(xnode_t *p, const char *name)
 {
    xnode_t *xn;
@@ -190,7 +190,7 @@ static bool
 verify_element(xnode_t *node, const char *prop, const char *expect)
 {
 	const char *value;
-	
+
 	value = xnode_prop_get(node, prop);
   	if (NULL == value) {
 		if (GNET_PROPERTY(tigertree_debug)) {
@@ -251,7 +251,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 		}
 		goto finish;
 	}
-	
+
 	node = find_element_by_name(hashtree, "file");
 	if (node) {
 		if (!verify_element(node, "size", filesize_to_string(ctx->filesize)))
@@ -277,12 +277,12 @@ thex_download_handle_xml(struct thex_download *ctx,
 		}
     	goto finish;
 	}
-  
+
 	node = find_element_by_name(hashtree, "serializedtree");
 	if (node) {
 		const char *value;
 		int error;
-		
+
 		if (!verify_element(node, "type", THEX_TREE_TYPE))
     		goto finish;
 
@@ -304,7 +304,7 @@ thex_download_handle_xml(struct thex_download *ctx,
 			}
 			goto finish;
 		}
-		
+
 		ctx->depth = parse_uint16(value, NULL, 10, &error);
 		error |= ctx->depth > tt_full_depth(ctx->filesize);
 		if (error) {
@@ -411,7 +411,7 @@ thex_download_handle_hashtree(struct thex_download *ctx,
 		}
 		goto finish;
 	}
-	
+
 	STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 	leaves = (const struct tth *) &data[start * TTH_RAW_SIZE];
 
@@ -460,12 +460,12 @@ dime_find_record(const pslist_t *records, const char *type, const char *id)
 	g_return_val_if_fail(type_length > 0, NULL);
 
 	id_length = id ? strlen(id) : 0;
-	
+
 	PSLIST_FOREACH(records, iter) {
 		const struct dime_record *record = iter->data;
 
 		g_assert(record);
-		
+
 		if (dime_record_type_length(record) != type_length)
 			continue;
 		if (0 != ascii_strncasecmp(dime_record_type(record), type, type_length))
@@ -516,7 +516,7 @@ thex_download_finished(struct thex_download *ctx)
 		const char *data;
 		char *hashtree_id;
 		size_t size;
-		
+
 		record = dime_find_record(records, "text/xml", NULL);
 		if (NULL == record) {
 			if (GNET_PROPERTY(tigertree_debug)) {
@@ -589,7 +589,7 @@ thex_rx_given(void *o, ssize_t r)
 	download_data_received(ctx->owner, r);
 }
 
-static G_GNUC_PRINTF(2, 3) void
+static void G_PRINTF(2, 3)
 thex_rx_error(void *o, const char *reason, ...)
 {
 	struct thex_download *ctx = o;

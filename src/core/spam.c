@@ -156,7 +156,7 @@ struct namesize_item {
 	filesize_t	max_size;
 };
 
-static bool 
+static bool
 spam_add_name_and_size(const char *name,
 	filesize_t min_size, filesize_t max_size)
 {
@@ -205,7 +205,7 @@ struct spam_item {
  *
  * @returns the amount of entries loaded or -1 on failure.
  */
-static G_GNUC_COLD ulong
+static ulong G_COLD
 spam_load(FILE *f)
 {
 	static const struct spam_item zero_item;
@@ -261,19 +261,19 @@ spam_load(FILE *f)
 				G_STRFUNC, tag_name, line_no);
 			continue;
 		}
-		
+
 		switch (tag) {
 		case SPAM_TAG_ADDED:
 			{
 				time_t t;
-				
+
 				t = date2time(value, tm_time());
 				if ((time_t) -1 == t) {
 					item.damaged = TRUE;
 				}
 			}
 			break;
-			
+
 		case SPAM_TAG_SHA1:
 			{
 				if (strlen(value) != SHA1_BASE32_SIZE) {
@@ -311,7 +311,7 @@ spam_load(FILE *f)
 				const char *endptr;
 				uint64 u;
 				int error;
-					
+
 				u = parse_uint64(value, &endptr, 10, &error);
 				if (error) {
 					item.damaged = TRUE;
@@ -357,7 +357,7 @@ spam_load(FILE *f)
 		case SPAM_TAG_UNKNOWN:
 			/* Ignore */
 			break;
-			
+
 		case NUM_SPAM_TAGS:
 			g_assert_not_reached();
 			break;
@@ -377,7 +377,7 @@ spam_load(FILE *f)
 					spam_add_name_and_size(item.name,
 						item.min_size, item.max_size)
 				) {
-					item.damaged = TRUE;	
+					item.damaged = TRUE;
 				} else {
 					item_count++;
 				}
@@ -404,7 +404,7 @@ spam_load(FILE *f)
 }
 
 /**
- * Watcher callback, invoked when the file from which we read the spam 
+ * Watcher callback, invoked when the file from which we read the spam
  * changed.
  */
 static void
@@ -459,7 +459,7 @@ spam_retrieve(void)
 
 	length = settings_file_path_load(fp, spam_text_file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(spam_what, fp, length, &idx);
 	if (f != NULL) {

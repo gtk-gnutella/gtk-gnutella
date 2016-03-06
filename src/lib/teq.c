@@ -1370,13 +1370,13 @@ teq_monitor(void *unused_obj)
 	} mon[THREAD_MAX];
 
 	(void) unused_obj;
-	STATIC_ASSERT(G_N_ELEMENTS(mon) == G_N_ELEMENTS(event_queue));
+	STATIC_ASSERT(N_ITEMS(mon) == N_ITEMS(event_queue));
 
 	ZERO(&mon);
 
 	EVENT_QUEUE_LOCK;
 
-	for (i = 0; i < G_N_ELEMENTS(event_queue); i++) {
+	for (i = 0; i < N_ITEMS(event_queue); i++) {
 		struct teq *teq = event_queue[i];
 
 		if (teq != NULL) {
@@ -1430,7 +1430,7 @@ teq_monitor(void *unused_obj)
 	 * Log outside of the critical section if we found stuck threads.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(mon); i++) {
+	for (i = 0; i < N_ITEMS(mon); i++) {
 		if G_UNLIKELY(mon[i].stuck != 0) {
 			static const char THROTTLED[] = "throttled ";
 			if (0 == mon[i].ioq) {

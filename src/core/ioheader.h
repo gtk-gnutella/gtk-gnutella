@@ -34,8 +34,8 @@
 #ifndef _core_ioheader_h_
 #define _core_ioheader_h_
 
-#include "common.h" 
-#include "bsched.h" 
+#include "common.h"
+#include "bsched.h"
 
 struct io_header;
 struct header;

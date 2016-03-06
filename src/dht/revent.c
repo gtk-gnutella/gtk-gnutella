@@ -278,7 +278,7 @@ revent_pmsg_free(pmsg_t *mb, void *arg)
 		if (*ops->debug > 4)
 			g_debug("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
 				ops->name, nid_to_string(&pmi->rid),
-				kmsg_infostr(pmsg_start(mb)), 
+				kmsg_infostr(pmsg_start(mb)),
 				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
 	} else {
 		knode_t *kn = pmi->kn;
@@ -296,7 +296,7 @@ revent_pmsg_free(pmsg_t *mb, void *arg)
 
 		if (ops->msg_dropped)
 			(*ops->msg_dropped)(obj, kn, mb);
-		
+
 		/*
 		 * Cancel the RPC, since the message was never sent out...
 		 * The MUID is at the start of the message.

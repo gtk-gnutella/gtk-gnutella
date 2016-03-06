@@ -796,7 +796,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
  *
  * @return A pointer to a static buffer holding the version string.
  */
-G_GNUC_COLD const char *
+const char * G_COLD
 version_build_string(void)
 {
 	static bool initialized;
@@ -836,7 +836,7 @@ version_build_string(void)
 /**
  * Initialize version string.
  */
-G_GNUC_COLD void
+void G_COLD
 version_init(void)
 {
 	time_t now;
@@ -906,7 +906,7 @@ version_init(void)
  *
  * If the version being ran is not a stable one, warn after 60 days, otherwise
  * warn after a year.  If we're not "expired" yet but are approaching the
- * deadline, start to remind them. 
+ * deadline, start to remind them.
  */
 void
 version_ancient_warn(void)
@@ -984,7 +984,7 @@ version_ancient_warn(void)
 /**
  * Dump version to specified logging agent.
  */
-G_GNUC_COLD void
+void G_COLD
 version_string_dump_log(logagent_t *la, bool full)
 {
 	static char buf[80];
@@ -1029,7 +1029,7 @@ version_string_dump_log(logagent_t *la, bool full)
 /**
  * Dump version to stdout.
  */
-G_GNUC_COLD void
+void G_COLD
 version_string_dump(void)
 {
 	version_string_dump_log(log_agent_stdout_get(), TRUE);
@@ -1038,7 +1038,7 @@ version_string_dump(void)
 /**
  * Free version string.
  */
-G_GNUC_COLD void
+void G_COLD
 version_close(void)
 {
 	if (version_cmp(&our_version, &last_rel_version) < 0)

@@ -507,7 +507,7 @@ vxml_parser_where(const vxml_parser_t *vp)
 /**
  * Emit unconditional warning.
  */
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;
@@ -527,7 +527,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 /**
  * Emit debugging message.
  */
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 {
 	va_list args;
@@ -1407,7 +1407,7 @@ vxml_encoding_is_utf32(enum vxml_encoding e)
  * Formats document parsing name and parsing position into a static buffer
  * for error logging.
  */
-static G_GNUC_COLD const char *
+static const char * G_COLD
 vxml_document_where(vxml_parser_t *vp)
 {
 	static char buf[1024];
@@ -1827,7 +1827,7 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 
 			m = vb->u.m;
 
-			g_assert(filled < G_N_ELEMENTS(head));
+			g_assert(filled < N_ITEMS(head));
 			g_assert(len + filled <= sizeof head);
 
 			/*
@@ -1841,7 +1841,7 @@ vxml_intuit_encoding(vxml_parser_t *vp)
 
 	vp->flags |= VXML_F_INTUITED;		/* No longer come here */
 
-	if (filled < G_N_ELEMENTS(head))
+	if (filled < N_ITEMS(head))
 		return TRUE;
 
 	fourcc = peek_be32(head);
@@ -1928,7 +1928,7 @@ done:
 static void
 vxml_unread_char(vxml_parser_t *vp, uint32 uc)
 {
-	g_assert(vp->unread_offset < G_N_ELEMENTS(vp->unread));
+	g_assert(vp->unread_offset < N_ITEMS(vp->unread));
 	g_assert(size_is_non_negative(vp->unread_offset));
 
 	vp->unread[vp->unread_offset++] = uc;
@@ -1973,7 +1973,7 @@ vxml_read_char(vxml_parser_t *vp, uint32 *uc)
 	 */
 
 	if (vp->unread_offset != 0) {
-		g_assert(vp->unread_offset <= G_N_ELEMENTS(vp->unread));
+		g_assert(vp->unread_offset <= N_ITEMS(vp->unread));
 		g_assert(size_is_positive(vp->unread_offset));
 
 		*uc = vp->last_uc = vp->unread[--(vp->unread_offset)];
@@ -2246,7 +2246,7 @@ new_line:
 /**
  * Is Unicode character a valid character for a name start.
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_valid_name_start_char(uint32 uc)
 {
 	/*
@@ -2294,7 +2294,7 @@ vxml_is_valid_name_start_char(uint32 uc)
 /*
  * Is Unicode character a valid character within a name.
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_valid_name_char(uint32 uc)
 {
 	/*
@@ -2321,7 +2321,7 @@ vxml_is_valid_name_char(uint32 uc)
 /**
  * Is Unicode character a white space?
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_white_space_char(uint32 uc)
 {
 	/*
@@ -2334,7 +2334,7 @@ vxml_is_white_space_char(uint32 uc)
 /*
  * Is Unicode character in the upper-ASCII letter range?
  */
-static G_GNUC_CONST bool
+static G_CONST bool
 vxml_is_ascii_upper_letter_char(uint32 uc)
 {
 	return uc >= 0x41U && uc <= 0x5AU;		/* [A-Z] */
@@ -2586,7 +2586,7 @@ vxml_token_to_string_load(tokenizer_t *tokens, size_t count)
 		size_t value = tokens[i].value;
 
 		g_assert(size_is_non_negative(value));
-		g_assert(value < G_N_ELEMENTS(vxml_token_strings));
+		g_assert(value < N_ITEMS(vxml_token_strings));
 		g_assert_log(0 == vxml_token_strings[value],
 			"%s(): token value %zu already assigned to \"%s\"",
 			G_STRFUNC, value, tokens[i].token);
@@ -2605,18 +2605,18 @@ vxml_token_to_string(enum vxml_parser_token_value token)
 
 	if (!inited) {
 		vxml_token_to_string_load(vxml_declaration_tokens,
-			G_N_ELEMENTS(vxml_declaration_tokens));
+			N_ITEMS(vxml_declaration_tokens));
 		vxml_token_to_string_load(vxml_misc_tokens,
-			G_N_ELEMENTS(vxml_misc_tokens));
+			N_ITEMS(vxml_misc_tokens));
 		vxml_token_to_string_load(vxml_immediate_tokens,
-			G_N_ELEMENTS(vxml_immediate_tokens));
+			N_ITEMS(vxml_immediate_tokens));
 		inited = TRUE;
 	}
 
 	if (VXT_UNKNOWN == token)
 		return "unknown token";
 
-	if (token < 1 || token >= G_N_ELEMENTS(vxml_token_strings))
+	if (token < 1 || token >= N_ITEMS(vxml_token_strings))
 		return "invalid token";
 
 	return vxml_token_strings[token];
@@ -2850,7 +2850,7 @@ vxml_expand_pe_entity(vxml_parser_t *vp, const char *name, bool inquote)
 	 *
 	 * As said in http://www.w3.org/TR/xml11, section 4.4.8:
 	 *
-	 * "When a parameter-entity reference is recognized in the DTD and 
+	 * "When a parameter-entity reference is recognized in the DTD and
 	 * included, its replacement text  MUST be enlarged by the attachment of
 	 * one leading and one following space (#x20) character; the intent is to
 	 * constrain the replacement text of parameter entities to contain an
@@ -3750,7 +3750,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		vp->attrs = xattr_table_make();
 
 	/*
-	 * Attribute	::= Name Eq AttValue  
+	 * Attribute	::= Name Eq AttValue
 	 * Eq			::= S? '=' S?
 	 * AttValue		::=   '"' ([^<&"] | Reference)* '"'
 	 *				    | "'" ([^<&'] | Reference)* "'"
@@ -3844,7 +3844,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 
 		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
-	
+
 			local_name = strchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
@@ -3987,8 +3987,8 @@ vxml_handle_xml_pi(vxml_parser_t *vp)
 	 * EncodingDecl::= S 'encoding' Eq ('"' EncName '"' | "'" EncName "'")
 	 * EncName      ::= [A-Za-z] ([A-Za-z0-9._] | '-')*
 	 * SDDecl       ::= S 'standalone' Eq
-	 *                  (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"')) 
-	 * Misc         ::= Comment | PI | S  
+	 *                  (("'" ('yes' | 'no') "'") | ('"' ('yes' | 'no') '"'))
+	 * Misc         ::= Comment | PI | S
 	 *
 	 * In practice, we're going to be much more tolerant and allow any
 	 * well-formed attribute.
@@ -4290,7 +4290,7 @@ vxml_parser_handle_quoted_string(vxml_parser_t *vp, struct vxml_output *vo,
 
 	/*
 	 * Citing, http://www.w3.org/TR/xml11, section 4.4.5:
-	 * 
+	 *
 	 * "When an entity reference appears in an attribute value, or a parameter
 	 * entity reference appears in a literal entity value, its replacement text
 	 * MUST be processed in place of the reference itself as though it were part
@@ -4455,13 +4455,13 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 	g_assert(0 == vxml_output_size(&vp->out));
 
 	/*
-	 * EntityDecl    ::= GEDecl | PEDecl  
+	 * EntityDecl    ::= GEDecl | PEDecl
 	 * GEDecl        ::= '<!ENTITY' S Name S EntityDef S? '>'
 	 * PEDecl        ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
 	 * EntityDef     ::= EntityValue | (ExternalID NDataDecl?)
 	 * NDataDecl     ::= S 'NDATA' S Name
-	 * PEDef         ::= EntityValue | ExternalID  
-	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"' 
+	 * PEDef         ::= EntityValue | ExternalID
+	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"'
 	 *                 | "'" ([^%&'] | PEReference | Reference)* "'"
 	 * ExternalID    ::= 'SYSTEM' S SystemLiteral
 	 *                 | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -4599,7 +4599,7 @@ vxml_parser_handle_int_subset(vxml_parser_t *vp)
 {
 	/*
 	 * intSubset     ::= (markupdecl | DeclSep)*
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * markupdecl    ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl
 	 *                   | PI | Comment
@@ -4661,7 +4661,7 @@ vxml_parser_handle_doctype_decl(vxml_parser_t *vp, const char *name)
 	 * doctypedecl   ::= '<!DOCTYPE' S Name (S  ExternalID)? S?
 	 *                   ('[' intSubset ']' S?)? '>'
 	 * intSubset     ::= (markupdecl | DeclSep)*
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * markupdecl    ::= elementdecl | AttlistDecl | EntityDecl | NotationDecl
 	 *                   | PI | Comment
@@ -4887,7 +4887,7 @@ vxml_handle_special(vxml_parser_t *vp, bool dtd)
 	 * includeSect ::= '<![' S? 'INCLUDE' S? '[' extSubsetDecl ']]>'
 	 * ignoreSect ::= '<![' S? 'IGNORE' S? '[' ignoreSectContents* ']]>'
 	 * ignoreSectContents ::= Ignore ('<![' ignoreSectContents ']]>' Ignore)*
-	 * Ignore ::= Char* - (Char* ('<![' | ']]>') Char*) 
+	 * Ignore ::= Char* - (Char* ('<![' | ']]>') Char*)
 	 *
 	 * extSubset ::= TextDecl? extSubsetDecl
 	 * extSubsetDecl ::= ( markupdecl | conditionalSect | DeclSep)*
@@ -5023,12 +5023,12 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	 * PI            ::= '<?' PITarget (S (Char* - (Char* '?>' Char*)))? '?>'
 	 * PITarget	     ::= Name - (('X' | 'x') ('M' | 'm') ('L' | 'l'))
 	 * Comment       ::= '<!--' ((Char - '-') | ('-' (Char - '-')))* '-->'
-	 * DeclSep       ::= PEReference | S  
+	 * DeclSep       ::= PEReference | S
 	 * PEReference   ::= '%' Name ';'
 	 * elementdecl   ::= '<!ELEMENT' S Name S contentspec S? '>'
 	 * contentspec   ::= 'EMPTY' | 'ANY' | Mixed | children
 	 * Mixed         ::= '(' S? '#PCDATA' (S? '|' S? Name)* S? ')*'
-	 *                 | '(' S? '#PCDATA' S? ')' 
+	 *                 | '(' S? '#PCDATA' S? ')'
 	 * children      ::= (choice | seq) ('?' | '*' | '+')?
 	 * cp            ::= (Name | choice | seq) ('?' | '*' | '+')?
 	 * choice        ::= '(' S? cp ( S? '|' S? cp )+ S? ')'
@@ -5043,13 +5043,13 @@ vxml_handle_decl(vxml_parser_t *vp, bool doctype)
 	 * NotationType  ::= 'NOTATION' S '(' S? Name (S? '|' S? Name)* S? ')'
 	 * Enumeration   ::= '(' S? Nmtoken (S? '|' S? Nmtoken)* S? ')'
 	 * Nmtoken       ::= (NameChar)+
-	 * EntityDecl    ::= GEDecl | PEDecl  
+	 * EntityDecl    ::= GEDecl | PEDecl
 	 * GEDecl        ::= '<!ENTITY' S Name S EntityDef S? '>'
 	 * PEDecl        ::= '<!ENTITY' S '%' S Name S PEDef S? '>'
 	 * EntityDef     ::= EntityValue | (ExternalID NDataDecl?)
 	 * NDataDecl     ::= S 'NDATA' S Name
-	 * PEDef         ::= EntityValue | ExternalID  
-	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"' 
+	 * PEDef         ::= EntityValue | ExternalID
+	 * EntityValue   ::= '"' ([^%&"] | PEReference | Reference)* '"'
 	 *                 | "'" ([^%&'] | PEReference | Reference)* "'"
 	 * ExternalID    ::= 'SYSTEM' S SystemLiteral
 	 *                 | 'PUBLIC' S PubidLiteral S SystemLiteral
@@ -5656,7 +5656,7 @@ vxml_handle_tag(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	 * This is a tag start, collect its name in the output buffer.
 	 *
 	 * STag			::= '<' Name (S  Attribute)* S? '>'
-	 * EmptyElemTag	::= '<' Name (S  Attribute)* S? '/>'	
+	 * EmptyElemTag	::= '<' Name (S  Attribute)* S? '/>'
 	 *
 	 * Note that there is no space allowed in the grammar between '<' and the
 	 * start of the element name.
@@ -6256,7 +6256,7 @@ vxml_parse_tree(vxml_parser_t *vp, xnode_t **root)
 /**
  * Check that tokenizer arrays are sorted.
  */
-static void G_GNUC_COLD
+static void G_COLD
 vxml_tokenizer_check(void)
 {
 	TOKENIZE_CHECK_SORTED(vxml_default_entities);
@@ -6346,7 +6346,7 @@ const char bad_namespace3[] =
 const char faulty[] = "<a>text<b>other text<c>x</c><d><e>text</a>";
 const char illseq[] = "<a>maX</a>";
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_simple_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
@@ -6370,7 +6370,7 @@ vxml_run_simple_test(int num, const char *name,
 	vxml_parser_free(vp);
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_ns_simple_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags,
 	vxml_error_t error_no_ns, vxml_error_t error_with_ns)
@@ -6394,7 +6394,7 @@ struct vxml_test_info {
 	void *data;
 };
 
-static G_GNUC_COLD void
+static void G_COLD
 vxml_run_callback_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags,
 	const struct vxml_ops *ops, struct vxml_token *tvec, size_t tlen,
@@ -6445,12 +6445,12 @@ vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
 	ostream_t *os = ostream_open_file(f);
 
 	xfmt_tree_extended(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS,
-		vxml_xfmt_prefixes, G_N_ELEMENTS(vxml_xfmt_prefixes), default_ns);
+		vxml_xfmt_prefixes, N_ITEMS(vxml_xfmt_prefixes), default_ns);
 
 	ostream_close(os);
 }
 
-static G_GNUC_COLD xnode_t *
+static xnode_t * G_COLD
 vxml_run_tree_test(int num, const char *name,
 	const char *data, size_t len, uint32 flags, vxml_error_t error)
 {
@@ -6482,7 +6482,7 @@ vxml_run_tree_test(int num, const char *name,
 	return VXML_E_OK == e ? root : NULL;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 tricky_text(vxml_parser_t *vp,
 	const char *name, const char *text, size_t len, void *data)
 {
@@ -6508,7 +6508,7 @@ tricky_text(vxml_parser_t *vp,
 #define T_C		3
 #define T_D		4
 
-static G_GNUC_COLD void
+static void G_COLD
 evaluation_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6530,7 +6530,7 @@ evaluation_text(vxml_parser_t *vp,
 	g_assert(0 == strcmp(text, expected));
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 blank_text(vxml_parser_t *vp,
 	unsigned id, const char *text, size_t len, void *data)
 {
@@ -6644,7 +6644,7 @@ subparse_token_end(vxml_parser_t *vp, unsigned id, void *data)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 subparse_start(vxml_parser_t *vp,
 	const char *name, const xattr_table_t *attrs, void *data)
 {
@@ -6665,7 +6665,7 @@ subparse_start(vxml_parser_t *vp,
 	ops.tokenized_end = subparse_token_end;
 	ops.tokenized_text = subparse_token_text;
 
-	e = vxml_parse_callbacks_tokens(vp, &ops, tvec, G_N_ELEMENTS(tvec), data);
+	e = vxml_parse_callbacks_tokens(vp, &ops, tvec, N_ITEMS(tvec), data);
 
 	g_assert(VXML_E_OK == e);
 }
@@ -6693,7 +6693,7 @@ vxml_node_is_named(const void *node, void *data)
 	return xnode_is_element(xn) && 0 == strcmp(name, xnode_element_name(xn));
 }
 
-G_GNUC_COLD void
+void G_COLD
 vxml_test(void)
 {
 	struct vxml_ops ops;
@@ -6884,7 +6884,7 @@ vxml_test(void)
 	}
 }
 #else	/* !VXML_TESTING */
-void G_GNUC_COLD
+void G_COLD
 vxml_test(void)
 {
 	vxml_tokenizer_check();

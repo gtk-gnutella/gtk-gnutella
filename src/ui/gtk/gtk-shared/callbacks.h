@@ -112,4 +112,7 @@ void on_button_search_stats_reset_clicked(GtkButton *, gpointer user_data);
 void on_menu_faq_activate(GtkMenuItem *, gpointer user_data);
 gboolean on_dlg_faq_delete_event(GtkWidget *, GdkEvent *, gpointer user_data);
 
+void on_menu_glossary_activate(GtkMenuItem *, gpointer user_data);
+gboolean on_dlg_glossary_delete_event(GtkWidget *, GdkEvent *, gpointer udata);
+
 #endif	/* _callbacks_h_ */

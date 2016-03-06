@@ -249,7 +249,7 @@ dbmap_sdbm_strip_superblock(DBM *sdbm)
 
 	key.dptr = deconstify_pointer(dbmap_superkey);
 	key.dsize = CONST_STRLEN(dbmap_superkey);
-	
+
 	if (0 == sdbm_delete(sdbm, key))
 		return TRUE;
 
@@ -638,7 +638,7 @@ dbmap_insert(dbmap_t *dm, const void *key, dbmap_datum_t value)
 				d->data = NULL;
 				d->len = 0;
 			}
-		
+
 			found = map_lookup_extended(dm->u.m.map, key, &okey, &ovalue);
 			if (found) {
 				dbmap_datum_t *od = ovalue;
@@ -702,7 +702,7 @@ dbmap_remove(dbmap_t *dm, const void *key)
 			void *dkey;
 			void *dvalue;
 			bool found;
-		
+
 			found = map_lookup_extended(dm->u.m.map, key, &dkey, &dvalue);
 			if (found) {
 				dbmap_datum_t *d;
@@ -1185,7 +1185,7 @@ dbmap_foreach_remove(const dbmap_t *dm, dbmap_cbr_t cbr, void *arg)
 
 			deleted = map_foreach_remove(dm->u.m.map,
 				dbmap_foreach_remove_trampoline, &ctx);
-			
+
 			dbmap_reset_count(dm, map_count(dm->u.m.map));
 		}
 		break;

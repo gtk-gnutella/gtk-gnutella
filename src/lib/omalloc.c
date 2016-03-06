@@ -71,11 +71,14 @@
 #include "common.h"		/* For RCSID */
 
 #include "omalloc.h"
+
+#include "atomic.h"
 #include "dump_options.h"
 #include "glib-missing.h"
 #include "log.h"
 #include "misc.h"
 #include "pow2.h"
+#include "signal.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "unsigned.h"
@@ -157,6 +160,7 @@ static struct ostats {
 	size_t align_ro;		/**< Space wasted in ro chunks for alignment */
 	size_t wasted_ro;		/**< Space wasted at tail of ro chunks */
 	size_t zeroed;			/**< Zeroed objects at allocation time */
+	size_t in_handler;		/**< Allocations from signal handler */
 } ostats;
 static spinlock_t ostats_slk = SPINLOCK_INIT;
 
@@ -166,7 +170,7 @@ static spinlock_t ostats_slk = SPINLOCK_INIT;
 /**
  * First byte beyond a chunk page (following trailing chunk header).
  */
-static inline const void * G_GNUC_CONST
+static inline const void * G_CONST
 omalloc_chunk_end(const struct ochunk *ck)
 {
 	return const_ptr_add_offset(ck, OMALLOC_HEADER_SIZE);
@@ -175,7 +179,7 @@ omalloc_chunk_end(const struct ochunk *ck)
 /**
  * Remaining free space in the chunk (including header).
  */
-static inline size_t G_GNUC_PURE
+static inline size_t G_PURE
 omalloc_chunk_size(const struct ochunk *ck)
 {
 	g_assert(ck != NULL);
@@ -188,7 +192,7 @@ omalloc_chunk_size(const struct ochunk *ck)
  * Remaining free space in the chunk (including header) after starting
  * pointer has been adjusted for specified alignment.
  */
-static inline size_t G_GNUC_PURE
+static inline size_t G_PURE
 omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 {
 	void *first;
@@ -223,7 +227,7 @@ omalloc_chunk_size_aligned(const struct ochunk *ck, size_t align)
 /**
  * Compute index in chunks[] where a chunk of given size needs to be linked.
  */
-static size_t G_GNUC_CONST
+static size_t G_CONST
 omalloc_size_index(size_t size)
 {
 	size_t r = size;
@@ -238,7 +242,7 @@ omalloc_size_index(size_t size)
 /**
  * Computes index in chunks[] where a given chunk needs to be linked.
  */
-static size_t G_GNUC_PURE
+static size_t G_PURE
 omalloc_chunk_index(const struct ochunk *ck)
 {
 	return omalloc_size_index(omalloc_chunk_size(ck));
@@ -336,7 +340,7 @@ omalloc_chunk_list_find(struct ochunk *head, size_t size, size_t align)
 /**
  * Get chunk array of corresponding type.
  */
-static inline struct ochunk ** G_GNUC_CONST
+static inline struct ochunk ** G_CONST
 omalloc_chunk_array(enum omalloc_mode mode)
 {
 	switch (mode) {
@@ -683,6 +687,18 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 	}
 
 	/*
+	 * Loudly warn if called from a signal handler.
+	 */
+
+	if (signal_in_unsafe_handler()) {
+		ATOMIC_INC(&ostats.in_handler);
+		s_minicarp_once("%s(): %s allocating %zu bytes (%s) "
+			"from signal handler",
+			G_STRFUNC, thread_safe_name(),
+			size, OMALLOC_RW == mode ? "rw" : "ro");
+	}
+
+	/*
 	 * This routine is fast and used infrequently enough to justify a
 	 * coarse-grained multi-threading protection via a global spinlock.
 	 *
@@ -1000,7 +1016,7 @@ set_omalloc_debug(uint32 level)
 /**
  * Final shutdown.
  */
-G_GNUC_COLD void
+void G_COLD
 omalloc_close(void)
 {
 	/*
@@ -1033,19 +1049,18 @@ omalloc_close(void)
 /**
  * Dump omalloc() statistics for run-time inspection.
  */
-G_GNUC_COLD void
+void G_COLD
 omalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct ostats stats;
 	size_t pages, objects, memory, chunks, align, wasted;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMP(x) log_info(la, "OMALLOC %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+	size_t_to_string_grp(stats.x, groupped))
 
 #define DUMP_VAR(x) log_info(la, "OMALLOC %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		size_t_to_gstring(x) : size_t_to_string(x))
+	size_t_to_string_grp(x, groupped))
 
 #define CONSOLIDATE(x)		x = stats.x##_rw + stats.x##_ro
 
@@ -1079,6 +1094,7 @@ omalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP_VAR(align);
 	DUMP_VAR(wasted);
 	DUMP(zeroed);
+	DUMP(in_handler);
 
 #undef DUMP
 #undef DUMP_VAR

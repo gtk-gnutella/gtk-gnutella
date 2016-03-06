@@ -594,7 +594,7 @@ dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 /**
  * Initialize dynamic hits.
  */
-G_GNUC_COLD void
+void G_COLD
 dh_init(void)
 {
 	by_muid = htable_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
@@ -605,7 +605,7 @@ dh_init(void)
 /**
  * Cleanup data structures used by dynamic querying.
  */
-G_GNUC_COLD void
+void G_COLD
 dh_close(void)
 {
 	dh_table_free(&by_muid);

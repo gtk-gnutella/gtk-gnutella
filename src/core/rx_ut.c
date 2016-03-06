@@ -1199,10 +1199,10 @@ ut_valid_message(const rxdrv_t *rx, const struct ut_header *uth,
 	 * Then perform the same logical equivalence check for acknowledgments.
 	 */
 
-	if (!um->deflated != (0 == (uth->flags & UDP_RF_DEFLATED)))
+	if (!equiv(um->deflated, (uth->flags & UDP_RF_DEFLATED)))
 		return FALSE;
 
-	if (!um->reliable != (0 == (uth->flags & UDP_RF_ACKME)))
+	if (!equiv(um->reliable, (uth->flags & UDP_RF_ACKME)))
 		return FALSE;
 
 	return TRUE;		/* OK, consistent semi-reliable UDP fragment */

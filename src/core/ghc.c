@@ -494,7 +494,7 @@ ghc_is_waiting(void)
 /**
  * Initializations.
  */
-G_GNUC_COLD void
+void G_COLD
 ghc_init(void)
 {
 	uint i;
@@ -502,7 +502,7 @@ ghc_init(void)
 	g_return_if_fail(NULL == ghc_list);
 	ghc_list = list_new();
 
-	for (i = 0; i < G_N_ELEMENTS(boot_url); i++) {
+	for (i = 0; i < N_ITEMS(boot_url); i++) {
 		struct ghc *ghc;
 		ghc = ghc_new(boot_url[i]);
 		ghc_list_add(ghc);
@@ -512,7 +512,7 @@ ghc_init(void)
 /**
  * Final cleanup.
  */
-G_GNUC_COLD void
+void G_COLD
 ghc_close(void)
 {
 	if (ghc_connecting) {

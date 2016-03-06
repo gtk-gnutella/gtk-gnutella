@@ -54,7 +54,7 @@
  */
 
 /* (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * tigertree.c - Implementation of the TigerTree algorithm
@@ -145,7 +145,7 @@ tt_full_depth(filesize_t filesize)
 	filesize_t n_blocks;
 	unsigned depth;
 
-	n_blocks = tt_block_count(filesize); 
+	n_blocks = tt_block_count(filesize);
 	depth = 0;
 	while (n_blocks > 1) {
 		n_blocks = (n_blocks + 1) / 2;
@@ -172,7 +172,7 @@ tt_good_depth(filesize_t filesize)
 	};
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(thresholds); i++) {
+	for (i = 0; i < N_ITEMS(thresholds); i++) {
 		if (filesize < thresholds[i])
 			break;
 	}
@@ -184,19 +184,19 @@ tt_good_slice_size(filesize_t filesize)
 {
 	filesize_t n_blocks;
 	size_t n_nodes;
-	
+
 	n_blocks = tt_block_count(filesize);
    	n_nodes = (1 << tt_good_depth(filesize));
 	return (n_blocks / n_nodes) * TTH_BLOCKSIZE;
 }
 
-filesize_t 
+filesize_t
 tt_node_count_at_depth(filesize_t filesize, unsigned depth)
 {
 	filesize_t n, m;
 
 	m = (filesize_t) 1 << depth;
-	n = tt_block_count(filesize); 
+	n = tt_block_count(filesize);
 	while (n > m) {
 		n = (n + 1) / 2;
 	}
@@ -209,7 +209,7 @@ tt_good_node_count(filesize_t filesize)
 	return tt_node_count_at_depth(filesize, tt_good_depth(filesize));
 }
 
-static filesize_t 
+static filesize_t
 tt_blocks_per_leaf(filesize_t filesize)
 {
 	unsigned full_depth, good_depth;
@@ -222,7 +222,7 @@ tt_blocks_per_leaf(filesize_t filesize)
 	} else {
 		n_bpl = 1;
 	}
-	return n_bpl; 
+	return n_bpl;
 }
 
 static void
@@ -263,7 +263,7 @@ tt_collapse(TTH_CONTEXT *ctx)
 		tt_compose(ctx);
 		n /= 2;
 		if (ctx->bpl > 1 && 0 == (ctx->n % ctx->bpl) && 2 == x) {
-			g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+			g_assert(ctx->li < N_ITEMS(ctx->leaves));
 			ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 			ctx->li++;
 		}
@@ -318,7 +318,7 @@ tt_finish(TTH_CONTEXT *ctx)
 			depth--;
 			n_blocks = (n_blocks + 1) / 2;
 			if (depth == ctx->good_depth) {
-				g_assert(ctx->li < G_N_ELEMENTS(ctx->leaves));
+				g_assert(ctx->li < N_ITEMS(ctx->leaves));
 				ctx->leaves[ctx->li] = ctx->stack[ctx->si - 1];
 				ctx->li++;
 			}
@@ -452,7 +452,7 @@ tt_leave_count(TTH_CONTEXT *ctx)
 	return ctx->li;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 tt_check_digest(const char * const expected, const void *data, size_t size)
 {
 	char digest[TTH_BASE32_SIZE + 1];
@@ -465,7 +465,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 
 	ZERO(&digest);
 	base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
-	digest[G_N_ELEMENTS(digest) - 1] = '\0';
+	digest[N_ITEMS(digest) - 1] = '\0';
 
 	if (0 != strcmp(expected, digest)) {
 		g_warning("tt_check_digest:\nExpected: \"%s\"\nGot:      \"%s\"",
@@ -474,7 +474,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 tt_check(void)
 {
 	/* test case: empty file (zero bytes) */

@@ -61,7 +61,7 @@ static const char *current_algorithm;
 
 typedef void (*xsort_routine)(void *b, size_t n, size_t s, cmp_fn_t cmp);
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -82,7 +82,7 @@ usage(void)
 	exit(EXIT_FAILURE);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 test_abort()
 {
 	if (current_test != NULL)
@@ -611,7 +611,7 @@ generate_array(size_t cnt, size_t isize)
 {
 	size_t len;
 	void *array;
-	
+
 	len = cnt * isize;
 	array = xmalloc(len);
 	rand31_bytes(array, len);
@@ -642,7 +642,7 @@ generate_degenerative_array(size_t cnt, size_t isize, enum degenerative how)
 {
 	size_t len;
 	void *array;
-	
+
 	len = cnt * isize;
 	array = xmalloc(len);
 

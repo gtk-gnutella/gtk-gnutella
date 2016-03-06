@@ -85,7 +85,7 @@ shell_help_whatis(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-	
+
 	return "whatis <property>\n"
 		"show description of property\n";
 }

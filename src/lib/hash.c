@@ -165,7 +165,7 @@ static unsigned hash_offset_secondary;
 /**
  * Initialize random hash offset if not already done.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hash_random_offset_init(void)
 {
 	static bool done;
@@ -515,7 +515,7 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	size_t *kidx, size_t *tombidx)
 {
@@ -585,7 +585,7 @@ hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	 * Let x be the initial position index.  Suppose we find a natural number k
 	 * such that x + i*k = x (modulo S).  Here k represents the number of
 	 * steps after which we are back to the initial position.
-	 * 
+	 *
 	 * Because (Z/nZ, +) is a group, each item has on opposite y such that
 	 * x + y = 0 (modulo n). Let us write y = -x.  Adding -x to both sides
 	 * of our equation leads to i*k = 0 (modulo S).  This means that it can

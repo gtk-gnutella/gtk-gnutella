@@ -100,7 +100,7 @@
  */
 #define NL_KBALL_PROBA		0.90
 #define NL_KBALL_FACTOR		100000
- 
+
 static unsigned kball_dist_proba[KUID_RAW_BITSIZE];
 
 /**
@@ -415,7 +415,7 @@ static void
 lookup_free(nlookup_t *nl)
 {
 	lookup_check(nl);
-	
+
 	if (lookup_is_fetching(nl))
 		lookup_value_free(nl, TRUE);
 
@@ -1921,7 +1921,7 @@ lookup_c_class_update_count(const nlookup_t *nl, const knode_t *kn, int pmone)
 	lookup_check(nl);
 	knode_check(kn);
 	g_assert(pmone == +1 || pmone == -1);
-	
+
 	if (!host_addr_is_ipv4(kn->addr))
 		return;
 
@@ -1984,7 +1984,7 @@ lookup_path_add(nlookup_t *nl, const knode_t *kn)
 
 	patricia_insert(nl->path, kn->id, knode_refcnt_inc(kn));
 	patricia_insert(nl->ball, kn->id, knode_refcnt_inc(kn));
-	
+
 	lookup_c_class_update_count(nl, kn, +1);
 }
 
@@ -2133,7 +2133,7 @@ kullback_leibler_div(const nlookup_t *nl, size_t nodes, int bmin,
 
 	dkl = 0.0;
 
-	for (i = 0; i < G_N_ELEMENTS(M); i++) {
+	for (i = 0; i < N_ITEMS(M); i++) {
 		double ct;
 
 		items[i].prefix = i + bmin;
@@ -2209,7 +2209,7 @@ lookup_path_is_safe(nlookup_t *nl)
 	 *
 	 * "Efficient DHT attack mitigation through peers's ID distribution" by
 	 * Thibault Cholez et al., published in June 2010.
-	 * 
+	 *
 	 * The idea is that Sybil attacks will necessarily change the statistical
 	 * distribution of the KUIDs surrounding the target.  By comparing the
 	 * actual KUID prefix distribution with the theoretical one, we can detect
@@ -2402,7 +2402,7 @@ compute:
 			common <= UNSIGNED(max_common_bits)
 		) {
 			size_t j = common - min_common_bits;
-			g_assert(j < G_N_ELEMENTS(nodelist));
+			g_assert(j < N_ITEMS(nodelist));
 			nodelist[j] = plist_prepend(nodelist[j], kn);
 		}
 	}
@@ -2426,12 +2426,12 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 
 	g_assert(nodes >= 1U);
 
-	for (i = 0; i < G_N_ELEMENTS(items); i++) {
+	for (i = 0; i < N_ITEMS(items); i++) {
 		if (prefix[i] != 0)
 			items[i].contrib /= prefix[i];
 	}
 
-	vsort(&items, G_N_ELEMENTS(items), sizeof(items[0]), kl_item_revcmp);
+	vsort(&items, N_ITEMS(items), sizeof(items[0]), kl_item_revcmp);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 1) {
 		g_debug("DHT LOOKUP[%s] largest K-L divergence %g from %zu-bit prefix",
@@ -2450,7 +2450,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 		size_t nth;
 		plist_t *lnk;
 
-		g_assert(size_is_non_negative(j) && j < G_N_ELEMENTS(prefix));
+		g_assert(size_is_non_negative(j) && j < N_ITEMS(prefix));
 		count = prefix[j];
 
 		g_assert(size_is_positive(count));
@@ -2520,7 +2520,7 @@ strip_one_node:			/* do {} while () in disguise, avoids indentation */
 
 done:
 
-	for (i = 0; i < G_N_ELEMENTS(nodelist); i++) {
+	for (i = 0; i < N_ITEMS(nodelist); i++) {
 		plist_free_null(&nodelist[i]);
 	}
 
@@ -3011,7 +3011,7 @@ lookup_handle_reply(
 			goto bad_token;
 
 		token = sectoken_remote_alloc(tlen);
-		
+
 		if (tlen > 0 && !bstr_read(bs, token->v, tlen))
 			goto bad_token;
 	}
@@ -4443,7 +4443,7 @@ lookup_value_check_here(cqueue_t *unused_cq, void *obj)
 		float load;
 
 		vcnt = keys_get(nl->kuid, nl->u.fv.vtype, NULL, 0,
-			vvec, G_N_ELEMENTS(vvec), &load, NULL);
+			vvec, N_ITEMS(vvec), &load, NULL);
 
 		if (GNET_PROPERTY(dht_lookup_debug)) {
 			g_debug("DHT LOOKUP[%s] key %s found locally, with %d %s value%s",
@@ -4472,7 +4472,7 @@ lookup_value_check_here(cqueue_t *unused_cq, void *obj)
 
 		if (vcnt) {
 			lookup_value_terminate(nl,
-				load, vvec, vcnt, G_N_ELEMENTS(vvec), TRUE);
+				load, vvec, vcnt, N_ITEMS(vvec), TRUE);
 			return;
 		}
 
@@ -5046,7 +5046,7 @@ done:
 /**
  * Initialize Kademlia node lookups.
  */
-G_GNUC_COLD void
+void G_COLD
 lookup_init(void)
 {
 	double log_2 = log(2.0);
@@ -5082,7 +5082,7 @@ lookup_init(void)
 	 * from the k-ball frontier.
 	 */
 
-	for (i = 1; i <= G_N_ELEMENTS(kball_dist_proba); i++) {
+	for (i = 1; i <= N_ITEMS(kball_dist_proba); i++) {
 		kball_dist_proba[i - 1] =
 			(unsigned) (pow(NL_KBALL_PROBA, (double) i) * NL_KBALL_FACTOR);
 	}

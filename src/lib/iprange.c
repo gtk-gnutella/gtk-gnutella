@@ -89,7 +89,7 @@ iprange_db_check(const struct iprange_db * const idb)
 	g_assert(IPRANGE_DB_MAGIC == idb->magic);
 }
 
-static G_GNUC_HOT int
+static int G_HOT
 iprange_net4_cmp(const void *p, const void *q)
 {
 	const struct iprange_net4 *a = p, *b = q;
@@ -101,7 +101,7 @@ iprange_net4_cmp(const void *p, const void *q)
 	return CMP(a_key, b_key);
 }
 
-static G_GNUC_HOT int
+static int G_HOT
 iprange_net6_cmp(const void *p, const void *q)
 {
 	const struct iprange_net6 *a = p, *b = q;
@@ -159,7 +159,7 @@ void
 iprange_free(struct iprange_db **idb_ptr)
 {
 	struct iprange_db *idb;
-	
+
 	idb = *idb_ptr;
 	if (idb) {
 		iprange_db_check(idb);
@@ -255,7 +255,7 @@ iprange_add_cidr(struct iprange_db *idb,
 {
 	struct iprange_net4 item;
 	uint32 mask;
-	
+
 	iprange_db_check(idb);
 	g_assert(value != 0);
 	g_return_val_if_fail(bits > 0, IPR_ERR_BAD_PREFIX);

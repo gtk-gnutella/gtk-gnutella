@@ -353,7 +353,7 @@ static WARN_UNUSED_RESULT bool
 TBUF_GETCHAR(uint8 *x)
 {
 	tbuf_check();
-	
+
 	if ((size_t) (tbuf.end - tbuf.rptr) >= sizeof *x) {
 		*x = *tbuf.rptr;
 		tbuf.rptr += sizeof *x;
@@ -466,7 +466,7 @@ static WARN_UNUSED_RESULT bool
 READ_UINT32(uint32 *val_ptr, uint32 *checksum)
 {
 	uint32 val;
-	
+
 	if (TBUF_GET_UINT32(&val)) {
 		*val_ptr = ntohl(val);
 		file_info_checksum(checksum, &val, sizeof val);
@@ -620,7 +620,7 @@ dl_file_chunk_alloc(void)
 {
 	static const struct dl_file_chunk zero_fc;
 	struct dl_file_chunk *fc;
-   
+
 	WALLOC(fc);
 	*fc = zero_fc;
 	fc->magic = DL_FILE_CHUNK_MAGIC;
@@ -645,7 +645,7 @@ static struct dl_avail_chunk *
 dl_avail_chunk_alloc(void)
 {
 	struct dl_avail_chunk *ac;
-   
+
 	WALLOC0(ac);
 	ac->magic = DL_AVAIL_CHUNK_MAGIC;
 	return ac;
@@ -717,7 +717,7 @@ file_info_check_chunklist(const fileinfo_t *fi, bool assertion)
 		last = fc->to;
 		if (!fi->file_size_known || 0 == fi->size)
 			continue;
-		
+
 		if (fc->from >= fi->size || fc->to > fi->size)
 			return FALSE;
 	}
@@ -765,7 +765,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 	if (fi->tigertree.leaves) {
 		const void *data;
 		size_t size;
-		
+
 		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 		data = fi->tigertree.leaves;
 		size = fi->tigertree.num_leaves * TTH_RAW_SIZE;
@@ -883,7 +883,7 @@ void
 file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
 {
 	file_info_check(fi);
-	
+
 	g_return_if_fail(tth);
 	g_return_if_fail(NULL == fi->tth);
 	fi->tth = atom_tth_get(tth);
@@ -910,7 +910,7 @@ file_info_got_tigertree(fileinfo_t *fi,
 	filesize_t num_blocks;
 
 	file_info_check(fi);
-	
+
 	g_return_if_fail(leaves);
 	g_return_if_fail(num_leaves > 0);
 	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
@@ -947,7 +947,7 @@ file_info_strip_trailer(fileinfo_t *fi, const char *pathname)
 {
 	file_info_check(fi);
 	g_assert(!((FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED) & fi->flags));
-	
+
 	fi_tigertree_free(fi);
 
 	if (-1 == truncate(pathname, fi->size)) {
@@ -1111,7 +1111,7 @@ file_info_hash_insert_name_size(fileinfo_t *fi)
 
 	PSLIST_FOREACH(aliases, sl) {
 		pslist_t *slist;
-		
+
 		nsk.name = sl->data;
 		slist = htable_lookup(fi_by_namesize, &nsk);
 
@@ -1244,7 +1244,7 @@ fi_alias(fileinfo_t *fi, const char *name, bool record)
 	 * fi_by_namesize table, since all the aliases are inserted into
 	 * that table.
 	 */
-	
+
 	ns = namesize_make(name, fi->size);
 	list = htable_lookup(fi_by_namesize, ns);
 	if (NULL != list && NULL != pslist_find(list, fi)) {
@@ -1355,7 +1355,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 	}
 
-	for (/* NOTHING */; i < G_N_ELEMENTS(tr); i++) {
+	for (/* NOTHING */; i < N_ITEMS(tr); i++) {
 		uint32 v = ntohl(tr[i]);
 
 		switch (i) {
@@ -1556,7 +1556,7 @@ looks_like_urn(const char *filename)
 	 *
 	 * (urn.)?(sha1|bitprint).[a-zA-Z0-9]{SHA1_BASE32_SIZE,}
 	 */
-	
+
 	p = is_strcaseprefix(filename, "urn");
 	/* Skip a single character after the prefix */
 	if (p) {
@@ -1565,7 +1565,7 @@ looks_like_urn(const char *filename)
 	} else {
 		p = filename;
 	}
-	
+
 	q = is_strcaseprefix(p, "sha1");
 	if (!q)
 		q = is_strcaseprefix(p, "bitprint");
@@ -1824,7 +1824,7 @@ G_STMT_START {				\
 
 	{
 		bool ret;
-		
+
 		if (trailer.filesize > (filesize_t) -1) {
 			errno = ERANGE;
 			ret = -1;
@@ -1957,7 +1957,7 @@ G_STMT_START {				\
 		case FILE_INFO_FIELD_TIGERTREE:
 			if (tmpuint > 0 && 0 == (tmpuint % TTH_RAW_SIZE)) {
 				const struct tth *leaves;
-				
+
 				STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 				leaves = (const struct tth *) &tmp[0];
 				file_info_got_tigertree(fi,
@@ -2430,7 +2430,7 @@ file_info_close_pre(void)
 /**
  * Close and free all file_info structs in the list.
  */
-G_GNUC_COLD void
+void G_COLD
 file_info_close(void)
 {
 	unsigned i;
@@ -2449,7 +2449,7 @@ file_info_close(void)
 	g_assert(0 == idtable_count(src_handle_map));
 	idtable_destroy(src_handle_map);
 
-	for (i = 0; i < G_N_ELEMENTS(src_events); i++) {
+	for (i = 0; i < N_ITEMS(src_events); i++) {
 		event_destroy(src_events[i]);
 	}
 
@@ -2462,7 +2462,7 @@ file_info_close(void)
 	g_assert(0 == idtable_count(fi_handle_map));
 	idtable_destroy(fi_handle_map);
 
-	for (i = 0; i < G_N_ELEMENTS(fi_events); i++) {
+	for (i = 0; i < N_ITEMS(fi_events); i++) {
 		event_destroy(fi_events[i]);
 	}
 	hikset_free_null(&fi_by_sha1);
@@ -2511,7 +2511,7 @@ file_info_hash_insert(fileinfo_t *fi)
 	if (xfi) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
-	} else { 
+	} else {
 		hikset_insert_key(fi_by_outname, &fi->pathname);
 	}
 
@@ -2537,7 +2537,7 @@ file_info_hash_insert(fileinfo_t *fi)
 		 */
 
 		shared_file_from_fileinfo(fi);
-		if (fi->sf != NULL) 
+		if (fi->sf != NULL)
 			share_add_partial(fi->sf);
 	}
 
@@ -2687,7 +2687,7 @@ file_info_unlink(fileinfo_t *fi)
 	/*
 	 * Only try to unlink partials because completed files are
 	 * already moved or renamed and this could in theory match
-	 * the filename of another download started afterwards which 
+	 * the filename of another download started afterwards which
 	 * means the wrong file would be removed.
 	 */
 	if (FILE_INFO_COMPLETE(fi))
@@ -2976,7 +2976,7 @@ fi_copy_chunks(fileinfo_t *fi, fileinfo_t *trailer)
 /**
  * Loads the fileinfo database from disk, and saves a copy in fileinfo.orig.
  */
-G_GNUC_COLD void
+void G_COLD
 file_info_retrieve(void)
 {
 	FILE *f;
@@ -3554,7 +3554,7 @@ file_info_unique_filename(const char *path, const char *file,
 {
 	return filename_unique(path, file, ext, file_info_name_is_uniq);
 }
-	
+
 /**
  * Allocate unique output name for file `name', stored in `dir'.
  *
@@ -3731,7 +3731,7 @@ void
 file_info_moved(fileinfo_t *fi, const char *pathname)
 {
 	const fileinfo_t *xfi;
-	
+
 	file_info_check(fi);
 	g_assert(pathname);
 	g_assert(is_absolute_path(pathname));
@@ -3754,7 +3754,7 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 
 	if (fi->sf) {
 		filestat_t sb;
-	   
+
 		shared_file_set_path(fi->sf, fi->pathname);
 		if (
 			stat(fi->pathname, &sb) ||
@@ -5004,7 +5004,7 @@ fi_pick_chunk(fileinfo_t *fi)
 		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
 		 * long.  If not, return that first chunk.
 		 */
-		
+
 		fc = eslist_head(&fi->chunklist);		/* First chunk */
 		dl_file_chunk_check(fc);
 
@@ -5481,7 +5481,7 @@ fi_find_aggressive_candidate(
 
 	return TRUE;
 }
-	
+
 /**
  * Mark [from, to] as now being a chunk reserved by given download.
  * If ``chunk'' is non-NULL, then the [from, to] belongs to that chunk
@@ -5628,7 +5628,7 @@ file_info_find_hole(const struct download *d, filesize_t *from, filesize_t *to)
 			chunksize = GNET_PROPERTY(dl_minchunksize);
 		else {
 			filesize_t missing;
-		   
+
 			missing = GNET_PROPERTY(pfsp_minimum_filesize) - fi->done;
 			chunksize = MAX(chunksize, missing);
 			chunksize = MIN(chunksize, GNET_PROPERTY(dl_maxchunksize));
@@ -6173,7 +6173,7 @@ void
 fi_increase_uploaded(fileinfo_t *fi, size_t amount)
 {
 	file_info_check(fi);
-	fi->uploaded += amount;	
+	fi->uploaded += amount;
 	file_info_changed(fi);
 }
 
@@ -6457,7 +6457,7 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
  *
  * @param fi	the fileinfo
  * @param d		the original download being cloned
- * @param cd	the new cloned download 
+ * @param cd	the new cloned download
  */
 void
 file_info_cloned_source(fileinfo_t *fi, download_t *d, download_t *cd)
@@ -6990,7 +6990,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		g_assert(j >= 0 && j < nleft);
 
 		fc = fc_ary[j];
-		dl_file_chunk_check(fc);	
+		dl_file_chunk_check(fc);
 		g_assert(DL_CHUNK_DONE == fc->status);
 
 		str_bprintf(range, sizeof range, "%s%s-%s",
@@ -7053,7 +7053,7 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
-		dl_file_chunk_check(fc);	
+		dl_file_chunk_check(fc);
 
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
@@ -7090,7 +7090,7 @@ file_info_build_magnet(gnet_fi_t handle)
 	const pslist_t *sl;
 	char *url;
 	int n;
-   
+
 	fi = file_info_find_by_handle(handle);
 	g_return_val_if_fail(fi, NULL);
 	file_info_check(fi);
@@ -7139,11 +7139,11 @@ char *
 file_info_get_file_url(gnet_fi_t handle)
 {
 	fileinfo_t *fi;
-	
+
 	fi = file_info_find_by_handle(handle);
 	g_return_val_if_fail(fi, NULL);
 	file_info_check(fi);
-	
+
 	/* Allow partials but not unstarted files */
 	return fi->done > 0 ? url_from_absolute_path(fi->pathname) : NULL;
 }
@@ -7364,7 +7364,7 @@ fi_update_available_forward(rbtree_t *arbt, const struct dl_avail_chunk *ac)
 				rbtree_insert(arbt, anew);
 
 				avc = rbtree_next_node(arbt, &node);
-				g_soft_assert(avc == anew);	
+				g_soft_assert(avc == anew);
 
 				break;		/* We've consumed the whole `ac' */
 			}
@@ -7391,7 +7391,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		g_debug("%s(): updating available for %s", G_STRFUNC, fi->pathname);
-	
+
 	/*
 	 * The following comments highlight the important steps needed to compute
 	 * the list of chunks available for the file with, for each chunk, the
@@ -7411,7 +7411,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	 *
 	 * The rarest chunk is "e" (2 sources only provide that range) so this is
 	 * the part of the file that needs to be downloaded first.
-	 * 
+	 *
 	 * To compute this, we loop over all the "alive" sources we know about
 	 * for a file and for which we have chunk availability information.
 	 *
@@ -7491,14 +7491,14 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	 *
 	 *           [------E------]
 	 *     [====][=============][==============]
-	 *        3         3                2 
+	 *        3         3                2
 	 *
 	 * Encountering "B"
 	 *
 	 *              [---B--]
 	 *     [====][=][======][==][==============]
-	 *       3    3    4     3          2 
-	 * 
+	 *       3    3    4     3          2
+	 *
 	 * we further split the chunk, counting one more occurrence for the region
 	 * covered by "B".
 	 *
@@ -7713,7 +7713,7 @@ void
 file_info_foreach(file_info_foreach_cb callback, void *udata)
 {
 	struct file_info_foreach data;
-	
+
 	g_return_if_fail(fi_by_guid);
 	g_return_if_fail(callback);
 
@@ -7858,7 +7858,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 
 	{
 		char *directory, *name;
-	   
+
 		directory = filepath_directory(fi->pathname);
 		name = filename_sanitize(filename, FALSE, FALSE);
 
@@ -7895,7 +7895,7 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 /**
  * Initialize fileinfo handling.
  */
-G_GNUC_COLD void
+void G_COLD
 file_info_init(void)
 {
 	TOKENIZE_CHECK_SORTED(fi_tags);

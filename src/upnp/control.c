@@ -487,7 +487,7 @@ upnp_ctrl_soap_error(const soap_rpc_t *sr,
 	}
 
 	if (ucd->cb != NULL)
-		(*ucd->cb)(code, NULL, 0, ucd->cb_arg);	
+		(*ucd->cb)(code, NULL, 0, ucd->cb_arg);
 
 	upnp_ctrl_free(ucd);
 }
@@ -592,7 +592,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 
 	{
 		char ns[256];
-		
+
 		str_bprintf(ns, sizeof ns, "%s%s:%u",
 			UPNP_NS_BASE,
 			upnp_service_type_to_string(upnp_service_type(usd)),
@@ -692,7 +692,7 @@ static bool
 upnp_ctrl_get_addr(nv_table_t *nvt, const char *name, host_addr_t *addrp)
 {
 	const char *ip;
-	
+
 	ip = nv_table_lookup_str(nvt, name);
 	if (NULL == ip)
 		return FALSE;
@@ -988,7 +988,7 @@ upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
 	argv[2] = nv_pair_make_static_str(ARG_PROTOCOL, protocol);
 
 	return upnp_ctrl_launch(usd, "GetSpecificPortMappingEntry",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		upnp_ctrl_ret_GetSpecificPortMappingEntry);
 }
 
@@ -1058,7 +1058,7 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	 */
 
 	return upnp_ctrl_launch(usd, "AddPortMapping",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		NULL);
 }
 
@@ -1091,7 +1091,7 @@ upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	argv[2] = nv_pair_make_static_str(ARG_PROTOCOL, protocol);
 
 	return upnp_ctrl_launch(usd, "DeletePortMapping",
-		argv, G_N_ELEMENTS(argv), cb, arg,
+		argv, N_ITEMS(argv), cb, arg,
 		NULL);
 }
 

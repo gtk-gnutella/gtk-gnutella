@@ -262,7 +262,7 @@ entropy_delay(void)
 /**
  * Add entropy from previous calls.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_merge(sha1_t *digest)
 {
 	bigint_t older, newer;
@@ -567,7 +567,7 @@ entropy_collect_user_id(SHA1_context *ctx)
 	id[1] = entropy_minirand();
 #endif	/* HAS_GETUID */
 
-	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
+	entropy_array_ulong_collect(ctx, id, N_ITEMS(id));
 }
 
 /**
@@ -581,7 +581,7 @@ entropy_collect_process_id(SHA1_context *ctx)
 	id[0] = getppid();
 	id[1] = getpid();
 
-	entropy_array_ulong_collect(ctx, id, G_N_ELEMENTS(id));
+	entropy_array_ulong_collect(ctx, id, N_ITEMS(id));
 }
 
 /**
@@ -595,7 +595,7 @@ entropy_collect_compile_time(SHA1_context *ctx)
 	str[0] = __DATE__;
 	str[1] = __TIME__;
 
-	entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+	entropy_array_string_collect(ctx, str, N_ITEMS(str));
 }
 
 /**
@@ -617,7 +617,7 @@ entropy_collect_user(SHA1_context *ctx)
 
 	str[1] = g_get_user_name();
 	str[2] = g_get_real_name();
-	entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+	entropy_array_string_collect(ctx, str, N_ITEMS(str));
 #else
 	{
 		char user[UINT32_DEC_BUFLEN];
@@ -627,7 +627,7 @@ entropy_collect_user(SHA1_context *ctx)
 		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
 		str[1] = user;
 		str[2] = real;
-		entropy_array_string_collect(ctx, str, G_N_ELEMENTS(str));
+		entropy_array_string_collect(ctx, str, N_ITEMS(str));
 	}
 #endif	/* GLib >= 2.0 */
 }
@@ -723,7 +723,7 @@ entropy_collect_filesystem(SHA1_context *ctx)
 		path[i++] = "/var/run";
 	}
 
-	g_assert(i <= G_N_ELEMENTS(path));
+	g_assert(i <= N_ITEMS(path));
 
 	entropy_array_stat_collect(ctx, path, i);
 	entropy_array_statvfs_collect(ctx, path, i);
@@ -741,7 +741,7 @@ entropy_collect_stdio(SHA1_context *ctx)
 	fd[1] = STDOUT_FILENO;
 	fd[2] = STDERR_FILENO;
 
-	entropy_array_fstat_collect(ctx, fd, G_N_ELEMENTS(fd));
+	entropy_array_fstat_collect(ctx, fd, N_ITEMS(fd));
 }
 
 /**
@@ -756,7 +756,7 @@ entropy_collect_free_space(SHA1_context *ctx)
 	fs[1] = fs_free_space_pct("/");
 	fs[2] = fs_free_space_pct(".");
 
-	entropy_array_double_collect(ctx, fs, G_N_ELEMENTS(fs));
+	entropy_array_double_collect(ctx, fs, N_ITEMS(fs));
 }
 
 /**
@@ -789,7 +789,7 @@ entropy_collect_uname(SHA1_context *ctx)
 #ifdef HAS_UNAME
 	{
 		struct utsname un;
-		
+
 		if (-1 != uname(&un)) {
 			SHA1_INPUT(ctx, un);
 		} else {
@@ -838,7 +838,7 @@ entropy_collect_pointers(SHA1_context *ctx)
 	ptr[4] = &errno;
 	ptr[5] = &ptr;
 
-	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+	entropy_array_pointer_collect(ctx, ptr, N_ITEMS(ptr));
 }
 
 /**
@@ -856,7 +856,7 @@ entropy_collect_cpu(SHA1_context *ctx)
 
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 
-	if (setjmp(env)) {
+	if (Setjmp(env)) {
 		/* We will never longjmp() back here */
 		g_assert_not_reached();
 	}
@@ -874,7 +874,7 @@ entropy_collect_cpu(SHA1_context *ctx)
 	SHA1_INPUT(ctx, r);
 }
 
-/** 
+/**
  * Collect entropy from environment.
  */
 static void
@@ -909,7 +909,7 @@ entropy_collect_minirand(SHA1_context *ctx)
 		rn[i++] = entropy_minirand();
 	}
 
-	entropy_array_ulong_collect(ctx, rn, G_N_ELEMENTS(rn));
+	entropy_array_ulong_collect(ctx, rn, N_ITEMS(rn));
 }
 
 /**
@@ -936,7 +936,7 @@ entropy_collect_garbage(SHA1_context *ctx)
 	ZERO(&garbage);
 #endif
 
-	entropy_array_ulong_collect(ctx, garbage, G_N_ELEMENTS(garbage));
+	entropy_array_ulong_collect(ctx, garbage, N_ITEMS(garbage));
 }
 
 /**
@@ -959,7 +959,7 @@ entropy_collect_vfs(SHA1_context *ctx)
 		path[i++] = "/var/run";
 	}
 
-	g_assert(i <= G_N_ELEMENTS(path));
+	g_assert(i <= N_ITEMS(path));
 
 	entropy_array_statvfs_collect(ctx, path, i);
 }
@@ -994,28 +994,27 @@ entropy_collect_gateway(SHA1_context *ctx)
 /**
  * Collect entropy from host.
  *
- * This uses the host's name and its IP addresses.
+ * This uses the name of the host.
  */
 static void
 entropy_collect_host(SHA1_context *ctx)
 {
 	const char *name;
-	pslist_t *hosts, *sl;
 
 	name = local_hostname();
 	sha1_feed_string(ctx, name);
 
-	hosts = name_to_host_addr(name, NET_TYPE_NONE);
-	hosts = pslist_shuffle_with(entropy_minirand, hosts);
-
-	PSLIST_FOREACH(hosts, sl) {
-		host_addr_t *addr = sl->data;
-		struct packed_host_addr packed = host_addr_pack(*addr);
-
-		SHA1_input(ctx, &packed, packed_host_addr_size(packed));
-	}
-
-	host_addr_free_list(&hosts);
+	/*
+	 * We used to call
+	 *
+	 * 	name_to_host_addr(name, NET_TYPE_NONE);
+	 *
+	 * to also lookup the host name and get its IP address but depending
+	 * on the DNS configuration, that could cause long delays, even up to
+	 * a timeout, causing the auto-initialization phase to also timeout,
+	 * leading to a crash!
+	 *		--RAM, 2016-02-16
+	 */
 }
 
 /**
@@ -1031,7 +1030,7 @@ entropy_collect_vmm(SHA1_context *ctx)
 	ptr[1] = p = vmm_alloc(1);
 	ptr[2] = q = vmm_alloc(1);
 
-	entropy_array_pointer_collect(ctx, ptr, G_N_ELEMENTS(ptr));
+	entropy_array_pointer_collect(ctx, ptr, N_ITEMS(ptr));
 
 	vmm_free(p, 1);
 	vmm_free(q, 1);
@@ -1059,7 +1058,7 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 	tm_precise_time(&after);
 	v[3] = tm_precise_elapsed_f(&after, &before);
 
-	entropy_array_double_collect(ctx, v, G_N_ELEMENTS(v));
+	entropy_array_double_collect(ctx, v, N_ITEMS(v));
 }
 
 /**
@@ -1112,7 +1111,7 @@ entropy_self_feed(SHA1_context *ctx)
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 {
 	static tm_nano_t last;
@@ -1144,7 +1143,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		fn[i++] = entropy_collect_host;
 		fn[i++] = entropy_collect_vfs;
 
-		g_assert(i <= G_N_ELEMENTS(fn));
+		g_assert(i <= N_ITEMS(fn));
 	}
 
 	fn[i++] = entropy_collect_cpu;
@@ -1162,7 +1161,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 	fn[i++] = entropy_collect_garbage;
 	fn[i++] = entropy_self_feed;
 
-	g_assert(i <= G_N_ELEMENTS(fn));
+	g_assert(i <= N_ITEMS(fn));
 
 	entropy_array_cb_collect(&ctx, fn, i);
 
@@ -1183,7 +1182,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 		SHA1_INPUT(&ctx, end);
 		v[1] = tm_precise_elapsed_f(&end, &start);
 
-		entropy_array_double_collect(&ctx, v, G_N_ELEMENTS(v));
+		entropy_array_double_collect(&ctx, v, N_ITEMS(v));
 	}
 
 	/*
@@ -1203,7 +1202,7 @@ entropy_collect_internal(sha1_t *digest, bool can_malloc, bool slow)
 /**
  * Randomly feed the SHA1 context to itself 20% of the time.
  */
-static void G_GNUC_COLD
+static void G_COLD
 entropy_self_feed_maybe(SHA1_context *ctx)
 {
 	if (random_upto(rand31_u32, 999) < 200)
@@ -1216,7 +1215,7 @@ entropy_self_feed_maybe(SHA1_context *ctx)
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
  */
-static void G_GNUC_COLD
+static void G_COLD
 entropy_seed(struct entropy_minictx *c)
 {
 	extern char **environ;
@@ -1236,7 +1235,7 @@ entropy_seed(struct entropy_minictx *c)
 #define ENTROPY_SHUFFLE_FEED(a, f) G_STMT_START {				\
 	size_t x;													\
 	SHUFFLE_ARRAY_WITH(rand31_u32, a);							\
-	for (x = 0; x < G_N_ELEMENTS(a); x++)						\
+	for (x = 0; x < N_ITEMS(a); x++)						\
 		f(&ctx, a[x]);											\
 	ENTROPY_CONTEXT_FEED;										\
 } G_STMT_END
@@ -1453,7 +1452,7 @@ entropy_aje_collect(sha1_t *digest)
  * When AJE (Alea Jacta Est) has been initialized, we can use it as our main
  * entropy source.  Hence redirect all entropy requests to that layer.
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_aje_inited(void)
 {
 	entropy_ops.ent_collect      = entropy_aje_collect;
@@ -1473,7 +1472,7 @@ entropy_aje_inited(void)
  * This is a slow operation, and the routine will even sleep for 2 ms the
  * first time it is invoked.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_do_collect(sha1_t *digest)
 {
 	static bool done;
@@ -1492,7 +1491,7 @@ entropy_do_collect(sha1_t *digest)
  * This is a slow operation, so it must be called only when a truly random
  * seed is required.
  */
-static G_GNUC_COLD void
+static void G_COLD
 entropy_do_minimal_collect(sha1_t *digest)
 {
 	entropy_collect_internal(digest, FALSE, FALSE);
@@ -1600,7 +1599,7 @@ entropy_do_fill(void *buffer, size_t len)
  * Once AJE has been initialized, this is transparently re-routed there and
  * the call becomes more efficient by several orders of magnitude!
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_collect(sha1_t *digest)
 {
 	return entropy_ops.ent_collect(digest);
@@ -1618,7 +1617,7 @@ entropy_collect(sha1_t *digest)
  * Once AJE has been initialized, this is transparently re-routed there and
  * the call becomes more efficient by several orders of magnitude!
  */
-G_GNUC_COLD void
+void G_COLD
 entropy_minimal_collect(sha1_t *digest)
 {
 	return entropy_ops.ent_mini_collect(digest);

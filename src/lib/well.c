@@ -210,7 +210,7 @@ static const uint32 a3m[] = { 0, a3 };
  *
  * This generator has a period of 2**1024 - 1 and implements WELL 1024a.
  */
-static inline uint32 G_GNUC_UNUSED
+static inline uint32 G_UNUSED
 well_1024a(well_state_t *ws)		/* UNUSED, for reference only */
 {
 	uint32 z0, z1, z2;
@@ -218,7 +218,7 @@ well_1024a(well_state_t *ws)		/* UNUSED, for reference only */
 	z0    = VRm1;
 	z1    = MAT1(V0)          ^ MAT0POS(8,   VM1);
 	z2    = MAT0NEG(-19, VM2) ^ MAT0NEG(-14, VM3);
-	newV1 = z1                ^ z2; 
+	newV1 = z1                ^ z2;
 	newV0 = MAT0NEG(-11, z0)  ^ MAT0NEG(-7,  z1)  ^ MAT0NEG(-13, z2);
 	ws->n = (ws->n + m1) & MASK;
 
@@ -244,7 +244,7 @@ well_rand_internal(well_state_t *ws)
 	z0    = VRm1;
 	z1    = MAT0NEG(-21, V0)  ^ MAT0POS(17,  VM1);
 	z2    = MAT2_A3(VM2)      ^ MAT0POS(15,  VM3);
-	newV1 = z1                ^ z2; 
+	newV1 = z1                ^ z2;
 	newV0 = MAT0NEG(-14, z0)  ^ MAT0NEG(-21, z1)  ^ MAT1(z2);
 	ws->n = (ws->n + m1) & MASK;
 
@@ -265,7 +265,7 @@ well_state_discard(well_state_t *ws)
 	 * end up producing zeros...
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(ws->state); i++) {
+	for (i = 0; i < N_ITEMS(ws->state); i++) {
 		if G_LIKELY(ws->state[i] != 0)
 			goto good;
 	}
@@ -377,7 +377,7 @@ well_state_patch(well_state_t *ws, const void *data, size_t len)
 	g_assert(len <= sizeof ws->state);
 	g_assert(0 == (len & 0x3));			/* Multiple of 4 */
 
-	for (n = 0; n < G_N_ELEMENTS(ws->state) && len != 0; n++, len -= 4) {
+	for (n = 0; n < N_ITEMS(ws->state) && len != 0; n++, len -= 4) {
 		ws->state[n] ^= peek_be32(data);
 		data = const_ptr_add_offset(data, 4);
 	}
@@ -678,7 +678,7 @@ pslist_t *
 well_users(void)
 {
 	ONCE_FLAG_RUN(well_key_inited, well_key_init);
-	
+
 	return thread_local_users(well_key);
 }
 

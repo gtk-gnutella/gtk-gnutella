@@ -86,7 +86,7 @@ options_parse_last_error(void)
  * or be given by the next argument.
  *
  * Unrecognized options or missing arguments stop processing.
- * 
+ *
  * @param argv		the initial argument vector
  * @param ovec		the single-letter option description vector
  * @param osize		the amount of entries in ovec
@@ -117,7 +117,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 
 		g_assert(o->letter);
 		idx = o->letter[0];
-		if (UNSIGNED(idx) >= G_N_ELEMENTS(options)) {
+		if (UNSIGNED(idx) >= N_ITEMS(options)) {
 			g_assert_not_reached();
 			return -1; /* ASCII only */
 		}
@@ -158,7 +158,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 			 * We're expecting the next argument to be the value of the switch
 			 * we parsed earlier.
 			 */
-			
+
 			if (current->value)
 				*current->value = arg;
 
@@ -181,7 +181,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 			const option_t *opt;
 			int flags;
 
-			if (UNSIGNED(c) >= G_N_ELEMENTS(options)) {
+			if (UNSIGNED(c) >= N_ITEMS(options)) {
 				str_bprintf(error_string, sizeof error_string,
 					"invalid non-ASCII switch");
 				return -1;

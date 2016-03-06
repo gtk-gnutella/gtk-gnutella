@@ -85,7 +85,7 @@ typedef void (*mq_msgcount_t)(void *node, const pmsg_t *mb);
  * @param fmt			formatting string, followed by arguments to format
  */
 typedef void (*mq_msglog_t)(const pmsg_t *mb, const char *fmt, ...)
-	G_GNUC_PRINTF(2, 3);
+	G_PRINTF(2, 3);
 
 /**
  * User-supplied parameters, which are callbacks necessary for the message
@@ -208,21 +208,21 @@ void mq_check_track(mqueue_t *q, int offset, const char *where, int line);
 
 #endif /* MQ_INTERNAL */
 
-mq_status_t mq_status(const mqueue_t *q) G_GNUC_PURE;
-bool mq_is_flow_controlled(const mqueue_t *q) G_GNUC_PURE;
-bool mq_is_swift_controlled(const mqueue_t *q) G_GNUC_PURE;
-bool mq_would_flow_control(const mqueue_t *q, size_t) G_GNUC_PURE;
-bool mq_above_low_watermark(const mqueue_t *q) G_GNUC_PURE;
-uint32 mq_debug(const mqueue_t *q) G_GNUC_PURE;
-int mq_maxsize(const mqueue_t *q) G_GNUC_PURE;
-int mq_size(const mqueue_t *q) G_GNUC_PURE;
-int mq_lowat(const mqueue_t *q) G_GNUC_PURE;
-int mq_hiwat(const mqueue_t *q) G_GNUC_PURE;
-int mq_count(const mqueue_t *q) G_GNUC_PURE;
+mq_status_t mq_status(const mqueue_t *q) G_PURE;
+bool mq_is_flow_controlled(const mqueue_t *q) G_PURE;
+bool mq_is_swift_controlled(const mqueue_t *q) G_PURE;
+bool mq_would_flow_control(const mqueue_t *q, size_t) G_PURE;
+bool mq_above_low_watermark(const mqueue_t *q) G_PURE;
+uint32 mq_debug(const mqueue_t *q) G_PURE;
+int mq_maxsize(const mqueue_t *q) G_PURE;
+int mq_size(const mqueue_t *q) G_PURE;
+int mq_lowat(const mqueue_t *q) G_PURE;
+int mq_hiwat(const mqueue_t *q) G_PURE;
+int mq_count(const mqueue_t *q) G_PURE;
 int mq_pending(const mqueue_t *q);
 int mq_tx_pending(const mqueue_t *q);
 struct bio_source *mq_bio(const mqueue_t *q);
-struct gnutella_node *mq_node(const mqueue_t *q) G_GNUC_PURE;
+struct gnutella_node *mq_node(const mqueue_t *q) G_PURE;
 
 /*
  * Public interface
@@ -236,7 +236,7 @@ void mq_discard(mqueue_t *q);
 void mq_shutdown(mqueue_t *q);
 void mq_fill_ops(struct mq_ops *ops);
 
-const struct mq_cops *mq_get_cops(void) G_GNUC_CONST;
+const struct mq_cops *mq_get_cops(void) G_CONST;
 const char *mq_info(const mqueue_t *q);
 
 #endif	/* _core_mq_h_ */

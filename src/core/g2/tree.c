@@ -63,7 +63,7 @@
  * - A type name meaningful in the namespace of the packet's parent or context
  * - A length (or implied length)
  * - Payload data of a format specific to the packet type name and namespace
- * - Child packets existing in the namespace of this packet 
+ * - Child packets existing in the namespace of this packet
  *
  * NAMESPACE CONSIDERATIONS
  *
@@ -672,7 +672,7 @@ g2_tree_enter_leave(g2_tree_t *root,
 
 #define LARGE_PAYLOAD	258		/* Force 2-byte payload length */
 
-void G_GNUC_COLD
+void G_COLD
 g2_tree_test(void)
 {
 	g2_tree_t *root, *first, *node, *c2, *retrieved;
@@ -760,7 +760,7 @@ g2_tree_test(void)
 }
 
 #else	/* !TREE_TESTING */
-void G_GNUC_COLD
+void G_COLD
 g2_tree_test(void)
 {
 	/* Nothing */

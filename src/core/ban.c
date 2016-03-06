@@ -825,7 +825,7 @@ ban_message(const host_addr_t addr)
 /**
  * Initialize the banning system.
  */
-G_GNUC_COLD void
+void G_COLD
 ban_init(void)
 {
 	ban_cq = cq_main_submake("ban", BAN_CALLOUT);
@@ -887,7 +887,7 @@ ban_fifo_fd_free(void *data, void *unused)
 /**
  * Called at shutdown time to reclaim all memory.
  */
-G_GNUC_COLD void
+void G_COLD
 ban_close(void)
 {
 	int n;

@@ -8,8 +8,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-04-06 08:34+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/gtk-gnutella/gtk-"
 "gnutella/language/nb/)\n"
@@ -590,9 +590,8 @@ msgstr "Noden har skjold"
 msgid "Protocol not acceptable"
 msgstr "Protokollen er ikke akseptabel"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Konfliktforhold:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -933,13 +932,12 @@ msgstr ""
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Lesefeil: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "For stor"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr ""
@@ -3238,13 +3236,10 @@ msgstr ""
 "gtk-gnutella vil tillate så mange forbindelser å være aktive for å koble til "
 "raskere når det prøver å fylle opp tilkoblingsplassene."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Høyeste antall blader vi kan godta. For å bli forfremmet til Ultra bør du "
-"reservere 32 byte av båndbredden per blad."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Hva som skal gjøres med filer som vil bli ignorert for nedlasting."
@@ -6128,9 +6123,8 @@ msgstr "Ukjent verdi"
 msgid "Value missing"
 msgstr "Manglende verdi"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "Verdimønster:"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -8699,6 +8693,9 @@ msgstr "_Trafikkstatistikk for Gnutella"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "Skjul bl_adstatistikk automatisk"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "_Søk"
 
@@ -8979,6 +8976,11 @@ msgstr ""
 "<html><head><title>Ofte stilte spørsmål</title></head><body><p>Klarte ikke "
 "laste dokumentet. Les <a href=\"http://gtk-gnutella.sourceforge.net/?page=faq"
 "\">spørsmålene på Internett</a> i stedet.</p></body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9441,9 +9443,8 @@ msgstr[1] "%u/%u nedlastinger"
 msgid "Queue frozen"
 msgstr "Køen er frosset"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Dette intervallet"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Velg en egenskap for å se beskrivelsen."
@@ -9509,6 +9510,3 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "Klarte ikke lage lyttesokler"

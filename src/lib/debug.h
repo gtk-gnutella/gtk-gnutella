@@ -128,7 +128,7 @@ const char *dbg_ds_name(const dbg_config_t *dc, const void *o);
 const char *dbg_ds_keystr(const dbg_config_t *dc, const void *key, size_t len);
 const char *dbg_ds_valstr(const dbg_config_t *dc, const void *val, size_t len);
 void dbg_ds_log(const dbg_config_t *dc, const void *o,
-	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
+	const char *fmt, ...) G_PRINTF(3, 4);
 void dbg_ds_logv(const dbg_config_t *dc, const void *o,
 	const char *fmt, va_list args);
 

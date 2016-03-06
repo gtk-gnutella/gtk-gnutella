@@ -791,7 +791,7 @@ soap_got_reply(const http_async_t *ha,
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 
 	soap_rpc_check(sr);
-	
+
 	if (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got SOAP HTTP reply from %s:",
 			host_addr_to_string(s->addr));

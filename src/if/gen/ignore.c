@@ -31,7 +31,7 @@ static const char *ignore_val_str[] = {
 const char *
 ignore_reason_to_string(ignore_val_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(ignore_val_str)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(ignore_val_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid ignore_val_t code: %d", (int) x);
 		return str_2c(s);

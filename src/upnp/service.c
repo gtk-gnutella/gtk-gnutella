@@ -290,7 +290,7 @@ static tokenizer_t upnp_services[] = {
 
 static once_flag_t upnp_services_checked;
 
-static void G_GNUC_COLD
+static void G_COLD
 upnp_services_check(void)
 {
 	TOKENIZE_CHECK_SORTED(upnp_services);
@@ -584,7 +584,7 @@ upnp_service_extract(const char *data, size_t len, const char *desc_url)
 
 	e = vxml_parse_callbacks_tokens(vp,
 		&upnp_service_ops,
-		upnp_service_tokens, G_N_ELEMENTS(upnp_service_tokens),
+		upnp_service_tokens, N_ITEMS(upnp_service_tokens),
 		&ctx);
 
 	if (VXML_E_OK == e) {
@@ -726,7 +726,7 @@ upnp_service_add_action(void *node, void *data)
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_info("UPNP %s supports %s()", upnp_service_to_string(usd), action);
 	}
-	
+
 	nv_table_insert_nocopy(usd->api, action, NULL, 0);
 }
 

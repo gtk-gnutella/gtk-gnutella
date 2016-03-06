@@ -193,7 +193,7 @@ rand31_random_seed(void)
 	seed += binary_hash(&now, sizeof now);
 	seed += integer_hash_fast(nsecs);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
-	if (setjmp(env)) {
+	if (Setjmp(env)) {
 		g_assert_not_reached(); /* We never longjmp() */
 	}
 	seed += binary_hash(env, sizeof env);

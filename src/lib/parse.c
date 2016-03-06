@@ -179,7 +179,7 @@ parse_v32(const char *src, char const **endptr, int *errorptr)
 {
 	uint base;
 	const char *start;
-	
+
 	base = parse_base(src, &start);
 
 	if G_UNLIKELY(0 == base) {
@@ -206,7 +206,7 @@ parse_v64(const char *src, char const **endptr, int *errorptr)
 {
 	uint base;
 	const char *start;
-	
+
 	base = parse_base(src, &start);
 
 	if G_UNLIKELY(0 == base) {
@@ -268,7 +268,7 @@ parse_ipv6_addr(const char *s, uint8 *dst, const char **endptr)
 		leading_bracket = TRUE;
 		p++;
 	}
-	
+
 	for (i = 0; i < 16; /* NOTHING */) {
 		const char *ep;
 		uint32 v;
@@ -434,7 +434,7 @@ string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 	i = 0;
 	for (;;) {
 		int d, v;
-		
+
 		v = dec2int_inline(*p);
 		if (-1 == v)
 			break;
@@ -442,7 +442,7 @@ string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 		d = dec2int_inline(*++p);
 		if (-1 != d) {
 			v = v * 10 + d;
-		
+
 			d = dec2int_inline(*++p);
 			if (-1 != d) {
 				v = v * 10 + d;
@@ -451,7 +451,7 @@ string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 		}
 
 		a = (a << 8) | v;
-		
+
 		if (3 == i++ || '.' != *p)
 			break;
 		p++;
@@ -461,14 +461,14 @@ string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 	 * The check for a dot takes care of addresses like 192.0.2.17.example.com.
 	 */
 	valid = 4 == i && '.' != *p;
-	
+
 	if (endptr)
 		*endptr = p;
 
 	if (addr)
 		*addr = valid ? a : 0;
 
-	return valid; 
+	return valid;
 }
 
 /**
@@ -536,7 +536,7 @@ string_to_ip_and_mask(const char *str, uint32 *ip, uint32 *netmask)
 	} else {
 		uint32 u;
 		int error;
-		
+
 		u = parse_uint32(s, &ep, 10, &error);
 		if (error || u < 1 || u > 32 || *ep != '\0')
 			return FALSE;

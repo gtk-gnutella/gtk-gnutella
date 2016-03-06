@@ -403,7 +403,7 @@ tls_generate_self_signed_cert(const char *file, const char *keyfile)
 		p = poke_le32(serial, now.tv_sec);
 		p = poke_be32(p, now.tv_usec);
 
-		if (TRY(gnutls_x509_crt_set_serial)(crt, serial, G_N_ELEMENTS(serial)))
+		if (TRY(gnutls_x509_crt_set_serial)(crt, serial, N_ITEMS(serial)))
 			goto failed;
 	}
 
@@ -1067,7 +1067,7 @@ tls_log_function(int level, const char *text)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 tls_global_init(void)
 {
 	static const struct {
@@ -1407,7 +1407,7 @@ void
 tls_bye(struct gnutella_socket *s)
 {
 	int ret;
-	
+
 	socket_check(s);
 	g_return_if_fail(s->tls.ctx);
 	g_return_if_fail(s->tls.ctx->session);
@@ -1508,7 +1508,7 @@ svn_release_notify_certificate(void)
 			return NULL;
 		}
 	}
-	return cert; 
+	return cert;
 }
 
 bool

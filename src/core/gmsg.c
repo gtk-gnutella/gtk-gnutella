@@ -102,7 +102,7 @@ gmsg_size_valid(const void *msg, uint16 *size)
 {
 	uint32 raw_size = gnutella_header_get_size(msg);
 	uint16 payload_size = (uint16) (raw_size & GTA_SIZE_MASK);
-	
+
 	if (raw_size == payload_size)
 		goto ok;
 
@@ -165,7 +165,7 @@ gmsg_split_dump(FILE *out, const void *head, const void *data,
 /**
  * Initialization of the Gnutella message structures.
  */
-G_GNUC_COLD void
+void G_COLD
 gmsg_init(void)
 {
 	int i;
@@ -232,7 +232,7 @@ gmsg_init(void)
 /**
  * Destroy locally-allocated data.
  */
-G_GNUC_COLD void
+void G_COLD
 gmsg_close(void)
 {
 	zlib_deflater_free(gmsg_deflater, TRUE);
@@ -342,7 +342,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 
 	{
 		void *header;
-		
+
 		header = pmsg_start(mb);
 		gnutella_header_set_ttl(header,
 			gnutella_header_get_ttl(header) | GTA_UDP_DEFLATED);
@@ -1227,7 +1227,7 @@ gmsg_mq_templates(bool initial, size_t *vcnt)
 /**
  * @param msg		start of message (Gnutella header), followed by data
  * @param msg_len	length of the buffer containing the header + body
- * 
+ *
  * @returns formatted static string:
  *
  *     msg_type (payload length) [hops=x, TTL=x]
@@ -1328,7 +1328,7 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 				vmsg_infostr(data, size),
 				size, plural(size),
 				guid_hex_str(gnutella_header_get_muid(head)),
-				ttl & GTA_UDP_DEFLATED ? "deflated " : 
+				ttl & GTA_UDP_DEFLATED ? "deflated " :
 					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",
 				gnutella_header_get_hops(head),
 				ttl & ~(GTA_UDP_DEFLATED | GTA_UDP_CAN_INFLATE));

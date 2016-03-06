@@ -255,7 +255,7 @@ verify_start(struct verify *ctx)
  * If the callback returns FALSE, hashing of the current file will be
  * aborted and verify_failure() will be called afterwards.
  */
-static bool 
+static bool
 verify_progress(struct verify *ctx)
 {
 	verify_check(ctx);
@@ -325,7 +325,7 @@ uint
 verify_elapsed(const struct verify *ctx)
 {
 	time_delta_t d;
-	
+
 	verify_check(ctx);
 	g_assert(VERIFY_INVALID != ctx->status);
 
@@ -341,7 +341,7 @@ verify_item_hash(const void *key)
 	const struct verify_file *ctx = key;
 
 	verify_file_check(ctx);
-	
+
 	return hashing_mix32(
 		string_mix_hash(ctx->pathname)
 		^ uint64_hash(&ctx->offset)
@@ -411,7 +411,7 @@ verify_thread_local_id(unsigned stid, bool panic)
 {
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(verify_threads); i++) {
+	for (i = 0; i < N_ITEMS(verify_threads); i++) {
 		if (verify_threads[i] == stid)
 			return i;
 	}
@@ -697,7 +697,7 @@ static void
 verify_context_free(void *data)
 {
 	struct verify *ctx = data;
-	
+
 	verify_check(ctx);
 	/* If we're called, the task is being terminated */
 
@@ -1027,7 +1027,7 @@ verify_create_task(struct verify *ctx)
 		}
 
 		ctx->task = bg_task_create(ctx->sched, verify_hash_name(ctx),
-							step, G_N_ELEMENTS(step),
+							step, N_ITEMS(step),
 			  				ctx, verify_context_free,
 							verify_bg_done, NULL);
 	}

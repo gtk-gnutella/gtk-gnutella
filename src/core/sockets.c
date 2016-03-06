@@ -874,12 +874,12 @@ connect_http(struct gnutella_socket *s)
 				{ "CONNECT " }, { NULL }, { " HTTP/1.0\r\nHost: " }, { NULL },
 				{ "\r\n\r\n" },
 			};
-			iovec_t iov[G_N_ELEMENTS(parts)];
+			iovec_t iov[N_ITEMS(parts)];
 			const char *host_port = host_addr_port_to_string(s->addr, s->port);
 			size_t size = 0;
 			uint i;
 
-			for (i = 0; i < G_N_ELEMENTS(iov); i++) {
+			for (i = 0; i < N_ITEMS(iov); i++) {
 				size_t n;
 
 				iovec_set_base(&iov[i], deconstify_char(
@@ -889,7 +889,7 @@ connect_http(struct gnutella_socket *s)
 				size += n;
 			}
 
-			ret = s_writev(s->file_desc, iov, G_N_ELEMENTS(iov));
+			ret = s_writev(s->file_desc, iov, N_ITEMS(iov));
 			if ((size_t) ret != size) {
 				g_warning("sending info to HTTP proxy failed: %s",
 					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
@@ -1400,7 +1400,7 @@ socket_shutdown(void)
 		upnp_unmap_tcp(s_tcp_listen->local_port);
 	if (s_udp_listen != NULL)
 		upnp_unmap_udp(s_udp_listen->local_port);
-	
+
 	/* No longer accept connections or UDP packets */
 	socket_disable(s_local_listen);
 	socket_disable(s_tcp_listen);
@@ -1443,7 +1443,7 @@ socket_attach_ops(gnutella_socket_t *s,
 	socket_check(s);
 	g_assert(!(s->flags & SOCK_F_UDP));
 	g_assert(ops != NULL);
-	
+
 	if (NULL == s->resource.tcp)
 		WALLOC(s->resource.tcp);
 
@@ -2949,7 +2949,7 @@ socket_udp_queue(gnutella_socket_t *s, bool truncated)
 	g_assert(s->flags & SOCK_F_UDP);
 
 	uctx = s->resource.udp;
-	
+
 	WALLOC(uq);
 	uq->buf = wcopy(s->buf, s->pos);
 	uq->len = s->pos;
@@ -4294,7 +4294,7 @@ socket_set_single(struct gnutella_socket *s, bool on)
 		s->flags &= ~SOCK_F_SINGLE;
 	}
 }
- 
+
 /**
  * Creates a non-blocking listening UDP socket.
  *
@@ -4331,7 +4331,7 @@ socket_udp_listen(host_addr_t bind_addr, uint16 port,
 	/*
 	 * Allocate the UDP context and register the datagram reception callback.
 	 */
-	
+
 	WALLOC0(s->resource.udp);
 	s->resource.udp->data_ind = data_ind;
 

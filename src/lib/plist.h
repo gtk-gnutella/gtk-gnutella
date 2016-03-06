@@ -88,7 +88,7 @@ plist_data(const plist_t *pl)
  * Public interface.
  */
 
-plist_t *plist_alloc(void) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+plist_t *plist_alloc(void) G_MALLOC;
 void plist_free_1(plist_t *l);
 void plist_free_1_null(plist_t **l_ptr);
 plist_t *plist_free(plist_t *pl);

@@ -57,7 +57,7 @@ static spinlock_t listener_access[] = {
 	SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT,	/* 32 */
 };
 
-#define LISTENER_HASH_MASK	(G_N_ELEMENTS(listener_access) - 1)
+#define LISTENER_HASH_MASK	(N_ITEMS(listener_access) - 1)
 
 /*
  * Get spinlock to use based on the signal name.

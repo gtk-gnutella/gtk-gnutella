@@ -453,7 +453,7 @@ kademlia_header_constants_ok(const void *header)
 	const kademlia_ipv4_contact_t *contact = kademlia_contact_const(header);
 
 	return
-		0x44 == u8[16] && 
+		0x44 == u8[16] &&
 		4 == kademlia_ipv4_contact_get_addr_length(contact);
 }
 

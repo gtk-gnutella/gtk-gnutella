@@ -177,7 +177,7 @@ ascii_strcase_hash(const void *key)
 {
 	const uchar *s = key;
 	ulong c, hash = 0;
-	
+
 	while ((c = ascii_tolower(*s++))) {
 		hash += (hash << 5) + c;
 	}
@@ -210,7 +210,7 @@ strcmp_delimit_full(const char *a, const char *b,
 		size_t i;
 
 		is_delimit[0] = TRUE;
-		for (i = 1; i < G_N_ELEMENTS(is_delimit); i++) {
+		for (i = 1; i < N_ITEMS(is_delimit); i++) {
 			is_delimit[i] = FALSE;
 		}
 	}

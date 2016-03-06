@@ -165,7 +165,7 @@ host_addr_t
 natpmp_gateway_addr(const natpmp_t *np)
 {
 	natpmp_check(np);
-	
+
 	return np->gateway;
 }
 
@@ -176,7 +176,7 @@ host_addr_t
 natpmp_wan_ip(const natpmp_t *np)
 {
 	natpmp_check(np);
-	
+
 	return np->wan_ip;
 }
 

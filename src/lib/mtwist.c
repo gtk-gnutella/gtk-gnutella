@@ -88,7 +88,7 @@
  * The name of the Mersenne Twister comes from that, and by fortuity its
  * abbreviation, MT, represents the initials of the first names of the
  * two inventors of the algorithm.  Probably a happy coincidence...
- * 
+ *
  * @author Geoff Kuenning
  * @date 2001
  * @author Raphael Manfredi
@@ -174,7 +174,7 @@ mts_seed_with(random_fn_t rf, mt_state_t *mts)
 	 * supersede them with another non-zero random value.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(mts->vec); i++) {
+	for (i = 0; i < N_ITEMS(mts->vec); i++) {
 		if G_UNLIKELY(0 == mts->vec[i]) {
 			uint32 v, n = 0;
 
@@ -255,7 +255,7 @@ static const uint32 matrix_decider[2] = { 0, MATRIX_A };
  *
  * @param state		state for the PRNG
  */
-static G_GNUC_HOT void
+static void G_HOT
 mts_refresh(register mt_state_t *mts)
 {
 	register int i;				/* Index into the state */
@@ -804,7 +804,7 @@ mt_thread_rand64(void)
 /**
  * Initialize built-in default state, once.
  */
-static void
+static void G_COLD
 mt_init_once(void)
 {
 	MTWIST_LOCK;
@@ -817,7 +817,7 @@ mt_init_once(void)
  * Optional initialization routine that can be called to pre-initialize the
  * built-in default state.
  */
-G_GNUC_COLD void
+void G_COLD
 mt_init(void)
 {
 	static once_flag_t inited;

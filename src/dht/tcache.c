@@ -409,7 +409,7 @@ tcache_periodic_prune(void *unused_obj)
 /**
  * Initialize security token caching.
  */
-G_GNUC_COLD void
+void G_COLD
 tcache_init(void)
 {
 	dbstore_kv_t kv = { KUID_RAW_SIZE, NULL, sizeof(struct tokdata),

@@ -669,7 +669,7 @@ OWLIST_foreach_remove(OWLIST_T *list, data_rm_fn_t cbr, void *data)
  * @return the head of the list
  */
 #define OWLIST_merge_sort	CAT2(PREFIX,merge_sort)
-static OWLINK_T * G_GNUC_HOT
+static OWLINK_T * G_HOT
 OWLIST_merge_sort(OWLIST_T *list, OWLINK_T *sublist, size_t count,
 	cmp_data_fn_t cmp, void *data)
 {

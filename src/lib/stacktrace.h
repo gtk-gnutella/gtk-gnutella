@@ -84,8 +84,8 @@ enum stacktrace_sym_quality {
 /**
  * Hashing /equality functions for "struct stacktrace" atomic traces.
  */
-unsigned stack_hash(const void *key) G_GNUC_PURE;
-int stack_eq(const void *a, const void *b) G_GNUC_PURE;
+unsigned stack_hash(const void *key) G_PURE;
+int stack_eq(const void *a, const void *b) G_PURE;
 
 struct logagent;
 
@@ -104,20 +104,25 @@ size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_sym_print(FILE *f);
 void stacktrace_where_sym_print_offset(FILE *f, size_t offset);
-void stacktrace_where_print_offset(FILE *f, size_t offset);
+void stacktrace_where_plain_print_offset(int fd, size_t offset);
 void stacktrace_where_safe_print_offset(int fd, size_t offset);
 void stacktrace_where_cautious_print_offset(int fd, size_t offset);
-void stacktrace_stack_safe_print(int fd, void * const *stack, size_t count);
-void stacktrace_stack_print_decorated(int fd,
+void stacktrace_stack_safe_print(int fd, int stid, void * const *, size_t);
+void stacktrace_stack_plain_print(int fd, void * const *stack, size_t count);
+void stacktrace_stack_fancy_print(int fd, void * const *stack, size_t count);
+void stacktrace_stack_print_decorated(int fd, int stid,
 	void * const *stack, size_t count, uint flags);
 void stacktrace_where_print_decorated(FILE *f, uint flags);
 bool stacktrace_cautious_was_logged(void);
+void stacktrace_cautious_print(int fd, int stid, void *stack[], size_t offset);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
 bool stacktrace_caller_known(size_t offset);
 const void *stacktrace_routine_start(const void *pc);
 bool stacktrace_pc_within_our_text(const void *pc);
+
+void stacktrace_atom_circular_flush(void);
 
 void stacktrace_init(const char *argv0, bool deferred);
 void stacktrace_load_symbols(void);

@@ -110,7 +110,7 @@ shell_help_uploads(int argc, const char *argv[])
 {
 	g_assert(argv);
 	g_assert(argc > 0);
-	
+
 	return NULL;
 }
 

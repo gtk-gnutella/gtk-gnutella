@@ -37,7 +37,7 @@
 #ifndef _inputevt_h_
 #define _inputevt_h_
 
-#include "common.h" 
+#include "common.h"
 
 /**
  * This mimics the GDK input condition type.
@@ -51,7 +51,7 @@ typedef enum {
 
 	INPUT_EVENT_RX  = ((uint) INPUT_EVENT_R  | (uint) INPUT_EVENT_EXCEPTION),
 	INPUT_EVENT_WX  = ((uint) INPUT_EVENT_W  | (uint) INPUT_EVENT_EXCEPTION),
-	
+
 	INPUT_EVENT_RW  = ((uint) INPUT_EVENT_R  | (uint) INPUT_EVENT_W),
 	INPUT_EVENT_RWX = ((uint) INPUT_EVENT_RW | (uint) INPUT_EVENT_EXCEPTION)
 } inputevt_cond_t;

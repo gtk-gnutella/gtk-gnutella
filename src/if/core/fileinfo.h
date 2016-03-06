@@ -84,7 +84,7 @@ typedef struct gnet_fi_info {
 typedef struct gnet_fi_status {
 	filesize_t size;
 	filesize_t done;
-	
+
 	filesize_t uploaded;
 	filesize_t vrfy_hashed;
 	filesize_t copied;
@@ -141,7 +141,7 @@ struct guid;
  * Each download source points to one dl_file_info structure.
  */
 typedef struct dl_file_info {
-	enum fi_magic magic;	
+	enum fi_magic magic;
     gnet_fi_t fi_handle;    /**< Handle */
 	const struct guid *guid;/**< Unique fileinfo ID */
 	uint32 flags;			/**< Operating flags */

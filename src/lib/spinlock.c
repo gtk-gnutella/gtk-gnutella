@@ -36,8 +36,10 @@
 #define SPINLOCK_SOURCE
 
 #include "spinlock.h"
+
 #include "atomic.h"
 #include "compat_usleep.h"
+#include "crash.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
@@ -74,7 +76,7 @@ spinunlock_account(const spinlock_t *s)
 }
 
 static inline void ALWAYS_INLINE
-spinlock_set_owner(spinlock_t *s, const char *file, unsigned line)
+spinlock_set_owner(volatile spinlock_t *s, const char *file, unsigned line)
 {
 	(void) s;
 	(void) file;
@@ -126,7 +128,7 @@ spinlock_source_string(enum spinlock_source src)
 /**
  * Enter crash mode: let all spinlocks be grabbed immediately.
  */
-void G_GNUC_COLD
+void G_COLD
 spinlock_crash_mode(void)
 {
 	/*
@@ -151,7 +153,7 @@ spinlock_crash_mode(void)
  *
  * This is the same a crash_mode, only there is no warning emitted.
  */
-void G_GNUC_COLD
+void G_COLD
 spinlock_exit_mode(void)
 {
 	atomic_int_inc(&spinlock_pass_through);
@@ -162,7 +164,7 @@ spinlock_exit_mode(void)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 spinlock_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
@@ -190,38 +192,31 @@ spinlock_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static NO_INLINE void G_COLD
 spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
-	static int deadlocked;
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked)
-			thread_lock_deadlock(obj);
-		atomic_mb();
-		s_minierror("recursive deadlock on %sspinlock %p at %s:%u",
-			s->lock ? "" : "free ", obj, file, line);
-	}
+	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
+		s->lock ? "" : "free ", obj, file, line);
 
-	deadlocked++;
 	atomic_mb();
-
 	spinlock_check(s);
 
 #ifdef SPINLOCK_DEBUG
 #ifdef SPINLOCK_OWNER_DEBUG
-	s_miniwarn("spinlock %p %s by %s:%u (thread #%u) whilst we wait at %s:%u",
+	s_rawwarn("spinlock %p %s by %s:%u (thread #%u) whilst we wait at %s:%u",
 		obj, s->lock ? "still held" : "already freed",
 		s->file, s->line, s->stid, file, line);
 #else
-	s_miniwarn("spinlock %p %s by %s:%u whilst we wait at %s:%u",
+	s_rawwarn("spinlock %p %s by %s:%u whilst we wait at %s:%u",
 		obj, s->lock ? "still held" : "already freed", s->file, s->line,
 		file, line);
 #endif
 #endif
 
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
 		s->lock ? "" : "free ", obj, elapsed, file, line);
@@ -257,7 +252,6 @@ spinlock_loop(volatile spinlock_t *s,
 	gentime_t start = GENTIME_ZERO;
 	int loops = SPINLOCK_LOOP;
 	const void *element = NULL;
-	time_delta_t d;
 
 	spinlock_check(s);
 
@@ -279,6 +273,7 @@ spinlock_loop(volatile spinlock_t *s,
 
 	if G_UNLIKELY(spinlock_in_crash_mode()) {
 		spinlock_direct(s);
+		spinlock_set_owner(s, file, line);
 		return;
 	}
 
@@ -326,9 +321,7 @@ spinlock_loop(volatile spinlock_t *s,
 						spinlock_source_string(src), src_object, i, file, line);
 				}
 #endif	/* SPINLOCK_DEBUG */
-				if G_UNLIKELY(element != NULL)
-					thread_lock_waiting_done(element);
-				return;
+				goto locked;
 			}
 			if (1 == spinlock_cpus)
 				thread_yield();
@@ -347,10 +340,15 @@ spinlock_loop(volatile spinlock_t *s,
 
 		if G_UNLIKELY(gentime_is_zero(start)) {
 			enum thread_lock_kind kind = THREAD_LOCK_SPINLOCK;
+			g_assert(NULL == element);
 			start = gentime_now_exact();
 			if G_UNLIKELY(SPINLOCK_SRC_MUTEX == src)
 				kind = THREAD_LOCK_MUTEX;
 			element = thread_lock_waiting_element(src_object, kind, file, line);
+		} else {
+			time_delta_t d = gentime_diff(gentime_now_exact(), start);
+			if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
+				(*deadlocked)(src_object, (unsigned) d, file, line);
 		}
 
 		compat_usleep_nocancel(SPINLOCK_DELAY);
@@ -362,13 +360,16 @@ spinlock_loop(volatile spinlock_t *s,
 
 		if G_UNLIKELY(spinlock_in_crash_mode()) {
 			spinlock_direct(s);
-			return;
+			spinlock_set_owner(s, file, line);
+			goto locked;
 		}
-
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > SPINLOCK_TIMEOUT)
-			(*deadlocked)(src_object, (unsigned) d, file, line);
 	}
+
+	g_assert_not_reached();
+
+locked:
+	if G_UNLIKELY(element != NULL)
+		thread_lock_waiting_done(element, src_object);
 }
 
 /**
@@ -400,6 +401,7 @@ spinlock_reset(spinlock_t *s)
 	spinlock_check(s);
 
 	s->lock = 0;
+	atomic_mb();
 }
 
 /**
@@ -479,9 +481,6 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_in_crash_mode())
-		return TRUE;		/* Crashing */
-
 	return FALSE;
 }
 
@@ -521,9 +520,6 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_in_crash_mode())
-		return TRUE;		/* Crashing */
-
 	return FALSE;
 }
 
@@ -562,8 +558,9 @@ spinlock_raw_from(spinlock_t *s, const char *file, unsigned line)
 	spinlock_check(s);
 
 	while (!atomic_acquire(&s->lock)) {
-		if G_UNLIKELY(spinlock_in_crash_mode()) {
+		if G_UNLIKELY(spinlock_in_crash_mode_raw()) {
 			spinlock_direct(s);
+			spinlock_set_owner(s, file, line);
 			break;
 		}
 		if G_UNLIKELY(0 == spinlock_cpus)

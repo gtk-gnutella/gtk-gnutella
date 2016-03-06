@@ -92,7 +92,7 @@ static word_vec_t *
 word_vec_zrealloc(word_vec_t *wv, int ncount)
 {
 	word_vec_t *nwv;
-	
+
 	g_assert(ncount > WOVEC_DFLT);
 
 	HALLOC_ARRAY(nwv, ncount);

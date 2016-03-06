@@ -10,8 +10,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-10-25 20:08+0000\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/nl/)\n"
@@ -593,9 +593,8 @@ msgstr "Afgeschermde node"
 msgid "Protocol not acceptable"
 msgstr "Protocol wordt niet ondersteund"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Conflicten ratio:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -938,13 +937,12 @@ msgstr "THEX mislukt"
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Lees fout: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Te groot"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Onbekend/ontbrekende protocol tag"
@@ -3307,13 +3305,10 @@ msgstr ""
 "gtk-gnutella zal maximaal dit aantal connecties proberen om sneller te "
 "verbinden."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Maximum aantal leaves dat we accepteren. Om naar een Ultra-status "
-"gepromoveerd te worden moet je 32 bytes bandbreedte per leaf reserveren."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Wat te doen met bestanden die voor downloading genegeerd worden."
@@ -6441,9 +6436,8 @@ msgstr "Onbekende eigenschap"
 msgid "Value missing"
 msgstr "Waarde mist"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "Eigenschap patroon:"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -9040,6 +9034,9 @@ msgstr "Gnutella verkeer statistieken"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "Leaf verkeer statistieken _automatisch verbergen"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "Zoek"
 
@@ -9322,6 +9319,11 @@ msgstr ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>Kon FAQ "
 "bestand niet laden. Lees in plaats hiervan de <a href=\"http://gtk-gnutella."
 "sourceforge.net/?page=faq\">FAQ online</a>.</p></body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9796,9 +9798,8 @@ msgstr[1] "%u/%u downloads"
 msgid "Queue frozen"
 msgstr "Wachtrij bevroren"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Deze tijdsinterval"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Selecteer een eigenschap om de omschrijving te bekijken."
@@ -9864,10 +9865,3 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
-
-#~ msgid "You seem to have left another gtk-gnutella running"
-#~ msgstr ""
-#~ "Het ziet er naar uit dat je nog een andere gtk-gnutella hebt draaien"
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "Aanmaken van een luisterende sockets mislukt"

@@ -31,30 +31,30 @@
  *
  * The following example shows the growth of a PATRICIA tree under a
  * sequence of insertions (the alphabet here is {a,b} instead of {0,1}):
- * 
+ *
  *     empty             -- initial state
- * 
+ *
  *        12345          -- number character positions
  * insert ababb          -- the key
  *
  * (differences are shown by upper-casing the alphabet letter)
- * 
+ *
  *     ----> ababb
- * 
+ *
  * insert ababa;
- *     search ends at ababB~=ababA; 
- *     1st difference is at position 5, so... 
- * 
+ *     search ends at ababB~=ababA;
+ *     1st difference is at position 5, so...
+ *
  *     ----> [5]         -- i.e. test position #5
  *          .   .
  *      "a".     ."b"    -- left path taken bit #5 is "a", right if "b"
  *        .       .
  *       ababa     ababb
- * 
+ *
  * insert ba;
- *     has no position #5; 
- *     can skip key positions but must test in order, so... 
- * 
+ *     has no position #5;
+ *     can skip key positions but must test in order, so...
+ *
  *     --------> [1]
  *              .   .
  *             .     .
@@ -64,11 +64,11 @@
  *       .     .
  *      .       .
  *     ababa     ababb
- * 
+ *
  * insert aaabba;
- *     search ends at aBabb~=aAabba; 
- *     can skip key positions but must test in order, so... 
- * 
+ *     search ends at aBabb~=aAabba;
+ *     can skip key positions but must test in order, so...
+ *
  *     --------> [1]
  *              .   .
  *             .     .
@@ -84,11 +84,11 @@
  *           ababa     ababb
  *
  * (WARNING: below text differs from original text on the URL quoted above)
- * 
+ *
  * insert ab;
- *     ab is also a prefix of ababa and ababb; 
- *     must have ability to terminate at an intermediate node, as with Tries. 
- * 
+ *     ab is also a prefix of ababa and ababb;
+ *     must have ability to terminate at an intermediate node, as with Tries.
+ *
  *     -------> [1]
  *             .   .
  *            .     .
@@ -106,7 +106,7 @@
  *         .     .
  *        .       .
  *       ababa     ababb
- * 
+ *
  * It is the position in the tree that defines the key, for lookups. No
  * comparison of keys are done other than testing individual bits.
  *
@@ -503,7 +503,7 @@ found:
 /**
  * Number of bits for the node's prefix.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 node_prefix_bits(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -514,7 +514,7 @@ node_prefix_bits(const struct patricia_node *pn)
 /**
  * Whether node holds data.
  */
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 node_has_data(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -525,7 +525,7 @@ node_has_data(const struct patricia_node *pn)
 /**
  * The key of the data held in the node.
  */
-static inline G_GNUC_PURE const void *
+static inline G_PURE const void *
 node_key(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -541,7 +541,7 @@ node_key(const struct patricia_node *pn)
 /**
  * The key size in bits of the data held in the node.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 node_keybits(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -557,7 +557,7 @@ node_keybits(const struct patricia_node *pn)
 /**
  * The value of the data held in the node.
  */
-static inline G_GNUC_PURE const void *
+static inline G_PURE const void *
 node_value(const struct patricia_node *pn)
 {
 	patricia_node_check(pn);
@@ -573,7 +573,7 @@ node_value(const struct patricia_node *pn)
 /**
  * Is the current node test bit matched by the key?
  */
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 node_matches(const struct patricia_node *pn, const void *key, size_t keybits)
 {
 	const uint8 *k = key;
@@ -594,7 +594,7 @@ node_matches(const struct patricia_node *pn, const void *key, size_t keybits)
  *
  * @return TRUE if keys are identical.
  */
-static bool G_GNUC_PURE
+static bool G_PURE
 key_eq(const void *k1, const void *k2, size_t keybits)
 {
 	size_t bytes;			/* Amount of bytes to compare */
@@ -660,7 +660,7 @@ patricia_matched_bits(
  * of matching leading bits within the key can be determined by calling
  * patricia_matched_bits() on the resulting node).
  */
-static G_GNUC_HOT struct patricia_node *
+static struct patricia_node * G_HOT
 patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
@@ -711,7 +711,7 @@ patricia_match_best(patricia_t *pt, const void *key, size_t keybits)
  *
  * @return the node which is an exact match, or NULL if not found.
  */
-static G_GNUC_HOT const struct patricia_node *
+static const struct patricia_node * G_HOT
 match_exact(const patricia_t *pt, const void *key, size_t keybits)
 {
 	const struct patricia_node *pn;
@@ -1118,7 +1118,7 @@ remove_useless_node(patricia_t *pt, struct patricia_node *pn)
 	} else {
 		pt->root = child;
 	}
-		
+
 	free_node(pt, pn);
 }
 
@@ -2034,7 +2034,7 @@ typedef void (*node_cb_t)(struct patricia_node *pn, void *un);
  * @param un		additional user argument for the ncb callback
  * @param cb		the callback to invoke on each key/value pair if not NULL
  * @param u			additional user argument for the cb callback
- * 
+ *
  */
 static void
 patricia_traverse(patricia_t *pt,
@@ -2629,7 +2629,7 @@ remove_odd_key(void *key, size_t keybits, void *uv, void *uu)
 	return (p[3] & 0x1) ? TRUE : FALSE;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 test_keys(uint32 keys[], size_t nkeys)
 {
 	size_t i;
@@ -2864,7 +2864,7 @@ test_keys(uint32 keys[], size_t nkeys)
 /**
  * Perform unit tests of PATRICIA trees.
  */
-G_GNUC_COLD void
+void G_COLD
 patricia_test(void)
 {
 	size_t i;
@@ -2894,13 +2894,13 @@ patricia_test(void)
 	};
 	patricia_t *pt = patricia_create(32);
 
-	test_keys(keys, G_N_ELEMENTS(keys));
+	test_keys(keys, N_ITEMS(keys));
 
 	keys[0] = 0x1U;		/* Ensure 1 embedded data at least */
 
 	patricia_insert(pt, &keys[0], NULL);
 
-	for (i = 1; i < G_N_ELEMENTS(keys); i++) {
+	for (i = 1; i < N_ITEMS(keys); i++) {
 		int j;
 
 		for (j = 0; j < 10; j++) {
@@ -2915,7 +2915,7 @@ patricia_test(void)
 		patricia_insert(pt, &keys[i], NULL);
 	}
 
-	test_keys(keys, G_N_ELEMENTS(keys));
+	test_keys(keys, N_ITEMS(keys));
 
 	/* all tests passed */
 

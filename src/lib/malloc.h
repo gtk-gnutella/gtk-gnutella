@@ -268,7 +268,7 @@ char *strdup_vprintf_track(const char *file, int line,
 char *strdup_len_vprintf_track(const char *file, int line,
 	const char *fmt, va_list ap, size_t *len);
 char *strdup_printf_track(const char *file, int line, const char *fmt, ...)
-	G_GNUC_PRINTF(3, 4);
+	G_PRINTF(3, 4);
 char **strsplit_track(
 	const char *s, const char *d, size_t m, const char *file, int line);
 

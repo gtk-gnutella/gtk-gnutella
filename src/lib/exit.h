@@ -46,8 +46,8 @@
  */
 
 void exit_cleanup(void);
-void do_exit(int status) G_GNUC_NORETURN;
-void do__exit(int status) G_GNUC_NORETURN;
+void do_exit(int status) G_NORETURN;
+void do__exit(int status) G_NORETURN;
 
 #endif /* _exit_h_ */
 

@@ -48,6 +48,7 @@
 #include "registers.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "unsigned.h"
 
 #include "override.h"	/* Must be the last header included */
@@ -101,7 +102,60 @@ static const struct {
 #ifdef SIGTRAP
 	D(SIGTRAP),
 #endif
+#ifdef SIGHUP
+	D(SIGHUP),
+#endif
+#ifdef SIGEMT
+	D(SIGEMT),
+#endif
+#ifdef SIGQUIT
+	D(SIGQUIT),
+#endif
+#ifdef SIGALRM
+	D(SIGALRM),
+#endif
+#ifdef SIGPOLL
+	D(SIGPOLL),
+#endif
+#ifdef SIGURG
+	D(SIGURG),
+#endif
+#ifdef SIGIO
+	D(SIGIO),
+#endif
+#ifdef SIGSYS
+	D(SIGSYS),
+#endif
+#ifdef SIGCHLD
+	D(SIGCHLD),
+#endif
+#ifdef SIGVTALRM
+	D(SIGVTALRM),
+#endif
+#ifdef SIGUSR1
+	D(SIGUSR1),
+#endif
+#ifdef SIGUSR2
+	D(SIGUSR2),
+#endif
+#ifdef SIGPWR
+	D(SIGPWR),
+#endif
+#ifdef SIGLOST
+	D(SIGLOST),
+#endif
+#ifdef SIGXCPU
+	D(SIGXCPU),
+#endif
+#ifdef SIGXFSZ
+	D(SIGXFSZ),
+#endif
+#ifdef SIGUNUSED
+	D(SIGUNUSED),
+#endif
 	D(SIGABRT),
+	D(SIGINT),
+	D(SIGTERM),
 	D(SIGFPE),
 	D(SIGPIPE),
 	D(SIGILL),
@@ -110,11 +164,16 @@ static const struct {
 };
 
 /**
+ * Cached signal names, from the signals[] table above.
+ */
+static const char *signal_str[SIGNAL_COUNT];
+
+/**
  * Array mapping a signal number to a signal name (leading "SIG" ommitted).
  * This is used in case the signal is not found in the signals[] table.
  * There are SIG_COUNT entries in that array (also computed by Configure).
  */
-static char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
+static const char *signal_names[] = { SIG_NAME };	/* Computed by Configure */
 
 /**
  * Array recording signal handlers for signals.
@@ -161,7 +220,8 @@ static mutex_t signal_lock = MUTEX_INIT;
  */
 static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
 
-static volatile sig_atomic_t in_signal_handler;
+static sig_atomic_t in_signal_handler[THREAD_MAX];
+static bool in_safe_handler[THREAD_MAX];
 static once_flag_t signal_inited;
 static bool signal_catch_segv;
 
@@ -271,9 +331,29 @@ signal_name(int signo)
 	buf_t *b, bs;
 	unsigned i;
 
-	for (i = 0; i < G_N_ELEMENTS(signals); i++) {
-		if (signals[i].signo == signo)
+	/*
+	 * Look in the cache first.
+	 */
+
+	if G_LIKELY(UNSIGNED(signo) < SIGNAL_COUNT && NULL != signal_str[signo])
+		return signal_str[signo];
+
+	/*
+	 * Linear lookup in the table of known common signals.
+	 *
+	 * The result of the linear lookup is cached so that subsequent requests
+	 * for the same signal from the signals[] array is immediately answered.
+	 */
+
+	for (i = 0; i < N_ITEMS(signals); i++) {
+		if (signals[i].signo == signo) {
+			if G_LIKELY(
+				UNSIGNED(signo) < SIGNAL_COUNT &&
+				NULL == signal_str[signo]
+			)
+				signal_str[signo] = signals[i].name;	/* Cache result */
 			return signals[i].name;
+		}
 	}
 
 	/*
@@ -281,7 +361,7 @@ signal_name(int signo)
 	 * There is no "SIG" prefix in names from this array.
 	 */
 
-	if (signal_in_handler()) {
+	if (signal_in_unsafe_handler()) {
 		static char sig_buf[32];	/* Do not allocate memory in handler */
 		b = buf_init(&bs, sig_buf, sizeof sig_buf);
 	} else {
@@ -353,7 +433,7 @@ signal_cleanup_add(signal_cleanup_t cleanup)
 	}
 }
 
-static Sigjmp_buf sig_cleanup_env;
+static sigjmp_buf sig_cleanup_env;
 
 static void
 signal_cleanup_got_signal(int signo)
@@ -361,7 +441,7 @@ signal_cleanup_got_signal(int signo)
 	s_rawwarn("%s(): %s received, continuing...",
 		G_STRFUNC, signal_name(signo));
 
-	Siglongjmp(sig_cleanup_env, signo);
+	siglongjmp(sig_cleanup_env, signo);
 }
 
 /**
@@ -431,7 +511,7 @@ signal_perform_cleanup(void)
  * is close to the address of the routine.
  */
 
-static Sigjmp_buf sig_pc_env;
+static sigjmp_buf sig_pc_env;
 
 /**
  * Compute the PC register index into ``sig_pc_regnum''.
@@ -566,15 +646,175 @@ sig_get_pc(const void *u)
 static volatile sig_atomic_t in_signal_abort;
 
 /**
+ * Get the signal handler level, 0 meaning we are not in a signal handler.
+ *
+ * This is only meant to be used by compat_setjmp() and compat_sigsetjmp().
+ *
+ * @param stid		the small thread ID for which we want the handler level
+ *
+ * @return the signal handler level for the specified thread.
+ */
+sig_atomic_t
+signal_thread_handler_level(uint stid)
+{
+	g_assert(stid < THREAD_MAX);
+
+	return in_signal_handler[stid];
+}
+
+/**
+ * Set the current signal handler level for the calling thread.
+ *
+ * This is only meant to be used by compat_longjmp() and compat_siglongjmp().
+ *
+ * @param stid		the thread ID for which we want to set the handler level
+ * @param level		the new handler level we want to set
+ */
+void
+signal_thread_handler_level_set(uint stid, sig_atomic_t level)
+{
+	sig_atomic_t old_level;
+
+	g_assert(stid < THREAD_MAX);
+	g_assert(level >= 0);
+
+	old_level = in_signal_handler[stid];
+
+	g_assert_log(level <= old_level,
+		"%s(): level=%ld, old_level=%ld, attempt to use stale context?",
+		G_STRFUNC, (long) level, (long) old_level);
+
+	in_signal_handler[stid] = level;
+	in_safe_handler[stid] = FALSE;		/* Assume the worst */
+}
+
+/**
+ * Check whether thread ID is within an asychronous signal handler.
+ *
+ * @return TRUE if we are in an asynchronous signal handler or when the given
+ * thread ID is negative.
+ */
+static inline bool ALWAYS_INLINE
+signal_thread_in_handler(const int id)
+{
+	if G_UNLIKELY(id < 0)
+		return TRUE;
+
+	if G_UNLIKELY(in_signal_handler[id]) {
+		/*
+		 * Handle signal_abort() specially: it's a synchronous signal handler
+		 * and it does not "interrupt" anything in the current thread.
+		 */
+
+		if (ATOMIC_GET(&in_signal_abort))
+			return FALSE;
+
+		/*
+		 * An exception is also a synchronous signal in the current thread.
+		 */
+
+		return !signal_in_exception();
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether we are within an asynchronous signal handler and return
+ * the compute thread ID at the same time.
+ *
+ * The returned thread ID must NOT be used if the routine returns TRUE since
+ * it can potentially be a negative number in disguise, i.e. a very large value.
+ *
+ * This routine exists to optimize operations duing memory allocation when
+ * we need to compute the thread ID and at the same time ensure we are not
+ * within a signal handler.
+ *
+ * @param id	locstion where thread ID is written to
+ *
+ * @return TRUE if we are in an asynchronous signal handler or when we cannot
+ * compute a proper thread ID.
+ */
+bool
+signal_in_handler_stid(uint *id)
+{
+	return signal_thread_in_handler(*id = thread_safe_small_id());
+}
+
+/**
  * Are we in an asynchronous signal handler?
  */
 bool
 signal_in_handler(void)
 {
-	if (ATOMIC_GET(&in_signal_abort) && 1 == ATOMIC_GET(&in_signal_handler))
-		return FALSE;		/* Handle signal_abort() specially */
+	return signal_thread_in_handler(thread_safe_small_id());
+}
 
-	return 0 != ATOMIC_GET(&in_signal_handler) && !signal_in_exception();
+/**
+ * Check whether thread ID is within an unsafe asychronous signal handler.
+ *
+ * @return TRUE if we are in an unsafe asynchronous signal handler or when
+ * the given thread ID is negative (i.e. we assume the worst).
+ */
+static inline bool ALWAYS_INLINE
+signal_thread_in_unsafe_handler(const int id)
+{
+	if G_UNLIKELY(id < 0)
+		return TRUE;
+
+	if G_UNLIKELY(in_safe_handler[id])
+		return FALSE;
+
+	return signal_thread_in_handler(id);
+}
+
+/**
+ * Are we in an asynchronous unsafe signal handler?
+ *
+ * If this rerturn FALSE, we are either not in a signal handler, or this is
+ * a safe signal handler because it interrupted a system call and we know
+ * we were not allocating memory nor holding any locks at that time.
+ *
+ * @return TRUE if thread is in a signal handler that is deemed unsafe.
+ */
+bool
+signal_in_unsafe_handler(void)
+{
+	return signal_thread_in_unsafe_handler(thread_safe_small_id());
+}
+
+/**
+ * Check whether we are within an unsafe asynchronous signal handler and return
+ * the compute thread ID at the same time.
+ *
+ * The returned thread ID must NOT be used if the routine returns TRUE since
+ * it can potentially be a negative number in disguise, i.e. a very large value.
+ *
+ * This routine exists to optimize operations duing memory allocation when
+ * we need to compute the thread ID and at the same time ensure we are not
+ * within a signal handler.
+ *
+ * @param id	locstion where thread ID is written to
+ *
+ * @return TRUE if we are in an unsafe asynchronous signal handler or when
+ * we cannot compute a proper thread ID.
+ */
+bool
+signal_in_unsafe_handler_stid(uint *id)
+{
+	return signal_thread_in_unsafe_handler(*id = thread_safe_small_id());
+}
+
+/**
+ * Reset the signal handler flags for a dead thread.
+ */
+void
+signal_thread_reset(uint id)
+{
+	g_assert(id < THREAD_MAX);
+
+	in_signal_handler[id] = 0;
+	in_safe_handler[id] = 0;
 }
 
 /**
@@ -784,9 +1024,12 @@ static void
 signal_trampoline(int signo)
 {
 	signal_handler_t handler;
+	int id;
+	bool in_syscall, was_safe = FALSE;
 
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
+	in_syscall = thread_was_in_syscall(&id);
 	handler = signal_handler[signo];
 
 	g_soft_assert_log(handler != SIG_DFL && handler != SIG_IGN,
@@ -796,16 +1039,29 @@ signal_trampoline(int signo)
 		SIG_IGN == handler ? "SIG_IGN" : "<BUG>");
 
 	if G_UNLIKELY(SIG_DFL == handler || SIG_IGN == handler)
-		return;
+		goto done;
 
 	/*
 	 * Wrapping the signal handler allows us to know whether we are in
 	 * a signal handler through signal_in_handler().
+	 *
+	 * If this is the first handler and we were in a syscall, then it is
+	 * a safe handler (we can allocate memory,  we were not holding any
+	 * locks when we got interrupted), otherwise flag the handler as unsafe.
 	 */
 
-	ATOMIC_INC(&in_signal_handler);
+	if (id >= 0) {
+		was_safe = in_safe_handler[id];
+
+		if (0 == in_signal_handler[id]++) {
+			g_assert(!was_safe);
+			in_safe_handler[id] = in_syscall;
+		} else {
+			in_safe_handler[id] = FALSE;
+		}
+	}
+
 	(*handler)(signo);
-	ATOMIC_DEC(&in_signal_handler);
 
 	/*
 	 * When leaving the last signal handler, cleanup the emergency chunk.
@@ -818,11 +1074,26 @@ signal_trampoline(int signo)
 		sigset_t set;
 
 		if (signal_enter_critical(&set)) {
-			if (0 == ATOMIC_GET(&in_signal_handler))
+			if (0 == ATOMIC_GET(&in_signal_handler[id]))
 				ck_free_all(sig_chunk);
 			signal_leave_critical(&set);
 		}
 	}
+
+	if (id >= 0) {
+		sig_atomic_t old = in_signal_handler[id]--;
+
+		if (2 == old)
+			in_safe_handler[id] = was_safe;
+		else if (1 == old)
+			in_safe_handler[id] = FALSE;
+	}
+
+	/* FALL THROUGH */
+
+done:
+	if (in_syscall)
+		thread_in_syscall_set(TRUE);
 }
 
 #if defined(HAS_SIGACTION) && defined(SA_SIGINFO)
@@ -1030,7 +1301,8 @@ sig_exception_format(char *dest, size_t size,
 static void
 signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 {
-	static volatile sig_atomic_t extended;
+	static sig_atomic_t extended[THREAD_MAX];
+	int id = thread_safe_small_id();
 	sigset_t set;
 
 	/*
@@ -1048,9 +1320,10 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		thread_stack_check_overflow(si->si_addr);
 #endif
 
-	ATOMIC_INC(&in_signal_handler);
-	ATOMIC_INC(&extended);
-	atomic_mb();
+	if (id >= 0) {
+		in_signal_handler[id]++;
+		extended[id]++;
+	}
 
 	/*
 	 * Check whether signal is still pending.
@@ -1066,7 +1339,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 
 	if (-1 == sigpending(&set)) {
 		s_miniwarn("%s: sigpending() failed: %m", G_STRFUNC);
-	} else if (extended <= 2) {
+	} else if (id >= 0 && extended[id] <= 2) {
 		int i;
 
 		for (i = 1; i < SIG_COUNT; i++) {
@@ -1091,13 +1364,13 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		 * gradually do less and less, until explicit immediate termination.
 		 */
 
-		if (extended > 1) {
-			if (2 == extended) {
+		if (id >= 0 && extended[id] > 1) {
+			if (2 == extended[id]) {
 				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
 				s_rawwarn("%s", data);
 				crash_set_error(data);
 				crash_abort();
-			} else if (3 == extended) {
+			} else if (3 == extended[id]) {
 				abort();
 			} else {
 				_exit(EXIT_FAILURE);
@@ -1109,8 +1382,12 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 		}
 	}
 
-	ATOMIC_DEC(&in_signal_handler);
 	signal_trampoline(signo);
+
+	if (id >= 0) {
+		in_signal_handler[id]--;
+		extended[id]--;
+	}
 }
 #endif	/* HAS_SIGACTION && SA_SIGINFO */
 
@@ -1118,7 +1395,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
  * Installs a signal handler.
  *
  * The signal handler is not reset to the default handler after delivery unless
- * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
+ * the signal is SIGSEGV or SIGBUS, in which case not only is the default
  * handler reset but further occurrence of the signal will retrigger even
  * within signal delivery.
  *
@@ -1140,7 +1417,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	g_assert(handler != SIG_ERR);
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
-	STATIC_ASSERT(SIGNAL_COUNT == G_N_ELEMENTS(signal_handler));
+	STATIC_ASSERT(SIGNAL_COUNT == N_ITEMS(signal_handler));
 
 	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
@@ -1186,7 +1463,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	{
 		static const struct sigaction zero_sa;
 		struct sigaction sa, osa;
-		
+
 		sa = zero_sa;
 		sigemptyset(&sa.sa_mask);
 		sa.sa_flags = signo != SIGALRM ? SA_RESTART : 0;
@@ -1213,7 +1490,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif
 #ifdef SA_ONSTACK
 			if (
-				SIGSEGV == signo 
+				SIGSEGV == signo
 #ifdef SIGBUS
 				|| SIGBUS == signo
 #endif
@@ -1310,7 +1587,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
  * Installs a signal handler.
  *
  * The signal handler is not reset to the default handler after delivery unless
- * the signal is SIGSEGV or SIGBUS, in which case not only is the default 
+ * the signal is SIGSEGV or SIGBUS, in which case not only is the default
  * handler reset but further occurrence of the signal will retrigger even
  * within signal delivery.
  *
@@ -1358,8 +1635,9 @@ signal_unblock(int signo)
 #endif	/* HAS_SIGPROCMASK */
 }
 
-static volatile sig_atomic_t in_critical_section;
 static volatile sig_atomic_t in_exception_handler;
+
+static sig_atomic_t in_critical_section[THREAD_MAX];
 
 /**
  * Are we in an exception?
@@ -1396,24 +1674,16 @@ signal_uncrashing(void)
 /**
  * Block all signals, for entering a critical section.
  *
+ * @param id		thread ID of current thread
  * @param oset		the old signal set, to be passed to signal_leave_critical()
  *
  * @return TRUE if OK, FALSE on error with errno set.
  */
 bool
-signal_enter_critical(sigset_t *oset)
+signal_thread_enter_critical(int id, sigset_t *oset)
 {
+	g_assert(id >= 0);
 	g_assert(oset != NULL);
-
-	/*
-	 * There are no signals on Windows, so there is no risk we can be
-	 * interrupted by a signal on that platform.
-	 */
-
-	if (is_running_on_mingw()) {
-		ATOMIC_INC(&in_critical_section);
-		goto ok;
-	}
 
 #ifdef HAS_SIGPROCMASK
 	{
@@ -1426,21 +1696,62 @@ signal_enter_critical(sigset_t *oset)
 		 * leave the outermost one.
 		 */
 
-		if (ATOMIC_INC(&in_critical_section))
+		if (in_critical_section[id]++ != 0)
 			goto ok;
 
-		sigfillset(&set);		/* Block everything */
+		sigfillset(&set);			/* Block everything but SIGSEGV / SIGBUS */
+		sigdelset(&set, SIGSEGV);
+#ifdef SIGBUS
+		sigdelset(&set, SIGBUS);
+#endif
 
 		if (-1 == sigprocmask(SIG_SETMASK, &set, oset))
 			return FALSE;
 	}
+ok:
 #else
 	(void) oset;
-	return FALSE;
+	in_critical_section[id]++;
 #endif
 
-ok:
 	return TRUE;
+}
+
+/**
+ * Block all signals, for entering a critical section.
+ *
+ * @param oset		the old signal set, to be passed to signal_leave_critical()
+ *
+ * @return TRUE if OK, FALSE on error with errno set.
+ */
+bool
+signal_enter_critical(sigset_t *oset)
+{
+	return signal_thread_enter_critical(thread_small_id(), oset);
+}
+
+/**
+ * Unblock signals that were blocked when we entered the critical section.
+ *
+ * @param id		thread ID of current thread
+ * @param oset		original signal set to restore
+ */
+void
+signal_thread_leave_critical(int id, const sigset_t *oset)
+{
+	g_assert(id >= 0);
+	g_assert(in_critical_section[id] > 0);
+
+	in_critical_section[id]--;
+
+#ifdef HAS_SIGPROCMASK
+	if (0 == in_critical_section[id]) {
+		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
+			s_error("cannot leave critical section: %m");
+	}
+#else
+	(void) oset;
+#endif
 }
 
 /**
@@ -1449,21 +1760,7 @@ ok:
 void
 signal_leave_critical(const sigset_t *oset)
 {
-	g_assert(ATOMIC_GET(&in_critical_section) > 0);
-
-	ATOMIC_DEC(&in_critical_section);
-
-	if (is_running_on_mingw())
-		return;
-
-#ifdef HAS_SIGPROCMASK
-	if (0 == ATOMIC_GET(&in_critical_section)) {
-		if (-1 == sigprocmask(SIG_SETMASK, oset, NULL))
-			s_error("cannot leave critical section: %m");
-	}
-#else
-	(void) oset;
-#endif
+	signal_thread_leave_critical(thread_small_id(), oset);
 }
 
 /**
@@ -1477,6 +1774,8 @@ signal_leave_critical(const sigset_t *oset)
 void
 signal_abort(void)
 {
+	int id = thread_safe_small_id();
+
 	/*
 	 * In case the error occurs within a critical section with all the
 	 * signals blocked, make sure to unblock SIGABRT.  In that case, we
@@ -1485,7 +1784,7 @@ signal_abort(void)
 	 * ``in_signal_abort'' flag.
 	 */
 
-	if (0 != ATOMIC_GET(&in_critical_section))
+	if (id >= 0 && 0 != in_critical_section[id])
 		signal_unblock(SIGABRT);
 	else
 		ATOMIC_SET(&in_signal_abort, TRUE);
@@ -1496,17 +1795,17 @@ signal_abort(void)
 /**
  * Initialize the signal layer.
  */
-static G_GNUC_COLD void
+static void G_COLD
 signal_init_once(void)
 {
 	int regnum;
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(signal_handler); i++) {
+	for (i = 0; i < N_ITEMS(signal_handler); i++) {
 		signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 	}
 
-	/* 
+	/*
 	 * Chunk allocated as non-leaking because the signal chunk must
 	 * remain active up to the very end, way past the point where we're
 	 * supposed to have freed everything and leak detection kicks in.

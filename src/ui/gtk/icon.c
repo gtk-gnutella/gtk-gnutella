@@ -457,7 +457,7 @@ static gboolean
 status_icon_enabled_changed(property_t prop)
 {
 	gboolean enabled;
-	
+
     gui_prop_get_boolean_val(prop, &enabled);
 	if (enabled) {
 		status_icon_enable();
@@ -492,7 +492,7 @@ status_icon_init(void)
  * See --
  *    http://tronche.com/gui/x/icccm/sec-4.html#s-4.1.9
  */
-G_GNUC_COLD void
+void G_COLD
 icon_init(void)
 {
     create_icon();
@@ -554,7 +554,7 @@ icon_close(void)
 static GdkPixmap *icon_map;
 static GdkBitmap *icon_mask;
 
-G_GNUC_COLD void
+void G_COLD
 icon_init(void)
 {
     GtkPixmap *pixmap;

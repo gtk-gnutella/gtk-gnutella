@@ -49,12 +49,12 @@ typedef enum shell_reply (*shell_cmd_handler_t)(struct gnutella_shell *,
 void shell_check(const struct gnutella_shell *);
 void shell_set_msg(struct gnutella_shell *, const char *);
 void shell_set_formatted(struct gnutella_shell *, const char *, ...)
-	G_GNUC_PRINTF(2, 3);
+	G_PRINTF(2, 3);
 void shell_write(struct gnutella_shell *, const char *);
 void shell_write_line(struct gnutella_shell *, int code, const char *);
 void shell_write_lines(struct gnutella_shell *, int code, const char *);
 void shell_write_linef(struct gnutella_shell *, int code, const char *, ...)
-	G_GNUC_PRINTF(3, 4);
+	G_PRINTF(3, 4);
 void shell_exit(struct gnutella_shell *);
 bool shell_toggle_interactive(struct gnutella_shell *);
 uint64 shell_line_count(struct gnutella_shell *);

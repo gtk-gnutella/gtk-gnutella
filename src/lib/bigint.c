@@ -600,7 +600,7 @@ bigint_divide(const bigint_t *bi1, const bigint_t *bi2,
 	 */
 
 	bigint_zero(ri);		/* R = 0 */
-	bigint_copy(qi, bi1);	/* Q = b1 */			
+	bigint_copy(qi, bi1);	/* Q = b1 */
 
 	bigint_init(&nb2, b2->len);
 	bigint_init(&saved, r->len);

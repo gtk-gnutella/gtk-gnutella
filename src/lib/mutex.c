@@ -36,7 +36,9 @@
 #define MUTEX_SOURCE
 
 #include "mutex.h"
+
 #include "atomic.h"
+#include "crash.h"
 #include "log.h"
 #include "spinlock.h"
 #include "thread.h"
@@ -94,7 +96,7 @@ mutex_set_owner(mutex_t *m, const char *file, unsigned line)
 /**
  * Enter crash mode: allow all mutexes to be silently released.
  */
-G_GNUC_COLD void
+void G_COLD
 mutex_crash_mode(void)
 {
 	mutex_pass_through = TRUE;
@@ -105,7 +107,7 @@ mutex_crash_mode(void)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 mutex_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
@@ -118,7 +120,7 @@ mutex_deadlock(const volatile void *obj, unsigned count,
 
 #ifdef SPINLOCK_DEBUG
 	s_miniwarn("mutex %p already held (depth %zu) by %s:%u (%s)",
-		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid));
+		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid));
 #endif
 
 	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
@@ -130,42 +132,36 @@ mutex_deadlock(const volatile void *obj, unsigned count,
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static NO_INLINE void G_COLD
 mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile mutex_t *m = obj;
-	static int deadlocked;
 	unsigned stid;
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked)
-			thread_lock_deadlock(obj);
-		s_minierror("recursive deadlock on mutex %p (depth %zu) at %s:%u",
-			obj, m->depth, file, line);
-	}
+	s_rawwarn("deadlock on mutex %p (depth %zu) at %s:%u",
+		obj, m->depth, file, line);
 
-	deadlocked++;
 	atomic_mb();
-
 	mutex_check(m);
 
 	stid = thread_stid_from_thread(m->owner);
 
 #ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
+	s_rawwarn("mutex %p still held (depth %zu) by %s:%u (%s) "
 		"whilst we wait at %s:%u",
-		obj, m->depth, m->lock.file, m->lock.line, thread_id_name(stid),
+		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid),
 		file, line);
 #endif
 
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,
-		thread_id_name(stid));
+		thread_safe_id_name(stid));
 }
 
 /**
@@ -223,13 +219,22 @@ mutex_is_owned_by(const mutex_t *m, const thread_t t)
 bool
 mutex_is_owned(const mutex_t *m)
 {
+	mutex_check(m);
+
+	/*
+	 * Avoid call to thread_self() if we can.
+	 */
+
+	if (!spinlock_is_held_fast(&m->lock))
+		return FALSE;
+
 	/*
 	 * This is mostly used during assertions, so we do not need to call
 	 * thread_current().  Use thread_self() for speed and safety, in case
 	 * something goes wrong in the thread-checking code.
 	 */
 
-	return mutex_is_owned_by(m, thread_self());
+	return thread_eq(m->owner, thread_self());
 }
 
 /**
@@ -517,7 +522,7 @@ mutex_set_lock_source(mutex_t *m, const char *file, unsigned line)
 /**
  * Log mutex ownership error.
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 mutex_log_error(const mutex_t *m, const char *file, unsigned line)
 {
 	thread_t t = thread_current();
@@ -597,7 +602,7 @@ mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
 		return;		/* Ignore when we're crashing */
 	}
 
-	s_minicrit("Mutex %p not owned at %s:%u in %s",
+	s_minicrit("mutex %p not owned at %s:%u in %s",
 		m, file, line, thread_name());
 
 	mutex_log_error(m, file, line);

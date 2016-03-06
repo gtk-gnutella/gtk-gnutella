@@ -134,7 +134,7 @@ ggept_h_tth_extract(const extvec_t *exv, struct tth *tth)
 	payload = ext_payload(exv);
 	if (payload[0] != GGEP_H_BITPRINT)
 		return GGEP_NOT_FOUND;
-	
+
 	if (tlen != (BITPRINT_RAW_SIZE + 1))
 		return GGEP_INVALID;			/* Size is not right */
 
@@ -163,7 +163,7 @@ static const char *gtkgv_osname[] = {
 static const char *
 ggept_gtkgv_osname(uint8 value)
 {
-	return value >= G_N_ELEMENTS(gtkgv_osname) ?
+	return value >= N_ITEMS(gtkgv_osname) ?
 		gtkgv_osname[0] : gtkgv_osname[value];
 }
 
@@ -192,7 +192,7 @@ ggept_gtkgv_osname_encode(const char *sysname)
 	 * something more specific to use than the defaults.
 	 */
 
-	for (i = 3; i < G_N_ELEMENTS(gtkgv_osname); i++) {
+	for (i = 3; i < N_ITEMS(gtkgv_osname); i++) {
 		if (0 == strcasecmp(sysname, gtkgv_osname[i])) {
 			result = i;
 			break;
@@ -219,7 +219,7 @@ ggept_gtkgv_osname_value(void)
 	 * Computation only happens once.
 	 */
 
-	if (result >= G_N_ELEMENTS(gtkgv_osname)) {
+	if (result >= N_ITEMS(gtkgv_osname)) {
 #ifdef HAS_UNAME
 		{
 			struct utsname un;
@@ -831,7 +831,7 @@ ggept_ip_vec_extract(const extvec_t *exv,
  */
 ggept_status_t
 ggept_alt_extract(const extvec_t *exv,
-	gnet_host_vec_t **hvec, enum net_type net) 
+	gnet_host_vec_t **hvec, enum net_type net)
 {
 	g_assert(exv->ext_type == EXT_GGEP);
 	g_assert(exv->ext_token == EXT_T_GGEP_ALT ||

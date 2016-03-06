@@ -40,7 +40,7 @@
 
 #include "sdbm.h"
 
-extern G_GNUC_PRINTF(1, 2) void oops(char *fmt, ...);
+extern void oops(char *fmt, ...) G_PRINTF(1, 2);
 
 static bool progress;
 static bool shrink, rebuild, thread_safe;
@@ -54,7 +54,7 @@ static bool large_keys, large_values, common_head_tail;
 #define WR_EMPTY	(1 << 2)
 #define WR_DELETING	(1 << 3)
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -223,7 +223,7 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	char buf[1024];
 	datum key;
 	long cpage = 0 == cache ? 64 : cache;
- 
+
 	printf("Starting read test (%ld item%s), cache=%ld page%s...\n",
 		count, plural(count), cpage, plural(cpage));
 
@@ -258,7 +258,7 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	char buf[1024];
 	datum key;
 	long cpage = 0 == cache ? 64 : cache;
- 
+
 	printf("Starting existence test (%ld item%s), cache=%ld page%s...\n",
 		count, plural(count), cpage, plural(cpage));
 

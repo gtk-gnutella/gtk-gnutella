@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-200]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -69,6 +69,15 @@ local_install local_install-strip:: FAQ
 
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(FAQDIR)/FAQ
+
+local_install local_install-strip:: glossary
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(FAQDIR) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(FAQDIR)); \
+	$(INSTALL) -c -m 444 glossary $(INSTALL_PREFIX)$(FAQDIR)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(FAQDIR)/glossary
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

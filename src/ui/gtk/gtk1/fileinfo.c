@@ -170,7 +170,7 @@ download_details_get_text(GtkWidget *widget)
 {
 	GtkCList *clist;
 	int row;
-	
+
 	clist = GTK_CLIST(widget);
 	row = clist_get_cursor_row(clist);
 	return clist_copy_text(clist, row, 1);
@@ -181,7 +181,7 @@ download_aliases_get_text(GtkWidget *widget)
 {
 	GtkCList *clist;
 	int row;
-	
+
 	clist = GTK_CLIST(widget);
 	row = clist_get_cursor_row(clist);
 	return clist_copy_text(clist, row, 0);
@@ -218,7 +218,7 @@ fi_gui_file_show(struct fileinfo_data *file)
 	if (row < 0) {
 		const char *titles[c_fi_num];
 
-		for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+		for (i = 0; i < N_ITEMS(titles); i++) {
 			titles[i] = "";
 		}
 		row = gtk_clist_append(clist_download_files, (char **) &titles);
@@ -394,7 +394,7 @@ fi_gui_source_show(struct download *key)
 	g_return_if_fail(clist);
 	g_return_if_fail(!htable_contains(fi_sources, key));
 
-	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+	for (i = 0; i < N_ITEMS(titles); i++) {
 		titles[i] = "";
 	}
 
@@ -411,7 +411,7 @@ fi_gui_source_show(struct download *key)
 
 	gtk_clist_set_row_data_full(clist, row, key,
 		on_clist_download_sources_row_removed);
-	for (i = 0; i < G_N_ELEMENTS(titles); i++) {
+	for (i = 0; i < N_ITEMS(titles); i++) {
 		render_sources(key, row, i);
 	}
 	gtk_clist_thaw(clist);
@@ -687,7 +687,7 @@ fi_gui_init(void)
 			title = gtk_label_get_text(label);
 			gtk_clist_set_column_name(clist, i, EMPTY_STRING(title));
 		}
-		widget_add_popup_menu(GTK_WIDGET(clist), fi_gui_sources_get_popup_menu);	
+		widget_add_popup_menu(GTK_WIDGET(clist), fi_gui_sources_get_popup_menu);
 	}
 	fi_gui_common_init();
 }
@@ -738,7 +738,7 @@ fi_gui_file_select(struct fileinfo_data *file)
 
 	g_return_if_fail(file);
 	g_return_if_fail(clist);
-	
+
    	row = fileinfo_data_get_row(file);
 	g_return_if_fail(row >= 0);
 
@@ -753,7 +753,7 @@ fi_gui_files_foreach(fi_gui_files_foreach_cb func, void *user_data)
 
 	g_return_if_fail(func);
 	g_return_if_fail(clist);
-	
+
 	gtk_clist_freeze(clist);
     for (row = 0; row < clist->rows; row++) {
 		(*func)(get_fileinfo_data(row), user_data);

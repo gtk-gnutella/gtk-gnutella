@@ -296,7 +296,7 @@ gip_parse_ipv6(const char *line, int linenum)
  *
  * @return The amount of entries loaded.
  */
-static G_GNUC_COLD uint
+static uint G_COLD
 gip_load(FILE *f, unsigned idx)
 {
 	char line[1024];
@@ -305,7 +305,7 @@ gip_load(FILE *f, unsigned idx)
 
 	g_assert(f != NULL);
 	g_assert(uint_is_non_negative(idx));
-	g_assert(idx < G_N_ELEMENTS(gip_source));
+	g_assert(idx < N_ITEMS(gip_source));
 
 	switch (idx) {
 	case GIP_IPV4:
@@ -414,7 +414,7 @@ gip_retrieve(unsigned n)
 
 	length = settings_file_path_load(fp, gip_source[n].file, SFP_DFLT);
 
-	g_assert(length <= G_N_ELEMENTS(fp));
+	g_assert(length <= N_ITEMS(fp));
 
 	f = file_config_open_read_norename_chosen(
 			gip_source[n].what, fp, length, &idx);
@@ -465,7 +465,7 @@ gip_country(const host_addr_t ha)
 
 	if G_UNLIKELY(NULL == geo_db)
 		return ISO3166_INVALID;
-		
+
 	code = iprange_get_addr(geo_db, ha);
 
 	return 0 == code ? ISO3166_INVALID : (code >> 1) - 1;

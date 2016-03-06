@@ -121,6 +121,7 @@ typedef struct {
 #include "pslist.h"
 #include "stacktrace.h"
 #include "stringify.h"
+#include "thread.h"			/* For thread_in_syscall_set() */
 #include "tm.h"
 #include "walloc.h"
 #include "xmalloc.h"
@@ -133,7 +134,7 @@ static unsigned inputevt_stid = THREAD_INVALID_ID;
 /**
  * Set debugging level.
  */
-void 
+void
 inputevt_set_debug(unsigned level)
 {
 	inputevt_debug = level;
@@ -192,6 +193,11 @@ struct event {
 	unsigned data_available;
 };
 
+struct new_relay {
+	inputevt_relay_t *relay;
+	unsigned id;
+};
+
 static const inputevt_handler_t zero_handler;
 static int (*default_poll_func)(GPollFD *, unsigned, int);
 
@@ -201,15 +207,18 @@ struct poll_ctx {
 	bit_array_t *used_event_id;	/**< A bit array, which ID slots are used */
 	bit_array_t *used_poll_idx;	/**< -"-, which Poll IDX slots are used */
 	pslist_t *removed;			/**< List of removed IDs */
+	pslist_t *added_relays;		/**< List of added relays */
 	htable_t *ht;				/**< Records file descriptors */
 	hash_list_t *readable;		/**< Records readable file descriptors */
 	int master_fd;				/**< The ``master'' fd for epoll or kqueue */
 	unsigned num_ev;			/**< Length of the "ev" and "relay" arrays */
+	unsigned num_ev_reserved;	/**< Next reserved ID */
 	unsigned num_poll_idx;		/**< Length of used_poll_idx array */
 	unsigned max_poll_idx;
 	unsigned num_ready;			/**< Used for /dev/poll only */
 	unsigned initialized:1;		/**< TRUE if the context has been initialized */
 	unsigned dispatching:1;		/**< TRUE if dispatching events */
+	unsigned collecting:1;		/**< TRUE when collecing / waiting for events */
 
 #ifdef HAS_KQUEUE
 	struct kevent *kev_arr;
@@ -243,6 +252,9 @@ struct poll_ctx {
 #define CTX_IS_LOCKED(c)	mutex_is_owned(&c->lock)
 
 static unsigned data_available;
+
+static void inputevt_process_added(struct poll_ctx *ctx);
+
 /**
  * @return A positive value indicates how much data is available for reading.
  *		   If zero is returned the amount of available data is unknown.
@@ -258,6 +270,39 @@ get_global_poll_ctx(void)
 {
 	static struct poll_ctx ctx;
 	return &ctx;
+}
+
+/**
+ * Start "collecting" events through a possibly blocking system call.
+ */
+static void
+inputevt_collect_start(struct poll_ctx *ctx, int timeout_ms)
+{
+	g_assert(CTX_IS_LOCKED(ctx));
+
+	ctx->collecting = TRUE;
+	CTX_UNLOCK(ctx);
+
+	if (timeout_ms != 0)
+		thread_in_syscall_set(TRUE);
+}
+
+/**
+ * End "collecting" events.
+ */
+static void
+inputevt_collect_end(struct poll_ctx *ctx, int timeout_ms)
+{
+	g_assert(!CTX_IS_LOCKED(ctx));
+
+	if (timeout_ms != 0)
+		thread_in_syscall_set(FALSE);
+
+	CTX_LOCK(ctx);
+	ctx->collecting = FALSE;
+
+	if (ctx->added_relays != NULL)
+		inputevt_process_added(ctx);
 }
 
 static inline unsigned
@@ -418,7 +463,7 @@ static int
 event_check_all_with_kqueue(struct poll_ctx *ctx)
 {
 	static const struct timespec zero_ts;
-	
+
 	g_assert(ctx);
 	g_assert(ctx->initialized);
 	g_assert(CTX_IS_LOCKED(ctx));
@@ -485,7 +530,7 @@ event_check_all_with_epoll(struct poll_ctx *ctx)
 	g_assert(ctx);
 	g_assert(ctx->initialized);
 	g_assert(CTX_IS_LOCKED(ctx));
-	
+
 	return epoll_wait(ctx->master_fd, ctx->ep_arr, ctx->num_ev, 0);
 }
 #endif	/* HAS_EPOLL */
@@ -534,7 +579,7 @@ event_set_mask_with_dev_poll(struct poll_ctx *ctx, int fd,
 static int
 collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 {
-	struct dvpoll dvp; 
+	struct dvpoll dvp;
 	int ret;
 
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
@@ -544,7 +589,10 @@ collect_events_with_devpoll(struct poll_ctx *ctx, int timeout_ms)
 	dvp.dp_nfds = ctx->num_ev;
 	dvp.dp_fds = ctx->pfd_arr;
 
+	inputevt_collect_start(ctx, timeout_ms);
 	ret = ioctl(ctx->master_fd, DP_POLL, &dvp);
+	inputevt_collect_end(ctx, timeout_ms);
+
 	if (-1 == ret && !is_temporary_error(errno)) {
 		s_warning("%s(): ioctl(%d, DP_POLL) failed: %m",
 			G_STRFUNC, ctx->master_fd);
@@ -588,6 +636,7 @@ event_set_mask_with_poll(struct poll_ctx *ctx, int fd,
 }
 
 #ifdef MINGW32
+
 static unsigned
 get_poll_idx(const struct poll_ctx *ctx, int fd)
 {
@@ -598,7 +647,7 @@ get_poll_idx(const struct poll_ctx *ctx, int fd)
 	g_assert(CTX_IS_LOCKED(ctx));
 
 	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
-	g_assert(NULL != rl);
+	g_assert(rl != NULL);
 	return rl->poll_idx;
 }
 
@@ -648,16 +697,15 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 	if (0 == num_fd)
 		return 0;
 
-	if (timeout_ms < 0) {
-		tv.tv_sec = 0;
-		tv.tv_usec = 0;
-	} else {
+	if (timeout_ms >= 0) {
 		tv.tv_sec = timeout_ms / 1000;
 		tv.tv_usec = (timeout_ms % 1000) * 1000UL;
 	}
 
+	inputevt_collect_start(ctx, timeout_ms);
 	ret = select(FD_SETSIZE, (void *) &r, (void *) &w, (void *) &x,
 			timeout_ms < 0 ? NULL : &tv);
+	inputevt_collect_end(ctx, timeout_ms);
 
 	if (ret < 0) {
 		if (!is_temporary_error(errno)) {
@@ -670,7 +718,7 @@ collect_events_with_select(struct poll_ctx *ctx, int timeout_ms)
 		/* FD_ISSET() */
 		for (i = UNSIGNED(r.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(r.fd_array[i]);
-			ctx->pfd_arr[get_poll_idx(ctx, fd)].revents |= POLLIN; 
+			ctx->pfd_arr[get_poll_idx(ctx, fd)].revents |= POLLIN;
 		}
 		for (i = UNSIGNED(w.fd_count); i-- > 0; /* NOTHING */) {
 			int fd = cast_to_fd(w.fd_array[i]);
@@ -693,7 +741,16 @@ collect_events_with_poll(struct poll_ctx *ctx, int timeout_ms)
 	g_assert(timeout_ms >= 0);		/* Never infinite (blocking) */
 	g_assert(CTX_IS_LOCKED(ctx));
 
+	/*
+	 * Since compat_poll() already accounts for the system call, we pass
+	 * a timeout of 0 to make sure inputevt_collect_start() is not declaring
+	 * it again to the thread layer.
+	 */
+
+	inputevt_collect_start(ctx, 0);
 	ret = compat_poll(ctx->pfd_arr, ctx->max_poll_idx, timeout_ms);
+	inputevt_collect_end(ctx, 0);
+
 	if (-1 == ret && !is_temporary_error(errno)) {
 		s_warning("%s(): poll() failed: %m", G_STRFUNC);
 	}
@@ -771,7 +828,7 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	 */
 	if (*timeout_ms_ptr >= 0 || ret > 0) {
 		*timeout_ms_ptr = timeout_ms;
-	} 
+	}
 }
 
 void
@@ -833,7 +890,7 @@ relay_list_remove(struct poll_ctx *ctx, unsigned id)
 	rl = htable_lookup(ctx->ht, int_to_pointer(relay->fd));
 	g_assert(NULL != rl);
 	g_assert(NULL != rl->sl);
-	
+
 	rl->sl = pslist_remove(rl->sl, uint_to_pointer(id));
 	if (NULL == rl->sl) {
 		g_assert(0 == rl->readers && 0 == rl->writers);
@@ -866,7 +923,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 		bit_array_clear(ctx->used_event_id, id);
 
 		relay = ctx->relay[id];
-		relay_list_remove(ctx, id);		
+		relay_list_remove(ctx, id);
 		WFREE(relay);
 		ctx->relay[id] = NULL;
 	}
@@ -877,7 +934,7 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 /**
  * Our main I/O event dispatching loop.
  */
-static G_GNUC_HOT void
+static void G_HOT
 inputevt_timer(struct poll_ctx *ctx)
 {
 	int num_events;
@@ -910,7 +967,7 @@ inputevt_timer(struct poll_ctx *ctx)
 		pslist_t *evlist = NULL, *es;
 
 		g_assert(UNSIGNED(num_events) <= ctx->num_ev);
-	
+
 		for (idx = 0; num_events > 0 && idx < ctx->num_ev; idx++) {
 			struct event event;
 
@@ -1031,7 +1088,7 @@ inputevt_timer(struct poll_ctx *ctx)
 		plist_free_null(&list);
 		CTX_LOCK(ctx);
 	}
-	
+
 	ctx->dispatching = FALSE;
 
 	if (ctx->removed) {
@@ -1082,7 +1139,13 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
 		dispatch_poll(NULL, 0, ctx);
 	}
 
+	CTX_LOCK(ctx);
+
+	inputevt_collect_start(ctx, timeout_ms);
 	r = default_poll_func(gfds, n, timeout_ms);
+	inputevt_collect_end(ctx, timeout_ms);
+
+	CTX_UNLOCK(ctx);
 
 #ifdef INPUTEVT_DEBUGGING
 	if (-1 == r) {
@@ -1105,8 +1168,8 @@ poll_func(GPollFD *gfds, unsigned n, int timeout_ms)
  *
  * For kqueue it might be possible to queue up kevent changes until the
  * next kevent() polling call but use the above mentioned hinting to
- * flush the kevent calls. This useful because unlike epoll, kqueue allows to
- * add/modify/delete multiple events per syscall. The knowledge about closed
+ * flush the kevent calls. This is useful because unlike epoll, kqueue allows
+ * to add/modify/delete multiple events per syscall. The knowledge about closed
  * descriptors is necessary as kevent() fails with EBADF otherwise and it
  * must be kept in mind, that file descriptor numbers are recycled.
  */
@@ -1121,7 +1184,7 @@ inputevt_remove(unsigned *id_ptr)
 	int fd;
 
 	id = *id_ptr;
-	if (0 == id)
+	if G_UNLIKELY(0 == id)
 		return;
 
 	ctx = get_global_poll_ctx();
@@ -1174,14 +1237,14 @@ inputevt_remove(unsigned *id_ptr)
 	/* Mark as removed */
 	relay->handler = zero_handler;
 
-	if (ctx->dispatching) {
+	if (ctx->dispatching || ctx->collecting) {
 		/*
 		 * Don't clear the "used_event_id" bit yet because this slot must
 		 * not be recycled whilst dispatching events.
 		 */
 		ctx->removed = pslist_prepend(ctx->removed, uint_to_pointer(id));
 	} else {
-		relay_list_remove(ctx, id);		
+		relay_list_remove(ctx, id);
 		WFREE(relay);
 		ctx->relay[id] = NULL;
 		bit_array_clear(ctx->used_event_id, id);
@@ -1198,40 +1261,32 @@ inputevt_get_free_id(const struct poll_ctx *ctx)
 
 	if (0 == ctx->num_ev)
 		return (unsigned) -1;
-	
+
 	return bit_array_first_clear(ctx->used_event_id, 0, ctx->num_ev - 1);
 }
 
-static unsigned
-inputevt_add_source(inputevt_relay_t *relay)
+static void
+inputevt_add_source(struct poll_ctx *ctx, inputevt_relay_t *relay, uint id)
 {
-	struct poll_ctx *ctx;
 	inputevt_cond_t old;
-	unsigned f, id;
 
+	g_assert(CTX_IS_LOCKED(ctx));
 	g_assert(is_valid_fd(relay->fd));
+	g_assert(id != 0);
 
-	ctx = get_global_poll_ctx();
-
-	CTX_LOCK(ctx);
-
-	g_assert(ctx->initialized);
-	g_assert(ctx->ht);
-
-	f = inputevt_get_free_id(ctx);
-	g_assert((unsigned) -1 == f || f < ctx->num_ev);
-
-	if ((unsigned) -1 != f) {
-		id = f;
-	} else {
-		unsigned i, n = ctx->num_ev;
+	if (id >= ctx->num_ev) {
+		unsigned n = ctx->num_ev, i = n;
 
 		/*
-		 * If there was no free ID, the arrays are resized to the
-		 * double size.
+		 * If there was no free ID, the size of arrays is doubled.
 		 */
 
-		ctx->num_ev = 0 != n ? n << 1 : 32;
+		while (i <= ctx->num_ev_reserved)
+			i = ctx->num_ev = 0 != i ? i << 1 : 32;
+
+		ctx->num_ev_reserved = i;
+
+		g_assert(id < ctx->num_ev_reserved);
 
 #ifdef HAS_KQUEUE
 		XREALLOC_ARRAY(ctx->kev_arr, ctx->num_ev);
@@ -1252,23 +1307,18 @@ inputevt_add_source(inputevt_relay_t *relay)
 
 		bit_array_resize(&ctx->used_event_id, n, ctx->num_ev);
 
-		if (0 == n) {
-			/* ID 0 is reserved for compatibility with GLib's IDs */
-			bit_array_set(ctx->used_event_id, 0);
-			id = 1;
-		} else {
-			id = n;
-		}
-
 		XREALLOC_ARRAY(ctx->relay, ctx->num_ev);
 		for (i = n; i < ctx->num_ev; i++)
 			ctx->relay[i] = NULL;
+
+		/* ID 0 is reserved for compatibility with GLib's IDs */
+		if (0 == n)
+			bit_array_set(ctx->used_event_id, 0);
 	}
 
 	g_assert(id < ctx->num_ev);
-	bit_array_set(ctx->used_event_id, id);
-	g_assert(0 != bit_array_get(ctx->used_event_id, id));
 
+	bit_array_set(ctx->used_event_id, id);
 	ctx->relay[id] = relay;
 
 	{
@@ -1313,19 +1363,35 @@ inputevt_add_source(inputevt_relay_t *relay)
 		rl->sl = pslist_prepend(rl->sl, uint_to_pointer(id));
 	}
 
-	if 
+	if
 		(-1 == (*ctx->event_set_mask)(ctx, relay->fd,
 									 old, (old | relay->condition))
 	) {
-		s_error("event_set_mask(%d, %d, ...) failed using %s(): %m",
-			ctx->master_fd, relay->fd,
+		s_error("%s(): event_set_mask(%d, %d, ...) failed using %s(): %m",
+			G_STRFUNC, ctx->master_fd, relay->fd,
 			stacktrace_function_name(ctx->event_set_mask));
 	}
+}
 
-	CTX_UNLOCK(ctx);
+/**
+ * Process added sources.
+ */
+static void
+inputevt_process_added(struct poll_ctx *ctx)
+{
+	pslist_t *sl;
 
-	g_assert(0 != id);	
-	return id;
+	g_assert(CTX_IS_LOCKED(ctx));
+	g_assert(!ctx->collecting);
+
+	PSLIST_FOREACH(ctx->added_relays, sl) {
+		struct new_relay *nr = sl->data;
+
+		inputevt_add_source(ctx, nr->relay, nr->id);
+		WFREE(nr);
+	}
+
+	pslist_free_null(&ctx->added_relays);
 }
 
 void
@@ -1546,12 +1612,19 @@ inputevt_add(int fd, inputevt_cond_t cond,
 	inputevt_handler_t handler, void *data)
 {
 	inputevt_relay_t *relay;
+	struct poll_ctx *ctx;
+	uint id;
 
 	g_assert(is_valid_fd(fd));
 	g_assert(zero_handler != handler);
 
 	safety_assert(is_open_fd(fd));
 	safety_assert(is_a_socket(fd) || is_a_fifo(fd));
+
+	ctx = get_global_poll_ctx();
+
+	g_assert(ctx->initialized);
+	g_assert(ctx->ht != NULL);
 
 	switch (cond) {
 	case INPUT_EVENT_RX:
@@ -1581,7 +1654,51 @@ cond_is_okay:
 			stacktrace_function_name(handler));
 	}
 
-	return inputevt_add_source(relay);
+	/*
+	 * We cannot resize the arrays used to collect events if we are in
+	 * the middle of a collection because the context is unlocked when
+	 * this happens (since we are in a system call and cannot block other
+	 * threads wishing to add / remove sources by keeping the context locked).
+	 *
+	 * However, we need to synchronously return an ID to the caller, so we
+	 * need to decide now and reserve the ID without necessarily adding the
+	 * source.
+	 */
+
+	CTX_LOCK(ctx);
+
+	{
+		uint f = inputevt_get_free_id(ctx);
+		g_assert((unsigned) -1 == f || f < ctx->num_ev);
+
+		if ((unsigned) -1 != f) {
+			id = f;
+			bit_array_set(ctx->used_event_id, id);
+		} else {
+			id = ctx->num_ev_reserved++;
+		}
+
+		/* ID 0 is reserved for compatibility with GLib's IDs */
+		if G_UNLIKELY(0 == id) {
+			id = 1;
+			ctx->num_ev_reserved = 1;
+		}
+	}
+
+	if (ctx->collecting) {
+		struct new_relay *nr;
+
+		WALLOC(nr);
+		nr->relay = relay;
+		nr->id = id;
+		ctx->added_relays = pslist_prepend(ctx->added_relays, nr);
+	} else {
+		inputevt_add_source(ctx, relay, id);
+	}
+
+	CTX_UNLOCK(ctx);
+
+	return id;
 }
 
 /**
@@ -1605,7 +1722,7 @@ void
 inputevt_close(void)
 {
 	struct poll_ctx *ctx;
-	
+
 	ctx = get_global_poll_ctx();
 	inputevt_stid = THREAD_INVALID_ID;
 

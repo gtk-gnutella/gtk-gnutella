@@ -93,7 +93,7 @@ void
 sorted_array_free(struct sorted_array **tab_ptr)
 {
 	struct sorted_array *tab;
-	
+
 	tab = *tab_ptr;
 	if (tab) {
 		sorted_array_check(tab);
@@ -130,7 +130,7 @@ sorted_array_item(const struct sorted_array *tab, size_t i)
  *
  * @return pointer to the start of item if found, NULL otherwise.
  */
-G_GNUC_HOT void *
+void *
 sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
 	sorted_array_check(tab);
@@ -149,7 +149,7 @@ void
 sorted_array_add(struct sorted_array *tab, const void *item)
 {
 	void *dst;
-	
+
 	sorted_array_check(tab);
 
 	if (tab->added >= tab->capacity) {
@@ -202,7 +202,7 @@ sorted_array_sync(struct sorted_array *tab,
 				ret = collision_func(a, b);
 				if (0 != ret) {
 					const void *last;
-					
+
 					removed++;
 					/* Overwrite the current item with last listed item. */
 					last = sorted_array_item_intern(tab, tab->added - removed);
@@ -220,7 +220,7 @@ sorted_array_sync(struct sorted_array *tab,
 	}
 
 	tab->count = tab->added;
-	
+
 	/* Compact the array if possible to save some memory. */
 	if (tab->capacity > tab->count) {
 		tab->capacity = tab->count;

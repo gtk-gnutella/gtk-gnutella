@@ -353,7 +353,7 @@ publisher_is_acceptable(const pdht_info_t *info)
 	return info->presence >= PUBLISH_MIN_PROBABILITY ||
 		info->all_roots >= publisher_minimum || !info->can_bg;
 }
- 
+
 /**
  * Publishing callback invoked when asynchronous publication is completed,
  * or ended with an error.
@@ -943,7 +943,7 @@ publisher_trim_pubdata(void)
 /**
  * Initialize the DHT publisher.
  */
-G_GNUC_COLD void
+void G_COLD
 publisher_init(void)
 {
 	size_t i;
@@ -961,7 +961,7 @@ publisher_init(void)
 
 	cq_periodic_add(publish_cq, PUBLISH_SYNC_PERIOD, publisher_sync, NULL);
 
-	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+	for (i = 0; i < N_ITEMS(inverse_decimation); i++) {
 		double n = i + 1.0;
 		double v = log(n / KDA_K);
 
@@ -973,7 +973,7 @@ publisher_init(void)
 		}
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(inverse_decimation); i++) {
+	for (i = 0; i < N_ITEMS(inverse_decimation); i++) {
 		if (inverse_decimation[i] >= PUBLISH_MIN_DECIMATION) {
 			publisher_minimum = i + 1;
 			break;
@@ -1022,7 +1022,7 @@ publisher_remove_orphan(void *key, void *u_value, size_t u_len, void *u_data)
 /**
  * Shutdown the DHT publisher.
  */
-G_GNUC_COLD void
+void G_COLD
 publisher_close(void)
 {
 	/*

@@ -905,7 +905,7 @@ static const struct hash_ops h<generic>_ops = {
  */
 
 @if TABLE
-static G_GNUC_COLD void
+static void G_COLD
 htable_test_fill(htable_t *ht)
 {
 	size_t i;
@@ -921,7 +921,7 @@ htable_test_fill(htable_t *ht)
 /**
  * Perform unit tests for hash tables.
  */
-G_GNUC_COLD void
+void G_COLD
 htable_test(void)
 {
 	size_t i;

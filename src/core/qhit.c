@@ -480,7 +480,7 @@ flush_match(void)
 
 	{
 		const struct array *token = found_token();
-		
+
 		if (
 			token->data &&
 			!ggep_stream_pack(&gs, GGEP_NAME(SO), token->data, token->size, 0)
@@ -720,7 +720,7 @@ add_file(const shared_file_t *sf)
 		found_insert(sha1);		/* SHA1 are atoms, address is unique */
 
 		needed += 9 + SHA1_BASE32_SIZE;
-		hcnt = dmesh_fill_alternate(sha1, hvec, G_N_ELEMENTS(hvec));
+		hcnt = dmesh_fill_alternate(sha1, hvec, N_ITEMS(hvec));
 		needed += hcnt * 18 + 6;	/* Conservative, assumes IPv6 only */
 	}
 
@@ -893,7 +893,7 @@ add_file(const shared_file_t *sf)
 
 	{
 		const char *rp = shared_file_relative_path(sf);
-		
+
 		if (rp) {
 			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, strlen(rp), 0);
 			if (!ok)
@@ -902,7 +902,7 @@ add_file(const shared_file_t *sf)
 	}
 
 	{
-		time_t create_time;	
+		time_t create_time;
 
 		create_time = shared_file_creation_time(sf);
 		if ((time_t) -1 != create_time) {

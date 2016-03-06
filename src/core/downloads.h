@@ -57,9 +57,9 @@ void download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi);
 void download_orphan_new(const char *file, filesize_t size,
 		const struct sha1 *sha1, fileinfo_t *fi);
 void download_queue(struct download *d,
-	const char *fmt, ...) G_GNUC_PRINTF(2, 3);
+	const char *fmt, ...) G_PRINTF(2, 3);
 void download_stop(struct download *, download_status_t,
-	const char *, ...) G_GNUC_PRINTF(3, 4);
+	const char *, ...) G_PRINTF(3, 4);
 void download_stop_v(struct download *d, download_status_t new_status,
     const char * reason, va_list ap);
 void download_push_ack(struct gnutella_socket *);

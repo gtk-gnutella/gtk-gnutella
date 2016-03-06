@@ -38,7 +38,7 @@
  * Shuffle specified array ``a'' in-place.
  */
 #define SHUFFLE_ARRAY(a) G_STMT_START {				\
-	shuffle((a), G_N_ELEMENTS(a), sizeof((a)[0]));	\
+	shuffle((a), N_ITEMS(a), sizeof((a)[0]));	\
 } G_STMT_END
 
 /**
@@ -52,7 +52,7 @@
  * Shuffle specified array ``a'' in-place with random function ``f''.
  */
 #define SHUFFLE_ARRAY_WITH(f,a) G_STMT_START {					\
-	shuffle_with((f), (a), G_N_ELEMENTS(a), sizeof((a)[0]));	\
+	shuffle_with((f), (a), N_ITEMS(a), sizeof((a)[0]));	\
 } G_STMT_END
 
 /*

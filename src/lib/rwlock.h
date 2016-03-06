@@ -58,6 +58,27 @@
 #ifndef _rwlock_h_
 #define _rwlock_h_
 
+/**
+ * Set RWLOCK_READER_DEBUG to add 8 bytes per rwlock to track which thread
+ * holds at least one reader.
+ */
+#if 0
+#define RWLOCK_READER_DEBUG		/* Tracks threads owning the read lock */
+#endif
+
+/**
+ * Set RWLOCK_READSPOT_DEBUG to add 1K per rwlock (on 64-bit machines) to
+ * track the first reading spot per thread.  It can be used independently
+ * from RWLOCK_READER_DEBUG.
+ */
+#if 0
+#define RWLOCK_READSPOT_DEBUG	/* Tracks first read lock point per thread */
+#endif
+
+#ifdef RWLOCK_READER_DEBUG
+#include "bit_array.h"
+#endif
+
 #include "spinlock.h"
 #include "thread.h"				/* For thread_small_id() in inlined routine */
 
@@ -85,13 +106,35 @@ typedef struct rwlock {
 	spinlock_t lock;		/* The thread-safe lock for updating fields */
 	void *wait_head;		/* Head of the waiting list */
 	void *wait_tail;		/* Tail of the waiting list */
+#ifdef RWLOCK_READER_DEBUG
+	bit_array_t reading[BIT_ARRAY_SIZE(THREAD_MAX)];
+#endif
+#ifdef RWLOCK_READSPOT_DEBUG
+	struct { const char *file; unsigned line; } readspot[THREAD_MAX];
+#endif
 } rwlock_t;
+
+#ifdef RWLOCK_READER_DEBUG
+#define RWLOCK_READING_INIT	,{ 0 }
+#else
+#define RWLOCK_READING_INIT
+#endif
+
+#ifdef RWLOCK_READSPOT_DEBUG
+#define RWLOCK_READSPOT_INIT	,{ { NULL, 0 } }
+#else
+#define RWLOCK_READSPOT_INIT
+#endif
+
 
 /**
  * Static initialization value for a rwlock structure.
  */
 #define RWLOCK_INIT	\
-	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL }
+	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL	\
+		RWLOCK_READING_INIT		\
+		RWLOCK_READSPOT_INIT	\
+	}
 
 /*
  * Internal.
@@ -145,7 +188,7 @@ bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
 
-NON_NULL_PARAM((1, 2)) G_GNUC_NORETURN
+NON_NULL_PARAM((1, 2))
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);
 
 #define assert_rwlock_is_owned(rw) G_STMT_START {	\

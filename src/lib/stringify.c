@@ -101,7 +101,7 @@ ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 
 	for (i = 0; i < 4; i++) {
 		uchar v;
-	   
+
 		v = (ipv4 >> 24) & 0xff;
 		ipv4 <<= 8;
 
@@ -421,6 +421,11 @@ pointer_to_string_buf(const void *ptr, char *dst, size_t size)
 		if (v < 16)
 			break;
 	}
+
+	/* Add the leading "0x" prefix, accounted for in POINTER_BUFLEN */
+
+	*p++ = 'x';		/* String will be reversed */
+	*p++ = '0';
 
 	return reverse_strlcpy(dst, size, buf, p - buf);
 }
@@ -819,6 +824,83 @@ filesize_to_gstring(filesize_t v)
 	return p;
 }
 
+const char *
+uint32_to_string_grp(uint32 v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		uint32_to_gstring_buf(v, p, sz) : uint32_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+uint64_to_string_grp(uint64 v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		uint64_to_gstring_buf(v, p, sz) : uint64_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+uint_to_string_grp(uint v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		uint_to_gstring_buf(v, p, sz) : uint_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+size_t_to_string_grp(size_t v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_T_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		size_t_to_gstring_buf(v, p, sz) : size_t_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+filesize_to_string_grp(filesize_t v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, FILESIZE_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
+
+	n = groupped ?
+		uint64_to_gstring_buf(v, p, sz) : uint64_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
 /**
  * @return hexadecimal string representation of "small" binary buffer.
  *
@@ -968,7 +1050,7 @@ control_escape(const char *s)
 
 		return escaped;
 	}
-	
+
 	return deconstify_gchar(s);
 }
 
@@ -981,7 +1063,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
-		
+
 		return 1;
 	} else {
 		if (esc) {
@@ -1005,7 +1087,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
  *
  * @param src The string to escape.
  * @return The escaped string. MUST NOT be freed.
- */ 
+ */
 const char *
 lazy_string_to_printf_escape(const char *src)
 {
@@ -1045,7 +1127,7 @@ lazy_string_to_printf_escape(const char *src)
 	*p = '\0';
 
 	memcpy(bd, &prev, sizeof prev);
-	return NOT_LEAKING(prev);	
+	return NOT_LEAKING(prev);
 }
 
 /**
@@ -1297,7 +1379,7 @@ time_locale_to_string_buf(time_t t, char *dst, size_t size)
 	const struct tm *tm = localtime(&t);
 	size_t len;
 
-	g_assert(size > 0);	
+	g_assert(size > 0);
 
 	len = strftime(dst, size, "%X", tm);
 	dst[len] = '\0';

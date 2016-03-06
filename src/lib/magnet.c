@@ -125,7 +125,7 @@ free_proxies_list(pslist_t *sl)
 
 static once_flag_t magnet_keys_checked;
 
-static void G_GNUC_COLD
+static void G_COLD
 magnet_key_check(void)
 {
 	TOKENIZE_CHECK_SORTED_WITH(magnet_keys, ascii_strcasecmp);
@@ -134,7 +134,7 @@ magnet_key_check(void)
 static enum magnet_key
 magnet_key_get(const char *s)
 {
-	STATIC_ASSERT(G_N_ELEMENTS(magnet_keys) == NUM_MAGNET_KEYS);
+	STATIC_ASSERT(N_ITEMS(magnet_keys) == NUM_MAGNET_KEYS);
 	g_assert(s != NULL);
 
 	ONCE_FLAG_RUN(magnet_keys_checked, magnet_key_check);
@@ -176,7 +176,7 @@ magnet_parse_path(const char *path, const char **error_str)
 	endptr = is_strprefix(p, "/uri-res/N2R?");
 	if (endptr) {
 		struct sha1 sha1;
-		
+
 		p = endptr;
 		if (!urn_get_sha1(p, &sha1)) {
 			*error_str = "Bad SHA1 in MAGNET URI";
@@ -428,11 +428,11 @@ magnet_handle_key(struct magnet_resource *res,
 	g_return_if_fail(res);
 	g_return_if_fail(name);
 	g_return_if_fail(value);
-	
+
 	if (!utf8_is_valid_string(value)) {
 		const char *encoding;
 		char *result;
-			
+
 		g_message("MAGNET URI key \"%s\" is not UTF-8 encoded", name);
 
 		if (MAGNET_KEY_DISPLAY_NAME != magnet_key_get(name))
@@ -547,7 +547,7 @@ magnet_handle_key(struct magnet_resource *res,
 	G_FREE_NULL(to_free);
 }
 
-struct magnet_resource * 
+struct magnet_resource *
 magnet_parse(const char *url, const char **error_str)
 {
 	static const struct magnet_resource zero_resource;
@@ -628,7 +628,7 @@ void
 magnet_source_free(struct magnet_source **ms_ptr)
 {
 	struct magnet_source *ms = *ms_ptr;
-	
+
 	if (ms) {
 		atom_str_free_null(&ms->hostname);
 		atom_str_free_null(&ms->path);
@@ -695,7 +695,7 @@ magnet_add_source(struct magnet_resource *res, struct magnet_source *s)
 {
 	g_return_if_fail(res);
 	g_return_if_fail(s);
-	
+
 	res->sources = pslist_prepend(res->sources, s);
 }
 
@@ -916,7 +916,7 @@ magnet_proxies_to_string(const sequence_t *proxies)
 {
 	if (NULL == proxies)
 		return h_strdup("");
-	
+
 	return proxy_sequence_to_string(proxies);
 }
 
@@ -942,7 +942,7 @@ magnet_source_to_string(const struct magnet_source *s)
 
 		if (s->guid) {
 			char guid_buf[GUID_HEX_SIZE + 1];
-			
+
 			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
 			concat_strings(prefix_buf, sizeof prefix_buf,
 				"push://", guid_buf, NULL_PTR);
@@ -950,7 +950,7 @@ magnet_source_to_string(const struct magnet_source *s)
 		} else {
 			prefix = "http://";
 		}
-		
+
 		port_buf[0] = '\0';
 		if (s->hostname) {
 			host = s->hostname;
@@ -992,7 +992,7 @@ magnet_to_string(const struct magnet_resource *res)
 	str_t *s;
 
 	g_return_val_if_fail(res, NULL);
-	
+
 	s = str_new(0);
 
 	if (res->display_name) {

@@ -279,20 +279,20 @@ atom_is_addr(const struct packed_host_addr *k)
 /*
  * Hash functions and equality checks
  */
-uint filesize_hash(const void *key) G_GNUC_PURE;
-int filesize_eq(const void *a, const void *b) G_GNUC_PURE;
-uint sha1_hash(const void *key) G_GNUC_PURE;
-int sha1_eq(const void *a, const void *b) G_GNUC_PURE;
-uint tth_hash(const void *key) G_GNUC_PURE;
-int tth_eq(const void *a, const void *b) G_GNUC_PURE;
-uint guid_hash(const void *key) G_GNUC_PURE;
-int guid_eq(const void *a, const void *b) G_GNUC_PURE;
-uint uint64_hash(const void *key) G_GNUC_CONST;
-int uint64_eq(const void *a, const void *b) G_GNUC_PURE;
-uint uint64_mem_hash(const void *key) G_GNUC_PURE;
-int uint64_mem_eq(const void *a, const void *b) G_GNUC_PURE;
-uint uint32_hash(const void *key) G_GNUC_PURE;
-int uint32_eq(const void *a, const void *b) G_GNUC_PURE;
+uint filesize_hash(const void *key) G_PURE;
+int filesize_eq(const void *a, const void *b) G_PURE;
+uint sha1_hash(const void *key) G_PURE;
+int sha1_eq(const void *a, const void *b) G_PURE;
+uint tth_hash(const void *key) G_PURE;
+int tth_eq(const void *a, const void *b) G_PURE;
+uint guid_hash(const void *key) G_PURE;
+int guid_eq(const void *a, const void *b) G_PURE;
+uint uint64_hash(const void *key) G_CONST;
+int uint64_eq(const void *a, const void *b) G_PURE;
+uint uint64_mem_hash(const void *key) G_PURE;
+int uint64_mem_eq(const void *a, const void *b) G_PURE;
+uint uint32_hash(const void *key) G_PURE;
+int uint32_eq(const void *a, const void *b) G_PURE;
 
 #ifdef TRACK_ATOMS
 const void *atom_get_track(enum atom_type, const void *key,

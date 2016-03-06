@@ -74,7 +74,7 @@ const char *
 dbg_ds_name(const dbg_config_t *dc, const void *o)
 {
 	if (NULL == dc->o2str) {
-		buf_t *b = buf_private(G_STRFUNC, POINTER_BUFLEN + CONST_STRLEN("0x"));
+		buf_t *b = buf_private(G_STRFUNC, POINTER_BUFLEN);
 		buf_printf(b, "%p", o);
 		return buf_data(b);
 	} else {
@@ -95,7 +95,7 @@ const char *
 dbg_ds_keystr(const dbg_config_t *dc, const void *key, size_t len)
 {
 	buf_t *b = buf_private(G_STRFUNC,
-		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<key@0x,len=>"));
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<key@,len=>"));
 
 	if (NULL == key)
 		return "<null key>";
@@ -134,7 +134,7 @@ const char *
 dbg_ds_valstr(const dbg_config_t *dc, const void *value, size_t len)
 {
 	buf_t *b = buf_private(G_STRFUNC,
-		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<value@0x,len=>"));
+		POINTER_BUFLEN + SIZE_T_DEC_BUFLEN + CONST_STRLEN("<value@,len=>"));
 
 	if (NULL == value)
 		return "<null value>";

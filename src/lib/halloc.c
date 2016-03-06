@@ -989,14 +989,14 @@ h_strconcat(const char *first, ...)
 /**
  * Calculate the size of the buffer required to hold the string
  * resulting from vnsprintf().
- * 
+ *
  * @param format The printf format string.
  * @param ap The argument list.
  *
  * @return The size of the buffer required to hold the resulting
  *         string including the terminating NUL.
  */
-static size_t G_GNUC_PRINTF(1, 0)
+static size_t G_PRINTF(1, 0)
 vprintf_get_size(const char *format, va_list ap)
 {
 	char *buf;
@@ -1205,35 +1205,32 @@ halloc_stats_digest(sha1_t *digest)
 /**
  * Dump halloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 halloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct hstats stats;
 	uint64 wasted_average, wasted_average_walloc, wasted_average_vmm;
 	uint64 wasted_average_xpmalloc;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	HSTATS_LOCK;
 	stats = hstats;			/* struct copy under lock protection */
 	HSTATS_UNLOCK;
 
 #define DUMP(x) log_info(la, "HALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		 uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&hstats.x);						\
-	log_info(la, "HALLOC %s = %s", #x,							\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+	log_info(la, "HALLOC %s = %s", #x,						\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 #define DUMS(x) log_info(la, "HALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		 size_t_to_gstring(stats.x) : size_t_to_string(stats.x))
+	size_t_to_string_grp(stats.x, groupped))
 
 #define DUMV(x) log_info(la, "HALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		 uint64_to_gstring(x) : uint64_to_string(x))
+	uint64_to_string_grp(x, groupped))
 
 	wasted_average = stats.wasted_cumulative /
 		(0 == stats.allocations ? 1 : stats.allocations);

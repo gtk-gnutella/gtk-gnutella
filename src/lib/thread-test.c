@@ -85,11 +85,11 @@ static long cpu_count;
 
 static void *sleeping_thread(void *unused_arg);
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
+		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
 		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
 		"       [-z fn1,fn2...]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
@@ -113,6 +113,7 @@ usage(void)
 		"  -D : test synchronization dams\n"
 		"  -E : test thread signals\n"
 		"  -F : test thread fork\n"
+		"  -H : test thread interrupts\n"
 		"  -I : test inter-thread waiter signaling\n"
 		"  -K : test thread cancellation\n"
 		"  -M : monitors tennis match via waiters\n"
@@ -173,7 +174,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -183,7 +184,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -228,9 +229,9 @@ static void
 test_create_one(bool repeat, bool join)
 {
 	unsigned i;
-	int launched[G_N_ELEMENTS(names)];
+	int launched[N_ITEMS(names)];
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		int r;
 		int flags = 0;
 
@@ -293,8 +294,8 @@ test_create_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
-		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
+		emit("now joining the %u threads", (uint) N_ITEMS(launched));
+		for (i = 0; i < N_ITEMS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
@@ -446,9 +447,9 @@ static void
 test_cancel_one(bool repeat, bool join)
 {
 	unsigned i;
-	int launched[G_N_ELEMENTS(names)];
+	int launched[N_ITEMS(names)];
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		int r;
 		int flags = 0;
 
@@ -494,8 +495,8 @@ test_cancel_one(bool repeat, bool join)
 		compat_sleep_ms(200);		/* Let all the threads run */
 
 	if (join) {
-		emit("now joining the %u threads", (uint) G_N_ELEMENTS(launched));
-		for (i = 0; i < G_N_ELEMENTS(launched); i++) {
+		emit("now joining the %u threads", (uint) N_ITEMS(launched));
+		for (i = 0; i < N_ITEMS(launched); i++) {
 			int r = launched[i];
 
 			if (-1 == r) {
@@ -553,7 +554,7 @@ test_inter_main(void *arg)
 	sleep(1);
 	emit("signaling main thread");
 	waiter_signal(w);
-	
+
 	compat_sleep_ms(5);
 	waiter_refcnt_dec(arg);
 	return NULL;
@@ -677,7 +678,7 @@ test_semaphore(bool emulated)
 
 	emit("main waiting for subthreads");
 
-	for (i = 0; UNSIGNED(i) < G_N_ELEMENTS(r); i++) {
+	for (i = 0; UNSIGNED(i) < N_ITEMS(r); i++) {
 		if (-1 == thread_join(r[i], NULL))
 			s_error("failed to join with %s: %m", thread_id_name(r[i]));
 	}
@@ -722,7 +723,7 @@ enum game_state other[] = { PLAYER_B, PLAYER_A };
 static void
 create_player(process_fn_t start, int n)
 {
-	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(name));
+	g_assert(n >= 0 && n < (int) N_ITEMS(name));
 
 	if (-1 == thread_create(start, int_to_pointer(n), THREAD_F_DETACH, 8192))
 		s_error("cannot launch player %s: %m", name[n]);
@@ -791,7 +792,7 @@ player_stats(int n)
 {
 	struct game_stats *stats;
 
-	g_assert(n >= 0 && n < (int) G_N_ELEMENTS(game_stats));
+	g_assert(n >= 0 && n < (int) N_ITEMS(game_stats));
 
 	stats = &game_stats[n];
 
@@ -819,7 +820,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	g_assert(0 == cond_pending_count(&game_state_change));
 	g_assert(0 == cond_signal_count(&game_state_change));
 
-	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		create_player(player, i);
 	}
 
@@ -855,7 +856,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 			if (tm_elapsed_f(&end, &now) <= 0.0)
 				break;
 
-			ret = compat_poll(wfd, G_N_ELEMENTS(wfd), 1000);
+			ret = compat_poll(wfd, N_ITEMS(wfd), 1000);
 			if (ret < 0) {
 				s_warning("poll() failed: %m");
 			} else {
@@ -908,7 +909,7 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	g_assert(0 == cond_waiting_count(&game_state_change));
 	g_assert(0 == cond_pending_count(&game_state_change));
 
-	for (i = 0; i < (int) G_N_ELEMENTS(name); i++) {
+	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		player_stats(i);
 	}
 	if (monitor) {
@@ -1070,7 +1071,7 @@ test_overflow(void)
 		s_error("%s(): thread_join() failed: %m", G_STRFUNC);
 }
 
-struct aqt_arg { 
+struct aqt_arg {
 	aqueue_t *r, *a;
 };
 
@@ -1120,7 +1121,7 @@ test_aqueue(bool emulated)
 
 	t = thread_create(aqt_processor, &arg, THREAD_F_PANIC, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(names); i++) {
+	for (i = 0; i < N_ITEMS(names); i++) {
 		ulong res;
 
 		emit("computing length of \"%s\"", names[i]);
@@ -1227,13 +1228,13 @@ test_rwlock(void)
 
 	emit("%s(): multi-threaded tests...", G_STRFUNC);
 
-	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+	for (i = 0; i < N_ITEMS(t); i++) {
 		t[i] = thread_create(test_rwthreads, NULL, 0, 0);
 		if (-1 == t[i])
 			s_error("%s() cannot create thread %u: %m", G_STRFUNC, i);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(t); i++) {
+	for (i = 0; i < N_ITEMS(t); i++) {
 		thread_join(t[i], NULL);
 	}
 
@@ -1499,7 +1500,7 @@ test_barrier_one(bool emulated)
 	int t[2], i, n;
 	barrier_t *cb;
 
-	n = (int) G_N_ELEMENTS(t);
+	n = (int) N_ITEMS(t);
 	cb = barrier_new_full(n + 1, emulated);
 	counter = 0;
 
@@ -1608,7 +1609,7 @@ test_dam_one(bool emulated)
 	barrier_t *b;
 	uint key;
 
-	n = (int) G_N_ELEMENTS(t);
+	n = (int) N_ITEMS(t);
 	d = dam_new_full(&key, emulated);
 	b = barrier_new_full(n + 1, emulated);
 	atomic_int_set(&dam_counter, 0);
@@ -2216,12 +2217,144 @@ test_evq(unsigned repeat)
 	}
 }
 
+#define INTERRUPTS	5	/* Amount of interrupts we're sending */
+
+static int interrupt_count;
+static int interrupt_acks;
+static volatile bool interrupt_seen_2;
+
+static void *
+intr_process(void *arg)
+{
+	int n = pointer_to_int(arg);
+	bool unsafe = signal_in_unsafe_handler();
+
+	s_info("%s(): got %sinterrupt n=%d", G_STRFUNC, unsafe ? "UNSAFE " : "", n);
+
+	atomic_int_inc(&interrupt_count);
+
+	switch (n) {
+	case 0:
+	case 1:
+	case 3:
+		if (unsafe)
+			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
+		break;
+	case 2:
+		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
+		interrupt_seen_2 = TRUE;
+		atomic_mb();
+		break;
+	case 4:
+		if (-1 == thread_cancel(thread_small_id()))
+			s_warning("thread_cancel(self) failed: %m");
+		break;
+	}
+
+	s_info("%s(): done with interrupt n=%d", G_STRFUNC, n);
+
+	return arg;
+}
+
+static void *
+intr_thread(void *unused)
+{
+	int i;
+
+	(void) unused;
+
+	for (i = 0; i < 20; i++) {
+		s_message("%s(): sleeping for 1 sec", G_STRFUNC);
+		thread_sleep_ms(1000);
+	}
+
+	s_error("%s(): something is wrong, missed an interrupt? (got %d)",
+		G_STRFUNC, interrupt_count);
+
+	return NULL;
+}
+
+static void
+intr_acknowledge(void *arg, void *udata)
+{
+	g_assert(udata == (void *) intr_thread);
+	g_assert_log(arg == int_to_pointer(1), "arg=%d", pointer_to_int(arg));
+
+	s_message("%s(): got ack for interrupt n=%d",
+		G_STRFUNC, pointer_to_int(arg));
+
+	interrupt_acks++;
+}
+
+static void
+test_interrupts(void)
+{
+	int i, t, err;
+
+	TESTING(G_STRFUNC);
+
+	t = thread_create(intr_thread, NULL,
+			THREAD_F_PANIC | THREAD_F_WAIT, THREAD_STACK_DFLT);
+
+	for (i = 0; i < INTERRUPTS; i++) {
+		void *arg = NULL;
+		notify_data_fn_t cb = NULL;
+
+		/* Signalled thread needs to have seen interrupt #2 before continuing */
+		if (i > 2 && !interrupt_seen_2) {
+			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
+			while (!interrupt_seen_2) {
+				thread_sleep_ms(100);
+			}
+		}
+
+		s_message("%s(): sending interrupt #%d", G_STRFUNC, i);
+
+		/* Interrupt #1 will be acknowledged */
+		if (1 == i) {
+			arg = (void *) intr_thread;
+			cb = intr_acknowledge;
+		}
+
+		err = thread_interrupt(t, intr_process, int_to_pointer(i), cb, arg);
+		if (0 != err)
+			break;
+		thread_sleep_ms(100);	/* Space interrupts to allow races */
+	}
+	if (err != 0) {
+		errno = err;
+		s_warning("%s(): thread_interrupt() failed: %m", G_STRFUNC);
+		if (-1 == thread_cancel(t))
+			s_error("%s(): thread_cancel() failed: %m", G_STRFUNC);
+	} else {
+		tm_t start, end;
+		tm_now_exact(&start);
+		for (
+			i = 0;
+			i < 300 && INTERRUPTS != atomic_int_get(&interrupt_count);
+			i++
+		) {
+			thread_sleep_ms(10);	/* Give it time to process interrupts */
+		}
+		tm_now_exact(&end);
+		s_message("%s(): waited %ld ms for completion", G_STRFUNC,
+			tm_elapsed_ms(&end, &start));
+	}
+	if (-1 == thread_join(t, NULL))
+		s_warning("%s(): thread_join() failed: %m", G_STRFUNC);
+
+	g_assert_log(INTERRUPTS == atomic_int_get(&interrupt_count),
+		"interrupt_count=%d (expected %d)", interrupt_count, INTERRUPTS);
+	g_assert_log(1 == interrupt_acks,
+		"interrupt_acks=%d (expected 1)", interrupt_acks);
+}
+
 static unsigned
 get_number(const char *arg, int opt)
 {
 	int error;
 	uint32 val;
-	
+
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
@@ -2243,8 +2376,9 @@ main(int argc, char **argv)
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
+	bool interrupts = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:VWX";
 
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
@@ -2271,6 +2405,9 @@ main(int argc, char **argv)
 			break;
 		case 'F':			/* test thread_fork() */
 			forking = TRUE;
+			break;
+		case 'H':			/* test thread interrupts */
+			interrupts = TRUE;
 			break;
 		case 'I':			/* test inter-thread signaling */
 			inter = TRUE;
@@ -2378,6 +2515,9 @@ main(int argc, char **argv)
 	}
 
 	g_assert(0 == thread_by_name("main"));
+
+	if (interrupts)
+		test_interrupts();
 
 	if (aqueue)
 		test_aqueue(emulated);

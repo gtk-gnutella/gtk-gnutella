@@ -97,7 +97,7 @@ read_memory(int fd[2], const unsigned char *addr, size_t length,
 	}
 }
 
-static enum shell_reply	G_GNUC_UNUSED	/* May be unused */
+static enum shell_reply	G_UNUSED	/* May be unused */
 shell_exec_memory_dump(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
@@ -143,7 +143,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		str_cpy(s, pointer_to_string(addr));
 		STR_CAT(s, "  ");
 
-		for (i = 0; i < G_N_ELEMENTS(data); i++) {
+		for (i = 0; i < N_ITEMS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 
@@ -160,7 +160,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		}
 		STR_CAT(s, " |");
 
-		for (i = 0; i < G_N_ELEMENTS(data); i++) {
+		for (i = 0; i < N_ITEMS(data); i++) {
 			if (length > i) {
 				unsigned char c = data[i];
 				c = is_ascii_print(c) ? c : '.';
@@ -172,11 +172,11 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		STR_CAT(s, "|\n");
 		shell_write(sh, str_2c(s));
 
-		if (length < G_N_ELEMENTS(data))
+		if (length < N_ITEMS(data))
 			break;
 
-		length -= G_N_ELEMENTS(data);
-		addr += G_N_ELEMENTS(data);
+		length -= N_ITEMS(data);
+		addr += N_ITEMS(data);
 	}
 	str_destroy(s);
 	fd_close(&fd[0]);
@@ -190,8 +190,18 @@ failure:
 static void
 shell_vtable_settings_log(logagent_t *la)
 {
+	/*
+	 * Since g_mem_is_system_malloc() is deprecated, use pragmas to shut down
+	 * the warning for now.
+	 *		--RAM, 2016-02-22
+	 */
+
+	G_IGNORE_PUSH(-Wdeprecated-declarations);
+
 	log_info(la, "glib's g_malloc() is %s the system's malloc()",
 		g_mem_is_system_malloc() ? "using" : "distinct from");
+
+	G_IGNORE_POP;
 }
 
 typedef void (*shower_cb_t)(logagent_t *la);
@@ -278,7 +288,7 @@ memory_run_opt_shower(struct gnutella_shell *sh,
 	v.cb = cb;
 	v.prefix = prefix;
 	v.options = options;
- 
+
 	return memory_run_opt_showerv(sh, &v, 1);
 }
 
@@ -299,7 +309,7 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 	v[2].cb = shell_vtable_settings_log;
 	v[2].prefix = NULL;
 
-	return memory_run_showerv(sh, v, G_N_ELEMENTS(v));
+	return memory_run_showerv(sh, v, N_ITEMS(v));
 }
 
 static enum shell_reply
@@ -508,7 +518,7 @@ shell_exec_memory_stats(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -582,7 +592,7 @@ shell_exec_memory_check(struct gnutella_shell *sh,
 
 	shell_check(sh);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -714,7 +724,7 @@ shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
 	CMD(usage);
 
 #undef CMD
-	
+
 	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
 	return REPLY_ERROR;
 }

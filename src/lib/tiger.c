@@ -22,7 +22,7 @@
  */
 
 /* (PD) 2001 The Bitzi Corporation
- * Please see file COPYING or http://bitzi.com/publicdomain 
+ * Please see file COPYING or http://bitzi.com/publicdomain
  * for more info.
  *
  * Created and released into the public domain by Eli Biham
@@ -154,7 +154,7 @@
 }
 
 /* The compress function is a function. Requires smaller cache?    */
-static G_GNUC_HOT void
+static void G_HOT
 tiger_compress(const uint64 *data, uint64 state[3])
 {
   tiger_compress_macro(data, state);
@@ -242,7 +242,7 @@ tiger(const void *data, uint64 length, char hash[24])
  * Runs some test cases to check whether the implementation of the tiger
  * hash algorithm is alright.
  */
-G_GNUC_COLD void
+void G_COLD
 tiger_check(void)
 {
 	static const char zeros[1025];
@@ -261,7 +261,7 @@ tiger_check(void)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		char hash[24];
 		char buf[40];
 		bool ok;
@@ -269,7 +269,7 @@ tiger_check(void)
 		ZERO(&buf);
 		tiger(tests[i].s, tests[i].len, hash);
 		base32_encode(buf, sizeof buf, hash, sizeof hash);
-		buf[G_N_ELEMENTS(buf) - 1] = '\0';
+		buf[N_ITEMS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);
 		if (!ok) {

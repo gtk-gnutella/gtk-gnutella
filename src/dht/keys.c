@@ -732,21 +732,21 @@ keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 		bool found = FALSE;
 
 		while (low <= high) {
-			int mid = low + (high - low) / 2;
+			int mid = (low + high) / 2;
 			int c;
 
 			g_assert(mid >= 0 && mid < ki->values);
 
 			c = kuid_cmp(&kd->creators[mid], cid);
 
-			if (0 == c) {
+			if G_UNLIKELY(0 == c) {
 				kd->expire[mid] = expire;
 				found = TRUE;
 				break;
 			} else if (c < 0) {
 				low = mid + 1;
 			} else {
-				high = mid - 1;
+				high = mid - 1;		/* -1 OK since low and high are signed */
 			}
 		}
 
@@ -866,20 +866,20 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		 */
 
 		while (low <= high) {
-			int mid = low + (high - low) / 2;
+			int mid = (low + high) / 2;
 			int c;
 
 			g_assert(mid >= 0 && mid < ki->values);
 
 			c = kuid_cmp(&kd->creators[mid], cid);
 
-			if (0 == c)
+			if G_UNLIKELY(0 == c)
 				g_error("new creator KUID %s must not already be present",
 					kuid_to_hex_string(cid));
 			else if (c < 0)
 				low = mid + 1;
 			else
-				high = mid - 1;
+				high = mid - 1;		/* -1 OK since low and high are signed */
 		}
 
 		/* Make room for inserting new item at `low' */
@@ -1148,11 +1148,11 @@ deserialize_keydata(bstr_t *bs, void *valptr, size_t len)
 	if (!bstr_read_u8(bs, &kd->values))
 		return;
 
-	if (kd->values > G_N_ELEMENTS(kd->creators))
+	if (kd->values > N_ITEMS(kd->creators))
 		return;
 
-	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->dbkeys));
-	STATIC_ASSERT(G_N_ELEMENTS(kd->creators) == G_N_ELEMENTS(kd->expire));
+	STATIC_ASSERT(N_ITEMS(kd->creators) == N_ITEMS(kd->dbkeys));
+	STATIC_ASSERT(N_ITEMS(kd->creators) == N_ITEMS(kd->expire));
 
 	for (i = 0; i < kd->values; i++) {
 		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
@@ -1365,7 +1365,7 @@ keys_decimation_factor(const kuid_t *key)
 
 	delta = kball.furthest_bits - common;
 
-	g_assert(delta > 0 && UNSIGNED(delta) < G_N_ELEMENTS(decimation_factor));
+	g_assert(delta > 0 && UNSIGNED(delta) < N_ITEMS(decimation_factor));
 
 	return decimation_factor[delta];
 }
@@ -1393,7 +1393,7 @@ struct keys_create_context {
  *
  * @return TRUE if persisted entry can be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 reload_ki(void *key, void *value, size_t u_len, void *data)
 {
 	struct keys_create_context *ctx = data;
@@ -1454,7 +1454,7 @@ reload_ki(void *key, void *value, size_t u_len, void *data)
 	return FALSE;		/* Keep keydata */
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 keys_free_dbkey(const void *key, void *u_data)
 {
 	const uint64 *dbkey = key;
@@ -1466,7 +1466,7 @@ keys_free_dbkey(const void *key, void *u_data)
 /**
  * Set iterator to remove keys with no values.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 keys_discard_if_empty(void *key, void *u_data)
 {
 	struct keyinfo *ki = key;
@@ -1490,7 +1490,7 @@ keys_discard_if_empty(void *key, void *u_data)
 /**
  * DBMW iterator to delete keys with no values.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 keys_delete_if_empty(void *u_key, void *value, size_t u_len, void *u_data)
 {
 	struct keydata *kd = value;
@@ -1505,7 +1505,7 @@ keys_delete_if_empty(void *u_key, void *value, size_t u_len, void *u_data)
 /**
  * DBMW iterator to reset key data.
  */
-static G_GNUC_COLD void
+static void G_COLD
 keys_reset_keydata(void *key, void *u_data)
 {
 	struct keyinfo *ki = key;
@@ -1521,7 +1521,7 @@ keys_reset_keydata(void *key, void *u_data)
 /**
  * Recreate keyinfo data from persisted information.
  */
-static G_GNUC_COLD void
+static void G_COLD
 keys_init_keyinfo(void)
 {
 	struct keys_create_context ctx;
@@ -1604,7 +1604,7 @@ keys_sync(void *unused_obj)
 /**
  * Initialize local key management.
  */
-G_GNUC_COLD void
+void G_COLD
 keys_init(void)
 {
 	size_t i;
@@ -1627,7 +1627,7 @@ keys_init(void)
 		kv, packing, KEYS_DB_CACHE_SIZE, kuid_hash, kuid_eq,
 		GNET_PROPERTY(dht_storage_in_memory));
 
-	for (i = 0; i < G_N_ELEMENTS(decimation_factor); i++)
+	for (i = 0; i < N_ITEMS(decimation_factor); i++)
 		decimation_factor[i] = pow(KEYS_DECIMATION_BASE, i);
 
 	values_init();
@@ -1736,9 +1736,9 @@ keys_offload(const knode_t *kn)
 	 */
 
 	n = dht_fill_closest(ctx.our_kuid, kclosest,
-			G_N_ELEMENTS(kclosest), ctx.remote_kuid, TRUE);
+			N_ITEMS(kclosest), ctx.remote_kuid, TRUE);
 
-	if (n < G_N_ELEMENTS(kclosest)) {
+	if (n < N_ITEMS(kclosest)) {
 		if (debug)
 			g_warning("DHT got only %u closest alive nodes, cannot offload", n);
 		return;
@@ -1750,7 +1750,7 @@ keys_offload(const knode_t *kn)
 	 */
 
 	ctx.kclosest = patricia_create(KUID_RAW_BITSIZE);
-	for (n = 0; n < G_N_ELEMENTS(kclosest); n++) {
+	for (n = 0; n < N_ITEMS(kclosest); n++) {
 		patricia_insert(ctx.kclosest, kclosest[n]->id, kclosest[n]->id);
 	}
 	patricia_insert(ctx.kclosest, ctx.our_kuid, ctx.our_kuid);
@@ -1792,7 +1792,7 @@ keys_free_kv(void *val, void *u_x)
 /**
  * Close local key management.
  */
-G_GNUC_COLD void
+void G_COLD
 keys_close(void)
 {
 	values_close();

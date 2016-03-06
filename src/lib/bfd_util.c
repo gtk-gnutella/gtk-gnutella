@@ -162,6 +162,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	g_assert(bc->symbols != NULL);
 
 	empty = bfd_make_empty_symbol(bc->handle);
+	symbols_lock(st);
 
 	for (
 		i = 0, p = bc->symbols;
@@ -172,7 +173,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		symbol_info syminfo;
 
 		sym = bfd_minisymbol_to_symbol(bc->handle, bc->dynamic, p, empty);
-		bfd_get_symbol_info (bc->handle, sym, &syminfo);
+		bfd_get_symbol_info(bc->handle, sym, &syminfo);
 
 		if ('T' == syminfo.type || 't' == syminfo.type) {
 			const char *name = bfd_asymbol_name(sym);
@@ -184,6 +185,7 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		}
 	}
 
+	symbols_unlock(st);
 	mutex_unlock_fast(&bc->lock);
 }
 
@@ -664,7 +666,7 @@ bfd_util_close_null(bfd_env_t **be_ptr)
 
 /**
  * Load text symbols into the supplied symbol table from the specified file.
- * 
+ *
  * This is equivalent to running "nm -p file" and parsing back the results
  * although we do not have to actually launch a new process and parse the
  * command output: the symbol extraction is handled by the BFD library.

@@ -106,13 +106,13 @@ verify_sha1_digest(const struct verify *ctx)
 	return &verify_sha1.digest;
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 verify_sha1_init_once(void)
 {
 	verify_sha1.verify = verify_new(&verify_hash_sha1);
 }
 
-G_GNUC_COLD void
+void G_COLD
 verify_sha1_init(void)
 {
 	static once_flag_t initialized;
@@ -130,7 +130,7 @@ verify_sha1_init(void)
 	once_flag_runwait(&initialized, verify_sha1_init_once);
 }
 
-G_GNUC_COLD void
+void G_COLD
 verify_sha1_close(void)
 {
 	verify_free(&verify_sha1.verify);

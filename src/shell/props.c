@@ -92,7 +92,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	parsed = shell_options_parse(sh, argv, options, G_N_ELEMENTS(options));
+	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
 	if (parsed < 0)
 		return REPLY_ERROR;
 
@@ -109,7 +109,7 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	PSLIST_FOREACH(props, sl) {
 		property_t prop;
-	   
+
 		prop = pointer_to_uint(sl->data);
 		shell_write(sh, gnet_prop_name(prop));
 		if (values) {

@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-199]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-200]
 : $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
@@ -151,11 +151,13 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
 	compat_pio.c \
 	compat_poll.c \
 	compat_sendfile.c \
+	compat_setjmp.c \
 	compat_sleep_ms.c \
 	compat_statvfs.c \
 	compat_un.c \
@@ -313,6 +315,7 @@ LSRC = \
 	watcher.c \
 	wd.c \
 	well.c \
+	win32dlp.c \
 	wordvec.c \
 	wq.c \
 	xmalloc.c \
@@ -347,11 +350,13 @@ LOBJ = \
 	ckalloc.o \
 	cmwc.o \
 	cobs.o \
+	compat_gettid.o \
 	compat_misc.o \
 	compat_pause.o \
 	compat_pio.o \
 	compat_poll.o \
 	compat_sendfile.o \
+	compat_setjmp.o \
 	compat_sleep_ms.o \
 	compat_statvfs.o \
 	compat_un.o \
@@ -509,6 +514,7 @@ LOBJ = \
 	watcher.o \
 	wd.o \
 	well.o \
+	win32dlp.o \
 	wordvec.o \
 	wq.o \
 	xmalloc.o \

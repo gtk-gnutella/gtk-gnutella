@@ -156,7 +156,7 @@ pattern_compile(const char *pattern)
  * @attention
  * NB: There is no pattern_free_fast(), just call pattern_free() on the result.
  */
-G_GNUC_HOT cpattern_t *
+cpattern_t * G_HOT
 pattern_compile_fast(const char *pattern, size_t plen)
 {
 	cpattern_t *p;
@@ -207,7 +207,7 @@ pattern_free_null(cpattern_t **cpat_ptr)
  *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
-G_GNUC_HOT const char *
+const char * G_HOT
 pattern_qsearch(
 	const cpattern_t *cpat,	/**< Compiled pattern */
 	const char *text,		/**< Text we're scanning */

@@ -119,8 +119,6 @@ struct list_iter {
 		assert_mutex_is_owned((l)->lock);		\
 } G_STMT_END
 
-#define equiv(p,q)	(!(p) == !(q))
-
 #ifdef USE_LIST_REGRESSION
 static inline void
 list_regression(const list_t *list)
@@ -193,7 +191,7 @@ list_t *
 list_new(void)
 {
 	list_t *list;
-		
+
 	WALLOC0(list);
 	list->refcount = 1;
 	list->stamp = LIST_MAGIC + 1;
@@ -212,7 +210,7 @@ list_free(list_t **list_ptr)
 	g_assert(list_ptr);
 	if (*list_ptr) {
 		list_t *list;
-	
+
 		list = *list_ptr;
 		g_assert(LIST_MAGIC == list->magic);
 

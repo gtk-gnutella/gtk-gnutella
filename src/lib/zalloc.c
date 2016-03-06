@@ -122,8 +122,6 @@
 
 #include "override.h"		/* Must be the last header included */
 
-#define equiv(p,q)		(!(p) == !(q))
-
 #define zalloc_debugging(lvl)	G_UNLIKELY(zalloc_debug > (lvl))
 
 #ifdef ZALLOC_SAFETY_ASSERT
@@ -538,7 +536,7 @@ zgc_subzinfo_valid(const zone_t *zone, const struct subzinfo *szi)
  * @attention due to the naive alogorithm used here, the runtime penalty is
  * astonishing.  Almost 60% of the CPU time ends up being spent there!
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 zbelongs(const zone_t *zone, const void *blk)
 {
 	if G_UNLIKELY(NULL == zone->zn_rang)
@@ -770,7 +768,7 @@ zunlock(zone_t *zone)
  * @return a pointer to a block containing at least 'size' bytes of
  * memory.  It is a fatal error if memory cannot be allocated.
  */
-G_GNUC_HOT void *
+void * G_HOT
 zalloc(zone_t *zone)
 {
 	char **blk;		/**< Allocated block */
@@ -1398,7 +1396,7 @@ zalloc_adjust_size(size_t requested, unsigned *hint_ptr, bool verbose)
 	if (wasted > 0) {
 		size_t bsize = rounded / hint;
 		size_t adjusted = (bsize / ZALLOC_ALIGNBYTES) * ZALLOC_ALIGNBYTES;
-	
+
 		g_assert(adjusted >= size);
 
 		if (adjusted != size) {
@@ -1853,7 +1851,7 @@ free_zone(const void *u_key, void *value, void *u_data)
  * Close the zone allocator, destroying all the remaining zones regardless
  * of their reference count.
  */
-G_GNUC_COLD void
+void G_COLD
 zclose(void)
 {
 	if (NULL == zt)
@@ -1977,43 +1975,50 @@ subzinfo_cmp(const void *a, const void *b)
  *
  * @return a pointer to the found subzone information, NULL if not found.
  */
-static G_GNUC_HOT struct subzinfo *
+static struct subzinfo * G_HOT
 zgc_find_subzone(struct zone_gc *zg, void *blk, unsigned *low_ptr)
 {
-	struct subzinfo *item, *array = zg->zg_subzinfo;
-	unsigned low = 0, high = zg->zg_zones - 1;
+	const struct subzinfo
+		*array = zg->zg_subzinfo,
+		*low = &array[0],
+		*high = &array[zg->zg_zones - 1],
+		*mid;
 	const char * const key = blk;
+
+	if G_UNLIKELY(0 == zg->zg_zones) {
+		if (low_ptr != NULL)
+			*low_ptr = 0;
+		return NULL;
+	}
 
 	/* Binary search */
 
 	for (;;) {
-		unsigned mid;
-
-		if G_UNLIKELY(low > high || high > INT_MAX) {
-			item = NULL;	/* Not found */
+		if G_UNLIKELY(low > high) {
+			mid = NULL;		/* Not found */
 			break;
 		}
+
 		mid = low + (high - low) / 2;
 
-		item = &array[mid];
-		if (key >= item->szi_end)
+		if (key >= mid->szi_end)
 			low = mid + 1;
-		else if (key < item->szi_base)
-			high = mid - 1;
+		else if (key < mid->szi_base)
+			high = mid - 1;		/* -1 OK since pointers cannot reach page 0 */
 		else
 			break;	/* Found */
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = low;
+		*low_ptr = low - &array[0];
 
-	return item;
+	return deconstify_pointer(mid);
 }
 
 /**
  * Check whether address falls within the subzone boundaries.
  */
-static inline G_GNUC_HOT bool
+static inline bool G_HOT
 zgc_within_subzone(const struct subzinfo *szi, const void *p)
 {
 	struct subzone *sz;
@@ -2737,7 +2742,7 @@ zgc_dispose(zone_t *zone)
 /**
  * Allocate a block from the first subzone with free items.
  */
-static G_GNUC_HOT void *
+static void * G_HOT
 zgc_zalloc(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;
@@ -3187,7 +3192,7 @@ zalloc_idle_collect(void *unused_data)
 /**
  * Install the periodic idle zgc() call.
  */
-static G_GNUC_COLD void
+static void G_COLD
 zalloc_zgc_install(void)
 {
 	evq_raw_idle_add(zalloc_idle_collect, NULL);
@@ -3196,7 +3201,7 @@ zalloc_zgc_install(void)
 /**
  * Called when the VMM layer has been initialized.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_long_term(void)
 {
 	static once_flag_t zalloc_zgc_installed;
@@ -3217,7 +3222,7 @@ zalloc_long_term(void)
 /**
  * Initialize the zone allocator, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 zinit_once(void)
 {
 	addr_grows_upwards = vmm_grows_upwards();
@@ -3229,7 +3234,7 @@ zinit_once(void)
 /**
  * Initialize zone allocator.
  */
-G_GNUC_COLD void
+void G_COLD
 zinit(void)
 {
 	static once_flag_t initialized;
@@ -3240,7 +3245,7 @@ zinit(void)
 /**
  * Turn on dynamic memory usage stats collection.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_memusage_init(void)
 {
 	zone_t **zones;
@@ -3281,7 +3286,7 @@ zalloc_memusage_init(void)
 /**
  * Turn off dynamic memory usage stats collection.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_memusage_close(void)
 {
 	zone_t **zones;
@@ -3483,7 +3488,7 @@ zalloc_stats_digest(sha1_t *digest)
 /**
  * Dump zone status to specified log agent.
  */
-G_GNUC_COLD  void
+void G_COLD
 zalloc_dump_zones_log(logagent_t *la)
 {
 	struct zonesize_filler filler;
@@ -3555,7 +3560,7 @@ zalloc_dump_zones_log(logagent_t *la)
 /**
  * Dump zalloc() usage stats about zones to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_dump_usage_log(logagent_t *la, unsigned options)
 {
 	struct zonesize_filler filler;
@@ -3584,10 +3589,11 @@ zalloc_dump_usage_log(logagent_t *la, unsigned options)
 /**
  * Dump zalloc() statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct zstats stats;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zone_count = %s",
@@ -3598,14 +3604,12 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	ZSTATS_UNLOCK;
 
 #define DUMP(x)	log_info(la, "ZALLOC %s = %s", #x,		\
-	(options & DUMP_OPT_PRETTY) ?						\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&zstats.x);						\
 	log_info(la, "ZALLOC %s = %s", #x,						\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 	DUMP(allocations);
@@ -3652,7 +3656,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump zalloc() statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 zalloc_dump_stats(void)
 {
 	s_info("ZALLOC running statistics:");

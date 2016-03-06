@@ -45,65 +45,83 @@
  *** Private functions
  ***/
 
-static struct html_view *faq_html_view;
+struct textview_info {
+	const char *file;
+	file_path_t fp[6];
+	struct html_view *view;
+	uint fp_cnt;
+};
 
-static G_GNUC_COLD void
-load_faq(void)
+static struct textview_info faq_textview = {
+	.file = "FAQ",
+};
+
+static struct textview_info glossary_textview = {
+	.file = "glossary",
+};
+
+static void G_COLD
+load_textview(GtkWidget *textview,
+	struct textview_info *ti, const struct array dflt)
 {
-	static const gchar faq_file[] = "FAQ";
-	static file_path_t fp[6];
-	static int initialized;
-	GtkWidget *textview;
-	const gchar *lang;
-	guint i = 0;
+	const char *lang;
+	uint i = 0;
 	FILE *f;
 
-	html_view_free(&faq_html_view);
+	html_view_free(&ti->view);
 
-	textview = gui_dlg_faq_lookup("textview_faq");
 	lang = locale_get_language();
 
-	if (initialized != 0) {
-		i = initialized;
+	if (ti->fp_cnt != 0) {
+		i = ti->fp_cnt;
 	} else {
 		const char *tmp;
 		char *path;
 
 		tmp = get_folder_path(PRIVLIB_PATH);
-		
+
 		if (tmp != NULL) {
 			path = make_pathname(tmp, lang);
-			file_path_set(&fp[i++], ostrdup(path), faq_file);
+			file_path_set(&ti->fp[i++], ostrdup(path), ti->file);
 			HFREE_NULL(path);
 			path = make_pathname(tmp, "en");
-			file_path_set(&fp[i++], ostrdup(path), faq_file);
+			file_path_set(&ti->fp[i++], ostrdup(path), ti->file);
 			HFREE_NULL(path);
 		}
 
 		path = make_pathname(PRIVLIB_EXP, lang);
-		file_path_set(&fp[i++], ostrdup(path), faq_file);
+		file_path_set(&ti->fp[i++], ostrdup(path), ti->file);
 		HFREE_NULL(path);
-		file_path_set(&fp[i++], PRIVLIB_EXP G_DIR_SEPARATOR_S "en", faq_file);
-	
+		file_path_set(&ti->fp[i++],
+			PRIVLIB_EXP G_DIR_SEPARATOR_S "en", ti->file);
+
 #ifndef OFFICIAL_BUILD
 		path = make_pathname(PACKAGE_EXTRA_SOURCE_DIR, lang);
-		file_path_set(&fp[i++], ostrdup(path), faq_file);
+		file_path_set(&ti->fp[i++], ostrdup(path), ti->file);
 		HFREE_NULL(path);
 
-		file_path_set(&fp[i++],
-			PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", faq_file);
+		file_path_set(&ti->fp[i++],
+			PACKAGE_EXTRA_SOURCE_DIR G_DIR_SEPARATOR_S "en", ti->file);
 #endif /* !OFFICIAL_BUILD */
-		initialized = i;
+
+		ti->fp_cnt = i;
 	}
 
-	g_assert(i <= G_N_ELEMENTS(fp));
+	g_assert(i <= N_ITEMS(ti->fp));
 
-	f = file_config_open_read_norename("FAQ", fp, i);
-	if (f) {
-		faq_html_view = html_view_load_file(textview, fileno(f));
+	f = file_config_open_read_norename(ti->file, ti->fp, i);
+	if (f != NULL) {
+		ti->view = html_view_load_file(textview, fileno(f));
 		fclose(f);
 	} else {
-		static const gchar msg[] =
+		ti->view = html_view_load_memory(textview, dflt);
+	}
+}
+
+static void G_COLD
+load_faq(void)
+{
+	static const char msg[] =
 		N_(
 			"<html>"
 			"<head>"
@@ -119,8 +137,33 @@ load_faq(void)
 			"</html>"
 		);
 
-		faq_html_view = html_view_load_memory(textview, array_from_string(msg));
-	}
+	load_textview(
+		gui_dlg_faq_lookup("textview_faq"),
+		&faq_textview,
+		array_from_string(msg));
+}
+
+static void G_COLD
+load_glossary(void)
+{
+	static const char msg[] =
+		N_(
+			"<html>"
+			"<head>"
+			"<title>Glossary</title>"
+			"</head>"
+			"<body>"
+			"<p>"
+			"The glossary document could not be loaded."
+			"</p>"
+			"</body>"
+			"</html>"
+		);
+
+	load_textview(
+		gui_dlg_glossary_lookup("textview_glossary"),
+		&glossary_textview,
+		array_from_string(msg));
 }
 
 static gboolean quitting;
@@ -184,23 +227,23 @@ on_main_window_delete_event_hide(GtkWidget *unused_widget, GdkEvent *unused_even
 	(void) unused_widget;
 	(void) unused_event;
 	(void) unused_udata;
-	
+
 	gtk_widget_hide(gui_main_window());
-	
+
 	return TRUE;
 }
 
 gboolean
-on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path, 
+on_NSApplicationOpenFile(GtkosxApplication *app, gchar *path,
 						 gpointer user_data)
 {
 	(void) app;
 	(void) path;
 	(void) user_data;
-	
+
 	gtk_widget_show(gui_main_window());
-	
-	return TRUE;	
+
+	return TRUE;
 }
 
 gboolean
@@ -208,10 +251,10 @@ on_NSApplicationDidBecomeActive(GtkosxApplication *app, gpointer user_data)
 {
 	(void) app;
 	(void) user_data;
-	
+
 	if (!quitting)
 		gtk_widget_show(gui_main_window());
-	
+
 	return TRUE;
 }
 
@@ -272,6 +315,19 @@ on_menu_faq_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 }
 
 void
+on_menu_glossary_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
+{
+	(void) unused_menuitem;
+	(void) unused_udata;
+
+	g_return_if_fail(gui_dlg_glossary());
+	load_glossary();
+    gtk_widget_show(gui_dlg_glossary());
+	g_return_if_fail(gui_dlg_glossary()->window);
+	gdk_window_raise(gui_dlg_glossary()->window);
+}
+
+void
 on_menu_prefs_activate(GtkMenuItem *unused_menuitem, gpointer unused_udata)
 {
 	(void) unused_menuitem;
@@ -303,7 +359,7 @@ on_button_about_close_clicked(GtkButton *unused_button, gpointer unused_udata)
 	(void) unused_udata;
 
 	g_return_if_fail(gui_dlg_about());
-	
+
     gtk_widget_hide(gui_dlg_about());
 }
 
@@ -332,9 +388,11 @@ on_dlg_ancient_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	ancient_version_dialog_hide();
 	return TRUE;
 }
+
 /***
  *** FAQ dialog
  ***/
+
 gboolean
 on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	gpointer unused_udata)
@@ -345,8 +403,27 @@ on_dlg_faq_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 
 	g_return_val_if_fail(gui_dlg_faq(), TRUE);
 
-	html_view_free(&faq_html_view);
+	html_view_free(&faq_textview.view);
 	gtk_widget_hide(gui_dlg_faq());
+	return TRUE;
+}
+
+/***
+ *** Glossary dialog
+ ***/
+
+gboolean
+on_dlg_glossary_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
+	gpointer unused_udata)
+{
+	(void) unused_widget;
+	(void) unused_event;
+	(void) unused_udata;
+
+	g_return_val_if_fail(gui_dlg_glossary(), TRUE);
+
+	html_view_free(&glossary_textview.view);
+	gtk_widget_hide(gui_dlg_glossary());
 	return TRUE;
 }
 

@@ -14,11 +14,11 @@ before_install:
 install:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact bootstrap 2>&1 | tee jhbuild-bootstrap.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-bootstrap.log ;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build meta-gtk-osx-bootstrap 2>&1 | tee jhbuild-meta-gtk-osx-bootstrap.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-bootstrap.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 1." ;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build meta-gtk-osx-core 2>&1 | tee jhbuild-meta-gtk-osx-core.log | grep -e "\*\*\*" -e "Making" ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-core.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 2." ;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then JHB=gtk-gnutella ~/.local/bin/jhbuild --no-interact build 2>&1 | tee jhbuild-build.log | grep -e "\*\*\*" -e Making ; curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-build.log ;fi
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then tar -jcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.bz2 || echo "Unable to save jhbuild build state 3." ;fi
 
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then pushd gtk-mac-bundler; make install; popd; fi
 
@@ -36,7 +36,7 @@ script:
   # messing-up with the file descriptor used to perform signalling?
   # Not critical since gtk-gnutella is not using thread_fork() currently.
   #		--RAM, 2015-02-22
-  - src/lib/thread-test -ABCDEIKMNOPQRSVWX -T1 -c2 -z player,test_signals
+  - src/lib/thread-test -ABCDEHIKMNOPQRSVWX -T1 -c2 -z player,test_signals
 
 after_script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then for f in ~/Desktop/*dmg; do curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T $f ;done ;fi

@@ -134,7 +134,7 @@
  * multiple parties interested) and the GUI only needs to register its
  * listener but does not need to know when events are fired.  There is no
  * access of the GUESS internals by the callback: all the necessary data for
- * the listener is copied by the GUESS layer. 
+ * the listener is copied by the GUESS layer.
  *
  * The only dependency is in the listener registering/removal interface that
  * the GUESS layer has to provide, plus the definition of the parameters that

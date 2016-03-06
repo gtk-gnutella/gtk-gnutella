@@ -104,7 +104,7 @@ walloc_maxsize(void)
 /**
  * Initialize the width-based allocator, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 walloc_init_once(void)
 {
 	/*
@@ -118,7 +118,7 @@ walloc_init_once(void)
 /**
  * Enter crash mode: redirect all allocations to xmalloc() and avoid freeings.
  */
-G_GNUC_COLD void
+void G_COLD
 walloc_crash_mode(void)
 {
 	/*
@@ -392,7 +392,7 @@ walloc_get_magazine(size_t rounded)
  *
  * @return a pointer to the start of the allocated block.
  */
-G_GNUC_HOT void *
+void * G_HOT
 walloc(size_t size)
 {
 	tmalloc_t *depot;
@@ -672,7 +672,7 @@ walloc_track(size_t size, const char *file, int line)
 
 	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
-		void *p = 
+		void *p =
 #ifdef TRACK_MALLOC
 			malloc_track(size, file, line);
 #else
@@ -780,7 +780,7 @@ wdestroy(void)
 /**
  * Initialize the width-based allocator.
  */
-G_GNUC_COLD void
+void G_COLD
 walloc_init(void)
 {
 	walloc_init_if_needed();
@@ -803,7 +803,7 @@ walloc_active_limit(void)
 
 	WALLOC_LOCK;
 
-	for (i = 0; i < G_N_ELEMENTS(wzone); i++) {
+	for (i = 0; i < N_ITEMS(wzone); i++) {
 		zone_t *z = wzone[i];
 
 		if (z != NULL) {

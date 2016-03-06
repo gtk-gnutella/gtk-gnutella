@@ -126,8 +126,6 @@
 #define VALUES_DB_CACHE_SIZE 1024	/**< Amount of values to keep cached */
 #define RAW_DB_CACHE_SIZE	 512	/**< Amount of raw data to keep cached */
 
-#define equiv(p,q)  (!(p) == !(q))
-
 /**
  * Information about a value that is stored to disk and not kept in memory.
  * The structure is serialized first, not written as-is.
@@ -381,7 +379,7 @@ static const char * const store_errstr[] = {
 const char *
 dht_store_error_to_string(uint16 errnum)
 {
-	if (errnum == 0 || errnum >= G_N_ELEMENTS(store_errstr))
+	if (errnum == 0 || errnum >= N_ITEMS(store_errstr))
 		return "Invalid error code";
 
 	return store_errstr[errnum];
@@ -496,7 +494,7 @@ dht_value_patch_creator(dht_value_t *v, host_addr_t addr, uint16 port)
 
 	g_assert(1 == knode_refcnt(cn));
 
-	
+
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		g_warning(
 			"DHT patching creator's IP %s:%u to match sender's %s",
@@ -619,7 +617,7 @@ dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 
 		poke_be32(&tmp[0], type);
 
-		for (i = 0; i < G_N_ELEMENTS(tmp) - 1; i++) {
+		for (i = 0; i < N_ITEMS(tmp) - 1; i++) {
 			if (!is_ascii_print(tmp[i]))
 				tmp[i] = '.';
 		}
@@ -1100,7 +1098,7 @@ static void
 values_unexpire(uint64 dbkey)
 {
 	const void *key;
-	
+
 	if (hset_contains_extended(expired, &dbkey, &key)) {
 		const uint64 *dbatom = key;
 
@@ -1725,7 +1723,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			goto mismatch;
 		}
 
-		/* 
+		/*
 		 * Here we checked everything the remote node sent us and it
 		 * exactly matches what we have already.  Everything is thus fine
 		 * and we're done.
@@ -1767,7 +1765,7 @@ expired:
 	if (GNET_PROPERTY(dht_storage_debug))
 		g_debug("DHT STORE detected replication of expired data %s from %s",
 			dht_value_to_string(v), knode_to_string(kn));
-	
+
 	return STORE_SC_OK;		/* No error reported, data is stale and must die */
 }
 
@@ -1948,7 +1946,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
  *
  * @return TRUE if entry must be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 values_reload(void *key, void *value, size_t u_len, void *data)
 {
 	const uint64 *dbk = key;
@@ -2042,7 +2040,7 @@ delete_value:
  *
  * @return TRUE if entry must be deleted.
  */
-static G_GNUC_COLD bool
+static bool G_COLD
 values_raw_purge(void *key, void *u_value, size_t u_len, void *data)
 {
 	const uint64 *dbk = key;
@@ -2082,7 +2080,7 @@ values_sync(void)
 /**
  * Initialize values management.
  */
-G_GNUC_COLD void
+void G_COLD
 values_init(void)
 {
 	dbstore_kv_t value_kv =
@@ -2127,7 +2125,7 @@ values_init(void)
  *
  * @param dbkeys		set of DB keys to reload
  */
-G_GNUC_COLD void
+void G_COLD
 values_init_data(const hset_t *dbkeys)
 {
 	g_assert(dbkeys != NULL);
@@ -2199,7 +2197,7 @@ expired_free_k(const void *key, void *u_data)
 /**
  * Close values management.
  */
-G_GNUC_COLD void
+void G_COLD
 values_close(void)
 {
 	dbstore_close(db_valuedata, settings_dht_db_dir(), db_valbase);

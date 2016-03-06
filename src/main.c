@@ -134,6 +134,7 @@
 #include "lib/launch.h"
 #include "lib/log.h"
 #include "lib/map.h"
+#include "lib/mem.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
 #include "lib/offtime.h"
@@ -381,11 +382,11 @@ gtk_gnutella_atexit(void)
 #ifndef USE_TOPLESS
 		running_topless = TRUE;		/* X connection may be broken, avoid GUI */
 #endif
-        
+
 #ifdef SIGALRM
 		signal_set(SIGALRM, sig_alarm);
 #endif
-		if (setjmp(atexit_env)) {
+		if (Setjmp(atexit_env)) {
 			g_warning("cleanup aborted while in %s().", exit_step);
 			return;
 		}
@@ -496,7 +497,7 @@ main_dispatch(void)
 /*
  * If they requested abnormal termination after shutdown, comply now.
  */
-static void G_GNUC_COLD
+static void G_COLD
 handle_user_shutdown_request(enum shutdown_mode mode)
 {
 	const char *msg = "crashing at your request";
@@ -534,7 +535,7 @@ handle_user_shutdown_request(enum shutdown_mode mode)
  * Shutdown systems, so we can track memory leaks, and wait for EXIT_GRACE
  * seconds so that BYE messages can be sent to other nodes.
  */
-void G_GNUC_COLD
+void G_COLD
 gtk_gnutella_exit(int exit_code)
 {
 	static volatile sig_atomic_t safe_to_exit;
@@ -1084,7 +1085,7 @@ option_strcmp(const char *a, const char *b)
 	g_assert(a);
 	g_assert(b);
 
-	for (;;) {	
+	for (;;) {
 		if (underscore_to_hyphen(*a) != underscore_to_hyphen(*b))
 			return CMP(*a, *b);
 		if ('\0' == *a) {
@@ -1124,7 +1125,7 @@ option_strprefix(const char *str, const char *prefix)
  * with hyphens.
  *
  * @return a pointer to a static buffer holding the pretty version of the
- *         option name. 
+ *         option name.
  */
 static const char *
 option_pretty_name(const char *name)
@@ -1132,7 +1133,7 @@ option_pretty_name(const char *name)
 	static char buf[128];
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(buf) - 1; i++) {
+	for (i = 0; i < N_ITEMS(buf) - 1; i++) {
 		if ('\0' == name[i])
 			break;
 		buf[i] = underscore_to_hyphen(name[i]);
@@ -1209,11 +1210,11 @@ option_name_prefix(const void *key, const void *item)
 	return option_strcmp(name, oi->name);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 option_ambiguous(const char *name, struct option *item)
 {
 	struct option *min = item, *max = item, *o;
-	struct option *end = &options[G_N_ELEMENTS(options)];
+	struct option *end = &options[N_ITEMS(options)];
 
 	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
 	fprintf(stderr, "Could mean either of:\n");
@@ -1258,7 +1259,7 @@ option_find(const char *name, bool fatal)
 	struct option *item;
 
 	item = bsearch(name,
-		options, G_N_ELEMENTS(options), sizeof options[0], option_name_prefix);
+		options, N_ITEMS(options), sizeof options[0], option_name_prefix);
 
 	if (NULL == item)
 		return NULL;
@@ -1268,7 +1269,7 @@ option_find(const char *name, bool fatal)
 			goto ambiguous;
 	}
 
-	if (ptr_cmp(item, options + G_N_ELEMENTS(options) - 1) < 0) {
+	if (ptr_cmp(item, options + N_ITEMS(options) - 1) < 0) {
 		if (option_strprefix((item + 1)->name, name))
 			goto ambiguous;
 	}
@@ -1282,7 +1283,7 @@ ambiguous:
 	option_ambiguous(name, item);
 }
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(int exit_code)
 {
 	FILE *f;
@@ -1291,17 +1292,17 @@ usage(int exit_code)
 	f = EXIT_SUCCESS == exit_code ? stdout : stderr;
 	fprintf(f, "Usage: %s [ options ... ]\n", getprogname());
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	STATIC_ASSERT(N_ITEMS(options) == num_main_args);
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 
 		if (options[i].summary) {
 			option_pretty_print(f, &options[i]);
 		}
 	}
-	
+
 	exit(exit_code);
 }
 
@@ -1320,7 +1321,7 @@ prehandle_arguments(char **argv)
 	OPT(topless) = TRUE;
 #endif	/* USE_TOPLESS */
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_name_cmp);
 
 	while (argv[0]) {
 		const char *s;
@@ -1361,9 +1362,9 @@ prehandle_arguments(char **argv)
 	}
 
 done:
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 }
@@ -1371,7 +1372,7 @@ done:
 /**
  * Log error, prefixing string with program name, then show usage and exit.
  */
-static void G_GNUC_PRINTF(1, 2) G_GNUC_NORETURN
+static void G_PRINTF(1, 2) G_NORETURN
 main_error(const char *fmt, ...)
 {
 	va_list args;
@@ -1393,12 +1394,12 @@ parse_arguments(int argc, char **argv)
 {
 	unsigned i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(options) == num_main_args);
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	STATIC_ASSERT(N_ITEMS(options) == num_main_args);
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_name_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_name_cmp);
 
 	argv++;		/* Skip argv[0] */
 	argc--;
@@ -1449,9 +1450,9 @@ parse_arguments(int argc, char **argv)
 		}
 	}
 
-	xqsort(options, G_N_ELEMENTS(options), sizeof options[0], option_id_cmp);
+	xqsort(options, N_ITEMS(options), sizeof options[0], option_id_cmp);
 
-	for (i = 0; i < G_N_ELEMENTS(options); i++) {
+	for (i = 0; i < N_ITEMS(options); i++) {
 		g_assert(options[i].id == i);
 	}
 }
@@ -1785,9 +1786,9 @@ callout_queue_idle(void *unused_data)
 
 		if (0 == random_value(1)) {
 			n = ridx;
-			ridx = (ridx + 1) % G_N_ELEMENTS(random_source);
+			ridx = (ridx + 1) % N_ITEMS(random_source);
 		} else {
-			n = random_value(G_N_ELEMENTS(random_source) - 1);
+			n = random_value(N_ITEMS(random_source) - 1);
 		}
 
 		(*random_source[n])(&digest);
@@ -1972,9 +1973,9 @@ static const char **main_env;
  * We're going to launch a child and monitor its exit status.
  * Each time the child exits abnormally, restart it with the same arguments
  * until we get more crashes per hour than we can withstand.
- * 
+ *
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 main_supervise(void)
 {
 	uint32 dbg = 0;			/* Debugging level for callout queue */
@@ -2052,7 +2053,7 @@ main_supervise(void)
 
 	child_argc = main_argc + 1;
 	XMALLOC_ARRAY(child_argv, child_argc + 1);	/* +1 for trailing NULL */
-	
+
 	child_argv[0] = main_argv[0];
 	child_argv[1] = "--child";
 	for (i = 1; i <= main_argc; i++)
@@ -2304,7 +2305,7 @@ main(int argc, char **argv)
 		crash_setbuild(product_build());
 		crash_setmain();
 		crash_set_restart(gtk_gnutella_request_restart);
-	}	
+	}
 
 	handle_arguments_asap();
 
@@ -2358,7 +2359,7 @@ main(int argc, char **argv)
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */
-	
+
 #ifndef OFFICIAL_BUILD
 	g_warning("%s \"%s\"",
 		_("unofficial build, accessing files from"),
@@ -2388,6 +2389,7 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	mem_test();
 	random_init();
 	vsort_init(1);
 	htable_test();

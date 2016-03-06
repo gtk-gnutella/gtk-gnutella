@@ -1,0 +1,345 @@
+<html>
+<head>
+<meta content="text/html; charset=windows-1252" http-equiv="content-type">
+<title>gtk-gnutella Glossary</title>
+</head>
+<body>
+
+<h1>Glossary</h1>
+
+<h2>B</h2>
+
+<h3>Bandwidth <em>hint</em> for GUESS querying</h3>
+
+<p>
+	This is termes <em>bandwidth hint</em> because GUESS uses UDP and cannot fraction large messages to emit just a few bytes. Therefore, the bandwidth is just a hint because it can be exceeded if a set of queries need to be made and their total amount exceeds the allocated bandwidth. Lower values means we can send less queries, and therefore the overall querying is slowed down (meaning the total querying will take longer) because each query is sent to <em>one</em> GUESS ultrapeer.
+</p>
+
+
+<h3>Bootstrap</h3>
+
+<p>
+	The process of joining the Gnutella network by discovering peers is called bootstrapping. More informations <a href="?page=bootstrap">here</a>.
+</p>
+
+
+<h3>Bucket (of a routing table)</h3>
+
+<p>
+	A <em>bucket</em> is a portion of the node ID space covered by the routing table. Each bucket can only hold K nodes, currently eight, before becoming &quot;full&quot;. When a bucket is full of known good nodes, no more nodes may be added unless our own node ID falls within the range of the bucket. In that case, the bucket is replaced by two new buckets each with half the range of the old bucket and the nodes from the old bucket are distributed among the two new ones. This is called &quot;bucket SPLIT&quot;. The opposite operation involving buckets is called MERGE.<br /> Every node maintains a routing table of known good nodes. The nodes in the routing table are used as starting points for queries in the DHT. Nodes from the routing table are returned in response to queries from other nodes. It is important that each node's routing table must contain only known good nodes. A good node is a node has responded to one of our queries within the last 15 minutes. A node is also good if it has ever responded to one of our queries and has sent us a query within the last 15 minutes. After 15 minutes of inactivity, a node becomes questionable. Nodes become bad when they fail to respond to multiple queries in a row. Nodes that we know are good are given priority over nodes with unknown status.<br />
+	
+	The above informations have been readapted from  <a href="http://www.bittorrent.org/beps/bep_0005.html" target="_blank">BitTorrent DHT protocol</a> where more details can be found.
+</p>
+
+
+<h3>Bye</h3>
+
+<p>
+	This is an optional message used to inform the remote host that the connection is being closed
+	and the reason for doing so.
+</p>
+
+
+<h2>D</h2>
+
+<h3>Descriptor</h3>
+
+<p>
+	The entity in which information is transmitted over the network. Same as <em>message</em>.
+</p>
+
+<h3>DHT</h3>
+
+<p>
+	Distributed Hash Table (DHT) is a <em>hash table</em> distributed among Gnutella network nodes. Gtk-Gnutella uses an implementation of Kademlia for its DHT. Kademlia is also used for other p2p networks (such as eDonkey) but storing different keys and values, therere preventing inter-operability between DHT of different p2p networks. In Gnutella, DHT is used for exact lookups, alternate locations, push-proxies, etc. but not for keywords search. Operations such as <em>lookup, publish, store, etc.</em> are typically performed in a DHT whose nodes can be either active or passive.
+</p>
+
+
+<h2>E</h2>
+
+<h3>EAR</h3>
+
+<p>
+	<em>EAR</em> stands for &quot;Extra Acknowledgement Request&quot;.
+</p>
+
+
+<h2>F</h2>
+
+<h3>Flooding</h3>
+
+<p>
+	<em>Flooding</em> is a simple but inefficient P2P routing algorithm which sends messages to all the connected nodes in order
+	to reach destination. The flooding algorithm have been replaced by the more efficient <em>GUESS</em> algorithm.
+</p>
+
+
+<h2>G</h2>
+
+<h3>G2 Hub</h3>
+
+<p>
+	G2 Hubs in Gnutella2 network are equivalent to Ultrapeers in GnutellaNet.
+	GTK-Gnutella usually connects to 2 G2 Hubs behaving as a leaf node on Gnutella2 network.
+</p>
+
+<h3>GGEP</h3>
+
+<p>
+	Gnutella Generic Extension Protocol (GGEP) includes new functions added to the original Gnutella 0.4 protocol: more informations <a href="http://rfc-gnutella.sourceforge.net/src/GnutellaGenericExtensionProtocol.0.51.html" target="_blank">here</a>.
+</p>
+
+
+<h3>GIV</h3>
+
+<p>
+	<em>GIV</em> is the message sent by the servent that is going to send a file in response to a request.
+</p>
+
+<h3>GnutellaNet</h3>
+
+<p>
+	The GnutellaNet (or &quot;Gnutella&quot; in short) is an <em>overlay</em> network. This means it is a network that sits on top of the normal internet.
+	GnutellaNet is <em>unstructured</em>. This just means that no particular computer or group of computers controls
+	GnutellaNet; it is probably more democratic than most governments.
+</p>
+<p>
+	As the GnutellaNet is an overlay network, it doesn't have to pay
+	attention to geography. It is likely that you will connect to
+	computers in other countries. Things might be faster if this was not
+	the case. However, they may also be more resilient in the current form.
+</p>
+
+<h3>GUESS (Gnutella UDP Extension for Scalable Searches)</h3>
+
+<p>
+	As opposed to <em>flooding</em> algorithm, with GUESS routing nodes are queried one at a time. Each node must keep a
+	cache of known and trusted peers able to accept queries and the nodes are picked up randomly. This routing method is
+	considered more efficient and safe compared to flooding.
+</p>
+
+<h3>GUID (Global Unique IDentifier)</h3>
+
+<p>
+	This is a 16-byte long value made of random bytes, whose purpose it is to identify servents and messages. This identification is not a signature, just a way to identify network entities in a unique manner.
+</p>
+
+
+<h2>H</h2>
+
+<h3>HSEP</h3>
+
+<p>
+	The Horizon Size Estimation Protocol (HSEP) refers to the estimation of the number of reachable resources within the Gnutella network, e.g. the number of reachable Gnutella nodes, shared files and shared kibibytes. More informations <a href="http://www.schuerger.com/gnutella/hsep.html" target="_blank">here</a>.
+</p>
+
+
+<h2>L</h2>
+
+<h3>Leaf node</h3>
+
+<p>
+	A leaf is the basic connection to the GnutellaNet. A leaf typically connects to three or four ultrapeers.
+	The ultrapeers route searches and keep their leaves connected to the GnutellaNet.
+</p>
+
+
+<h2>M</h2>
+
+<h3>Message</h3>
+
+<p>
+	<em>Messages</em> are the entity in which information is transmitted over the network. Synonyms are <em>packet</em> and
+	<em>descriptor</em>.
+</p>
+
+<h3>MUID (Messages Unique IDentifier)</h3>
+
+<p>
+	A <em>GUID</em> for network messages.
+</p>
+
+
+<h2>P</h2>
+
+<h3>PARQ (Passive/Active Remote Queuing)</h3>
+<p>
+	When a servent asks for a file hosted by a servent having no free upload slots, the request enters a remote queue on the
+	hosting sevent. This remote queue is handled by <em>PARQ</em>.
+</p>
+
+<h3>Ping</h3>
+
+<p>
+	A <em>Ping</em> is a message sent by a servent trying to actively discover hosts on the network.
+	A servent receiving a Ping message is expected to respond with one or more Pong messages.
+</p>
+
+<h3>Pong</h3>
+
+<p>
+	A <em>Pong</em> is the response message to a Ping. It includes the address of a connected Gnutella servent, the listening port of
+   that servent, and information regarding the amount of data it is making available to the network.
+</p>
+
+<h3>Push</h3>
+
+<p>
+	This is a mechanism that allows a firewalled servent to contribute file-based data to the network. For example a servent may send
+	a Push message if it receives a QueryHit message from a servent that doesn't support incoming connections. This might occur when
+	the servent sending the QueryHit message is behind a firewall.
+</p>
+
+<h3>Push-proxy</h3>
+
+<p>
+	A <em>push-proxy</em> is a relaying node. If an ultrapeer is connected to the firewalled leaf, in order to send a <em>push</em>
+	to that firewalled leaf, a servent can send an UDP message to the ultrapper who will then relay it to the leaf. So the ultrapeer
+	acts as the push-proxy: it is the relaying target to reach the leaf.
+</p>
+
+
+<h2>Q</h2>
+
+<h3>Query</h3>
+
+<p>
+	Sending a <em>Query</em> is the primary mechanism for searching the distributed network.
+	A servent receiving a Query message will respond with a QueryHit if a match is found against its local data set.
+</p>
+
+<h3>QueryHit</h3>
+
+<p>
+	A <em>QueryHit</em> is the response to a Query. This message provides the recipient with enough information to acquire the data
+	matching the corresponding Query.
+</p>
+
+
+<h2>R</h2>
+
+<h3>RUDP</h3>
+
+<p>
+	The Reliable UDP (RUDP) protocol provides NAT-to-NAT transfers, sometimes called Firewall-to-Firewall or &quot;hole-punching&quot;, in those cases where port-forwarding is not or cannot be done by the user.
+</p>
+
+
+<h3>RX</h3>
+
+<p>
+	RX stands for <em>Reception</em>, opposite of <em>Transmission</em>.
+</p>
+
+
+<h2>S</h2>
+
+<h3>search literals</h3>
+
+<p>
+	Double and single quotes can be used so that an entire search term
+	will be matched instead of individual words.  Quoting maybe necessary
+	if you wish to search for a phrase with special characters such as the
+	plus and minus signs (see &quot;search requireds&quot;).
+</p>
+
+<h3>search prefixes</h3>
+
+<ol>
+<li>
+	browse: List shared files on the specified host. The format is "browse:<em>ip_address:port</em>".
+	Many portions of the GUI have a menu option, available from a right
+	click, that will browser the specified computer.
+</li>
+<li>
+	http: Download the specified web page. This could be a zip file, a movie, large JPEG, etc.
+</li>
+<li>
+	local: Search results from the local host. Ie, your computer. A
+     regular expression may follow to filter the results. For
+     example, "local:manual" will show all files you share with
+     manual in the file name.
+</li>
+<li>
+	magnet: Search and download the magnet target.
+</li>
+<li>
+	push: The format of this search is "push:<em>guid:ip_address:port/path_to_file</em>".
+	The <em>guid</em> is the Gnutella ID of the computer that has the file of interest.
+	The <em>ip:port</em> is the push proxy that the <em>guid</em> is connected to.
+	Typically this would be an ultrapeer that will allow a proxy download.
+	The <em>guid</em> is a 32 hexadecimal characters.
+</li>
+<li>
+	sha1: A base64 SHA value to search for. It is not automatically downloaded.
+</li>
+<li>
+	urn: Similar to a sha1 search, but the hash value is specified. Ie, urn:sha1:<em>hash value</em>
+</li>
+</ol>
+
+<h3>search requireds</h3>
+
+<p>
+	Mini filters are created with the '+' and '-' signs. The plus sign
+	requires that a word is part of the results. The minus sign doesn't
+	display any results with the given phrase. The plus and minus signs
+	can be used to select ambigious terms.
+</p>
+<p>
+	Suppose you wish to find information about apples. You might use a search like <em>apples -computers</em>.
+	You may get even more relevant results by using <em>apples +fruit</em>.
+</p>
+
+<h3>Servent</h3>
+
+<p>
+	&quot;Servent&quot; word derives from the fusion of server+client. A node in a P2P network is called <em>servent</em> because of the dual nature of both server and client.
+</p>
+
+
+<h3>SOAP</h3>
+
+<p>
+	Simple Object Access Protocol (SOAP) is a lightweight XML-based protocol for exchange of information in a decentralized, distributed environment like P2P networks. More informations <a href="https://www.w3.org/TR/2000/NOTE-SOAP-20000508/" target="_blank">here</a>.
+</p>
+
+
+<h2>T</h2>
+
+<h3>THEX</h3>
+
+<p>
+	The Tree Hash EXchange (THEX) format is used for exchanging Merkle Hash Trees built up from the subrange hashes of discrete digital files. More informations <a href="http://adc.sourceforge.net/draft-jchapweske-thex-02.html" target="_blank">here</a>.
+</p>
+
+
+<h3>Time-To-Live (TTL)</h3>
+
+<p>
+	TTL is the number of times a message will be forwarded by Gnutella servents before it is removed from the network.
+	Each servent will decrement the TTL value before passing it on to another servent.
+	When the TTL value reaches 0, the message will no longer be forwarded to avoid eccessive network traffic.
+</p>
+
+
+<h3>TX</h3>
+
+<p>
+	TX stands for <em>Transmission</em>.
+</p>
+
+
+<h2>U</h2>
+
+<h3>Ultrapeer (UP)</h3>
+
+<p>
+	An ultrapeer is well connected to the GnutellaNet.
+	As ultrapeers must have many connections and route search queries,
+	they require more resources than a leaf node. Ultrapeers will
+	typically be connected to 30+ other ultrapeers and connected to 70+ leaf nodes.
+</p>
+
+</body>
+</html>

@@ -65,7 +65,7 @@ filename_shrink(const char *filename, char *buf, size_t size)
 
 	g_assert(filename);
 	g_assert(buf);
-	
+
 	/* Try to preserve the filename extension */
 	ext = strrchr(filename, '.');
 	if (ext) {
@@ -99,7 +99,7 @@ unique_pathname(const char *path, const char *filename,
 		bool (*name_is_uniq)(const char *pathname))
 {
 	char *pathname;
-	
+
 	if (!name_is_uniq) {
 		name_is_uniq = path_does_not_exist;
 	}
@@ -167,7 +167,7 @@ filename_is_reserved(const char *filename)
 		(endptr = is_strcaseprefix(filename, "prn"))
 	))
 		return FALSE;
-	
+
 	switch (*endptr) {
 	case '\0':
 		return TRUE;
@@ -175,7 +175,7 @@ filename_is_reserved(const char *filename)
 		/* con.txt is reserved con.blah.txt isn't */
 		return NULL == strchr(&endptr[1], '.');
 	case '1': case '2': case '3': case '4': case '5': case '6': case '7':
-	case '8': case '9': 
+	case '8': case '9':
 		/* lpt0, com0 are not reserved */
 		endptr++;
 		switch (*endptr) {
@@ -245,13 +245,13 @@ filename_sanitize(const char *filename, bool no_spaces, bool no_evil)
 	{
 		size_t i;
 		uchar c;
-		
+
 		for (i = 0; '\0' != (c = s[i]); i++) {
 			if (
 				c < 32
 				|| is_ascii_cntrl(c)
 				|| G_DIR_SEPARATOR == c
-				|| '/' == c 
+				|| '/' == c
 				|| (0 == i && ('.' == c || '-' == c))
 				|| (no_spaces && is_ascii_space(c))
 				|| (no_evil && filename_is_evil_char(c))

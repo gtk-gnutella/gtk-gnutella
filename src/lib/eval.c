@@ -200,7 +200,7 @@ eval_subst(const char *str)
 
 		if (val != NULL) {
 			char *next;
-			
+
 			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
 			len += next - start;
 			p = next;

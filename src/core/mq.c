@@ -235,7 +235,7 @@ mq_add_linkable(mqueue_t *q, plist_t *l)
 	g_assert(q->magic == MQ_MAGIC);
 	g_assert(l != NULL);
 	g_assert(l->data != NULL);
-	
+
 	if (qown == NULL)
 		qown = NOT_LEAKING(htable_create(HASH_KEY_SELF, 0));
 

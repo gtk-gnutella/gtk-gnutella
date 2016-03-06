@@ -150,8 +150,10 @@ barrier_new_full(int amount, bool emulated)
 
 /**
  * Free dynamically allocated barrier.
+ *
+ * @return TRUE if we destroyed the barrier.
  */
-static void
+static bool
 barrier_free(barrier_t *b)
 {
 	barrier_check(b);
@@ -160,7 +162,10 @@ barrier_free(barrier_t *b)
 	if (atomic_int_dec_is_zero(&b->refcnt)) {
 		barrier_destroy(b);
 		WFREE(b);
+		return TRUE;
 	}
+
+	return FALSE;
 }
 
 /**
@@ -193,6 +198,23 @@ barrier_refcnt_inc(barrier_t *b)
 	g_assert(b->refcnt > 0);
 
 	atomic_int_inc(&b->refcnt);
+	return b;
+}
+
+/**
+ * Decrease the reference count on the barrier.
+ *
+ * @return the reference to the barrier for convenience, NULL if the barrier
+ * was freed.
+ */
+barrier_t *
+barrier_refcnt_dec(barrier_t *b)
+{
+	barrier_check(b);
+
+	if (barrier_free(b))
+		return NULL;
+
 	return b;
 }
 

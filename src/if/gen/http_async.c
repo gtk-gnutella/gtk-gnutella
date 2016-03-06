@@ -42,7 +42,7 @@ static const char *http_async_error_str[] = {
 const char *
 http_async_strerror(http_async_error_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(http_async_error_str)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(http_async_error_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid http_async_error_t code: %d", (int) x);
 		return str_2c(s);

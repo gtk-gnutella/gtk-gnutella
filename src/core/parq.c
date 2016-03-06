@@ -1146,7 +1146,7 @@ parq_download_add_header(
 
 	if (GNET_PROPERTY(is_firewalled) || (d->server->attrs & DLS_A_FAKE_G2))
 		return;
-	
+
 	port = socket_listen_port();
 	if (0 == port)
 		return;
@@ -1379,7 +1379,7 @@ parq_probable_slot_time(const struct parq_ul_queue *q)
 
 	factor = GNET_PROPERTY(parq_optimistic) ? 0.5 : 2.0;
 	e = (uint) (statx_avg(q->slot_stats) + factor * statx_sdev(q->slot_stats));
-	
+
 	return e;
 }
 
@@ -2116,7 +2116,7 @@ parq_upload_find_id(const struct upload *u, const header_t *header)
 
 		if (id_str) {
 			struct guid id;
-			
+
 			if (hex_to_guid(id_str, &id)) {
 				struct parq_ul_queued *puq;
 				puq = htable_lookup(ul_all_parq_by_id, &id);
@@ -2826,7 +2826,7 @@ parq_upload_queued(struct upload *u)
 }
 
 /**
- * @return TRUE if the current upload will finish quickly enough and 
+ * @return TRUE if the current upload will finish quickly enough and
  * actually scheduling would only cost more resources then it would
  * save.
  */
@@ -3154,7 +3154,7 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 
 	while (hash_list_iter_has_next(iter)) {
 		struct parq_ul_queued *puq = hash_list_iter_next(iter);
-		
+
 		parq_ul_queued_check(puq);
 		g_assert_log(puq->relative_position > old_relative,
 			"relative=%u, old=%u", puq->relative_position, old_relative);
@@ -3175,7 +3175,7 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 			puq->is_alive ? "y" : "n", puq->flags, guid_hex_str(&puq->id),
 			timestamp_utc_to_string(puq->expire));
 	}
-	
+
 	hash_list_iter_release(&iter);
 }
 
@@ -3600,7 +3600,7 @@ parq_upload_abusing(
 		GNET_PROPERTY(parq_ban_bad_maxcountwait) != 0
 	)
 		puq->ban_countwait++;
-	
+
 	if (GNET_PROPERTY(parq_debug)) g_warning("[PARQ UL] "
 		"host %s (%s) re-requested \"%s\" too soon (%s early, warn #%u)",
 		host_addr_port_to_string(u->socket->addr, u->socket->port),
@@ -3883,7 +3883,7 @@ parq_upload_request(struct upload *u)
 			GNET_PROPERTY(max_uploads) / 2;
 		uint max_fd_used =
 			GNET_PROPERTY(max_downloads) +
-			GNET_PROPERTY(max_uploads) + 
+			GNET_PROPERTY(max_uploads) +
 			(settings_is_leaf() ?
 				GNET_PROPERTY(max_ultrapeers) :
 				(GNET_PROPERTY(max_connections) + GNET_PROPERTY(max_leaves))
@@ -4411,7 +4411,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 
 	upload_check(u);
 
-	/* Reserve space for the trailing \r\n */	
+	/* Reserve space for the trailing \r\n */
 	if (sizeof "\r\n" >= size)
 		return 0;
 	size -= sizeof "\r\n";
@@ -4499,7 +4499,7 @@ parq_upload_add_headers(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (!parq_upload_queued(u))
 		return 0;
-	
+
 	puq = parq_upload_find(u);
 	g_return_val_if_fail(puq, 0);
 
@@ -4524,9 +4524,9 @@ parq_upload_add_headers(char *buf, size_t size, void *arg, uint32 flags)
 	max_poll = MAX(max_poll, min_poll);
 
 	small_reply = 0 != (flags & HTTP_CBF_SMALL_REPLY);
-	
+
 	rw += parq_upload_add_retry_after_header(&buf[rw], size - rw, min_poll);
-		
+
 	if (
 		puq->major == 0 &&
 		puq->minor == 1 &&
@@ -4534,7 +4534,7 @@ parq_upload_add_headers(char *buf, size_t size, void *arg, uint32 flags)
 	) {
 		rw += parq_upload_add_old_queue_header(&buf[rw], size - rw,
 				puq, min_poll, max_poll, small_reply);
-	} else { 
+	} else {
 		rw += parq_upload_add_x_queued_header(&buf[rw], size - rw,
 				puq, max_poll, small_reply, u);
 	}
@@ -4883,7 +4883,7 @@ parq_store(void *data, void *file_ptr)
 
 	timestamp_to_string_buf(puq->enter, enter_buf, sizeof enter_buf);
 	timestamp_to_string_buf(puq->last_queue_sent, last_buf, sizeof last_buf);
-	
+
 	/*
 	 * Save all needed parq information. The ip and port information gathered
 	 * from X-Node is saved as XIP and XPORT
@@ -4924,7 +4924,7 @@ parq_store(void *data, void *file_ptr)
 
 	if (puq->supports_parq)
 		fprintf(f, "PARQ:\n");	/* No value needed, tag presence is enough */
-	
+
 	if (
 		!(puq->flags & PARQ_UL_NOQUEUE) &&
 		puq->port != 0 && is_host_addr(puq->addr)
@@ -5044,7 +5044,7 @@ static const tokenizer_t parq_tags[] = {
 	PARQ_TAG(SHA1),
 	PARQ_TAG(SIZE),
 	PARQ_TAG(XIP),
-	PARQ_TAG(XPORT),	
+	PARQ_TAG(XPORT),
 
 	/* Above line intentionally left blank (for "!}sort" on vi) */
 #undef PARQ_TAG
@@ -5096,7 +5096,7 @@ parq_upload_load_queue(void)
 	bool resync = FALSE;
 
 	file_path_set(fp, settings_config_dir(), file_parq_file);
-	f = file_config_open_read("PARQ upload queue data", fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read("PARQ upload queue data", fp, N_ITEMS(fp));
 	if (!f)
 		return;
 
@@ -5217,10 +5217,10 @@ parq_upload_load_queue(void)
 		case PARQ_TAG_ENTERED:
 			{
 				time_t t;
-				
+
 				t = date2time(value, now);
 				if (t != (time_t) -1) {
-					entry.entered = t; 
+					entry.entered = t;
 				} else {
 					/* For backwards-compatibility accept a raw integer value */
 					v = parse_uint64(value, &endptr, 10, &error);
@@ -5295,10 +5295,10 @@ parq_upload_load_queue(void)
 		case PARQ_TAG_LASTQUEUE:
 			{
 				time_t t;
-				
+
 				t = date2time(value, now);
 				damaged |= t == (time_t) -1;
-				entry.last_queue_sent = t; 
+				entry.last_queue_sent = t;
 			}
 			break;
 		case PARQ_TAG_NAME:
@@ -5403,7 +5403,7 @@ parq_upload_load_queue(void)
 			/* Reset state */
 			entry = zero_entry;
 			bit_array_clear_range(tag_used, 0, NUM_PARQ_TAGS - 1);
-			upload_free(&fake_upload);	
+			upload_free(&fake_upload);
 		}
 	}
 
@@ -5434,7 +5434,7 @@ parq_is_enabled(void)
 /**
  * Initialises the upload queue for PARQ.
  */
-G_GNUC_COLD void
+void G_COLD
 parq_init(void)
 {
 	TOKENIZE_CHECK_SORTED(parq_tags);
@@ -5479,7 +5479,7 @@ parq_init(void)
 /**
  * Saves any queueing information and frees all memory used by PARQ.
  */
-G_GNUC_COLD void
+void G_COLD
 parq_close_pre(void)
 {
 	plist_t *dl, *queues;

@@ -273,7 +273,7 @@ route_node_is_gnutella(const void *node)
  * Checks whether the generic pointer in "struct route_data" points to a
  * routing_udp_node.
  */
-static inline bool G_GNUC_UNUSED
+static inline bool G_UNUSED
 route_node_is_udp(const void *node)
 {
 	g_assert(node != NULL);
@@ -613,7 +613,7 @@ routing_log_set_new(struct route_log *route_log)
 /**
  * Record extra logging information, appending to existing information.
  */
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 {
 	va_list args;
@@ -1470,7 +1470,7 @@ gnet_reset_guid(void)
 /**
  * Init function.
  */
-G_GNUC_COLD void
+void G_COLD
 routing_init(void)
 {
     struct guid guid_buf;
@@ -1490,7 +1490,7 @@ routing_init(void)
 
 	ht_banned_push = hset_create(HASH_KEY_FIXED, GUID_RAW_SIZE);
 
-	for (i = 0; i < G_N_ELEMENTS(banned_push); i++) {
+	for (i = 0; i < N_ITEMS(banned_push); i++) {
 		struct guid guid;
 		const char *hex = banned_push[i];
 
@@ -2149,7 +2149,7 @@ forward_message(
 						> GNET_PROPERTY(max_ttl)
 			) {
 				int ttl_max = route_max_forward_ttl(sender);
-			   
+
 				/* Trim down */
 
 				gnutella_header_set_ttl(&sender->header, ttl_max);
@@ -2593,7 +2593,7 @@ route_query(struct route_log *route_log,
 			gnutella_header_get_hops(&sender->header) > GNET_PROPERTY(my_ttl)
 	) {
 		int ttl_max;
-	
+
 		/* Trim down */
 		ttl_max = GNET_PROPERTY(my_ttl);
 		ttl_max -= gnutella_header_get_hops(&sender->header);
@@ -3110,14 +3110,14 @@ route_towards_guid(const struct guid *guid)
 
 	if (is_banned_push(guid))
 		return NULL;
-	
+
 	node = node_by_guid(guid);
 	if (node)
 		return pslist_prepend(NULL, node);
-	
+
 	if (find_message(guid, QUERY_HIT_ROUTE_SAVE, &m) && m->routes) {
 		pslist_t *iter, *nodes = NULL;
-		
+
 		revitalize_entry(m, TRUE);
 		PSLIST_FOREACH(m->routes, iter) {
 			struct route_data *rd = iter->data;
@@ -3187,7 +3187,7 @@ free_banned_push(const void *key, void *unused_udata)
 /**
  * Destroy routing data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 routing_close(void)
 {
 	uint cnt;

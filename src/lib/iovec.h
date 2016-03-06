@@ -95,7 +95,7 @@ iov_reset_n(iovec_t *iov, size_t n)
  * @param size The amount of bytes to copy from "src".
  * @return The amount of elements initialized. Thus, MIN(iov_cnt, argc).
  */
-static inline size_t 
+static inline size_t
 iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	char *argv[], size_t argc)
 {
@@ -118,7 +118,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
  *
  * @return TRUE if b->iov_base directly follows after &a->iov_base[a->iov_len].
  */
-static inline G_GNUC_PURE bool
+static inline G_PURE bool
 iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 {
 	g_assert(a);
@@ -134,7 +134,7 @@ iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
  * @param iov_cnt The array length of iov.
  * @return The amount contiguous bytes.
  */
-static inline size_t 
+static inline size_t
 iov_contiguous_size(const iovec_t *iov, size_t iov_cnt)
 {
 	iovec_t iov0;
@@ -168,7 +168,7 @@ static inline void
 iov_clear(iovec_t *iov, size_t byte_offset)
 {
 	g_assert(iov);
-	
+
 	if (byte_offset < iovec_len(iov)) {
 		char *p = iovec_base(iov);
 		memset(&p[byte_offset], 0, iovec_len(iov) - byte_offset);
@@ -183,7 +183,7 @@ iov_clear(iovec_t *iov, size_t byte_offset)
  * @param iov_cnt The array length of iov.
  * @return The sum of all buffer sizes.
  */
-static inline G_GNUC_PURE size_t
+static inline G_PURE size_t
 iov_calculate_size(const iovec_t *iov, size_t iov_cnt)
 {
 	size_t size = 0;

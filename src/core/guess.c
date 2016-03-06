@@ -919,7 +919,7 @@ guess_rpc_remove(const struct guess_rpc *grp)
 	bool found;
 
 	guess_rpc_check(grp);
-	
+
 	key.muid = grp->muid;
 	key.addr = gnet_host_get_addr(grp->host);
 
@@ -1302,7 +1302,7 @@ guess_timeout_from(const gnet_host_t *h)
 /**
  * Reset old timeout indication.
  */
-static G_GNUC_HOT void
+static void G_HOT
 guess_timeout_reset(const gnet_host_t *h, struct qkdata *qk)
 {
 	g_assert(h != NULL);
@@ -1779,7 +1779,7 @@ guess_entry_still_alive(const struct qkdata *qk)
 	if G_UNLIKELY(!inited) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(decimation); i++) {
+		for (i = 0; i < N_ITEMS(decimation); i++) {
 			decimation[i] = pow(GUESS_ALIVE_DECIMATION, (double) (i + 1));
 		}
 
@@ -1805,7 +1805,7 @@ guess_entry_still_alive(const struct qkdata *qk)
 	) {
 		return p;
 	} else {
-		size_t i = MIN(qk->timeouts, G_N_ELEMENTS(decimation)) - 1;
+		size_t i = MIN(qk->timeouts, N_ITEMS(decimation)) - 1;
 		return p * decimation[i];
 	}
 }
@@ -5813,7 +5813,7 @@ guess_invalidate_keys(void)
 /**
  * Initialize a GUESS cache.
  */
-static void G_GNUC_COLD
+static void G_COLD
 guess_cache_init(struct guess_cache *gc)
 {
 	gc->hs = hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
@@ -5823,7 +5823,7 @@ guess_cache_init(struct guess_cache *gc)
 /**
  * Initialize the GUESS client layer.
  */
-void G_GNUC_COLD
+void G_COLD
 guess_init(void)
 {
 	dbstore_kv_t kv = { sizeof(gnet_host_t), gnet_host_length,
@@ -5935,7 +5935,7 @@ guess_rpc_free_kv(const void *key, void *val, void *unused_x)
 /*
  * Shutdown the GUESS client layer.
  */
-G_GNUC_COLD void
+void G_COLD
 guess_close(void)
 {
 	if (NULL == db_qkdata)

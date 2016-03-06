@@ -413,7 +413,7 @@ tmalloc_magazine_is_full(const tmalloc_magazine_t * const m)
  * @param amount	memory target for full magazine (object memory)
  * @param size		size of each object
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_compute_capacity(size_t amount, size_t size)
 {
 	int capacity;
@@ -431,7 +431,7 @@ tmalloc_magazine_compute_capacity(size_t amount, size_t size)
  *
  * @return suitable magazine capacity
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_default_capacity(size_t size)
 {
 	/*
@@ -455,7 +455,7 @@ tmalloc_magazine_default_capacity(size_t size)
  *
  * @return suitable magazine capacity
  */
-static int G_GNUC_PURE
+static int G_PURE
 tmalloc_magazine_max_capacity(size_t size)
 {
 	return tmalloc_magazine_compute_capacity(TMALLOC_MAG_MEMORY_MAX, size);
@@ -963,7 +963,7 @@ tmalloc_thread_layer_free(void *data)
 
 	atomic_int_dec(&d->tma_threads);		/* Thread is exiting */
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 		if (m != NULL) {
 			tmt->tmt_mag[i] = NULL;
@@ -1048,7 +1048,7 @@ tmalloc_thread_magazine_exchange(struct tmalloc_thread *t)
  *
  * @return new object.
  */
-static G_GNUC_HOT void *
+static void * G_HOT
 tmalloc_thread_alloc(struct tmalloc_thread *t)
 {
 	tmalloc_magazine_t *m;
@@ -1127,7 +1127,7 @@ tmalloc_thread_alloc(struct tmalloc_thread *t)
  * @param t		the thread layer
  * @param p		the object being returned
  */
-static G_GNUC_HOT void
+static void G_HOT
 tmalloc_thread_free(struct tmalloc_thread *t, void *p)
 {
 	tmalloc_magazine_t *m;
@@ -1213,7 +1213,7 @@ tmalloc_thread_clear(struct tmalloc_thread *tmt)
 			(uint) delta_time(tm_time(), tmt->tmt_last_op), thread_name());
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 		if (m != NULL) {
 			tmt->tmt_mag[i] = NULL;
@@ -1749,7 +1749,7 @@ tmalloc_reset_thread(const void *data, void *udata)
 	 * its magazines: NULL is a valid value that is handled properly.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 		tmalloc_magazine_t *m = tmt->tmt_mag[i];
 
 		tmt->tmt_mag[i] = NULL;		/* Thread is suspended */
@@ -1834,7 +1834,7 @@ tmalloc_reset(tmalloc_t *tma)
 	if (tmt != NULL) {
 		size_t i;
 
-		for (i = 0; i < G_N_ELEMENTS(tmt->tmt_mag); i++) {
+		for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
 			tmalloc_magazine_t *m = tmt->tmt_mag[i];
 			if (m != NULL) {
 				if (tmalloc_debugging(1)) {
@@ -2382,19 +2382,18 @@ tmalloc_stats_digest(sha1_t *digest)
 /**
  * Dump tmalloc statistics to specified log agent.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
 	tmalloc_info_t stats;
 	size_t depot_count;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 #define DUMPV(x)	log_info(la, "TMALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		size_t_to_gstring(x) : size_t_to_string(x))				\
+	size_t_to_string_grp(x, groupped))
 
 #define DUMP(x)		log_info(la, "TMALLOC %s = %s", #x,			\
-	(options & DUMP_OPT_PRETTY) ?								\
-		uint64_to_gstring(stats.x) : uint64_to_string(stats.x))
+	uint64_to_string_grp(stats.x, groupped))
 
 	depot_count = tmalloc_all_stats(&stats);
 
@@ -2504,7 +2503,7 @@ tmalloc_info_size_cmp(const void *a, const void *b)
 /**
  * Dump per-depot magazine statistics to specified logagent.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_magazines_log(logagent_t *la)
 {
 	pslist_t *sl = tmalloc_info_list();
@@ -2517,7 +2516,7 @@ tmalloc_dump_magazines_log(logagent_t *la)
 /**
  * Dump tmalloc statistics.
  */
-G_GNUC_COLD void
+void G_COLD
 tmalloc_dump_stats(void)
 {
 	s_info("TMALLOC running statistics:");

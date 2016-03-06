@@ -83,7 +83,7 @@
 
 #define gui_signal_stop_emit_by_name(widget, name) \
 	gtk_signal_emit_stop_by_name(GTK_OBJECT(widget), (name))
-	
+
 #endif /* USE_GTK1 */
 
 #ifdef USE_GTK2
@@ -101,7 +101,7 @@
 
 #define gui_signal_stop_emit_by_name(widget, name) \
 	g_signal_stop_emission_by_name((widget), (name))
-	
+
 #endif	/* Gtk+ 2.0 */
 
 /**

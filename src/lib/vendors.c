@@ -145,13 +145,13 @@ static const struct vendor {
  *
  * @returns vendor string if found, NULL otherwise.
  */
-static G_GNUC_HOT const char *
+static const char * G_HOT
 find_vendor(uint32 code)
 {
 #define GET_KEY(i)	(vendor_map[(i)].code)
 #define FOUND(i)	return vendor_map[(i)].name
 
-	BINARY_SEARCH(uint32, code, G_N_ELEMENTS(vendor_map), VENDOR_CODE_CMP,
+	BINARY_SEARCH(uint32, code, N_ITEMS(vendor_map), VENDOR_CODE_CMP,
 		GET_KEY, FOUND);
 
 #undef FOUND
@@ -208,7 +208,7 @@ vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 
 		poke_be32(&temp[0], code);
 
-		for (i = 0; i < G_N_ELEMENTS(temp) - 1; i++) {
+		for (i = 0; i < N_ITEMS(temp) - 1; i++) {
 			if (!is_ascii_print(temp[i]))
 				temp[i] = '.';
 		}
@@ -313,7 +313,7 @@ vendor_get_name(const vendor_code_t vendor)
 /**
  * Initialize the vendor lookup.
  */
-G_GNUC_COLD void
+void G_COLD
 vendor_init(void)
 {
 	BINARY_ARRAY_SORTED(vendor_map, struct vendor, code,

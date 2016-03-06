@@ -75,6 +75,7 @@ void barrier_wait(barrier_t *b);
 void barrier_master_wait(barrier_t *b);
 void barrier_release(barrier_t *b);
 barrier_t *barrier_refcnt_inc(barrier_t *b);
+barrier_t *barrier_refcnt_dec(barrier_t *b);
 
 #endif /* _barrier_h_ */
 

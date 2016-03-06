@@ -138,7 +138,7 @@ find_row(gnet_upload_t u, upload_row_data_t **data)
 		g_assert(r);
 		rd = r->data;
 		g_assert(rd);
-		
+
         if (rd->valid && (rd->handle == u)) {
             /* found */
 
@@ -486,7 +486,7 @@ uploads_gui_init(void)
 /**
  * Unregister callbacks in the backend and clean up.
  */
-G_GNUC_COLD void
+void G_COLD
 uploads_gui_shutdown(void)
 {
 	GtkCList *clist;

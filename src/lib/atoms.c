@@ -357,7 +357,7 @@ mem_alloc(struct mem_cache *mc)
 
 /**
  * This does not really "free" the chunk at ``p'' but pushes it back to
- * the mem cache and thus makes it available again for mem_alloc(). 
+ * the mem cache and thus makes it available again for mem_alloc().
  */
 static void
 mem_free(struct mem_cache *mc, void *p)
@@ -382,7 +382,7 @@ atom_get_mc(size_t size)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+	for (i = 0; i < N_ITEMS(mem_cache); i++) {
 		if (size <= mem_cache[i]->size)
 			return mem_cache[i];
 	}
@@ -515,7 +515,7 @@ atom_alloc(size_t size)
 	atom_t *a = walloc(size);
 	ATOM_SET_MAGIC(a);
 	ATOM_ZERO(a);
-	return a;	
+	return a;
 }
 
 static inline void
@@ -617,7 +617,7 @@ static atom_desc_t atoms[] = {
 /**
  * @return length of string + trailing NUL.
  */
-static size_t 
+static size_t
 str_xlen(const void *v)
 {
 	return strlen((const char *) v) + 1;
@@ -653,7 +653,7 @@ guid_eq(const void *a, const void *b)
 /**
  * @return length of GUID.
  */
-static size_t 
+static size_t
 guid_len(const void *unused_guid)
 {
 	(void) unused_guid;
@@ -691,7 +691,7 @@ sha1_eq(const void *a, const void *b)
 /**
  * @return length of SHA1.
  */
-static size_t 
+static size_t
 sha1_len(const void *unused_sha1)
 {
 	(void) unused_sha1;
@@ -731,7 +731,7 @@ tth_eq(const void *a, const void *b)
 /**
  * @return length of TTH.
  */
-static size_t 
+static size_t
 tth_len(const void *unused_tth)
 {
 	(void) unused_tth;
@@ -956,7 +956,7 @@ uint32_str(const void *v)
 /**
  * Initialize atom structures.
  */
-static G_GNUC_COLD void
+static void G_COLD
 atoms_init_once(void)
 {
 	bool has_setting = FALSE;
@@ -969,16 +969,16 @@ atoms_init_once(void)
 
 	ZERO(&settings);
 
-	STATIC_ASSERT(NUM_ATOM_TYPES == G_N_ELEMENTS(atoms));
+	STATIC_ASSERT(NUM_ATOM_TYPES == N_ITEMS(atoms));
 	STATIC_ASSERT(4 == sizeof(void *) || sizeof(void *) == sizeof(ulong));
 
 #ifdef PROTECT_ATOMS
-	for (i = 0; i < G_N_ELEMENTS(mem_cache); i++) {
+	for (i = 0; i < N_ITEMS(mem_cache); i++) {
 		mem_cache[i] = mem_new((2 * sizeof (union mem_chunk)) << i);
 	}
 #endif /* PROTECT_ATOMS */
 
-	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
+	for (i = 0; i < N_ITEMS(atoms); i++) {
 		atom_desc_t *ad = &atoms[i];
 
 		ad->table = htable_create_any(ad->hash_func, NULL, ad->eq_func);
@@ -1099,9 +1099,9 @@ atom_get(enum atom_type type, const void *key)
 
 	STATIC_ASSERT(0 == ARENA_OFFSET % MEM_ALIGNBYTES);
 	STATIC_ASSERT(ARENA_OFFSET >= sizeof(atom_t));
-	
+
     g_assert(key != NULL);
-	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < N_ITEMS(atoms));
 	ATOM_TRACK_IS_LOCKED();
 
 	if G_UNLIKELY(!ONCE_DONE(atoms_inited))
@@ -1184,7 +1184,7 @@ atom_free(enum atom_type type, const void *key)
 	const void *orig_key;
 
     g_assert(key != NULL);
-	g_assert(UNSIGNED(type) < G_N_ELEMENTS(atoms));
+	g_assert(UNSIGNED(type) < N_ITEMS(atoms));
 	ATOM_TRACK_IS_LOCKED();
 
 	ad = &atoms[type];		/* Where atoms of this type are held */
@@ -1469,7 +1469,7 @@ atoms_close(void)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(atoms); i++) {
+	for (i = 0; i < N_ITEMS(atoms); i++) {
 		atom_desc_t *ad = &atoms[i];
 
 		ATOM_TABLE_LOCK(ad);

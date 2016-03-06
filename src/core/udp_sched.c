@@ -45,7 +45,7 @@
  * all the bandwidth was not consumed, incoming packets are sent immediately
  * until no more bandwidth is available, at which point we start queuing again.
  *
- * An scheduling queue is maintained by priority to send traffic ahead of any 
+ * An scheduling queue is maintained by priority to send traffic ahead of any
  * other less prioritary packets.  This is typically used for acknowledgments,
  * since delaying an ACK will likely cause retransmission on the other end.
  *
@@ -258,7 +258,7 @@ udp_tx_desc_flag_release(struct udp_tx_desc *txd, udp_sched_t *us)
 
 /**
  * Release message (eslist iterator).
- * 
+ *
  * @return TRUE to force message to be removed from list.
  */
 static bool
@@ -277,7 +277,7 @@ udp_tx_desc_reclaim(void *data, void *udata)
 
 /**
  * Drop message (eslist iterator).
- * 
+ *
  * @return TRUE to force message to be removed from list.
  */
 static bool
@@ -428,7 +428,7 @@ udp_tx_drop(const txdrv_t *tx, const struct tx_dgram_cb *cb)
  * bandwidth to send anything.
  */
 static bool
-udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to, 
+udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	const txdrv_t *tx, const struct tx_dgram_cb *cb)
 {
 	ssize_t r;
@@ -566,7 +566,7 @@ udp_sched_bw_per_second(const udp_sched_t *us)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+	for (i = 0; i < N_ITEMS(us->bio); i++) {
 		const bio_source_t *bio = us->bio[i];
 
 		if (bio != NULL)
@@ -588,7 +588,7 @@ udp_sched_bw_per_second(const udp_sched_t *us)
  * @return 0 if message was unsent, length of message if sent, queued or
  * dropped.
  */
-size_t 
+size_t
 udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	const txdrv_t *tx, const struct tx_dgram_cb *cb)
 {
@@ -659,7 +659,7 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 * datagrams first, to reduce the perceived average latency.
 	 */
 
-	g_assert(prio < G_N_ELEMENTS(us->lifo));
+	g_assert(prio < N_ITEMS(us->lifo));
 	eslist_prepend(&us->lifo[prio], txd);
 	us->buffered = size_saturate_add(us->buffered, len);
 
@@ -815,7 +815,7 @@ udp_sched_begin(void *data, int source, inputevt_cond_t cond)
 	 * Expire old traffic that we could not send.
 	 */
 
-	for (i = 0; i < G_N_ELEMENTS(us->lifo); i++) {
+	for (i = 0; i < N_ITEMS(us->lifo); i++) {
 		eslist_foreach_remove(&us->lifo[i], udp_tx_desc_expired, us);
 	}
 
@@ -828,7 +828,7 @@ udp_sched_begin(void *data, int source, inputevt_cond_t cond)
 
 	do {
 		udp_sched_seen_clear(us);
-		for (i = G_N_ELEMENTS(us->lifo); i != 0 && !us->used_all; i--) {
+		for (i = N_ITEMS(us->lifo); i != 0 && !us->used_all; i--) {
 			udp_sched_process(us, &us->lifo[i-1]);
 		}
 		udp_sched_tx_release(us);		/* May re-queue traffic */
@@ -863,7 +863,7 @@ udp_sched_clear_sockets(udp_sched_t *us)
 {
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+	for (i = 0; i < N_ITEMS(us->bio); i++) {
 		bio_source_t *bio = us->bio[i];
 
 		if (bio != NULL) {
@@ -884,7 +884,7 @@ udp_sched_update_sockets(udp_sched_t *us)
 
 	udp_sched_clear_sockets(us);
 
-	for (i = 0; i < G_N_ELEMENTS(us->bio); i++) {
+	for (i = 0; i < N_ITEMS(us->bio); i++) {
 		gnutella_socket_t *s = (*us->get_socket)(udp_sched_net_type[i]);
 
 		if (s != NULL) {
@@ -941,7 +941,7 @@ udp_sched_make(
 	us->get_socket = get_socket;
 	us->bws = bws;
 	udp_sched_update_sockets(us);
-	for (i = 0; i < G_N_ELEMENTS(us->lifo); i++) {
+	for (i = 0; i < N_ITEMS(us->lifo); i++) {
 		eslist_init(&us->lifo[i], offsetof(struct udp_tx_desc, lnk));
 	}
 	eslist_init(&us->tx_released, offsetof(struct udp_tx_desc, lnk));
@@ -970,7 +970,7 @@ udp_sched_free(udp_sched_t *us)
 
 	g_assert(0 == hash_list_length(us->stacks));
 
-	for (i = 0; i < G_N_ELEMENTS(us->lifo); i++) {
+	for (i = 0; i < N_ITEMS(us->lifo); i++) {
 		udp_sched_drop_all(us, &us->lifo[i]);
 	}
 	udp_sched_tx_release(us);

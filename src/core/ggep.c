@@ -71,7 +71,7 @@ unsigned ggep_errno;		/**< Used to return errors on GGEP operations */
 const char *
 ggep_strerror(unsigned errnum)
 {
-	if (errnum >= G_N_ELEMENTS(ggep_error_str)) {
+	if (errnum >= N_ITEMS(ggep_error_str)) {
 		static char buf[40];
 		str_bprintf(buf, sizeof buf, "Invalid GGEP error code: %u", errnum);
 		return buf;

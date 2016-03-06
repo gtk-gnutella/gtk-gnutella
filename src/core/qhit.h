@@ -57,7 +57,7 @@ typedef void (*qhit_process_t)(void *data, size_t len, void *udata);
  */
 
 struct gnutella_node;
-struct array; 
+struct array;
 struct guid;
 struct pslist;
 

@@ -58,6 +58,7 @@
 #include "path.h"
 #include "stacktrace.h"
 #include "str.h"
+#include "thread.h"			/* For thread_stack_check() */
 #include "walloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -947,6 +948,14 @@ ftw_process_dir(
 	g_assert(NULL == pdir || fx->base >= fx->rootlen);
 	g_assert(NULL != pdir || 0 == fx->base);
 
+	/*
+	 * This is a recursive routine, we do not know how deep the file system
+	 * hierarchy is going to be.  Make sure we're not too deep to avoid
+	 * accidental stack overflows.
+	 */
+
+	thread_stack_check();		/* Ensure we're not recursing too deeply */
+
 	if G_UNLIKELY(0 != ftw_opendir(fx, &dir, pdir)) {
 		if (EACCES == errno) {
 			/*
@@ -1328,6 +1337,7 @@ got_cwd:
 
 			if (flags & FTW_O_CHDIR) {
 				char *dir = filepath_directory(dirpath);
+				bool error = FALSE;
 				if (dir != NULL) {
 					if (-1 == chdir(dir)) {
 						if (0 == (flags & FTW_O_SILENT)) {
@@ -1336,9 +1346,11 @@ got_cwd:
 						}
 						HFREE_NULL(fx.calldir);		/* Have not changed cwd! */
 						result = FTW_STATUS_ERROR;
-						goto done;
+						error = TRUE;
 					}
 					HFREE_NULL(dir);
+					if (error)
+						goto done;
 				}
 			}
 

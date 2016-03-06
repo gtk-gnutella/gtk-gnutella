@@ -141,7 +141,7 @@ search_stats_gui_disable_sort(void)
 	sortable = GTK_TREE_SORTABLE(store_search_stats);
 	if (gtk_tree_sortable_get_sort_column_id(sortable, &column, &order)) {
 		gtk_tree_sortable_set_sort_column_id(sortable,
-			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID, 
+			GTK_TREE_SORTABLE_UNSORTED_SORT_COLUMN_ID,
 			GTK_SORT_DESCENDING);
 	}
 #endif /* Gtk+ >= 2.6.0 */
@@ -194,7 +194,7 @@ search_stats_notify_whole(query_type_t type, const char *search,
 	(void) unused_addr;
 	(void) unused_port;
 
-	concat_strings(buf, sizeof buf, 
+	concat_strings(buf, sizeof buf,
 		type == QUERY_SHA1 ? "urn:sha1:" : "[",
 		search,
 		type == QUERY_SHA1 ? "" : "]",
@@ -435,11 +435,11 @@ search_stats_gui_update_display(void)
 	stat_count = 0;
 	g_object_freeze_notify(G_OBJECT(treeview_search_stats));
 	gtk_list_store_clear(store_search_stats);
-	
+
 	/*
 	 * Temporarily disable sorting while inserting the updated table.
 	 * Otherwise, CPU is overloaded with sorting every addition
-	 *  to the hash table. 
+	 *  to the hash table.
 	 */
 	sorting_disabled = FALSE;
 	tm_now_exact(&start_time);
@@ -469,7 +469,7 @@ search_stats_gui_update_display(void)
 	    search_stats_gui_disable();
 	    search_stats_gui_overload = TRUE;
 	}
-	
+
 	if (search_stats_gui_overload) {
 		/* update status bar message */
 		gtk_label_set_text(GTK_LABEL(label_search_stats_count),
@@ -516,7 +516,7 @@ search_stats_gui_init(void)
 	GtkTreeModel *model;
     GtkTreeView *treeview;
 
-	STATIC_ASSERT(G_N_ELEMENTS(cols) == G_N_ELEMENTS(types));
+	STATIC_ASSERT(N_ITEMS(cols) == N_ITEMS(types));
 
 	treeview_search_stats =
         GTK_TREE_VIEW(gui_main_window_lookup("treeview_search_stats"));
@@ -526,12 +526,12 @@ search_stats_gui_init(void)
 	treeview = treeview_search_stats;
 
     /* set up the treeview to be sorted properly */
-	model = GTK_TREE_MODEL(gtk_list_store_newv(G_N_ELEMENTS(types), types));
+	model = GTK_TREE_MODEL(gtk_list_store_newv(N_ITEMS(types), types));
 	gtk_tree_view_set_model(treeview, model);
     store_search_stats = GTK_LIST_STORE(model);
 	g_object_unref(model);
 
-	for (i = 0; i < G_N_ELEMENTS(cols); i++) {
+	for (i = 0; i < N_ITEMS(cols); i++) {
 		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
 	tree_view_restore_widths(treeview, PROP_SEARCH_STATS_COL_WIDTHS);

@@ -84,7 +84,7 @@
 
 #define HOSTCACHE_EXPIRY (60 * 30) /* 30 minutes */
 
-#define HCACHE_SAVE_PERIOD	63		/**< in seconds, every minute or so */			
+#define HCACHE_SAVE_PERIOD	63		/**< in seconds, every minute or so */
 #define MIN_RESERVE_SIZE	1024	/**< we'd like that many pongs in reserve */
 
 /**
@@ -530,7 +530,7 @@ hcache_move_entries(hostcache_t *to, hostcache_t *from)
 
 	start_mass_update(to);
 	start_mass_update(from);
-	
+
 	hash_list_free(&to->hostlist);
     to->hostlist = from->hostlist;
     from->hostlist = hash_list_new(NULL, NULL);
@@ -603,7 +603,7 @@ static void
 hcache_unlink_host(hostcache_t *hc, gnet_host_t *host)
 {
 	const void *orig_key;
-	
+
 	g_assert(hc->hostlist != NULL);
 	g_assert(hash_list_length(hc->hostlist) > 0);
 
@@ -631,7 +631,7 @@ const char *
 hcache_type_to_string(hcache_type_t type)
 {
 	g_assert((uint) type < HCACHE_MAX);
-	STATIC_ASSERT(HCACHE_MAX == G_N_ELEMENTS(names));
+	STATIC_ASSERT(HCACHE_MAX == N_ITEMS(names));
 
 	return names[type];
 }
@@ -643,7 +643,7 @@ const char *
 host_type_to_string(host_type_t type)
 {
 	g_assert((uint) type < HOST_MAX);
-	STATIC_ASSERT(HOST_MAX == G_N_ELEMENTS(host_type_names));
+	STATIC_ASSERT(HOST_MAX == N_ITEMS(host_type_names));
 
 	return host_type_names[type];
 }
@@ -769,11 +769,11 @@ hcache_request_slot(hcache_type_t type)
  * When the host passes validation checks and should be added to the cache,
  * anyone waiting via wq_sleep() on the "hcache_add" key is notified about
  * the new host, the wakeup information supplying a hcache_new_host structure.
- * 
+ *
  * @return TRUE when IP/port passed sanity checks, regardless of whether it
  *         was added to the cache. (See above)
  */
-static G_GNUC_HOT bool
+static bool G_HOT
 hcache_add_internal(hcache_type_t type, time_t added,
 	const host_addr_t addr, uint16 port, const char *what)
 {
@@ -950,7 +950,7 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 		hce->type = type;
 		hce->time_added = added;
-		
+
 		if (hc->mass_update == 0) {
 			gnet_prop_incr_guint32(hc->hosts_in_catcher);
 		}
@@ -1723,7 +1723,7 @@ hcache_get_caught(host_type_t type, host_addr_t *addr, uint16 *port)
 
 	*addr = zero_host_addr;
 	*port = 0;
-	
+
     switch (type) {
     case HOST_ANY:
         hc = caches[HCACHE_FRESH_ANY];
@@ -1834,7 +1834,7 @@ hcache_free_null(hostcache_t **hc_ptr)
 /**
  * Parse and load the hostcache file.
  */
-static G_GNUC_COLD void
+static void G_COLD
 hcache_load_file(hostcache_t *hc, FILE *f)
 {
 	char buffer[1024];
@@ -1885,7 +1885,7 @@ hcache_retrieve(hostcache_t *hc, const char *filename)
 	FILE *f;
 
 	file_path_set(fp, settings_config_dir(), filename);
-	f = file_config_open_read(hc->name, fp, G_N_ELEMENTS(fp));
+	f = file_config_open_read(hc->name, fp, N_ITEMS(fp));
 	if (f) {
 		hcache_load_file(hc, f);
 		fclose(f);
@@ -1908,7 +1908,7 @@ hcache_write(FILE *f, hostcache_t *hc)
 		hce = hcache_get_metadata(hc->class, h);
     	if (hce == NULL || hce == NO_METADATA)
 			continue;
-		
+
 		fprintf(f, "%s %s\n",
 			gnet_host_to_string(h), timestamp_utc_to_string(hce->time_added));
 	}
@@ -2088,7 +2088,7 @@ hcache_periodic_save(void *unused_obj)
 /**
  * Initialize host caches.
  */
-G_GNUC_COLD void
+void G_COLD
 hcache_init(void)
 {
 	ht_known_hosts =
@@ -2190,7 +2190,7 @@ hcache_init(void)
 /**
  * Load hostcache data from disk.
  */
-G_GNUC_COLD void
+void G_COLD
 hcache_retrieve_all(void)
 {
 	hcache_retrieve(caches[HCACHE_FRESH_ANY], HOSTS_FILE);
@@ -2204,7 +2204,7 @@ hcache_retrieve_all(void)
 /**
  * Shutdown host caches.
  */
-G_GNUC_COLD void
+void G_COLD
 hcache_shutdown(void)
 {
 	cq_periodic_remove(&hcache_save_ev);
@@ -2219,7 +2219,7 @@ hcache_shutdown(void)
 /**
  * Destroy all host caches.
  */
-G_GNUC_COLD void
+void G_COLD
 hcache_close(void)
 {
 	static const hcache_type_t types[] = {
@@ -2251,7 +2251,7 @@ hcache_close(void)
      * hcache_require_caught will crash if we free certain hostcaches.
      */
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		uint j;
 		hcache_type_t type = types[i];
 
@@ -2266,7 +2266,7 @@ hcache_close(void)
     		g_assert(hash_list_length(caches[j]->hostlist) == 0);
 	}
 
-	for (i = 0; i < G_N_ELEMENTS(types); i++) {
+	for (i = 0; i < N_ITEMS(types); i++) {
 		hcache_type_t type = types[i];
 
 		hcache_free_null(&caches[type]);

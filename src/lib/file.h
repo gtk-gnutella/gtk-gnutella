@@ -69,7 +69,7 @@ int file_sync_fclose(FILE *f);
 void file_config_preamble(FILE *out, const char *what);
 void file_path_set(file_path_t *fp, const char *dir, const char *name);
 const char *file_oflags_to_string(int flags);
-const char *file_accmode_to_string(const int accmode) G_GNUC_CONST;
+const char *file_accmode_to_string(const int accmode) G_CONST;
 
 int file_open(const char *path, int flags, int mode);
 int file_open_silent(const char *path, int flags, int mode);
@@ -91,7 +91,7 @@ bool file_line_chomp_tail(char *line, size_t size, size_t *lenptr);
 /**
  * Is line a comment?
  */
-static inline ALWAYS_INLINE bool G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_PURE
 file_line_is_comment(const char * const line)
 {
 	return '#' == line[0];
@@ -100,13 +100,13 @@ file_line_is_comment(const char * const line)
 /**
  * Is line empty?
  */
-static inline ALWAYS_INLINE bool G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_PURE
 file_line_is_empty(const char * const line)
 {
 	return '\0' == line[0];
 }
 
-static inline ALWAYS_INLINE bool G_GNUC_PURE
+static inline ALWAYS_INLINE bool G_PURE
 file_line_is_skipable(const char * const line)
 {
 	return file_line_is_comment(line) || file_line_is_empty(line);

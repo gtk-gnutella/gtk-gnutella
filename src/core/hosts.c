@@ -85,7 +85,7 @@ host_cache_allow_bypass(int which)
 	static time_t last_try[2];
 	uint count = which == HOST_GNET ? node_count() : node_g2_count();
 
-	g_assert(UNSIGNED(which) < G_N_ELEMENTS(last_try));
+	g_assert(UNSIGNED(which) < N_ITEMS(last_try));
 
 	if (count != 0)
 		return FALSE;
@@ -295,7 +295,7 @@ host_timer(void)
 				int i;
 
 				hcount = dht_fill_random(host,
-					MIN(UNSIGNED(missing), G_N_ELEMENTS(host)));
+					MIN(UNSIGNED(missing), N_ITEMS(host)));
 
 				missing -= hcount;
 

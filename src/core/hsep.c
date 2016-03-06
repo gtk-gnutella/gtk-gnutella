@@ -142,7 +142,7 @@ hsep_fire_global_table_changed(time_t now)
 	/* do nothing if we don't have any listeners */
 
 	if (event_subscriber_active(hsep_global_table_changed_event)) {
-		hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
+		hsep_triple table[N_ITEMS(hsep_global_table)];
 
 		/*
 		 * Make a copy of the global HSEP table and give that
@@ -150,10 +150,10 @@ hsep_fire_global_table_changed(time_t now)
 		 * listeners.
 		 */
 
-		hsep_get_global_table(table, G_N_ELEMENTS(table));
+		hsep_get_global_table(table, N_ITEMS(table));
 
 		event_trigger(hsep_global_table_changed_event,
-		    T_NORMAL(hsep_global_listener_t, (table, G_N_ELEMENTS(table))));
+		    T_NORMAL(hsep_global_listener_t, (table, N_ITEMS(table))));
 	}
 }
 
@@ -173,7 +173,7 @@ hsep_check_monotony(hsep_triple *table, unsigned int triples)
 	for (i = 1; i < triples; i++) {
 
 		/* if any triple is not >= the previous one, error will be TRUE */
-		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
+		for (j = 0; j < N_ITEMS(table[0]); j++)
 			error |= table[i - 1][j] > table[i][j];
 
 		if (error)
@@ -203,7 +203,7 @@ static void
 hsep_sanity_check(void)
 {
 	const pslist_t *sl;
-	hsep_triple sum[G_N_ELEMENTS(hsep_global_table)];
+	hsep_triple sum[N_ITEMS(hsep_global_table)];
 	unsigned int i, j;
 
 	ZERO(&sum);
@@ -231,21 +231,21 @@ hsep_sanity_check(void)
 		/* check if values are monotonously increasing (skip first) */
 		g_assert(
 			hsep_check_monotony(cast_to_pointer(n->hsep->table[1]),
-				G_N_ELEMENTS(n->hsep->table[1]) - 1)
+				N_ITEMS(n->hsep->table[1]) - 1)
 		);
 
 		/* sum up the values */
 
-		for (i = 0; i < G_N_ELEMENTS(sum); i++) {
-			for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
+		for (i = 0; i < N_ITEMS(sum); i++) {
+			for (j = 0; j < N_ITEMS(sum[0]); j++)
 				sum[i][j] += n->hsep->table[i][j];
 		}
 	}
 
 	/* check sums */
 
-	for (i = 0; i < G_N_ELEMENTS(sum); i++) {
-		for (j = 0; j < G_N_ELEMENTS(sum[0]); j++)
+	for (i = 0; i < N_ITEMS(sum); i++) {
+		for (j = 0; j < N_ITEMS(sum[0]); j++)
 			g_assert(hsep_global_table[i][j] == sum[i][j]);
 	}
 }
@@ -261,17 +261,17 @@ hsep_dump_table(void)
 
 	printf("HSEP: Reachable nodes (1-%d hops): ", HSEP_N_MAX);
 
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+	for (i = 1; i < N_ITEMS(hsep_global_table); i++)
 		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_NODES]));
 
 	printf("\nHSEP: Reachable files (1-%d hops): ", HSEP_N_MAX);
 
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+	for (i = 1; i < N_ITEMS(hsep_global_table); i++)
 		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_FILES]));
 
 	printf("\nHSEP:   Reachable KiB (1-%d hops): ", HSEP_N_MAX);
 
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++)
+	for (i = 1; i < N_ITEMS(hsep_global_table); i++)
 		printf("%s ", uint64_to_string(hsep_global_table[i][HSEP_IDX_KIB]));
 
 	printf("\n");
@@ -311,7 +311,7 @@ hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
 
 	for (i = last; i-- > 0; triples--) {
 
-		for (j = 0; j < G_N_ELEMENTS(table[0]); j++)
+		for (j = 0; j < N_ITEMS(table[0]); j++)
 	   		changed |= table[i][j] != table[last][j];
 
 		if (changed)
@@ -326,7 +326,7 @@ hsep_triples_to_send(const hsep_triple *table, unsigned int triples)
  * Initializes HSEP.
  */
 
-G_GNUC_COLD void
+void G_COLD
 hsep_init(void)
 {
 	header_features_add(FEATURES_CONNECTIONS,
@@ -346,7 +346,7 @@ hsep_init(void)
 void
 hsep_add_global_table_listener(callback_fn_t cb, frequency_t t, uint32 interval)
 {
-	hsep_triple table[G_N_ELEMENTS(hsep_global_table)];
+	hsep_triple table[N_ITEMS(hsep_global_table)];
 	hsep_global_listener_t func = (hsep_global_listener_t) cb;
 
 
@@ -360,8 +360,8 @@ hsep_add_global_table_listener(callback_fn_t cb, frequency_t t, uint32 interval)
 	 * given callback call constraints.
 	 */
 
-	hsep_get_global_table(table, G_N_ELEMENTS(table));
-	func(table, G_N_ELEMENTS(table));
+	hsep_get_global_table(table, N_ITEMS(table));
+	func(table, N_ITEMS(table));
 }
 
 void
@@ -403,7 +403,7 @@ hsep_reset(void)
 
 		/* this is what we know before receiving the first message */
 
-		for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
+		for (i = 1; i < N_ITEMS(hsep_global_table); i++) {
 			n->hsep->table[i][HSEP_IDX_NODES] = 1;
 			hsep_global_table[i][HSEP_IDX_NODES]++;
 		}
@@ -442,7 +442,7 @@ hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 
 	/* this is what we know before receiving the first message */
 
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
+	for (i = 1; i < N_ITEMS(hsep_global_table); i++) {
 		n->hsep->table[i][HSEP_IDX_NODES] = 1;
 		hsep_global_table[i][HSEP_IDX_NODES]++;
 	}
@@ -530,9 +530,9 @@ hsep_connection_close(gnutella_node_t *n, bool in_shutdown)
 	if (in_shutdown)
 		goto cleanup;
 
-	for (i = 1; i < G_N_ELEMENTS(hsep_global_table); i++) {
+	for (i = 1; i < N_ITEMS(hsep_global_table); i++) {
 
-		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
+		for (j = 0; j < N_ITEMS(hsep_global_table[0]); j++) {
 			hsep_global_table[i][j] -= n->hsep->table[i][j];
 			n->hsep->table[i][j] = 0;
 		}
@@ -570,7 +570,7 @@ hsep_fix_endian(hsep_triple *messaget, size_t n)
 	 */
 
 	for (i = 0; i < n; i++) {
-		for (j = 0; j < G_N_ELEMENTS(messaget[0]); j++) {
+		for (j = 0; j < N_ITEMS(messaget[0]); j++) {
 			poke_le64(&messaget[i][j], messaget[i][j]);
 		}
 	}
@@ -664,16 +664,16 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 	for (k = 0, i = 1; k < max; k++, i++) {
 
 		if (GNET_PROPERTY(hsep_debug) > 1) {
-			char buf[G_N_ELEMENTS(messaget[0])][32];
+			char buf[N_ITEMS(messaget[0])][32];
 
-			for (j = 0; j < G_N_ELEMENTS(buf); j++)
+			for (j = 0; j < N_ITEMS(buf); j++)
 				uint64_to_string_buf(messaget[k][j], buf[j], sizeof buf[0]);
 
-			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));
+			STATIC_ASSERT(3 == N_ITEMS(buf));
 			printf("(%s, %s, %s) ", buf[0], buf[1], buf[2]);
 		}
 
-		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
+		for (j = 0; j < N_ITEMS(hsep_global_table[0]); j++) {
 			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
 			hsep->table[i][j] = messaget[k][j];
 		}
@@ -691,9 +691,9 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 	if (k > 0)
 		k--;
 
-	for (/* NOTHING */; i < G_N_ELEMENTS(hsep_global_table); i++) {
+	for (/* NOTHING */; i < N_ITEMS(hsep_global_table); i++) {
 
-		for (j = 0; j < G_N_ELEMENTS(hsep_global_table[0]); j++) {
+		for (j = 0; j < N_ITEMS(hsep_global_table[0]); j++) {
 			hsep_global_table[i][j] += messaget[k][j] - hsep->table[i][j];
 			hsep->table[i][j] = messaget[k][j];
 		}
@@ -724,7 +724,7 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 void
 hsep_send_msg(gnutella_node_t *n, time_t now)
 {
-	hsep_triple tmp[G_N_ELEMENTS(n->hsep->sent_table)], other;
+	hsep_triple tmp[N_ITEMS(n->hsep->sent_table)], other;
 	unsigned int i, j, msglen, msgsize, triples, opttriples;
 	gnutella_msg_hsep_t *msg;
 	hsep_ctx_t *hsep;
@@ -743,7 +743,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 	 * it contains only our own triple, which is correct.
 	 */
 
-	triples = settings_is_leaf() ? 1 : G_N_ELEMENTS(tmp);
+	triples = settings_is_leaf() ? 1 : N_ITEMS(tmp);
 
 	/*
 	 * Allocate and initialize message to send.
@@ -754,7 +754,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	{
 		gnutella_header_t *header;
-		
+
 		header = gnutella_msg_hsep_header(msg);
 		message_set_muid(header, GTA_MSG_HSEP_DATA);
 		gnutella_header_set_function(header, GTA_MSG_HSEP_DATA);
@@ -773,7 +773,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 	}
 
 	for (i = 0; i < triples; i++) {
-		for (j = 0; j < G_N_ELEMENTS(other); j++) {
+		for (j = 0; j < N_ITEMS(other); j++) {
 			uint64 val;
 
 			val = hsep_own[j] + (0 == i ? 0 : other[j]) +
@@ -815,16 +815,16 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	for (i = 0; i < opttriples; i++) {
 		if (GNET_PROPERTY(hsep_debug) > 1) {
-			char buf[G_N_ELEMENTS(hsep_own)][32];
+			char buf[N_ITEMS(hsep_own)][32];
 
-			for (j = 0; j < G_N_ELEMENTS(buf); j++) {
+			for (j = 0; j < N_ITEMS(buf); j++) {
 				uint64 v;
 
 				v = hsep_own[j] + hsep_global_table[i][j] - hsep->table[i][j];
 				uint64_to_string_buf(v, buf[j], sizeof buf[0]);
 			}
 
-			STATIC_ASSERT(3 == G_N_ELEMENTS(buf));
+			STATIC_ASSERT(3 == N_ITEMS(buf));
 			printf("(%s, %s, %s) ", buf[0], buf[1], buf[2]);
 		}
 	}
@@ -903,7 +903,7 @@ hsep_get_global_table(hsep_triple *buffer, unsigned int maxtriples)
 {
 	g_assert(buffer);
 
-	maxtriples = MIN(maxtriples, G_N_ELEMENTS(hsep_global_table));
+	maxtriples = MIN(maxtriples, N_ITEMS(hsep_global_table));
 	memcpy(buffer, hsep_global_table, maxtriples * sizeof buffer[0]);
 
 	return maxtriples;
@@ -926,7 +926,7 @@ hsep_get_connection_table(const gnutella_node_t *n,
 	g_assert(n->hsep);
 	g_assert(buffer);
 
-	maxtriples = MIN(maxtriples, G_N_ELEMENTS(n->hsep->table));
+	maxtriples = MIN(maxtriples, N_ITEMS(n->hsep->table));
 	memcpy(buffer, n->hsep->table, maxtriples * sizeof buffer[0]);
 
 	return maxtriples;
@@ -1017,11 +1017,11 @@ const char *
 hsep_get_static_str(int row, int column)
 {
 	const char *ret = NULL;
-	hsep_triple hsep_table[G_N_ELEMENTS(hsep_global_table)];
+	hsep_triple hsep_table[N_ITEMS(hsep_global_table)];
 	hsep_triple other[1];
 	uint64 v;
 
-	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
+	hsep_get_global_table(hsep_table, N_ITEMS(hsep_table));
 	hsep_get_non_hsep_triple(other);
 
     switch (column) {
@@ -1070,10 +1070,10 @@ hsep_get_static_str(int row, int column)
 int
 hsep_get_table_size(void)
 {
-	hsep_triple hsep_table[G_N_ELEMENTS(hsep_global_table)];
+	hsep_triple hsep_table[N_ITEMS(hsep_global_table)];
 
-	hsep_get_global_table(hsep_table, G_N_ELEMENTS(hsep_table));
-	return G_N_ELEMENTS(hsep_table);
+	hsep_get_global_table(hsep_table, N_ITEMS(hsep_table));
+	return N_ITEMS(hsep_table);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

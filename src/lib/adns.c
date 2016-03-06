@@ -133,7 +133,7 @@ count_addrs(const host_addr_t *addrs, size_t m)
 	}
 	return n;
 }
-	
+
 /**
  * Cache entries will expire after ADNS_CACHE_TIMEOUT seconds.
  */
@@ -175,7 +175,7 @@ adns_cache_init(void)
 	cache->ht = hikset_create(
 		offsetof(adns_cache_entry_t, hostname), HASH_KEY_STRING, 0);
 	cache->pos = 0;
-	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
+	for (i = 0; i < N_ITEMS(cache->entries); i++) {
 		cache->entries[i] = NULL;
 	}
 	return cache;
@@ -189,9 +189,9 @@ static inline adns_cache_entry_t *
 adns_cache_get_entry(adns_cache_t *cache, unsigned i)
 {
 	adns_cache_entry_t *entry;
-	
+
 	g_assert(cache);
-	g_assert(i < G_N_ELEMENTS(cache->entries));
+	g_assert(i < N_ITEMS(cache->entries));
 
 	entry = cache->entries[i];
 	if (entry) {
@@ -208,7 +208,7 @@ adns_cache_free_entry(adns_cache_t *cache, unsigned i)
 	adns_cache_entry_t *entry;
 
 	g_assert(cache);
-	g_assert(i < G_N_ELEMENTS(cache->entries));
+	g_assert(i < N_ITEMS(cache->entries));
 
 	entry = cache->entries[i];
 	if (entry) {
@@ -238,7 +238,7 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	g_assert(cache);
 	g_assert(cache->ht);
 
-	for (i = 0; i < G_N_ELEMENTS(cache->entries); i++) {
+	for (i = 0; i < N_ITEMS(cache->entries); i++) {
 		adns_cache_free_entry(cache, i);
 	}
 	hikset_free_null(&cache->ht);
@@ -256,15 +256,15 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 {
 	adns_cache_entry_t *entry;
 	size_t i;
-	
+
 	g_assert(NULL != addrs);
 	g_assert(NULL != cache);
 	g_assert(NULL != hostname);
 	g_assert(n > 0);
 
 	g_assert(!hikset_contains(cache->ht, hostname));
-	g_assert(cache->pos < G_N_ELEMENTS(cache->entries));
-	
+	g_assert(cache->pos < N_ITEMS(cache->entries));
+
 	entry = adns_cache_get_entry(cache, cache->pos);
 	if (entry) {
 		g_assert(entry->hostname);
@@ -285,7 +285,7 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	}
 	hikset_insert_key(cache->ht, &entry->hostname);
 	cache->entries[cache->pos++] = entry;
-	cache->pos %= G_N_ELEMENTS(cache->entries);
+	cache->pos %= N_ITEMS(cache->entries);
 }
 
 /**
@@ -381,14 +381,14 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		PSLIST_FOREACH(sl_addr, sl) {
 			host_addr_t *addr = sl->data;
 			g_assert(addr);
-			if (i >= G_N_ELEMENTS(reply->addrs)) {
+			if (i >= N_ITEMS(reply->addrs)) {
 				break;
 			}
 			reply->addrs[i++] = *addr;
 		}
 		host_addr_free_list(&sl_addr);
 
-		if (i < G_N_ELEMENTS(reply->addrs)) {
+		if (i < N_ITEMS(reply->addrs)) {
 			reply->addrs[i] = zero_host_addr;
 		}
 	}
@@ -414,7 +414,7 @@ adns_helper(void *p)
 	struct adns_helper_args *args = p;
 	aqueue_t *rq = aq_refcnt_inc(args->requests);
 	aqueue_t *aq = aq_refcnt_inc(args->answers);
-	
+
 	thread_set_name("ADNS");
 	WFREE(args);
 
@@ -429,7 +429,7 @@ adns_helper(void *p)
 			break;
 
 		g_assert(ADNS_COMMON_MAGIC == req->common.magic);
-	
+
 		WALLOC(ans);
 		adns_gethostbyname(req, ans);
 		WFREE(req);
@@ -458,8 +458,8 @@ adns_invoke_user_callback(const struct adns_response *ans)
 		const struct adns_reply *reply = &ans->reply.by_addr;
 		adns_callback_t func;
 		size_t n;
-	
-		n = count_addrs(reply->addrs, G_N_ELEMENTS(reply->addrs));
+
+		n = count_addrs(reply->addrs, N_ITEMS(reply->addrs));
 		func = (adns_callback_t) ans->common.user_callback;
 		func(reply->addrs, n, ans->common.user_data);
 	}
@@ -491,7 +491,7 @@ adns_reply_ready(const struct adns_response *ans)
 	if (ans->common.reverse) {
 		if (common_dbg > 1) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
-			
+
 			g_debug("%s: resolved \"%s\" to \"%s\".",
 				G_STRFUNC, host_addr_to_string(reply->addr), reply->hostname);
 		}
@@ -499,19 +499,19 @@ adns_reply_ready(const struct adns_response *ans)
 		const struct adns_reply *reply = &ans->reply.by_addr;
 		size_t num;
 
-		num = count_addrs(reply->addrs, G_N_ELEMENTS(reply->addrs));
+		num = count_addrs(reply->addrs, N_ITEMS(reply->addrs));
 		num = MAX(1, num); /* For negative caching */
-		
+
 		if (common_dbg > 1) {
 			size_t i;
-			
+
 			for (i = 0; i < num; i++) {
 				g_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}
 
-		
+
 		if (!adns_cache_lookup(adns_cache, now, reply->hostname, NULL, 0)) {
 			adns_cache_add(adns_cache, now, reply->hostname, reply->addrs, num);
 		}
@@ -668,7 +668,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	req.common.user_data = user_data;
 	req.common.reverse = FALSE;
 	ans.common = req.common;
-	
+
 	query->net = net;
 	reply->hostname[0] = '\0';
 	reply->addrs[0] = zero_host_addr;
@@ -691,10 +691,10 @@ adns_resolve(const char *hostname, enum net_type net,
 
 	ascii_strlower(query->hostname, hostname);
 	clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
-	
+
 	if (
 		adns_cache_lookup(adns_cache, tm_time(), query->hostname,
-			reply->addrs, G_N_ELEMENTS(reply->addrs))
+			reply->addrs, N_ITEMS(reply->addrs))
 	) {
 		adns_invoke_user_callback(&ans);
 		return FALSE; /* synchronous */

@@ -416,7 +416,7 @@ xfmt_text_escape_overhead(const char *text, bool amp, bool apos, size_t *len)
  * @param amp		whether '&' also needs to be escaped
  * @param apos		whether single quotes also need to be escaped
  * @param newlen	computed length for the escaped string
- * 
+ *
  * @return escaped string, which must be freed via hfree().
  */
 static char *

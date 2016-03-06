@@ -157,7 +157,7 @@ copy_and_pad(char *dst, const char *src, size_t size)
 {
 	size_t pad;
 
-	g_assert(NULL != src || 0 == size);	
+	g_assert(NULL != src || 0 == size);
 	if (size > 0) {
 		void *p;
 		pad = dime_ceil(size) - size;
@@ -247,7 +247,7 @@ dime_parse_record_header(const char *data, size_t size,
 {
 	const char * const data0 = data;
 	size_t n;
-	
+
 	g_assert(data);
 	g_assert(header);
 
@@ -255,7 +255,7 @@ dime_parse_record_header(const char *data, size_t size,
 	if (size < n) {
 		goto failure;
 	}
-	
+
 	header->version = peek_u8(&data[0]) >> 3;
 
 	if (DIME_VERSION != header->version) {
@@ -329,10 +329,10 @@ dime_parse_records(const char *data, size_t size)
 	for (;;) {
 		struct dime_record *record;
 		size_t ret;
-		
+
 		record = dime_record_alloc();
 		list = pslist_prepend(list, record);
-		
+
 		ret = dime_parse_record_header(data, size, record);
 		if (0 == ret) {
 			goto error;
@@ -375,12 +375,12 @@ dime_record_set_data(struct dime_record *record, const void *data, size_t size)
 	record->data_length = size;
 	return TRUE;
 }
-	
+
 bool
 dime_record_set_id(struct dime_record *record, const char *id)
 {
 	size_t length;
-	
+
 	g_return_val_if_fail(record, FALSE);
 
 	length = id ? strlen(id) : 0;
@@ -396,7 +396,7 @@ dime_record_set_type(struct dime_record *record,
 	enum dime_type_t type_t, const char *type)
 {
 	size_t length;
-	
+
 	g_return_val_if_fail(record, FALSE);
 
 	length = type ? strlen(type) : 0;

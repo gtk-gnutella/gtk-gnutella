@@ -171,7 +171,7 @@ static spinlock_t cond_access[] = {
 	SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT, SPINLOCK_INIT,	/* 32 */
 };
 
-#define COND_HASH_MASK	(G_N_ELEMENTS(cond_access) - 1)
+#define COND_HASH_MASK	(N_ITEMS(cond_access) - 1)
 
 static void cond_time_adjust(int delta);
 
@@ -1034,7 +1034,7 @@ signaled:
 	 * On-the-fly extensions of a condition variable is only possible under
 	 * rare circumstances, and we protect it with a global spinlock.  We need
 	 * to hold that lock until after we can lock the condition variable.
-	 * 
+	 *
 	 * Here we know there won't be any deadlock possible because the locking
 	 * order is always the same: the global lock, then the condition variable.
 	 */
@@ -1454,6 +1454,9 @@ cond_wakeup_all(cond_t cv)
 cond_t
 cond_refcnt_inc(cond_t *c)
 {
+	if G_UNLIKELY(NULL == c)
+		return NULL;
+
 	return cond_get(c);
 }
 

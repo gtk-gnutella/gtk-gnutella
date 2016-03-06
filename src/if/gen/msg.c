@@ -62,7 +62,7 @@ static const char *msg_type_description[] = {
 const char *
 gnet_msg_type_description(msg_type_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(msg_type_description)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(msg_type_description)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid msg_type_t code: %d", (int) x);
 		return str_2c(s);

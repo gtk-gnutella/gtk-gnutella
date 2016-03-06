@@ -196,7 +196,7 @@ semaphore_unblock(semaphore_t *s)
 	 */
 
 	SEM_LOCK(s);
-	
+
 	count = elist_count(list);
 	u = uid = alloca(count * sizeof uid[0]);
 	*reserved = 0;
@@ -500,6 +500,42 @@ semaphore_cleanup_install(void)
 	once_flag_run(&done, semaphore_cleanup_install_once);
 }
 
+#ifndef MINGW32
+/**
+ * On UNIX, trap blocking semtimedop() operations to be able to indicate that
+ * we are in a safe place should a kernel signal interrupt the system call.
+ */
+static int
+unix_semtimedop(int id, struct sembuf *ops, unsigned nops, struct timespec *t)
+{
+	int r;
+	unsigned i;
+	bool can_block = FALSE;
+	struct sembuf *o;
+
+	/*
+	 * Look whether the operation can block.
+	 */
+
+	for (i = 0, o = ops; i < nops && !can_block; i++, o++) {
+		if (o->sem_op < 0 && 0 == (o->sem_flg & IPC_NOWAIT))
+			can_block = TRUE;
+	}
+
+	if (can_block)
+		thread_in_syscall_set(TRUE);
+
+	r = semtimedop(id, ops, nops, t);
+
+	if (can_block)
+		thread_in_syscall_set(FALSE);
+
+	return r;
+}
+
+#define semtimedop	unix_semtimedop
+#endif	/* !MINGW32 */
+
 /**
  * Free a kernel semaphore within a batch.
  *
@@ -773,6 +809,7 @@ semaphore_acquire_internal(semaphore_t *s, int amount, const tm_t *timeout,
 			thread_assert_no_locks(G_STRFUNC);
 
 		r = semtimedop(sb->id, sops, 1, timeout != NULL ? &t : NULL);
+
 		atomic_uint_dec(0 == amount ? &s->zerowait : &s->waiting);
 		SEM_LOCK(s);
 		if (0 == r)

@@ -176,7 +176,7 @@ void f2tm(double t, tm_t *tm);
 void tm_elapsed(tm_t *elapsed, const tm_t *t1, const tm_t *t0);
 void tm_sub(tm_t *tm, const tm_t *dec);
 void tm_add(tm_t *tm, const tm_t *inc);
-int tm_cmp(const tm_t *a, const tm_t *b) G_GNUC_PURE;
+int tm_cmp(const tm_t *a, const tm_t *b) G_PURE;
 long tm_remaining_ms(const tm_t *end);
 
 void tm_precise_elapsed(tm_nano_t *e, const tm_nano_t *t1, const tm_nano_t *t0);
@@ -192,11 +192,11 @@ void tm_precise_time(tm_nano_t *tn);
 bool tm_precise_granularity(tm_nano_t *tn);
 double tm_cputime(double *user, double *sys);
 
-uint tm_hash(const void *key) G_GNUC_PURE;
-int tm_equal(const void *a, const void *b) G_GNUC_PURE;
+uint tm_hash(const void *key) G_PURE;
+int tm_equal(const void *a, const void *b) G_PURE;
 
 void set_tm_debug(uint32 level);
-uint32 tm_debug_level(void) G_GNUC_PURE;
+uint32 tm_debug_level(void) G_PURE;
 
 /*
  * Convenience routines.

@@ -10,9 +10,9 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2015-11-25 23:07+0100\n"
-"PO-Revision-Date: 2015-06-25 14:32+0000\n"
-"Last-Translator: mauron\n"
+"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"PO-Revision-Date: 2016-02-15 08:28+0000\n"
+"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/tr/)\n"
 "Language: tr\n"
@@ -592,9 +592,8 @@ msgstr "Güvenlik duvarı arkasında düğüm"
 msgid "Protocol not acceptable"
 msgstr "Kabul edilemez protokol"
 
-#, fuzzy
 msgid "Conflict"
-msgstr "Çatışma oranı:"
+msgstr ""
 
 msgid "Upgrade Header Missing"
 msgstr ""
@@ -936,13 +935,12 @@ msgstr "THEX başarısızlığı"
 msgid "EOF while sinking"
 msgstr ""
 
-#, fuzzy, c-format
+#, c-format
 msgid "Read error while sinking: %m"
-msgstr "Okuma hatası: %s"
+msgstr ""
 
-#, fuzzy
 msgid "Content Too Large"
-msgstr "Büyük"
+msgstr ""
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Bilinmeyen/Eksik protokol etiketi"
@@ -3309,13 +3307,10 @@ msgstr ""
 "Daha hızlı bağlanmak için tüm bağlantı oluklara dolana dek gtk-gnutella bu "
 "sayıya kadar bağlantının etkin olmasına izin verecektir."
 
-#, fuzzy
 msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
-"Kabul edebileceğimiz azami yaprak sayısı. Ultra durumuna terfi etmek için "
-"yaprak başına 32 bayt bant genişliği ayırmanız önerilir."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "İndirmeler için görmezden gelinecek dosyalar ile ne yapılacağı."
@@ -6457,9 +6452,8 @@ msgstr "Bilinmeyen özellik"
 msgid "Value missing"
 msgstr "Değer eksik"
 
-#, fuzzy
 msgid "Property cannot be changed"
-msgstr "Özellik modeli:"
+msgstr ""
 
 #, c-format
 msgid "Previous value was %s"
@@ -9033,6 +9027,9 @@ msgstr "Gnutella _trafik istatistikleri"
 msgid "_Auto-hide leaf traffic stats"
 msgstr "Yaprak trafiği istatistiklerini _otomatik sakla"
 
+msgid "Glossary"
+msgstr ""
+
 msgid "_Search"
 msgstr "A_ra"
 
@@ -9313,6 +9310,11 @@ msgstr ""
 "<html><head><title>Sık Sorulan Sorular</title></head><body><p>SSS belgesi "
 "yüklenemedi. Yerine çevrimiçi <a href=\"http://gtk-gnutella.sourceforge.net/?"
 "page=faq\">belgeyi</a> okuyunuz.</p></body></html>"
+
+msgid ""
+"<html><head><title>Glossary</title></head><body><p>The glossary document "
+"could not be loaded.</p></body></html>"
+msgstr ""
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9782,9 +9784,8 @@ msgstr[1] "%u/%u indirme"
 msgid "Queue frozen"
 msgstr "Kuyruk donduruldu"
 
-#, fuzzy
 msgid "Internal"
-msgstr "Bu aralık"
+msgstr ""
 
 msgid "Select a property to see its description."
 msgstr "Görüntülemek için bir özellik seçin."
@@ -9850,9 +9851,3 @@ msgstr "QUEUE yollanıyor, tekrar bağlanılıyor..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE yollandı, başlıklar bekleniyor..."
-
-#~ msgid "You seem to have left another gtk-gnutella running"
-#~ msgstr "Başka bir gtk-gnutella çalışıyor gibi görünüyor"
-
-#~ msgid "Failed to create listening sockets"
-#~ msgstr "Dinleme soketleri oluşturulamadı"

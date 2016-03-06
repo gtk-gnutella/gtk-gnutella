@@ -243,7 +243,7 @@ static void
 shell_write_welcome(struct gnutella_shell *sh)
 {
 	shell_check(sh);
-	
+
 	shell_write(sh, "100 Welcome to ");
 	shell_write(sh, version_short_string);
 	shell_write(sh, "\n");
@@ -491,7 +491,7 @@ shell_free_argv(const char ***argv_ptr)
  * @return TRUE if OK, FALSE on error with an error message recorded in the
  * shell structure.
  */
-static bool 
+static bool
 shell_parse_command(struct gnutella_shell *sh,
 	const char *line, const char **endptr,
 	int *argc_ptr, const char ***argv_ptr)
@@ -569,7 +569,7 @@ shell_cmd_get_handler(const char *cmd, bool *threaded)
 	} commands[] = {
 #define SHELL_CMD(x,t)	{ #x, shell_exec_ ## x, booleanize(t) },
 #include "cmd.inc"
-#undef	SHELL_CMD 
+#undef	SHELL_CMD
 	};
 	struct shellcmd *scd;
 	size_t i;
@@ -583,7 +583,7 @@ shell_cmd_get_handler(const char *cmd, bool *threaded)
 	if G_UNLIKELY(NULL == shell_cmds) {
 		shell_cmds = htable_create(HASH_KEY_STRING, 0);
 
-		for (i = 0; i < G_N_ELEMENTS(commands); i++) {
+		for (i = 0; i < N_ITEMS(commands); i++) {
 			char *name = xstrdup(commands[i].cmd);
 
 			ascii_strlower(name, name);		/* In-place conversion */
@@ -1311,7 +1311,7 @@ shell_dump_cookie(const struct sha1 *cookie)
 	}
 }
 
-static const struct sha1 * 
+static const struct sha1 *
 shell_auth_cookie(void)
 {
 	static struct sha1 cookie;
@@ -1397,7 +1397,7 @@ shell_grant_remote_shell(struct gnutella_shell *sh)
 
 #else /* !USE_REMOTE_CTRL */
 
-static const struct sha1 * 
+static const struct sha1 *
 shell_auth_cookie(void)
 {
 	return NULL;

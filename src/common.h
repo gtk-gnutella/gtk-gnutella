@@ -156,8 +156,6 @@
 #include <dirent.h>
 #endif
 
-#include <setjmp.h>
-
 #ifdef I_TIME
 #include <time.h>
 #endif
@@ -236,6 +234,23 @@
 #endif
 
 /*
+ * These macros determine the maximum/minimum value of the given integer type
+ * "t". This works for signed as well as unsigned types. This code does
+ * carefully avoid integer overflows and undefined behaviour.
+ * However, it's assumed the type consists of exactly sizeof(type) * CHAR_BIT
+ * bits.
+ */
+
+#define MAX_INT_VAL_STEP(t) \
+	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
+
+#define MAX_INT_VAL(t) \
+	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
+
+#define MIN_INT_VAL(t) \
+	((t) -MAX_INT_VAL(t) - 1)
+
+/*
  * For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings.
  */
@@ -246,13 +261,6 @@
 
 #include <glib.h>
 #include "types.h"
-
-#ifdef USE_LINT
-#undef G_GNUC_INTERNAL
-#define G_GNUC_INTERNAL
-#undef G_INLINE_FUNC
-#define G_INLINE_FUNC
-#endif
 
 #if defined(USE_GLIB1) && !defined(GLIB_MAJOR_VERSION)
 #error "Install GLib 1.2 to compile gtk-gnutella against GLib 1.2."
@@ -268,8 +276,8 @@ typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
 #define do_sched_yield()	sched_yield()	/* See lib/mingw32.h */
 #endif
 
+#include "gcc.h"			/* Must precede inclusion of mingw32.h */
 #include "lib/mingw32.h"
-#include "lib/exit.h"		/* Transparent exit() trapping */
 
 #ifndef MINGW32
 
@@ -380,9 +388,7 @@ typedef int socket_fd_t;
 /*
  * Array size determination
  */
-#ifndef G_N_ELEMENTS
-#define G_N_ELEMENTS(arr) (sizeof (arr) / sizeof ((arr)[0]))
-#endif
+#define N_ITEMS(arr) (sizeof (arr) / sizeof ((arr)[0]))
 
 /*
  * Portability macros.
@@ -451,23 +457,6 @@ typedef int socket_fd_t;
 #define lstat(_p,_b)	stat((_p),(_b))
 #endif
 
-/*
- * These macros determine the maximum/minimum value of the given integer type
- * "t". This works for signed as well as unsigned types. This code does
- * carefully avoid integer overflows and undefined behaviour.
- * However, it's assumed the type consists of exactly sizeof(type) * CHAR_BIT
- * bits.
- */
-
-#define MAX_INT_VAL_STEP(t) \
-	((t) 1 << (CHAR_BIT * sizeof(t) - 1 - ((t) -1 < 1)))
-
-#define MAX_INT_VAL(t) \
-	((MAX_INT_VAL_STEP(t) - 1) + MAX_INT_VAL_STEP(t))
-
-#define MIN_INT_VAL(t) \
-	((t) -MAX_INT_VAL(t) - 1)
-
 #ifndef TIME_T_MAX
 /* This assumes time_t is an integer, not a float */
 #define TIME_T_MAX MAX_INT_VAL(time_t)
@@ -520,255 +509,6 @@ typedef int socket_fd_t;
 #define PACKAGE_EXTRA_SOURCE_DIR \
 	PACKAGE_SOURCE_DIR G_DIR_SEPARATOR_S "extra_files"
 #endif
-
-#if defined(__GNUC__) && defined(__GNUC_MINOR__)
-
-/**
- * HAS_GCC allows conditionalization depending on the version of gcc
- * being used to compile the source.
- *
- * Check each version at "http://gcc.gnu.org/onlinedocs/" for
- * support.  Specific functionality may also be broken in some
- * compiler revisions, so it is useful to conditionalize on the
- * version.
- */
-#define HAS_GCC(major, minor) \
-	((__GNUC__ > (major)) || \
-	 (__GNUC__ == (major) && __GNUC_MINOR__ >= (minor)))
-#else
-#define HAS_GCC(major, minor) 0
-#endif
-
-/*
- * If functions have this attribute GCC warns if it one of the specified
- * parameters is NULL. This macro takes a list of parameter indices. The
- * list must be embraced with parentheses for compatibility with C89
- * compilers. Example:
- *
- * void my_memcpy(void *dst, const void *src, size_t n) NON_NULL_PARAM((1, 2));
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 3)
-#define NON_NULL_PARAM(x) __attribute__((__nonnull__ x))
-#else /* GCC < 3.3 */
-#define NON_NULL_PARAM(x)
-#endif
-
-/**
- * This is the same G_GNUC_FORMAT() but for function pointers. Older versions
- * of GCC do not allow function attributes for function pointers.
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
-#define PRINTF_FUNC_PTR(x, y) __attribute__((format(__printf__, (x), (y))))
-#else /* GCC < 3.0 */
-#define PRINTF_FUNC_PTR(x, y)
-#endif
-
-/*
- * Functions using this attribute cause a warning if the returned
- * value is not used.
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 4)
-#define WARN_UNUSED_RESULT __attribute__((__warn_unused_result__))
-#else /* GCC < 3.4 */
-#define WARN_UNUSED_RESULT
-#endif
-
-/*
- * Instructs the compiler to emit code for this function even if it is
- * or seems to be unused.
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define G_GNUC_USED __attribute__((__used__))
-#else /* GCC < 3.1 || !GCC */
-#define G_GNUC_USED
-#endif
-
-/*
- * Let the compiler know that the function may be unused, hence it should
- * not emit any warning about it.
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define G_GNUC_UNUSED __attribute__((__unused__))
-#else	/* GCC < 3.1 */
-#define G_GNUC_UNUSED
-#endif
-
-/*
- * The antidote for WARN_UNUSED_RESULT. This attribute is sometimes
- * misused for functions that return a result which SHOULD NOT be
- * ignored in contrast to MUST NOT. Unfortunately, a simple "(void)"
- * does not suppress this warning.
- */
-#define IGNORE_RESULT(x) \
-	G_STMT_START { if (0 != (x)) {} }  G_STMT_END
-
-/*
- * Functions using this attribute cause a warning if the variable
- * argument list does not contain a NULL pointer.
- */
-#ifndef G_GNUC_NULL_TERMINATED
-#if defined(HASATTRIBUTE) && HAS_GCC(4, 0)
-#define G_GNUC_NULL_TERMINATED __attribute__((__sentinel__))
-#else	/* GCC < 4 */
-#define G_GNUC_NULL_TERMINATED
-#endif	/* GCC >= 4 */
-#endif	/* G_GNUC_NULL_TERMINATED */
-
-/*
- * Define G_LIKELY() and G_UNLIKELY() so that they are available when
- * using GLib 1.2 as well. These allow optimization by static branch
- * prediction with GCC.
- */
-#ifndef G_LIKELY
-#if HAS_GCC(3, 4)	/* Just a guess, a Configure check would be better */
-#define G_LIKELY(x)		(__builtin_expect((x), 1))
-#define G_UNLIKELY(x)	(__builtin_expect((x), 0))
-#else /* !GCC >= 3.4 */
-#define G_LIKELY(x)		(x)
-#define G_UNLIKELY(x)	(x)
-#endif /* GCC >= 3.4 */
-#endif /* !G_LIKELY */
-
-/**
- * A pure function has no effects except its return value and the return value
- * depends only on the parameters and/or global variables.
- */
-#ifndef G_GNUC_PURE
-#if defined(HASATTRIBUTE) && HAS_GCC(2, 96)
-#define G_GNUC_PURE __attribute__((__pure__))
-#else
-#define G_GNUC_PURE
-#endif	/* GCC >= 2.96 */
-#endif	/* G_GNUC_PURE */
-
-#ifndef G_GNUC_CONST
-#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
-#define G_GNUC_CONST __attribute__((__const__))
-#else
-#define G_GNUC_CONST
-#endif	/* GCC >= 2.4 */
-#endif	/* G_GNUC_CONST */
-
-/**
- * Used to signal a function that does not return.
- *
- * The compiler can then optimize calls to that routine by not saving
- * registers before calling the routine.  However, this can mess up the
- * stack unwinding past these routines.
- */
-#ifndef G_GNUC_NORETURN
-#if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
-#define G_GNUC_NORETURN __attribute__((__noreturn__))
-#else
-#define G_GNUC_NORETURN
-#endif	/* GCC >= 2.4 */
-#endif	/* G_GNUC_NORETURN */
-
-#ifndef G_GNUC_MALLOC
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
-#define G_GNUC_MALLOC __attribute__((__malloc__))
-#else
-#define G_GNUC_MALLOC
-#endif	/* GCC >= 3.0 */
-#endif	/* G_GNUC_MALLOC */
-
-/**
- * A hot function is optimized more aggressively.
- */
-#ifndef G_GNUC_HOT
-#if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
-#define G_GNUC_HOT __attribute__((hot))
-#else
-#define G_GNUC_HOT
-#endif	/* GCC >= 4.3 */
-#endif	/* G_GNUC_HOT */
-
-/**
- * A cold function is unlikely executed, and is optimized for size rather
- * than speed.  All branch tests leading to it are marked "unlikely".
- */
-#ifndef G_GNUC_COLD
-#if defined(HASATTRIBUTE) && HAS_GCC(4, 3)
-#define G_GNUC_COLD __attribute__((cold))
-#else
-#define G_GNUC_COLD
-#endif	/* GCC >= 4.3 */
-#endif	/* G_GNUC_COLD */
-
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define ALWAYS_INLINE __attribute__((always_inline))
-#else
-#define ALWAYS_INLINE
-#endif	/* GCC >= 3.1 */
-
-#if defined(HASATTRIBUTE) && HAS_GCC(3, 1)
-#define NO_INLINE __attribute__((noinline))
-#else
-#define NO_INLINE
-#endif	/* GCC >= 3.1 */
-
-#if defined(HASATTRIBUTE) && HAS_GCC(2, 7)
-#define G_GNUC_ALIGNED(n)	 __attribute__((aligned(n)))
-#else
-#define G_GNUC_ALIGNED(n)
-#endif	/* GCC >= 3.1 */
-
-#if defined(HASATTRIBUTE) && defined(HAS_REGPARM)
-#define REGPARM(n)	__attribute__((__regparm__((n))))
-#else
-#define REGPARM(n)
-#endif	/* HAS_REGPARM */
-
-/**
- * This avoid compilation warnings when handing "long long" types with gcc
- * invoked with options -pedantic and -ansi.
- */
-#if HAS_GCC(2, 8)
-#define G_GNUC_EXTENSION __extension__
-#else
-#define G_GNUC_EXTENSION
-#endif
-
-/*
- * Redefine G_GNUC_PRINTF to use "GNU printf" argument form (gcc >= 4.4).
- * This ensures that "%m" is recognized as valid since the GNU libc supports it.
- */
-#if defined(HASATTRIBUTE) && HAS_GCC(4, 4)
-#undef G_GNUC_PRINTF
-#define G_GNUC_PRINTF(_fmt_, _arg_) \
-	 __attribute__((__format__ (__gnu_printf__, _fmt_, _arg_)))
-#endif
-
-/**
- * IS_CONSTANT() returns TRUE if the expression is a compile-time constant.
- */
-#if HAS_GCC(3, 0)
-#define IS_CONSTANT(x)	__builtin_constant_p(x)
-#else
-#define IS_CONSTANT(x)	FALSE
-#endif
-
-/*
- * Memory pre-fetching requests.
- *
- * One can request pre-fetch of a memory location for read or write, and
- * with a low (default), medium or high expected lifespan in the cache.
- */
-#if HAS_GCC(3, 0)	/* Just a guess, a Configure check would be better */
-#define G_PREFETCH_R(x)		__builtin_prefetch((x), 0, 0)
-#define G_PREFETCH_W(x)		__builtin_prefetch((x), 1, 0)
-#define G_PREFETCH_MED_R(x)	__builtin_prefetch((x), 0, 1)
-#define G_PREFETCH_MED_W(x)	__builtin_prefetch((x), 1, 1)
-#define G_PREFETCH_HI_R(x)	__builtin_prefetch((x), 0, 3)
-#define G_PREFETCH_HI_W(x)	__builtin_prefetch((x), 1, 3)
-#else /* !GCC >= 3.0 */
-#define G_PREFETCH_R(x)
-#define G_PREFETCH_W(x)
-#define G_PREFETCH_MED_R(x)
-#define G_PREFETCH_MED_W(x)
-#define G_PREFETCH_HI_R(x)
-#define G_PREFETCH_HI_W(x)
-#endif /* GCC >= 3.0 */
 
 /**
  * CMP() returns the sign of a-b, that means <0, 0, or >0.
@@ -894,12 +634,8 @@ typedef gboolean (*reclaim_fd_t)(void);
 #  define Q_(String) g_strip_context ((String), (String))
 #endif /* ENABLE_NLS */
 
-static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
-G_GNUC_FORMAT(1) G_GNUC_FORMAT(2);
-
-static inline const gchar *
-ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
+static inline const char * G_FORMAT(1) G_FORMAT(2)
+ngettext_(const char *msg1, const char *msg2, ulong n)
 {
 	return ngettext(msg1, msg2, n);
 }
@@ -964,8 +700,13 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
  *
  * On linux, sigprocmask() always manipulates the thread's signal mask, but
  * this is not guaranteed by POSIX.
+ *
+ * On Windows, we are implementing our own sigprocmask() which will correctly
+ * manipulate the thread's signal mask.
  */
-#if defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
+#ifdef MINGW32
+#define sigprocmask(h,s,o)	mingw_sigprocmask((h), (s), (o))
+#elif defined(HAS_SIGPROCMASK) && defined(I_PTHREAD)
 #define sigprocmask(h,s,o)	pthread_sigmask((h), (s), (o))
 #endif
 
@@ -974,7 +715,9 @@ ngettext_(const gchar *msg1, const gchar *msg2, ulong n)
  */
 
 #include "casts.h"
+#include "lib/compat_setjmp.h"
 #include "lib/fast_assert.h"
+#include "lib/exit.h"		/* Transparent exit() trapping */
 #include "lib/glog.h"
 
 #endif /* _common_h_ */

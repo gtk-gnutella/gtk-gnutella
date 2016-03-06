@@ -906,7 +906,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 		return;
 
 	str_makeroom(str, len + 1);			/* Allow for trailing NUL */
-	p = str->s_data + str->s_len; 
+	p = str->s_data + str->s_len;
 	q = string;
 
 	while (len > 0 && '\0' != (c = *q++)) {
@@ -963,7 +963,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 		str_makeroom(str, len + 1);			/* Allow for trailing NUL */
 	}
 
-	p = str->s_data + str->s_len; 
+	p = str->s_data + str->s_len;
 	q = string;
 
 	while (len > 0 && '\0' != (c = *q++)) {
@@ -2930,7 +2930,9 @@ G_STMT_START {									\
 			p += gap;
 		}
 		str->s_len = p - str->s_data;	/* trailing NUL does not count */
-		g_assert(str->s_len <= str->s_size);
+		g_assert_log(str->s_len <= str->s_size,
+			"%s(): s_len=%zu, s_size=%zu",
+			G_STRFUNC, str->s_len, str->s_size);
 		remain -= need;
 		continue;
 
@@ -2997,6 +2999,11 @@ G_STMT_START {									\
 
 done:
 	format_recursion--;
+
+	g_assert_log(str->s_len <= str->s_size,
+		"%s(): s_len=%zu, s_size=%zu",
+		G_STRFUNC, str->s_len, str->s_size);
+
 	return str->s_len - origlen;
 
 clamped:
@@ -3358,7 +3365,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  * This routine normalizes exponents to 2 digits, for the purpose of
  * avoiding spurious discrepancies reports when issues a verbose str_test().
  */
-static void G_GNUC_COLD
+static void G_COLD
 str_test_fix_exponent(char *std)
 {
 	char *p = std;
@@ -3446,7 +3453,7 @@ error:
  *
  * @return amount of discrepancies found with the system's snprintf().
  */
-size_t G_GNUC_COLD
+size_t G_COLD
 str_test(bool verbose)
 {
 #define MLEN		64
@@ -3758,7 +3765,7 @@ str_test(bool verbose)
 #define TEST(what, vfmt) G_STMT_START {							\
 	unsigned i;													\
 																\
-	for (i = 0; i < G_N_ELEMENTS(test_##what##s); i++) {		\
+	for (i = 0; i < N_ITEMS(test_##what##s); i++) {		\
 		char buf[MLEN];											\
 		const struct t##what *t = &test_##what##s[i];			\
 																\
@@ -3775,7 +3782,7 @@ str_test(bool verbose)
 		g_assert_log(0 == strcmp(buf, t->result),				\
 			"%s test #%u/%zu fmt=\"%s\", len=%zu, "				\
 			"returned=\"%s\", expected=\"%s\"",					\
-			#what, i + 1, G_N_ELEMENTS(test_##what##s),			\
+			#what, i + 1, N_ITEMS(test_##what##s),			\
 			t->fmt, t->buflen, buf, t->result);					\
 																\
 		if (t->std) {											\
@@ -3796,7 +3803,7 @@ str_test(bool verbose)
 					"\"%s\" with snprintf() but "				\
 					"\"%s\" with str_vncatf()",					\
 					#what, value,								\
-					i + 1, G_N_ELEMENTS(test_##what##s),		\
+					i + 1, N_ITEMS(test_##what##s),		\
 					t->fmt, std, buf);							\
 			}													\
 		}														\

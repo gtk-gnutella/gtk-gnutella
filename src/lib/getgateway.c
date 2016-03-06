@@ -66,7 +66,7 @@
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-static G_GNUC_COLD int
+static int G_COLD
 parse_netstat(host_addr_t *addrp)
 #ifdef HAS_POPEN
 {
@@ -155,7 +155,7 @@ parse_netstat(host_addr_t *addrp)
  *
  * @return 0 on success, -1 on failure with errno set.
  */
-G_GNUC_COLD int
+int G_COLD
 getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {
@@ -270,7 +270,7 @@ getgateway(host_addr_t *addrp)
 			if (rt->rtm_family != AF_INET && rt->rtm_family != AF_INET6)
 				continue;
 
-			/* 
+			/*
 			 * Look for an attribute of type RTA_GATEWAY.
 			 */
 
@@ -432,7 +432,7 @@ got_gateway:
 		 * be incorrect the day BSD starts to return AF_INET6.
 		 *		--RAM, 2011-01-27
 		 */
-	
+
 		memcpy(&sa, gate, sizeof sa);
 
 		if (AF_INET == sa.sa_family) {

@@ -34,7 +34,7 @@
  * stored in
  * $GTK_GNUTELLA_DIR/tth_cache/5E/DB4PUVFGY2UKVISQ2DMACSPNRODTTODBS52RQ.
  * This avoids storing too many files per directory.
- * 
+ *
  * Only the leaves at TTH_MAX_DEPTH or above are stored. The root hash and the
  * nodes at each level between above these leaves can be calculated from the
  * leaves.
@@ -106,9 +106,9 @@ static char *
 tth_cache_pathname(const struct tth *tth)
 {
 	const char *hash;
-	
+
 	g_assert(tth);
-	
+
 	hash = tth_base32(tth);
 	return h_strdup_printf("%s%c%2.2s%c%s",
 			tth_cache_directory(), G_DIR_SEPARATOR,
@@ -182,7 +182,7 @@ void
 tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 {
 	int fd;
-	
+
 	g_return_if_fail(tth);
 	g_return_if_fail(leaves);
 	g_return_if_fail(n_leaves >= 1);
@@ -203,7 +203,7 @@ tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n_leaves)
 		ssize_t ret;
 
 		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(leaves[0]));
-			
+
 		size = TTH_RAW_SIZE * n_leaves;
 		ret = write(fd, leaves, size);
 		if ((ssize_t) -1 == ret) {
@@ -245,7 +245,7 @@ size_t
 tth_cache_lookup(const struct tth *tth, filesize_t filesize)
 {
 	size_t expected, leave_count = 0;
-	
+
 	g_return_val_if_fail(tth, 0);
 
 	expected = tt_good_node_count(filesize);
@@ -299,7 +299,7 @@ tth_cache_get_leaves(const struct tth *tth,
 			g_warning("%s(%s): fstat() failed: %m", G_STRFUNC, tth_base32(tth));
 		} else {
 			size_t n_leaves;
-		
+
 			n_leaves = tth_cache_leave_count(tth, &sb);
 			n_leaves = MIN(n, n_leaves);
 			if (n_leaves > 0) {
@@ -338,7 +338,7 @@ tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 	}
 
 	*tree = NULL;
-	
+
 	n_leaves = tth_cache_get_leaves(tth,
 					&nodes[TTH_MAX_LEAVES], TTH_MAX_LEAVES);
 	g_assert(n_leaves <= TTH_MAX_LEAVES);

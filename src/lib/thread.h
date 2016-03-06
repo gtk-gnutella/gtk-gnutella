@@ -34,7 +34,8 @@
 #ifndef _thread_h_
 #define _thread_h_
 
-#include "tsig.h"		/* For tsigset_t */
+#include "tsig.h"				/* For tsigset_t */
+#include "compat_gettid.h"		/* For systid_t */
 
 /**
  * Thread exiting callback, which will be invoked asynchronously in the
@@ -65,6 +66,8 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_F_WARN		(1U << 4)	/**< Warn if cannot create thread */
 #define THREAD_F_PANIC		(1U << 5)	/**< Panic if we cannot create thread */
 #define THREAD_F_CLEARSIG	(1U << 6)	/**< Clear signal mask of new thread */
+#define THREAD_F_UNSUSPEND	(1U << 7)	/**< Launch even if global suspension */
+#define THREAD_F_WAIT		(1U << 8)	/**< Wait for thread to start */
 
 /**
  * Special free routine for thread-local value which indicates that the
@@ -110,6 +113,7 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
  * Type of locks we track.
  */
 enum thread_lock_kind {
+	THREAD_LOCK_ANY,
 	THREAD_LOCK_SPINLOCK,
 	THREAD_LOCK_RLOCK,
 	THREAD_LOCK_WLOCK,
@@ -126,6 +130,7 @@ typedef struct thread_info {
 	thread_qid_t high_qid;		/**< Highest QID */
 	thread_qid_t top_qid;		/**< Topmost QID seen on the stack */
 	unsigned stid;				/**< Small thread ID */
+	systid_t system_thread_id;	/**< System thread ID */
 	unsigned join_id;			/**< ID of joining thread, or THREAD_INVALID */
 	time_t last_seen;			/**< Last seen activity of discovered thread */
 	const char *name;			/**< Thread name, NULL if none set */
@@ -162,6 +167,55 @@ enum thread_sighow {
 	TSIG_SETMASK				/**< Set thread's signal mask explicitly */
 };
 
+/**
+ * Thread signal sets (OS and thread-layer).
+ *
+ * This is used by thread_enter_critical() and thread_leave_critical() to
+ * capture both the kernel and our own internal signal masks, and restore
+ * them when we leave.
+ */
+typedef struct thread_sigsets {
+	sigset_t kset;				/**< Kernel set */
+	tsigset_t tset;				/**< Thread-layer set */
+} thread_sigsets_t;
+
+/*
+ * Define the signal we are going to use for thread interrupts.
+ *
+ * The SIGEMT (EMulated [instruction] Trap) signal is used because
+ * it is highly unlikely to be triggered and visible from the
+ * application under normal circumstances.  It is not even a POSIX
+ * signal but is commonly defined, which makes it even more likely
+ * to be unsed -- a perfect candidate for our purpose here!
+ *
+ * The SIGUNUSED (unused!) signal is a very good choice since, by
+ * construction, that signal is not used on the platform, but can
+ * still be a valid argument for sending signals.
+ *
+ * The next good signals to use are SIGLOST (file lock lost) which is
+ * rather unused under normal circumstances, and SIGIO (I/O is possible).
+ *
+ * The SIGPWR (power lost) and SIGXFSZ (file size limit exceeded) are
+ * our last fallback signals if we have no other choice.  We select them
+ * as a last resort because it is conceivable that these signals could be
+ * useful.
+ */
+#if defined(SIGEMT)
+#define THREAD_SIGINTR	SIGEMT
+#elif defined(SIGUNUSED)
+#define THREAD_SIGINTR	SIGUNUSED
+#elif defined(SIGLOST)
+#define THREAD_SIGINTR	SIGLOST
+#elif defined(SIGIO)
+#define THREAD_SIGINTR	SIGIO
+#elif defined(SIGPWR)
+#define THREAD_SIGINTR	SIGPWR
+#elif defined(SIGXFSZ)
+#define THREAD_SIGINTR	SIGXFSZ
+#else
+#define THREAD_SIGINTR	(SIGRTMAX - 1)
+#endif
+
 /*
  * Public interface.
  */
@@ -182,6 +236,8 @@ const char *thread_to_string(const thread_t t);
 void thread_set_name(const char *name);
 void thread_set_name_atom(const char *name);
 const char *thread_name(void);
+const char *thread_safe_name(void);
+const char *thread_safe_id_name(unsigned id);
 const char *thread_id_name(unsigned id);
 unsigned thread_by_name(const char *name);
 
@@ -193,13 +249,16 @@ void thread_exit_mode(void);
 void thread_crash_mode(void);
 bool thread_is_crashing(void);
 bool thread_in_crash_mode(void);
+void thread_lock_disable(bool silent);
 size_t thread_stack_used(void);
 size_t thread_id_stack_used(uint stid, const void *sp);
 void thread_stack_check_overflow(const void *va);
+void thread_stack_check(void);
 
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
 bool thread_check_suspended(void);
+int thread_divert(uint id, process_fn_t cb, void *arg, void **reply);
 
 void *thread_private_get(const void *key);
 bool thread_private_remove(const void *key);
@@ -232,17 +291,17 @@ void thread_lock_released(const void *lock, enum thread_lock_kind kind,
 size_t thread_lock_count(void);
 size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
-bool thread_lock_holds_default(const volatile void *lock, bool dflt);
+bool thread_lock_holds_as(const volatile void *, enum thread_lock_kind);
 size_t thread_lock_held_count(const void *lock);
 bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
-void thread_lock_dump_self_if_any(int fd);
+void thread_lock_dump_if_any(int fd, uint id);
 void thread_assert_no_locks(const char *routine);
 void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
-void thread_lock_waiting_done(const void *element);
+void thread_lock_waiting_done(const void *element, const void *lock);
 
 const void *thread_cond_waiting_element(struct cond **c);
 void thread_cond_waiting_done(const void *element);
@@ -265,7 +324,7 @@ bool thread_main_is_blockable(void);
 int thread_create(process_fn_t routine, void *arg, uint flags, size_t stack);
 int thread_create_full(process_fn_t routine, void *arg, uint flags,
 	size_t stack, thread_exit_t exited, void *earg);
-void thread_exit(void *value) G_GNUC_NORETURN;
+void thread_exit(void *value) G_NORETURN;
 void thread_atexit(thread_exit_t exit_cb, void *exit_arg);
 bool thread_is_exiting(void);
 int thread_join(unsigned id, void **result);
@@ -289,9 +348,20 @@ tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
 bool thread_pause(void);
+void thread_halt(void) G_NORETURN;
 bool thread_sigsuspend(const tsigset_t *mask);
 void thread_sleep_ms(unsigned int ms);
 bool thread_timed_sigsuspend(const tsigset_t *mask, const struct tmval *tout);
+
+void thread_enter_critical(thread_sigsets_t *set);
+void thread_leave_critical(const thread_sigsets_t *set);
+void thread_in_syscall_set(bool value);
+void thread_in_syscall_reset(void);
+bool thread_was_in_syscall(int *stid);
+
+int thread_os_kill(unsigned id, int signo);
+int thread_interrupt(uint id, process_fn_t cb, void *arg,
+	notify_data_fn_t completed, void *udata);
 
 void *thread_sp(void);
 

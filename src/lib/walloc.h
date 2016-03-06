@@ -127,20 +127,18 @@ wmove(void *p, size_t n)
 
 #else	/* !REMAP_ZALLOC */
 
-void *walloc(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
-void *walloc0(size_t size) WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *walloc(size_t size) G_MALLOC;
+void *walloc0(size_t size) G_MALLOC;
 void wfree(void *ptr, size_t size);
 void wfree0(void *ptr, size_t size);
-void *wrealloc(void *old, size_t old_size, size_t new_size)
-			WARN_UNUSED_RESULT G_GNUC_MALLOC;
+void *wrealloc(void *old, size_t old_size, size_t new_size) G_MALLOC;
 void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;
 void wfree_pslist(pslist_t *pl, size_t size);
 void wfree_eslist(eslist_t *el, size_t size);
 
 /* Don't define both an inline routine and a macro... */
 #ifndef TRACK_ZALLOC
-static inline void *wcopy(const void *ptr, size_t size)
-			WARN_UNUSED_RESULT G_GNUC_MALLOC;
+static inline void *wcopy(const void *ptr, size_t size) G_MALLOC;
 
 static inline void *
 wcopy(const void *ptr, size_t size)
@@ -174,7 +172,7 @@ size_t walloc_active_limit(void);
 size_t walloc_size_threshold(void);
 void wdestroy(void);
 
-size_t walloc_maxsize(void) G_GNUC_CONST;
+size_t walloc_maxsize(void) G_CONST;
 
 #define WALLOC(p)			\
 G_STMT_START {				\

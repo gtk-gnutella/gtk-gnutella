@@ -111,10 +111,10 @@ void xnode_prop_set_all(xnode_t *element, xattr_table_t *attrs);
 size_t xnode_prop_count(const xnode_t *element);
 
 bool xnode_prop_printf(xnode_t *element, const char *name,
-	const char *fmt, ...) G_GNUC_PRINTF(3, 4);
+	const char *fmt, ...) G_PRINTF(3, 4);
 bool xnode_prop_ns_printf(xnode_t *element,
 	const char *uri, const char *name, const char *fmt, ...)
-	G_GNUC_PRINTF(4, 5);
+	G_PRINTF(4, 5);
 
 void xnode_tree_foreach(xnode_t *root, data_fn_t func, void *data);
 void xnode_tree_foreach_children(xnode_t *root, data_fn_t func, void *data);

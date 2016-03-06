@@ -574,7 +574,7 @@ static gboolean
 display_metric_units_changed(property_t prop)
 {
 	GtkWidget *widget;
-	
+
     widget = gui_dlg_prefs_lookup("checkbutton_config_metric");
     gnet_prop_get_boolean_val(prop, &current_display_metric_units);
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(widget),
@@ -1671,7 +1671,7 @@ ancient_version_left_days_changed(property_t prop)
 
 	if (remain == 0)
 		statusbar_gui_message(15, _("*** Please update gtk-gnutella ***"));
-	else 
+	else
 		statusbar_gui_message(15,
 			NG_("*** VERSION WILL BECOME OLD IN %d DAY! ***",
 				"*** VERSION WILL BECOME OLD IN %d DAYS! ***", remain),
@@ -2158,7 +2158,7 @@ update_address_information(void)
 			addr_buf,
 			'\0' != addr_buf[0] && '\0' != addr_v6_buf[0] ? ", " : "",
 			addr_v6_buf, NULL_PTR);
-		
+
         old_address = addr;
         old_v6_address = addr_v6;
         old_port = port;
@@ -2474,7 +2474,7 @@ expert_mode_changed(property_t prop)
     gui_prop_get_boolean_val(prop, &expert);
 
 	/* Enable/Disable main_window expert widgets */
-    for (i = 0; i < G_N_ELEMENTS(expert_widgets_main); i++) {
+    for (i = 0; i < N_ITEMS(expert_widgets_main); i++) {
        w = gui_main_window_lookup(expert_widgets_main[i]);
        if (w == NULL)
 			continue;
@@ -2486,7 +2486,7 @@ expert_mode_changed(property_t prop)
     }
 
 	/* Enable/Disable preferences dialog expert widgets */
-    for (i = 0; i < G_N_ELEMENTS(expert_widgets_prefs); i++) {
+    for (i = 0; i < N_ITEMS(expert_widgets_prefs); i++) {
        w = gui_dlg_prefs_lookup(expert_widgets_prefs[i]);
        if (w == NULL)
 			continue;
@@ -2762,7 +2762,7 @@ uploads_count_changed(property_t unused_prop)
 	guint32 running;
 
 	(void) unused_prop;
-	
+
     pg = GTK_PROGRESS_BAR(gui_main_window_lookup("progressbar_uploads"));
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
@@ -5154,7 +5154,7 @@ static prop_map_t property_map[] = {
         hosts_in_ultra_catcher_changed,
         TRUE,
         "progressbar_hosts_in_ultra_catcher",
-        FREQ_SECS, 5 
+        FREQ_SECS, 5
     ),
     PROP_ENTRY(
         gui_main_window,
@@ -6050,7 +6050,7 @@ static prop_map_t property_map[] = {
         PROP_DOWNLOAD_QUEUE_FROZEN,
         update_queue_frozen,
         TRUE,
-       	NULL, 
+       	NULL,
         FREQ_UPDATES, 0
     ),
 #ifdef USE_GTK2
@@ -6118,13 +6118,13 @@ settings_gui_init_prop_map(void)
 
     if (GUI_PROPERTY(gui_debug) >= 2) {
         printf("settings_gui_init_prop_map: property_map size: %u\n",
-            (guint) G_N_ELEMENTS(property_map));
+            (guint) N_ITEMS(property_map));
     }
 
     /*
      * Fill in automatic fields in property_map.
      */
-    for (n = 0; n < G_N_ELEMENTS(property_map); n++) {
+    for (n = 0; n < N_ITEMS(property_map); n++) {
         property_t prop = property_map[n].prop;
         prop_def_t *def;
 
@@ -6160,7 +6160,7 @@ settings_gui_init_prop_map(void)
     /*
      * Now the map is complete and can be processed.
      */
-    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
+    for (n = 0; n < N_ITEMS(property_map); n ++) {
         property_t  prop      = property_map[n].prop;
         prop_def_t *def       = property_map[n].stub->get_def(prop);
         guint32     idx       = prop - property_map[n].stub->offset;
@@ -6225,7 +6225,7 @@ settings_gui_save_panes(void)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+	for (i = 0; i < N_ITEMS(panes); i++) {
 		GtkPaned *paned;
 
 		paned = GTK_PANED(gui_main_window_lookup(panes[i].name));
@@ -6239,7 +6239,7 @@ settings_gui_restore_panes(void)
 {
 	guint i;
 
-	for (i = 0; i < G_N_ELEMENTS(panes); i++) {
+	for (i = 0; i < N_ITEMS(panes); i++) {
 		GtkPaned *paned;
 
 		paned = GTK_PANED(gui_main_window_lookup(panes[i].name));
@@ -6250,7 +6250,7 @@ settings_gui_restore_panes(void)
 	}
 }
 
-G_GNUC_COLD void
+void G_COLD
 settings_gui_init(void)
 {
     gint n;
@@ -6287,7 +6287,7 @@ settings_gui_init(void)
 #endif /* USE_REMOTE_CTRL */
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 sensitive_free_value(void *value, void *unused_data)
 {
 	struct widget_change *wc = value;
@@ -6298,7 +6298,7 @@ sensitive_free_value(void *value, void *unused_data)
 	WFREE(wc);
 }
 
-G_GNUC_COLD void
+void G_COLD
 settings_gui_shutdown(void)
 {
     guint n;
@@ -6307,7 +6307,7 @@ settings_gui_shutdown(void)
      * Remove the listeners
      */
 
-    for (n = 0; n < G_N_ELEMENTS(property_map); n ++) {
+    for (n = 0; n < N_ITEMS(property_map); n ++) {
         if (property_map[n].cb != IGNORE_CB) {
             property_map[n].stub->prop_changed_listener.remove(
                 property_map[n].prop,

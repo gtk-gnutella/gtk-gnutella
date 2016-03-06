@@ -658,7 +658,7 @@ on_treeview_filter_rules_button_press_event(GtkWidget *widget,
 		GdkEventButton *event, gpointer unused_udata)
 {
     gboolean sensitive;
-	
+
 	(void) unused_udata;
 
     if (event->button != 3)
@@ -675,10 +675,10 @@ on_treeview_filter_rules_button_press_event(GtkWidget *widget,
         clear_clipboard();
         return TRUE;
     }
-	
+
 	{
 		GtkTreePath *path;
-		
+
 		gtk_tree_view_get_cursor(GTK_TREE_VIEW(widget), &path, NULL);
     	sensitive = path != NULL && work_filter != NULL;
 		gtk_tree_path_free(path);
@@ -730,16 +730,16 @@ filter_reset_all_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 	GtkTreeIter *iter, gpointer unused_udata)
 {
 	gpointer p;
-	
+
 	(void) unused_path;
 	(void) unused_udata;
-	
+
    	gtk_tree_model_get(model, iter, 0, &p, (-1));
 	if (p) {
 		filter_t *filter = p;
         filter_reset_stats(filter);
 	}
-	
+
 	return FALSE; /* continue traversal */
 }
 
@@ -859,7 +859,7 @@ on_button_filter_add_rule_state_clicked(GtkButton *unused_button,
 
 	gtk_tree_selection_unselect_all(gtk_tree_view_get_selection(
 		GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"))));
-	
+
 	filter_gui_edit_state_rule(NULL);
 }
 
@@ -936,7 +936,7 @@ filter_clear_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 {
 	GSList **sl_ptr = slist_ptr;
 	gpointer p;
-	
+
 	(void) unused_path;
 
 	gtk_tree_model_get(model, iter, 0, &p, (-1));
@@ -944,12 +944,12 @@ filter_clear_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 
 	return FALSE; /* continue traversal */
 }
-	
+
 void
 on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 {
 	GSList *sl, *sl_rules = NULL;
-	
+
 	(void) unused_button;
 	(void) unused_udata;
 
@@ -959,7 +959,7 @@ on_button_filter_clear_clicked(GtkButton *unused_button, gpointer unused_udata)
 		filter_clear_helper,
 		&sl_rules);
 
-	for (sl = sl_rules; sl != NULL; sl = g_slist_next(sl))	
+	for (sl = sl_rules; sl != NULL; sl = g_slist_next(sl))
 		filter_remove_rule_from_session(work_filter, sl->data);
 	gm_slist_free_null(&sl_rules);
 
@@ -1011,7 +1011,7 @@ on_button_filter_reset_rule_clicked(GtkButton *unused_button,
 
 	(void) unused_button;
 	(void) unused_udata;
-	
+
     tv = GTK_TREE_VIEW(gui_filter_dialog_lookup("treeview_filter_rules"));
 	gtk_tree_view_get_cursor(tv, &path, NULL);
     if (path) {
@@ -1037,16 +1037,16 @@ filter_reset_all_rules_helper(GtkTreeModel *model, GtkTreePath *unused_path,
 	GtkTreeIter *iter, gpointer unused_udata)
 {
 	gpointer p;
-	
+
 	(void) unused_path;
 	(void) unused_udata;
-	
+
    	gtk_tree_model_get(model, iter, 0, &p, (-1));
 	if (p) {
         rule_t *rule = p;
         filter_rule_reset_stats(rule);
 	}
-	
+
 	return FALSE; /* continue traversal */
 }
 

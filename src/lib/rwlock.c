@@ -60,13 +60,13 @@
 #include "rwlock.h"
 
 #include "compat_usleep.h"
+#include "crash.h"
 #include "gentime.h"
 #include "getcpucount.h"
 #include "log.h"
 #include "spinlock.h"
 #include "stringify.h"
 #include "thread.h"
-#include "tsig.h"
 
 #include "override.h"			/* Must be the last header included */
 
@@ -74,7 +74,7 @@
 #define RWLOCK_DELAY	200		/* Wait 200 us before looping again */
 #define RWLOCK_DEAD		32768	/* # of loops before flagging deadlock */
 #define RWLOCK_DEADMASK	(RWLOCK_DEAD - 1)
-#define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds */
+#define RWLOCK_TIMEOUT	20		/* Crash after 20 seconds of inactivity */
 
 enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
 
@@ -90,19 +90,125 @@ enum rwlock_waiting_magic { RWLOCK_WAITING_MAGIC = 0x1d77c7ce };
 struct rwlock_waiting {
 	struct rwlock_waiting *next;	/* Next in the queue */
 	enum rwlock_waiting_magic magic;/* Magic number */
-	tsigset_t oset;					/* Old signal mask, before queuing */
 	uint8 reading;					/* Set if waiting for reading */
 	volatile uint8 ok;				/* Set to TRUE when the lock is granted */
-	uint8 stid;						/* For write locks, thread's small ID */
+	uint8 stid;						/* Thread small ID */
 };
 
 static long rwlock_cpus;			/* Amount of CPUs in the system */
 static bool rwlock_pass_through;	/* Whether locks are disabled */
 
+#define RWLOCK_LOCK(rw)		spinlock_hidden(&(rw)->lock)
+#define RWLOCK_UNLOCK(rw)	spinunlock_hidden(&(rw)->lock)
+
+static inline void
+rwlock_check(const struct rwlock * const rw)
+{
+	g_assert(rw != NULL);
+	g_assert(RWLOCK_MAGIC == rw->magic);
+}
+
+#if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
+/**
+ * Record that the current thread is becoming a reader.
+ */
+static void
+rwlock_readers_record(rwlock_t *rw, const char *file, unsigned line)
+{
+	rwlock_check(rw);
+
+#ifndef RWLOCK_READSPOT_DEBUG
+	(void) file;
+	(void) line;
+#endif	/* !RWLOCK_READSPOT_DEBUG */
+
+#ifdef RWLOCK_READER_DEBUG
+	RWLOCK_LOCK(rw);
+	bit_array_set(rw->reading, thread_small_id());
+	RWLOCK_UNLOCK(rw);
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	{
+		int stid = thread_small_id();
+
+		RWLOCK_LOCK(rw);
+		if (NULL == rw->readspot[stid].file) {
+			rw->readspot[stid].file = file;
+			rw->readspot[stid].line = line;
+		}
+		RWLOCK_UNLOCK(rw);
+	}
+#endif	/* RWLOCK_READSPOT_DEBUG */
+}
+
+/**
+ * Clear readership of current thread when it no longer holds the read-lock.
+ */
+static void
+rwlock_readers_clear(rwlock_t *rw)
+{
+	int stid = thread_small_id();
+	bool held = thread_lock_holds_as(rw, THREAD_LOCK_RLOCK);
+
+	rwlock_check(rw);
+
+#ifdef RWLOCK_READER_DEBUG
+	RWLOCK_LOCK(rw);
+
+	if (!bit_array_get(rw->reading, stid)) {
+		RWLOCK_UNLOCK(rw);
+		s_minicarp("%s(): was expecting %s to be a reader (%s holds it) for %p",
+			G_STRFUNC, thread_id_name(stid), held ? "still" : "no longer", rw);
+	} else {
+		if (!held)
+			bit_array_clear(rw->reading, stid);
+		RWLOCK_UNLOCK(rw);
+	}
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	if (!held) {
+		RWLOCK_LOCK(rw);
+		rw->readspot[stid].file = NULL;
+		rw->readspot[stid].line = 0;
+		RWLOCK_UNLOCK(rw);
+	}
+#endif	/* RWLOCK_READSPOT_DEBUG */
+}
+
+/**
+ * Check whether thread ``n'' holds a read-lock.
+ */
+static bool
+rwlock_readers_is_set(rwlock_t *rw, int n)
+{
+	bool is_set = FALSE;
+
+	rwlock_check(rw);
+
+	RWLOCK_LOCK(rw);
+
+#ifdef RWLOCK_READER_DEBUG
+	is_set = bit_array_get(rw->reading, n);
+#endif	/* RWLOCK_READER_DEBUG */
+
+#ifdef RWLOCK_READSPOT_DEBUG
+	is_set |= rw->readspot[n].file != NULL;
+#endif	/* RWLOCK_READSPOT_DEBUG */
+
+	RWLOCK_UNLOCK(rw);
+	return is_set;
+}
+#else	/* !RWLOCK_READER_DEBUG && !RWLOCK_READSPOT_DEBUG */
+#define rwlock_readers_record(rw,f,l)
+#define rwlock_readers_clear(rw)
+#endif	/* RWLOCK_READER_DEBUG || RWLOCK_READSPOT_DEBUG */
+
 /**
  * Enter crash mode: let all read-write locks be grabbed immediately.
  */
-G_GNUC_COLD void
+void G_COLD
 rwlock_crash_mode(void)
 {
 	rwlock_pass_through = TRUE;
@@ -147,13 +253,6 @@ rwlock_downgrade_account(const rwlock_t *rw, const char *file, unsigned line)
 }
 
 static inline void
-rwlock_check(const struct rwlock * const rw)
-{
-	g_assert(rw != NULL);
-	g_assert(RWLOCK_MAGIC == rw->magic);
-}
-
-static inline void
 rwlock_waiting_init(struct rwlock_waiting *wc, uint8 reading, uint stid)
 {
 	wc->magic = RWLOCK_WAITING_MAGIC;
@@ -170,28 +269,70 @@ static inline void
 rwlock_append_waiter(struct rwlock *rw, struct rwlock_waiting *wc)
 {
 	struct rwlock_waiting *tail = rw->wait_tail;
-	tsigset_t all;
 
 	/*
-	 * When we wait for a rwlock, it is necessary to block all signals: if
-	 * we are enqueued for a write lock, say, and we were interrupted and the
-	 * handler would need to grab the read lock, we would re-enqueue ourselves
-	 * and deadlock.
+	 * When we wait for a rwlock, it is necessary to check whether we are
+	 * running in a signal handler: indeed if we are enqueued for a write lock,
+	 * say, and we were interrupted and the handler would need to grab the
+	 * read lock, we would re-enqueue ourselves and deadlock.
 	 *
-	 * We are currently holding the lock on the rw, so we are immune against
-	 * signals.  We will not be able to restore the old signal mask until
-	 * we got and accounted the lock (to prevent signal delivery, delaying
-	 * it until after we release the rwlock).
+	 * We are currently holding the lock on the rw, but it is a hidden lock,
+	 * not preventing signals.
+	 *
+	 * If we are running in a signal handler (which will be happening only
+	 * on rare occasions, hence it's OK to have more complex processing in
+	 * that case), we will append ourselves to the waiting list only if the
+	 * current thread is not waiting.  Otherwise, we prepend ourselves right
+	 * before any other waiting instance for this thread: indeed, if we are
+	 * running in a signal handler, we pre-empted ourselves and we must run
+	 * ahead of ourselves, so to speak.
+	 *
+	 * This will ensure we do not deadlock ourselves.
 	 */
-
-	tsig_fillset(&all);
-	thread_sigmask(TSIG_SETMASK, &all, &wc->oset);
 
 	if G_UNLIKELY(NULL == tail) {
 		rw->wait_head = rw->wait_tail = wc;
 	} else {
 		g_assert(RWLOCK_WAITING_MAGIC == tail->magic);
-		tail->next = rw->wait_tail = wc;
+
+		if G_LIKELY(0 == thread_sighandler_level()) {
+			tail->next = rw->wait_tail = wc;
+		} else {
+			uint id = thread_small_id();
+			struct rwlock_waiting *w;
+
+			/* Hah, running in a signal handler, be careful! */
+
+			w = rw->wait_head;
+
+			g_assert(RWLOCK_WAITING_MAGIC == w->magic);
+
+			if (id == w->stid) {
+				/* Prepend `wc' to the list */
+				wc->next = w;
+				rw->wait_head = wc;
+			} else {
+				struct rwlock_waiting *wnext;
+
+				for(;; w = wnext) {
+					wnext = w->next;
+					if (NULL == wnext) {
+						/* Append `wc' to the list */
+						tail->next = rw->wait_tail = wc;
+						break;
+					} else {
+						g_assert(RWLOCK_WAITING_MAGIC == wnext->magic);
+
+						if (id == wnext->stid) {
+							/* Insert `wc' between `w' and `wnext` */
+							wc->next = wnext;
+							w->next = wc;
+							break;
+						}
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -304,7 +445,7 @@ rwlock_waiters_for_read(const rwlock_t *rw)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void
+static NO_INLINE void G_COLD
 rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 	const char *file, unsigned line)
 {
@@ -316,9 +457,6 @@ rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 		rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
 }
 
-#define RWLOCK_LOCK(rw)		spinlock_hidden(&(rw)->lock)
-#define RWLOCK_UNLOCK(rw)	spinunlock_hidden(&(rw)->lock)
-
 /*
  * Dump the lock's waiting queue.
  */
@@ -327,25 +465,55 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 {
 	const struct rwlock_waiting *wc = rw->wait_head;
 
+	/*
+	 * This routine can be called during crashes, use raw logging.
+	 */
+
 	if (wc != NULL) {
-		s_miniinfo("waiting queue for rwlock %p (%u item%s):",
+		s_rawinfo("waiting queue for rwlock %p (%u item%s):",
 			rw, rw->waiters, plural(rw->waiters));
 	} else {
-		s_miniwarn("waiting queue for rwlock %p is empty?", rw);
+		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
 
 	if (RWLOCK_WFREE != rw->owner) {
-		s_miniinfo("(rwlock %p write-locked by %s)",
-			rw, thread_id_name(rw->owner));
+		s_rawinfo("(rwlock %p write-locked by %s)",
+			rw, thread_safe_id_name(rw->owner));
 	}
+
+#if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
+	{
+		int i;
+		uint readers;
+
+		for (i = 0, readers = 0; i < THREAD_MAX; i++) {
+			if (rwlock_readers_is_set(deconstify_pointer(rw), i)) {
+				readers++;
+#ifdef RWLOCK_READSPOT_DEBUG
+				s_rawinfo("(rwlock %p read-locked by %s from %s:%u)",
+					rw, thread_safe_id_name(i),
+					rw->readspot[i].file, rw->readspot[i].line);
+#else	/* !RWLOCK_READSPOT_DEBUG */
+				s_rawinfo("(rwlock %p read-locked by %s)",
+					rw, thread_safe_id_name(i));
+#endif	/* RWLOCK_READSPOT_DEBUG */
+			}
+		}
+
+		if (readers != rw->readers) {
+			s_rawwarn("bad reader count for rwlock %p (has %u, expected %u)",
+				rw, rw->readers, readers);
+		}
+	}
+#endif	/* RWLOCK_READER_DEBUG || RWLOCK_READSPOT_DEBUG */
 
 	while (wc != NULL) {
 		if (RWLOCK_WAITING_MAGIC != wc->magic) {
-			s_miniwarn("corrupted waiting queue for rwlock %p", rw);
+			s_rawwarn("corrupted waiting queue for rwlock %p", rw);
 			return;
 		}
-		s_miniinfo("%s %s %s-lock %p",
-			thread_id_name(wc->stid),
+		s_rawinfo("%s %s %s-lock %p",
+			thread_safe_id_name(wc->stid),
 			wc->ok ? "was granted" : "waiting for",
 			wc->reading ? "read" : "write", rw);
 		wc = wc->next;
@@ -357,30 +525,22 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
  *
  * Don't inline to provide a suitable breakpoint.
  */
-static G_GNUC_COLD NO_INLINE void G_GNUC_NORETURN
+static NO_INLINE void G_COLD
 rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	const char *file, unsigned line)
 {
-	static int deadlocked;
+	s_rawwarn("deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u) at %s:%u",
+		reading ? 'R' : 'W', rw,
+		rw->readers, rw->writers,
+		rw->waiters - rw->write_waiters, rw->write_waiters,
+		file, line);
 
-	if (deadlocked != 0) {
-		if (1 == deadlocked) {
-			thread_lock_deadlock(rw);
-			rwlock_wait_queue_dump(rw);
-		}
-		s_minierror("recursive deadlock on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
-			" at %s:%u",
-			reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-			rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
-	}
-
-	deadlocked++;
 	atomic_mb();
-
 	rwlock_check(rw);
 
-	thread_lock_deadlock(rw);
+	crash_deadlocked(file, line);	/* Will not return if concurrent call */
 	rwlock_wait_queue_dump(rw);
+	thread_lock_deadlock(rw);
 
 	s_error("deadlocked on rwlock (%c) %p (after %u secs) at %s:%u",
 		reading ? 'R' : 'W', rw, elapsed, file, line);
@@ -409,7 +569,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	gentime_t start = GENTIME_ZERO;
 	int loops = RWLOCK_LOOP;
 	const void *element = NULL;
-	time_delta_t d;
+	const void *head;
 
 	rwlock_check(rw);
 
@@ -437,6 +597,17 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		loops /= 10;
 #endif
 
+	/*
+	 * We're using the head of the waiting queue on the lock to determine
+	 * whether there is still application activity, for deadlock detection
+	 * purposes.  We don't want to flag a deadlock whilst there is movement
+	 * on the waiting queue because it means some threads (ahead of us in
+	 * the queue) are working and we just have to be patient.
+	 *		--RAM, 2016-01-28
+	 */
+
+	head = rw->wait_head;
+
 	for (i = 1; /* empty */; i++) {
 		int j;
 
@@ -463,7 +634,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 				}
 #endif	/* SPINLOCK_DEBUG */
 				if G_UNLIKELY(element != NULL)
-					thread_lock_waiting_done(element);
+					thread_lock_waiting_done(element, rw);
 				return;
 			}
 			if (1 == rwlock_cpus)
@@ -495,15 +666,29 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 			rwlock_deadlock(rw, reading, i / RWLOCK_DEAD, file, line);
 
 		if G_UNLIKELY(gentime_is_zero(start)) {
+			g_assert(NULL == element);
 			start = gentime_now_exact();
 			element = thread_lock_waiting_element(rw,
 				reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK,
 				file, line);
-		}
+		} else {
+			time_delta_t d;
 
-		d = gentime_diff(gentime_now_exact(), start);
-		if G_UNLIKELY(d > RWLOCK_TIMEOUT)
-			rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
+			/*
+			 * Reset the waiting start time whenever we witness movement on the
+			 * waiting queue, meaning we're not completely deadlocked yet.
+			 */
+
+			if (head != rw->wait_head) {
+				head = rw->wait_head;
+				start = gentime_now_exact();
+			}
+
+			d = gentime_diff(gentime_now_exact(), start);
+
+			if G_UNLIKELY(d > RWLOCK_TIMEOUT)
+				rwlock_deadlocked(rw, reading, (unsigned) d, file, line);
+		}
 
 		/*
 		 * During the early loops, simply relinquish the CPU without imposing
@@ -708,7 +893,7 @@ rwlock_is_owned(const rwlock_t *rw)
 }
 
 /**
- * Is write lock taken by current thread (either read or write)?
+ * Is lock taken by current thread (either read or write)?
  */
 bool
 rwlock_is_taken(const rwlock_t *rw)
@@ -806,10 +991,11 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 	if G_UNLIKELY(!got) {
 		rwlock_wait_grant(rw, &wc, file, line);
+		rwlock_readers_record(rw, file, line);
 		if (account)
 			rwlock_read_account(rw, file, line);
-		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
 	} else if (account) {
+		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
 	}
 
@@ -912,7 +1098,6 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		if (account)
 			rwlock_write_account(rw, file, line);
-		thread_sigmask(TSIG_SETMASK, &wc.oset, NULL);
 
 		g_assert(1 == rw->writers || rwlock_pass_through);
 	}
@@ -1012,6 +1197,7 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	if G_LIKELY(got) {
 		/* Ensure there are no overflows */
 		g_assert(rw->readers != 0 || rwlock_pass_through);
+		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
 	}
 
@@ -1029,7 +1215,7 @@ void
 rwlock_rungrab_from(rwlock_t *rw, const char *file, unsigned line)
 {
 	rwlock_check(rw);
-	g_assert_log(thread_lock_holds_default(rw, TRUE),
+	g_assert_log(thread_lock_holds_as(rw, THREAD_LOCK_RLOCK),
 		"attempting to release non-held read-lock %p at %s:%u",
 		rw, file, line);
 	g_assert_log(rw->readers != 0 || rwlock_pass_through,
@@ -1038,6 +1224,7 @@ rwlock_rungrab_from(rwlock_t *rw, const char *file, unsigned line)
 
 	rwlock_rungrab(rw);
 	rwlock_read_unaccount(rw);
+	rwlock_readers_clear(rw);
 }
 
 /**
@@ -1210,6 +1397,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	 */
 
 	rwlock_upgrade_account(rw, file, line);
+	rwlock_readers_clear(rw);
 
 	return TRUE;
 }
@@ -1252,13 +1440,14 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
+	rwlock_readers_record(rw, file, line);
 	rwlock_downgrade_account(rw, file, line);
 }
 
 /**
  * Log write lock ownership error.
  */
-static void G_GNUC_NORETURN
+static void G_NORETURN
 rwlock_log_error(const rwlock_t *rw, const char *file, unsigned line)
 {
 	s_error("thread #%u expected to own write lock %p (%s) at %s:%u"
@@ -1278,6 +1467,11 @@ rwlock_log_error(const rwlock_t *rw, const char *file, unsigned line)
 void
 rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line)
 {
+	if G_UNLIKELY(rwlock_pass_through) {
+		thread_check_suspended();
+		return;			/* Ignore, since we can grab any lock now */
+	}
+
 	s_critical("write-lock %p not owned at %s:%u in %s",
 		rw, file, line, thread_name());
 

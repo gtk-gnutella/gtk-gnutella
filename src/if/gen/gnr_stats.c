@@ -330,7 +330,7 @@ static const char *stats_symbols[] = {
 const char *
 gnet_stats_general_to_string(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_symbols)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_symbols)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);
@@ -658,7 +658,7 @@ static const char *stats_text[] = {
 const char *
 gnet_stats_general_description(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_text)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_text)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);

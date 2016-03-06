@@ -304,6 +304,72 @@ local_hostname(void)
 	return name;
 }
 
+#define ONEMASK ((size_t) (-1) / 0xff)	/* 0x01010101 on 32-bit machine */
+
+/**
+ * Determines the length of a NUL-terminated string looking only at the first
+ * "src_size" bytes. If src[0..size] contains no NUL byte, "src_size" is
+ * returned. Otherwise, the returned value is identical to strlen(str). Thus,
+ * it is safe to pass a possibly non-terminated buffer.
+ *
+ * @param src An initialized buffer.
+ * @param src_size The size of src in number of bytes. IF AND ONLY IF,
+ *        src is NUL-terminated, src_size may exceed the actual buffer length.
+ * @return The number of bytes in "src" before the first found NUL or src_size
+ *		   if there is no NUL.
+ */
+size_t
+clamp_strlen(const char *src, size_t src_size)
+{
+	const char * s;
+
+	/*
+	 * Handle any initial misaligned bytes.
+	 */
+
+	for (s = src; pointer_to_ulong(s) & (sizeof(size_t) - 1); s++) {
+		if G_UNLIKELY(UNSIGNED(s - src) >= src_size)
+			goto done;
+		if G_UNLIKELY(*s == '\0')
+			goto done;		/* Exit if we hit a zero byte. */
+	}
+
+	/*
+	 * Handle complete blocks, using the same processing as utf8_strlen()
+	 * to inspect a whole "size_t" word at a time.
+	 *
+	 * This may read more bytes than are present in the string, should the
+	 * trailing NUL byte be in the middle of a block.
+	 *
+	 * However, this is safe because we cannot cross any page boundary
+	 * by doing so, hence we cannot incur a memory fault as long as the first
+	 * bytes we're reading falls within the given src_size boundaries.
+	 */
+
+	for (; UNSIGNED(s - src) < src_size; s += sizeof(size_t)) {
+		size_t u = *(size_t *) s;	/* Grab 4 or 8 bytes of data */
+
+		if ((u - ONEMASK) & (~u) & (ONEMASK * 0x80))
+			break;				/* Exit loop if there are any zero bytes */
+	}
+
+	if G_UNLIKELY(UNSIGNED(s - src) > src_size)
+		s = src + src_size;
+
+	/*
+	 * Take care of the left-over bytes (at most a "size_t" word) to find
+	 * the exact NUL inside.
+	 */
+
+	for (; UNSIGNED(s - src) < src_size; s++) {
+		if G_UNLIKELY(*s == '\0')
+			break;			/* Exit if we hit a zero byte */
+	}
+
+done:
+	return s - src;
+}
+
 /**
  * Remove antepenultimate char of string if it is a "\r" followed by "\n".
  * Remove final char of string if it is a "\n" or "\r".
@@ -543,7 +609,7 @@ size_scale(uint64 v, uint *q, uint *r, const char *s, bool metric)
 
 		for (s++; v >= thresh; v /= base)
 			s++;
-	
+
 		*q = (uint) v / base;
 		*r = (uint) v % base;
 	}
@@ -826,7 +892,7 @@ short_value(char *buf, size_t size, uint64 v, bool metric)
 		r = (r * 100) / kilo(metric);
 		str_bprintf(buf, size, "%u.%02u %c%s", q, r, c, metric ? "" : "i");
 	}
-	
+
 	return buf;
 }
 
@@ -980,7 +1046,7 @@ int
 hex2int(uchar c)
 {
 	int ret;
-	
+
 	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -999,7 +1065,7 @@ static int
 dec2int(uchar c)
 {
 	int ret;
-	
+
 	ret = dec2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1018,7 +1084,7 @@ static int
 alnum2int(uchar c)
 {
 	int ret;
-	
+
 	ret = alnum2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1027,20 +1093,20 @@ alnum2int(uchar c)
 /**
  * Initializes the lookup table for hex2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 hex2int_init(void)
 {
 	size_t i;
 
 	/* Initialize hex2int_tab */
-	
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[0]); i++) {
+
+	for (i = 0; i < N_ITEMS(char2int_tabs[0]); i++) {
 		static const char hexa[] = "0123456789abcdef";
 		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
-		
+
 		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
@@ -1075,20 +1141,20 @@ hex2int_init(void)
 /**
  * Initializes the lookup table for dec2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 dec2int_init(void)
 {
 	size_t i;
 
 	/* Initialize dec2int_tab */
-	
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[1]); i++) {
+
+	for (i = 0; i < N_ITEMS(char2int_tabs[1]); i++) {
 		static const char deca[] = "0123456789";
 		const char *p = i ? strchr(deca, i): NULL;
-		
+
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
@@ -1111,26 +1177,26 @@ dec2int_init(void)
 /**
  * Initializes the lookup table for alnum2int().
  */
-static G_GNUC_COLD void
+static void G_COLD
 alnum2int_init(void)
 {
 	static const char abc[] = "0123456789abcdefghijklmnopqrstuvwxyz";
 	size_t i;
 
 	/* Initialize alnum2int_tab */
-	
-	for (i = 0; i < G_N_ELEMENTS(char2int_tabs[2]); i++) {
+
+	for (i = 0; i < N_ITEMS(char2int_tabs[2]); i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
-		
+
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
-	
+
 	/* Check consistency of hex2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
 		int v = p ? (p - abc) : -1;
-	
+
 		g_assert(alnum2int_inline(i) == v);
 		g_assert(!p || alnum2int(i) >= 0);
 	}
@@ -1149,7 +1215,7 @@ bool
 hex_to_guid(const char *hexguid, guid_t *guid)
 {
 	size_t ret;
-		
+
 	ret = base16_decode(guid->v, sizeof guid->v, hexguid, GUID_HEX_SIZE);
 	return GUID_RAW_SIZE == ret;
 }
@@ -1506,7 +1572,7 @@ tth_to_urn_string(const struct tth *tth)
  * @return the number of common leading bits, which is at most
  * min(k1bits, k2bits) if everything matches.
  */
-G_GNUC_HOT size_t
+size_t G_HOT
 common_leading_bits(
 	const void *k1, size_t k1bits, const void *k2, size_t k2bits)
 {
@@ -1606,7 +1672,7 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 		if (8 == j) {
 			*p++ = ' ';
 		}
-		if (i < length) {	
+		if (i < length) {
 			uchar c;
 
 			c = data[i];
@@ -1859,7 +1925,7 @@ failure:
 /**
  * Find amount of common leading bits between two IP addresses.
  */
-static G_GNUC_HOT uint8
+static uint8 G_HOT
 find_common_leading(uint32 ip1, uint32 ip2)
 {
 	uint8 n;
@@ -2045,13 +2111,13 @@ html_escape(const char *src, char *dst, size_t dst_size)
 
 static htable_t *html_entities_lut;
 
-static G_GNUC_COLD void
+static void G_COLD
 html_entities_init(void)
 {
 	size_t i;
 
 	html_entities_lut = htable_create(HASH_KEY_STRING, 0);
-	for (i = 0; i < G_N_ELEMENTS(html_entities); i++) {
+	for (i = 0; i < N_ITEMS(html_entities); i++) {
 		htable_insert(html_entities_lut, html_entities[i].name,
 			uint_to_pointer(html_entities[i].uc));
 	}
@@ -2130,7 +2196,7 @@ html_decode_entity(const char * const src, const char **endptr)
 		if (endptr) {
 			*endptr = &p[1];
 		}
-		return pointer_to_uint(value); 
+		return pointer_to_uint(value);
 	}
 
 failure:
@@ -2162,7 +2228,7 @@ memcmp_diff(const void *a, const void *b, size_t size)
  *
  * @return 0 on equality, -1 if s1 < s2 and +1 if s1 > s2.
  */
-G_GNUC_HOT int
+int G_HOT
 bitcmp(const void *s1, const void *s2, size_t n)
 {
 	int i, bytes, remain;
@@ -2195,7 +2261,7 @@ bitcmp(const void *s1, const void *s2, size_t n)
  * Replaces all G_DIR_SEPARATOR characters with the canonic path component
  * separator '/' (a slash). The string is modified in-place.
  *
- * @param s a pathname. 
+ * @param s a pathname.
  */
 void
 normalize_dir_separators(char *pathname)
@@ -2564,7 +2630,7 @@ xml_indent(const char *text)
 			}
 
 			str_putc(s, *q);
-			
+
 			if ('"' == *q) {
 				quoted ^= TRUE;
 			} else if ('>' == *q) {
@@ -2590,7 +2656,7 @@ xml_indent(const char *text)
 /**
  * Initialize miscellaneous data structures, once.
  */
-static G_GNUC_COLD void
+static void G_COLD
 misc_init_once(void)
 {
 	hex2int_init();
@@ -2630,19 +2696,19 @@ misc_init_once(void)
 		};
 		uint i;
 
-		for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+		for (i = 0; i < N_ITEMS(tests); i++) {
 			const char *endptr;
 			int error;
 			uint64 v;
 
 			g_assert((0 == tests[i].v) ^ (0 == tests[i].error));
-			
+
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint64(tests[i].s, &endptr, tests[i].base, &error);
 			g_assert(tests[i].v == v);
 			g_assert(tests[i].error == error);
-			
+
 			error = EAGAIN;
 			endptr = GINT_TO_POINTER(-1);
 			v = parse_uint32(tests[i].s, &endptr, tests[i].base, &error);
@@ -2667,12 +2733,69 @@ misc_init_once(void)
 		}
 	}
 
+	{
+		static const struct {
+			const char *s;
+			const uint src_len;
+			const uint res;
+		} t[] = {
+			{ "",					1, 	0 },
+			{ "ab",					3, 	2 },
+			{ "ab",					2, 	2 },
+			{ "ab",					1, 	1 },
+			{ "abcdefghi",			10,	9 },
+			{ "abcdefghi",			7,	7 },
+			{ "abcdefgh",			9,	8 },
+			{ "abcdefg",			8,	7 },
+			{ "abcdef",				7,	6 },
+			{ "abcdefghijklmnop",	17,	16 },
+			{ "abcdefghijklmno\0p",	17,	15 },
+			{ "abcdefghijklmn\0op",	17,	14 },
+			{ "abcdefghijklm\0nop",	17,	13 },
+			{ "abcdefghijkl\0mnop",	17,	12 },
+			{ "abcdefghijk\0lmnop",	17,	11 },
+			{ "abcdefghij\0klmnop",	17,	10 },
+			{ "abcdefghi\0jklmnop",	17,	9 },
+			{ "abcdefgh\0ijklmnop",	17,	8 },
+			{ "abcdefg",			8,	7 },
+			{ "abcdef\0g",			8,	6 },
+			{ "abcde\0fg",			8,	5 },
+			{ "abcd\0efg",			8,	4 },
+			{ "abc\0defg",			8,	3 },
+			{ "ab\0cdefg",			8,	2 },
+			{ "a\0bcdefg",			8,	1 },
+			{ "\0abcdefg",			8,	0 },
+		};
+		uint i;
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			const char *s = t[i].s;
+			uint src_len = t[i].src_len;
+			uint res = t[i].res;
+
+			g_assert(res <= src_len);
+
+			g_assert_log(res == clamp_strlen(s, src_len),
+				"clamp_strlen(\"%s\", %d) = %zu, expected %u",
+				s, src_len, clamp_strlen(s, src_len), res);
+
+			while (res != 0) {
+				s++;
+				src_len--;
+				res--;
+
+				g_assert_log(res == clamp_strlen(s, src_len),
+					"clamp_strlen(\"%s\", %d) = %zu, expected %u",
+					s, src_len, clamp_strlen(s, src_len), res);
+			}
+		}
+	}
 }
 
 /**
  * Initialize miscellaneous data structures.
  */
-G_GNUC_COLD void
+void G_COLD
 misc_init(void)
 {
 	static once_flag_t done;
@@ -2683,7 +2806,7 @@ misc_init(void)
 /**
  * Final cleanup at shutdown time.
  */
-void
+void G_COLD
 misc_close(void)
 {
 	html_entities_close();

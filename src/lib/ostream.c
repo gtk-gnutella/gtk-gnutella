@@ -388,7 +388,7 @@ ostream_putc(ostream_t *os, int c)
 	char buf[1];
 
 	ostream_check(os);
-	
+
 	buf[0] = c & 0xff;
 	return ostream_write(os, buf, sizeof buf);
 }

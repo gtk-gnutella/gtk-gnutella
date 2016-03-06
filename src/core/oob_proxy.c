@@ -551,7 +551,7 @@ const struct guid *
 oob_proxy_muid_proxied(const struct guid *muid)
 {
 	const struct oob_proxy_rec *opr;
-	
+
 	opr = hikset_lookup(proxied_queries, muid);
 	if (opr) {
 		oob_proxy_rec_check(opr);

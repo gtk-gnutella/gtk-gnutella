@@ -82,7 +82,7 @@ setproctitle(const char *fmt, ...)
 		buf_printf(b, "%s ", getprogname());
 		buf_vcatf(b, fmt, args);
 	}
-		
+
 	va_end(args);
 }
 #endif	/* !HAS_SETPROCTITLE */

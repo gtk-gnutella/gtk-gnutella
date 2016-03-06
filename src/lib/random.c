@@ -616,7 +616,7 @@ random_cpu_noise(void)
 	/* No need to make this routine thread-safe as we want noise anyway */
 
 	r = well_thread_rand() ^ mt_thread_rand() ^ arc4_thread_rand();
-	i = r % G_N_ELEMENTS(data);
+	i = r % N_ITEMS(data);
 	data[i] = r;
 
 	SHA1_reset(&ctx);
@@ -769,7 +769,7 @@ random_add_pool(void *buf, size_t len)
 	}
 
 	g_assert(size_is_non_negative(idx));
-	g_assert(idx < G_N_ELEMENTS(data));
+	g_assert(idx < N_ITEMS(data));
 
 	for (p = buf, n = len; n != 0; p++, n--) {
 		data[idx++] = *p;
@@ -778,7 +778,7 @@ random_add_pool(void *buf, size_t len)
 		 * Feed extra bytes when we have enough.
 		 */
 
-		if G_UNLIKELY(idx >= G_N_ELEMENTS(data)) {
+		if G_UNLIKELY(idx >= N_ITEMS(data)) {
 			random_add(data, sizeof data);
 			ZERO(&data);		/* Hide them now */
 			idx = 0;
@@ -1051,7 +1051,7 @@ random_entropy(void *unused)
 	 * AJE, and only a marginal presence for WELL and CMWC.
 	 */
 
-	i = random_value(G_N_ELEMENTS(prngs) - 1);
+	i = random_value(N_ITEMS(prngs) - 1);
 
 	switch (prngs[i]) {
 	case RANDOM_AJE:
@@ -1082,7 +1082,7 @@ random_entropy(void *unused)
 
 	aje_random_bytes(entropy, ELEN);	/* New random bytes */
 
-	i = random_value(G_N_ELEMENTS(prngs) - 1);
+	i = random_value(N_ITEMS(prngs) - 1);
 
 	random_thread_dispatch(prngs[i], entropy, ELEN, &rbd);
 
@@ -1097,7 +1097,7 @@ random_entropy(void *unused)
 /**
  * Install the periodic entropy propagation call to random number generators.
  */
-static void G_GNUC_COLD
+static void G_COLD
 random_entropy_install(void)
 {
 	evq_raw_periodic_add(RANDOM_ENTROPY_PERIOD, random_entropy, NULL);
@@ -1261,23 +1261,22 @@ random_stats_digest(sha1_t *digest)
 /**
  * Dump random statistics to specified logagent.
  */
-void G_GNUC_COLD
+void G_COLD
 random_dump_stats_log(logagent_t *la, unsigned options)
 {
 	struct random_stats r;
+	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
 	atomic_mb();
 	r = random_stats;		/* Struct copy */
 
 #define DUMP(x)	log_info(la, "RANDOM %s = %s", #x,	\
-	(options & DUMP_OPT_PRETTY) ?					\
-		uint_to_gstring(r.x) : uint_to_string(r.x))
+	uint_to_string_grp(r.x, groupped))
 
 #define DUMP64(x) G_STMT_START {							\
 	uint64 v = AU64_VALUE(&r.x);							\
 	log_info(la, "RANDOM %s = %s", #x,						\
-		(options & DUMP_OPT_PRETTY) ?						\
-			uint64_to_gstring(v) : uint64_to_string(v));	\
+		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
 	DUMP64(input_random_add);
@@ -1331,7 +1330,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 /**
  * Dump random statistics to stderr.
  */
-void G_GNUC_COLD
+void G_COLD
 random_dump_stats(void)
 {
 	s_info("RANDOM running statistics:");

@@ -37,6 +37,7 @@
 #endif
 
 #include "concat.h"
+#include "exit2str.h"
 #include "file.h"
 #include "glib-missing.h"
 #include "halloc.h"
@@ -61,7 +62,7 @@ static int main_argc;
 static const char **main_argv;
 static const char **main_env;
 
-static void G_GNUC_NORETURN
+static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
@@ -114,7 +115,7 @@ emitv(bool nl, const char *fmt, va_list args)
 	str_destroy_null(&s);
 }
 
-static void G_GNUC_PRINTF(1, 2)
+static void G_PRINTF(1, 2)
 emit(const char *fmt, ...)
 {
 	va_list args;
@@ -124,7 +125,7 @@ emit(const char *fmt, ...)
 	va_end(args);
 }
 
-static void G_GNUC_PRINTF(2, 3)
+static void G_PRINTF(2, 3)
 emit_zap(const char *caller, const char *fmt, ...)
 {
 	va_list args;
@@ -139,7 +140,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 
 #define emitz(fmt, ...) emit_zap(G_STRFUNC, (fmt), __VA_ARGS__)
 
-static pid_t G_GNUC_NULL_TERMINATED
+static pid_t G_NULL_TERMINATED
 verbose_launch(char * const envp[], const char *path, ...)
 {
 	pid_t p;
@@ -211,7 +212,8 @@ test_child_expect_where(pid_t p, bool success, const char *where)
 		emitz("exit status for PID %lu is %d (PASSED) at %s",
 			(ulong) p, WEXITSTATUS(status), where);
 	} else {
-		s_error("abnormal exit for PID %lu at %s", (ulong) p, where);
+		s_error("abnormal exit for PID %lu at %s: %s", (ulong) p, where,
+			exit2str(status));
 	}
 }
 
@@ -298,7 +300,7 @@ x_expr_check(bool expr, const char *estr, const char *fn, const char *wh)
 	}
 }
 
-static void G_GNUC_PRINTF(5,6)
+static void G_PRINTF(5,6)
 x_expr_check_log(bool expr, const char *estr, const char *fn, const char *wh,
 	const char *fmt, ...)
 {
@@ -349,11 +351,11 @@ x_launchve_plain(const htable_t *xv)
 	} else if (x_wants(xv, "x.quoted")) {
 		size_t i;
 
-		x_check_log(G_N_ELEMENTS(qargs) + 3 == main_argc,
+		x_check_log(N_ITEMS(qargs) + 3 == main_argc,
 			"main_argc=%d", main_argc);
 		x_check(0 == strcmp(main_argv[1], "-X"));
 
-		for (i = 0; i < G_N_ELEMENTS(qargs); i++) {
+		for (i = 0; i < N_ITEMS(qargs); i++) {
 			x_check_log(0 == strcmp(main_argv[3+i], qargs[i]),
 				"main_argv[3+%zu] = \"%s\", qargs[%zu] = \"%s\"",
 				i, main_argv[3+i], i, qargs[i]);
@@ -484,7 +486,7 @@ launchve_tests_install(void)
 
 	tv = htable_create(HASH_KEY_STRING, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(launchve_tests); i++) {
+	for (i = 0; i < N_ITEMS(launchve_tests); i++) {
 		htable_insert(tv, launchve_tests[i].name, launchve_tests[i].cb);
 	}
 }

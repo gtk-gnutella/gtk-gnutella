@@ -96,7 +96,7 @@
 static inline bool
 ui_uses_utf8_encoding(void)
 {
-#ifdef USE_GTK2 
+#ifdef USE_GTK2
 	return TRUE;
 #else  /* !USE_GTK2 */
 	return FALSE;
@@ -204,8 +204,8 @@ utf8_name_to_cd(const char *name)
 {
 	uint i;
 
-	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
-	for (i = 0; i < G_N_ELEMENTS(utf8_cd_tab); i++)
+	STATIC_ASSERT(N_ITEMS(utf8_cd_tab) == NUM_UTF8_CDS);
+	for (i = 0; i < N_ITEMS(utf8_cd_tab); i++)
 		if (0 == strcmp(name, utf8_cd_tab[i].name))
 			return utf8_cd_tab[i].id;
 
@@ -220,8 +220,8 @@ utf8_cd_to_name(enum utf8_cd id)
 {
 	uint i = (uint) id;
 
-	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
-	STATIC_ASSERT(G_N_ELEMENTS(utf8_cd_tab) == NUM_UTF8_CDS);
+	g_assert(i < N_ITEMS(utf8_cd_tab));
+	STATIC_ASSERT(N_ITEMS(utf8_cd_tab) == NUM_UTF8_CDS);
 
 	g_assert(utf8_cd_tab[i].id == id);
 	return utf8_cd_tab[i].name;
@@ -235,7 +235,7 @@ utf8_cd_get(enum utf8_cd id)
 {
 	uint i = (uint) id;
 
-	g_assert(i < G_N_ELEMENTS(utf8_cd_tab));
+	g_assert(i < N_ITEMS(utf8_cd_tab));
 
 	if (!utf8_cd_tab[i].initialized) {
 		const char *cs;
@@ -290,7 +290,7 @@ primary_filename_charset_is_utf8(void)
 	return t->is_utf8;
 }
 
-static inline G_GNUC_PURE uint
+static inline G_PURE uint
 utf8_skip(uchar c)
 {
 	/*
@@ -388,7 +388,7 @@ static const uint8 utf8len_mark[] = {
  * @return	The exact amount of bytes necessary to store this codepoint in
  *			UTF-8 encoding.
  */
-static inline G_GNUC_CONST uint
+static inline G_CONST uint
 uniskip(uint32 uc)
 {
 	return uc < 0x80U ? 1 : uc < 0x800 ? 2 : uc < 0x10000 ? 3 : 4;
@@ -451,7 +451,7 @@ utf32_combining_class(uint32 uc)
 #define FOUND(i)	return utf32_comb_class_lut[(i)].cc
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_comb_class_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_comb_class_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -478,7 +478,7 @@ utf32_block_id(uint32 uc)
 #define FOUND(i)	return 1 + (i)
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_block_id_lut), block_id_cmp,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_block_id_lut), block_id_cmp,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -494,7 +494,7 @@ utf32_composition_exclude(uint32 uc)
 #define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_composition_exclusions), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_composition_exclusions), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -525,7 +525,7 @@ utf32_general_category(uint32 uc)
 #define FOUND(i)	return utf32_general_category_lut[(i)].gc
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_general_category_lut),
+	BINARY_SEARCH(size_t, uc, N_ITEMS(utf32_general_category_lut),
 		general_category_cmp, GET_ITEM, FOUND);
 
 #undef FOUND
@@ -556,7 +556,7 @@ utf32_is_normalization_special(uint32 uc)
 #define FOUND(i)	return TRUE
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(size_t, uc, G_N_ELEMENTS(utf32_normalization_specials),
+	BINARY_SEARCH(size_t, uc, N_ITEMS(utf32_normalization_specials),
 		normalization_special_cmp, GET_ITEM, FOUND);
 
 #undef FOUND
@@ -813,7 +813,7 @@ malformed:
  * If `s' does not point to the second byte of a well-formed UTF-8 character,
  * `retlen' is set to 0 and the function returns 0.
  */
-static G_GNUC_HOT uint32
+static uint32 G_HOT
 utf8_decode_large_char_fast(const char *s, uint32 uc, uint *retlen)
 {
 	uchar c = *s;
@@ -862,7 +862,7 @@ failure:
  * If `s' does not point to a well-formed UTF-8 character, `retlen' is
  * set to 0 and the function returns 0.
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 utf8_decode_char_fast(const char *s, uint *retlen)
 {
 	uint32 uc = (uchar) *s;
@@ -944,7 +944,7 @@ utf8_char_len(const char *s)
 		return 1;
 	else {
 		uint clen = utf8_skip(uc);
-		
+
 		(void) utf8_decode_large_char_fast(s + 1, uc, &clen);
 		return clen;
 	}
@@ -956,7 +956,7 @@ utf8_char_len(const char *s)
  * This is suitable in operations where we're not going to alter the encoding,
  * for instance during copy.
  */
-static inline uint G_GNUC_PURE
+static inline uint G_PURE
 utf8_char_len_probe(const char *s)
 {
 	uint32 uc = (uchar) *s;
@@ -1237,7 +1237,7 @@ utf8_strcpy_max(char *dst, size_t dst_size, const char *src, size_t max_chars)
  * @returns 0 if the unicode character is invalid. Otherwise, the
  *          amount of UTF-16 characters is returned i.e., 1 or 2.
  */
-static unsigned NON_NULL_PARAM((2)) 
+static unsigned NON_NULL_PARAM((2))
 utf16_encode_char(uint32 uc, uint16 *dst)
 {
 	if (uc < 0xFFFF) {
@@ -1615,7 +1615,7 @@ locale_get_charset(void)
 #if defined(USE_GLIB2)
 		g_get_charset(&cs);
 #else /* !USE_GLIB2 */
-#if defined(HAS_LOCALE_CHARSET) 
+#if defined(HAS_LOCALE_CHARSET)
 		cs = locale_charset();
 #else /* !I_LIBCHARSET */
 		cs = get_iconv_charset_alias(nl_langinfo(CODESET));
@@ -1732,7 +1732,7 @@ conv_to_utf8_cd_get(const char *cs)
  * 			used character sets. The first is the one that should be
  *			used when creating files.
  */
-static G_GNUC_COLD pslist_t *
+static pslist_t * G_COLD
 get_filename_charsets(const char *locale)
 {
 	const char *s, *next;
@@ -1793,11 +1793,11 @@ get_filename_charsets(const char *locale)
 	 * option. */
 	if (!has_utf8)
 		sl = pslist_prepend(sl, conv_to_utf8_new("UTF-8"));
-	
+
 	/* Always add the locale charset as last resort if not already listed. */
 	if (!has_locale && 0 != strcmp("UTF-8", locale))
 		sl = pslist_prepend(sl, conv_to_utf8_new(locale));
-	
+
 	return pslist_reverse(sl);
 }
 
@@ -1845,7 +1845,7 @@ locale_init_show_results(void)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 conversion_init(void)
 {
 	const char *pfcs = primary_filename_charset();
@@ -1877,7 +1877,7 @@ conversion_init(void)
 	}
 
 	/* Initialize UTF-8 -> primary filename charset conversion */
-	
+
 	/*
 	 * We don't need cd_utf8_to_filename if the filename character set
 	 * is ASCII or UTF-8. In the former case we fall back to ascii_enforce()
@@ -1903,7 +1903,7 @@ conversion_init(void)
 	}
 
 	/* Initialize filename charsets -> UTF-8 conversion */
-	
+
 	PSLIST_FOREACH_CALL(sl_filename_charsets, conv_to_utf8_init);
 }
 
@@ -1922,7 +1922,7 @@ conversion_close(void)
 	hikset_free_null(&charset2conv_to_utf8);
 }
 
-G_GNUC_COLD void
+void G_COLD
 locale_init(void)
 {
 	static const char * const latin_sets[] = {
@@ -1979,7 +1979,7 @@ locale_init(void)
 
 	textdomain_init(charset);
 
-	for (i = 0; i < G_N_ELEMENTS(latin_sets); i++) {
+	for (i = 0; i < N_ITEMS(latin_sets); i++) {
 		if (0 == ascii_strcasecmp(charset, latin_sets[i])) {
 			latin_locale = TRUE;
 			break;
@@ -2036,7 +2036,7 @@ compose_free_slist(const void *unused_key, void *value, void *unused_udata)
 /**
  * Called at shutdown time.
  */
-G_GNUC_COLD void
+void G_COLD
 locale_close(void)
 {
 #if 0   /* xxxUSE_ICU */
@@ -2439,7 +2439,7 @@ hyper_utf8_enforce(char *dst, size_t dst_size, const char *src, size_t src_len)
  * @param src a NUL-terminated string.
  * @return If dst_size was sufficient dst is returned, otherwise
  *		   a newly allocated buffer.
- *         
+ *
  */
 static char *
 hyper_ascii_enforce(char *dst, size_t dst_size, const char *src)
@@ -2809,7 +2809,7 @@ looks_like_iso8859_8(const char *src)
  * - ASCII/JIS Roman        "[\x00-\x7F]"
  * - JIS X 0208:1997        "[\x81-\x9F\xE0-\xFC][\x40-\x7E\x80-\xFC]"
  * - Half width Katakana    "[\xA0-\xDF]"
- */	  
+ */
 static bool
 looks_like_sjis(const char *src)
 {
@@ -2921,7 +2921,7 @@ char *
 unknown_to_ui_string(const char *src)
 {
 	char *utf8_str, *ui_str;
-	
+
 	utf8_str = unknown_to_utf8(src, NULL);
 	ui_str = utf8_to_ui_string(utf8_str);
 	if (utf8_str != ui_str && utf8_str != src) {
@@ -3358,7 +3358,7 @@ utf8_to_utf16_string(const char *in)
  * @note If decoding was successful and the resulting codepoint is
  *		 greater than 0xFFFF, "next" has been used and should be skipped
  * 		 when decoding successively.
- * @return (uint32) -1 on failure, 
+ * @return (uint32) -1 on failure,
  */
 static inline uint32
 utf16_decode_pair(uint16 c, uint16 next)
@@ -3663,7 +3663,7 @@ utf32_decompose_lookup(uint32 uc, bool nfkd)
 } G_STMT_END
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_nfkd_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_nfkd_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3687,7 +3687,7 @@ utf32_uppercase(uint32 uc)
 #define FOUND(i)	return utf32_uppercase_lut[(i)].upper
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_uppercase_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_uppercase_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3705,7 +3705,7 @@ utf32_uppercase(uint32 uc)
  *
  * @return the lowercase variant of ``uc'' or ``uc'' itself.
  */
-G_GNUC_HOT uint32
+uint32 G_HOT
 utf32_lowercase(uint32 uc)
 {
 	if (UNICODE_IS_ASCII(uc))
@@ -3715,7 +3715,7 @@ utf32_lowercase(uint32 uc)
 #define FOUND(i)	return utf32_lowercase_lut[(i)].lower
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_lowercase_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_lowercase_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3740,7 +3740,7 @@ utf32_special_folding(uint32 uc)
 #define FOUND(i)	return utf32_special_folding_lut[(i)].folded
 
 	/* Perform a binary search to find ``uc'' */
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(utf32_special_folding_lut), CMP,
+	BINARY_SEARCH(uint32, uc, N_ITEMS(utf32_special_folding_lut), CMP,
 		GET_ITEM, FOUND);
 
 #undef FOUND
@@ -3988,7 +3988,7 @@ utf8_sort_canonical(char *src)
 	size32 = 1 + utf8_to_utf32(src, NULL, 0);
 
 	/* Use an auto buffer for reasonably small strings */
-	if (size32 > G_N_ELEMENTS(a)) {
+	if (size32 > N_ITEMS(a)) {
 		d = g_malloc(size32 * sizeof *buf32);
 		buf32 = d;
 	} else {
@@ -4138,7 +4138,7 @@ utf32_decompose_single_char(uint32 uc, size_t *len, bool nfkd)
 		*p++ = uc;
 	}
 
-	g_assert(p > buf && p <= &buf[G_N_ELEMENTS(buf)]);
+	g_assert(p > buf && p <= &buf[N_ITEMS(buf)]);
 	*len = p - buf;
 	return buf;
 }
@@ -4188,7 +4188,7 @@ utf32_decompose_char(uint32 uc, size_t *len, bool nfkd)
 
 		mod = NULL;
 		p = &cur[start];
-		avail = G_N_ELEMENTS(buf[0]) - start;
+		avail = N_ITEMS(buf[0]) - start;
 
 		for (i = start; i < size; i++) {
 			const uint32 *q;
@@ -4317,7 +4317,7 @@ utf8_decompose(const char *src, char *out, size_t size, bool nfkd)
 				char *p = utf8_buf;
 
 				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
-				g_assert((size_t) (&buf[G_N_ELEMENTS(buf)] - q) >= utf8_len);
+				g_assert((size_t) (&buf[N_ITEMS(buf)] - q) >= utf8_len);
 				while (utf8_len-- > 0)
 					*q++ = *p++;
 			}
@@ -4758,7 +4758,7 @@ utf32_case_fold_char(uint32 uc, uint32 *dst, size_t size)
 {
 	const uint32 *folded;
 	size_t length;
-	
+
 	uc = utf32_lowercase(uc);
 	folded = utf32_special_folding(uc);
 	if (folded) {
@@ -4791,7 +4791,7 @@ utf32_case_fold(const uint32 * const src0, uint32 * const dst0,
 	if (size > 0) {
 		*dst = 0x0000;
 	}
-	return dst - dst0; 
+	return dst - dst0;
 }
 
 /**
@@ -5516,9 +5516,9 @@ utf32_normalize(const uint32 *src, uni_norm_t norm)
 	}
 
 	/* Decompose string to NFD or NFKD  */
-	n = utf32_decompose(src, buf, G_N_ELEMENTS(buf), compat);
+	n = utf32_decompose(src, buf, N_ITEMS(buf), compat);
 	size = n + 1;
-	if (n < G_N_ELEMENTS(buf)) {
+	if (n < N_ITEMS(buf)) {
 		dst = buf;
 	} else {
 		dst = g_malloc(size * sizeof *dst);
@@ -5583,8 +5583,8 @@ utf8_normalize(const char *src, uni_norm_t norm)
 		uint32 buf[1024];
 		uint32 *s;
 
-		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
-		if (n < G_N_ELEMENTS(buf)) {
+		n = utf8_to_utf32(src, buf, N_ITEMS(buf));
+		if (n < N_ITEMS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
@@ -5681,8 +5681,8 @@ utf8_canonize(const char *src)
 		uint32 buf[1024];
 		uint32 *s;
 
-		n = utf8_to_utf32(src, buf, G_N_ELEMENTS(buf));
-		if (n < G_N_ELEMENTS(buf)) {
+		n = utf8_to_utf32(src, buf, N_ITEMS(buf));
+		if (n < N_ITEMS(buf)) {
 			s = buf;
 		} else {
 			size_t size = n + 1;
@@ -5711,8 +5711,8 @@ compose_root_cmp(const void *a, const void *b)
 {
 	uint i = GPOINTER_TO_UINT(a), j = GPOINTER_TO_UINT(b);
 
-	g_assert(i < G_N_ELEMENTS(utf32_nfkd_lut));
-	g_assert(j < G_N_ELEMENTS(utf32_nfkd_lut));
+	g_assert(i < N_ITEMS(utf32_nfkd_lut));
+	g_assert(j < N_ITEMS(utf32_nfkd_lut));
 	return CMP(utf32_nfkd_lut[i].d[1], utf32_nfkd_lut[j].d[1]);
 }
 
@@ -5735,13 +5735,13 @@ unicode_compose_add(uint idx)
 		htable_insert(utf32_compose_roots, key, new_sl);
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 unicode_compose_init(void)
 {
 	size_t i;
 
 	/* Check order and consistency of the general category lookup table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_general_category_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_general_category_lut); i++) {
 		size_t len;
 		uint32 uc;
 		uni_gc_t gc;
@@ -5775,7 +5775,7 @@ unicode_compose_init(void)
 	}
 
 	/* Check order and consistency of the composition exclusions table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_composition_exclusions); i++) {
+	for (i = 0; i < N_ITEMS(utf32_composition_exclusions); i++) {
 		uint32 uc;
 
 		uc = utf32_composition_exclusions[i];
@@ -5784,7 +5784,7 @@ unicode_compose_init(void)
 	}
 
 	/* Check order and consistency of the block ID lookup table */
-	for (i = 0; i < G_N_ELEMENTS(utf32_block_id_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_block_id_lut); i++) {
 		uint32 start, end;
 
 		start = utf32_block_id_lut[i].start;
@@ -5798,7 +5798,7 @@ unicode_compose_init(void)
 	/* Create the composition lookup table */
 	utf32_compose_roots = htable_create(HASH_KEY_SELF, 0);
 
-	for (i = 0; i < G_N_ELEMENTS(utf32_nfkd_lut); i++) {
+	for (i = 0; i < N_ITEMS(utf32_nfkd_lut); i++) {
 		uint32 uc;
 
 		uc = utf32_nfkd_lut[i].c;
@@ -5845,7 +5845,7 @@ utf8_latinize_char(const uint32 uc)
 #define GET_ITEM(i)	(jap_tab[(i)].uc)
 #define FOUND(i)	return jap_tab[(i)].s
 
-	BINARY_SEARCH(uint32, uc, G_N_ELEMENTS(jap_tab), CMP, GET_ITEM, FOUND);
+	BINARY_SEARCH(uint32, uc, N_ITEMS(jap_tab), CMP, GET_ITEM, FOUND);
 
 #undef FOUND
 #undef GET_ITEM
@@ -5999,12 +5999,12 @@ utf8_latinize(char *dst, const size_t dst_size, const char *src)
  * Checks all cases listed in NormalizationTest.txt. This does not take
  * very long but the table is pretty huge.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_test_txt(void)
 {
 	size_t i;
 
-	for (i = 0; i < G_N_ELEMENTS(normalization_test_txt); i++) {
+	for (i = 0; i < N_ITEMS(normalization_test_txt); i++) {
 		const uint32 *c[6];
 		size_t j;
 
@@ -6013,7 +6013,7 @@ regression_normalization_test_txt(void)
 		 * refers to the columns as c1..c5.
 		 */
 		c[0] = NULL;
-		for (j = 1; j < G_N_ELEMENTS(c); j++) {
+		for (j = 1; j < N_ITEMS(c); j++) {
 			const uint32 *src;
 			uint32 buf[256];
 			uchar chars[256];
@@ -6023,7 +6023,7 @@ regression_normalization_test_txt(void)
 			len = utf32_to_utf8(src, chars, sizeof chars);
 			g_assert(len > 0);
 			g_assert(len < sizeof chars);
-			n = utf8_to_utf32(chars, buf, G_N_ELEMENTS(buf));
+			n = utf8_to_utf32(chars, buf, N_ITEMS(buf));
 			g_assert(n == utf32_strlen(src));
 			g_assert(0 == utf32_strcmp(src, buf));
 
@@ -6155,7 +6155,7 @@ regression_normalization_test_txt(void)
  *
  * X == NFC(X) == NFD(X) == NFKC(X) == NFKD(X)
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_character_identity(void)
 {
 	size_t i;
@@ -6186,7 +6186,7 @@ regression_normalization_character_identity(void)
 /**
  * See: http://www.unicode.org/review/pr-29.html
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_normalization_issue(void)
 {
 	static const struct {
@@ -6198,7 +6198,7 @@ regression_normalization_issue(void)
 	};
 	uint i;
 
-	for (i = 0; i < G_N_ELEMENTS(tests); i++) {
+	for (i = 0; i < N_ITEMS(tests); i++) {
 		uint32 *s, *t;
 		bool eq;
 
@@ -6215,7 +6215,7 @@ regression_normalization_issue(void)
 	}
 }
 
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_strlower(void)
 {
 	{
@@ -6229,7 +6229,7 @@ regression_utf8_strlower(void)
 		g_assert(len == utf8_char_count(blah));
 		g_assert(len == utf8_strlen(blah));
 	}
-	
+
 	{
 		const uchar s[] = {
 			0xc3, 0xb6, 0xc3, 0xa4, 0xc3, 0xb6, 0xc3, 0xa4, 0xc3,
@@ -6238,7 +6238,7 @@ regression_utf8_strlower(void)
 		size_t len, size;
 		char *dst;
 		const char *src = cast_to_constpointer(s);
-		
+
 		len = utf8_strlower(NULL, src, 0);
 		size = len + 1;
 		dst = g_malloc(size);
@@ -6298,7 +6298,7 @@ regression_iconv_utf8_to_utf8(void)
  * Verify that each UTF-8 encoded codepoint is decoded to the same
  * codepoint.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_bijection(void)
 {
 	uint32 uc;
@@ -6351,7 +6351,7 @@ regression_utf8_unknown_conversion(void)
  * Check utf8_decode_char_fast() for all 4-byte combinations. This
  * takes about 3 minutes of CPU time on an Athlon Duron 1.4GHz.
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_decoder(void)
 {
 	uint32 uc = 0;
@@ -6391,7 +6391,7 @@ regression_utf8_decoder(void)
  * The following checks are broken as GLib does not implement Unicode 4.1.0
  * at the moment. --cbiere, 2005-08-02
  */
-static G_GNUC_COLD void
+static void G_COLD
 regression_utf8_vs_glib2(void)
 {
 #if defined(USE_GLIB2)
@@ -6504,7 +6504,7 @@ regression_utf8_vs_glib2(void)
 		char s[1024], t[1024], *s_nfc;
 		size_t size;
 
-		for (i = 0; i < G_N_ELEMENTS(test) - 1; i++) {
+		for (i = 0; i < N_ITEMS(test) - 1; i++) {
 			uint32 uc;
 
 			do {
@@ -6602,7 +6602,7 @@ regression_utf8_vs_glib2(void)
 #endif
 
 		g_assert(s_nfc != NULL);
-		utf8_to_utf32(s_nfc, q, G_N_ELEMENTS(q));
+		utf8_to_utf32(s_nfc, q, N_ITEMS(q));
 
 		if (0 != strcmp(s_nfc, t))
 			G_BREAKPOINT();
@@ -6631,7 +6631,7 @@ regression_utf8_vs_glib2(void)
 		size = g_unichar_to_utf8(i, utf8_char);
 		g_assert(size < sizeof utf8_char);
 		utf8_char[size] = '\0';
-		utf8_decompose_nfd(utf8_char, buf, G_N_ELEMENTS(buf));
+		utf8_decompose_nfd(utf8_char, buf, N_ITEMS(buf));
 #if 1  /* !defined(xxxUSE_ICU) */
 		s = g_utf8_normalize(utf8_char, -1, G_NORMALIZE_NFD);
 #else
@@ -6699,8 +6699,8 @@ regression_utf8_vs_glib2(void)
 		size_t j, utf8_len, utf32_len, m, n;
 
 		/* Check random strings */
-		utf32_len = random_value(G_N_ELEMENTS(test) - 2) + 1;
-		g_assert(utf32_len < G_N_ELEMENTS(test));
+		utf32_len = random_value(N_ITEMS(test) - 2) + 1;
+		g_assert(utf32_len < N_ITEMS(test));
 		for (j = 0; j < utf32_len; j++) {
 			uint32 uc;
 
@@ -6777,7 +6777,7 @@ regression_utf8_vs_glib2(void)
 #endif
 
 
-		utf8_len = utf32_to_utf8(test, buf, G_N_ELEMENTS(buf));
+		utf8_len = utf32_to_utf8(test, buf, N_ITEMS(buf));
 		g_assert(utf8_len < sizeof buf);
 		g_assert(utf32_len <= utf8_len);
 
@@ -6787,7 +6787,7 @@ regression_utf8_vs_glib2(void)
 		g_assert(utf8_is_valid_data(buf, utf8_len));
 		g_assert(n == utf8_data_char_count(buf, utf8_len));
 
-		n = utf8_to_utf32(buf, out, G_N_ELEMENTS(out));
+		n = utf8_to_utf32(buf, out, N_ITEMS(out));
 		g_assert(n == utf32_len);
 		g_assert(0 == memcmp(test, out, n * sizeof test[0]));
 
@@ -6865,7 +6865,7 @@ G_STMT_START { \
 	CAT2(regression_,func)(); \
 } G_STMT_END
 
-G_GNUC_COLD void
+void G_COLD
 utf8_regression_checks(void)
 {
 	/* unicode_compose_init() must be called before this */

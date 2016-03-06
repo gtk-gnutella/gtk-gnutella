@@ -396,7 +396,7 @@ etree_append_child(etree_t *tree, void *parent, void *child)
 
 	cn = ptr_add_offset(child, tree->offset);
 	pn = ptr_add_offset(parent, tree->offset);
-	
+
 	if (etree_is_extended(tree)) {
 		nodex_t *px = ptr_add_offset(parent, tree->offset);
 
