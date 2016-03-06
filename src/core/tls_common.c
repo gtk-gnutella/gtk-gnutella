@@ -232,7 +232,7 @@ done:
 /**
  * Log message.
  */
-static void
+static void G_PRINTF(2, 0)
 tls_logfmt(GLogLevelFlags level, const char *fmt, ...)
 {
 	va_list args;
@@ -245,7 +245,7 @@ tls_logfmt(GLogLevelFlags level, const char *fmt, ...)
 /**
  * Log TLS certificate.
  */
-static void
+static void G_PRINTF(1, 0)
 tls_cert_log(const char *fmt,
 	gnutls_x509_crt_t cert, gnutls_certificate_print_formats_t format)
 {
