@@ -42,7 +42,6 @@
     <h2>Searches</h2>
     <ul>
         <li><a href="#search0">How can I get more results?</a></li>
-        <li><a href="#search3">How can I ignore files with no SHA1?</a></li>
         <li><a href="#search-entry">Where did the search entry box go?</a></li>
         <li><a href="#search-passive">What are "Passive" searches?</a></li>
         <li><a href="#search-local">How can I copy the magnet link of a file I'm sharing?</a></li>
@@ -302,12 +301,6 @@
     <p>The number of results you get depends heavily on whether people are able
       to connect to you (see <a href="#gnet1">port forwarding</a>) and on the 
       <a href="#gnet0">number of connections</a> to other hosts.</p>
-      
-    <h3><a name="search3">How can I ignore files with no SHA1?</a></h3>
-    <p>Click with right mouse button on a search result without a SHA1 and
-      select "Drop results...-&gt;with the same urn:sha1" from the popup menu.
-      That will drop all results with this SHA1 - in this case none - from your
-      results. You'll miss a lot of spam.</p>
       
     <h3><a name="search-entry">Where did the search entry box go?</a></h3>
     <p>Searches are now entered in the <q><em>Search:</em></q> box in the
