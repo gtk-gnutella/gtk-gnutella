@@ -198,7 +198,7 @@
 
 <p>
 	A <em>push-proxy</em> is a relaying node. If an ultrapeer is connected to the firewalled leaf, in order to send a <em>push</em>
-	to that firewalled leaf, a servent can send an UDP message to the ultrapper who will then relay it to the leaf. So the ultrapeer
+	to that firewalled leaf, a servent can send an UDP message to the ultrapeer who will then relay it to the leaf. So the ultrapeer
 	acts as the push-proxy: it is the relaying target to reach the leaf.
 </p>
 
