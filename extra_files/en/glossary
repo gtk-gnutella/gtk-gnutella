@@ -294,7 +294,7 @@
 	Mini filters are created with the '+' and '-' signs. The plus sign
 	requires that a word is part of the results. The minus sign doesn't
 	display any results with the given phrase. The plus and minus signs
-	can be used to select ambigious terms.
+	can be used to select ambiguous terms.
 </p>
 <p>
 	Suppose you wish to find information about apples. You might use a search like <em>apples -computers</em>.
