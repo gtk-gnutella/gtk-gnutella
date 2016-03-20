@@ -259,7 +259,7 @@
 <li>
 	browse: List shared files on the specified host. The format is "browse:<em>ip_address:port</em>".
 	Many portions of the GUI have a menu option, available from a right
-	click, that will browser the specified computer.
+	click, that will browse the specified computer.
 </li>
 <li>
 	http: Download the specified web page. This could be a zip file, a movie, large JPEG, etc.
