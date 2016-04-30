@@ -1705,7 +1705,7 @@ prop = {
     type = string;
     data = {
         default =
-          "aac;avi;"
+          "aac;ape;avi;"
 		  "bin;bz2;7z;"
 		  "cue;dmg;"
 		  "deb;divx;"
