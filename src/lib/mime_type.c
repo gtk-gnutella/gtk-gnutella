@@ -50,6 +50,7 @@ static const struct {
 	{ "aac",		MIME_TYPE_AUDIO_MP4 },
 	{ "ace",		MIME_TYPE_APPLICATION_ACE },
 	{ "ai",			MIME_TYPE_APPLICATION_POSTSCRIPT },
+	{ "ape",		MIME_TYPE_AUDIO_APE },
 	{ "apk",		MIME_TYPE_APPLICATION_ANDROID_PACKAGE },
 	{ "asc",		MIME_TYPE_TEXT_PLAIN },
 	{ "asf",		MIME_TYPE_VIDEO_MS_ASF },
