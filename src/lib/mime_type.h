@@ -35,8 +35,8 @@
 
 #include "common.h"
 
-#ifndef _lib_mime_h_
-#define _lib_mime_h_
+#ifndef _lib_mime_type_h_
+#define _lib_mime_type_h_
 
 /**
  * Known MIME content types
@@ -55,7 +55,7 @@ enum mime_type mime_type_from_filename(const char *);
 enum mime_type mime_type_from_extension(const char *);
 const char *mime_type_to_string(enum mime_type) G_PURE;
 
-#endif /* _lib_mime_h_ */
+#endif /* _lib_mime_type_h_ */
 /* vi: set ts=4 sw=4 cindent: */
 
 
