@@ -114,6 +114,13 @@ sdbm_lru_cpage_check(const struct lru_cpage * const c)
 	g_assert(SDBM_LRU_CPAGE_MAGIC == c->magic);
 }
 
+static inline void
+sdbm_lru_cpage_valid(const struct lru_cpage * const c, const DBM * const db)
+{
+	g_assert(SDBM_LRU_CPAGE_MAGIC == c->magic);
+	g_assert(db == c->db);
+}
+
 /**
  * Allocate a new cached page.
  *
@@ -397,14 +404,14 @@ flush_dirtypag(const DBM *db)
 	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 		if (!flush_cpage(cp, &amount, &saved_errno))
 			break;
 	}
 
 	if (saved_errno != 0) {
 		ELIST_FOREACH_DATA(&cache->wired, cp) {
-			g_assert(db == cp->db);
+			sdbm_lru_cpage_valid(cp, db);
 			if (!flush_cpage(cp, &amount, &saved_errno))
 				break;
 		}
@@ -785,6 +792,7 @@ lru_unwire(DBM *db, const char *pag)
 {
 	struct lru_cache *cache = db->cache;
 	struct lru_cpage *cp;
+	bool found;
 
 	sdbm_check(db);
 	sdbm_lru_check(cache);
@@ -816,11 +824,14 @@ lru_unwire(DBM *db, const char *pag)
 
 			old = elist_tail(&cache->lru);
 
+			sdbm_lru_cpage_valid(old, db);
+
 			if (old->dirty && writebuf(old)) {
 				if (db->pagbno == old->numpag)
 					db->pagbno = -1;
 				elist_remove(&cache->lru, old);
-				hevset_remove(cache->pagnum, &old->numpag);
+				found = hevset_remove(cache->pagnum, &old->numpag);
+				g_assert(found);
 				sdbm_lru_cpage_free(old);
 			}
 		}
@@ -849,7 +860,8 @@ freepage:
 		db->pagbno = -1;
 	}
 
-	hevset_remove(cache->pagnum, &cp->numpag);
+	found = hevset_remove(cache->pagnum, &cp->numpag);
+	g_assert(found);
 	sdbm_lru_cpage_free(cp);
 
 	/*
@@ -923,6 +935,7 @@ getcpage(DBM *db, long num)
 {
 	struct lru_cache *cache = db->cache;
 	struct lru_cpage *cp;
+	bool found;
 
 	g_assert(!hevset_contains(cache->pagnum, &num));
 	assert_sdbm_locked(db);
@@ -944,8 +957,10 @@ getcpage(DBM *db, long num)
 
 		cp = elist_tail(&cache->lru);
 
+		sdbm_lru_cpage_valid(cp, db);
+
 		if (cp->dirty && !writebuf(cp)) {
-			bool found = FALSE;
+			bool slot_found = FALSE;
 
 			/*
 			 * Cannot flush dirty page now, probably because we ran out of
@@ -956,13 +971,14 @@ getcpage(DBM *db, long num)
 			 */
 
 			ELIST_FOREACH_DATA(&cache->lru, cp) {
+				sdbm_lru_cpage_valid(cp, db);
 				if (!cp->dirty) {
-					found = TRUE;	/* OK, reuse cache slot then */
+					slot_found = TRUE;	/* OK, reuse cache slot then */
 					break;
 				}
 			}
 
-			if (found) {
+			if (slot_found) {
 				/*
 				 * Clear error condition if we had none prior to the flush
 				 * attempt, since we can do without it for now.
@@ -976,6 +992,7 @@ getcpage(DBM *db, long num)
 					sdbm_name(db), cp->numpag);
 			} else {
 				cp = elist_tail(&cache->lru);
+				sdbm_lru_cpage_valid(cp, db);
 				s_warning("sdbm: \"%s\": cannot discard dirty page #%ld: %m",
 					sdbm_name(db), cp->numpag);
 				return NULL;
@@ -988,10 +1005,11 @@ getcpage(DBM *db, long num)
 		 */
 
 		g_assert(!cp->dirty);
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 
 		elist_moveto_head(&cache->lru, cp);
-		hevset_remove(cache->pagnum, &cp->numpag);
+		found = hevset_remove(cache->pagnum, &cp->numpag);
+		g_assert(found);
 
 		if (db->pagbno == cp->numpag)
 			db->pagbno = -1;
@@ -1035,6 +1053,8 @@ lru_cached_page(DBM *db, long num)
 	if (cache != NULL) {
 		sdbm_lru_check(cache);
 		cp = hevset_lookup(cache->pagnum, &num);
+		g_assert(NULL == cp ||
+			(SDBM_LRU_CPAGE_MAGIC == cp->magic && db == cp->db));
 	}
 
 	return NULL == cp ? NULL : cp->page;
@@ -1052,12 +1072,14 @@ lru_discard_page(void *data, void *udata)
 	if (cp->numpag >= bno) {
 		DBM *db = cp->db;
 		struct lru_cache *cache;
+		bool found;
 
 		sdbm_check(db);
 		cache = db->cache;
 		sdbm_lru_check(cache);
 
-		hevset_remove(cache->pagnum, &cp->numpag);
+		found = hevset_remove(cache->pagnum, &cp->numpag);
+		g_assert(found);
 		sdbm_lru_cpage_free(cp);
 		cache->cp_discarded++;
 		return TRUE;
@@ -1099,7 +1121,7 @@ lru_discard(DBM *db, long bno)
 	elist_foreach_remove(&cache->lru, lru_discard_page, long_to_pointer(bno));
 
 	ELIST_FOREACH_DATA(&cache->wired, cp) {
-		g_assert(cp->db == db);
+		sdbm_lru_cpage_valid(cp, db);
 		lru_discard_wired_page(cp, bno);
 	}
 
@@ -1126,7 +1148,7 @@ lru_invalidate(DBM *db, long bno)
 	cp = hevset_lookup(cache->pagnum, &bno);
 
 	if (cp != NULL) {
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 
 		/*
 		 * One should never be invalidating a dirty page, unless something
@@ -1143,8 +1165,10 @@ lru_invalidate(DBM *db, long bno)
 			ATOMIC_INC(&cp->mstamp);
 			cp->invalid = TRUE;
 		} else {
+			bool found;
 			elist_remove(&cache->lru, cp);
-			hevset_remove(cache->pagnum, &bno);
+			found = hevset_remove(cache->pagnum, &bno);
+			g_assert(found);
 			sdbm_lru_cpage_free(cp);
 		}
 
@@ -1169,13 +1193,13 @@ lru_tail_offset(const DBM *db)
 	assert_sdbm_locked(db);
 
 	ELIST_FOREACH_DATA(&cache->lru, cp) {
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 		if (cp->dirty)
 			bno = MAX(bno, cp->numpag);
 	}
 
 	ELIST_FOREACH_DATA(&cache->wired, cp) {
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 		if (cp->dirty)
 			bno = MAX(bno, cp->numpag);
 	}
@@ -1207,8 +1231,7 @@ readbuf(DBM *db, long num, bool *loaded)
 	cp = hevset_lookup(cache->pagnum, &num);
 
 	if (cp != NULL) {
-		sdbm_lru_cpage_check(cp);
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 
 		if (!cp->wired)
 			elist_moveto_head(&cache->lru, cp);
@@ -1265,8 +1288,7 @@ cachepag(DBM *db, char *pag, long num)
 		unsigned weird = 0;
 		char *cpag;
 
-		sdbm_lru_cpage_check(cp);
-		g_assert(db == cp->db);
+		sdbm_lru_cpage_valid(cp, db);
 
 		/*
 		 * Do not move the page to the head of the cache list.
