@@ -394,6 +394,7 @@ struct thread_element {
 	const char *entry_name;			/**< Symbolic name of thread entry point */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
+	int interrupt;					/**< Interrupt depth count */
 	socket_fd_t wfd[2];				/**< For the block/unblock interface */
 	unsigned joining_id;			/**< ID of the joining thread */
 	unsigned unblock_events;		/**< Counts unblock events received */
@@ -4798,6 +4799,16 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 	bool delayed = FALSE;
 
 	if G_UNLIKELY(NULL == te)
+		return FALSE;
+
+	/*
+	 * If we are in an interrupt, do not suspend the thread: by definition
+	 * the interrupt is critical processing that we want to perform, and it
+	 * can be used during crashing!
+	 *		--RAM, 2016-06-19
+	 */
+
+	if G_UNLIKELY(te->interrupt != 0)
 		return FALSE;
 
 	/*
@@ -11407,6 +11418,16 @@ thread_interrupt_handle(int signo)
 	}
 
 	/*
+	 * Signal that the thread is in interrupt mode, so that we do not suspend
+	 * it even whilst we are in crash mode: we use interrupts when crashing
+	 * to be able to trace a thread that is not already suspended and therefore
+	 * cannot be sent a diversion.
+	 *		--RAM, 2016-06-19
+	 */
+
+	atomic_int_inc(&te->interrupt);
+
+	/*
 	 * Detach the interrupt requests in FIFO order.
 	 *
 	 * The lock is necessary because this structure is filled by remote
@@ -11430,7 +11451,7 @@ thread_interrupt_handle(int signo)
 		mutex_unlock_fast(&te->interrupt_lock);
 	
 		if G_UNLIKELY(NULL == ti)
-			return;
+			goto done;
 
 		/*
 		 * Proceed with the requested interruption -- invoke the registered
@@ -11482,6 +11503,19 @@ thread_interrupt_handle(int signo)
 
 		thread_element_signal_deliver(cte, TSIG_INTACK, te->stid, TRUE);
 	}
+
+done:
+	atomic_int_dec(&te->interrupt);
+
+	/*
+	 * Now that we are exiting from the interrupt, check whether this thread
+	 * must suspend itself.  We do not check for thread software signals since
+	 * we do not know exactly where the hard interrupt triggered and the thread
+	 * could hold a lock but not know it yet because it was not accounted for.
+	 *		--RAM, 2016-06-19
+	 */
+
+	thread_check_suspended_element(te, FALSE);
 }
 
 /**
