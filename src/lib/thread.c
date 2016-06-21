@@ -8583,6 +8583,13 @@ retry:
 		te->blocked = TRUE;
 		THREAD_UNLOCK(te);
 	}
+	/*
+	 * If we have a time limit, poll the file descriptor first before reading.
+	 *
+	 * Otherwise we poll in a non-blocking mode only if we have detected
+	 * an event count change, meaning we were unblocked but we cannot know
+	 * whether an unblocking byte was sent over.
+	 */
 
 	if (end != NULL) {
 		long upper, remain = tm_remaining_ms(end);
@@ -8617,6 +8624,18 @@ retry:
 		fds.events = POLLIN;
 
 		/*
+		 * If we were concurrently unblocked, maybe there is a byte to
+		 * read, so poll and see what is there, but do not block.
+		 */
+
+		THREAD_LOCK(te);
+		if (te->unblock_events != events) {
+			te->blocked = FALSE;
+			remain = 0;				/* Was sent an "unblock" event already */
+		}
+		THREAD_UNLOCK(te);
+
+		/*
 		 * Note that compat_poll() is flagging itself as being in a system call
 		 * which will let us know that an interrupting signal runs in a safe
 		 * environment where it can call malloc() freely since we are not
@@ -8632,8 +8651,40 @@ retry:
 				G_STRFUNC, thread_element_name(te), te->wfd[0]);
 		}
 
-		if (0 == r)
+		if (0 == r) {
+			if (0 == remain)
+				goto done;			/* We were unblocked, no byte sent */
 			goto timed_out;			/* The poll() timed out */
+		}
+
+		/* FALL THROUGH -- we can now safely read from the file descriptor */
+	} else {
+		bool unblocked = FALSE;
+
+		/*
+		 * If we were concurrently unblocked, maybe there is a byte to
+		 * read, so poll and see what is there, but do not block.
+		 */
+
+		THREAD_LOCK(te);
+		if (te->unblock_events != events) {
+			te->blocked = FALSE;
+			unblocked = TRUE;		/* Was sent an "unblock" event already */
+		}
+		THREAD_UNLOCK(te);
+
+		if (unblocked) {
+			struct pollfd fds;
+			int r;
+
+			fds.fd = te->wfd[0];
+			fds.events = POLLIN;
+
+			r = compat_poll(&fds, 1, 0);	/* Non-blocking */
+
+			if (0 == r)
+				goto done;			/* Nothing to read */
+		}
 
 		/* FALL THROUGH -- we can now safely read from the file descriptor */
 	}
