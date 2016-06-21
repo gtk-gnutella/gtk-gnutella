@@ -8544,22 +8544,7 @@ thread_element_block_until(struct thread_element *te,
 		THREAD_STATS_INCX(thread_self_block_races);
 		goto done;				/* Was sent an "unblock" event already */
 	}
-
-	/*
-	 * Lock is required for the te->unblocked update, since this can be
-	 * concurrently updated by the unblocking thread.  Whilst we hold the
-	 * lock we also update the te->blocked field, since it lies in the same
-	 * bitfield in memory, and therefore it cannot be written atomically.
-	 */
-
-	te->timed_blocked = booleanize(end != NULL);
-	te->blocked = TRUE;
-	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
-
-	/*
-	 * If we have a time limit, poll the file descriptor first before reading.
-	 */
 
 	THREAD_STATS_INCX(thread_self_blocks);
 
@@ -8573,16 +8558,23 @@ retry:
 	 */
 
 	while (thread_sig_pending(te) && 0 == te->signalled) {
-		THREAD_LOCK(te);
-		te->blocked = FALSE;
-		THREAD_UNLOCK(te);
-
-		(void) thread_signal_check(te);
-
-		THREAD_LOCK(te);
-		te->blocked = TRUE;
-		THREAD_UNLOCK(te);
+		if (!thread_signal_check(te))
+			break;		/* Could not handle signals, no need to loop */
 	}
+
+	/*
+	 * Lock is required for the te->unblocked update, since this can be
+	 * concurrently updated by the unblocking thread.  Whilst we hold the
+	 * lock we also update the te->blocked field, since it lies in the same
+	 * bitfield in memory, and therefore it cannot be written atomically.
+	 */
+
+	THREAD_LOCK(te);
+	te->timed_blocked = booleanize(end != NULL);
+	te->blocked = TRUE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
 	/*
 	 * If we have a time limit, poll the file descriptor first before reading.
 	 *
@@ -8764,10 +8756,6 @@ retry:
 			THREAD_UNLOCK(te);
 			goto done;				/* Was sent an "unblock" event already */
 		}
-
-		te->timed_blocked = booleanize(end != NULL);
-		te->blocked = TRUE;
-		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
 		goto retry;
 	}
