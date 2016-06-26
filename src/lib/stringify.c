@@ -1220,12 +1220,22 @@ compact_time_to_buf(time_delta_t t, char *dst, size_t size)
 const char *
 compact_time(time_delta_t t)
 {
-	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
-	char *p = buf_data(b);
-	size_t n, sz = buf_size(b);
+	/*
+	 * Because this routine can be called during logging at thread-exit time,
+	 * we do not want to create a thread-private value, since it would leak.
+	 * Therefore we manage a set of fix-sized strings indexed by thread ID.
+	 * The maximum string we can print is "-49710d24h60m60s" or 17 chars.
+	 */
 
-	n = compact_time_to_buf(t, p, sz);
-	g_assert(n < sz);
+#define COMPACT_TIME_MAX_LEN	17
+
+	static char buf[THREAD_MAX][COMPACT_TIME_MAX_LEN];
+	int stid = thread_small_id();
+	char *p = &buf[stid][0];
+	size_t n;
+
+	n = compact_time_to_buf(t, p, COMPACT_TIME_MAX_LEN);
+	g_assert(n < COMPACT_TIME_MAX_LEN);
 	return p;
 }
 
