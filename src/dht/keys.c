@@ -422,7 +422,9 @@ static void
 keys_reclaim(struct keyinfo *ki, bool can_remove)
 {
 	g_assert(ki);
-	g_assert(0 == ki->values);
+	g_assert_log(0 == ki->values || can_remove,
+		"%s(): ki->values=%u, can_remove=%s",
+		G_STRFUNC, ki->values, can_remove ? "y" : "n");
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
