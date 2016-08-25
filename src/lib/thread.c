@@ -4975,7 +4975,7 @@ thread_suspend_others(bool lockwait)
 	static bool suspending[THREAD_MAX];
 	struct thread_element *te;
 	size_t i, n = 0;
-	unsigned busy = 0;
+	unsigned busy = 0, busy_skipped = 0;
 
 	/*
 	 * Must use thread_find() and not thread_get_element() to avoid taking
@@ -5076,14 +5076,26 @@ thread_suspend_others(bool lockwait)
 			continue;
 		}
 
-		atomic_int_inc(&xte->suspend);
-
 		if (lockwait) {
 			THREAD_LOCK(xte);
-			if (0 != thread_element_lock_count(xte))
-				busy++;
+
+			/*
+			 * An already suspended thread is unlikely to release its locks:
+			 * the thread_suspend_others() call cannot block in that situation
+			 * but we will loudly warn when this happens.
+			 */
+
+			if (0 != thread_element_lock_count(xte)) {
+				if (0 == xte->suspend)
+					busy++;
+				else
+					busy_skipped++;
+			}
+
 			THREAD_UNLOCK(xte);
 		}
+
+		atomic_int_inc(&xte->suspend);
 
 		n++;
 	}
@@ -5096,6 +5108,24 @@ thread_suspend_others(bool lockwait)
 	te->suspend = 0;
 	THREAD_UNLOCK(te);
 	mutex_unlock(&thread_suspend_mtx);
+
+	/*
+	 * If we need to wait for other threads to release their locks but we
+	 * found threads already marked suspended, it means we're dealing with
+	 * concurrent calls to this routine, or that routine is being called
+	 * multiple times from the same thread but the first time it did not ask
+	 * to wait for busy threads.
+	 *
+	 * In any case, this is not a normal situation and we need to warn
+	 * about it because the caller may misbehave and if we get a strange
+	 * behaviour later on, we'll know a weird thing happened already before.
+	 *		--RAM, 2016-08-025
+	 */
+
+	if (lockwait && busy_skipped != 0) {
+		s_carp("%s() found %u busy thread%s already marked suspended!",
+			G_STRFUNC, busy_skipped, plural(busy_skipped));
+	}
 
 	/*
 	 * Now wait for other threads to be suspended, if we identified busy
