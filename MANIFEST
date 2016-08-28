@@ -909,6 +909,7 @@ src/lib/patricia.c
 src/lib/patricia.h
 src/lib/pattern.c
 src/lib/pattern.h
+src/lib/pcell.h
 src/lib/plist.c
 src/lib/plist.h
 src/lib/pmsg.c
