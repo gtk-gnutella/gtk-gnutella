@@ -48,26 +48,36 @@ typedef enum once_flag {
  */
 typedef void (*once_fn_t)(void);
 
+/**
+ * Private interface.
+ */
+
+void once_flag_run_trace(once_flag_t *, once_fn_t, const char *);
+bool once_flag_run_safe_trace(once_flag_t *, once_fn_t, const char *);
+
+void once_flag_runwait_trace(once_flag_t *, once_fn_t, const char *);
+bool once_flag_runwait_safe_trace(once_flag_t *, once_fn_t, const char *);
+
 /*
  * Public interface.
  */
 
-void once_flag_run(once_flag_t *flag, once_fn_t routine);
-bool once_flag_run_safe(once_flag_t *flag, once_fn_t routine);
+#define once_flag_run(f,r)			once_flag_run_trace((f),(r),# r)
+#define once_flag_run_safe(f,r)		once_flag_run_safe_trace((f),(r),# r)
 
-void once_flag_runwait(once_flag_t *flag, once_fn_t routine);
-bool once_flag_runwait_safe(once_flag_t *flag, once_fn_t routine);
+#define once_flag_runwait(f,r)		once_flag_runwait_trace((f),(r),# r)
+#define once_flag_runwait_safe(f,r)	once_flag_runwait_safe_trace((f),(r),# r)
 
 #define ONCE_DONE(f)	(ONCE_F_DONE == (f))
 
-#define ONCE_FLAG_RUN(f, r) G_STMT_START {	\
-	if G_UNLIKELY(!ONCE_DONE((f)))			\
-		once_flag_run(&(f), (r));			\
+#define ONCE_FLAG_RUN(f, r) G_STMT_START {		\
+	if G_UNLIKELY(!ONCE_DONE((f)))				\
+		once_flag_run_trace(&(f),(r),# r);		\
 } G_STMT_END
 
 #define ONCE_FLAG_RUNWAIT(f, r) G_STMT_START {	\
 	if G_UNLIKELY(!ONCE_DONE((f)))				\
-		once_flag_runwait(&(f), (r));			\
+		once_flag_runwait_trace(&(f),(r),#r);	\
 } G_STMT_END
 
 #endif /* _once_h_ */
