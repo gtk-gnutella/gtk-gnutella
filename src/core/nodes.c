@@ -112,6 +112,7 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
+#include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/hash.h"
 #include "lib/hashlist.h"
@@ -195,6 +196,8 @@
 #define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
+#define NODE_CONN_FAILED_FREQ	900		/**< once every 15 minutes */
+
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
 #define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
 
@@ -261,6 +264,8 @@ static pslist_t *unstable_servents = NULL;
 
 static aging_table_t *tcp_crawls;
 static aging_table_t *udp_crawls;
+
+static aging_table_t *node_connect_failures;
 
 typedef struct node_bad_client {
 	const char *vendor;
@@ -892,6 +897,33 @@ node_demote_to_leaf(const char *reason)
 }
 
 /**
+ * Register failure to connect to given IP:port.
+ */
+static void
+node_record_connect_failure(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	aging_insert(node_connect_failures,
+		atom_host_get(&host), int_to_pointer(1));
+}
+
+/**
+ * Check whether IP:port is that of a host to which we had troubles to
+ * connect to recently.
+ */
+bool
+node_had_recent_connect_failure(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+
+	return NULL != aging_lookup(node_connect_failures, &host);
+}
+
+/**
  * Low frequency node timer.
  */
 void
@@ -1405,6 +1437,7 @@ node_timer(time_t now)
 						(time_delta_t) GNET_PROPERTY(node_connecting_timeout)
 				) {
 					node_send_udp_ping(n);
+					node_record_connect_failure(n->addr, n->port);
 					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0, "timeout");
 					continue;
@@ -1729,6 +1762,17 @@ node_init(void)
 
 	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+
+	/*
+	 * Records nodes to which an outgoing connection failed.
+	 *
+	 * This helps preventing us re-trying a connection to that node too
+	 * soon and will also avoid having its IP:port collected from pongs.
+	 *		--RAM, 2016-08-29
+	 */
+
+	node_connect_failures = aging_make(NODE_CONN_FAILED_FREQ,
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	/*
 	 * Known patterns for vendor messages and features.
@@ -8640,6 +8684,8 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 			if (errno == EMFILE || errno == ENFILE)
 				n->flags |= NODE_F_VALID;
+			else
+				node_record_connect_failure(addr, port);
 		}
 	}
 
@@ -8722,7 +8768,11 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 
 	if (
 		!(SOCK_F_FORCE & flags) &&
-		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+		(
+			hostiles_is_bad(addr) ||
+			hcache_node_is_bad(addr) ||
+			node_had_recent_connect_failure(addr, port)
+		)
 	)
 		return;
 
@@ -8740,7 +8790,11 @@ node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 
 	if (
 		!(SOCK_F_FORCE & flags) &&
-		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+		(
+			hostiles_is_bad(addr) ||
+			hcache_node_is_bad(addr) ||
+			node_had_recent_connect_failure(addr, port)
+		)
 	)
 		return;
 
@@ -11673,6 +11727,7 @@ node_close(void)
 
 	aging_destroy(&tcp_crawls);
 	aging_destroy(&udp_crawls);
+	aging_destroy(&node_connect_failures);
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 	node_udp_scheduler_destroy_all();
@@ -12465,6 +12520,18 @@ node_id_infostr2(const struct nid *node_id)
 }
 
 /**
+ * Callback invoked from the socket layer when the connection fialed.
+ */
+static void
+node_connect_failed(gnutella_socket_t *s, void *owner, const char *errmsg)
+{
+	(void) owner;
+
+	node_record_connect_failure(s->addr, s->port);
+	socket_destroy(s, errmsg);	/* Must do that from callback when present */
+}
+
+/**
  * Callback invoked from the socket layer when we are finally connected.
  */
 static void
@@ -12487,7 +12554,7 @@ node_connected_back(struct gnutella_socket *s, void *owner)
  * Socket callbacks for node connect backs.
  */
 static struct socket_ops node_connect_back_socket_ops = {
-	NULL,						/* connect_failed */
+	node_connect_failed,		/* connect_failed */
 	node_connected_back,		/* connected */
 	NULL,						/* destroy */
 };

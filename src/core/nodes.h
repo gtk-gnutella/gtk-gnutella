@@ -747,6 +747,7 @@ bool node_above_low_watermark(const gnutella_node_t *n);
 bool node_address_known(const gnutella_node_t *n);
 bool node_addr_port_equal(const gnutella_node_t *n,
 	const host_addr_t addr, uint16 port);
+bool node_had_recent_connect_failure(const host_addr_t addr, uint16 port);
 
 const struct nid *node_id_get_self(void);
 bool node_id_self(const struct nid *node_id);
