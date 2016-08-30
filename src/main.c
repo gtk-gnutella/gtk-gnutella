@@ -864,7 +864,7 @@ gtk_gnutella_exit(int exit_code)
 		int i;
 
 		for (i = 0; i < 100; i++) {
-			int n = teq_count(THREAD_MAIN);
+			int n = teq_count(THREAD_MAIN_ID);
 			if (n != 0)
 				break;
 			thread_sleep_ms(1);

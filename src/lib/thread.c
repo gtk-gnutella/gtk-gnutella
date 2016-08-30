@@ -1269,7 +1269,7 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 	 */
 
 	if G_LIKELY(te->last_qid == qid) {
-		if G_LIKELY(THREAD_MAIN == te->stid || te->created)
+		if G_LIKELY(THREAD_MAIN_ID == te->stid || te->created)
 			goto matched;
 
 		/*
@@ -6262,7 +6262,7 @@ thread_local_users(thread_key_t key)
 void
 thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t fn, void *data)
 {
-	uint id = THREAD_MAIN;
+	uint id = THREAD_MAIN_ID;
 	uint i;
 
 	if (flags & THREAD_LOCAL_SKIP_SELF)

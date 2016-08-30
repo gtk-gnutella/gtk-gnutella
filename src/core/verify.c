@@ -248,7 +248,7 @@ verify_start(struct verify *ctx)
 	verify_check(ctx);
 
 	ctx->status = VERIFY_START;
-	return pointer_to_bool(teq_safe_rpc(THREAD_MAIN, verify_cb, ctx));
+	return pointer_to_bool(teq_safe_rpc(THREAD_MAIN_ID, verify_cb, ctx));
 }
 
 /**
@@ -261,7 +261,7 @@ verify_progress(struct verify *ctx)
 	verify_check(ctx);
 
 	ctx->status = VERIFY_PROGRESS;
-	return pointer_to_bool(teq_safe_rpc(THREAD_MAIN, verify_cb, ctx));
+	return pointer_to_bool(teq_safe_rpc(THREAD_MAIN_ID, verify_cb, ctx));
 }
 
 static void
@@ -270,7 +270,7 @@ verify_failure(struct verify *ctx)
 	verify_check(ctx);
 
 	ctx->status = VERIFY_ERROR;
-	(void) teq_safe_rpc(THREAD_MAIN, verify_cb, ctx);
+	(void) teq_safe_rpc(THREAD_MAIN_ID, verify_cb, ctx);
 	ctx->status = VERIFY_INVALID;
 }
 
@@ -280,7 +280,7 @@ verify_shutdown(struct verify *ctx)
 	verify_check(ctx);
 
 	ctx->status = VERIFY_SHUTDOWN;
-	(void) teq_safe_rpc(THREAD_MAIN, verify_cb, ctx);
+	(void) teq_safe_rpc(THREAD_MAIN_ID, verify_cb, ctx);
 	ctx->status = VERIFY_INVALID;
 }
 
@@ -290,7 +290,7 @@ verify_done(struct verify *ctx)
 	verify_check(ctx);
 
 	ctx->status = VERIFY_DONE;
-	(void) teq_safe_rpc(THREAD_MAIN, verify_cb, ctx);
+	(void) teq_safe_rpc(THREAD_MAIN_ID, verify_cb, ctx);
 	ctx->status = VERIFY_INVALID;
 }
 
@@ -914,7 +914,7 @@ verify_bg_sighandler(struct bgtask *bt, void *data, bgsig_t sig)
 	 * since we will avoid all these TEQ RPCs between the two threads.
 	 */
 
-	teq_post(THREAD_MAIN, verify_queue_flush, ctx);
+	teq_post(THREAD_MAIN_ID, verify_queue_flush, ctx);
 }
 
 /**

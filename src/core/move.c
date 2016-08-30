@@ -199,7 +199,7 @@ move_d_notify(struct bgtask *unused_h, bool on)
 {
 	(void) unused_h;
 
-	teq_safe_rpc(THREAD_MAIN, move_notify, bool_to_pointer(on));
+	teq_safe_rpc(THREAD_MAIN_ID, move_notify, bool_to_pointer(on));
 	teq_post(move_thread_id, move_notification_change, bool_to_pointer(on));
 }
 
@@ -241,7 +241,7 @@ move_d_start(struct bgtask *h, void *ctx, void *item)
 	bg_task_signal(h, BG_SIG_TERM, move_d_sighandler);
 
 	md->d = we->d;
-	teq_safe_rpc(THREAD_MAIN, move_starting, md);
+	teq_safe_rpc(THREAD_MAIN_ID, move_starting, md);
 
 	md->rd = file_object_open(download_pathname(d), O_RDONLY);
 	if (NULL == md->rd) {
@@ -412,7 +412,7 @@ finish:
 	 * updates on the core structures when the move is completed.
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, move_done, md);
+	teq_safe_rpc(THREAD_MAIN_ID, move_done, md);
 	HFREE_NULL(md->target);
 }
 
@@ -549,12 +549,12 @@ again:		/* Avoids indenting all this code */
 	 */
 
 	if G_UNLIKELY(md->copied == md->size) {
-		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+		teq_safe_rpc(THREAD_MAIN_ID, move_progress, md);
 		return BGR_DONE;
 	}
 
 	if (delta_time(tm_time(), md->last_notify) >= 1) {
-		teq_safe_rpc(THREAD_MAIN, move_progress, md);
+		teq_safe_rpc(THREAD_MAIN_ID, move_progress, md);
 		md->last_notify = tm_time();
 	}
 

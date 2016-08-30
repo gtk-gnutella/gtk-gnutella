@@ -842,7 +842,7 @@ settings_add_randomness(void)
 	 * to the change of the "randomness" property.
 	 */
 
-	teq_safe_post(THREAD_MAIN, settings_gen_randomness, NULL);
+	teq_safe_post(THREAD_MAIN_ID, settings_gen_randomness, NULL);
 }
 
 /**

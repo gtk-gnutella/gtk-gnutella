@@ -3352,8 +3352,8 @@ crash_divert_main(const char *caller, process_fn_t cb, void *arg)
 
 		s_miniwarn("%s(): trying to divert into main thread", caller);
 
-		crash_thread_id = THREAD_MAIN;		/* Assume success */
-		errno = thread_divert(THREAD_MAIN, cb, arg, NULL);
+		crash_thread_id = THREAD_MAIN_ID;		/* Assume success */
+		errno = thread_divert(THREAD_MAIN_ID, cb, arg, NULL);
 		crash_thread_id = crashing;			/* Still in crashing thread */
 
 		g_assert(errno != 0);	/* If we return, there was a problem */
@@ -4445,7 +4445,7 @@ crash_offload_main(process_fn_t cb, void *arg)
 {
 	if (!thread_is_main()) {
 		void *res;		/* Supplied result, to make this an RPC to main */
-		if (0 == thread_divert(THREAD_MAIN, cb, arg, &res))
+		if (0 == thread_divert(THREAD_MAIN_ID, cb, arg, &res))
 			return;
 		/* FALL THROUGH */
 	}

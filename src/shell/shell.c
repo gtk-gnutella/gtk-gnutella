@@ -759,7 +759,7 @@ shell_async_handler(void *p)
 	 */
 
 	if (!sh->shutdown) {
-		teq_safe_post(THREAD_MAIN, shell_resume_processing, args);
+		teq_safe_post(THREAD_MAIN_ID, shell_resume_processing, args);
 	} else {
 		sh->async = FALSE;		/* Signal that async processing is done */
 	}
