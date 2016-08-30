@@ -180,6 +180,8 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return TRUE;
 
+	id = thread_small_id();
+
 	mutex_lock(&once_flag_mtx);
 
 	if G_UNLIKELY(ONCE_F_DONE == *flag) {
@@ -189,8 +191,6 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 
 	if G_UNLIKELY(NULL == once_running)
 		once_init();
-
-	id = thread_small_id();
 
 	if G_UNLIKELY(ONCE_F_PROGRESS == *flag) {
 		int stid = pointer_to_int(hash_table_lookup(once_running, routine));
@@ -310,6 +310,8 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return TRUE;
 
+	id = thread_small_id();
+
 	mutex_lock(&once_flag_mtx);
 
 	if G_UNLIKELY(ONCE_F_DONE == *flag) {
@@ -319,8 +321,6 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
 
 	if G_UNLIKELY(NULL == once_running)
 		once_init();
-
-	id = thread_small_id();
 
 	/*
 	 * If another thread is in the process of running the initialization
