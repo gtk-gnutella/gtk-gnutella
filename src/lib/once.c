@@ -50,6 +50,7 @@
 #define ONCE_DELAY		200			/* Wait 200 us before looping again */
 #define ONCE_TIMEOUT	10000000	/* 10 seconds, in us */
 #define ONCE_LOOP_MAX	(ONCE_TIMEOUT / ONCE_DELAY)
+#define ONCE_MAX_DEPTH	32			/* Arbitrary safety limit */
 
 /**
  * Arena to be used for the hash table keeping track of the pending
@@ -152,6 +153,28 @@ once_backtrace(int id)
 }
 
 /**
+ * Log fatal error when initialization calls run too deep.
+ *
+ * @param caller		calling routine name
+ * @param id			thread ID
+ * @param routine		routine function pointer being initialized once
+ * @param name			stringified routine name
+ */
+static void G_NORETURN
+once_too_deep(const char *caller, int id, once_fn_t routine, const char *name)
+{
+	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
+		"%s(): deep nesting detected processing routine %s(), aka. %s() in %s",
+		caller, stacktrace_function_name(routine), name,
+		thread_safe_id_name(id));
+
+	once_backtrace(id);
+
+	s_minierror("%s(): arbitrary nesting depth (%d) reached",
+		caller, ONCE_MAX_DEPTH);
+}
+
+/**
  * Log fatal error when recursive initialization is detected.
  *
  * @param caller		calling routine name
@@ -234,6 +257,9 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 		mutex_unlock(&once_flag_mtx);
 		return TRUE;
 	}
+
+	if (mutex_held_depth(&once_flag_mtx) > ONCE_MAX_DEPTH)
+		once_too_deep(G_STRFUNC, id, routine, name);
 
 	if G_UNLIKELY(NULL == once_running)
 		once_init();
@@ -367,6 +393,9 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
 		mutex_unlock(&once_flag_mtx);
 		return TRUE;
 	}
+
+	if (mutex_held_depth(&once_flag_mtx) > ONCE_MAX_DEPTH)
+		once_too_deep(G_STRFUNC, id, routine, name);
 
 	if G_UNLIKELY(NULL == once_running)
 		once_init();
