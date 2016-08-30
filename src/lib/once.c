@@ -140,6 +140,18 @@ once_routine_log(void *data, void *udata)
 }
 
 /**
+ * Trace all the initialization in progress for the given thread.
+ *
+ * @param id			thread ID
+ */
+static void
+once_backtrace(int id)
+{
+	s_minidbg("initializations currently in progress:");
+	pslist_foreach(once_stacks[id], once_routine_log, NULL);
+}
+
+/**
  * Log fatal error when recursive initialization is detected.
  *
  * @param caller		calling routine name
@@ -155,10 +167,44 @@ once_recursive(const char *caller, int id, once_fn_t routine, const char *name)
 		caller, stacktrace_function_name(routine), name,
 		thread_safe_id_name(id));
 
-	s_minidbg("initializations leading to this recursion:");
-	pslist_foreach(once_stacks[id], once_routine_log, NULL);
+	once_backtrace(id);
 
 	s_minierror("%s(): recursive initialization request", caller);
+}
+
+/**
+ * Log fatal error when unable to insert routine in hash table.
+ *
+ * @param caller		calling routine name
+ * @param id			thread ID
+ * @param routine		routine function pointer being initialized once
+ * @param name			stringified routine name
+ */
+static void G_NORETURN
+once_no_insert(const char *caller, int id, once_fn_t routine, const char *name)
+{
+	void *val;
+	bool present;
+
+	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
+		"%s(): unable to register routine %s(), aka. %s() in %s",
+		caller, stacktrace_function_name(routine), name,
+		thread_safe_id_name(id));
+
+	present = hash_table_lookup_extended(once_running, routine, NULL, &val);
+
+	if (present) {
+		s_minidbg("%s(): routine %s() was registered by %s",
+			caller, stacktrace_function_name(routine),
+			thread_safe_id_name(pointer_to_int(val)));
+	} else {
+		s_minidbg("%s(): routine %s() is no longer registered by any thread",
+			caller, stacktrace_function_name(routine));
+	}
+
+	once_backtrace(id);
+
+	s_minierror("%s(): cannot register initialization", caller);
 }
 
 /**
@@ -234,9 +280,13 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 	}
 
 	*flag = ONCE_F_PROGRESS;
-	hash_table_insert(once_running, routine, int_to_pointer(id));
+
+	if (!hash_table_insert(once_running, routine, int_to_pointer(id)))
+		once_no_insert(G_STRFUNC, id, routine, name);
+
 	once_stacks[id] = pslist_prepend_ext(once_stacks[id],
 		deconstify_char(name), &once_cell_allocator);
+
 	mutex_unlock(&once_flag_mtx);
 
 	(*routine)();
@@ -305,7 +355,6 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
 {
 	static cond_t once_cond = COND_INIT;
 	int id;
-	bool is_inserted;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return TRUE;
@@ -357,12 +406,14 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
 	 */
 
 	*flag = ONCE_F_PROGRESS;
-	is_inserted = hash_table_insert(once_running, routine, int_to_pointer(id));
+
+	if (!hash_table_insert(once_running, routine, int_to_pointer(id)))
+		once_no_insert(G_STRFUNC, id, routine, name);
+
 	once_stacks[id] = pslist_prepend_ext(once_stacks[id],
 		deconstify_char(name), &once_cell_allocator);
-	mutex_unlock(&once_flag_mtx);
 
-	g_assert(is_inserted);	/* Key was not already present in the hash table */
+	mutex_unlock(&once_flag_mtx);
 
 	(*routine)();
 
