@@ -6883,8 +6883,10 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 			if G_UNLIKELY(tls->capacity == tls->count) {
 				if (!tls->overflow) {
 					tls->overflow = TRUE;
-					s_rawwarn("%s overflowing its waiting stack at %s:%u",
-						thread_element_name_raw(te), file, line);
+					s_rawwarn("%s overflowing its waiting stack at %s:%u"
+						" whilst adding %s %p",
+						thread_element_name_raw(te), file, line,
+						thread_lock_kind_to_string(kind), lock);
 					thread_lock_dump(te);
 					s_minierror("too many nested lock waiting");
 				}
@@ -7270,8 +7272,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_rawwarn("%s overflowing its lock stack at %s:%u",
-			thread_element_name_raw(te), file, line);
+		s_rawwarn("%s overflowing its lock stack at %s:%u whilst adding %s %p",
+			thread_element_name_raw(te), file, line,
+			thread_lock_kind_to_string(kind), lock);
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;				/* Crashing or exiting already */
@@ -7374,7 +7377,10 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_rawwarn("%s overflowing its lock stack", thread_element_name_raw(te));
+		s_rawwarn("%s overflowing its lock stack at %s:%u whilst adding %s %p"
+			" (swapping with %p)",
+			thread_element_name_raw(te), file, line,
+			thread_lock_kind_to_string(kind), lock, plock);
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;			/* Crashing or exiting already */
