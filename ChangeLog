@@ -1,3 +1,39 @@
+# v 1.1.10  2016-09-01  [stable]
+
+This is mostly a bug-fixing release and should be the last update on the
+1.1.x release tree, before important core changes in the upcoming 1.2.
+
+Improvements:
+- FAQ cleanups.
+- Added the ".ape" file extension to the default list of shared files.
+- Remember hosts to which a TCP connection failed recently to avoid hammering.
+- Updated French and Turkish translations.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Don't embed build date if SOURCE_DATE_EPOCH is set for reproducibile builds.
+- Missed ":" in variable substitution request, in scripts/nm-list
+- nm-list: fixed date computation on BSD systems.
+
+Under the Hood:
+- Need TLS 2.12 to generate an X.509 self-signed certificate.
+- Added G_PRINTF() hint to tls_logfmt() and tls_cert_log() to avoid warnings.
+- Fixed CPP file inclusion protection symbol for lib/mime_type.h.
+- Added the "ape" MIME type linked to the ".ape" file extension.
+- Ensure we do not suspend threads during an interrupt.
+- Track where context was taken in our setjmp wrappers to ease debugging.
+- Keep track of "once" initializations in case we end-up recursing.
+- Trace which new lock is overflowing the lock stack.
+- once: make sure we can insert routine in our tracking table.
+- once: arbitrarily limit nesting level in one thread to 32.
+- dht_update_size_estimate(): return if our KUID was not initialized yet.
+- keys_reclaim(): we can have values attached to key if we can remove it.
+- symbols_load_from(): must release write lock when falling back to pre-computed.
+- thread_element_block_until(): was not checking for concurrent unblocking.
+- thread_element_block_until(): revisited signal handling.
+- thread_suspend_others(): don't wait for busy threads already marked suspended.
+- walloc: prevent race condition on walloc_stopped being set.
+
 # v 1.1.9   2016-03-06  [stable]
 
 This is mostly a bug-fixing release.
