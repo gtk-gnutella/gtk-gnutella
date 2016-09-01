@@ -4,15 +4,15 @@
 #
 # Translators:
 # mauron, 2013
-# mauron, 2013-2015
+# mauron, 2013-2016
 # Uğur Çetin <ugur.jnmbk@gmail.com>, 2006
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2016-03-06 23:56+0100\n"
-"PO-Revision-Date: 2016-02-15 08:28+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"PO-Revision-Date: 2016-08-31 15:19+0000\n"
+"Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/tr/)\n"
 "Language: tr\n"
@@ -266,7 +266,7 @@ msgid "No support for Content-Encoding (%s)"
 msgstr "İçerik-Kodlama (Content-Encoding) desteklenmiyor (%s)"
 
 msgid "Incomplete headers during TLS upgrade"
-msgstr ""
+msgstr "TLS yükseltmesi sırasında eksik başlıklar"
 
 msgid "Spammer detected"
 msgstr "Spamcı tespit edildi"
@@ -593,10 +593,10 @@ msgid "Protocol not acceptable"
 msgstr "Kabul edilemez protokol"
 
 msgid "Conflict"
-msgstr ""
+msgstr "Çatışma"
 
 msgid "Upgrade Header Missing"
-msgstr ""
+msgstr "Yükseltme Başlığı Eksik"
 
 msgid "Servent Shutdown"
 msgstr "İstemci kapanıyor"
@@ -745,11 +745,11 @@ msgstr "\"%s\" klasörü %s için oluşturuluyor"
 
 #, c-format
 msgid "Another gtk-gnutella supervisor is running as PID %lu"
-msgstr ""
+msgstr "Başka bir gtk-gnutella gözetmeni PID %lu olarak çalışmaktadır"
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
-msgstr ""
+msgstr "Başka bir gtk-gnutella PID %lu olarak çalışmaktadır"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Geçerli bir yapılandırma klasörü olmadan devam edilemez"
@@ -940,7 +940,7 @@ msgid "Read error while sinking: %m"
 msgstr ""
 
 msgid "Content Too Large"
-msgstr ""
+msgstr "Fazla Geniş İçerik"
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Bilinmeyen/Eksik protokol etiketi"
@@ -3311,6 +3311,8 @@ msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
+"Kabul edebileceğimiz azami yaprak sayısı. Ultra durumuna terfi etmek için "
+"yaprak başına 32 bayt/saniye bant genişliği ayırmanız önerilir."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "İndirmeler için görmezden gelinecek dosyalar ile ne yapılacağı."
@@ -4953,9 +4955,14 @@ msgid ""
 "unchanged when gtk-gnutella restarts after a crash or an explicit restart "
 "request."
 msgstr ""
+"Güncel oturumun başladığı zamanla ilişkili zaman damgası. gtk-gnutella bir "
+"çökmenin ardından ya da açık bir tekrar başlatma talebinden sonra tekrar "
+"başladığında bu zaman damgası değişmez."
 
 msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
+"İçeri gelen bağlantılara izin vermek için bağlı hiçbir TCP dinleme soketi "
+"yoktur."
 
 msgid "disable"
 msgstr "devre dışı"
@@ -5465,7 +5472,6 @@ msgstr ""
 "Dosya tipi filtrelemesini destekleyen diğer düğümler sorgunuzu görsel "
 "dosyalarına uygulayacaktır."
 
-#, fuzzy
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
 "specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, "
@@ -6454,7 +6460,7 @@ msgid "Value missing"
 msgstr "Değer eksik"
 
 msgid "Property cannot be changed"
-msgstr ""
+msgstr "Özellik değiştirilemez"
 
 #, c-format
 msgid "Previous value was %s"
@@ -9029,7 +9035,7 @@ msgid "_Auto-hide leaf traffic stats"
 msgstr "Yaprak trafiği istatistiklerini _otomatik sakla"
 
 msgid "Glossary"
-msgstr ""
+msgstr "Sözlük"
 
 msgid "_Search"
 msgstr "A_ra"
@@ -9316,6 +9322,8 @@ msgid ""
 "<html><head><title>Glossary</title></head><body><p>The glossary document "
 "could not be loaded.</p></body></html>"
 msgstr ""
+"<html><head><title>Sözlük</title></head><body><p>Sözlük belgesi yüklenemedi."
+"</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9730,6 +9738,7 @@ msgstr ""
 
 msgid "*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"
 msgstr ""
+"*** HİÇBİR TCP DİNLEME SOKETİ YOKTUR -- İÇERİ GELEN BAĞLANTI YOKTUR ***"
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** GÖNDERMELER DURAKLIYOR, BANT GENİŞLİĞİ YETERSİZ Mİ? ***"
@@ -9786,7 +9795,7 @@ msgid "Queue frozen"
 msgstr "Kuyruk donduruldu"
 
 msgid "Internal"
-msgstr ""
+msgstr "Dahili"
 
 msgid "Select a property to see its description."
 msgstr "Görüntülemek için bir özellik seçin."
