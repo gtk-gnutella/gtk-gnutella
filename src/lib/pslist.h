@@ -119,6 +119,20 @@ pslist_t *pslist_shuffle_with(random_fn_t rf, pslist_t *pl) WARN_UNUSED_RESULT;
 pslist_t *pslist_random(const pslist_t *pl);
 void *pslist_shift(pslist_t **pl_ptr) NON_NULL_PARAM((1));
 
+struct pcell_allocator;
+
+pslist_t *pslist_append_ext(pslist_t *pl,
+	void *data, const struct pcell_allocator *ca);
+pslist_t *pslist_prepend_ext(pslist_t *pl,
+	void *data, const struct pcell_allocator *ca);
+pslist_t *pslist_remove_ext(pslist_t *pl,
+	const void *data, const struct pcell_allocator *ca);
+pslist_t *pslist_delete_link_ext(pslist_t *pl,
+	pslist_t *cell, const struct pcell_allocator *ca);
+pslist_t *pslist_foreach_remove_ext(pslist_t *pl,
+	data_rm_fn_t cbr, void *data, const struct pcell_allocator *ca);
+void *pslist_shift_ext(pslist_t **pl_ptr, const struct pcell_allocator *ca);
+
 static inline pslist_t * WARN_UNUSED_RESULT
 pslist_prepend_const(pslist_t *pl, const void *data)
 {

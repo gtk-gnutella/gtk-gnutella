@@ -270,6 +270,7 @@ void socket_attach_ops(gnutella_socket_t *s,
 	enum socket_type, struct socket_ops *ops, void *owner);
 void socket_detach_ops(gnutella_socket_t *s);
 void socket_change_owner(gnutella_socket_t *s, void *owner);
+void socket_destroy(struct gnutella_socket *s, const char *reason);
 
 void socket_evt_set(struct gnutella_socket *s,
 	inputevt_cond_t cond, inputevt_handler_t handler, void *data);

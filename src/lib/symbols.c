@@ -1448,7 +1448,7 @@ use_pre_computed:
 		}
 
 		if (st->garbage)
-			return;			/* Already went through the "done" part */
+			goto unlock;		/* Already went through the "done" part */
 
 		/* FALL THROUGH */
 	}
@@ -1474,6 +1474,7 @@ done:
 	if (!retried && !st->indirect && st->garbage)
 		goto use_pre_computed;
 
+unlock:
 	SYMBOLS_WRITE_UNLOCK(st);
 }
 

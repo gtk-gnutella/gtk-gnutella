@@ -36,10 +36,13 @@
 #include "once.h"
 
 #include "atomic.h"
+#include "balloc.h"
 #include "compat_usleep.h"
 #include "cond.h"
 #include "hashtable.h"
 #include "mutex.h"
+#include "pcell.h"
+#include "pslist.h"
 #include "thread.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -47,6 +50,7 @@
 #define ONCE_DELAY		200			/* Wait 200 us before looping again */
 #define ONCE_TIMEOUT	10000000	/* 10 seconds, in us */
 #define ONCE_LOOP_MAX	(ONCE_TIMEOUT / ONCE_DELAY)
+#define ONCE_MAX_DEPTH	32			/* Arbitrary safety limit */
 
 /**
  * Arena to be used for the hash table keeping track of the pending
@@ -54,6 +58,28 @@
  * on a 64-bit machine, which is plenty enough.
  */
 static char once_buffer[1024];
+
+/**
+ * Arena used to allocate list cells, forming the list of "once" calls that
+ * are pending.
+ */
+static char once_cells[1024];
+
+/**
+ * Array used to track function names that are being initialized "once", for
+ * each thread.
+ *
+ * Because of the recursion in the "once" initialization sequence, we may
+ * not be able to get a viable stacktrace from s_minierror().  This is the
+ * reason why we perform this bookkeeping of which routine is being processed,
+ * through the per-thread lists in once_stacks[].
+ *
+ * And because we may not have initialized the walloc() layer fully at this
+ * point, we use a dedicated allocator from a statically allocated buffer
+ * (that is "once_cells") to manage the calling list, as specified by the
+ * "once_cell_allocator" structure, defined later below.
+ */
+static pslist_t *once_stacks[THREAD_MAX];
 
 /**
  * Hash table tracking the pending initializations.
@@ -69,21 +95,161 @@ static hash_table_t *once_running;
 static mutex_t once_flag_mtx = MUTEX_INIT;
 
 /**
+ * Allocate a list cell.
+ */
+static void *
+once_cell_alloc(void)
+{
+	return balloc_alloc(once_cells);
+}
+
+/**
+ * Free a list cell.
+ */
+static void
+once_cell_free(void *cell)
+{
+	balloc_free(once_cells, cell);
+}
+
+/**
+ * Specialized allocators for our list cells.
+ */
+static pcell_alloc_t once_cell_allocator = {
+	once_cell_alloc,	/* pcell_alloc */
+	once_cell_free,		/* pcell_free */
+};
+
+/**
+ * Initialize the "once" layer.
+ */
+static void
+once_init(void)
+{
+	once_running = hash_table_new_fixed(once_buffer, sizeof once_buffer);
+	balloc_init(sizeof(pslist_t), once_cells, sizeof once_cells);
+}
+
+static void
+once_routine_log(void *data, void *udata)
+{
+	const char *name = data;
+
+	(void) udata;
+
+	s_minidbg("%s()", name);
+}
+
+/**
+ * Trace all the initialization in progress for the given thread.
+ *
+ * @param id			thread ID
+ */
+static void
+once_backtrace(int id)
+{
+	s_minidbg("initializations currently in progress:");
+	pslist_foreach(once_stacks[id], once_routine_log, NULL);
+}
+
+/**
+ * Log fatal error when initialization calls run too deep.
+ *
+ * @param caller		calling routine name
+ * @param id			thread ID
+ * @param routine		routine function pointer being initialized once
+ * @param name			stringified routine name
+ */
+static void G_NORETURN
+once_too_deep(const char *caller, int id, once_fn_t routine, const char *name)
+{
+	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
+		"%s(): deep nesting detected processing routine %s(), aka. %s() in %s",
+		caller, stacktrace_function_name(routine), name,
+		thread_safe_id_name(id));
+
+	once_backtrace(id);
+
+	s_minierror("%s(): arbitrary nesting depth (%d) reached",
+		caller, ONCE_MAX_DEPTH);
+}
+
+/**
+ * Log fatal error when recursive initialization is detected.
+ *
+ * @param caller		calling routine name
+ * @param id			thread ID
+ * @param routine		routine function pointer being initialized once
+ * @param name			stringified routine name
+ */
+static void G_NORETURN
+once_recursive(const char *caller, int id, once_fn_t routine, const char *name)
+{
+	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
+		"%s(): recursive attempt to initialize routine %s(), aka. %s() in %s",
+		caller, stacktrace_function_name(routine), name,
+		thread_safe_id_name(id));
+
+	once_backtrace(id);
+
+	s_minierror("%s(): recursive initialization request", caller);
+}
+
+/**
+ * Log fatal error when unable to insert routine in hash table.
+ *
+ * @param caller		calling routine name
+ * @param id			thread ID
+ * @param routine		routine function pointer being initialized once
+ * @param name			stringified routine name
+ */
+static void G_NORETURN
+once_no_insert(const char *caller, int id, once_fn_t routine, const char *name)
+{
+	void *val;
+	bool present;
+
+	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
+		"%s(): unable to register routine %s(), aka. %s() in %s",
+		caller, stacktrace_function_name(routine), name,
+		thread_safe_id_name(id));
+
+	present = hash_table_lookup_extended(once_running, routine, NULL, &val);
+
+	if (present) {
+		s_minidbg("%s(): routine %s() was registered by %s",
+			caller, stacktrace_function_name(routine),
+			thread_safe_id_name(pointer_to_int(val)));
+	} else {
+		s_minidbg("%s(): routine %s() is no longer registered by any thread",
+			caller, stacktrace_function_name(routine));
+	}
+
+	once_backtrace(id);
+
+	s_minierror("%s(): cannot register initialization", caller);
+}
+
+/**
  * Execute supplied routine once, as tracked by the supplied flag.
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  * @param recursive	if TRUE, return FALSE when recursive attempt is detected
  *
  * @return TRUE if initialization routine has been run upon return.
  */
 static bool
-once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
+once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
+	const char *name, bool recursive)
 {
 	int id;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return TRUE;
+
+	id = thread_small_id();
 
 	mutex_lock(&once_flag_mtx);
 
@@ -92,10 +258,11 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 		return TRUE;
 	}
 
-	if G_UNLIKELY(NULL == once_running)
-		once_running = hash_table_new_fixed(once_buffer, sizeof once_buffer);
+	if (mutex_held_depth(&once_flag_mtx) > ONCE_MAX_DEPTH)
+		once_too_deep(G_STRFUNC, id, routine, name);
 
-	id = thread_small_id();
+	if G_UNLIKELY(NULL == once_running)
+		once_init();
 
 	if G_UNLIKELY(ONCE_F_PROGRESS == *flag) {
 		int stid = pointer_to_int(hash_table_lookup(once_running, routine));
@@ -114,6 +281,7 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 				mutex_unlock(&once_flag_mtx);
 				return FALSE;
 			}
+			once_recursive(G_STRFUNC, id, routine, name);
 			s_minierror("%s(): recursive attempt to initialize routine %s()",
 				G_STRFUNC, stacktrace_function_name(routine));
 		}
@@ -138,7 +306,13 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 	}
 
 	*flag = ONCE_F_PROGRESS;
-	hash_table_insert(once_running, routine, int_to_pointer(id));
+
+	if (!hash_table_insert(once_running, routine, int_to_pointer(id)))
+		once_no_insert(G_STRFUNC, id, routine, name);
+
+	once_stacks[id] = pslist_prepend_ext(once_stacks[id],
+		deconstify_char(name), &once_cell_allocator);
+
 	mutex_unlock(&once_flag_mtx);
 
 	(*routine)();
@@ -146,10 +320,12 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 	mutex_lock(&once_flag_mtx);
 	*flag = ONCE_F_DONE;
 	hash_table_remove(once_running, routine);
+	(void) pslist_shift_ext(&once_stacks[id], &once_cell_allocator);
 	mutex_unlock(&once_flag_mtx);
 
 	return TRUE;
 }
+
 /**
  * Execute supplied routine once, as tracked by the supplied flag.
  *
@@ -163,28 +339,30 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  */
 void
-once_flag_run(once_flag_t *flag, once_fn_t routine)
+once_flag_run_trace(once_flag_t *flag, once_fn_t routine, const char *name)
 {
-	once_flag_run_internal(flag, routine, FALSE);
+	once_flag_run_internal(flag, routine, name, FALSE);
 }
 
 /**
- * Same as once_flag_run() but returns FALSE when we detect a recursive
+ * Same as once_flag_run_trace() but returns FALSE when we detect a recursive
  * initialization attempt.
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  *
  * @return TRUE if the initialization has been completed (possibly previously),
  * FALSE if a recursive initialization attempt was detected, and therefore
  * the routine has not completed its execution yet.
  */
 bool
-once_flag_run_safe(once_flag_t *flag, once_fn_t routine)
+once_flag_run_safe_trace(once_flag_t *flag, once_fn_t routine, const char *name)
 {
-	return once_flag_run_internal(flag, routine, TRUE);
+	return once_flag_run_internal(flag, routine, name, TRUE);
 }
 
 /**
@@ -192,19 +370,22 @@ once_flag_run_safe(once_flag_t *flag, once_fn_t routine)
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  * @param recursive	if TRUE, return FALSE when recursive attempt is detected
  *
  * @return TRUE if initialization routine has been run upon return.
  */
 static bool
-once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
+once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine,
+	const char *name, bool recursive)
 {
 	static cond_t once_cond = COND_INIT;
 	int id;
-	bool is_inserted;
 
 	if G_LIKELY(ONCE_F_DONE == *flag)
 		return TRUE;
+
+	id = thread_small_id();
 
 	mutex_lock(&once_flag_mtx);
 
@@ -213,10 +394,11 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 		return TRUE;
 	}
 
-	if G_UNLIKELY(NULL == once_running)
-		once_running = hash_table_new_fixed(once_buffer, sizeof once_buffer);
+	if (mutex_held_depth(&once_flag_mtx) > ONCE_MAX_DEPTH)
+		once_too_deep(G_STRFUNC, id, routine, name);
 
-	id = thread_small_id();
+	if G_UNLIKELY(NULL == once_running)
+		once_init();
 
 	/*
 	 * If another thread is in the process of running the initialization
@@ -236,8 +418,7 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 				mutex_unlock(&once_flag_mtx);
 				return FALSE;
 			}
-			s_minierror("%s(): recursive attempt to initialize routine %s()",
-				G_STRFUNC, stacktrace_function_name(routine));
+			once_recursive(G_STRFUNC, id, routine, name);
 		}
 
 		while (ONCE_F_PROGRESS == *flag)
@@ -254,10 +435,14 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 	 */
 
 	*flag = ONCE_F_PROGRESS;
-	is_inserted = hash_table_insert(once_running, routine, int_to_pointer(id));
-	mutex_unlock(&once_flag_mtx);
 
-	g_assert(is_inserted);	/* Key was not already present in the hash table */
+	if (!hash_table_insert(once_running, routine, int_to_pointer(id)))
+		once_no_insert(G_STRFUNC, id, routine, name);
+
+	once_stacks[id] = pslist_prepend_ext(once_stacks[id],
+		deconstify_char(name), &once_cell_allocator);
+
+	mutex_unlock(&once_flag_mtx);
 
 	(*routine)();
 
@@ -276,6 +461,7 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
 	mutex_lock(&once_flag_mtx);
 	*flag = ONCE_F_DONE;
 	hash_table_remove(once_running, routine);
+	(void) pslist_shift_ext(&once_stacks[id], &once_cell_allocator);
 	cond_broadcast(&once_cond, &once_flag_mtx);
 	cond_reset(&once_cond);
 	mutex_unlock(&once_flag_mtx);
@@ -298,28 +484,31 @@ once_flag_runwait_internal(once_flag_t *flag, once_fn_t routine, bool recursive)
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  */
 void
-once_flag_runwait(once_flag_t *flag, once_fn_t routine)
+once_flag_runwait_trace(once_flag_t *flag, once_fn_t routine, const char *name)
 {
-	once_flag_runwait_internal(flag, routine, FALSE);
+	once_flag_runwait_internal(flag, routine, name, FALSE);
 }
 
 /**
- * Same as once_flag_runwait() but returns FALSE when we detect a recursive
- * initialization attempt.
+ * Same as once_flag_runwait_trace() but returns FALSE when we detect a
+ * recursive initialization attempt.
  *
  * @param flag		control flag, initially set to FALSE
  * @param routine	the routine to run if it has not been done already
+ * @param name		the stringified routine name, for debugging
  *
  * @return TRUE if the initialization has been completed (possibly previously),
  * FALSE if a recursive initialization attempt was detected, and therefore
  * the routine has not completed its execution yet.
  */
 bool
-once_flag_runwait_safe(once_flag_t *flag, once_fn_t routine)
+once_flag_runwait_safe_trace(once_flag_t *flag, once_fn_t routine,
+	const char *name)
 {
-	return once_flag_runwait_internal(flag, routine, TRUE);
+	return once_flag_runwait_internal(flag, routine, name, TRUE);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

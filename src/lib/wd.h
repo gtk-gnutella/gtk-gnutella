@@ -37,6 +37,8 @@
 #ifndef _wd_h_
 #define _wd_h_
 
+#include "timestamp.h"		/* For time_delta_t */
+
 typedef struct watchdog watchdog_t;
 
 /**
@@ -61,6 +63,8 @@ void wd_thread_safe(watchdog_t *wd);
 
 const char *wd_name(const watchdog_t *wd);
 bool wd_is_awake(const watchdog_t *wd);
+int wd_period(const watchdog_t *wd);
+time_delta_t wd_remaining(const watchdog_t *wd);
 
 bool wd_sleep(watchdog_t *wd);
 bool wd_wakeup(watchdog_t *wd);

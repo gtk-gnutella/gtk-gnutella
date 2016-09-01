@@ -33,7 +33,19 @@
  *
  * An empty list is represented by a NULL pointer.
  *
- * List cells are allocated through walloc().
+ * List cells are allocated through walloc() by default, but all the *_ext()
+ * routines take an extra pointer to a pcell_alloc_t structure that can provide
+ * specific cell allocation/deallocation routines.
+ *
+ * The whole API is not available for externally allocated cells, and the
+ * caller is responsible for consistently supplying the same cell allocator!
+ * Only the most common insertion / removal routines have an *_ext() version
+ * for now (2016-08-28).
+
+ * However, routines that do not need to allocate / deallocate cells do not
+ * have an *_ext() version.  For instance, pslist_shuffle() or pslist_reverse()
+ * can be freely used even if the cells are not allocated using the defaults.
+ *
  *
  * The API of plain lists mirrors that of glib's lists to make a smooth
  * transition possible and maintain some consistency in the code.  That
@@ -49,6 +61,7 @@
 
 #include "eslist.h"
 #include "log.h"
+#include "pcell.h"
 #include "random.h"
 #include "walloc.h"
 
@@ -66,8 +79,34 @@
  *
  * Additional routines and initial adaptation are:
  *
- * Copyright (c) 2013 Raphael Manfredi
+ * Copyright (c) 2013, 2016 Raphael Manfredi
  */
+
+/*
+ * Default cell allocators.
+ */
+
+static void *
+pslist_cell_alloc(void)
+{
+	pslist_t *pl;
+
+	WALLOC0(pl);
+	return pl;
+}
+
+static void
+pslist_cell_free(void *cell)
+{
+	pslist_t *l = cell;
+
+	WFREE(l);
+}
+
+static pcell_alloc_t pslist_default_alloc = {
+	pslist_cell_alloc,		/* pcell_alloc */
+	pslist_cell_free,		/* pcell_free */
+};
 
 /**
  * Allocate a list cell for storing one element.
@@ -77,10 +116,7 @@
 pslist_t *
 pslist_alloc(void)
 {
-	pslist_t *pl;
-
-	WALLOC0(pl);
-	return pl;
+	return pslist_cell_alloc();
 }
 
 /**
@@ -215,15 +251,15 @@ pslist_last(const pslist_t *pl)
  *
  * @param pl		the head of the list
  * @param data		the data item to append
+ * @param ca		cell allocator
  *
  * @return the new head of the list.
  */
 pslist_t *
-pslist_append(pslist_t *pl, void *data)
+pslist_append_ext(pslist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	pslist_t *nl;
+	pslist_t *nl = ca->pcell_alloc();
 
-	WALLOC(nl);
 	nl->next = NULL;
 	nl->data = data;
 
@@ -237,6 +273,43 @@ pslist_append(pslist_t *pl, void *data)
 }
 
 /**
+ * Append new item at the end of the list.
+ *
+ * @attention
+ * This is inefficient and requires a full traversal of the list.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item to append
+ *
+ * @return the new head of the list.
+ */
+pslist_t *
+pslist_append(pslist_t *pl, void *data)
+{
+	return pslist_append_ext(pl, data, &pslist_default_alloc);
+}
+
+/**
+ * Prepend new item at the head of the list.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item to prepend
+ * @param ca		cell allocator
+ *
+ * @return the new head of the list.
+ */
+pslist_t *
+pslist_prepend_ext(pslist_t *pl, void *data, const pcell_alloc_t *ca)
+{
+	pslist_t *nl = ca->pcell_alloc();
+
+	nl->next = pl;
+	nl->data = data;
+
+	return nl;
+}
+
+/**
  * Prepend new item at the head of the list.
  *
  * @param pl		the head of the list
@@ -247,13 +320,7 @@ pslist_append(pslist_t *pl, void *data)
 pslist_t *
 pslist_prepend(pslist_t *pl, void *data)
 {
-	pslist_t *nl;
-
-	WALLOC(nl);
-	nl->next = pl;
-	nl->data = data;
-
-	return nl;
+	return pslist_prepend_ext(pl, data, &pslist_default_alloc);
 }
 
 /**
@@ -361,11 +428,12 @@ pslist_concat(pslist_t *l1, pslist_t *l2)
  *
  * @param pl		the head of the list
  * @param data		the data item we wish to remove
+ * @param ca		cell allocator
  *
  * @return the new head of the list.
  */
 pslist_t *
-pslist_remove(pslist_t *pl, const void *data)
+pslist_remove_ext(pslist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	pslist_t *l, *prev = NULL;
 
@@ -376,7 +444,7 @@ pslist_remove(pslist_t *pl, const void *data)
 				prev->next = l->next;
 			else
 				pl = l->next;
-			WFREE(l);
+			ca->pcell_free(l);
 			break;
 		}
 		prev = l;
@@ -384,6 +452,20 @@ pslist_remove(pslist_t *pl, const void *data)
 	}
 
 	return pl;
+}
+
+/**
+ * Remove the first cell we find that contains the specified data, if any.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item we wish to remove
+ *
+ * @return the new head of the list.
+ */
+pslist_t *
+pslist_remove(pslist_t *pl, const void *data)
+{
+	return pslist_remove_ext(pl, data, &pslist_default_alloc);
 }
 
 /**
@@ -446,18 +528,39 @@ pslist_remove_link(pslist_t *pl, pslist_t *cell)
  *
  * @param pl		the head of the list
  * @param cell		the cell we wish to remove
+ * @param ca		cell allocator
+ *
+ * @return new head of the list
+ */
+pslist_t *
+pslist_delete_link_ext(pslist_t *pl, pslist_t *cell, const pcell_alloc_t *ca)
+{
+	pslist_t *np;
+
+	np = pslist_remove_link_internal(pl, cell);
+	ca->pcell_free(cell);
+
+	return np;
+}
+
+/**
+ * Remove specified cell from the list, then free it.
+ *
+ * @note
+ * The data held in the cell is not freed.
+ *
+ * @attention
+ * This is inefficient and requires a traversal of the list.
+ *
+ * @param pl		the head of the list
+ * @param cell		the cell we wish to remove
  *
  * @return new head of the list
  */
 pslist_t *
 pslist_delete_link(pslist_t *pl, pslist_t *cell)
 {
-	pslist_t *np;
-
-	np = pslist_remove_link_internal(pl, cell);
-	WFREE(cell);
-
-	return np;
+	return pslist_delete_link_ext(pl, cell, &pslist_default_alloc);
 }
 
 /**
@@ -714,11 +817,13 @@ pslist_foreach(const pslist_t *pl, data_fn_t cb, void *data)
  * @param pl		the head of the list
  * @param cbr		routine to invoke on item to see whether we remove it
  * @param data		opaque user-data to pass to callback
+ * @param ca		cell allocator
  *
  * @return the new list head.
  */
 pslist_t *
-pslist_foreach_remove(pslist_t *pl, data_rm_fn_t cbr, void *data)
+pslist_foreach_remove_ext(pslist_t *pl, data_rm_fn_t cbr, void *data,
+	const pcell_alloc_t *ca)
 {
 	pslist_t *l, *next, *prev;
 
@@ -729,13 +834,29 @@ pslist_foreach_remove(pslist_t *pl, data_rm_fn_t cbr, void *data)
 				pl = next;
 			else if (prev != NULL)
 				prev->next = next;
-			WFREE(l);
+			ca->pcell_free(l);
 		} else {
 			prev = l;
 		}
 	}
 
 	return pl;
+}
+
+/**
+ * Iterate over the list, invoking the callback for every item and removing
+ * the entry if the callback returns TRUE.
+ *
+ * @param pl		the head of the list
+ * @param cbr		routine to invoke on item to see whether we remove it
+ * @param data		opaque user-data to pass to callback
+ *
+ * @return the new list head.
+ */
+pslist_t *
+pslist_foreach_remove(pslist_t *pl, data_rm_fn_t cbr, void *data)
+{
+	return pslist_foreach_remove_ext(pl, cbr, data, &pslist_default_alloc);
 }
 
 /**
@@ -1051,11 +1172,12 @@ pslist_random(const pslist_t *pl)
  * Remove head of list.
  *
  * @param pl_ptr	pointer to the head of the list
+ * @param ca		cell allocator
  *
  * @return the data item at the head of the list, NULL if the list was empty.
  */
 void *
-pslist_shift(pslist_t **pl_ptr)
+pslist_shift_ext(pslist_t **pl_ptr, const pcell_alloc_t *ca)
 {
 	pslist_t *pl = *pl_ptr, *nl;
 	void *data;
@@ -1066,7 +1188,7 @@ pslist_shift(pslist_t **pl_ptr)
 	data = pl->data;
 
 	nl = pl->next;
-	WFREE(pl);
+	ca->pcell_free(pl);
 
 	/*
 	 * If the list contains NULL items, this is going to confuse the caller
@@ -1078,6 +1200,19 @@ pslist_shift(pslist_t **pl_ptr)
 
 	*pl_ptr = nl;
 	return data;
+}
+
+/**
+ * Remove head of list.
+ *
+ * @param pl_ptr	pointer to the head of the list
+ *
+ * @return the data item at the head of the list, NULL if the list was empty.
+ */
+void *
+pslist_shift(pslist_t **pl_ptr)
+{
+	return pslist_shift_ext(pl_ptr, &pslist_default_alloc);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

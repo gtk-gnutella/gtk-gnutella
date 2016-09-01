@@ -436,12 +436,12 @@ void thread_stats_digest(struct sha1 *digest);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 #define THREAD_UNKNOWN_ID	-2U		/**< Unknown ID */
-#define THREAD_MAIN			0		/**< ID of the main thread */
+#define THREAD_MAIN_ID		0		/**< ID of the main thread */
 
 static inline bool
 thread_is_main(void)
 {
-	return THREAD_MAIN == thread_small_id();
+	return THREAD_MAIN_ID == thread_small_id();
 }
 
 /**

@@ -375,7 +375,6 @@ socket_register_fd_reclaimer(reclaim_fd_t callback)
 static pslist_t *sl_incoming = NULL;	/**< To spot inactive sockets */
 
 static void guess_local_addr(const struct gnutella_socket *s);
-static void socket_destroy(struct gnutella_socket *s, const char *reason);
 static void socket_connected(void *data, int source, inputevt_cond_t cond);
 static void socket_wio_link(struct gnutella_socket *s);
 
@@ -1482,7 +1481,7 @@ socket_change_owner(gnutella_socket_t *s, void *owner)
  * If there is an attached resource, call the resource's termination routine
  * with the supplied reason.
  */
-static void
+void
 socket_destroy(struct gnutella_socket *s, const char *reason)
 {
 	socket_check(s);

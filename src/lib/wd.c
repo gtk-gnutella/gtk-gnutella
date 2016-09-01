@@ -357,7 +357,29 @@ wd_thread_safe(watchdog_t *wd)
 const char *
 wd_name(const watchdog_t *wd)
 {
+	watchdog_check(wd);
 	return wd->name;
+}
+
+/**
+ * @return the configured period of the watchdog, in seconds.
+ */
+int
+wd_period(const watchdog_t *wd)
+{
+	watchdog_check(wd);
+	return wd->period;
+}
+
+/**
+ * @return the remaining time before the callback fires, TIME_DELTA_T_MAX if
+ * the watchdog is not awoken currently
+ */
+time_delta_t
+wd_remaining(const watchdog_t *wd)
+{
+	watchdog_check(wd);
+	return NULL == wd->ev ? TIME_DELTA_T_MAX : cq_remaining(wd->ev) / 1000;
 }
 
 /**
@@ -366,6 +388,7 @@ wd_name(const watchdog_t *wd)
 bool
 wd_is_awake(const watchdog_t *wd)
 {
+	watchdog_check(wd);
 	return wd->ev != NULL;
 }
 

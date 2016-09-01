@@ -47,6 +47,13 @@ src/lib/thread-test
 # File Tree Walker tests
 src/lib/ftw-test
 
+# File-locking tests
+src/lib/filelock-test
+
+# Tests for launch() and spopen()
+src/lib/launch-test
+src/lib/spopen-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 

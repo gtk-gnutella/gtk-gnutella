@@ -33,7 +33,18 @@
  *
  * An empty list is represented by a NULL pointer.
  *
- * List cells are allocated through walloc().
+ * List cells are allocated through walloc() by default, but all the *_ext()
+ * routines take an extra pointer to a pcell_alloc_t structure that can provide
+ * specific cell allocation/deallocation routines.
+ *
+ * The whole API is not available for externally allocated cells, and the
+ * caller is responsible for consistently supplying the same cell allocator!
+ * Only the most common insertion / removal routines have an *_ext() version
+ * for now (2016-08-28).
+
+ * However, routines that do not need to allocate / deallocate cells do not
+ * have an *_ext() version.  For instance, plist_shuffle() or plist_reverse()
+ * can be freely used even if the cells are not allocated using the defaults.
  *
  * The API of plain lists mirrors that of glib's lists to make a smooth
  * transition possible and maintain some consistency in the code.  That
@@ -49,6 +60,7 @@
 
 #include "elist.h"
 #include "log.h"
+#include "pcell.h"
 #include "pslist.h"
 #include "random.h"
 #include "walloc.h"
@@ -70,6 +82,32 @@
  * Copyright (c) 2013 Raphael Manfredi
  */
 
+/*
+ * Default cell allocators.
+ */
+
+static void *
+plist_cell_alloc(void)
+{
+	plist_t *pl;
+
+	WALLOC0(pl);
+	return pl;
+}
+
+static void
+plist_cell_free(void *cell)
+{
+	plist_t *l = cell;
+
+	WFREE(l);
+}
+
+static pcell_alloc_t plist_default_alloc = {
+	plist_cell_alloc,		/* pcell_alloc */
+	plist_cell_free,		/* pcell_free */
+};
+
 /**
  * Allocate a list cell for storing one element.
  *
@@ -78,10 +116,7 @@
 plist_t *
 plist_alloc(void)
 {
-	plist_t *pl;
-
-	WALLOC0(pl);
-	return pl;
+	return plist_cell_alloc();
 }
 
 /**
@@ -244,11 +279,10 @@ plist_first(const plist_t *pl)
  * @return the new head of the list.
  */
 plist_t *
-plist_append(plist_t *pl, void *data)
+plist_append_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl;
+	plist_t *nl = ca->pcell_alloc();
 
-	WALLOC(nl);
 	nl->next = NULL;
 	nl->data = data;
 
@@ -264,6 +298,23 @@ plist_append(plist_t *pl, void *data)
 }
 
 /**
+ * Append new item at the end of the list.
+ *
+ * @attention
+ * This is inefficient and requires a full traversal of the list.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item to append
+ *
+ * @return the new head of the list.
+ */
+plist_t *
+plist_append(plist_t *pl, void *data)
+{
+	return plist_append_ext(pl, data, &plist_default_alloc);
+}
+
+/**
  * Prepend new item at the head of the list.
  *
  * @param pl		the head of the list
@@ -272,11 +323,10 @@ plist_append(plist_t *pl, void *data)
  * @return the new head of the list.
  */
 plist_t *
-plist_prepend(plist_t *pl, void *data)
+plist_prepend_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl;
+	plist_t *nl = ca->pcell_alloc();
 
-	WALLOC(nl);
 	nl->next = pl;
 	nl->data = data;
 
@@ -299,6 +349,20 @@ plist_prepend(plist_t *pl, void *data)
 	}
 
 	return nl;
+}
+
+/**
+ * Prepend new item at the head of the list.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item to prepend
+ *
+ * @return the new head of the list.
+ */
+plist_t *
+plist_prepend(plist_t *pl, void *data)
+{
+	return plist_prepend_ext(pl, data, &plist_default_alloc);
 }
 
 /**
@@ -441,19 +505,59 @@ plist_remove_link_internal(plist_t *pl, plist_t *cell)
  *
  * @param pl		the head of the list
  * @param data		the data item we wish to remove
+ * @param ca		cell allocator
  *
  * @return the new head of the list.
  */
 plist_t *
-plist_remove(plist_t *pl, const void *data)
+plist_remove_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	plist_t *l;
 
 	for (l = pl; l != NULL; l = l->next) {
 		if G_UNLIKELY(l->data == data) {
 			pl = plist_remove_link_internal(pl, l);
-			WFREE(l);
+			ca->pcell_free(l);
 			break;
+		}
+	}
+
+	return pl;
+}
+
+/**
+ * Remove the first cell we find that contains the specified data, if any.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item we wish to remove
+ *
+ * @return the new head of the list.
+ */
+plist_t *
+plist_remove(plist_t *pl, const void *data)
+{
+	return plist_remove_ext(pl, data, &plist_default_alloc);
+}
+
+/**
+ * Remove all the cells that contain the specified data, if any.
+ *
+ * @param pl		the head of the list
+ * @param data		the data item we wish to remove
+ * @param ca		cell allocator
+ *
+ * @return the new head of the list.
+ */
+plist_t *
+plist_remove_all_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
+{
+	plist_t *l, *next;
+
+	for (l = pl; l != NULL; l = next) {
+		next = l->next;
+		if G_UNLIKELY(l->data == data) {
+			pl = plist_remove_link_internal(pl, l);
+			ca->pcell_free(l);
 		}
 	}
 
@@ -471,17 +575,7 @@ plist_remove(plist_t *pl, const void *data)
 plist_t *
 plist_remove_all(plist_t *pl, const void *data)
 {
-	plist_t *l, *next;
-
-	for (l = pl; l != NULL; l = next) {
-		next = l->next;
-		if G_UNLIKELY(l->data == data) {
-			pl = plist_remove_link_internal(pl, l);
-			WFREE(l);
-		}
-	}
-
-	return pl;
+	return plist_remove_all_ext(pl, data, &plist_default_alloc);
 }
 
 /**
@@ -506,18 +600,36 @@ plist_remove_link(plist_t *pl, plist_t *cell)
  *
  * @param pl		the head of the list
  * @param cell		the cell we wish to remove
+ * @param ca		cell allocator
+ *
+ * @return new head of the list
+ */
+plist_t *
+plist_delete_link_ext(plist_t *pl, plist_t *cell, const pcell_alloc_t *ca)
+{
+	plist_t *np;
+
+	np = plist_remove_link_internal(pl, cell);
+	ca->pcell_free(cell);
+
+	return np;
+}
+
+/**
+ * Remove specified cell from the list, then free it.
+ *
+ * @note
+ * The data held in the cell is not freed.
+ *
+ * @param pl		the head of the list
+ * @param cell		the cell we wish to remove
  *
  * @return new head of the list
  */
 plist_t *
 plist_delete_link(plist_t *pl, plist_t *cell)
 {
-	plist_t *np;
-
-	np = plist_remove_link_internal(pl, cell);
-	WFREE(cell);
-
-	return np;
+	return plist_delete_link_ext(pl, cell, &plist_default_alloc);
 }
 
 /**
@@ -775,11 +887,13 @@ plist_foreach(const plist_t *pl, data_fn_t cb, void *data)
  * @param pl		the head of the list
  * @param cbr		routine to invoke on item to see whether we remove it
  * @param data		opaque user-data to pass to callback
+ * @param ca		cell allocator
  *
  * @return the new list head.
  */
 plist_t *
-plist_foreach_remove(plist_t *pl, data_rm_fn_t cbr, void *data)
+plist_foreach_remove_ext(plist_t *pl, data_rm_fn_t cbr, void *data,
+	const pcell_alloc_t *ca)
 {
 	plist_t *l, *next, *prev;
 
@@ -795,13 +909,29 @@ plist_foreach_remove(plist_t *pl, data_rm_fn_t cbr, void *data)
 				if (next != NULL)
 					next->prev = prev;
 			}
-			WFREE(l);
+			ca->pcell_free(l);
 		} else {
 			prev = l;
 		}
 	}
 
 	return pl;
+}
+
+/**
+ * Iterate over the list, invoking the callback for every item and removing
+ * the entry if the callback returns TRUE.
+ *
+ * @param pl		the head of the list
+ * @param cbr		routine to invoke on item to see whether we remove it
+ * @param data		opaque user-data to pass to callback
+ *
+ * @return the new list head.
+ */
+plist_t *
+plist_foreach_remove(plist_t *pl, data_rm_fn_t cbr, void *data)
+{
+	return plist_foreach_remove_ext(pl, cbr, data, &plist_default_alloc);
 }
 
 /**
@@ -1090,11 +1220,12 @@ plist_random(const plist_t *pl)
  * Remove head of list.
  *
  * @param pl_ptr		pointer to the head of the list
+ * @param ca			cell allocator
  *
  * @return the data item at the head of the list, NULL if the list was empty.
  */
 void *
-plist_shift(plist_t **pl_ptr)
+plist_shift_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
 {
 	plist_t *pl = *pl_ptr, *nl;
 	void *data;
@@ -1108,7 +1239,7 @@ plist_shift(plist_t **pl_ptr)
 	if (nl != NULL)
 		nl->prev = NULL;
 	g_assert(NULL == pl->prev);		/* Was at the head of the list */
-	WFREE(pl);
+	ca->pcell_free(pl);
 
 	/*
 	 * If the list contains NULL items, this is going to confuse the caller
@@ -1120,6 +1251,19 @@ plist_shift(plist_t **pl_ptr)
 
 	*pl_ptr = nl;
 	return data;
+}
+
+/**
+ * Remove head of list.
+ *
+ * @param pl_ptr		pointer to the head of the list
+ *
+ * @return the data item at the head of the list, NULL if the list was empty.
+ */
+void *
+plist_shift(plist_t **pl_ptr)
+{
+	return plist_shift_ext(pl_ptr, &plist_default_alloc);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2008, Christian Biere
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2016 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -26,36 +25,25 @@
  * @ingroup lib
  * @file
  *
- * Primitive MIME type handling.
+ * Buffer-based allocator.
  *
- * @author Christian Biere
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2016
  */
 
-#include "common.h"
+#ifndef _balloc_h_
+#define _balloc_h_
 
-#ifndef _lib_mime_type_h_
-#define _lib_mime_type_h_
-
-/**
- * Known MIME content types
+/*
+ * Public interface.
  */
 
-enum mime_type {
-#define MIME_TYPE(id, name) MIME_TYPE_ ## id,
-#include "lib/mime_types.h"
-#undef MIME_TYPE
+void balloc_init(uint32 size, void *base, size_t length);
+bool balloc_is_initialized(const void *base);
 
-	MIME_TYPE_NUM
-};
+void *balloc_alloc(void *base) G_MALLOC;
+void balloc_free(void *base, void *p);
 
-void mime_type_init(void);
-enum mime_type mime_type_from_filename(const char *);
-enum mime_type mime_type_from_extension(const char *);
-const char *mime_type_to_string(enum mime_type) G_PURE;
+#endif /* _balloc_h_ */
 
-#endif /* _lib_mime_type_h_ */
 /* vi: set ts=4 sw=4 cindent: */
-
-

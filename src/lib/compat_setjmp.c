@@ -62,11 +62,13 @@
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-setjmp_prep(jmp_buf env)
+setjmp_prep(jmp_buf env, const char *file, uint line)
 {
 	env->stid = thread_small_id();
 	env->sig_level = signal_thread_handler_level(env->stid);
 	env->magic = SETJMP_MAGIC;
+	env->file = file;
+	env->line = line;
 }
 
 /**
@@ -76,11 +78,13 @@ setjmp_prep(jmp_buf env)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-sigsetjmp_prep(sigjmp_buf env, int savesigs)
+sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
 {
 	env->stid = thread_small_id();
 	env->sig_level = signal_thread_handler_level(env->stid);
 	env->magic = SIGSETJMP_MAGIC;
+	env->file = file;
+	env->line = line;
 
 #ifndef HAS_SIGSETJMP
 	env->mask_saved = booleanize(savesigs);
@@ -108,14 +112,21 @@ compat_longjmp(jmp_buf env, int val)
 {
 	uint stid = thread_small_id();
 
-	g_assert(env->magic != SETJMP_USED_MAGIC);
-	g_assert(SETJMP_MAGIC == env->magic);
+	g_assert_log(env->magic != SETJMP_USED_MAGIC,
+		"context was taken at %s:%u", env->file, env->line);
+
+	if G_UNLIKELY(SIGSETJMP_MAGIC == env->magic) {
+		g_error("%s(): using longjmp() after sigsetjmp() from %s:%u",
+			G_STRFUNC, env->file, env->line);
+	}
+
+	g_assert_log(SETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
 	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}",
+		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
 		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid));
+		stid, thread_safe_id_name(stid), env->file, env->line);
 
 	signal_thread_handler_level_set(stid, env->sig_level);
 	env->magic = SETJMP_USED_MAGIC;
@@ -133,14 +144,21 @@ compat_siglongjmp(sigjmp_buf env, int val)
 {
 	uint stid = thread_small_id();
 
-	g_assert(env->magic != SETJMP_USED_MAGIC);
-	g_assert(SIGSETJMP_MAGIC == env->magic);
+	g_assert_log(env->magic != SETJMP_USED_MAGIC,
+		"context was taken at %s:%u", env->file, env->line);
+
+	if G_UNLIKELY(SETJMP_MAGIC == env->magic) {
+		g_error("%s(): using siglongjmp() after setjmp() from %s:%u",
+			G_STRFUNC, env->file, env->line);
+	}
+
+	g_assert_log(SIGSETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
 	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}",
+		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
 		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid));
+		stid, thread_safe_id_name(stid), env->file, env->line);
 
 #ifndef HAS_SIGSETJMP
 	if (env->mask_saved)

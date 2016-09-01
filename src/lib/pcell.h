@@ -1,6 +1,5 @@
 /*
- * Copyright (c) 2008, Christian Biere
- * Copyright (c) 2008, Raphael Manfredi
+ * Copyright (c) 2016 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -26,36 +25,30 @@
  * @ingroup lib
  * @file
  *
- * Primitive MIME type handling.
+ * List cell allocator interface for plist and pslist.
  *
- * @author Christian Biere
  * @author Raphael Manfredi
- * @date 2008
+ * @date 2016
  */
 
-#include "common.h"
-
-#ifndef _lib_mime_type_h_
-#define _lib_mime_type_h_
+#ifndef _pcell_h_
+#define _pcell_h_
 
 /**
- * Known MIME content types
+ * The optional cell allocator contains generic function pointers to allocate
+ * or free a cell for a list.
+ *
+ * There is no size information: the routines to call must be specific for
+ * each list.
+ *
+ * A pointer to that structure must be passed to *_ext() routines so that
+ * the proper cell allocators / de-allocators be used, consistently.
  */
+typedef struct pcell_allocator {
+	void *(*pcell_alloc)(void);		/**< Return new zeroed cell for the list */
+	void (*pcell_free)(void *);		/**< Dispose of cell */
+} pcell_alloc_t;
 
-enum mime_type {
-#define MIME_TYPE(id, name) MIME_TYPE_ ## id,
-#include "lib/mime_types.h"
-#undef MIME_TYPE
+#endif	/* _pcell_h_ */
 
-	MIME_TYPE_NUM
-};
-
-void mime_type_init(void);
-enum mime_type mime_type_from_filename(const char *);
-enum mime_type mime_type_from_extension(const char *);
-const char *mime_type_to_string(enum mime_type) G_PURE;
-
-#endif /* _lib_mime_type_h_ */
 /* vi: set ts=4 sw=4 cindent: */
-
-

@@ -360,6 +360,7 @@ static struct {
 	{ MIME_TYPE_APPLICATION_TROFF_ME,				D },
 	{ MIME_TYPE_APPLICATION_TROFF_MS,				D },
 	{ MIME_TYPE_APPLICATION_ZIP,					U },
+	{ MIME_TYPE_AUDIO_APE,							A },
 	{ MIME_TYPE_AUDIO_BASIC,						A },
 	{ MIME_TYPE_AUDIO_FLAC,							A },
 	{ MIME_TYPE_AUDIO_MATROSKA,						A },
@@ -1868,7 +1869,7 @@ recursive_scan_done(struct bgtask *bt, void *data, bgstatus_t status, void *arg)
 	 * the library thread, which explicitly invokes the scheduler.
 	 */
 
-	if (THREAD_MAIN == share_thread_id) {
+	if (THREAD_MAIN_ID == share_thread_id) {
 		struct share_thread_vars *v = &share_thread_vars;
 
 		/*
@@ -1951,7 +1952,7 @@ recursive_scan_step_setup(struct bgtask *bt, void *data, int uticks)
 	 *		--RAM, 2013-10-29
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, recursive_rescan_starting, NULL);
+	teq_safe_rpc(THREAD_MAIN_ID, recursive_rescan_starting, NULL);
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
@@ -2195,7 +2196,7 @@ recursive_scan_step_update_scan_timing(struct bgtask *bt, void *data, int ticks)
 	 *		--RAM, 2013-10-29
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, recursive_update_scan_timing, ctx);
+	teq_safe_rpc(THREAD_MAIN_ID, recursive_update_scan_timing, ctx);
 
 	bg_task_ticks_used(bt, 0);
 	return BGR_NEXT;
@@ -2364,7 +2365,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 *		--RAM, 2013-10-29
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, recursive_install_shared, NULL);
+	teq_safe_rpc(THREAD_MAIN_ID, recursive_install_shared, NULL);
 
 	/*
 	 * The next step is going to request the SHA1 of all the library files,
@@ -2649,7 +2650,7 @@ recursive_scan_step_prepare_qrp(struct bgtask *bt, void *data, int ticks)
 	 * Funnel back all property changes to the main thread.
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, recursive_prepare_qrp, ctx);
+	teq_safe_rpc(THREAD_MAIN_ID, recursive_prepare_qrp, ctx);
 
 	qrp_prepare_computation();
 	ctx->idx = 0;
@@ -2785,7 +2786,7 @@ recursive_scan_step_finalize(struct bgtask *bt, void *data, int ticks)
 	 * main thread, not from the library thread.
 	 */
 
-	teq_safe_rpc(THREAD_MAIN, recursive_scan_finalize, ctx);
+	teq_safe_rpc(THREAD_MAIN_ID, recursive_scan_finalize, ctx);
 
 	return BGR_DONE;
 }
@@ -3138,7 +3139,7 @@ share_special_close(void)
 void G_COLD
 share_close(void)
 {
-	if (THREAD_MAIN != share_thread_id)
+	if (THREAD_MAIN_ID != share_thread_id)
 		thread_kill(share_thread_id, TSIG_TERM);
 
 	/*
@@ -3244,7 +3245,7 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 *		--RAM, 2014-01-02
 			 */
 
-			teq_safe_post(THREAD_MAIN, publisher_add_event,
+			teq_safe_post(THREAD_MAIN_ID, publisher_add_event,
 				deconstify_pointer(sf->sha1));
 		}
 	}
@@ -3984,8 +3985,8 @@ share_init(void)
 	if (getcpucount() >= 2) {
 		share_thread_id = share_thread_create();
 	} else {
-		share_thread_id = THREAD_MAIN;
-		g_assert(THREAD_MAIN == thread_by_name("main"));
+		share_thread_id = THREAD_MAIN_ID;
+		g_assert(THREAD_MAIN_ID == thread_by_name("main"));
 	}
 }
 

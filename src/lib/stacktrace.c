@@ -818,11 +818,15 @@ stack_sym_trylock(const char *caller)
 		/*
 		 * Do not sleep if we are holding any locks, this could create
 		 * deadlocks.
+		 *
+		 * Dumping the lock stack could give away some precious information
+		 * though, since we're not going to get any stack trace!
 		 */
 
 		if (0 != cnt) {
 			s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
 				caller, thread_safe_name(), cnt, plural(cnt));
+			thread_lock_dump_if_any(STDERR_FILENO, thread_small_id());
 			return FALSE;
 		}
 

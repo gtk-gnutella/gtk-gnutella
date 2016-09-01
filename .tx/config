@@ -7,3 +7,8 @@ source_file = po/gtk-gnutella.pot
 source_lang = en
 type = PO
 
+[gtk-gnutella.extra_glossary]
+file_filter = extra_files/<lang>/glossary
+source_file = extra_files/en/glossary
+source_lang = en
+type = HTML

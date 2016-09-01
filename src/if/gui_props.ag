@@ -1346,7 +1346,7 @@ prop = {
 	name = "search_media_type_archive";
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on archive / program files such as "
-		"ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.";
+		"ZIP, 7z, tar, bz2, gz, deb, rpm and also exe files.";
 	type = boolean;
 	data = {
 		default = FALSE;

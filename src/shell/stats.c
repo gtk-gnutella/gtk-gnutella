@@ -126,7 +126,7 @@ stats_get(stats_getter_t get, gnet_stats_t *s)
 	arg.get = get;
 	arg.s = s;
 
-	(void) teq_rpc(THREAD_MAIN, stats_get_trampoline, &arg);
+	(void) teq_rpc(THREAD_MAIN_ID, stats_get_trampoline, &arg);
 }
 
 static enum shell_reply

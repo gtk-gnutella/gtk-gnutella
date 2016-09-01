@@ -4260,7 +4260,7 @@ dht_update_size_estimate(void)
 	uint64 estimate;
 	bool alive = TRUE;
 
-	if (!dht_enabled())
+	if (!dht_enabled() || NULL == our_kuid)
 		return;
 
 	WALLOC_ARRAY(kvec, K_LOCAL_ESTIMATE);

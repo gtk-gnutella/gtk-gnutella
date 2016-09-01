@@ -2713,7 +2713,7 @@ gui_prop_init(void) {
      * General data:
      */
     gui_property->props[116].name = "search_media_type_archive";
-    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.");
+    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, rpm and also exe files.");
     gui_property->props[116].ev_changed = event_new("search_media_type_archive_changed");
     gui_property->props[116].save = TRUE;
     gui_property->props[116].internal = FALSE;

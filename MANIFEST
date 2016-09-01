@@ -648,6 +648,8 @@ src/lib/atio.h
 src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
+src/lib/balloc.c
+src/lib/balloc.h
 src/lib/barrier.c
 src/lib/barrier.h
 src/lib/base16.c
@@ -907,6 +909,7 @@ src/lib/patricia.c
 src/lib/patricia.h
 src/lib/pattern.c
 src/lib/pattern.h
+src/lib/pcell.h
 src/lib/plist.c
 src/lib/plist.h
 src/lib/pmsg.c
