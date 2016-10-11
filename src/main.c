@@ -149,6 +149,7 @@
 #include "lib/random.h"
 #include "lib/setproctitle.h"
 #include "lib/sha1.h"
+#include "lib/shuffle.h"
 #include "lib/signal.h"
 #include "lib/stacktrace.h"
 #include "lib/str.h"
@@ -1791,7 +1792,13 @@ callout_queue_idle(void *unused_data)
 			n = random_value(N_ITEMS(random_source) - 1);
 		}
 
+		/*
+		 * The digest we get is made of random bytes, normally, but we
+		 * shuffle them to make the collected bits totally unpredictable.
+		 */
+
 		(*random_source[n])(&digest);
+		shuffle(&digest, sizeof digest, 1);		/* Randomize digest bytes */
 		random_pool_append(&digest, sizeof digest);
 	}
 
