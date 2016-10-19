@@ -1839,3 +1839,6 @@
 # Fake Shareaza clients
 208.103.122.163
 208.103.122.164/30
+
+# Trident Media Guard
+193.107.240.0/22
