@@ -49,6 +49,26 @@
 
 #define BUF_DATA_OFFSET		offsetof(struct buf, b_u.bu_data)
 
+/*
+ * Hysteresis for buffer growth.
+ *
+ * Once the block becomes larger than BUF_HYST_SIZE, it is grown in multiple
+ * amounts of BUF_HYST_SIZE to avoid endless reallocations each time we wish
+ * to add a few bytes.
+ */
+#define BUF_HYST_SHIFT	10
+#define BUF_HYST_SIZE	(1U << BUF_HYST_SHIFT)
+#define BUF_HYST_MASK	(BUF_HYST_SIZE - 1)
+
+/**
+ * Round supplied value up with a BUF_HYST_SIZE granularity.
+ */
+static inline size_t G_PURE
+buf_hyst_round(size_t n)
+{
+	return (n + BUF_HYST_MASK) & ~BUF_HYST_MASK;
+}
+
 /**
  * Allocate a new buffer of the specified size.
  */
@@ -251,6 +271,34 @@ buf_resize(buf_t *b, size_t size)
 	g_assert(BUF_MAGIC_PRIVATE != b->b_magic);
 
 	return buf_resize_internal(b, size);
+}
+
+/**
+ * Grow buffer if needed to be able to hold the specified amout of data.
+ *
+ * @param b			the buffer to resize
+ * @param total	the amount of bytes we would like to hold in buffer
+ *
+ * @return the new buffer, since the address can change due to reallocation
+ * when the buffer is embedded.
+ */
+buf_t *
+buf_grow(buf_t *b, size_t total)
+{
+	buf_check(b);
+	g_assert(BUF_MAGIC_PRIVATE != b->b_magic);
+
+	if G_LIKELY(b->b_size >= total)
+		return b;
+
+	/*
+	 * Provide some hysteresis when the block becomes larger than BUF_HYST_SIZE.
+	 */
+
+	if (total > BUF_HYST_SIZE)
+		return buf_resize_internal(b, buf_hyst_round(total));
+
+	return buf_resize_internal(b, total);
 }
 
 /**
