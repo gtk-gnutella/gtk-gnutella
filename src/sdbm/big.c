@@ -20,6 +20,7 @@
 #include "pair.h"				/* For sdbm_page_dump() */
 
 #include "lib/bit_field.h"
+#include "lib/buf.h"
 #include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
@@ -78,9 +79,9 @@ struct DBMBIG {
 	enum sdbm_big_magic magic;
 	bit_field_t *bitbuf;	/* current bitmap page (size: BIG_BLKSIZE) */
 	bit_field_t *bitcheck;	/* array of ``bitmaps'' entries, for checks */
-	char *scratch;			/* scratch buffer where key/values are read */
+	buf_t *keybuf;			/* scratch buffer where keys are read */
+	buf_t *valbuf;			/* scratch buffer where values are read */
 	long bitbno;			/* page number of the bitmap in bitbuf */
-	size_t scratch_len;		/* length of the scratch buffer */
 	int fd;					/* data file descriptor */
 	long bitmaps;			/* amount of bitmaps allocated */
 	ulong bitfetch;			/* stats: amount of bitmap fetch calls */
@@ -182,6 +183,8 @@ big_alloc(void)
 	dbg->magic = SDBM_BIG_MAGIC;
 	dbg->fd = -1;
 	dbg->bitbno = -1;
+	dbg->keybuf = buf_new(BIG_BLKSIZE);
+	dbg->valbuf = buf_new(BIG_BLKSIZE);
 
 	return dbg;
 }
@@ -289,7 +292,8 @@ big_free(DBM *db)
 
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
 	HFREE_NULL(dbg->bitcheck);
-	HFREE_NULL(dbg->scratch);
+	buf_free_null(&dbg->keybuf);
+	buf_free_null(&dbg->valbuf);
 	fd_forget_and_close(&dbg->fd);
 	dbg->magic = 0;
 	WFREE(dbg);
@@ -361,16 +365,6 @@ big_check_start(DBM *db)
 	}
 
 	return TRUE;
-}
-
-/**
- * Resize the scratch buffer to be able to hold ``len'' bytes.
- */
-static void
-big_scratch_grow(DBMBIG *dbg, size_t len)
-{
-	dbg->scratch = hrealloc(dbg->scratch, len);
-	dbg->scratch_len = len;
 }
 
 /**
@@ -764,12 +758,13 @@ big_falloc_seq(DBM *db, int bmap, int n)
  * @param db		the sdbm database
  * @param bvec		start of block vector, containing block numbers
  * @param len		length of the data to be read
+ * @param buf		scratch buffer where data is to be read
  *
  * @return -1 on error with errno set, 0 if OK.  Read data is left in the
  * scratch buffer.
  */
 static int
-big_fetch(DBM *db, const void *bvec, size_t len)
+big_fetch(DBM *db, const void *bvec, size_t len, buf_t *buf)
 {
 	int bcnt = bigbcnt(len);
 	DBMBIG *dbg = db->big;
@@ -784,8 +779,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 	g_assert(is_valid_fd(dbg->fd));
 
-	if (dbg->scratch_len < len)
-		big_scratch_grow(dbg, len);
+	buf_grow(buf, len);
 
 	/*
 	 * Read consecutive blocks in one single system call.
@@ -793,7 +787,7 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 	n = bcnt;
 	p = bvec;
-	q = dbg->scratch;
+	q = buf_data(buf);
 	remain = len;
 
 	while (n > 0) {
@@ -839,10 +833,10 @@ big_fetch(DBM *db, const void *bvec, size_t len)
 
 		q += toread;
 		dbg->bigread_blk += bigblocks(toread);
-		g_assert(UNSIGNED(q - dbg->scratch) <= dbg->scratch_len);
+		g_assert(ptr_diff(q, buf_data(buf)) <= buf_size(buf));
 	}
 
-	g_assert(UNSIGNED(q - dbg->scratch) == len);
+	g_assert(ptr_diff(q, buf_data(buf)) == len);
 
 	return 0;
 
@@ -965,7 +959,7 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	 * and the length is the same.
 	 */
 
-	if (-1 == big_fetch(db, bigkey_blocks(bkey), siz))
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), siz, dbg->keybuf))
 		return FALSE;
 
 	/*
@@ -973,8 +967,8 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 	 */
 
 	if (
-		0 != memcmp(db->big->scratch, bigkey_head(bkey), BIG_KEYSAVED) ||
-		0 != memcmp(db->big->scratch + (siz-BIG_KEYSAVED),
+		0 != memcmp(buf_data(dbg->keybuf), bigkey_head(bkey), BIG_KEYSAVED) ||
+		0 != memcmp(ptr_add_offset(buf_data(dbg->keybuf), siz - BIG_KEYSAVED),
 				bigkey_tail(bkey), BIG_KEYSAVED)
 	) {
 		s_critical("sdbm: \"%s\": found %zu-byte key page/data inconsistency",
@@ -982,7 +976,7 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 		return FALSE;
 	}
 
-	if (0 == memcmp(db->big->scratch, key, siz)) {
+	if (0 == memcmp(buf_data(dbg->keybuf), key, siz)) {
 		dbg->key_full_match++;
 		return TRUE;
 	}
@@ -1004,6 +998,7 @@ long
 bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 {
 	size_t len = big_length(bkey);
+	DBMBIG *dbg = db->big;
 
 	if G_UNLIKELY(bigkey_length(len) != blen) {
 		s_critical("sdbm: \"%s\": found %zu-byte corrupted key at offset %zu "
@@ -1028,11 +1023,11 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 		goto plain;
 	}
 
-	if (-1 == big_fetch(db, bigkey_blocks(bkey), len))
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), len, dbg->keybuf))
 		goto corrupted;
 
 	*failed = FALSE;
-	return sdbm_hash(db->big->scratch, len);
+	return sdbm_hash(buf_data(dbg->keybuf), len);
 
 corrupted:
 	s_critical("sdbm: \"%s\": unreadable %zu-byte big key, "
@@ -1347,10 +1342,10 @@ bigkey_get(DBM *db, const char *bkey, size_t blen)
 		return NULL;
 	}
 
-	if (-1 == big_fetch(db, bigkey_blocks(bkey), len))
+	if (-1 == big_fetch(db, bigkey_blocks(bkey), len, dbg->keybuf))
 		return NULL;
 
-	return dbg->scratch;
+	return buf_data(dbg->keybuf);
 }
 
 /**
@@ -1376,10 +1371,10 @@ bigval_get(DBM *db, const char *bval, size_t blen)
 		return NULL;
 	}
 
-	if (-1 == big_fetch(db, bigval_blocks(bval), len))
+	if (-1 == big_fetch(db, bigval_blocks(bval), len, dbg->valbuf))
 		return NULL;
 
-	return dbg->scratch;
+	return buf_data(dbg->valbuf);
 }
 
 /**
@@ -1894,8 +1889,6 @@ big_clear(DBM *db)
 
 	dbg->bitbno = -1;
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
-	HFREE_NULL(dbg->scratch);
-	dbg->scratch_len = 0;
 
 	if (-1 == unlink(db->datname))
 		return FALSE;
