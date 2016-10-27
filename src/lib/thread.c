@@ -4030,10 +4030,14 @@ thread_stack_check_overflow(const void *va)
 
 	if (thread_sp_direction < 0) {
 		/* Stack growing down, base is high_qid */
+		if (qva > te->high_qid || qva < te->low_qid - 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva > te->low_qid + redzone)
 			return;		/* Not faulting in the red-zone page */
 	} else {
 		/* Stack growing up, base is low_qid */
+		if (qva < te->low_qid || qva > te->high_qid + 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva < te->high_qid - redzone)
 			return;		/* Not faulting in the red-zone page */
 	}
