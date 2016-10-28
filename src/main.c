@@ -215,6 +215,9 @@
  */
 #define VMEA_SIZE	(8 * 1024 * 1024)	/**< Emergency region size: 8 MiB */
 
+#define OPT(x)		options[main_arg_ ## x].used
+#define OPTARG(x)	options[main_arg_ ## x].arg
+
 static unsigned main_slow_update;
 static volatile sig_atomic_t exiting;
 static volatile sig_atomic_t from_atexit;
@@ -228,6 +231,116 @@ static jmp_buf atexit_env;
 static volatile const char *exit_step = "gtk_gnutella_exit";
 
 static bool main_timer(void *);
+
+extern char **environ;
+
+enum main_arg {
+	main_arg_child,
+	main_arg_compile_info,
+	main_arg_daemonize,
+	main_arg_exec_on_crash,
+	main_arg_gdb_on_crash,
+	main_arg_geometry,
+	main_arg_help,
+	main_arg_log_stderr,
+	main_arg_log_stdout,
+	main_arg_log_supervise,
+	main_arg_minimized,
+	main_arg_no_dbus,
+	main_arg_no_halloc,
+	main_arg_no_restart,
+	main_arg_no_supervise,
+	main_arg_no_xshm,
+	main_arg_pause_on_crash,
+	main_arg_ping,
+	main_arg_restart_on_crash,
+	main_arg_shell,
+	main_arg_topless,
+	main_arg_use_poll,
+	main_arg_version,
+
+	/* Passed through for Gtk+/GDK/GLib */
+	main_arg_class,
+	main_arg_g_fatal_warnings,
+	main_arg_gdk_debug,
+	main_arg_gdk_no_debug,
+	main_arg_gtk_debug,
+	main_arg_gtk_no_debug,
+	main_arg_gtk_module,
+	main_arg_name,
+
+	num_main_args
+};
+
+enum arg_type {
+	ARG_TYPE_NONE,
+	ARG_TYPE_TEXT,
+	ARG_TYPE_PATH
+};
+
+static struct option {
+	const enum main_arg id;
+	const char * const name;
+	const char * const summary;
+	const enum arg_type type;
+	const char *arg;	/* memory will be allocated via halloc() */
+	bool used;
+} options[] = {
+#define OPTION(name, type, summary) \
+	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
+
+	OPTION(child,			NONE, NULL),	/* hidden option */
+	OPTION(compile_info,	NONE, "Display compile-time information."),
+	OPTION(daemonize, 		NONE, "Daemonize the process."),
+#ifdef HAS_FORK
+	OPTION(exec_on_crash, 	PATH, "Path of \"program\" to run on crash."),
+	OPTION(gdb_on_crash, 	NONE, "Execute gdb on crash."),
+#else
+	OPTION(exec_on_crash, 	NONE, NULL),
+	OPTION(gdb_on_crash, 	NONE, NULL),	/* ignore silently, hide */
+#endif	/* HAS_FORK */
+	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
+	OPTION(help, 			NONE, "Print this message."),
+	OPTION(log_stderr,		PATH, "Log standard output to a file."),
+	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
+	OPTION(log_supervise,	PATH, "Log for the supervisor process."),
+#ifdef USE_TOPLESS
+	OPTION(minimized,		NONE, NULL),	/* accept but hide */
+#else
+	OPTION(minimized,		NONE, "Start with minimized main window."),
+#endif	/* USE_TOPLESS */
+	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
+#ifdef USE_HALLOC
+	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
+#else
+	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
+#endif	/* USE_HALLOC */
+	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
+	OPTION(no_supervise,	NONE, "Disable supervision by a parent process."),
+	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
+	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
+	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
+	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
+	OPTION(shell,			NONE, "Access the local shell interface."),
+#ifdef USE_TOPLESS
+	OPTION(topless,			NONE, NULL),	/* accept but hide */
+#else
+	OPTION(topless,			NONE, "Disable the graphical user-interface."),
+#endif	/* USE_TOPLESS */
+	OPTION(use_poll,		NONE, "Use poll() instead of epoll(), kqueue() etc."),
+	OPTION(version,			NONE, "Show version information."),
+
+	/* These are handled by Gtk+/GDK/GLib */
+	OPTION(class,				TEXT, NULL),
+	OPTION(g_fatal_warnings,	NONE, NULL),
+	OPTION(gdk_debug,			TEXT, NULL),
+	OPTION(gdk_no_debug,		TEXT, NULL),
+	OPTION(gtk_debug,			TEXT, NULL),
+	OPTION(gtk_no_debug,		TEXT, NULL),
+	OPTION(gtk_module,			TEXT, NULL),
+	OPTION(name,				TEXT, NULL),
+#undef OPTION
+};
 
 #ifdef SIGALRM
 /**
@@ -958,116 +1071,6 @@ sig_terminate(int n)
 		exit(EXIT_FAILURE);		/* Terminate ASAP */
 }
 
-extern char **environ;
-
-enum main_arg {
-	main_arg_child,
-	main_arg_compile_info,
-	main_arg_daemonize,
-	main_arg_exec_on_crash,
-	main_arg_gdb_on_crash,
-	main_arg_geometry,
-	main_arg_help,
-	main_arg_log_stderr,
-	main_arg_log_stdout,
-	main_arg_log_supervise,
-	main_arg_minimized,
-	main_arg_no_dbus,
-	main_arg_no_halloc,
-	main_arg_no_restart,
-	main_arg_no_supervise,
-	main_arg_no_xshm,
-	main_arg_pause_on_crash,
-	main_arg_ping,
-	main_arg_restart_on_crash,
-	main_arg_shell,
-	main_arg_topless,
-	main_arg_use_poll,
-	main_arg_version,
-
-	/* Passed through for Gtk+/GDK/GLib */
-	main_arg_class,
-	main_arg_g_fatal_warnings,
-	main_arg_gdk_debug,
-	main_arg_gdk_no_debug,
-	main_arg_gtk_debug,
-	main_arg_gtk_no_debug,
-	main_arg_gtk_module,
-	main_arg_name,
-
-	num_main_args
-};
-
-enum arg_type {
-	ARG_TYPE_NONE,
-	ARG_TYPE_TEXT,
-	ARG_TYPE_PATH
-};
-
-static struct option {
-	const enum main_arg id;
-	const char * const name;
-	const char * const summary;
-	const enum arg_type type;
-	const char *arg;	/* memory will be allocated via halloc() */
-	bool used;
-} options[] = {
-#define OPTION(name, type, summary) \
-	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
-
-	OPTION(child,			NONE, NULL),	/* hidden option */
-	OPTION(compile_info,	NONE, "Display compile-time information."),
-	OPTION(daemonize, 		NONE, "Daemonize the process."),
-#ifdef HAS_FORK
-	OPTION(exec_on_crash, 	PATH, "Path of \"program\" to run on crash."),
-	OPTION(gdb_on_crash, 	NONE, "Execute gdb on crash."),
-#else
-	OPTION(exec_on_crash, 	NONE, NULL),
-	OPTION(gdb_on_crash, 	NONE, NULL),	/* ignore silently, hide */
-#endif	/* HAS_FORK */
-	OPTION(geometry,		TEXT, "Placement of the main GUI window."),
-	OPTION(help, 			NONE, "Print this message."),
-	OPTION(log_stderr,		PATH, "Log standard output to a file."),
-	OPTION(log_stdout,		PATH, "Log standard error output to a file."),
-	OPTION(log_supervise,	PATH, "Log for the supervisor process."),
-#ifdef USE_TOPLESS
-	OPTION(minimized,		NONE, NULL),	/* accept but hide */
-#else
-	OPTION(minimized,		NONE, "Start with minimized main window."),
-#endif	/* USE_TOPLESS */
-	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
-#ifdef USE_HALLOC
-	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
-#else
-	OPTION(no_halloc,		NONE, NULL),	/* ignore silently */
-#endif	/* USE_HALLOC */
-	OPTION(no_restart,		NONE, "Disable auto-restarts on crash."),
-	OPTION(no_supervise,	NONE, "Disable supervision by a parent process."),
-	OPTION(no_xshm,			NONE, "Disable MIT shared memory extension."),
-	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
-	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
-	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
-	OPTION(shell,			NONE, "Access the local shell interface."),
-#ifdef USE_TOPLESS
-	OPTION(topless,			NONE, NULL),	/* accept but hide */
-#else
-	OPTION(topless,			NONE, "Disable the graphical user-interface."),
-#endif	/* USE_TOPLESS */
-	OPTION(use_poll,		NONE, "Use poll() instead of epoll(), kqueue() etc."),
-	OPTION(version,			NONE, "Show version information."),
-
-	/* These are handled by Gtk+/GDK/GLib */
-	OPTION(class,				TEXT, NULL),
-	OPTION(g_fatal_warnings,	NONE, NULL),
-	OPTION(gdk_debug,			TEXT, NULL),
-	OPTION(gdk_no_debug,		TEXT, NULL),
-	OPTION(gtk_debug,			TEXT, NULL),
-	OPTION(gtk_no_debug,		TEXT, NULL),
-	OPTION(gtk_module,			TEXT, NULL),
-	OPTION(name,				TEXT, NULL),
-#undef OPTION
-};
-
 static inline char
 underscore_to_hyphen(char c)
 {
@@ -1306,9 +1309,6 @@ usage(int exit_code)
 
 	exit(exit_code);
 }
-
-#define OPT(x)		options[main_arg_ ## x].used
-#define OPTARG(x)	options[main_arg_ ## x].arg
 
 /* NOTE: This function must not allocate any memory. */
 static void
