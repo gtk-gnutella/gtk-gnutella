@@ -4523,10 +4523,17 @@ xmalloc_thread_free(void *p)
 #undef realloc
 #undef calloc
 
-#define xmalloc malloc
-#define xfree free
-#define xrealloc realloc
-#define xcalloc calloc
+/*
+ * The "e_" prefix is there because xmalloc(), xfree() and friends are already
+ * remapped in "xmalloc.h" to embed them and prevent conflicts with some
+ * system libraries that already define them.
+ *		--RAM, 2016-10-28
+ */
+
+#define e_xmalloc malloc
+#define e_xfree free
+#define e_xrealloc realloc
+#define e_xcalloc calloc
 
 #define is_trapping_malloc()	1
 
@@ -8559,33 +8566,37 @@ xmalloc_crash_hook(void)
 /*
  * Internally, code willing to use xmalloc() ignores whether it is actually
  * trapping malloc, so we need to define suitable wrapping entry points here.
+ *
+ * Note the leading "e_" in names to embed them and prevent conflicts with
+ * similar symbols on some system libraries.
+ *		--RAM, 2011-10-28
  */
 #ifdef XMALLOC_IS_MALLOC
-#undef xmalloc
-#undef xfree
-#undef xrealloc
-#undef xcalloc
+#undef e_xmalloc
+#undef e_xfree
+#undef e_xrealloc
+#undef e_xcalloc
 
 void *
-xmalloc(size_t size)
+e_xmalloc(size_t size)
 {
 	return malloc(size);
 }
 
 void *
-xcalloc(size_t nmemb, size_t size)
+e_xcalloc(size_t nmemb, size_t size)
 {
 	return calloc(nmemb, size);
 }
 
 void
-xfree(void *p)
+e_xfree(void *p)
 {
 	free(p);
 }
 
 void *
-xrealloc(void *p, size_t size)
+e_xrealloc(void *p, size_t size)
 {
 	return realloc(p, size);
 }

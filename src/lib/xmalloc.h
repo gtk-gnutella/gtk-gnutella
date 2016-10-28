@@ -62,6 +62,19 @@ void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
 #endif
 
 /*
+ * The "liberty" library defines and exports xmalloc(), xcalloc(), xrealloc()
+ * and xfree() and causes link problems on ArchLinux, and maybe elsewhere
+ * one day...  Remap them to "internal" names so that we do not have to change
+ * the existing code.
+ *		--RAM, 2016-10-28
+ */
+
+#define xmalloc 	e_xmalloc
+#define xcalloc		e_xcalloc
+#define xrealloc	e_xrealloc
+#define xfree		e_xfree
+
+/*
  * Public interface.
  */
 
