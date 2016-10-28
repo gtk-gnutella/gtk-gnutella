@@ -4794,15 +4794,6 @@ node_finalize_3way(gnutella_node_t *n)
 	}
 
 	/*
-	 * Make sure we do not exceed our maximum amout of connections.
-	 * In particular, if the remote node did not obey our leaf guidance
-	 * and we still have enough ultra nodes, BYE them.
-	 */
-
-	if (!node_can_accept_connection(n, FALSE))
-		return FALSE;
-
-	/*
 	 * Since this is the third and final acknowledgement, the remote node
 	 * is ready to send Gnutella or G2 data (and so are we, now that we got
 	 * the final ack).  Mark the connection as fully established, which means
@@ -5149,6 +5140,15 @@ node_is_now_connected(gnutella_node_t *n)
 		node_bye(n, 504, "Switched between Leaf/Ultra during handshake");
 		return;
 	}
+
+	/*
+	 * Make sure we do not exceed our maximum amout of connections.
+	 * In particular, if the remote node did not obey our leaf guidance
+	 * and we still have enough ultra nodes, BYE them.
+	 */
+
+	if (!node_can_accept_connection(n, FALSE))
+		return;
 
 	/*
 	 * Initiate QRP sending if we're a leaf node or if we're an ultra node
