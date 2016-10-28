@@ -235,7 +235,9 @@ static bool main_timer(void *);
 extern char **environ;
 
 enum main_arg {
+	/* Order matters and must the same as in options[] below */
 	main_arg_child,
+	main_arg_cleanup,
 	main_arg_compile_info,
 	main_arg_daemonize,
 	main_arg_exec_on_crash,
@@ -290,6 +292,7 @@ static struct option {
 	{ main_arg_ ## name , #name, summary, ARG_TYPE_ ## type, NULL, FALSE }
 
 	OPTION(child,			NONE, NULL),	/* hidden option */
+	OPTION(cleanup,			NONE, "Final cleanup to help detect memory leaks."),
 	OPTION(compile_info,	NONE, "Display compile-time information."),
 	OPTION(daemonize, 		NONE, "Daemonize the process."),
 #ifdef HAS_FORK
@@ -805,6 +808,7 @@ gtk_gnutella_exit(int exit_code)
 
 	if (!running_topless)
 		DO(settings_gui_shutdown);
+
 	DO(settings_shutdown);
 
 	/*
@@ -825,8 +829,7 @@ gtk_gnutella_exit(int exit_code)
 
 	if (crashing) {
 		/* Accelerated shutdown */
-		DO(settings_close);
-		DO(cq_close);
+		DO(cq_halt);
 		goto quick_restart;
 	}
 
@@ -868,8 +871,31 @@ gtk_gnutella_exit(int exit_code)
 		main_dispatch();
 	}
 
-	if (debugging(0) || signal_received || shutdown_requested)
-		g_info("running final shutdown sequence...");
+	/*
+	 * From now on, we're mostly concerned about freeing memory that
+	 * could be still used in the application to be able to identify
+	 * possible memory leaks.
+	 *
+	 * This is somehow a risky operation because the destruction order
+	 * is touchy due to dependencies, and may need to be adjusted to
+	 * prevent crashes when these dependencies change.
+	 *
+	 * This is also a useless operation for most users, who could not
+	 * care less about memory leak detection when they choose to stop
+	 * the application.
+	 *
+	 * Therefore, unless we were invoked with --cleanup explicitly,
+	 * skip this part.
+	 *		--RAM, 2016-10-28
+	 */
+
+	if (debugging(0) || signal_received || shutdown_requested) {
+		g_info("%s final shutdown sequence...",
+			OPT(cleanup) ? "running" : "skipping");
+	}
+
+	if (!OPT(cleanup))
+		goto quick_restart;
 
 	/*
 	 * The main thread may now have to perform thread_join(), so we
