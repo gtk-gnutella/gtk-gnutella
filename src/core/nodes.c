@@ -4286,8 +4286,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 			GNET_PROPERTY(node_g2_count) != 0 &&
 			!(n->attrs & NODE_A_CAN_INFLATE)
 		) {
-			node_send_error(n, 403,
-				"Compressed connection preferred");
+			if (handshaking)
+				node_send_error(n, 403, "Compressed connection preferred");
 			node_remove(n, _("Connection not compressed"));
 			return FALSE;
 		}
@@ -4345,8 +4345,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 					GNET_PROPERTY(node_leaf_count) - compressed_leaf_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
+				if (handshaking)
+					node_send_error(n, 403, "Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -4401,8 +4401,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 						(compressed_node_cnt - compressed_leaf_cnt) &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
+				if (handshaking)
+					node_send_error(n, 403, "Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
