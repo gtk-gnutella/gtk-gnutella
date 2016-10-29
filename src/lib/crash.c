@@ -2544,6 +2544,10 @@ crash_mode(enum crash_level level, bool external)
 
 	crash_current_level = new_level;
 
+	s_rawdebug("%s(): depth=%d, external=%s, level=%s, old=%s, new=%s",
+		G_STRFUNC, depth, external ? "y" : "n", crash_level_to_string(level),
+		crash_level_to_string(old_level), crash_level_to_string(new_level));
+
 	spinunlock_hidden(&crash_mode_slk);
 
 	if (old_level == new_level)
