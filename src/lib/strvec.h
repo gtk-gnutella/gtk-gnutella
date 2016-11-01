@@ -40,6 +40,7 @@
 
 size_t strvec_count(char * const *strv);
 size_t strvec_size(char * const *strv);
+size_t strvec_free_with(free_fn_t fn, char **strv);
 void *strvec_cpy(char **dstv, char * const *strv, size_t cnt,
 		void *mem, size_t *len);
 

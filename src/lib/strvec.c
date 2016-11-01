@@ -84,6 +84,33 @@ strvec_size(char * const *strv)
 }
 
 /**
+ * Free string vector content (not the array itself) with given free routine.
+ *
+ * The routine stops at the first NULL pointer in the vector and each entry
+ * is NULL-ified after being freed.
+ *
+ * @param fn		the free routine (xfree, hfree, etc...)
+ * @param strv		the string vector whose strings need to be freed
+ *
+ * @return the amount of entries up to the final NULL.
+ */
+size_t
+strvec_free_with(free_fn_t fn, char **strv)
+{
+	size_t i;
+
+	g_assert(fn != NULL);
+	g_assert(strv != NULL);
+
+	for (i = 0; strv[i] != NULL; i++) {
+		(*fn)(strv[i]);
+		strv[i] = NULL;
+	}
+
+	return i;
+}
+
+/**
  * Copy string vector array by allocating items from a supplied memory buffer
  * and filling given destination vector with pointers.
  *
