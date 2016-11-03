@@ -7869,7 +7869,7 @@ search_request_info_as_bits(const struct search_request_info *sri)
 	buf[3]  = (sri->flags & QUERY_F_LEAF_GUIDED) ?	'G' : '-',
 	buf[4]  = (sri->flags & QUERY_F_GGEP_H) ?		'H' : '-',
 	buf[5]  = (sri->flags & QUERY_F_OOB_REPLY) ?	'O' : '-',
-	buf[5]  = sri->secure_oob ?						'3' : '-';
+	buf[5]  = sri->secure_oob ?						'3' : buf[5];
 	buf[6]  = (sri->flags & QUERY_F_FW_TO_FW) ?		'f' : '-',
 	buf[7]  = (sri->flags & QUERY_F_SR_UDP) ?		'R' : '-',
 
