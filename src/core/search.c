@@ -9302,14 +9302,15 @@ search_request(gnutella_node_t *n,
 		}
 
 		if (GNET_PROPERTY(query_trace)) {
-			g_info("Q #%s %s [%u/%u] (%s) hit=%03d \"%s\" %s%s%s%s%s",
+			g_info("Q #%s %s [%c %u/%u] hit=%03d \"%s\" (%s)%s%s%s%s%s",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
 				search_request_info_as_bits(sri),
+				NODE_IS_UDP(n) ? 'G' : NODE_IS_LEAF(n) ? 'L' : 'U',
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
-				search_media_mask_to_string(sri->media_types),
 				qctx->found,
 				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
+				search_media_mask_to_string(sri->media_types),
 				sri->skip_file_search ? " (skipped local)" : "",
 				sri->exv_sha1cnt > 0 ? " (SHA1)" : "",
 				sri->oob ? " <" : "",
