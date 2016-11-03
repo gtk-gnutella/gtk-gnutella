@@ -7852,6 +7852,43 @@ search_flags_to_string(uint16 flags)
 }
 
 /**
+ * Convert search request info into a string describing the positionned flags.
+ *
+ * @return pointer to static string.
+ */
+static const char *
+search_request_info_as_bits(const struct search_request_info *sri)
+{
+	static char buf[17];
+
+	g_assert(sri != NULL);
+
+	buf[0]  = (sri->flags & QUERY_F_MARK) ?			'M' : '-',
+	buf[1]  = (sri->flags & QUERY_F_FIREWALLED) ?	'F' : '-',
+	buf[2]  = (sri->flags & QUERY_F_XML) ?			'X' : '-',
+	buf[3]  = (sri->flags & QUERY_F_LEAF_GUIDED) ?	'G' : '-',
+	buf[4]  = (sri->flags & QUERY_F_GGEP_H) ?		'H' : '-',
+	buf[5]  = (sri->flags & QUERY_F_OOB_REPLY) ?	'O' : '-',
+	buf[5]  = sri->secure_oob ?						'3' : '-';
+	buf[6]  = (sri->flags & QUERY_F_FW_TO_FW) ?		'f' : '-',
+	buf[7]  = (sri->flags & QUERY_F_SR_UDP) ?		'R' : '-',
+
+	buf[8] = '/';
+
+	buf[9]  = sri->g2_query ?			'2' : '-';
+	buf[10] = sri->g2_wants_url ?		'U' : '-';
+	buf[11] = sri->g2_wants_dn ?		'D' : '-';
+	buf[12] = sri->g2_wants_alt ?		'A' : '-';
+	buf[13] = sri->size_restrictions ?	'S' : '-';
+	buf[14] = sri->extended_query	?	'x' : '-';
+	buf[15] = sri->partials	?			'p' : '-';
+
+	buf[16] = '\0';
+
+	return buf;
+}
+
+/**
  * Remove the OOB delivery flag by patching the query message inplace.
  */
 void
@@ -9262,6 +9299,22 @@ search_request(gnutella_node_t *n,
 				got_match, qctx, max_replies, flags, qhv);
 
 			qhv_filled = TRUE;		/* A side effect of st_search() */
+		}
+
+		if (GNET_PROPERTY(query_trace)) {
+			g_info("Q #%s %s [%u/%u] (%s) hit=%03d \"%s\" %s%s%s%s%s",
+				guid_hex_str(gnutella_header_get_muid(&n->header)),
+				search_request_info_as_bits(sri),
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				search_media_mask_to_string(sri->media_types),
+				qctx->found,
+				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
+				sri->skip_file_search ? " (skipped local)" : "",
+				sri->exv_sha1cnt > 0 ? " (SHA1)" : "",
+				sri->oob ? " <" : "",
+				sri->oob ? host_addr_port_to_string(sri->addr, sri->port) : "",
+				sri->oob ? ">" : "");
 		}
 
 		if (qctx->found > 0) {

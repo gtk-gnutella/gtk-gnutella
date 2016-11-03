@@ -533,6 +533,7 @@ extern const guint32  gnet_property_variable_g2_browse_served;
 extern const gboolean gnet_property_variable_log_sending_g2;
 extern const time_t  gnet_property_variable_session_start_stamp;
 extern const gboolean gnet_property_variable_tcp_no_listening;
+extern const gboolean gnet_property_variable_query_trace;
 
 
 prop_set_t *gnet_prop_init(void);
