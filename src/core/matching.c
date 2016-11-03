@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2016 Raphael Manfredi
  *
  * Search bins are Copyright (c) 2001-2003, Kenn Brooks Hamm & Raphael Manfredi
  *
@@ -26,9 +26,11 @@
 #include "common.h"
 
 #include "matching.h"
+
+#include "alias.h"
 #include "qrp.h"				/* For qhvec_add() */
-#include "share.h"
 #include "search.h"				/* For lazy_safe_search() */
+#include "share.h"
 
 #include "lib/ascii.h"
 #include "lib/atomic.h"
@@ -89,20 +91,25 @@ struct st_entry {
 };
 
 struct st_bin {
-	int nslots, nvals;
+	uint nslots, nvals;
 	struct st_entry **vals;
+};
+
+struct st_set {
+	uint nentries, nchars, nbins;
+	struct st_bin **bins;
+	struct st_bin all_entries;
+	uchar index_map[MAX_INT_VAL(uchar)];
+	uchar fold_map[MAX_INT_VAL(uchar)];
 };
 
 enum search_table_magic { SEARCH_TABLE_MAGIC = 0x0cf66242 };
 
 struct search_table {
 	enum search_table_magic magic;
-	int nentries, nchars, nbins;
-	struct st_bin **bins;
-	struct st_bin all_entries;
-	uchar index_map[MAX_INT_VAL(uchar)];
-	uchar fold_map[MAX_INT_VAL(uchar)];
 	int refcnt;
+	struct st_set plain;		/* Plain table, original names */
+	struct st_set alias;		/* Normalized names */
 };
 
 static inline void
@@ -128,7 +135,7 @@ destroy_entry(struct st_entry *entry)
 static void
 bin_initialize(struct st_bin *bin, int size)
 {
-	int i;
+	uint i;
 
 	bin->nvals = 0;
 	bin->nslots = size;
@@ -183,8 +190,6 @@ bin_insert_item(struct st_bin *bin, struct st_entry *entry)
 static void
 bin_compact(struct st_bin *bin)
 {
-	g_assert(bin->vals != NULL);	/* Or it would not have been allocated */
-
 	HREALLOC_ARRAY(bin->vals, bin->nvals);
 	bin->nslots = bin->nvals;
 }
@@ -192,7 +197,7 @@ bin_compact(struct st_bin *bin)
 static uchar map[MAX_INT_VAL(uchar)];
 
 static void
-setup_map(void)
+st_setup_map(void)
 {
 	static bool done;
 	uint i;
@@ -223,50 +228,77 @@ setup_map(void)
 }
 
 /**
- * Initialize permanent data in search table.
+ * Initialize permanent entries in a table set.
  */
 static void
-st_initialize(search_table_t *table)
+st_set_initialize(struct st_set *set)
 {
-	uchar cur_char = '\0';
 	uint i;
+	uchar cur_char = '\0';
 
-	search_table_check(table);
-
-	table->refcnt = 1;
-	table->nentries = table->nchars = 0;
-	setup_map();
+	set->nentries = set->nchars = 0;
 
 	/*
 	 * The indexing map is used to avoid having 256*256 bins.
 	 */
 
-	for (i = 0; i < N_ITEMS(table->index_map); i++) {
+	for (i = 0; i < N_ITEMS(set->index_map); i++) {
 		uchar map_char = map[i];
 
-		if (table->fold_map[map_char]) {
-			table->index_map[i] = table->fold_map[map_char];
+		if (set->fold_map[map_char]) {
+			set->index_map[i] = set->fold_map[map_char];
 		} else {
-			table->fold_map[map_char] = cur_char;
-			table->index_map[i] = cur_char;
+			set->fold_map[map_char] = cur_char;
+			set->index_map[i] = cur_char;
 			cur_char++;
 		}
 	}
 
-	table->nchars = cur_char;
-	table->nbins = table->nchars * table->nchars;
-	table->bins = NULL;
-	table->all_entries.vals = 0;
+	set->nchars = cur_char;
+	set->nbins = set->nchars * set->nchars;
+	set->bins = NULL;
+	set->all_entries.vals = 0;
 
 	if (GNET_PROPERTY(matching_debug)) {
 		static bool done;
 
 		if (!done) {
 			done = TRUE;
-			g_debug("MATCH search tables will use %d bins max "
-				"(%d indexing chars)", table->nbins, table->nchars);
+			g_debug("MATCH search sets will use %d bins max "
+				"(%d indexing chars)", set->nbins, set->nchars);
 		}
 	}
+}
+
+/**
+ * Initialize permanent data in search table.
+ */
+static void
+st_initialize(search_table_t *table)
+{
+	search_table_check(table);
+
+	table->refcnt = 1;
+	st_setup_map();
+	st_set_initialize(&table->plain);
+	st_set_initialize(&table->alias);
+}
+
+/**
+ * Recreate variable parts of the searching sets.
+ */
+static void
+st_set_recreate(struct st_set *set)
+{
+	uint i;
+
+	g_assert(NULL == set->bins);
+
+	HALLOC_ARRAY(set->bins, set->nbins);
+	for (i = 0; i < set->nbins; i++)
+		set->bins[i] = NULL;
+
+    bin_initialize(&set->all_entries, ST_MIN_BIN_SIZE);
 }
 
 /**
@@ -275,16 +307,39 @@ st_initialize(search_table_t *table)
 static void
 st_recreate(search_table_t *table)
 {
-	int i;
-
 	search_table_check(table);
-	g_assert(NULL == table->bins);
 
-	HALLOC_ARRAY(table->bins, table->nbins);
-	for (i = 0; i < table->nbins; i++)
-		table->bins[i] = NULL;
+	st_set_recreate(&table->plain);
+	st_set_recreate(&table->alias);
+}
 
-    bin_initialize(&table->all_entries, ST_MIN_BIN_SIZE);
+/**
+ * Destroy a set.
+ */
+static void
+st_set_destroy(struct st_set *set)
+{
+	uint i;
+
+	if (set->bins) {
+		for (i = 0; i < set->nbins; i++) {
+			struct st_bin *bin = set->bins[i];
+
+			if (bin) {
+				bin_destroy(bin);
+				WFREE(bin);
+			}
+		}
+		HFREE_NULL(set->bins);
+	}
+
+	if (set->all_entries.vals) {
+		for (i = 0; i < set->all_entries.nvals; i++) {
+			destroy_entry(set->all_entries.vals[i]);
+			set->all_entries.vals[i] = NULL;
+		}
+		bin_destroy(&set->all_entries);
+	}
 }
 
 /**
@@ -295,8 +350,6 @@ st_recreate(search_table_t *table)
 static bool
 st_destroy(search_table_t *table)
 {
-	int i;
-
 	search_table_check(table);
 
 	if (!atomic_int_dec_is_zero(&table->refcnt))
@@ -304,25 +357,8 @@ st_destroy(search_table_t *table)
 
 	g_assert(0 == table->refcnt);
 
-	if (table->bins) {
-		for (i = 0; i < table->nbins; i++) {
-			struct st_bin *bin = table->bins[i];
-
-			if (bin) {
-				bin_destroy(bin);
-				WFREE(bin);
-			}
-		}
-		HFREE_NULL(table->bins);
-	}
-
-	if (table->all_entries.vals) {
-		for (i = 0; i < table->all_entries.nvals; i++) {
-			destroy_entry(table->all_entries.vals[i]);
-			table->all_entries.vals[i] = NULL;
-		}
-		bin_destroy(&table->all_entries);
-	}
+	st_set_destroy(&table->plain);
+	st_set_destroy(&table->alias);
 
 	return TRUE;
 }
@@ -378,14 +414,23 @@ st_refcnt_inc(search_table_t *st)
 }
 
 /**
- * @return amount of entries in the table.
+ * @return amount of entries in the table set.
  */
 int
-st_count(const search_table_t *table)
+st_count(const search_table_t *table, enum match_set which)
 {
+	const struct st_set *set = NULL;
+
 	search_table_check(table);
 
-	return table->all_entries.nvals;
+	switch (which) {
+	case ST_SET_PLAIN: set = &table->plain; break;
+	case ST_SET_ALIAS: set = &table->alias; break;
+	}
+
+	g_assert(set != NULL);
+
+	return set->all_entries.nvals;
 }
 
 /**
@@ -415,11 +460,11 @@ mask_hash(const char *s) {
 /**
  * Get key of two-char pair.
  */
-static inline int
-st_key(search_table_t *table, const char k[2])
+static inline uint
+st_key(struct st_set *set, const char k[2])
 {
-	return table->index_map[(uchar) k[0]] * table->nchars +
-		table->index_map[(uchar) k[1]];
+	return set->index_map[(uchar) k[0]] * set->nchars +
+		set->index_map[(uchar) k[1]];
 }
 
 /**
@@ -429,17 +474,26 @@ st_key(search_table_t *table, const char k[2])
  * @return TRUE if the item was inserted; FALSE otherwise.
  */
 bool
-st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
+st_insert_item(search_table_t *table,
+	enum match_set which, const char *s, const shared_file_t *sf)
 {
 	size_t i, len;
 	struct st_entry *entry;
 	hset_t *seen_keys;
+	struct st_set *set = NULL;
 
 	search_table_check(table);
 
 	len = utf8_strlen(s);
 	if (len < 2)
 		return FALSE;
+
+	switch (which) {
+	case ST_SET_PLAIN: set = &table->plain; break;
+	case ST_SET_ALIAS: set = &table->alias; break;
+	}
+
+	g_assert(set != NULL);
 
 	seen_keys = hset_create(HASH_KEY_SELF, 0);
 
@@ -450,7 +504,7 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 
 	len = strlen(entry->string);
 	for (i = 0; i < len - 1; i++) {
-		int key = st_key(table, &entry->string[i]);
+		uint key = st_key(set, &entry->string[i]);
 
 		/* don't insert item into same bin twice */
 		if (hset_contains(seen_keys, int_to_pointer(key)))
@@ -458,17 +512,36 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 
 		hset_insert(seen_keys, int_to_pointer(key));
 
-		g_assert(key < table->nbins);
-		if (table->bins[key] == NULL)
-			table->bins[key] = bin_allocate();
+		g_assert(key < set->nbins);
+		if (set->bins[key] == NULL)
+			set->bins[key] = bin_allocate();
 
-		bin_insert_item(table->bins[key], entry);
+		bin_insert_item(set->bins[key], entry);
 	}
-	bin_insert_item(&table->all_entries, entry);
-	table->nentries++;
+	bin_insert_item(&set->all_entries, entry);
+	set->nentries++;
 
 	hset_free_null(&seen_keys);
 	return TRUE;
+}
+
+/**
+ * Minimize space consumption in the set.
+ */
+static void
+st_set_compact(struct st_set *set)
+{
+	uint i;
+
+	if (!set->all_entries.nvals)
+		return;			/* Nothing in set */
+
+	bin_compact(&set->all_entries);
+
+	for (i = 0; i < set->nbins; i++) {
+		if (set->bins[i])
+			bin_compact(set->bins[i]);
+	}
 }
 
 /**
@@ -477,17 +550,10 @@ st_insert_item(search_table_t *table, const char *s, const shared_file_t *sf)
 void
 st_compact(search_table_t *table)
 {
-	int i;
-
 	search_table_check(table);
 
-	if (!table->all_entries.nvals)
-		return;			/* Nothing in table */
-
-	bin_compact(&table->all_entries);
-	for (i = 0; i < table->nbins; i++)
-		if (table->bins[i])
-			bin_compact(table->bins[i]);
+	st_set_compact(&table->plain);
+	st_set_compact(&table->alias);
 }
 
 /**
@@ -556,56 +622,53 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
 		word_vec_free(wovec, wocnt);
 }
 
+enum search_mode {
+	SEARCH_NORMAL,		/* Original query string */
+	SEARCH_ALIAS		/* Query mangled with normalized aliases */
+};
+
+typedef size_t (*st_filename_len_fn_t)(const shared_file_t *sf);
+
 /**
- * Do an actual search.
+ * Perform search.
  *
- * @param table			table containing organized entries to search from
- * @param search_term	the query string
- * @param callback		routine to invoke for each match
- * @param ctx			user-supplied data to pass on to callback
- * @param max_res		maximum amount of results to return
+ * The "qhv" parameter MUST be NULL if the "mode" is SEARCH_ALIAS: the hash
+ * vector needs to use the unmangled search terms for query routing.
+ *
+ * @param mode			search mode
+ * @param set			set containing organized entries to search from
+ * @param search		the query string (canonized)
+ * @param result		list where results are added
  * @param qhv			query hash vector built from query string, for routing
  *
- * @return number of hits we produced
+ * @return number of hits added to the list
  */
-int G_HOT
-st_search(
-	search_table_t *table,
-	const char *search_term,
-	st_search_callback callback,
-	void *ctx,
-	int max_res,
+static uint G_HOT
+st_run_search(
+	enum search_mode mode,
+	struct st_set *set,
+	const char *search,
+	pslist_t **result,
 	query_hashvec_t *qhv)
 {
-	char *search;
-	int key, nres = 0;
+	uint key, nres = 0;
 	uint i, len;
 	struct st_bin *best_bin = NULL;
-	int best_bin_size = INT_MAX;
+	uint best_bin_size = UINT_MAX;
 	word_vec_t *wovec;
 	uint wocnt;
 	cpattern_t **pattern;
 	struct st_entry **vals;
 	uint vcnt;
 	int scanned = 0;		/* measure search mask efficiency */
+	pslist_t *local;
 	uint32 search_mask;
 	size_t minlen;
-	pslist_t *result = NULL;
+	hset_t *already_matched = NULL;	/* entries that are already in the list */
+	st_filename_len_fn_t flen;
 
-	search_table_check(table);
+	g_assert(implies(SEARCH_ALIAS == mode, NULL == qhv));
 
-	search = UNICODE_CANONIZE(search_term);
-
-	if (GNET_PROPERTY(query_debug) > 4 && 0 != strcmp(search, search_term)) {
-		char *safe_search = hex_escape(search, FALSE);
-		char *safe_search_term = hex_escape(search_term, FALSE);
-		g_debug("original search term: \"%s\"", safe_search_term);
-		g_debug("canonical search term: \"%s\"", safe_search);
-		if (safe_search != search)
-			HFREE_NULL(safe_search);
-		if (safe_search_term != search_term)
-			HFREE_NULL(safe_search_term);
-	}
 	len = strlen(search);
 
 	/*
@@ -617,8 +680,8 @@ st_search(
 			struct st_bin *bin;
 			if (is_ascii_space(search[i]) || is_ascii_space(search[i+1]))
 				continue;
-			key = st_key(table, search + i);
-			if ((bin = table->bins[key]) == NULL) {
+			key = st_key(set, search + i);
+			if ((bin = set->bins[key]) == NULL) {
 				best_bin = NULL;
 				break;
 			}
@@ -629,8 +692,10 @@ st_search(
 		}
 
 		if (GNET_PROPERTY(matching_debug) > 4)
-			g_debug("MATCH st_search(): str=\"%s\", len=%d, best_bin_size=%d",
-				lazy_safe_search(search_term), len, best_bin_size);
+			g_debug("MATCH %s(): mode=%s, str=\"%s\", len=%d, best_bin_size=%d",
+				G_STRFUNC, SEARCH_NORMAL == mode ? "normal" : "alias",
+				lazy_safe_search(search), len,
+				NULL == best_bin ? 0 : best_bin_size);
 	}
 
 	/*
@@ -644,12 +709,29 @@ st_search(
 
 	if (best_bin == NULL) {
 		/*
-		 * If we have a `qhv', we need to compute the word vector anway,
+		 * If we have a `qhv', we need to compute the word vector anyway,
 		 * for query routing...
 		 */
 
 		if (qhv == NULL)
 			goto finish;
+	}
+
+	/*
+	 * If we are not a normal match, it means we may already have some
+	 * of the file entries matched in the result and we must make sure we
+	 * do not create duplicates in the result list -- we simply need to skip
+	 * any matching for files we already have!
+	 */
+
+	if (mode != SEARCH_NORMAL) {
+		pslist_t *sl;
+
+		already_matched = hset_create(HASH_KEY_SELF, 0);
+
+		PSLIST_FOREACH(*result, sl) {
+			hset_insert(already_matched, sl->data);
+		}
 	}
 
 	/*
@@ -660,6 +742,9 @@ st_search(
 
 	/*
 	 * Compute the query hashing information for query routing, if needed.
+	 *
+	 * The hash vector needs to be build only when we are given the normal
+	 * search string, not the aliases one.
 	 */
 
 	if (qhv != NULL) {
@@ -705,9 +790,12 @@ st_search(
 	 */
 
 	for (minlen = 0, i = 0; i < wocnt; i++)
-		minlen += wovec[i].len + 1;
+		minlen += wovec[i].len * wovec[i].amount + 1;
 	minlen--;
-	g_assert(minlen <= INT_MAX);
+	g_assert(minlen <= INT_MAX);		/* No overflows */
+
+	flen = SEARCH_NORMAL == mode ?
+		shared_file_name_canonic_len : shared_file_name_normalized_len;
 
 	/*
 	 * Search through the smallest bin
@@ -717,10 +805,11 @@ st_search(
 	vals = best_bin->vals;
 
 	nres = 0;
+	local = *result;
 	for (i = 0; i < vcnt; i++) {
 		const struct st_entry *e = vals[i];
 		const shared_file_t *sf;
-		size_t canonic_len;
+		size_t filename_len;
 
 		/*
 		 * As we only return a limited amount of results, we insert all the
@@ -736,31 +825,121 @@ st_search(
 
 		sf = e->sf;
 
+		if (already_matched != NULL && hset_contains(already_matched, sf))
+			continue;
+
 		if (!shared_file_is_shareable(sf))
 			continue;		/* Cannot be shared */
 
-		canonic_len = shared_file_name_canonic_len(sf);
-		if (canonic_len < minlen)
+		filename_len = (*flen)(sf);
+
+		if (filename_len < minlen)
 			continue;		/* Can't match */
 
 		scanned++;
 
-		if (entry_match(e->string, canonic_len, pattern, wovec, wocnt)) {
+		if (entry_match(e->string, filename_len, pattern, wovec, wocnt)) {
 			if (GNET_PROPERTY(matching_debug) > 4) {
 				g_debug("MATCH \"%s\" matches %s",
 					search, shared_file_name_nfc(sf));
 			}
 
-			result = pslist_prepend_const(result, sf);
+			local = pslist_prepend_const(local, sf);
 			nres++;
 		}
 	}
+
+	*result = local;
 
 	if (GNET_PROPERTY(matching_debug) > 3) {
 		g_debug("MATCH %s(): "
 			"scanned %d entr%s from the %d in bin, got %d match%s",
 			G_STRFUNC, scanned, plural_y(scanned),
 			best_bin_size, nres, plural_es(nres));
+	}
+
+	for (i = 0; i < wocnt; i++) {
+		if (pattern[i])					/* Lazily compiled by entry_match() */
+			pattern_free(pattern[i]);
+	}
+
+	WFREE_ARRAY(pattern, wocnt);
+	word_vec_free(wovec, wocnt);
+
+	/* FALL THROUGH */
+
+finish:
+	hset_free_null(&already_matched);
+
+	return nres;
+}
+
+/**
+ * Do an actual search.
+ *
+ * @param table			table containing organized entries to search from
+ * @param search_term	the query string
+ * @param callback		routine to invoke for each match
+ * @param ctx			user-supplied data to pass on to callback
+ * @param max_res		maximum amount of results to return
+ * @param qhv			query hash vector built from query string, for routing
+ *
+ * @return number of hits we produced
+ */
+int G_HOT
+st_search(
+	search_table_t *table,
+	const char *search_term,
+	st_search_callback callback,
+	void *ctx,
+	uint max_res,
+	query_hashvec_t *qhv)
+{
+	uint nres = 0;
+	uint i;
+	pslist_t *result = NULL;
+	char *search, *alias;
+
+	/*
+	 * We use a canonic search string, which simplifies matching.
+	 *
+	 * A canonic string has all letters lower-cased, most non-alphanumeric
+	 * replaced by a " ".  However, important non-space marks like "\n"
+	 * or japanese kana marks are kept.
+	 */
+
+	search = UNICODE_CANONIZE(search_term);
+
+	if (GNET_PROPERTY(query_debug) > 4 && 0 != strcmp(search, search_term)) {
+		char *safe_search = hex_escape(search, FALSE);
+		char *safe_search_term = hex_escape(search_term, FALSE);
+		g_debug("%s(): original=\"%s\", canonic=\"%s\"",
+			G_STRFUNC, safe_search_term, safe_search);
+		if (safe_search != search)
+			HFREE_NULL(safe_search);
+		if (safe_search_term != search_term)
+			HFREE_NULL(safe_search_term);
+	}
+
+
+	/*
+	 * Run the original query, unmangled.
+	 */
+
+	nres = st_run_search(SEARCH_NORMAL, &table->plain, search, &result, qhv);
+
+	/*
+	 * Handle aliases if needed.
+	 *
+	 * If the alias set is empty, there is no need to attempt a search through
+	 * an aliased query.
+	 */
+
+	alias = 0 == table->alias.nentries ? NULL : alias_normalize(search, " ");
+
+	if (alias != NULL) {
+		nres += st_run_search(SEARCH_ALIAS, &table->alias, alias, &result, NULL);
+		HFREE_NULL(alias);
 	}
 
 	/*
@@ -771,7 +950,7 @@ st_search(
 		if (nres > max_res)
 			result = pslist_shuffle(result);
 
-		for (i = 0; i < UNSIGNED(max_res); /* empty */) {
+		for (i = 0; i < max_res; /* empty */) {
 			const shared_file_t *sf = pslist_shift(&result);
 
 			if (NULL == sf)
@@ -784,17 +963,8 @@ st_search(
 		pslist_free_null(&result);
 	}
 
-	for (i = 0; i < wocnt; i++)
-		if (pattern[i])					/* Lazily compiled by entry_match() */
-			pattern_free(pattern[i]);
-
-	WFREE_ARRAY(pattern, wocnt);
-	word_vec_free(wovec, wocnt);
-
-finish:
-	if (search != search_term) {
+	if (search != search_term)
 		HFREE_NULL(search);
-	}
 
 	return nres;
 }

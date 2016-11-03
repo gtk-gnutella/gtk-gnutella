@@ -284,6 +284,8 @@ src/casts.h
 src/common.h
 src/core/Jmakefile
 src/core/Makefile.SH
+src/core/alias.c
+src/core/alias.h
 src/core/alive.c
 src/core/alive.h
 src/core/ban.c

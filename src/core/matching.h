@@ -71,11 +71,17 @@ struct shared_file;
 
 search_table_t *st_create(void);
 void st_free(search_table_t **);
-bool st_insert_item(search_table_t *, const char *key,
-	const struct shared_file *sf);
 void st_compact(search_table_t *);
-int st_count(const search_table_t *st);
 search_table_t *st_refcnt_inc(search_table_t *st);
+
+enum match_set {
+	ST_SET_PLAIN,		/**< Plain names, as they are listed */
+	ST_SET_ALIAS,		/**< Aliased names, normalized form */
+};
+
+int st_count(const search_table_t *st, enum match_set which);
+bool st_insert_item(search_table_t *, enum match_set which, const char *key,
+	const struct shared_file *sf);
 
 /**
  * Callback for st_search().
@@ -92,7 +98,7 @@ int st_search(
 	const char *search,
 	st_search_callback callback,
 	void *ctx,
-	int max_res,
+	uint max_res,
 	struct query_hashvec *qhv);
 
 void st_fill_qhv(const char *search_term, struct query_hashvec *qhv);

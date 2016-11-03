@@ -27,6 +27,7 @@ SetSubdirs(g2)
 DependSubdirs()
 
 SRC = \
+	alias.c \
 	alive.c \
 	ban.c \
 	bh_download.c \
