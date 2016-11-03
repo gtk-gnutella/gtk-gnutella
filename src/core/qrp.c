@@ -1670,10 +1670,6 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 	g_assert(sf != NULL);
 	g_assert(words != NULL);
 
-	/*
-	 * Copy filename to buffer, since we're going to map it inplace.
-	 */
-
 	g_assert(utf8_is_valid_data(shared_file_name_nfc(sf),
 				shared_file_name_nfc_len(sf)));
 	g_assert(utf8_is_valid_data(shared_file_name_canonic(sf),
@@ -1699,10 +1695,8 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 
 	for (i = 0; i < wocnt; i++) {
 		const char *word = wovec[i].word;
-		size_t word_len;
 
 		g_assert(word[0] != '\0');
-		word_len = strlen(word);
 
 		/*
 		 * Record word if we haven't seen it yet.
@@ -1711,11 +1705,10 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			void *p;
+			size_t word_len = strlen(word);
 			size_t n = 1 + word_len;
 
-			p = wcopy(word, n);
-			htable_insert(words, p, size_to_pointer(n));
+			htable_insert(words, wcopy(word, n), size_to_pointer(n));
 		}
 
 		if (qrp_debugging(8)) {
