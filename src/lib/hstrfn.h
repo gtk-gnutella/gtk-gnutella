@@ -58,6 +58,9 @@ char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
 	G_PRINTF(1, 0);
 #endif	/* !TRACK_MALLOC */
 
+char **h_strsplit(const char *str, const char *delim, size_t max_tokens);
+char **h_strsplit_set(const char *str, const char *delim, size_t max_tokens);
+
 #endif	/* _hstrfn_h_ */
 
 /* vi: set ts=4: */

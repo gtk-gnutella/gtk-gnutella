@@ -39,6 +39,7 @@
 #include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "pslist.h"
 #include "strvec.h"
 #include "thread.h"
 #include "unsigned.h"
@@ -162,6 +163,158 @@ h_strjoinv(const char *separator, char * const *str_array)
 		return h_strnjoinv(NULL, 0, str_array);
 
 	return h_strnjoinv(separator, strlen(separator), str_array);
+}
+
+/**
+ * Reverse list of strings into a newly allocated string vector.
+ * The list is freed in the process.
+ *
+ * @param strlist	a list of strings, in reverse order
+ * @param n			amount of items in list
+ *
+ * @return an allocated string vector, freeed via h_strfreev().
+ */
+static char **
+hstrfn_pslist_to_vec(pslist_t *strlist, size_t n)
+{
+	char **vec;
+	pslist_t *sl;
+
+	HALLOC_ARRAY(vec, n + 1);
+
+	vec[n--] = NULL;
+	PSLIST_FOREACH(strlist, sl) {
+		vec[n--] = sl->data;
+	}
+
+	pslist_free(strlist);
+
+	return vec;
+}
+
+/*
+ * A clone of g_strsplit() which uses halloc().
+ * The resulting vector must be freed with h_strfreev().
+ *
+ * Splits a string into a maximum of "max_tokens" pieces, using the given
+ * "delimiter" string.  When the max amount of tokens is reached, the
+ * remainder of the string is appended to the last token.
+ *
+ * As a special case, the result of splitting the empty string "" is an empty
+ * vector, not a vector containing a single string. The reason for this
+ * special case is that being able to represent a empty vector is typically
+ * more useful than consistent handling of empty elements. If you do need
+ * to represent empty elements, you'll need to check for the empty string
+ * before calling h_strsplit().
+ *
+ * @param string		the string to split
+ * @param delim			the delimiter string, removed from split tokens
+ * @param max_tokens	max amout of tokens (0 means no limits)
+ *
+ * @return an allocated string vector, freeed via h_strfreev().
+ */
+char **
+h_strsplit(const char *string, const char *delim, size_t max_tokens)
+{
+	pslist_t *strlist = NULL;
+	const char *s;
+	size_t n = 0;
+	const char *remainder;
+
+	g_assert(string != NULL);
+	g_assert(delim != NULL);
+	g_assert(size_is_non_negative(max_tokens));
+
+	if (0 == max_tokens)
+		max_tokens = MAX_INT_VAL(size_t);
+
+	remainder = string;
+	s = strstr(remainder, delim);
+
+	if (s != NULL) {
+		size_t delim_len = strlen(delim);
+
+		while (--max_tokens != 0 && s != NULL) {
+			size_t len = s - remainder;
+			strlist = pslist_prepend(strlist, h_strndup(remainder, len));
+			n++;
+			remainder = s + delim_len;
+			s = strstr(remainder, delim);
+		}
+	}
+
+	if (*string != '\0') {
+		n++;
+		strlist = pslist_prepend(strlist, h_strdup(remainder));
+	}
+
+	return hstrfn_pslist_to_vec(strlist, n);
+}
+
+/*
+ * A clone of g_strsplit_set() which uses halloc().
+ * The resulting vector must be freed with h_strfreev().
+ *
+ * Splits a string into a maximum of "max_tokens" pieces, using the given
+ * bytes in the "delimiters" string as separators.  When the max amount
+ * of tokens is reached, the remainder of the string is appended to the
+ * last token.
+ *
+ * As a special case, the result of splitting the empty string "" is an empty
+ * vector, not a vector containing a single string. The reason for this
+ * special case is that being able to represent a empty vector is typically
+ * more useful than consistent handling of empty elements. If you do need
+ * to represent empty elements, you'll need to check for the empty string
+ * before calling h_strsplit_set().
+ *
+ * @param string		the string to split
+ * @param delim			the delimiter bytes, removed from split tokens
+ * @param max_tokens	max amout of tokens (0 means no limits)
+ *
+ * @return an allocated string vector, freeed via h_strfreev().
+ */
+char **
+h_strsplit_set(const char *string, const char *delim, size_t max_tokens)
+{
+	uint8 delim_table[256];
+	pslist_t *strlist = NULL;
+	const char *s;
+	size_t n = 0;
+	const char *remainder;
+
+	g_assert(string != NULL);
+	g_assert(delim != NULL);
+	g_assert(size_is_non_negative(max_tokens));
+
+	if (0 == max_tokens)
+		max_tokens = MAX_INT_VAL(size_t);
+
+	if G_UNLIKELY('\0' == *string)
+		goto done;
+
+	ZERO(&delim_table);
+
+	for (s = delim; *s != '\0'; s++) {
+		delim_table[*(uchar *) s] = TRUE;
+	}
+
+	s = remainder = string;
+
+	while (max_tokens-- != 0 && *s != '\0') {
+		if (delim_table[*(uchar *) s]) {
+			size_t len = s - remainder;
+			strlist = pslist_prepend(strlist, h_strndup(remainder, len));
+			n++;
+			remainder = s + 1;
+		}
+		s++;
+	}
+
+	n++;
+	strlist = pslist_prepend(strlist, h_strndup(remainder, s - remainder));
+
+done:
+	return hstrfn_pslist_to_vec(strlist, n);
 }
 
 /**
