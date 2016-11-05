@@ -39,6 +39,7 @@
 #include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
+#include "strvec.h"
 #include "thread.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -173,12 +174,7 @@ void
 h_strfreev(char **str_array)
 {
 	if (str_array != NULL) {
-		size_t i;
-
-		for (i = 0; str_array[i] != NULL; i++) {
-			hfree(str_array[i]);
-		}
-
+		strvec_free_with(hfree, str_array);
 		hfree(str_array);
 	}
 }
