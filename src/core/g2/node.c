@@ -67,6 +67,7 @@
 #include "lib/ascii.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"			/* For dump_hex() */
 #include "lib/pmsg.h"
 #include "lib/str.h"

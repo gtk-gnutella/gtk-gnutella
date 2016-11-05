@@ -221,6 +221,7 @@ LSRC = \
 	hikset.c \
 	host_addr.c \
 	hset.c \
+	hstrfn.c \
 	htable.c \
 	html.c \
 	http_range.c \
@@ -421,6 +422,7 @@ LOBJ = \
 	hikset.o \
 	host_addr.o \
 	hset.o \
+	hstrfn.o \
 	htable.o \
 	html.o \
 	http_range.o \

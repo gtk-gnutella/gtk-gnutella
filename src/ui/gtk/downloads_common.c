@@ -46,6 +46,7 @@
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/str.h"
 #include "lib/stringify.h"

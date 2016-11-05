@@ -40,6 +40,7 @@
 
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"
 #include "lib/product.h"
 #include "lib/str.h"

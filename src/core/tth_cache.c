@@ -61,6 +61,7 @@
 #include "lib/ftw.h"
 #include "lib/halloc.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/spinlock.h"

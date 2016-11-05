@@ -70,6 +70,7 @@
 #include "endian.h"
 #include "halloc.h"
 #include "hikset.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"

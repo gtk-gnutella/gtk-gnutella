@@ -43,6 +43,7 @@
 #include "lib/atoms.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/list.h"
 #include "lib/random.h"
 #include "lib/str.h"

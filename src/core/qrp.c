@@ -64,6 +64,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/mutex.h"
 #include "lib/pow2.h"

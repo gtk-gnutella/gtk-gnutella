@@ -105,7 +105,9 @@
 #include "core/version.h"
 #include "core/vmsg.h"
 #include "core/whitelist.h"
+
 #include "if/dht/dht.h"
+
 #include "lib/adns.h"
 #include "lib/aging.h"
 #include "lib/atoms.h"
@@ -128,6 +130,7 @@
 #include "lib/gentime.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/iso3166.h"
@@ -176,8 +179,11 @@
 #include "lib/xsort.h"
 #include "lib/xxtea.h"
 #include "lib/zalloc.h"
+
 #include "shell/shell.h"
+
 #include "upnp/upnp.h"
+
 #include "xml/vxml.h"
 
 #include "ui/gtk/gui.h"

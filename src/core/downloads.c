@@ -106,6 +106,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"

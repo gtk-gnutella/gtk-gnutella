@@ -43,6 +43,7 @@
 #include "lib/buf.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"
 #include "lib/nv.h"
 #include "lib/ostream.h"

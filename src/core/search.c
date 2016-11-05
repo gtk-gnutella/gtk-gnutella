@@ -100,6 +100,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
