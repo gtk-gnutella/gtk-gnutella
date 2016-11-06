@@ -138,6 +138,11 @@ typedef bool (*ckeyval_rm_fn_t)(const void *key, void *value, void *data);
 typedef void *(*alloc_fn_t)(size_t n);
 typedef void *(*alloc_data_fn_t)(void *data, size_t n);
 
+/* Re-allocator routine signatures, with or without allocating context */
+
+typedef void *(*realloc_fn_t)(void *p, size_t n);
+typedef void *(*realloc_data_fn_t)(void *data, void *p, size_t n);
+
 /* Data freeing callbacks signatures, with or without allocating context */
 
 typedef void (*free_fn_t)(void *data);
