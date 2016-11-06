@@ -28,6 +28,7 @@
 #include "matching.h"
 
 #include "alias.h"
+#include "gnet_stats.h"
 #include "qrp.h"				/* For qhvec_add() */
 #include "search.h"				/* For lazy_safe_search() */
 #include "share.h"
@@ -947,8 +948,16 @@ st_search(
 	alias = 0 == table->alias.nentries ? NULL : alias_normalize(search, " ");
 
 	if (alias != NULL) {
-		nres += st_run_search(SEARCH_ALIAS, &table->alias, alias, &result, NULL);
+		uint ares;
+
+		gnet_stats_inc_general(GNR_QUERY_ALIASED_WORDS);
+
+		ares = st_run_search(SEARCH_ALIAS, &table->alias, alias, &result, NULL);
+		nres += ares;
 		HFREE_NULL(alias);
+
+		if (ares != 0)
+			gnet_stats_count_general(GNR_LOCAL_ALIASED_HITS, ares);
 	}
 
 	/*
