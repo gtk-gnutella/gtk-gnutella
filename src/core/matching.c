@@ -50,12 +50,15 @@
 
 #define WOVEC_DFLT	10			/**< Default size of word-vectors */
 
+typedef uint64 st_mask_t;
+
 /*
  * Masks for mask_hash().
  */
 
-#define MASK_LETTER(x)		(1 << (x))		/**< bits 0 to 25 */
-#define MASK_DIGIT			0x80000000
+#define MASK_LETTER(x)	(((st_mask_t) 1) << (x))		/**< bits 0 to 25 */
+#define MASK_DIGIT(x)	(((st_mask_t) 1) << ((x)+26))	/**< bits 26 to 35 */
+#define MASK_OTHER		(((st_mask_t) 1) << 36)			/**< bit 36 */
 
 /*
  * Search table searching routines.
@@ -87,7 +90,7 @@
 struct st_entry {
 	const char *string;				/* atom */
 	shared_file_t *sf;
-	uint32 mask;
+	st_mask_t mask;
 };
 
 struct st_bin {
@@ -435,22 +438,28 @@ st_count(const search_table_t *table, enum match_set which)
 
 /**
  * Compute character mask "hash", using one bit per letter of the alphabet,
- * plus one for any digit.
+ * one bit per digit and one bit per anything not a letter or a digit.
+ *
+ * This therefore uses the lowest 26+10+1 = 37 bits of the mask.
  */
-static uint32
+static st_mask_t
 mask_hash(const char *s) {
 	uchar c;
-	uint32 mask = 0;
+	st_mask_t mask = 0;
 
 	while ((c = (uchar) *s++)) {
 		if (is_ascii_space(c))
 			continue;
-		else if (is_ascii_digit(c))
-			mask |= MASK_DIGIT;
-		else {
-			int idx = ascii_tolower(c) - 97;
+		else if (is_ascii_digit(c)) {
+			int idx = c - '0';
+			g_assert(idx >= 0 && idx <= 9);
+			mask |= MASK_DIGIT(idx);
+		} else if (is_ascii_alpha(c)) {
+			int idx = ascii_tolower(c) - 'a';
 			if (idx >= 0 && idx < 26)
 				mask |= MASK_LETTER(idx);
+		} else {
+			mask |= MASK_OTHER;
 		}
 	}
 
@@ -662,7 +671,7 @@ st_run_search(
 	uint vcnt;
 	int scanned = 0;		/* measure search mask efficiency */
 	pslist_t *local;
-	uint32 search_mask;
+	st_mask_t search_mask;
 	size_t minlen;
 	hset_t *already_matched = NULL;	/* entries that are already in the list */
 	st_filename_len_fn_t flen;
