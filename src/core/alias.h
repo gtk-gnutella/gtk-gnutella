@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Raphael Manfredi
+ * Copyright (c) 2016 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -22,31 +22,31 @@
  */
 
 /**
- * @ingroup lib
+ * @ingroup core
  * @file
  *
- * String vector array utilities.
+ * Managing search word aliases.
  *
  * @author Raphael Manfredi
- * @date 2015
+ * @date 2016
  */
 
-#ifndef _strvec_h_
-#define _strvec_h_
+#ifndef _core_alias_h_
+#define _core_alias_h_
+
+struct alias_set;
+typedef struct alias_set alias_set_t;
+
+struct alias_params;
+typedef struct alias_params alias_params_t;
 
 /*
  * Public interface.
  */
 
-size_t strvec_count(char * const *strv);
-size_t strvec_size(char * const *strv);
-size_t strvec_free_with(free_fn_t fn, char **strv);
-char **strvec_append_with(realloc_fn_t fn,
-	char **oldv, size_t *oldn,
-	char * const *copyv, size_t copyn);
-void *strvec_cpy(char **dstv, char * const *strv, size_t cnt,
-		void *mem, size_t *len);
+char *alias_normalize(const char *str, const char *delim);
+char **alias_expand(const char *str, const char *delim);
 
-#endif	/* _strvec_h_ */
+#endif /* _core_alias_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

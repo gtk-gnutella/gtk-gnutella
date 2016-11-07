@@ -44,6 +44,7 @@
 #include "lib/compat_sendfile.h"
 #include "lib/entropy.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/inputevt.h"
 #include "lib/parse.h"
 #include "lib/plist.h"

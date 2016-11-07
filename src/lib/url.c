@@ -39,6 +39,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "host_addr.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "mempcpy.h"
 #include "misc.h"			/* For is_strprefix() */

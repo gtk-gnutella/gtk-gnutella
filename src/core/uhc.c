@@ -51,10 +51,11 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hstrfn.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
-#include "lib/str.h"
 #include "lib/shuffle.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 

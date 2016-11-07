@@ -152,6 +152,7 @@ LSRC = \
 	hikset.c \
 	host_addr.c \
 	hset.c \
+	hstrfn.c \
 	htable.c \
 	html.c \
 	http_range.c \

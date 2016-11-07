@@ -100,6 +100,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -7603,12 +7604,74 @@ shared_file_mark_found(struct query_context *ctx, const shared_file_t *sf)
 }
 
 /**
+ * Apply search limits.
+ *
+ * @param sf	the already matched file or matching candidate
+ * @param sri	the search request meta information
+ *
+ * @return TRUE if the match is to be kept / attempted.
+ */
+bool
+search_apply_limits(const shared_file_t *sf, const search_request_info_t *sri)
+{
+	shared_file_check(sf);
+	search_request_info_check(sri);
+
+	/*
+	 * If there is a media type filtering, ignore files not matching
+	 * their request.
+	 */
+
+	if (
+		0 != sri->media_types &&
+		!shared_file_has_media_type(sf, sri->media_types)
+	) {
+		if (GNET_PROPERTY(query_debug) > 1 ||
+			GNET_PROPERTY(matching_debug) > 1
+		) {
+			g_debug("MATCH ignoring %s \"%s\", not of type %s",
+				shared_file_is_partial(sf) ? "partial" : "shared",
+				shared_file_name_canonic(sf),
+				search_media_mask_to_string(sri->media_types));
+		}
+
+		return FALSE;
+	}
+
+	/*
+	 * If there is a size limit, apply it.
+	 */
+
+	if (sri->size_restrictions) {
+		filesize_t size = shared_file_size(sf);
+
+		if (size < sri->minsize || size > sri->maxsize) {
+			if (GNET_PROPERTY(query_debug) > 1 ||
+				GNET_PROPERTY(matching_debug) > 1
+			) {
+				g_debug("MATCH ignoring %s \"%s\": size=%s "
+					"not within boundaries [%s, %s]",
+					shared_file_is_partial(sf) ? "partial" : "shared",
+					shared_file_name_canonic(sf),
+					filesize_to_string(size),
+					filesize_to_string2(sri->minsize),
+					filesize_to_string3(sri->maxsize));
+			}
+
+			return FALSE;
+		}
+	}
+
+	return TRUE;
+}
+
+/**
  * Invoked for each new match we get.
  *
  * @return TRUE if the match is kept.
  */
 static bool
-got_match(void *context, const void *data)
+got_match(void *context, const void *data, bool limits)
 {
 	struct query_context *qctx = context;
 	const shared_file_t *sf = data;
@@ -7621,50 +7684,8 @@ got_match(void *context, const void *data)
 	 */
 
 	if (!shared_file_already_found(qctx, sf)) {
-		/*
-		 * If there is a media type filtering, ignore files not matching
-		 * their request.
-		 */
-
-		if (
-			0 != sri->media_types &&
-			!shared_file_has_media_type(sf, sri->media_types)
-		) {
-			if (GNET_PROPERTY(query_debug) > 1 ||
-				GNET_PROPERTY(matching_debug) > 1
-			) {
-				g_debug("MATCH ignoring matched %s \"%s\", not of type %s",
-					shared_file_is_partial(sf) ? "partial" : "shared",
-					shared_file_name_canonic(sf),
-					search_media_mask_to_string(sri->media_types));
-			}
-
+		if (limits && !search_apply_limits(sf, sri))
 			return FALSE;
-		}
-
-		/*
-		 * If there is a size limit, apply it.
-		 */
-
-		if (sri->size_restrictions) {
-			filesize_t size = shared_file_size(sf);
-
-			if (size < sri->minsize || size > sri->maxsize) {
-				if (GNET_PROPERTY(query_debug) > 1 ||
-					GNET_PROPERTY(matching_debug) > 1
-				) {
-					g_debug("MATCH ignoring matched %s \"%s\": size=%s "
-						"not within boundaries [%s, %s]",
-						shared_file_is_partial(sf) ? "partial" : "shared",
-						shared_file_name_canonic(sf),
-						filesize_to_string(size),
-						filesize_to_string2(sri->minsize),
-						filesize_to_string3(sri->maxsize));
-				}
-
-				return FALSE;
-			}
-		}
 
 		shared_file_mark_found(qctx, sf);
 		qctx->files = pslist_prepend(qctx->files, shared_file_ref(sf));
@@ -7861,7 +7882,7 @@ search_request_info_as_bits(const struct search_request_info *sri)
 {
 	static char buf[17];
 
-	g_assert(sri != NULL);
+	search_request_info_check(sri);
 
 	buf[0]  = (sri->flags & QUERY_F_MARK) ?			'M' : '-',
 	buf[1]  = (sri->flags & QUERY_F_FIREWALLED) ?	'F' : '-',
@@ -7967,6 +7988,8 @@ search_request_info_alloc(void)
 	search_request_info_t *sri;
 
 	WALLOC0(sri);
+	sri->magic = SEARCH_REQUEST_INFO_MAGIC;
+
 	return sri;
 }
 
@@ -7979,7 +8002,9 @@ search_request_info_free_null(search_request_info_t **sri_ptr)
 	search_request_info_t *sri = *sri_ptr;
 
 	if (sri != NULL) {
+		search_request_info_check(sri);
 		atom_str_free_null(&sri->extended_query);
+		sri->magic = 0;
 		WFREE(sri);
 		*sri_ptr = NULL;
 	}
@@ -9267,7 +9292,7 @@ search_request(gnutella_node_t *n,
 					!shared_file_is_partial(sf)
 				) {
 					shared_file_check(sf);
-					if (got_match(qctx, sf))
+					if (got_match(qctx, sf, TRUE))
 						max_replies--;
 				}
 				shared_file_unref(&sf);
@@ -9284,7 +9309,7 @@ search_request(gnutella_node_t *n,
 					sri->size_restrictions, sri->minsize, sri->maxsize)
 				: 0;
 			for (i = 0; i < cnt; i++) {
-				got_match(qctx, sfv[i]);
+				got_match(qctx, sfv[i], TRUE);
 				shared_file_unref(&sfv[i]);
 			}
 			gnet_stats_count_general(GNR_LOCAL_WHATS_NEW_HITS, cnt);
@@ -9295,7 +9320,7 @@ search_request(gnutella_node_t *n,
 			flags |= sri->partials ? SHARE_FM_PARTIALS : 0;
 			flags |= NODE_TALKS_G2(n) ? SHARE_FM_G2 : 0;
 
-			shared_files_match(search,
+			shared_files_match(search, sri,
 				got_match, qctx, max_replies, flags, qhv);
 
 			qhv_filled = TRUE;		/* A side effect of st_search() */

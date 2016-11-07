@@ -71,6 +71,7 @@
 #include "lib/hashlist.h"
 #include "lib/hevset.h"
 #include "lib/hikset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/parse.h"
 #include "lib/plist.h"

@@ -72,6 +72,7 @@
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
+#include "lib/hstrfn.h"
 #include "lib/log.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"

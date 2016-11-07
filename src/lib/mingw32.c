@@ -82,6 +82,7 @@
 #include "hashing.h"			/* For string_mix_hash() */
 #include "hashtable.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "iovec.h"
 #include "log.h"
 #include "mem.h"

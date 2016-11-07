@@ -119,6 +119,7 @@
 #include "lib/header.h"
 #include "lib/hikset.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iovec.h"
 #include "lib/listener.h"

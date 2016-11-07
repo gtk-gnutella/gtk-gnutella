@@ -55,6 +55,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/inputevt.h"
 #include "lib/pmsg.h"

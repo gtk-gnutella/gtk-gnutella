@@ -42,6 +42,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hstrfn.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"	/* Must be the last header included */

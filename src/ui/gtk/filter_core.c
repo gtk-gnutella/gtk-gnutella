@@ -48,6 +48,7 @@
 #include "lib/atoms.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"

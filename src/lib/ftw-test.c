@@ -36,6 +36,7 @@
 #include "ftw.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "misc.h"
 #include "progname.h"
 #include "stacktrace.h"

@@ -284,6 +284,8 @@ src/casts.h
 src/common.h
 src/core/Jmakefile
 src/core/Makefile.SH
+src/core/alias.c
+src/core/alias.h
 src/core/alive.c
 src/core/alive.h
 src/core/ban.c
@@ -828,6 +830,8 @@ src/lib/hikset.c
 src/lib/hikset.h
 src/lib/host_addr.c
 src/lib/host_addr.h
+src/lib/hstrfn.c
+src/lib/hstrfn.h
 src/lib/html.c
 src/lib/html.h
 src/lib/html_entities.h

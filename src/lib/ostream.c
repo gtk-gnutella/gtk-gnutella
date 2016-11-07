@@ -42,6 +42,7 @@
 #include "ostream.h"
 #include "fd.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "pmsg.h"
 #include "slist.h"
 #include "str.h"

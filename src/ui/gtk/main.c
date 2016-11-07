@@ -72,6 +72,7 @@
 #include "lib/entropy.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/omalloc.h"
 #include "lib/path.h"
 #include "lib/product.h"

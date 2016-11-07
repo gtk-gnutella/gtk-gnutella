@@ -65,6 +65,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/magnet.h"

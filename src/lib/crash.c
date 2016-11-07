@@ -93,6 +93,7 @@
 #include "halloc.h"
 #include "hashing.h"
 #include "hashtable.h"
+#include "hstrfn.h"
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"

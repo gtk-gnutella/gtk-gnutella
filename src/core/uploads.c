@@ -94,6 +94,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"

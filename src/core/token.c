@@ -43,6 +43,7 @@
 #include "lib/crc.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"
 #include "lib/random.h"
 #include "lib/sha1.h"

@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2005, 2013 Raphael Manfredi
+ * Copyright (c) 2001-2005, 2013, 2016 Raphael Manfredi
  * Copyright (c) 2000 Daniel Walker (dwalker@cats.ucsc.edu)
  *
  *----------------------------------------------------------------------
@@ -38,6 +38,7 @@
 
 #include "share.h"
 
+#include "alias.h"
 #include "downloads.h"
 #include "extensions.h"
 #include "fileinfo.h"
@@ -127,11 +128,13 @@ struct shared_file {
 
 	const char *file_path;		/**< The full path of the file (atom!) */
 	const char *name_nfc;		/**< UTF-8 NFC version of filename (atom!) */
-	const char *name_canonic;	/**< UTF-8 canonized ver. of filename (atom)! */
+	const char *name_canonic;	/**< UTF-8 canonized ver. of filename (atom!) */
+	const char *name_normal;	/**< UTF-8 normalized aliases (atom!) */
 	const char *relative_path;	/**< UTF-8 NFC string (atom) */
 
 	size_t name_nfc_len;		/**< strlen(name_nfc) */
 	size_t name_canonic_len;	/**< strlen(name_canonic) */
+	size_t name_normal_len;		/**< strlen(name_normal) */
 
 	time_t mtime;				/**< Last modif. time, for SHA1 computation */
 	time_t ctime;				/**< File creation time */
@@ -140,7 +143,8 @@ struct shared_file {
 	uint32 file_index;			/**< the files index within our local DB */
 	uint32 sort_index;			/**< the index for sorted listings */
 
-	enum mime_type mime_type;	/* MIME type of the file */
+	enum mime_type mime_type;	/**< MIME type of the file */
+	uint media_type;			/**< Media type mask for queries */
 
 	int refcnt;					/**< Reference count */
 	uint32 flags;				/**< See below for definition */
@@ -555,6 +559,7 @@ shared_file_free(shared_file_t **sf_ptr)
 		atom_str_free_null(&sf->file_path);
 		atom_str_free_null(&sf->name_nfc);
 		atom_str_free_null(&sf->name_canonic);
+		atom_str_free_null(&sf->name_normal);
 		sf->magic = 0;
 
 		WFREE(sf);
@@ -628,6 +633,43 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 	sf->name_nfc_len = strlen(sf->name_nfc);
 	sf->name_canonic_len = strlen(sf->name_canonic);
 
+	/*
+	 * Check for aliases.
+	 *
+	 * If there are aliases, the sf->name_normal will be the normalized
+	 * form, where the first word of each alias set will be rewritten as
+	 * the normal representation of the alias set.
+	 *
+	 * If there are no strings to alias, the value will be NULL.
+	 *
+	 * When name was laready normalized, the sf->name_normal will be pointing
+	 * to the same atomic representation as sf->name_canonic.
+	 */
+
+	{
+		char *normalized = alias_normalize(sf->name_canonic, " ");
+
+		if (NULL == normalized) {
+			sf->name_normal = NULL;
+			sf->name_normal_len = 0;
+		} else {
+			sf->name_normal = atom_str_get(normalized);
+			sf->name_normal_len = strlen(sf->name_normal);
+
+			if (GNET_PROPERTY(share_debug) > 5) {
+				if (0 == strcmp(sf->name_normal, sf->name_canonic)) {
+					g_debug("SHARE \"%s\" already normalized",
+						sf->name_canonic);
+				} else {
+					g_debug("SHARE \"%s\" normalized as \"%s\"",
+						sf->name_canonic, sf->name_normal);
+				}
+			}
+		}
+
+		HFREE_NULL(normalized);
+	}
+
 	shared_file_name_check(sf);
 
 	if (0 == sf->name_nfc_len || 0 == sf->name_canonic_len) {
@@ -695,6 +737,7 @@ done:
  * Apply query string to the library.
  *
  * @param query			the query string to apply
+ * @param sri			meta-information about the query, for matching limits
  * @param callback		routine to call on each hit
  * @param user_data		opaque context passed to callback
  * @param max_res		maximum number of results
@@ -703,6 +746,7 @@ done:
  */
 void
 shared_files_match(const char *query,
+	const search_request_info_t *sri,
 	st_search_callback callback, void *user_data,
 	int max_res, uint32 flags, query_hashvec_t *qhv)
 {
@@ -726,7 +770,7 @@ shared_files_match(const char *query,
 	 * First search from the library.
 	 */
 
-	n = st_search(gt, query, callback, user_data, max_res, qhv);
+	n = st_search(gt, query, sri, callback, user_data, max_res, qhv);
 
 
 	gnet_stats_count_general(g2_query ? GNR_LOCAL_G2_HITS : GNR_LOCAL_HITS, n);
@@ -742,7 +786,7 @@ shared_files_match(const char *query,
 	 */
 
 	if (partials && remain > 0 && share_can_answer_partials()) {
-		n = st_search(pt, query, callback, user_data, remain, NULL);
+		n = st_search(pt, query, sri, callback, user_data, remain, NULL);
 		gnet_stats_count_general(
 			g2_query ? GNR_LOCAL_G2_PARTIAL_HITS : GNR_LOCAL_PARTIAL_HITS, n);
 	}
@@ -1237,6 +1281,16 @@ shared_file_valid_extension(const char *filename)
 }
 
 /**
+ * @return media type mask (for queries) associated with a given mime type.
+ */
+static unsigned
+shared_file_media_type(enum mime_type mime)
+{
+	return
+		pointer_to_uint(htable_lookup(share_media_types, int_to_pointer(mime)));
+}
+
+/**
  * @param relative_path The relative path of the file or NULL.
  * @param pathname The absolute pathname of the file.
  * @param sb A "stat buffer" that was initialized with stat().
@@ -1299,6 +1353,7 @@ share_scan_add_file(const char *relative_path,
 	}
 
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
+	sf->media_type = shared_file_media_type(sf->mime_type);
 
 	if (!sha1_is_cached(sf)) {
 		int ret;
@@ -2050,7 +2105,11 @@ recursive_scan_step_build_search_table(struct bgtask *bt, void *data, int ticks)
 		g_assert(!shared_file_is_partial(sf));
 		g_assert(1 == sf->refcnt);
 		ctx->bytes_scanned += sf->file_size;
-		st_insert_item(ctx->search_tb, sf->name_canonic, sf);
+
+		st_insert_item(ctx->search_tb, ST_SET_PLAIN, sf->name_canonic, sf);
+		if (sf->name_normal != NULL)
+			st_insert_item(ctx->search_tb, ST_SET_ALIAS, sf->name_normal, sf);
+
 		ctx->shared = pslist_prepend_const(ctx->shared, sf);
 		upload_stats_enforce_local_filename(sf);
 	}
@@ -2093,7 +2152,7 @@ recursive_scan_step_build_file_table(struct bgtask *bt, void *data, int ticks)
 		shared_file_check(sf);
 		g_assert(!(SHARE_F_INDEXED & sf->flags));
 		g_assert(UNSIGNED(i) < ctx->files_scanned);
-		g_assert(2 == sf->refcnt);	/* Added to search table */
+		g_assert(sf->refcnt >= 2 && sf->refcnt <= 3); /* In search table sets */
 		ctx->files[i++] = sf;
 	}
 
@@ -2290,9 +2349,10 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 */
 
 	if (GNET_PROPERTY(share_debug) > 1) {
-		int count = st_count(ctx->search_tb);
-		g_debug("SHARE installing new search table (%d item%s)",
-			count, plural(count));
+		int pcnt = st_count(ctx->search_tb, ST_SET_PLAIN);
+		int acnt = st_count(ctx->search_tb, ST_SET_ALIAS);
+		g_debug("SHARE installing new search table (%d item%s, %d alias%s)",
+			pcnt, plural(pcnt), acnt, plural_es(acnt));
 	}
 
 	/*
@@ -2300,14 +2360,15 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 	 * entries as being indexed and basenamed.
 	 *
 	 * Note that no one else can reference the entries at this stage, only
-	 * the file table and the search table (hence a refcount of 2).
+	 * the file table and the search table (hence a refcount of 2 at least,
+	 * and 3 if they have been aliases).
 	 */
 
 	for (i = 0; i < ctx->files_scanned; i++) {
 		shared_file_t *sf = ctx->files[i];
 
 		shared_file_check(sf);
-		g_assert(2 == sf->refcnt);
+		g_assert(sf->refcnt >= 2 && sf->refcnt <= 3);
 
 		sf->flags |= SHARE_F_INDEXED | SHARE_F_BASENAME;
 	}
@@ -2572,7 +2633,9 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 		shared_file_check(sf);
 		g_assert(shared_file_is_partial(sf));
 
-		st_insert_item(ctx->partial_tb, sf->name_canonic, sf);
+		st_insert_item(ctx->partial_tb, ST_SET_PLAIN, sf->name_canonic, sf);
+		if (sf->name_normal != NULL)
+			st_insert_item(ctx->partial_tb, ST_SET_ALIAS, sf->name_normal, sf);
 
 		if (ctx->ticks++ >= ticks)
 			return BGR_MORE;
@@ -2608,9 +2671,10 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 	 */
 
 	if (GNET_PROPERTY(share_debug) > 1) {
-		int count = st_count(ctx->partial_tb);
-		g_debug("SHARE installing new partial table (%d item%s)",
-			count, plural(count));
+		int pcnt = st_count(ctx->partial_tb, ST_SET_PLAIN);
+		int acnt = st_count(ctx->partial_tb, ST_SET_ALIAS);
+		g_debug("SHARE installing new partial table (%d item%s, %d alias%s)",
+			pcnt, plural(pcnt), acnt, plural_es(acnt));
 	}
 
 	SHARED_LIBFILE_LOCK;
@@ -3469,6 +3533,24 @@ shared_file_name_canonic(const shared_file_t *sf)
 	return sf->name_canonic;
 }
 
+/*
+ * The normalized file name, taking into account possible aliasing of
+ * certain words, like for instance series numbers.
+ *
+ * The returned value will be the same as shared_file_name_canonic() if there
+ * were no word to alias in the file.
+ */
+const char *
+shared_file_name_normalized(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	if (NULL == sf->name_normal)
+		return sf->name_canonic;
+
+	return sf->name_normal;
+}
+
 size_t
 shared_file_name_nfc_len(const shared_file_t *sf)
 {
@@ -3481,6 +3563,24 @@ shared_file_name_canonic_len(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 	return sf->name_canonic_len;
+}
+
+size_t
+shared_file_name_normalized_len(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	if (NULL == sf->name_normal)
+		return sf->name_canonic_len;
+
+	return sf->name_normal_len;
+}
+
+bool
+shared_file_needs_aliasing(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+	return sf->name_normal != NULL;
 }
 
 /**
@@ -3640,6 +3740,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	}
 
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
+	sf->media_type = shared_file_media_type(sf->mime_type);
 	sf->file_path = atom_str_get(fi->pathname);
 	sf->flags |= SHARE_F_FILEINFO;
 
@@ -3810,14 +3911,9 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount,
 bool
 shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 {
-	unsigned type;
-
 	shared_file_check(sf);
 
-	type = pointer_to_uint(
-		htable_lookup(share_media_types, int_to_pointer(sf->mime_type)));
-
-	return 0 != (type & mask);
+	return 0 != (sf->media_type & mask);
 }
 
 /**

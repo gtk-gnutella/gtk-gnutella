@@ -56,6 +56,7 @@
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
 #include "lib/stringify.h"

@@ -46,6 +46,7 @@
 #include "getcpucount.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"

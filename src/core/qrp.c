@@ -47,6 +47,8 @@
 #include <zlib.h>
 
 #include "qrp.h"
+
+#include "alias.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "nodes.h"					/* For NODE_IS_WRITABLE() */
@@ -64,6 +66,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/mutex.h"
 #include "lib/pow2.h"
@@ -1666,13 +1669,10 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 	word_vec_t *wovec;
 	uint wocnt;
 	uint i;
+	char **aliases, **a;
 
 	g_assert(sf != NULL);
 	g_assert(words != NULL);
-
-	/*
-	 * Copy filename to buffer, since we're going to map it inplace.
-	 */
 
 	g_assert(utf8_is_valid_data(shared_file_name_nfc(sf),
 				shared_file_name_nfc_len(sf)));
@@ -1680,7 +1680,8 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 				shared_file_name_canonic_len(sf)));
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP adding file \"%s\"", shared_file_name_canonic(sf));
+		g_debug("QRP adding file \"%s\"%s", shared_file_name_canonic(sf),
+			shared_file_needs_aliasing(sf) ?  "" : " (with aliases)");
 	}
 
 	/*
@@ -1699,10 +1700,8 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 
 	for (i = 0; i < wocnt; i++) {
 		const char *word = wovec[i].word;
-		size_t word_len;
 
 		g_assert(word[0] != '\0');
-		word_len = strlen(word);
 
 		/*
 		 * Record word if we haven't seen it yet.
@@ -1711,11 +1710,10 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			void *p;
+			size_t word_len = strlen(word);
 			size_t n = 1 + word_len;
 
-			p = wcopy(word, n);
-			htable_insert(words, p, size_to_pointer(n));
+			htable_insert(words, wcopy(word, n), size_to_pointer(n));
 		}
 
 		if (qrp_debugging(8)) {
@@ -1725,6 +1723,37 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 	}
 
 	word_vec_free(wovec, wocnt);
+
+	/*
+	 * Handle aliases if needed.
+	 */
+
+	if (!shared_file_needs_aliasing(sf))
+		return;		/* Done, no aliases */
+
+	aliases = alias_expand(shared_file_name_canonic(sf), " ");
+
+	g_assert(NULL != aliases);		/* Normalized form is different */
+
+	for (a = aliases; *a != NULL; a++) {
+		const char *word = *a;
+
+		if (htable_contains(words, word)) {
+			continue;
+		} else {
+			size_t word_len = strlen(word);
+			size_t n = 1 + word_len;
+
+			htable_insert(words, wcopy(word, n), size_to_pointer(n));
+		}
+
+		if (qrp_debugging(8)) {
+			g_debug("new QRP word \"%s\" [alias from %s]",
+				word, shared_file_name_nfc(sf));
+		}
+	}
+
+	h_strfreev(aliases);
 }
 
 /*

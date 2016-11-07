@@ -93,6 +93,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
 #include "lib/omalloc.h"

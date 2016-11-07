@@ -42,6 +42,7 @@
 #include "concat.h"
 #include "gnet_host.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "once.h"
 #include "parse.h"
 #include "sequence.h"

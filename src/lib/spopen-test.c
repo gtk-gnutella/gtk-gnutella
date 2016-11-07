@@ -43,6 +43,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "log.h"
 #include "misc.h"

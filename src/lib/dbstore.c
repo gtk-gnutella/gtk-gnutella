@@ -46,6 +46,7 @@
 #include "dbmw.h"
 #include "file.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "log.h"
 #include "path.h"
 #include "stringify.h"

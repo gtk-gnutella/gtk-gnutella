@@ -39,6 +39,7 @@
 #include "fd.h"
 #include "file.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "log.h"			/* For s_carp() */
 #include "misc.h"			/* For is_strsuffix() */
 #include "path.h"

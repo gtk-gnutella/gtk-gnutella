@@ -52,6 +52,7 @@
 #include "lib/halloc.h"
 #include "lib/header.h"			/* For header_dump() */
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/log.h"			/* For log_printable() */
 #include "lib/misc.h"
 #include "lib/random.h"
