@@ -157,7 +157,10 @@ void share_add_partial(const shared_file_t *sf);
 void share_remove_partial(const shared_file_t *sf);
 void share_update_matching_information(void);
 
+struct search_request_info;
+
 void shared_files_match(const char *query,
+		const struct search_request_info *sri,
 		st_search_callback callback, void *user_data,
 		int max_res, uint32 partials, struct query_hashvec *qhv);
 

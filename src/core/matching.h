@@ -88,14 +88,18 @@ bool st_insert_item(search_table_t *, enum match_set which, const char *key,
  *
  * @param ctx		the search context (opaque for st_search)
  * @param data		the matched data (shared file, opaque for st_search)
+ * @param limits	whether to apply limits (media type, size restrictions, ...)
  *
  * @return TRUE if the match must be accounted as a valid result.
  */
-typedef bool (*st_search_callback)(void *ctx, const void *data);
+typedef bool (*st_search_callback)(void *ctx, const void *data, bool limits);
+
+struct search_request_info;
 
 int st_search(
 	search_table_t *table,
 	const char *search,
+	const struct search_request_info *sri,
 	st_search_callback callback,
 	void *ctx,
 	uint max_res,

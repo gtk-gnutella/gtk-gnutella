@@ -737,6 +737,7 @@ done:
  * Apply query string to the library.
  *
  * @param query			the query string to apply
+ * @param sri			meta-information about the query, for matching limits
  * @param callback		routine to call on each hit
  * @param user_data		opaque context passed to callback
  * @param max_res		maximum number of results
@@ -745,6 +746,7 @@ done:
  */
 void
 shared_files_match(const char *query,
+	const search_request_info_t *sri,
 	st_search_callback callback, void *user_data,
 	int max_res, uint32 flags, query_hashvec_t *qhv)
 {
@@ -768,7 +770,7 @@ shared_files_match(const char *query,
 	 * First search from the library.
 	 */
 
-	n = st_search(gt, query, callback, user_data, max_res, qhv);
+	n = st_search(gt, query, sri, callback, user_data, max_res, qhv);
 
 
 	gnet_stats_count_general(g2_query ? GNR_LOCAL_G2_HITS : GNR_LOCAL_HITS, n);
@@ -784,7 +786,7 @@ shared_files_match(const char *query,
 	 */
 
 	if (partials && remain > 0 && share_can_answer_partials()) {
-		n = st_search(pt, query, callback, user_data, remain, NULL);
+		n = st_search(pt, query, sri, callback, user_data, remain, NULL);
 		gnet_stats_count_general(
 			g2_query ? GNR_LOCAL_G2_PARTIAL_HITS : GNR_LOCAL_PARTIAL_HITS, n);
 	}

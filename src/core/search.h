@@ -102,10 +102,13 @@ struct nid;
 
 #include "extensions.h"		/* For MAX_EXTVEC */
 
+enum search_request_info_magic { SEARCH_REQUEST_INFO_MAGIC = 0x030c7005 };
+
 /**
  * Gathered query information.
  */
 struct search_request_info {
+	enum search_request_info_magic magic;
 	struct {
 		struct sha1 sha1;
 		bool matched;
@@ -134,6 +137,14 @@ struct search_request_info {
 	unsigned g2_wants_dn:1;			/**< Do they want DN in hits? */
 	unsigned g2_wants_alt:1;		/**< Do they want ALT in hits? */
 };
+
+static inline void
+search_request_info_check(const struct search_request_info * const sri)
+{
+	g_assert(sri != NULL);
+	g_assert(SEARCH_REQUEST_INFO_MAGIC == sri->magic);
+}
+
 #endif	/* SEARCH_SOURCES */
 
 /*
@@ -175,6 +186,9 @@ bool search_request_preprocess(struct gnutella_node *n,
 	search_request_info_t *sri, bool isdup);
 void search_request(struct gnutella_node *n,
 	const search_request_info_t *sri, struct query_hashvec *qhv);
+bool search_apply_limits(const struct shared_file *sf,
+	const search_request_info_t *sri);
+
 size_t compact_query(char *search);
 void search_compact(struct gnutella_node *n);
 void query_strip_oob_flag(struct gnutella_node *n, char *data);

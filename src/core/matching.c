@@ -591,7 +591,7 @@ entry_match(const char *text, size_t tlen,
 			else
 				break;
 		}
-		if (j != amount)	/* Word does not occur as many time as we want */
+		if (j != amount)	/* Word does not occur as many times as we want */
 			return FALSE;
 	}
 
@@ -672,6 +672,7 @@ typedef size_t (*st_filename_len_fn_t)(const shared_file_t *sf);
  * @param mode			search mode
  * @param set			set containing organized entries to search from
  * @param search		the query string (canonized)
+ * @param sri			search meta-information, for applying query limits
  * @param result		list where results are added
  * @param qhv			query hash vector built from query string, for routing
  *
@@ -682,6 +683,7 @@ st_run_search(
 	enum search_mode mode,
 	struct st_set *set,
 	const char *search,
+	const search_request_info_t *sri,
 	pslist_t **result,
 	query_hashvec_t *qhv)
 {
@@ -876,6 +878,9 @@ st_run_search(
 		if (filename_len < minlen)
 			continue;		/* Can't match */
 
+		if (!search_apply_limits(sf, sri))
+			continue;		/* Does not pass limits the queryier has set */
+
 		scanned++;
 
 		if (entry_match(e->string, filename_len, pattern, wovec, wocnt)) {
@@ -919,6 +924,7 @@ finish:
  *
  * @param table			table containing organized entries to search from
  * @param search_term	the query string
+ * @param sri			search meta-information, for applying query limits
  * @param callback		routine to invoke for each match
  * @param ctx			user-supplied data to pass on to callback
  * @param max_res		maximum amount of results to return
@@ -930,6 +936,7 @@ int G_HOT
 st_search(
 	search_table_t *table,
 	const char *search_term,
+	const search_request_info_t *sri,
 	st_search_callback callback,
 	void *ctx,
 	uint max_res,
@@ -966,7 +973,8 @@ st_search(
 	 * Run the original query, unmangled.
 	 */
 
-	nres = st_run_search(SEARCH_NORMAL, &table->plain, search, &result, qhv);
+	nres = st_run_search(
+				SEARCH_NORMAL, &table->plain, search, sri, &result, qhv);
 
 	/*
 	 * Handle aliases if needed.
@@ -982,7 +990,8 @@ st_search(
 
 		gnet_stats_inc_general(GNR_QUERY_ALIASED_WORDS);
 
-		ares = st_run_search(SEARCH_ALIAS, &table->alias, alias, &result, NULL);
+		ares = st_run_search(
+					SEARCH_ALIAS, &table->alias, alias, sri, &result, NULL);
 		nres += ares;
 		HFREE_NULL(alias);
 
@@ -1004,7 +1013,14 @@ st_search(
 			if (NULL == sf)
 				break;
 
-			if ((*callback)(ctx, sf))
+			/*
+			 * Because search_apply_limits() was already ran by st_run_search(),
+			 * we are certain that the entries in the list pass the limits.
+			 * Therefore, there is no need to check them again, hence the
+			 * trailing "FALSE" in the call here.
+			 */
+
+			if ((*callback)(ctx, sf, FALSE))
 				i++;						/* Entry retained */
 		}
 

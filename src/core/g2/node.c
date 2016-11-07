@@ -877,6 +877,7 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 	 */
 
 	ZERO(&sri);
+	sri.magic = SEARCH_REQUEST_INFO_MAGIC;
 
 	/*
 	 * Handle the children of /Q2.
