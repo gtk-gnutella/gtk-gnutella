@@ -632,6 +632,30 @@ st_fill_qhv(const char *search_term, query_hashvec_t *qhv)
 		word_vec_free(wovec, wocnt);
 }
 
+/**
+ * Compute search bin "name" (2 consecutive indexing letters) given
+ * the matching start string whose first 2 characters were used to select
+ * the bin.
+ *
+ * @param str	start of 2 chars that make up the bin name
+ *
+ * @return the bin name, as a pointer to a static buffer
+ */
+static const char *
+st_bin_name(const char *str)
+{
+	static char buf[3];
+
+	g_assert(str != NULL);
+	g_assert(str[0] != '\0' && str[1] != '\0');
+
+	buf[0] = is_ascii_print(str[0]) ? str[0] : ' ';
+	buf[1] = is_ascii_print(str[1]) ? str[1] : ' ';
+	buf[2] = '\0';
+
+	return buf;
+}
+
 enum search_mode {
 	SEARCH_NORMAL,		/* Original query string */
 	SEARCH_ALIAS		/* Query mangled with normalized aliases */
@@ -686,6 +710,8 @@ st_run_search(
 	 */
 
 	if (len >= 2) {
+		uint b = 0;
+
 		for (i = 0; i < len - 1; i++) {
 			struct st_bin *bin;
 			if (is_ascii_space(search[i]) || is_ascii_space(search[i+1]))
@@ -698,14 +724,18 @@ st_run_search(
 			if (bin->nvals < best_bin_size) {
 				best_bin = bin;
 				best_bin_size = bin->nvals;
+				b = i;		/* Best bin starting index */
 			}
 		}
 
-		if (GNET_PROPERTY(matching_debug) > 4)
-			g_debug("MATCH %s(): mode=%s, str=\"%s\", len=%d, best_bin_size=%d",
+		if (GNET_PROPERTY(matching_debug) > 1) {
+			g_debug("MATCH %s(): mode=%s, str=\"%s\", len=%d, "
+				"best bin: {\"%s\", size=%d}",
 				G_STRFUNC, SEARCH_NORMAL == mode ? "normal" : "alias",
 				lazy_safe_search(search), len,
+				NULL == best_bin ? "" : st_bin_name(&search[b]),
 				NULL == best_bin ? 0 : best_bin_size);
+		}
 	}
 
 	/*
@@ -849,7 +879,7 @@ st_run_search(
 		scanned++;
 
 		if (entry_match(e->string, filename_len, pattern, wovec, wocnt)) {
-			if (GNET_PROPERTY(matching_debug) > 4) {
+			if (GNET_PROPERTY(matching_debug) > 3) {
 				g_debug("MATCH \"%s\" matches %s",
 					search, shared_file_name_nfc(sf));
 			}
@@ -861,7 +891,7 @@ st_run_search(
 
 	*result = local;
 
-	if (GNET_PROPERTY(matching_debug) > 3) {
+	if (GNET_PROPERTY(matching_debug) > 2) {
 		g_debug("MATCH %s(): "
 			"scanned %d entr%s from the %d in bin, got %d match%s",
 			G_STRFUNC, scanned, plural_y(scanned),
