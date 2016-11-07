@@ -143,7 +143,8 @@ struct shared_file {
 	uint32 file_index;			/**< the files index within our local DB */
 	uint32 sort_index;			/**< the index for sorted listings */
 
-	enum mime_type mime_type;	/* MIME type of the file */
+	enum mime_type mime_type;	/**< MIME type of the file */
+	uint media_type;			/**< Media type mask for queries */
 
 	int refcnt;					/**< Reference count */
 	uint32 flags;				/**< See below for definition */
@@ -1278,6 +1279,16 @@ shared_file_valid_extension(const char *filename)
 }
 
 /**
+ * @return media type mask (for queries) associated with a given mime type.
+ */
+static unsigned
+shared_file_media_type(enum mime_type mime)
+{
+	return
+		pointer_to_uint(htable_lookup(share_media_types, int_to_pointer(mime)));
+}
+
+/**
  * @param relative_path The relative path of the file or NULL.
  * @param pathname The absolute pathname of the file.
  * @param sb A "stat buffer" that was initialized with stat().
@@ -1340,6 +1351,7 @@ share_scan_add_file(const char *relative_path,
 	}
 
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
+	sf->media_type = shared_file_media_type(sf->mime_type);
 
 	if (!sha1_is_cached(sf)) {
 		int ret;
@@ -3726,6 +3738,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	}
 
 	sf->mime_type = mime_type_from_filename(sf->name_nfc);
+	sf->media_type = shared_file_media_type(sf->mime_type);
 	sf->file_path = atom_str_get(fi->pathname);
 	sf->flags |= SHARE_F_FILEINFO;
 
@@ -3896,14 +3909,9 @@ share_fill_newest(shared_file_t **sfvec, size_t sfcount,
 bool
 shared_file_has_media_type(const shared_file_t *sf, unsigned mask)
 {
-	unsigned type;
-
 	shared_file_check(sf);
 
-	type = pointer_to_uint(
-		htable_lookup(share_media_types, int_to_pointer(sf->mime_type)));
-
-	return 0 != (type & mask);
+	return 0 != (sf->media_type & mask);
 }
 
 /**
