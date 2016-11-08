@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 23:56+0100\n"
+"POT-Creation-Date: 2016-11-08 08:30+0100\n"
 "PO-Revision-Date: 2016-08-31 15:19+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1065,6 +1065,10 @@ msgstr "Yerel veritabanında G2 isabetleri"
 msgid "G2 hits on local partial files"
 msgstr "Yerel kısmi dosyalara G2 isabetleri"
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "\"Yeni olanlar\" sorgularına isabetler"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
 
@@ -1134,6 +1138,9 @@ msgstr "UTF8 G2 sorguları"
 
 msgid "SHA1 G2 queries"
 msgstr "SHA1 G2 sorguları"
+
+msgid "Queries with aliased words"
+msgstr ""
 
 msgid "GUESS queries"
 msgstr "GUESS sorguları"
@@ -4963,6 +4970,10 @@ msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
 "İçeri gelen bağlantılara izin vermek için bağlı hiçbir TCP dinleme soketi "
 "yoktur."
+
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
 
 msgid "disable"
 msgstr "devre dışı"

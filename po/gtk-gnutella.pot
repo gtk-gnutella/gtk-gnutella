@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1.9u\n"
+"Project-Id-Version: gtk-gnutella 1.1.10\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 23:56+0100\n"
+"POT-Creation-Date: 2016-11-08 08:30+0100\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1061,6 +1061,9 @@ msgstr ""
 msgid "G2 hits on local partial files"
 msgstr ""
 
+msgid "Hits on aliased queries"
+msgstr ""
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr ""
 
@@ -1125,6 +1128,9 @@ msgid "UTF8 G2 queries"
 msgstr ""
 
 msgid "SHA1 G2 queries"
+msgstr ""
+
+msgid "Queries with aliased words"
 msgstr ""
 
 msgid "GUESS queries"
@@ -4248,6 +4254,9 @@ msgid ""
 msgstr ""
 
 msgid "No TCP listening socket bound to allow incoming connections."
+msgstr ""
+
+msgid "Defines whether Gnutella queries should be traced."
 msgstr ""
 
 msgid "disable"
