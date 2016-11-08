@@ -897,15 +897,31 @@ st_run_search(
 	*result = local;
 
 	if (GNET_PROPERTY(matching_debug) > 2) {
+		uint compiled = 0;
+
+		for (i = 0; i < wocnt; i++) {
+			if (NULL == pattern[i])
+				break;
+			compiled++;
+		}
+
 		g_debug("MATCH %s(): "
-			"scanned %d entr%s from the %d in bin, got %d match%s",
-			G_STRFUNC, scanned, plural_y(scanned),
-			best_bin_size, nres, plural_es(nres));
+			"scanned %d/%d bin entr%s, "
+			"compiled %u/%u pattern%s, got %d match%s",
+			G_STRFUNC, scanned, best_bin_size, plural_y(scanned),
+			compiled, wocnt, plural(compiled), nres, plural_es(nres));
 	}
 
+	/*
+	 * Matching patterns are lazily compiled by entry_match(), as they are
+	 * needed, but in order.  Therefore we can stop as soon as we hit a NULL
+	 * entry in the array.
+	 */
+
 	for (i = 0; i < wocnt; i++) {
-		if (pattern[i])					/* Lazily compiled by entry_match() */
-			pattern_free(pattern[i]);
+		if (NULL == pattern[i])
+			break;
+		pattern_free(pattern[i]);
 	}
 
 	WFREE_ARRAY(pattern, wocnt);
