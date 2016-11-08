@@ -2627,7 +2627,7 @@ crash_mode(enum crash_level level, bool external)
 		 * emergency situation.
 		 */
 
-		thread_crash_mode();
+		thread_crash_mode(new_level > CRASH_LVL_OOM);
 		goto done;
 
 	case CRASH_LVL_NONE:

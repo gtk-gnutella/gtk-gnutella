@@ -7849,7 +7849,7 @@ thread_is_crashing(void)
  * Enter thread crashing mode.
  */
 void
-thread_crash_mode(void)
+thread_crash_mode(bool disable_locks)
 {
 	if (0 == atomic_int_inc(&thread_crash_mode_enabled)) {
 		/*
@@ -7873,11 +7873,11 @@ thread_crash_mode(void)
 	/*
 	 * Now that other threads are disabled, check whether any of them have
 	 * any locks held.  If none of them have, there is no need to disable
-	 * locking, unless we have been called already, which means we're crashing
-	 * again during our crash handling.
+	 * locking, unless we are told to, which means we're crashing again
+	 * during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1)
+	if (0 != thread_others_lock_count() || disable_locks)
 		thread_lock_disable(FALSE);
 }
 
