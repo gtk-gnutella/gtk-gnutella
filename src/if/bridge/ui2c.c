@@ -145,12 +145,6 @@ guc_download_pause(struct download *d)
 }
 
 void
-guc_download_abort(struct download *d)
-{
-	download_request_abort(d);
-}
-
-void
 guc_download_resume(struct download *d)
 {
 	download_request_resume(d);

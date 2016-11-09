@@ -8186,16 +8186,6 @@ download_abort(struct download *d)
 			download_remove_file(d, FALSE);
 }
 
-void
-download_request_abort(struct download *d)
-{
-	download_check(d);
-	g_return_if_fail(d->file_info);
-	file_info_check(d->file_info);
-
-	download_abort(d);
-}
-
 static void
 download_resume(struct download *d)
 {

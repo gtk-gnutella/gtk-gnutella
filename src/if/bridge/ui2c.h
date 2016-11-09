@@ -107,7 +107,6 @@ bool guc_download_file_exists(const struct download *);
 void guc_download_requeue(struct download *);
 void guc_download_start(struct download *);
 void guc_download_pause(struct download *);
-void guc_download_abort(struct download *);
 void guc_download_resume(struct download *);
 void guc_download_freeze_queue(void);
 void guc_download_thaw_queue(void);
