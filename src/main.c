@@ -750,7 +750,7 @@ gtk_gnutella_exit(int exit_code)
 		return;
 
 	/*
-	 * Before running final cleanup, show allocation statistics.
+	 * Before running final cleanup, show allocation and thread statistics.
 	 */
 
 	if (debugging(0)) {
@@ -760,6 +760,7 @@ gtk_gnutella_exit(int exit_code)
 		DO(vmm_dump_stats);
 		DO(xmalloc_dump_stats);
 		DO(zalloc_dump_stats);
+		DO(thread_dump_stats);
 	}
 
 	/*
@@ -1040,9 +1041,6 @@ gtk_gnutella_exit(int exit_code)
 	}
 
 	thread_suspend_others(FALSE);
-
-	if (debugging(0))
-		DO(thread_dump_stats);
 
 	/*
 	 * Now we won't be dispatching any more TEQ events, which happen mostly
