@@ -16152,11 +16152,6 @@ create_main_window_downloads_tab (void)
   GtkWidget *checkbutton_downloads_filter_regex_invert;
   GtkWidget *checkbutton_downloads_filter_regex_case;
   GtkWidget *hbox9343;
-  GtkWidget *button_downloads_clear_stopped;
-  GtkWidget *alignment29;
-  GtkWidget *hbox160;
-  GtkWidget *image30;
-  GtkWidget *label411;
   GtkWidget *label1028;
   GtkWidget *hbox261;
   GtkWidget *table95;
@@ -16223,6 +16218,11 @@ create_main_window_downloads_tab (void)
   GtkWidget *hbox9335;
   GtkWidget *image1797;
   GtkWidget *label995;
+  GtkWidget *button_downloads_clear_completed;
+  GtkWidget *alignment150;
+  GtkWidget *hbox9355;
+  GtkWidget *image2295;
+  GtkWidget *label1084;
   GtkTooltips *tooltips;
 
   tooltips = gtk_tooltips_new ();
@@ -16472,34 +16472,6 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (hbox9343);
   gtk_box_pack_start (GTK_BOX (vbox154), hbox9343, FALSE, TRUE, 0);
 
-  button_downloads_clear_stopped = gtk_button_new ();
-  gtk_widget_set_name (button_downloads_clear_stopped, "button_downloads_clear_stopped");
-  gtk_widget_show (button_downloads_clear_stopped);
-  gtk_box_pack_start (GTK_BOX (hbox9343), button_downloads_clear_stopped, FALSE, TRUE, 0);
-  gtk_container_set_border_width (GTK_CONTAINER (button_downloads_clear_stopped), 2);
-  gtk_widget_set_sensitive (button_downloads_clear_stopped, FALSE);
-  gtk_tooltips_set_tip (tooltips, button_downloads_clear_stopped, _("Remove completed downloads from list"), NULL);
-
-  alignment29 = gtk_alignment_new (0.5, 0.5, 0, 0);
-  gtk_widget_set_name (alignment29, "alignment29");
-  gtk_widget_show (alignment29);
-  gtk_container_add (GTK_CONTAINER (button_downloads_clear_stopped), alignment29);
-
-  hbox160 = gtk_hbox_new (FALSE, 2);
-  gtk_widget_set_name (hbox160, "hbox160");
-  gtk_widget_show (hbox160);
-  gtk_container_add (GTK_CONTAINER (alignment29), hbox160);
-
-  image30 = gtk_image_new_from_stock ("gtk-clear", GTK_ICON_SIZE_MENU);
-  gtk_widget_set_name (image30, "image30");
-  gtk_widget_show (image30);
-  gtk_box_pack_start (GTK_BOX (hbox160), image30, FALSE, FALSE, 0);
-
-  label411 = gtk_label_new_with_mnemonic (_("_Clear completed"));
-  gtk_widget_set_name (label411, "label411");
-  gtk_widget_show (label411);
-  gtk_box_pack_start (GTK_BOX (hbox160), label411, FALSE, FALSE, 0);
-
   label1028 = gtk_label_new (_("Tools"));
   gtk_widget_set_name (label1028, "label1028");
   gtk_widget_show (label1028);
@@ -16656,7 +16628,7 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label1014);
   gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), label1014);
 
-  table53 = gtk_table_new (1, 7, FALSE);
+  table53 = gtk_table_new (1, 8, FALSE);
   gtk_widget_set_name (table53, "table53");
   gtk_widget_show (table53);
   gtk_box_pack_start (GTK_BOX (vbox142), table53, FALSE, TRUE, 0);
@@ -16885,6 +16857,36 @@ create_main_window_downloads_tab (void)
   gtk_widget_show (label995);
   gtk_box_pack_start (GTK_BOX (hbox9335), label995, FALSE, TRUE, 0);
 
+  button_downloads_clear_completed = gtk_button_new ();
+  gtk_widget_set_name (button_downloads_clear_completed, "button_downloads_clear_completed");
+  gtk_widget_show (button_downloads_clear_completed);
+  gtk_table_attach (GTK_TABLE (table53), button_downloads_clear_completed, 7, 8, 0, 1,
+                    (GtkAttachOptions) (GTK_FILL),
+                    (GtkAttachOptions) (0), 0, 0);
+  gtk_container_set_border_width (GTK_CONTAINER (button_downloads_clear_completed), 2);
+  gtk_widget_set_sensitive (button_downloads_clear_completed, FALSE);
+  gtk_tooltips_set_tip (tooltips, button_downloads_clear_completed, _("Remove completed downloads from list"), NULL);
+
+  alignment150 = gtk_alignment_new (0.5, 0.5, 0, 0);
+  gtk_widget_set_name (alignment150, "alignment150");
+  gtk_widget_show (alignment150);
+  gtk_container_add (GTK_CONTAINER (button_downloads_clear_completed), alignment150);
+
+  hbox9355 = gtk_hbox_new (FALSE, 2);
+  gtk_widget_set_name (hbox9355, "hbox9355");
+  gtk_widget_show (hbox9355);
+  gtk_container_add (GTK_CONTAINER (alignment150), hbox9355);
+
+  image2295 = gtk_image_new_from_stock ("gtk-clear", GTK_ICON_SIZE_MENU);
+  gtk_widget_set_name (image2295, "image2295");
+  gtk_widget_show (image2295);
+  gtk_box_pack_start (GTK_BOX (hbox9355), image2295, FALSE, FALSE, 0);
+
+  label1084 = gtk_label_new_with_mnemonic (_("_Clear completed"));
+  gtk_widget_set_name (label1084, "label1084");
+  gtk_widget_show (label1084);
+  gtk_box_pack_start (GTK_BOX (hbox9355), label1084, FALSE, FALSE, 0);
+
   g_signal_connect ((gpointer) drawingarea_fi_progress, "realize",
                     G_CALLBACK (on_drawingarea_fi_progress_realize),
                     NULL);
@@ -16909,11 +16911,11 @@ create_main_window_downloads_tab (void)
   g_signal_connect ((gpointer) checkbutton_downloads_filter_regex_case, "toggled",
                     G_CALLBACK (on_checkbutton_downloads_filter_regex_case_toggled),
                     NULL);
-  g_signal_connect ((gpointer) button_downloads_clear_stopped, "clicked",
-                    G_CALLBACK (on_button_downloads_clear_stopped_clicked),
-                    NULL);
   g_signal_connect ((gpointer) togglebutton_queue_freeze, "toggled",
                     G_CALLBACK (on_togglebutton_queue_freeze_toggled),
+                    NULL);
+  g_signal_connect ((gpointer) button_downloads_clear_completed, "clicked",
+                    G_CALLBACK (on_button_downloads_clear_completed_clicked),
                     NULL);
 
   /* Store pointers to all widgets, for use by lookup_widget(). */
@@ -16954,11 +16956,6 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_filter_regex_invert, "checkbutton_downloads_filter_regex_invert");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, checkbutton_downloads_filter_regex_case, "checkbutton_downloads_filter_regex_case");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9343, "hbox9343");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_clear_stopped, "button_downloads_clear_stopped");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment29, "alignment29");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox160, "hbox160");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image30, "image30");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label411, "label411");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1028, "label1028");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox261, "hbox261");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, table95, "table95");
@@ -17021,6 +17018,11 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9335, "hbox9335");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image1797, "image1797");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label995, "label995");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, button_downloads_clear_completed, "button_downloads_clear_completed");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, alignment150, "alignment150");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, hbox9355, "hbox9355");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, image2295, "image2295");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label1084, "label1084");
   GLADE_HOOKUP_OBJECT_NO_REF (main_window_downloads_tab, tooltips, "tooltips");
 
   return main_window_downloads_tab;

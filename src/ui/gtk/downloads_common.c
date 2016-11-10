@@ -136,7 +136,7 @@ gui_update_download_clear_now(void)
 		return;
 
 	gtk_widget_set_sensitive(
-        gui_main_window_lookup("button_downloads_clear_stopped"),
+        gui_main_window_lookup("button_downloads_clear_completed"),
         guc_download_something_to_clear());
 }
 
@@ -144,7 +144,7 @@ gui_update_download_clear_now(void)
  *	Clear all stopped, complete, and unavailable downloads.
  */
 void
-on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
+on_button_downloads_clear_completed_clicked(GtkButton *unused_button,
 	void *unused_udata)
 {
 	(void) unused_button;
@@ -2395,7 +2395,7 @@ fi_gui_common_init(void)
 		FREQ_SECS, 0);
 
 	gtk_widget_set_sensitive(
-		gui_main_window_lookup("button_downloads_clear_stopped"),
+		gui_main_window_lookup("button_downloads_clear_completed"),
 		TRUE);
 
 	main_gui_add_page_visibility_listener(on_download_visibility_change,
