@@ -100,6 +100,12 @@ guc_file_info_status_to_string(const gnet_fi_status_t *status)
 	return file_info_status_to_string(status);
 }
 
+void
+guc_file_info_clear_completed(void)
+{
+	file_info_clear_completed();
+}
+
 int
 guc_download_get_http_req_percent(const struct download *d)
 {

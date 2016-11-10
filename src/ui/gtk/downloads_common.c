@@ -149,7 +149,10 @@ on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
 {
 	(void) unused_button;
 	(void) unused_udata;
-	guc_download_clear_stopped(TRUE, TRUE, TRUE, TRUE, TRUE);
+
+	fi_gui_files_freeze();
+	guc_file_info_clear_completed();
+	fi_gui_files_thaw();
 }
 
 

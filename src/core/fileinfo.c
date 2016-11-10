@@ -7893,6 +7893,41 @@ file_info_rename(fileinfo_t *fi, const char *filename)
 }
 
 /**
+ * hikset_foreach() iterator.
+ *
+ * Insert file info in list if it can be freed.
+ */
+static void
+fi_test_completed(void *data, void *udata)
+{
+	fileinfo_t *fi = data;
+	pslist_t **list = udata;
+
+	file_info_check(fi);
+
+	if (FILE_INFO_FINISHED(fi) && !(FI_F_SEEDING & fi->flags))
+		*list = pslist_prepend(*list, fi);
+}
+
+/**
+ * Clear completed entries that are not beeing seeded.
+ */
+void
+file_info_clear_completed(void)
+{
+	pslist_t *to_remove = NULL, *sl;
+
+	hikset_foreach(fi_by_guid, fi_test_completed, &to_remove);
+
+	PSLIST_FOREACH(to_remove, sl) {
+		fileinfo_t *fi = sl->data;
+		file_info_purge(fi);
+	}
+
+	pslist_free(to_remove);
+}
+
+/**
  * Initialize fileinfo handling.
  */
 void G_COLD
