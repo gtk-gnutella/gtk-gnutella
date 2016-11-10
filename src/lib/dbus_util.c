@@ -40,6 +40,7 @@
 
 #include "dbus_util.h"
 
+#include "halloc.h"			/* For h_strdup() */
 #include "hstrfn.h"			/* For h_strdup() */
 #include "log.h"
 #include "misc.h"			/* For str_chomp() */
