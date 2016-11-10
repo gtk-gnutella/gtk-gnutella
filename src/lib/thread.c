@@ -2001,9 +2001,12 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
@@ -2043,9 +2046,12 @@ thread_probably_gone(cqueue_t *unused_cq, void *data)
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
