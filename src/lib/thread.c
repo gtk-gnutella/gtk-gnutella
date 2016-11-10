@@ -1246,6 +1246,39 @@ thread_element_mark_gone_seen(struct thread_element *te)
 }
 
 /**
+ * A discovered thread (outside of "main") was seen running.
+ */
+static void
+thread_element_mark_running(struct thread_element *te)
+{
+	/*
+	 * We are in a discovered thread, and we take this opportunity to
+	 * update the last time we see an activity for that thread.  This
+	 * allows thread tracing code to spot likely inactive discovered
+	 * thread since we cannot know when they enter a blocking state due
+	 * to thread synchronization (waiting for an event, sleeping, etc..).
+	 *		--RAM, 2015-02-23
+	 */
+
+	te->last_seen = tm_time_raw();
+
+	/*
+	 * Loudly warn if the thread element is marked as gone.
+	 * It means that thread_will_exit() was called, we marked the
+	 * discovered thread as being gone and yet the same thread
+	 * is still being active.
+	 */
+
+	if G_UNLIKELY(te->gone) {
+		thread_element_mark_gone_seen(te);
+	} else if G_UNLIKELY(te->add_monitoring) {
+		/* No longer flagged as "gone", re-install monitoring */
+		te->add_monitoring = FALSE;
+		thread_monitor_exit(te);
+	}
+}
+
+/**
  * @return whether thread element is matching the QID.
  */
 static bool
@@ -1280,35 +1313,10 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		if G_UNLIKELY(!te->valid)
 			goto false_hit;
 
-		/*
-		 * We are in a discovered thread, and we take this opportunity to
-		 * update the last time we see an activity for that thread.  This
-		 * allows thread tracing code to spot likely inactive discovered
-		 * thread since we cannot know when they enter a blocking state due
-		 * to thread synchronization (waiting for an event, sleeping, etc..).
-		 *		--RAM, 2015-02-23
-		 */
-
-		te->last_seen = tm_time_raw();
-
 		THREAD_STATS_INCX(qid_cache_self_check);
 
 		if (thread_eq(te->tid, thread_self())) {
-			/*
-			 * Loudly warn if the thread element is marked as gone.
-			 * It means that thread_will_exit() was called, we marked the
-			 * discovered thread as being gone and yet the same thread
-			 * is still being active.
-			 */
-
-			if G_UNLIKELY(te->gone) {
-				thread_element_mark_gone_seen(te);
-			} else if G_UNLIKELY(te->add_monitoring) {
-				/* No longer flagged as "gone", re-install monitoring */
-				te->add_monitoring = FALSE;
-				thread_monitor_exit(te);
-			}
-
+			thread_element_mark_running(te);
 			goto matched;
 		}
 
@@ -3430,6 +3438,9 @@ thread_find_tid(thread_t t)
 		}
 	}
 
+	if (te != NULL && te->discovered && !te->main_thread)
+		thread_element_mark_running(te);
+
 	return te;
 }
 
@@ -3581,7 +3592,10 @@ thread_find_via_qid(thread_qid_t qid)
 	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
 		thread_t t = thread_self();
 		if (!thread_eq(te->tid, t)) {
-			te = thread_find_tid(t);		/* Find proper TID instead */
+			te = thread_find_tid(t);	/* Find proper TID instead and... */
+			/* ... will have called thread_element_mark_running() if needed */
+		} else {
+			thread_element_mark_running(te);
 		}
 	}
 
