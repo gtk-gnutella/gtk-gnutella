@@ -2581,7 +2581,6 @@ crash_mode(enum crash_level level, bool external)
 
 		signal_crashing();
 		log_crash_mode();
-		thread_lock_disable(FALSE);
 
 		/* FALL THROUGH */
 
@@ -2627,7 +2626,7 @@ crash_mode(enum crash_level level, bool external)
 		 * emergency situation.
 		 */
 
-		thread_crash_mode(new_level > CRASH_LVL_OOM);
+		thread_crash_mode(new_level > CRASH_LVL_FAILURE);
 		goto done;
 
 	case CRASH_LVL_NONE:
@@ -2646,7 +2645,8 @@ done:
 		crash_oom_condition();
 
 	/*
-	 * Specifically for deadlock conditions, disable all locks.
+	 * Specifically for deadlock conditions, disable all locks, if not
+	 * already done above by the thread_crash_mode() call.
 	 */
 
 	if (CRASH_LVL_DEADLOCKED == level)
