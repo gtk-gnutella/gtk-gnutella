@@ -4553,7 +4553,24 @@ crash_assert_failure(const struct assertion_data *a)
 const char * G_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
-	crash_mode(CRASH_LVL_FAILURE, TRUE);
+	/*
+	 * Normally, crash_assert_logv() must be called after having called
+	 * crash_assert_failure(), which means we have already called crash_mode().
+	 *
+	 * We must not call it again or it would be seen as a recursive failure.
+	 *
+	 * However, to prevent mistakes, we check that vars->failure is indeed
+	 * not NULL (a signal that crash_assert_failure() was called) and we
+	 * record the failure with a warning if it appears we are not in the
+	 * expected calling pattern.
+	 *
+	 *		--RAM, 2016-11-10
+	 */
+
+	if (vars != NULL && NULL == vars->failure) {
+		s_rawwarn("%s(): crash_assert_failure() not called before", G_STRFUNC);
+		crash_mode(CRASH_LVL_FAILURE, TRUE);
+	}
 
 	if (vars != NULL && vars->logstr != NULL) {
 		const char *msg;
