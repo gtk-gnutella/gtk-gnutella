@@ -493,7 +493,7 @@ entropy_collect_randomness(SHA1_context *ctx)
 #ifdef MINGW32
 	{
 		uint8 data[128];
-		if (0 == mingw_random_bytes(data, sizeof data)) {
+		if (0 == mingw_random_bytes(VARLEN(data))) {
 			s_warning("%s(): unable to generate random bytes: %m", G_STRFUNC);
 		} else {
 			SHA1_INPUT(ctx, data);
@@ -1093,7 +1093,7 @@ entropy_self_feed(SHA1_context *ctx)
 	for (i = 0; i < 7; i++) {
 		tm_nano_t now;
 		tm_precise_time(&now);
-		rand31_addrandom(&now, sizeof now);
+		rand31_addrandom(VARLEN(now));
 		SHUFFLE_ARRAY_WITH(rand31_u32, cbytes);
 	}
 	SHA1_INPUT(ctx, cbytes);
@@ -1445,7 +1445,7 @@ static struct entropy_ops entropy_ops;
 static void
 entropy_aje_collect(sha1_t *digest)
 {
-	aje_random_bytes(digest, sizeof *digest);
+	aje_random_bytes(PTRLEN(digest));
 }
 
 /**
@@ -1531,7 +1531,7 @@ entropy_do_random(void)
 		spinlock_hidden(&entropy_random_slk);
 
 		digest = tmp;			/* struct copy */
-		p = ptr_add_offset(&digest, sizeof digest);
+		p = ptr_add_offset(VARLEN(digest));
 	}
 
 	/*
@@ -1727,9 +1727,9 @@ entropy_clock_time(void)
 void
 entropy_harvest_time(void)
 {
-	uint16 rnd = entropy_clock_time();
+	uint16 rnd = entropy_clock_time();	/* Yes, truncated to 16 bits */
 
-	random_pool_append(&rnd, sizeof rnd);
+	random_pool_append(VARLEN(rnd));
 }
 
 /**
@@ -1788,7 +1788,7 @@ entropy_harvest_small(const void *p, size_t len, ...)
 
 	va_end(ap);
 
-	random_pool_append(&c, sizeof c);
+	random_pool_append(VARLEN(c));
 }
 
 /**
@@ -1853,7 +1853,7 @@ entropy_harvest_many(const void *p, size_t len, ...)
 
 		random_pool_append(q, l);
 	} else {
-		random_pool_append(&digest, sizeof digest);
+		random_pool_append(VARLEN(digest));
 	}
 }
 
