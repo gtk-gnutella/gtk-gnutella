@@ -257,6 +257,8 @@ on_notebook_main_switch_page(GtkNotebook *unused_notebook,
 	old_page = notebook_main_current_page;
 	notebook_main_current_page = page_num;
 
+	gui_prop_set_guint32_val(PROP_MAIN_NOTEBOOK_TAB, page_num);
+
 	if (main_window_is_visible) {
 		main_gui_page_visibility_change(old_page, FALSE);
 		main_gui_page_visibility_change(notebook_main_current_page, TRUE);
@@ -1026,12 +1028,29 @@ main_gui_run(const gchar *geometry_spec, const gboolean minimized)
         8, 8);
 
 	/*
-	 * Make sure the application starts in the Gnet pane.
+	 * Make sure the application starts in the Gnet pane by default, or
+	 * whereever they had left it in the previous session if it restarted
+	 * abnormally (after a crash).
 	 */
 
 	gui_signal_connect(GTK_NOTEBOOK(gui_main_window_lookup("notebook_main")),
 		"switch-page", on_notebook_main_switch_page, NULL);
-	main_gui_notebook_set_page(nb_main_page_network);
+
+	{
+		uint32 page = nb_main_page_network;
+		bool clean_restart;
+
+		gnet_prop_get_boolean_val(PROP_CLEAN_RESTART, &clean_restart);
+
+		if (!clean_restart) {
+			gui_prop_get_guint32_val(PROP_MAIN_NOTEBOOK_TAB, &page);
+
+			if (page >= nb_main_page_num)
+				page = nb_main_page_network;
+		}
+
+		main_gui_notebook_set_page(page);
+	}
 
 	settings_gui_restore_panes();
     gtk_main();

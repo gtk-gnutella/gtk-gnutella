@@ -1411,6 +1411,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "main_notebook_tab";
+    desc = "Notebook tab number for the main page";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 #endif /* !USE_TOPLESS */
 
 /* vi: set ts=4: */

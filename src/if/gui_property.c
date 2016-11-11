@@ -359,6 +359,8 @@ gboolean gui_property_variable_guess_stats_show_total     = TRUE;
 static const gboolean gui_property_variable_guess_stats_show_total_default = TRUE;
 guint32  gui_property_variable_fileinfo_notebook_tab     = 0;
 static const guint32  gui_property_variable_fileinfo_notebook_tab_default = 0;
+guint32  gui_property_variable_main_notebook_tab     = 0;
+static const guint32  gui_property_variable_main_notebook_tab_default = 0;
 
 static prop_set_t *gui_property;
 
@@ -2843,6 +2845,28 @@ gui_prop_init(void) {
     gui_property->props[122].data.guint32.choices = NULL;
     gui_property->props[122].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[122].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_MAIN_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[123].name = "main_notebook_tab";
+    gui_property->props[123].desc = _("Notebook tab number for the main page");
+    gui_property->props[123].ev_changed = event_new("main_notebook_tab_changed");
+    gui_property->props[123].save = TRUE;
+    gui_property->props[123].internal = FALSE;
+    gui_property->props[123].vector_size = 1;
+	mutex_init(&gui_property->props[123].lock);
+
+    /* Type specific data: */
+    gui_property->props[123].type               = PROP_TYPE_GUINT32;
+    gui_property->props[123].data.guint32.def   = (void *) &gui_property_variable_main_notebook_tab_default;
+    gui_property->props[123].data.guint32.value = (void *) &gui_property_variable_main_notebook_tab;
+    gui_property->props[123].data.guint32.choices = NULL;
+    gui_property->props[123].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[123].data.guint32.min   = 0x00000000;
 
     gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
