@@ -2167,6 +2167,8 @@ on_notebook_downloads_switch_page(GtkNotebook *notebook,
 
 	fi_gui_files_widget_destroy();
 
+	gui_prop_set_guint32_val(PROP_FILEINFO_NOTEBOOK_TAB, page_num);
+
 	current_page = page_num;
 	notebook_downloads_init_page(notebook, current_page);
 
@@ -2215,6 +2217,12 @@ notebook_downloads_init(void)
 		gtk_widget_show_all(sw);
 	}
 	gtk_notebook_set_scrollable(notebook, TRUE);
+
+	gui_prop_get_guint32_val(PROP_FILEINFO_NOTEBOOK_TAB, &current_page);
+
+	if (UNSIGNED(current_page) >= nb_downloads_page_num)
+		current_page = 0;
+
 	gtk_notebook_set_current_page(notebook, current_page);
 	notebook_downloads_init_page(notebook, current_page);
 
