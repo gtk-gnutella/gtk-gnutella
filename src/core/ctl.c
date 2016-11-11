@@ -39,6 +39,7 @@
 
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iso3166.h"
 #include "lib/misc.h"

@@ -1009,6 +1009,12 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 		events = thread_block_prepare();
 	}
 
+	if G_UNLIKELY(n > 1) {
+		s_info("%s(): RPC %s(%p) to %s completed after %u timeouts",
+			G_STRFUNC, stacktrace_function_name(routine), data,
+			thread_id_name(id), n);
+	}
+
 	return rpc.result;
 }
 

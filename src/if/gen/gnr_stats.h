@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Jun 17 13:02:21 2015 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Nov  6 23:31:52 2016 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 307
+ * Enum count: 309
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -32,6 +32,7 @@ typedef enum {
 	GNR_LOCAL_G2_SEARCHES,
 	GNR_LOCAL_G2_HITS,
 	GNR_LOCAL_G2_PARTIAL_HITS,
+	GNR_LOCAL_ALIASED_HITS,
 	GNR_OOB_PROXIED_QUERY_HITS,
 	GNR_OOB_QUERIES,
 	GNR_OOB_QUERIES_STRIPPED,
@@ -54,6 +55,7 @@ typedef enum {
 	GNR_QUERY_WHATS_NEW,
 	GNR_QUERY_G2_UTF8,
 	GNR_QUERY_G2_SHA1,
+	GNR_QUERY_ALIASED_WORDS,
 	GNR_QUERY_GUESS,
 	GNR_QUERY_GUESS_02,
 	GNR_GUESS_LINK_CACHE,

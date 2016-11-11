@@ -93,6 +93,7 @@
 #include "halloc.h"
 #include "hashing.h"
 #include "hashtable.h"
+#include "hstrfn.h"
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
@@ -2462,11 +2463,12 @@ crash_level(void)
  * Entering crash mode, for a given level.
  *
  * @param level		the crash level, to determine what we need to disable
+ * @param external	TRUE if coming from an external entry point
  *
  * @return FALSE if we had already entered crash_mode(), TRUE the first time.
  */
 static bool G_COLD
-crash_mode(enum crash_level level)
+crash_mode(enum crash_level level, bool external)
 {
 	static int done;
 	static int halted[THREAD_MAX];
@@ -2484,8 +2486,9 @@ crash_mode(enum crash_level level)
 	 */
 
 	if (0 == depth) {
-		s_rawdebug("%s(): initial call, level=%s from %s",
-			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
+		s_rawdebug("%s(): initial %s call, level=%s from %s",
+			G_STRFUNC, external ? "external" : "internal",
+			crash_level_to_string(level), thread_safe_name());
 
 		crash_thread_id = thread_safe_small_id();
 		atomic_mb();
@@ -2511,13 +2514,15 @@ crash_mode(enum crash_level level)
 			}
 		}
 
-		s_rawwarn("%s(): concurrent call, level=%s from %s",
-			G_STRFUNC, crash_level_to_string(level), thread_safe_name());
+		s_rawwarn("%s(): concurrent %s call, level=%s from %s",
+			G_STRFUNC, external ? "external" : "internal",
+			crash_level_to_string(level), thread_safe_name());
 
 		thread_halt();		/* No coming back */
 	} else if (level > crash_current_level) {
-		s_rawdebug("%s(): subsequent call, level=%s",
-			G_STRFUNC, crash_level_to_string(level));
+		s_rawdebug("%s(): subsequent %s call, level=%s",
+			G_STRFUNC, external ? "external" : "internal",
+			crash_level_to_string(level));
 	}
 
 	spinlock_hidden(&crash_mode_slk);
@@ -2534,10 +2539,14 @@ crash_mode(enum crash_level level)
 	 * condition, force a recursive level.
 	 */
 
-	if (level != CRASH_LVL_BASIC && old_level > CRASH_LVL_OOM)
+	if (external && level != CRASH_LVL_BASIC && old_level > CRASH_LVL_OOM)
 		new_level = CRASH_LVL_RECURSIVE;
 
 	crash_current_level = new_level;
+
+	s_rawdebug("%s(): depth=%d, external=%s, level=%s, old=%s, new=%s",
+		G_STRFUNC, depth, external ? "y" : "n", crash_level_to_string(level),
+		crash_level_to_string(old_level), crash_level_to_string(new_level));
 
 	spinunlock_hidden(&crash_mode_slk);
 
@@ -2546,6 +2555,9 @@ crash_mode(enum crash_level level)
 
 	switch (new_level) {
 	case CRASH_LVL_RECURSIVE:
+		s_rawdebug("%s(): old level was %s, moving to recursive",
+			G_STRFUNC, crash_level_to_string(old_level));
+
 		/*
 		 * Since we are recursing into the crash handler, do not take risks
 		 * and make sure memory allocators are not adding an additional
@@ -2569,7 +2581,6 @@ crash_mode(enum crash_level level)
 
 		signal_crashing();
 		log_crash_mode();
-		thread_lock_disable(FALSE);
 
 		/* FALL THROUGH */
 
@@ -2615,7 +2626,7 @@ crash_mode(enum crash_level level)
 		 * emergency situation.
 		 */
 
-		thread_crash_mode();
+		thread_crash_mode(new_level > CRASH_LVL_FAILURE);
 		goto done;
 
 	case CRASH_LVL_NONE:
@@ -2634,7 +2645,8 @@ done:
 		crash_oom_condition();
 
 	/*
-	 * Specifically for deadlock conditions, disable all locks.
+	 * Specifically for deadlock conditions, disable all locks, if not
+	 * already done above by the thread_crash_mode() call.
 	 */
 
 	if (CRASH_LVL_DEADLOCKED == level)
@@ -3253,15 +3265,15 @@ crash_handler(int signo)
 	 */
 
 	if (v.recursive)
-		crash_mode(CRASH_LVL_RECURSIVE);
+		crash_mode(CRASH_LVL_RECURSIVE, FALSE);
 	else if (signal_in_exception())
-		crash_mode(CRASH_LVL_EXCEPTION);
+		crash_mode(CRASH_LVL_EXCEPTION, FALSE);
 	else if (SIGABRT == signo && crash_last_assertion_failure != NULL)
-		crash_mode(CRASH_LVL_FAILURE);
+		crash_mode(CRASH_LVL_FAILURE, FALSE);
 	else if (signal_in_handler())
-		crash_mode(CRASH_LVL_EXCEPTION);
+		crash_mode(CRASH_LVL_EXCEPTION, FALSE);
 	else
-		crash_mode(CRASH_LVL_BASIC);
+		crash_mode(CRASH_LVL_BASIC, FALSE);
 
 	if (v.recursive) {
 		if (!vars->recursive) {
@@ -4044,7 +4056,7 @@ crash_abort(void)
 void G_COLD
 crash_reexec(void)
 {
-	crash_mode(CRASH_LVL_RECURSIVE);	/* Prevent any memory allocation */
+	crash_mode(CRASH_LVL_RECURSIVE, TRUE);	/* Prevent any memory allocation */
 
 	crash_try_reexec();
 	_exit(EXIT_FAILURE);
@@ -4276,7 +4288,7 @@ crash_oom(const char *format, ...)
 	else
 		exit(EXIT_FAILURE);
 
-	crash_mode(CRASH_LVL_OOM);
+	crash_mode(CRASH_LVL_OOM, TRUE);
 	crash_auto_restart();
 	crash_abort();
 }
@@ -4503,7 +4515,7 @@ crash_deadlocked(const char *file, unsigned line)
 	 * Avoid endless recursions, record the deadlock the first time only.
 	 */
 
-	if (crash_mode(CRASH_LVL_DEADLOCKED)) {
+	if (crash_mode(CRASH_LVL_DEADLOCKED, TRUE)) {
 		if (vars != NULL) {
 			uint8 t = TRUE;
 			crash_set_var(deadlocked, t);
@@ -4527,7 +4539,7 @@ crash_assert_failure(const struct assertion_data *a)
 	 * Avoid endless recursions, record the failure the first time only.
 	 */
 
-	if (crash_mode(CRASH_LVL_FAILURE)) {
+	if (crash_mode(CRASH_LVL_FAILURE, TRUE)) {
 		if (vars != NULL)
 			crash_set_var(failure, a);
 	}
@@ -4541,7 +4553,24 @@ crash_assert_failure(const struct assertion_data *a)
 const char * G_COLD
 crash_assert_logv(const char * const fmt, va_list ap)
 {
-	crash_mode(CRASH_LVL_FAILURE);
+	/*
+	 * Normally, crash_assert_logv() must be called after having called
+	 * crash_assert_failure(), which means we have already called crash_mode().
+	 *
+	 * We must not call it again or it would be seen as a recursive failure.
+	 *
+	 * However, to prevent mistakes, we check that vars->failure is indeed
+	 * not NULL (a signal that crash_assert_failure() was called) and we
+	 * record the failure with a warning if it appears we are not in the
+	 * expected calling pattern.
+	 *
+	 *		--RAM, 2016-11-10
+	 */
+
+	if (vars != NULL && NULL == vars->failure) {
+		s_rawwarn("%s(): crash_assert_failure() not called before", G_STRFUNC);
+		crash_mode(CRASH_LVL_FAILURE, TRUE);
+	}
 
 	if (vars != NULL && vars->logstr != NULL) {
 		const char *msg;
@@ -4574,7 +4603,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 void G_COLD
 crash_set_filename(const char * const filename)
 {
-	crash_mode(CRASH_LVL_BASIC);
+	crash_mode(CRASH_LVL_BASIC, TRUE);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *f = ck_strdup_readonly(vars->logck, filename);
@@ -4588,7 +4617,7 @@ crash_set_filename(const char * const filename)
 void G_COLD
 crash_set_error(const char * const msg)
 {
-	crash_mode(CRASH_LVL_BASIC);
+	crash_mode(CRASH_LVL_BASIC, TRUE);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *m;
@@ -4615,7 +4644,7 @@ crash_set_error(const char * const msg)
 void G_COLD
 crash_append_error(const char * const msg)
 {
-	crash_mode(CRASH_LVL_BASIC);
+	crash_mode(CRASH_LVL_BASIC, TRUE);
 
 	if (vars != NULL && vars->logck != NULL) {
 		const char *m;
@@ -4645,7 +4674,7 @@ crash_append_error(const char * const msg)
 void G_COLD
 crash_save_stackframe(int stid, void *stack[], size_t count)
 {
-	crash_mode(CRASH_LVL_BASIC);
+	crash_mode(CRASH_LVL_BASIC, TRUE);
 
 	if (count > N_ITEMS(vars->stack))
 		count = N_ITEMS(vars->stack);
@@ -4668,7 +4697,7 @@ crash_save_stackframe(int stid, void *stack[], size_t count)
 void G_COLD
 crash_save_current_stackframe(unsigned offset)
 {
-	crash_mode(CRASH_LVL_BASIC);
+	crash_mode(CRASH_LVL_BASIC, TRUE);
 
 	if (vars != NULL && 0 == vars->stackcnt) {
 		void *stack[STACKTRACE_DEPTH_MAX];

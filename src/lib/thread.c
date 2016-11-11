@@ -1246,6 +1246,39 @@ thread_element_mark_gone_seen(struct thread_element *te)
 }
 
 /**
+ * A discovered thread (outside of "main") was seen running.
+ */
+static void
+thread_element_mark_running(struct thread_element *te)
+{
+	/*
+	 * We are in a discovered thread, and we take this opportunity to
+	 * update the last time we see an activity for that thread.  This
+	 * allows thread tracing code to spot likely inactive discovered
+	 * thread since we cannot know when they enter a blocking state due
+	 * to thread synchronization (waiting for an event, sleeping, etc..).
+	 *		--RAM, 2015-02-23
+	 */
+
+	te->last_seen = tm_time_raw();
+
+	/*
+	 * Loudly warn if the thread element is marked as gone.
+	 * It means that thread_will_exit() was called, we marked the
+	 * discovered thread as being gone and yet the same thread
+	 * is still being active.
+	 */
+
+	if G_UNLIKELY(te->gone) {
+		thread_element_mark_gone_seen(te);
+	} else if G_UNLIKELY(te->add_monitoring) {
+		/* No longer flagged as "gone", re-install monitoring */
+		te->add_monitoring = FALSE;
+		thread_monitor_exit(te);
+	}
+}
+
+/**
  * @return whether thread element is matching the QID.
  */
 static bool
@@ -1280,35 +1313,10 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		if G_UNLIKELY(!te->valid)
 			goto false_hit;
 
-		/*
-		 * We are in a discovered thread, and we take this opportunity to
-		 * update the last time we see an activity for that thread.  This
-		 * allows thread tracing code to spot likely inactive discovered
-		 * thread since we cannot know when they enter a blocking state due
-		 * to thread synchronization (waiting for an event, sleeping, etc..).
-		 *		--RAM, 2015-02-23
-		 */
-
-		te->last_seen = tm_time_raw();
-
 		THREAD_STATS_INCX(qid_cache_self_check);
 
 		if (thread_eq(te->tid, thread_self())) {
-			/*
-			 * Loudly warn if the thread element is marked as gone.
-			 * It means that thread_will_exit() was called, we marked the
-			 * discovered thread as being gone and yet the same thread
-			 * is still being active.
-			 */
-
-			if G_UNLIKELY(te->gone) {
-				thread_element_mark_gone_seen(te);
-			} else if G_UNLIKELY(te->add_monitoring) {
-				/* No longer flagged as "gone", re-install monitoring */
-				te->add_monitoring = FALSE;
-				thread_monitor_exit(te);
-			}
-
+			thread_element_mark_running(te);
 			goto matched;
 		}
 
@@ -1993,9 +2001,12 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
@@ -2035,9 +2046,12 @@ thread_probably_gone(cqueue_t *unused_cq, void *data)
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
@@ -3430,6 +3444,9 @@ thread_find_tid(thread_t t)
 		}
 	}
 
+	if (te != NULL && te->discovered && !te->main_thread)
+		thread_element_mark_running(te);
+
 	return te;
 }
 
@@ -3581,7 +3598,10 @@ thread_find_via_qid(thread_qid_t qid)
 	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
 		thread_t t = thread_self();
 		if (!thread_eq(te->tid, t)) {
-			te = thread_find_tid(t);		/* Find proper TID instead */
+			te = thread_find_tid(t);	/* Find proper TID instead and... */
+			/* ... will have called thread_element_mark_running() if needed */
+		} else {
+			thread_element_mark_running(te);
 		}
 	}
 
@@ -4030,10 +4050,14 @@ thread_stack_check_overflow(const void *va)
 
 	if (thread_sp_direction < 0) {
 		/* Stack growing down, base is high_qid */
+		if (qva > te->high_qid || qva < te->low_qid - 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva > te->low_qid + redzone)
 			return;		/* Not faulting in the red-zone page */
 	} else {
 		/* Stack growing up, base is low_qid */
+		if (qva < te->low_qid || qva > te->high_qid + 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva < te->high_qid - redzone)
 			return;		/* Not faulting in the red-zone page */
 	}
@@ -7845,7 +7869,7 @@ thread_is_crashing(void)
  * Enter thread crashing mode.
  */
 void
-thread_crash_mode(void)
+thread_crash_mode(bool disable_locks)
 {
 	if (0 == atomic_int_inc(&thread_crash_mode_enabled)) {
 		/*
@@ -7869,11 +7893,11 @@ thread_crash_mode(void)
 	/*
 	 * Now that other threads are disabled, check whether any of them have
 	 * any locks held.  If none of them have, there is no need to disable
-	 * locking, unless we have been called already, which means we're crashing
-	 * again during our crash handling.
+	 * locking, unless we are told to, which means we're crashing again
+	 * during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1)
+	if (0 != thread_others_lock_count() || disable_locks)
 		thread_lock_disable(FALSE);
 }
 

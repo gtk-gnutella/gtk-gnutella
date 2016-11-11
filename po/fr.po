@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 23:56+0100\n"
+"POT-Creation-Date: 2016-11-08 08:30+0100\n"
 "PO-Revision-Date: 2016-08-31 12:04+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1067,6 +1067,10 @@ msgstr "G2 correspondances sur la base de données locale"
 msgid "G2 hits on local partial files"
 msgstr "G2 correspondances sur les fichiers locaux partiels"
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "Résultats sur une recherche « quoi de neuf ? »"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "Résultats de recherche reçus pour les recherches via proxy OOB"
 
@@ -1134,6 +1138,9 @@ msgstr "Requêtes G2 UTF8"
 
 msgid "SHA1 G2 queries"
 msgstr "Requêtes G2 SHA1"
+
+msgid "Queries with aliased words"
+msgstr ""
 
 msgid "GUESS queries"
 msgstr "GUESS nombre de requêtes"
@@ -4959,6 +4966,10 @@ msgstr ""
 
 msgid "No TCP listening socket bound to allow incoming connections."
 msgstr "Aucun socket d'écoute TCP lié pour autoriser les connexions entrantes."
+
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr "Définit quels en-têtes Gnutella doivent être tracés."
 
 msgid "disable"
 msgstr "désactiver"

@@ -1718,7 +1718,7 @@ entropy_clock_time(void)
 	tm_precise_time(&now);
 
 	return integer_hash_fast(now.tv_nsec) +
-		integer_hash_fast(now.tv_sec) + entropy_nonce();
+		integer_hash_fast(now.tv_sec + entropy_nonce());
 }
 
 /**

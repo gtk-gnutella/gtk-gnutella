@@ -93,6 +93,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
 #include "lib/omalloc.h"
@@ -1338,6 +1339,16 @@ settings_max_msg_size(void)
 }
 
 /**
+ * Clean-up locks.
+ */
+static void
+settings_remove_locks(void)
+{
+	filelock_free_null(&pidfile_lock);
+	filelock_free_null(&save_file_path_lock);
+}
+
+/**
  * Called at exit time to flush the property files.
  */
 void G_COLD
@@ -1359,6 +1370,8 @@ settings_shutdown(void)
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
+
+	settings_remove_locks();
 }
 
 /**
@@ -1376,9 +1389,6 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
-	filelock_free_null(&pidfile_lock);
-	filelock_free_null(&save_file_path_lock);
-
     gnet_prop_shutdown();
 
 	HFREE_NULL(config_dir);

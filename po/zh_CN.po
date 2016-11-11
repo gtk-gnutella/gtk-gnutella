@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 23:56+0100\n"
+"POT-Creation-Date: 2016-11-08 08:30+0100\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -1055,6 +1055,10 @@ msgstr ""
 msgid "G2 hits on local partial files"
 msgstr ""
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "已生成的查询"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr ""
 
@@ -1119,6 +1123,9 @@ msgid "UTF8 G2 queries"
 msgstr ""
 
 msgid "SHA1 G2 queries"
+msgstr ""
+
+msgid "Queries with aliased words"
 msgstr ""
 
 msgid "GUESS queries"
@@ -4278,6 +4285,9 @@ msgid ""
 msgstr ""
 
 msgid "No TCP listening socket bound to allow incoming connections."
+msgstr ""
+
+msgid "Defines whether Gnutella queries should be traced."
 msgstr ""
 
 msgid "disable"

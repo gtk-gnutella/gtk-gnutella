@@ -71,18 +71,6 @@ hcopy(const void *p, size_t size)
 	memcpy(cp, p, size);
 	return cp;
 }
-
-char *h_strdup(const char *str) G_MALLOC;
-char *h_strndup(const char *str, size_t n) G_MALLOC;
-char *h_strjoinv(const char *separator, char * const *str_ary);
-char *h_strnjoinv(const char *separator, size_t seplen, char * const *str_ary);
-void h_strfreev(char **str_array);
-char *h_strconcat(const char *str1, ...) G_MALLOC G_NULL_TERMINATED;
-char *h_strconcat_v(const char *first, va_list ap) G_MALLOC;
-char *h_strdup_printf(const char *format, ...) G_PRINTF(1, 2);
-char *h_strdup_vprintf(const char *format, va_list ap) G_PRINTF(1, 0);
-char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
-	G_PRINTF(1, 0);
 #endif	/* !TRACK_MALLOC */
 
 void halloc_init(bool replace_malloc);
@@ -95,8 +83,6 @@ bool halloc_is_available(void);
 
 size_t halloc_bytes_allocated(void);
 size_t halloc_chunks_allocated(void);
-
-void *h_private(const void *key, void *p);
 
 struct logagent;
 struct sha1;

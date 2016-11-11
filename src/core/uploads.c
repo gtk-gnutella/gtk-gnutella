@@ -94,6 +94,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"
@@ -5383,6 +5384,16 @@ upload_request(struct upload *u, header_t *header)
 	upload_handle_connection_header(u, header);
 
 	/*
+	 * Spot requests from G2 servents.
+	 *
+	 * The X-Features may not be present in every follow-up request, but
+	 * that is OK since we merge the flag in and therefore it will be sticky.
+	 */
+
+	if (header_get_feature("g2", header, NULL, NULL))
+		u->flags |= UPLOAD_F_G2;
+
+	/*
 	 * Check vendor-specific banning.
 	 */
 
@@ -6186,6 +6197,7 @@ upload_get_info(gnet_upload_t uh)
     info->upload_handle = u->upload_handle;
 	info->push          = u->push;
 	info->encrypted     = u->socket && socket_uses_tls(u->socket);
+	info->g2            = booleanize(u->flags & UPLOAD_F_G2);
 	info->tls_upgraded  = u->tls_upgraded;
 	info->partial       = u->file_info != NULL;
 	info->gnet_addr     = u->gnet_addr;

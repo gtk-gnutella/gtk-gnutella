@@ -77,6 +77,7 @@
 #include "lib/glog.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iovec.h"
 #include "lib/misc.h"			/* For strchomp() */

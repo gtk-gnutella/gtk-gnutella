@@ -32,6 +32,7 @@
 #include "file.h"
 #include "getdate.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "misc.h"
 #include "mutex.h"
 #include "parse.h"

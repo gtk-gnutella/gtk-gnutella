@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Jun 17 13:02:21 2015 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Nov  6 23:31:52 2016 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -36,6 +36,7 @@ static const char *stats_symbols[] = {
 	"local_g2_searches",
 	"local_g2_hits",
 	"local_g2_partial_hits",
+	"local_aliased_hits",
 	"oob_proxied_query_hits",
 	"oob_queries",
 	"oob_queries_stripped",
@@ -58,6 +59,7 @@ static const char *stats_symbols[] = {
 	"query_whats_new",
 	"query_g2_utf8",
 	"query_g2_sha1",
+	"query_aliased_words",
 	"query_guess",
 	"query_guess_02",
 	"guess_link_cache",
@@ -330,7 +332,7 @@ static const char *stats_symbols[] = {
 const char *
 gnet_stats_general_to_string(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_symbols)) {
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_symbols)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);
@@ -364,6 +366,7 @@ static const char *stats_text[] = {
 	N_("G2 searches to local DB"),
 	N_("G2 hits on local DB"),
 	N_("G2 hits on local partial files"),
+	N_("Hits on aliased queries"),
 	N_("Query hits received for OOB-proxied queries"),
 	N_("Queries requesting OOB hit delivery"),
 	N_("Stripped OOB flag on queries"),
@@ -386,6 +389,7 @@ static const char *stats_text[] = {
 	N_("\"What's New?\" queries"),
 	N_("UTF8 G2 queries"),
 	N_("SHA1 G2 queries"),
+	N_("Queries with aliased words"),
 	N_("GUESS queries"),
 	N_("GUESS queries (0.2)"),
 	N_("GUESS link cache size"),
@@ -658,7 +662,7 @@ static const char *stats_text[] = {
 const char *
 gnet_stats_general_description(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_text)) {
+	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_text)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);

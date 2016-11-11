@@ -157,8 +157,7 @@ rand31_random_seed(void)
 	size_t nsecs;
 	double cpu;
 	jmp_buf env;
-	unsigned discard;
-	unsigned seed;
+	unsigned discard, seed, n;
 
 #ifndef ALLOW_UNINIT_VALUES
 	ZERO(&garbage);
@@ -204,7 +203,11 @@ rand31_random_seed(void)
 	discard += time(NULL);
 	cpu = tm_cputime(NULL, NULL);
 	discard += binary_hash2(&cpu, sizeof cpu);
-	discard = hashing_fold(discard, 12);
+	tm_precise_time(&now);
+	seed += binary_hash2(&now, sizeof now);
+	nsecs += now.tv_nsec;
+	n = nsecs % 31;
+	discard = UINT32_ROTL(discard, n);
 	tm_precise_time(&now);
 	seed += binary_hash2(&now, sizeof now);
 	nsecs += now.tv_nsec;
@@ -212,10 +215,17 @@ rand31_random_seed(void)
 	tm_precise_time(&now);
 	seed += integer_hash2(now.tv_sec + now.tv_nsec);
 	nsecs += now.tv_nsec;
-	nsecs %= 31;
-	seed = UINT32_ROTL(seed, nsecs);
-	if (rand31_is_zero(seed))
-		seed = now.tv_sec;		/* cannot be zero (modulo RAND31_MOD) */
+	n = nsecs % 31;
+	seed = UINT32_ROTL(seed, n);
+	if (rand31_is_zero(seed)) {
+		tm_precise_time(&now);
+		seed += integer_hash2(now.tv_sec + now.tv_nsec);
+		if (rand31_is_zero(seed))
+			seed += nsecs;
+		if (rand31_is_zero(seed))
+			seed = now.tv_sec;		/* cannot be zero (modulo RAND31_MOD) */
+	}
+	discard = hashing_fold(discard, 12);
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}

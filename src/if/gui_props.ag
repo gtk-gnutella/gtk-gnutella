@@ -1402,6 +1402,42 @@ prop = {
     };
 };
 
+prop = {
+    name = "fileinfo_notebook_tab";
+    desc = "Notebook tab number for the fileinfo listing";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "main_notebook_tab";
+    desc = "Notebook tab number for the main page";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "gnet_stats_notebook_tab";
+    desc = "Notebook tab number for the Gnet stats page";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "downloads_info_notebook_tab";
+    desc = "Notebook tab number for download info / tools";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
 #endif /* !USE_TOPLESS */
 
 /* vi: set ts=4: */

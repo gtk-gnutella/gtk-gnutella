@@ -40,6 +40,7 @@
 #include "buf.h"
 #include "getline.h"		/* For MAX_LINE_SIZE */
 #include "halloc.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "log.h"			/* For log_file_printable() */
 #include "misc.h"

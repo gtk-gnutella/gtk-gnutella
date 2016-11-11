@@ -48,6 +48,7 @@
 #include "endian.h"
 #include "entropy.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */

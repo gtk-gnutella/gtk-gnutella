@@ -37,10 +37,12 @@
 #include "common.h"
 
 #include "filename.h"
+
 #include "ascii.h"
 #include "concat.h"
 #include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
+#include "hstrfn.h"
 #include "path.h"
 #include "random.h"
 #include "str.h"

@@ -56,6 +56,7 @@
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/http_range.h"			/* For http_range_test() */
 #include "lib/log.h"				/* For log_printable() */
 #include "lib/mempcpy.h"

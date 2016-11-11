@@ -163,6 +163,7 @@ upload_is_special(const struct upload *u)
  */
 
 enum {
+	UPLOAD_F_G2	            = 1 << 6,	/**< Initiated from G2 servent */
 	UPLOAD_F_NORMAL_LIMIT	= 1 << 5,	/**< Normal limits */
 	UPLOAD_F_STEALTH_LIMIT	= 1 << 4,	/**< Stealth limits */
 	UPLOAD_F_LIMITED		= 1 << 3,	/**< Subject to limitation */

@@ -37,12 +37,14 @@
 #endif
 
 #include "eval.h"
+
 #include "ascii.h"
 #include "constants.h"
 #include "debug.h"
 #include "gethomedir.h"
 #include "glib-missing.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "path.h"
 #include "unsigned.h"
 

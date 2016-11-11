@@ -90,6 +90,7 @@ gboolean on_entry_config_search_items_focus_out_event(GtkWidget *,
 gboolean on_entry_config_speed_focus_out_event(GtkWidget *,
 		GdkEventFocus *, gpointer user_data);
 
+void on_button_downloads_clear_completed_clicked(GtkButton *, gpointer);
 void on_button_config_add_dir_clicked(GtkButton *, gpointer user_data);
 void on_button_config_move_path_clicked(GtkButton *, gpointer user_data);
 void on_button_config_rescan_dir_clicked(GtkButton *, gpointer user_data);

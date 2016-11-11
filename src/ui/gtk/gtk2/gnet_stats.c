@@ -33,6 +33,7 @@
 #include "if/core/gnutella.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/entropy.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/tm.h"
@@ -45,7 +46,6 @@ static GtkTreeView *treeview_gnet_stats_flowc;
 static GtkTreeView *treeview_gnet_stats_recv;
 static GtkTreeView *treeview_gnet_stats_general;
 static GtkTreeView *treeview_gnet_stats_horizon;
-static GtkNotebook *notebook_gnet_stats;
 
 static const gchar * const msg_stats_label[] = {
 	N_("Type"),
@@ -64,11 +64,30 @@ enum gnet_stats_nb_page {
 	GNET_STATS_NB_PAGE_FLOWC,
 	GNET_STATS_NB_PAGE_RECV,
 	GNET_STATS_NB_PAGE_HORIZON,
+	GNET_STATS_NB_PAGE_FILE_TRANSFERS,
 
 	NUM_GNET_STATS_NB_PAGES
 };
 
 static void gnet_stats_update_drop_reasons(const gnet_stats_t *);
+static enum gnet_stats_nb_page gnet_stats_notebook_current_page;
+
+static void
+on_gnet_stats_notebook_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
+{
+	(void) unused_notebook;
+	(void) unused_page;
+	(void) unused_udata;
+
+	g_return_if_fail(UNSIGNED(page_num) < NUM_GNET_STATS_NB_PAGES);
+
+	entropy_harvest_single(VARLEN(page_num));
+
+	gnet_stats_notebook_current_page = page_num;
+	gui_prop_set_guint32_val(PROP_GNET_STATS_NOTEBOOK_TAB, page_num);
+	gnet_stats_gui_update_display(tm_time());
+}
 
 /***
  *** Private functions
@@ -633,8 +652,8 @@ gnet_stats_gui_recv_init(void)
 void
 gnet_stats_gui_init(void)
 {
-	notebook_gnet_stats = GTK_NOTEBOOK(
-							gui_main_window_lookup("gnet_stats_notebook"));
+	GtkNotebook *notebook_gnet_stats =
+		GTK_NOTEBOOK(gui_main_window_lookup("gnet_stats_notebook"));
 
 	/*
 	 * Initialize stats tables.
@@ -651,6 +670,25 @@ gnet_stats_gui_init(void)
 		(callback_fn_t) gnet_stats_gui_horizon_update, FREQ_UPDATES, 0);
 
 	main_gui_add_timer(gnet_stats_gui_timer);
+
+	/*
+	 * Restore previous page.
+	 */
+
+	{
+		uint32 page;
+
+		gui_prop_get_guint32_val(PROP_GNET_STATS_NOTEBOOK_TAB, &page);
+
+		if (page >= NUM_GNET_STATS_NB_PAGES)
+			page = GNET_STATS_NB_PAGE_STATS;
+
+		gnet_stats_notebook_current_page = page;
+		gtk_notebook_set_current_page(notebook_gnet_stats, page);
+	}
+
+	gui_signal_connect(notebook_gnet_stats,
+		"switch-page", on_gnet_stats_notebook_switch_page, NULL);
 }
 
 void
@@ -687,12 +725,10 @@ void
 gnet_stats_gui_update_display(time_t now)
 {
 	static gnet_stats_t stats;
-	gint current_page;
 
 	guc_gnet_stats_get(&stats);
 
-	current_page = gtk_notebook_get_current_page(notebook_gnet_stats);
-	switch ((enum gnet_stats_nb_page) current_page) {
+	switch (gnet_stats_notebook_current_page) {
 	case GNET_STATS_NB_PAGE_STATS:
 		gnet_stats_update_general(&stats);
 		gnet_stats_update_drop_reasons(&stats);
@@ -721,6 +757,7 @@ gnet_stats_gui_update_display(time_t now)
 	case GNET_STATS_NB_PAGE_RECV:
 		gnet_stats_update_recv(&stats);
 		break;
+	case GNET_STATS_NB_PAGE_FILE_TRANSFERS:
 	case NUM_GNET_STATS_NB_PAGES:
 		break;
 	}

@@ -106,6 +106,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"
@@ -8183,16 +8184,6 @@ download_abort(struct download *d)
 	if (d->file_info->lifecount == 0)
 		if (GNET_PROPERTY(download_delete_aborted))
 			download_remove_file(d, FALSE);
-}
-
-void
-download_request_abort(struct download *d)
-{
-	download_check(d);
-	g_return_if_fail(d->file_info);
-	file_info_check(d->file_info);
-
-	download_abort(d);
 }
 
 static void

@@ -43,6 +43,7 @@
 #include "filelock.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "launch.h"
 #include "log.h"

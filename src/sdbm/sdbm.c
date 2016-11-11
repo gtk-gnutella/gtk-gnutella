@@ -22,6 +22,7 @@
 #include "lib/fd.h"
 #include "lib/file.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/mutex.h"

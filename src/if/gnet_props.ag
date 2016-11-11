@@ -5663,4 +5663,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "query_trace";
+    desc = "Defines whether Gnutella queries should be traced.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

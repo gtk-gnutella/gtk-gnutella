@@ -44,6 +44,7 @@
 
 #include "lib/ascii.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"

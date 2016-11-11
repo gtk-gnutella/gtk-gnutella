@@ -305,6 +305,7 @@ char *file_info_get_file_url(gnet_fi_t fih);
 const char *file_info_status_to_string(const gnet_fi_status_t *status);
 
 void fi_increase_uploaded(fileinfo_t *fi, size_t amount);
+void file_info_clear_completed(void);
 
 #endif /* CORE_SOURCES */
 #endif /* _if_core_fileinfo_h_ */

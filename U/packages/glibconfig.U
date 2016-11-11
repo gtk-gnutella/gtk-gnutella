@@ -23,6 +23,7 @@
 echo " "
 echo "Checking how we can gather information about GLib..." >&4
 d_glib="$undef"
+version=
 
 if [ "$glibversion" = 1 ] && [ glib-config --cflags >/dev/null 2>&1 ]; then
 	glibconfig='glib-config'
@@ -30,19 +31,30 @@ if [ "$glibversion" = 1 ] && [ glib-config --cflags >/dev/null 2>&1 ]; then
 elif pkg-config $glibpackage --cflags >/dev/null 2>&1; then
 	glibconfig="pkg-config $glibpackage"
 	modver=--modversion
+elif pkg-config --cflags $glibpackage >/dev/null 2>&1; then
+	version=`pkg-config --version`
+	echo "(You have a weird pkg-config, version $version)"
+?X: this weird pkg-config (older than 0.29?) needs --cflags and --libs first
+	glibcflags=`pkg-config --cflags $glibpackage`
+	glibldflags=`pkg-config --libs $glibpackage`
+	version=`pkg-config --modversion $glibpackage | head -1`
 else
 	echo "You've got problems!  Do you have GLib installed?" >&4
 	glibconfig='false'
 	modver=''
 fi
 
-echo "(I'll use '$glibconfig' to gather that information.)"
-glibcflags=`$glibconfig --cflags`
-glibldflags=`$glibconfig --libs`
+case "$version" in
+'')
+	echo "(I'll use '$glibconfig' to gather that information.)"
+	glibcflags=`$glibconfig --cflags`
+	glibldflags=`$glibconfig --libs`
+	version=`$glibconfig $modver | head -1`
+	;;
+esac
 ?X:
 ?X: check that we've got the version they asked for
 ?X:
-version=`$glibconfig $modver`
 echo " "
 echo "Checking whether glib.h can be compiled against..." >&4
 $cat >try.c <<EOC
@@ -63,16 +75,13 @@ esac
 $cat >>try.c <<EOC
 #endif
 
-#if $glibversion >= 2
-#include <glib-object.h>
-#endif
-
 int main(void)
 {
   gpointer p;
 
 #if $glibversion >= 2
-  p = g_object_new(G_TYPE_OBJECT, "blah", (void *) 0);
+?X: g_string_overwrite_len() present in GLib since 2.14
+  p = g_string_overwrite_len(NULL, 0, NULL, 0);
 #else
   p = g_malloc(23);
 #endif

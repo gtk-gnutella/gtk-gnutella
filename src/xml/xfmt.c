@@ -40,6 +40,7 @@
 #include "lib/ascii.h"
 #include "lib/halloc.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/log.h"		/* For log_file_printable() */
 #include "lib/misc.h"		/* For CONST_STRLEN() */

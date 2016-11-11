@@ -1122,6 +1122,8 @@ time_t  gnet_property_variable_session_start_stamp     = 0;
 static const time_t  gnet_property_variable_session_start_stamp_default = 0;
 gboolean gnet_property_variable_tcp_no_listening     = FALSE;
 static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
+gboolean gnet_property_variable_query_trace     = FALSE;
+static const gboolean gnet_property_variable_query_trace_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -11291,6 +11293,25 @@ gnet_prop_init(void) {
     gnet_property->props[482].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[482].data.boolean.def   = (void *) &gnet_property_variable_tcp_no_listening_default;
     gnet_property->props[482].data.boolean.value = (void *) &gnet_property_variable_tcp_no_listening;
+
+
+    /*
+     * PROP_QUERY_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[483].name = "query_trace";
+    gnet_property->props[483].desc = _("Defines whether Gnutella queries should be traced.");
+    gnet_property->props[483].ev_changed = event_new("query_trace_changed");
+    gnet_property->props[483].save = TRUE;
+    gnet_property->props[483].internal = FALSE;
+    gnet_property->props[483].vector_size = 1;
+	mutex_init(&gnet_property->props[483].lock);
+
+    /* Type specific data: */
+    gnet_property->props[483].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[483].data.boolean.def   = (void *) &gnet_property_variable_query_trace_default;
+    gnet_property->props[483].data.boolean.value = (void *) &gnet_property_variable_query_trace;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

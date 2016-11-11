@@ -39,6 +39,7 @@
 #include "ascii.h"
 #include "concat.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "log.h"				/* For s_error() */
 #include "misc.h"
 #include "omalloc.h"

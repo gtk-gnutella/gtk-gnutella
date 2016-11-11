@@ -42,10 +42,12 @@
 
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/entropy.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -135,7 +137,7 @@ gui_update_download_clear_now(void)
 		return;
 
 	gtk_widget_set_sensitive(
-        gui_main_window_lookup("button_downloads_clear_stopped"),
+        gui_main_window_lookup("button_downloads_clear_completed"),
         guc_download_something_to_clear());
 }
 
@@ -143,14 +145,20 @@ gui_update_download_clear_now(void)
  *	Clear all stopped, complete, and unavailable downloads.
  */
 void
-on_button_downloads_clear_stopped_clicked(GtkButton *unused_button,
+on_button_downloads_clear_completed_clicked(GtkButton *unused_button,
 	void *unused_udata)
 {
 	(void) unused_button;
 	(void) unused_udata;
-	guc_download_clear_stopped(TRUE, TRUE, TRUE, TRUE, TRUE);
-}
 
+	entropy_harvest_time();
+
+	fi_gui_files_freeze();
+	guc_file_info_clear_completed();
+	fi_gui_files_thaw();
+
+	entropy_harvest_time();
+}
 
 /**
  *	Freeze the downloads queue.
@@ -946,6 +954,8 @@ file_sources_foreach_next(struct fileinfo_data *file, struct download *cur)
 static void
 selected_files_foreach_source(void (*func)(struct download *))
 {
+	entropy_harvest_time();
+
 	SELECTED_FILES_FOREACH_START(file) {
 		struct download *source, *next;
 
@@ -955,6 +965,8 @@ selected_files_foreach_source(void (*func)(struct download *))
 			(*func)(source);
 		}
 	} SELECTED_FILES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1002,9 +1014,13 @@ on_popup_downloads_pause_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_FILES_FOREACH_START(file) {
 		fi_gui_pause(file);
 	} SELECTED_FILES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1014,9 +1030,13 @@ on_popup_downloads_resume_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_FILES_FOREACH_START(file) {
 		fi_gui_resume(file);
 	} SELECTED_FILES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1032,9 +1052,13 @@ on_popup_downloads_queue_activate(GtkMenuItem *unused_menuitem,
 static void
 fi_gui_purge_selected_files(void)
 {
+	entropy_harvest_time();
+
 	SELECTED_FILES_FOREACH_START(file) {
 		guc_fi_purge(file->handle);
 	} SELECTED_FILES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1043,6 +1067,8 @@ on_popup_downloads_abort_activate(GtkMenuItem *unused_menuitem,
 {
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
 	fi_gui_purge_selected_files();
 }
@@ -1055,6 +1081,8 @@ on_popup_downloads_copy_magnet_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
 	file = fi_gui_get_file_at_cursor();
 	if (file) {
@@ -1072,6 +1100,8 @@ on_popup_downloads_config_cols_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
 	widget = fi_gui_files_widget();
 	g_return_if_fail(widget);
@@ -1093,9 +1123,13 @@ on_popup_sources_start_now_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_start(d);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1107,6 +1141,8 @@ on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
    	gnet_prop_get_boolean_val(PROP_SEND_PUSHES, &send_pushes);
    	gnet_prop_get_boolean_val(PROP_IS_FIREWALLED, &firewalled);
 
@@ -1115,6 +1151,8 @@ on_popup_sources_push_activate(GtkMenuItem *unused_menuitem,
 			guc_download_fallback_to_push(d, FALSE, TRUE);
 		} SELECTED_SOURCES_FOREACH_END
 	}
+
+	entropy_harvest_time();
 }
 
 void
@@ -1124,11 +1162,15 @@ on_popup_sources_browse_host_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		search_gui_new_browse_host(download_hostname(d),
 			download_addr(d), download_port(d), download_guid(d), NULL,
 			download_is_g2(d) ? SOCK_F_G2 : 0);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1140,6 +1182,8 @@ on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		removed += guc_download_remove_all_from_peer(download_guid(d),
 						download_addr(d), download_port(d), FALSE);
@@ -1148,6 +1192,8 @@ on_popup_sources_forget_activate(GtkMenuItem *unused_menuitem,
     statusbar_gui_message(15,
 		NG_("Forgot %u download", "Forgot %u downloads", removed),
 		removed);
+
+	entropy_harvest_time();
 }
 
 void
@@ -1157,9 +1203,13 @@ on_popup_sources_connect_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_node_add(download_addr(d), download_port(d), SOCK_F_FORCE);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1169,9 +1219,13 @@ on_popup_sources_pause_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_pause(d);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1181,9 +1235,13 @@ on_popup_sources_resume_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_resume(d);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1193,9 +1251,13 @@ on_popup_sources_queue_activate(GtkMenuItem *unused_menuitem,
 	(void) unused_menuitem;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	SELECTED_SOURCES_FOREACH_START(d) {
 		guc_download_requeue(d);
 	} SELECTED_SOURCES_FOREACH_END
+
+	entropy_harvest_time();
 }
 
 void
@@ -1206,6 +1268,8 @@ on_popup_sources_copy_url_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
    	d = fi_gui_get_source_at_cursor();
 	if (d) {
@@ -1223,6 +1287,8 @@ on_popup_sources_config_cols_activate(GtkMenuItem *unused_menuitem,
 
 	(void) unused_menuitem;
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
 	widget = fi_gui_sources_widget();
 	g_return_if_fail(widget);
@@ -1740,6 +1806,8 @@ on_files_key_press_event(GtkWidget *unused_widget,
 	(void) unused_widget;
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
 	modifier = gtk_accelerator_get_default_mod_mask() & event->state;
 	switch (event->keyval) {
 	case GDK_Delete:
@@ -1794,6 +1862,8 @@ on_details_key_press_event(GtkWidget *widget,
 	GdkEventKey *event, void *unused_udata)
 {
 	(void) unused_udata;
+
+	entropy_harvest_time();
 
 	switch (event->keyval) {
 	unsigned modifier;
@@ -2071,6 +2141,8 @@ on_download_visibility_change(gboolean visible)
 {
 	g_return_if_fail(visible != download_gui_visible);
 
+	entropy_harvest_time();
+
 	download_gui_visible = visible;
 	if (visible) {
 		fi_gui_update_display();
@@ -2088,13 +2160,19 @@ on_notebook_downloads_switch_page(GtkNotebook *notebook,
 	(void) unused_udata;
 	(void) unused_page;
 
+	entropy_harvest_time();
+
 	g_return_if_fail(UNSIGNED(page_num) < nb_downloads_page_num);
 	g_return_if_fail(UNSIGNED(current_page) < nb_downloads_page_num);
 
 	fi_gui_files_widget_destroy();
 
+	gui_prop_set_guint32_val(PROP_FILEINFO_NOTEBOOK_TAB, page_num);
+
 	current_page = page_num;
 	notebook_downloads_init_page(notebook, current_page);
+
+	entropy_harvest_time();
 }
 
 static void
@@ -2139,6 +2217,12 @@ notebook_downloads_init(void)
 		gtk_widget_show_all(sw);
 	}
 	gtk_notebook_set_scrollable(notebook, TRUE);
+
+	gui_prop_get_guint32_val(PROP_FILEINFO_NOTEBOOK_TAB, &current_page);
+
+	if (UNSIGNED(current_page) >= nb_downloads_page_num)
+		current_page = 0;
+
 	gtk_notebook_set_current_page(notebook, current_page);
 	notebook_downloads_init_page(notebook, current_page);
 
@@ -2244,6 +2328,8 @@ on_entry_downloads_select_regex_activate(GtkEditable *editable,
 
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
 	g_return_if_fail(regex);
 
@@ -2256,6 +2342,9 @@ on_checkbutton_downloads_select_regex_case_toggled(
 	GtkToggleButton *unused_button, void *user_data)
 {
 	(void) unused_button;
+
+	entropy_harvest_time();
+
 	on_entry_downloads_select_regex_activate(
 		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_select_regex")),
 		user_data);
@@ -2266,6 +2355,9 @@ on_checkbutton_downloads_select_regex_invert_toggled(
 	GtkToggleButton *unused_button, void *user_data)
 {
 	(void) unused_button;
+
+	entropy_harvest_time();
+
 	on_entry_downloads_select_regex_activate(
 		GTK_EDITABLE(gui_main_window_lookup("entry_downloads_select_regex")),
 		user_data);
@@ -2332,6 +2424,8 @@ on_entry_downloads_filter_regex_activate(GtkEditable *editable,
 
 	(void) unused_udata;
 
+	entropy_harvest_time();
+
     regex = STRTRACK(gtk_editable_get_chars(GTK_EDITABLE(editable), 0, -1));
 	g_return_if_fail(regex);
 
@@ -2344,6 +2438,9 @@ on_checkbutton_downloads_filter_regex_case_toggled(
 	GtkToggleButton *unused_button, void *user_data)
 {
 	(void) unused_button;
+
+	entropy_harvest_time();
+
 	filter_regex_case_sensitive = gtk_toggle_button_get_active(
 			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
 				"checkbutton_downloads_filter_regex_case")));
@@ -2357,6 +2454,9 @@ on_checkbutton_downloads_filter_regex_invert_toggled(
 	GtkToggleButton *unused_button, void *user_data)
 {
 	(void) unused_button;
+
+	entropy_harvest_time();
+
 	filter_regex_invert = gtk_toggle_button_get_active(
 			GTK_TOGGLE_BUTTON(gui_main_window_lookup(
 				"checkbutton_downloads_filter_regex_invert")));
@@ -2391,7 +2491,7 @@ fi_gui_common_init(void)
 		FREQ_SECS, 0);
 
 	gtk_widget_set_sensitive(
-		gui_main_window_lookup("button_downloads_clear_stopped"),
+		gui_main_window_lookup("button_downloads_clear_completed"),
 		TRUE);
 
 	main_gui_add_page_visibility_listener(on_download_visibility_change,
