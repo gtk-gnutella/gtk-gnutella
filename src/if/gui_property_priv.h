@@ -171,6 +171,7 @@ extern const gboolean gui_property_variable_guess_stats_show_total;
 extern const guint32  gui_property_variable_fileinfo_notebook_tab;
 extern const guint32  gui_property_variable_main_notebook_tab;
 extern const guint32  gui_property_variable_gnet_stats_notebook_tab;
+extern const guint32  gui_property_variable_downloads_info_notebook_tab;
 
 
 prop_set_t *gui_prop_init(void);

@@ -16129,7 +16129,7 @@ create_main_window_downloads_tab (void)
   GtkWidget *label837;
   GtkWidget *frame105;
   GtkWidget *drawingarea_fi_progress;
-  GtkWidget *notebook2;
+  GtkWidget *notebook_downloads_info;
   GtkWidget *vbox106;
   GtkWidget *scrolledwindow88;
   GtkWidget *treeview_download_details;
@@ -16321,17 +16321,17 @@ create_main_window_downloads_tab (void)
   gtk_tooltips_set_tip (tooltips, drawingarea_fi_progress, _("Shows visual information on the download progress. Green chunks have been downloaded, with the brighter green chunks touched during this session. Yellow chunks are active right now; these active chunks are also marked with a triangle. Red chunks have not been downloaded yet. The blue line indicates which parts of the file have been seen on the network in this session."), NULL);
   gtk_widget_set_events (drawingarea_fi_progress, GDK_ENTER_NOTIFY_MASK | GDK_LEAVE_NOTIFY_MASK);
 
-  notebook2 = gtk_notebook_new ();
-  gtk_widget_set_name (notebook2, "notebook2");
-  gtk_widget_show (notebook2);
-  gtk_box_pack_start (GTK_BOX (vbox151), notebook2, TRUE, TRUE, 0);
-  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook2), GTK_POS_BOTTOM);
-  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook2), TRUE);
+  notebook_downloads_info = gtk_notebook_new ();
+  gtk_widget_set_name (notebook_downloads_info, "notebook_downloads_info");
+  gtk_widget_show (notebook_downloads_info);
+  gtk_box_pack_start (GTK_BOX (vbox151), notebook_downloads_info, TRUE, TRUE, 0);
+  gtk_notebook_set_tab_pos (GTK_NOTEBOOK (notebook_downloads_info), GTK_POS_BOTTOM);
+  gtk_notebook_set_scrollable (GTK_NOTEBOOK (notebook_downloads_info), TRUE);
 
   vbox106 = gtk_vbox_new (FALSE, 2);
   gtk_widget_set_name (vbox106, "vbox106");
   gtk_widget_show (vbox106);
-  gtk_container_add (GTK_CONTAINER (notebook2), vbox106);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads_info), vbox106);
 
   scrolledwindow88 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow88, "scrolledwindow88");
@@ -16351,12 +16351,12 @@ create_main_window_downloads_tab (void)
   label1012 = gtk_label_new (_("Details"));
   gtk_widget_set_name (label1012, "label1012");
   gtk_widget_show (label1012);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 0), label1012);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads_info), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads_info), 0), label1012);
 
   scrolledwindow72 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow72, "scrolledwindow72");
   gtk_widget_show (scrolledwindow72);
-  gtk_container_add (GTK_CONTAINER (notebook2), scrolledwindow72);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads_info), scrolledwindow72);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_POLICY_AUTOMATIC, GTK_POLICY_AUTOMATIC);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow72), GTK_SHADOW_ETCHED_IN);
 
@@ -16370,12 +16370,12 @@ create_main_window_downloads_tab (void)
   label1013 = gtk_label_new (_("Aliases"));
   gtk_widget_set_name (label1013, "label1013");
   gtk_widget_show (label1013);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 1), label1013);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads_info), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads_info), 1), label1013);
 
   scrolledwindow89 = gtk_scrolled_window_new (NULL, NULL);
   gtk_widget_set_name (scrolledwindow89, "scrolledwindow89");
   gtk_widget_show (scrolledwindow89);
-  gtk_container_add (GTK_CONTAINER (notebook2), scrolledwindow89);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads_info), scrolledwindow89);
   gtk_scrolled_window_set_policy (GTK_SCROLLED_WINDOW (scrolledwindow89), GTK_POLICY_AUTOMATIC, GTK_POLICY_ALWAYS);
   gtk_scrolled_window_set_shadow_type (GTK_SCROLLED_WINDOW (scrolledwindow89), GTK_SHADOW_IN);
 
@@ -16389,12 +16389,12 @@ create_main_window_downloads_tab (void)
   label1022 = gtk_label_new (_("Sources"));
   gtk_widget_set_name (label1022, "label1022");
   gtk_widget_show (label1022);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 2), label1022);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads_info), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads_info), 2), label1022);
 
   frame147 = gtk_frame_new (NULL);
   gtk_widget_set_name (frame147, "frame147");
   gtk_widget_show (frame147);
-  gtk_container_add (GTK_CONTAINER (notebook2), frame147);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads_info), frame147);
 
   vbox154 = gtk_vbox_new (FALSE, 4);
   gtk_widget_set_name (vbox154, "vbox154");
@@ -16475,12 +16475,12 @@ create_main_window_downloads_tab (void)
   label1028 = gtk_label_new (_("Tools"));
   gtk_widget_set_name (label1028, "label1028");
   gtk_widget_show (label1028);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 3), label1028);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads_info), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads_info), 3), label1028);
 
   hbox261 = gtk_hbox_new (FALSE, 2);
   gtk_widget_set_name (hbox261, "hbox261");
   gtk_widget_show (hbox261);
-  gtk_container_add (GTK_CONTAINER (notebook2), hbox261);
+  gtk_container_add (GTK_CONTAINER (notebook_downloads_info), hbox261);
   gtk_container_set_border_width (GTK_CONTAINER (hbox261), 2);
 
   table95 = gtk_table_new (4, 4, FALSE);
@@ -16626,7 +16626,7 @@ create_main_window_downloads_tab (void)
   label1014 = gtk_label_new (_("Settings"));
   gtk_widget_set_name (label1014, "label1014");
   gtk_widget_show (label1014);
-  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook2), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook2), 4), label1014);
+  gtk_notebook_set_tab_label (GTK_NOTEBOOK (notebook_downloads_info), gtk_notebook_get_nth_page (GTK_NOTEBOOK (notebook_downloads_info), 4), label1014);
 
   table53 = gtk_table_new (1, 8, FALSE);
   gtk_widget_set_name (table53, "table53");
@@ -16933,7 +16933,7 @@ create_main_window_downloads_tab (void)
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, label837, "label837");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, frame105, "frame105");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, drawingarea_fi_progress, "drawingarea_fi_progress");
-  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook2, "notebook2");
+  GLADE_HOOKUP_OBJECT (main_window_downloads_tab, notebook_downloads_info, "notebook_downloads_info");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, vbox106, "vbox106");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, scrolledwindow88, "scrolledwindow88");
   GLADE_HOOKUP_OBJECT (main_window_downloads_tab, treeview_download_details, "treeview_download_details");

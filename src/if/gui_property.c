@@ -363,6 +363,8 @@ guint32  gui_property_variable_main_notebook_tab     = 0;
 static const guint32  gui_property_variable_main_notebook_tab_default = 0;
 guint32  gui_property_variable_gnet_stats_notebook_tab     = 0;
 static const guint32  gui_property_variable_gnet_stats_notebook_tab_default = 0;
+guint32  gui_property_variable_downloads_info_notebook_tab     = 0;
+static const guint32  gui_property_variable_downloads_info_notebook_tab_default = 0;
 
 static prop_set_t *gui_property;
 
@@ -2891,6 +2893,28 @@ gui_prop_init(void) {
     gui_property->props[124].data.guint32.choices = NULL;
     gui_property->props[124].data.guint32.max   = 0xFFFFFFFF;
     gui_property->props[124].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DOWNLOADS_INFO_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[125].name = "downloads_info_notebook_tab";
+    gui_property->props[125].desc = _("Notebook tab number for download info / tools");
+    gui_property->props[125].ev_changed = event_new("downloads_info_notebook_tab_changed");
+    gui_property->props[125].save = TRUE;
+    gui_property->props[125].internal = FALSE;
+    gui_property->props[125].vector_size = 1;
+	mutex_init(&gui_property->props[125].lock);
+
+    /* Type specific data: */
+    gui_property->props[125].type               = PROP_TYPE_GUINT32;
+    gui_property->props[125].data.guint32.def   = (void *) &gui_property_variable_downloads_info_notebook_tab_default;
+    gui_property->props[125].data.guint32.value = (void *) &gui_property_variable_downloads_info_notebook_tab;
+    gui_property->props[125].data.guint32.choices = NULL;
+    gui_property->props[125].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[125].data.guint32.min   = 0x00000000;
 
     gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
