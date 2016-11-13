@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Raphael Manfredi
+ * Copyright (c) 2015, 2016 Raphael Manfredi
  *
  * The fcntl() logic implemented here for locking is:
  * Copyright (c) 2005 Christian Biere
@@ -58,7 +58,7 @@
  * cannot be turned off.
  *
  * @author Raphael Manfredi
- * @date 2015
+ * @date 2015-2016
  */
 
 #include "common.h"
@@ -66,6 +66,7 @@
 #include "filelock.h"
 
 #include "compat_misc.h"
+#include "compat_sleep_ms.h"
 #include "compat_usleep.h"
 #include "elist.h"
 #include "fd.h"
@@ -79,11 +80,14 @@
 #include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+#define FILELOCK_WAIT_MS	5	/* Time to sleep when waiting for lock */
 
 static const mode_t FILELOCK_MODE = S_IRUSR | S_IWUSR; 	/* 0600 */
 
@@ -891,6 +895,86 @@ filelock_pid(const char *path)
 	fd_close(&fd);
 
 	return pid;
+}
+
+/**
+ * Create a lockfile, with an absolute time limit before aborting.
+ *
+ * See filelock_create() for a description of the filelock_params_t semantics.
+ *
+ * @param path		the path to the lockfile (copied)
+ * @param p			(optional) custom locking parameters
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return a lockfile object on success, NULL on error with errno set.
+ *
+ * In addition to the codes returned by filelock_create(), this routine sets
+ * errno to:
+ *
+ * ETIMEDOUT if we could not get the lock within the time we were given.
+ */
+filelock_t *
+filelock_create_until(
+	const char *path, const filelock_params_t *p, const tm_t *end)
+{
+	while (NULL == end || tm_remaining_ms(end) > 0) {
+		long remain;
+
+		filelock_t *fl = filelock_create(path, p);
+
+		if (fl != NULL)
+			return fl;
+
+		remain = tm_remaining_ms(end);
+		if (remain <= 0)
+			break;
+
+		/*
+		 * We're using compat_sleep_ms() instead of thread_sleep_ms() because
+		 * we cannot guarantee that the calling thread holds no locks at this
+		 * time.
+		 */
+
+		if (remain > 2 * FILELOCK_WAIT_MS)
+			compat_sleep_ms(FILELOCK_WAIT_MS);
+		else if (remain > 1)
+			compat_sleep_ms(1);
+		else
+			thread_yield();
+	}
+
+	errno = ETIMEDOUT;
+	return NULL;
+}
+
+/**
+ * Create a lockfile, with a timeout.
+ *
+ * See filelock_create() for a description of the filelock_params_t semantics.
+ *
+ * @param path		the path to the lockfile (copied)
+ * @param p			(optional) custom locking parameters
+ * @param timeout	how long to wait for (NULL means no limit)
+ *
+ * @return a lockfile object on success, NULL on error with errno set.
+ *
+ * In addition to the codes returned by filelock_create(), this routine sets
+ * errno to:
+ *
+ * ETIMEDOUT if we could not get the lock within the time we were given.
+ */
+filelock_t *
+filelock_timed_create(
+	const char *path, const filelock_params_t *p, const tm_t *timeout)
+{
+	tm_t end;
+
+	if (timeout != NULL) {
+		tm_now_exact(&end);
+		tm_add(&end, timeout);
+	}
+
+	return filelock_create_until(path, p, NULL == timeout ? NULL : &end);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
