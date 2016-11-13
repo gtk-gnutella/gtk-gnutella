@@ -40,6 +40,7 @@
 #include "mempcpy.h"
 #include "misc.h"
 #include "pslist.h"
+#include "strpcpy.h"
 #include "strvec.h"
 #include "thread.h"
 #include "unsigned.h"
@@ -112,7 +113,8 @@ h_strnjoinv(const char *separator, size_t seplen, char * const *str_array)
 	g_assert(separator != NULL || 0 == seplen);
 
 	if (str_array[0] != NULL) {
-		size_t i, len, pos;
+		size_t i, len;
+		char *p;
 
 		len = size_saturate_add(1, strlen(str_array[0]));
 		for (i = 1; str_array[i] != NULL; i++) {
@@ -123,17 +125,14 @@ h_strnjoinv(const char *separator, size_t seplen, char * const *str_array)
 		g_assert(len < SIZE_MAX);
 
 		result = halloc(len);
-		pos = strcpy_len(result, str_array[0]);
-
-		/* We can freely add to pos, we know it cannot saturate now */
+		p = strpcpy(result, str_array[0]);
 
 		for (i = 1; str_array[i] != NULL; i++) {
-			memcpy(&result[pos], sep, seplen);
-			pos += seplen;
-			pos += strcpy_len(&result[pos], str_array[i]);
+			p = mempcpy(p, sep, seplen);
+			p = strpcpy(p, str_array[i]);
 		}
 
-		g_assert(pos + 1 == len);
+		g_assert(len - 1 == ptr_diff(p, result));	/* -1 for trailing NUL */
 	} else {
 		result = h_strdup("");
 	}

@@ -325,29 +325,6 @@ strsize(const char *src)
 }
 
 /**
- * An strcpy() that returns the length of the copied string.
- */
-static inline size_t
-strcpy_len(char *dest, const char *src)
-{
-	const char *p = src;
-	char *q = dest;
-	int c;
-
-	g_assert(dest != NULL);
-
-	if (NULL == src)
-		return 0;
-
-	while ((c = *p++))
-		*q++ = c;
-
-	*q = '\0';
-
-	return q - dest;
-}
-
-/**
  * Copies at most MIN(dst_size, src_len) bytes from "src" to "dst".
  *
  * @param dst the destination buffer.
