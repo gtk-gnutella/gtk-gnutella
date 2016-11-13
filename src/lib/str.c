@@ -1118,9 +1118,14 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * it is interpreted as an offset relative to the end of the string, i.e. -1
  * is the last character.
  *
- * If the amount is greater than the characters held in the string after the
- * starting position, it is silently truncated down to the amount of bytes
- * held until the end of the string.
+ * If "amount" is greater than the number of characters held in the string
+ * after the starting index, then "amount"  is silently truncated down to the
+ * actual amount of bytes held until the end of the original string.
+ *
+ * @param str		the string in which we wish to replace some parts
+ * @param idx		starting index (inclusive) of substring to replace
+ * @param amount	length of substring to replace in "str"
+ * @param string	replacement string
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
