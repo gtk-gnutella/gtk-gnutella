@@ -220,6 +220,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	stringify.c \
+	strpcpy.c \
 	strtok.c \
 	strvec.c \
 	symbols.c \

@@ -983,6 +983,8 @@ src/lib/str.c
 src/lib/str.h
 src/lib/stringify.c
 src/lib/stringify.h
+src/lib/strpcpy.c
+src/lib/strpcpy.h
 src/lib/strtok.c
 src/lib/strtok.h
 src/lib/strvec.c

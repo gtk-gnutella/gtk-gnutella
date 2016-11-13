@@ -289,6 +289,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	stringify.c \
+	strpcpy.c \
 	strtok.c \
 	strvec.c \
 	symbols.c \
@@ -490,6 +491,7 @@ LOBJ = \
 	stats.o \
 	str.o \
 	stringify.o \
+	strpcpy.o \
 	strtok.o \
 	strvec.o \
 	symbols.o \
