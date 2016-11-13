@@ -739,8 +739,11 @@ str_s2c(str_t *str)
 
 	str_check(str);
 
-	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("%s() called on \"static\" string object", G_STRFUNC);
+	g_assert_log(!(str->s_flags & STR_THREAD),
+		"%s(): called on thread-private string object", G_STRFUNC);
+
+	g_assert_log((str->s_flags & STR_OBJECT),
+		"%s() called on \"static\" string object", G_STRFUNC);
 
 	len = str->s_len;
 
