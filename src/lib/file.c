@@ -571,7 +571,7 @@ do_open(const char *path, int flags, int mode,
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
-		s_warning("%s(): can't open absolute \"%s\": relative path",
+		s_carp("%s(): can't open absolute \"%s\": relative path",
 			G_STRFUNC, path);
 		errno = EPERM;
 		return -1;
@@ -630,7 +630,7 @@ do_open(const char *path, int flags, int mode,
 
 	if (!missing || errno != ENOENT) {
 		if (!silent || errno != EACCES) {
-			s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+			s_carp("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
 		}
 	}
 
@@ -733,6 +733,7 @@ do_fopen(const char *path, const char *mode, bool missing)
 	const char *what;
 
 	if (!is_absolute_path(path)) {
+		s_carp("%s(): will not open relative path \"%s\"", G_STRFUNC, path);
 		errno = EPERM;
 		return NULL;
 	}
@@ -768,7 +769,7 @@ do_fopen(const char *path, const char *mode, bool missing)
 	}
 
 	if (!missing || errno != ENOENT)
-		s_warning("can't %s file \"%s\": %m", what, path);
+		s_carp("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }
@@ -814,7 +815,7 @@ file_sync_fclose(FILE *f)
 	fd = fileno(f);
 
 	if (-1 == fd_fdatasync(fd))
-		s_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
+		s_carp("cannot flush data blocks to disk for fd=%d: %m", fd);
 
 	return fclose(f) | ret;		/* Report error if fflush() failed */
 }
