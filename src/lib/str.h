@@ -131,6 +131,8 @@ ssize_t str_rchr(const str_t *s, int c);
 ssize_t str_rchr_at(const str_t *s, int c, ssize_t offset);
 str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
 str_t *str_substr(const str_t *s, ssize_t from, size_t length);
+bool str_has_suffix_len(const str_t *, const char *suf, size_t len, size_t *ix);
+bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
@@ -175,6 +177,9 @@ size_t str_test(bool verbose);
 #define STR_CONST_LEN(p)	(sizeof(p "") - 1)
 #define STR_CPY(s, p)		str_cpy_len((s), (p), STR_CONST_LEN(p))
 #define STR_CAT(s, p)		str_cat_len((s), (p), STR_CONST_LEN(p))
+
+#define STR_HAS_SUFFIX(s, p, i)	\
+	str_has_suffix_len((s), (p), STR_CONST_LEN(p), (i))
 
 #endif /* _str_h_ */
 

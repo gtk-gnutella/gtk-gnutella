@@ -1652,6 +1652,59 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 }
 
 /**
+ * Check whether string has given suffix of known length.
+ *
+ * If it has the suffix and "idx" is non-NULL, the starting offset of the
+ * suffix within the string is written into it for convenience.
+ *
+ * @param s			the string we're checking for suffix present
+ * @param suffix	the suffix string to check
+ * @param len		length of suffix string
+ * @param idx		if non-NULL, written with starting offset of found suffix
+ *
+ * @return TRUE if suffix was found.
+ */
+bool
+str_has_suffix_len(const str_t *s, const char *suffix, size_t len, size_t *idx)
+{
+	str_check(s);
+	g_assert(suffix != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if (len <= s->s_len) {
+		const char *p = &s->s_data[s->s_len - len];
+
+		if (0 == memcmp(p, suffix, len)) {
+			if (idx != NULL)
+				*idx = s->s_len - len;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether string has given suffix.
+ *
+ * If it has the suffix and "idx" is non-NULL, the starting offset of the
+ * suffix within the string is written into it for convenience.
+ *
+ * @param s			the string we're checking for suffix present
+ * @param suffix	the suffix string to check
+ * @param idx		if non-NULL, written with starting offset of found suffix
+ *
+ * @return TRUE if suffix was found.
+ */
+bool
+str_has_suffix(const str_t *s, const char *suffix, size_t *idx)
+{
+	g_assert(suffix != NULL);
+
+	return str_has_suffix_len(s, suffix, strlen(suffix), idx);
+}
+
+/**
  * Round up floating-point mantissa, with leading extra carry digit.
  *
  * For instance, given "314159" with a rounding position of 2, the routine
