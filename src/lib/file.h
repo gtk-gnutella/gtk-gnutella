@@ -50,6 +50,7 @@ typedef struct {
 
 void file_register_fd_reclaimer(reclaim_fd_t callback);
 bool file_exists(const char *pathname);
+bool file_is_empty(const char *pathname);
 
 char *file_locate_from_path(const char *argv0);
 char *file_program_path(const char *argv0);
