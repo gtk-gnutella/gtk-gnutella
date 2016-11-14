@@ -3761,7 +3761,7 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 		return -1;
 
 	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((fileoffset_t)-1 == offset || offset != len) {
+	if ((fileoffset_t) -1 == offset || offset != len) {
 		int saved_errno = errno;
 		fd_close(&fd);
 		errno = saved_errno;
@@ -3774,6 +3774,28 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 		return -1;
 	}
 	fd_close(&fd);
+	return 0;
+}
+
+int
+mingw_ftruncate(int fd, fileoffset_t len)
+{
+	fileoffset_t offset;
+
+	if (-1 == fd) {
+		errno = EBADF;
+		return -1;
+	}
+
+	offset = mingw_lseek(fd, len, SEEK_SET);
+	if ((fileoffset_t) -1 == offset || offset != len)
+		return -1;
+
+	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
+		errno = mingw_last_error();
+		return -1;
+	}
+
 	return 0;
 }
 
