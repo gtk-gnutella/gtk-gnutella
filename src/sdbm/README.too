@@ -258,3 +258,10 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 * Added sdbm_rebuild_async() to asynchronously reconstruct the database
   from a separate thread whilst other concurrent access to the same database
   are possible from other threads.
+
+Mon Nov 14 18:39:39 CET 2016
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Added a .tmp file to be able to remove left-over temporary files created
+  during rebuilds, should the old process have been interrupted in the middle.

@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-196]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -71,7 +71,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -91,7 +91,8 @@ SRC = \
 	lru.c \
 	pair.c \
 	rebuild.c \
-	sdbm.c
+	sdbm.c \
+	tmp.c
 
 OBJ = \
 	big.o \
@@ -101,7 +102,8 @@ OBJ = \
 	lru.o \
 	pair.o \
 	rebuild.o \
-	sdbm.o 
+	sdbm.o \
+	tmp.o 
 
 SDBM_FLAGS = -DSDBM -DDUFF
 

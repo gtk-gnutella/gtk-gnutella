@@ -31,7 +31,8 @@ SRC = \
 	lru.c \
 	pair.c \
 	rebuild.c \
-	sdbm.c
+	sdbm.c \
+	tmp.c
 
 OBJ = \
 |expand f!$(SRC)!

@@ -14,6 +14,7 @@
 #include "pair.h"
 #include "lru.h"
 #include "big.h"
+#include "tmp.h"
 #include "private.h"
 
 #include "lib/atomic.h"
@@ -435,6 +436,12 @@ success:
 
 	compat_fadvise_random(db->pagf, 0, 0);
 	compat_fadvise_random(db->dirf, 0, 0);
+
+	/*
+	 * Cleanup database by removing temporary files left over during rebuilds.
+	 */
+
+	tmp_clean(db);
 
 	return db;
 }

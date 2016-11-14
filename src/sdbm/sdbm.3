@@ -163,6 +163,17 @@ left in the
 .B \.pag
 file to be able to access the underlying data.
 .LP
+A
+.BR \.tmp
+file can also be created to store all the temporary file extensions used by
+the database during a rebuild operation.  If the process is killed in the
+middle of a rebuild, the left-over files can then be properly reclaimed when
+the application calls
+.BR sdbm_prep (\|)
+or
+.BR sdbm_open (\|)
+in a later invocation, from another process.
+.LP
 The application interface uses the
 .B datum
 structure to describe both

@@ -18,6 +18,7 @@
 #include "private.h"
 #include "big.h"
 #include "lru.h"
+#include "tmp.h"
 
 #include "lib/halloc.h"
 #include "lib/hstrfn.h"
@@ -248,6 +249,14 @@ sdbm_rebuild_internal(DBM *db, bool async)
 		NULL == db->datname ? NULL : h_strconcat(db->datname, ext, NULL_PTR);
 
 	/*
+	 * Record the temporary extension associated with the rebuilt db.
+	 * That way, if the process dies during rebuild, the dead files will
+	 * be able to be reclaimed when they run sdbm_cleanup().
+	 */
+
+	tmp_add(db, ext);
+
+	/*
 	 * Regardless of whether the database being rebuilt was opened read-only,
 	 * we open the new database for writing (O_WRONLY will become O_RDWR
 	 * internally, but the intent is that we write to it for now).
@@ -360,6 +369,8 @@ error:
 	HFREE_NULL(dirname);
 	HFREE_NULL(pagname);
 	HFREE_NULL(datname);
+
+	tmp_remove(db, ext);
 
 	if (ndb != NULL) {
 		sdbm_unlink(ndb);
