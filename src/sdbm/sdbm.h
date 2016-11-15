@@ -141,6 +141,8 @@ struct sdbm_loose_stats {
 	size_t items;			/* Callbacks invoked */
 	size_t big_keys;		/* Big keys seen */
 	size_t big_values;		/* Big values seen */
+	size_t thread_yields;	/* Amount of thread voluntary yields */
+	size_t thread_sleeps;	/* Amount of thread voluntary sleeps */
 };
 
 size_t sdbm_loose_foreach(DBM *, int, sdbm_cb_t, void *);

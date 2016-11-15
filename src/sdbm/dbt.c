@@ -598,6 +598,9 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 		SHOW_LONG(deletion_refused);
 	}
 
+	SHOW_LONG(thread_yields);
+	SHOW_LONG(thread_sleeps);
+
 #undef SHOW_LONG
 
 	sdbm_close(db);

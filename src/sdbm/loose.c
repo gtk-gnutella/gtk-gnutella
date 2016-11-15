@@ -22,14 +22,21 @@
 #include "lib/array_util.h"
 #include "lib/hset.h"
 #include "lib/log.h"
+#include "lib/pow2.h"
 #include "lib/qlock.h"
 #include "lib/stringify.h"
+#include "lib/thread.h"
+#include "lib/tm.h"
 #include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
 #define LOOSE_RESTART_MAX	8	/* Max amount of times we reprocess a page */
-#define LOOSE_ZERO_YIELD	4	/* Yield lock after that many zeroed pages */
+
+#define LOOSE_PAGE_CHECK	64	/* Check elapsed time after so many pages */
+#define LOOSE_SLEEP_MS		500	/* Time spent during voluntary sleeps */
+
+#define LOOSE_PAGE_CHECK_MASK	(LOOSE_PAGE_CHECK - 1)
 
 /*
  * A loose iterator is an iterator that is not strict: it can skip key/value
@@ -409,8 +416,8 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	long b;
 	size_t n = 0;
 	struct loose_vars v;
-	int zero = 0;
 	int supported = DBM_F_ALLKEYS;
+	tm_t last_check;
 
 	g_assert_log(0 == (flags & ~supported),
 		"%s(): unsupported flags given: 0x%x (only supports 0x%x)",
@@ -465,36 +472,91 @@ loose_iterate(DBM *db, struct loose_type *type, void *arg, int flags,
 	 * Start at page 0, skipping any page we can't read.
 	 */
 
+	tm_now_exact(&last_check);
+
 	for (b = 0; OFF_PAG(b) <= pagtail; b++) {
 		ulong mstamp;
 		const char *pag = lru_wire(db, b, &mstamp);
 
 		if G_LIKELY(pag != NULL) {
 			int cnt = paircount(pag);
-
-			/*
-			 * If there is no pair in the page, possibly release the lock
-			 * (if there are others waiting for it, then grab it again).
-			 *
-			 * We expect to see quite some empty pages, especially in large
-			 * databases and we must not grab the lock for too long, that's
-			 * why we're loosely iterating!
-			 */
+			tm_t now;
+			time_delta_t elapsed;
 
 			stats->pages++;
 
 			if G_LIKELY(0 == cnt) {
-				if (zero++ >= LOOSE_ZERO_YIELD) {
-					zero = 0;
-					sdbm_synchronize_yield(db);
-				}
 				stats->empty++;
 			} else {
-				zero = 0;
 				n += loose_process(&v, pag, b, cnt, mstamp);
 				hset_clear(v.seen);
 			}
 
+			/*
+			 * Monitor elapsed time every second, and if the elapsed time
+			 * actually jumps higher than 1.2 seconds, then we are probably
+			 * running on a heavily loaded system, so yield processing to
+			 * other threads for some time.
+			 *
+			 * We also attempt to rotate the lock every LOOSE_PAGE_CHECK
+			 * pages to avoid blocking other threads willing to access
+			 * this database for too long.
+			 */
+
+			STATIC_ASSERT(IS_POWER_OF_2(LOOSE_PAGE_CHECK));
+
+			if (0 != (b & LOOSE_PAGE_CHECK_MASK))
+				goto unwire;		/* Avoid too much inner indent */
+
+			sdbm_synchronize_yield(db);	/* Rotate lock if needed */
+
+			tm_now_exact(&now);
+			elapsed = tm_elapsed_ms(&now, &last_check);
+
+			if (elapsed > 1000) {
+				sdbm_unsynchronize(db);
+
+				last_check = now;		/* struct copy */
+
+				/*
+				 * The 200ms extra to process LOOSE_PAGE_CHECK pages is
+				 * completely arbitrary!  Also jumping from 900ms elapsed
+				 * to over 1200ms may be the result of the lock rotation
+				 * made above: once relinquished, it can be a while until we
+				 * can get the lock back.  But that would indicate the database
+				 * is really actively accessed in other threads, a reason to
+				 * further slow down our concurrent processing.
+				 *
+				 * NB: we don't need the SDBM lock to update the stats because
+				 * this variable is not going to be shared by callers, unless
+				 * it is the dummy stats structure at which point we don't care
+				 * about concurrent updates.
+				 */
+
+				if (elapsed > 1200) {
+					/*
+					 * Processing taking time, let others breathe by suspending
+					 * this thread for a little bit of time.
+					 */
+
+					stats->thread_sleeps++;	/* Don't need SDBM lock */
+					thread_sleep_ms(LOOSE_SLEEP_MS);
+				} else {
+					/*
+					 * No particular stress, however relinquish the thread
+					 * running slot every second, just in case.
+					 */
+
+					stats->thread_yields++;	/* Don't need SDBM lock */
+					thread_yield();
+				}
+
+				sdbm_synchronize(db);
+			}
+
+			/* FALL THROUGH */
+
+		unwire:
 			/*
 			 * Only need to unwire if wiring was successful, i.e. when it
 			 * did not return NULL.
