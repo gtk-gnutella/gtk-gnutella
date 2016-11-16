@@ -123,8 +123,25 @@ wd_expired(cqueue_t *cq, void *arg)
 
 	watchdog_check(wd);
 
+	/*
+	 * It is critical to call cq_zero() with the lock (assuming the object is
+	 * indeed thread-safe) to avoid any race with code installing the event
+	 * in the callout queue.
+	 *
+	 * Note that the code is at risk if the callout queue is not running in
+	 * the same thread as the one using the watchdog, and that watchdog was
+	 * not marked as thread-safe.
+	 *
+	 * TODO:
+	 * The only way to make this safe would be to have all the calls creating
+	 * events in the callout queue take a reference to the pointer storing the
+	 * event, and have that pointer updated and cleared in cq_zero() under the
+	 * callout queue lock protection.  Huge change everywhere, so not now.
+	 *		--RAM, 2016-11-17
+	 */
+
 	WD_LOCK(wd);
-	cq_zero(cq, &wd->ev);
+	cq_zero(cq, &wd->ev);	/* We got the lock, no race with setting wd->ev */
 
 	/*
 	 * If no kicks have happened, fire the registered callback.  Otherwise,

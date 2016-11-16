@@ -599,8 +599,15 @@ teq_unthrottle(cqueue_t *cq, void *data)
 
 	teq_check(teq);
 
+	/*
+	 * We take the lock to avoid race conditions between the setting of
+	 * teq->throttle_ev and its clearing here.
+	 */
+
+	TEQ_LOCK(teq);
 	cq_zero(cq, &teq->throttle_ev);
-	cq_cancel(&teq->throttle_ev);
+	TEQ_UNLOCK(teq);
+
 	thread_kill(teq->stid, TSIG_TEQ);
 }
 
@@ -618,8 +625,15 @@ teq_io_unthrottle(cqueue_t *cq, void *data)
 	teq_io = TEQ_IO(teq);
 	g_assert(teq_io != NULL);		/* Is really a TEQ with an I/O queue */
 
+	/*
+	 * We take the lock to avoid race conditions between the setting of
+	 * teq_io->throttle_ev and its clearing here.
+	 */
+
+	TEQ_LOCK(teq);
 	cq_zero(cq, &teq_io->throttle_ev);
-	cq_cancel(&teq_io->throttle_ev);
+	TEQ_UNLOCK(teq);
+
 	waiter_signal(teq_io->w);
 }
 
@@ -719,15 +733,20 @@ teq_process(struct teq *teq)
 				/*
 				 * Upon return from evq_raw_insert(), the callback can have
 				 * already triggered since dispatching can happen in another
-				 * thread.  Because we use a non-NULL event reference as a
-				 * flag indicating the queue is throttled, we need to check
-				 * via cq_zero_if_triggered() whether the event has already
-				 * triggered.
+				 * thread.
+				 *
+				 * However, we are protecting the insertion with a lock and
+				 * teq_unthrottle() will immediately lock the object before
+				 * calling cq_zero(), removing any race condition: if it
+				 * triggered, the event will be cleared as soon as we release
+				 * the lock.
 				 */
 
+				TEQ_LOCK(teq);
+				g_assert(NULL == teq->throttle_ev);
 				teq->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_unthrottle, teq);
-				cq_zero_if_triggered(&teq->throttle_ev);
+				TEQ_UNLOCK(teq);
 				break;
 			}
 		}
@@ -1172,15 +1191,20 @@ teq_io_process(struct teq *teq)
 				/*
 				 * Upon return from evq_raw_insert(), the callback can have
 				 * already triggered since dispatching can happen in another
-				 * thread.  Because we use a non-NULL event reference as a
-				 * flag indicating the queue is throttled, we need to check
-				 * via cq_zero_if_triggered() whether the event has already
-				 * triggered.
+				 * thread.
+				 *
+				 * However, we are protecting the insertion with a lock and
+				 * teq_io_unthrottle() will immediately lock the object
+				 * before calling cq_zero(), removing any race condition:
+				 * if it triggered, the event will be cleared as soon as
+				 * we release the lock.
 				 */
 
+				TEQ_LOCK(teq);
+				g_assert(NULL == teq_io->throttle_ev);
 				teq_io->throttle_ev = evq_raw_insert(teq->throttle_delay,
 					teq_io_unthrottle, teq);
-				cq_zero_if_triggered(&teq_io->throttle_ev);
+				TEQ_UNLOCK(teq);
 				break;
 			}
 		}
@@ -1671,18 +1695,26 @@ teq_set_throttle(int process, int delay)
 	 * pending).
 	 */
 
+	TEQ_LOCK(teq);
 	if (teq->throttle_ev != NULL) {
 		cq_cancel(&teq->throttle_ev);
 		need_signal = TRUE;
 	}
+	TEQ_UNLOCK(teq);
 
 	if (teq_is_io(teq)) {
 		struct teq_io *teq_io = TEQ_IO(teq);
+		bool update_waiter = FALSE;
 
+		TEQ_LOCK(teq);
 		if (teq_io->throttle_ev != NULL) {
 			cq_cancel(&teq_io->throttle_ev);
-			waiter_signal(teq_io->w);
+			update_waiter = TRUE;
 		}
+		TEQ_UNLOCK(teq);
+
+		if (update_waiter)
+			waiter_signal(teq_io->w);
 	}
 
 	if (need_signal)
