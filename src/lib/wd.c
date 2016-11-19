@@ -79,7 +79,7 @@ watchdog_check(const watchdog_t * const wd)
 		spinunlock((w)->lock);			\
 } G_STMT_END
 
-static void wd_start(watchdog_t *wd);
+static bool wd_start(watchdog_t *wd);
 
 /**
  * Trigger the user-defined callback.
@@ -160,10 +160,14 @@ wd_expired(cqueue_t *cq, void *arg)
 
 /**
  * Start watchdog timer.
+ *
+ * @return TRUE if we recreated the callout event, i.e. awoken the watchdog.
  */
-static void
+static bool
 wd_start(watchdog_t *wd)
 {
+	bool awoken = FALSE;
+
 	watchdog_check(wd);
 
 	WD_LOCK(wd);
@@ -173,9 +177,12 @@ wd_start(watchdog_t *wd)
 	if (NULL == wd->ev) {
 		/* watchdog period given in seconds */
 		wd->ev = cq_main_insert(wd->period * 1000, wd_expired, wd);
+		awoken = TRUE;
 	}
 
 	WD_UNLOCK(wd);
+
+	return awoken;
 }
 
 /**
@@ -210,8 +217,7 @@ wd_wakeup_kick(watchdog_t *wd)
 	watchdog_check(wd);
 
 	if G_UNLIKELY(NULL == wd->ev) {
-		wd_start(wd);
-		awoken = TRUE;
+		awoken = wd_start(wd);
 	}
 
 	WD_LOCK(wd);
@@ -231,14 +237,7 @@ wd_wakeup_kick(watchdog_t *wd)
 bool
 wd_wakeup(watchdog_t *wd)
 {
-	watchdog_check(wd);
-
-	if (wd->ev != NULL)
-		return FALSE;
-
-	wd_start(wd);
-
-	return TRUE;
+	return wd_start(wd);
 }
 
 /**
@@ -249,16 +248,15 @@ wd_wakeup(watchdog_t *wd)
 bool
 wd_sleep(watchdog_t *wd)
 {
+	bool had_triggered;
+
 	watchdog_check(wd);
 
-	if (NULL == wd->ev)
-		return FALSE;
-
 	WD_LOCK(wd);
-	cq_cancel(&wd->ev);
+	had_triggered = cq_cancel(&wd->ev);
 	WD_UNLOCK(wd);
 
-	return TRUE;
+	return !had_triggered;
 }
 
 /**
@@ -274,15 +272,14 @@ wd_expire(watchdog_t *wd)
 	bool run = TRUE;
 	watchdog_check(wd);
 
-	if (NULL == wd->ev)
-		return FALSE;
-
 	WD_LOCK(wd);
 	if (wd->triggering) {
 		run = FALSE;
 	} else {
-		cq_cancel(&wd->ev);
-		wd->triggering = TRUE;
+		if (cq_cancel(&wd->ev))
+			run = FALSE;
+		else
+			wd->triggering = TRUE;
 	}
 	WD_UNLOCK(wd);
 
@@ -378,8 +375,15 @@ wd_period(const watchdog_t *wd)
 time_delta_t
 wd_remaining(const watchdog_t *wd)
 {
+	time_delta_t remain;
+
 	watchdog_check(wd);
-	return NULL == wd->ev ? TIME_DELTA_T_MAX : cq_remaining(wd->ev) / 1000;
+
+	WD_LOCK(wd);
+	remain = NULL == wd->ev ? TIME_DELTA_T_MAX : cq_remaining(wd->ev) / 1000;
+	WD_UNLOCK(wd);
+
+	return remain;
 }
 
 /**
