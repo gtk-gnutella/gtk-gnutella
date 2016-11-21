@@ -404,7 +404,7 @@ struct thread_element {
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
-	bool sig_handling;				/**< Are we in thread_sig_handle()? */
+	bool sig_disabled;				/**< Cheap way of disabling all signals */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
@@ -2353,6 +2353,7 @@ thread_element_reset(struct thread_element *te)
 	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
+	te->sig_disabled = FALSE;
 	te->recursive_lockwait = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
@@ -4603,12 +4604,10 @@ thread_sig_handle(struct thread_element *te)
 	THREAD_STATS_INCX(sig_handled_count);
 
 	/*
-	 * Prevent recusion: since thread_check_suspended() will call
-	 * thread_sig_handle(), we must avoid endless checks when a signal
-	 * is present.
+	 * If we've disabled all signals, don't process now.
 	 */
 
-	if G_UNLIKELY(te->sig_handling)
+	if G_UNLIKELY(te->sig_disabled)
 		return FALSE;
 
 	/*
@@ -4619,8 +4618,6 @@ thread_sig_handle(struct thread_element *te)
 
 	if G_UNLIKELY(te->blocked)
 		return FALSE;
-
-	te->sig_handling = TRUE;
 
 recheck:
 
@@ -4706,7 +4703,6 @@ recheck:
 	/* FALL THROUGH */
 
 done:
-	te->sig_handling = FALSE;
 	return handled;
 }
 
@@ -4857,7 +4853,13 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		}
 	}
 
-	if (sigs)
+	/*
+	 * Prevent recusion through thread_sig_handle(): we must avoid endless
+	 * checks when a signal is present, hence do not handle signals if
+	 * we are already in a signal handler.
+	 */
+
+	if (sigs && 0 == te->in_signal_handler)
 		delayed |= thread_signal_check(te);
 
 	return delayed;
@@ -7160,20 +7162,21 @@ thread_lock_reacquire(
 	const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
-	bool in_sig_handler = te->sig_handling;
+	bool sig_disabled = te->sig_disabled;
+
 	/*
 	 * During re-acquisition of rwlocks, locks will be taken and we do not
 	 * want any pending signal delivery whilst we grab a lock that we were
 	 * supposed to already have.
 	 *
-	 * Therefore, we artifically set te->sig_handling and clear it before
+	 * Therefore, we artifically set te->sig_disabled and clear it before
 	 * before returning, to cheaply disable all signal delivery given that
 	 * thread_sig_handle() will explicitly avoid processing when that flag
 	 * is set.
 	 */
 
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = TRUE;		/* Prevents any signal delivery */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = TRUE;	/* Prevents any signal delivery */
 
 	switch (kind) {
 	case THREAD_LOCK_ANY:
@@ -7210,8 +7213,8 @@ thread_lock_reacquire(
 	g_assert_not_reached();
 
 done:
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = FALSE;		/* Undo forced setting at entry */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = FALSE;		/* Undo forced setting at entry */
 }
 
 /**
@@ -12082,7 +12085,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%u",  signalled);
 	DUMPF("%u",  sig_generation);
 	DUMPF("%d",  in_signal_handler);
-	DUMPF("%d",  sig_handling);
+	DUMPF("%d",  sig_disabled);
 	DUMPF("%d",  sleep_interruptible);
 	DUMPF("%d",  created);
 	DUMPF("%d",  discovered);
