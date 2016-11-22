@@ -824,9 +824,25 @@ stack_sym_trylock(const char *caller)
 		 */
 
 		if (0 != cnt) {
-			s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
-				caller, thread_safe_name(), cnt, plural(cnt));
-			thread_lock_dump_if_any(STDERR_FILENO, thread_small_id());
+			static uint8 warning[THREAD_MAX];
+			uint stid = thread_small_id();
+
+			/*
+			 * Avoid deadly recursion: since dumping locks can also cause
+			 * the locking stack to be dumped, we can come back here.
+			 * Hence the warning[] array to cut recursion immediately.
+			 */
+
+			if (!warning[stid]) {
+				warning[stid] = TRUE;
+
+				s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
+					caller, thread_safe_name(), cnt, plural(cnt));
+				thread_lock_dump_if_any(STDERR_FILENO, stid);
+
+				warning[stid] = FALSE;
+			}
+
 			return FALSE;
 		}
 
