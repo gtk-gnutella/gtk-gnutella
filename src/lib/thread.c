@@ -4588,6 +4588,40 @@ thread_wait_others(const struct thread_element *te)
 }
 
 /**
+ * Atomically clear signals in the pending set from the thread element.
+ *
+ * @note
+ * This routine does not require the thread element to be locked.
+ *
+ * @param te		the thread element
+ * @param mask		mask with zeroes in bits for each signal to clear
+ */
+static void
+thread_element_clear_mask(struct thread_element *te, tsigset_t mask)
+{
+	STATIC_ASSERT(sizeof(tsigset_t) == sizeof(uint));
+
+	/*
+	 * Because signal delivery is a rare event, we are going to attempt
+	 * to atomically clear the signals into the sig_pending field.  This
+	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_add_pending_sig().
+	 */
+
+	for (;;) {
+		tsigset_t pending, cleared;
+
+		atomic_mb();
+		cleared = pending = te->sig_pending;
+		cleared &= mask;
+
+		if (atomic_uint_xchg_if_eq(&te->sig_pending, pending, cleared))
+			break;
+	}
+}
+
+/**
  * Handle pending signals.
  *
  * @return TRUE if we handled something.
@@ -4637,15 +4671,10 @@ recheck:
 
 	/*
 	 * Load unblocked signals we have to process and clear the pending set.
-	 *
-	 * We need the lock here because the te->sig_pending field can be
-	 * concurrently updated by other threads when posting signals.
 	 */
 
-	THREAD_LOCK(te);
 	pending = ~te->sig_mask & te->sig_pending;
-	te->sig_pending &= te->sig_mask;		/* Only clears unblocked signals */
-	THREAD_UNLOCK(te);
+	thread_element_clear_mask(te, te->sig_mask);
 
 	if G_UNLIKELY(0 == pending)
 		goto done;
@@ -10753,6 +10782,8 @@ thread_element_add_pending_sig(struct thread_element *te, int signum)
 	 * Because signal delivery is a rare event, we are going to attempt
 	 * to atomically merge the signal into the sig_pending field.  This
 	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_clear_mask().
 	 */
 
 	for (;;) {
