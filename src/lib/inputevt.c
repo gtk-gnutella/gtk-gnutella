@@ -788,8 +788,6 @@ event_get_with_poll(const struct poll_ctx *ctx, unsigned idx)
 static void
 check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 {
-	tm_t before, after;
-	time_delta_t d;
 	int ret, timeout_ms;
 
 	g_assert(ctx);
@@ -798,6 +796,7 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	g_assert(0 == ctx->num_ready);
 
 	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+
 	if (ctx->max_poll_idx <= 0) {
 		ctx->num_ready = 0;
 		return;
@@ -812,23 +811,40 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	timeout_ms = *timeout_ms_ptr;
 	timeout_ms = MAX(0, timeout_ms);
 
-	tm_now_exact(&before);
-	ret = (*ctx->collect_events)(ctx, timeout_ms);
-	tm_now_exact(&after);
-	d = tm_elapsed_ms(&after, &before);
-	if (d >= timeout_ms || ret > 0) {
-		timeout_ms = 0;
+	if G_UNLIKELY(0 == timeout_ms) {
+		ret = (*ctx->collect_events)(ctx, 0);
 	} else {
-		timeout_ms -= d;
-	}
-	ctx->num_ready = MAX(0, ret);
+		tm_t before;
 
-	/* If the original timeout was negative (=INFINITE) and no event
-	 * has occured, the timeout isn't touched.
-	 */
-	if (*timeout_ms_ptr >= 0 || ret > 0) {
-		*timeout_ms_ptr = timeout_ms;
+		tm_now_exact(&before);
+		ret = (*ctx->collect_events)(ctx, timeout_ms);
+
+		if (ret > 0) {
+			timeout_ms = 0;
+		} else {
+			time_delta_t d;
+			tm_t after;
+
+			tm_now_exact(&after);
+			d = tm_elapsed_ms(&after, &before);
+
+			if (d >= timeout_ms)
+				timeout_ms = 0;
+			else
+				timeout_ms -= d;
+		}
+
+		/*
+		 * If the original timeout was negative (=INFINITE) and no event
+		 * has occured, the timeout isn't touched.
+		 */
+
+		if (ret > 0 || *timeout_ms_ptr >= 0) {
+			*timeout_ms_ptr = timeout_ms;
+		}
 	}
+
+	ctx->num_ready = MAX(0, ret);
 }
 
 void
