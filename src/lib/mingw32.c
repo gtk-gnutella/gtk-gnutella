@@ -2846,6 +2846,8 @@ no_child:
 bool
 mingw_has_wsapoll(void)
 {
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
+
 	/*
 	 * Since there is no binding in MinGW for WSAPoll(), we use the dynamic
 	 * linker to fetch the routine address in the library.
