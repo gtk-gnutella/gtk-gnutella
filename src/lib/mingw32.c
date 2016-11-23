@@ -2869,6 +2869,8 @@ mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
 	int res;
 
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
+
 	if (NULL == WSAPoll) {
 		errno = WSAEOPNOTSUPP;
 		return -1;
