@@ -948,6 +948,47 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 }
 
 /**
+ * Handle event on given file descriptor.
+ */
+static void
+inputevt_handle(const struct poll_ctx *ctx, int fd, inputevt_cond_t condition)
+{
+	relay_list_t *rl;
+	pslist_t *sl;
+
+	g_assert(is_valid_fd(fd));
+
+	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
+
+	g_assert(NULL != rl);
+	g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
+
+	for (sl = rl->sl; NULL != sl; /* NOTHING */) {
+		inputevt_relay_t *relay;
+		unsigned id;
+
+		id = pointer_to_uint(sl->data);
+		sl = pslist_next(sl);
+
+		g_assert(id > 0);
+		g_assert(id < ctx->num_ev);
+
+		relay = ctx->relay[id];
+
+		g_assert(relay != NULL);
+		g_assert(relay->fd == fd);
+
+		if G_UNLIKELY(zero_handler == relay->handler)
+			continue;
+
+		if (condition & relay->condition) {
+			data_available = 0;
+			relay->handler(relay->data, fd, condition);
+		}
+	}
+}
+
+/**
  * Our main I/O event dispatching loop.
  */
 static void G_HOT
@@ -1007,37 +1048,9 @@ inputevt_timer(struct poll_ctx *ctx)
 		CTX_UNLOCK(ctx);
 
 		PSLIST_FOREACH(evlist, es) {
-			relay_list_t *rl;
-			pslist_t *sl;
 			struct event *event = es->data;
 
-			rl = htable_lookup(ctx->ht, int_to_pointer(event->fd));
-			g_assert(NULL != rl);
-			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
-
-			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
-				inputevt_relay_t *relay;
-				unsigned id;
-
-				id = pointer_to_uint(sl->data);
-				g_assert(id > 0);
-				g_assert(id < ctx->num_ev);
-
-				sl = pslist_next(sl);
-
-				relay = ctx->relay[id];
-				g_assert(relay);
-				g_assert(relay->fd == event->fd);
-
-				if G_UNLIKELY(zero_handler == relay->handler)
-					continue;
-
-				if (relay->condition & event->condition) {
-					data_available = event->data_available;
-					relay->handler(relay->data, relay->fd, event->condition);
-				}
-			}
-
+			inputevt_handle(ctx, event->fd, event->condition);
 			WFREE(event);
 		}
 
@@ -1060,47 +1073,19 @@ inputevt_timer(struct poll_ctx *ctx)
 		 * processing whilst we no longer hold the lock.	--RAM
 		 */
 
-		CTX_UNLOCK(ctx);
-
 		if (inputevt_debug > 2) {
 			unsigned long count = plist_length(list);
 			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
 		}
 
+		CTX_UNLOCK(ctx);
+
 		PLIST_FOREACH(list, iter) {
 			int fd = pointer_to_int(iter->data);
-			relay_list_t *rl;
-			pslist_t *sl;
 
-			g_assert(is_valid_fd(fd));
-
-			rl = htable_lookup(ctx->ht, int_to_pointer(fd));
-			g_assert(NULL != rl);
-			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
-
-			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
-				inputevt_relay_t *relay;
-				unsigned id;
-
-				id = pointer_to_uint(sl->data);
-				sl = pslist_next(sl);
-
-				g_assert(id > 0);
-				g_assert(id < ctx->num_ev);
-
-				relay = ctx->relay[id];
-				g_assert(relay);
-				g_assert(relay->fd == fd);
-
-				if G_UNLIKELY(zero_handler == relay->handler)
-					continue;
-
-				if (INPUT_EVENT_R & relay->condition) {
-					data_available = 0;
-					relay->handler(relay->data, relay->fd, INPUT_EVENT_R);
-				}
-			}
+			inputevt_handle(ctx, fd, INPUT_EVENT_R);
 		}
+
 		plist_free_null(&list);
 		CTX_LOCK(ctx);
 	}
