@@ -1009,6 +1009,7 @@ sdbm_can_release(DBM *db, const char *caller, const char *what)
 	if (db->refcnt >= 2) {
 		s_carp("%s(): attempting to %s SDBM \"%s\" (still has %d ref%s)",
 			caller, what, sdbm_name(db), db->refcnt, plural(db->refcnt));
+
 		atomic_int_dec(&db->refcnt);
 		g_assert(db->refcnt >= 0);
 		return FALSE;
@@ -1019,7 +1020,6 @@ sdbm_can_release(DBM *db, const char *caller, const char *what)
 #endif	/* THREADS */
 
 	return TRUE;
-
 }
 
 /**
@@ -1059,6 +1059,14 @@ sdbm_close(DBM *db)
 	sdbm_synchronize(db);
 
 	if (!sdbm_can_release(db, G_STRFUNC, "close")) {
+		/*
+		 * At least sync the database in case they close and forget it,
+		 * when the database is not marked volatile.
+		 */
+
+		if (!db->is_volatile)
+			sdbm_sync(db);
+
 		sdbm_unsynchronize(db);
 		return;
 	}
