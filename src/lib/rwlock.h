@@ -167,6 +167,9 @@ void rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line);
  * Public interface.
  */
 
+void rwlock_set_sleep_trace(bool on);
+void rwlock_set_contention_trace(bool on);
+
 void rwlock_init(rwlock_t *rw);
 void rwlock_destroy(rwlock_t *rw);
 

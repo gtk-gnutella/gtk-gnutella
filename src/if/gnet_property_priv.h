@@ -535,6 +535,8 @@ extern const time_t  gnet_property_variable_session_start_stamp;
 extern const gboolean gnet_property_variable_tcp_no_listening;
 extern const gboolean gnet_property_variable_query_trace;
 extern const gboolean gnet_property_variable_inputevt_trace;
+extern const gboolean gnet_property_variable_lock_contention_trace;
+extern const gboolean gnet_property_variable_lock_sleep_trace;
 
 
 prop_set_t *gnet_prop_init(void);

@@ -5681,4 +5681,22 @@ prop = {
     };
 };
 
+prop = {
+    name = "lock_contention_trace";
+    desc = "Defines whether lock contentions should be traced.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
+prop = {
+    name = "lock_sleep_trace";
+    desc = "Defines whether lock sleeps should be traced.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */
