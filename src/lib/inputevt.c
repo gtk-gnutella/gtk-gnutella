@@ -129,6 +129,7 @@ typedef struct {
 #include "override.h"		/* Must be the last header included */
 
 static unsigned inputevt_debug;
+static bool inputevt_trace;
 static unsigned inputevt_stid = THREAD_INVALID_ID;
 
 /**
@@ -138,6 +139,15 @@ void
 inputevt_set_debug(unsigned level)
 {
 	inputevt_debug = level;
+}
+
+/**
+ * Set tracing.
+ */
+void
+inputevt_set_trace(bool on)
+{
+	inputevt_trace = on;
 }
 
 /*
@@ -982,8 +992,21 @@ inputevt_handle(const struct poll_ctx *ctx, int fd, inputevt_cond_t condition)
 			continue;
 
 		if (condition & relay->condition) {
-			data_available = 0;
-			relay->handler(relay->data, fd, condition);
+			data_available = 0;		/* FIXME: not thread-safe */
+
+			if G_UNLIKELY(inputevt_trace) {
+				void *handler = relay->handler;
+
+				s_info("%s(): calling %s()...",
+					G_STRFUNC, stacktrace_function_name(handler));
+
+				relay->handler(relay->data, fd, condition);
+
+				s_info("%s(): ...back from %s()",
+					G_STRFUNC, stacktrace_function_name(handler));
+			} else {
+				relay->handler(relay->data, fd, condition);
+			}
 		}
 	}
 }

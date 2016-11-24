@@ -5672,4 +5672,13 @@ prop = {
     };
 };
 
+prop = {
+    name = "inputevt_trace";
+    desc = "Defines whether I/O event callbacks should be traced.";
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */

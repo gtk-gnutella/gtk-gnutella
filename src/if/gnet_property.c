@@ -1124,6 +1124,8 @@ gboolean gnet_property_variable_tcp_no_listening     = FALSE;
 static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
 gboolean gnet_property_variable_query_trace     = FALSE;
 static const gboolean gnet_property_variable_query_trace_default = FALSE;
+gboolean gnet_property_variable_inputevt_trace     = FALSE;
+static const gboolean gnet_property_variable_inputevt_trace_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -11312,6 +11314,25 @@ gnet_prop_init(void) {
     gnet_property->props[483].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[483].data.boolean.def   = (void *) &gnet_property_variable_query_trace_default;
     gnet_property->props[483].data.boolean.value = (void *) &gnet_property_variable_query_trace;
+
+
+    /*
+     * PROP_INPUTEVT_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[484].name = "inputevt_trace";
+    gnet_property->props[484].desc = _("Defines whether I/O event callbacks should be traced.");
+    gnet_property->props[484].ev_changed = event_new("inputevt_trace_changed");
+    gnet_property->props[484].save = TRUE;
+    gnet_property->props[484].internal = FALSE;
+    gnet_property->props[484].vector_size = 1;
+	mutex_init(&gnet_property->props[484].lock);
+
+    /* Type specific data: */
+    gnet_property->props[484].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[484].data.boolean.def   = (void *) &gnet_property_variable_inputevt_trace_default;
+    gnet_property->props[484].data.boolean.value = (void *) &gnet_property_variable_inputevt_trace;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

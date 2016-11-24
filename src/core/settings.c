@@ -2654,6 +2654,17 @@ inputevt_debug_changed(property_t prop)
 }
 
 static bool
+inputevt_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+	inputevt_set_trace(val);
+
+    return FALSE;
+}
+
+static bool
 http_range_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3246,6 +3257,11 @@ static prop_map_t property_map[] = {
     {
         PROP_INPUTEVT_DEBUG,
         inputevt_debug_changed,
+        TRUE
+    },
+    {
+        PROP_INPUTEVT_TRACE,
+        inputevt_trace_changed,
         TRUE
     },
     {
