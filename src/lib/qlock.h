@@ -137,6 +137,9 @@ bool qlock_grab_swap_try_from(qlock_t *q, const void *plock,
  * Public interface.
  */
 
+void qlock_set_sleep_trace(bool on_);
+void qlock_set_contention_trace(bool on);
+
 void qlock_plain_init(qlock_t *q);
 void qlock_recursive_init(qlock_t *q);
 void qlock_destroy(qlock_t *q);

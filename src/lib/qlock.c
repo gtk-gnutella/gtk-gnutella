@@ -69,6 +69,8 @@ struct qlock_waiting {
 };
 
 int qlock_pass_through;
+static bool qlock_sleep_trace;
+static bool qlock_contention_trace;
 
 /**
  * To avoid embedding a spinlock in each qlock for manipulating its waiting
@@ -105,6 +107,24 @@ qlock_get_lock(const qlock_t * const q)
 #define QLOCK_LOCK(q)		spinlock_hidden(qlock_get_lock(q))
 #define QLOCK_UNLOCK(q)		spinunlock_hidden(qlock_get_lock(q))
 #define QLOCK_IS_HELD(q)	spinlock_is_held(qlock_get_lock(q))
+
+/*
+ * Set sleep tracing in qlock_loop().
+ */
+void
+qlock_set_sleep_trace(bool on)
+{
+	qlock_sleep_trace = on;
+}
+
+/*
+ * Set contention tracing in qlock_loop().
+ */
+void
+qlock_set_contention_trace(bool on)
+{
+	qlock_contention_trace = on;
+}
 
 static inline void
 qlock_grab_account(const qlock_t *q, const char *file, unsigned line)
@@ -522,6 +542,11 @@ qlock_loop(qlock_t *q,
 	events = thread_block_prepare();
 	QLOCK_UNLOCK(q);
 
+	if G_UNLIKELY(qlock_contention_trace) {
+		s_rawinfo("LOCK contention for %s %p at %s:%u",
+			qlock_type(q), q, file, line);
+	}
+
 	/*
 	 * Sleep up to QLOCK_TIMEOUT seconds overall, until we get the lock
 	 * transferred to us.  The first time we wait for QLOCK_TIMEOUT_WARN
@@ -539,8 +564,16 @@ qlock_loop(qlock_t *q,
 	for (;;) {
 		time_delta_t d;
 
+		if G_UNLIKELY(qlock_sleep_trace) {
+			s_rawinfo("LOCK sleeping for %s %p at %s:%u",
+				qlock_type(q), q, file, line);
+		}
+
 		if (!thread_timed_block_self(events, &tmout) && warned)
 			(*deadlocked)(q, QLOCK_TIMEOUT, file, line);
+
+		if G_UNLIKELY(qlock_sleep_trace)
+			s_rawinfo("LOCK sleep done");	/* To timestamp end of sleep */
 
 		events = thread_block_prepare();
 		atomic_mb();		/* "read barrier", before reading q->stid */
