@@ -11001,6 +11001,44 @@ thread_kill(unsigned id, int signum)
 }
 
 /**
+ * Check whether current thread has pending signals.
+ *
+ * We're passed the amount of locks that the thread current holds and is
+ * able to immediately release if there are signals to process.
+ *
+ * The idea is that the caller would invoke this routine first, and if it
+ * returns TRUE, release whatever locks it holds before attempting to call
+ * thread_signal_process() to process them.
+ *
+ * @param locks		amount of locks the current thread holds and can release
+ *
+ * @return TRUE if the current thread holds signals that could be processed
+ * when the locks are released.
+ */
+bool
+thread_signal_has_pending(size_t locks)
+{
+	struct thread_element *te = thread_get_element();
+
+	return thread_element_lock_count(te) == locks && thread_sig_present(te);
+}
+
+/**
+ * Process pending signals in the current thread.
+ *
+ * This is typically called when thread_signal_has_pending() returned TRUE
+ * and the locks were released, but it is OK to call it at any time: we recheck
+ * that the thread indeed holds no locks before processing pending signals.
+ *
+ * @return TRUE if we processed any signals.
+ */
+bool
+thread_signal_process(void)
+{
+	return thread_signal_check(thread_get_element());
+}
+
+/**
  * Manipulate the current thread's signal mask.
  *
  * There are four operations defined, as specified by ``how'':
