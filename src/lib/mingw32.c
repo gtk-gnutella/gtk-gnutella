@@ -1597,7 +1597,7 @@ mingw_getppid(void)
 	 */
 
 	if ((pid_t) -1 == parent_pid) {
-		if (-1 == mingw_process_access_check(ppid)) {
+		if (-1 == mingw_process_accessible(ppid)) {
 			ppid = 1;				/* Parent died or runs under another UID */
 		} else {
 			if (mingw_find_process_entry(ppid, &pe, NULL)) {
@@ -1634,7 +1634,7 @@ mingw_getppid(void)
 	if (mingw_find_process_entry(ppid, &pe, NULL)) {
 		mingw_sha1_process_entry(&pe, &digest);
 	} else {
-		if (0 == mingw_process_access_check(ppid)) {
+		if (0 == mingw_process_accessible(ppid)) {
 			static bool warned;
 
 			if (!warned) {
@@ -5642,7 +5642,7 @@ found:
  * be accessed by the user.
  */
 int
-mingw_process_access_check(pid_t pid)
+mingw_process_accessible(pid_t pid)
 {
 	HANDLE p;
 	int res = -1;

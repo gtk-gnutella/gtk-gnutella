@@ -800,7 +800,7 @@ void *mingw_memstart(const void *p);
 void mingw_log_meminfo(const void *p);
 
 int mingw_random_bytes(void *buf, size_t len);
-int mingw_process_access_check(pid_t pid);
+int mingw_process_accessible(pid_t pid);
 
 unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
