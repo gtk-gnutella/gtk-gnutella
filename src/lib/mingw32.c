@@ -1167,10 +1167,12 @@ failed:
  * missed (recorded as pending but not processed) due to an unavoidable
  * race condition in mingw_sig_trampoline().
  *
+ * @param id	thread small ID
+ *
  * @return TRUE if we handled any signal.
  */
 bool
-mingw_signal_check(uint id)
+mingw_signal_check_for(uint id)
 {
 	g_assert(id < THREAD_MAX);
 

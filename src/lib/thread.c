@@ -4743,7 +4743,7 @@ done:
  * @return TRUE if we processed any signals.
  */
 static inline bool
-thread_signal_check(struct thread_element *te)
+thread_signal_check_element(struct thread_element *te)
 {
 	bool processed = FALSE;
 
@@ -4759,7 +4759,7 @@ thread_signal_check(struct thread_element *te)
 	 * signals, i.e. those sent by thread_os_kill().
 	 */
 
-	processed |= mingw_signal_check(te->stid);
+	processed |= mingw_signal_check_for(te->stid);
 #endif	/* MINGW32*/
 
 	return processed;
@@ -4889,7 +4889,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 	 */
 
 	if (sigs && 0 == te->in_signal_handler)
-		delayed |= thread_signal_check(te);
+		delayed |= thread_signal_check_element(te);
 
 	return delayed;
 }
@@ -8650,7 +8650,7 @@ retry:
 	 */
 
 	while (thread_sig_pending(te) && 0 == te->signalled) {
-		if (!thread_signal_check(te))
+		if (!thread_signal_check_element(te))
 			break;		/* Could not handle signals, no need to loop */
 	}
 
@@ -10759,7 +10759,7 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 
 	return old;
 }
@@ -11035,7 +11035,7 @@ thread_signal_has_pending(size_t locks)
 bool
 thread_signal_process(void)
 {
-	return thread_signal_check(thread_get_element());
+	return thread_signal_check_element(thread_get_element());
 }
 
 /**
@@ -11080,7 +11080,7 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
@@ -11394,7 +11394,7 @@ thread_sleep_interruptible(unsigned int ms,
 		 * present.
 		 */
 
-		if (thread_signal_check(te) && interrupt)
+		if (interrupt && thread_signal_check_element(te))
 			return TRUE;
 	}
 
@@ -11512,7 +11512,7 @@ thread_leave_critical(const thread_sigsets_t *set)
 	te->sig_mask = set->tset;
 
 	signal_thread_leave_critical(te->stid, &set->kset);
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
