@@ -69,7 +69,6 @@
     
     <h2>GTK+ 2.x</h2>
     <ul>
-        <li><a href="#gtk2_slow">Gtk2 is way sloooow.</a></li>
         <li><a href="#gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></li>
     </ul>
     
@@ -436,12 +435,6 @@
       
       
     <h2>GTK+ 2.x</h2>
-    <h3><a name="gtk2_slow">Gtk2 is way sloooow.</a></h3>
-    <p>Set the environment variable <code>GDK_USE_XFT</code> to 0 and see
-      whether this helps. This turns off anti aliasing in Gtk2 which can use a
-      lot of cpu. The Gtk2 frontend is much slower than the Gtk1 frontend. So on
-      a slow machine, you should consider using the Gtk1 frontend.</p>
-      
     <h3><a name="gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></h3>
     <p>Set the environment variable <code>LC_CTYPE</code> or <code>LC_ALL</code>
       to an appropriate value for the encoding you use. For example, if you use
