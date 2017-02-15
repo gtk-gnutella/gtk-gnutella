@@ -1013,7 +1013,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 
 	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
 		if (cq_debugging(0)) {
-			s_debug("CQ called-out %s() did not to call cq_zero() on event %p",
+			s_debug("CQ called-out %s() did not call cq_zero() on event %p",
 				stacktrace_function_name(fn), ev);
 		}
 		ev_free(ev);
