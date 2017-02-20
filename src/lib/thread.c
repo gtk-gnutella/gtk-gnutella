@@ -1988,7 +1988,7 @@ thread_gone(struct thread_element *te)
  * Callout queue callback invoked when discovered thread is surely gone.
  */
 static void
-thread_surely_gone(cqueue_t *unused_cq, void *data)
+thread_surely_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 	bool problem;
@@ -1996,7 +1996,7 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
@@ -2035,13 +2035,13 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
  * Callout queue callback invoked when discovered thread is probably gone.
  */
 static void
-thread_probably_gone(cqueue_t *unused_cq, void *data)
+thread_probably_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
@@ -2133,14 +2133,14 @@ thread_pjoin(struct thread_element *te)
  * Callout queue callback to reclaim thread element.
  */
 static void
-thread_element_reclaim(cqueue_t *unused_cq, void *data)
+thread_element_reclaim(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 	g_assert(te->detached);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	/*
 	 * Join with the thread, which should be completely terminated by now
@@ -9637,11 +9637,11 @@ struct thread_exit_context {
  * Invoked from the main thread to notify that a thread exited.
  */
 static void
-thread_exit_notify(cqueue_t *unused_cq, void *obj)
+thread_exit_notify(cqueue_t *cq, void *obj)
 {
 	struct thread_exit_context *ctx = obj;
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	(*ctx->cb)(ctx->value, ctx->arg);
 	WFREE(ctx);
