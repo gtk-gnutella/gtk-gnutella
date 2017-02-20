@@ -724,15 +724,19 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 	cq->cq_call = NULL;		/* cq_zero() can only be called once */
 
 	/*
-	 * If the event was not extended, we need to nullify its reference
-	 * so that cq_cancel() will do nothing: the event was already freed.
+	 * When they want us to zero the content of the variable holding the event:
 	 *
-	 * If the event is extended, we will need to free the event now that
-	 * we are in the callback, and they must have taken any specific lock
-	 * that will prevent race conditions with the recording of that event.
+	 * - if the event was not extended, we need to nullify its reference
+	 *   so that cq_cancel() will do nothing: the event was already freed.
+	 *
+	 * - if the event was extended, we will need to free the event now that
+	 *   we are in the callback, and they must have taken any specific lock
+	 *   that will prevent race conditions with the recording of that event.
 	 */
 
-	*ev_ptr = NULL;
+	if G_LIKELY(zero)
+		*ev_ptr = NULL;
+
 	CQ_UNLOCK(cq);
 
 	if G_UNLIKELY(cq->cq_call_extended && zero) {
