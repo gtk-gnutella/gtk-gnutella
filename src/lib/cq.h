@@ -109,6 +109,7 @@ size_t cq_heartbeat(cqueue_t *cq);
 bool cq_expire(cevent_t *ev);
 void cq_zero(cqueue_t *cq, cevent_t **ev_ptr);
 void cq_acknowledge(cqueue_t *cq, cevent_t *ev);
+void cq_event(cqueue_t *cq);
 bool cq_cancel(cevent_t **handle_ptr);
 bool cq_replace(cevent_t *ev, cq_service_t fn, void *arg);
 bool cq_resched(cevent_t *handle, int delay);

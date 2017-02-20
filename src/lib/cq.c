@@ -815,6 +815,45 @@ cq_acknowledge(cqueue_t *cq, cevent_t *ev)
 }
 
 /**
+ * Acknowledge event callback, when the event is not known.
+ *
+ * This is meant to be called instead of cq_zero() when there is no event to
+ * clear and yet we want to acknowledge the processing, in case it is a foreign
+ * event.
+ *
+ * Not calling this would make the event leak later.
+ *
+ * @param cq	the callout queue that dispatched the event
+ */
+void
+cq_event(cqueue_t *cq)
+{
+	cevent_t *ev;
+
+	cqueue_check(cq);
+
+	/*
+	 * Why don't we lock the queue before reading cq_call?
+	 *
+	 * Because this routine is meant to be invoked during a callout queue
+	 * callback and nothing can dispatch an event at that point.
+	 *
+	 * FIXME:
+	 * The only worry would come from manually triggered events through
+	 * cq_expire(): we'll need to protect somehow against that by allowing
+	 * calls to cq_expire() from an event callback but loudly complain when
+	 * cq_expire() is invoked on a foreign thread concurrently with the
+	 * dispatching of another event -- only the latter makes the unlocked
+	 * read unsafe, but also completely disrupts the internal state kept
+	 * in cq_call and cq_call_extended and therefore need to be forbidden!
+	 * 		--RAM, 2017-02-20
+	 */
+
+	ev = deconstify_pointer(cq->cq_call);
+	cq_event_called(cq, &ev, TRUE, FALSE, G_STRFUNC);
+}
+
+/**
  * Special form of cq_zero() which will not cause any warning when the calling
  * thread does not hold a lock and we know it cannot create any race.
  */
