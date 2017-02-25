@@ -10,7 +10,7 @@ prefix = os.path.expanduser("~/gtk-gnutella/inst")
 tarballdir = os.path.expanduser("~/gtk-gnutella/pkgs")
 
 if not "MACOSX_DEPLOYMENT_TARGET" in os.environ:
-	_target = "10.8"
+	_target = "10.9"
 	setup_sdk(target=_target, sdk_version="native", architectures=[_default_arch])
 
 moduleset = os.path.expanduser("~/gtk-gnutella.modules")
