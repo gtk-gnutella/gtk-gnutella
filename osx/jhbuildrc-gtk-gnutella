@@ -4,7 +4,7 @@ _branch = os.environ.get("BRANCH");
 
 if _branch is not None:
 	branches["gtk-gnutella"]=[None, _branch]
-	
+
 checkoutroot = os.path.expanduser("~/gtk-gnutella/source")
 prefix = os.path.expanduser("~/gtk-gnutella/inst")
 tarballdir = os.path.expanduser("~/gtk-gnutella/pkgs")
