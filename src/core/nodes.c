@@ -217,6 +217,7 @@ static gnutella_node_t *udp6_node;
 static gnutella_node_t *udp_sr_node;
 static gnutella_node_t *udp6_sr_node;
 static gnutella_node_t *udp_g2_node;
+static gnutella_node_t *udp6_g2_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
@@ -1745,6 +1746,7 @@ node_init(void)
 	udp_sr_node = node_udp_sr_create(NET_TYPE_IPV4);
 	udp6_sr_node = node_udp_sr_create(NET_TYPE_IPV6);
 	udp_g2_node = node_udp_g2_create(NET_TYPE_IPV4);
+	udp6_g2_node = node_udp_g2_create(NET_TYPE_IPV6);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create(FALSE);
@@ -7964,6 +7966,9 @@ node_g2_enable_by_net(enum net_type net)
 		s = s_udp_listen;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		s = s_udp_listen6;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8073,6 +8078,8 @@ node_g2_disable_by_net(enum net_type net)
 		n = udp_g2_node;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8106,6 +8113,8 @@ node_g2_enable(void)
 {
 	if (s_udp_listen)
 		node_g2_enable_by_net(NET_TYPE_IPV4);
+	if (s_udp_listen6)
+		node_g2_enable_by_net(NET_TYPE_IPV6);
 }
 
 void
@@ -8405,6 +8414,8 @@ node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port)
 			n = udp_g2_node;
 			break;
 		case NET_TYPE_IPV6:
+			n = udp6_g2_node;
+			break;
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
@@ -10987,7 +10998,8 @@ node_bye_all(bool all)
 {
 	pslist_t *sl;
 	gnutella_node_t *udp_nodes[] = {
-		udp_node, udp6_node, udp_sr_node, udp6_sr_node, udp_g2_node,
+		udp_node, udp6_node, udp_sr_node, udp6_sr_node,
+		udp_g2_node, udp6_g2_node,
 		dht_node, dht6_node
 	};
 	unsigned i;
@@ -11673,7 +11685,8 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
-			udp_sr_node, udp6_sr_node, udp_g2_node, browse_g2_node
+			udp_sr_node, udp6_sr_node, udp_g2_node, udp6_g2_node,
+			browse_g2_node
 		};
 		uint i;
 
@@ -11704,6 +11717,7 @@ node_close(void)
 		udp_sr_node = NULL;
 		udp6_sr_node = NULL;
 		udp_g2_node = NULL;
+		udp6_g2_node = NULL;
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
