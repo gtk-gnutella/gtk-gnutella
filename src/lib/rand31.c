@@ -291,38 +291,23 @@ void
 rand31_addrandom(const void *data, size_t len)
 {
 	int rn;
-	const void *p = data;
-	uint32 v;
+	unsigned v;
 
 	rand31_check_seeded();
+	v = binary_hash(data, len);
 
 	RAND31_LOCK;
 
 	rn = rand31_prng();		/* In case we end-up with a zero seed */
-
-	while (len >= 4) {
-		p = peek_be32_advance(p, &v);
-		len -= 4;
-		rand31_seed ^= v;
-	}
-
-	if (len != 0) {
-		g_assert(len < 4);
-
-		v = 0;
-		while (len-- != 0) {
-			v <<= 8;
-			v |= peek_u8(p);
-			p = const_ptr_add_offset(p, 1);
-		}
-		rand31_seed ^= v;
-	}
+	rand31_seed ^= v;
 
 	while (rand31_seed >= RAND31_MOD)
 		rand31_seed -= RAND31_MOD;
 
 	if G_UNLIKELY(rand31_is_zero(rand31_seed))
 		rand31_seed = rn;
+
+	g_assert(!rand31_is_zero(rand31_seed));
 
 	RAND31_UNLOCK;
 }
