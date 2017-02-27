@@ -1404,6 +1404,17 @@ entropy_seed(struct entropy_minictx *c)
 		ENTROPY_CONTEXT_FEED;
 	}
 
+	/* Thread runtime statistics, including QID lookups, locks, etc... */
+
+	{
+		sha1_t d;
+
+		thread_stats_digest(&d);
+		shuffle_with(rand31_u32, VARLEN(d), 1);
+		SHA1_INPUT(&ctx, d);
+		ENTROPY_CONTEXT_FEED;
+	}
+
 	/* Partial SHA1 result */
 
 	{
