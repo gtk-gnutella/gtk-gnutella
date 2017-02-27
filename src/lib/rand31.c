@@ -231,7 +231,6 @@ rand31_random_seed(void)
 	}
 
 	g_assert(!rand31_is_zero(seed));
-	g_assert(0 != seed % RAND31_MOD);
 
 	return seed;
 }
