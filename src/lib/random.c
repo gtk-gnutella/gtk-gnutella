@@ -570,18 +570,13 @@ random_key(void)
 {
 	uint32 r1, r2;
 
-	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand() ^ mt_rand();
 	r2 = UINT32_ROTR(r1, 13);
-	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand() ^ mt_rand();
 	r2 += UINT32_ROTL(r1, 7);
-	r1 = arc4random() ^ well_rand() ^ aje_rand() ^ cmwc_rand();
+	r1 = arc4random() + well_rand() + aje_rand() + cmwc_rand() + mt_rand();
 
-	/*
-	 * It is NOT a mistake: we're using entropy_minirand() in the
-	 * UINT32_ROTR() macro, meaning it will be called twice.
-	 */
-
-	return r1 + r2 + UINT32_ROTR(entropy_minirand(), 17);
+	return UINT32_ROTR(r1, 5) ^ r2;
 }
 
 /**
