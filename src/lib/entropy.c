@@ -1335,7 +1335,7 @@ entropy_seed(struct entropy_minictx *c)
 		ENTROPY_SHUFFLE_FEED(afd, sha1_feed_fstat);
 	}
 
-	/* Reseed the rand31 PRNG */
+	/* Feed new randomness to the rand31 PRNG */
 
 	{
 		sha1_t hash;
@@ -1348,7 +1348,7 @@ entropy_seed(struct entropy_minictx *c)
 		tm_precise_time(&now);
 		SHA1_INPUT(&ctx, now);
 		SHA1_intermediate(&ctx, &hash);
-		rand31_set_seed(peek_be32(&hash));
+		rand31_addrandom(VARLEN(hash));
 	}
 
 	for (i = 0, j = 0; NULL != environ[i]; i++) {
