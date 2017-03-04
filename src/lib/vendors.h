@@ -123,6 +123,7 @@
 #define T_TOAD	FOURCC_NATIVE('T','O','A','D')
 #define T_VPUT  FOURCC_NATIVE('V','P','U','T')
 #define T_WAST  FOURCC_NATIVE('W','A','S','T')
+#define T_WSHR  FOURCC_NATIVE('W','S','H','R')
 #define T_XOLO	FOURCC_NATIVE('X','O','L','O')
 #define T_XTLA	FOURCC_NATIVE('X','T','L','A')
 #define T_YAFS  FOURCC_NATIVE('Y','A','F','S')

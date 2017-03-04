@@ -131,6 +131,7 @@ static const struct vendor {
     { T_TOAD, "ToadNode" },
     { T_VPUT, "Vputella" },
     { T_WAST, "Waste" },
+    { T_WSHR, "WireShare" },
     { T_XOLO, "Xolox" },
     { T_XTLA, "Xtella" },
     { T_YAFS, "UlfsYAFS" },
