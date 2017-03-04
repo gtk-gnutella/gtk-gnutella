@@ -16,24 +16,36 @@ case "$1" in
 	export JHB=gtk-gnutella
 	export PATH=$PATH:~/.local/bin/
 
-	echo "jhbuild ${bold}bootstrap${normal}"
-	jhbuild --no-interact bootstrap 2>&1 | tee jhbuild-bootstrap.log | grep -e "\*\*\*" -e "Making"
-	[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-bootstrap.log
+	jhb_actions_all=("bootstrap" "meta-gtk-osx-bootstrap" "meta-gtk-osx-core" "build")
+	jhb_actions=("${jhb_actions_all[@]}")
+	[ -f ~/gtk-gnutella/jhbuild-state ] && source ~/gtk-gnutella/jhbuild-state
 
-	echo "jhbuild ${bold}meta-gtk-osx-bootstrap${normal}"
-	jhbuild --no-interact build meta-gtk-osx-bootstrap 2>&1 | tee jhbuild-meta-gtk-osx-bootstrap.log | grep -e "\*\*\*" -e "Making"
-	[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-bootstrap.log
-	[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state 1."
-	
-	echo "jhbuild ${bold}meta-gtk-osx-core${normal}"
-	jhbuild --no-interact build meta-gtk-osx-core 2>&1 | tee jhbuild-meta-gtk-osx-core.log | grep -e "\*\*\*" -e "Making"
-	[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-meta-gtk-osx-core.log
-	[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state 2."
-	
-	echo "jhbuild ${bold}build${normal}"
-	jhbuild --no-interact build 2>&1 | tee jhbuild-build.log | grep -e "\*\*\*" -e Making
-	curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-build.log
-	tar -zcf gtk-gnutella-jhbuild.tar.bz2 -C ~/gtk-gnutella inst && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state 3."
+	if [ -n "${jhbuild_done}" ]
+	then
+		while [ "${jhb_actions}" != "${jhbuild_done}" ]
+		do
+			jhb_actions=( "${jhb_actions[@]:1}" )
+		done
+
+		jhb_actions=( "${jhb_actions[@]:1}" )
+	fi
+
+	for jhbuild_action in ${jhb_actions[@]}
+	do
+		echo "jhbuild ${bold}${jhbuild_action}${normal}"
+		jhbuild --min-age=24h --no-interact ${jhbuild_action} 2>&1 | tee "jhbuild-${jhbuild_action}.log" | grep -e "\*\*\*" -e "Making"
+		echo "jhbuild_done=${jhbuild_action}" > ~/gtk-gnutella/jhbuild-state
+		[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-${jhbuild_action}.log
+		[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella jhbuild-state inst source && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state ${jhbuild_action}."
+	done
+
+	# All actions were already done, update only required
+	if [ ${#jhb_actions[@]} -eq 0 ]
+	then
+		jhbuild --min-age=24h --no-interact ${jhb_actions_all[@]} 2>&1 | tee "jhbuild-update.log" | grep -e "\*\*\*" -e "Making"
+		[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-update.log
+		[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella jhbuild-state inst source && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state ${jhbuild_action}."
+	fi
 	
 	pushd gtk-mac-bundler
 	make install
