@@ -53,6 +53,7 @@
 #define T_COCO	FOURCC_NATIVE('C','O','C','O')
 #define T_CULT	FOURCC_NATIVE('C','U','L','T')
 #define T_DRIP  FOURCC_NATIVE('D','R','I','P')
+#define T_ENVY	FOURCC_NATIVE('E','N','V','Y')
 #define T_EVIL	FOURCC_NATIVE('E','V','I','L')
 #define T_FEVR	FOURCC_NATIVE('F','E','V','R')
 #define T_FIRE	FOURCC_NATIVE('F','I','R','E')

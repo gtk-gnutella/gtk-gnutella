@@ -61,6 +61,7 @@ static const struct vendor {
     { T_COCO, "CocoGnut" },
     { T_CULT, "Cultiv8r" },
     { T_DRIP, "Driptella" },
+    { T_ENVY, "Envy" },
     { T_EVIL, "Suicide" },
     { T_FEVR, "FileFever" },
     { T_FIRE, "FireFly" },
