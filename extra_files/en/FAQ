@@ -62,9 +62,10 @@
         <li><a href="#down9">In the downloads pane, what does it mean if the color of the text is grey instead of black?</a></li>
     </ul>
     
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     <ul>
         <li><a href="#up0">What does "Normalized" mean?</a></li>
+        <li><a href="#up1">Why not all files within the shared folders are being shared?</a></li>
     </ul>
     
     <h2>GTK+ 2.x</h2>
@@ -428,11 +429,22 @@
         route</a>.</p>
         
         
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     
     <h3><a name="up0">What does "Normalized" mean?</a></h3>
     <p>This shows the total amount of bytes uploaded for the file divided by
       the file size.</p>
+      
+    <h3><a name="up1">Why not all files within the shared folders are being shared?</a></h3>
+    <p>By default Gtk-Gnutella shares only the files whose extension is included in the <em>Search extensions</em> 
+    below the shared folders list in the Preferences. If your files are not being shared, probably their extension 
+    is not included in that list. There are 2 ways to solve this issue:</p>
+    <ol>
+        <li>include the extensions of the unshared files in the <em>Search extensions</em> list;</li>
+        <li>replace the whole list of extensions with the wildcard "--all--".</li>
+    </ol>
+    <p>Please note that you can check which files are being shared locally on your host by doing a search with the 
+    wildcard "local:".</p>
       
       
     <h2>GTK+ 2.x</h2>
