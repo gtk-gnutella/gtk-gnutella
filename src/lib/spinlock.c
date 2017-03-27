@@ -55,6 +55,26 @@
 
 int spinlock_pass_through;
 static long spinlock_cpus;
+static bool spinlock_sleep_trace;
+static bool spinlock_contention_trace;
+
+/**
+ * Set sleep tracing in spinlock_loop(): applies for spinlocks and mutexes.
+ */
+void
+spinlock_set_sleep_trace(bool on)
+{
+	spinlock_sleep_trace = on;
+}
+
+/**
+ * Set contention tracing in spinlock_loop(): applies for spinlocks and mutexes.
+ */
+void
+spinlock_set_contention_trace(bool on)
+{
+	spinlock_contention_trace = on;
+}
 
 static inline void
 spinlock_account(const spinlock_t *s, const char *file, unsigned line)
@@ -267,6 +287,11 @@ spinlock_loop(volatile spinlock_t *s,
 	thread_lock_contention(SPINLOCK_SRC_MUTEX == src ?
 		THREAD_LOCK_MUTEX : THREAD_LOCK_SPINLOCK);
 
+	if G_UNLIKELY(spinlock_contention_trace) {
+		s_rawinfo("LOCK contention for %s %p at %s:%u",
+			spinlock_source_string(src), src_object, file, line);
+	}
+
 	/*
 	 * If in "pass-through" mode, we're crashing, so avoid deadlocks.
 	 */
@@ -351,7 +376,15 @@ spinlock_loop(volatile spinlock_t *s,
 				(*deadlocked)(src_object, (unsigned) d, file, line);
 		}
 
+		if G_UNLIKELY(spinlock_sleep_trace) {
+			s_rawinfo("LOCK sleeping for %s %p at %s:%u",
+				spinlock_source_string(src), src_object, file, line);
+		}
+
 		compat_usleep_nocancel(SPINLOCK_DELAY);
+
+		if G_UNLIKELY(spinlock_sleep_trace)
+			s_rawinfo("LOCK sleep done");		/* To timestamp end of sleep */
 
 		/*
 		 * If pass-through was activated whilst we were sleeping, return

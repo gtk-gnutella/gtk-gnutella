@@ -1828,8 +1828,8 @@ callout_queue_idle(void *unused_data)
 		 */
 
 		(*random_source[n])(&digest);
-		shuffle(&digest, sizeof digest, 1);		/* Randomize digest bytes */
-		random_pool_append(&digest, sizeof digest);
+		shuffle(VARLEN(digest), 1);		/* Randomize digest bytes */
+		random_pool_append(VARLEN(digest));
 	}
 
 	return TRUE;		/* Keep scheduling this */

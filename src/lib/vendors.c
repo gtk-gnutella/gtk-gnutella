@@ -61,6 +61,7 @@ static const struct vendor {
     { T_COCO, "CocoGnut" },
     { T_CULT, "Cultiv8r" },
     { T_DRIP, "Driptella" },
+    { T_ENVY, "Envy" },
     { T_EVIL, "Suicide" },
     { T_FEVR, "FileFever" },
     { T_FIRE, "FireFly" },
@@ -131,6 +132,7 @@ static const struct vendor {
     { T_TOAD, "ToadNode" },
     { T_VPUT, "Vputella" },
     { T_WAST, "Waste" },
+    { T_WSHR, "WireShare" },
     { T_XOLO, "Xolox" },
     { T_XTLA, "Xtella" },
     { T_YAFS, "UlfsYAFS" },
@@ -258,8 +260,8 @@ vendor_code_get_name(uint32 code)
 		poke_be32(p, code);
 
 		/* Unknown type, look whether we have all printable ASCII */
-		for (i = buf_size(b); i != 0; i--) {
-			if (!is_ascii_alnum(p[i - 1]))
+		for (i = 0; i < sizeof code; i++) {
+			if (!is_ascii_alnum(p[i]))
 				return NULL;
 		}
 		buf_setc(b, 4, '\0');

@@ -404,7 +404,7 @@ struct thread_element {
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
-	bool sig_handling;				/**< Are we in thread_sig_handle()? */
+	bool sig_disabled;				/**< Cheap way of disabling all signals */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
@@ -1988,7 +1988,7 @@ thread_gone(struct thread_element *te)
  * Callout queue callback invoked when discovered thread is surely gone.
  */
 static void
-thread_surely_gone(cqueue_t *unused_cq, void *data)
+thread_surely_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 	bool problem;
@@ -1996,7 +1996,7 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
@@ -2035,13 +2035,13 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
  * Callout queue callback invoked when discovered thread is probably gone.
  */
 static void
-thread_probably_gone(cqueue_t *unused_cq, void *data)
+thread_probably_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
@@ -2133,14 +2133,14 @@ thread_pjoin(struct thread_element *te)
  * Callout queue callback to reclaim thread element.
  */
 static void
-thread_element_reclaim(cqueue_t *unused_cq, void *data)
+thread_element_reclaim(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 	g_assert(te->detached);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	/*
 	 * Join with the thread, which should be completely terminated by now
@@ -2353,6 +2353,7 @@ thread_element_reset(struct thread_element *te)
 	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
+	te->sig_disabled = FALSE;
 	te->recursive_lockwait = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
@@ -4587,6 +4588,40 @@ thread_wait_others(const struct thread_element *te)
 }
 
 /**
+ * Atomically clear signals in the pending set from the thread element.
+ *
+ * @note
+ * This routine does not require the thread element to be locked.
+ *
+ * @param te		the thread element
+ * @param mask		mask with zeroes in bits for each signal to clear
+ */
+static void
+thread_element_clear_mask(struct thread_element *te, tsigset_t mask)
+{
+	STATIC_ASSERT(sizeof(tsigset_t) == sizeof(uint));
+
+	/*
+	 * Because signal delivery is a rare event, we are going to attempt
+	 * to atomically clear the signals into the sig_pending field.  This
+	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_add_pending_sig().
+	 */
+
+	for (;;) {
+		tsigset_t pending, cleared;
+
+		atomic_mb();
+		cleared = pending = te->sig_pending;
+		cleared &= mask;
+
+		if (atomic_uint_xchg_if_eq(&te->sig_pending, pending, cleared))
+			break;
+	}
+}
+
+/**
  * Handle pending signals.
  *
  * @return TRUE if we handled something.
@@ -4603,12 +4638,10 @@ thread_sig_handle(struct thread_element *te)
 	THREAD_STATS_INCX(sig_handled_count);
 
 	/*
-	 * Prevent recusion: since thread_check_suspended() will call
-	 * thread_sig_handle(), we must avoid endless checks when a signal
-	 * is present.
+	 * If we've disabled all signals, don't process now.
 	 */
 
-	if G_UNLIKELY(te->sig_handling)
+	if G_UNLIKELY(te->sig_disabled)
 		return FALSE;
 
 	/*
@@ -4619,8 +4652,6 @@ thread_sig_handle(struct thread_element *te)
 
 	if G_UNLIKELY(te->blocked)
 		return FALSE;
-
-	te->sig_handling = TRUE;
 
 recheck:
 
@@ -4640,15 +4671,10 @@ recheck:
 
 	/*
 	 * Load unblocked signals we have to process and clear the pending set.
-	 *
-	 * We need the lock here because the te->sig_pending field can be
-	 * concurrently updated by other threads when posting signals.
 	 */
 
-	THREAD_LOCK(te);
 	pending = ~te->sig_mask & te->sig_pending;
-	te->sig_pending &= te->sig_mask;		/* Only clears unblocked signals */
-	THREAD_UNLOCK(te);
+	thread_element_clear_mask(te, te->sig_mask);
 
 	if G_UNLIKELY(0 == pending)
 		goto done;
@@ -4706,7 +4732,6 @@ recheck:
 	/* FALL THROUGH */
 
 done:
-	te->sig_handling = FALSE;
 	return handled;
 }
 
@@ -4718,7 +4743,7 @@ done:
  * @return TRUE if we processed any signals.
  */
 static inline bool
-thread_signal_check(struct thread_element *te)
+thread_signal_check_element(struct thread_element *te)
 {
 	bool processed = FALSE;
 
@@ -4734,7 +4759,7 @@ thread_signal_check(struct thread_element *te)
 	 * signals, i.e. those sent by thread_os_kill().
 	 */
 
-	processed |= mingw_signal_check(te->stid);
+	processed |= mingw_signal_check_for(te->stid);
 #endif	/* MINGW32*/
 
 	return processed;
@@ -4857,8 +4882,14 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		}
 	}
 
-	if (sigs)
-		delayed |= thread_signal_check(te);
+	/*
+	 * Prevent recusion through thread_sig_handle(): we must avoid endless
+	 * checks when a signal is present, hence do not handle signals if
+	 * we are already in a signal handler.
+	 */
+
+	if (sigs && 0 == te->in_signal_handler)
+		delayed |= thread_signal_check_element(te);
 
 	return delayed;
 }
@@ -7160,20 +7191,21 @@ thread_lock_reacquire(
 	const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
-	bool in_sig_handler = te->sig_handling;
+	bool sig_disabled = te->sig_disabled;
+
 	/*
 	 * During re-acquisition of rwlocks, locks will be taken and we do not
 	 * want any pending signal delivery whilst we grab a lock that we were
 	 * supposed to already have.
 	 *
-	 * Therefore, we artifically set te->sig_handling and clear it before
+	 * Therefore, we artifically set te->sig_disabled and clear it before
 	 * before returning, to cheaply disable all signal delivery given that
 	 * thread_sig_handle() will explicitly avoid processing when that flag
 	 * is set.
 	 */
 
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = TRUE;		/* Prevents any signal delivery */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = TRUE;	/* Prevents any signal delivery */
 
 	switch (kind) {
 	case THREAD_LOCK_ANY:
@@ -7210,8 +7242,8 @@ thread_lock_reacquire(
 	g_assert_not_reached();
 
 done:
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = FALSE;		/* Undo forced setting at entry */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = FALSE;		/* Undo forced setting at entry */
 }
 
 /**
@@ -8618,7 +8650,7 @@ retry:
 	 */
 
 	while (thread_sig_pending(te) && 0 == te->signalled) {
-		if (!thread_signal_check(te))
+		if (!thread_signal_check_element(te))
 			break;		/* Could not handle signals, no need to loop */
 	}
 
@@ -9605,11 +9637,11 @@ struct thread_exit_context {
  * Invoked from the main thread to notify that a thread exited.
  */
 static void
-thread_exit_notify(cqueue_t *unused_cq, void *obj)
+thread_exit_notify(cqueue_t *cq, void *obj)
 {
 	struct thread_exit_context *ctx = obj;
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	(*ctx->cb)(ctx->value, ctx->arg);
 	WFREE(ctx);
@@ -10727,7 +10759,7 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 
 	return old;
 }
@@ -10750,6 +10782,8 @@ thread_element_add_pending_sig(struct thread_element *te, int signum)
 	 * Because signal delivery is a rare event, we are going to attempt
 	 * to atomically merge the signal into the sig_pending field.  This
 	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_clear_mask().
 	 */
 
 	for (;;) {
@@ -10967,6 +11001,44 @@ thread_kill(unsigned id, int signum)
 }
 
 /**
+ * Check whether current thread has pending signals.
+ *
+ * We're passed the amount of locks that the thread current holds and is
+ * able to immediately release if there are signals to process.
+ *
+ * The idea is that the caller would invoke this routine first, and if it
+ * returns TRUE, release whatever locks it holds before attempting to call
+ * thread_signal_process() to process them.
+ *
+ * @param locks		amount of locks the current thread holds and can release
+ *
+ * @return TRUE if the current thread holds signals that could be processed
+ * when the locks are released.
+ */
+bool
+thread_signal_has_pending(size_t locks)
+{
+	struct thread_element *te = thread_get_element();
+
+	return thread_element_lock_count(te) == locks && thread_sig_present(te);
+}
+
+/**
+ * Process pending signals in the current thread.
+ *
+ * This is typically called when thread_signal_has_pending() returned TRUE
+ * and the locks were released, but it is OK to call it at any time: we recheck
+ * that the thread indeed holds no locks before processing pending signals.
+ *
+ * @return TRUE if we processed any signals.
+ */
+bool
+thread_signal_process(void)
+{
+	return thread_signal_check_element(thread_get_element());
+}
+
+/**
  * Manipulate the current thread's signal mask.
  *
  * There are four operations defined, as specified by ``how'':
@@ -11008,7 +11080,7 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
@@ -11322,7 +11394,7 @@ thread_sleep_interruptible(unsigned int ms,
 		 * present.
 		 */
 
-		if (thread_signal_check(te) && interrupt)
+		if (interrupt && thread_signal_check_element(te))
 			return TRUE;
 	}
 
@@ -11440,7 +11512,7 @@ thread_leave_critical(const thread_sigsets_t *set)
 	te->sig_mask = set->tset;
 
 	signal_thread_leave_critical(te->stid, &set->kset);
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
@@ -12082,7 +12154,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%u",  signalled);
 	DUMPF("%u",  sig_generation);
 	DUMPF("%d",  in_signal_handler);
-	DUMPF("%d",  sig_handling);
+	DUMPF("%d",  sig_disabled);
 	DUMPF("%d",  sleep_interruptible);
 	DUMPF("%d",  created);
 	DUMPF("%d",  discovered);

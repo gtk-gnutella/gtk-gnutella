@@ -3,7 +3,7 @@
 This release fixes a portability issue on FreeBSD and introduces a main core
 feature and minor new GUI features.
 
-The main feature is the additiona of "equivalence classes" defining word
+The main feature is the addition of "equivalence classes" defining word
 aliases, used when sharing files and querying for them.
 
 Currently, the only supported equivalence class deals with naming of series.
@@ -28,7 +28,7 @@ resuming is the main notebook tab.  It will be restored if GTKG is restarted
 after a crash, but otherwise the application will always start up within the
 Network tab.
 
-In the Uploads tab, upload requests coming from a G2 servent will not be
+In the Uploads tab, upload requests coming from a G2 servent will now be
 flagged with a "[G2]" tab right after the IP address. This helps seeing how
 the Gnutella and G2 network unification is evolving.
 

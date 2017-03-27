@@ -3012,6 +3012,14 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 	unsigned i;
 	tm_t start, end;
 
+	/*
+	 * Don't even bother processing anything from the queued datagrams
+	 * if we cannot afford to spend any time here.
+	 */
+
+	if G_UNLIKELY(0 == maxtime)
+		goto monitor;
+
 	tm_now_exact(&start);
 	i = 0;
 
@@ -3031,6 +3039,8 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 			G_STRFUNC, i, eslist_count(&uctx->queue),
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
+
+monitor:
 
 	/*
 	 * Install processing timer if items remain to be processed since
@@ -3175,11 +3185,13 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if ((i > 16 || enqueue) && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
+		if (!enqueue)
+			processing = tm_elapsed_ms(&end, &start);
 		g_debug("%s(): iterated %'u times, read %'zu bytes "
-			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
-			"in %'u usecs",
-			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
-			qn, plural(qn), (unsigned) tm_elapsed_us(&end, &start));
+			"(%s%'zu more pending) during %'lu ms, "
+			"enqueued %'zu bytes (%'zu datagram%s) in %'lu us",
+			G_STRFUNC, i, rd, guessed ? "~" : "", avail, (ulong) processing,
+			qd, qn, plural(qn), (ulong) tm_elapsed_us(&end, &start));
 	}
 
 	/*

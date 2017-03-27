@@ -1167,10 +1167,12 @@ failed:
  * missed (recorded as pending but not processed) due to an unavoidable
  * race condition in mingw_sig_trampoline().
  *
+ * @param id	thread small ID
+ *
  * @return TRUE if we handled any signal.
  */
 bool
-mingw_signal_check(uint id)
+mingw_signal_check_for(uint id)
 {
 	g_assert(id < THREAD_MAX);
 
@@ -1595,7 +1597,7 @@ mingw_getppid(void)
 	 */
 
 	if ((pid_t) -1 == parent_pid) {
-		if (-1 == mingw_process_access_check(ppid)) {
+		if (-1 == mingw_process_accessible(ppid)) {
 			ppid = 1;				/* Parent died or runs under another UID */
 		} else {
 			if (mingw_find_process_entry(ppid, &pe, NULL)) {
@@ -1632,7 +1634,7 @@ mingw_getppid(void)
 	if (mingw_find_process_entry(ppid, &pe, NULL)) {
 		mingw_sha1_process_entry(&pe, &digest);
 	} else {
-		if (0 == mingw_process_access_check(ppid)) {
+		if (0 == mingw_process_accessible(ppid)) {
 			static bool warned;
 
 			if (!warned) {
@@ -2846,6 +2848,8 @@ no_child:
 bool
 mingw_has_wsapoll(void)
 {
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
+
 	/*
 	 * Since there is no binding in MinGW for WSAPoll(), we use the dynamic
 	 * linker to fetch the routine address in the library.
@@ -2866,6 +2870,8 @@ int
 mingw_poll(struct pollfd *fds, unsigned int nfds, int timeout)
 {
 	int res;
+
+	ONCE_FLAG_RUN(mingw_socket_inited, mingw_socket_init);
 
 	if (NULL == WSAPoll) {
 		errno = WSAEOPNOTSUPP;
@@ -5636,7 +5642,7 @@ found:
  * be accessed by the user.
  */
 int
-mingw_process_access_check(pid_t pid)
+mingw_process_accessible(pid_t pid)
 {
 	HANDLE p;
 	int res = -1;

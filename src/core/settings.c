@@ -102,7 +102,9 @@
 #include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
+#include "lib/rwlock.h"
 #include "lib/sha1.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/teq.h"
@@ -2654,6 +2656,43 @@ inputevt_debug_changed(property_t prop)
 }
 
 static bool
+inputevt_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+	inputevt_set_trace(val);
+
+    return FALSE;
+}
+
+static bool
+lock_sleep_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+
+	spinlock_set_sleep_trace(val);
+	rwlock_set_sleep_trace(val);
+
+    return FALSE;
+}
+
+static bool
+lock_contention_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+
+	spinlock_set_contention_trace(val);
+	rwlock_set_contention_trace(val);
+
+    return FALSE;
+}
+
+static bool
 http_range_debug_changed(property_t prop)
 {
 	uint32 val;
@@ -3246,6 +3285,21 @@ static prop_map_t property_map[] = {
     {
         PROP_INPUTEVT_DEBUG,
         inputevt_debug_changed,
+        TRUE
+    },
+    {
+        PROP_INPUTEVT_TRACE,
+        inputevt_trace_changed,
+        TRUE
+    },
+    {
+        PROP_LOCK_SLEEP_TRACE,
+        lock_sleep_trace_changed,
+        TRUE
+    },
+    {
+        PROP_LOCK_CONTENTION_TRACE,
+        lock_contention_trace_changed,
         TRUE
     },
     {

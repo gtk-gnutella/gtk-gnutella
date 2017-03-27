@@ -1124,6 +1124,12 @@ gboolean gnet_property_variable_tcp_no_listening     = FALSE;
 static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
 gboolean gnet_property_variable_query_trace     = FALSE;
 static const gboolean gnet_property_variable_query_trace_default = FALSE;
+gboolean gnet_property_variable_inputevt_trace     = FALSE;
+static const gboolean gnet_property_variable_inputevt_trace_default = FALSE;
+gboolean gnet_property_variable_lock_contention_trace     = FALSE;
+static const gboolean gnet_property_variable_lock_contention_trace_default = FALSE;
+gboolean gnet_property_variable_lock_sleep_trace     = FALSE;
+static const gboolean gnet_property_variable_lock_sleep_trace_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -11312,6 +11318,63 @@ gnet_prop_init(void) {
     gnet_property->props[483].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[483].data.boolean.def   = (void *) &gnet_property_variable_query_trace_default;
     gnet_property->props[483].data.boolean.value = (void *) &gnet_property_variable_query_trace;
+
+
+    /*
+     * PROP_INPUTEVT_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[484].name = "inputevt_trace";
+    gnet_property->props[484].desc = _("Defines whether I/O event callbacks should be traced.");
+    gnet_property->props[484].ev_changed = event_new("inputevt_trace_changed");
+    gnet_property->props[484].save = TRUE;
+    gnet_property->props[484].internal = FALSE;
+    gnet_property->props[484].vector_size = 1;
+	mutex_init(&gnet_property->props[484].lock);
+
+    /* Type specific data: */
+    gnet_property->props[484].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[484].data.boolean.def   = (void *) &gnet_property_variable_inputevt_trace_default;
+    gnet_property->props[484].data.boolean.value = (void *) &gnet_property_variable_inputevt_trace;
+
+
+    /*
+     * PROP_LOCK_CONTENTION_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[485].name = "lock_contention_trace";
+    gnet_property->props[485].desc = _("Defines whether lock contentions should be traced.");
+    gnet_property->props[485].ev_changed = event_new("lock_contention_trace_changed");
+    gnet_property->props[485].save = TRUE;
+    gnet_property->props[485].internal = FALSE;
+    gnet_property->props[485].vector_size = 1;
+	mutex_init(&gnet_property->props[485].lock);
+
+    /* Type specific data: */
+    gnet_property->props[485].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[485].data.boolean.def   = (void *) &gnet_property_variable_lock_contention_trace_default;
+    gnet_property->props[485].data.boolean.value = (void *) &gnet_property_variable_lock_contention_trace;
+
+
+    /*
+     * PROP_LOCK_SLEEP_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[486].name = "lock_sleep_trace";
+    gnet_property->props[486].desc = _("Defines whether lock sleeps should be traced.");
+    gnet_property->props[486].ev_changed = event_new("lock_sleep_trace_changed");
+    gnet_property->props[486].save = TRUE;
+    gnet_property->props[486].internal = FALSE;
+    gnet_property->props[486].vector_size = 1;
+	mutex_init(&gnet_property->props[486].lock);
+
+    /* Type specific data: */
+    gnet_property->props[486].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[486].data.boolean.def   = (void *) &gnet_property_variable_lock_sleep_trace_default;
+    gnet_property->props[486].data.boolean.value = (void *) &gnet_property_variable_lock_sleep_trace;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

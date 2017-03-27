@@ -554,7 +554,7 @@ start_generate_thread(bool verbose)
 		THREAD_F_DETACH | THREAD_F_PANIC, THREAD_STACK_MIN);
 
 	if (verbose)
-		printf("Started entropy generation thread for ARC4 and WELL\n");
+		printf("Started entropy generation thread.\n");
 }
 
 int

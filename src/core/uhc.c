@@ -107,10 +107,11 @@ static const struct {
 	{ "uk.gnutella.dyslexicfish.net:3558" },
 	/* Peers */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
+	{ "2.uhc.gtk-gnutella.nl:4876" },
 	{ "uhc.gtk-gnutella.nl:15749" },
-	{ "useast.gnutella.dyslexicfish.net:19814" },
-	{ "uswest.gnutella.dyslexicfish.net:26562" },
-	{ "uk.gnutella.dyslexicfish.net:55577" },
+	{ "useast.gnutella.dyslexicfish.net:12219" },
+	{ "uswest.gnutella.dyslexicfish.net:18037" },
+	{ "uk.gnutella.dyslexicfish.net:41481" },
 #endif	/* USE_LOCAL_UHC */
 };
 

@@ -147,7 +147,7 @@ binary_hash(const void *data, size_t len)
 	g_assert(remain + t4 == len);
 	g_assert(remain <= 3);
 
-	hash = len;
+	hash = integer_hash_fast(len);
 	for (i = 0; i < t4; i += 4) {
 		static const uint32 x[] = {
 			0xb0994420, 0x01fa96e3, 0x05066d0e, 0x50c3c22a,
@@ -183,7 +183,7 @@ binary_hash2(const void *data, size_t len)
 	g_assert(remain + t4 == len);
 	g_assert(remain <= 3);
 
-	hash = len;
+	hash = integer_hash_fast(len);
 	for (i = 0; i < t4; i += 4) {
 		static const uint32 x[] = {
 			0xe58b8e35, 0x27366c0a, 0x358b0c38, 0x1e538b42,

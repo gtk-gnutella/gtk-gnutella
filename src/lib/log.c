@@ -219,23 +219,24 @@ logagent_check(const struct logagent * const la)
 /**
  * Set of log files.
  */
-static struct logfile logfile[LOG_MAX_FILES];
+static struct logfile logfile[LOG_MAX_FILES] = {
+	/* LOG_STDOUT: */
+	{
+		.fd = STDOUT_FILENO,
+		.name = "out",
+	},
+	/* LOG_STDERR: */
+	{
+		.fd = STDERR_FILENO,
+		.name = "err",
+	},
+};
 
-#define log_flush_out()	\
-	flush_str(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
+#define log_flush_out()			flush_str(logfile[LOG_STDOUT].fd)
+#define log_flush_err()			flush_str(logfile[LOG_STDERR].fd)
 
-#define log_flush_err()	\
-	flush_str(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
-
-#define log_flush_out_atomic()	\
-	flush_str_atomic(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
-
-#define log_flush_err_atomic()	\
-	flush_str_atomic(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
+#define log_flush_out_atomic()	flush_str_atomic(logfile[LOG_STDOUT].fd)
+#define log_flush_err_atomic()	flush_str_atomic(logfile[LOG_STDERR].fd)
 
 static bool log_crashing;
 static const char DEV_NULL[] = "/dev/null";
@@ -2790,18 +2791,7 @@ log_get_fd(enum log_file which)
 {
 	log_file_check(which);
 
-	if G_LIKELY(log_inited) {
-		return logfile[which].fd;
-	}
-
-	switch (which) {
-	case LOG_STDOUT: return STDOUT_FILENO;
-	case LOG_STDERR: return STDERR_FILENO;
-	case LOG_MAX_FILES:
-		break;
-	}
-
-	g_assert_not_reached();
+	return logfile[which].fd;
 }
 
 /**

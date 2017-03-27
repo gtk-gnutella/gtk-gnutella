@@ -165,7 +165,7 @@ u32_hash2(uint32 v)
 static inline ALWAYS_INLINE unsigned
 u32_ptr_hash(uint32 v)
 {
-	return (GOLDEN_RATIO_32 * (uint64) v) >> HASHING_PTR_SHIFT;
+	return (GOLDEN_RATIO_32 * (uint64) v) >> (3 + HASHING_PTR_SHIFT);
 }
 
 /**
@@ -175,7 +175,7 @@ u32_ptr_hash(uint32 v)
 static inline ALWAYS_INLINE unsigned
 u32_ptr_hash2(uint32 v)
 {
-	return (GOLDEN_RATIO_48 * (uint64) v) >> HASHING_PTR_SHIFT;
+	return (GOLDEN_RATIO_48 * (uint64) v) >> (7 + HASHING_PTR_SHIFT);
 }
 
 /**

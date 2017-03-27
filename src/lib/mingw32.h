@@ -800,7 +800,7 @@ void *mingw_memstart(const void *p);
 void mingw_log_meminfo(const void *p);
 
 int mingw_random_bytes(void *buf, size_t len);
-int mingw_process_access_check(pid_t pid);
+int mingw_process_accessible(pid_t pid);
 
 unsigned int mingw_sleep(unsigned int seconds);
 long mingw_cpu_count(void);
@@ -864,7 +864,7 @@ void mingw_file_rotate(const char *pathname, int keep);
 systid_t mingw_gettid(void);
 void mingw_gettid_reset(uint id);
 int mingw_thread_kill(uint id, systid_t system_thread_id, int signo);
-bool mingw_signal_check(uint id);
+bool mingw_signal_check_for(uint id);
 
 int mingw_last_error(void);
 

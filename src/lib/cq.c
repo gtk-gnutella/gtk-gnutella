@@ -176,6 +176,7 @@ struct cqueue {
 	elist_t cq_periodic;		/**< Periodic events registered */
 	hset_t *cq_idle;			/**< Idle events registered */
 	const cevent_t *cq_call;	/**< Event being called out, for cq_zero() */
+	cq_service_t cq_call_fn;	/**< Routine being called out, for cq_zero() */
 	size_t cq_triggered;		/**< Events triggered */
 	unsigned cq_stid;			/**< Thread where callout queue runs */
 	int cq_ticks;				/**< Number of cq_clock() calls processed */
@@ -673,30 +674,17 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 }
 
 /**
- * Zero pointer referring to the current event being dispatched.
- *
- * This is the preferred way of zeroing a reference to the event because it
- * checks that this is indeed the event being dispatched.  It can only be
- * called from a callout callback.
- *
- * It can be used on normal or extended events (registrations from a foreign
- * thread).  It must only be called once per event, but client code should not
- * keep multiple references to the same event anyway or they would have no way
- * to track which ones have triggered.
- *
- * If the callback does not call cq_zero(), then it means it does not hold any
- * reference to the event being triggered and therefore the event will be
- * freed immediately upon return.
- *
- * If cq_zero() is called, it means a reference to the event was kept and
- * cq_cancel() will be called.  Note that cq_zero() only clears the reference
- * to a normal event, not a foreign event.
+ * Common processing for cq_zero() and cq_acknowledge().
  *
  * @param cq		the callout queue that dispatched the event
  * @param ev_ptr	reference to the event
+ * @param zero		TRUE if cq_zero() was called
+ * @param locked	TRUE if we must warn when the call this unlocked
+ * @param caller	name of our caller for logging
  */
-void
-cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
+static void
+cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
+	bool zero, bool locked, const char *caller)
 {
 	cevent_t *ev;
 
@@ -714,32 +702,165 @@ cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
 	 * Note that for external events, it is perfectly possible to get a NULL
 	 * "ev" at this point: if the item is dispatched before the event address
 	 * was returned to the calling thread to be stored in "ev_ptr".
+	 * However, that means they do not protect the recording of the "ev" or
+	 * the scheduled callback with a lock, or the same lock.
 	 */
 
 	g_assert_log(cq->cq_call != NULL,
-		"%s() can only be called once on a given event", G_STRFUNC);
+		"%s() can only be called once on a given event", caller);
 
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
-		"%s() not called on current event: %p points to ev=%p, current is %s%p",
-		G_STRFUNC, ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
+		"%s() not called on current event from %s(): "
+		"%p points to ev=%p, current is %s%p",
+		caller, stacktrace_function_name(cq->cq_call_fn),
+		ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
 		cq->cq_call);
+
+	if G_UNLIKELY(NULL == ev) {
+		s_warning("%s(): recording of event %s() not synchronized with lock?",
+			caller, stacktrace_function_name(cq->cq_call_fn));
+	}
 
 	cq->cq_call = NULL;		/* cq_zero() can only be called once */
 
 	/*
-	 * If the event was not extended, we need to nullify its reference
-	 * so that cq_cancel() will do nothing: the event was already freed.
+	 * When they want us to zero the content of the variable holding the event:
 	 *
-	 * If the event is extended, we will let cq_cancel() do the cleanup.
-	 * That way, there is no race condition between the callout queue thread
-	 * and the thread that keeps a reference to the event.
+	 * - if the event was not extended, we need to nullify its reference
+	 *   so that cq_cancel() will do nothing: the event was already freed.
+	 *
+	 * - if the event was extended, we will need to free the event now that
+	 *   we are in the callback, and they must have taken any specific lock
+	 *   that will prevent race conditions with the recording of that event.
 	 */
 
-	if G_LIKELY(!cq->cq_call_extended) {
+	if G_LIKELY(zero)
 		*ev_ptr = NULL;
-	}
 
 	CQ_UNLOCK(cq);
+
+	if G_UNLIKELY(cq->cq_call_extended && zero) {
+		/*
+		 * If they did not have any lock before calling, warn them: we are
+		 * facing a "foreign" event, meaning it is registered in a thread
+		 * different than the callout queue one and there can therefore be
+		 * race conditions between the registering of the event and its
+		 * clearing in cq_zero().
+		 *
+		 * To fix this and remove the need for locks, we would need to change
+		 * the callout queue interface. For instance, instead of saying
+		 *
+		 *		event = cq_main_insert(delay, callback, arg);
+		 *
+		 * we would need to say:
+		 *
+		 *		cq_main_insert(&event, delay, callback, arg);
+		 *
+		 * so that the "event" variable can be set under the protection of
+		 * the callout queue lock.  This is a rather large API change, so
+		 * for now (2016-11-19) we shall limit ourselves to detecting obvious
+		 * mistakes and warning them.
+		 */
+
+		if (locked && 0 == thread_lock_count()) {
+			s_carp_once("%s(): called without holding any lock in %s()",
+				caller, stacktrace_function_name(cq->cq_call_fn));
+		}
+
+		ev_free(ev);
+	}
+}
+
+/**
+ * Zero pointer referring to the current event being dispatched.
+ *
+ * This is the preferred way of zeroing a reference to the event because it
+ * checks that this is indeed the event being dispatched.  It can only be
+ * called from a callout callback.
+ *
+ * It can be used on normal or extended events (registrations from a foreign
+ * thread).  It must only be called once per event, but client code should not
+ * keep multiple references to the same event anyway or they would have no way
+ * to track which ones have triggered.
+ *
+ * If the callback does not call cq_zero(), then it means it does not hold any
+ * reference to the event being triggered and therefore the event will be
+ * freed immediately upon return.
+ *
+ * @param cq		the callout queue that dispatched the event
+ * @param ev_ptr	reference to the event
+ */
+void
+cq_zero(cqueue_t *cq, cevent_t **ev_ptr)
+{
+	cq_event_called(cq, ev_ptr, TRUE, TRUE, G_STRFUNC);
+}
+
+/**
+ * Acknowledge event callback but do not zero the event yet, cq_cancel()
+ * will later.
+ *
+ * This is meant to be called instead of cq_zero() when the event must not
+ * be freed and the pointer not zeroed, and we know we do not hold any lock.
+ * So it will avoid the verbose warning of cq_zero() and prevent a double free
+ * if we were not to call cq_zero() because of the warning it would spit.
+ *
+ * @param cq		the callout queue that dispatched the event
+ * @param ev		the event called
+ */
+void
+cq_acknowledge(cqueue_t *cq, cevent_t *ev)
+{
+	cq_event_called(cq, &ev, FALSE, FALSE, G_STRFUNC);
+}
+
+/**
+ * Acknowledge event callback, when the event is not known.
+ *
+ * This is meant to be called instead of cq_zero() when there is no event to
+ * clear and yet we want to acknowledge the processing, in case it is a foreign
+ * event.
+ *
+ * Not calling this would make the event leak later.
+ *
+ * @param cq	the callout queue that dispatched the event
+ */
+void
+cq_event(cqueue_t *cq)
+{
+	cevent_t *ev;
+
+	cqueue_check(cq);
+
+	/*
+	 * Why don't we lock the queue before reading cq_call?
+	 *
+	 * Because this routine is meant to be invoked during a callout queue
+	 * callback and nothing can dispatch an event at that point.
+	 *
+	 * FIXME:
+	 * The only worry would come from manually triggered events through
+	 * cq_expire(): we'll need to protect somehow against that by allowing
+	 * calls to cq_expire() from an event callback but loudly complain when
+	 * cq_expire() is invoked on a foreign thread concurrently with the
+	 * dispatching of another event -- only the latter makes the unlocked
+	 * read unsafe, but also completely disrupts the internal state kept
+	 * in cq_call and cq_call_extended and therefore need to be forbidden!
+	 * 		--RAM, 2017-02-20
+	 */
+
+	ev = deconstify_pointer(cq->cq_call);
+	cq_event_called(cq, &ev, TRUE, FALSE, G_STRFUNC);
+}
+
+/**
+ * Special form of cq_zero() which will not cause any warning when the calling
+ * thread does not hold a lock and we know it cannot create any race.
+ */
+static void
+cq_zero_unlocked(cqueue_t *cq, cevent_t **ev_ptr)
+{
+	cq_event_called(cq, ev_ptr, TRUE, FALSE, G_STRFUNC);
 }
 
 /**
@@ -778,47 +899,6 @@ cq_cancel(cevent_t **handle_ptr)
 		CQ_UNLOCK(cq);
 		ev_free(ev);
 		*handle_ptr = NULL;
-	}
-
-	return triggered;
-}
-
-/**
- * Clear event if it already triggered.
- *
- * A thread registering an event that is dispatched in another thread can
- * always have a doubt whether the event has triggered upon return.
- *
- * This routine will atomically verify whether the event has been triggered
- * and will reclaim it if it has, zeroing the pointer.  Otherwise, nothing
- * happens, i.e. the event is NOT cancelled.
- *
- * @return TRUE if the event has triggered already.
- */
-bool
-cq_zero_if_triggered(cevent_t **ev_ptr)
-{
-	cevent_t *ev = *ev_ptr;
-	bool triggered = FALSE;
-
-	if (ev != NULL) {
-		cqueue_t *cq;
-
-		/*
-		 * For performance reasons, we use hidden mutexes.
-		 */
-
-		cq = EV_CQ_LOCK(ev);
-
-		if G_UNLIKELY(ev_triggered(ev))
-			triggered = TRUE;
-
-		CQ_UNLOCK(cq);
-
-		if G_UNLIKELY(triggered) {
-			ev_free(ev);
-			*ev_ptr = NULL;
-		}
 	}
 
 	return triggered;
@@ -949,6 +1029,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	cq->cq_call = ev;
+	cq->cq_call_fn = fn;		/* Keep address for cq_zero() warnings */
 	cq->cq_triggered++;
 
 	/*
@@ -975,7 +1056,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 
 	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
 		if (cq_debugging(0)) {
-			s_debug("CQ called-out %s() did not to call cq_zero() on event %p",
+			s_debug("CQ called-out %s() did not call cq_zero() on event %p",
 				stacktrace_function_name(fn), ev);
 		}
 		ev_free(ev);
@@ -1551,7 +1632,23 @@ cq_periodic_trampoline(cqueue_t *cq, void *data)
 	cqueue_check(cq);
 	cperiodic_check(cp);
 
-	cq_zero(cq, &cp->ev);
+	/*
+	 * Because we can be setting cp->ev externally (i.e. from a thread that
+	 * is not the one running the callout queue) initially, it is possible
+	 * that this first setting was creating a race condition, with the event
+	 * being dispatched before cq_periodic_add() could return a pointer to
+	 * the event.
+	 *
+	 * However, from now on, we're going to reset cp->ev from the callout
+	 * queue thread (since we are in a callout queue callback) and there
+	 * can be no races anymore.
+	 *
+	 * Hence use this special internal form of cq_zero() which will prevent
+	 * any warning if the event is a "foreign" one, which can only be the
+	 * first time it is ever dispatched, as explained above.
+	 */
+
+	cq_zero_unlocked(cq, &cp->ev);
 
 	/*
 	 * As long as the periodic event returns TRUE, keep scheduling it.
@@ -1597,7 +1694,23 @@ cq_periodic_add(cqueue_t *cq, int period, cq_invoke_t event, void *arg)
 	cp->arg = arg;
 	cp->period = period;
 	cp->cq = cq;
+
+	/*
+	 * This could be running from a thread that is not the one running the
+	 * callout queue, and we must prevent cq_periodic_trampoline() from
+	 * firing before cq_insert() returns with an (obsolete) event pointer.
+	 *
+	 * To prevent that, we lock the queue, thereby ensuring we cannot dispatch
+	 * the event if we're running in a foreign thread.
+	 *
+	 * The only way to prevent this race would be to change the signature of
+	 * all the event recording routines, as explained in cq_event_called().
+	 *		--RAM, 2016-11-20
+	 */
+
+	CQ_LOCK(cq);
 	cp->ev = cq_insert(cq, period, cq_periodic_trampoline, cp);
+	CQ_UNLOCK(cq);
 
 	spinlock(&cq->cq_periodic_lock);
 

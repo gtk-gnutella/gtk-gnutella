@@ -62,14 +62,14 @@
         <li><a href="#down9">In the downloads pane, what does it mean if the color of the text is grey instead of black?</a></li>
     </ul>
     
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     <ul>
         <li><a href="#up0">What does "Normalized" mean?</a></li>
+        <li><a href="#up1">Why not all files within the shared folders are being shared?</a></li>
     </ul>
     
     <h2>GTK+ 2.x</h2>
     <ul>
-        <li><a href="#gtk2_slow">Gtk2 is way sloooow.</a></li>
         <li><a href="#gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></li>
     </ul>
     
@@ -428,20 +428,25 @@
         route</a>.</p>
         
         
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     
     <h3><a name="up0">What does "Normalized" mean?</a></h3>
     <p>This shows the total amount of bytes uploaded for the file divided by
       the file size.</p>
       
+    <h3><a name="up1">Why not all files within the shared folders are being shared?</a></h3>
+    <p>By default Gtk-Gnutella shares only the files whose extension is included in the <em>Search extensions</em> 
+    below the shared folders list in the Preferences. If your files are not being shared, probably their extension 
+    is not included in that list. There are 2 ways to solve this issue:</p>
+    <ol>
+        <li>include the extensions of the unshared files in the <em>Search extensions</em> list;</li>
+        <li>replace the whole list of extensions with the wildcard "--all--".</li>
+    </ol>
+    <p>Please note that you can check which files are being shared locally on your host by doing a search with the 
+    wildcard "local:".</p>
+      
       
     <h2>GTK+ 2.x</h2>
-    <h3><a name="gtk2_slow">Gtk2 is way sloooow.</a></h3>
-    <p>Set the environment variable <code>GDK_USE_XFT</code> to 0 and see
-      whether this helps. This turns off anti aliasing in Gtk2 which can use a
-      lot of cpu. The Gtk2 frontend is much slower than the Gtk1 frontend. So on
-      a slow machine, you should consider using the Gtk1 frontend.</p>
-      
     <h3><a name="gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></h3>
     <p>Set the environment variable <code>LC_CTYPE</code> or <code>LC_ALL</code>
       to an appropriate value for the encoding you use. For example, if you use
