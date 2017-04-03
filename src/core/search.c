@@ -6335,7 +6335,17 @@ search_close(gnet_search_t sh)
 	g_return_if_fail(sch);
 	search_ctrl_check(sch);
 
-	entropy_harvest_single(VARLEN(sh));
+	entropy_harvest_many(VARLEN(sh),
+		sch->name, strlen(sch->name),
+		VARLEN(sch->items),
+		VARLEN(sch->kept_results),
+		VARLEN(sch->query_emitted),
+		VARLEN(sch->id),
+		VARLEN(sch->media_type),
+		VARLEN(sch->time),
+		VARLEN(sch->create_time),
+		sch->query, strlen(sch->query),
+		NULL);
 
 	/*
 	 * This needs to be done before the handle of the search is reclaimed.
