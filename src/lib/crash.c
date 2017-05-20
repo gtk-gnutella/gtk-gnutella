@@ -3854,9 +3854,26 @@ crash_setmain(void)
 
 	g_assert_log(argc > 0, "%s(): argc=%d", G_STRFUNC, argc);
 
+	/*
+	 * Seen with at least gcc 5.4.x, the crash_set_var(argv, argv) line
+	 * generates a warning because we're taking the sizeof an array.
+	 * Unfortunately this is a spurious warning here so we need to shut
+	 * it up and we need to protect the call because -Wsizeof-array-argument
+	 * is unsupported in gcc 4.9.x, at least...
+	 * 		--RAM, 2017-05-20
+	 */
+
+#if HAS_GCC(5, 4)
+	G_IGNORE_PUSH(-Wsizeof-array-argument);   /* For argv below */
+#endif
+
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
 	crash_set_var(envp, env);
+
+#if HAS_GCC(5, 4)
+	G_IGNORE_POP;
+#endif
 }
 
 /**
