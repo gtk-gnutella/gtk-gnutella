@@ -809,7 +809,7 @@ flush_dirbuf(DBM *db)
 	if G_UNLIKELY(w != DBM_DBLKSIZ) {
 		s_critical("sdbm: \"%s\": cannot flush dir block #%ld: %s",
 			sdbm_name(db), db->dirbno,
-			-1 == w ? g_strerror(errno) : "partial write");
+			-1 == w ? english_strerror(errno) : "Partial write");
 
 		ioerr(db, TRUE);
 		return FALSE;

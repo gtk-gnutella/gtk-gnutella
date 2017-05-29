@@ -70,7 +70,7 @@
 #include "halloc.h"
 #include "hashing.h"		/* For string_mix_hash() and string_eq() */
 #include "hashtable.h"
-#include "misc.h"			/* For CONST_STRLEN() */
+#include "misc.h"			/* For CONST_STRLEN() and english_strerror() */
 #include "offtime.h"
 #include "once.h"
 #include "signal.h"
@@ -2416,7 +2416,7 @@ log_reopen(enum log_file which)
 			print_str(": ");		/* 3 */
 			print_str(symbolic_errno(errno));	/* 4 */
 			print_str(" (");		/* 5 */
-			print_str(g_strerror(errno));		/* 6 */
+			print_str(english_strerror(errno));	/* 6 */
 			print_str(")\n");		/* 7 */
 			flush_str_atomic(fd);
 			log_flush_out_atomic();

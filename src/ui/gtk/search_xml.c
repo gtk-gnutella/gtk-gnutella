@@ -52,6 +52,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/htable.h"
+#include "lib/misc.h"			/* For english_strerror() */
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
@@ -869,7 +870,7 @@ parse_xml(xnode_t *xn, void *user_data)
  */
 #define XML_PARSE_ERROR(tag) G_STMT_START {									\
 	g_warning("%s(): cannot parse the \"%s\" attribute value \"%s\": %s",	\
-		G_STRFUNC, (tag), buf, g_strerror(error));							\
+		G_STRFUNC, (tag), buf, english_strerror(error));					\
 } G_STMT_END
 
 /**

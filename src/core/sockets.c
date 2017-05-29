@@ -83,6 +83,7 @@
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/misc.h"			/* For english_strerror() */
 #include "lib/once.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -891,7 +892,8 @@ connect_http(struct gnutella_socket *s)
 			ret = s_writev(s->file_desc, iov, N_ITEMS(iov));
 			if ((size_t) ret != size) {
 				g_warning("sending info to HTTP proxy failed: %s",
-					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+					ret == (ssize_t) -1 ?
+						english_strerror(errno) : "Partial write");
 				return -1;
 			}
 		}
@@ -1040,7 +1042,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, verstring, size);
 		if ((size_t) ret != size) {
 			g_warning("sending SOCKS method negotiation failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return -1;
 		}
 		s->pos++;
@@ -1107,7 +1109,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("sending SOCKS authentication failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return -1;
 		}
 
@@ -1170,7 +1172,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("send SOCKS connect command failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return (-1);
 		}
 

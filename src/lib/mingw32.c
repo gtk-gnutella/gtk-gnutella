@@ -4772,63 +4772,6 @@ mingw_random_bytes(void *buf, size_t len)
  *** Miscellaneous.
  ***/
 
-static const char *
-mingw_posix_strerror(int errnum)
-{
-	switch (errnum) {
-	case EPERM:		return "Operation not permitted";
-	case ENOFILE:	return "No such file or directory";
-	/* ENOENT is a duplicate for ENOFILE */
-	case ESRCH:		return "No such process";
-	case EINTR:		return "Interrupted function call";
-	case EIO:		return "Input/output error";
-	case ENXIO:		return "No such device or address";
-	case E2BIG:		return "Arg list too long";
-	case ENOEXEC:	return "Exec format error";
-	case EBADF:		return "Bad file descriptor";
-	case ECHILD:	return "No child process";
-	case EAGAIN:	return "Resource temporarily unavailable";
-	case ENOMEM:	return "Not enough memory space";
-	case EACCES:	return "Access denied";
-	case EFAULT:	return "Bad address";
-	case EBUSY:		return "Device busy";
-	case EEXIST:	return "File already exists";
-	case EXDEV:		return "Improper link";
-	case ENODEV:	return "No such device";
-	case ENOTDIR:	return "Not a directory";
-	case EISDIR:	return "Is a directory";
-	case EINVAL:	return "Invalid argument";
-	case ENFILE:	return "Too many open files in system";
-	case EMFILE:	return "Too many open files in the process";
-	case ENOTTY:	return "Not a tty";
-	case EFBIG:		return "File too large";
-	case ENOSPC:	return "No space left on device";
-	case ESPIPE:	return "Invalid seek on pipe";
-	case EROFS:		return "Read-only file system";
-	case EMLINK:	return "Too many links";
-	case EPIPE:		return "Broken pipe";
-	case EDOM:		return "Domain error";		/* Math */
-	case ERANGE:	return "Result out of range";
-	case EDEADLK:	return "Resource deadlock avoided";
-	case ENAMETOOLONG:	return "Filename too long";
-	case ENOLCK:	return "No locks available";
-	case ENOSYS:	return "Function not implemented";
-	case ENOTEMPTY:	return "Directory not empty";
-	case EILSEQ:	return "Illegal byte sequence";
-	case EOVERFLOW:	return "Value too large to be stored in data type";
-	case EIDRM:		return "Identifier removed";	/* Emulated */
-
-	/*
-	 * Non-POSIX error codes for which we want our own message...
-	 */
-	case ESHUTDOWN:	return "Transport endpoint already shutdown";
-
-	default:		return NULL;
-	}
-
-	g_assert_not_reached();
-}
-
 const char *
 mingw_strerror(int errnum)
 {
@@ -4846,7 +4789,7 @@ mingw_strerror(int errnum)
 	 * POSIX errors.
 	 */
 
-	msg = mingw_posix_strerror(errnum);
+	msg = english_strerror(errnum);
 	if (msg != NULL)
 		return msg;
 

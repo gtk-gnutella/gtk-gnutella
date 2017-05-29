@@ -27,6 +27,7 @@
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/log.h"
+#include "lib/misc.h"			/* For english_strerror() */
 #include "lib/pow2.h"
 #include "lib/stringify.h"
 #include "lib/unsigned.h"
@@ -375,7 +376,7 @@ flush_bitbuf(DBM *db)
 
 	s_critical("sdbm: \"%s\": cannot flush bitmap #%ld: %s",
 		sdbm_name(db), dbg->bitbno / BIG_BITCOUNT,
-		-1 == w ? g_strerror(errno) : "partial write");
+		-1 == w ? english_strerror(errno) : "Partial write");
 
 	ioerr(db, TRUE);
 	return FALSE;

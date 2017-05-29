@@ -100,6 +100,7 @@
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
+#include "lib/misc.h"			/* For english_strerror() */
 #include "lib/parse.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
@@ -5881,7 +5882,7 @@ upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 			e != ENOBUFS
 		) {
 			g_warning("sendfile() failed: \"%s\" -- "
-				"disabling sendfile() for this session", g_strerror(e));
+				"disabling sendfile() for this session", english_strerror(e));
 			sendfile_failed = TRUE;
 		}
 		if (!is_temporary_error(e)) {

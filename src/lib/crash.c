@@ -97,6 +97,7 @@
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
+#include "misc.h"				/* For english_strerror() */
 #include "mutex.h"				/* For mutex_crash_mode() */
 #include "offtime.h"
 #include "omalloc.h"
@@ -1537,7 +1538,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
 	print_str(": ");					/* 5 */
 	print_str(symbolic_errno(errno));	/* 6 */
 	print_str(" (");					/* 7 */
-	print_str(g_strerror(errno));		/* 8 */
+	print_str(english_strerror(errno));	/* 8 */
 	print_str(")\n");					/* 9 */
 	flush_str(fd);
 	if (fd2 != fd)
@@ -1630,7 +1631,7 @@ retry_child:
 			print_str(" (WARNING): fork() failed: ");
 			print_str(symbolic_errno(errno));
 			print_str(" (");
-			print_str(g_strerror(errno));
+			print_str(english_strerror(errno));
 			print_str(")\n");
 			flush_err_str();
 			if (log_stdout_is_distinct())
@@ -2877,7 +2878,7 @@ crash_try_reexec(void)
 		print_str(" (CRITICAL) exec() error: ");	/* 1 */
 		print_str(symbolic_errno(errno));			/* 2 */
 		print_str(" (");							/* 3 */
-		print_str(g_strerror(errno));				/* 4 */
+		print_str(english_strerror(errno));			/* 4 */
 		print_str(")\n");							/* 5 */
 		flush_err_str();
 		if (log_stdout_is_distinct())
@@ -3028,7 +3029,7 @@ crash_auto_restart(void)
 				print_str(" (CRITICAL) fork() error: ");	/* 1 */
 				print_str(symbolic_errno(errno));			/* 2 */
 				print_str(" (");							/* 3 */
-				print_str(g_strerror(errno));				/* 4 */
+				print_str(english_strerror(errno));			/* 4 */
 				print_str(")\n");							/* 5 */
 				flush_err_str();
 				if (log_stdout_is_distinct())

@@ -74,6 +74,7 @@
 #include "lib/host_addr.h"
 #include "lib/hstrfn.h"
 #include "lib/log.h"
+#include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/sequence.h"
@@ -977,7 +978,8 @@ err_input_buffer_full(void *obj)
 static void
 err_header_read_error(void *obj, int error)
 {
-	pproxy_remove(PPROXY(obj), "Failed (Input error: %s)", g_strerror(error));
+	pproxy_remove(PPROXY(obj),
+		"Failed (Input error: %s)", english_strerror(error));
 }
 
 static void

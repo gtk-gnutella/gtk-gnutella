@@ -1017,7 +1017,7 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 		if (GNET_PROPERTY(upnp_debug)) {
 			g_warning("UPNP cannot send M-SEARCH for %s to %s: %s",
 				type, host_addr_to_string(addr),
-				-1 == r ? g_strerror(errno) : "partial send");
+				-1 == r ? english_strerror(errno) : "Partial send");
 		}
 	} else {
 		if (GNET_PROPERTY(upnp_debug) > 5) {

@@ -591,12 +591,12 @@ tbuf_write(const file_object_t *fo, filesize_t offset)
 	g_assert(size <= tbuf.size);
 
 	ret = file_object_pwrite(fo, tbuf.arena, size, offset);
-	if ((ssize_t) -1 == ret || (size_t) ret != size) {
-		const char *error;
-
-		error = (ssize_t) -1 == ret ? g_strerror(errno) : "Unknown error";
-		g_warning("error while flushing trailer info for \"%s\": %s",
-			file_object_pathname(fo), error);
+	if ((ssize_t) -1 == ret) {
+		g_warning("error while flushing trailer info for \"%s\": %m",
+			file_object_pathname(fo));
+	} else if ((size_t) ret != size) {
+		g_warning("partial write while flushing trailer info for \"%s\"",
+			file_object_pathname(fo));
 	}
 }
 

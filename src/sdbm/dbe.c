@@ -1,6 +1,7 @@
 #include "common.h"
 #include "sdbm.h"
 #include "lib/base16.h"
+#include "lib/misc.h"
 #include "lib/progname.h"
 
 extern void oops(char *fmt, ...) G_PRINTF(1, 2);
@@ -234,7 +235,8 @@ fread_datum(FILE *f, int hexa, const char *what)
 	size_t len, dest;
 
 	if (-1 == fstat(fileno(f), &buf)) {
-		fprintf(stderr, "Cannot get %s length: %s\n", what, g_strerror(errno));
+		fprintf(stderr, "Cannot get %s length: %s\n",
+			what, english_strerror(errno));
 		exit(-1);
 	}
 
@@ -293,7 +295,7 @@ log_keyerr(datum key, int key_hexa, const char *what)
 
 	fprintf(stderr, "Error when %s ", what);
 	print_datum(stderr, key, key_hexa);
-	fprintf(stderr, ": %s\n", g_strerror(saved));
+	fprintf(stderr, ": %s\n", english_strerror(saved));
 }
 
 static void G_NORETURN
@@ -442,7 +444,7 @@ main(int argc, char **argv)
 
 	if ((db = sdbm_open(comarg[0], flags, 0777)) == NULL) {
 		fprintf(stderr, "Error opening database \"%s\": %s\n", comarg[0],
-			g_strerror(errno));
+			english_strerror(errno));
 		exit(-1);
 	}
 
@@ -455,7 +457,7 @@ main(int argc, char **argv)
 			if (NULL == f) {
 				fprintf(stderr, "Cannot open \"%s\" for %s: %s\n",
 					comarg[2], 'r' == *mode ? "reading" : "writing",
-					g_strerror(errno));
+					english_strerror(errno));
 				exit(-1);
 			}
 			if ('r' == *mode) {
@@ -478,7 +480,7 @@ main(int argc, char **argv)
 		key = sdbm_firstkey(db);
 		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching first key: %s\n",
-				g_strerror(errno));
+				english_strerror(errno));
 			goto db_exit;
 		}
 		while (key.dptr != NULL) {
@@ -495,7 +497,7 @@ main(int argc, char **argv)
 			fprintf(f, "\n");
 			if (sdbm_error(db)) {
 				fprintf(stderr, "Error when fetching next key: %s\n",
-					g_strerror(errno));
+					english_strerror(errno));
 				goto db_exit;
 			}
 			key = sdbm_nextkey(db);
@@ -514,7 +516,7 @@ main(int argc, char **argv)
 		key = sdbm_firstkey(db);
 		if (sdbm_error(db)) {
 			fprintf(stderr, "Error when fetching first key: %s\n",
-				g_strerror(errno));
+				english_strerror(errno));
 			goto db_exit;
 		}
 		while (key.dptr != NULL) {
@@ -524,7 +526,7 @@ main(int argc, char **argv)
 				if (sdbm_error(db)) {
 					fprintf(stderr, "Error when fetching ");
 					print_datum(stderr, key, key_hexa);
-					fprintf(stderr, ": %s\n", g_strerror(errno));
+					fprintf(stderr, ": %s\n", english_strerror(errno));
 					goto db_exit;
 				}
 				print_datum(f, key, key_hexa);
@@ -610,7 +612,7 @@ db_exit:
 	sdbm_close(db);
 	if (sdbm_error(db)) {
 		fprintf(stderr, "Error closing database \"%s\": %s\n", comarg[0],
-			g_strerror(errno));
+			english_strerror(errno));
 		exit(-1);
 	}
 

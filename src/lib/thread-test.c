@@ -2359,7 +2359,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			getprogname(), opt, arg, g_strerror(error));
+			getprogname(), opt, arg, english_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 

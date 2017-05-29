@@ -1207,7 +1207,7 @@ thread_monitor_exit(struct thread_element *te)
 		if (error != 0) {
 			/* Don't use %m, not sure we can set errno properly in thread */
 			s_minierror("%s(): cannot create monitoring key: %s (%s)",
-				G_STRFUNC, symbolic_errno(error), g_strerror(error));
+				G_STRFUNC, symbolic_errno(error), english_strerror(error));
 		}
 	}
 
