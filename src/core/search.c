@@ -887,6 +887,9 @@ url_normalize_char(const char *p, const char **endptr)
 	} else if ('%' == c) {
 		int hi, lo;
 
+		if G_UNLIKELY(0 == hex2int_inline('a'))
+			misc_init();	/* Auto-initialization of hex2int_inline() */
+
 		hi = hex2int_inline(p[1]);
 		if (hi >= 0) {
 			lo = hex2int_inline(p[2]);

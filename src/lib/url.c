@@ -373,6 +373,9 @@ url_unescape(char *url, bool inplace)
 		if (c != ESCAPE_CHAR)
 			*q++ = c;
 		else {
+			if G_UNLIKELY(0 == hex2int_inline('a'))
+				misc_init();	/* Auto-initialization of hex2int_inline() */
+
 			if ((c = *p++)) {
 				int v = hex2int_inline(c) << 4;
 				if ((c = *p++))

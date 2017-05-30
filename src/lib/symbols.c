@@ -1320,13 +1320,6 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 
 	symbols_check(st);
 
-	/*
-	 * We're going to need some of the parsing routines like alnum2int(),
-	 * hence make sure they are initialized since these do not auto-init
-	 * for performance reasons.
-	 */
-
-	misc_init();
 	tm_now_exact(&start);
 
 	SYMBOLS_WRITE_LOCK(st);

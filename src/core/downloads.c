@@ -11288,6 +11288,9 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 	if (found) {
 		size_t i = 0;
 
+		if G_UNLIKELY(0 == hex2int_inline('a'))
+			misc_init();	/* Auto-initialization of hex2int_inline() */
+
 		/*
 		 * We parse something like "tls_hex=4cbd040533a2" whereas
 		 * each nibble refers to the next 4 hosts in the list.

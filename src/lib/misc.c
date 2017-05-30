@@ -1049,6 +1049,9 @@ hex2int(uchar c)
 {
 	int ret;
 
+	if G_UNLIKELY(0 == hex2int_inline('a'))
+		misc_init();	/* Auto-initialization of hex2int_inline() */
+
 	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1068,6 +1071,9 @@ dec2int(uchar c)
 {
 	int ret;
 
+	if G_UNLIKELY(0 == dec2int_inline('1'))
+		misc_init();		/* Auto-initialization of dec2int_inline() */
+
 	ret = dec2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1086,6 +1092,9 @@ static int
 alnum2int(uchar c)
 {
 	int ret;
+
+	if G_UNLIKELY(0 == alnum2int_inline('a'))
+		misc_init();		/* Auto-initialization of alnum2int_inline() */
 
 	ret = alnum2int_inline(c);
 	g_assert(-1 != ret);
@@ -1157,7 +1166,7 @@ dec2int_init(void)
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
 
-	/* Check consistency of hex2int_tab */
+	/* Check consistency of dec2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
 		switch (i) {
@@ -1193,7 +1202,7 @@ alnum2int_init(void)
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
 
-	/* Check consistency of hex2int_tab */
+	/* Check consistency of alnum2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;

@@ -2250,10 +2250,6 @@ main(int argc, char **argv)
 		exit(EXIT_FAILURE);
 	}
 
-	/* First inits -- no memory allocated */
-
-	misc_init();
-
 	/* Initialize memory allocators -- order is important */
 
 	vmm_init();

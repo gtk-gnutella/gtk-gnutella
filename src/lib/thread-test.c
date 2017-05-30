@@ -2385,8 +2385,6 @@ main(int argc, char **argv)
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	crash_init(argv[0], getprogname(), 0, NULL);
 
-	misc_init();
-
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'A':			/* use asynchronous exit callbacks */

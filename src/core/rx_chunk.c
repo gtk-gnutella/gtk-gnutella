@@ -186,6 +186,10 @@ parse_chunk(rxdrv_t *rx, const char *src, size_t size,
 
 		case CHUNK_STATE_EXT:
 			/* Just skip over the chunk-extension */
+
+			if G_UNLIKELY(0 == hex2int_inline('a'))
+				misc_init();	/* Auto-initialization of hex2int_inline() */
+
 			while (len > 0) {
 				len--;
 				if ('\n' == *src++) {

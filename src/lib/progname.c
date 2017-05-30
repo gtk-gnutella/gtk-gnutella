@@ -136,6 +136,12 @@ progstart(int argc, char * const *argv)
 #ifdef HAS_SETPROGNAME
 	setprogname(progname_info.name);
 #endif
+
+	/*
+	 * This is most always required anyway, so do it now.
+	 */
+
+	misc_init();
 }
 
 /**

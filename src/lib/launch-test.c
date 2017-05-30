@@ -529,8 +529,6 @@ main(int argc, char **argv)
 	stacktrace_init(argv[0], FALSE);
 	log_show_pid(TRUE);
 
-	misc_init();
-
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'i':			/* test getppid() -- useful only on Windows */

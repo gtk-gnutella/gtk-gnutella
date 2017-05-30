@@ -583,7 +583,6 @@ G_STMT_START {			\
 } G_STMT_END
 
 	progstart(argc, argv);
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		if ('l' == c) {

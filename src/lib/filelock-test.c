@@ -697,8 +697,6 @@ main(int argc, char *argv[])
 	log_show_pid(TRUE);			/* Since we're launching other processes */
 	stacktrace_init(argv[0], FALSE);
 
-	misc_init();
-
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'c':			/* concurrent locking requests */
