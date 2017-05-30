@@ -2723,6 +2723,36 @@ misc_init_once(void)
 	dec2int_init();
 	alnum2int_init();
 
+	g_assert(is_ascii_blank(' '));
+	g_assert(is_ascii_blank('\t'));
+	g_assert(!is_ascii_blank('\v'));
+	g_assert(is_ascii_space(' '));
+	g_assert(is_ascii_space('\t'));
+	g_assert(is_ascii_space('\v'));
+	g_assert(!is_ascii_space('-'));
+	g_assert(!is_ascii_space('a'));
+	g_assert(is_ascii_lower('a'));
+	g_assert(!is_ascii_upper('a'));
+	g_assert(is_ascii_upper('A'));
+	g_assert(!is_ascii_lower('A'));
+	g_assert(is_ascii_xdigit('0'));
+	g_assert(is_ascii_xdigit('9'));
+	g_assert(is_ascii_xdigit('A'));
+	g_assert(is_ascii_xdigit('F'));
+	g_assert(is_ascii_xdigit('a'));
+	g_assert(is_ascii_xdigit('f'));
+	g_assert(!is_ascii_xdigit('H'));
+	g_assert(is_ascii_alnum('0'));
+	g_assert(is_ascii_alnum('a'));
+	g_assert(is_ascii_alnum('z'));
+	g_assert(is_ascii_alnum('A'));
+	g_assert(is_ascii_alnum('Z'));
+	g_assert(!is_ascii_alnum(' '));
+	g_assert(!is_ascii_alnum('-'));
+	g_assert(!is_ascii_punct('a'));
+	g_assert(is_ascii_punct('-'));
+	g_assert(is_ascii_graph('-'));
+
 	{
 		static const struct {
 			const char *s;
