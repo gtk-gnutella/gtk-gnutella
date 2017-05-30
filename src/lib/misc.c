@@ -39,6 +39,7 @@
 #include "misc.h"
 
 #include "ascii.h"
+#include "atomic.h"
 #include "atoms.h"
 #include "base16.h"
 #include "base32.h"
@@ -2542,7 +2543,7 @@ symbolic_errno(int errnum)
 	{
 		static char buf[BUFCNT][UINT_DEC_BUFLEN];
 		static unsigned n;
-		char *p = &buf[n++ % BUFCNT][0];
+		char *p = &buf[atomic_uint_inc(&n) % BUFCNT][0];
 
 		uint_to_string_buf(errno, p, sizeof buf[0]);
 		return p; 	/* Unknown errno code */
@@ -2573,7 +2574,7 @@ english_strerror(int errnum)
 	{
 		static char buf[BUFCNT][UINT_DEC_BUFLEN + BUFPRE];
 		static unsigned n;
-		char *p = &buf[n++ % BUFCNT][0];
+		char *p = &buf[atomic_uint_inc(&n) % BUFCNT][0];
 
 		p = mempcpy(p, "Error #", BUFPRE);
 		uint_to_string_buf(errno, p, sizeof buf[0] - BUFPRE);
