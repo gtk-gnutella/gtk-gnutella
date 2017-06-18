@@ -3080,7 +3080,9 @@ node_bye_v(gnutella_node_t *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (NODE_TALKS_G2(n)) {
-		node_remove_v(n, reason, ap);
+		char *msg = h_strdup(n->error_str);
+		node_remove(n, "%s", msg);			/* Will recreate n->error_str */
+		HFREE_NULL(msg);
 		return;
 	}
 
