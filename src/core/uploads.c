@@ -196,6 +196,7 @@ static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 
 /* Remember IP address of stalling uploads for a while */
 static aging_table_t *stalling_uploads;
+static aging_table_t *early_stalling_uploads;
 
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
@@ -623,6 +624,22 @@ upload_new_early_stalling(const struct upload *u)
 	}
 
 	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), VARLEN(u->reqnum), NULL);
+
+	/*
+	 * We don't want the same IP address with a bad connection creating
+	 * the false impression that we're struggling to send out data on every
+	 * connection.
+	 *
+	 * Hence we remember the recent early stalling conditions we see for each
+	 * IP and only accept an early stalling condition the very first time,
+	 * until we forget about that IP.
+	 * 		--RAM, 2017-08-03
+	 */
+
+	if (aging_lookup_revitalise(early_stalling_uploads, &u->addr))
+		return;
+
+	aging_insert(early_stalling_uploads, WCOPY(&u->addr), uint_to_pointer(1));
 
 	upload_early_stall();
 }
@@ -6111,6 +6128,9 @@ upload_init(void)
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
+	early_stalling_uploads = aging_make(STALL_CLEAR,
+						host_addr_hash_func, host_addr_eq_func,
+						wfree_host_addr);
 	upload_handle_map = idtable_new(32);
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
@@ -6163,6 +6183,7 @@ upload_close(void)
 	htable_free_null(&mesh_info);
 
 	aging_destroy(&stalling_uploads);
+	aging_destroy(&early_stalling_uploads);
 	aging_destroy(&push_requests);
 	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
