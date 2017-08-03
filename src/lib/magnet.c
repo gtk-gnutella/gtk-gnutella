@@ -188,7 +188,7 @@ magnet_parse_path(const char *path, const char **error_str)
 		ms.path = atom_str_get(p);
 	}
 
-	return wcopy(&ms, sizeof ms);
+	return WCOPY(&ms);
 }
 
 static const char *
@@ -622,7 +622,7 @@ magnet_parse(const char *url, const char **error_str)
 	res.sources = pslist_reverse(res.sources);
 	res.searches = pslist_reverse(res.searches);
 
-	return wcopy(&res, sizeof res);
+	return WCOPY(&res);
 }
 
 void
@@ -681,14 +681,14 @@ struct magnet_resource *
 magnet_resource_new(void)
 {
 	static const struct magnet_resource zero_resource;
-	return wcopy(&zero_resource, sizeof zero_resource);
+	return WCOPY(&zero_resource);
 }
 
 struct magnet_source *
 magnet_source_new(void)
 {
 	static const struct magnet_source zero_source;
-	return wcopy(&zero_source, sizeof zero_source);
+	return WCOPY(&zero_source);
 }
 
 static void

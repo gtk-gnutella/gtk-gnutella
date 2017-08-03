@@ -724,8 +724,7 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 	if (ignore)
 		return;
 
-	aging_insert(stalling_uploads,
-		wcopy(&u->addr, sizeof u->addr), STALL_FIRST);
+	aging_insert(stalling_uploads, WCOPY(&u->addr), STALL_FIRST);
 
 	if (d >= IO_STALLED) {
 		upload_stall();
@@ -794,7 +793,7 @@ upload_timer(time_t now)
 				 * that it's not the first time we're seeing it, if necessary.
 				 */
 
-				aging_insert(stalling_uploads, wcopy(&u->addr, sizeof u->addr),
+				aging_insert(stalling_uploads, WCOPY(&u->addr),
 					skip ? STALL_AGAIN : STALL_FIRST);
 			} else if (!skip) {
 				wd_kick(stall_wd);
@@ -1342,8 +1341,7 @@ connect_to_host:
 		return;
 	}
 
-	aging_insert(push_requests, wcopy(&ha, sizeof ha),
-		int_to_pointer(push_count + 1));
+	aging_insert(push_requests, WCOPY(&ha), int_to_pointer(push_count + 1));
 
 	/*
 	 * OK, start the upload by opening a connection to the remote host.
@@ -1451,7 +1449,7 @@ upload_clone(struct upload *u)
 		u->io_opaque = NULL;
 	}
 
-	cu = wcopy(u, sizeof *cu);
+	cu = WCOPY(u);
 	parq_upload_upload_got_cloned(u, cu);
 
 	if (upload_is_special(u))

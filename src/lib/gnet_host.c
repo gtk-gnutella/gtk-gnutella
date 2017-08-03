@@ -414,7 +414,7 @@ gnet_host_vec_copy(const gnet_host_vec_t *vec)
 	g_return_val_if_fail(vec, NULL);
 	g_return_val_if_fail(vec->n_ipv4 + vec->n_ipv6 > 0, NULL);
 
-	vec_copy = wcopy(vec, sizeof *vec);
+	vec_copy = WCOPY(vec);
 	if (vec->n_ipv4 > 0)
 		vec_copy->hvec_v4 = WCOPY_ARRAY(vec->hvec_v4, vec->n_ipv4);
 	if (vec->n_ipv6 > 0)

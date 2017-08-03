@@ -6685,8 +6685,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			return;
 		}
 
-		aging_insert(tcp_crawls,
-			wcopy(&n->addr, sizeof n->addr), uint_to_pointer(1));
+		aging_insert(tcp_crawls, WCOPY(&n->addr), uint_to_pointer(1));
 	}
 
 	/*
@@ -13483,8 +13482,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		return;
 	}
 
-	aging_insert(udp_crawls,
-		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+	aging_insert(udp_crawls, WCOPY(&n->addr), uint_to_pointer(1));
 
 	/*
 	 * Build an array of candidate nodes.

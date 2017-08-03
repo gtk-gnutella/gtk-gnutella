@@ -286,7 +286,7 @@ ipp_cache_insert_intern(ipp_cache_t *ic, const struct ipp_cache_item *item)
 			g_debug("adding %s host %s",
 				ic->item_name, gnet_host_to_string(&item->host));
 		}
-		key = wcopy(item, sizeof *item);
+		key = WCOPY(item);
 	}
 	hash_list_append(ic->hosts, key);
 

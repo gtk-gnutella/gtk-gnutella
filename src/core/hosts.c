@@ -117,7 +117,7 @@ host_gnutella_connect(host_addr_t addr, uint16 port)
 		return FALSE;
 
 	node_add(addr, port, 0);
-	aging_insert(node_connects, wcopy(&addr, sizeof addr), uint_to_pointer(1));
+	aging_insert(node_connects, WCOPY(&addr), uint_to_pointer(1));
 
 	return TRUE;
 }
@@ -133,7 +133,7 @@ host_g2_connect(host_addr_t addr, uint16 port)
 		return FALSE;
 
 	node_g2_add(addr, port, 0);
-	aging_insert(node_connects, wcopy(&addr, sizeof addr), uint_to_pointer(1));
+	aging_insert(node_connects, WCOPY(&addr), uint_to_pointer(1));
 
 	return TRUE;
 }

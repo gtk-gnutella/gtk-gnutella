@@ -2341,9 +2341,7 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	u->parq_ul = puq;
 
 	/* Prevent too frequent QUEUE sending to the same host */
-	aging_insert(ul_queue_sent,
-		wcopy(&puq->by_addr->addr, sizeof puq->by_addr->addr),
-		GUINT_TO_POINTER(1));
+	aging_insert(ul_queue_sent, WCOPY(&puq->by_addr->addr), uint_to_pointer(1));
 }
 
 /**
