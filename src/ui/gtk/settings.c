@@ -5747,7 +5747,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_UPLOADS_BW_UNIFORM,
+        PROP_UPLOADS_BW_NO_STEALING,
         uploads_early_stalling_changed,
         TRUE,
         "eventbox_early_stall_2",
@@ -5756,7 +5756,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_UPLOADS_BW_NO_STEALING,
+        PROP_UPLOADS_BW_UNIFORM,
         uploads_early_stalling_changed,
         TRUE,
         "eventbox_early_stall_3",

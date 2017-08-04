@@ -2481,7 +2481,7 @@ create_main_window (void)
   gtk_widget_set_name (eventbox_early_stall_2, "eventbox_early_stall_2");
   gtk_widget_show (eventbox_early_stall_2);
   gtk_box_pack_start (GTK_BOX (hbox9345), eventbox_early_stall_2, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Splitting outgoing HTTP bandwidth evenly."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_2, _("Disabled stealing of outgoing HTTP bandwidth."), NULL);
 
   image_early_stall_2 = create_pixmap (main_window, "upload-yellow.xpm");
   gtk_widget_set_name (image_early_stall_2, "image_early_stall_2");
@@ -2492,7 +2492,7 @@ create_main_window (void)
   gtk_widget_set_name (eventbox_early_stall_3, "eventbox_early_stall_3");
   gtk_widget_show (eventbox_early_stall_3);
   gtk_box_pack_start (GTK_BOX (hbox9345), eventbox_early_stall_3, TRUE, TRUE, 0);
-  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_3, _("Disabled stealing of outgoing HTTP bandwidth."), NULL);
+  gtk_tooltips_set_tip (tooltips, eventbox_early_stall_3, _("Splitting outgoing HTTP bandwidth evenly."), NULL);
 
   image_early_stall_3 = create_pixmap (main_window, "upload-red.xpm");
   gtk_widget_set_name (image_early_stall_3, "image_early_stall_3");

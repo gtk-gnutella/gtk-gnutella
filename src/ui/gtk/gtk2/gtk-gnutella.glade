@@ -4181,7 +4181,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkEventBox" id="eventbox_early_stall_2">
 		      <property name="visible">True</property>
-		      <property name="tooltip" translatable="yes">Splitting outgoing HTTP bandwidth evenly.</property>
+		      <property name="tooltip" translatable="yes">Disabled stealing of outgoing HTTP bandwidth.</property>
 		      <property name="visible_window">True</property>
 		      <property name="above_child">False</property>
 
@@ -4206,7 +4206,7 @@ http://maxmind.com/</property>
 		  <child>
 		    <widget class="GtkEventBox" id="eventbox_early_stall_3">
 		      <property name="visible">True</property>
-		      <property name="tooltip" translatable="yes">Disabled stealing of outgoing HTTP bandwidth.</property>
+		      <property name="tooltip" translatable="yes">Splitting outgoing HTTP bandwidth evenly.</property>
 		      <property name="visible_window">True</property>
 		      <property name="above_child">False</property>
 

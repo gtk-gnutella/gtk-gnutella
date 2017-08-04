@@ -512,16 +512,15 @@ upload_no_more_early_stalling(watchdog_t *unused_wd, void *unused_obj)
 	}
 
 	/*
-	 * Re-enable non-uniform bandwidth scheduling so that one source consuming
-	 * less allows others to consume more.
+	 * Allow unused bandwidth to be stolen from the HTTP outgoing scheduler
+	 * since we are back to a healthy state.
 	 */
 
-	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
-		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, FALSE);
-		if (GNET_PROPERTY(upload_debug)) {
-			g_warning("UL switched back to non-uniform HTTP "
-				"outgoing bandwidth");
-		}
+	bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
+	gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, FALSE);
+
+	if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+		g_warning("UL re-enabled stealing of unused HTTP outgoing bandwidth");
 	}
 
 	wd_expire(stall_wd);		/* No early stalling => no stalling as well */
@@ -546,15 +545,16 @@ upload_no_more_stalling(watchdog_t *unused_wd, void *unused_obj)
 	entropy_harvest_time();
 
 	/*
-	 * Allow unused bandwidth to be stolen from the HTTP outgoing scheduler
-	 * since we are back to a healthy state.
+	 * Re-enable non-uniform bandwidth scheduling so that one source consuming
+	 * less allows others to consume more.
 	 */
 
-	bws_allow_stealing(BSCHED_BWS_OUT, TRUE);
-	gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, FALSE);
-
-	if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
-		g_warning("UL re-enabled stealing of unused HTTP outgoing bandwidth");
+	if (bws_uniform_allocation(BSCHED_BWS_OUT, FALSE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, FALSE);
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("UL switched back to non-uniform HTTP "
+				"outgoing bandwidth");
+		}
 	}
 
 	if (GNET_PROPERTY(uploads_stalling)) {
@@ -591,18 +591,17 @@ upload_early_stall(void)
 	 * another early stalling condition, and apparently our initial adjustment
 	 * was not enough.
 	 *
-	 * Enforce uniform bandwidth allocation so that sources which do not
-	 * consume their allocated bandwidth do not cause others to get more
-	 * bandwidth: stalling uploads are probably blocked by TCP, and we don't
-	 * want to stuff too much data to the source as soon as we can write to
-	 * it again.
+	 * We're not using all our bandwidth because some uploads are
+	 * stalling, and that may be due to TCP heavily retransmitting
+	 * in the background.  Don't let other schedulers use this
+	 * apparent available bandwidth.
 	 */
 
 	if (!wd_wakeup(early_stall_wd)) {
-		if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
-			gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, TRUE);
-			if (GNET_PROPERTY(upload_debug)) {
-				g_warning("UL switching to uniform HTTP outgoing bandwidth");
+		if (bws_allow_stealing(BSCHED_BWS_OUT, FALSE)) {
+			gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, TRUE);
+			if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
+				g_warning("UL disabled stealing unused HTTP outgoing bandwidth");
 			}
 		}
 	}
@@ -651,16 +650,17 @@ static void
 upload_stall(void)
 {
 	/*
-	 * We're not using all our bandwidth because some uploads are
-	 * stalling, and that may be due to TCP heavily retransmitting
-	 * in the background.  Don't let other schedulers use this
-	 * apparent available bandwidth.
+	 * Enforce uniform bandwidth allocation so that sources which do not
+	 * consume their allocated bandwidth do not cause others to get more
+	 * bandwidth: stalling uploads are probably blocked by TCP, and we don't
+	 * want to stuff too much data to the source as soon as we can write to
+	 * it again.
 	 */
 
-	if (bws_allow_stealing(BSCHED_BWS_OUT, FALSE)) {
-		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_NO_STEALING, TRUE);
-		if (GNET_PROPERTY(upload_debug) && GNET_PROPERTY(bw_allow_stealing)) {
-			g_warning("UL disabled stealing of unused HTTP outgoing bandwidth");
+	if (!bws_uniform_allocation(BSCHED_BWS_OUT, TRUE)) {
+		gnet_prop_set_boolean_val(PROP_UPLOADS_BW_UNIFORM, TRUE);
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning("UL switching to uniform HTTP outgoing bandwidth");
 		}
 	}
 
