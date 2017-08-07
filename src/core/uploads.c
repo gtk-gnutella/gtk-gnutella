@@ -132,6 +132,7 @@
 #define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 #define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
+#define BROWSING_THRESH	3600		/**< secs: at most once per hour! */
 
 static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -197,6 +198,8 @@ static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 /* Remember IP address of stalling uploads for a while */
 static aging_table_t *stalling_uploads;
 static aging_table_t *early_stalling_uploads;
+
+static aging_table_t *browsing_reqs;	/**< Throttle browsing requests */
 
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
@@ -4036,6 +4039,22 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	}
 
 	/*
+	 * Throttle browsing requests from indelicate clients...
+	 *
+	 * We limit such requests to one per BROWSING_THRESH seconds,
+	 * which will also take care of broken servents sending several
+	 * requests concurrently!
+	 */
+
+	if (aging_lookup(browsing_reqs, &u->addr)) {
+		send_upload_error(u, 403, "Cannot Browse Too Often");
+		upload_remove(u, N_("Browsing throttled"));
+		return -1;
+	}
+
+	aging_insert(browsing_reqs, WCOPY(&u->addr), uint_to_pointer(1));
+
+	/*
 	 * If we are advertising our hostname in query hits and they are not
 	 * addressing our host directly, then redirect them to that.
 	 */
@@ -6130,6 +6149,8 @@ upload_init(void)
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
 	upload_handle_map = idtable_new(32);
+	browsing_reqs = aging_make(BROWSING_THRESH,
+		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 	push_requests = aging_make(PUSH_REPLY_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 	push_conn_failed = aging_make(PUSH_BAN_FREQ,
@@ -6182,6 +6203,7 @@ upload_close(void)
 
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&early_stalling_uploads);
+	aging_destroy(&browsing_reqs);
 	aging_destroy(&push_requests);
 	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
