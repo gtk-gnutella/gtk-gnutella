@@ -6137,6 +6137,24 @@ upload_is_enabled(void)
 }
 
 /**
+ * Computes the maximum amount of uploads per IP.
+ *
+ * This is dynamic in order to forcefully limit uploads to 1 when the IP
+ * address is known to be causing stalls.
+ */
+uint
+upload_max_by_addr(host_addr_t addr)
+{
+	if (
+		aging_lookup(early_stalling_uploads, &addr) ||
+		aging_lookup(stalling_uploads, &addr)
+	)
+		return 1;
+
+	return GNET_PROPERTY(max_uploads_ip);
+}
+
+/**
  * Initialize uploads.
  */
 void G_COLD

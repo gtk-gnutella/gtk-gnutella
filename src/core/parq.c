@@ -3187,7 +3187,12 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	plist_t *l = NULL;
 	int slots_free;
 	bool quick_allowed = FALSE;
+
 	g_assert(puq != NULL);
+	g_assert_log(host_addr_equal(puq->remote_addr, puq->by_addr->addr),
+			"%s(): remote_addr=%s, by_addr->addr=%s",
+			G_STRFUNC, host_addr_to_string(puq->remote_addr),
+			host_addr_to_string2(puq->by_addr->addr));
 
 	/*
 	 * A "frozen" entry is an entry still in the queue but removed from the
@@ -3203,17 +3208,20 @@ parq_upload_continue(struct parq_ul_queued *puq)
 	if (puq->flags & PARQ_UL_FROZEN) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_debug("[PARQ UL] %s: "
-				"frozen entry, IP %s has %d entr%s uploading (max %u)",
+				"frozen entry, IP %s has %d entr%s uploading (max %u for IP)",
 				G_STRFUNC, host_addr_to_string(puq->by_addr->addr),
 				puq->by_addr->uploading, plural_y(puq->by_addr->uploading),
-				GNET_PROPERTY(max_uploads_ip));
+				upload_max_by_addr(puq->remote_addr));
 
 		/*
 		 * Maybe the max_uploads_ip setting changed since last time we froze
 		 * the entry?  If so, unfreeze them all now and proceed.
 		 */
 
-		if (UNSIGNED(puq->by_addr->uploading) >= GNET_PROPERTY(max_uploads_ip))
+		if (
+			UNSIGNED(puq->by_addr->uploading) >=
+		   		upload_max_by_addr(puq->remote_addr)
+		)
 			return FALSE;		/* No quick upload slot either */
 
 		parq_upload_unfreeze_all(puq);
@@ -3232,13 +3240,22 @@ parq_upload_continue(struct parq_ul_queued *puq)
 
 	/*
 	 * Don't allow more than max_uploads_ip per single host (IP)
+	 *
+	 * The value is dynamically computed through upload_max_by_addr() in order
+	 * to throttle uploads when hosts are stalling.
+	 * 		--RAM, 2017-08-07
 	 */
-	if (UNSIGNED(puq->by_addr->uploading) >= GNET_PROPERTY(max_uploads_ip)) {
+
+	if (
+		UNSIGNED(puq->by_addr->uploading) >=
+	   	upload_max_by_addr(puq->remote_addr)
+	) {
 		if (GNET_PROPERTY(parq_debug) >= 5)
 			g_debug("[PARQ UL] %s: "
-				"max_uploads_ip per single host reached %d/%d",
+				"max_uploads_ip per single host reached %d/%d for %s",
 				G_STRFUNC, puq->by_addr->uploading,
-				GNET_PROPERTY(max_uploads_ip));
+				upload_max_by_addr(puq->remote_addr),
+				host_addr_to_string(puq->remote_addr));
 		parq_upload_freeze_all(puq);
 		goto check_quick;
 	}
