@@ -2523,9 +2523,10 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 		!u->error_sent &&
 		u->status != GTA_UL_PUSH_RECEIVED && u->status != GTA_UL_QUEUE
 	) {
-		if (reason == NULL)
-			reason = "Bad Request";
-			logreason = _(reason);
+		if (reason == NULL) {
+			reason = N_("Bad Request");		/* `reason' is untranslated */
+			logreason = _(reason);			/* `logreason' is translated */
+		}
 		send_upload_error(u, 400, "%s", reason);
 	}
 
