@@ -1827,7 +1827,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	if (u->last_dmesh) {
 		last_sent = u->last_dmesh;
 	} else {
-		last_sent = mi_get_stamp(u->socket->addr, sha1, tm_time());
+		last_sent = mi_get_stamp(u->addr, sha1, tm_time());
 	}
 
 	/*
@@ -1902,7 +1902,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		 */
 
 		mesh_len = dmesh_alternate_location(sha1,
-					alt_locs, sizeof alt_locs, u->socket->addr,
+					alt_locs, sizeof alt_locs, u->addr,
 					last_sent, u->user_agent, NULL, FALSE,
 					u->fwalt ? u->guid : NULL, u->net);
 
@@ -1952,7 +1952,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		}
 
 		len = dmesh_alternate_location(sha1,
-					&buf[rw], avail, u->socket->addr,
+					&buf[rw], avail, u->addr,
 					last_sent, u->user_agent, NULL, FALSE,
 					u->fwalt ? u->guid : NULL, u->net);
 		rw += len;
@@ -2213,8 +2213,8 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	if (u->flags & UPLOAD_F_LIMITED) {
 		if (GNET_PROPERTY(upload_debug)) {
 			g_debug("upload request from %s [%s] limited for %s",
-				host_addr_to_string(u->socket->addr),
-				gip_country_name(u->socket->addr),
+				host_addr_to_string(u->addr),
+				gip_country_name(u->addr),
 				u->name ? u->name : "<unkonwn resource>");
 		}
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
@@ -2223,7 +2223,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 			send_upload_error(u, 403, "Unauthorized");
 		} else if (!(u->flags & UPLOAD_F_STEALTH_LIMIT)) {
 			send_upload_error(u, 403, "Limiting connections from %s",
-				gip_country_name(u->socket->addr));
+				gip_country_name(u->addr));
 		}
 		return;
 	}
@@ -2236,7 +2236,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	if (u->error_sent) {
 		if (GNET_PROPERTY(upload_debug)) g_warning(
 			"already sent an error %d to %s, not sending %d (%s)",
-			u->error_sent, host_addr_to_string(u->socket->addr), code, reason);
+			u->error_sent, host_addr_to_string(u->addr), code, reason);
 		return;
 	}
 
@@ -2408,8 +2408,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		g_debug(
 			"sending code=%d to %s (%s) [status=%d]: %s",
 			code,
-			u->socket
-				? host_addr_to_string(u->socket->addr) : "<no socket>",
+			host_addr_to_string(u->addr),
 			upload_vendor_str(u),
 			u->status, reason);
 
@@ -2493,16 +2492,14 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
 				u->name,
 				uint64_to_string(u->sent),
-				u->socket
-					? host_addr_to_string(u->socket->addr) : "<no socket>",
+				host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		} else {
 			g_debug(
 				"ending upload [%s bytes out] from %s (%s): %s",
 				uint64_to_string(u->sent),
-				u->socket
-					? host_addr_to_string(u->socket->addr) : "<no socket>",
+				host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		}
@@ -3063,7 +3060,7 @@ upload_error_not_found(struct upload *u, const char *request)
 			filename = NULL;
 		}
 		g_warning("returned 404 to %s <%s>: %s (%s)",
-			host_addr_to_string(u->socket->addr),
+			host_addr_to_string(u->addr),
 			upload_vendor_str(u), filename ? filename : request,
 			filename ? request : "verbatim");
 	}
@@ -3975,10 +3972,10 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 	 */
 
 	if (!seen_port_ip) {
-		addr = u->socket->addr;
+		addr = u->addr;
 		port = 0;
 	} else if (is_private_addr(addr)) {
-		addr = u->socket->addr;
+		addr = u->addr;
 	}
 
 	if (u->guid != NULL) {
@@ -4020,11 +4017,11 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 
 	if (GNET_PROPERTY(upload_debug) > 1)
 		g_debug("BROWSE request from %s (%s)",
-			host_addr_to_string(u->socket->addr),
+			host_addr_to_string(u->addr),
 			upload_vendor_str(u));
 
 	if (!GNET_PROPERTY(browse_host_enabled)) {
-		if (ctl_limit(u->socket->addr, CTL_D_BROWSE | CTL_D_STEALTH)) {
+		if (ctl_limit(u->addr, CTL_D_BROWSE | CTL_D_STEALTH)) {
 			upload_remove(u, N_("Limited connection"));
 		} else {
 			upload_send_error(u, 403, N_("Browse Host Disabled"));
@@ -4032,12 +4029,12 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		return -1;
 	}
 
-	if (ctl_limit(u->socket->addr, CTL_D_BROWSE)) {
-		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
+	if (ctl_limit(u->addr, CTL_D_BROWSE)) {
+		if (ctl_limit(u->addr, CTL_D_NORMAL)) {
 			send_upload_error(u, 403, "Browse Host Disabled");
-		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
+		} else if (!ctl_limit(u->addr, CTL_D_STEALTH)) {
 			send_upload_error(u, 404, "Limiting connections from %s",
-				gip_country_name(u->socket->addr));
+				gip_country_name(u->addr));
 		}
 		upload_remove(u, N_("Limited connection"));
 		return -1;
@@ -4684,7 +4681,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
 
-	u->bio = bsched_source_add(bsched_out_select_by_addr(u->socket->addr),
+	u->bio = bsched_source_add(bsched_out_select_by_addr(u->addr),
 				&u->socket->wio, BIO_F_WRITE, upload_writable, u);
 	upload_stats_file_begin(u->sf);
 
@@ -5370,7 +5367,7 @@ upload_request(struct upload *u, header_t *header)
 			u->is_followup ? "Follow-up" : "Incoming",
 			u->last_was_error ? " (after error)" : "",
 			u->reqnum,
-			host_addr_to_string(u->socket->addr),
+			host_addr_to_string(u->addr),
 			u->from_browser ? " (via browser)" : "",
 			u->was_actively_queued ? " (was queued)" : "",
 			u->request);
@@ -5398,11 +5395,11 @@ upload_request(struct upload *u, header_t *header)
 	 * Check limits.
 	 */
 
-	if (ctl_limit(u->socket->addr, CTL_D_INCOMING)) {
+	if (ctl_limit(u->addr, CTL_D_INCOMING)) {
 		u->flags |= UPLOAD_F_LIMITED;
-		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
+		if (ctl_limit(u->addr, CTL_D_NORMAL)) {
 			u->flags |= UPLOAD_F_NORMAL_LIMIT;
-		} else if (ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
+		} else if (ctl_limit(u->addr, CTL_D_STEALTH)) {
 			u->flags |= UPLOAD_F_STEALTH_LIMIT;
 		}
 	}
@@ -6013,7 +6010,7 @@ upload_special_flushed(void *arg)
 	if (GNET_PROPERTY(upload_debug))
 		g_debug("%s from %s (%s) done: %s bytes, %s sent",
 			u->name,
-			host_addr_to_string(u->socket->addr),
+			host_addr_to_string(u->addr),
 			upload_vendor_str(u),
 			uint64_to_string(u->sent),	/* Sent to TX stack = final RX size */
 			uint64_to_string2(u->file_size));/* True amount sent on the wire */
