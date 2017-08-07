@@ -1576,7 +1576,7 @@ upload_send_http_status(struct upload *u,
 		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
 
 	if (u->flags & UPLOAD_F_LIMITED) {
-		send_upload_error(u, 403, N_("Unauthorized"));
+		send_upload_error(u, 403, "Unauthorized");
 		return TRUE;
 	}
 
@@ -2220,9 +2220,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		u->flags &= ~UPLOAD_F_LIMITED;		/* For recursion */
 		u->keep_alive = FALSE;				/* Force disconnection */
 		if (u->flags & UPLOAD_F_NORMAL_LIMIT) {
-			send_upload_error(u, 403, N_("Unauthorized"));
+			send_upload_error(u, 403, "Unauthorized");
 		} else if (!(u->flags & UPLOAD_F_STEALTH_LIMIT)) {
-			send_upload_error(u, 403, N_("Limiting connections from %s"),
+			send_upload_error(u, 403, "Limiting connections from %s",
 				gip_country_name(u->socket->addr));
 		}
 		return;
@@ -2423,6 +2423,10 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
  * Send error message to requestor.
  *
  * This can only be done once per connection.
+ *
+ * @attention
+ * The messsage is not meant to be user-visible and therefore needs to be
+ * in plain English (must not be translated).
  */
 static void
 send_upload_error(struct upload *u, int code, const char *msg, ...)
@@ -2523,8 +2527,9 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 		u->status != GTA_UL_PUSH_RECEIVED && u->status != GTA_UL_QUEUE
 	) {
 		if (reason == NULL)
-			logreason = reason = N_("Bad Request");
-		send_upload_error(u, 400, "%s", logreason);
+			reason = "Bad Request";
+			logreason = _(reason);
+		send_upload_error(u, 400, "%s", reason);
 	}
 
 	/*
@@ -3382,7 +3387,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			shared_file_unref(&sf);
 			u->sf = sfn;
-			upload_error_remove_ext(u, location, 301, N_("Moved Permanently"));
+			upload_error_remove_ext(u, location, 301, "Moved Permanently");
 			return -1;
 		}
 
@@ -4029,9 +4034,9 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 
 	if (ctl_limit(u->socket->addr, CTL_D_BROWSE)) {
 		if (ctl_limit(u->socket->addr, CTL_D_NORMAL)) {
-			send_upload_error(u, 403, N_("Browse Host Disabled"));
+			send_upload_error(u, 403, "Browse Host Disabled");
 		} else if (!ctl_limit(u->socket->addr, CTL_D_STEALTH)) {
-			send_upload_error(u, 404, N_("Limiting connections from %s"),
+			send_upload_error(u, 404, "Limiting connections from %s",
 				gip_country_name(u->socket->addr));
 		}
 		upload_remove(u, N_("Limited connection"));
@@ -4506,8 +4511,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 		if (!parq_allows) {
 			if (u->status == GTA_UL_QUEUED) {
-				send_upload_error(u, 503,
-					  N_("Queued (slot %d, ETA: %s)"),
+				send_upload_error(u, 503, "Queued (slot %d, ETA: %s)",
 					  parq_upload_lookup_position(u),
 					  short_time_ascii(parq_upload_lookup_eta(u)));
 
