@@ -2298,7 +2298,7 @@ pcache_udp_ping_received(gnutella_node_t *n)
         gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 		throttled = TRUE;
 	} else {
-		aging_insert(udp_pings, WCOPY(&n->addr), uint_to_pointer(1));
+		aging_record(udp_pings, WCOPY(&n->addr));
 
 		/*
 		 * Answers to UHC pings are sent back with a "control" priority.

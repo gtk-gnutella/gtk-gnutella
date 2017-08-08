@@ -3796,7 +3796,7 @@ socket_reconnect(struct gnutella_socket *s)
 	once_flag_run(&tls_ban_inited, tls_ban_init);
 
 	gnet_host_set(&to, s->addr, s->port);
-	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));
+	aging_record(tls_ban, atom_host_get(&to));
 
 	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
 		return FALSE;

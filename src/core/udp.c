@@ -1447,7 +1447,7 @@ udp_send_ping_with_callback(
 	if (n != NULL) {
 		const guid_t *muid = gnutella_header_get_muid(m);
 		if (udp_ping_register(muid, addr, port, cb, arg, multiple)) {
-			aging_insert(udp_aging_pings, WCOPY(&addr), uint_to_pointer(1));
+			aging_record(udp_aging_pings, WCOPY(&addr));
 			udp_send_msg(n, m, size);
 			return TRUE;
 		}

@@ -901,7 +901,7 @@ k_handle_ping(knode_t *kn, gnutella_node_t *n,
 	 * further PINGs for a while...
 	 */
 
-	aging_insert(kmsg_aging_pings, WCOPY(&kn->addr), int_to_pointer(1));
+	aging_record(kmsg_aging_pings, WCOPY(&kn->addr));
 
 	k_send_pong(n, kademlia_header_get_muid(header));
 	return;
@@ -1070,7 +1070,7 @@ answer_find_node(gnutella_node_t *n,
 		if (aging_lookup(kmsg_aging_finds, &kn->addr))
 			goto throttle;
 
-		aging_insert(kmsg_aging_finds, WCOPY(&kn->addr), int_to_pointer(1));
+		aging_record(kmsg_aging_finds, WCOPY(&kn->addr));
 	}
 
 	/*

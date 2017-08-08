@@ -2855,7 +2855,7 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
 	}
 
 	if (sent) {
-		aging_insert(guess_qk_reqs, atom_host_get(host), int_to_pointer(1));
+		aging_record(guess_qk_reqs, atom_host_get(host));
 		if (gq != NULL) {
 			guess_check(gq);
 			gq->bw_out_qk += size;	/* Estimated, UDP queue could drop it! */
@@ -4327,7 +4327,7 @@ guess_alien_host(const guess_t *gq, const gnet_host_t *host, bool reached)
 	 * the non-GUESS table to avoid it being re-added soon.
 	 */
 
-	aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
+	aging_record(guess_alien, atom_host_get(host));
 	hcache_purge(HCACHE_CLASS_GUESS,
 		gnet_host_get_addr(host), gnet_host_get_port(host));
 	hevset_foreach(gqueries, guess_ignore_alien_host, deconstify_pointer(host));
@@ -5476,7 +5476,7 @@ guess_free(guess_t *gq)
 	 */
 
 	hikset_remove(gmuid, gq->muid);
-	aging_insert(guess_old_muids, atom_guid_get(gq->muid), int_to_pointer(1));
+	aging_record(guess_old_muids, atom_guid_get(gq->muid));
 
 	hset_free_null(&gq->queried);
 	hset_free_null(&gq->deferred);

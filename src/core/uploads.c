@@ -641,7 +641,7 @@ upload_new_early_stalling(const struct upload *u)
 	if (aging_lookup_revitalise(early_stalling_uploads, &u->addr))
 		return;
 
-	aging_insert(early_stalling_uploads, WCOPY(&u->addr), uint_to_pointer(1));
+	aging_record(early_stalling_uploads, WCOPY(&u->addr));
 
 	upload_early_stall();
 }
@@ -964,7 +964,7 @@ upload_socket_connect_failed(gnutella_socket_t *s, void *owner, const char *err)
 		gnet_host_t to;
 
 		gnet_host_set(&to, s->addr, s->port);
-		aging_insert(push_conn_failed, atom_host_get(&to), int_to_pointer(1));
+		aging_record(push_conn_failed, atom_host_get(&to));
 
 		if (GNET_PROPERTY(upload_debug)) {
 			g_warning("PUSH can't connect to %s", gnet_host_to_string(&to));
@@ -4055,7 +4055,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		return -1;
 	}
 
-	aging_insert(browsing_reqs, WCOPY(&u->addr), uint_to_pointer(1));
+	aging_record(browsing_reqs, WCOPY(&u->addr));
 
 	/*
 	 * If we are advertising our hostname in query hits and they are not

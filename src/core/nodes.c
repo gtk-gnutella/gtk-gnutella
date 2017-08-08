@@ -907,8 +907,7 @@ node_record_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
-	aging_insert(node_connect_failures,
-		atom_host_get(&host), int_to_pointer(1));
+	aging_record(node_connect_failures, atom_host_get(&host));
 }
 
 /**
@@ -6685,7 +6684,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			return;
 		}
 
-		aging_insert(tcp_crawls, WCOPY(&n->addr), uint_to_pointer(1));
+		aging_record(tcp_crawls, WCOPY(&n->addr));
 	}
 
 	/*
@@ -13482,7 +13481,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		return;
 	}
 
-	aging_insert(udp_crawls, WCOPY(&n->addr), uint_to_pointer(1));
+	aging_record(udp_crawls, WCOPY(&n->addr));
 
 	/*
 	 * Build an array of candidate nodes.

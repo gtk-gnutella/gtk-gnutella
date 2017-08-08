@@ -469,4 +469,25 @@ aging_count(const aging_table_t *ag)
 	aging_return(ag, count);
 }
 
+/**
+ * Record key in the aging table, with a value forced to "1".
+ *
+ * In effect, this means the aging table is simply there to record a set of
+ * aging keys, and there is no meaningful value attached to it: only its mere
+ * presence matters.
+ *
+ * The value of "1" is such that an aging_lookup() will return a non-NULL
+ * pointer, thereby signifying the presence of the key.
+ *
+ * @param ag	the aging table
+ * @param key	the key we wish to record for some amount of time.
+ */
+void
+aging_record(aging_table_t *ag, const void *key)
+{
+	aging_check(ag);
+
+	aging_insert(ag, key, int_to_pointer(1));
+}
+
 /* vi: set ts=4: sw=4 cindent: */

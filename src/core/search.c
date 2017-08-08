@@ -7130,7 +7130,7 @@ record_secure:
 
 		gnet_host_set(&host, n->addr, n->port);
 		if (!aging_lookup_revitalise(ora_secure, &host))
-			aging_insert(ora_secure, atom_host_get(&host), int_to_pointer(1));
+			aging_record(ora_secure, atom_host_get(&host));
 	}
 }
 

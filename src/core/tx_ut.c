@@ -498,7 +498,7 @@ ut_to_flag_good(const struct attr *attr, const gnet_host_t *to)
 	}
 
 	if (!aging_lookup_revitalise(attr->good, to))
-		aging_insert(attr->good, atom_host_get(to), int_to_pointer(1));
+		aging_record(attr->good, atom_host_get(to));
 }
 
 /**
@@ -722,7 +722,7 @@ ut_to_banned(const struct attr *attr, const gnet_host_t *to)
 static void
 ut_to_ban(const struct attr *attr, const gnet_host_t *to)
 {
-	aging_insert(attr->ban, atom_host_get(to), int_to_pointer(1));
+	aging_record(attr->ban, atom_host_get(to));
 	aging_remove(attr->good, to);
 
 	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, NULL)) {

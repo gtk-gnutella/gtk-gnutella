@@ -2114,7 +2114,7 @@ main_supervise(void)
 		}
 
 		children++;
-		aging_insert(ag, ulong_to_pointer(children), NULL);
+		aging_record(ag, ulong_to_pointer(children));
 		setproctitle("supervisor, %lu child%s launched",
 			children, 1 == children ? "" : "ren");
 
