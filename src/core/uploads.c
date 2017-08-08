@@ -1330,7 +1330,7 @@ connect_to_host:
 	 * of service attack.	-- RAM, 03/11/2002
 	 */
 
-	push_count = pointer_to_int(aging_lookup(push_requests, &ha));
+	push_count = aging_saw_another_revitalise(push_requests, &ha, host_addr_wcopy);
 
 	if (push_count >= PUSH_REPLY_MAX) {
 		if (GNET_PROPERTY(upload_debug)) {
@@ -1343,8 +1343,6 @@ connect_to_host:
 		gnet_stats_inc_general(GNR_REMOTE_PUSH_THROTTLED);
 		return;
 	}
-
-	aging_insert(push_requests, WCOPY(&ha), int_to_pointer(push_count + 1));
 
 	/*
 	 * OK, start the upload by opening a connection to the remote host.

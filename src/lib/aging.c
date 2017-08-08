@@ -29,7 +29,7 @@
  * some time has elapsed.
  *
  * All the entries in the table are given the same lifetime, with a granularity
- * of one second.  It is however possible to revitalize an entry being looked-up
+ * of one second.  It is however possible to revitalise an entry being looked-up
  * by restoring its initial lifetime (as if it had been removed and reinserted).
  *
  * @author Raphael Manfredi
@@ -341,7 +341,7 @@ aging_age(const aging_table_t *ag, const void *key)
 }
 
 /**
- * Lookup value in table, and if found, revitalize entry, restoring the
+ * Lookup value in table, and if found, revitalise entry, restoring the
  * initial lifetime the key/value pair had at insertion time.
  */
 void *
@@ -488,6 +488,131 @@ aging_record(aging_table_t *ag, const void *key)
 	aging_check(ag);
 
 	aging_insert(ag, key, int_to_pointer(1));
+}
+
+/**
+ * Implementation for aging_saw_another() and aging_saw_another_revitalise().
+ * *
+ * @param ag			the aging table
+ * @param key			the key to record a new occurrence of
+ * @param clone			key-cloning routine, if we need to insert key into table
+ * @param revitalise	whether to revitalise existing key
+ *
+ * @return the new occurence count after the insertion.
+ */
+size_t
+aging_saw_another_internal(
+	aging_table_t *ag, const void *key, clone_fn_t cf, bool revitalise)
+{
+	struct aging_value *aval;
+	size_t count;
+
+	aging_check(ag);
+
+	aging_synchronize(ag);
+
+	aval = hikset_lookup(ag->table, key);
+	count = NULL == aval ? 1 : pointer_to_size(aval->value) + 1;
+
+	g_assert(count != 0);		/* No overflow above */
+
+	if (NULL == aval) {
+		/* Key did not exist in the table */
+		g_assert(1 == count);
+
+		WALLOC0(aval);
+		aval->value = size_to_pointer(count);
+		aval->key = NULL == cf ? deconstify_pointer(key) : (*cf)(key);
+		aval->last_insert = tm_time();
+
+		hikset_insert(ag->table, aval);
+		elist_append(&ag->list, aval);
+	} else {
+		/* Key already existed in the table */
+		g_assert(count > 1);
+
+		aval->value = size_to_pointer(count);
+
+		if (revitalise) {
+			aval->last_insert = tm_time();
+			elist_moveto_tail(&ag->list, aval);
+		}
+	}
+
+	aging_return(ag, count);
+}
+
+/**
+ * Record that we saw another occurrence of `key'.
+ *
+ * This allows to count the amount of times we happen to see key, over the
+ * aging period (before the key expires).
+ *
+ * There is no value provided: the value in the aging table is the running
+ * count of occurrences recorded so far.
+ *
+ * The key is NOT revitalised by the update of its occurrence count.
+ * Use aging_saw_another_revitalise() instead if that is required.
+ *
+ * The supplied clone routine is only used when we need to actually insert the
+ * key in the table, because it is not already present.  This avoids the caller
+ * having to blindly allocating a value that we will discard immediately should
+ * the key be actually present!
+ *
+ * The cloning routine must implicitly know the size of the object to be cloned.
+ *
+ * If the cloning routine is NULL, then the key is inserted as-is.  This is
+ * suitable for constant objects that are always alive, or which are managed
+ * explicitly outside of the aging table.
+ *
+ * @note
+ * The cloning routine may also be a function tracking atoms, i.e. there is no
+ * requirement that the cloning routine actually returns a new pointer as long
+ * as each occurrence recorded can be later released.
+ *
+ * @param ag	the aging table
+ * @param key	the key to record a new occurrence of
+ * @param clone	key-cloning routine, if we need to insert key into table
+ *
+ * @return the new occurence count after the insertion.
+ */
+size_t
+aging_saw_another(aging_table_t *ag, const void *key, clone_fn_t cf)
+{
+	return aging_saw_another_internal(ag, key, cf, FALSE);
+}
+
+/**
+ * Same as aging_saw_another() but with revitalization of the key.
+ */
+size_t
+aging_saw_another_revitalise(aging_table_t *ag, const void *key, clone_fn_t cf)
+{
+	return aging_saw_another_internal(ag, key, cf, TRUE);
+}
+
+/**
+ * Compute occurrence count of keys inserted by aging_saw_another*() routines.
+ *
+ * @param ag	the aging table
+ * @param key	the key for which we need the occurrence count
+ *
+ * @return the occurrence count of the key, 0 if not presently recorded.
+ */
+size_t
+aging_seen_count(const aging_table_t *ag, const void *key)
+{
+	struct aging_value *aval;
+	size_t count;
+
+	aging_check(ag);
+
+	aging_synchronize(ag);
+
+	aval = hikset_lookup(ag->table, key);
+	count = NULL == aval ? 0 : pointer_to_size(aval->value);
+
+	aging_return(ag, count);
 }
 
 /* vi: set ts=4: sw=4 cindent: */

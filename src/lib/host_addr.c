@@ -1525,6 +1525,15 @@ host_addr_eq_func(const void *p, const void *q)
 }
 
 /**
+ * Clone host address, which can be freed via wfree_host_addr1().
+ */
+void *
+host_addr_wcopy(const void *addr)
+{
+	return wcopy(addr, sizeof(host_addr_t));
+}
+
+/**
  * List free callback.
  */
 void

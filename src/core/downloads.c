@@ -8576,7 +8576,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 {
 	uint16 port;
 	bool success = FALSE;
-	int push_count;
+	size_t push_count;
 	struct dl_server *server;
 
 	download_check(d);
@@ -8602,7 +8602,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	server = d->server;
 	g_assert(dl_server_valid(server));
 
-	push_count = pointer_to_int(aging_lookup(local_pushes, server->key));
+	push_count = aging_seen_count(local_pushes, server->key);
 
 	if (push_count >= DOWNLOAD_PUSH_MAX) {
 		if (GNET_PROPERTY(download_debug) > 1) {
@@ -8649,7 +8649,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 
 done:
 	if (success) {
-		aging_insert(local_pushes, server->key, int_to_pointer(push_count + 1));
+		aging_saw_another_revitalise(local_pushes, server->key, NULL);
 	} else if (GNET_PROPERTY(download_debug)) {
 		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
 			"for %s (index=%lu)",
