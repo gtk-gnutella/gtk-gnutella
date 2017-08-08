@@ -133,6 +133,7 @@
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
 #define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
 #define BROWSING_THRESH	3600		/**< secs: at most once per hour! */
+#define BROWSING_ABUSE	3			/**< More than that in an hour is abusing! */
 
 static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -4010,6 +4011,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	const char *host)
 {
 	char *buf;
+	size_t count;
 
 	u->browse_host = TRUE;
 	u->name = atom_str_get(_("<Browse Host Request>"));
@@ -4045,15 +4047,24 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	 * We limit such requests to one per BROWSING_THRESH seconds,
 	 * which will also take care of broken servents sending several
 	 * requests concurrently!
+	 *
+	 * If they send more than BROWSING_ABUSE requests, revitalise the key
+	 * so that browsing will be throttled until they totally stop for
+	 * BROWSING_THRESH seconds.
 	 */
 
-	if (aging_lookup(browsing_reqs, &u->addr)) {
+	count = aging_saw_another(browsing_reqs, &u->addr, host_addr_wcopy);
+
+	if (count > 1) {
 		send_upload_error(u, 403, "Cannot Browse Too Often");
-		upload_remove(u, N_("Browsing throttled"));
+		if (count >= BROWSING_ABUSE) {
+			(void) aging_lookup_revitalise(browsing_reqs, &u->addr);
+			upload_remove(u, N_("Browsing abuse detected"));
+		} else {
+			upload_remove(u, N_("Browsing throttled"));
+		}
 		return -1;
 	}
-
-	aging_record(browsing_reqs, WCOPY(&u->addr));
 
 	/*
 	 * If we are advertising our hostname in query hits and they are not
