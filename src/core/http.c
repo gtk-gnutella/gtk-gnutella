@@ -1003,7 +1003,7 @@ http_buffer_alloc(char *buf, size_t len, size_t written)
 /**
  * Dispose of HTTP buffer.
  */
-void
+static void
 http_buffer_free(http_buffer_t *b)
 {
 	http_buffer_check(b);
@@ -1011,6 +1011,20 @@ http_buffer_free(http_buffer_t *b)
 	wfree(b->hb_arena, b->hb_len);
 	b->magic = 0;
 	WFREE(b);
+}
+
+/**
+ * Dispose of HTTP buffer and nullify its pointer.
+ */
+void
+http_buffer_free_null(http_buffer_t **b_ptr)
+{
+	http_buffer_t *b = *b_ptr;
+
+	if (b != NULL) {
+		http_buffer_free(b);
+		*b_ptr = NULL;
+	}
 }
 
 /**

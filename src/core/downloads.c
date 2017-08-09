@@ -578,10 +578,7 @@ download_pipeline_free_null(struct dl_pipeline **dp_ptr)
 	if (dp != NULL) {
 		dl_pipeline_check(dp);
 
-		if (dp->req != NULL) {
-			http_buffer_free(dp->req);
-			dp->req = NULL;
-		}
+		http_buffer_free_null(&dp->req);
 		pmsg_free_null(&dp->extra);
 		dp->magic = 0;
 		WFREE(dp);
@@ -4732,10 +4729,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
 	}
-	if (d->req) {
-		http_buffer_free(d->req);
-		d->req = NULL;
-	}
+	http_buffer_free_null(&d->req);
 	if (d->cproxy) {
 		cproxy_free(d->cproxy);
 		d->cproxy = NULL;
@@ -5460,11 +5454,7 @@ download_remove(struct download *d)
 		download_by_sha1_remove(d);
 
 	http_rangeset_free_null(&d->ranges);
-
-	if (d->req) {
-		http_buffer_free(d->req);
-		d->req = NULL;
-	}
+	http_buffer_free_null(&d->req);
 
 	/*
 	 * Let parq remove and free its allocated memory
@@ -13235,11 +13225,10 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 
 	socket_evt_clear(s);
 
-	http_buffer_free(r);
 	if (download_pipelining(d)) {
-		d->pipeline->req = NULL;
+		http_buffer_free_null(&d->pipeline->req);
 	} else {
-		d->req = NULL;
+		http_buffer_free_null(&d->req);
 	}
 
 	download_request_sent(d);

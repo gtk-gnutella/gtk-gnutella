@@ -308,7 +308,7 @@ bool http_extract_version(
 	const char *request, size_t len, uint *major, uint *minor);
 
 http_buffer_t *http_buffer_alloc(char *buf, size_t len, size_t written);
-void http_buffer_free(http_buffer_t *b);
+void http_buffer_free_null(http_buffer_t **b_ptr);
 
 int
 http_content_range_parse(const char *buf,
