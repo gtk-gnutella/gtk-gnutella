@@ -43,6 +43,7 @@
  * Flags for thex_upload_open().
  */
 enum {
+	/* Must be the same value as BH_F_CHUNKED */
 	THEX_UPLOAD_F_CHUNKED = 1 << 2		/**< Emit chunked data */
 };
 

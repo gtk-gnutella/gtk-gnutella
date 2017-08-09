@@ -216,9 +216,13 @@ static void upload_error_remove_ext(struct upload *u,
 		const char *msg, ...) G_PRINTF(4, 5);
 static void upload_writable(void *up, int source, inputevt_cond_t cond);
 static void upload_special_writable(void *up);
-static void send_upload_error(struct upload *u, int code,
+static bool send_upload_error(struct upload *u, int code,
 			const char *msg, ...) G_PRINTF(3, 4);
 static void upload_connect_conf(struct upload *u);
+
+static void upload_http_status_partially_sent(
+	const char *data, size_t len, size_t sent, void *arg);
+static void upload_http_status_sent(struct upload *u);
 
 /***
  *** Callbacks
@@ -1407,7 +1411,7 @@ upload_free_resources(struct upload *u)
 	atom_str_free_null(&u->user_agent);
 	atom_sha1_free_null(&u->sha1);
 	atom_guid_free_null(&u->guid);
-	if (u->special) {
+	if (u->special != NULL) {
 		(*u->special->close)(u->special, FALSE);
 		u->special = NULL;
 	}
@@ -1419,6 +1423,8 @@ upload_free_resources(struct upload *u)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	HFREE_NULL(u->request);
+	http_buffer_free_null(&u->reply);
+	HFREE_NULL(u->sending_error);
 
     upload_free_handle(u->upload_handle);
 	list_uploads = pslist_remove(list_uploads, u);
@@ -1441,6 +1447,7 @@ upload_clone(struct upload *u)
 	bool within_error = FALSE;
 
 	upload_check(u);
+	g_assert(NULL == u->reply);
 
 	entropy_harvest_time();
 
@@ -1470,6 +1477,8 @@ upload_clone(struct upload *u)
     cu->end = 0;
 	cu->sent = 0;
 	cu->hevcnt = 0;
+	cu->error_sent = 0;
+	cu->sending_error = NULL;			/* Freed by the parent upload */
 
 	socket_change_owner(cu->socket, cu);	/* Takes ownership of socket */
 
@@ -1566,10 +1575,12 @@ upload_likely_from_browser(const header_t *header)
  */
 static bool
 upload_send_http_status(struct upload *u,
-	bool keep_alive, int code, const char *msg)
+	bool keep_alive, int code,
+	http_send_status_cb_t unsent, void *unsent_arg,
+	const char *msg)
 {
 	upload_check(u);
-	g_assert(msg);
+	g_assert(msg != NULL);
 
 	if (u->keep_alive)
 		socket_set_quickack(u->socket, FALSE);	/* Re-disable quick TCP ACKs */
@@ -1580,7 +1591,7 @@ upload_send_http_status(struct upload *u,
 	}
 
 	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
-				u->hev, u->hevcnt, "%s", msg);
+				u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
 }
 
 /**
@@ -2199,7 +2210,7 @@ upload_http_extra_body_add(struct upload *u, const char *body)
 /**
  * The vectorized (message-wise) version of send_upload_error().
  */
-static void
+static bool
 send_upload_error_v(struct upload *u, const char *ext, int code,
 	const char *msg, va_list ap)
 {
@@ -2224,7 +2235,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 			send_upload_error(u, 403, "Limiting connections from %s",
 				gip_country_name(u->addr));
 		}
-		return;
+		return TRUE;	/* Assume OK */
 	}
 
 	if (msg && no_reason != msg) {
@@ -2236,7 +2247,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 		if (GNET_PROPERTY(upload_debug)) g_warning(
 			"already sent an error %d to %s, not sending %d (%s)",
 			u->error_sent, host_addr_to_string(u->addr), code, reason);
-		return;
+		return TRUE;	/* Assume OK */
 	}
 
 	extra[0] = '\0';
@@ -2413,8 +2424,23 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 
 	}
 
-	upload_send_http_status(u, u->keep_alive, code, reason);
 	u->error_sent = code;
+
+	/* We do not care about partially sent replies on errors */
+
+	if (code != 503 || u->status != GTA_UL_QUEUED) {
+		return upload_send_http_status(u, u->keep_alive, code,
+					HTTP_ATOMIC_SEND, reason);
+	}
+
+	/*
+	 * This is an active queueing operation, we need to send the whole header
+	 * or we'll break things on the remote side.
+	 * 		--RAM, 2017-08-09
+	 */
+
+	return upload_send_http_status(u, u->keep_alive, code,
+				upload_http_status_partially_sent, u, reason);
 }
 
 /**
@@ -2425,17 +2451,22 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
  * @attention
  * The messsage is not meant to be user-visible and therefore needs to be
  * in plain English (must not be translated).
+ *
+ * @return TRUE if we were able to completely flush the status.
  */
-static void
+static bool
 send_upload_error(struct upload *u, int code, const char *msg, ...)
 {
 	va_list args;
+	bool ret;
 
 	upload_check(u);
 
 	va_start(args, msg);
-	send_upload_error_v(u, NULL, code, msg, args);
+	ret = send_upload_error_v(u, NULL, code, msg, args);
 	va_end(args);
+
+	return ret;
 }
 
 static void
@@ -2679,21 +2710,24 @@ static void
 upload_send_error(struct upload *u, int code, const char *msg)
 {
 	if (u->error_count++ < MAX_ERRORS && u->keep_alive) {
-		if (upload_send_http_status(u, TRUE, code, msg)) {
-			struct upload *cu;
-			if (u->special) {
-				(*u->special->close)(u->special, FALSE);
-				u->special = NULL;
-			}
-			u->reqnum++;
-			cu = upload_clone(u);
-			cu->last_was_error = TRUE;
-			upload_wait_new_request(cu);
-		}
+		bool flushed;
+
+		u->sending_error = h_strdup(msg);	/* For upload_http_status_sent() */
+
+		flushed = upload_send_http_status(u, TRUE, code,
+					upload_http_status_partially_sent, u, msg);
+
+		if (flushed)
+			upload_http_status_sent(u);
 	} else {
-		upload_send_http_status(u, FALSE, code, msg);
+		/*
+		 * About to remove upload and close connect: we don't care about
+		 * a partially-sent HTTP status.
+		 */
+
+		upload_send_http_status(u, FALSE, code, HTTP_ATOMIC_SEND, msg);
+		upload_remove_nowarn(u, _(msg));
 	}
-	upload_remove_nowarn(u, _(msg));
 }
 
 /**
@@ -4084,7 +4118,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		str_bprintf(location, sizeof location, fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
-		upload_send_http_status(u, FALSE, 301, "Redirecting");
+		upload_send_http_status(u, FALSE, 301, HTTP_ATOMIC_SEND, "Redirecting");
 		upload_remove(u, N_("Redirected to %s:%u"),
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		return -1;
@@ -4198,6 +4232,231 @@ upload_is_already_downloading(struct upload *upload)
 
 	pslist_free(to_remove);
 	return result;
+}
+
+/**
+ * Called when the upload HTTP status has been fully sent out.
+ *
+ * This is only used when we monitor whether the HTTP status is fully sent,
+ * not when we reasonably expect that it be atomically sent at the first
+ * attempt, or when we simply do not care whether it will be sent at all
+ * before closing the connection.
+ *
+ * Indeed, tracking whether the header has been completely sent out perturbs
+ * the normal linear code flow, due the asynchronous nature of the flushing
+ * that needs to take place before we continue, and this routine has to handle
+ * all the cases where we are doing that, to be able to factorize the code
+ * required to resume processing.  Since asynchronous flushing is a rare
+ * event that can only happen when the socket on which we're sending back the
+ * HTTP status is clogged by previously unsent data and therefore the kernel
+ * needs to flow-control the user land, most partial sending will occur during
+ * follow-up HTTP requests.  We therefore need to only be careful when we have
+ * an interest in keeping the connection alive properly in order to be able to
+ * receive another follow-up request.
+ * 		--RAM, 2017-08-10
+ */
+static void
+upload_http_status_sent(struct upload *u)
+{
+	u->last_update = tm_time();
+
+	/*
+	 * If we were sending an error back, with the connection kept alive
+	 * so that they can try with a new request (e.g. on a 416 for an
+	 * improper range), make sure we clone the upload before waiting for
+	 * aother HTTP request.
+	 */
+
+	if (u->sending_error != NULL) {
+		struct upload *cu;
+
+		if (u->special != NULL) {
+			(*u->special->close)(u->special, FALSE);
+			u->special = NULL;
+		}
+
+		u->reqnum++;
+		cu = upload_clone(u);
+		cu->last_was_error = TRUE;
+		upload_wait_new_request(cu);
+		upload_remove_nowarn(u, _(u->sending_error));
+		return;
+	}
+
+	/*
+	 * If we were sending a queued status for an actively queued connection,
+	 * we need to wait for the follow-up request now.
+	 */
+
+	if (GTA_UL_QUEUED == u->status) {
+		u->error_sent = 0;	/* New request allowed to return an error code */
+		expect_http_header(u, GTA_UL_QUEUED);
+		return;
+	}
+
+	/*
+	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
+	 */
+
+	if (u->head_only) {
+		if (u->keep_alive) {
+			u->reqnum++;
+			upload_wait_new_request(u);
+		} else {
+			upload_remove(u, no_reason);	/* No message, everything was OK */
+		}
+		return;
+	}
+
+	io_free(u->io_opaque);
+	u->io_opaque = NULL;
+
+	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
+	u->start_date = u->last_update;		/* We're really starting to send now */
+
+	if (upload_is_special(u)) {
+		gnet_host_t peer;
+
+		gnet_host_set(&peer, u->socket->addr, u->socket->port);
+
+		if (u->browse_host) {
+			u->special = browse_host_open(u, &peer,
+					upload_special_writable,
+					&upload_tx_deflate_cb,
+					&upload_tx_link_cb,
+					&u->socket->wio,
+					u->special_flags);
+		} else if (u->thex) {
+			u->special = thex_upload_open(u, &peer,
+					u->thex,
+					upload_special_writable,
+					&upload_tx_link_cb,
+					&u->socket->wio,
+					u->special_flags);
+			shared_file_unref(&u->thex);
+		} else {
+			g_assert_not_reached();
+		}
+	} else {
+		/*
+		 * Install the output I/O, which is via a bandwidth limited source.
+		 */
+
+		g_assert(u->socket->gdk_tag == 0);
+		g_assert(u->bio == NULL);
+
+		u->bio = bsched_source_add(bsched_out_select_by_addr(u->addr),
+					&u->socket->wio, BIO_F_WRITE, upload_writable, u);
+		upload_stats_file_begin(u->sf);
+	}
+}
+
+/**
+ * I/O callback invoked when we can write more data to the server to finish
+ * sending the HTTP status reply.
+ */
+static void
+upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
+{
+	struct upload *u = data;
+	http_buffer_t *r;
+	gnutella_socket_t *s;
+	int rw;
+	const char *base;
+	ssize_t sent;
+	const char *msg = _("Could not send whole HTTP status");
+
+	(void) unused_source;
+	upload_check(u);
+
+	s = u->socket;
+	r = u->reply;
+
+	g_assert(s->gdk_tag);		/* I/O callback is still registered */
+	http_buffer_check(r);
+
+	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
+		socket_eof(s);
+		upload_remove(u, "%s", msg);
+		return;
+	}
+
+	rw = http_buffer_unread(r);			/* Data we still have to send */
+	base = http_buffer_read_base(r);	/* And where unsent data start */
+
+	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
+	if ((ssize_t) -1 == sent) {
+		upload_remove(u, "%s: %s", msg, g_strerror(errno));
+		return;
+	} else if (sent < rw) {
+		http_buffer_add_read(r, sent);
+		u->last_update = tm_time();
+		return;
+	} else {
+		if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
+			g_debug("----Sent HTTP status completely to %s (%u bytes):",
+				host_addr_to_string(s->addr), http_buffer_length(r));
+			dump_string(stderr,
+				http_buffer_base(r), http_buffer_length(r), "----");
+		}
+	}
+
+	/*
+	 * HTTP status reply was completely sent.
+	 */
+
+	if (GNET_PROPERTY(upload_debug)) {
+		int code =
+			http_status_parse(http_buffer_base(r), "HTTP", NULL, NULL, NULL);
+
+		g_debug("flushed partially written HTTP %d status to %s (%u bytes)",
+			code, host_addr_to_string(s->addr), http_buffer_length(r));
+	}
+
+	socket_evt_clear(s);
+	http_buffer_free_null(&u->reply);
+
+	upload_http_status_sent(u);
+}
+
+/**
+ * Traps partially sent HTTP status headers.
+ *
+ * @param data		start of the header
+ * @param len		total length of the header
+ * @param sent		amount sent
+ * @param arg		the upload request
+ */
+static void
+upload_http_status_partially_sent(
+	const char *data, size_t len, size_t sent, void *arg)
+{
+	struct upload *u = arg;
+
+	upload_check(u);
+	g_assert(NULL == u->reply);
+
+	u->reply = http_buffer_alloc(data, len, sent);
+	u->last_update = tm_time();
+
+	/*
+	 * Do some logging if debugging.
+	 */
+
+	if (GNET_PROPERTY(upload_debug)) {
+		int code = http_status_parse(data, "HTTP", NULL, NULL, NULL);;
+
+		g_debug("partially sent %zu byte%s for HTTP %d status to %s (%zu bytes)",
+			sent, plural(sent), code, host_addr_to_string(u->addr), len);
+	}
+
+	/*
+	 * Install the writing callback.
+	 */
+
+	g_assert(u->socket->gdk_tag == 0);
+
+	socket_evt_set(u->socket, INPUT_EVENT_WX, upload_write_status, u);
 }
 
 /**
@@ -4518,16 +4777,14 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 		if (!parq_allows) {
 			if (u->status == GTA_UL_QUEUED) {
-				send_upload_error(u, 503, "Queued (slot %d, ETA: %s)",
+				bool ok;
+
+				ok = send_upload_error(u, 503, "Queued (slot %d, ETA: %s)",
 					  parq_upload_lookup_position(u),
 					  short_time_ascii(parq_upload_lookup_eta(u)));
 
-				u->error_sent = 0;	/* Any new request should be allowed
-									   to retrieve an error code */
-
-				/* Avoid data timeout */
-				u->last_update = tm_time();
-				expect_http_header(u, GTA_UL_QUEUED);
+				if (ok)
+					upload_http_status_sent(u);
 				return FALSE;
 			} else if (parq_upload_queue_full(u)) {
 				upload_error_remove(u, 503, N_("Queue full"));
@@ -4647,7 +4904,6 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 */
 
 	{
-
 		const char *http_msg;
 		int http_code;
 
@@ -4659,43 +4915,15 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			http_msg = "OK";
 		}
 
-		if (!upload_send_http_status(u, u->keep_alive, http_code, http_msg)) {
-			upload_remove(u, N_("Cannot send whole HTTP status"));
-			return FALSE;
+		if (
+			upload_send_http_status(u, u->keep_alive, http_code,
+				upload_http_status_partially_sent, u, http_msg)
+		) {
+			upload_http_status_sent(u);
 		}
 	}
 
-	/*
-	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
-	 */
-
-	if (u->head_only) {
-		if (u->keep_alive) {
-			u->reqnum++;
-			upload_wait_new_request(u);
-		} else {
-			upload_remove(u, no_reason);	/* No message, everything was OK */
-		}
-		return FALSE;
-	}
-
-	io_free(u->io_opaque);
-	u->io_opaque = NULL;
-
-	/*
-	 * Install the output I/O, which is via a bandwidth limited source.
-	 */
-
-	g_assert(u->socket->gdk_tag == 0);
-	g_assert(u->bio == NULL);
-
-	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
-
-	u->bio = bsched_source_add(bsched_out_select_by_addr(u->addr),
-				&u->socket->wio, BIO_F_WRITE, upload_writable, u);
-	upload_stats_file_begin(u->sf);
-
-	return TRUE;
+	return !u->head_only;
 }
 
 static void
@@ -4874,6 +5102,12 @@ upload_request_special(struct upload *u, const header_t *header)
 {
 	int flags = 0;
 
+	/*
+	 * Use substraction to avoid compiler warning since we are comparing
+	 * values from distinct enums.  We assert the two values must be identical.
+	 */
+	STATIC_ASSERT(0 == (THEX_UPLOAD_F_CHUNKED - BH_F_CHUNKED));
+
 	u->file_size = 0;
 	if (u->browse_host) {
 		const char *buf;
@@ -4983,53 +5217,16 @@ upload_request_special(struct upload *u, const header_t *header)
 		}
 	}
 
-	if (!upload_send_http_status(u, u->keep_alive, 200, "OK")) {
-		upload_remove(u, N_("Cannot send whole HTTP status"));
-		return FALSE;
+	u->special_flags = flags;
+
+	if (
+		upload_send_http_status(u, u->keep_alive, 200,
+			upload_http_status_partially_sent, u, "OK")
+	) {
+		upload_http_status_sent(u);
 	}
 
-	/*
-	 * If we need to send only the HEAD, we're done. --RAM, 26/12/2001
-	 */
-
-	if (u->head_only) {
-		if (u->keep_alive) {
-			u->reqnum++;
-			upload_wait_new_request(u);
-		} else {
-			/* No message, everything was OK */
-			upload_remove(u, no_reason);
-		}
-		return FALSE;
-	} else {
-		gnet_host_t peer;
-
-		io_free(u->io_opaque);
-		u->io_opaque = NULL;
-
-		socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024,
-			FALSE);
-
-		gnet_host_set(&peer, u->socket->addr, u->socket->port);
-		if (u->browse_host) {
-			u->special = browse_host_open(u, &peer,
-					upload_special_writable,
-					&upload_tx_deflate_cb,
-					&upload_tx_link_cb,
-					&u->socket->wio,
-					flags);
-		} else if (u->thex) {
-			u->special = thex_upload_open(u, &peer,
-					u->thex,
-					upload_special_writable,
-					&upload_tx_link_cb,
-					&u->socket->wio,
-					flags);
-			shared_file_unref(&u->thex);
-		}
-	}
-
-	return TRUE;
+	return !u->head_only;
 }
 
 /**
@@ -5070,7 +5267,8 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 
 	upload_http_extra_line_add(u, buf);
 	upload_http_extra_line_add(u, "Connection: Upgrade\r\n");
-	upload_send_http_status(u, TRUE, 101, "Switching Protocols");
+	upload_send_http_status(u, TRUE, 101,
+		HTTP_ATOMIC_SEND, "Switching Protocols");
 
 	/*
 	 * Because socket_tls_upgrade() guarantees that the socket will not be
@@ -5098,10 +5296,18 @@ upload_request_cleanup(struct upload *u)
 static void
 upload_options_finish(struct upload *u)
 {
+	bool ok;
+
 	upload_check(u);
 
 	upload_http_extra_line_add(u, "Content-Length: 0\r\n");
-	upload_send_http_status(u, u->keep_alive, 200, "OK");
+
+	ok = upload_send_http_status(u, u->keep_alive, 200, HTTP_ATOMIC_SEND, "OK");
+
+	if (!ok) {
+		upload_remove(u, N_("Cannot send whole HTTP status after OPTIONS"));
+		return;
+	}
 
 	if (u->keep_alive) {
 		HFREE_NULL(u->request);
@@ -6006,8 +6212,8 @@ upload_special_flushed(void *arg)
 {
 	struct upload *u = cast_to_upload(arg);
 
-	g_assert(u->special);
-	g_assert(u->special->close);
+	g_assert(u->special != NULL);
+	g_assert(u->special->close != NULL);
 
 	/*
 	 * Must get rid of the special reading hooks to reset the TX stack
@@ -6017,13 +6223,14 @@ upload_special_flushed(void *arg)
 	(*u->special->close)(u->special, TRUE);
 	u->special = NULL;
 
-	if (GNET_PROPERTY(upload_debug))
+	if (GNET_PROPERTY(upload_debug)) {
 		g_debug("%s from %s (%s) done: %s bytes, %s sent",
 			u->name,
 			host_addr_to_string(u->addr),
 			upload_vendor_str(u),
 			uint64_to_string(u->sent),	/* Sent to TX stack = final RX size */
 			uint64_to_string2(u->file_size));/* True amount sent on the wire */
+	}
 
 	upload_fire_upload_info_changed(u);		/* Update size info */
 	upload_completed(u);	/* We're done, wait for next request if any */

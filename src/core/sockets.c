@@ -1980,6 +1980,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			is_strprefix(s->buf, "OPTIONS ")
 		) {
 			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
+				HTTP_ATOMIC_SEND,
 				"Requested URL Too Large");
 		}
 		socket_destroy(s, "Requested URL too large");
@@ -2056,6 +2057,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				http_extra_callback_set(&hev, http_retry_after_add,
 					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
 				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
+					HTTP_ATOMIC_SEND,
 					"%s", msg);
 			}
 		}
@@ -2072,6 +2074,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			http_extra_callback_set(&hev, http_retry_after_add,
 				GUINT_TO_POINTER(delay));
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
+				HTTP_ATOMIC_SEND,
 				"Banned for %s", short_time_ascii(delay));
 		}
 		goto cleanup;
@@ -2131,6 +2134,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			send_node_error(s, 550, bad ? banned : shunned);
 		} else {
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
+				HTTP_ATOMIC_SEND,
 				bad ? banned : shunned);
 		}
 		goto cleanup;
@@ -2187,6 +2191,7 @@ unknown:
 	}
 	if (strstr(first, "HTTP")) {
 		http_send_status(HTTP_UPLOAD, s, 501, FALSE, NULL, 0,
+			HTTP_ATOMIC_SEND,
 			"Method Not Implemented");
 	}
 	/* FALL THROUGH */

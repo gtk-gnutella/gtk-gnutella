@@ -80,6 +80,7 @@ struct upload {
 	struct sendfile_ctx sendfile_ctx;
 
 	char *request;
+	http_buffer_t *reply;			/**< HTTP reply, when partially sent */
 	struct upload_http_cb cb_parq_arg;
 	struct upload_http_cb cb_sha1_arg;
 	struct upload_http_cb cb_416_arg;
@@ -87,6 +88,7 @@ struct upload {
 	struct upload_http_cb cb_length_arg;
 	http_extra_desc_t hev[16];
 	uint hevcnt;
+	uint special_flags;				/**< Flags used for special uploads */
 
 	char *buffer;
 	int bpos;
@@ -96,6 +98,7 @@ struct upload {
 	uint file_index;
 	uint reqnum;				/**< Request number, incremented when serving */
 	uint error_count;			/**< Amount of errors on connection */
+	char *sending_error;		/**< Sending HTTP error status back */
 
 	time_t start_date;
 	time_t last_update;
