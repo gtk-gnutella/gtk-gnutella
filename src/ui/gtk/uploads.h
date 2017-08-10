@@ -30,7 +30,8 @@
 typedef struct upload_row_data {
     gnet_upload_t handle;       /**< upload handle in backend */
     gboolean      valid;        /**< handle still valid in backend */
-    time_t        start_date;
+    time_t        start_date;	/**< time at which "row" was created */
+    time_t        send_date;	/**< time at which we began sending back data */
     time_t        last_update;  /**< last time the gui updated */
     filesize_t    range_start;
     filesize_t    range_end;

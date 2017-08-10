@@ -4312,7 +4312,9 @@ upload_http_status_sent(struct upload *u)
 	u->io_opaque = NULL;
 
 	socket_send_buf(u->socket, GNET_PROPERTY(upload_tx_size) * 1024, FALSE);
+
 	u->start_date = u->last_update;		/* We're really starting to send now */
+	upload_fire_upload_info_changed(u);	/* Update GUI for the send starting time */
 
 	if (upload_is_special(u)) {
 		gnet_host_t peer;
@@ -6527,10 +6529,10 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 		si->avg_bps = bio_avg_bps(u->bio);
 	}
 
-    if (si->avg_bps <= 10 && u->last_update != u->start_date)
-        si->avg_bps = (u->pos - u->skip)
-			/ delta_time(u->last_update, u->start_date);
-	if (si->avg_bps == 0)
+    if (u->last_update != u->start_date)
+        si->avg_bps = (u->pos - u->skip) /
+			delta_time(u->last_update, u->start_date);
+	if (0 == si->avg_bps)
         si->avg_bps++;
 }
 
