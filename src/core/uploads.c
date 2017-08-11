@@ -810,7 +810,7 @@ upload_timer(time_t now)
 			bool skip = FALSE;
 			void *stall;
 
-			stall = aging_lookup_revitalise(stalling_uploads, &u->addr);
+			stall = aging_lookup(stalling_uploads, &u->addr);
 			skip = (stall == STALL_AGAIN);
 
 			if (u->flags & UPLOAD_F_STALLED) {
