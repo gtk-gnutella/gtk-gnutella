@@ -1133,11 +1133,15 @@ lazy_string_to_printf_escape(const char *src)
 /**
  * @return time spent in seconds in a consise short readable form.
  * @note The returned string may be translated and non-ASCII.
+ *
+ * @param t		the time to format
+ * @param p		the string into which we can format the time
+ *
+ * @return a pointer to the formatted string.
  */
-const char *
-short_time(time_delta_t t)
+static const char *
+short_time_to_str(time_delta_t t, str_t *p)
 {
-	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
 	uint s = MAX(t, 0);
 
 	if (s > 86400)
@@ -1150,6 +1154,30 @@ short_time(time_delta_t t)
 		str_printf(p, _("%us"), s);
 
 	return str_2c(p);
+}
+
+/**
+ * @return time spent in seconds in a consise short readable form.
+ * @note The returned string may be translated and non-ASCII.
+ */
+const char *
+short_time(time_delta_t t)
+{
+	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
+
+	return short_time_to_str(t, p);
+}
+
+/**
+ * @return time spent in seconds in a consise short readable form.
+ * @note The returned string may be translated and non-ASCII.
+ */
+const char *
+short_time2(time_delta_t t)
+{
+	str_t *p = str_private(G_STRFUNC, 4 * SIZE_FIELD_MAX);
+
+	return short_time_to_str(t, p);
 }
 
 /**
