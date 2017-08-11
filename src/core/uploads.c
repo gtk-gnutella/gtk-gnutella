@@ -820,15 +820,16 @@ upload_timer(time_t now)
 					uint64_to_string(u->sent),
 					skip ? " (IGNORED)" : "");
 
-				if (!skip) {
-					if (!socket_is_corked(u->socket)) {
-						if (GNET_PROPERTY(upload_debug)) g_warning(
-							"re-enabling TCP_CORK on connection to %s (%s)",
-							host_addr_to_string(u->addr), upload_vendor_str(u));
-						socket_cork(u->socket, TRUE);
-						socket_tos_throughput(u->socket);
-					}
-					u->flags &= ~UPLOAD_F_STALLED;	/* No more stalling */
+				u->flags &= ~UPLOAD_F_STALLED;	/* No more stalling */
+			}
+
+			if (!skip) {
+				if (!socket_is_corked(u->socket)) {
+					if (GNET_PROPERTY(upload_debug)) g_warning(
+						"re-enabling TCP_CORK on connection to %s (%s)",
+						host_addr_to_string(u->addr), upload_vendor_str(u));
+					socket_cork(u->socket, TRUE);
+					socket_tos_throughput(u->socket);
 				}
 			}
 		}
