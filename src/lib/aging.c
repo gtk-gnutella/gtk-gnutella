@@ -455,6 +455,70 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 }
 
 /**
+ * Replace value for key if it exists, doing nothing if key is missing.
+ *
+ * @param ag			the aging table
+ * @param key			the key
+ * @param value			the new value
+ * @param revitalise	whether to revitalise existing key
+ *
+ * @return the old value if we replaced the value, NULL if the key was missing.
+ */
+static void *
+aging_replace_internal(
+		aging_table_t *ag, const void *key, void *value, bool revitalise)
+{
+	bool found;
+	void *ovalue;
+
+	aging_check(ag);
+
+	aging_synchronize(ag);
+
+	found = hikset_lookup_extended(ag->table, key, &ovalue);
+
+	if (found) {
+		struct aging_value *aval = ovalue;
+
+		ovalue = aval->value;
+		aval->value = value;
+
+		if (revitalise) {
+			aval->last_insert = tm_time();
+			elist_moveto_tail(&ag->list, aval);
+		}
+	} else {
+		ovalue = NULL;
+	}
+
+	aging_return(ag, ovalue);
+}
+
+/**
+ * Replace value for key if it exists, doing nothing if key is missing.
+ *
+ * @return the old value if we replaced the value, NULL if the key was missing.
+ */
+void *
+aging_replace(aging_table_t *ag, const void *key, void *value)
+{
+	return aging_replace_internal(ag, key, value, FALSE);
+}
+
+/**
+ * Replace value for key if it exists, doing nothing if key is missing.
+ *
+ * The key is revitalised if it existed.
+ *
+ * @return the old value if we replaced the value, NULL if the key was missing.
+ */
+void *
+aging_replace_revitalise(aging_table_t *ag, const void *key, void *value)
+{
+	return aging_replace_internal(ag, key, value, FALSE);
+}
+
+/**
  * @return amount of entries held in aging table.
  */
 size_t
@@ -492,7 +556,7 @@ aging_record(aging_table_t *ag, const void *key)
 
 /**
  * Implementation for aging_saw_another() and aging_saw_another_revitalise().
- * *
+ *
  * @param ag			the aging table
  * @param key			the key to record a new occurrence of
  * @param clone			key-cloning routine, if we need to insert key into table
@@ -615,4 +679,4 @@ aging_seen_count(const aging_table_t *ag, const void *key)
 	aging_return(ag, count);
 }
 
-/* vi: set ts=4: sw=4 cindent: */
+/* vi: set ts=4 sw=4 cindent: */
