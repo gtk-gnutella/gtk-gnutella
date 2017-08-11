@@ -264,3 +264,5 @@ static const struct {
 };
 
 #endif	/* _html_entities_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

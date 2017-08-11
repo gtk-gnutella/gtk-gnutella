@@ -45,3 +45,4 @@ void on_popup_upload_stats_config_cols_activate(GtkMenuItem *, gpointer);
 
 #endif /* _gtk_upload_stats_cb_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -136,4 +136,4 @@ void cq_info_list_free_null(struct pslist **sl_ptr);
 
 #endif	/* _cq_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -92,3 +92,4 @@ bool hcache_find_nearby(host_type_t type,
 
 #endif /* _core_hcache_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

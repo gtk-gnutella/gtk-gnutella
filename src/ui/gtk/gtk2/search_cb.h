@@ -41,3 +41,5 @@ const struct record *search_gui_get_record_at_path(GtkTreeView *,
 			GtkTreePath *);
 
 #endif /* _gtk2_search_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

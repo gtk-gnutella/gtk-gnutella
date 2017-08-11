@@ -260,4 +260,4 @@ getline_copy(const getline_t *source, getline_t *dest)
 	g_assert(dest->size <= dest->maxlen);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -70,3 +70,5 @@ GtkWidget* gtk_column_chooser_new(GtkWidget *widget);
 #endif /* __cplusplus */
 
 #endif /* _gtk_gtk_column_chooser_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

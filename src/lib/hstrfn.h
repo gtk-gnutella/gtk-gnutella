@@ -63,4 +63,4 @@ char **h_strsplit_set(const char *str, const char *delim, size_t max_tokens);
 
 #endif	/* _hstrfn_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

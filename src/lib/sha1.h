@@ -105,3 +105,4 @@ int SHA1_intermediate(const SHA1_context *, struct sha1 *digest);
 
 #endif /* _sha1_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

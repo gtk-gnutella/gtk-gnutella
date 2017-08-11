@@ -97,3 +97,4 @@ guess_query_enabled(void)
 
 #endif /* _core_guess_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -56,4 +56,4 @@ void tsync_got_reply(struct gnutella_node *n,
 
 #endif /* _core_tsync_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -117,3 +117,5 @@ void on_menu_glossary_activate(GtkMenuItem *, gpointer user_data);
 gboolean on_dlg_glossary_delete_event(GtkWidget *, GdkEvent *, gpointer udata);
 
 #endif	/* _callbacks_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

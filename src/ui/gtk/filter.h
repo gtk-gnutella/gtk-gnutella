@@ -83,3 +83,5 @@ GtkWidget *filter_gui_create_dlg_filters(void);
 #endif
 
 #endif /* _gtk_filter_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

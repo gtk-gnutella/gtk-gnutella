@@ -66,3 +66,5 @@ cast_to_list_destroy(const func_ptr_t fn)
 }
 
 #endif	/* _list_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

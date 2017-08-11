@@ -311,4 +311,4 @@ statx_data(const statx_t *sx)
 	return array;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

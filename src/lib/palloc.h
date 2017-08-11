@@ -98,4 +98,4 @@ void palloc_dump_stats(void);
 
 #endif	/* _palloc_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

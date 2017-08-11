@@ -82,3 +82,4 @@ void huge_collect_locations(
  * indent-tabs-mode: nil ***
  * End: ***
  */
+/* vi: set ts=4 sw=4 cindent: */

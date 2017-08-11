@@ -93,4 +93,4 @@ typedef struct bio_source {
 
 #endif /* _if_core_bsched_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

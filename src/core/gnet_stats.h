@@ -70,3 +70,5 @@ void gnet_stats_udp_digest(struct sha1 *digest);
 void gnet_stats_general_digest(struct sha1 *digest);
 
 #endif /* _core_gnet_stats_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

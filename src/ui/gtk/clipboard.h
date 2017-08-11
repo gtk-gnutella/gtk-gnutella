@@ -31,3 +31,5 @@ void clipboard_set_text(GtkWidget *owner, const char *);
 void clipboard_clear(void);
 
 #endif /* _clipboard_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

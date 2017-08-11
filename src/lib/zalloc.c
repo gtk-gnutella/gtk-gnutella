@@ -3665,4 +3665,4 @@ zalloc_dump_stats(void)
 	zalloc_dump_zones_log(log_agent_stderr_get());
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

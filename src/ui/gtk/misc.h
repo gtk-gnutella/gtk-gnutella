@@ -66,3 +66,5 @@ typedef GtkMenu *(*widget_popup_menu_cb)(void);
 void widget_add_popup_menu(GtkWidget *, widget_popup_menu_cb);
 
 #endif /* _gtk_misc_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

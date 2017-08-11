@@ -40,3 +40,4 @@ void        glade_set_atk_action_description (AtkAction       *action,
                                               const gchar     *action_name,
                                               const gchar     *description);
 
+/* vi: set ts=4 sw=4 cindent: */

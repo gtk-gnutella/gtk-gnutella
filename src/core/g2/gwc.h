@@ -49,3 +49,4 @@ gboolean gwc_is_waiting(void);
 
 #endif /* _core_g2_gwc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

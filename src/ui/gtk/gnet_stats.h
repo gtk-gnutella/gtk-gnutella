@@ -31,3 +31,5 @@ void gnet_stats_gui_init(void);
 void gnet_stats_gui_shutdown(void);
 
 #endif /* _gtk_gnet_stats_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

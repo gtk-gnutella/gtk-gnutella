@@ -31,3 +31,5 @@ void hcache_gui_init(void);
 void hcache_gui_shutdown(void);
 
 #endif /* _gtk_hcache_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

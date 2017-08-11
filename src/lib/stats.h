@@ -60,4 +60,4 @@ double *statx_data(const statx_t *);
 
 #endif /* _stats_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -1309,4 +1309,4 @@ tok_is_ancient(time_t now)
 	return find_tokkey(now) == NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

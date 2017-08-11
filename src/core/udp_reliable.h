@@ -154,3 +154,4 @@ udp_reliable_get_missing(const void *data)
 
 #endif /* _core_udp_reliable_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

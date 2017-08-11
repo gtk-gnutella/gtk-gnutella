@@ -52,3 +52,4 @@ const char *g2_frame_name(const void *buf, size_t len, size_t *namelen);
 
 #endif /* _core_g2_frame_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -65,3 +65,5 @@ sdbm_hash(const char *s, size_t len)
 	}
 	return n;
 }
+
+/* vi: set ts=4 sw=4 cindent: */

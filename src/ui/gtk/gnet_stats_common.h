@@ -46,3 +46,5 @@ void gnet_stats_gui_timer(time_t now);
 void gnet_stats_gui_update_display(time_t now);
 
 #endif /* _gtk_gnet_stats_common_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

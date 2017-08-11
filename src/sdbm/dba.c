@@ -263,3 +263,4 @@ bdump(int datf)
 		used, total, used * 100.0 / (total ? total : 1));
 }
 
+/* vi: set ts=4 sw=4 cindent: */

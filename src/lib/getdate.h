@@ -40,5 +40,4 @@ time_t date2time(const char *p, time_t now);
 
 #endif	/* _getdate_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */

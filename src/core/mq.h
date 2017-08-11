@@ -241,4 +241,4 @@ const char *mq_info(const mqueue_t *q);
 
 #endif	/* _core_mq_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

@@ -103,4 +103,4 @@ const struct sha1 *version_get_commit(uint8 *len);
 
 #endif	/* _core_version_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

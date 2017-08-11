@@ -79,3 +79,4 @@ g2_tree_free_null_const(const g2_tree_t **root_ptr)
 
 #endif /* _core_g2_tree_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

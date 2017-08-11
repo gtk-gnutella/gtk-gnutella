@@ -178,3 +178,4 @@ size_t str_test(bool verbose);
 
 #endif /* _str_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

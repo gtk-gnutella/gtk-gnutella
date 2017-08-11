@@ -49,5 +49,5 @@ void verify_sha1_close(void);
 
 #endif	/* _core_verify_sha1_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 
