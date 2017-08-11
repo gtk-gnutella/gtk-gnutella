@@ -115,6 +115,7 @@
 #include "lib/array_util.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/endian.h"
@@ -5871,7 +5872,8 @@ guess_init(void)
 	guess_cache_init(&guess_02_cache);
 	guess_cache_init(&guess_g2_cache);
 
-	guess_qk_prune_old();
+	if (!crash_was_restarted())
+		guess_qk_prune_old();
 
 	guess_qk_prune_ev = cq_periodic_main_add(
 		GUESS_QK_PRUNE_PERIOD, guess_qk_periodic_prune, NULL);

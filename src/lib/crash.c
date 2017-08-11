@@ -215,6 +215,7 @@ G_STMT_START { \
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
 static bool crash_pausing;
+static bool crash_restarted;
 
 static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
@@ -282,6 +283,27 @@ crash_coredumps_disabled(void)
 	return -1;
 }
 #endif	/* HAS_GETRLIMIT && RLIMIT_CORE */
+
+/**
+ * Mark that application was restarted, either after a crash or by user action.
+ */
+void
+crash_mark_restarted(void)
+{
+	crash_restarted = TRUE;
+}
+
+/**
+ * Query whether application was restarted.
+ *
+ * Knowing this allows some lengthy processing to be skipped so that the user
+ * gets the application back online more quickly.
+ */
+bool
+crash_was_restarted(void)
+{
+	return crash_restarted;
+}
 
 typedef struct cursor {
 	char *buf;

@@ -718,6 +718,9 @@ settings_init(void)
 
 	if (0 == session_start)
 		session_start = tm_time();
+	else
+		crash_mark_restarted();	/* Record that application was restarted */
+
 	gnet_prop_set_timestamp_val(PROP_SESSION_START_STAMP, session_start);
 
 	/*
