@@ -237,6 +237,28 @@ uint32_saturate_mult(uint32 a, uint32 b)
  * maximum positive quantity that can be represented.
  */
 static inline G_CONST ALWAYS_INLINE bool
+uint64_is_non_negative(uint64 v)
+{
+	return v <= MAX_INT_VAL(uint64) / 2;
+}
+
+/**
+ * Check whether a signed representation of value would be strictly positive.
+ * @return TRUE if size is stricly larger than zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline G_CONST ALWAYS_INLINE bool
+uint64_is_positive(uint64 v)
+{
+	return uint64_is_non_negative(v - 1);
+}
+
+/**
+ * Check whether a signed representation of value would be non-negative.
+ * @return TRUE if size is greater than or equal to zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline G_CONST ALWAYS_INLINE bool
 uint32_is_non_negative(uint32 v)
 {
 	return v <= MAX_INT_VAL(uint32) / 2;
