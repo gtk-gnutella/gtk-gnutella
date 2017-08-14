@@ -110,11 +110,23 @@
 size_t int32_to_string_buf(int32 v, char *dst, size_t size);
 size_t uint32_to_string_buf(uint32 v, char *dst, size_t size);
 size_t uint64_to_string_buf(uint64 v, char *dst, size_t size);
+size_t int64_to_string_buf(int64 v, char *dst, size_t size);
 size_t uint_to_string_buf(unsigned v, char *dst, size_t size);
 size_t ulong_to_string_buf(unsigned long v, char *dst, size_t size);
 size_t fileoffset_t_to_string_buf(fileoffset_t v, char *dst, size_t size);
 size_t size_t_to_string_buf(size_t v, char *dst, size_t size);
 size_t pointer_to_string_buf(const void *ptr, char *dst, size_t size);
+const char *int32_to_string(int32);
+const char *int64_to_string(int64);
+const char *int64_to_string2(int64);
+const char *int64_to_string3(int64);
+const char *int64_to_string4(int64);
+const char *int64_to_string5(int64);
+const char *int64_to_string6(int64);
+const char *int64_to_string7(int64);
+const char *int64_to_string8(int64);
+const char *int64_to_string9(int64);
+const char *int64_to_string10(int64);
 const char *uint32_to_string(uint32);
 const char *uint64_to_string(uint64);
 const char *uint64_to_string2(uint64);
@@ -140,6 +152,7 @@ const char *lazy_string_to_printf_escape(const char *src);
  */
 
 size_t int32_to_gstring_buf(int32 v, char *dst, size_t size);
+size_t int64_to_gstring_buf(int64 v, char *dst, size_t size);
 size_t uint32_to_gstring_buf(uint32 v, char *dst, size_t size);
 size_t uint64_to_gstring_buf(uint64 v, char *dst, size_t size);
 size_t uint_to_gstring_buf(unsigned v, char *dst, size_t size);
