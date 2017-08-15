@@ -190,6 +190,18 @@ uint64_saturate_add(uint64 a, uint64 b)
 	return ret;
 }
 
+/*
+ * Calculate the difference between a and b but saturate towards zero.
+ * @return zero if a < b, otherwise a - b.
+ */
+static inline G_CONST unsigned
+uint64_saturate_sub(uint64 a, uint64 b)
+{
+	if (G_UNLIKELY(a < b))
+		return 0;
+	return a - b;
+}
+
 /**
  * Calculate the product of a and b but saturate towards MAX_UINT64.
  * @return MAX_UINT64 if a * b > MAX_UINT64, otherwise a * b.
