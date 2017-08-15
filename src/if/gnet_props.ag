@@ -1491,7 +1491,7 @@ prop = {
     name = "bw_http_in";
     cfgvar = "input_bandwidth";
     desc = "Bandwidth limit for incoming HTTP traffic in bytes/sec.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 8192;
         min     = 1024;
@@ -1503,7 +1503,7 @@ prop = {
     name = "bw_http_out";
     cfgvar = "output_bandwidth";
     desc = "Bandwidth limit for outgoing HTTP traffic in bytes/sec.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 8192;
         min     = 1024;
@@ -1515,7 +1515,7 @@ prop = {
      name = "bw_gnet_in";
      cfgvar = "input_gnet_bandwidth";
      desc = "Bandwidth limit for incoming Gnet traffic in bytes/sec.";
-     type = guint32;
+     type = guint64;
      data = {
         default = 8192;
         min     = 1024;
@@ -1527,7 +1527,7 @@ prop = {
     name = "bw_gnet_out";
     cfgvar = "output_gnet_bandwidth";
     desc = "Bandwidth limit for outgoing Gnet traffic in bytes/sec.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 8192;
         min     = 1024;
@@ -1542,7 +1542,7 @@ prop = {
 			"When running as an ultra node, this bandwidth is stolen "
 			"from the regular HTTP traffic if the shaper for leaves is "
 			"enabled.";
-     type = guint32;
+     type = guint64;
      data = {
         default = 3072;
         min     = 1024;
@@ -1557,7 +1557,7 @@ prop = {
 			"When running as an ultra node, this bandwidth is stolen "
 			"from the regular HTTP traffic, if the shaper for leaves is "
 			"enabled.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 2048;
         min     = 1024;
@@ -3756,7 +3756,7 @@ prop = {
 			"Output needs are lower than input (between 3 to 5 times less). "
 			"The larger the numbers, the more values can be looked up "
 			"concurrently, but the more bandwidth is used.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 2048;
         min     = 512;
@@ -3774,7 +3774,7 @@ prop = {
 			"larger than output as far as lookups are concerned (between "
 			"3 to 5 times).  The larger the numbers the more values can be "
 			"looked up concurrently, but the more bandwidth is used.";
-    type = guint32;
+    type = guint64;
     data = {
         default = 8192;
         min     = 2048;
@@ -4301,7 +4301,7 @@ prop = {
 		"always pooled with the Gnutella UDP queue, regardless of whether "
 		"bandwidth stealing is enabled, so that UDP queues can flush more "
 		"quickly.";
-     type = guint32;
+     type = guint64;
      data = {
         default = 12288;
         min     = 8192;			/* Bare minimum required to be useable */
@@ -4935,7 +4935,7 @@ prop = {
     desc = "Bandwidth hint for GUESS querying, in bytes/sec, limiting the "
 		"amount of concurrency that can be used for GUESS.  Lower numbers "
 		"mean slower querying overall";
-    type = guint32;
+    type = guint64;
     data = {
         default = 1536;
         min     = 256;

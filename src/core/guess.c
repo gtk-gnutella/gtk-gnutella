@@ -425,8 +425,8 @@ static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
 static aging_table_t *guess_old_muids;	/**< Recently expired GUESS MUIDs */
 static ripening_table_t *guess_deferred;/**< Hosts with deferred processing */
-static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
-static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
+static uint64 guess_out_bw;				/**< Outgoing b/w used per period */
+static uint64 guess_target_bw;			/**< Outgoing b/w target for period */
 static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
 static time_t guess_qk_threshtime;		/**< Stamp threshold for query keys */
 
@@ -3485,7 +3485,7 @@ guess_periodic_sync(void *unused_obj)
 static void
 guess_periodic_target_update(void)
 {
-	uint unused;
+	uint64 unused;
 
 	guess_target_bw = GNET_PROPERTY(bw_guess_out);
 
@@ -3521,8 +3521,10 @@ guess_periodic_bw(void *unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
-		g_debug("GUESS outgoing b/w used: %u / %u bytes (alpha=%u, active=%zu)",
-			guess_out_bw, guess_target_bw, guess_alpha, hevset_count(gqueries));
+		g_debug("GUESS outgoing b/w used: %s / %s bytes (alpha=%u, active=%zu)",
+			uint64_to_string(guess_out_bw),
+			uint64_to_string2(guess_target_bw),
+			guess_alpha, hevset_count(gqueries));
 	}
 
 	/*

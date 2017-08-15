@@ -561,7 +561,7 @@ udp_tx_desc_send(void *data, void *udata)
 /**
  * @return b/w per second configured for the attached b/w scheduler.
  */
-static ulong
+static uint64
 udp_sched_bw_per_second(const udp_sched_t *us)
 {
 	uint i;

@@ -2483,10 +2483,10 @@ max_ttl_changed(property_t prop)
 static bool
 bw_http_in_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
 	g_assert(PROP_BW_HTTP_IN == prop);
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_IN, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2496,9 +2496,9 @@ bw_http_in_changed(property_t prop)
 static bool
 bw_http_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_OUT, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2508,9 +2508,9 @@ bw_http_out_changed(property_t prop)
 static bool
 bw_gnet_in_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GIN, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, val / 2);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
@@ -2521,9 +2521,9 @@ bw_gnet_in_changed(property_t prop)
 static bool
 bw_gnet_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GOUT, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GOUT_UDP, val / 2);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
@@ -2534,9 +2534,9 @@ bw_gnet_out_changed(property_t prop)
 static bool
 bw_gnet_lin_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLIN, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2546,9 +2546,9 @@ bw_gnet_lin_changed(property_t prop)
 static bool
 bw_gnet_lout_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLOUT, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2558,9 +2558,9 @@ bw_gnet_lout_changed(property_t prop)
 static bool
 bw_dht_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_DHT_OUT, val);
 
     return FALSE;
