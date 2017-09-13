@@ -1092,11 +1092,15 @@ bg_daemon_enqueue(bgtask_t *bt, void *item)
 /**
  * Free task structure.
  */
-static void
-bg_task_free(bgtask_t *bt)
+static bool
+bg_task_free(void *data, void *unused)
 {
+	bgtask_t *bt = data;
+
 	g_assert(bt);
 	g_assert(BGTASK_DEAD_MAGIC == bt->magic);
+
+	(void) unused;
 
 	BG_TASK_LOCK(bt);
 
@@ -1129,6 +1133,44 @@ bg_task_free(bgtask_t *bt)
 		bt->magic = 0;
 		WFREE(bt);
 	}
+
+	return TRUE;	/* For "foreach_remove" iterators */
+}
+
+/**
+ * Mark the task dead and unusable, until it can get freed.
+ */
+static void
+bg_task_dead(bgtask_t *bt)
+{
+	bgsched_t *bs;
+
+	bg_task_check(bt);
+	g_assert(0 == (bt->flags & TASK_F_RUNNABLE));	/* Can't be in runq */
+
+
+	bs = bt->sched;
+	bg_sched_check(bs);
+
+	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
+
+	BG_SCHED_LOCK(bs);
+
+	/*
+	 * The task could be marked as sleeping if we entered bg_task_finished()
+	 * when its refcount was not zero yet.  In that case, we need to remove
+	 * it from the sleep queue before inserting it to the dead_tasks list.
+	 * 		--RAM, 2017-09-13
+	 */
+
+	if (bt->flags & TASK_F_SLEEPING) {
+		eslist_remove(&bs->sleepq, bt);
+		bt->flags &= ~TASK_F_SLEEPING;
+	}
+
+	eslist_prepend(&bs->dead_tasks, bt);
+
+	BG_SCHED_UNLOCK(bs);
 }
 
 /**
@@ -1183,9 +1225,6 @@ bg_task_finished(bgtask_t *bt)
 			bt, bt->name, bgstatus_to_string(bt->status));
 	}
 
-
-	bt->magic = BGTASK_DEAD_MAGIC;	/* Prevent further uses! */
-
 	/*
 	 * Do not free the task structure immediately, in case the calling
 	 * stack is not totally clean and we're about to probe the task
@@ -1194,9 +1233,7 @@ bg_task_finished(bgtask_t *bt)
 	 * It will be freed at the next scheduler run.
 	 */
 
-	BG_SCHED_LOCK(bt->sched);
-	eslist_prepend(&bt->sched->dead_tasks, bt);
-	BG_SCHED_UNLOCK(bt->sched);
+	bg_task_dead(bt);
 }
 
 /**
@@ -1772,8 +1809,7 @@ bg_reclaim_dead(bgsched_t *bs)
 
 	BG_SCHED_LOCK(bs);
 
-	eslist_foreach(&bs->dead_tasks, (data_fn_t) bg_task_free, NULL);
-	eslist_clear(&bs->dead_tasks);
+	eslist_foreach_remove(&bs->dead_tasks, bg_task_free, NULL);
 
 	BG_SCHED_UNLOCK(bs);
 }
