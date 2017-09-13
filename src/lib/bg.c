@@ -168,7 +168,7 @@ struct bgsched {
 };
 
 static inline void
-bg_sched_check(const struct bgsched * const bs)
+bg_sched_check(const bgsched_t * const bs)
 {
 	g_assert(bs != NULL);
 	g_assert(BGSCHED_MAGIC == bs->magic);
@@ -205,7 +205,7 @@ struct bgtask {
 	uint32 flags;			/**< Operating flags (internally modified) */
 	uint32 uflags;			/**< User flags (can be externally modified) */
 	const char *name;		/**< Task name */
-	struct bgsched *sched;	/**< Scheduler to which task is attached */
+	bgsched_t *sched;		/**< Scheduler to which task is attached */
 	int refcnt;				/**< Reference count on task */
 	int step;				/**< Current processing step */
 	int seqno;				/**< Number of calls at same step */
@@ -237,7 +237,7 @@ struct bgtask {
  * Daemon tasks.
  */
 struct bgdaemon {
-	struct bgtask task;		/**< Common task attributes */
+	bgtask_t task;			/**< Common task attributes */
 	pslist_t *wq;			/**< Work queue (daemon task only) */
 	size_t wq_count;		/**< Size of work queue */
 	size_t wq_done;			/**< Amount of items processed */
@@ -248,7 +248,7 @@ struct bgdaemon {
 };
 
 static inline void
-bg_task_check(const struct bgtask * const bt)
+bg_task_check(const bgtask_t * const bt)
 {
 	g_assert(bt != NULL);
 	g_assert(BGTASK_MAGIC_BASE == (bt->magic & BGTASK_MAGIC_MASK));
@@ -259,7 +259,7 @@ bg_task_check(const struct bgtask * const bt)
 #define BG_TASK_UNLOCK(t)	spinunlock(&(t)->lock)
 
 static inline bool
-bg_task_is_daemon(const struct bgtask * const bt)
+bg_task_is_daemon(const bgtask_t * const bt)
 {
 	return bt != NULL && BGTASK_DAEMON_MAGIC == bt->magic;
 }
@@ -293,7 +293,7 @@ enum {
 static unsigned bg_debug;
 static bool bg_closed;
 static bgsched_t *bg_sched;			/**< Main (default) scheduler */
-static elist_t bg_sched_list = ELIST_INIT(offsetof(struct bgsched, lnk));
+static elist_t bg_sched_list = ELIST_INIT(offsetof(bgsched_t, lnk));
 static spinlock_t bg_sched_list_slk = SPINLOCK_INIT;
 
 #define BG_SCHED_LIST_LOCK		spinlock(&bg_sched_list_slk)
@@ -2295,9 +2295,9 @@ bg_sched_alloc(const char *name, ulong max_life, bool schedule)
 	bs->name = atom_str_get(name);
 	bs->max_life = max_life;
 	bs->stid = -1U;
-	eslist_init(&bs->runq, offsetof(struct bgtask, bgt_link));
-	eslist_init(&bs->sleepq, offsetof(struct bgtask, bgt_link));
-	eslist_init(&bs->dead_tasks, offsetof(struct bgtask, bgt_link));
+	eslist_init(&bs->runq, offsetof(bgtask_t, bgt_link));
+	eslist_init(&bs->sleepq, offsetof(bgtask_t, bgt_link));
+	eslist_init(&bs->dead_tasks, offsetof(bgtask_t, bgt_link));
 
 	bg_sched_list_add(bs);
 
