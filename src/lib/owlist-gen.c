@@ -149,15 +149,15 @@ OWLIST_link_append_internal(OWLIST_T *list, OWLINK_T *lk)
 		g_assert(NULL == list->head);
 		g_assert(0 == list->count);
 		list->head = list->tail = lk;
-		SET_NEXT(list, lk, NULL);
 	} else {
 		g_assert(NULL == NEXT(list, list->tail));
 		g_assert(NULL != list->head);	/* Since list not empty */
 		g_assert(size_is_positive(list->count));
 		SET_NEXT(list, list->tail, lk);
-		SET_NEXT(list, lk, NULL);
 		list->tail = lk;
 	}
+
+	SET_NEXT(list, lk, NULL);
 
 	list->count++;
 
@@ -695,7 +695,7 @@ OWLIST_merge_sort(OWLIST_T *list, OWLINK_T *sublist, size_t count,
 	for (i = 1, l1 = sublist; i < n1; l1 = NEXT(list, l1), i++)
 		/* empty */;
 
-	l2 = NEXT(list, l1);			/* Start of 2nd list */
+	l2 = NEXT(list, l1);		/* Start of 2nd list */
 	SET_NEXT(list, l1, NULL);	/* End of 1st list with ``n1'' items */
 
 	l1 = OWLIST_merge_sort(list, sublist, n1, cmp, data);
