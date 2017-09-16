@@ -33,7 +33,17 @@ case "$1" in
 	for jhbuild_action in ${jhb_actions[@]}
 	do
 		echo "jhbuild ${bold}${jhbuild_action}${normal}"
-		jhbuild --min-age=24h --no-interact ${jhbuild_action} 2>&1 | tee "jhbuild-${jhbuild_action}.log" | grep -e "\*\*\*" -e "Making"
+		( while true; do sleep 60; tail -n1 "jhbuild-${jhbuild_action}.log" ; done ) &
+		KEEPALIVE=$!
+
+		build_arg=""
+		if [ "${jhbuild_action}" != "bootstrap" ]
+			then
+			build_arg="build --min-age=24h "
+		fi
+		jhbuild --no-interact ${build_arg} ${jhbuild_action} 2>&1 | tee "jhbuild-${jhbuild_action}.log" | grep -e "\*\*\*" -e "Making"
+		kill $KEEPALIVE >/dev/null 2>&1
+
 		echo "jhbuild_done=${jhbuild_action}" > ~/gtk-gnutella/jhbuild-state
 		[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-${jhbuild_action}.log
 		[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella jhbuild-state inst source && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state ${jhbuild_action}."
@@ -42,7 +52,7 @@ case "$1" in
 	# All actions were already done, update only required
 	if [ ${#jhb_actions[@]} -eq 0 ]
 	then
-		jhbuild --min-age=24h --no-interact ${jhb_actions_all[@]} 2>&1 | tee "jhbuild-update.log" | grep -e "\*\*\*" -e "Making"
+		jhbuild --no-interact ${jhb_actions_all[@]} 2>&1 | tee "jhbuild-update.log" | grep -e "\*\*\*" -e "Making"
 		[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-update.log
 		[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella jhbuild-state inst source && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state ${jhbuild_action}."
 	fi
