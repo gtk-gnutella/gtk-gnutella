@@ -1828,8 +1828,8 @@ callout_queue_idle(void *unused_data)
 		 */
 
 		(*random_source[n])(&digest);
-		shuffle(&digest, sizeof digest, 1);		/* Randomize digest bytes */
-		random_pool_append(&digest, sizeof digest);
+		shuffle(VARLEN(digest), 1);		/* Randomize digest bytes */
+		random_pool_append(VARLEN(digest));
 	}
 
 	return TRUE;		/* Keep scheduling this */
@@ -2114,7 +2114,7 @@ main_supervise(void)
 		}
 
 		children++;
-		aging_insert(ag, ulong_to_pointer(children), NULL);
+		aging_record(ag, ulong_to_pointer(children));
 		setproctitle("supervisor, %lu child%s launched",
 			children, 1 == children ? "" : "ren");
 
@@ -2249,10 +2249,6 @@ main(int argc, char **argv)
 			getprogname());
 		exit(EXIT_FAILURE);
 	}
-
-	/* First inits -- no memory allocated */
-
-	misc_init();
 
 	/* Initialize memory allocators -- order is important */
 

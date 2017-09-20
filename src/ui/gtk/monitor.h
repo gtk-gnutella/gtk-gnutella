@@ -30,3 +30,5 @@ void monitor_gui_clear_monitor(void);
 void monitor_gui_enable_monitor(gboolean b);
 
 #endif /* _gtk_monitor_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

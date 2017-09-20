@@ -74,5 +74,5 @@ uint verify_elapsed(const struct verify *);
 
 #endif	/* _core_verify_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
 

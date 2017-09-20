@@ -124,3 +124,4 @@ void zalloc_shift_pointer(const void *allocated, const void *used);
 
 #endif /* _zalloc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

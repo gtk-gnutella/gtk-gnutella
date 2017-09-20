@@ -656,8 +656,7 @@ inet_udp_record_sent(const host_addr_t addr)
 		return;		/* Not currently monitoring for unsolicited UDP */
 
 	if (!aging_lookup_revitalise(outgoing_udp, &addr)) {
-		aging_insert(outgoing_udp,
-			wcopy(&addr, sizeof addr), uint_to_pointer(1));
+		aging_record(outgoing_udp, WCOPY(&addr));
 	}
 }
 

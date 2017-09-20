@@ -70,5 +70,4 @@ bool ripening_remove_using_free(ripening_table_t *rt,
 
 #endif	/* _ripening_h_ */
 
-/* vi: set ts=4: sw=4 cindent: */
-
+/* vi: set ts=4 sw=4 cindent: */

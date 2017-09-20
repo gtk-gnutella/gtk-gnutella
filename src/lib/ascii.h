@@ -39,6 +39,19 @@
 #include "common.h"
 #include "casts.h"
 
+#define A_UPPER		(1 << 0)
+#define A_LOWER		(1 << 1)
+#define A_BLANK		(1 << 2)
+#define A_CTRL		(1 << 3)
+#define A_DIGIT		(1 << 4)
+#define A_HEXA		(1 << 5)
+#define A_SPACE		(1 << 6)
+#define A_GRAPH		(1 << 7)
+#define A_PRINT		(1 << 8)
+#define A_PUNCT		(1 << 9)
+
+extern const uint16 ascii_ctype[];
+
 int ascii_strcasecmp(const char *s1, const char *s2);
 int ascii_strncasecmp(const char *s1, const char *s2, size_t len);
 
@@ -92,73 +105,73 @@ alnum2int_inline(uchar c)
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_blank(int c)
 {
-	return c == 32 || c == 9;	/* space, tab */
+	return !(c & ~0x7f) && 0 != (A_BLANK & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_cntrl(int c)
 {
-	return (c >= 0 && c <= 31) || c == 127;
+	return !(c & ~0x7f) && 0 != (A_CTRL & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_digit(int c)
 {
-	return c >= 48 && c <= 57;	/* 0-9 */
+	return !(c & ~0x7f) && 0 != (A_DIGIT & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_xdigit(int c)
 {
-	return -1 != hex2int_inline(c) && !(c & ~0x7f);
+	return !(c & ~0x7f) && 0 != (A_HEXA & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_upper(int c)
 {
-	return c >= 65 && c <= 90;		/* A-Z */
+	return !(c & ~0x7f) && 0 != (A_UPPER & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_lower(int c)
 {
-	return c >= 97 && c <= 122;		/* a-z */
+	return !(c & ~0x7f) && 0 != (A_LOWER & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alpha(int c)
 {
-	return is_ascii_upper(c) || is_ascii_lower(c);	/* A-Z, a-z */
+	return !(c & ~0x7f) && 0 != ((A_UPPER | A_LOWER) & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alnum(int c)
 {
-	return -1 != alnum2int_inline(c) && !(c & ~0x7f); /* A-Z, a-z, 0-9 */
+	return !(c & ~0x7f) && 0 != ((A_DIGIT | A_UPPER | A_LOWER) & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_space(int c)
 {
-	return c == 32 || (c >= 9 && c <= 13);
+	return !(c & ~0x7f) && 0 != (A_SPACE & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_graph(int c)
 {
-	return c >= 33 && c <= 126;
+	return !(c & ~0x7f) && 0 != (A_GRAPH & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_print(int c)
 {
-	return is_ascii_graph(c) || c == 32;
+	return !(c & ~0x7f) && 0 != (A_PRINT & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_punct(int c)
 {
-	return c >= 33 && c <= 126 && !is_ascii_alnum(c);
+	return !(c & ~0x7f) && 0 != (A_PUNCT & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT int

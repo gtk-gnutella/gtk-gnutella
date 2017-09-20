@@ -42,3 +42,5 @@
 void local_shell(const char *socket_path);
 
 #endif /* _core_local_shell_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

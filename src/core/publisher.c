@@ -61,6 +61,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/file.h"
@@ -937,7 +938,8 @@ publisher_trim_pubdata(void)
 			(unsigned) count, plural(count));
 	}
 
-	dbstore_compact(db_pubdata);
+	if (!crash_was_restarted())
+		dbstore_compact(db_pubdata);
 }
 
 /**

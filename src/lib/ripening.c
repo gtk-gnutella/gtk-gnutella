@@ -732,4 +732,4 @@ ripening_count(const ripening_table_t *rt)
 	ripening_return(rt, count);
 }
 
-/* vi: set ts=4: sw=4 cindent: */
+/* vi: set ts=4 sw=4 cindent: */

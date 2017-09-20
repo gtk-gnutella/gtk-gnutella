@@ -27,8 +27,6 @@
 #include "if/core/wrap.h"	/* For wrap_io_t */
 #include "lib/inputevt.h"	/* For inputevt_handler_t */
 
-#define BS_BW_MAX	(2*1024*1024)
-
 typedef struct bsched bsched_t;
 
 typedef enum {
@@ -63,14 +61,14 @@ typedef struct bio_source {
 	wrap_io_t *wio;					/**< Wrapped I/O object */
 	unsigned io_tag;				/**< Recorded I/O callback tag */
 	uint io_flags;					/**< Flags for I/O callback */
-	inputevt_handler_t io_callback;		/**< I/O callback routine */
+	inputevt_handler_t io_callback;	/**< I/O callback routine */
 	void *io_arg;					/**< I/O callback argument */
 	uint32 flags;					/**< Source flags */
-	unsigned bw_allocated;			/**< Allocated bandwidth credit */
-	uint bw_actual;					/**< Actual bandwidth used in period */
-	uint bw_last_bps;				/**< B/w used last period (bps) */
-	uint bw_fast_ema;				/**< Fast EMA of actual bandwidth used */
-	uint bw_slow_ema;				/**< Slow EMA of actual bandwidth used */
+	int64 bw_allocated;				/**< Allocated bandwidth credit */
+	int64 bw_actual;				/**< Actual bandwidth used in period */
+	int64 bw_last_bps;				/**< B/w used last period (bps) */
+	int64 bw_fast_ema;				/**< Fast EMA of actual bandwidth used */
+	int64  bw_slow_ema;				/**< Slow EMA of actual bandwidth used */
 } bio_source_t;
 
 /*
@@ -86,11 +84,19 @@ typedef struct bio_source {
 
 #define BIO_F_RW			(BIO_F_READ|BIO_F_WRITE)
 
-#define BIO_EMA_SHIFT	7
+#define BIO_EMA_SHIFT	7		/* To not lose decimals in EMA computations */
+
+/*
+ * The theoretical max would be INT64_CONST(1) << (62 - BIO_EMA_SHIFT).
+ * However, in practice we limit to 2^42, which is the amount we can safely
+ * store in KB/s within a 32-bit value, since 1 K = 2^10.
+ * 		--RAM, 2017-08-15
+ */
+#define BS_BW_MAX		(INT64_CONST(1) << 42)
 
 #define bio_bps(b)		((b)->bw_last_bps)
 #define bio_avg_bps(b)	((b)->bw_slow_ema >> BIO_EMA_SHIFT)
 
 #endif /* _if_core_bsched_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

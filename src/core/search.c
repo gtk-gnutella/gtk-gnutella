@@ -887,6 +887,9 @@ url_normalize_char(const char *p, const char **endptr)
 	} else if ('%' == c) {
 		int hi, lo;
 
+		if G_UNLIKELY(0 == hex2int_inline('a'))
+			misc_init();	/* Auto-initialization of hex2int_inline() */
+
 		hi = hex2int_inline(p[1]);
 		if (hi >= 0) {
 			lo = hex2int_inline(p[2]);
@@ -6335,7 +6338,17 @@ search_close(gnet_search_t sh)
 	g_return_if_fail(sch);
 	search_ctrl_check(sch);
 
-	entropy_harvest_single(VARLEN(sh));
+	entropy_harvest_many(VARLEN(sh),
+		sch->name, strlen(sch->name),
+		VARLEN(sch->items),
+		VARLEN(sch->kept_results),
+		VARLEN(sch->query_emitted),
+		VARLEN(sch->id),
+		VARLEN(sch->media_type),
+		VARLEN(sch->time),
+		VARLEN(sch->create_time),
+		sch->query, strlen(sch->query),
+		NULL);
 
 	/*
 	 * This needs to be done before the handle of the search is reclaimed.
@@ -7117,7 +7130,7 @@ record_secure:
 
 		gnet_host_set(&host, n->addr, n->port);
 		if (!aging_lookup_revitalise(ora_secure, &host))
-			aging_insert(ora_secure, atom_host_get(&host), int_to_pointer(1));
+			aging_record(ora_secure, atom_host_get(&host));
 	}
 }
 

@@ -250,6 +250,8 @@ void crash_restart(const char *format, ...) G_PRINTF(1, 2);
 void crash_restarting(void);
 void crash_print_decorated_stack(int fd);
 void crash_divert_main(const char *caller, process_fn_t cb, void *arg);
+void crash_mark_restarted(void);
+bool crash_was_restarted(void);
 
 #endif	/* _crash_h_ */
 

@@ -115,8 +115,7 @@
 #define AJE_REKEY_BYTES	(64*1024)	/* new key after that many bytes given */
 
 /*
- * This is the minimum amount of bytes that must have been added to
- * pool #0 since last reseed, otherwise we'll be skipping the reseed.
+ * This is the minimum amount of bytes that must be first added to pool #0.
  */
 #define AJE_POOL0_FILL		32
 
@@ -245,16 +244,16 @@ aje_may_reseed(const aje_state_t *as)
 
 	aje_check(as);
 
-	tm_now_exact(&now);
-
-	if (tm_elapsed_us(&now, &as->last_reseed) < AJE_RESEED_INTERVAL)
-		return FALSE;
-
 	/*
 	 * Ensure we are always reseeding the first time we are called!
 	 */
 
-	return as->pool0_bytes >= AJE_POOL0_FILL || 0 == as->reseed_count;
+	if G_UNLIKELY(0 == as->reseed_count)
+		return TRUE;
+
+	tm_now_exact(&now);
+
+	return tm_elapsed_us(&now, &as->last_reseed) >= AJE_RESEED_INTERVAL;
 }
 
 /**
@@ -495,7 +494,9 @@ aje_distribute_entropy(aje_state_t *as, const void *data, size_t len)
 	 * enough data, then pick another pool randomly.
 	 */
 
-	if G_UNLIKELY(0 == as->reseed_count && as->pool0_bytes < AJE_POOL0_FILL)
+	if G_UNLIKELY(0 == as->pool0_bytes)
+		n = 0;
+	else if G_UNLIKELY(0 == as->reseed_count && as->pool0_bytes < AJE_POOL0_FILL)
 		n = 0;
 	else
 		n = aje_random_pool(as);
@@ -515,7 +516,7 @@ aje_distribute_entropy(aje_state_t *as, const void *data, size_t len)
 	/*
 	 * If we were updating pool #0, update the amount of entropy collected
 	 * in that pool, since that is the one we use to decide whether we
-	 * collected enough to allow reseeding.
+	 * collected enough to allow feeding other pools.
 	 */
 
 	if G_UNLIKELY(0 == n)

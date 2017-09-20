@@ -71,9 +71,9 @@ typedef enum {
 
 typedef struct gnet_bw_stats {
 	bool enabled;
-	uint32  current;
-	uint32  average;
-	uint32  limit;
+	uint64  current;
+	uint64  average;
+	uint64  limit;
 } gnet_bw_stats_t;
 
 /***

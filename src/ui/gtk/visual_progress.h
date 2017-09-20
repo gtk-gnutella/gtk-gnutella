@@ -69,3 +69,5 @@ on_drawingarea_fi_progress_expose_event
                                         gpointer         user_data);
 
 #endif /* _gtk_visual_progress_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

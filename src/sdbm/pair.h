@@ -32,3 +32,5 @@ extern int replpair(DBM *, char *, int, datum);
 #ifdef SEEDUPS
 extern bool duppair(DBM *, const char *, datum);
 #endif
+
+/* vi: set ts=4 sw=4 cindent: */

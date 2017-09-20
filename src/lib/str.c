@@ -2678,7 +2678,7 @@ G_STMT_START {									\
 		case 'm':
 			{
 				const char *e = symbolic_errno(errno);
-				const char *s = g_strerror(errno);
+				const char *s = english_strerror(errno);
 				size_t len;
 
 				len = strlen(e);

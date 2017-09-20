@@ -51,3 +51,4 @@ void ntp_probe(void);
 
 #endif /* _core_ntp_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

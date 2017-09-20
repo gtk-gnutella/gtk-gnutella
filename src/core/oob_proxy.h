@@ -56,4 +56,4 @@ const struct guid *oob_proxy_muid_proxied(const struct guid *muid);
 
 #endif /* _core_oob_proxy_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

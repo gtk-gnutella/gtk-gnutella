@@ -44,4 +44,4 @@ const char *eval_subst(const char *str);
 
 #endif	/* _eval_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

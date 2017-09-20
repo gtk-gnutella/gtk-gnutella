@@ -83,6 +83,7 @@
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/misc.h"			/* For english_strerror() */
 #include "lib/once.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -891,7 +892,8 @@ connect_http(struct gnutella_socket *s)
 			ret = s_writev(s->file_desc, iov, N_ITEMS(iov));
 			if ((size_t) ret != size) {
 				g_warning("sending info to HTTP proxy failed: %s",
-					ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+					ret == (ssize_t) -1 ?
+						english_strerror(errno) : "Partial write");
 				return -1;
 			}
 		}
@@ -1040,7 +1042,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, verstring, size);
 		if ((size_t) ret != size) {
 			g_warning("sending SOCKS method negotiation failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return -1;
 		}
 		s->pos++;
@@ -1107,7 +1109,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("sending SOCKS authentication failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return -1;
 		}
 
@@ -1170,7 +1172,7 @@ connect_socksv5(struct gnutella_socket *s)
 		ret = s_write(sockid, s->buf, size);
 		if ((size_t) ret != size) {
 			g_warning("send SOCKS connect command failed: %s",
-				ret == (ssize_t) -1 ? g_strerror(errno) : "Partial write");
+				ret == (ssize_t) -1 ? english_strerror(errno) : "Partial write");
 			return (-1);
 		}
 
@@ -1978,6 +1980,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			is_strprefix(s->buf, "OPTIONS ")
 		) {
 			http_send_status(HTTP_UPLOAD, s, 414, FALSE, NULL, 0,
+				HTTP_ATOMIC_SEND,
 				"Requested URL Too Large");
 		}
 		socket_destroy(s, "Requested URL too large");
@@ -2054,6 +2057,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				http_extra_callback_set(&hev, http_retry_after_add,
 					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
 				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
+					HTTP_ATOMIC_SEND,
 					"%s", msg);
 			}
 		}
@@ -2070,6 +2074,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			http_extra_callback_set(&hev, http_retry_after_add,
 				GUINT_TO_POINTER(delay));
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
+				HTTP_ATOMIC_SEND,
 				"Banned for %s", short_time_ascii(delay));
 		}
 		goto cleanup;
@@ -2129,6 +2134,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			send_node_error(s, 550, bad ? banned : shunned);
 		} else {
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
+				HTTP_ATOMIC_SEND,
 				bad ? banned : shunned);
 		}
 		goto cleanup;
@@ -2185,6 +2191,7 @@ unknown:
 	}
 	if (strstr(first, "HTTP")) {
 		http_send_status(HTTP_UPLOAD, s, 501, FALSE, NULL, 0,
+			HTTP_ATOMIC_SEND,
 			"Method Not Implemented");
 	}
 	/* FALL THROUGH */
@@ -3012,6 +3019,14 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 	unsigned i;
 	tm_t start, end;
 
+	/*
+	 * Don't even bother processing anything from the queued datagrams
+	 * if we cannot afford to spend any time here.
+	 */
+
+	if G_UNLIKELY(0 == maxtime)
+		goto monitor;
+
 	tm_now_exact(&start);
 	i = 0;
 
@@ -3031,6 +3046,8 @@ socket_udp_flush_queue(gnutella_socket_t *s, time_delta_t maxtime)
 			G_STRFUNC, i, eslist_count(&uctx->queue),
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
+
+monitor:
 
 	/*
 	 * Install processing timer if items remain to be processed since
@@ -3175,11 +3192,13 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 
 	if ((i > 16 || enqueue) && GNET_PROPERTY(socket_debug)) {
 		tm_now_exact(&end);
+		if (!enqueue)
+			processing = tm_elapsed_ms(&end, &start);
 		g_debug("%s(): iterated %'u times, read %'zu bytes "
-			"(%s%'zu more pending), enqueued %'zu bytes (%'zu datagram%s) "
-			"in %'u usecs",
-			G_STRFUNC, i, rd, guessed ? "~" : "", avail, qd,
-			qn, plural(qn), (unsigned) tm_elapsed_us(&end, &start));
+			"(%s%'zu more pending) during %'lu ms, "
+			"enqueued %'zu bytes (%'zu datagram%s) in %'lu us",
+			G_STRFUNC, i, rd, guessed ? "~" : "", avail, (ulong) processing,
+			qd, qn, plural(qn), (ulong) tm_elapsed_us(&end, &start));
 	}
 
 	/*
@@ -3782,7 +3801,7 @@ socket_reconnect(struct gnutella_socket *s)
 	once_flag_run(&tls_ban_inited, tls_ban_init);
 
 	gnet_host_set(&to, s->addr, s->port);
-	aging_insert(tls_ban, atom_host_get(&to), int_to_pointer(1));
+	aging_record(tls_ban, atom_host_get(&to));
 
 	if (0 != socket_connect_prepare(s, s->addr, s->port, s->type, SOCK_F_FORCE))
 		return FALSE;

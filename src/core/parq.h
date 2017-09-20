@@ -113,3 +113,5 @@ time_t parq_banned_source_expire(const host_addr_t);
 bool parq_is_enabled(void);
 
 #endif /* _core_parq_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

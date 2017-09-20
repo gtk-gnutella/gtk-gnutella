@@ -143,6 +143,10 @@ typedef void *(*alloc_data_fn_t)(void *data, size_t n);
 typedef void *(*realloc_fn_t)(void *p, size_t n);
 typedef void *(*realloc_data_fn_t)(void *data, void *p, size_t n);
 
+/* Cloning routine: duplicates an object -- size is implicit */
+
+typedef void *(clone_fn_t)(const void *p);
+
 /* Data freeing callbacks signatures, with or without allocating context */
 
 typedef void (*free_fn_t)(void *data);

@@ -81,6 +81,7 @@
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/hashing.h"
@@ -2175,8 +2176,10 @@ values_init_data(const hset_t *dbkeys)
 	if (0 == values_managed)
 		valueid = 1;
 
-	dbstore_compact(db_rawdata);
-	dbstore_compact(db_valuedata);
+	if (!crash_was_restarted()) {
+		dbstore_compact(db_rawdata);
+		dbstore_compact(db_valuedata);
+	}
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES first allocated value DB-key will be %s",

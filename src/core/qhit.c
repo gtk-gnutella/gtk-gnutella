@@ -258,10 +258,10 @@ found_set_header(void)
 	connect_speed = GNET_PROPERTY(connection_speed);
 	if (GNET_PROPERTY(compute_connection_speed)) {
 		if (GNET_PROPERTY(max_uploads) > 0) {
-			connect_speed = bsched_avg_bps(BSCHED_BWS_OUT);
-			connect_speed = MAX(connect_speed,
-								bsched_bw_per_second(BSCHED_BWS_OUT));
-			connect_speed /= 1024 / 8;
+			uint64 bw = bsched_bw_per_second(BSCHED_BWS_OUT) / 1024;
+			connect_speed = bsched_avg_bps(BSCHED_BWS_OUT) / 1024;
+			connect_speed = MAX(connect_speed, bw);
+			connect_speed = uint32_saturate_mult(connect_speed, 8);	/* bits */
 			if (connect_speed == 0) {
 				/* No b/w limit set and no traffic yet */
 				connect_speed = 32;

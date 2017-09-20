@@ -51,3 +51,5 @@ time_t clock_loc2gmt(time_t stamp);
 time_t clock_gmt2loc(time_t stamp);
 
 #endif /* _core_clock_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

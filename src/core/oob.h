@@ -59,4 +59,4 @@ void oob_deliver_hits(struct gnutella_node *n, const struct guid *muid,
 
 #endif /* _core_oob_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

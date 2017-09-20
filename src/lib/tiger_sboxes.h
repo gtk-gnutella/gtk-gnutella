@@ -1063,3 +1063,5 @@ static const uint64 tiger_sboxes[4 * 256] = {
 };
 
 #undef D
+
+/* vi: set ts=4 sw=4 cindent: */

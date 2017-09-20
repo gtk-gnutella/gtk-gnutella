@@ -330,3 +330,5 @@
 #endif
 
 #endif	/* _gcc.h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

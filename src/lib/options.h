@@ -57,4 +57,4 @@ const char *options_parse_last_error(void);
 
 #endif /* _options_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

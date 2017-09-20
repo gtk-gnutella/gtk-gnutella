@@ -68,3 +68,5 @@ const guid_t *guid_unique_atom(const struct hikset *hik, bool gtkg);
 void guid_free_atom2(void *guid, void *unused);
 
 #endif /* _core_guid_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

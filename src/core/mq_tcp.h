@@ -48,4 +48,4 @@ mqueue_t *mq_tcp_make(int maxsize,
 
 #endif	/* _core_mq_tcp_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

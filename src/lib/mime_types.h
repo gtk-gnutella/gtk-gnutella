@@ -108,3 +108,5 @@ MIME_TYPE(VIDEO_OGG,			"video/ogg")
 MIME_TYPE(VIDEO_OGM,			"video/x-ogg")
 MIME_TYPE(VIDEO_QUICKTIME,		"video/quicktime")
 MIME_TYPE(VIDEO_WEBM,			"video/webm")
+
+/* vi: set ts=4 sw=4 cindent: */

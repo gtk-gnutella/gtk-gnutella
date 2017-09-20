@@ -42,3 +42,5 @@ void ancient_version_dialog_show(void);
 void ancient_version_dialog_hide(void);
 
 #endif /* _gtk_settings_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

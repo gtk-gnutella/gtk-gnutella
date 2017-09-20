@@ -721,6 +721,37 @@ static const char *keys_101_11[] = {
 	"d85c 414f 6920 ee83 982d 14a0 4417 c5fb",
 };
 
+static const char *keys_101_12[] = {
+	"1879 3fd7 37aa d5c8 0099 f573 513f 53f4",
+	"548b 446c 0d8a 7a78 13ad 3eca 1f74 136f",
+	"43e7 a999 e947 4dbf a417 9f8b ce22 02c4",
+	"18de d20d 5ee7 1264 359c f749 0e32 b85b",
+	"34b0 96fd 340a d807 3d14 48f9 9f2a 4bb2",
+	"c6f7 d19b 4ec1 e25d 65b1 0da4 f64b 7cb4",
+	"e3df 4de0 fc51 46f6 d82e 328f 6de2 7f3e",
+	"5158 1db9 f15c 6499 9b09 f218 1c9f 502f",
+	"d608 b8f9 f7fa 4f18 4233 9faf c76c 1722",
+	"f917 8c52 5d7c 1981 7151 f951 1ebc fbe0",
+	"1b15 69a9 37ec e7e4 9caf 659d b379 d142",
+	"bc28 32b9 b491 8325 f3bc 2abf 9ec7 5a84",
+	"319f d7fd 122d 5cf7 2b35 d93a 9ed7 1ba8",
+	"cc20 f651 4f5a 97ec 938c d461 3b1c 224f",
+	"68dd dbcc 2343 738e 6399 6405 9cb8 5bca",
+	"ecc2 0294 6338 e128 66d1 0852 7008 d135",
+	"ac62 37b7 9c8f e0f5 60ee b86c 7d87 af07",
+	"1e5e e4bd cbe5 2113 3bb1 0b06 1d8c 9aa9",
+	"ae91 1287 b3e4 2b95 89be 4832 ff50 fd7f",
+	"27fd 5488 d3df 45a0 99ed 3bd5 5979 6bfd",
+	"b4ae a266 ec5b 9ab1 494e d46c d02d 5b89",
+	"6714 f180 08a4 92ef cfc1 e788 6547 2d35",
+	"2854 7e6f bfad 584e 0e88 b8e5 ab78 6958",
+	"4876 3e55 2ae4 03cb 6af2 91d2 a5ce 81d4",
+	"d577 56fc 8854 c701 5ecc f532 c778 77bf",
+	"6433 7cfb e732 3f3b 0fb6 5e85 c619 c007",
+	"bed5 dd56 c618 dcf4 dec2 5952 01b5 9cd7",
+	"68ae daa6 2f00 03e0 2282 f794 c143 800b",
+};
+
 #define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
@@ -753,6 +784,7 @@ struct tokkey {
 	{ { 1, 1,  9, '\0', 0, 0, 1457218800 }, KEYS(101_9) },	/* 2016-03-06 */
 	{ { 1, 1, 10, '\0', 0, 0, 1472680800 }, KEYS(101_10) },	/* 2016-09-01 */
 	{ { 1, 1, 11, '\0', 0, 0, 1478818800 }, KEYS(101_11) },	/* 2016-11-11 */
+	{ { 1, 1, 12, '\0', 0, 0, 1505858400 }, KEYS(101_12) },	/* 2017-09-20 */
 };
 
 #undef KEYS
@@ -1309,4 +1341,4 @@ tok_is_ancient(time_t now)
 	return find_tokkey(now) == NULL;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

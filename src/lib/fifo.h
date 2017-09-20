@@ -117,3 +117,4 @@ fifo_remove(fifo_t *f)
 
 #endif /* _fifo_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -64,3 +64,5 @@ void slist_iter_remove(slist_iter_t *iter);
 void slist_free_all(slist_t **slist_ptr, free_fn_t freecb);
 
 #endif	/* _slist_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

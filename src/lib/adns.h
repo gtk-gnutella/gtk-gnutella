@@ -48,3 +48,5 @@ bool adns_reverse_lookup(const host_addr_t,
 void adns_close(void);
 
 #endif /* _adns_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

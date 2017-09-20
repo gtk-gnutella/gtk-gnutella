@@ -64,4 +64,4 @@ void setprogname(const char *name);
 
 #endif	/* _progname_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

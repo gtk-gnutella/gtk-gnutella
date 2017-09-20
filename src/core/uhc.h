@@ -55,3 +55,4 @@ void uhc_ipp_extract(
 
 #endif /* _core_uhc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

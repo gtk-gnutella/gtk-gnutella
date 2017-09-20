@@ -42,3 +42,5 @@ void search_stats_gui_reset(void);
 void search_stats_gui_set_type(gint type);
 
 #endif /* _gtk_search_stats_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

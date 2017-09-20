@@ -1,9 +1,68 @@
+# v 1.1.12  2017-09-20  [stable]
+
+This release fixes a very critical bug that was only manifesting when Partial
+File Sharing was turned on, and which caused possible memory corruption (leading
+to a sure crash later) when enqueuing new files for downloading.
+
+New Features:
+- Throttle browsing requests to one per hour from a given IP.
+- Limit uploads to stalling hosts to 1, regardless of user settings.
+- [GTK2] Show proper average data speed on completed uploads.
+
+Improvements:
+- Added "WSHR" vendor code for WireShare.
+- Added "ENVY" vendor code for Envy.
+- Do not attempt costly operations after a crash / auto-restart.
+- Updated FAQ  -Uploads and Sharing-
+- Use 64-bit variables for bandwidth computations.
+- Make sure early stalling is not always reported for the same IP.
+- Use even HTTP outgoing bandwidth as the last measure when stalling.
+
+Bug Fixes:
+- Allow IPv6 UDP traffic from G2 nodes.
+- Be sure to use destructive list iteration with tmalloc_free_magazine().
+- Critical upload HTTP statuses are now fully sent.
+- Must give plain (untranslated) strings to send_upload_error().
+- bg_task_finished(): now calls safer bg_task_dead().
+- file_object_open_from(): also catch EROFS when opening file.
+- node_bye_v(): do not call node_remove_v() for G2 nodes.
+- vendor_code_get_name(): fixed validation of unknown code tokens.
+- verify_next_file(): fixed wrong argument order in log message.
+
+Under the Hood:
+- bfd_util: reworked mutex grabbing in an attempt to avoid deadlocks.
+- binary_hash(): disperse bits in initial hash value.
+- check_for_events(): optimize path if timeout is 0 or we collect events.
+- cq_event_called(): only zero variable holding event when asked!
+- cq_zero(): now always nullify the event, as the name suggests.
+- crash_setmain(): avoid spurious warnings with recent gcc.
+- english_strerror() and symbolic_errno() made thread-safe.
+- inputevt_timer(): factorized common code into new inputevt_handle().
+- socket_udp_flush_queue(): do not process anything if we cannot devote time.
+- stack_sym_trylock(): avoid deadly recursions through stack lock dumping!
+- thread_sig_handle(): use atomic exchange operation to clear pending set.
+- u32_ptr_hash(): discard lower bits of the multiplication as well.
+- upload_timer(): clear the stall flag when it is over.
+- Added aging_record() to simplify code for plain keys.
+- Added cq_event() to acknowledge reception of events we do not track.
+- Added "inputevt_trace" property for tracing dispatched I/O callbacks.
+- Added english_strerror() to guarantee English messages.
+- Added thread_signal_has_pending() and thread_signal_process().
+- Added "lock_sleep_trace" and "lock_contention_trace" properties.
+- AJE: changed pool #0 filling policy and reseeding checks.
+- Ensure misc_init() is called before using lookup tables.
+- Simplify is_ascii_*() by performing table lookup.
+- Thread runtime now allows a signal handler to run within another one.
+- Updated UHC list, fixed obsolete port numbers.
+- Use new cq_event() in thread callout events to avoid possible leaks.
+- Watchdog: revisited logic to do more under lock protection.
+
 # v 1.1.11  2016-11-11  [stable]
 
 This release fixes a portability issue on FreeBSD and introduces a main core
 feature and minor new GUI features.
 
-The main feature is the additiona of "equivalence classes" defining word
+The main feature is the addition of "equivalence classes" defining word
 aliases, used when sharing files and querying for them.
 
 Currently, the only supported equivalence class deals with naming of series.
@@ -28,7 +87,7 @@ resuming is the main notebook tab.  It will be restored if GTKG is restarted
 after a crash, but otherwise the application will always start up within the
 Network tab.
 
-In the Uploads tab, upload requests coming from a G2 servent will not be
+In the Uploads tab, upload requests coming from a G2 servent will now be
 flagged with a "[G2]" tab right after the IP address. This helps seeing how
 the Gnutella and G2 network unification is evolving.
 

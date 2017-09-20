@@ -286,6 +286,24 @@ http_buffer_check(const http_buffer_t * const b)
 typedef void (*http_wget_cb_t)(
 	char *data, size_t len, int code, header_t *header, void *arg);
 
+/**
+ * Callback invoked when http_send_status() cannot send the whole header.
+ *
+ * @param data		start of the header
+ * @param len		total length of the header
+ * @param sent		amount sent
+ * @param arg		additional user-supplied argument
+ */
+typedef void (*http_send_status_cb_t)(
+	const char *data, size_t len, size_t sent, void *arg);
+
+/**
+ * Use this parameter with http_send_status() when there is no callback and
+ * therefore the routine must send the whole header atomically, or we do not
+ * really care, probably because we will be closing the connection afterwards.
+ */
+#define HTTP_ATOMIC_SEND	NULL, NULL
+
 /*
  * Public interface
  */
@@ -294,7 +312,8 @@ void http_timer(time_t now);
 
 bool http_send_status(http_layer_t layer, struct gnutella_socket *s,
 	int code, bool keep_alive, http_extra_desc_t *hev, int hevcnt,
-	const char *reason, ...) G_PRINTF(7, 8);
+	http_send_status_cb_t unsent, void *unsent_arg,
+	const char *reason, ...) G_PRINTF(9, 10);
 
 size_t http_hostname_add(
 	char *buf, size_t size, void *arg, uint32 flags);
@@ -307,8 +326,8 @@ int http_status_parse(const char *line,
 bool http_extract_version(
 	const char *request, size_t len, uint *major, uint *minor);
 
-http_buffer_t *http_buffer_alloc(char *buf, size_t len, size_t written);
-void http_buffer_free(http_buffer_t *b);
+http_buffer_t *http_buffer_alloc(const char *buf, size_t len, size_t written);
+void http_buffer_free_null(http_buffer_t **b_ptr);
 
 int
 http_content_range_parse(const char *buf,

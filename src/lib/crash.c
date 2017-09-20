@@ -97,6 +97,7 @@
 #include "iovec.h"
 #include "log.h"
 #include "mempcpy.h"
+#include "misc.h"				/* For english_strerror() */
 #include "mutex.h"				/* For mutex_crash_mode() */
 #include "offtime.h"
 #include "omalloc.h"
@@ -214,6 +215,7 @@ G_STMT_START { \
 static const struct crash_vars *vars; /**< read-only after crash_init()! */
 static bool crash_closed;
 static bool crash_pausing;
+static bool crash_restarted;
 
 static cevent_t *crash_restart_ev;		/* Async restart event */
 static int crash_exit_started;
@@ -281,6 +283,27 @@ crash_coredumps_disabled(void)
 	return -1;
 }
 #endif	/* HAS_GETRLIMIT && RLIMIT_CORE */
+
+/**
+ * Mark that application was restarted, either after a crash or by user action.
+ */
+void
+crash_mark_restarted(void)
+{
+	crash_restarted = TRUE;
+}
+
+/**
+ * Query whether application was restarted.
+ *
+ * Knowing this allows some lengthy processing to be skipped so that the user
+ * gets the application back online more quickly.
+ */
+bool
+crash_was_restarted(void)
+{
+	return crash_restarted;
+}
 
 typedef struct cursor {
 	char *buf;
@@ -1537,7 +1560,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
 	print_str(": ");					/* 5 */
 	print_str(symbolic_errno(errno));	/* 6 */
 	print_str(" (");					/* 7 */
-	print_str(g_strerror(errno));		/* 8 */
+	print_str(english_strerror(errno));	/* 8 */
 	print_str(")\n");					/* 9 */
 	flush_str(fd);
 	if (fd2 != fd)
@@ -1630,7 +1653,7 @@ retry_child:
 			print_str(" (WARNING): fork() failed: ");
 			print_str(symbolic_errno(errno));
 			print_str(" (");
-			print_str(g_strerror(errno));
+			print_str(english_strerror(errno));
 			print_str(")\n");
 			flush_err_str();
 			if (log_stdout_is_distinct())
@@ -2877,7 +2900,7 @@ crash_try_reexec(void)
 		print_str(" (CRITICAL) exec() error: ");	/* 1 */
 		print_str(symbolic_errno(errno));			/* 2 */
 		print_str(" (");							/* 3 */
-		print_str(g_strerror(errno));				/* 4 */
+		print_str(english_strerror(errno));			/* 4 */
 		print_str(")\n");							/* 5 */
 		flush_err_str();
 		if (log_stdout_is_distinct())
@@ -3028,7 +3051,7 @@ crash_auto_restart(void)
 				print_str(" (CRITICAL) fork() error: ");	/* 1 */
 				print_str(symbolic_errno(errno));			/* 2 */
 				print_str(" (");							/* 3 */
-				print_str(g_strerror(errno));				/* 4 */
+				print_str(english_strerror(errno));			/* 4 */
 				print_str(")\n");							/* 5 */
 				flush_err_str();
 				if (log_stdout_is_distinct())
@@ -3854,9 +3877,26 @@ crash_setmain(void)
 
 	g_assert_log(argc > 0, "%s(): argc=%d", G_STRFUNC, argc);
 
+	/*
+	 * Seen with at least gcc 5.4.x, the crash_set_var(argv, argv) line
+	 * generates a warning because we're taking the sizeof an array.
+	 * Unfortunately this is a spurious warning here so we need to shut
+	 * it up and we need to protect the call because -Wsizeof-array-argument
+	 * is unsupported in gcc 4.9.x, at least...
+	 * 		--RAM, 2017-05-20
+	 */
+
+#if HAS_GCC(5, 4)
+	G_IGNORE_PUSH(-Wsizeof-array-argument);   /* For argv below */
+#endif
+
 	crash_set_var(argc, argc);
 	crash_set_var(argv, argv);
 	crash_set_var(envp, env);
+
+#if HAS_GCC(5, 4)
+	G_IGNORE_POP;
+#endif
 }
 
 /**

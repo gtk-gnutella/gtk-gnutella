@@ -78,3 +78,4 @@ void urpc_close(void);
 
 #endif /* _core_urpc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -105,3 +105,4 @@ bigval_blocks(const char *p)
 	return deconstify_char(p) + sizeof(uint32);	/* Skip value length */
 }
 
+/* vi: set ts=4 sw=4 cindent: */

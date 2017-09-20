@@ -1317,13 +1317,14 @@ tmalloc_list_extract_trash(struct tma_list *tl, eslist_t *dl, size_t n)
 /**
  * List callback to free a magazine.
  */
-static void
+static bool
 tmalloc_free_magazine(void *data, void *udata)
 {
 	tmalloc_magazine_t *m = data;
 	tmalloc_t *d = udata;
 
 	tmalloc_magazine_free(d, m);
+	return TRUE;
 }
 
 /**
@@ -1388,8 +1389,17 @@ tmalloc_gc(void *data)
 			eslist_count(&full), eslist_count(&empty), objcount);
 	}
 
-	eslist_foreach(&full,  tmalloc_free_magazine, d);
-	eslist_foreach(&empty, tmalloc_free_magazine, d);
+	/*
+	 * Can't just say eslist_foreach() here because we're going to free-up
+	 * the objects, and these objects embed the list pointers, and therefore
+	 * we're going to corrupt list traversal by freeing the objects.
+	 * This would have a negative fatal impact when safety assertions are turned
+	 * on at the eslist level, since some of them can iterate on the list.
+	 * 		--RAM, 2017-12-13
+	 */
+
+	eslist_foreach_remove(&full,  tmalloc_free_magazine, d);
+	eslist_foreach_remove(&empty, tmalloc_free_magazine, d);
 
 	while (objects != NULL) {
 		void **p = objects;
@@ -1710,8 +1720,17 @@ tmalloc_create(const char *name, size_t size,
 static inline void
 tmalloc_list_free(struct tma_list *tl, tmalloc_t *tma)
 {
-	eslist_foreach(&tl->tml_list,  tmalloc_free_magazine, tma);
-	eslist_foreach(&tl->tml_trash, tmalloc_free_magazine, tma);
+	/*
+	 * Can't just say eslist_foreach() here because we're going to free-up
+	 * the objects, and these objects embed the list pointers, and therefore
+	 * we're going to corrupt list traversal by freeing the objects.
+	 * This would have a negative fatal impact when safety assertions are turned
+	 * on at the eslist level, since some of them can iterate on the list.
+	 * 		--RAM, 2017-12-13
+	 */
+
+	eslist_foreach_remove(&tl->tml_list,  tmalloc_free_magazine, tma);
+	eslist_foreach_remove(&tl->tml_trash, tmalloc_free_magazine, tma);
 }
 
 /**

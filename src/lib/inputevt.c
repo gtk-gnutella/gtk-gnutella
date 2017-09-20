@@ -129,6 +129,7 @@ typedef struct {
 #include "override.h"		/* Must be the last header included */
 
 static unsigned inputevt_debug;
+static bool inputevt_trace;
 static unsigned inputevt_stid = THREAD_INVALID_ID;
 
 /**
@@ -138,6 +139,15 @@ void
 inputevt_set_debug(unsigned level)
 {
 	inputevt_debug = level;
+}
+
+/**
+ * Set tracing.
+ */
+void
+inputevt_set_trace(bool on)
+{
+	inputevt_trace = on;
 }
 
 /*
@@ -788,8 +798,6 @@ event_get_with_poll(const struct poll_ctx *ctx, unsigned idx)
 static void
 check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 {
-	tm_t before, after;
-	time_delta_t d;
 	int ret, timeout_ms;
 
 	g_assert(ctx);
@@ -798,6 +806,7 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	g_assert(0 == ctx->num_ready);
 
 	g_assert(ctx->max_poll_idx <= ctx->num_poll_idx);
+
 	if (ctx->max_poll_idx <= 0) {
 		ctx->num_ready = 0;
 		return;
@@ -812,23 +821,40 @@ check_for_events(struct poll_ctx *ctx, int *timeout_ms_ptr)
 	timeout_ms = *timeout_ms_ptr;
 	timeout_ms = MAX(0, timeout_ms);
 
-	tm_now_exact(&before);
-	ret = (*ctx->collect_events)(ctx, timeout_ms);
-	tm_now_exact(&after);
-	d = tm_elapsed_ms(&after, &before);
-	if (d >= timeout_ms || ret > 0) {
-		timeout_ms = 0;
+	if G_UNLIKELY(0 == timeout_ms) {
+		ret = (*ctx->collect_events)(ctx, 0);
 	} else {
-		timeout_ms -= d;
-	}
-	ctx->num_ready = MAX(0, ret);
+		tm_t before;
 
-	/* If the original timeout was negative (=INFINITE) and no event
-	 * has occured, the timeout isn't touched.
-	 */
-	if (*timeout_ms_ptr >= 0 || ret > 0) {
-		*timeout_ms_ptr = timeout_ms;
+		tm_now_exact(&before);
+		ret = (*ctx->collect_events)(ctx, timeout_ms);
+
+		if (ret > 0) {
+			timeout_ms = 0;
+		} else {
+			time_delta_t d;
+			tm_t after;
+
+			tm_now_exact(&after);
+			d = tm_elapsed_ms(&after, &before);
+
+			if (d >= timeout_ms)
+				timeout_ms = 0;
+			else
+				timeout_ms -= d;
+		}
+
+		/*
+		 * If the original timeout was negative (=INFINITE) and no event
+		 * has occured, the timeout isn't touched.
+		 */
+
+		if (ret > 0 || *timeout_ms_ptr >= 0) {
+			*timeout_ms_ptr = timeout_ms;
+		}
 	}
+
+	ctx->num_ready = MAX(0, ret);
 }
 
 void
@@ -932,6 +958,60 @@ inputevt_purge_removed(struct poll_ctx *ctx)
 }
 
 /**
+ * Handle event on given file descriptor.
+ */
+static void
+inputevt_handle(const struct poll_ctx *ctx, int fd, inputevt_cond_t condition)
+{
+	relay_list_t *rl;
+	pslist_t *sl;
+
+	g_assert(is_valid_fd(fd));
+
+	rl = htable_lookup(ctx->ht, int_to_pointer(fd));
+
+	g_assert(NULL != rl);
+	g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
+
+	for (sl = rl->sl; NULL != sl; /* NOTHING */) {
+		inputevt_relay_t *relay;
+		unsigned id;
+
+		id = pointer_to_uint(sl->data);
+		sl = pslist_next(sl);
+
+		g_assert(id > 0);
+		g_assert(id < ctx->num_ev);
+
+		relay = ctx->relay[id];
+
+		g_assert(relay != NULL);
+		g_assert(relay->fd == fd);
+
+		if G_UNLIKELY(zero_handler == relay->handler)
+			continue;
+
+		if (condition & relay->condition) {
+			data_available = 0;		/* FIXME: not thread-safe */
+
+			if G_UNLIKELY(inputevt_trace) {
+				void *handler = relay->handler;
+
+				s_info("%s(): calling %s()...",
+					G_STRFUNC, stacktrace_function_name(handler));
+
+				relay->handler(relay->data, fd, condition);
+
+				s_info("%s(): ...back from %s()",
+					G_STRFUNC, stacktrace_function_name(handler));
+			} else {
+				relay->handler(relay->data, fd, condition);
+			}
+		}
+	}
+}
+
+/**
  * Our main I/O event dispatching loop.
  */
 static void G_HOT
@@ -991,37 +1071,9 @@ inputevt_timer(struct poll_ctx *ctx)
 		CTX_UNLOCK(ctx);
 
 		PSLIST_FOREACH(evlist, es) {
-			relay_list_t *rl;
-			pslist_t *sl;
 			struct event *event = es->data;
 
-			rl = htable_lookup(ctx->ht, int_to_pointer(event->fd));
-			g_assert(NULL != rl);
-			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
-
-			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
-				inputevt_relay_t *relay;
-				unsigned id;
-
-				id = pointer_to_uint(sl->data);
-				g_assert(id > 0);
-				g_assert(id < ctx->num_ev);
-
-				sl = pslist_next(sl);
-
-				relay = ctx->relay[id];
-				g_assert(relay);
-				g_assert(relay->fd == event->fd);
-
-				if G_UNLIKELY(zero_handler == relay->handler)
-					continue;
-
-				if (relay->condition & event->condition) {
-					data_available = event->data_available;
-					relay->handler(relay->data, relay->fd, event->condition);
-				}
-			}
-
+			inputevt_handle(ctx, event->fd, event->condition);
 			WFREE(event);
 		}
 
@@ -1044,47 +1096,19 @@ inputevt_timer(struct poll_ctx *ctx)
 		 * processing whilst we no longer hold the lock.	--RAM
 		 */
 
-		CTX_UNLOCK(ctx);
-
 		if (inputevt_debug > 2) {
 			unsigned long count = plist_length(list);
 			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
 		}
 
+		CTX_UNLOCK(ctx);
+
 		PLIST_FOREACH(list, iter) {
 			int fd = pointer_to_int(iter->data);
-			relay_list_t *rl;
-			pslist_t *sl;
 
-			g_assert(is_valid_fd(fd));
-
-			rl = htable_lookup(ctx->ht, int_to_pointer(fd));
-			g_assert(NULL != rl);
-			g_assert((0 == rl->readers && 0 == rl->writers) || NULL != rl->sl);
-
-			for (sl = rl->sl; NULL != sl; /* NOTHING */) {
-				inputevt_relay_t *relay;
-				unsigned id;
-
-				id = pointer_to_uint(sl->data);
-				sl = pslist_next(sl);
-
-				g_assert(id > 0);
-				g_assert(id < ctx->num_ev);
-
-				relay = ctx->relay[id];
-				g_assert(relay);
-				g_assert(relay->fd == fd);
-
-				if G_UNLIKELY(zero_handler == relay->handler)
-					continue;
-
-				if (INPUT_EVENT_R & relay->condition) {
-					data_available = 0;
-					relay->handler(relay->data, relay->fd, INPUT_EVENT_R);
-				}
-			}
+			inputevt_handle(ctx, fd, INPUT_EVENT_R);
 		}
+
 		plist_free_null(&list);
 		CTX_LOCK(ctx);
 	}

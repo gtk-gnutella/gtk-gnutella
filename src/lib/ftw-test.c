@@ -355,8 +355,6 @@ main(int argc, char **argv)
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);
 
-	misc_init();
-
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
 		case 'l':			/* show file length */

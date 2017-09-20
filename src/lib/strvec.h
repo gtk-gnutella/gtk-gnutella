@@ -49,4 +49,4 @@ void *strvec_cpy(char **dstv, char * const *strv, size_t cnt,
 
 #endif	/* _strvec_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

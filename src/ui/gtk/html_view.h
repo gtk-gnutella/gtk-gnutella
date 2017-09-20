@@ -38,3 +38,5 @@ void html_view_clear(struct html_view *html_view);
 void html_view_free(struct html_view **html_view_ptr);
 
 #endif /* _gtk_html_view_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

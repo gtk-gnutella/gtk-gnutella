@@ -168,3 +168,4 @@ check_file_exists                      (const gchar     *directory,
   return NULL;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -61,4 +61,4 @@ void strtok_test(void);
 
 #endif	/* _strtok_h_ */
 
-/* vi: set sw=4 ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

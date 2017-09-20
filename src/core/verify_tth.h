@@ -58,3 +58,5 @@ void verify_tth_close(void);
 void request_tigertree(struct shared_file *sf, bool high_priority);
 
 #endif /* _core_verify_tth_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

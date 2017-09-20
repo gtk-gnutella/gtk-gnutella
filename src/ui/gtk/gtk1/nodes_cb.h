@@ -46,4 +46,7 @@ void on_popup_nodes_disconnect_activate (GtkMenuItem *menuitem, gpointer user_da
 void on_popup_nodes_config_cols_activate (GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_nodes_browse_host_activate(GtkMenuItem *unused_menuitem,
 	gpointer unused_udata);
+
 #endif /* _gtk1_nodes_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

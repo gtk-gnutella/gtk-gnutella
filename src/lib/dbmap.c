@@ -48,10 +48,11 @@
 #include "dbmap.h"
 
 #include "bstr.h"
-#include "pslist.h"
 #include "debug.h"
 #include "map.h"
+#include "misc.h"				/* For english_strerror() */
 #include "pmsg.h"
+#include "pslist.h"
 #include "stringify.h"			/* For compact_time() */
 #include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
@@ -417,7 +418,7 @@ dbmap_strerror(const dbmap_t *dm)
 {
 	dbmap_check(dm);
 
-	return g_strerror(dm->error);
+	return english_strerror(dm->error);
 }
 
 /**

@@ -49,5 +49,4 @@ void rxbuf_close(void);
 
 #endif	/* _core_rxbuf_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */

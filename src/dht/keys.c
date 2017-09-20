@@ -89,6 +89,7 @@
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
@@ -1575,7 +1576,9 @@ keys_init_keyinfo(void)
 
 	hikset_foreach_remove(keys, keys_discard_if_empty, NULL);
 	dbmw_foreach_remove(db_keydata, keys_delete_if_empty, NULL);
-	dbstore_compact(db_keydata);
+
+	if (!crash_was_restarted())
+		dbstore_compact(db_keydata);
 
 	g_soft_assert_log(hikset_count(keys) == dbmw_count(db_keydata),
 		"keys reloaded: %zu, key data persisted: %zu",

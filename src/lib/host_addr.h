@@ -519,6 +519,7 @@ bool host_addr_equiv(const host_addr_t a, const host_addr_t b);
 uint host_addr_hash_func(const void *key);
 uint host_addr_hash_func2(const void *key);
 bool host_addr_eq_func(const void *p, const void *q);
+void *host_addr_wcopy(const void *addr);
 void wfree_host_addr1(void *key);
 void wfree_host_addr(void *key, void *unused_data);
 

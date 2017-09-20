@@ -699,16 +699,6 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	evq_event_check(eve);
 	g_assert(thread_small_id() == evq_thread_id);
 
-	cq_zero(cq, &eve->ev);			/* Callback fired */
-
-	/*
-	 * We need the cq_cancel() on top of cq_zero() above because that
-	 * callout queue event is an extended one (created by a thread other
-	 * than the one running the callout queue).
-	 */
-
-	cq_cancel(&eve->ev);			/* Clear event */
-
 	/*
 	 * Now that the callback fired, it can no longer be cancelled by
 	 * the issuer.  However, we need to dispatch it to the proper thread.
@@ -716,6 +706,16 @@ evq_trampoline(cqueue_t *cq, void *obj)
 
 	id = eve->stid;
 	q = evq_get(id);
+
+	/*
+	 * To protect against race conditions during cq_zero() with the code that
+	 * actually sets eve->ev, we need to take the same lock as the one used
+	 * to record the event.
+	 *
+	 * However, the queue can be gone by the time the event is dispatched,
+	 * in which case we'll free the "eve" structure, which will cq_cancel() the
+	 * event, so there's no need to call cq_zero() in that case..
+	 */
 
 	if G_UNLIKELY(NULL == q) {
 		const char *tname = thread_id_name(eve->stid);
@@ -737,6 +737,18 @@ evq_trampoline(cqueue_t *cq, void *obj)
 
 		evq_event_check(eve);	/* Since no queue locked, ensure still valid */
 
+		/*
+		 * Since this is probably a "foreign" event, we must acknoledge it
+		 * or the callout queue will think we do not own a reference to the
+		 * event and will forcefully free it.  However, the freeing call will
+		 * issue a cq_cancel(), so this is where the event will get freed.
+		 *
+		 * Not calling this would cause a double free on the callout queue
+		 * event, catastrophic since we cannot detect those in walloc()!
+		 */
+
+		cq_acknowledge(cq, eve->ev);
+
 		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
 			evq_event_free(eve);
 
@@ -753,9 +765,18 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	if G_UNLIKELY(eve->qid != q->qid) {
 		s_warning("%s(): ignoring obsolete %s(%p) event",
 			G_STRFUNC, stacktrace_function_name(eve->cb), eve->arg);
+		cq_acknowledge(cq, eve->ev);
 		evq_event_free(eve);
 		return;
 	}
+
+	/*
+	 * We know the queue is still there, lock it now before cq_zero().
+	 */
+
+	mutex_lock(&q->lock);
+
+	cq_zero(cq, &eve->ev);			/* Callback fired */
 
 	/*
 	 * Transfer event into the list of triggered events.
@@ -765,8 +786,6 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 * by the thread and freed.  This is why we saved the thread id in a local
 	 * variable before.
 	 */
-
-	mutex_lock(&q->lock);
 
 	elist_remove(&q->events, eve);		/* Event triggered */
 

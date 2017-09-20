@@ -44,4 +44,4 @@ void setproctitle(const char *fmt, ...) G_PRINTF(1, 2);
 
 #endif	/* _setproctitle_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

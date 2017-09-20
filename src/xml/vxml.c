@@ -2474,6 +2474,9 @@ vxml_expand_char_ref(vxml_parser_t *vp)
 	 * which will be the final value of the expansion.
 	 */
 
+	if G_UNLIKELY(0 == alnum2int_inline('a'))
+		misc_init();	/* Auto-initialization of alnum2int_inline() */
+
 	while (0 != (uc = vxml_next_char(vp))) {
 		unsigned d;
 

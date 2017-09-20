@@ -48,3 +48,4 @@ bool ghc_is_waiting(void);
 
 #endif /* _core_ghc_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

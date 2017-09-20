@@ -38,7 +38,9 @@
 
 #include "parse.h"
 #include "ascii.h"
+#include "misc.h"
 #include "endian.h"
+
 #include "override.h"			/* Must be the last header included */
 
 /*
@@ -77,6 +79,9 @@ NAME(const char *src, char const **endptr, unsigned base, int *errorptr) 	\
 	g_assert(src != NULL);													\
 	g_assert(errorptr != NULL);												\
 	g_assert(base >= 2 && base <= 36);										\
+																			\
+	if G_UNLIKELY(0 == alnum2int_inline('a'))								\
+		misc_init();		/* Auto-initialization of alnum2int_inline() */	\
 																			\
 	p = src;																\
 	if (base < 2 || base > 36) {											\
@@ -430,6 +435,9 @@ string_to_ip_strict(const char *s, uint32 *addr, const char **endptr)
 	int i;
 
 	g_assert(s != NULL);
+
+	if G_UNLIKELY(0 == dec2int_inline('1'))
+		misc_init();	/* Auto-initialization of dec2int_inline() */
 
 	i = 0;
 	for (;;) {

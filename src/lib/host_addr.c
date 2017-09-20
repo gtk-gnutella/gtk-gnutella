@@ -1331,7 +1331,7 @@ resolve_hostname(const char *host, enum net_type net)
 		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
-			addr_copy = wcopy(&addr, sizeof addr);
+			addr_copy = WCOPY(&addr);
 			sl_addr = pslist_prepend(sl_addr, addr_copy);
 			hset_insert(hs, addr_copy);
 		}
@@ -1410,7 +1410,7 @@ resolve_hostname(const char *host, enum net_type net)
 		if (is_host_addr(addr) && !hset_contains(hs, &addr)) {
 			host_addr_t *addr_copy;
 
-			addr_copy = wcopy(&addr, sizeof addr);
+			addr_copy = WCOPY(&addr);
 			sl_addr = pslist_prepend(sl_addr, addr_copy);
 			hset_insert(hs, addr_copy);
 		}
@@ -1449,7 +1449,7 @@ name_to_host_addr(const char *host, enum net_type net)
 	 */
 
 	if (string_to_host_addr(host, &endptr, &addr) && '\0' == *endptr) {
-		return pslist_append(NULL, wcopy(&addr, sizeof addr));
+		return pslist_append(NULL, WCOPY(&addr));
 	}
 
 	return resolve_hostname(host, net);
@@ -1525,6 +1525,15 @@ host_addr_eq_func(const void *p, const void *q)
 }
 
 /**
+ * Clone host address, which can be freed via wfree_host_addr1().
+ */
+void *
+host_addr_wcopy(const void *addr)
+{
+	return wcopy(addr, sizeof(host_addr_t));
+}
+
+/**
  * List free callback.
  */
 void
@@ -1592,7 +1601,7 @@ host_addr_get_interface_addrs(const enum net_type net)
 			(NET_TYPE_NONE == net || host_addr_net(addr) == net) &&
 			is_host_addr(addr)
 		) {
-			sl_addrs = pslist_prepend(sl_addrs, wcopy(&addr, sizeof addr));
+			sl_addrs = pslist_prepend(sl_addrs, WCOPY(&addr));
 		}
 	}
 

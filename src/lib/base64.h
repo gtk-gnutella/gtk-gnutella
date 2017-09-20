@@ -48,5 +48,4 @@ guint base64_decode_into(const char *buf, uint len, char *decbuf, uint declen);
 
 #endif	/* _base64_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */

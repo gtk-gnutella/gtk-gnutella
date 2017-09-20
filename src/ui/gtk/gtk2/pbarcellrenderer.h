@@ -92,3 +92,5 @@ G_END_DECLS
 
 #endif /* !USING_CUSTOM_TYPE_CELL_RENDERER_PROGRESS */
 #endif	/* _gtk2_pbarcellrenderer_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

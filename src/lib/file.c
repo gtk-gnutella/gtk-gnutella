@@ -899,4 +899,4 @@ file_accmode_to_string(const int accmode)
 	}
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

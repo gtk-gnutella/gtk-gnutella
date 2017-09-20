@@ -42,4 +42,4 @@ const char *exit2str(int status);
 
 #endif	/* _exit2str_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

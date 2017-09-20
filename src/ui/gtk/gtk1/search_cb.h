@@ -44,3 +44,5 @@ void on_clist_search_details_unselect_row(GtkCList *, int row, int column,
 	GdkEventButton *, void *unused_udata);
 
 #endif /* _gtk1_search_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

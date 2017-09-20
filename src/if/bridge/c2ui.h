@@ -76,3 +76,4 @@ void gcu_upload_stats_gui_thaw(void);
 
 #endif /* _if_bridge_c2ui_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

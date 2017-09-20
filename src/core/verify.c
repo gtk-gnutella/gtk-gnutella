@@ -738,7 +738,7 @@ verify_next_file(struct verify *ctx)
 			ctx->file = file_object_open(item->pathname, O_RDONLY);
 			if (NULL == ctx->file) {
 				g_warning("failed to open \"%s\" for %s hashing: %m",
-					verify_hash_name(ctx), item->pathname);
+					item->pathname, verify_hash_name(ctx));
 			}
 		} else {
 			if (GNET_PROPERTY(verify_debug)) {

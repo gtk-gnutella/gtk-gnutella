@@ -58,3 +58,4 @@ time_delta_t alive_elapsed(const alive_t *a);
 
 #endif /* _core_alive_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

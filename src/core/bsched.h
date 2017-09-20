@@ -63,8 +63,8 @@ void bsched_enable_all(void);
 bio_source_t *bsched_source_add(bsched_bws_t bs, wrap_io_t *wio, uint32 flags,
 	inputevt_handler_t callback, void *arg);
 void bsched_source_remove(bio_source_t *bio);
-void bsched_set_bandwidth(bsched_bws_t bs, int bandwidth);
-ulong bio_bw_per_second(const bio_source_t *bio);
+void bsched_set_bandwidth(bsched_bws_t bs, int64 bandwidth);
+uint64 bio_bw_per_second(const bio_source_t *bio);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, void *arg);
 void bio_add_passive_callback(bio_source_t *bio,
@@ -101,14 +101,14 @@ bool bws_uniform_allocation(bsched_bws_t bws, bool uniform);
 
 bool bsched_enough_up_bandwidth(void);
 bool bsched_saturated(bsched_bws_t bws);
-uint bsched_unused(bsched_bws_t bws);
-ulong bsched_bps(bsched_bws_t bws);
-ulong bsched_avg_bps(bsched_bws_t bws);
+uint64 bsched_unused(bsched_bws_t bws);
+uint64 bsched_bps(bsched_bws_t bws);
+uint64 bsched_avg_bps(bsched_bws_t bws);
 ulong bsched_pct(bsched_bws_t bws);
 ulong bsched_avg_pct(bsched_bws_t bws);
-ulong bsched_bw_per_second(bsched_bws_t bws);
-int bsched_urgent(bsched_bws_t bws);
-void bsched_set_urgent(bsched_bws_t bws, int amount);
+uint64 bsched_bw_per_second(bsched_bws_t bws);
+int64 bsched_urgent(bsched_bws_t bws);
+void bsched_set_urgent(bsched_bws_t bws, int64 amount);
 
 void bsched_config_steal_http_gnet(void);
 void bsched_config_steal_gnet(void);

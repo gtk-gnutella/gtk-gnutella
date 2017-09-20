@@ -190,6 +190,18 @@ uint64_saturate_add(uint64 a, uint64 b)
 	return ret;
 }
 
+/*
+ * Calculate the difference between a and b but saturate towards zero.
+ * @return zero if a < b, otherwise a - b.
+ */
+static inline G_CONST unsigned
+uint64_saturate_sub(uint64 a, uint64 b)
+{
+	if (G_UNLIKELY(a < b))
+		return 0;
+	return a - b;
+}
+
 /**
  * Calculate the product of a and b but saturate towards MAX_UINT64.
  * @return MAX_UINT64 if a * b > MAX_UINT64, otherwise a * b.
@@ -229,6 +241,28 @@ uint32_saturate_mult(uint32 a, uint32 b)
 	if (G_UNLIKELY(MAX_INT_VAL(uint32) / a < b))
 		return MAX_INT_VAL(uint32);
 	return a * b;
+}
+
+/**
+ * Check whether a signed representation of value would be non-negative.
+ * @return TRUE if size is greater than or equal to zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline G_CONST ALWAYS_INLINE bool
+uint64_is_non_negative(uint64 v)
+{
+	return v <= MAX_INT_VAL(uint64) / 2;
+}
+
+/**
+ * Check whether a signed representation of value would be strictly positive.
+ * @return TRUE if size is stricly larger than zero, yet smaller than the
+ * maximum positive quantity that can be represented.
+ */
+static inline G_CONST ALWAYS_INLINE bool
+uint64_is_positive(uint64 v)
+{
+	return uint64_is_non_negative(v - 1);
 }
 
 /**

@@ -71,3 +71,4 @@ void inet_connection_succeeded(const host_addr_t addr);
 
 #endif /* _core_inet_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

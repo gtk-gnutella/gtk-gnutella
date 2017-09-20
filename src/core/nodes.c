@@ -217,6 +217,7 @@ static gnutella_node_t *udp6_node;
 static gnutella_node_t *udp_sr_node;
 static gnutella_node_t *udp6_sr_node;
 static gnutella_node_t *udp_g2_node;
+static gnutella_node_t *udp6_g2_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
@@ -906,8 +907,7 @@ node_record_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
-	aging_insert(node_connect_failures,
-		atom_host_get(&host), int_to_pointer(1));
+	aging_record(node_connect_failures, atom_host_get(&host));
 }
 
 /**
@@ -1745,6 +1745,7 @@ node_init(void)
 	udp_sr_node = node_udp_sr_create(NET_TYPE_IPV4);
 	udp6_sr_node = node_udp_sr_create(NET_TYPE_IPV6);
 	udp_g2_node = node_udp_g2_create(NET_TYPE_IPV4);
+	udp6_g2_node = node_udp_g2_create(NET_TYPE_IPV6);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create(FALSE);
@@ -3078,7 +3079,9 @@ node_bye_v(gnutella_node_t *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (NODE_TALKS_G2(n)) {
-		node_remove_v(n, reason, ap);
+		char *msg = h_strdup(n->error_str);
+		node_remove(n, "%s", msg);			/* Will recreate n->error_str */
+		HFREE_NULL(msg);
 		return;
 	}
 
@@ -6681,8 +6684,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			return;
 		}
 
-		aging_insert(tcp_crawls,
-			wcopy(&n->addr, sizeof n->addr), uint_to_pointer(1));
+		aging_record(tcp_crawls, WCOPY(&n->addr));
 	}
 
 	/*
@@ -7964,6 +7966,9 @@ node_g2_enable_by_net(enum net_type net)
 		s = s_udp_listen;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		s = s_udp_listen6;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8073,6 +8078,8 @@ node_g2_disable_by_net(enum net_type net)
 		n = udp_g2_node;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8106,6 +8113,8 @@ node_g2_enable(void)
 {
 	if (s_udp_listen)
 		node_g2_enable_by_net(NET_TYPE_IPV4);
+	if (s_udp_listen6)
+		node_g2_enable_by_net(NET_TYPE_IPV6);
 }
 
 void
@@ -8405,6 +8414,8 @@ node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port)
 			n = udp_g2_node;
 			break;
 		case NET_TYPE_IPV6:
+			n = udp6_g2_node;
+			break;
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
@@ -10987,7 +10998,8 @@ node_bye_all(bool all)
 {
 	pslist_t *sl;
 	gnutella_node_t *udp_nodes[] = {
-		udp_node, udp6_node, udp_sr_node, udp6_sr_node, udp_g2_node,
+		udp_node, udp6_node, udp_sr_node, udp6_sr_node,
+		udp_g2_node, udp6_g2_node,
 		dht_node, dht6_node
 	};
 	unsigned i;
@@ -11673,7 +11685,8 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
-			udp_sr_node, udp6_sr_node, udp_g2_node, browse_g2_node
+			udp_sr_node, udp6_sr_node, udp_g2_node, udp6_g2_node,
+			browse_g2_node
 		};
 		uint i;
 
@@ -11704,6 +11717,7 @@ node_close(void)
 		udp_sr_node = NULL;
 		udp6_sr_node = NULL;
 		udp_g2_node = NULL;
+		udp6_g2_node = NULL;
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
@@ -13467,8 +13481,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		return;
 	}
 
-	aging_insert(udp_crawls,
-		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+	aging_record(udp_crawls, WCOPY(&n->addr));
 
 	/*
 	 * Build an array of candidate nodes.

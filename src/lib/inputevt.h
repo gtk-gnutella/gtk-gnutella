@@ -74,6 +74,7 @@ void inputevt_close(void);
 void inputevt_dispatch(void);
 
 void inputevt_set_debug(unsigned level);
+void inputevt_set_trace(bool on);
 unsigned inputevt_thread_id(void);
 
 /**

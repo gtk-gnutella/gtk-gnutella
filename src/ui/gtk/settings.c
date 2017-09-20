@@ -174,8 +174,7 @@ update_entry(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -199,8 +198,7 @@ update_label(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -214,7 +212,7 @@ static gboolean
 update_spinbutton(property_t prop)
 {
     GtkWidget *w;
-    guint32 val = 0;
+	uint32 val;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
@@ -227,8 +225,7 @@ update_spinbutton(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -238,8 +235,7 @@ update_spinbutton(property_t prop)
 		break;
 	default:
 		val = 0;
-		g_error("update_spinbutton: incompatible type: %u",
-			(guint) map_entry->type);
+		g_error("%s: incompatible type: %u", G_STRFUNC, (uint) map_entry->type);
     }
 
     adj = gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
@@ -264,8 +260,7 @@ update_togglebutton(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("update_togglebutton - widget not found: [%s]",
-				 map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -275,8 +270,7 @@ update_togglebutton(property_t prop)
 		break;
 	default:
 		val = 0;
-		g_error("update_togglebutton: incompatible type: %u",
-			(guint) map_entry->type);
+		g_error("%s: incompatible type: %u", G_STRFUNC, (uint) map_entry->type);
     }
 
     gtk_toggle_button_set_active(GTK_TOGGLE_BUTTON(w), val);
@@ -301,8 +295,7 @@ update_multichoice(property_t prop)
 
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -312,8 +305,7 @@ update_multichoice(property_t prop)
 		break;
 	default:
 		val = 0;
-		g_error("update_multichoice: incompatible type: %u",
-			(guint) map_entry->type);
+		g_error("%s: incompatible type: %u", G_STRFUNC, (uint) map_entry->type);
     }
 
 	if (GTK_IS_COMBO(w)) {
@@ -351,8 +343,7 @@ update_entry_duration(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -377,8 +368,7 @@ update_size_entry(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -499,7 +489,7 @@ update_window_geometry(property_t prop)
 
     if (!w->window) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s(): top level window not available (NULL)", G_STRFUNC);
+			g_warning("%s: top level window not available (NULL)", G_STRFUNC);
         return FALSE;
     }
 
@@ -514,8 +504,7 @@ update_window_geometry(property_t prop)
 		}
 		break;
 	default:
-		g_error("update_window_geometry: incompatible type: %u",
-				(guint) map_entry->type);
+		g_error("%s: incompatible type: %u", G_STRFUNC, (uint) map_entry->type);
 	}
 
     return FALSE;
@@ -533,7 +522,7 @@ static gboolean
 update_bandwidth_spinbutton(property_t prop)
 {
     GtkWidget *w;
-    guint32 val = 0;
+    uint64 val = 0;
     prop_map_t *map_entry = settings_gui_get_map_entry(prop);
     const prop_set_stub_t *stub = map_entry->stub;
     GtkWidget *top = map_entry->fn_toplevel();
@@ -544,22 +533,20 @@ update_bandwidth_spinbutton(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
     switch (map_entry->type) {
-	case PROP_TYPE_GUINT32:
-		stub->guint32.get(prop, &val, 0, 1);
+	case PROP_TYPE_GUINT64:
+		stub->guint64.get(prop, &val, 0, 1);
 		break;
 	default:
 		val = 0;
-		g_error("update_spinbutton: incompatible type %u",
-			(guint) map_entry->type);
+		g_error("%s: incompatible type %u", G_STRFUNC, (uint) map_entry->type);
 	}
 
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/1024.0);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float) val / 1024.0);
 
     return FALSE;
 }
@@ -976,8 +963,7 @@ update_byte_size_entry(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1036,8 +1022,7 @@ update_label_date(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1072,8 +1057,7 @@ update_label_duration(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1098,8 +1082,7 @@ update_label_yes_or_no(property_t prop)
     w = lookup_widget(top, map_entry->wid);
     if (w == NULL) {
 		if (GUI_PROPERTY(gui_debug))
-			g_warning("%s - widget not found: [%s]",
-				 G_STRFUNC, map_entry->wid);
+			g_warning("%s: widget not found: [%s]", G_STRFUNC, map_entry->wid);
         return FALSE;
     }
 
@@ -1383,7 +1366,7 @@ hostcache_size_changed(property_t prop)
 		hosts_in_g2hub_catcher_changed(PROP_HOSTS_IN_G2HUB_CATCHER);
 		break;
 	default:
-        g_error("hostcache_size_changed: unknown hostcache property %d", prop);
+        g_error("%s: unknown hostcache property %d", G_STRFUNC, prop);
     }
 
     return FALSE;
@@ -2115,7 +2098,7 @@ min_dup_ratio_changed(property_t prop)
 
     w = lookup_widget(top, map_entry->wid);
     stub->guint32.get(prop, &val, 0, 1);
-    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float)val/100.0);
+    gtk_spin_button_set_value(GTK_SPIN_BUTTON(w), (float) val / 100.0);
 
     return FALSE;
 }
@@ -2183,24 +2166,23 @@ static void
 update_input_bw_display(void)
 {
 	gboolean enabled;
-	guint32 val = 0;
-	guint32 bw;
-	guint32 http = MAX_INT_VAL(guint32);
+	uint64 val = 0;
+	uint64 bw;
+	uint64 http = MAX_INT_VAL(uint64);
 
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
+		gnet_prop_get_guint64_val(PROP_BW_GNET_LIN, &bw);
 		val += bw;
 	}
 	gnet_prop_get_boolean_val(PROP_BW_HTTP_IN_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_HTTP_IN, &http);
+		gnet_prop_get_guint64_val(PROP_BW_HTTP_IN, &http);
 		val += http;
 		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
-		gnet_prop_get_boolean_val
-			(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
+		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_IN_ENABLED, &enabled);
 		if (enabled) {
-			gnet_prop_get_guint32_val(PROP_BW_GNET_LIN, &bw);
+			gnet_prop_get_guint64_val(PROP_BW_GNET_LIN, &bw);
 			val -= bw;
 			if (bw > http) {
 				http = 0;
@@ -2211,7 +2193,7 @@ update_input_bw_display(void)
 	}
 	gnet_prop_get_boolean_val(PROP_BW_GNET_IN_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_GNET_IN, &bw);
+		gnet_prop_get_guint64_val(PROP_BW_GNET_IN, &bw);
 		val += bw;
 	}
 
@@ -2237,23 +2219,23 @@ static void
 update_output_bw_display(void)
 {
 	gboolean enabled;
-	guint32 val = 0;
-	guint32 bw;
-	guint32 http = MAX_INT_VAL(guint32);
+	uint64 val = 0;
+	uint64 bw;
+	uint64 http = MAX_INT_VAL(uint64);
 
 	gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
+		gnet_prop_get_guint64_val(PROP_BW_GNET_LOUT, &bw);
 		val += bw;
 	}
 	gnet_prop_get_boolean_val(PROP_BW_HTTP_OUT_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_HTTP_OUT, &http);
+		gnet_prop_get_guint64_val(PROP_BW_HTTP_OUT, &http);
 		val += http;
 		/* Leaf bandwidth is taken from HTTP traffic, when enabled */
 		gnet_prop_get_boolean_val(PROP_BW_GNET_LEAF_OUT_ENABLED, &enabled);
 		if (enabled) {
-			gnet_prop_get_guint32_val(PROP_BW_GNET_LOUT, &bw);
+			gnet_prop_get_guint64_val(PROP_BW_GNET_LOUT, &bw);
 			val -= bw;
 			if (bw > http) {
 				http = 0;
@@ -2264,13 +2246,13 @@ update_output_bw_display(void)
 	}
 	gnet_prop_get_boolean_val(PROP_BW_GNET_OUT_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_GNET_OUT, &bw);
+		gnet_prop_get_guint64_val(PROP_BW_GNET_OUT, &bw);
 		val += bw;
 	}
 
 	gnet_prop_get_boolean_val(PROP_BW_DHT_OUT_ENABLED, &enabled);
 	if (enabled) {
-		gnet_prop_get_guint32_val(PROP_BW_DHT_OUT, &bw);
+		gnet_prop_get_guint64_val(PROP_BW_DHT_OUT, &bw);
 		val += bw;
 	}
 
@@ -2881,7 +2863,7 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
 {
     prop_map_t *map_entry = (prop_map_t *) user_data;
     const prop_set_stub_t *stub = map_entry->stub;
-    guint32 val = adj->value;
+    uint32 val = adj->value;
 
     /*
      * Special handling for the special cases.
@@ -2889,6 +2871,7 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
     if (stub == gnet_prop_set_stub) {
         /*
          * Bandwidth spinbuttons need the value multiplied by 1024
+		 * Also they are 64-bit values.
          */
         if (
             (map_entry->prop == PROP_BW_HTTP_IN) ||
@@ -2902,7 +2885,9 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
 			(map_entry->prop == PROP_BW_DHT_LOOKUP_OUT) ||
 			(map_entry->prop == PROP_BW_GUESS_OUT)
         ) {
-            val = adj->value * 1024.0;
+            uint64 value = val * 1024;
+			stub->guint64.set(map_entry->prop, &value, 0, 1);
+			return;
         }
 
         /*
@@ -2911,7 +2896,7 @@ spinbutton_adjustment_value_changed(GtkAdjustment *adj, gpointer user_data)
         if (
             (map_entry->prop == PROP_MIN_DUP_RATIO)
         ) {
-            val = adj->value * 100.0;
+            val *= 100;
         }
     }
 
@@ -3009,7 +2994,11 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     gtk_spin_button_get_adjustment(GTK_SPIN_BUTTON(w));
                 gdouble divider = 1.0;
 
-                g_assert(def->type == PROP_TYPE_GUINT32);
+				g_assert_log(
+					PROP_TYPE_GUINT64 == def->type ||
+					PROP_TYPE_GUINT32 == def->type,
+					"%s: property \"%s\" not a uint32 or uint64",
+					G_STRFUNC, def->name);
 
                 /*
                  * Bandwidth spinbuttons need the value divided by
@@ -3043,8 +3032,13 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
                     divider = 100.0;
                 }
 
-                adj->lower = def->data.guint32.min / divider;
-                adj->upper = def->data.guint32.max / divider;
+				if (PROP_TYPE_GUINT64 == def->type) {
+					adj->lower = def->data.guint64.min / divider,
+					adj->upper = def->data.guint64.max / divider;
+				} else {
+					adj->lower = def->data.guint32.min / divider;
+					adj->upper = def->data.guint32.max / divider;
+				}
 
                 gtk_adjustment_changed(adj);
 
@@ -3079,7 +3073,6 @@ settings_gui_config_widget(prop_map_t *map, prop_def_t *def)
         }
         if (GUI_PROPERTY(gui_debug) >= 8)
             printf("\t...all done for %s.\n", def->name);
-
     }
 }
 
@@ -5747,7 +5740,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_UPLOADS_BW_UNIFORM,
+        PROP_UPLOADS_BW_NO_STEALING,
         uploads_early_stalling_changed,
         TRUE,
         "eventbox_early_stall_2",
@@ -5756,7 +5749,7 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_UPLOADS_BW_NO_STEALING,
+        PROP_UPLOADS_BW_UNIFORM,
         uploads_early_stalling_changed,
         TRUE,
         "eventbox_early_stall_3",
@@ -6090,8 +6083,8 @@ settings_gui_get_map_entry(property_t prop)
     ) {
         entry = gnet_init_list[prop-GNET_PROPERTY_MIN];
     } else
-        g_error("settings_gui_get_map_entry: "
-                "property does not belong to known set: %u", prop);
+        g_error("%s: property does not belong to known set: %u",
+			G_STRFUNC, prop);
 
     g_assert(entry != NOT_IN_MAP);
 
@@ -6144,8 +6137,8 @@ settings_gui_init_prop_map(void)
             property_map[n].stub = gnet_prop_set_stub;
             property_map[n].init_list = gnet_init_list;
         } else
-            g_error("settings_init_prop_map: "
-                "property does not belong to known set: %u", prop);
+            g_error("%s: property does not belong to known set: %u",
+				G_STRFUNC, prop);
 
         /*
          * Fill in type
@@ -6169,9 +6162,8 @@ settings_gui_init_prop_map(void)
         if (init_list[idx] == NOT_IN_MAP) {
             init_list[idx] = n;
         } else {
-            g_error("settings_gui_init_prop_map:"
-                " property %s already mapped to %d",
-                def->name, init_list[idx]);
+            g_error("%s: property %s already mapped to %d",
+                G_STRFUNC, def->name, init_list[idx]);
         }
 
         if (property_map[n].cb != IGNORE_CB) {

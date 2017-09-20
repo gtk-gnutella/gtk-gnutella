@@ -296,7 +296,8 @@ launch_and_wait(void)
 	fd = spopenl(progpath, "r", NULL,
 			progpath, "-X", buf, "/dev/null", NULL_PTR);
 	g_assert_log(fd != -1, "%s(): spopenl() failed: %m", G_STRFUNC);
-	read(fd, buf, 1);		/* Wait for child to be up and write back 1 byte */
+	/* Wait for child to be up and write back 1 byte */
+	IGNORE_RESULT(read(fd, buf, 1));
 	tm_now_exact(&start);
 	status = spclose(fd);
 	g_assert_log(0 == status, "%s(): child %s", G_STRFUNC, exit2str(status));
@@ -580,14 +581,14 @@ x_lock_concurrent(const htable_t *xv, const char *lock)
 	x_common_args(xv, &params);
 
 	if (x_wants(xv, "x.nop")) {
-		write(STDOUT_FILENO, &params, 1);
+		IGNORE_RESULT(write(STDOUT_FILENO, &params, 1));
 		return;
 	} else if (x_wants(xv, "x.lock")) {
 		char b;
 
 		emitz("child ready, waiting for parent to unblock%s", "...");
 
-		(void) read(STDIN_FILENO, &b, sizeof b);
+		IGNORE_RESULT(read(STDIN_FILENO, &b, sizeof b));
 
 		fl = filelock_create(lock, &params);
 		b = fl != NULL;
@@ -602,7 +603,7 @@ x_lock_concurrent(const htable_t *xv, const char *lock)
 		x_check(is_a_fifo(STDIN_FILENO));
 
 		/* Wait for parent to close its writing end to unblock us */
-		(void) read(STDIN_FILENO, &b, sizeof b);
+		IGNORE_RESULT(read(STDIN_FILENO, &b, sizeof b));
 
 		exit(b * 100);	/* Only child that got lock will exit with 100 */
 	}
@@ -695,8 +696,6 @@ main(int argc, char *argv[])
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	log_show_pid(TRUE);			/* Since we're launching other processes */
 	stacktrace_init(argv[0], FALSE);
-
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
