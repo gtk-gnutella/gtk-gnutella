@@ -2760,16 +2760,91 @@ crash_vmea_usage(void)
 }
 
 /**
+ * Exit with given status code if we are in a child process, possibly dumping
+ * a core instead if we are in the parent process and they did not disable
+ * core dumps.
+ */
+static void
+crash_exit(int status, bool in_child)
+{
+	if (in_child)
+		_exit(status);
+
+	if (NULL == vars)
+		goto dump_core;			/* Can't know whether it's disabled */
+
+	if (!vars->dumps_core)
+		goto plain_exit;
+
+dump_core:
+	/*
+	 * We don't want to perturb a successful exit status (which will
+	 * prevent auto-restart from the parent monitoring process), yet we
+	 * are in an error path, hence need to dump a core.
+	 *
+	 * In that case (monitored process and successful exit), fork a child
+	 * to dump the core and log the new PID.
+	 */
+
+	if (vars != NULL && vars->supervised && EXIT_SUCCESS == status) {
+		char time_buf[CRASH_TIME_BUFLEN];
+		pid_t pid = crash_fork();
+		DECLARE_STR(6);
+
+		switch (pid) {
+		case 0:
+			/* Child process, who is going to dump the core */
+			{
+				char pid_buf[ULONG_DEC_BUFLEN];
+				const char *pid_str;
+
+				pid_str = PRINT_NUMBER(pid_buf, getpid());
+
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);							/* 0 */
+				print_str(" (WARNING) core from child PID=");	/* 1 */
+				print_str(pid_str);								/* 2 */
+				print_str(" instead\n");						/* 3 */
+				flush_err_str();
+			}
+			break;
+		case -1:
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);								/* 0 */
+			print_str(" (WARNING) cannot fork() for core: ");	/* 1 */
+			print_str(symbolic_errno(errno));					/* 2 */
+			print_str(" (");									/* 3 */
+			print_str(english_strerror(errno));					/* 4 */
+			print_str(")\n");									/* 5 */
+			/* FALL THROUGH */
+		default:
+			/* Parent process, or could not fork() */
+			goto plain_exit;
+		}
+	}
+
+	signal(SIGABRT, SIG_DFL);	/* Not signal_catch() */
+	raise(SIGABRT);
+
+	/* FALL THROUGH */
+plain_exit:
+	_exit(status);
+}
+
+/**
  * Called when we're about to re-exec() ourselves in some way to auto-restart.
+ *
+ * @param caller	routine that called us
+ * @param in_child	TRUE if we are in a child process (parent will dump core)
  */
 static void G_COLD
-crash_restart_notify(const char *caller)
+crash_restart_notify(const char *caller, bool in_child)
 {
 	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	if (NULL == vars) {
 		s_minicrit("%s(): no crash_init() yet!", caller);
-		_exit(EXIT_FAILURE);
+		crash_exit(EXIT_FAILURE, in_child);
 	}
 
 	/*
@@ -2783,7 +2858,7 @@ crash_restart_notify(const char *caller)
 
 	if (atomic_int_get(&crash_exit_started) && !crash_restart_initiated) {
 		s_miniwarn("%s(): already started exiting, forcing.", caller);
-		_exit(EXIT_SUCCESS);
+		crash_exit(EXIT_SUCCESS, in_child);
 	}
 
 	/*
@@ -2793,7 +2868,7 @@ crash_restart_notify(const char *caller)
 
 	if (0 == vars->argc) {
 		s_minicrit("%s(): no crash_setmain() yet!", caller);
-		_exit(EXIT_FAILURE);
+		crash_exit(EXIT_FAILURE, in_child);
 	}
 }
 
@@ -2807,7 +2882,7 @@ crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
 
-	crash_restart_notify(G_STRFUNC);
+	crash_restart_notify(G_STRFUNC, TRUE);
 
 	/*
 	 * If process is supervised and the parent is still here, then exit
@@ -2933,7 +3008,7 @@ crash_try_reexec(void)
 static void G_COLD
 crash_auto_restart(void)
 {
-	crash_restart_notify(G_STRFUNC);
+	crash_restart_notify(G_STRFUNC, FALSE);
 
 	/*
 	 * If process is supervised and the parent is still here, then abort,
