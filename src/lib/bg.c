@@ -410,6 +410,31 @@ bg_task_step_name(bgtask_t *bt)
 }
 
 /**
+ * @return "daemon " or "" depending on whether task is a daemon task.
+ */
+static const char *
+bg_task_daemon_str(const bgtask_t *bt)
+{
+	return (bt->flags & TASK_F_DAEMON) ? "daemon " : "";
+}
+
+/**
+ * Trace task information when debugging.
+ *
+ * @param bt		the task to trace
+ * @param caller	calling routine
+ */
+static void
+bg_task_trace(bgtask_t *bt, const char *caller)
+{
+	if (bg_debug > 9) {
+		s_debug("%s(): BGTASK %s\"%s\" %p step #%d.%d (%s) refcnt=%d",
+			caller, bg_task_daemon_str(bt), bt->name, bt,
+			bt->step, bt->seqno, bg_task_step_name(bt), bt->refcnt);
+	}
+}
+
+/**
  * @return the task's exit code.
  */
 int
@@ -714,6 +739,8 @@ bg_sched_sleep(bgtask_t *bt)
 	bg_sched_check(bs);
 	g_assert(bs->runcount > 0);
 
+	bg_task_trace(bt, G_STRFUNC);
+
 	BG_SCHED_LOCK(bs);
 
 	if (bt->flags & TASK_F_RUNNABLE)
@@ -739,6 +766,8 @@ bg_sched_wakeup(bgtask_t *bt)
 
 	bs = bt->sched;
 	bg_sched_check(bs);
+
+	bg_task_trace(bt, G_STRFUNC);
 
 	BG_SCHED_LOCK(bs);
 
@@ -872,8 +901,8 @@ bg_task_create_internal(
 	BG_SCHED_UNLOCK(bt->sched);
 
 	if (bg_debug > 1) {
-		s_debug("BGTASK created task \"%s\" (%d step%s) in %s scheduler",
-			name, stepcnt, plural(stepcnt), bt->sched->name);
+		s_debug("BGTASK created task \"%s\" %p (%d step%s) in %s scheduler",
+			name, bt, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
 	entropy_harvest_single(PTRLEN(bt));
@@ -963,6 +992,8 @@ bg_task_run(bgtask_t *bt)
 
 	bg_task_check(bt);
 
+	bg_task_trace(bt, G_STRFUNC);
+
 	BG_TASK_LOCK(bt);
 
 	if (bt->flags & TASK_F_SLEEPING) {
@@ -1044,8 +1075,9 @@ bg_daemon_create(
 	BG_SCHED_UNLOCK(bt->sched);
 
 	if (bg_debug > 1) {
-		s_debug("BGTASK created daemon task \"%s\" (%d step%s) in %s scheduler",
-			name, stepcnt, plural(stepcnt), bt->sched->name);
+		s_debug("BGTASK created daemon task \"%s\" %p (%d step%s) "
+			"in %s scheduler",
+			name, bt, stepcnt, plural(stepcnt), bt->sched->name);
 	}
 
 	entropy_harvest_single(PTRLEN(bt));
@@ -1101,6 +1133,11 @@ bg_task_free(void *data, void *unused)
 	g_assert(BGTASK_DEAD_MAGIC == bt->magic);
 
 	(void) unused;
+
+	if (bg_debug > 2) {
+		s_debug("%s(): BGTASK collecting %s\"%s\" %p refcnt=%d",
+			G_STRFUNC, bg_task_daemon_str(bt), bt->name, bt, bt->refcnt);
+	}
 
 	BG_TASK_LOCK(bt);
 
@@ -1182,6 +1219,11 @@ bg_task_finished(bgtask_t *bt)
 {
 	g_assert(bt->refcnt >= 0);
 	g_assert(bt->flags & TASK_F_EXITED);
+
+	if (bg_debug > 2) {
+		s_debug("%s(): BGTASK %s\"%s\" finished, refcnt=%d",
+			G_STRFUNC, bg_task_daemon_str(bt), bt->name, bt->refcnt);
+	}
 
 	/*
 	 * If the task is still referenced, put it back to the sleeping queue.
@@ -1320,7 +1362,7 @@ bg_task_terminate(bgtask_t *bt)
 			/* Only warn if task was not cancelled as part of the shutdown */
 			s_carp("%s(): ignoring left-over %stask %p \"%s\", "
 				"flags=0x%x, refcnt=%d",
-				G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
+				G_STRFUNC, bg_task_daemon_str(bt),
 				bt, bt->name, bt->flags, bt->refcnt);
 		}
 
@@ -1359,8 +1401,8 @@ bg_task_terminate(bgtask_t *bt)
 	 */
 
 	if (bg_debug > 1) {
-		s_debug("BGTASK terminating %p \"%s\"%s, ran %'lu msecs (%s)",
-			bt, bt->name, (bt->flags & TASK_F_DAEMON) ? " daemon" : "",
+		s_debug("BGTASK terminating %s\"%s\" %p, ran %'lu msecs (%s)",
+			bg_task_daemon_str(bt), bt->name, bt,
 			bt->wtime, short_time_ascii(bt->wtime / 1000));
 	}
 
@@ -1375,8 +1417,8 @@ bg_task_terminate(bgtask_t *bt)
 	g_assert_log(bs->runcount != 0,
 		"%s(): terminating unaccounted %stask %p \"%s\" in %s scheduler, "
 		"currently in %s()",
-		G_STRFUNC, (bt->flags & TASK_F_DAEMON) ? "daemon " : "",
-		bt, bt->name, bs->name, bg_task_step_name(bt));
+		G_STRFUNC, bg_task_daemon_str(bt), bt, bt->name,
+		bs->name, bg_task_step_name(bt));
 
 	bs->runcount--;				/* One task less to run */
 	bs->completed++;			/* One more task completed */
@@ -1736,6 +1778,8 @@ bg_task_sleep(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 1);
 
+	bg_task_trace(bt, G_STRFUNC);
+
 	/*
 	 * Because we expect the task to be running, it is only possible to get
 	 * here from the scheduler (i.e the call can only be made "from" the
@@ -1760,18 +1804,20 @@ bg_task_wakeup(bgtask_t *bt)
 	bgsched_t *bs;
 	bool only_requested = FALSE;
 
+	bg_task_check(bt);
+	g_assert(bt->refcnt >= 1);
+
+	bs = bt->sched;
+	bg_sched_check(bs);
+
+	bg_task_trace(bt, G_STRFUNC);
+
 	/*
 	 * To prevent race conditions with bg_sched_sleep() being called from
 	 * the scheduler at the same time someone would want to call this routine,
 	 * we need to hold the lock for the scheduler throughout the execution,
 	 * the leading precondition (about the task being sleeping) included.
 	 */
-
-	bg_task_check(bt);
-	g_assert(bt->refcnt >= 1);
-
-	bs = bt->sched;
-	bg_sched_check(bs);
 
 	BG_TASK_LOCK(bt);		/* Strict lock order: task first, then scheduler */
 	BG_SCHED_LOCK(bs);
@@ -2089,8 +2135,8 @@ bg_sched_timer(void *arg)
 			 */
 
 			if (bg_debug > 1) {
-				s_debug("BGTASK back from setjmp() for \"%s\", val=%d",
-					bt->name, status);
+				s_debug("BGTASK back from setjmp() for %s\"%s\" %p, val=%d",
+					bg_task_daemon_str(bt), bt->name, bt, status);
 			}
 
 			g_assert_log(thread_small_id() == bt->sched->stid,
@@ -2112,7 +2158,7 @@ bg_sched_timer(void *arg)
 			bg_task_switch(bs, NULL, target);
 
 			if (bg_debug > 0 && remain < bt->elapsed) {
-				s_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
+				s_debug("%s: scheduler \"%s\" remain=%'d us, bt->elapsed=%'d us",
 					G_STRFUNC, bs->name, remain, bt->elapsed);
 			}
 			remain -= MIN(remain, bt->elapsed);
@@ -2125,13 +2171,15 @@ bg_sched_timer(void *arg)
 		 */
 
 		if (bg_debug > 2 && 0 == bt->seqno) {
-			s_debug("BGTASK \"%s\" starting step #%d (%s)",
-				bt->name, bt->step, bg_task_step_name(bt));
+			s_debug("BGTASK %s\"%s\" %p starting step #%d (%s)",
+				bg_task_daemon_str(bt), bt->name, bt,
+				bt->step, bg_task_step_name(bt));
 		}
 
 		if (bg_debug > 4) {
-			s_debug("BGTASK \"%s\" running step #%d.%d with %d tick%s",
-				bt->name, bt->step, bt->seqno, ticks, plural(ticks));
+			s_debug("BGTASK %s\"%s\" %p running step #%d.%d with %d tick%s",
+				bg_task_daemon_str(bt), bt->name, bt,
+				bt->step, bt->seqno, ticks, plural(ticks));
 		}
 
 		bg_task_deliver_signals(bt);	/* Send any queued signal */
@@ -2152,8 +2200,8 @@ bg_sched_timer(void *arg)
 			entropy_harvest_time();
 
 			if (bg_debug > 2) {
-				s_debug("BGTASK daemon \"%s\" starting with item %p",
-					bt->name, item);
+				s_debug("BGTASK daemon \"%s\" %p starting with item %p",
+					bt->name, bt, item);
 			}
 
 			(*bd->start_cb)(bt, bt->ucontext, item);
@@ -2167,8 +2215,8 @@ bg_sched_timer(void *arg)
 		bg_task_switch(bs, NULL, target);
 
 		if (bg_debug > 0 && remain < bt->elapsed) {
-			s_debug("%s: \"%s\" remain=%'d us, bt->elapsed=%'d us",
-				G_STRFUNC, bs->name, remain, bt->elapsed);
+			s_debug("%s: \"%s\" %p remain=%'d us, bt->elapsed=%'d us",
+				G_STRFUNC, bs->name, bt, remain, bt->elapsed);
 		}
 
 		remain -= MIN(remain, bt->elapsed);
@@ -2183,9 +2231,9 @@ bg_sched_timer(void *arg)
 		}
 
 		if (bg_debug > 4) {
-			s_debug("BGTASK \"%s\" step #%d.%d ran %d tick%s "
+			s_debug("BGTASK %s\"%s\" %p step #%d.%d ran %d tick%s "
 				"in %d usecs [ret=%d]",
-				bt->name, bt->step, bt->seqno,
+				bg_task_daemon_str(bt), bt->name, bt, bt->step, bt->seqno,
 				bt->ticks_used, plural(bt->ticks_used),
 				bt->elapsed, ret);
 		}
