@@ -1191,10 +1191,15 @@ bg_task_finished(bgtask_t *bt)
 	 * It will be reclaimed via bg_task_unref() calls.
 	 */
 
+	BG_TASK_LOCK(bt);
+
 	if (bt->refcnt > 1) {
 		bg_sched_sleep(bt);
+		BG_TASK_UNLOCK(bt);
 		return;
 	}
+
+	BG_TASK_UNLOCK(bt);
 
 	/*
 	 * Let the user know this task has now ended.
@@ -1247,7 +1252,9 @@ bg_task_ref(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 0);
 
+	BG_TASK_LOCK(bt);
 	bt->refcnt++;
+	BG_TASK_UNLOCK(bt);
 
 	return bt;
 }
@@ -1258,6 +1265,8 @@ bg_task_ref(bgtask_t *bt)
 void
 bg_task_unref(bgtask_t *bt)
 {
+	int nr;
+
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 1);
 
@@ -1277,7 +1286,11 @@ bg_task_unref(bgtask_t *bt)
 	 * we can reclaim it.
 	 */
 
-	if (bt->refcnt-- <= 2) {
+	BG_TASK_LOCK(bt);
+	nr = bt->refcnt--;
+	BG_TASK_UNLOCK(bt);
+
+	if (nr <= 2) {
 		if (bt->flags & TASK_F_EXITED)
 			bg_task_finished(bt);
 	}
