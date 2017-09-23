@@ -3105,6 +3105,12 @@ gui_prop_get_storage(property_t p, gpointer t, size_t l)
 }
 
 const char *
+gui_prop_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string(gui_property, prop);
+}
+
+const char *
 gui_prop_to_string(property_t prop)
 {
     return prop_to_string(gui_property, prop);

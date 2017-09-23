@@ -105,6 +105,7 @@ pslist_t *[=(. func-prefix)=]_get_by_regex(const char *, int *);
 const char *[=(. func-prefix)=]_name(property_t);
 const char *[=(. func-prefix)=]_type_to_string(property_t);
 const char *[=(. func-prefix)=]_to_string(property_t prop);
+const char *[=(. func-prefix)=]_to_typed_string(property_t prop);
 const char *[=(. func-prefix)=]_default_to_string(property_t);
 const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
@@ -750,6 +751,12 @@ gpointer
 [=(. func-prefix)=]_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
+}
+
+const char *
+[=(. func-prefix)=]_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string([=(. prop-set)=], prop);
 }
 
 const char *

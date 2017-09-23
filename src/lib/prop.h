@@ -255,6 +255,7 @@ void prop_free_def(prop_def_t *);
 const char *prop_name(prop_set_t *ps, property_t prop);
 const char *prop_description(prop_set_t *ps, property_t prop);
 const char *prop_to_string(prop_set_t *ps, property_t prop);
+const char *prop_to_typed_string(prop_set_t *ps, property_t prop);
 const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
 prop_type_t prop_type(prop_set_t *ps, property_t prop);

@@ -1379,7 +1379,47 @@ prop_is_internal(prop_set_t *ps, property_t prop)
 }
 
 /**
+ * Pretty formatting of property string, with enclosing type markers.
+ *
+ * @return value from a thread-static buffer.
+ */
+const char *
+prop_to_typed_string(prop_set_t *ps, property_t prop)
+{
+	str_t *s = str_private(G_STRFUNC, 128);
+	const char *before = "", *after = "";
+
+	switch (prop_type(ps, prop)) {
+	case PROP_TYPE_BOOLEAN:
+	case PROP_TYPE_GUINT32:
+	case PROP_TYPE_GUINT64:
+		break;
+	case PROP_TYPE_STORAGE:
+		before = "'"; after = "'";
+		break;
+	case PROP_TYPE_IP:
+		before = "< "; after = " >";
+		break;
+	case PROP_TYPE_TIMESTAMP:
+	case PROP_TYPE_STRING:
+		before = after = "\"";
+		break;
+	case PROP_TYPE_MULTICHOICE:
+		before = "{ "; after = " }";
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	str_printf(s, "%s%s%s", before, prop_to_string(ps, prop), after);
+
+	return str_2c(s);
+}
+
+/**
  * Fetches the value of property as a string.
+ *
+ * @return value from a thread-static buffer.
  */
 const char *
 prop_to_string(prop_set_t *ps, property_t prop)

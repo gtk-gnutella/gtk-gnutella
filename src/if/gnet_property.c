@@ -11565,6 +11565,12 @@ gnet_prop_get_storage(property_t p, gpointer t, size_t l)
 }
 
 const char *
+gnet_prop_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string(gnet_property, prop);
+}
+
+const char *
 gnet_prop_to_string(property_t prop)
 {
     return prop_to_string(gnet_property, prop);

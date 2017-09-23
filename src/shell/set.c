@@ -83,14 +83,14 @@ shell_exec_set(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	if (verbose) {
 		shell_write_linef(sh, REPLY_READY, _("Previous value was %s"),
-			shell_property_to_string(prop));
+			gnet_prop_to_typed_string(prop));
 	}
 
 	gnet_prop_set_from_string(prop,	argv[1]);
 
 	if (verbose) {
 		shell_write_linef(sh, REPLY_READY, _("New value is %s"),
-			shell_property_to_string(prop));
+			gnet_prop_to_typed_string(prop));
 	}
 
 	shell_set_msg(sh, _("Value found and set"));
