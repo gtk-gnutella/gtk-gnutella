@@ -244,6 +244,7 @@ void crash_save_stackframe(int stid, void *stack[], size_t count);
 void crash_post_init(void);
 int crash_coredumps_disabled(void);
 void crash_hook_add(const char *filename, const callback_fn_t hook);
+void crash_dumper_add(const callback_fn_t dumper);
 void crash_set_restart(action_fn_t cb);
 void crash_reexec(void) G_NORETURN;
 void crash_restart(const char *format, ...) G_PRINTF(1, 2);

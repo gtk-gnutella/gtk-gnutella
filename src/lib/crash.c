@@ -185,6 +185,7 @@ struct crash_vars {
 	unsigned lock_line;		/**< Deadlocking line */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
+	eslist_t *dumpers;		/** Crash dumper callbacks to invoke during crash */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	uint8 major;			/**< Major version */
@@ -227,6 +228,9 @@ static enum crash_level crash_current_level;
 
 /**
  * An item in the crash_hooks list.
+ *
+ * This list is filled-in until crash_init() is called and then hooks will
+ * be transferred into a memory-protected hash table, with filenames as keys.
  */
 typedef struct crash_hook_item {
 	const char *filename;		/**< File for which hook is installed */
@@ -235,6 +239,20 @@ typedef struct crash_hook_item {
 } crash_hook_item_t;
 
 static eslist_t crash_hooks = ESLIST_INIT(offsetof(crash_hook_item_t, link));
+
+/**
+ * An item in the crash_dumpers list.
+ *
+ * This list is filled-in until crash_init() is called and then dumpers will
+ * be transferred into a memory-protected array.
+ */
+typedef struct crash_dumper_item {
+	callback_fn_t dumper;		/**< The information dumping routine to run */
+	slink_t link;				/**< Embedded link */
+} crash_dumper_item_t;
+
+static eslist_t crash_dumpers =
+	ESLIST_INIT(offsetof(crash_dumper_item_t, link));
 
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
@@ -739,6 +757,18 @@ crash_run_hook(int fd, callback_fn_t hook)
 }
 
 /**
+ * Eslist iterator to trigger crash dumper hooks.
+ */
+static void G_COLD
+crash_run_dumper(void *data, void *udata)
+{
+	crash_dumper_item_t *ci = data;
+	int fd = pointer_to_int(udata);
+
+	crash_run_hook(fd, ci->dumper);
+}
+
+/**
  * Run crash hooks if we have an identified assertion failure.
  *
  * @param logfile		if non-NULL, redirect messages there as well.
@@ -754,7 +784,8 @@ crash_run_hooks(const char *logfile, int logfd)
 		return;		/* Prevent duplicate run */
 
 	hook = crash_get_hook();
-	if (NULL == hook)
+
+	if (NULL == hook && (NULL == vars || 0 == eslist_count(vars->dumpers)))
 		return;
 
 	/*
@@ -787,6 +818,8 @@ crash_run_hooks(const char *logfile, int logfd)
 
 	if (vars != NULL) {
 		uint8 t = TRUE;
+
+		eslist_foreach(vars->dumpers, crash_run_dumper, int_to_pointer(fd));
 		crash_set_var(hooks_run, t);
 	}
 
@@ -3624,6 +3657,20 @@ crash_hook_install(void *data, void *udata)
 }
 
 /**
+ * Install crash dumpers that were registered before crash_init() was called.
+ *
+ * This is an eslist iterator callback.
+ */
+void G_COLD
+crash_dumper_install(void *data, void *udata)
+{
+	crash_dumper_item_t *ci = data;
+
+	(void) udata;
+	crash_dumper_add(ci->dumper);
+}
+
+/**
  * Installs a simple crash handler.
  *
  * Supported flags are:
@@ -3769,11 +3816,15 @@ crash_init(const char *argv0, const char *progname,
 
 	/*
 	 * This chunk is used to record "on-crash" handlers.
+	 *
+	 * The "hookmem" chunk is used to allocate memory for the hashtable object,
+	 * and also for items in the dumpers list.
 	 */
 
 	{
 		ckhunk_t *hookmem;
 		hash_table_t *ht;
+		eslist_t *esl;
 
 		hookmem = ck_init_not_leaking(compat_pagesize(), 0);
 		crash_set_var(hookmem, hookmem);
@@ -3783,10 +3834,21 @@ crash_init(const char *argv0, const char *progname,
 		crash_set_var(hooks, ht);
 
 		hash_table_readonly(ht);
-		ck_readonly(vars->hookmem);
 
 		eslist_foreach(&crash_hooks, crash_hook_install, NULL);
 		eslist_wfree(&crash_hooks, sizeof(crash_hook_item_t));
+
+		ck_writable(vars->hookmem);	/* Left read-only by crash_hook_install() */
+
+		esl = ck_alloc(hookmem, sizeof *esl);
+		eslist_init(esl, offsetof(crash_dumper_item_t, link));
+		crash_set_var(dumpers, esl);
+
+		eslist_foreach(&crash_dumpers, crash_dumper_install, NULL);
+		eslist_wfree(&crash_dumpers, sizeof(crash_dumper_item_t));
+
+		/* Normally already left read-only by crash_dumper_install() */
+		ck_readonly(vars->hookmem);
 	}
 
 	/*
@@ -4010,6 +4072,44 @@ crash_set_restart(action_fn_t cb)
 }
 
 /**
+ * Record a crash dumper routine.
+ *
+ * Crash dumpers are used to append application contextual information that
+ * could provide some context on why the application is crashing.  For instance,
+ * dynamic configuraiton options, which may alter processing logic in the
+ * application.
+ */
+void
+crash_dumper_add(const callback_fn_t dumper)
+{
+	crash_dumper_item_t *ci;
+
+	g_assert(dumper != NULL);
+
+	/*
+	 * If crash_init() has not been run yet, record the pending hook
+	 * for deferred processing.  The hook will not be installed until
+	 * crash_init() is called, naturally.
+	 */
+
+	if G_UNLIKELY(NULL == vars) {
+		WALLOC0(ci);
+		ci->dumper = dumper;
+		eslist_append(&crash_dumpers, ci);
+	} else {
+		ck_writable(vars->hookmem);		/* Holds list descriptor and objects */
+
+		ci = ck_alloc(vars->hookmem, sizeof *ci);
+		if (NULL == ci)
+			s_error("%s(): too many dumpers registered", G_STRFUNC);
+		ci->dumper = dumper;
+		eslist_append(vars->dumpers, ci);
+
+		ck_readonly(vars->hookmem);
+	}
+}
+
+/**
  * Record a crash hook for a file.
  */
 void
@@ -4049,9 +4149,11 @@ crash_hook_add(const char *filename, const callback_fn_t hook)
 			filename, stacktrace_routine_name(oldhook, FALSE));
 	} else {
 		ck_writable(vars->hookmem);			/* Holds the hash table object */
+
 		hash_table_writable(vars->hooks);
 		hash_table_insert(vars->hooks, filename, func_to_pointer(hook));
 		hash_table_readonly(vars->hooks);
+
 		ck_readonly(vars->hookmem);
 	}
 }
