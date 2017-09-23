@@ -673,27 +673,15 @@ crash_getpid(void)
 }
 
 /**
- * Run crash hooks if we have an identified assertion failure.
- *
- * @param logfile		if non-NULL, redirect messages there as well.
- * @param logfd			if not -1, the opened file where we should log to
+ * Run single hook function, logging action to given fd if not -1.
  */
 static void G_COLD
-crash_run_hooks(const char *logfile, int logfd)
+crash_run_hook(int fd, callback_fn_t hook)
 {
-	callback_fn_t hook;
 	const char *routine;
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(7);
-	int fd = logfd;
-
-	hook = crash_get_hook();
-	if (NULL == hook)
-		return;
-
-	if (vars != NULL && vars->hooks_run)
-		return;		/* Prevent duplicate run */
 
 	/*
 	 * Let them know we're going to run a hook.
@@ -716,32 +704,11 @@ crash_run_hooks(const char *logfile, int logfd)
 	rewind_str(0);
 
 	/*
-	 * If there is a crash filename given, open it for appending and
-	 * configure the stderr logfile with a duplicate logging to that file.
-	 */
-
-	if (logfile != NULL && -1 == logfd) {
-		fd = open(logfile, O_WRONLY | O_APPEND, 0);
-		if (-1 == fd) {
-			crash_time(time_buf, sizeof time_buf);
-			print_str(time_buf);					/* 0 */
-			print_str(" WARNING: cannot reopen ");	/* 1 */
-			print_str(logfile);						/* 2 */
-			print_str(" for appending: ");			/* 3 */
-			print_str(symbolic_errno(errno));		/* 4 */
-			print_str("\n");						/* 5 */
-			flush_str(log_get_fd(LOG_STDERR));
-			rewind_str(0);
-		}
-	}
-
-	/*
 	 * Invoke hook, then log a message indicating we're done.
 	 */
 
 	if (-1 != fd) {
-		log_set_duplicate(LOG_STDERR, fd);
-		print_str("invoking crash hook \"");	/* 0 */
+		print_str("\nInvoking crash hook \"");	/* 0 */
 		print_str(routine);						/* 1 */
 		print_str("\"...\n");					/* 2 */
 		flush_str(fd);
@@ -764,11 +731,59 @@ crash_run_hooks(const char *logfile, int logfd)
 
 	if (fd != -1) {
 		rewind_str(0);
-		print_str("done with hook \"");			/* 0 */
+		print_str("Done with hook \"");			/* 0 */
 		print_str(routine);						/* 1 */
 		print_str("\".\n");						/* 2 */
 		flush_str(fd);
 	}
+}
+
+/**
+ * Run crash hooks if we have an identified assertion failure.
+ *
+ * @param logfile		if non-NULL, redirect messages there as well.
+ * @param logfd			if not -1, the opened file where we should log to
+ */
+static void G_COLD
+crash_run_hooks(const char *logfile, int logfd)
+{
+	callback_fn_t hook;
+	int fd = logfd;
+
+	if (vars != NULL && vars->hooks_run)
+		return;		/* Prevent duplicate run */
+
+	hook = crash_get_hook();
+	if (NULL == hook)
+		return;
+
+	/*
+	 * If there is a crash filename given, open it for appending and
+	 * configure the stderr logfile with a duplicate logging to that file.
+	 */
+
+	if (logfile != NULL && -1 == logfd) {
+		fd = open(logfile, O_WRONLY | O_APPEND, 0);
+		if (-1 == fd) {
+			char time_buf[CRASH_TIME_BUFLEN];
+			DECLARE_STR(6);
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" WARNING: cannot reopen ");	/* 1 */
+			print_str(logfile);						/* 2 */
+			print_str(" for appending: ");			/* 3 */
+			print_str(symbolic_errno(errno));		/* 4 */
+			print_str("\n");						/* 5 */
+			flush_str(log_get_fd(LOG_STDERR));
+		}
+	}
+
+	if (fd != -1)
+		log_set_duplicate(LOG_STDERR, fd);
+
+	if (hook != NULL)
+		crash_run_hook(fd, hook);
 
 	if (vars != NULL) {
 		uint8 t = TRUE;
