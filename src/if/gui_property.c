@@ -2979,6 +2979,15 @@ gui_prop_unlock(property_t p)
 }
 
 /**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+gui_prop_crash_dump(void)
+{
+	prop_crash_dump(gui_property);
+}
+
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */

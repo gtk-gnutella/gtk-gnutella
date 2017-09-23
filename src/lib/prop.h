@@ -37,8 +37,8 @@
 /*
  * Handle types.
  */
-typedef guint32 property_t;
-typedef guint32 property_set_t;
+typedef uint32 property_t;
+typedef uint32 property_set_t;
 
 /**
  * Available property types.
@@ -59,16 +59,16 @@ typedef enum {
 /**
  * Callback signature definition.
  */
-typedef gboolean (*prop_changed_listener_t) (property_t);
+typedef bool (*prop_changed_listener_t) (property_t);
 
 /*
  * Event subscription control call signatures.
  */
 typedef void (*prop_add_prop_changed_listener_t)
-    (property_t, prop_changed_listener_t, gboolean);
+    (property_t, prop_changed_listener_t, bool);
 typedef void (*prop_add_prop_changed_listener_full_t)
-    (property_t, prop_changed_listener_t, gboolean,
-		enum frequency_type, guint32);
+    (property_t, prop_changed_listener_t, bool,
+		enum frequency_type, uint32);
 typedef void (*prop_remove_prop_changed_listener_t)
     (property_t, prop_changed_listener_t);
 
@@ -77,36 +77,36 @@ typedef void (*prop_remove_prop_changed_listener_t)
  */
 typedef struct prop_def_choice {
     char *title;
-    guint32 value;
+    uint32 value;
 } prop_def_choice_t;
 
 
 typedef struct prop_def_guint32 {
-    guint32 *def;		/**< default value */
-    guint32 *value;		/**< current value */
-    guint32 min;		/**< minimal value */
-    guint32 max;		/**< maximal value */
+    uint32 *def;		/**< default value */
+    uint32 *value;		/**< current value */
+    uint32 min;			/**< minimal value */
+    uint32 max;			/**< maximal value */
     prop_def_choice_t *choices;
 } prop_def_guint32_t;
 
 typedef void (*prop_set_guint32_t)
-    (property_t, const guint32 *, size_t, size_t);
-typedef guint32 *(*prop_get_guint32_t)
-    (property_t, guint32 *, size_t, size_t);
+    (property_t, const uint32 *, size_t, size_t);
+typedef uint32 *(*prop_get_guint32_t)
+    (property_t, uint32 *, size_t, size_t);
 
 
 typedef struct prop_def_guint64 {
-    guint64 *def;		/**< default value */
-    guint64 *value;		/**< current value */
-    guint64 min;		/**< minimal value */
-    guint64 max;		/**< maximal value */
+    uint64 *def;		/**< default value */
+    uint64 *value;		/**< current value */
+    uint64 min;			/**< minimal value */
+    uint64 max;			/**< maximal value */
     prop_def_choice_t *choices;
 } prop_def_guint64_t;
 
 typedef void (*prop_set_guint64_t)
-    (property_t, const guint64 *, size_t, size_t);
-typedef guint64 *(*prop_get_guint64_t)
-    (property_t, guint64 *, size_t, size_t);
+    (property_t, const uint64 *, size_t, size_t);
+typedef uint64 *(*prop_get_guint64_t)
+    (property_t, uint64 *, size_t, size_t);
 
 typedef struct prop_def_timestamp {
     time_t *def;	/**< default value */
@@ -148,14 +148,14 @@ typedef char *(*prop_get_string_t)(property_t, char *, size_t);
 
 
 typedef struct prop_def_boolean {
-    gboolean *def;		/**< default value */
-    gboolean *value;	/**< current value */
+    bool *def;		/**< default value */
+    bool *value;	/**< current value */
 } prop_def_boolean_t;
 
 typedef void (*prop_set_boolean_t)
-    (property_t, const gboolean *, size_t, size_t);
-typedef gboolean *(*prop_get_boolean_t)
-    (property_t, gboolean *, size_t, size_t);
+    (property_t, const bool *, size_t, size_t);
+typedef bool *(*prop_get_boolean_t)
+    (property_t, bool *, size_t, size_t);
 
 /**
  * Property definition.
@@ -240,7 +240,7 @@ typedef struct prop_set {
     prop_def_t *props;	/**< Array of prop_def_t, one entry per property */
     htable_t *by_name;	/**< hashtable to quickly look up props by name */
     time_t mtime;		/**< modification time of the associated file */
-	gboolean dirty;		/**< property set needs flushing to disk */
+	bool dirty;			/**< property set needs flushing to disk */
 	spinlock_t lock;	/**< thread-safe access to structure */
     prop_set_get_stub_t get_stub;
 } prop_set_t;
@@ -259,47 +259,49 @@ const char *prop_to_typed_string(prop_set_t *ps, property_t prop);
 const char *prop_type_to_string(prop_set_t *ps, property_t prop);
 const char *prop_default_to_string(prop_set_t *ps, property_t prop);
 prop_type_t prop_type(prop_set_t *ps, property_t prop);
-gboolean prop_is_saved(prop_set_t *ps, property_t prop);
-gboolean prop_is_internal(prop_set_t *ps, property_t prop);
+bool prop_is_saved(prop_set_t *ps, property_t prop);
+bool prop_is_internal(prop_set_t *ps, property_t prop);
 
 void prop_lock(prop_set_t *ps, property_t p);
 void prop_unlock(prop_set_t *ps, property_t p);
 
 void prop_add_prop_changed_listener(
-    prop_set_t *, property_t, prop_changed_listener_t, gboolean);
+    prop_set_t *, property_t, prop_changed_listener_t, bool);
 void prop_add_prop_changed_listener_full(
-    prop_set_t *, property_t, prop_changed_listener_t, gboolean,
-    enum frequency_type, guint32);
+    prop_set_t *, property_t, prop_changed_listener_t, bool,
+    enum frequency_type, uint32);
 void prop_remove_prop_changed_listener(
     prop_set_t *, property_t, prop_changed_listener_t);
+
+void prop_crash_dump(prop_set_t *ps);
 
 void prop_save_to_file_if_dirty(
     prop_set_t *ps, const char *dir, const char *filename);
 void prop_save_to_file(
     prop_set_t *ps, const char *dir, const char *filename);
-gboolean prop_load_from_file(
+bool prop_load_from_file(
     prop_set_t *ps, const char *dir, const char *filename);
 
 /*
  * get/set functions
  */
 void prop_set_boolean(
-    prop_set_t *, property_t, const gboolean *, size_t, size_t);
-gboolean *prop_get_boolean(
-    prop_set_t *, property_t, gboolean *, size_t, size_t);
+    prop_set_t *, property_t, const bool *, size_t, size_t);
+bool *prop_get_boolean(
+    prop_set_t *, property_t, bool *, size_t, size_t);
 
 void prop_set_string(prop_set_t *, property_t, const char *);
 char *prop_get_string(prop_set_t *, property_t, char *, size_t);
 
 void prop_set_guint32(
-    prop_set_t *, property_t, const guint32 *, size_t, size_t);
-guint32 *prop_get_guint32(
-    prop_set_t *, property_t, guint32 *, size_t, size_t);
+    prop_set_t *, property_t, const uint32 *, size_t, size_t);
+uint32 *prop_get_guint32(
+    prop_set_t *, property_t, uint32 *, size_t, size_t);
 
 void prop_set_guint64(
-    prop_set_t *, property_t, const guint64 *, size_t, size_t);
-guint64 *prop_get_guint64(
-    prop_set_t *, property_t, guint64 *, size_t, size_t);
+    prop_set_t *, property_t, const uint64 *, size_t, size_t);
+uint64 *prop_get_guint64(
+    prop_set_t *, property_t, uint64 *, size_t, size_t);
 
 void prop_set_timestamp(
     prop_set_t *, property_t, const time_t *, size_t, size_t);
@@ -318,12 +320,12 @@ property_t prop_get_by_name(prop_set_t *ps, const char *name);
 struct pslist *prop_get_by_regex(prop_set_t *ps,
 	const char *pattern, int *error);
 void prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
-	gboolean saved_only);
+	bool saved_only);
 
 /*
  * Checks if a property is part of a property set.
  */
-static inline gboolean
+static inline bool
 prop_in_range(const prop_set_t *ps, property_t prop)
 {
 	return prop >= ps->offset && prop < ps->size + ps->offset;
@@ -335,7 +337,7 @@ get_prop(prop_set_t *ps, property_t prop, const char *loc)
 	if (!ps)
 		g_error("%s: ps != NULL failed", loc);
 	if (!prop_in_range(ps, prop))
-		g_error("%s: unknown property %u", loc, (guint) prop);
+		g_error("%s: unknown property %u", loc, (uint) prop);
 	return &ps->props[prop - ps->offset];
 }
 

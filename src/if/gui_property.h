@@ -187,6 +187,8 @@ gboolean gui_prop_is_internal(property_t);
 prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
 
+void gui_prop_crash_dump(void);
+
 void gui_prop_lock(property_t);
 void gui_prop_unlock(property_t);
 

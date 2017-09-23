@@ -548,6 +548,8 @@ gboolean gnet_prop_is_internal(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
 
+void gnet_prop_crash_dump(void);
+
 void gnet_prop_lock(property_t);
 void gnet_prop_unlock(property_t);
 

@@ -113,6 +113,8 @@ gboolean [=(. func-prefix)=]_is_internal(property_t);
 prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
+void [=(. func-prefix)=]_crash_dump(void);
+
 void [=(. func-prefix)=]_lock(property_t);
 void [=(. func-prefix)=]_unlock(property_t);
 
@@ -625,6 +627,15 @@ void
 [=(. func-prefix)=]_unlock(property_t p)
 {
     prop_unlock([=(. prop-set)=], p);
+}
+
+/**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+[=(. func-prefix)=]_crash_dump(void)
+{
+	prop_crash_dump([=(. prop-set)=]);
 }
 
 /**
