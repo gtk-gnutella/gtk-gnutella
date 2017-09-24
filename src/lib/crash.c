@@ -4710,7 +4710,8 @@ crash_dump_stacks(int fd)
 	bool f;
 	struct crash_stack trace;
 
-	s_line_writef(fd, "Attempting to dump stacks for all the known threads...");
+	s_line_writef(fd,
+		"\nAttempting to dump stacks for all the known threads...");
 
 	/*
 	 * We first try to get stack and dump them in plain form, which is
