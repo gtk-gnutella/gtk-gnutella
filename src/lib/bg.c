@@ -117,6 +117,7 @@
 #include "pslist.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"		/* For short_time_ascii() and plural() */
 #include "tm.h"
 #include "walloc.h"
@@ -419,18 +420,88 @@ bg_task_daemon_str(const bgtask_t *bt)
 }
 
 /**
+ * @return list of operating flags turned on for given task.
+ */
+static const char *
+bg_task_operating_flags_str(const bgtask_t *bt)
+{
+	const struct {
+		int mask;
+		const char c;
+	} flags[] = {
+		{ TASK_F_CANCELLING,	'C' },
+		{ TASK_F_DAEMON,		'D' },
+		{ TASK_F_RUNNABLE,		'R' },
+		{ TASK_F_RUNNING,		'r' },
+		{ TASK_F_SLEEPING,		's' },
+		{ TASK_F_ZOMBIE,		'Z' },
+		{ TASK_F_SIGNAL,		'S' },
+		{ TASK_F_EXITED,		'X' },
+	};
+	str_t *s = str_private(G_STRFUNC, 1 + N_ITEMS(flags));
+	uint i;
+
+	str_reset(s);
+
+	for (i = 0; i < N_ITEMS(flags); i++) {
+		if (bt->flags & flags[i].mask)
+			str_putc(s, flags[i].c);
+		else
+			str_putc(s, '-');
+	}
+
+	return str_2c(s);
+}
+
+/**
+ * @return list of user flags turned on for given task.
+ */
+static const char *
+bg_task_user_flags_str(const bgtask_t *bt)
+{
+	const struct {
+		int mask;
+		const char c;
+	} flags[] = {
+		{ TASK_UF_CANCELLED,	'C' },
+		{ TASK_UF_NOTICK,		'N' },
+		{ TASK_UF_SLEEP_REQ,	'S' },
+		{ TASK_UF_SLEEPING,		's' },
+	};
+	str_t *s = str_private(G_STRFUNC, 1 + N_ITEMS(flags));
+	uint i;
+
+	str_reset(s);
+
+	for (i = 0; i < N_ITEMS(flags); i++) {
+		if (bt->uflags & flags[i].mask)
+			str_putc(s, flags[i].c);
+		else
+			str_putc(s, '-');
+	}
+
+	return str_2c(s);
+}
+
+/**
  * Trace task information when debugging.
  *
  * @param bt		the task to trace
  * @param caller	calling routine
+ * @param external	whether this is callable from clients
  */
 static void
-bg_task_trace(bgtask_t *bt, const char *caller)
+bg_task_trace(bgtask_t *bt, const char *caller, bool external)
 {
 	if (bg_debug > 9) {
-		s_debug("%s(): BGTASK %s\"%s\" %p step #%d.%d (%s) refcnt=%d",
+		s_debug("%s(): BGTASK %s\"%s\" %p step #%d.%d (%s) o=%s u=%s ref=%d",
 			caller, bg_task_daemon_str(bt), bt->name, bt,
-			bt->step, bt->seqno, bg_task_step_name(bt), bt->refcnt);
+			bt->step, bt->seqno, bg_task_step_name(bt),
+			bg_task_operating_flags_str(bt), bg_task_user_flags_str(bt),
+			bt->refcnt);
+
+		if (external && bg_debug > 12)
+			s_stacktrace(TRUE, 1);	/* Skip this routine (1 level) in stack */
 	}
 }
 
@@ -739,7 +810,7 @@ bg_sched_sleep(bgtask_t *bt)
 	bg_sched_check(bs);
 	g_assert(bs->runcount > 0);
 
-	bg_task_trace(bt, G_STRFUNC);
+	bg_task_trace(bt, G_STRFUNC, FALSE);
 
 	BG_SCHED_LOCK(bs);
 
@@ -767,7 +838,7 @@ bg_sched_wakeup(bgtask_t *bt)
 	bs = bt->sched;
 	bg_sched_check(bs);
 
-	bg_task_trace(bt, G_STRFUNC);
+	bg_task_trace(bt, G_STRFUNC, FALSE);
 
 	BG_SCHED_LOCK(bs);
 
@@ -795,6 +866,9 @@ bg_task_switch(bgsched_t *bs, bgtask_t *bt, int target)
 	bgtask_t *old;
 
 	bg_sched_check(bs);
+
+	if (bt != NULL)
+		bg_task_trace(bt, G_STRFUNC, FALSE);
 
 	BG_SCHED_LOCK(bs);
 
@@ -992,7 +1066,7 @@ bg_task_run(bgtask_t *bt)
 
 	bg_task_check(bt);
 
-	bg_task_trace(bt, G_STRFUNC);
+	bg_task_trace(bt, G_STRFUNC, TRUE);
 
 	BG_TASK_LOCK(bt);
 
@@ -1294,6 +1368,8 @@ bg_task_ref(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 0);
 
+	bg_task_trace(bt, G_STRFUNC, TRUE);
+
 	BG_TASK_LOCK(bt);
 	bt->refcnt++;
 	BG_TASK_UNLOCK(bt);
@@ -1311,6 +1387,8 @@ bg_task_unref(bgtask_t *bt)
 
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 1);
+
+	bg_task_trace(bt, G_STRFUNC, TRUE);
 
 	/*
 	 * If there is only one reference to the task, removing the last reference
@@ -1458,6 +1536,8 @@ void
 bg_task_exit(bgtask_t *bt, int code)
 {
 	bg_task_is_running(bt, G_STRFUNC);
+
+	bg_task_trace(bt, G_STRFUNC, TRUE);
 
 	bt->exitcode = code;
 
@@ -1640,6 +1720,8 @@ bg_task_cancel(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 1);
 
+	bg_task_trace(bt, G_STRFUNC, TRUE);
+
 	if (bt->flags & (TASK_F_EXITED | TASK_F_CANCELLING))	/* Already done */
 		return;
 
@@ -1778,7 +1860,7 @@ bg_task_sleep(bgtask_t *bt)
 	bg_task_check(bt);
 	g_assert(bt->refcnt >= 1);
 
-	bg_task_trace(bt, G_STRFUNC);
+	bg_task_trace(bt, G_STRFUNC, TRUE);
 
 	/*
 	 * Because we expect the task to be running, it is only possible to get
@@ -1810,7 +1892,7 @@ bg_task_wakeup(bgtask_t *bt)
 	bs = bt->sched;
 	bg_sched_check(bs);
 
-	bg_task_trace(bt, G_STRFUNC);
+	bg_task_trace(bt, G_STRFUNC, TRUE);
 
 	/*
 	 * To prevent race conditions with bg_sched_sleep() being called from
@@ -2067,6 +2149,8 @@ bg_sched_timer(void *arg)
 		bt = bg_sched_pick(bs);
 		g_assert(bt != NULL);		/* runcount > 0 => there is a task */
 		g_assert(bt->flags & TASK_F_RUNNABLE);
+
+		bg_task_trace(bt, G_STRFUNC, FALSE);
 
 		BG_TASK_LOCK(bt);
 		bt->uflags &= ~TASK_UF_NOTICK;	/* We'll want tick cost update */
