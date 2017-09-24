@@ -540,12 +540,15 @@ pslist_t *gnet_prop_get_by_regex(const char *, int *);
 const char *gnet_prop_name(property_t);
 const char *gnet_prop_type_to_string(property_t);
 const char *gnet_prop_to_string(property_t prop);
+const char *gnet_prop_to_typed_string(property_t prop);
 const char *gnet_prop_default_to_string(property_t);
 const char *gnet_prop_description(property_t);
 gboolean gnet_prop_is_saved(property_t);
 gboolean gnet_prop_is_internal(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
+
+void gnet_prop_crash_dump(void);
 
 void gnet_prop_lock(property_t);
 void gnet_prop_unlock(property_t);
