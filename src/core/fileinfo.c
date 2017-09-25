@@ -3109,7 +3109,30 @@ file_info_retrieve(void)
 
 			g_assert(file_info_check_chunklist(fi, TRUE));
 
-			file_info_merge_adjacent(fi); /* Recalculates also fi->done */
+			/*
+			 * If DONE does not match the actual size described by the CHNK
+			 * set, them perhaps the fileinfo database was corrupted?
+			 */
+
+			{
+				filesize_t done = fi->done;
+
+				file_info_merge_adjacent(fi); /* Recalculates also fi->done */
+
+				/*
+				 * If DONE was missing, fi->done will still be 0.
+				 * In that case, we don't really care since we'll have
+				 * recomputed fi->done in the call above.
+				 */
+
+				if (done != 0 && fi->done != done) {
+					g_warning("inconstistent DONE info for \"%s\": "
+						"read %s, computed %s",
+						fi->pathname, filesize_to_string(done),
+						filesize_to_string2(fi->done));
+					reload_chunks = TRUE;	/* Will try to grab from trailer */
+				}
+			}
 
 			/*
 			 * If `old_filename' is not NULL, then we need to rename
