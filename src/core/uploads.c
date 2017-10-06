@@ -3594,8 +3594,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == NULL) {
-		upload_error_not_found(u, uri);
-		return -1;
+		goto not_found;
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 		shared_file_unref(&sf);
