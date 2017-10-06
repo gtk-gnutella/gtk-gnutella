@@ -3609,7 +3609,16 @@ const char *
 shared_file_path(const shared_file_t *sf)
 {
 	shared_file_check(sf);
-	return sf->file_path;
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily
+	 * and would become inaccurate when the file is renamed / moved after
+	 * being completed.
+	 */
+
+	return NULL == sf->fi ? sf->file_path : sf->fi->pathname;
 }
 
 /**
