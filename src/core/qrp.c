@@ -927,8 +927,9 @@ qrt_step_compress(struct bgtask *h, void *u, int ticks)
 		 */
 
 		if (qrp_debugging(1)) {
-			g_debug("QRP %d-bit patch %p: len=%d, compressed=%d (ratio %.2f%%)",
-				ctx->rp->entry_bits, ctx->rp, ctx->rp->len,
+			g_debug(
+				"QRP %s %p: len=%d, compressed=%d (ratio %.2f%%)",
+				qrp_patch_to_string(ctx->rp), ctx->rp, ctx->rp->len,
 				zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
@@ -3240,6 +3241,12 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	qup->compress = NULL;
 	qup->ready = TRUE;
 
+	if (qrp_debugging(2)) {
+		g_debug("%s(): QRP patch %p compression done for %s, status=%s",
+			G_STRFUNC, qup->patch, node_infostr(qup->node),
+			bgstatus_to_string(status));
+	}
+
 	if G_UNLIKELY(BGS_KILLED == status || BGS_CANCELLED == status)
 		goto error;
 	else if G_UNLIKELY(status == BGS_ERROR) {	/* Error during processing */
@@ -3521,11 +3528,19 @@ qrt_update_create(gnutella_node_t *n, struct routing_table *query_table)
 		}
 
 		if (qup->patch != NULL) {
+			if (qrp_debugging(1)) {
+				g_debug("QRP compressing %s %p for %s",
+					qrp_patch_to_string(qup->patch), qup->patch,
+					node_infostr(n));
+			}
 			qup->compress =
 				qrt_patch_compress(qup->patch, NULL, qrt_compressed, qup, NULL);
 			if (qup->compress != NULL)
 				bg_task_run(qup->compress);
 		} else {
+			if (qrp_debugging(1)) {
+				g_debug("QRP no patch necessary for %s", node_infostr(n));
+			}
 			qup->empty_patch = TRUE;
 			qup->ready = TRUE;
 		}
