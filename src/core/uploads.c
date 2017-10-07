@@ -3149,11 +3149,18 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 		return TRUE;
 
 	fi = shared_file_fileinfo(sf);
-	if (stat(shared_file_path(sf), &sb))
-		goto failure;
 
-	if (!S_ISREG(sb.st_mode))
+	if (-1 == stat(shared_file_path(sf), &sb)) {
+		g_warning("%s(): cannot stat() shared file \"%s\": %m",
+			G_STRFUNC, shared_file_path(sf));
 		goto failure;
+	}
+
+	if (!S_ISREG(sb.st_mode)) {
+		g_warning("%s(): shared file \"%s\" is no longer a regular file",
+			G_STRFUNC, shared_file_path(sf));
+		goto failure;
+	}
 
 	if (delta_time(shared_file_modification_time(sf), sb.st_mtime)) {
 		shared_file_set_modification_time(sf, sb.st_mtime);
@@ -3179,7 +3186,7 @@ failure:
 	 *		--RAM, 2005-08-04
 	 */
 
-	if (fi) {
+	if (fi != NULL) {
 		struct dl_file_info *current_fi = u->file_info;
 		/*
 		 * Ensure we do NOT kill the current upload through upload_stop_all().
