@@ -1687,7 +1687,7 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 
 	if (qrp_debugging(1)) {
 		g_debug("QRP adding file \"%s\"%s", shared_file_name_canonic(sf),
-			shared_file_needs_aliasing(sf) ?  "" : " (with aliases)");
+			shared_file_needs_aliasing(sf) ?  " (with aliases)" : "");
 	}
 
 	/*
