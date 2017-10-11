@@ -3259,25 +3259,22 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 		goto error;
 
 	/*
-	 * In this routine, we reference the `routing_patch4' global variable
-	 * directly, because there can be only one default routing patch,
-	 * whether we are an UP or a leaf, and it is the default patch that
-	 * can be sent against a NULL table to bring them up-to-date wrt
-	 * the `routing_table' table, our QRT (computed against local files
-	 * only when we're a leaf, or the result of the merging of our local
-	 * table for the local files and all the QRT of our leaves when we're
-	 * running as an UP).
+	 * The default routing patch is what can be sent against a NULL table
+	 * to bring the remote node up-to-date wrt our `routine_table' table.
+	 * It is computed against local files only when we're a leaf, or the
+	 * result of the merging of our local table for the local files and all
+	 * the QRT of our leaves when we're running as an UP.
 	 */
+
+	rp = qrt_default_patch(qup->node);
+
+	g_assert(rp != NULL || qup->patch != NULL);
 
 	/*
 	 * If the computed patch for this connection is larger than the
 	 * size of the default patch (against an empty table), send that
 	 * one instead.  We'll need an extra RESET though.
 	 */
-
-	rp = qrt_default_patch(qup->node);
-
-	g_assert(rp != NULL || qup->patch != NULL);
 
 	if G_UNLIKELY(rp != NULL && qup->patch->len > rp->len) {
 		if (qrp_debugging(0)) {
