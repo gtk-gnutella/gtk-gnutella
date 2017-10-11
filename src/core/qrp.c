@@ -825,13 +825,18 @@ qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
 				*pp++ = v;
 			} else {
 				*pp++ = reverse_byte(v);
+				changed = TRUE;
 			}
 		}
 	} else {
 		for (i = 0, bytes = new->slots / 8; i < bytes; i++) {
 			uint8 obyte = op ? *op++ : 0x0;	/* Nothing */
+			uint8 v = obyte ^ *np++;
 
-			*pp++ = obyte ^ *np++;
+			*pp++ = v;
+
+			if G_UNLIKELY(v != 0)
+				changed = TRUE;
 		}
 	}
 
