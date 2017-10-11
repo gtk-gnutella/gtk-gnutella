@@ -3759,12 +3759,10 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	g_assert(pathname);
 	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_SEEDING));
-
-	if (!fi->hashed)
-		return;
+	g_return_if_fail(fi->hashed);
 
 	xfi = hikset_lookup(fi_by_outname, fi->pathname);
-	if (xfi) {
+	if (xfi != NULL) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
 		hikset_remove(fi_by_outname, fi->pathname);
@@ -3775,18 +3773,43 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	g_assert(NULL == hikset_lookup(fi_by_outname, fi->pathname));
 	hikset_insert_key(fi_by_outname, &fi->pathname);
 
-	if (fi->sf) {
+	if (fi->sf != NULL) {
 		filestat_t sb;
+		time_t mtime = 0;
 
 		shared_file_set_path(fi->sf, fi->pathname);
-		if (
-			stat(fi->pathname, &sb) ||
-			fi->size + (fileoffset_t)0 != sb.st_size + (filesize_t)0
-		) {
-			sb.st_mtime = 0;
+		if (-1 == stat(fi->pathname, &sb)) {
+			g_warning("%s(): cannot stat() shared file \"%s\": %m",
+				G_STRFUNC, fi->pathname);
+		} else if (fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0) {
+			g_warning("%s(): wrong size for shared file \"%s\": "
+				"expected %s, got %s",
+				G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
+				filesize_to_string2(sb.st_size));
+		} else {
+			mtime = sb.st_mtime;
 		}
-		shared_file_set_modification_time(fi->sf, sb.st_mtime);
+
+		/*
+		 * In case they allow PFS, the completed file will be seeded and
+		 * we must make sure its modification time, as returned by
+		 * shared_file_modification_time(), will be accurate, now that the
+		 * file has been moved to its new location and its fileinfo trailer
+		 * was stripped.
+		 *
+		 * Among other things, this is important for upload_file_present()
+		 * to detect whether the completed file was modified since it was
+		 * moved, to be able to stop seeding it.
+		 *
+		 * We also set fi->modified because shared_file_modification_time()
+		 * will transparently return that value for PFS.
+		 * 		--RAM, 2017-10-11
+		 */
+
+		shared_file_set_modification_time(fi->sf, mtime);	/* Sets sf->mtime */
+		fi->modified = mtime;
 	}
+
 	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
 	fileinfo_dirty = TRUE;
