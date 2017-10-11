@@ -2385,10 +2385,10 @@ bg_sched_timer(void *arg)
 	if (0 != eslist_count(&bs->dead_tasks))
 		bg_reclaim_dead(bs);		/* Free dead tasks */
 
-	if (bg_debug > 3 && MAX_LIFE != remain) {
+	if (bg_debug > 3 && bs->max_life != UNSIGNED(remain)) {
 		s_debug("BGTASK \"%s\" runable=%d, ran for %lu usecs, "
 			"scheduling %u task%s",
-			bs->name, bs->runcount, MAX_LIFE - remain,
+			bs->name, bs->runcount, bs->max_life - MAX(0, remain),
 			schedules, plural(schedules));
 	}
 
