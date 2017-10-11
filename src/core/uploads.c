@@ -3172,6 +3172,8 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 			 * If the download is finished, we must stop seeding as soon
 			 * as the file is modified.
 			 */
+			g_warning("%s(): shared file \"%s\" was modified since completion",
+				G_STRFUNC, shared_file_path(sf));
 			goto failure;
 		}
 	}
