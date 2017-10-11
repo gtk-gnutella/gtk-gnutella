@@ -1936,6 +1936,8 @@ bg_task_wakeup(bgtask_t *bt)
 	if (!only_requested)
 		bg_sched_wakeup(bt);
 
+	bt->uflags &= ~TASK_UF_SLEEPING;	/* No longer sleeping */
+
 	BG_SCHED_UNLOCK(bs);
 	BG_TASK_UNLOCK(bt);
 }
