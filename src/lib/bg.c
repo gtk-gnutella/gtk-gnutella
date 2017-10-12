@@ -1753,8 +1753,8 @@ bg_task_cancel(bgtask_t *bt)
 	if (thread_small_id() != bs->stid) {
 		BG_TASK_UNLOCK(bt);
 		if (bg_debug > 1)
-			s_debug("BGTASK recorded foreign cancel for \"%s\", "
-				"currently in %s()", bt->name, bg_task_step_name(bt));
+			s_debug("BGTASK recorded foreign cancel for \"%s\" %p, "
+				"currently in %s()", bt->name, bt, bg_task_step_name(bt));
 		return;
 	}
 
@@ -1768,8 +1768,8 @@ bg_task_cancel(bgtask_t *bt)
 	if G_UNLIKELY(0 != thread_sighandler_level()) {
 		BG_TASK_UNLOCK(bt);
 		if (bg_debug > 1) {
-			s_debug("BGTASK recorded local cancel for \"%s\", "
-				"currently in %s()", bt->name, bg_task_step_name(bt));
+			s_debug("BGTASK recorded local cancel for \"%s\" %p, "
+				"currently in %s()", bt->name, bt, bg_task_step_name(bt));
 		}
 		return;
 	}
@@ -1784,8 +1784,8 @@ bg_task_cancel(bgtask_t *bt)
 	BG_TASK_UNLOCK(bt);
 
 	if (bg_debug > 1) {
-		s_debug("BGTASK cancelling \"%s\", currently in %s()",
-			bt->name, bg_task_step_name(bt));
+		s_debug("BGTASK cancelling \"%s\" %p, currently in %s()",
+			bt->name, bt, bg_task_step_name(bt));
 	}
 
 	/*
