@@ -2103,6 +2103,26 @@ bg_task_cancel_test(bgtask_t *bt)
 }
 
 /**
+ * Assert that scheduling count is consistent.
+ *
+ * This can only be ensured when no other task is running, i.e. we are
+ * certain we did not start to enter the scheduling loop within bg_sched_timer()
+ * where we already picked-up a task from the run queue.
+ */
+static void
+bg_assert_consistent_runcount(bgsched_t *bs,
+	const char *caller, const char *stage)
+{
+	BG_SCHED_LOCK(bs);
+
+	g_assert_log(eslist_count(&bs->runq) == UNSIGNED(bs->runcount),
+		"%s(): at %s, runq=%zu, runcount=%d",
+		caller, stage, eslist_count(&bs->runq), bs->runcount);
+
+	BG_SCHED_UNLOCK(bs);
+}
+
+/**
  * Main task scheduling timer.
  */
 static bool
@@ -2122,6 +2142,7 @@ bg_sched_timer(void *arg)
 	bg_sched_check(bs);
 	g_assert(NULL == bs->current_task);
 	g_assert(bs->runcount >= 0);
+	bg_assert_consistent_runcount(bs, G_STRFUNC, "entry");
 
 	stid = thread_small_id();
 	if G_UNLIKELY(-1U == bs->stid)
@@ -2148,8 +2169,11 @@ bg_sched_timer(void *arg)
 		target = bs->max_life / bs->runcount;
 		target = MIN(target, remain);
 
+		bg_assert_consistent_runcount(bs, G_STRFUNC, "picking");
+
 		bt = bg_sched_pick(bs);
-		g_assert(bt != NULL);		/* runcount > 0 => there is a task */
+
+		bg_task_check(bt);			/* runcount > 0 => there is a task */
 		g_assert(bt->flags & TASK_F_RUNNABLE);
 
 		bg_task_trace(bt, G_STRFUNC, FALSE);
@@ -2412,6 +2436,8 @@ bg_sched_timer(void *arg)
 
 		entropy_harvest_single(VARLEN(us));
 	}
+
+	bg_assert_consistent_runcount(bs, G_STRFUNC, "exit");
 
 	return TRUE;		/* Keep calling */
 }
