@@ -1626,8 +1626,17 @@ file_info_shared_sha1(const struct sha1 *sha1)
 	fileinfo_t *fi;
 
 	fi = hikset_lookup(fi_by_sha1, sha1);
-	if (fi) {
+	if (fi != NULL) {
 		file_info_check(fi);
+
+		/*
+		 * If we marked the fileinfo with FI_F_NOSHARE, we don't want to
+		 * be able to share that file again.  Probably because it was a
+		 * partial file that got removed from the filesystem.
+		 */
+
+		if (FI_F_NOSHARE & fi->flags)
+			goto not_shared;
 
 		/*
 		 * Completed file (with SHA-1 verified) are always shared, regardless
@@ -1644,6 +1653,10 @@ file_info_shared_sha1(const struct sha1 *sha1)
 		if (fi->done >= GNET_PROPERTY(pfsp_minimum_filesize))
 			goto share;
 	}
+
+	/* FALL THROUGH */
+
+not_shared:
 	return NULL;
 
 share:
@@ -2639,7 +2652,20 @@ file_info_upload_stop(fileinfo_t *fi, const char *reason)
 		upload_stop_all(fi, reason);
 		share_remove_partial(fi->sf);
 		shared_file_fileinfo_unref(&fi->sf);
-		fi->flags &= ~FI_F_SEEDING;
+
+		/*
+		 * If the file was beeing seeded, and we have to call this routine,
+		 * it means we are no longer able to share that completed file.
+		 * Probably because it was removed from the disk, or it was changed
+		 * since the time it was marked completed.
+		 *		--RAM, 2017-10-13
+		 */
+
+		if (FI_F_SEEDING & fi->flags) {
+			fi->flags &= ~FI_F_SEEDING;
+			fi->flags |= FI_F_NOSHARE;	/* Don't share this file again */
+		}
+
 		file_info_changed(fi);
 		fileinfo_dirty = TRUE;
 	}

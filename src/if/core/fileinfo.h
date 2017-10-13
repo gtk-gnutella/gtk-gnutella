@@ -41,6 +41,7 @@ struct download;
  */
 
 enum {
+	FI_F_NOSHARE		= 1 << 14,	/**< Explicitly refuse any sharing of file */
 	FI_F_DHT_LOOKING	= 1 << 13,	/**< Running DHT lookup for more sources */
 	FI_F_DHT_LOOKUP		= 1 << 12,	/**< Pending DHT lookup for more sources */
 	FI_F_MOVING			= 1 << 11,	/**< Moving file (or about to) */
