@@ -1166,6 +1166,7 @@ shared_file_fileinfo_unref(shared_file_t **sf_ptr)
 	if (NULL != (sf = *sf_ptr)) {
 		g_assert(sf->flags & SHARE_F_FILEINFO);
 		sf->flags &= ~SHARE_F_FILEINFO;		/* Clear bit before freeing */
+		sf->fi = NULL;						/* Fileinfo could be freed soon! */
 		shared_file_unref(sf_ptr);
 	}
 }
