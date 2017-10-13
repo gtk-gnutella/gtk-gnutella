@@ -6441,12 +6441,13 @@ file_info_add_source(fileinfo_t *fi, struct download *d)
 
 /**
  * Removing one source reference from the fileinfo.
- * When no sources reference the fileinfo structure, free it if `discard'
- * is TRUE, or if the fileinfo has been marked with FI_F_DISCARD.
+ * When no sources reference the fileinfo structure, free it when
+ * the fileinfo has been marked with FI_F_DISCARD.
+ *
  * This replaces file_info_free()
  */
 void
-file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
+file_info_remove_source(fileinfo_t *fi, struct download *d)
 {
 	file_info_check(fi);
 	g_assert(fi == d->file_info);
@@ -6475,19 +6476,14 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 	d->file_info = NULL;
 
 	/*
-	 * We don't free the structure when `discard' is FALSE: keeping the
-	 * fileinfo around means it's still in the hash tables, and therefore
-	 * that its SHA1, if any, is still around to help us spot duplicates.
-	 *
-	 * At times however, we really want to discard an unreferenced fileinfo
-	 * as soon as this happens.
+	 * We don't free the structure unless FI_F_DISCARD is set.
 	 */
 
 	if (0 == fi->refcount) {
 		g_assert(GNET_PROPERTY(fi_with_source_count) > 0);
 		gnet_prop_decr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 
-		if (discard || (fi->flags & FI_F_DISCARD)) {
+		if (fi->flags & FI_F_DISCARD) {
 			file_info_hash_remove(fi);
 			fi_free(fi);
 		}
