@@ -1049,10 +1049,12 @@ fi_free(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(!fi->hashed);
 	g_assert(NULL == fi->sf);
-
 	g_assert(file_info_check_chunklist(fi, TRUE));
+
 	file_info_chunklist_free(fi);
 	file_info_available_free(fi);
+
+	file_info_upload_stop(fi, N_("File info being freed"));
 
 	if (fi->alias != NULL) {
 		pslist_t *sl;
