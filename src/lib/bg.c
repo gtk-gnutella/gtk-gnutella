@@ -816,7 +816,17 @@ bg_sched_sleep(bgtask_t *bt)
 
 	if (bt->flags & TASK_F_RUNNABLE)
 		bg_sched_remove(bt);			/* Can no longer be scheduled */
-	bs->runcount--;
+
+	/*
+	 * If task has already started to exit and is put back to sleep,
+	 * the runcount has already been decremented since it is no
+	 * longer going to be allowed to run.
+	 * 		--RAM, 2017-10-13
+	 */
+
+	if (0 == (bt->flags & TASK_F_EXITED))
+		bs->runcount--;
+
 	bt->flags |= TASK_F_SLEEPING;
 	eslist_prepend(&bs->sleepq, bt);
 
