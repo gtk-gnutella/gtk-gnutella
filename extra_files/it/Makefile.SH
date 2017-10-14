@@ -17,7 +17,7 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-CURRENT=extra_files/fr
+CURRENT=extra_files/it
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
@@ -59,7 +59,7 @@ $spitshell >>Makefile <<'!NO!SUBS!'
 
 all::
 
-FAQDIR = $(PRIVLIB)/fr
+FAQDIR = $(PRIVLIB)/it
 
 local_install local_install-strip:: FAQ
 	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\

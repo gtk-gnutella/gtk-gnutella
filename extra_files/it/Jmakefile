@@ -29,7 +29,7 @@
 
 all::		/* So that default target is not clobber! */
 
-FAQDIR = $(PRIVLIB)/fr
+FAQDIR = $(PRIVLIB)/it
 
 InstallNonExec(FAQ, $(FAQDIR))
 InstallNonExec(glossary, $(FAQDIR))
