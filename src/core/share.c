@@ -3448,19 +3448,38 @@ shared_file_is_shareable(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 
-	/*
-	 * A zeroed file_index indicates we called shared_file_deindex(),
-	 * most probably through shared_file_remove().
-	 *
-	 * We don't want to include this file in query hits even though the
-	 * file entry happens to be still listed in search bins (for instance
-	 * because it was removed dynamically as we discovered it was spam).
-	 *
-	 * Thanks to Dmitry Butskoy for investigating this corner case.
-	 *		--RAM, 2011-11-30
-	 */
+	if (NULL == sf->fi) {
+		/*
+		 * A zeroed file_index indicates we called shared_file_deindex(),
+		 * most probably through shared_file_remove().
+		 *
+		 * We don't want to include this file in query hits even though the
+		 * file entry happens to be still listed in search bins (for instance
+		 * because it was removed dynamically as we discovered it was spam).
+		 *
+		 * Thanks to Dmitry Butskoy for investigating this corner case.
+		 *		--RAM, 2011-11-30
+		 */
 
-	return sf->file_index != 0;
+		return sf->file_index != 0;
+	} else {
+		fileinfo_t *fi = sf->fi;
+
+		file_info_check(fi);
+
+		/*
+		 * We're dealing with a partial file... make sure it has not
+		 * been marked as non-shareable already.
+		 *		--RAM, 2017-10-17
+		 */
+
+		if G_UNLIKELY(fi->flags & FI_F_NOSHARE)
+			return FALSE;		/* Already known to be missing or bad */
+
+		return hset_contains(partial_files, sf);
+	}
+
+	g_assert_not_reached();
 }
 
 filesize_t
