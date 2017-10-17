@@ -3730,6 +3730,8 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 	sf->mtime = fi->last_flush;
 	sf->ctime = fi->created;
 	sf->sha1 = atom_sha1_get(fi->sha1);
+	if (fi->tth != NULL)
+		sf->tth = atom_tth_get(fi->tth);
 
 	/* FIXME: DOWNLOAD_SIZE:
 	 * Do we need to add anything here now that fileinfos can have an
