@@ -127,6 +127,7 @@ fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const char *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
+void file_info_mark_completed(fileinfo_t *fi);
 bool file_info_rename(fileinfo_t *fi, const char *filename);
 void file_info_resize(fileinfo_t *fi, filesize_t size);
 

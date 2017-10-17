@@ -125,6 +125,7 @@ bool sha1_hash_is_uptodate(shared_file_t *sf);
 bool shared_file_is_partial(const shared_file_t *sf) G_PURE;
 bool shared_file_is_finished(const shared_file_t *sf) G_PURE;
 bool shared_file_is_shareable(const shared_file_t *sf) G_PURE;
+bool shared_file_is_servable(const shared_file_t *sf) G_PURE;
 filesize_t shared_file_size(const shared_file_t *sf) G_PURE;
 uint32 shared_file_index(const shared_file_t *sf) G_PURE;
 time_t shared_file_modification_time(const shared_file_t *sf) G_PURE;

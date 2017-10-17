@@ -3525,7 +3525,7 @@ library_rebuilt:
 static void
 upload_request_tth(shared_file_t *sf)
 {
-	if (!shared_file_is_partial(sf) && NULL == shared_file_tth(sf)) {
+	if (shared_file_is_servable(sf) && NULL == shared_file_tth(sf)) {
 		request_tigertree(sf, TRUE);
 	}
 }
@@ -3679,7 +3679,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 	}
 	atom_str_change(&u->name, shared_file_name_nfc(sf));
 
-	if (shared_file_is_partial(sf)) {
+	if (shared_file_is_partial(sf) && !shared_file_is_finished(sf)) {
 		/*
 		 * As long as we cannot verify the full TTH we should probably
 		 * not pass it on even if we already fetched THEX data.

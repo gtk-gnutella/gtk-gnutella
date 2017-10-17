@@ -15317,15 +15317,7 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 
 	if (has_good_sha1(d)) {
 		file_info_moved(fi, pathname);
-
-		if (
-			fi->sha1 && GNET_PROPERTY(pfsp_server) &&
-			!(FI_F_TRANSIENT & fi->flags)
-			/* No size consideration here as the file is complete */
-		) {
-			fi->flags |= FI_F_SEEDING;
-		}
-
+		file_info_mark_completed(fi);
 		/* Send a notification */
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {

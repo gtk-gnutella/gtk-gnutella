@@ -423,6 +423,7 @@ huge_update_hashes(shared_file_t *sf,
 {
 	struct sha1_cache_entry *cached;
 	filestat_t sb;
+	const sha1_t *osha1;
 
 	shared_file_check(sf);
 	g_return_val_if_fail(sha1, FALSE);
@@ -451,7 +452,19 @@ huge_update_hashes(shared_file_t *sf,
 		return FALSE;
 	}
 
-	shared_file_set_sha1(sf, sha1);
+	/*
+	 * Testing for the SHA1 already being present avoids problems when
+	 * we are coming here simply to update the TTH of a completed file.
+	 * In that case, we already have the SHA1 normally, hence we will
+	 * never call shared_file_set_sha1().
+	 * 		--RAM, 2017-10-19
+	 */
+
+	osha1 = shared_file_sha1(sf);
+
+	if (NULL == osha1 || !sha1_eq(sha1, osha1))
+		shared_file_set_sha1(sf, sha1);
+
 	shared_file_set_tth(sf, tth);
 
 	/* Update cache */

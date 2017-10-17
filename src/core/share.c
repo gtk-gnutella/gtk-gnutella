@@ -3252,7 +3252,7 @@ void
 shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 {
 	shared_file_check(sf);
-	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
+	g_return_if_fail(!shared_file_is_partial(sf));	/* Not a partial file */
 
 	sf->flags &= ~(SHARE_F_RECOMPUTING | SHARE_F_HAS_DIGEST);
 	sf->flags |= sha1 ? SHARE_F_HAS_DIGEST : 0;
@@ -3330,7 +3330,7 @@ shared_file_set_tth(shared_file_t *sf, const struct tth *tth)
 {
 	shared_file_check(sf);
 
-	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
+	g_assert(shared_file_is_finished(sf));	/* Cannot be a partial file */
 
 	atom_tth_change(&sf->tth, tth);
 }
@@ -3443,6 +3443,35 @@ shared_file_is_partial(const shared_file_t *sf)
 	return NULL != sf->fi;
 }
 
+/**
+ * Is file a complete file that we can upload?
+ *
+ * It can be a library file, or a seeded file.
+ */
+bool
+shared_file_is_servable(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	if (NULL == sf->fi) {
+		/*
+		 * A zeroed file_index indicates we called shared_file_deindex(),
+		 * most probably through shared_file_remove().
+		 */
+		return sf->file_index != 0;
+	} else {
+		fileinfo_t *fi = sf->fi;
+
+		file_info_check(fi);
+
+		return FI_F_SEEDING == (fi->flags & (FI_F_SEEDING | FI_F_NOSHARE));
+	}
+}
+
+/**
+ * Is file still shareable on the network and therefore can be advertised in
+ * query hits?
+ */
 bool
 shared_file_is_shareable(const shared_file_t *sf)
 {

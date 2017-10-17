@@ -169,14 +169,14 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
-		if (!shared_file_indexed(sf)) {
+		if (!shared_file_is_servable(sf)) {
 			/*
 			 * After a rescan, there might be files in the queue which are
 			 * no longer shared.
 			 */
 
 			if (GNET_PROPERTY(verify_debug) > 1) {
-				g_debug("skipping TTH computation for %s: no longer shared",
+				g_debug("skipping TTH computation for %s: not a servable file",
 					shared_file_path(sf));
 			}
 			return FALSE;
@@ -194,7 +194,11 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
+		/*
+		 * Processing can continue whilst the library file is indexed or the
+		 * completed file is still beeing seeded.
+		 */
+		return shared_file_is_servable(sf);
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
@@ -242,9 +246,9 @@ request_tigertree(shared_file_t *sf, bool high_priority)
 	verify_tth_init();
 
 	shared_file_check(sf);
-	g_return_if_fail(!shared_file_is_partial(sf));
+	g_return_if_fail(shared_file_is_finished(sf));
 
-	if (!shared_file_indexed(sf))
+	if (!shared_file_is_servable(sf))
 		return;		/* "stale" shared file, has been superseded or removed */
 
 	/*

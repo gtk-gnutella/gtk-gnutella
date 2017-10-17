@@ -43,6 +43,7 @@
 #include <math.h>		/* For fabs() */
 
 #include "fileinfo.h"
+
 #include "bsched.h"
 #include "dmesh.h"
 #include "downloads.h"
@@ -61,6 +62,7 @@
 #include "share.h"
 #include "sockets.h"
 #include "uploads.h"
+#include "verify_tth.h"		/* For request_tigertree() */
 
 #include "lib/array_util.h"
 #include "lib/ascii.h"
@@ -1041,6 +1043,22 @@ file_info_available_free(fileinfo_t *fi)
 }
 
 /**
+ * Cleanup the "downloading" part of the file_info structure.
+ */
+static void
+fi_downloading_free(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_assert(file_info_check_chunklist(fi, TRUE));
+
+	file_info_chunklist_free(fi);
+	file_info_available_free(fi);
+
+	http_rangeset_free_null(&fi->seen_on_network);
+	fi_tigertree_free(fi);
+}
+
+/**
  * Free a `file_info' structure.
  */
 static void
@@ -1049,10 +1067,8 @@ fi_free(fileinfo_t *fi)
 	file_info_check(fi);
 	g_assert(!fi->hashed);
 	g_assert(NULL == fi->sf);
-	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	file_info_chunklist_free(fi);
-	file_info_available_free(fi);
+	fi_downloading_free(fi);
 
 	file_info_upload_stop(fi, N_("File info being freed"));
 
@@ -1065,9 +1081,6 @@ fi_free(fileinfo_t *fi)
 		}
 		pslist_free_null(&fi->alias);
 	}
-
-	http_rangeset_free_null(&fi->seen_on_network);
-	fi_tigertree_free(fi);
 
 	atom_guid_free_null(&fi->guid);
 	atom_str_free_null(&fi->pathname);
@@ -3772,6 +3785,58 @@ fi_rename_dead(fileinfo_t *fi, const char *pathname)
 	HFREE_NULL(path);
 }
 
+void
+file_info_mark_completed(fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (
+		fi->sha1 != NULL && GNET_PROPERTY(pfsp_server) &&
+		!(FI_F_TRANSIENT & fi->flags)
+		/* No size consideration here as the file is complete */
+	) {
+		fi->flags |= FI_F_SEEDING;
+
+		/*
+		 * Since we're going to seed that file, prepare a TTH tree for it
+		 * at the right depth and cache it on disk.
+		 * 		--RAM, 2017-10-17
+		 */
+
+		g_soft_assert(fi->sf != NULL);	/* file_info_hash_insert() was called */
+
+		if (NULL == fi->sf)				/* Should never happen */
+			shared_file_from_fileinfo(fi);
+
+		/*
+		 * Since shared_file_from_fileinfo() can abort when a suitable filename
+		 * cannot be derived, we need to be cautious.
+		 */
+
+		if (fi->sf != NULL)
+			request_tigertree(fi->sf, TRUE);
+	}
+
+	/*
+	 * Now that the file is completed (and fully validated), we can get rid
+	 * of the memory used in the fileinfo for the purpose of downloading,
+	 * keeping only what is necessary to be able to share it.
+	 * 		--RAM, 2017-10-17
+	 */
+
+	fi_downloading_free(fi);
+
+	/*
+	 * Update the GUI, now that we have cleared the range information.
+	 *
+	 * This should redraw the progress bar to display the file as green,
+	 * without any underlying blue bar: the file is now completed, we do
+	 * not care about the availability of its part on the network!
+	 */
+
+	fi_event_trigger(fi, EV_FI_RANGES_CHANGED);
+}
+
 /**
  * Called to update the fileinfo information with the new path and possibly
  * filename information, once the downloaded file has been moved/renamed.
@@ -6312,16 +6377,36 @@ fi_get_chunks(gnet_fi_t fih)
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
-    	gnet_fi_chunks_t *chunk;
+		gnet_fi_chunks_t *chunk;
 
-        WALLOC(chunk);
-        chunk->from   = fc->from;
-        chunk->to     = fc->to;
-        chunk->status = fc->status;
-        chunk->old    = TRUE;
+		WALLOC(chunk);
+		chunk->from   = fc->from;
+		chunk->to     = fc->to;
+		chunk->status = fc->status;
+		chunk->old    = TRUE;
 
 		chunks = g_slist_prepend(chunks, chunk);
-    }
+	}
+
+	/*
+	 * If the list we built is empty and the file is completed, we have
+	 * already cleared the chunk list in fi_downloading_free().  To be
+	 * able to let the GUI correctly display the file as complete, fake
+	 * a single chunk for the whole file.
+	 * 		--RAM, 2017-10-18.
+	 */
+
+	if (NULL == chunks && FILE_INFO_COMPLETE(fi)) {
+		gnet_fi_chunks_t *chunk;
+
+		WALLOC(chunk);
+		chunk->from   = 0;
+		chunk->to     = fi->size;
+		chunk->status = DL_CHUNK_DONE;
+		chunk->old    = FALSE;
+
+		chunks = g_slist_prepend(chunks, chunk);
+	}
 
     return g_slist_reverse(chunks);
 }
