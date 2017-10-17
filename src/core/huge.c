@@ -638,7 +638,8 @@ request_sha1(shared_file_t *sf)
 		cached->shared = TRUE;
 		shared_file_set_sha1(sf, cached->sha1);
 		shared_file_set_tth(sf, cached->tth);
-		request_tigertree(sf, NULL == cached->tth);
+		if (NULL == cached->tth || !shared_file_tth_is_available(sf))
+			request_tigertree(sf, NULL == cached->tth);
 	} else {
 
 		if (GNET_PROPERTY(share_debug) > 1) {

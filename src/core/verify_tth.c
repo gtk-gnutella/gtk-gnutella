@@ -181,10 +181,7 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 			}
 			return FALSE;
 		}
-		if (
-			shared_file_tth(sf) &&
-			tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
-		) {
+		if (shared_file_tth_is_available(sf)) {
 			if (
 				GNET_PROPERTY(tigertree_debug) > 1 ||
 				GNET_PROPERTY(verify_debug) > 1

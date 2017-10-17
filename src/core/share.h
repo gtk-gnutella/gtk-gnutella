@@ -145,6 +145,7 @@ uint32 shared_file_flags(const shared_file_t *sf) G_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_PURE;
 bool shared_file_indexed(const shared_file_t *sf) G_PURE;
+bool shared_file_tth_is_available(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_PURE;

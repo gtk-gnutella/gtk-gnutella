@@ -3761,6 +3761,17 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 }
 
 /**
+ * Is the TTH for the shared file available?
+ */
+bool
+shared_file_tth_is_available(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	return sf->tth != NULL && tth_cache_lookup(sf->tth, sf->file_size) > 0;
+}
+
+/**
  * Get shared file identified by its SHA1.
  *
  * The returned file is reference-counted if not a special value.
