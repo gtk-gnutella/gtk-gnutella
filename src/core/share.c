@@ -3781,6 +3781,7 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(NULL == fi->sf);
+	g_return_if_fail(0 == (fi->flags & FI_F_NOSHARE));
 
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
