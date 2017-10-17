@@ -3003,7 +3003,7 @@ share_thread_lib_qrp_rebuild(void *unused_arg)
 static void
 share_lib_rescan(void)
 {
-	teq_post(share_thread_id, share_thread_lib_rescan, NULL);
+	teq_post_unique(share_thread_id, share_thread_lib_rescan, NULL);
 }
 
 /**
@@ -3011,14 +3011,23 @@ share_lib_rescan(void)
  *
  * This will update the QRP table, including both our shared library and our
  * partials.
+ *
+ * @param force		if TRUE, do not optimize request if one is already pending
  */
 static void
-share_lib_qrp_rebuild(void)
+share_lib_qrp_rebuild(bool force)
 {
-	teq_post(share_thread_id, share_thread_lib_qrp_rebuild, NULL);
+	bool done;
+
+	done = teq_post_ext(share_thread_id, !force,
+				share_thread_lib_qrp_rebuild, NULL);
+
+	g_assert(implies(force, done));
 
 	if (GNET_PROPERTY(share_debug) > 1) {
-		g_debug("SHARE requested background QRP recomputation (%s)",
+		g_debug("SHARE %s request for background QRP recomputation (%s)",
+			force ? "forced" :
+			done ? "sent" : "avoided duplicate",
 			share_can_answer_partials() ?
 				"with partial files" : "library only");
 	}
@@ -3985,7 +3994,7 @@ static void
 share_qrp_rebuild_if_needed(void)
 {
 	if (share_can_answer_partials())
-		share_lib_qrp_rebuild();
+		share_lib_qrp_rebuild(FALSE);
 }
 
 /**
@@ -4041,7 +4050,7 @@ share_remove_partial(const shared_file_t *sf)
 void
 share_update_matching_information(void)
 {
-	share_lib_qrp_rebuild();
+	share_lib_qrp_rebuild(TRUE);
 }
 
 /**
