@@ -67,7 +67,7 @@ typedef struct vp_context {
     GdkDrawable *drawable;  /**< The drawable inside the widget */
     GdkGC *gc;              /**< The Graphics Context used in this vp context */
     gnet_fi_t fih;          /**< The most recently used fileinfo handle */
-	gboolean fih_valid;	    /**< Whether fih is still a valid handle */
+	bool fih_valid;		    /**< Whether fih is still a valid handle */
 } vp_context_t;
 
 /**
@@ -243,10 +243,10 @@ vp_draw_range (gpointer data, gpointer user_data)
  * value of valid the area will be drawn or cleared.
  */
 void
-vp_draw_fi_progress(gboolean valid, gnet_fi_t fih)
+vp_draw_fi_progress(bool valid, gnet_fi_t fih)
 {
     vp_info_t *v;
-	gboolean found;
+	bool found;
 
     /*
      * Remember the current fih handle so that we can redraw it later
@@ -309,7 +309,7 @@ on_drawingarea_fi_progress_realize(GtkWidget *widget, gpointer user_data)
 /**
  * Callback for the fileinfo pane GtkDrawingArea.
  */
-gboolean
+bool
 on_drawingarea_fi_progress_expose_event(
 	GtkWidget *widget, GdkEventExpose *event, gpointer user_data)
 {
@@ -419,7 +419,7 @@ static void
 vp_gui_fi_removed(gnet_fi_t fih)
 {
     gpointer value;
-    gboolean found;
+    bool found;
 	vp_info_t *v;
 
     found = htable_lookup_extended(vp_info_hash,
@@ -439,7 +439,7 @@ vp_gui_fi_removed(gnet_fi_t fih)
  * For debugging: print chunk.
  */
 static void
-vp_print_chunk(FILE *file, const gnet_fi_chunks_t *c, gboolean show_old)
+vp_print_chunk(FILE *file, const gnet_fi_chunks_t *c, bool show_old)
 {
 	if (show_old)
 		fprintf(file, "%10s - %10s %d [%s]\n",
@@ -479,7 +479,7 @@ vp_print_chunk_list(FILE *file, const GSList *list, const gchar *title)
  */
 static gnet_fi_chunks_t *
 vp_create_chunk(filesize_t from, filesize_t to,
-	enum dl_chunk_status status, gboolean old)
+	enum dl_chunk_status status, bool old)
 {
 	gnet_fi_chunks_t *chunk;
 
@@ -500,7 +500,7 @@ vp_create_chunk(filesize_t from, filesize_t to,
 /**
  * Assert that a chunks list confirms to the assumptions.
  */
-static gboolean
+static bool
 vp_assert_chunks_list(const GSList *list, const gnet_fi_info_t *fi)
 {
 	const GSList *sl;
@@ -510,7 +510,8 @@ vp_assert_chunks_list(const GSList *list, const gnet_fi_info_t *fi)
 		const gnet_fi_chunks_t *chunk = sl->data;
 
 		if (last != chunk->from) {
-			g_warning("BAD CHUNK LIST for \"%s\"", fi->filename);
+			g_warning("%s(): BAD CHUNK LIST for \"%s\"",
+				G_STRFUNC, fi->filename);
 			vp_print_chunk_list(stderr, list, "Chunks list");
 			return FALSE;
 		}
@@ -534,7 +535,7 @@ vp_gui_fi_status_changed(gnet_fi_t fih)
     GSList *keep_new;
     gnet_fi_chunks_t *oc;
     gnet_fi_chunks_t *nc;
-    gboolean found;
+    bool found;
 	gpointer value;
 	filesize_t highest = 0;
 	gnet_fi_info_t *fi;
@@ -735,7 +736,7 @@ static void
 vp_gui_fi_ranges_changed(gnet_fi_t fih)
 {
     vp_info_t *v;
-    gboolean found;
+    bool found;
 	gpointer value;
 
     found = htable_lookup_extended(vp_info_hash,
