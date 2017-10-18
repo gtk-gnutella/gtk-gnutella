@@ -1756,7 +1756,8 @@ fi_tigertree_check(fileinfo_t *fi)
 		struct tth root;
 
 		if (NULL == fi->tth) {
-			g_warning("Trailer contains tigertree but no root hash");
+			g_warning("trailer contains tigertree but no root hash in \"%s\"",
+				fi->pathname);
 			goto discard;
 		}
 
@@ -1766,14 +1767,20 @@ fi_tigertree_check(fileinfo_t *fi)
 			fi->file_size_known &&
 			fi->tigertree.num_leaves != tt_node_count_at_depth(fi->size, depth)
 		) {
-			g_warning("Trailer contains tigertree with invalid leaf count");
+			g_warning("trailer contains tigertree with invalid leaf count "
+				"in \"%s\": got %zu, expected %s at depth %u for %s bytes",
+				fi->pathname, fi->tigertree.num_leaves,
+				filesize_to_string(tt_node_count_at_depth(fi->size, depth)),
+				depth, filesize_to_string2(fi->size));
 			goto discard;
 		}
 
 		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 		root = tt_root_hash(fi->tigertree.leaves, fi->tigertree.num_leaves);
 		if (!tth_eq(&root, fi->tth)) {
-			g_warning("Trailer contains tigertree with non-matching root hash");
+			g_warning("trailer contains tigertree with non-matching "
+				"root hash in \"%s\"",
+				fi->pathname);
 			goto discard;
 		}
 	}
