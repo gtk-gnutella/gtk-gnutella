@@ -353,6 +353,25 @@ parse_and_append_cache_entry(char *line)
 	if (strchr(p, '\t') != NULL)
 		goto failure;
 
+	/*
+	 * Validate that the file still exists and was not modified since its
+	 * insertion in the cache before recording it.
+	 * 		--RAM, 2017-10-19
+	 */
+
+	{
+		filestat_t st;
+
+		if (-1 == stat(p, &st))
+			return;		/* No file, or cannot access it */
+
+		if (!S_ISREG(st.st_mode))
+			return;		/* Not a regular file */
+
+		if (delta_time(st.st_mtime, mtime) > 0)
+			return;		/* File was modified */
+	}
+
 	add_volatile_cache_entry(p, size, mtime,
 		&sha1, has_tth ? &tth : NULL, FALSE);
 	return;
