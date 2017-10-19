@@ -3329,8 +3329,7 @@ void
 shared_file_set_tth(shared_file_t *sf, const struct tth *tth)
 {
 	shared_file_check(sf);
-
-	g_assert(shared_file_is_finished(sf));	/* Cannot be a partial file */
+	g_return_if_fail(shared_file_is_finished(sf));	/* Cannot be a partial file */
 
 	atom_tth_change(&sf->tth, tth);
 }
