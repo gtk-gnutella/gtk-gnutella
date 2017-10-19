@@ -44,6 +44,7 @@
 #include "lib/base32.h"
 #include "lib/halloc.h"
 #include "lib/once.h"
+#include "lib/stringify.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -202,22 +203,37 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
+			size_t n_leaves = verify_tth_leave_count(ctx);
+
+			if (GNET_PROPERTY(verify_debug)) {
+				g_debug("%s(): computed TTH %s (%zu lea%s) for %s",
+					G_STRFUNC, tth_base32(tth),
+					n_leaves, plural_f(n_leaves),
+					shared_file_path(sf));
+			}
 
 			huge_update_hashes(sf, shared_file_sha1(sf), tth);
-			tth_cache_insert(tth, verify_tth_leaves(ctx),
-				verify_tth_leave_count(ctx));
+			tth_cache_insert(tth, verify_tth_leaves(ctx), n_leaves);
+		}
+		goto done;
+	case VERIFY_ERROR:
+		if (GNET_PROPERTY(verify_debug)) {
+			g_debug("%s(): unable to compute TTH for %s",
+				G_STRFUNC, shared_file_path(sf));
 		}
 		/* FALL THROUGH */
-	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
-		shared_file_unref(&sf);
-		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, FALSE);
-		return TRUE;
+		goto done;
 	case VERIFY_INVALID:
 		break;
 	}
 	g_assert_not_reached();
 	return FALSE;
+
+done:
+	shared_file_unref(&sf);
+	gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, FALSE);
+	return TRUE;
 }
 
 bool
