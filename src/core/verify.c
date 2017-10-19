@@ -841,6 +841,8 @@ verify_update(struct verify *ctx)
 		if (delta_time(now, ctx->last_progress) >= VERIFY_PROGRESS_NOTIFY) {
 			ctx->last_progress = now;
 			if (!verify_progress(ctx)) {
+				g_warning("%s computation progress stopped for \"%s\"",
+					verify_hash_name(ctx), file_object_pathname(ctx->file));
 				goto error;
 			}
 		}
