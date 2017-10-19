@@ -603,7 +603,7 @@ vmm_warn_once(const char *format, ...)
 	va_end(args);
 
 	if (!stacktrace_caller_known(2))		/* Caller of our caller */
-		s_stacktrace(TRUE, 2);
+		s_where(2);
 }
 
 /**

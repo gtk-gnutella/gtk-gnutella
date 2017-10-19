@@ -6966,7 +6966,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 					s_miniwarn("recursive waiting on %s %p at %s:%u",
 						thread_lock_kind_to_string(kind), lock, file, line);
 					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
-					s_stacktrace(TRUE, 1);
+					s_where(1);
 					break;
 				}
 			}

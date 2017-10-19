@@ -1059,13 +1059,14 @@ enum stacktrace_stack_level {
 };
 
 /**
- * Emit stacktrace to stderr and stdout (if distinct from stderr).
+ * Emit stacktrace to stderr and optionally stdout (if distinct from stderr).
  *
  * @param no_stdio		whether we must avoid stdio
+ * @param copy			whether to copy stacktrace to stdout
  * @param offset		stack offset to apply to remove overhead from stack
  */
-void NO_INLINE
-s_stacktrace(bool no_stdio, unsigned offset)
+static void NO_INLINE
+s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
 {
 	static enum stacktrace_stack_level tracing[THREAD_MAX];
 	static bool warned[THREAD_MAX];
@@ -1117,11 +1118,11 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	if (STACKTRACE_NORMAL == tracing[stid]) {
 		if (no_stdio) {
 			stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
-			if (log_stdout_is_distinct())
+			if (copy && log_stdout_is_distinct())
 				stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
 		} else {
 			stacktrace_where_sym_print_offset(stderr, offset + 1);
-			if (log_stdout_is_distinct())
+			if (copy && log_stdout_is_distinct())
 				stacktrace_where_sym_print_offset(stdout, offset + 1);
 
 			if (is_running_on_mingw()) {
@@ -1132,7 +1133,7 @@ s_stacktrace(bool no_stdio, unsigned offset)
 		}
 	} else {
 		stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
-		if (log_stdout_is_distinct())
+		if (copy && log_stdout_is_distinct())
 			stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
 	}
 
@@ -1142,6 +1143,29 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	} else {
 		tracing[stid] = STACKTRACE_NONE;
 	}
+}
+
+/**
+ * Emit stacktrace to stderr and stdout (if distinct from stderr).
+ *
+ * @param no_stdio		whether we must avoid stdio
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+void
+s_stacktrace(bool no_stdio, unsigned offset)
+{
+	s_emit_stacktrace(no_stdio, TRUE, offset + 1);
+}
+
+/**
+ * Emit stacktrace to stderr.
+ *
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+void
+s_where(unsigned offset)
+{
+	s_emit_stacktrace(TRUE, FALSE, offset + 1);
 }
 
 /**

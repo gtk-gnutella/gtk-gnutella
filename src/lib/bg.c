@@ -490,10 +490,10 @@ bg_task_user_flags_str(const bgtask_t *bt)
  * @param caller	calling routine
  * @param external	whether this is callable from clients
  */
-static void
+static void NO_INLINE
 bg_task_trace(bgtask_t *bt, const char *caller, bool external)
 {
-	if (bg_debug > 9) {
+	if G_UNLIKELY(bg_debug > 9) {
 		s_debug("%s(): BGTASK %s\"%s\" %p step #%d.%d (%s) o=%s u=%s ref=%d",
 			caller, bg_task_daemon_str(bt), bt->name, bt,
 			bt->step, bt->seqno, bg_task_step_name(bt),
@@ -501,7 +501,7 @@ bg_task_trace(bgtask_t *bt, const char *caller, bool external)
 			bt->refcnt);
 
 		if (external && bg_debug > 12)
-			s_stacktrace(TRUE, 1);	/* Skip this routine (1 level) in stack */
+			s_where(1);		/* Skip this routine (1 level) in stack */
 	}
 }
 

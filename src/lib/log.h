@@ -124,7 +124,8 @@ void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a)
 
 void s_line_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
 
-void s_stacktrace(bool no_stdio, unsigned offset);
+void s_stacktrace(bool no_stdio, unsigned offset) NO_INLINE;
+void s_where(unsigned offset) NO_INLINE;
 
 /*
  * These routines should not be called directly, use the macros below.
