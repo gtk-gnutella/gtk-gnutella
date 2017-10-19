@@ -29,6 +29,9 @@
  *
  * HUGE support (Hash/URN Gnutella Extension).
  *
+ * Server side: computation of SHA1 hash digests and replies.
+ * SHA1 is defined in RFC 3174.
+ *
  * @author Raphael Manfredi
  * @date 2002-2003
  * @author Ch. Tronche (http://tronche.com/)
@@ -51,6 +54,7 @@
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
@@ -70,10 +74,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/***
- *** Server side: computation of SHA1 hash digests and replies.
- *** SHA1 is defined in RFC 3174.
- ***/
+#define HUGE_SHA1_CACHE_FREQ	60	/* seconds, for SHA1 cache dumps */
 
 /**
  * There's an in-core cache (the hash table ``sha1_cache''), and a
@@ -432,6 +433,20 @@ huge_spam_check(shared_file_t *sf, const struct sha1 *sha1)
 	return FALSE;
 }
 
+static cevent_t *cache_dump_ev;
+
+/**
+ * Callout queue callback invoked when we should flush the SHA1 cache.
+ */
+static void
+cache_dump_due(cqueue_t *cq, void *unused_obj)
+{
+	(void) unused_obj;
+
+	cq_zero(cq, &cache_dump_ev);	/* Indicates callback fired */
+	dump_cache(FALSE);
+}
+
 /**
  ** Asynchronous computation of hash value
  **/
@@ -491,13 +506,27 @@ huge_update_hashes(shared_file_t *sf,
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
 	if (cached) {
+		time_delta_t t;
+
 		update_volatile_cache(cached, shared_file_size(sf),
 			shared_file_modification_time(sf), sha1, tth);
 		cache_dirty = TRUE;
 
 		/* Dump the cache at most about once per minute. */
-		if (!cache_dumped || delta_time(tm_time(), cache_dumped) > 60) {
+
+		if G_UNLIKELY(0 == cache_dumped) {
+			t = 0;
+		} else {
+			t = delta_time(tm_time(), cache_dumped);
+			if (t >= HUGE_SHA1_CACHE_FREQ)
+				t = 0;
+			else
+				t = HUGE_SHA1_CACHE_FREQ - t;
+		}
+		if (0 == t) {
 			dump_cache(FALSE);
+		} else if (NULL == cache_dump_ev) {
+			cache_dump_ev = cq_main_insert(t * 1000, cache_dump_due, NULL);
 		}
 	} else {
 		add_volatile_cache_entry(shared_file_path(sf),
