@@ -45,7 +45,7 @@
  * all the bandwidth was not consumed, incoming packets are sent immediately
  * until no more bandwidth is available, at which point we start queuing again.
  *
- * An scheduling queue is maintained by priority to send traffic ahead of any
+ * A scheduling queue is maintained by priority to send traffic ahead of any
  * other less prioritary packets.  This is typically used for acknowledgments,
  * since delaying an ACK will likely cause retransmission on the other end.
  *
