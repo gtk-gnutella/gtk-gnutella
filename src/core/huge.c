@@ -608,6 +608,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_t *sf = user_data;
 
 	shared_file_check(sf);
+
 	switch (status) {
 	case VERIFY_START:
 		if (!huge_need_sha1(sf))
@@ -615,7 +616,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
+		return shared_file_indexed(sf);
 	case VERIFY_DONE:
 		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
 		request_tigertree(sf, TRUE);
