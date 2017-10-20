@@ -448,6 +448,32 @@ cache_dump_due(cqueue_t *cq, void *unused_obj)
 }
 
 /**
+ * Dump the cache at most about once per HUGE_SHA1_CACHE_FREQ secs..
+ */
+static void
+cache_dump_schedule(void)
+{
+	time_delta_t t;
+
+	cache_dirty = TRUE;
+
+	if G_UNLIKELY(0 == cache_dumped) {
+		t = 0;
+	} else {
+		t = delta_time(tm_time(), cache_dumped);
+		if (t >= HUGE_SHA1_CACHE_FREQ)
+			t = 0;
+		else
+			t = HUGE_SHA1_CACHE_FREQ - t;
+	}
+	if (0 == t) {
+		dump_cache(FALSE);
+	} else if (NULL == cache_dump_ev) {
+		cache_dump_ev = cq_main_insert(t * 1000, cache_dump_due, NULL);
+	}
+}
+
+/**
  ** Asynchronous computation of hash value
  **/
 
@@ -506,28 +532,10 @@ huge_update_hashes(shared_file_t *sf,
 	cached = hikset_lookup(sha1_cache, shared_file_path(sf));
 
 	if (cached) {
-		time_delta_t t;
-
 		update_volatile_cache(cached, shared_file_size(sf),
 			shared_file_modification_time(sf), sha1, tth);
-		cache_dirty = TRUE;
 
-		/* Dump the cache at most about once per minute. */
-
-		if G_UNLIKELY(0 == cache_dumped) {
-			t = 0;
-		} else {
-			t = delta_time(tm_time(), cache_dumped);
-			if (t >= HUGE_SHA1_CACHE_FREQ)
-				t = 0;
-			else
-				t = HUGE_SHA1_CACHE_FREQ - t;
-		}
-		if (0 == t) {
-			dump_cache(FALSE);
-		} else if (NULL == cache_dump_ev) {
-			cache_dump_ev = cq_main_insert(t * 1000, cache_dump_due, NULL);
-		}
+		cache_dump_schedule(); 	/* Dump cache once per minute */
 	} else {
 		add_volatile_cache_entry(shared_file_path(sf),
 			shared_file_size(sf), shared_file_modification_time(sf),
@@ -953,6 +961,73 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 	if (alt != NULL) {
 		dmesh_collect_fw_hosts(sha1, alt, origin, user_agent);
 	}
+}
+
+/**
+ * Iterator callback to check whether SHA1 cache entry is still being
+ * shared.  Otherwise, it is removed from the set.
+ *
+ * @return TRUE if the item was freed and needs to be dropped from the cache.
+ */
+static bool
+cache_entry_is_shared(void *v, void *unused_udata)
+{
+	struct sha1_cache_entry *e = v;
+	shared_file_t *sf;
+
+	(void) unused_udata;
+
+	sf = shared_file_by_sha1(e->sha1);
+
+	if G_UNLIKELY(SHARE_REBUILDING == sf)
+		return FALSE;		/* Cannot decide */
+
+	if (NULL == sf) {
+		/* Entry no longer shared */
+
+		atom_str_free_null(&e->file_name);
+		atom_sha1_free_null(&e->sha1);
+		atom_tth_free_null(&e->tth);
+		WFREE(e);
+
+		return TRUE;
+	}
+
+	shared_file_unref(&sf);
+	return FALSE;
+}
+
+/**
+ * Purge the SHA1 cache.
+ *
+ * This is meant to be called once, after the first library rescan.
+ *
+ * It will remove from the cache any entry for which we hold a SHA1 that
+ * is not currently being shared.
+ *
+ * This is important because we recompute the TTH of seeded files, and they
+ * are inserted into the persistent cache: we do not want to hold them
+ * forever.
+ *
+ * Users may also remove files from their library by removing entire directories
+ * from the sharing filesystem tree.  The files may still be on the filesystem
+ * but end-up being unshared, and we do not want to keep them in the cache
+ * (and in memory) if they are actually not going to be useful at all.
+ */
+void
+huge_sha1_cache_prune(void)
+{
+	size_t pruned;
+
+	pruned = hikset_foreach_remove(sha1_cache, cache_entry_is_shared, NULL);
+
+	if (GNET_PROPERTY(share_debug)) {
+		g_warning("%s(): pruned %zu entr%s from SHA1 cache",
+			G_STRFUNC, pruned, plural_y(pruned));
+	}
+
+	if (pruned != 0)
+		cache_dump_schedule();
 }
 
 /**

@@ -71,6 +71,7 @@
 #include "lib/barrier.h"
 #include "lib/bg.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getcpucount.h"
@@ -2820,6 +2821,7 @@ recursive_scan_finalize(void *arg)
 {
 	struct recursive_scan *ctx = arg;
 	time_delta_t elapsed;
+	static bool sha1_cache_pruned;
 
 	recursive_scan_check(ctx);
 
@@ -2830,6 +2832,39 @@ recursive_scan_finalize(void *arg)
 
 	qrp_finalize_computation(ctx->words);
 	ctx->words = NULL;		/* Gave pointer, QRP computation will free it */
+
+	/*
+	 * The very first time we are scanning the library, make sure we
+	 * prune the SHA1 cache to remove entries listed there that do not
+	 * refer to files we are actually sharing.
+	 *
+	 * This works because during the library scanning step, we call
+	 * request_sha1() on the library entries, and this will record
+	 * their SHA1, if known within the SHA1 cache.
+	 *
+	 * Hence, once the library is rebuilt, all the files shared that
+	 * could be known in the SHA1 cache have been recorded.  Hence when
+	 * we iterate on the SHA1 cache to check whether an entry there has
+	 * its SHA1 shared, we know it is a stale entry if it happens that this
+	 * SHA1 is not listed as shared.
+	 *
+	 * 		--RAM, 2017-10-20
+	 */
+
+	if (!sha1_cache_pruned) {
+		sha1_cache_pruned = TRUE;
+
+		/* Only cleanup the SHA1 cache after a clean fresh restart */
+
+		if (!crash_was_restarted()) {
+			huge_sha1_cache_prune();
+		} else {
+			if (GNET_PROPERTY(share_debug)) {
+				g_debug("%s(): not pruning SHA1 cache after unclean restart",
+					G_STRFUNC);
+			}
+		}
+	}
 
 	return NULL;
 }
