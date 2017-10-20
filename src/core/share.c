@@ -3332,6 +3332,16 @@ shared_file_set_tth(shared_file_t *sf, const struct tth *tth)
 	g_return_if_fail(shared_file_is_finished(sf));	/* Cannot be a partial file */
 
 	atom_tth_change(&sf->tth, tth);
+
+	/*
+	 * If the file is seeded, notify the fileinfo layer that the TTH was
+	 * recomputed and now lies in the cache!  That way we can update the
+	 * GUI to let them know that the THEX can now be served.
+	 * 		--RAM, 2017-10-20
+	 */
+
+	if (sf->fi != NULL)
+		file_info_recomputed_tth(sf->fi, sf->tth);
 }
 
 void

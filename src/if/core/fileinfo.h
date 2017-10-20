@@ -80,6 +80,7 @@ typedef struct gnet_fi_info {
 	unsigned int tth_depth;
 	size_t tth_num_leaves;
 	time_t created;
+	unsigned tth_recomputed:1;	/**< Set when TTH was recomputed (seeded file) */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {

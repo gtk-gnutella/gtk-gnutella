@@ -76,6 +76,7 @@ void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const char *file);
 bool file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1);
 void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
+void file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
 		const struct tth *leaves, size_t num_leaves, bool mark_dirty);
 void file_info_size_known(struct download *d, filesize_t size);

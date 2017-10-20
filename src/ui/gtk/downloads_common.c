@@ -225,10 +225,11 @@ fi_gui_set_details(const struct fileinfo_data *file)
 		char buf[1024];
 
 		str_bprintf(buf, sizeof buf,
-			_("leaf hashes: %lu, depth: %u, granularity: %s"),
+			_("leaf hashes: %lu, depth: %u, granularity: %s%s"),
 			(unsigned long) info->tth_num_leaves,
 			info->tth_depth,
-			nice_size(info->tth_slice_size, show_metric_units()));
+			nice_size(info->tth_slice_size, show_metric_units()),
+			info->tth_recomputed ? _(" [re-computed]") : "");
    		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"), buf);
 	} else {
    		fi_gui_append_detail(FI_GUI_DETAIL_TIGERTREE, _("Tigertree"),

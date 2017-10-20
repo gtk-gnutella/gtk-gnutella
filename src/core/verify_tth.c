@@ -212,8 +212,22 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 					shared_file_path(sf));
 			}
 
-			huge_update_hashes(sf, shared_file_sha1(sf), tth);
+			/*
+			 * Write the TTH to the cache first, before updating the hashes.
+			 * That way, the logic behind huge_update_hashes() can rely on
+			 * the fact that the TTH is persisted already.
+			 *
+			 * This is important for seeded files for which we re-compute
+			 * the TTH once they are completed (to make sure we can serve
+			 * THEX requests at the proper good depth).  In order to update
+			 * the GUI information, we'll need to probe the cache to determine
+			 * how large the TTH is exactly, since all we pass back to the
+			 * routines is the TTH root hash.
+			 *		--RAM, 2017-10-20
+			 */
+
 			tth_cache_insert(tth, verify_tth_leaves(ctx), n_leaves);
+			huge_update_hashes(sf, shared_file_sha1(sf), tth);
 		}
 		goto done;
 	case VERIFY_ERROR:

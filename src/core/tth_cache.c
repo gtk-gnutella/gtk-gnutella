@@ -373,6 +373,38 @@ tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 }
 
 /**
+ * Get amount of leaves stored in the cached TTH entry.
+ *
+ * @param tth		the TTH for which we want the information
+ *
+ * @return 0 if the entry could not be located, the amount of leaves otherwise.
+ */
+size_t
+tth_cache_get_nleaves(const struct tth *tth)
+{
+	int fd;
+	filesize_t nleaves = 0;
+
+	g_return_val_if_fail(tth != NULL, 0);
+
+	fd = tth_cache_file_open(tth);
+
+	if (fd >= 0) {
+		filestat_t sb;
+
+		if (fstat(fd, &sb)) {
+			g_warning("%s(%s): fstat() failed: %m", G_STRFUNC, tth_base32(tth));
+		} else {
+			nleaves = tth_cache_leave_count(tth, &sb);
+		}
+
+		fd_forget_and_close(&fd);
+	}
+
+	return nleaves;
+}
+
+/**
  * Remove directory, warning only when it cannot be done for a reason other
  * than it not being empty.
  */

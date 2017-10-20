@@ -61,6 +61,7 @@
 #include "settings.h"
 #include "share.h"
 #include "sockets.h"
+#include "tth_cache.h"
 #include "uploads.h"
 #include "verify_tth.h"		/* For request_tigertree() */
 
@@ -901,17 +902,67 @@ file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
 	file_info_got_tth_internal(fi, tth, TRUE);
 }
 
+/**
+ * Invoked when a seeded file had its TTH recomputed.
+ */
+void
+file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	size_t nleaves;
+
+	file_info_check(fi);
+	g_return_if_fail(tth != NULL);
+	g_return_if_fail(fi->sha1 != NULL);
+	g_return_if_fail(NULL == fi->tigertree.leaves);
+
+	if (fi->tth != NULL && !tth_eq(fi->tth, tth)) {
+		g_warning("%s(): inconsistent TTH for \"%s\": "
+			"was known as %s, but got new TTH %s",
+			G_STRFUNC, fi->pathname,
+			bitprint_to_urn_string(fi->sha1, fi->tth), tth_base32(tth));
+
+		atom_tth_change(&fi->tth, tth);
+
+		/* Update the GUI */
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+	}
+
+	/*
+	 * Locate the TTH information by probing the TTH cache.
+	 */
+
+	nleaves = tth_cache_get_nleaves(tth);
+
+	if G_UNLIKELY(0 == nleaves) {
+		g_warning("%s(): unable to find TTH %s in cache for %s",
+			G_STRFUNC, tth_base32(tth), fi->pathname);
+		return;
+	}
+
+	g_assert(size_is_positive(nleaves));
+
+	/*
+	 * To indicate that the TTH was recomputed, we let the leaves
+	 * pointer at NULL but we fill-in the amount of leaves and the
+	 * TTH slice size.
+	 */
+
+	fi->tigertree.num_leaves = nleaves;
+	fi->tigertree.slice_size = tt_slice_size(fi->size, nleaves);
+
+	/* Update the GUI */
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
 static void
 fi_tigertree_free(fileinfo_t *fi)
 {
 	file_info_check(fi);
-	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
 
-	if (fi->tigertree.leaves) {
+	if (fi->tigertree.leaves != NULL) {
+		g_assert(fi->tigertree.num_leaves != 0);
 		WFREE_ARRAY(fi->tigertree.leaves, fi->tigertree.num_leaves);
-		fi->tigertree.slice_size = 0;
-		fi->tigertree.num_leaves = 0;
-		fi->tigertree.leaves = NULL;
+		ZERO(&fi->tigertree);
 	}
 }
 
@@ -6311,6 +6362,8 @@ fi_get_info(gnet_fi_t fih)
 	info->tth_num_leaves = fi->tigertree.num_leaves;
 	info->created		 = fi->created;
 	info->tth_depth      = tt_depth(fi->tigertree.num_leaves);
+	info->tth_recomputed =
+		NULL == fi->tigertree.leaves && fi->tigertree.num_leaves != 0;
 
     return info;
 }
