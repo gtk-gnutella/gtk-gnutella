@@ -881,14 +881,24 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 	}
 }
 
-void
-file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+static void
+file_info_got_tth_internal(fileinfo_t *fi, const struct tth *tth, bool update)
 {
 	file_info_check(fi);
 
 	g_return_if_fail(tth);
 	g_return_if_fail(NULL == fi->tth);
 	fi->tth = atom_tth_get(tth);
+
+	/* Update the GUI, if requested */
+	if (update)
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
+void
+file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_got_tth_internal(fi, tth, TRUE);
 }
 
 static void
@@ -928,8 +938,12 @@ file_info_got_tigertree(fileinfo_t *fi,
 		num_blocks = (num_blocks + 1) / 2;
 		fi->tigertree.slice_size *= 2;
 	}
-	if (mark_dirty)
+	if (mark_dirty) {
 		fi->dirty = TRUE;
+
+		/* Update the GUI */
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+	}
 }
 
 /**
@@ -969,6 +983,9 @@ void
 file_info_strip_binary(fileinfo_t *fi)
 {
 	file_info_strip_trailer(fi, fi->pathname);
+
+	/* Update the GUI */
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 }
 
 /**
@@ -1983,7 +2000,7 @@ G_STMT_START {				\
 			if (TTH_RAW_SIZE == tmpuint) {
 				struct tth tth;
 				memcpy(tth.data, tmp, TTH_RAW_SIZE);
-				file_info_got_tth(fi, &tth);
+				file_info_got_tth_internal(fi, &tth, FALSE);
 			} else {
 				g_warning("bad length %d for TTH in fileinfo v%u for \"%s\"",
 					tmpuint, version, pathname);
@@ -2806,8 +2823,13 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (NULL == xfi) {
 		fi->sha1 = atom_sha1_get(sha1);
 		hikset_insert_key(fi_by_sha1, &fi->sha1);
+
 		if (can_publish_partial_sha1)
 			publisher_add(fi->sha1);
+
+		/* Update the GUI */
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+
 		return TRUE;
 	}
 
@@ -3842,6 +3864,7 @@ file_info_mark_completed(fileinfo_t *fi)
 	 */
 
 	fi_event_trigger(fi, EV_FI_RANGES_CHANGED);
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 }
 
 /**
