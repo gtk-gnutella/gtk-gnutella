@@ -919,25 +919,18 @@ void
 file_info_got_tigertree(fileinfo_t *fi,
 	const struct tth *leaves, size_t num_leaves, bool mark_dirty)
 {
-	filesize_t num_blocks;
-
 	file_info_check(fi);
 
 	g_return_if_fail(leaves);
-	g_return_if_fail(num_leaves > 0);
+	g_return_if_fail(size_is_positive(num_leaves));
 	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
 	g_return_if_fail(fi->file_size_known);
 
 	fi_tigertree_free(fi);
 	fi->tigertree.leaves = WCOPY_ARRAY(leaves, num_leaves);
 	fi->tigertree.num_leaves = num_leaves;
+	fi->tigertree.slice_size = tt_slice_size(fi->size, num_leaves);
 
-	fi->tigertree.slice_size = TTH_BLOCKSIZE;
-	num_blocks = tt_block_count(fi->size);
-	while (num_blocks > fi->tigertree.num_leaves) {
-		num_blocks = (num_blocks + 1) / 2;
-		fi->tigertree.slice_size *= 2;
-	}
 	if (mark_dirty) {
 		fi->dirty = TRUE;
 
