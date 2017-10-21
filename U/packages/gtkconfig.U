@@ -18,7 +18,7 @@
 ?S:d_gtk:
 ?S:	This variable is if compiling against Gtk+ works.
 ?S:.
-?T:modver version vint flag missing allok
+?T:modver version vint flag missing allok x l
 : how can we find information about GTK?
 d_gtk="$undef"
 version=
@@ -129,6 +129,25 @@ if $allok; then
 fi
 ?X: Remember, indentation wrong on purpose
 ;;
+esac
+
+?X: Remove usless libraries (which we use no symbols from in gtk-gnutella...)
+case "$gtkversion" in
+2)
+	x=
+	for l in $gtkldflags; do
+		case "$l" in
+		-lgio-2.0) ;;
+		-lpangoft2-1.0) ;;
+		-lpangocairo-1.0) ;;
+		-lcairo) ;;
+		-lfontconfig) ;;
+		-lfreetype) ;;
+		*) x="$x $l";;
+		esac
+	done
+	gtkldflags=$x
+	;;
 esac
 
 case "$d_headless" in
