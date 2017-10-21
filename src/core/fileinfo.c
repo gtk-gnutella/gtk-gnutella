@@ -3650,9 +3650,6 @@ file_info_retrieve(void)
 		continue;
 
 	reset:
-		if (NULL == fi->pathname) {
-			fi->pathname = atom_str_get("/non-existent");
-		}
 		fi_free(fi);
 		fi = NULL;
 		atom_str_free_null(&filename);
@@ -3660,9 +3657,6 @@ file_info_retrieve(void)
 	}
 
 	if (fi) {
-		if (NULL == fi->pathname) {
-			fi->pathname = atom_str_get("/non-existent");
-		}
 		fi_free(fi);
 		fi = NULL;
 		if (!empty)
