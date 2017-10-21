@@ -2931,6 +2931,7 @@ crash_try_reexec(void)
 	char dir[MAX_PATH_LEN];
 
 	crash_restart_notify(G_STRFUNC, TRUE);
+	thread_suspend_others(FALSE);
 
 	/*
 	 * If process is supervised and the parent is still here, then exit
