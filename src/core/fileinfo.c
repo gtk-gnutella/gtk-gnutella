@@ -70,6 +70,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/crash.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -744,6 +745,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 	uint32 length;
 
 	g_assert(fo);
+	g_return_if_fail((FI_F_TRANSIENT | FI_F_STRIPPED) & fi->flags);
 
 	TBUF_INIT_WRITE();
 	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
@@ -904,9 +906,14 @@ file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
 
 /**
  * Invoked when a seeded file had its TTH recomputed.
+ *
+ * @param fi		the fileinfo
+ * @param tth		the recomputed TTH value
+ * @param update	whether to update the GUI
  */
-void
-file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
+static void
+file_info_recomputed_tth_internal(
+	fileinfo_t *fi, const struct tth *tth, bool update)
 {
 	size_t nleaves;
 
@@ -924,7 +931,8 @@ file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
 		atom_tth_change(&fi->tth, tth);
 
 		/* Update the GUI */
-		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+		if (update)
+			fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	}
 
 	/*
@@ -951,7 +959,17 @@ file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
 	fi->tigertree.slice_size = tt_slice_size(fi->size, nleaves);
 
 	/* Update the GUI */
-	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+	if (update)
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
+/**
+ * Invoked when a seeded file had its TTH recomputed.
+ */
+void
+file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_recomputed_tth_internal(fi, tth, TRUE);
 }
 
 static void
@@ -2221,12 +2239,24 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	file_info_check(fi);
 
+	/*
+	 * We now persist seeded files in order to be able to resume seeding
+	 * after a crash and a restart, thereby ensuring continuity of the
+	 * user session.
+	 * 		--RAM, 2017-10-21
+	 */
+
+	if (FI_F_SEEDING == ((FI_F_SEEDING | FI_F_NOSHARE) & fi->flags))
+		goto persist;		/* Skip trailer writes, of course */
+
 	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
 		return;
 
 	if (fi->use_swarming && fi->dirty) {
 		file_info_store_binary(fi, FALSE);
 	}
+
+persist:
 
 	/*
 	 * Keep entries for incomplete or not even started downloads so that the
@@ -2275,13 +2305,36 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 
 	fprintf(f, "SIZE %s\n", filesize_to_string(fi->size));
-	fprintf(f, "FSKN %u\n", fi->file_size_known ? 1 : 0);
-	fprintf(f, "PAUS %u\n", (FI_F_PAUSED & fi->flags) ? 1 : 0);
 	fprintf(f, "DONE %s\n", filesize_to_string(fi->done));
 	fprintf(f, "TIME %s\n", time_t_to_string(fi->stamp));
 	fprintf(f, "CTIM %s\n", time_t_to_string(fi->created));
 	fprintf(f, "NTIM %s\n", time_t_to_string(fi->ntime));
-	fprintf(f, "SWRM %u\n", fi->use_swarming ? 1 : 0);
+
+	/*
+	 * The following boolean tags are emitted conditionally because they
+	 * have defaults: we only emit them when the value is not the default.
+	 *
+	 * For instance, "PAUS" is emitted only when TRUE, so when missing, the
+	 * assumption will be that the file downloading was not paused, i.e. that
+	 * the value of that tag was FALSE.
+	 *
+	 * Note that although here we only emit "PAUS 1", we can correctly process
+	 * input with "PAUS 0": although we no longer emit these, we accept them.
+	 *
+	 * 		--RAM, 2017-10-21
+	 */
+
+	if (FI_F_PAUSED & fi->flags)
+		fputs("PAUS 1\n", f);
+
+	if (FI_F_SEEDING == ((FI_F_SEEDING | FI_F_NOSHARE) & fi->flags))
+		fputs("SEED 1\n", f);
+
+	if (!fi->file_size_known)
+		fputs("FSKN 0\n", f);
+
+	if (!fi->use_swarming)
+		fputs("SWRM 0\n", f);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
@@ -2335,8 +2388,6 @@ file_info_store(void)
 		"#	GENR <generation number>\n"
 		"#	ALIA <alias file name>\n"
 		"#	SIZE <size>\n"
-		"#	FSKN <boolean; file_size_known>\n"
-		"#	PAUS <boolean; paused>\n"
 		"#	SHA1 <server sha1>\n"
 		"#	TTH  <server tth>\n"
 		"#	CHA1 <computed sha1> [when done only]\n"
@@ -2344,7 +2395,10 @@ file_info_store(void)
 		"#	TIME <last update stamp>\n"
 		"#	CTIM <entry creation time>\n"
 		"#	NTIM <time when new source was seen>\n"
-		"#	SWRM <boolean; use_swarming>\n"
+		"#	PAUS <boolean; paused> [when TRUE only]\n"
+		"#	SEED <boolean; file seeded> [when TRUE only]\n"
+		"#	FSKN <boolean; file_size_known> [when FALSE only]\n"
+		"#	SWRM <boolean; use_swarming> [when FALSE only]\n"
 		"#	CHNK <start> <end+1> <0=hole, 1=busy, 2=done>\n"
 		"#	<blank line>\n"
 		"#\n\n",
@@ -2996,6 +3050,7 @@ enum fi_tag {
 	FI_TAG_NTIM,
 	FI_TAG_PATH,
 	FI_TAG_PAUS,
+	FI_TAG_SEED,
 	FI_TAG_SHA1,
 	FI_TAG_SIZE,
 	FI_TAG_SWRM,
@@ -3020,6 +3075,7 @@ static const tokenizer_t fi_tags[] = {
 	FI_TAG(NTIM),
 	FI_TAG(PATH),
 	FI_TAG(PAUS),
+	FI_TAG(SEED),
 	FI_TAG(SHA1),
 	FI_TAG(SIZE),
 	FI_TAG(SWRM),
@@ -3194,6 +3250,43 @@ file_info_retrieve(void)
 			 */
 
 			upgraded = fi_upgrade_older_version(fi);
+
+			/*
+			 * If we are processing a file being seeded, skip all the
+			 * CHNK, DONE and trailer consistency checks.
+			 *
+			 * If we are not recovering from a crash, seeded entries are
+			 * discarded.
+			 */
+
+			if (FI_F_SEEDING & fi->flags) {
+				if (crash_was_restarted()) {
+					if (NULL == fi->sha1) {
+						g_warning("%s(): missing SHA1 for seeded file %s",
+							G_STRFUNC, fi->pathname);
+						goto reset;		/* Fileinfo DB was corrupted, drop seed */
+					}
+
+					if (!file_exists(fi->pathname)) {
+						g_warning("%s(): missing previously seeded file %s",
+							G_STRFUNC, fi->pathname);
+						goto reset;		/* User probably removed the file */
+					}
+
+					if (fi->tth != NULL)
+						file_info_recomputed_tth_internal(fi, fi->tth, FALSE);
+
+					/* Seeding of file will be resumed */
+					goto ready;
+				}
+
+				if (GNET_PROPERTY(share_debug)) {
+					g_info("SHARE discarding seeded file %s", fi->pathname);
+				}
+
+				/* Drop the seeded file now */
+				goto reset;
+			}
 
 			/*
 			 * Allow reconstruction of missing information: if no CHNK
@@ -3394,6 +3487,9 @@ file_info_retrieve(void)
 			}
 
 			file_info_merge_adjacent(fi);
+
+		ready:
+
 			file_info_hash_insert(fi);
 
 			if (can_publish_partial_sha1 && fi->sha1 != NULL) {
@@ -3432,6 +3528,7 @@ file_info_retrieve(void)
 		if (!fi) {
 			fi = file_info_allocate();
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
+			fi->use_swarming = TRUE;		/* Unless stated otherwise below */
 			old_filename = NULL;
 		}
 
@@ -3493,6 +3590,11 @@ file_info_retrieve(void)
 			v = parse_uint32(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep || v > 1;
 			fi->flags |= v ? FI_F_PAUSED : 0;
+			break;
+		case FI_TAG_SEED:
+			v = parse_uint32(value, &ep, 10, &error);
+			damaged = error || '\0' != *ep || v > 1;
+			fi->flags |= v ? (FI_F_SEEDING | FI_F_STRIPPED) : 0;
 			break;
 		case FI_TAG_ALIA:
 			if (looks_like_urn(value)) {
@@ -6264,8 +6366,11 @@ fi_spot_completed_kv(void *val, void *unused_x)
 	(void) unused_x;
 	file_info_check(fi);
 
-	if (fi->refcount)					/* Attached to a download */
-		return;
+	if (fi->refcount)
+		return;				/* Attached to a download */
+
+	if (FI_F_SEEDING && fi->flags)
+		return;				/* Completed file being seeded */
 
 	/*
 	 * If the file is 100% done, fake a new download.
