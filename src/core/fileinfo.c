@@ -745,7 +745,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 	uint32 length;
 
 	g_assert(fo);
-	g_return_if_fail((FI_F_TRANSIENT | FI_F_STRIPPED) & fi->flags);
+	g_return_if_fail(0 == ((FI_F_TRANSIENT | FI_F_STRIPPED) & fi->flags));
 
 	TBUF_INIT_WRITE();
 	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
