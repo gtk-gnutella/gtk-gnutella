@@ -249,6 +249,7 @@ void crash_set_restart(action_fn_t cb);
 void crash_reexec(void) G_NORETURN;
 void crash_restart(const char *format, ...) G_PRINTF(1, 2);
 void crash_restarting(void);
+void crash_restarting_done(void);
 void crash_print_decorated_stack(int fd);
 void crash_divert_main(const char *caller, process_fn_t cb, void *arg);
 void crash_mark_restarted(void);

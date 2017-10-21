@@ -1078,6 +1078,7 @@ quick_restart:
 		handle_user_shutdown_request(shutdown_user_mode);
 		if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
 			g_info("gtk-gnutella will now restart itself...");
+			crash_restarting_done();
 			crash_reexec();
 		}
 	}

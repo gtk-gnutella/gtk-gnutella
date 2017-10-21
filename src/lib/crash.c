@@ -4468,6 +4468,21 @@ crash_restarting(void)
 	}
 }
 
+/**
+ * Marks the end of the shutdown sequence.
+ *
+ * After crash_restarting() was issued, this routine must be called prior
+ * to crash_reexec() for instance, to avoid a plain exit() when we know that
+ * it is OK to restart.
+ */
+void
+crash_restarting_done(void)
+{
+	g_return_if_fail(atomic_int_get(&crash_exit_started) > 0);
+
+	atomic_int_set(&crash_exit_started, 0);
+}
+
 /***
  *** Calling any of the following routines means we're about to crash.
  ***/
