@@ -3240,7 +3240,7 @@ file_info_retrieve(void)
 				 */
 
 				if (done != 0 && fi->done != done) {
-					g_warning("inconstistent DONE info for \"%s\": "
+					g_warning("inconsistent DONE info for \"%s\": "
 						"read %s, computed %s",
 						fi->pathname, filesize_to_string(done),
 						filesize_to_string2(fi->done));
