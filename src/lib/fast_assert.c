@@ -48,7 +48,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define STACK_OFF	2			/* 2 extra calls: calling routine, then here */
+#define STACK_OFF	1			/* 1 extra call: here */
 
 /**
  * @note For maximum safety this is kept signal-safe, so that we can
