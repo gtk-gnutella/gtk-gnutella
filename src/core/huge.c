@@ -1022,7 +1022,7 @@ huge_sha1_cache_prune(void)
 	pruned = hikset_foreach_remove(sha1_cache, cache_entry_is_shared, NULL);
 
 	if (GNET_PROPERTY(share_debug)) {
-		g_warning("%s(): pruned %zu entr%s from SHA1 cache",
+		g_info("%s(): pruned %zu entr%s from SHA1 cache",
 			G_STRFUNC, pruned, plural_y(pruned));
 	}
 
