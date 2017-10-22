@@ -688,7 +688,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	g_assert(new->compacted);
 	g_assert(old == NULL || new->slots == old->slots);
 
-	WALLOC(rp);
+	WALLOC0(rp);
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
@@ -4585,7 +4585,7 @@ qrt_handle_reset(
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
 
-	WALLOC(rt);
+	WALLOC0(rt);
 	rt->magic = QRP_ROUTE_MAGIC;
 	rt->name = str_cmsg("QRT %s", node_infostr(n));
 	rt->refcnt = 1;
@@ -5246,7 +5246,7 @@ qhvec_clone(const query_hashvec_t *qsrc)
 
 	g_assert(qsrc != NULL);
 
-	WALLOC(qhvec);
+	WALLOC0(qhvec);
 	qhvec->count = qsrc->count;
 	qhvec->size = qsrc->size;
 	qhvec->has_urn = qsrc->has_urn;
