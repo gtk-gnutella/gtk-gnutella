@@ -807,9 +807,19 @@ gtk_gnutella_exit(int exit_code)
 	/*
 	 * If auto-restart was requested, flag that in the properties so that
 	 * we'll know about that request when we restart.
+	 *
+	 * A session extension (OEXTEND) works similarily to a restart (ORESTART),
+	 * excepted that we do not re-launch immediately: the session will be
+	 * continued the next time GTKG is launched.
+	 *
+	 * Continuing a session lets one resume seeding of files, for instance.
+	 * In effect, crash_was_restarted() will return TRUE in the new process.
 	 */
 
-	if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+	if (
+		shutdown_user_flags &
+			(GTKG_SHUTDOWN_ORESTART | GTKG_SHUTDOWN_OEXTEND)
+	) {
 		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
 	}
 
@@ -1080,6 +1090,8 @@ quick_restart:
 			g_info("gtk-gnutella will now restart itself...");
 			crash_restarting_done();
 			crash_reexec();
+		} else if (shutdown_user_flags & GTKG_SHUTDOWN_OEXTEND) {
+			g_info("gtk-gnutella will resume current session next time.");
 		}
 	}
 
