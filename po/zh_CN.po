@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -415,6 +415,9 @@ msgstr "超时"
 msgid "Requeued due to timeout"
 msgstr "因超时重新排队"
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -797,13 +800,6 @@ msgstr ""
 msgid "Lifetime expired"
 msgstr "超出生命周期"
 
-msgid "Unauthorized"
-msgstr ""
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr ""
-
 msgid "No reason given"
 msgstr ""
 
@@ -826,9 +822,6 @@ msgid "Not Found"
 msgstr ""
 
 msgid "File was modified"
-msgstr ""
-
-msgid "Moved Permanently"
 msgstr ""
 
 msgid "File index/name mismatch"
@@ -858,6 +851,13 @@ msgstr "<请求浏览主机>"
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "浏览主机"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
@@ -867,6 +867,10 @@ msgstr ""
 
 msgid "Stalling upload replaced"
 msgstr ""
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "无法发送整个 HTTP 状态"
 
 msgid "Already downloading this file"
 msgstr ""
@@ -897,9 +901,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "排队(%d个插口，ETA：%s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "无法发送整个 HTTP 状态"
-
 msgid "Not Acceptable"
 msgstr ""
 
@@ -921,6 +922,10 @@ msgstr ""
 
 msgid "THEX failure"
 msgstr ""
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "无法发送整个 HTTP 状态"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -4290,6 +4295,15 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr ""
 
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr ""
+
+msgid "Defines whether lock contentions should be traced."
+msgstr ""
+
+msgid "Defines whether lock sleeps should be traced."
+msgstr ""
+
 msgid "disable"
 msgstr "禁用"
 
@@ -4758,6 +4772,18 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+msgid "Notebook tab number for the Gnet stats page"
+msgstr ""
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5764,9 +5790,13 @@ msgstr "不可用"
 msgid "Bitprint"
 msgstr ""
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "叶节点哈希值：%lu，深度：%u，粒度：%s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "完成"
 
 msgid "Tigertree"
 msgstr ""
@@ -8371,14 +8401,14 @@ msgstr "显示状态图标(_I)"
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr "，"
+
 msgid "Remove completed downloads from list"
 msgstr "从列表中删除已下载项"
 
 msgid "_Clear completed"
 msgstr "完成清理(_C)"
-
-msgid ", "
-msgstr "，"
 
 msgid "Peer:"
 msgstr "节点："
@@ -8938,9 +8968,6 @@ msgstr "尚没有输出..."
 msgid "Got push, connecting back..."
 msgstr ""
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr "(快)"
 
@@ -8989,3 +9016,6 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

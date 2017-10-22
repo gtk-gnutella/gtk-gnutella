@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1.10\n"
+"Project-Id-Version: gtk-gnutella 1.1.13u\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -416,6 +416,9 @@ msgstr ""
 msgid "Requeued due to timeout"
 msgstr ""
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -803,13 +806,6 @@ msgstr ""
 msgid "Lifetime expired"
 msgstr ""
 
-msgid "Unauthorized"
-msgstr ""
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr ""
-
 msgid "No reason given"
 msgstr ""
 
@@ -832,9 +828,6 @@ msgid "Not Found"
 msgstr ""
 
 msgid "File was modified"
-msgstr ""
-
-msgid "Moved Permanently"
 msgstr ""
 
 msgid "File index/name mismatch"
@@ -864,6 +857,12 @@ msgstr ""
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+msgid "Browsing throttled"
+msgstr ""
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
@@ -872,6 +871,9 @@ msgid "Not Modified"
 msgstr ""
 
 msgid "Stalling upload replaced"
+msgstr ""
+
+msgid "Could not send whole HTTP status"
 msgstr ""
 
 msgid "Already downloading this file"
@@ -903,9 +905,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr ""
 
-msgid "Cannot send whole HTTP status"
-msgstr ""
-
 msgid "Not Acceptable"
 msgstr ""
 
@@ -926,6 +925,9 @@ msgid ", chunked"
 msgstr ""
 
 msgid "THEX failure"
+msgstr ""
+
+msgid "Cannot send whole HTTP status after OPTIONS"
 msgstr ""
 
 msgid "EOF while sinking"
@@ -4259,6 +4261,15 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr ""
 
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr ""
+
+msgid "Defines whether lock contentions should be traced."
+msgstr ""
+
+msgid "Defines whether lock sleeps should be traced."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -4727,6 +4738,18 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+msgid "Notebook tab number for the Gnet stats page"
+msgstr ""
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -5737,7 +5760,10 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
+msgstr ""
+
+msgid " [re-computed]"
 msgstr ""
 
 msgid "Tigertree"
@@ -8342,13 +8368,13 @@ msgstr ""
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr ""
+
 msgid "Remove completed downloads from list"
 msgstr ""
 
 msgid "_Clear completed"
-msgstr ""
-
-msgid ", "
 msgstr ""
 
 msgid "Peer:"
@@ -8921,9 +8947,6 @@ msgid "No output yet..."
 msgstr ""
 
 msgid "Got push, connecting back..."
-msgstr ""
-
-msgid "< 1s"
 msgstr ""
 
 msgid "(quick) "
