@@ -3648,7 +3648,7 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-void G_COLD
+static void G_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
@@ -3662,7 +3662,7 @@ crash_hook_install(void *data, void *udata)
  *
  * This is an eslist iterator callback.
  */
-void G_COLD
+static void G_COLD
 crash_dumper_install(void *data, void *udata)
 {
 	crash_dumper_item_t *ci = data;
