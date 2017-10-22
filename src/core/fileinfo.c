@@ -3261,6 +3261,8 @@ file_info_retrieve(void)
 
 			if (FI_F_SEEDING & fi->flags) {
 				if (crash_was_restarted()) {
+					filestat_t sb;
+
 					if (NULL == fi->sha1) {
 						g_warning("%s(): missing SHA1 for seeded file %s",
 							G_STRFUNC, fi->pathname);
@@ -3271,6 +3273,31 @@ file_info_retrieve(void)
 						g_warning("%s(): missing previously seeded file %s",
 							G_STRFUNC, fi->pathname);
 						goto reset;		/* User probably removed the file */
+					}
+
+					if (-1 == stat(fi->pathname, &sb)) {
+						g_warning("%s(): cannot stat seeded file %s: %m",
+							G_STRFUNC, fi->pathname);
+						goto reset;
+					}
+
+					/*
+					 * FIXME:
+					 * would need to check that the file is still accurate if
+					 * the timestamp was changed since last modification.
+					 * For now just warn.
+					 * 		--RAM, 2017-10-23
+					 */
+
+					if (sb.st_mtime != fi->modified) {
+						g_warning("%s(): modified seeded file %s: "
+							"last modified=%lu, mtime=%lu; resetting!",
+							G_STRFUNC, fi->pathname,
+							(ulong) fi->modified, (ulong) sb.st_mtime);
+
+						/* This stamp is necessary to be able to upload! */
+						fi->modified = sb.st_mtime;
+						fi->stamp = fi->modified;	/* Persist new value */
 					}
 
 					if (fi->tth != NULL)
@@ -3653,6 +3680,7 @@ file_info_retrieve(void)
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep;
 			fi->stamp = v;
+			fi->modified = v;		/* Until we know better */
 			break;
 		case FI_TAG_CTIM:
 			v = parse_uint64(value, &ep, 10, &error);
@@ -4071,7 +4099,8 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 
 		shared_file_set_modification_time(fi->sf, mtime);	/* Sets sf->mtime */
 		fi->modified = mtime;
-	}
+		fi->stamp = mtime;		/* Persisted as "TIME" in fileinfo ASCII DB */
+ 	}
 
 	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
