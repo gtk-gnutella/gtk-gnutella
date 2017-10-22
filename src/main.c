@@ -254,6 +254,7 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_log_supervise,
 	main_arg_minimized,
+	main_arg_no_build_version,
 	main_arg_no_dbus,
 	main_arg_no_halloc,
 	main_arg_no_restart,
@@ -318,6 +319,7 @@ static struct option {
 #else
 	OPTION(minimized,		NONE, "Start with minimized main window."),
 #endif	/* USE_TOPLESS */
+	OPTION(no_build_version,NONE, NULL),	/* hidden option */
 	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
@@ -2398,10 +2400,10 @@ main(int argc, char **argv)
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
 	zalloc_memusage_init();
-	version_init();
+	version_init(OPT(no_build_version));
 	xmalloc_show_settings();
 	malloc_show_settings();
-	crash_setver(version_get_string());
+	crash_setver(version_build_string());	/* Wants true full version */
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */

@@ -77,7 +77,7 @@ typedef struct version_ext {
  * Public interface.
  */
 
-void version_init(void);
+void version_init(bool hide);
 void version_close(void);
 void version_ancient_warn(void);
 bool version_check(const char *str, const char *token, const host_addr_t);

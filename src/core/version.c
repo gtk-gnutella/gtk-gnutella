@@ -789,23 +789,21 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 }
 
 /**
- * Generates the version string. This function does not require any
- * initialization, thus may be called very early e.g., for showing
- * version information if the executable was invoked with --version
- * as argument.
+ * Generates the version string.
+ *
+ * @param hide	if TRUE, hides build information
  *
  * @return A pointer to a static buffer holding the version string.
  */
-const char * G_COLD
-version_build_string(void)
+static const char * G_COLD
+version_build_internal(bool hide)
 {
 	static bool initialized;
 	static char buf[128];
+	static const char *sysname = "Unknown";
+	static const char *machine;
 
 	if (!initialized) {
-		const char *sysname = "Unknown";
-		const char *machine = NULL;
-
 		initialized = TRUE;
 
 #ifdef HAS_UNAME
@@ -820,28 +818,57 @@ version_build_string(void)
 			}
 		}
 #endif /* HAS_UNAME */
-
-		str_bprintf(buf, sizeof buf,
-			"%s/%s%s (%s; %s; %s%s%s)",
-			product_name(), product_version(),
-			product_build_full(), product_date(),
-			product_interface(),
-			sysname,
-			machine && machine[0] ? " " : "",
-			machine ? machine : "");
 	}
+
+	str_bprintf(buf, sizeof buf,
+		"%s/%s%s (%s; %s; %s%s%s)",
+		product_name(), product_version(),
+		hide ? "" : product_build_full(),
+	   	product_date(), product_interface(),
+		sysname,
+		machine && machine[0] ? " " : "",
+		machine ? machine : "");
+
+	return buf;
+}
+
+/**
+ * Generates the version string. This function does not require any
+ * initialization, thus may be called very early e.g., for showing
+ * version information if the executable was invoked with --version
+ * as argument.
+ *
+ * Regardless of whether they want to hide the build information,
+ * this always returns the true fully qualified version.  For instance,
+ * the crash log must always contain the real version, not the one we
+ * wish to otherwise advertize with no build information!
+ *
+ * @return A pointer to a static buffer holding the version string.
+ */
+const char * G_COLD
+version_build_string(void)
+{
+	static char buf[128];
+
+	if G_UNLIKELY('\0' == buf[0]) {
+		const char *v = version_build_internal(FALSE);
+		clamp_strcpy(buf, sizeof buf, v);
+	}
+
 	return buf;
 }
 
 /**
  * Initialize version string.
+ *
+ * @param hide	if TRUE, hide build information in version string
  */
 void G_COLD
-version_init(void)
+version_init(bool hide)
 {
 	time_t now;
 
-	version_string = ostrdup_readonly(version_build_string());
+	version_string = ostrdup_readonly(version_build_internal(hide));
 	now = tm_time();
 
 	{
@@ -850,11 +877,14 @@ version_init(void)
 
 		ok = version_parse(version_string, &our_version, &end);
 		g_assert(ok);
-		ok = version_ext_parse(end, &our_ext_version);
+		if (!hide)
+			ok = version_ext_parse(end, &our_ext_version);
 		g_assert(ok);
 	}
 
 	g_info("%s", version_string);
+	if (hide)
+		g_info("really running %s", version_build_string());
 
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
@@ -865,7 +895,7 @@ version_init(void)
 		str_bprintf(buf, sizeof(buf),
 			"%s/%s%s (%s)",
 			product_name(), product_version(),
-			product_build_full(), product_date());
+			hide ? "" : product_build_full(), product_date());
 
 		version_short_string = ostrdup_readonly(buf);
 	}
