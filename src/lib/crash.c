@@ -185,6 +185,7 @@ struct crash_vars {
 	unsigned lock_line;		/**< Deadlocking line */
 	const char * const *argv;	/**< Saved argv[] array */
 	const char * const *envp;	/**< Saved environment array */
+	eslist_t *dumpers;		/** Crash dumper callbacks to invoke during crash */
 	int argc;				/**< Saved argv[] count */
 	unsigned build;			/**< Build number, unique version number */
 	uint8 major;			/**< Major version */
@@ -227,6 +228,9 @@ static enum crash_level crash_current_level;
 
 /**
  * An item in the crash_hooks list.
+ *
+ * This list is filled-in until crash_init() is called and then hooks will
+ * be transferred into a memory-protected hash table, with filenames as keys.
  */
 typedef struct crash_hook_item {
 	const char *filename;		/**< File for which hook is installed */
@@ -235,6 +239,20 @@ typedef struct crash_hook_item {
 } crash_hook_item_t;
 
 static eslist_t crash_hooks = ESLIST_INIT(offsetof(crash_hook_item_t, link));
+
+/**
+ * An item in the crash_dumpers list.
+ *
+ * This list is filled-in until crash_init() is called and then dumpers will
+ * be transferred into a memory-protected array.
+ */
+typedef struct crash_dumper_item {
+	callback_fn_t dumper;		/**< The information dumping routine to run */
+	slink_t link;				/**< Embedded link */
+} crash_dumper_item_t;
+
+static eslist_t crash_dumpers =
+	ESLIST_INIT(offsetof(crash_dumper_item_t, link));
 
 static const char CRASHFILE_ENV[] = "Crashfile=";
 
@@ -673,27 +691,15 @@ crash_getpid(void)
 }
 
 /**
- * Run crash hooks if we have an identified assertion failure.
- *
- * @param logfile		if non-NULL, redirect messages there as well.
- * @param logfd			if not -1, the opened file where we should log to
+ * Run single hook function, logging action to given fd if not -1.
  */
 static void G_COLD
-crash_run_hooks(const char *logfile, int logfd)
+crash_run_hook(int fd, callback_fn_t hook)
 {
-	callback_fn_t hook;
 	const char *routine;
 	char pid_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(7);
-	int fd = logfd;
-
-	hook = crash_get_hook();
-	if (NULL == hook)
-		return;
-
-	if (vars != NULL && vars->hooks_run)
-		return;		/* Prevent duplicate run */
 
 	/*
 	 * Let them know we're going to run a hook.
@@ -716,32 +722,11 @@ crash_run_hooks(const char *logfile, int logfd)
 	rewind_str(0);
 
 	/*
-	 * If there is a crash filename given, open it for appending and
-	 * configure the stderr logfile with a duplicate logging to that file.
-	 */
-
-	if (logfile != NULL && -1 == logfd) {
-		fd = open(logfile, O_WRONLY | O_APPEND, 0);
-		if (-1 == fd) {
-			crash_time(time_buf, sizeof time_buf);
-			print_str(time_buf);					/* 0 */
-			print_str(" WARNING: cannot reopen ");	/* 1 */
-			print_str(logfile);						/* 2 */
-			print_str(" for appending: ");			/* 3 */
-			print_str(symbolic_errno(errno));		/* 4 */
-			print_str("\n");						/* 5 */
-			flush_str(log_get_fd(LOG_STDERR));
-			rewind_str(0);
-		}
-	}
-
-	/*
 	 * Invoke hook, then log a message indicating we're done.
 	 */
 
 	if (-1 != fd) {
-		log_set_duplicate(LOG_STDERR, fd);
-		print_str("invoking crash hook \"");	/* 0 */
+		print_str("\nInvoking crash hook \"");	/* 0 */
 		print_str(routine);						/* 1 */
 		print_str("\"...\n");					/* 2 */
 		flush_str(fd);
@@ -764,14 +749,77 @@ crash_run_hooks(const char *logfile, int logfd)
 
 	if (fd != -1) {
 		rewind_str(0);
-		print_str("done with hook \"");			/* 0 */
+		print_str("Done with hook \"");			/* 0 */
 		print_str(routine);						/* 1 */
 		print_str("\".\n");						/* 2 */
 		flush_str(fd);
 	}
+}
+
+/**
+ * Eslist iterator to trigger crash dumper hooks.
+ */
+static void G_COLD
+crash_run_dumper(void *data, void *udata)
+{
+	crash_dumper_item_t *ci = data;
+	int fd = pointer_to_int(udata);
+
+	crash_run_hook(fd, ci->dumper);
+}
+
+/**
+ * Run crash hooks if we have an identified assertion failure.
+ *
+ * @param logfile		if non-NULL, redirect messages there as well.
+ * @param logfd			if not -1, the opened file where we should log to
+ */
+static void G_COLD
+crash_run_hooks(const char *logfile, int logfd)
+{
+	callback_fn_t hook;
+	int fd = logfd;
+
+	if (vars != NULL && vars->hooks_run)
+		return;		/* Prevent duplicate run */
+
+	hook = crash_get_hook();
+
+	if (NULL == hook && (NULL == vars || 0 == eslist_count(vars->dumpers)))
+		return;
+
+	/*
+	 * If there is a crash filename given, open it for appending and
+	 * configure the stderr logfile with a duplicate logging to that file.
+	 */
+
+	if (logfile != NULL && -1 == logfd) {
+		fd = open(logfile, O_WRONLY | O_APPEND, 0);
+		if (-1 == fd) {
+			char time_buf[CRASH_TIME_BUFLEN];
+			DECLARE_STR(6);
+
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);					/* 0 */
+			print_str(" WARNING: cannot reopen ");	/* 1 */
+			print_str(logfile);						/* 2 */
+			print_str(" for appending: ");			/* 3 */
+			print_str(symbolic_errno(errno));		/* 4 */
+			print_str("\n");						/* 5 */
+			flush_str(log_get_fd(LOG_STDERR));
+		}
+	}
+
+	if (fd != -1)
+		log_set_duplicate(LOG_STDERR, fd);
+
+	if (hook != NULL)
+		crash_run_hook(fd, hook);
 
 	if (vars != NULL) {
 		uint8 t = TRUE;
+
+		eslist_foreach(vars->dumpers, crash_run_dumper, int_to_pointer(fd));
 		crash_set_var(hooks_run, t);
 	}
 
@@ -2760,16 +2808,91 @@ crash_vmea_usage(void)
 }
 
 /**
+ * Exit with given status code if we are in a child process, possibly dumping
+ * a core instead if we are in the parent process and they did not disable
+ * core dumps.
+ */
+static void
+crash_exit(int status, bool in_child)
+{
+	if (in_child)
+		_exit(status);
+
+	if (NULL == vars)
+		goto dump_core;			/* Can't know whether it's disabled */
+
+	if (!vars->dumps_core)
+		goto plain_exit;
+
+dump_core:
+	/*
+	 * We don't want to perturb a successful exit status (which will
+	 * prevent auto-restart from the parent monitoring process), yet we
+	 * are in an error path, hence need to dump a core.
+	 *
+	 * In that case (monitored process and successful exit), fork a child
+	 * to dump the core and log the new PID.
+	 */
+
+	if (vars != NULL && vars->supervised && EXIT_SUCCESS == status) {
+		char time_buf[CRASH_TIME_BUFLEN];
+		pid_t pid = crash_fork();
+		DECLARE_STR(6);
+
+		switch (pid) {
+		case 0:
+			/* Child process, who is going to dump the core */
+			{
+				char pid_buf[ULONG_DEC_BUFLEN];
+				const char *pid_str;
+
+				pid_str = PRINT_NUMBER(pid_buf, getpid());
+
+				crash_time(time_buf, sizeof time_buf);
+				print_str(time_buf);							/* 0 */
+				print_str(" (WARNING) core from child PID=");	/* 1 */
+				print_str(pid_str);								/* 2 */
+				print_str(" instead\n");						/* 3 */
+				flush_err_str();
+			}
+			break;
+		case -1:
+			crash_time(time_buf, sizeof time_buf);
+			print_str(time_buf);								/* 0 */
+			print_str(" (WARNING) cannot fork() for core: ");	/* 1 */
+			print_str(symbolic_errno(errno));					/* 2 */
+			print_str(" (");									/* 3 */
+			print_str(english_strerror(errno));					/* 4 */
+			print_str(")\n");									/* 5 */
+			/* FALL THROUGH */
+		default:
+			/* Parent process, or could not fork() */
+			goto plain_exit;
+		}
+	}
+
+	signal(SIGABRT, SIG_DFL);	/* Not signal_catch() */
+	raise(SIGABRT);
+
+	/* FALL THROUGH */
+plain_exit:
+	_exit(status);
+}
+
+/**
  * Called when we're about to re-exec() ourselves in some way to auto-restart.
+ *
+ * @param caller	routine that called us
+ * @param in_child	TRUE if we are in a child process (parent will dump core)
  */
 static void G_COLD
-crash_restart_notify(const char *caller)
+crash_restart_notify(const char *caller, bool in_child)
 {
 	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
 
 	if (NULL == vars) {
 		s_minicrit("%s(): no crash_init() yet!", caller);
-		_exit(EXIT_FAILURE);
+		crash_exit(EXIT_FAILURE, in_child);
 	}
 
 	/*
@@ -2783,7 +2906,7 @@ crash_restart_notify(const char *caller)
 
 	if (atomic_int_get(&crash_exit_started) && !crash_restart_initiated) {
 		s_miniwarn("%s(): already started exiting, forcing.", caller);
-		_exit(EXIT_SUCCESS);
+		crash_exit(EXIT_SUCCESS, in_child);
 	}
 
 	/*
@@ -2793,7 +2916,7 @@ crash_restart_notify(const char *caller)
 
 	if (0 == vars->argc) {
 		s_minicrit("%s(): no crash_setmain() yet!", caller);
-		_exit(EXIT_FAILURE);
+		crash_exit(EXIT_FAILURE, in_child);
 	}
 }
 
@@ -2807,7 +2930,8 @@ crash_try_reexec(void)
 {
 	char dir[MAX_PATH_LEN];
 
-	crash_restart_notify(G_STRFUNC);
+	crash_restart_notify(G_STRFUNC, TRUE);
+	thread_suspend_others(FALSE);
 
 	/*
 	 * If process is supervised and the parent is still here, then exit
@@ -2933,7 +3057,7 @@ crash_try_reexec(void)
 static void G_COLD
 crash_auto_restart(void)
 {
-	crash_restart_notify(G_STRFUNC);
+	crash_restart_notify(G_STRFUNC, FALSE);
 
 	/*
 	 * If process is supervised and the parent is still here, then abort,
@@ -3524,13 +3648,27 @@ crash_exited(uint32 pid)
  *
  * This is an eslist iterator callback.
  */
-void G_COLD
+static void G_COLD
 crash_hook_install(void *data, void *udata)
 {
 	crash_hook_item_t *ci = data;
 
 	(void) udata;
 	crash_hook_add(ci->filename, ci->hook);
+}
+
+/**
+ * Install crash dumpers that were registered before crash_init() was called.
+ *
+ * This is an eslist iterator callback.
+ */
+static void G_COLD
+crash_dumper_install(void *data, void *udata)
+{
+	crash_dumper_item_t *ci = data;
+
+	(void) udata;
+	crash_dumper_add(ci->dumper);
 }
 
 /**
@@ -3679,11 +3817,15 @@ crash_init(const char *argv0, const char *progname,
 
 	/*
 	 * This chunk is used to record "on-crash" handlers.
+	 *
+	 * The "hookmem" chunk is used to allocate memory for the hashtable object,
+	 * and also for items in the dumpers list.
 	 */
 
 	{
 		ckhunk_t *hookmem;
 		hash_table_t *ht;
+		eslist_t *esl;
 
 		hookmem = ck_init_not_leaking(compat_pagesize(), 0);
 		crash_set_var(hookmem, hookmem);
@@ -3693,10 +3835,21 @@ crash_init(const char *argv0, const char *progname,
 		crash_set_var(hooks, ht);
 
 		hash_table_readonly(ht);
-		ck_readonly(vars->hookmem);
 
 		eslist_foreach(&crash_hooks, crash_hook_install, NULL);
 		eslist_wfree(&crash_hooks, sizeof(crash_hook_item_t));
+
+		ck_writable(vars->hookmem);	/* Left read-only by crash_hook_install() */
+
+		esl = ck_alloc(hookmem, sizeof *esl);
+		eslist_init(esl, offsetof(crash_dumper_item_t, link));
+		crash_set_var(dumpers, esl);
+
+		eslist_foreach(&crash_dumpers, crash_dumper_install, NULL);
+		eslist_wfree(&crash_dumpers, sizeof(crash_dumper_item_t));
+
+		/* Normally already left read-only by crash_dumper_install() */
+		ck_readonly(vars->hookmem);
 	}
 
 	/*
@@ -3920,6 +4073,44 @@ crash_set_restart(action_fn_t cb)
 }
 
 /**
+ * Record a crash dumper routine.
+ *
+ * Crash dumpers are used to append application contextual information that
+ * could provide some context on why the application is crashing.  For instance,
+ * dynamic configuraiton options, which may alter processing logic in the
+ * application.
+ */
+void
+crash_dumper_add(const callback_fn_t dumper)
+{
+	crash_dumper_item_t *ci;
+
+	g_assert(dumper != NULL);
+
+	/*
+	 * If crash_init() has not been run yet, record the pending hook
+	 * for deferred processing.  The hook will not be installed until
+	 * crash_init() is called, naturally.
+	 */
+
+	if G_UNLIKELY(NULL == vars) {
+		WALLOC0(ci);
+		ci->dumper = dumper;
+		eslist_append(&crash_dumpers, ci);
+	} else {
+		ck_writable(vars->hookmem);		/* Holds list descriptor and objects */
+
+		ci = ck_alloc(vars->hookmem, sizeof *ci);
+		if (NULL == ci)
+			s_error("%s(): too many dumpers registered", G_STRFUNC);
+		ci->dumper = dumper;
+		eslist_append(vars->dumpers, ci);
+
+		ck_readonly(vars->hookmem);
+	}
+}
+
+/**
  * Record a crash hook for a file.
  */
 void
@@ -3959,9 +4150,11 @@ crash_hook_add(const char *filename, const callback_fn_t hook)
 			filename, stacktrace_routine_name(oldhook, FALSE));
 	} else {
 		ck_writable(vars->hookmem);			/* Holds the hash table object */
+
 		hash_table_writable(vars->hooks);
 		hash_table_insert(vars->hooks, filename, func_to_pointer(hook));
 		hash_table_readonly(vars->hooks);
+
 		ck_readonly(vars->hookmem);
 	}
 }
@@ -4276,6 +4469,21 @@ crash_restarting(void)
 	}
 }
 
+/**
+ * Marks the end of the shutdown sequence.
+ *
+ * After crash_restarting() was issued, this routine must be called prior
+ * to crash_reexec() for instance, to avoid a plain exit() when we know that
+ * it is OK to restart.
+ */
+void
+crash_restarting_done(void)
+{
+	g_return_if_fail(atomic_int_get(&crash_exit_started) > 0);
+
+	atomic_int_set(&crash_exit_started, 0);
+}
+
 /***
  *** Calling any of the following routines means we're about to crash.
  ***/
@@ -4518,7 +4726,8 @@ crash_dump_stacks(int fd)
 	bool f;
 	struct crash_stack trace;
 
-	s_line_writef(fd, "Attempting to dump stacks for all the known threads...");
+	s_line_writef(fd,
+		"\nAttempting to dump stacks for all the known threads...");
 
 	/*
 	 * We first try to get stack and dump them in plain form, which is

@@ -3149,11 +3149,18 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 		return TRUE;
 
 	fi = shared_file_fileinfo(sf);
-	if (stat(shared_file_path(sf), &sb))
-		goto failure;
 
-	if (!S_ISREG(sb.st_mode))
+	if (-1 == stat(shared_file_path(sf), &sb)) {
+		g_warning("%s(): cannot stat() shared file \"%s\": %m",
+			G_STRFUNC, shared_file_path(sf));
 		goto failure;
+	}
+
+	if (!S_ISREG(sb.st_mode)) {
+		g_warning("%s(): shared file \"%s\" is no longer a regular file",
+			G_STRFUNC, shared_file_path(sf));
+		goto failure;
+	}
 
 	if (delta_time(shared_file_modification_time(sf), sb.st_mtime)) {
 		shared_file_set_modification_time(sf, sb.st_mtime);
@@ -3165,6 +3172,8 @@ upload_file_present(struct upload *u, shared_file_t *sf)
 			 * If the download is finished, we must stop seeding as soon
 			 * as the file is modified.
 			 */
+			g_warning("%s(): shared file \"%s\" was modified since completion",
+				G_STRFUNC, shared_file_path(sf));
 			goto failure;
 		}
 	}
@@ -3179,7 +3188,7 @@ failure:
 	 *		--RAM, 2005-08-04
 	 */
 
-	if (fi) {
+	if (fi != NULL) {
 		struct dl_file_info *current_fi = u->file_info;
 		/*
 		 * Ensure we do NOT kill the current upload through upload_stop_all().
@@ -3516,7 +3525,7 @@ library_rebuilt:
 static void
 upload_request_tth(shared_file_t *sf)
 {
-	if (!shared_file_is_partial(sf) && NULL == shared_file_tth(sf)) {
+	if (shared_file_is_servable(sf) && NULL == shared_file_tth(sf)) {
 		request_tigertree(sf, TRUE);
 	}
 }
@@ -3594,8 +3603,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == NULL) {
-		upload_error_not_found(u, uri);
-		return -1;
+		goto not_found;
 	} else if (!sha1_hash_is_uptodate(sf)) {
 		upload_send_error(u, 503, N_("SHA1 is being recomputed"));
 		shared_file_unref(&sf);
@@ -3671,7 +3679,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 	}
 	atom_str_change(&u->name, shared_file_name_nfc(sf));
 
-	if (shared_file_is_partial(sf)) {
+	if (shared_file_is_partial(sf) && !shared_file_is_finished(sf)) {
 		/*
 		 * As long as we cannot verify the full TTH we should probably
 		 * not pass it on even if we already fetched THEX data.

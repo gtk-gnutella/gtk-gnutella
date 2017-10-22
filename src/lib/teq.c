@@ -165,6 +165,13 @@ tevent_check(const struct tevent * const tev)
 	g_assert(THREAD_EVENT_MAGIC_VAL == (tev->magic & THREAD_EVENT_MAGIC_MASK));
 }
 
+static inline bool
+tevent_is_plain(const struct tevent * const tev)
+{
+	return THREAD_EVENT_MAGIC == tev->magic ||
+		THREAD_EVENT_IO_MAGIC == tev->magic;
+}
+
 /**
  * Magic numbers for thread event queue objects share the leading 24 bits.
  */
@@ -512,20 +519,55 @@ teq_ack(const struct tevent_acked *eva)
 	g_assert_not_reached();
 }
 
+static int
+teq_ev_cmp(const void *a, const void *b)
+{
+	const struct tevent *ea = a, *eb = b;
+	const struct tevent_plain *epa = a, *epb = b;
+
+	if (ea->magic != eb->magic)
+		return 1;		/* Different */
+
+	g_assert(tevent_is_plain(ea));
+	g_assert(tevent_is_plain(eb));
+
+	return epa->event == epb->event && epa->data == epb->data ? 0 : 1;
+}
+
 /**
  * Add event to the queue, signaling targeted thread.
+ *
+ * @param teq		the event queue
+ * @param ev		the event
+ * @param unique	if TRUE, do not post if identical event pending
+ *
+ * @return TRUE if we posted the event, FALSE if an identical event was there.
  */
-static void
-teq_put(struct teq *teq, void *ev)
+static bool
+teq_put(struct teq *teq, void *ev, bool unique)
 {
+	bool posted = TRUE;
+
 	teq_check(teq);
 	tevent_check(ev);
 
+	/* We only support "unique" for plain events */
+	g_assert(implies(unique, tevent_is_plain(ev)));
+
 	TEQ_LOCK(teq);
-	eslist_append(&teq->queue, ev);
+
+	if G_UNLIKELY(unique && NULL != eslist_find(&teq->queue, ev, teq_ev_cmp))
+		posted = FALSE;
+
+	if (posted)
+		eslist_append(&teq->queue, ev);
+
 	TEQ_UNLOCK(teq);
 
-	thread_kill(teq->stid, TSIG_TEQ);
+	if (posted)
+		thread_kill(teq->stid, TSIG_TEQ);
+
+	return posted;
 }
 
 /**
@@ -798,16 +840,23 @@ teq_handle(int signo)
  *
  * The targeted thread must have a valid event queue.
  *
+ * When "unique" is TRUE, we do not post the event if there is already an
+ * identical event pending in the queue (same routine and data).
+ *
  * @param teq		the targeted thread event queue
  * @param routine	the routine to invoke
  * @param data		the context to pass to the routine
+ * @param unique	whether to check for identical event first
  * @param magic		magic number to use for the event, for possible async call
+ *
+ * @return TRUE if we posted the event, FALSE if it was not, because not unique.
  */
-static void
-teq_post_event(struct teq *teq, notify_fn_t routine, void *data,
+static bool
+teq_post_event(struct teq *teq, notify_fn_t routine, void *data, bool unique,
 	enum tevent_magic magic)
 {
 	struct tevent_plain *evp;
+	bool posted;
 
 	g_assert(routine != NULL);
 
@@ -816,8 +865,14 @@ teq_post_event(struct teq *teq, notify_fn_t routine, void *data,
 	evp->event = routine;
 	evp->data = data;
 
-	teq_put(teq, evp);
+	posted = teq_put(teq, evp, unique);
+
+	if (!posted)
+		WFREE0(evp);
+
 	teq_release(teq);
+
+	return posted;
 }
 
 /**
@@ -839,7 +894,45 @@ teq_post(unsigned id, notify_fn_t routine, void *data)
 {
 	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
 
-	teq_post_event(teq, routine, data, THREAD_EVENT_MAGIC);
+	teq_post_event(teq, routine, data, FALSE, THREAD_EVENT_MAGIC);
+}
+
+/**
+ * Same as teq_post() but avoids enqueuing another event if a similar
+ * event (same routine and data) is already pending.
+ *
+ * The targeted thread must have a valid event queue.
+ *
+ * @param id		ID of the thread to which we want to post the event
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ *
+ * @return TRUE if the event was posted, FALSE if skipped.
+ */
+bool
+teq_post_unique(unsigned id, notify_fn_t routine, void *data)
+{
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
+
+	return teq_post_event(teq, routine, data, TRUE, THREAD_EVENT_MAGIC);
+}
+
+/**
+ * Common wrapper for teq_post() and teq_post_unique().
+ *
+ * @param id		ID of the thread to which we want to post the event
+ * @param unique	when TRUE, avoid posting if similar event is pending
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ *
+ * @return TRUE if the event was posted, FALSE if skipped.
+ */
+bool
+teq_post_ext(unsigned id, bool unique, notify_fn_t routine, void *data)
+{
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
+
+	return teq_post_event(teq, routine, data, unique, THREAD_EVENT_MAGIC);
 }
 
 /**
@@ -863,7 +956,7 @@ teq_safe_post(unsigned id, notify_fn_t routine, void *data)
 		"%s(): attempt to post safe event to %s requires an I/O TEQ there",
 		G_STRFUNC, thread_id_name(id));
 
-	teq_post_event(teq, routine, data, THREAD_EVENT_IO_MAGIC);
+	teq_post_event(teq, routine, data, FALSE, THREAD_EVENT_IO_MAGIC);
 }
 
 /**
@@ -927,7 +1020,7 @@ teq_post_ack(unsigned id, notify_fn_t routine, void *data,
 	eva->ack = ack;
 	eva->ack_data = ack_data;
 
-	teq_put(teq, eva);
+	teq_put(teq, eva, FALSE);
 	teq_release(teq);
 }
 
@@ -993,7 +1086,7 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 
 	events = thread_block_prepare();
 
-	teq_put(teq, &rpc);
+	teq_put(teq, &rpc, FALSE);
 	teq_release(teq);
 
 	/*

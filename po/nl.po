@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -420,6 +420,10 @@ msgstr "Tijd verstreken"
 msgid "Requeued due to timeout"
 msgstr "Opnieuw in de wacht omdat de tijd is verstreken"
 
+#, fuzzy
+msgid "File info being freed"
+msgstr "Bestandsinformatie wordt gereset"
+
 msgid "Partial file removed"
 msgstr "Gedeeltelijk bestand verwijderd"
 
@@ -809,13 +813,6 @@ msgstr "Time-out tijdens het wachten op de volgende"
 msgid "Lifetime expired"
 msgstr "Levenstijd verstreken"
 
-msgid "Unauthorized"
-msgstr "Onbevoegd"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "Connecties naar %s worden gelimiteerd"
-
 msgid "No reason given"
 msgstr "Geen reden opgegeven"
 
@@ -839,9 +836,6 @@ msgstr "Niet gevonden"
 
 msgid "File was modified"
 msgstr "Bestand is gewijzigd"
-
-msgid "Moved Permanently"
-msgstr "Permanent verplaatst"
 
 msgid "File index/name mismatch"
 msgstr "Bestandsnaam/index komt niet overeen"
@@ -870,6 +864,13 @@ msgstr "<Browse host verzoek>"
 msgid "Browse Host Disabled"
 msgstr "Host bladeren uitgeschakeld"
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Berichten smoren"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "Doorgestuurd naar %s:%u"
@@ -879,6 +880,10 @@ msgstr "Niet gewijzigd"
 
 msgid "Stalling upload replaced"
 msgstr "Hangende upload vervangen"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Kon niet de hele HTTP status versturen"
 
 msgid "Already downloading this file"
 msgstr "Bestand wordt reeds gedownload"
@@ -909,9 +914,6 @@ msgstr "Opnieuw proberen minimum vertraging"
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "In de wacht (slot %d, geschatte resterende tijd: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Kon niet de hele HTTP status versturen"
-
 msgid "Not Acceptable"
 msgstr "Onaccepteerbaar"
 
@@ -933,6 +935,10 @@ msgstr ", chunked"
 
 msgid "THEX failure"
 msgstr "THEX mislukt"
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Kon niet de hele HTTP status versturen"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -4947,6 +4953,18 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
 
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -5497,6 +5515,19 @@ msgid ""
 msgstr ""
 "Of de GUESS samenvattingsregel de totale statistieken moet tonen, of alleen "
 "de statistieken met betrekking tot de huidige zoekopdracht."
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Positie van de scheidingsmarkering in het Gnet statistieken paneel."
+
+msgid "Notebook tab number for download info / tools"
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonieme proxies"
@@ -6506,9 +6537,13 @@ msgstr "Niet beschikbaar"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "leaf hashes: %lu, diepte: %u, granulariteit: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "afgerond"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9221,14 +9256,14 @@ msgstr "Toon een status _icoon"
 msgid "Avg. downtime of this servent"
 msgstr "Gem. uptime van deze servent"
 
+msgid ", "
+msgstr ",."
+
 msgid "Remove completed downloads from list"
 msgstr "Verwijderde de afgeronde downloads van de lijst"
 
 msgid "_Clear completed"
 msgstr "Verwijder afgeronde"
-
-msgid ", "
-msgstr ",."
 
 msgid "Peer:"
 msgstr "Peer:"
@@ -9826,9 +9861,6 @@ msgstr "Nog geen uitvoer.."
 msgid "Got push, connecting back..."
 msgstr "Ontving een 'push', probeert een verbinding terug te maken..."
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr "(snel)"
 
@@ -9877,3 +9909,15 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Unauthorized"
+#~ msgstr "Onbevoegd"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "Connecties naar %s worden gelimiteerd"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Permanent verplaatst"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

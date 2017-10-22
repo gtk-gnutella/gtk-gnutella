@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-10-01 07:48+0000\n"
 "Last-Translator: Lucio Marinelli\n"
 "Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -420,6 +420,10 @@ msgstr "Tempo scaduto"
 msgid "Requeued due to timeout"
 msgstr "Riaccodato causa tempo scaduto"
 
+#, fuzzy
+msgid "File info being freed"
+msgstr "Le informazioni del file vengono resettate"
+
 msgid "Partial file removed"
 msgstr "File parziale rimosso"
 
@@ -809,13 +813,6 @@ msgstr "Attesa per il follow-up terminata"
 msgid "Lifetime expired"
 msgstr "Tempo di vita terminato"
 
-msgid "Unauthorized"
-msgstr "Non autorizzato"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "Connessioni da %s in limitazione"
-
 msgid "No reason given"
 msgstr "Nessuna spiegazione fornita"
 
@@ -839,9 +836,6 @@ msgstr "Non trovato"
 
 msgid "File was modified"
 msgstr "Il file è stato modificato"
-
-msgid "Moved Permanently"
-msgstr "Spostato permanentemente"
 
 msgid "File index/name mismatch"
 msgstr "Discordanza indice/nome del file"
@@ -870,6 +864,13 @@ msgstr "<Richiesta consultazione host>"
 msgid "Browse Host Disabled"
 msgstr "Consultazione host disabilitata"
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Inibizione messaggio"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "Reindirizzato verso %s:%u"
@@ -879,6 +880,10 @@ msgstr "Non modificato"
 
 msgid "Stalling upload replaced"
 msgstr "Rimpiazzato il caricamento fermato"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Non posso inviare lo stato HTTP completo"
 
 msgid "Already downloading this file"
 msgstr "File già in download"
@@ -909,9 +914,6 @@ msgstr "Ritardo minimo di ripetizione"
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Accodato (slot %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Non posso inviare lo stato HTTP completo"
-
 msgid "Not Acceptable"
 msgstr "Non accettabile"
 
@@ -933,6 +935,10 @@ msgstr ", a pezzetti"
 
 msgid "THEX failure"
 msgstr "fallimento TEX"
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Non posso inviare lo stato HTTP completo"
 
 msgid "EOF while sinking"
 msgstr "Fine del file durante il sinking"
@@ -4930,6 +4936,18 @@ msgstr "Nessun socket TCP in ascolto per permettere connessioni in ingresso."
 msgid "Defines whether Gnutella queries should be traced."
 msgstr "Definisce quale scambio intestazione Gnutella debba essere tracciato."
 
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Definisce quale scambio intestazione Gnutella debba essere tracciato."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Definisce quale scambio intestazione Gnutella debba essere tracciato."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Definisce quale scambio intestazione Gnutella debba essere tracciato."
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -5482,6 +5500,19 @@ msgid ""
 msgstr ""
 "Se la linea di riassunto GUESS debba mostrare le statistiche totali o solo "
 "quelle riferite alla ricerca corrente."
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Posizione del divisore del pannello statistiche di Gnet."
+
+msgid "Notebook tab number for download info / tools"
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonimizzazione dei proxy"
@@ -6491,9 +6522,13 @@ msgstr "Non disponibile"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "hash foglia: %lu, profondità: %u, granularità: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "completato"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9197,14 +9232,14 @@ msgstr "Mostra _icona di stato"
 msgid "Avg. downtime of this servent"
 msgstr "Tempo di inattività medio di questo servent"
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Rimuovi dall'elenco i download completati"
 
 msgid "_Clear completed"
 msgstr "Ri_pulisci completati"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Peer:"
@@ -9802,9 +9837,6 @@ msgstr "Non c'è ancora un output..."
 msgid "Got push, connecting back..."
 msgstr "Push ricevuto, riconnessione..."
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr "(veloce)"
 
@@ -9853,3 +9885,15 @@ msgstr "Invio coda, riconnessione..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Coda inviata, in attesa dei titoli"
+
+#~ msgid "Unauthorized"
+#~ msgstr "Non autorizzato"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "Connessioni da %s in limitazione"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Spostato permanentemente"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

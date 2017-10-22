@@ -1,0 +1,243 @@
+<html>
+<head>
+<meta content="text/html; charset=windows-1252" http-equiv="content-type">
+<title>gtk-gnutella Sözlüğü</title>
+</head>
+<body>
+
+<h1>Sözlük</h1>
+
+<h2>B</h2>
+
+<h3>GUESS sorgulaması için bant genişliği <em>ipucu</em>
+</h3>
+
+<p>Bu <em>bant genişliği ıpucu</em> olarak adlandırılır çünkü GUESS UDP kullanır ve büyük mesajları sadece birkaç bayt göndermek için bölemez. Bunun sonucu olarak bir dizi sorgu yapılması gerekiyorsa ve onların toplam boyutu tahsis edilen bant genişliğini geçiyorsa aşılabildiğinden bant genişliği sadece bir ipucudur. Düşük değerler daha az sorgu gönderebileceğimiz yani genel sorgulamaların yavaşlayacağı (toplam sorgulamanın daha fazla zaman alacağı) anlamına gelir çünkü her sorgu <em>tek bir</em> GUESS ultraeşe gönderilir.</p>
+
+
+<h3>Bootstrap (Başlangıç)</h3>
+
+<p>Gnutella şebekesine eşleri keşfederek bağlanmaya bootsrapping ya da başlangıç denir.</p>
+
+
+<h3>(Bir yönlendirme tablosunun) kovası</h3>
+
+<p>Bir <em>kova</em>, yönlendirme tablosu tarafından kapsanan düğüm kimliği alanının bir kısmıdır. Her kova "dolu" olmadan önce sadece K düğüm içerebilir ki bu güncel olarak sekizdir. Bir kova bilinen iyi düğümler tarafından doldurulduğu zaman kendi düğüm kimliğimiz kovanın alanına girmedikçe başka hiçbir düğüm ilâve edilemez. Bu durumda kova, her biri eski kovanın alanının yarısını kapsayan iki yeni kova ile değiştirilir ve eski kovadaki düğümler iki yeni kova arasında dağıtılır. Bunun adı "bucket SPLIT" yani "kova bölünmesidir". Kovaları kapsayan ters işlem ise MERGE yani birleşim olarak adlandırılır.<br>Her düğüm bilinen iyi düğümlerin yönlendirme tablosunu saklar. Yönlendirme tablosundaki düğümler DHT içindeki sorgular için başlangıç noktaları olarak kullanılır. Yönlendirme tablosundaki düğümler diğer düğümlerden gelen sorgulara cevap olarak döndürülür. Her bir düğümün yönlendirme tablosunun sadece iyi düğümler içermesi önemlidir. İyi bir düğüm taleplerimizden birine son 15 dakika içinde cevap vermiş olan bir düğümdür. Bir düğüm, sorgularımıza cevap vermiş idiyse ve son 15 dakika içinde bize bir sorgu gönderdiyse de iyidir. 15 dakikalık bir etkinlik yoksunluğu düğümü şüpheli hale getirir. Bir kerede birden çok sorguya cevap vermeyen düğümler kötü düğümlere dönüşür.  İyi olduklarını bildiğimiz düğümler durumları belirsiz düğümlere göre öncelik taşırlar.<br></p>
+
+
+<h3>Bye (Hoşçakal)</h3>
+
+<p>Bu, uzaktaki düğüme bağlantının kesileceğini ve bunun sebebini aktaran isteğe dayalı bir mesajdır.</p>
+
+
+<h2>D</h2>
+
+<h3>Descriptor yani tanımlayıcı</h3>
+
+<p>Şebeke üzerinde bilginin aktarılmasına yarayan nesne. <em>Mesaj</em> ile aynı anlama gelir.</p>
+
+<h3>DHT</h3>
+
+<p>Dağıtılmış Hash Tablosu (DHT), Gnutella şebeke düğümleri arasında dağıtılmış bir <em>hash tablosu</em> ya da karma değer tablosudur. gtk-gnutella DHT'si için bir Kademlia uygulaması kullanır. Kademlia aynı zamanda (eDonkey gibi) diğer P2P ağları tarafından da kullanılır ancak başka anahtar ve değerler stoklar ve bu diğer P2P şebekelerinin DHT'leri ile birlikte çalışılabilirliği engeller. Gnutella ağında DHT alternatif konumlar, itme vekilleri, tam denkleşmeler vs. bulmak için kullanılır ancak anahtar kelime aramaları için kullanılmaz. <em>arama, yayın, stoklama, vs.</em> gibi işlemler tipik olarak düğümleri aktif ya da pasif olan bir DHT'de yapılır. </p>
+
+
+<h2>E</h2>
+
+<h3>EAR</h3>
+
+<p><em>EAR</em> yani "Extra Acknowledgement Request", ek onay talebi anlamına gelir.</p>
+
+
+<h2>F</h2>
+
+<h3>Flow Control (FC) yani akış kontrolü kipi</h3>
+
+<p>İstemciler dışarıya giden paketleri first-in-first-out (FIFO) yani ilk gelen ilk gider prensibine dayalı olarak yayınlanacakları bir kuyruğa koyar. Eğer dışarıya giden bant genişliği sınırlı ise ve çok sayıda paket yayınlanması gerekiyorsa, kuyrukta aşırı yük oluşur ve istemci <em>Akış Kontrolü yani Flow Control (ya da FC) kipi</em>ne geçer. FC kipinde tüm içeri gelen sorgular görmezden gelinir, atılır. Tabii ki istemciler kendilerine daha çok bant genişliği ayrılarak ya da bağlı düğüm sayısı azaltılarak bu kipe girmekten kaçınmalıdırlar.</p>
+
+<h3>Flooding ya da sel</h3>
+
+<p><em>Flooding</em> mesajları hedeflerine ulaşmaları için tüm bağlı düğümlere gönderen basit ancak verimsiz bir eşten eşe yönlendirme algoritmasıdır. Bu flooding algoritmasının yerine daha etkin <em>GUESS</em> algoritması gelmiştir.</p>
+
+
+<h2>G</h2>
+
+<h3>G2 Hub'ı</h3>
+
+<p>Gnutella2 şebekesinde G2 hubları Gnutella ağındaki ultraeşlerin eşdeğerleridir.
+gtk-gnutella normalde Gnutella2 şebekesinde yaprak düğüm olarak davranarak 2 G2 hub'ına bağlanır.</p>
+
+<h3>GGEP</h3>
+
+<p>Gnutella Generic Extension Protocol (GGEP) yani Gnutella Jenerik Genişletme Protokolü orijinal Gnutella 0.4 protokolüne eklenmiş yeni işlevleri içerir.</p>
+
+
+<h3>GIV</h3>
+
+<p><em>GIV</em>, bir talebe cevap olarak dosya gönderecek bir istemcinin yolladığı mesajdır.</p>
+
+<h3>GnutellaNet</h3>
+
+<p>GnutellaNet (veya daha kısa olarak "Gnutella") bir <em>örtü ya da overlay</em> ağdır. Bunun anlamı, normal İnternet'in üzerinde çalışan bir şebeke olduğudur.
+	GnutellaNet <em>yapısızdır</em>. Bu sadece hiçbir bilgisayarın ya da bilgisayar grubunun Gnutella ağını kontrolünde tutmadığı anlamına gelir; bu ağ muhtemelen hükumetlerin çoğundan daha demokratiktir.</p>
+<p>Gnutella ağı bir örtü ağ olduğu için, coğrafyaya dikkat etmesi gerekmez. Başka ülkelerdeki bilgisayarlara bağlanmanız muhtemeldir. Bu durum olmasaydı her şey belki daha hızlı işlerdi. Ancak, şebeke güncel şekliyle muhtemelen daha dayanıklıdır.</p>
+
+<h3>GUESS (Gnutella UDP Extension for Scalable Searches yani Ölçeklenebilir Aramalar için Gnutella UDP Genişletmesi)</h3>
+
+<p><em>flooding</em> algoritmasına zıt olarak, GUESS ile yönlendirme yapan düğümler her seferinde bir düğüm olarak sorgulanır. Her düğümün sorguları kabul edebilecek bilinen ve güvenilir eşler hakkında verileri arabellekte saklaması gerekir ve bu düğümler rastgele seçilir. Bu yönlendirme metodunun flooding'den daha güvenli ve etkin olduğu kabul edilir.</p>
+
+<h3>GUID (Global Unique IDentifier yani Genel Benzersiz Kimlik)</h3>
+
+<p>Bu, 16 bayt uzuluğunda rastgele baytlardan oluşturulan ve istemciler ile mesajları tespit etmeye yarayan bir değerdir. Bu kimlik bir imza değildir, sadece şebeke nesnelerini benzersiz bir biçimde tespit etmeye yarar. </p>
+
+
+<h2>H</h2>
+
+<h3>HSEP</h3>
+
+<p>The Horizon Size Estimation Protocol (HSEP) yani Ufuk Boyutu Tahmin Protokolü, Gnutella şebekesinde erişilebilir kaynak sayısının tahminine yarar ve bu erişilebilir Gnutella düğümleri, paylaşılan dosyalar ve paylaşılan kibibayt anlamına gelir.</p>
+
+
+<h2>L</h2>
+
+<h3>Leaf node yani yaprak düğüm</h3>
+
+<p>Yaprak düğüm, Gnutella ağına temel bağlantıdır. Bir yaprak düğüm tipik olarak üç ya da dört ultraeşe bağlanır.
+Ultraeşler aramaları yönlendirir ve yaprak düğümlerin Gnutella şebekesine bağlanmalarını sağlar.</p>
+
+
+<h2>M</h2>
+
+<h3>Mesaj</h3>
+
+<p><em>Mesajlar</em> ağ üzerinden veri taşımaya yarayan nesnelerdir. Eş anlamlıları <em>paket</em> ve <em>descriptor</em> yani tanımlayıcıdır.</p>
+
+<h3>MUID (Messages Unique IDentifier) yani Mesajların Benzersiz Kimliği ya da Tanımlayıcısı</h3>
+
+<p>Şebeke mesajları için bir <em>GUID</em>.</p>
+
+
+<h2>P</h2>
+
+<h3>PARQ (Passive/Active Remote Queuing) yani Pasif/Aktif Uzakta Kuyruğa Koymak</h3>
+<p>Bir istemci boş gönderme oluğu bulunmayan bir istemci tarafından barındırılan bir dosya talebinde bulunduğunda, bu talep barındıran istemcide bir kuyruğa konur. Bu uzaktaki kuyruk <em>PARQ</em> tarafından yönetilir.</p>
+
+<h3>Ping</h3>
+
+<p><em>Ping</em> mesajları etkin bir şekilde şebeke üzerinde düğüm bulmaya çalışan istemciler tarafından gönderilir.
+Ping mesajı alan istemcilerin bir ya da daha çok pong mesajı ile cevap vermeleri beklenir.</p>
+
+<h3>Pong</h3>
+
+<p><em>Pong</em> mesajları ping mesajlarına cevap olarak gönderilir. Şebekeye bağlı bulunan bir Gnutella istemcisinin adresini, o istemcinin dinlemek için kullandığı port numarasını ve ağa sunduğu veri boyutu hakkında bilgi içerirler.</p>
+
+<h3>İtme</h3>
+
+<p>Bu, güvenlik duvarı arkasındaki bir istemcinin ağa dosya temelli veri katkısında bulunmasına yarayan bir mekanizmadır. Mesela bir istemci, içeri gelen bağlantıları desteklemeyen bir istemciden sorgu isabeti mesajı aldığında bir itme mesajı gönderebilir. Bu, sorgu isabeti mesajını yollayan istemci bir güvenlik duvarı arkasında olduğunda meydana gelebilir.</p>
+
+<h3>Push proxy yani itme vekili</h3>
+
+<p><em>İtme vekilleri</em> yönlendirme yapan bir düğümdür. Eğer bir ultraş güvenlik duvarı arkasında bulunan bir yaprağa bağlıysa, bu yaprağa bir <em>itme</em> göndermek için herhangi bir istemci ultraeşe bir UDP mesajı gönderebilir ve bu ultraeş o mesajı güvenlik duvarının arkasındaki yaprağa iletecektir. Yani, ultraeş bir itme vekili rolü oynayacaktır: yaprağa ulaşmak için yönlendirme yapan hedeftir o.</p>
+
+
+<h2>Q</h2>
+
+<h3>QRP</h3>
+
+<p>Sorgu Yönlendirme Protokolü ya da Query Routing Protocol (QRP), Gnutella ağında sorguları her yöne yayınlamaktan kaçınmak için geliştirilmiş bir sistemdir. Bu sistemde, düğümler dosya anahtar kelimelerinin karma ya da hash değerleriyle yönlendirme tabloları oluştururlar ve bunları düzenli olarak komşuları ile paylaşırlar. Standart sıkıştırma teknikleri bu paylaşımların "ağırlığını" en aza indirir. Bu sistem ölçeklendirilmeyi geliştirerek ve dosya paylaşımı için bant genişliği bırakarak Gnutella'nın bant genişliği gereksinimlerini önemli ölçüde azaltır.</p>
+
+<h3>Sorgu</h3>
+
+<p><em>Sorgu</em> ya da query göndermek dağıtılmış şebekede arama yapmak için birincil metottur.
+Eğer yerel veri deposunda bir eşleşme bulunursa, sorgu talebini alan istemci bir sorgu isabeti ile cevap verecektir.</p>
+
+<h3>Query Hit ya da Sorgu İsabetleri</h3>
+
+<p><em>Sorgu İsabetleri</em> sorgulara cevaptır. Bu mesaj alıcıya sorgu ile denkleşen verileri elde etmek için yeteri kadar bilgi sağlar.</p>
+
+
+<h2>R</h2>
+
+<h3>RUDP</h3>
+
+<p>Güvenli UDP (ya da Reliable UDP, RUDP) protokolü kullanıcının port yönlendirmeyi yapmadığı ya da yapamayacağı durumlarda yönlendiriciden yönlendiriciye dosya aktarma imkânı sağlar, ki buna güvenlik duvarından güvenlik duvarına transferler ya da "delik delme" de denir.</p>
+
+
+<h3>RX</h3>
+
+<p>RX, <em>Reception</em> yani alma demektir ve bu <em>Transmission</em> yani göndermenin karşıtıdır.</p>
+
+
+<h2>S</h2>
+
+<h3>search literals ya da literal arama</h3>
+
+<p>Tek ve çift tırnak işaretleri bireysel kelimeler yerine tüm arama teriminin aranması için kullanılabilir. Tırnak işaretlerini kullanmak, eksi ve artı işaretlerini içeren özel karakterleri kullanıldığı arama yapmak istiyorsanız da gerekebilir ("search requireds" bölümüne bakınız).</p>
+
+<h3>search prefixes ya da arama önekleri</h3>
+
+<ol>
+<li>browse: belirtilen düğümdeki dosyalar listeler. Biçim şöyledir: "browse:<em>ip_adresi:port</em>".
+Grafik arayüzün birçok kısmında sağ tıklamayla elde edilebilecek bir menü seçeneği belirtilen bilgisayarı tarayıp dosyaları listeler.</li>
+<li>http: belirtilen ağ sayfasını indir. Bu, bir zip dosyası, bir video ya da büyük bir JPEG resim dosyası olabilir.</li>
+<li>local: Yerel düğümden yani sizin bilgisayarınızdan sonuçları arar. Sonuçları filtrelemek için düzenli bir ifade bunu izleyebilir. Mesela "local:kılavuz", isminde kılavuz olan paylaştığınız tüm dosyaları listeleyecektir.</li>
+<li>magnet: magnet hedefini arar ve indirir.</li>
+<li>push: bu aramanın biçimi şöyledir: "push:<em>guid:ip_adresi:port/dosya_yolu</em>".
+<em>guid</em>, istenen dosyayı bulunduran bilgisayarın Gnutella tanımlayıcısıdır.
+<em>ip:port</em>, <em>guid</em>'nin bağlı bulunduğu itme vekilidir.
+Tipik olarak bu itme indirmesini sağlayacak olan bir ultraeştir.
+<em>guid</em>, 32 adet onaltılık karakterden oluşur.</li>
+<li>sha1: aranacak base64 SHA değer. Otomatik olarak indirilmez.</li>
+<li>urn: sha1 aramasına benzer, ancak hash değeri belirtilmiştir. Yani urn:sha1:<em>hash değeri</em>.</li>
+</ol>
+<h3>search requireds</h3>
+
+<p>'+' ve '-' karakterleri ile küçük filtreler oluşturulabilir. Artı karakteri kelimenin sonuçların parçası olmasını gerektirir. Eksi karakteri girilen ifade ile herhangi bir sonuç göstermez. Artı ve eksi karakterleri belirsiz terimleri seçmek için kullanılabilir.</p>
+<p>Farz edelim elmalar hakkında bilgi bulmak istiyorsunuz. <em>apple -bilgisayar</em> gibi bir arama kullanabilirsiniz.
+<em>elma +meyve</em> kullanarak daha da alâkalı sonuçlar bulmanız mümkün olabilir.</p>
+
+<h3>Servent</h3>
+
+<p>"Servent", İngilizce sunucu ve istemci anlamına gelen server ve client kelimelerinin birleştirilmesinden türemiştir. P2P ağındaki düğümler, sunucu ve istemci ikili tabiatları nedeniyle İngilizcede <em>servent</em> olarak adlandırılırlar.
+Not. Türkçe'de böyle bir sözcük bulunmadığından, tercümede istemci kelimesi kullanılmıştır.</p>
+
+
+<h3>SOAP</h3>
+
+<p>Basit Nesne Erişim Protokolü ya da Simple Object Access Protocol (SOAP), P2P ağları gibi merkezsiz, dağıtılmış ortamlarda bilgi alışverişi için tasarlanmış hafif, XML tabanlı bir protokoldür.</p>
+
+
+<h2>T</h2>
+
+<h3>THEX</h3>
+
+<p>Hash ağacı alışverişi ya da Tree Hash EXchange (THEX) biçimi ayrık sayısal dosyaların alt alan hash değerlerinden derlenmiş Merkle Hash ağaçlarının alışverişi için kullanılır.</p>
+
+
+<h3>Time-To-Live (TTL)</h3>
+
+<p>TTL ya da ömür, şebekeden kaldırılmadan önce Gnutella istemcileri tarafından bir mesajın kaç defa aktarılacağının sayısıdır.
+Her istemci başka bir istemciye aktarmadan önce TTL değerinden bir değerini düşer.
+TTL değeri 0'a ulaştığında, aşırı şebeke trafiğini önlemek için mesaj artık diğer istemcilere aktarılmayacaktır.</p>
+
+
+<h3>TX</h3>
+
+<p>TX, <em>Transmission</em> yani gönderme anlamına gelir.</p>
+
+
+<h2>U</h2>
+
+<h3>Ultrapeer ya da ultraeş (UP)</h3>
+
+<p>Ultraeşler Gnutella şebekesine sağlam bir biçimde bağlanmışlardır.
+Ultraeşler, birçok bağlantıları olacağı ve sorguları yönlendirecekleri için yaprak düğümlerden daha fazla kaynağa ihtiyaç duyarlar. Ultraeşler tipik olarak 30 ya da üstü başka ultraeşe ve 70 ya da üzeri yaprak düğüme bağlı olurlar.</p>
+
+
+<h2>V</h2>
+
+<h3>Vendor Code ya da Sağlayıcı Kodu</h3>
+
+<p>Sağlayıcı kodu, 4 harften oluşan ve sorgu isabetlerinde isabetin oluştuğu düğümün çalıştırdığı yazılımı tanımlamak için kullanılan bir koddur. gtk-gnutella için sağlayıcı kodu şudur: <em>GTKG</em>.</p>
+
+</body>
+</html>

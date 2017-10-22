@@ -71,6 +71,7 @@
 #include "lib/barrier.h"
 #include "lib/bg.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/endian.h"
 #include "lib/file.h"
 #include "lib/getcpucount.h"
@@ -1166,6 +1167,7 @@ shared_file_fileinfo_unref(shared_file_t **sf_ptr)
 	if (NULL != (sf = *sf_ptr)) {
 		g_assert(sf->flags & SHARE_F_FILEINFO);
 		sf->flags &= ~SHARE_F_FILEINFO;		/* Clear bit before freeing */
+		sf->fi = NULL;						/* Fileinfo could be freed soon! */
 		shared_file_unref(sf_ptr);
 	}
 }
@@ -2819,6 +2821,7 @@ recursive_scan_finalize(void *arg)
 {
 	struct recursive_scan *ctx = arg;
 	time_delta_t elapsed;
+	static bool sha1_cache_pruned;
 
 	recursive_scan_check(ctx);
 
@@ -2829,6 +2832,39 @@ recursive_scan_finalize(void *arg)
 
 	qrp_finalize_computation(ctx->words);
 	ctx->words = NULL;		/* Gave pointer, QRP computation will free it */
+
+	/*
+	 * The very first time we are scanning the library, make sure we
+	 * prune the SHA1 cache to remove entries listed there that do not
+	 * refer to files we are actually sharing.
+	 *
+	 * This works because during the library scanning step, we call
+	 * request_sha1() on the library entries, and this will record
+	 * their SHA1, if known within the SHA1 cache.
+	 *
+	 * Hence, once the library is rebuilt, all the files shared that
+	 * could be known in the SHA1 cache have been recorded.  Hence when
+	 * we iterate on the SHA1 cache to check whether an entry there has
+	 * its SHA1 shared, we know it is a stale entry if it happens that this
+	 * SHA1 is not listed as shared.
+	 *
+	 * 		--RAM, 2017-10-20
+	 */
+
+	if (!sha1_cache_pruned) {
+		sha1_cache_pruned = TRUE;
+
+		/* Only cleanup the SHA1 cache after a clean fresh restart */
+
+		if (!crash_was_restarted()) {
+			huge_sha1_cache_prune();
+		} else {
+			if (GNET_PROPERTY(share_debug)) {
+				g_debug("%s(): not pruning SHA1 cache after unclean restart",
+					G_STRFUNC);
+			}
+		}
+	}
 
 	return NULL;
 }
@@ -3002,7 +3038,7 @@ share_thread_lib_qrp_rebuild(void *unused_arg)
 static void
 share_lib_rescan(void)
 {
-	teq_post(share_thread_id, share_thread_lib_rescan, NULL);
+	teq_post_unique(share_thread_id, share_thread_lib_rescan, NULL);
 }
 
 /**
@@ -3010,14 +3046,23 @@ share_lib_rescan(void)
  *
  * This will update the QRP table, including both our shared library and our
  * partials.
+ *
+ * @param force		if TRUE, do not optimize request if one is already pending
  */
 static void
-share_lib_qrp_rebuild(void)
+share_lib_qrp_rebuild(bool force)
 {
-	teq_post(share_thread_id, share_thread_lib_qrp_rebuild, NULL);
+	bool done;
+
+	done = teq_post_ext(share_thread_id, !force,
+				share_thread_lib_qrp_rebuild, NULL);
+
+	g_assert(implies(force, done));
 
 	if (GNET_PROPERTY(share_debug) > 1) {
-		g_debug("SHARE requested background QRP recomputation (%s)",
+		g_debug("SHARE %s request for background QRP recomputation (%s)",
+			force ? "forced" :
+			done ? "sent" : "avoided duplicate",
 			share_can_answer_partials() ?
 				"with partial files" : "library only");
 	}
@@ -3242,7 +3287,7 @@ void
 shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 {
 	shared_file_check(sf);
-	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
+	g_return_if_fail(!shared_file_is_partial(sf));	/* Not a partial file */
 
 	sf->flags &= ~(SHARE_F_RECOMPUTING | SHARE_F_HAS_DIGEST);
 	sf->flags |= sha1 ? SHARE_F_HAS_DIGEST : 0;
@@ -3319,10 +3364,19 @@ void
 shared_file_set_tth(shared_file_t *sf, const struct tth *tth)
 {
 	shared_file_check(sf);
-
-	g_assert(!shared_file_is_partial(sf));	/* Cannot be a partial file */
+	g_return_if_fail(shared_file_is_finished(sf));	/* Cannot be a partial file */
 
 	atom_tth_change(&sf->tth, tth);
+
+	/*
+	 * If the file is seeded, notify the fileinfo layer that the TTH was
+	 * recomputed and now lies in the cache!  That way we can update the
+	 * GUI to let them know that the THEX can now be served.
+	 * 		--RAM, 2017-10-20
+	 */
+
+	if (sf->fi != NULL)
+		file_info_recomputed_tth(sf->fi, sf->tth);
 }
 
 void
@@ -3433,24 +3487,72 @@ shared_file_is_partial(const shared_file_t *sf)
 	return NULL != sf->fi;
 }
 
+/**
+ * Is file a complete file that we can upload?
+ *
+ * It can be a library file, or a seeded file.
+ */
+bool
+shared_file_is_servable(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	if (NULL == sf->fi) {
+		/*
+		 * A zeroed file_index indicates we called shared_file_deindex(),
+		 * most probably through shared_file_remove().
+		 */
+		return sf->file_index != 0;
+	} else {
+		fileinfo_t *fi = sf->fi;
+
+		file_info_check(fi);
+
+		return FI_F_SEEDING == (fi->flags & (FI_F_SEEDING | FI_F_NOSHARE));
+	}
+}
+
+/**
+ * Is file still shareable on the network and therefore can be advertised in
+ * query hits?
+ */
 bool
 shared_file_is_shareable(const shared_file_t *sf)
 {
 	shared_file_check(sf);
 
-	/*
-	 * A zeroed file_index indicates we called shared_file_deindex(),
-	 * most probably through shared_file_remove().
-	 *
-	 * We don't want to include this file in query hits even though the
-	 * file entry happens to be still listed in search bins (for instance
-	 * because it was removed dynamically as we discovered it was spam).
-	 *
-	 * Thanks to Dmitry Butskoy for investigating this corner case.
-	 *		--RAM, 2011-11-30
-	 */
+	if (NULL == sf->fi) {
+		/*
+		 * A zeroed file_index indicates we called shared_file_deindex(),
+		 * most probably through shared_file_remove().
+		 *
+		 * We don't want to include this file in query hits even though the
+		 * file entry happens to be still listed in search bins (for instance
+		 * because it was removed dynamically as we discovered it was spam).
+		 *
+		 * Thanks to Dmitry Butskoy for investigating this corner case.
+		 *		--RAM, 2011-11-30
+		 */
 
-	return sf->file_index != 0;
+		return sf->file_index != 0;
+	} else {
+		fileinfo_t *fi = sf->fi;
+
+		file_info_check(fi);
+
+		/*
+		 * We're dealing with a partial file... make sure it has not
+		 * been marked as non-shareable already.
+		 *		--RAM, 2017-10-17
+		 */
+
+		if G_UNLIKELY(fi->flags & FI_F_NOSHARE)
+			return FALSE;		/* Already known to be missing or bad */
+
+		return hset_contains(partial_files, sf);
+	}
+
+	g_assert_not_reached();
 }
 
 filesize_t
@@ -3609,7 +3711,16 @@ const char *
 shared_file_path(const shared_file_t *sf)
 {
 	shared_file_check(sf);
-	return sf->file_path;
+
+	/*
+	 * For partial files, we need to query the fileinfo as the value in
+	 * the shared_file is the one copied at the time we create the
+	 * structure from the partial file. It is not updated regularily
+	 * and would become inaccurate when the file is renamed / moved after
+	 * being completed.
+	 */
+
+	return NULL == sf->fi ? sf->file_path : sf->fi->pathname;
 }
 
 /**
@@ -3714,12 +3825,15 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 
 	file_info_check(fi);
 	g_assert(NULL == fi->sf);
+	g_return_if_fail(0 == (fi->flags & FI_F_NOSHARE));
 
 	sf = shared_file_alloc();
 	sf->flags = SHARE_F_HAS_DIGEST;
 	sf->mtime = fi->last_flush;
 	sf->ctime = fi->created;
 	sf->sha1 = atom_sha1_get(fi->sha1);
+	if (fi->tth != NULL)
+		sf->tth = atom_tth_get(fi->tth);
 
 	/* FIXME: DOWNLOAD_SIZE:
 	 * Do we need to add anything here now that fileinfos can have an
@@ -3746,6 +3860,17 @@ shared_file_from_fileinfo(fileinfo_t *fi)
 
 	sf->fi = fi;		/* Signals it's a partially downloaded file */
 	fi->sf = shared_file_ref(sf);
+}
+
+/**
+ * Is the TTH for the shared file available?
+ */
+bool
+shared_file_tth_is_available(const shared_file_t *sf)
+{
+	shared_file_check(sf);
+
+	return sf->tth != NULL && tth_cache_lookup(sf->tth, sf->file_size) > 0;
 }
 
 /**
@@ -3962,7 +4087,7 @@ static void
 share_qrp_rebuild_if_needed(void)
 {
 	if (share_can_answer_partials())
-		share_lib_qrp_rebuild();
+		share_lib_qrp_rebuild(FALSE);
 }
 
 /**
@@ -4018,7 +4143,7 @@ share_remove_partial(const shared_file_t *sf)
 void
 share_update_matching_information(void)
 {
-	share_lib_qrp_rebuild();
+	share_lib_qrp_rebuild(TRUE);
 }
 
 /**

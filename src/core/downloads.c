@@ -3604,7 +3604,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 			download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 		}
 		g_assert(old_fi->refcount > 0);
-		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
+		file_info_remove_source(old_fi, d);
 		file_info_add_source(new_fi, d);
 
 		d->flags &= ~DL_F_SUSPENDED;
@@ -5299,7 +5299,7 @@ download_info_reget(struct download *d)
 
 	if (d->file_info->sha1 != NULL)
 		download_by_sha1_remove(d);
-	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
+	file_info_remove_source(fi, d);
 
 	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
 			d->file_size, d->sha1, file_size_known);
@@ -5468,7 +5468,7 @@ download_remove(struct download *d)
 	atom_str_free_null(&d->file_name);
 	atom_str_free_null(&d->uri);
 
-	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
+	file_info_remove_source(d->file_info, d);
 
 	download_check(d);
 	sl_removed = pslist_prepend(sl_removed, d);
@@ -15317,15 +15317,7 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 
 	if (has_good_sha1(d)) {
 		file_info_moved(fi, pathname);
-
-		if (
-			fi->sha1 && GNET_PROPERTY(pfsp_server) &&
-			!(FI_F_TRANSIENT & fi->flags)
-			/* No size consideration here as the file is complete */
-		) {
-			fi->flags |= FI_F_SEEDING;
-		}
-
+		file_info_mark_completed(fi);
 		/* Send a notification */
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {

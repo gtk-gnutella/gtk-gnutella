@@ -105,12 +105,15 @@ pslist_t *[=(. func-prefix)=]_get_by_regex(const char *, int *);
 const char *[=(. func-prefix)=]_name(property_t);
 const char *[=(. func-prefix)=]_type_to_string(property_t);
 const char *[=(. func-prefix)=]_to_string(property_t prop);
+const char *[=(. func-prefix)=]_to_typed_string(property_t prop);
 const char *[=(. func-prefix)=]_default_to_string(property_t);
 const char *[=(. func-prefix)=]_description(property_t);
 gboolean [=(. func-prefix)=]_is_saved(property_t);
 gboolean [=(. func-prefix)=]_is_internal(property_t);
 prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
+
+void [=(. func-prefix)=]_crash_dump(void);
 
 void [=(. func-prefix)=]_lock(property_t);
 void [=(. func-prefix)=]_unlock(property_t);
@@ -627,6 +630,15 @@ void
 }
 
 /**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+[=(. func-prefix)=]_crash_dump(void)
+{
+	prop_crash_dump([=(. prop-set)=]);
+}
+
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
@@ -750,6 +762,12 @@ gpointer
 [=(. func-prefix)=]_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
+}
+
+const char *
+[=(. func-prefix)=]_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string([=(. prop-set)=], prop);
 }
 
 const char *

@@ -43,6 +43,7 @@
 #include <math.h>		/* For fabs() */
 
 #include "fileinfo.h"
+
 #include "bsched.h"
 #include "dmesh.h"
 #include "downloads.h"
@@ -60,13 +61,16 @@
 #include "settings.h"
 #include "share.h"
 #include "sockets.h"
+#include "tth_cache.h"
 #include "uploads.h"
+#include "verify_tth.h"		/* For request_tigertree() */
 
 #include "lib/array_util.h"
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/crash.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -741,6 +745,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 	uint32 length;
 
 	g_assert(fo);
+	g_return_if_fail(0 == ((FI_F_TRANSIENT | FI_F_STRIPPED) & fi->flags));
 
 	TBUF_INIT_WRITE();
 	WRITE_UINT32(FILE_INFO_VERSION, &checksum);
@@ -879,27 +884,103 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 	}
 }
 
-void
-file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+static void
+file_info_got_tth_internal(fileinfo_t *fi, const struct tth *tth, bool update)
 {
 	file_info_check(fi);
 
 	g_return_if_fail(tth);
 	g_return_if_fail(NULL == fi->tth);
 	fi->tth = atom_tth_get(tth);
+
+	/* Update the GUI, if requested */
+	if (update)
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
+void
+file_info_got_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_got_tth_internal(fi, tth, TRUE);
+}
+
+/**
+ * Invoked when a seeded file had its TTH recomputed.
+ *
+ * @param fi		the fileinfo
+ * @param tth		the recomputed TTH value
+ * @param update	whether to update the GUI
+ */
+static void
+file_info_recomputed_tth_internal(
+	fileinfo_t *fi, const struct tth *tth, bool update)
+{
+	size_t nleaves;
+
+	file_info_check(fi);
+	g_return_if_fail(tth != NULL);
+	g_return_if_fail(fi->sha1 != NULL);
+	g_return_if_fail(NULL == fi->tigertree.leaves);
+
+	if (fi->tth != NULL && !tth_eq(fi->tth, tth)) {
+		g_warning("%s(): inconsistent TTH for \"%s\": "
+			"was known as %s, but got new TTH %s",
+			G_STRFUNC, fi->pathname,
+			bitprint_to_urn_string(fi->sha1, fi->tth), tth_base32(tth));
+
+		atom_tth_change(&fi->tth, tth);
+
+		/* Update the GUI */
+		if (update)
+			fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+	}
+
+	/*
+	 * Locate the TTH information by probing the TTH cache.
+	 */
+
+	nleaves = tth_cache_get_nleaves(tth);
+
+	if G_UNLIKELY(0 == nleaves) {
+		g_warning("%s(): unable to find TTH %s in cache for %s",
+			G_STRFUNC, tth_base32(tth), fi->pathname);
+		return;
+	}
+
+	g_assert(size_is_positive(nleaves));
+
+	/*
+	 * To indicate that the TTH was recomputed, we let the leaves
+	 * pointer at NULL but we fill-in the amount of leaves and the
+	 * TTH slice size.
+	 */
+
+	fi->tigertree.num_leaves = nleaves;
+	fi->tigertree.slice_size = tt_slice_size(fi->size, nleaves);
+
+	/* Update the GUI */
+	if (update)
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
+/**
+ * Invoked when a seeded file had its TTH recomputed.
+ */
+void
+file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth)
+{
+	file_info_recomputed_tth_internal(fi, tth, TRUE);
 }
 
 static void
 fi_tigertree_free(fileinfo_t *fi)
 {
 	file_info_check(fi);
-	g_assert((NULL != fi->tigertree.leaves) ^ (0 == fi->tigertree.num_leaves));
 
-	if (fi->tigertree.leaves) {
+	if (fi->tigertree.leaves != NULL) {
+		g_assert(fi->tigertree.num_leaves != 0);
 		WFREE_ARRAY(fi->tigertree.leaves, fi->tigertree.num_leaves);
-		fi->tigertree.slice_size = 0;
-		fi->tigertree.num_leaves = 0;
-		fi->tigertree.leaves = NULL;
+		ZERO(&fi->tigertree);
 	}
 }
 
@@ -907,27 +988,24 @@ void
 file_info_got_tigertree(fileinfo_t *fi,
 	const struct tth *leaves, size_t num_leaves, bool mark_dirty)
 {
-	filesize_t num_blocks;
-
 	file_info_check(fi);
 
 	g_return_if_fail(leaves);
-	g_return_if_fail(num_leaves > 0);
+	g_return_if_fail(size_is_positive(num_leaves));
 	g_return_if_fail(fi->tigertree.num_leaves < num_leaves);
 	g_return_if_fail(fi->file_size_known);
 
 	fi_tigertree_free(fi);
 	fi->tigertree.leaves = WCOPY_ARRAY(leaves, num_leaves);
 	fi->tigertree.num_leaves = num_leaves;
+	fi->tigertree.slice_size = tt_slice_size(fi->size, num_leaves);
 
-	fi->tigertree.slice_size = TTH_BLOCKSIZE;
-	num_blocks = tt_block_count(fi->size);
-	while (num_blocks > fi->tigertree.num_leaves) {
-		num_blocks = (num_blocks + 1) / 2;
-		fi->tigertree.slice_size *= 2;
-	}
-	if (mark_dirty)
+	if (mark_dirty) {
 		fi->dirty = TRUE;
+
+		/* Update the GUI */
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+	}
 }
 
 /**
@@ -967,6 +1045,9 @@ void
 file_info_strip_binary(fileinfo_t *fi)
 {
 	file_info_strip_trailer(fi, fi->pathname);
+
+	/* Update the GUI */
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 }
 
 /**
@@ -1041,6 +1122,22 @@ file_info_available_free(fileinfo_t *fi)
 }
 
 /**
+ * Cleanup the "downloading" part of the file_info structure.
+ */
+static void
+fi_downloading_free(fileinfo_t *fi)
+{
+	file_info_check(fi);
+	g_assert(file_info_check_chunklist(fi, TRUE));
+
+	file_info_chunklist_free(fi);
+	file_info_available_free(fi);
+
+	http_rangeset_free_null(&fi->seen_on_network);
+	fi_tigertree_free(fi);
+}
+
+/**
  * Free a `file_info' structure.
  */
 static void
@@ -1050,9 +1147,9 @@ fi_free(fileinfo_t *fi)
 	g_assert(!fi->hashed);
 	g_assert(NULL == fi->sf);
 
-	g_assert(file_info_check_chunklist(fi, TRUE));
-	file_info_chunklist_free(fi);
-	file_info_available_free(fi);
+	fi_downloading_free(fi);
+
+	file_info_upload_stop(fi, N_("File info being freed"));
 
 	if (fi->alias != NULL) {
 		pslist_t *sl;
@@ -1063,9 +1160,6 @@ fi_free(fileinfo_t *fi)
 		}
 		pslist_free_null(&fi->alias);
 	}
-
-	http_rangeset_free_null(&fi->seen_on_network);
-	fi_tigertree_free(fi);
 
 	atom_guid_free_null(&fi->guid);
 	atom_str_free_null(&fi->pathname);
@@ -1624,8 +1718,17 @@ file_info_shared_sha1(const struct sha1 *sha1)
 	fileinfo_t *fi;
 
 	fi = hikset_lookup(fi_by_sha1, sha1);
-	if (fi) {
+	if (fi != NULL) {
 		file_info_check(fi);
+
+		/*
+		 * If we marked the fileinfo with FI_F_NOSHARE, we don't want to
+		 * be able to share that file again.  Probably because it was a
+		 * partial file that got removed from the filesystem.
+		 */
+
+		if (FI_F_NOSHARE & fi->flags)
+			goto not_shared;
 
 		/*
 		 * Completed file (with SHA-1 verified) are always shared, regardless
@@ -1642,6 +1745,10 @@ file_info_shared_sha1(const struct sha1 *sha1)
 		if (fi->done >= GNET_PROPERTY(pfsp_minimum_filesize))
 			goto share;
 	}
+
+	/* FALL THROUGH */
+
+not_shared:
 	return NULL;
 
 share:
@@ -1728,7 +1835,8 @@ fi_tigertree_check(fileinfo_t *fi)
 		struct tth root;
 
 		if (NULL == fi->tth) {
-			g_warning("Trailer contains tigertree but no root hash");
+			g_warning("trailer contains tigertree but no root hash in \"%s\"",
+				fi->pathname);
 			goto discard;
 		}
 
@@ -1738,14 +1846,20 @@ fi_tigertree_check(fileinfo_t *fi)
 			fi->file_size_known &&
 			fi->tigertree.num_leaves != tt_node_count_at_depth(fi->size, depth)
 		) {
-			g_warning("Trailer contains tigertree with invalid leaf count");
+			g_warning("trailer contains tigertree with invalid leaf count "
+				"in \"%s\": got %zu, expected %s at depth %u for %s bytes",
+				fi->pathname, fi->tigertree.num_leaves,
+				filesize_to_string(tt_node_count_at_depth(fi->size, depth)),
+				depth, filesize_to_string2(fi->size));
 			goto discard;
 		}
 
 		STATIC_ASSERT(TTH_RAW_SIZE == sizeof(struct tth));
 		root = tt_root_hash(fi->tigertree.leaves, fi->tigertree.num_leaves);
 		if (!tth_eq(&root, fi->tth)) {
-			g_warning("Trailer contains tigertree with non-matching root hash");
+			g_warning("trailer contains tigertree with non-matching "
+				"root hash in \"%s\"",
+				fi->pathname);
 			goto discard;
 		}
 	}
@@ -1948,7 +2062,7 @@ G_STMT_START {				\
 			if (TTH_RAW_SIZE == tmpuint) {
 				struct tth tth;
 				memcpy(tth.data, tmp, TTH_RAW_SIZE);
-				file_info_got_tth(fi, &tth);
+				file_info_got_tth_internal(fi, &tth, FALSE);
 			} else {
 				g_warning("bad length %d for TTH in fileinfo v%u for \"%s\"",
 					tmpuint, version, pathname);
@@ -2125,12 +2239,24 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 
 	file_info_check(fi);
 
+	/*
+	 * We now persist seeded files in order to be able to resume seeding
+	 * after a crash and a restart, thereby ensuring continuity of the
+	 * user session.
+	 * 		--RAM, 2017-10-21
+	 */
+
+	if (FI_F_SEEDING == ((FI_F_SEEDING | FI_F_NOSHARE) & fi->flags))
+		goto persist;		/* Skip trailer writes, of course */
+
 	if (fi->flags & (FI_F_TRANSIENT | FI_F_SEEDING | FI_F_STRIPPED))
 		return;
 
 	if (fi->use_swarming && fi->dirty) {
 		file_info_store_binary(fi, FALSE);
 	}
+
+persist:
 
 	/*
 	 * Keep entries for incomplete or not even started downloads so that the
@@ -2179,13 +2305,36 @@ file_info_store_one(FILE *f, fileinfo_t *fi)
 		fprintf(f, "CHA1 %s\n", sha1_base32(fi->cha1));
 
 	fprintf(f, "SIZE %s\n", filesize_to_string(fi->size));
-	fprintf(f, "FSKN %u\n", fi->file_size_known ? 1 : 0);
-	fprintf(f, "PAUS %u\n", (FI_F_PAUSED & fi->flags) ? 1 : 0);
 	fprintf(f, "DONE %s\n", filesize_to_string(fi->done));
 	fprintf(f, "TIME %s\n", time_t_to_string(fi->stamp));
 	fprintf(f, "CTIM %s\n", time_t_to_string(fi->created));
 	fprintf(f, "NTIM %s\n", time_t_to_string(fi->ntime));
-	fprintf(f, "SWRM %u\n", fi->use_swarming ? 1 : 0);
+
+	/*
+	 * The following boolean tags are emitted conditionally because they
+	 * have defaults: we only emit them when the value is not the default.
+	 *
+	 * For instance, "PAUS" is emitted only when TRUE, so when missing, the
+	 * assumption will be that the file downloading was not paused, i.e. that
+	 * the value of that tag was FALSE.
+	 *
+	 * Note that although here we only emit "PAUS 1", we can correctly process
+	 * input with "PAUS 0": although we no longer emit these, we accept them.
+	 *
+	 * 		--RAM, 2017-10-21
+	 */
+
+	if (FI_F_PAUSED & fi->flags)
+		fputs("PAUS 1\n", f);
+
+	if (FI_F_SEEDING == ((FI_F_SEEDING | FI_F_NOSHARE) & fi->flags))
+		fputs("SEED 1\n", f);
+
+	if (!fi->file_size_known)
+		fputs("FSKN 0\n", f);
+
+	if (!fi->use_swarming)
+		fputs("SWRM 0\n", f);
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
@@ -2239,8 +2388,6 @@ file_info_store(void)
 		"#	GENR <generation number>\n"
 		"#	ALIA <alias file name>\n"
 		"#	SIZE <size>\n"
-		"#	FSKN <boolean; file_size_known>\n"
-		"#	PAUS <boolean; paused>\n"
 		"#	SHA1 <server sha1>\n"
 		"#	TTH  <server tth>\n"
 		"#	CHA1 <computed sha1> [when done only]\n"
@@ -2248,7 +2395,10 @@ file_info_store(void)
 		"#	TIME <last update stamp>\n"
 		"#	CTIM <entry creation time>\n"
 		"#	NTIM <time when new source was seen>\n"
-		"#	SWRM <boolean; use_swarming>\n"
+		"#	PAUS <boolean; paused> [when TRUE only]\n"
+		"#	SEED <boolean; file seeded> [when TRUE only]\n"
+		"#	FSKN <boolean; file_size_known> [when FALSE only]\n"
+		"#	SWRM <boolean; use_swarming> [when FALSE only]\n"
 		"#	CHNK <start> <end+1> <0=hole, 1=busy, 2=done>\n"
 		"#	<blank line>\n"
 		"#\n\n",
@@ -2637,7 +2787,20 @@ file_info_upload_stop(fileinfo_t *fi, const char *reason)
 		upload_stop_all(fi, reason);
 		share_remove_partial(fi->sf);
 		shared_file_fileinfo_unref(&fi->sf);
-		fi->flags &= ~FI_F_SEEDING;
+
+		/*
+		 * If the file was beeing seeded, and we have to call this routine,
+		 * it means we are no longer able to share that completed file.
+		 * Probably because it was removed from the disk, or it was changed
+		 * since the time it was marked completed.
+		 *		--RAM, 2017-10-13
+		 */
+
+		if (FI_F_SEEDING & fi->flags) {
+			fi->flags &= ~FI_F_SEEDING;
+			fi->flags |= FI_F_NOSHARE;	/* Don't share this file again */
+		}
+
 		file_info_changed(fi);
 		fileinfo_dirty = TRUE;
 	}
@@ -2758,8 +2921,13 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (NULL == xfi) {
 		fi->sha1 = atom_sha1_get(sha1);
 		hikset_insert_key(fi_by_sha1, &fi->sha1);
+
 		if (can_publish_partial_sha1)
 			publisher_add(fi->sha1);
+
+		/* Update the GUI */
+		fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+
 		return TRUE;
 	}
 
@@ -2882,6 +3050,7 @@ enum fi_tag {
 	FI_TAG_NTIM,
 	FI_TAG_PATH,
 	FI_TAG_PAUS,
+	FI_TAG_SEED,
 	FI_TAG_SHA1,
 	FI_TAG_SIZE,
 	FI_TAG_SWRM,
@@ -2906,6 +3075,7 @@ static const tokenizer_t fi_tags[] = {
 	FI_TAG(NTIM),
 	FI_TAG(PATH),
 	FI_TAG(PAUS),
+	FI_TAG(SEED),
 	FI_TAG(SHA1),
 	FI_TAG(SIZE),
 	FI_TAG(SWRM),
@@ -3082,6 +3252,43 @@ file_info_retrieve(void)
 			upgraded = fi_upgrade_older_version(fi);
 
 			/*
+			 * If we are processing a file being seeded, skip all the
+			 * CHNK, DONE and trailer consistency checks.
+			 *
+			 * If we are not recovering from a crash, seeded entries are
+			 * discarded.
+			 */
+
+			if (FI_F_SEEDING & fi->flags) {
+				if (crash_was_restarted()) {
+					if (NULL == fi->sha1) {
+						g_warning("%s(): missing SHA1 for seeded file %s",
+							G_STRFUNC, fi->pathname);
+						goto reset;		/* Fileinfo DB was corrupted, drop seed */
+					}
+
+					if (!file_exists(fi->pathname)) {
+						g_warning("%s(): missing previously seeded file %s",
+							G_STRFUNC, fi->pathname);
+						goto reset;		/* User probably removed the file */
+					}
+
+					if (fi->tth != NULL)
+						file_info_recomputed_tth_internal(fi, fi->tth, FALSE);
+
+					/* Seeding of file will be resumed */
+					goto ready;
+				}
+
+				if (GNET_PROPERTY(share_debug)) {
+					g_info("SHARE discarding seeded file %s", fi->pathname);
+				}
+
+				/* Drop the seeded file now */
+				goto reset;
+			}
+
+			/*
 			 * Allow reconstruction of missing information: if no CHNK
 			 * entry was found for the file, fake one, all empty, and reset
 			 * DONE and GENR to 0.
@@ -3109,7 +3316,30 @@ file_info_retrieve(void)
 
 			g_assert(file_info_check_chunklist(fi, TRUE));
 
-			file_info_merge_adjacent(fi); /* Recalculates also fi->done */
+			/*
+			 * If DONE does not match the actual size described by the CHNK
+			 * set, them perhaps the fileinfo database was corrupted?
+			 */
+
+			{
+				filesize_t done = fi->done;
+
+				file_info_merge_adjacent(fi); /* Recalculates also fi->done */
+
+				/*
+				 * If DONE was missing, fi->done will still be 0.
+				 * In that case, we don't really care since we'll have
+				 * recomputed fi->done in the call above.
+				 */
+
+				if (done != 0 && fi->done != done) {
+					g_warning("inconsistent DONE info for \"%s\": "
+						"read %s, computed %s",
+						fi->pathname, filesize_to_string(done),
+						filesize_to_string2(fi->done));
+					reload_chunks = TRUE;	/* Will try to grab from trailer */
+				}
+			}
 
 			/*
 			 * If `old_filename' is not NULL, then we need to rename
@@ -3257,6 +3487,9 @@ file_info_retrieve(void)
 			}
 
 			file_info_merge_adjacent(fi);
+
+		ready:
+
 			file_info_hash_insert(fi);
 
 			if (can_publish_partial_sha1 && fi->sha1 != NULL) {
@@ -3295,6 +3528,7 @@ file_info_retrieve(void)
 		if (!fi) {
 			fi = file_info_allocate();
 			fi->file_size_known = TRUE;		/* Unless stated otherwise below */
+			fi->use_swarming = TRUE;		/* Unless stated otherwise below */
 			old_filename = NULL;
 		}
 
@@ -3356,6 +3590,11 @@ file_info_retrieve(void)
 			v = parse_uint32(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep || v > 1;
 			fi->flags |= v ? FI_F_PAUSED : 0;
+			break;
+		case FI_TAG_SEED:
+			v = parse_uint32(value, &ep, 10, &error);
+			damaged = error || '\0' != *ep || v > 1;
+			fi->flags |= v ? (FI_F_SEEDING | FI_F_STRIPPED) : 0;
 			break;
 		case FI_TAG_ALIA:
 			if (looks_like_urn(value)) {
@@ -3513,9 +3752,6 @@ file_info_retrieve(void)
 		continue;
 
 	reset:
-		if (NULL == fi->pathname) {
-			fi->pathname = atom_str_get("/non-existent");
-		}
 		fi_free(fi);
 		fi = NULL;
 		atom_str_free_null(&filename);
@@ -3523,9 +3759,6 @@ file_info_retrieve(void)
 	}
 
 	if (fi) {
-		if (NULL == fi->pathname) {
-			fi->pathname = atom_str_get("/non-existent");
-		}
 		fi_free(fi);
 		fi = NULL;
 		if (!empty)
@@ -3721,6 +3954,59 @@ fi_rename_dead(fileinfo_t *fi, const char *pathname)
 	HFREE_NULL(path);
 }
 
+void
+file_info_mark_completed(fileinfo_t *fi)
+{
+	file_info_check(fi);
+
+	if (
+		fi->sha1 != NULL && GNET_PROPERTY(pfsp_server) &&
+		!(FI_F_TRANSIENT & fi->flags)
+		/* No size consideration here as the file is complete */
+	) {
+		fi->flags |= FI_F_SEEDING;
+
+		/*
+		 * Since we're going to seed that file, prepare a TTH tree for it
+		 * at the right depth and cache it on disk.
+		 * 		--RAM, 2017-10-17
+		 */
+
+		g_soft_assert(fi->sf != NULL);	/* file_info_hash_insert() was called */
+
+		if (NULL == fi->sf)				/* Should never happen */
+			shared_file_from_fileinfo(fi);
+
+		/*
+		 * Since shared_file_from_fileinfo() can abort when a suitable filename
+		 * cannot be derived, we need to be cautious.
+		 */
+
+		if (fi->sf != NULL)
+			request_tigertree(fi->sf, TRUE);
+	}
+
+	/*
+	 * Now that the file is completed (and fully validated), we can get rid
+	 * of the memory used in the fileinfo for the purpose of downloading,
+	 * keeping only what is necessary to be able to share it.
+	 * 		--RAM, 2017-10-17
+	 */
+
+	fi_downloading_free(fi);
+
+	/*
+	 * Update the GUI, now that we have cleared the range information.
+	 *
+	 * This should redraw the progress bar to display the file as green,
+	 * without any underlying blue bar: the file is now completed, we do
+	 * not care about the availability of its part on the network!
+	 */
+
+	fi_event_trigger(fi, EV_FI_RANGES_CHANGED);
+	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
+}
+
 /**
  * Called to update the fileinfo information with the new path and possibly
  * filename information, once the downloaded file has been moved/renamed.
@@ -3736,12 +4022,10 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	g_assert(pathname);
 	g_assert(is_absolute_path(pathname));
 	g_assert(!(fi->flags & FI_F_SEEDING));
-
-	if (!fi->hashed)
-		return;
+	g_return_if_fail(fi->hashed);
 
 	xfi = hikset_lookup(fi_by_outname, fi->pathname);
-	if (xfi) {
+	if (xfi != NULL) {
 		file_info_check(xfi);
 		g_assert(xfi == fi);
 		hikset_remove(fi_by_outname, fi->pathname);
@@ -3752,18 +4036,43 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 	g_assert(NULL == hikset_lookup(fi_by_outname, fi->pathname));
 	hikset_insert_key(fi_by_outname, &fi->pathname);
 
-	if (fi->sf) {
+	if (fi->sf != NULL) {
 		filestat_t sb;
+		time_t mtime = 0;
 
 		shared_file_set_path(fi->sf, fi->pathname);
-		if (
-			stat(fi->pathname, &sb) ||
-			fi->size + (fileoffset_t)0 != sb.st_size + (filesize_t)0
-		) {
-			sb.st_mtime = 0;
+		if (-1 == stat(fi->pathname, &sb)) {
+			g_warning("%s(): cannot stat() shared file \"%s\": %m",
+				G_STRFUNC, fi->pathname);
+		} else if (fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0) {
+			g_warning("%s(): wrong size for shared file \"%s\": "
+				"expected %s, got %s",
+				G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
+				filesize_to_string2(sb.st_size));
+		} else {
+			mtime = sb.st_mtime;
 		}
-		shared_file_set_modification_time(fi->sf, sb.st_mtime);
+
+		/*
+		 * In case they allow PFS, the completed file will be seeded and
+		 * we must make sure its modification time, as returned by
+		 * shared_file_modification_time(), will be accurate, now that the
+		 * file has been moved to its new location and its fileinfo trailer
+		 * was stripped.
+		 *
+		 * Among other things, this is important for upload_file_present()
+		 * to detect whether the completed file was modified since it was
+		 * moved, to be able to stop seeding it.
+		 *
+		 * We also set fi->modified because shared_file_modification_time()
+		 * will transparently return that value for PFS.
+		 * 		--RAM, 2017-10-11
+		 */
+
+		shared_file_set_modification_time(fi->sf, mtime);	/* Sets sf->mtime */
+		fi->modified = mtime;
 	}
+
 	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
 	fileinfo_dirty = TRUE;
@@ -6057,8 +6366,11 @@ fi_spot_completed_kv(void *val, void *unused_x)
 	(void) unused_x;
 	file_info_check(fi);
 
-	if (fi->refcount)					/* Attached to a download */
-		return;
+	if (fi->refcount)
+		return;				/* Attached to a download */
+
+	if (FI_F_SEEDING && fi->flags)
+		return;				/* Completed file being seeded */
 
 	/*
 	 * If the file is 100% done, fake a new download.
@@ -6149,6 +6461,8 @@ fi_get_info(gnet_fi_t fih)
 	info->tth_num_leaves = fi->tigertree.num_leaves;
 	info->created		 = fi->created;
 	info->tth_depth      = tt_depth(fi->tigertree.num_leaves);
+	info->tth_recomputed =
+		NULL == fi->tigertree.leaves && fi->tigertree.num_leaves != 0;
 
     return info;
 }
@@ -6238,16 +6552,36 @@ fi_get_chunks(gnet_fi_t fih)
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
-    	gnet_fi_chunks_t *chunk;
+		gnet_fi_chunks_t *chunk;
 
-        WALLOC(chunk);
-        chunk->from   = fc->from;
-        chunk->to     = fc->to;
-        chunk->status = fc->status;
-        chunk->old    = TRUE;
+		WALLOC(chunk);
+		chunk->from   = fc->from;
+		chunk->to     = fc->to;
+		chunk->status = fc->status;
+		chunk->old    = TRUE;
 
 		chunks = g_slist_prepend(chunks, chunk);
-    }
+	}
+
+	/*
+	 * If the list we built is empty and the file is completed, we have
+	 * already cleared the chunk list in fi_downloading_free().  To be
+	 * able to let the GUI correctly display the file as complete, fake
+	 * a single chunk for the whole file.
+	 * 		--RAM, 2017-10-18.
+	 */
+
+	if (NULL == chunks && FILE_INFO_COMPLETE(fi)) {
+		gnet_fi_chunks_t *chunk;
+
+		WALLOC(chunk);
+		chunk->from   = 0;
+		chunk->to     = fi->size;
+		chunk->status = DL_CHUNK_DONE;
+		chunk->old    = FALSE;
+
+		chunks = g_slist_prepend(chunks, chunk);
+	}
 
     return g_slist_reverse(chunks);
 }
@@ -6393,12 +6727,13 @@ file_info_add_source(fileinfo_t *fi, struct download *d)
 
 /**
  * Removing one source reference from the fileinfo.
- * When no sources reference the fileinfo structure, free it if `discard'
- * is TRUE, or if the fileinfo has been marked with FI_F_DISCARD.
+ * When no sources reference the fileinfo structure, free it when
+ * the fileinfo has been marked with FI_F_DISCARD.
+ *
  * This replaces file_info_free()
  */
 void
-file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
+file_info_remove_source(fileinfo_t *fi, struct download *d)
 {
 	file_info_check(fi);
 	g_assert(fi == d->file_info);
@@ -6427,19 +6762,14 @@ file_info_remove_source(fileinfo_t *fi, struct download *d, bool discard)
 	d->file_info = NULL;
 
 	/*
-	 * We don't free the structure when `discard' is FALSE: keeping the
-	 * fileinfo around means it's still in the hash tables, and therefore
-	 * that its SHA1, if any, is still around to help us spot duplicates.
-	 *
-	 * At times however, we really want to discard an unreferenced fileinfo
-	 * as soon as this happens.
+	 * We don't free the structure unless FI_F_DISCARD is set.
 	 */
 
 	if (0 == fi->refcount) {
 		g_assert(GNET_PROPERTY(fi_with_source_count) > 0);
 		gnet_prop_decr_guint32(PROP_FI_WITH_SOURCE_COUNT);
 
-		if (discard || (fi->flags & FI_F_DISCARD)) {
+		if (fi->flags & FI_F_DISCARD) {
 			file_info_hash_remove(fi);
 			fi_free(fi);
 		}

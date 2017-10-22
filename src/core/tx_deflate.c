@@ -349,7 +349,8 @@ deflate_flushed(txdrv_t *tx)
 	attr->total_input += attr->unflushed;
 	attr->total_output += attr->flushed;
 
-	g_return_unless(attr->total_input != 0);
+	if G_UNLIKELY(0 == attr->total_input)
+		goto done;
 
 	attr->ratio = 1.0 - ((double) attr->total_output / attr->total_input);
 
@@ -371,6 +372,7 @@ deflate_flushed(txdrv_t *tx)
 			100 * flush, 100 * attr->ratio_ema, 100 * attr->ratio);
 	}
 
+done:
 	attr->unflushed = attr->flushed = 0;
 	attr->flags &= ~DF_FLUSH;
 }

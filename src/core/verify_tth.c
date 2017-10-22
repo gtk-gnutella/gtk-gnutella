@@ -44,6 +44,7 @@
 #include "lib/base32.h"
 #include "lib/halloc.h"
 #include "lib/once.h"
+#include "lib/stringify.h"
 #include "lib/tiger.h"
 #include "lib/tigertree.h"
 #include "lib/tm.h"
@@ -169,22 +170,19 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_check(sf);
 	switch (status) {
 	case VERIFY_START:
-		if (!shared_file_indexed(sf)) {
+		if (!shared_file_is_servable(sf)) {
 			/*
 			 * After a rescan, there might be files in the queue which are
 			 * no longer shared.
 			 */
 
 			if (GNET_PROPERTY(verify_debug) > 1) {
-				g_debug("skipping TTH computation for %s: no longer shared",
+				g_debug("skipping TTH computation for %s: not a servable file",
 					shared_file_path(sf));
 			}
 			return FALSE;
 		}
-		if (
-			shared_file_tth(sf) &&
-			tth_cache_lookup(shared_file_tth(sf), shared_file_size(sf)) > 0
-		) {
+		if (shared_file_tth_is_available(sf)) {
 			if (
 				GNET_PROPERTY(tigertree_debug) > 1 ||
 				GNET_PROPERTY(verify_debug) > 1
@@ -197,26 +195,59 @@ request_tigertree_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
+		/*
+		 * Processing can continue whilst the library file is indexed or the
+		 * completed file is still beeing seeded.
+		 */
+		return shared_file_is_servable(sf);
 	case VERIFY_DONE:
 		{
 			const struct tth *tth = verify_tth_digest(ctx);
+			size_t n_leaves = verify_tth_leave_count(ctx);
 
+			if (GNET_PROPERTY(verify_debug)) {
+				g_debug("%s(): computed TTH %s (%zu lea%s) for %s",
+					G_STRFUNC, tth_base32(tth),
+					n_leaves, plural_f(n_leaves),
+					shared_file_path(sf));
+			}
+
+			/*
+			 * Write the TTH to the cache first, before updating the hashes.
+			 * That way, the logic behind huge_update_hashes() can rely on
+			 * the fact that the TTH is persisted already.
+			 *
+			 * This is important for seeded files for which we re-compute
+			 * the TTH once they are completed (to make sure we can serve
+			 * THEX requests at the proper good depth).  In order to update
+			 * the GUI information, we'll need to probe the cache to determine
+			 * how large the TTH is exactly, since all we pass back to the
+			 * routines is the TTH root hash.
+			 *		--RAM, 2017-10-20
+			 */
+
+			tth_cache_insert(tth, verify_tth_leaves(ctx), n_leaves);
 			huge_update_hashes(sf, shared_file_sha1(sf), tth);
-			tth_cache_insert(tth, verify_tth_leaves(ctx),
-				verify_tth_leave_count(ctx));
+		}
+		goto done;
+	case VERIFY_ERROR:
+		if (GNET_PROPERTY(verify_debug)) {
+			g_debug("%s(): unable to compute TTH for %s",
+				G_STRFUNC, shared_file_path(sf));
 		}
 		/* FALL THROUGH */
-	case VERIFY_ERROR:
 	case VERIFY_SHUTDOWN:
-		shared_file_unref(&sf);
-		gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, FALSE);
-		return TRUE;
+		goto done;
 	case VERIFY_INVALID:
 		break;
 	}
 	g_assert_not_reached();
 	return FALSE;
+
+done:
+	shared_file_unref(&sf);
+	gnet_prop_set_boolean_val(PROP_TTH_REBUILDING, FALSE);
+	return TRUE;
 }
 
 bool
@@ -245,9 +276,9 @@ request_tigertree(shared_file_t *sf, bool high_priority)
 	verify_tth_init();
 
 	shared_file_check(sf);
-	g_return_if_fail(!shared_file_is_partial(sf));
+	g_return_if_fail(shared_file_is_finished(sf));
 
-	if (!shared_file_indexed(sf))
+	if (!shared_file_is_servable(sf))
 		return;		/* "stale" shared file, has been superseded or removed */
 
 	/*

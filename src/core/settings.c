@@ -595,6 +595,16 @@ settings_handle_upgrades(void)
 }
 
 /**
+ * Dump all Gnutella properties to stderr in case of a crash.
+ */
+static void G_COLD
+settings_dump_gnet(void)
+{
+	s_info("dumping internal properties");
+	gnet_prop_crash_dump();
+}
+
+/**
  * Make sure that we are the sole running process.
  *
  * @param is_supervisor		TRUE if dealing with the supervisor process
@@ -647,6 +657,15 @@ settings_init(void)
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
 
 	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
+
+	/*
+	 * In case of a crash, dump all the known Gnutella properties into
+	 * the generated crash log, in order to help identify peculiarities
+	 * in the configuration that could explain why the crash occurs.
+	 * 		--RAM, 2017-09-23
+	 */
+
+	crash_dumper_add(settings_dump_gnet);
 
 	if (NULL == config_dir || '\0' == *config_dir || !is_directory(config_dir))
 		goto no_config_dir;

@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-08-31 15:19+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -419,6 +419,10 @@ msgstr "Zaman aşımı"
 msgid "Requeued due to timeout"
 msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 
+#, fuzzy
+msgid "File info being freed"
+msgstr "Dosya verileri sıfırlanmakta"
+
 msgid "Partial file removed"
 msgstr "Kısmi dosya kaldırıldı"
 
@@ -807,13 +811,6 @@ msgstr "Devam beklemesi zaman aşımına uğradı"
 msgid "Lifetime expired"
 msgstr "Ömrünü doldurdu"
 
-msgid "Unauthorized"
-msgstr "İzinsiz"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "%s unsurundan gelen bağlantılar sınırlanıyor"
-
 msgid "No reason given"
 msgstr "Herhangi bir sebep gösterilmemiş"
 
@@ -837,9 +834,6 @@ msgstr "Bulanamadı"
 
 msgid "File was modified"
 msgstr "Dosya değiştirilmiş"
-
-msgid "Moved Permanently"
-msgstr "Daimi olarak taşınmış"
 
 msgid "File index/name mismatch"
 msgstr "Dosya indeksi/ismi uyumsuzluğu"
@@ -868,6 +862,13 @@ msgstr "<Kişiye Gözatma Talebi>"
 msgid "Browse Host Disabled"
 msgstr "Kişiye Gözat devre dışı"
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Mesaj sayısı sınırlaması"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "%s:%u konumuna yönlendirildi"
@@ -877,6 +878,10 @@ msgstr "Değiştirilmemiş"
 
 msgid "Stalling upload replaced"
 msgstr "Duraklayan gönderme yenilendi"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Tüm HTTP durumu gönderilemiyor"
 
 msgid "Already downloading this file"
 msgstr "Bu dosya zaten indirilmekte"
@@ -907,9 +912,6 @@ msgstr "Asgari tekrar deneme aralığı"
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Kuyrukta (oluk %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Tüm HTTP durumu gönderilemiyor"
-
 msgid "Not Acceptable"
 msgstr "Kabul edilemez"
 
@@ -931,6 +933,10 @@ msgstr ", parçalar hâlinde"
 
 msgid "THEX failure"
 msgstr "THEX başarısızlığı"
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Tüm HTTP durumu gönderilemiyor"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -4975,6 +4981,18 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
 
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
 msgid "disable"
 msgstr "devre dışı"
 
@@ -5519,6 +5537,19 @@ msgid ""
 msgstr ""
 "GUESS özet satırının toplam istatistikleri mi yoksa sadece güncel aramanın "
 "istatistikerini mi göstereceğini belirler."
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Gnet istatistikleri panosunda ayracın konumu."
+
+msgid "Notebook tab number for download info / tools"
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonimleştiren vekil sunucular"
@@ -6528,9 +6559,13 @@ msgstr "Mevcut değil"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "tamamlanmış"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9218,14 +9253,14 @@ msgstr "Durum ikonu göster"
 msgid "Avg. downtime of this servent"
 msgstr "Bu istemcinin ortalama devre dışı süresi"
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Tamamlanan indirmeleri listeden kaldır"
 
 msgid "_Clear completed"
 msgstr "Bitenleri _temizle"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Eş:"
@@ -9821,9 +9856,6 @@ msgstr "Henüz bir çıktı yok..."
 msgid "Got push, connecting back..."
 msgstr "İtme alındı, tekrar bağlanılıyor..."
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr "(çabuk) "
 
@@ -9872,3 +9904,15 @@ msgstr "QUEUE yollanıyor, tekrar bağlanılıyor..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE yollandı, başlıklar bekleniyor..."
+
+#~ msgid "Unauthorized"
+#~ msgstr "İzinsiz"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "%s unsurundan gelen bağlantılar sınırlanıyor"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Daimi olarak taşınmış"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

@@ -2979,6 +2979,15 @@ gui_prop_unlock(property_t p)
 }
 
 /**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+gui_prop_crash_dump(void)
+{
+	prop_crash_dump(gui_property);
+}
+
+/**
  * Add a change listener to a given property. If init is TRUE then
  * the listener is immediately called.
  */
@@ -3102,6 +3111,12 @@ gpointer
 gui_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gui_property, p, t, l);
+}
+
+const char *
+gui_prop_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string(gui_property, prop);
 }
 
 const char *

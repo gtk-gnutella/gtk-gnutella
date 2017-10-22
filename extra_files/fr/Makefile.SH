@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-224]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -50,7 +50,7 @@ RM = $rm -f
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Start of Jmakefile
@@ -69,6 +69,15 @@ local_install local_install-strip:: FAQ
 
 local_deinstall::
 	$(RM) $(INSTALL_PREFIX)$(FAQDIR)/FAQ
+
+local_install local_install-strip:: glossary
+	@case '${MFLAGS}' in *[i]*) set +e;; esac;		\
+	(set -x; test -d $(INSTALL_PREFIX)$(FAQDIR) || \
+		$(INSTALLDIR) $(INSTALL_PREFIX)$(FAQDIR)); \
+	$(INSTALL) -c -m 444 glossary $(INSTALL_PREFIX)$(FAQDIR)
+
+local_deinstall::
+	$(RM) $(INSTALL_PREFIX)$(FAQDIR)/glossary
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

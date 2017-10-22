@@ -29,6 +29,9 @@
  *
  * HUGE support (Hash/URN Gnutella Extension).
  *
+ * Server side: computation of SHA1 hash digests and replies.
+ * SHA1 is defined in RFC 3174.
+ *
  * @author Raphael Manfredi
  * @date 2002-2003
  * @author Ch. Tronche (http://tronche.com/)
@@ -51,6 +54,7 @@
 
 #include "lib/atoms.h"
 #include "lib/base32.h"
+#include "lib/cq.h"
 #include "lib/file.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
@@ -70,10 +74,7 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-/***
- *** Server side: computation of SHA1 hash digests and replies.
- *** SHA1 is defined in RFC 3174.
- ***/
+#define HUGE_SHA1_CACHE_FREQ	60	/* seconds, for SHA1 cache dumps */
 
 /**
  * There's an in-core cache (the hash table ``sha1_cache''), and a
@@ -353,6 +354,25 @@ parse_and_append_cache_entry(char *line)
 	if (strchr(p, '\t') != NULL)
 		goto failure;
 
+	/*
+	 * Validate that the file still exists and was not modified since its
+	 * insertion in the cache before recording it.
+	 * 		--RAM, 2017-10-19
+	 */
+
+	{
+		filestat_t st;
+
+		if (-1 == stat(p, &st))
+			return;		/* No file, or cannot access it */
+
+		if (!S_ISREG(st.st_mode))
+			return;		/* Not a regular file */
+
+		if (delta_time(st.st_mtime, mtime) > 0)
+			return;		/* File was modified */
+	}
+
 	add_volatile_cache_entry(p, size, mtime,
 		&sha1, has_tth ? &tth : NULL, FALSE);
 	return;
@@ -413,6 +433,46 @@ huge_spam_check(shared_file_t *sf, const struct sha1 *sha1)
 	return FALSE;
 }
 
+static cevent_t *cache_dump_ev;
+
+/**
+ * Callout queue callback invoked when we should flush the SHA1 cache.
+ */
+static void
+cache_dump_due(cqueue_t *cq, void *unused_obj)
+{
+	(void) unused_obj;
+
+	cq_zero(cq, &cache_dump_ev);	/* Indicates callback fired */
+	dump_cache(FALSE);
+}
+
+/**
+ * Dump the cache at most about once per HUGE_SHA1_CACHE_FREQ secs..
+ */
+static void
+cache_dump_schedule(void)
+{
+	time_delta_t t;
+
+	cache_dirty = TRUE;
+
+	if G_UNLIKELY(0 == cache_dumped) {
+		t = 0;
+	} else {
+		t = delta_time(tm_time(), cache_dumped);
+		if (t >= HUGE_SHA1_CACHE_FREQ)
+			t = 0;
+		else
+			t = HUGE_SHA1_CACHE_FREQ - t;
+	}
+	if (0 == t) {
+		dump_cache(FALSE);
+	} else if (NULL == cache_dump_ev) {
+		cache_dump_ev = cq_main_insert(t * 1000, cache_dump_due, NULL);
+	}
+}
+
 /**
  ** Asynchronous computation of hash value
  **/
@@ -423,6 +483,7 @@ huge_update_hashes(shared_file_t *sf,
 {
 	struct sha1_cache_entry *cached;
 	filestat_t sb;
+	const sha1_t *osha1;
 
 	shared_file_check(sf);
 	g_return_val_if_fail(sha1, FALSE);
@@ -451,7 +512,19 @@ huge_update_hashes(shared_file_t *sf,
 		return FALSE;
 	}
 
-	shared_file_set_sha1(sf, sha1);
+	/*
+	 * Testing for the SHA1 already being present avoids problems when
+	 * we are coming here simply to update the TTH of a completed file.
+	 * In that case, we already have the SHA1 normally, hence we will
+	 * never call shared_file_set_sha1().
+	 * 		--RAM, 2017-10-19
+	 */
+
+	osha1 = shared_file_sha1(sf);
+
+	if (NULL == osha1 || !sha1_eq(sha1, osha1))
+		shared_file_set_sha1(sf, sha1);
+
 	shared_file_set_tth(sf, tth);
 
 	/* Update cache */
@@ -461,12 +534,8 @@ huge_update_hashes(shared_file_t *sf,
 	if (cached) {
 		update_volatile_cache(cached, shared_file_size(sf),
 			shared_file_modification_time(sf), sha1, tth);
-		cache_dirty = TRUE;
 
-		/* Dump the cache at most about once per minute. */
-		if (!cache_dumped || delta_time(tm_time(), cache_dumped) > 60) {
-			dump_cache(FALSE);
-		}
+		cache_dump_schedule(); 	/* Dump cache once per minute */
 	} else {
 		add_volatile_cache_entry(shared_file_path(sf),
 			shared_file_size(sf), shared_file_modification_time(sf),
@@ -547,6 +616,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 	shared_file_t *sf = user_data;
 
 	shared_file_check(sf);
+
 	switch (status) {
 	case VERIFY_START:
 		if (!huge_need_sha1(sf))
@@ -554,7 +624,7 @@ huge_verify_callback(const struct verify *ctx, enum verify_status status,
 		gnet_prop_set_boolean_val(PROP_SHA1_REBUILDING, TRUE);
 		return TRUE;
 	case VERIFY_PROGRESS:
-		return 0 != (SHARE_F_INDEXED & shared_file_flags(sf));
+		return shared_file_indexed(sf);
 	case VERIFY_DONE:
 		huge_update_hashes(sf, verify_sha1_digest(ctx), NULL);
 		request_tigertree(sf, TRUE);
@@ -638,7 +708,8 @@ request_sha1(shared_file_t *sf)
 		cached->shared = TRUE;
 		shared_file_set_sha1(sf, cached->sha1);
 		shared_file_set_tth(sf, cached->tth);
-		request_tigertree(sf, NULL == cached->tth);
+		if (NULL == cached->tth || !shared_file_tth_is_available(sf))
+			request_tigertree(sf, NULL == cached->tth);
 	} else {
 
 		if (GNET_PROPERTY(share_debug) > 1) {
@@ -890,6 +961,73 @@ huge_collect_locations(const sha1_t *sha1, const header_t *header,
 	if (alt != NULL) {
 		dmesh_collect_fw_hosts(sha1, alt, origin, user_agent);
 	}
+}
+
+/**
+ * Iterator callback to check whether SHA1 cache entry is still being
+ * shared.  Otherwise, it is removed from the set.
+ *
+ * @return TRUE if the item was freed and needs to be dropped from the cache.
+ */
+static bool
+cache_entry_is_shared(void *v, void *unused_udata)
+{
+	struct sha1_cache_entry *e = v;
+	shared_file_t *sf;
+
+	(void) unused_udata;
+
+	sf = shared_file_by_sha1(e->sha1);
+
+	if G_UNLIKELY(SHARE_REBUILDING == sf)
+		return FALSE;		/* Cannot decide */
+
+	if (NULL == sf) {
+		/* Entry no longer shared */
+
+		atom_str_free_null(&e->file_name);
+		atom_sha1_free_null(&e->sha1);
+		atom_tth_free_null(&e->tth);
+		WFREE(e);
+
+		return TRUE;
+	}
+
+	shared_file_unref(&sf);
+	return FALSE;
+}
+
+/**
+ * Purge the SHA1 cache.
+ *
+ * This is meant to be called once, after the first library rescan.
+ *
+ * It will remove from the cache any entry for which we hold a SHA1 that
+ * is not currently being shared.
+ *
+ * This is important because we recompute the TTH of seeded files, and they
+ * are inserted into the persistent cache: we do not want to hold them
+ * forever.
+ *
+ * Users may also remove files from their library by removing entire directories
+ * from the sharing filesystem tree.  The files may still be on the filesystem
+ * but end-up being unshared, and we do not want to keep them in the cache
+ * (and in memory) if they are actually not going to be useful at all.
+ */
+void
+huge_sha1_cache_prune(void)
+{
+	size_t pruned;
+
+	pruned = hikset_foreach_remove(sha1_cache, cache_entry_is_shared, NULL);
+
+	if (GNET_PROPERTY(share_debug)) {
+		g_info("%s(): pruned %zu entr%s from SHA1 cache",
+			G_STRFUNC, pruned, plural_y(pruned));
+	}
+
+	if (pruned != 0)
+		cache_dump_schedule();
 }
 
 /**

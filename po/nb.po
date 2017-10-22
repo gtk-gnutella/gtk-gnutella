@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -417,6 +417,9 @@ msgstr "Tidsavbrudd"
 msgid "Requeued due to timeout"
 msgstr "Lagt i kø på nytt grunnet tidsavbrudd"
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -804,13 +807,6 @@ msgstr "Tidsavbrudd ved venting på oppfølging"
 msgid "Lifetime expired"
 msgstr "Levetiden er utløpt"
 
-msgid "Unauthorized"
-msgstr ""
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr ""
-
 msgid "No reason given"
 msgstr ""
 
@@ -833,9 +829,6 @@ msgid "Not Found"
 msgstr ""
 
 msgid "File was modified"
-msgstr ""
-
-msgid "Moved Permanently"
 msgstr ""
 
 msgid "File index/name mismatch"
@@ -865,6 +858,13 @@ msgstr "<Forespørsel om å bla i vert>"
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Meldingskveling"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
@@ -874,6 +874,10 @@ msgstr ""
 
 msgid "Stalling upload replaced"
 msgstr "Stoppende opplasting erstattet"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Klarte ikke sende hele HTTP-statusen"
 
 msgid "Already downloading this file"
 msgstr ""
@@ -904,9 +908,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Lagt i kø (plass %d, forventes ferdig: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Klarte ikke sende hele HTTP-statusen"
-
 msgid "Not Acceptable"
 msgstr ""
 
@@ -928,6 +929,10 @@ msgstr ", delt opp"
 
 msgid "THEX failure"
 msgstr ""
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Klarte ikke sende hele HTTP-statusen"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -4683,6 +4688,18 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
 
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
+
 msgid "disable"
 msgstr "slå av"
 
@@ -5183,6 +5200,19 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Posisjonen på deleren i Gnet-statistikkruten."
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -6192,9 +6222,13 @@ msgstr "Ikke tilgjengelig"
 msgid "Bitprint"
 msgstr "Bitmerke"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "bladverdier: %lu, dybde: %u, granulering: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "ferdig"
 
 msgid "Tigertree"
 msgstr "Tigertre"
@@ -8877,14 +8911,14 @@ msgstr "Vis et status_ikon"
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Fjern ferdige nedlastinger fra listen"
 
 msgid "_Clear completed"
 msgstr "_Fjern ferdige"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Adresse:"
@@ -9470,9 +9504,6 @@ msgstr "Ingen utdata ennå . . ."
 msgid "Got push, connecting back..."
 msgstr "Fikk dytt, kobler tilbake . . ."
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr "(rask) "
 
@@ -9521,3 +9552,6 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

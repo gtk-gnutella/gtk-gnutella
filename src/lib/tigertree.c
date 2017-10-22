@@ -78,11 +78,14 @@
 
 #include "common.h"
 
+#include "tigertree.h"
+
 #include "base32.h"
 #include "endian.h"
 #include "halloc.h"
 #include "misc.h"
-#include "tigertree.h"
+#include "unsigned.h"
+
 #include "override.h"		/* Must be the last header included */
 
 /* size of input to each non-leaf hash-tree node, not counting the node
@@ -137,6 +140,33 @@ tt_depth(size_t leaves)
 	}
 
 	return depth;
+}
+
+/**
+ * Given a file size and a number of leaves in a TTH, determines how many
+ * bytes are covered by each leaf.
+ *
+ * @param size		the file size
+ * @param nleaves	amount of leaves at the bottom of the TTH
+ *
+ * @return the slice size in bytes.
+ */
+filesize_t
+tt_slice_size(filesize_t size, size_t nleaves)
+{
+	filesize_t slice, nb;
+
+	g_assert(size_is_positive(nleaves));
+
+	slice = TTH_BLOCKSIZE;
+	nb = tt_block_count(size);
+
+	while (nb > nleaves) {
+		nb = (nb + 1) / 2;
+		slice *= 2;
+	}
+
+	return slice;
 }
 
 unsigned

@@ -41,6 +41,7 @@ struct download;
  */
 
 enum {
+	FI_F_NOSHARE		= 1 << 14,	/**< Explicitly refuse any sharing of file */
 	FI_F_DHT_LOOKING	= 1 << 13,	/**< Running DHT lookup for more sources */
 	FI_F_DHT_LOOKUP		= 1 << 12,	/**< Pending DHT lookup for more sources */
 	FI_F_MOVING			= 1 << 11,	/**< Moving file (or about to) */
@@ -79,6 +80,7 @@ typedef struct gnet_fi_info {
 	unsigned int tth_depth;
 	size_t tth_num_leaves;
 	time_t created;
+	unsigned tth_recomputed:1;	/**< Set when TTH was recomputed (seeded file) */
 } gnet_fi_info_t;
 
 typedef struct gnet_fi_status {
@@ -212,11 +214,9 @@ typedef struct dl_file_info {
 static inline void
 file_info_check(const fileinfo_t *fi)
 {
-	g_assert(fi);
+	g_assert(fi != NULL);
 	g_assert(FI_MAGIC == fi->magic);
 	g_assert(fi->refcount >= 0);
-	g_assert(fi->pathname);
-	g_assert(is_absolute_path(fi->pathname));
 }
 
 static inline void

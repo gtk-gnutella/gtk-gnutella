@@ -152,6 +152,7 @@ extra_files/favicon.png      GTKG's favorite web icon
 extra_files/fr/FAQ
 extra_files/fr/Jmakefile
 extra_files/fr/Makefile.SH
+extra_files/fr/glossary
 extra_files/geo-ip.txt
 extra_files/geo-ipv6.txt
 extra_files/gtk-gnutella.128.png
@@ -165,6 +166,10 @@ extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
 extra_files/gwcache.boot
 extra_files/hostiles.txt
+extra_files/it/FAQ
+extra_files/it/Jmakefile
+extra_files/it/Makefile.SH
+extra_files/it/glossary
 extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
@@ -175,6 +180,7 @@ extra_files/spam_sha1.txt
 extra_files/tr/FAQ
 extra_files/tr/Jmakefile
 extra_files/tr/Makefile.SH
+extra_files/tr/glossary
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program

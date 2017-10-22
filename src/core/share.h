@@ -125,6 +125,7 @@ bool sha1_hash_is_uptodate(shared_file_t *sf);
 bool shared_file_is_partial(const shared_file_t *sf) G_PURE;
 bool shared_file_is_finished(const shared_file_t *sf) G_PURE;
 bool shared_file_is_shareable(const shared_file_t *sf) G_PURE;
+bool shared_file_is_servable(const shared_file_t *sf) G_PURE;
 filesize_t shared_file_size(const shared_file_t *sf) G_PURE;
 uint32 shared_file_index(const shared_file_t *sf) G_PURE;
 time_t shared_file_modification_time(const shared_file_t *sf) G_PURE;
@@ -145,6 +146,7 @@ uint32 shared_file_flags(const shared_file_t *sf) G_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_PURE;
 bool shared_file_indexed(const shared_file_t *sf) G_PURE;
+bool shared_file_tth_is_available(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_PURE;

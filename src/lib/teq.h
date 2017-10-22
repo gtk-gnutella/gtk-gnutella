@@ -58,6 +58,8 @@ void teq_create(void);
 void teq_io_create(void);
 void teq_create_if_none(void);
 void teq_post(unsigned id, notify_fn_t routine, void *data);
+bool teq_post_unique(unsigned id, notify_fn_t routine, void *data);
+bool teq_post_ext(unsigned id, bool unique, notify_fn_t routine, void *data);
 void teq_safe_post(unsigned id, notify_fn_t routine, void *data);
 void teq_post_ack(unsigned id, notify_fn_t routine, void *data,
 	teq_ackmode_t mode, notify_fn_t ack, void *ack_data);

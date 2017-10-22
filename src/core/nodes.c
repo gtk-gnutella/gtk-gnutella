@@ -8138,6 +8138,7 @@ node_udp_disable(void)
 	}
 	if (udp6_node && udp6_node->socket) {
 		node_udp_disable_by_net(NET_TYPE_IPV6);
+		node_g2_disable_by_net(NET_TYPE_IPV6);
 		socket_free_null(&s_udp_listen6);
 	}
 

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-11-08 08:30+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: German (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -416,6 +416,9 @@ msgstr "Timeout"
 msgid "Requeued due to timeout"
 msgstr "Wegen Timeout in Warteschlange gestellt"
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -805,13 +808,6 @@ msgstr ""
 msgid "Lifetime expired"
 msgstr "Lebensdauer abgelaufen"
 
-msgid "Unauthorized"
-msgstr ""
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr ""
-
 msgid "No reason given"
 msgstr ""
 
@@ -834,9 +830,6 @@ msgid "Not Found"
 msgstr ""
 
 msgid "File was modified"
-msgstr ""
-
-msgid "Moved Permanently"
 msgstr ""
 
 msgid "File index/name mismatch"
@@ -866,6 +859,13 @@ msgstr "<Browse-Host-Anfrage>"
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Paketdrosselung"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
@@ -875,6 +875,10 @@ msgstr ""
 
 msgid "Stalling upload replaced"
 msgstr "Blockierenden Upload ersetzt"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Kann kompletten HTTP-Status nicht sende"
 
 msgid "Already downloading this file"
 msgstr ""
@@ -905,9 +909,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Warteschlange (Slot %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Kann kompletten HTTP-Status nicht sende"
-
 msgid "Not Acceptable"
 msgstr ""
 
@@ -929,6 +930,10 @@ msgstr ""
 
 msgid "THEX failure"
 msgstr ""
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Kann kompletten HTTP-Status nicht sende"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -4573,6 +4578,18 @@ msgstr ""
 msgid "Defines whether Gnutella queries should be traced."
 msgstr "Gibt an, ob die empfangenen Suchanfragen angezeigt werden sollen."
 
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Gibt an, ob die empfangenen Suchanfragen angezeigt werden sollen."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Gibt an, ob die empfangenen Suchanfragen angezeigt werden sollen."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Gibt an, ob die empfangenen Suchanfragen angezeigt werden sollen."
+
 msgid "disable"
 msgstr "deaktiviert"
 
@@ -5088,6 +5105,18 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+msgid "Notebook tab number for the Gnet stats page"
+msgstr ""
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -6098,7 +6127,10 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
+msgstr ""
+
+msgid " [re-computed]"
 msgstr ""
 
 msgid "Tigertree"
@@ -8756,14 +8788,14 @@ msgstr ""
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Fertige Downloads von Liste entfernen"
 
 msgid "_Clear completed"
 msgstr "_Fertige Downloads entfernen"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr ""
@@ -9341,9 +9373,6 @@ msgstr "Noch keine Ausgabe..."
 
 msgid "Got push, connecting back..."
 msgstr "Push erhalten, verbinde..."
-
-msgid "< 1s"
-msgstr ""
 
 msgid "(quick) "
 msgstr ""

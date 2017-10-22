@@ -6966,7 +6966,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 					s_miniwarn("recursive waiting on %s %p at %s:%u",
 						thread_lock_kind_to_string(kind), lock, file, line);
 					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
-					s_stacktrace(TRUE, 1);
+					s_where(1);
 					break;
 				}
 			}
@@ -8731,6 +8731,8 @@ retry:
 		if (-1 == r) {
 			if (EINTR == errno)
 				goto retry;
+			/* No panic if we were told to suspend (crashing, re-execing, ...) */
+			thread_check_suspended_element(te, FALSE);
 			s_error("%s(): %s could not block itself on poll() for fd #%u: %m",
 				G_STRFUNC, thread_element_name(te), te->wfd[0]);
 		}
@@ -8776,6 +8778,8 @@ retry:
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		if (EINTR == errno)
 			goto retry;
+		/* No panic if we were told to suspend (crashing, re-execing, ...) */
+		thread_check_suspended_element(te, FALSE);
 		s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
@@ -11145,7 +11149,9 @@ thread_sigblock_element(struct thread_element *te,
 	thread_element_in_syscall_set(te, FALSE);
 
 	if (-1 == r) {
-		s_error("%s(): %s could not block itself on read(%u): %m",
+		/* No panic if we were told to suspend (crashing, re-execing, ...) */
+		thread_check_suspended_element(te, FALSE);
+	 	s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
 
