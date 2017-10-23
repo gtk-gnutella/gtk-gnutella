@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "September 2016" Version "1.1.10"
+.TH GTK\\-GNUTELLA 1 "October 2017" Version "1.1.13"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -169,6 +169,12 @@ will always prevent a restart whilst
 .B "\-\-restart\-on\-crash"
 will always request one if possible.  It is not allowed to supply both
 options at the same time.
+.TP
+.B "\-\-resume\-session"
+Requests that the previous session be continued.  This means that searches
+launched for the duration of the session only will not expire, that seeded
+files will continue to be seeded, and that all the other aspects persisted
+during the previous session will be restored (current tab for instance).
 .TP
 .B "\-\-shell"
 When this option is used to connect to an already running 

@@ -624,8 +624,13 @@ settings_unique_instance(bool is_supervisor)
 	}
 }
 
+/*
+ * Initialize program settings, restoring the ones previsously set.
+ *
+ * @param resume	if TRUE, request that previous session be resumed
+ */
 void G_COLD
-settings_init(void)
+settings_init(bool resume)
 {
 	uint64 memory = getphysmemsize();
 	uint64 amount = memory / 1024;
@@ -699,7 +704,20 @@ settings_init(void)
 	 * we're being auto-restarted / manually relaunched after a crash.
 	 */
 
-	if (GNET_PROPERTY(clean_shutdown)) {
+	if (!GNET_PROPERTY(clean_shutdown)) {
+		uint32 pid = GNET_PROPERTY(pid);
+		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		if (resume)
+			g_info("implicitly resuming the previous session anyway");
+		crash_exited(pid);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else if (resume) {
+		g_info("honoring user request to resume previous session");
+		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else {
 		bool auto_restart = GNET_PROPERTY(user_auto_restart);
 		/*
 		 * An (explicit) auto-restart is an implicit continuation of the
@@ -713,12 +731,6 @@ settings_init(void)
 			g_info("restarting session as requested");
 			session_start = GNET_PROPERTY(session_start_stamp);
 		}
-	} else {
-		uint32 pid = GNET_PROPERTY(pid);
-		g_warning("restarting after abnormal termination (pid was %u)", pid);
-		crash_exited(pid);
-		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
-		session_start = GNET_PROPERTY(session_start_stamp);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);

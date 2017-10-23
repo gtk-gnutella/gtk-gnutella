@@ -263,6 +263,7 @@ enum main_arg {
 	main_arg_pause_on_crash,
 	main_arg_ping,
 	main_arg_restart_on_crash,
+	main_arg_resume_session,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -332,6 +333,7 @@ static struct option {
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
+	OPTION(resume_session,	NONE, "Request resuming of previous session."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -2477,7 +2479,7 @@ main(int argc, char **argv)
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
-	settings_init();
+	settings_init(OPT(resume_session));
 
 	/*
 	 * From now on, settings_init() was called so properties have been loaded.
