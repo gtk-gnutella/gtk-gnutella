@@ -687,6 +687,28 @@ sha1_is_cached(const shared_file_t *sf)
 	return cached && cached_entry_up_to_date(cached, sf);
 }
 
+/**
+ * Quickly check whether file changed since we cached its SHA1 / TTH.
+ *
+ * This is used when attempting to resume a seeded file, to quickly check
+ * whether it has been changing since the last time we checked it.
+ *
+ * @param path		full path to file we wish to check
+ * @param size		file size on disk
+ * @param mtime		mtime in the file's i-node on disk
+ *
+ * @return TRUE if cache is up-to-date.
+ */
+bool
+huge_cached_is_uptodate(const char *path, filesize_t size, time_t mtime)
+{
+	const struct sha1_cache_entry *cached = hikset_lookup(sha1_cache, path);
+
+	if (NULL == cached)
+		return FALSE;
+
+	return cached->size == size && cached->mtime == mtime;
+}
 
 /**
  * External interface to call for getting the hash for a shared_file.

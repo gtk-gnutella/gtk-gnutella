@@ -70,6 +70,7 @@ bool huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 void huge_collect_locations(
 	const struct sha1 *sha1, const struct header *header,
 	const struct gnutella_host *origin);
+bool huge_cached_is_uptodate(const char *path, filesize_t size, time_t mtime);
 
 void huge_sha1_cache_prune(void);
 

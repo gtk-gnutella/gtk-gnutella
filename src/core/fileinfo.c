@@ -3283,17 +3283,24 @@ file_info_retrieve(void)
 
 					/*
 					 * FIXME:
-					 * would need to check that the file is still accurate if
+					 * Would need to check that the file is still accurate if
 					 * the timestamp was changed since last modification.
 					 * For now just warn.
 					 * 		--RAM, 2017-10-23
 					 */
 
 					if (sb.st_mtime != fi->modified) {
+						bool accepted = huge_cached_is_uptodate(
+								fi->pathname, sb.st_size, sb.st_mtime);
+
 						g_warning("%s(): modified seeded file %s: "
-							"last modified=%lu, mtime=%lu; resetting!",
+							"last modified=%lu, file mtime=%lu; %s",
 							G_STRFUNC, fi->pathname,
-							(ulong) fi->modified, (ulong) sb.st_mtime);
+							(ulong) fi->modified, (ulong) sb.st_mtime,
+							accepted ? "resetting!" : "discarding!");
+
+						if (!accepted)
+							goto reset;
 
 						/* This stamp is necessary to be able to upload! */
 						fi->modified = sb.st_mtime;
