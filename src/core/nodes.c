@@ -498,6 +498,7 @@ node_tsync_udp(cqueue_t *cq, void *obj)
 	gnutella_node_t *n = obj;
 	gnutella_node_t *udp = NULL, *tn;
 
+	node_check(n);
 	g_assert(!NODE_USES_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
@@ -533,6 +534,7 @@ node_tsync_udp(cqueue_t *cq, void *obj)
 void
 node_can_tsync(gnutella_node_t *n)
 {
+	node_check(n);
 	g_assert(!NODE_USES_UDP(n));
 
 	if (n->attrs & NODE_A_TIME_SYNC)
@@ -553,6 +555,7 @@ node_can_tsync(gnutella_node_t *n)
 static void
 node_tsync_tcp(gnutella_node_t *n)
 {
+	node_check(n);
 	g_assert(!NODE_USES_UDP(n));
 	g_assert(n->attrs & NODE_A_TIME_SYNC);
 
@@ -2394,6 +2397,7 @@ node_remove_by_id(const struct nid *node_id)
 
 	node = node_by_id(node_id);
 	if (node) {
+		node_check(node);
 		if (NODE_USES_UDP(node)) {
 			/* Ignore */
 		} else if (NODE_IS_WRITABLE(node)) {
@@ -3205,6 +3209,8 @@ node_bye_if_writable(
 	gnutella_node_t *n, int code, const char *reason, ...)
 {
 	va_list args;
+
+	node_check(n);
 
 	va_start(args, reason);
 
@@ -9641,6 +9647,7 @@ node_drain_hello(void *data, int source, inputevt_cond_t cond)
 bool
 node_udp_is_old(const gnutella_node_t *n)
 {
+	node_check(n);
 	return socket_udp_is_old(n->socket);
 }
 
@@ -9652,7 +9659,11 @@ node_udp_is_old(const gnutella_node_t *n)
 bool
 node_hostile_udp(gnutella_node_t *n)
 {
-	hostiles_flags_t hostile = hostiles_check(n->addr);
+	hostiles_flags_t hostile;
+
+	node_check(n);
+
+	hostile = hostiles_check(n->addr);
 
 	if G_UNLIKELY(hostiles_flags_are_bad(hostile)) {
 		if (GNET_PROPERTY(udp_debug)) {
@@ -10225,6 +10236,8 @@ node_init_outgoing(gnutella_node_t *n)
 void
 node_flushq(gnutella_node_t *n)
 {
+	node_check(n);
+
 	if (NULL == n->socket)
 		return;		/* Socket has been nullified on a write error */
 
@@ -10241,6 +10254,8 @@ node_flushq(gnutella_node_t *n)
 void
 node_unflushq(gnutella_node_t *n)
 {
+	node_check(n);
+
 	if (NULL == n->socket)
 		return;		/* Socket has been nullified on a write error */
 
@@ -10253,6 +10268,7 @@ node_unflushq(gnutella_node_t *n)
 void
 node_tx_service(gnutella_node_t *n, bool unused_on)
 {
+	node_check(n);
 	(void) unused_on;
     node_fire_node_flags_changed(n);
 }
@@ -10263,6 +10279,8 @@ node_tx_service(gnutella_node_t *n, bool unused_on)
 void
 node_tx_enter_warnzone(gnutella_node_t *n)
 {
+	node_check(n);
+
     node_fire_node_flags_changed(n);
 	entropy_harvest_time();
 
@@ -10293,6 +10311,7 @@ node_tx_enter_warnzone(gnutella_node_t *n)
 void
 node_tx_leave_warnzone(gnutella_node_t *n)
 {
+	node_check(n);
     node_fire_node_flags_changed(n);
 }
 
@@ -10302,6 +10321,8 @@ node_tx_leave_warnzone(gnutella_node_t *n)
 void
 node_tx_enter_flowc(gnutella_node_t *n)
 {
+	node_check(n);
+
 	n->tx_flowc_date = tm_time();
 
 	if (NODE_CAN_HOPS_FLOW(n) && !NODE_USES_UDP(n))
@@ -10391,6 +10412,8 @@ node_tx_flowc_left(gnutella_node_t *n, bool sent, void *unused_arg)
 void
 node_tx_leave_flowc(gnutella_node_t *n)
 {
+	node_check(n);
+
 	if (GNET_PROPERTY(node_debug) > 4) {
 		int spent = delta_time(tm_time(), n->tx_flowc_date);
 
@@ -10421,6 +10444,7 @@ node_tx_leave_flowc(gnutella_node_t *n)
 void
 node_tx_swift_changed(gnutella_node_t *n)
 {
+	node_check(n);
     node_fire_node_flags_changed(n);
 	entropy_harvest_time();
 }
@@ -10861,6 +10885,7 @@ node_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	gnutella_node_t *n = rx_owner(rx);
 
+	node_check(n);
 	g_assert(mb != NULL);
 	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(!NODE_TALKS_G2(n));
@@ -10898,6 +10923,7 @@ node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb)
 {
 	gnutella_node_t *n = rx_owner(rx);
 
+	node_check(n);
 	g_assert(mb != NULL);
 	g_assert(NODE_IS_CONNECTED(n));
 	g_assert(NODE_TALKS_G2(n));
@@ -10933,6 +10959,7 @@ node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb)
 void
 node_sent_ttl0(gnutella_node_t *n)
 {
+	node_check(n);
 	g_assert(gnutella_header_get_ttl(&n->header) == 0);
 
 	/*
@@ -11490,6 +11517,7 @@ node_send_patch_step(gnutella_node_t *n)
 void
 node_qrt_discard(gnutella_node_t *n)
 {
+	node_check(n);
 	g_assert(n->peermode == NODE_P_LEAF || n->peermode == NODE_P_ULTRA);
 
 	if (n->recv_query_table != NULL) {
@@ -11537,6 +11565,7 @@ node_qrt_new(gnutella_node_t *n, struct routing_table *query_table)
 void
 node_qrt_install(gnutella_node_t *n, struct routing_table *query_table)
 {
+	node_check(n);
 	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
 	g_assert(n->recv_query_table == NULL);
 	g_assert(n->qrt_info == NULL);
@@ -11555,6 +11584,7 @@ node_qrt_install(gnutella_node_t *n, struct routing_table *query_table)
 void
 node_qrt_patched(gnutella_node_t *n, struct routing_table *query_table)
 {
+	node_check(n);
 	g_assert(NODE_IS_LEAF(n) || NODE_IS_ULTRA(n));
 	g_assert(n->recv_query_table == query_table);
 	g_assert(n->qrt_info != NULL);
@@ -11956,6 +11986,8 @@ node_set_vendor(gnutella_node_t *n, const char *vendor)
 	char *wbuf = NULL;
 	size_t size = 0;
 
+	node_check(n);
+
 	if (n->flags & NODE_F_FAKE_NAME) {
 		size = w_concat_strings(&wbuf, "!", vendor, NULL_PTR);
 	} else {
@@ -11995,8 +12027,11 @@ void
 node_set_hops_flow(gnutella_node_t *n, uint8 hops)
 {
 	struct node_rxfc_mon *rxfc;
-	int old_hops_flow = n->hops_flow;
+	int old_hops_flow;
 
+	node_check(n);
+
+	old_hops_flow = n->hops_flow;
 	n->hops_flow = hops;
 
 	/*
@@ -12433,6 +12468,8 @@ node_gnet_addr(const gnutella_node_t *n)
 size_t
 node_infostr_to_buf(const gnutella_node_t *n, char *dst, size_t size)
 {
+	node_check(n);
+
 	if (NODE_USES_UDP(n)) {
 		return str_bprintf(dst, size, "UDP %snode %s",
 			NODE_CAN_SR_UDP(n) ?
@@ -12587,6 +12624,8 @@ node_connect_back(const gnutella_node_t *n, uint16 port)
 {
 	gnutella_socket_t *s;
 
+	node_check(n);
+
 	/*
 	 * Refuse connection if there is a network buffer shortage.
 	 */
@@ -12620,6 +12659,8 @@ node_connect_back(const gnutella_node_t *n, uint16 port)
 void
 node_proxying_remove(gnutella_node_t *n)
 {
+	node_check(n);
+
 	if (NODE_F_PROXIED & n->flags) {
 		n->flags &= ~NODE_F_PROXIED;
 		node_fire_node_flags_changed(n);
@@ -12639,6 +12680,8 @@ static void
 node_publish_dht_nope(cqueue_t *cq, void *obj)
 {
 	gnutella_node_t *n = obj;
+
+	node_check(n);
 
 	cq_zero(cq, &n->dht_nope_ev);	/* freed before calling this function */
 
@@ -12697,6 +12740,7 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 {
 	g_return_val_if_fail(n, FALSE);
 	g_return_val_if_fail(guid, FALSE);
+	node_check(n);
 	g_return_val_if_fail(!NODE_USES_UDP(n), FALSE);
 
 	/*
@@ -12796,6 +12840,8 @@ node_proxying_add(gnutella_node_t *n, const struct guid *guid)
 void
 node_proxy_add(gnutella_node_t *n, const host_addr_t addr, uint16 port)
 {
+	node_check(n);
+
 	if (!(n->flags & NODE_F_PROXY)) {
 		g_warning("got spurious push-proxy ack from %s", node_infostr(n));
 		return;
@@ -12876,6 +12922,8 @@ node_proxy_cancel_all(void)
 void
 node_is_firewalled(gnutella_node_t *n)
 {
+	node_check(n);
+
 	if (n->attrs & NODE_A_FIREWALLED)
 		return;		/* Already knew about it */
 
@@ -13110,6 +13158,8 @@ node_all_g2_nodes(void)
 bool
 node_address_known(const gnutella_node_t *n)
 {
+	node_check(n);
+
 	/* We must know the address and the listening port */
 	return host_addr_initialized(n->gnet_addr) && n->gnet_port != 0;
 }
@@ -13467,6 +13517,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 	str_t *agents = NULL;				/* The string holding user-agents */
 	time_t now;
 
+	node_check(n);
 	g_assert(NODE_IS_UDP(n));
 	g_assert(ucnt >= 0 && ucnt <= 255);
 	g_assert(lcnt >= 0 && lcnt <= 255);
