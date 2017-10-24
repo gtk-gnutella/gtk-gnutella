@@ -368,15 +368,13 @@ vmea_free(void *p, size_t size)
 }
 
 /**
- * @return amount of memory currently reserved
+ * @return amount of memory initially reserved, regardless of whether
+ * we already invoked vmea_close().
  */
 size_t
 vmea_capacity(void)
 {
 	struct vmea_region *vr = &vmea_region;
-
-	if G_UNLIKELY(NULL == vr->bitmap)
-		return 0;
 
 	return vr->capacity;
 }
