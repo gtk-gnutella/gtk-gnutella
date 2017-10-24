@@ -369,6 +369,9 @@ parse_and_append_cache_entry(char *line)
 		if (!S_ISREG(st.st_mode))
 			return;		/* Not a regular file */
 
+		if (UNSIGNED(st.st_size) != size)
+			return;		/* File was modified */
+
 		if (delta_time(st.st_mtime, mtime) > 0)
 			return;		/* File was modified */
 	}
