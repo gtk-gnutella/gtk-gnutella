@@ -2406,6 +2406,8 @@ main(int argc, char **argv)
 	xmalloc_show_settings();
 	malloc_show_settings();
 	crash_setver(version_build_string());	/* Wants true full version */
+	crash_setccdate(__DATE__);
+	crash_setcctime(__TIME__);
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */

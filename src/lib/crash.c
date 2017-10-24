@@ -167,6 +167,8 @@ struct crash_vars {
 	const char *crashlog;	/**< Full path to the crash file */
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
+	const char *cc_date;	/**< Program compilation date (NULL if unknown) */
+	const char *cc_time;	/**< Program compilation time (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
@@ -1370,15 +1372,26 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str(vars->version);		/* 4 */
 		print_str("\n");				/* 5 */
 	}
-	print_str("Run-Elapsed: ");			/* 6 */
-	print_str(rbuf);					/* 7 */
+	if (NULL != vars->cc_date) {
+		print_str("Compiled: ");		/* 6 */
+		print_str(vars->cc_date);		/* 7 */
+		if (NULL != vars->cc_time) {
+			print_str(", at ");			/* 8 */
+			print_str(vars->cc_time);	/* 9 */
+		}
+		print_str("\n");				/* 10 */
+	}
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Run-Elapsed: ");			/* 0 */
+	print_str(rbuf);					/* 1 */
+	print_str("\n");					/* 2 */
+	print_str("Run-Seconds: ");			/* 3 */
+	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 4 */
+	print_str("\n");					/* 5 */
+	print_str("Crash-Signal: ");		/* 6 */
+	print_str(signal_name(signo));		/* 7 */
 	print_str("\n");					/* 8 */
-	print_str("Run-Seconds: ");			/* 9 */
-	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 10 */
-	print_str("\n");					/* 11 */
-	print_str("Crash-Signal: ");		/* 12 */
-	print_str(signal_name(signo));		/* 13 */
-	print_str("\n");					/* 14 */
 	flush_str(clf);
 	rewind_str(0);
 	print_str("Crash-PID: ");			/* 0 */
@@ -3991,6 +4004,40 @@ crash_setver(const char *version)
 	crash_set_var(version, value);
 
 	g_assert(NULL != vars->version);
+}
+
+/**
+ * Record program's compilation date string.
+ */
+void G_COLD
+crash_setccdate(const char *date)
+{
+	const char *value;
+
+	g_assert(NULL != vars->mem);
+	g_assert(NULL != date);
+
+	value = ostrdup_readonly(date);
+	crash_set_var(cc_date, value);
+
+	g_assert(NULL != vars->cc_date);
+}
+
+/**
+ * Record program's compilation time string.
+ */
+void G_COLD
+crash_setcctime(const char *time)
+{
+	const char *value;
+
+	g_assert(NULL != vars->mem);
+	g_assert(NULL != time);
+
+	value = ostrdup_readonly(time);
+	crash_set_var(cc_time, value);
+
+	g_assert(NULL != vars->cc_time);
 }
 
 /**
