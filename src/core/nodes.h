@@ -201,7 +201,7 @@ typedef struct gnutella_node {
 
 	struct route_data *routing_data;		/**< for gnet message routing */
 	struct routing_table *sent_query_table;	/**< query table sent to node */
-	struct routing_table *recv_query_table;	/**< query table recved from node */
+	struct routing_table *recv_query_table;	/**< query table received from node */
 	struct qrt_update *qrt_update;			/**< query routing update handle */
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */

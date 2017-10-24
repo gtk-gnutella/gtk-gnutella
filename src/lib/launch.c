@@ -34,7 +34,7 @@
  * us to provide a decent waitpid() emulation on Windows.
  *
  * As is traditional for this family of functions in the litterature,
- * the radix "launch" is supplemented with additional letter which give
+ * the radix "launch" is supplemented with additional letters which give
  * a hint towards the function signature...
  *
  * The first letter is either 'l' or 'v':
