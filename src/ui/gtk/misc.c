@@ -543,16 +543,17 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	if (abs(dx) > 64 || abs(dy) > 64)
 		return;
 
-	g_debug("anti_window_shift_hack: "
-		"x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
-			x, y, ax, ay, dx, dy);
+	if (GUI_PROPERTY(gui_debug)) {
+		g_debug("%s(): x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
+				G_STRFUNC, x, y, ax, ay, dx, dy);
+	}
 
 	gtk_window_move(GTK_WINDOW(widget), x - dx, y - dy);
 	gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
 	if (ax == x && ay == y)
 		return;
 
-	g_debug("anti_window_shift_hack failed: ax=%d, ay=%d", ax, ay);
+	g_warning("%s() failed: ax=%d, ay=%d", G_STRFUNC, ax, ay);
 }
 
 void
