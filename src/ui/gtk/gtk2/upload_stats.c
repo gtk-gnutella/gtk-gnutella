@@ -387,6 +387,8 @@ upload_stats_gui_init_intern(gboolean intern)
 		gtk_tree_view_set_model(upload_stats_treeview, model);
 		g_object_unref(model);
 
+		gui_parent_widths_saveto(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
+
 		for (i = 0; i < N_ITEMS(columns); i++) {
 			GtkTreeViewColumn *column;
 
@@ -399,6 +401,9 @@ upload_stats_gui_init_intern(gboolean intern)
 
 			column_sort_tristate_register(column,
 				on_uploads_stats_treeview_column_clicked, NULL);
+
+			/* Capture resize events */
+			gui_column_map(column, upload_stats_treeview);
 		}
 
 		gui_signal_connect(upload_stats_treeview,
@@ -542,7 +547,6 @@ upload_stats_gui_clear_model(void)
 void
 upload_stats_gui_shutdown(void)
 {
-	tree_view_save_widths(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
 	tree_view_save_visibility(upload_stats_treeview, PROP_UL_STATS_COL_VISIBLE);
 	upload_stats_gui_clear_all();
 }

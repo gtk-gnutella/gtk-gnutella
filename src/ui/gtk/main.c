@@ -879,6 +879,17 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 	add_pixmap_directory(mingw_filename_nearby(pixmaps));
 #endif
 
+	/*
+	 * We need to initialize the GUI properties early (create the set)
+	 * to be able to process and validate properties given when creating
+	 * things that need to be saved within a GUI property (e.g. column
+	 * widths).
+	 * 		--RAM, 2017-10-26
+	 */
+
+	settings_gui_early_init();
+	misc_gui_early_init();			/* For column resize events capture */
+
     gui_main_window_set(create_main_window());
 	gui_init_main_window();
 
@@ -1169,6 +1180,7 @@ main_gui_shutdown(void)
 	gnet_stats_gui_shutdown();
     hcache_gui_shutdown();
     statusbar_gui_shutdown();
+	misc_gui_shutdown();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

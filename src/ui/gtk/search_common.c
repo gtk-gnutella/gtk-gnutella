@@ -106,6 +106,7 @@ static GList *list_searches;	/**< List of search structs */
 static htable_t *ht_searches;	/**< Maps a gnet_search_t to a search_t */
 
 static search_t *current_search; /**< The search currently displayed */
+static GtkWidget *dflt_search_widget;
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
@@ -726,6 +727,7 @@ static void
 search_gui_close_search(search_t *search)
 {
 	GList *next;
+	int n;
 
 	g_return_if_fail(search);
 
@@ -754,9 +756,17 @@ search_gui_close_search(search_t *search)
 	search_gui_clear_search(search);
     search_gui_remove_search(search);
 
-	gtk_notebook_remove_page(notebook_search_results,
-		gtk_notebook_page_num(notebook_search_results,
-			search->scrolled_window));
+	/*
+	 * Removeing the scrolled window which contains the search tree from
+	 * the notebook will remove references on theses ojects and free them!
+	 * Therefore, we need to forget the tree.
+	 */
+
+	gui_parent_forget(search->tree);	/* About to destroy tree */
+
+	n = gtk_notebook_page_num(notebook_search_results, search->scrolled_window);
+	g_assert(n >= 0);	/* Must be found! */
+	gtk_notebook_remove_page(notebook_search_results, n);
 
 	hset_free_null(&search->dups);
 	htable_free_null(&search->parents);
@@ -2372,17 +2382,21 @@ search_gui_switch_search(struct search *search)
 			gtk_notebook_page_num(notebook_search_results,
 				search->scrolled_window));
 	} else {
-		GtkWidget *sw, *tree;
-		char text[256];
+		if G_UNLIKELY(NULL == dflt_search_widget) {
+			GtkWidget *sw, *tree;
+			char text[256];
 
-		sw = search_gui_create_scrolled_window();
-		tree = search_gui_create_tree();
-		gtk_widget_set_sensitive(tree, FALSE);
-		gtk_container_add(GTK_CONTAINER(sw), tree);
-		gtk_notebook_append_page(notebook_search_results, sw, NULL);
-		str_bprintf(text, sizeof text, "(%s)", _("No search"));
-		gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
-		gtk_widget_show_all(sw);
+			sw = search_gui_create_scrolled_window();
+			tree = search_gui_create_tree();
+			gtk_widget_set_sensitive(tree, FALSE);
+			g_object_ref(sw);	/* Never free this until shutdown */
+			gtk_container_add(GTK_CONTAINER(sw), tree);
+			gtk_notebook_append_page(notebook_search_results, sw, NULL);
+			str_bprintf(text, sizeof text, "(%s)", _("No search"));
+			gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
+			dflt_search_widget = sw;
+		}
+		gtk_widget_show_all(dflt_search_widget);
 	}
 	search_gui_update_status(search);
 }
@@ -4739,6 +4753,10 @@ search_gui_common_shutdown(void)
 	slist_free_all(&accumulated_rs, accum_rs_free_full);
 
 	search_gui_set_details(NULL);
+	if (dflt_search_widget != NULL) {
+		g_object_unref(dflt_search_widget);
+		dflt_search_widget = NULL;
+	}
 
     gm_list_free_null(&list_search_history);
 	htable_free_null(&ht_searches);

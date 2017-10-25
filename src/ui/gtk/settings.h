@@ -30,6 +30,7 @@
 
 #include "if/gui_property.h"
 
+void settings_gui_early_init(void);
 void settings_gui_init(void);
 void settings_gui_restore_panes(void);
 const gchar *settings_gui_config_dir(void);

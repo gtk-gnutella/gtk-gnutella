@@ -693,6 +693,8 @@ uploads_gui_init(void)
 	gtk_tree_view_set_model(treeview_uploads, GTK_TREE_MODEL(store_uploads));
 	tree_view_set_fixed_height_mode(treeview_uploads, TRUE);
 
+	gui_parent_widths_saveto(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
+
 	for (i = 0; i < N_ITEMS(cols); i++) {
 		GtkTreeViewColumn *column;
 
@@ -703,6 +705,9 @@ uploads_gui_init(void)
 
 		column_sort_tristate_register(column,
 			on_uploads_treeview_column_clicked, NULL);
+
+		gui_column_map(column, treeview_uploads);	/* Capture resize events */
+
 	}
 	tree_view_restore_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_restore_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
@@ -727,7 +732,6 @@ uploads_gui_shutdown(void)
 {
 	uploads_shutting_down = TRUE;
 
-	tree_view_save_widths(treeview_uploads, PROP_UPLOADS_COL_WIDTHS);
 	tree_view_save_visibility(treeview_uploads, PROP_UPLOADS_COL_VISIBLE);
 
     guc_upload_remove_upload_added_listener(upload_added);

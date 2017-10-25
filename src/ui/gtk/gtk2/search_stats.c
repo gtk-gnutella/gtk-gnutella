@@ -419,6 +419,8 @@ add_column(GtkTreeView *treeview, int id, float xalign,
 
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_column_set_sort_column_id(column, id);
+
+	gui_column_map(column, treeview);	/* Capture resize events */
 }
 
 /**
@@ -531,6 +533,8 @@ search_stats_gui_init(void)
     store_search_stats = GTK_LIST_STORE(model);
 	g_object_unref(model);
 
+	gui_parent_widths_saveto(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
+
 	for (i = 0; i < N_ITEMS(cols); i++) {
 		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
@@ -544,7 +548,6 @@ search_stats_gui_init(void)
 void
 search_stats_gui_shutdown(void)
 {
-	tree_view_save_widths(treeview_search_stats, PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
 	empty_hash_table();
     htable_free_null(&stat_hash);

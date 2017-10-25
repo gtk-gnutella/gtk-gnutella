@@ -58,7 +58,6 @@
 #include "sockets.h"
 #include "tx.h"					/* For tx_debug_set_addrs() */
 #include "udp.h"				/* For udp_received() */
-#include "upload_stats.h"
 
 #include "upnp/upnp.h"
 
@@ -802,8 +801,6 @@ settings_init(bool resume)
 				system_precision ? "" : "computed ", val, prefix[p]);
 		}
 	}
-
-	upload_stats_load_history();	/* Loads the upload statistics */
 
 	/* watch for filter_file defaults */
 

@@ -6242,15 +6242,23 @@ settings_gui_restore_panes(void)
 }
 
 void G_COLD
+settings_gui_early_init(void)
+{
+    gui_prop_set_stub = gui_prop_get_stub();
+    gnet_prop_set_stub = gnet_prop_get_stub();
+
+    properties = gui_prop_init();
+}
+
+void G_COLD
 settings_gui_init(void)
 {
     gint n;
 
-    gui_prop_set_stub = gui_prop_get_stub();
-    gnet_prop_set_stub = gnet_prop_get_stub();
+	g_assert_log(properties != NULL,
+		"%s(): settings_gui_early_init() not called yet!", G_STRFUNC);
 
     tooltips = gtk_tooltips_new();
-    properties = gui_prop_init();
 	sensitive_changes = hikset_create(
 		offsetof(struct widget_change, name), HASH_KEY_STRING, 0);
 

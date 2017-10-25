@@ -2465,10 +2465,6 @@ main(int argc, char **argv)
 	vendor_init();
 	mime_type_init();
 
-	if (!running_topless) {
-		main_gui_early_init(argc, argv, OPT(no_xshm));
-	}
-
 	bg_init();
 	upnp_init();
 	udp_init();
@@ -2499,6 +2495,17 @@ main(int argc, char **argv)
 			str_discrepancies, 1 == str_discrepancies ? "y" : "ies");
 		str_test(TRUE);
 	}
+
+	/*
+	 * Unfortunately we need to early-init the GUI, if any requested,
+	 * before loading back the upload statistics.
+	 */
+
+	if (!running_topless) {
+		main_gui_early_init(argc, argv, OPT(no_xshm));
+	}
+
+	upload_stats_load_history();	/* Loads the upload statistics */
 
 	map_test();
 	ipp_cache_load_all();

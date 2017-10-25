@@ -192,6 +192,7 @@ add_column(GtkTreeView *treeview, gint column_id, gint width, gfloat xalign,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL_PTR);
 	gtk_tree_view_append_column(treeview, column);
+	gui_column_map(column, treeview);	/* Capture resize events */
 }
 
 static void
@@ -394,6 +395,9 @@ gnet_stats_gui_horizon_init(void)
 
 	gui_prop_get_guint32(PROP_GNET_STATS_HORIZON_COL_WIDTHS,
 		width, 0, N_ITEMS(width));
+
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_HORIZON_COL_WIDTHS);
+
 	for (n = 0; n < N_ITEMS(width); n++) {
 		GtkTreeIter iter;
 		gint i;
@@ -453,6 +457,9 @@ gnet_stats_gui_flowc_init(void)
 
 	gui_prop_get_guint32(PROP_GNET_STATS_FC_COL_WIDTHS,
 		width, 0, STATS_FLOWC_COLUMNS);
+
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_FC_COL_WIDTHS);
+
 	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
 
@@ -483,8 +490,11 @@ gnet_stats_gui_drop_reasons_init(void)
 
 	treeview = treeview_gnet_stats_drop_reasons = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_drop_reasons"));
+
 	gui_prop_get_guint32(PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
 		width, 0, N_ITEMS(width));
+
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS);
 
 	for (n = 0; n < N_ITEMS(types); n++) {
 		GtkTreeIter iter;
@@ -521,8 +531,11 @@ gnet_stats_gui_general_init(void)
 
 	treeview = treeview_gnet_stats_general = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_general"));
+
 	gui_prop_get_guint32(PROP_GNET_STATS_GENERAL_COL_WIDTHS,
 		width, 0, N_ITEMS(width));
+
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_GENERAL_COL_WIDTHS);
 
 	for (n = 0; n < N_ITEMS(types); n++) {
 		GtkTreeIter iter;
@@ -581,6 +594,8 @@ gnet_stats_gui_messages_init(void)
 	gui_prop_get_guint32(PROP_GNET_STATS_MSG_COL_WIDTHS,
 		width, 0, N_ITEMS(width));
 
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_MSG_COL_WIDTHS);
+
 	for (n = 0; (guint) n < N_ITEMS(msg_stats_label); n++) {
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			_(msg_stats_label[n]));
@@ -617,8 +632,11 @@ gnet_stats_gui_recv_init(void)
 
 	treeview = treeview_gnet_stats_recv = GTK_TREE_VIEW(
 	    gui_main_window_lookup("treeview_gnet_stats_recv"));
+
 	gui_prop_get_guint32(PROP_GNET_STATS_RECV_COL_WIDTHS,
 		width, 0, N_ITEMS(width));
+
+	gui_parent_widths_saveto(treeview, PROP_GNET_STATS_RECV_COL_WIDTHS);
 
 	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
@@ -694,31 +712,8 @@ gnet_stats_gui_init(void)
 void
 gnet_stats_gui_shutdown(void)
 {
-	static const struct {
-		property_t prop;
-		GtkTreeView **tv;
-	} widths[] = {
-		{ 	PROP_GNET_STATS_GENERAL_COL_WIDTHS,
-				&treeview_gnet_stats_general },
-		{ 	PROP_GNET_STATS_DROP_REASONS_COL_WIDTHS,
-				&treeview_gnet_stats_drop_reasons },
-		{ 	PROP_GNET_STATS_MSG_COL_WIDTHS,
-				&treeview_gnet_stats_messages },
-		{ 	PROP_GNET_STATS_FC_COL_WIDTHS,
-				&treeview_gnet_stats_flowc },
-		{ 	PROP_GNET_STATS_RECV_COL_WIDTHS,
-				&treeview_gnet_stats_recv },
-		{ 	PROP_GNET_STATS_HORIZON_COL_WIDTHS,
-				&treeview_gnet_stats_horizon },
-	};
-	size_t i;
-
 	guc_hsep_remove_global_table_listener(
 	    (callback_fn_t) gnet_stats_gui_horizon_update);
-
-	for (i = 0; i < N_ITEMS(widths); i++) {
-		tree_view_save_widths(*widths[i].tv, widths[i].prop);
-	}
 }
 
 void
