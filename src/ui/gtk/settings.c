@@ -6110,8 +6110,8 @@ settings_gui_init_prop_map(void)
     guint n;
 
     if (GUI_PROPERTY(gui_debug) >= 2) {
-        printf("settings_gui_init_prop_map: property_map size: %u\n",
-            (guint) N_ITEMS(property_map));
+        g_debug("%s(): property_map size: %u",
+            G_STRFUNC, (guint) N_ITEMS(property_map));
     }
 
     /*
@@ -6172,21 +6172,22 @@ settings_gui_init_prop_map(void)
             /*
              * Add listener
              */
-            if (GUI_PROPERTY(gui_debug) >= 10)
-                printf("settings_gui_init_prop_map: adding changes listener "
-                    "[%s]\n", def ->name);
+            if (GUI_PROPERTY(gui_debug) >= 10) {
+                g_debug("%s(): adding changes listener [%s]",
+				   G_STRFUNC, def->name);
+			}
             property_map[n].stub->prop_changed_listener.add_full(
                 property_map[n].prop,
                 property_map[n].cb,
                 property_map[n].init,
                 property_map[n].f_type,
                 property_map[n].f_interval);
-            if (GUI_PROPERTY(gui_debug) >= 10)
-                printf("settings_gui_init_prop_map: adding changes listener "
-                    "[%s][done]\n", def->name);
+            if (GUI_PROPERTY(gui_debug) >= 10) {
+                g_debug("%s(): adding changes listener [%s][done]",
+					G_STRFUNC, def->name);
+			}
         } else if (GUI_PROPERTY(gui_debug) >= 10) {
-            printf("settings_gui_init_prop_map: "
-                "property ignored: %s\n", def->name);
+            g_debug("%s(): property ignored: %s", G_STRFUNC, def->name);
         }
         prop_free_def(def);
     }
@@ -6194,9 +6195,8 @@ settings_gui_init_prop_map(void)
     if (GUI_PROPERTY(gui_debug) >= 1) {
         for (n = 0; n < GUI_PROPERTY_NUM; n++) {
             if (gui_init_list[n] == NOT_IN_MAP) {
-                printf("settings_gui_init_prop_map: "
-					"[GUI] unmapped property: %s\n",
-					gui_prop_name(n+GUI_PROPERTY_MIN));
+                g_info("%s(): [GUI] unmapped property: %s",
+					G_STRFUNC, gui_prop_name(n+GUI_PROPERTY_MIN));
             }
         }
     }
@@ -6204,9 +6204,8 @@ settings_gui_init_prop_map(void)
     if (GUI_PROPERTY(gui_debug) >= 1) {
         for (n = 0; n < GNET_PROPERTY_NUM; n++) {
             if (gnet_init_list[n] == NOT_IN_MAP) {
-                printf("settings_gui_init_prop_map:"
-                    " [GNET] unmapped property: %s\n",
-					gnet_prop_name(n+GNET_PROPERTY_MIN));
+                g_info("%s(): [GNET] unmapped property: %s",
+					G_STRFUNC, gnet_prop_name(n+GNET_PROPERTY_MIN));
             }
         }
     }
