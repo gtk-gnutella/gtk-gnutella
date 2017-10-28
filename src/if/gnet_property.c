@@ -5072,7 +5072,7 @@ gnet_prop_init(void) {
     gnet_property->props[186].name = "current_peermode";
     gnet_property->props[186].desc = _("Current peer mode for gtk-gnutella.");
     gnet_property->props[186].ev_changed = event_new("current_peermode_changed");
-    gnet_property->props[186].save = FALSE;
+    gnet_property->props[186].save = TRUE;
     gnet_property->props[186].internal = TRUE;
     gnet_property->props[186].vector_size = 1;
 	mutex_init(&gnet_property->props[186].lock);
@@ -11571,6 +11571,12 @@ gpointer
 gnet_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gnet_property, p, t, l);
+}
+
+void
+gnet_prop_reset(property_t prop)
+{
+    prop_reset(gnet_property, prop);
 }
 
 const char *

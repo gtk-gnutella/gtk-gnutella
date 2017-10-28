@@ -157,6 +157,8 @@ void [=(. func-prefix)=]_set_guint32(
 guint32 *[=(. func-prefix)=]_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
+void [=(. func-prefix)=]_reset(property_t);
+
 static inline void
 [=(. func-prefix)=]_set_guint32_val(property_t p, guint32 value)
 {
@@ -762,6 +764,12 @@ gpointer
 [=(. func-prefix)=]_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
+}
+
+void
+[=(. func-prefix)=]_reset(property_t prop)
+{
+    prop_reset([=(. prop-set)=], prop);
 }
 
 const char *

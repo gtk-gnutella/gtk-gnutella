@@ -623,6 +623,28 @@ settings_unique_instance(bool is_supervisor)
 	}
 }
 
+/**
+ * Cleanup properties upon start-up before initializing the callbacks.
+ */
+static void G_COLD
+settings_cleanup(void)
+{
+	/*
+	 * We now persist "current_peermode" to be able to restart in the
+	 * same mode after a crash.  However if we are not resuming the
+	 * session, or if the configured peermode is not "automatic", then
+	 * reset "current_peermode" to its default value, discarding the
+	 * persisted value.
+	 * 		--RAM, 2017-10-28
+	 */
+
+	if (
+			!crash_was_restarted() ||
+			GNET_PROPERTY(configured_peermode) != NODE_P_AUTO
+	)
+		gnet_prop_reset(PROP_CURRENT_PEERMODE);
+}
+
 /*
  * Initialize program settings, restoring the ones previsously set.
  *
@@ -832,6 +854,7 @@ settings_init(bool resume)
 	settings_init_session_id();
 	settings_update_downtime();
 	settings_update_firewalled();
+	settings_cleanup();
 	settings_callbacks_init();
 	settings_handle_upgrades();
 	settings_init_running = FALSE;
@@ -2900,52 +2923,17 @@ static bool
 configured_peermode_changed(property_t prop)
 {
     uint32 val;
-	bool forced = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
 
-	/* XXX: The following is disabled because it is too restrictive and
-	 *		annoying in LAN. If a user doesn't use the default "auto"
-	 *		mode, it can be assumed that he knows what he's doing. Also,
-	 *		while it's sub-optimal it's not absolutely required for an
-	 *		ultrapeer to accept incoming connections (from external hosts).
-	 *
-	 *		--cbiere, 2005-05-14
-	 */
-#if 0
 	/*
-	 * We don't allow them to be anything but a leaf node if they are
-	 * firewalled.  We even restrict the "normal" mode, which is to be
-	 * avoided anyway, and will be removed in a future release.
-	 *		--RAM, 2004-09-19
+	 * Keep current peer mode if the configured peermode is NODE_P_AUTO.
 	 */
 
-	switch (val) {
-	case NODE_P_NORMAL:
-	case NODE_P_ULTRA:
-		if (GNET_PROPERTY(is_firewalled)) {
-			val = NODE_P_AUTO;
-			forced = TRUE;
-			g_warning("must run as a leaf when TCP-firewalled");
-			gcu_statusbar_warning(
-				_("Can only run as a leaf when TCP-firewalled"));
-		}
-		break;
-	default:
-		break;
-	}
-#endif
+	if (val != NODE_P_AUTO)
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
 
-	if (val == NODE_P_AUTO) {
-		if (connected_nodes() > 0)		/* Already connected */
-			return forced;				/* Keep our current operating mode */
-		val = NODE_P_LEAF;				/* Force leaf mode */
-		/* FALL THROUGH */
-	}
-
-	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
-
-    return forced;
+    return FALSE;
 }
 
 static bool

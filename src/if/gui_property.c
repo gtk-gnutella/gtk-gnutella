@@ -3113,6 +3113,12 @@ gui_prop_get_storage(property_t p, gpointer t, size_t l)
     return prop_get_storage(gui_property, p, t, l);
 }
 
+void
+gui_prop_reset(property_t prop)
+{
+    prop_reset(gui_property, prop);
+}
+
 const char *
 gui_prop_to_typed_string(property_t prop)
 {

@@ -2096,6 +2096,66 @@ prop_is_default(prop_def_t *p)
 }
 
 /**
+ * Reset property to its default value.
+ */
+void
+prop_reset(prop_set_t *ps, property_t prop)
+{
+	prop_def_t *d;
+	size_t i;
+
+	d = &PROP(ps, prop);
+
+	PROP_DEF_LOCK(d);
+
+	if (prop_is_default(d))
+		goto no_change;
+
+	switch (d->type) {
+	case PROP_TYPE_BOOLEAN:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.boolean.value[i] = d->data.boolean.def[i];
+		}
+		break;
+	case PROP_TYPE_MULTICHOICE:
+	case PROP_TYPE_GUINT32:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.guint32.value[i] = d->data.guint32.def[i];
+		}
+		break;
+	case PROP_TYPE_GUINT64:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.guint64.value[i] = d->data.guint64.def[i];
+		}
+		break;
+	case PROP_TYPE_TIMESTAMP:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.timestamp.value[i] = d->data.timestamp.def[i];
+		}
+	case PROP_TYPE_STRING:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.string.value[i] = d->data.string.def[i];
+		}
+		break;
+	case PROP_TYPE_IP:
+	case PROP_TYPE_STORAGE:
+		/* No default, warn */
+		s_carp("%s(): no default for %s property \"%s\"",
+			G_STRFUNC, prop_type_str[d->type].name, d->name);
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	prop_emit_prop_changed(d, ps, prop);
+
+	/* FALL THROUGH */
+
+no_change:
+	PROP_DEF_UNLOCK(d);
+}
+
+/**
  * In case of crash, dump all the properties.
  *
  * All the properties, regardless of whether they are normally persisted, are

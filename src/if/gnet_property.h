@@ -592,6 +592,8 @@ void gnet_prop_set_guint32(
 guint32 *gnet_prop_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
+void gnet_prop_reset(property_t);
+
 static inline void
 gnet_prop_set_guint32_val(property_t p, guint32 value)
 {
