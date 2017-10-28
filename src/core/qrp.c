@@ -1686,7 +1686,11 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 				shared_file_name_canonic_len(sf)));
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP adding file \"%s\"%s", shared_file_name_canonic(sf),
+		bool completed = shared_file_is_finished(sf);
+		g_debug("QRP adding %sfile \"%s\"%s",
+			shared_file_is_partial(sf) ?
+				(completed ? "seeded " : "partial ") : "",
+			shared_file_name_canonic(sf),
 			shared_file_needs_aliasing(sf) ?  " (with aliases)" : "");
 	}
 
