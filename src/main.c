@@ -2599,6 +2599,9 @@ main(int argc, char **argv)
 	vxml_test();
 	g2_tree_test();
 
+	if (OPT(topless))
+		gnet_prop_set_boolean_val(PROP_RUNNING_TOPLESS, TRUE);
+
 	if (running_topless) {
 		topless_main_run();
 	} else {

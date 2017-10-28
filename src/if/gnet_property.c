@@ -1130,6 +1130,8 @@ gboolean gnet_property_variable_lock_contention_trace     = FALSE;
 static const gboolean gnet_property_variable_lock_contention_trace_default = FALSE;
 gboolean gnet_property_variable_lock_sleep_trace     = FALSE;
 static const gboolean gnet_property_variable_lock_sleep_trace_default = FALSE;
+gboolean gnet_property_variable_running_topless     = FALSE;
+static const gboolean gnet_property_variable_running_topless_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -11375,6 +11377,25 @@ gnet_prop_init(void) {
     gnet_property->props[486].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[486].data.boolean.def   = (void *) &gnet_property_variable_lock_sleep_trace_default;
     gnet_property->props[486].data.boolean.value = (void *) &gnet_property_variable_lock_sleep_trace;
+
+
+    /*
+     * PROP_RUNNING_TOPLESS:
+     *
+     * General data:
+     */
+    gnet_property->props[487].name = "running_topless";
+    gnet_property->props[487].desc = _("If TRUE, then gtk-gnutella runs without a GUI interface.");
+    gnet_property->props[487].ev_changed = event_new("running_topless_changed");
+    gnet_property->props[487].save = FALSE;
+    gnet_property->props[487].internal = TRUE;
+    gnet_property->props[487].vector_size = 1;
+	mutex_init(&gnet_property->props[487].lock);
+
+    /* Type specific data: */
+    gnet_property->props[487].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[487].data.boolean.def   = (void *) &gnet_property_variable_running_topless_default;
+    gnet_property->props[487].data.boolean.value = (void *) &gnet_property_variable_running_topless;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

@@ -731,6 +731,7 @@ can_become_ultra(time_t now)
 	const char *ok = "** OK **";
 	const char *no = "-- NO --";
 	size_t provision_fd;
+	float memratio;
 
 	/* Uptime requirements */
 	avg_servent_uptime = get_average_servent_uptime(now) >= NODE_MIN_AVG_UPTIME;
@@ -787,10 +788,17 @@ can_become_ultra(time_t now)
 
 	enough_fd = provision_fd < GNET_PROPERTY(sys_nofile);
 
+	/*
+	 * When running without a GUI, allow them to use more memory for the core,
+	 * since we do not have to allocate all the GUI data structures.
+	 */
+
+	memratio = GNET_PROPERTY(running_topless) ? 3.0 / 4.0 : 1.0 / 2.0;
+
 	enough_mem = (GNET_PROPERTY(max_leaves) * NODE_AVG_LEAF_MEM +
 		(GNET_PROPERTY(max_leaves) + GNET_PROPERTY(max_connections))
 			* GNET_PROPERTY(node_sendqueue_size))
-		< 1024 / 2 * GNET_PROPERTY(sys_physmem);
+		< 1024 * memratio * GNET_PROPERTY(sys_physmem);
 
 	/* Bandwidth requirements */
 	enough_bw = bsched_enough_up_bandwidth();

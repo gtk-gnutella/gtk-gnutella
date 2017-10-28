@@ -5699,4 +5699,15 @@ prop = {
     };
 };
 
+prop = {
+    name = "running_topless";
+    desc = "If TRUE, then gtk-gnutella runs without a GUI interface.";
+    save = FALSE;
+	internal = TRUE;
+    type = boolean;
+    data = {
+        default = FALSE;
+    };
+};
+
 /* vi: set ts=4: */
