@@ -4390,22 +4390,6 @@ crash_restart(const char *format, ...)
 	va_list args;
 
 	/*
-	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
-	 * to allow auto-restarts, then do nothing.
-	 */
-
-	if (NULL == vars || !vars->may_restart)
-		return;		/* Silently ignored */
-
-	/*
-	 * Since a callback could request asynchronous restarting, we need to
-	 * record the first time we enter here and ignore subsequent calls.
-	 */
-
-	if (0 != atomic_int_inc(&registered))
-		return;
-
-	/*
 	 * First log the condition, without allocating any memory, bypassing stdio.
 	 */
 
@@ -4421,6 +4405,22 @@ crash_restart(const char *format, ...)
 
 	if (crash_level() > CRASH_LVL_OOM)
 		return;
+
+	/*
+	 * Since a callback could request asynchronous restarting, we need to
+	 * record the first time we enter here and ignore subsequent calls.
+	 */
+
+	if (0 != atomic_int_inc(&registered))
+		return;
+
+	/*
+	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
+	 * to allow auto-restarts, then do nothing.
+	 */
+
+	if (NULL == vars || !vars->may_restart)
+		return;		/* Silently ignored */
 
 	/*
 	 * If they did not have time to call crash_setmain(), we do not know
