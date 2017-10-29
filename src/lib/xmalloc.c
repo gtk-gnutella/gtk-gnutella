@@ -519,6 +519,8 @@ static struct xstats {
 	uint64 aligned_vmm_memory;			/**< Total memory used by aligned VMM */
 	AU64(reallocs);						/**< Total # of reallocations */
 	AU64(realloc_noop);					/**< Reallocs not doing anything */
+	AU64(realloc_no_vmm_relocate);		/**< VMM relocation failed to improve */
+	uint64 realloc_via_vmm_relocate;	/**< VMM relocaton helped improve */
 	uint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
 	uint64 realloc_inplace_shrinking;		/**< Idem but from freelist */
 	uint64 realloc_inplace_extension;		/**< Reallocs not moving data */
@@ -5204,19 +5206,7 @@ xreallocate(void *p, size_t size, bool can_thread)
 				goto relocate_vmm;
 			}
 
-			if (xmalloc_debugging(1)) {
-				s_debug("XM using vmm_core_shrink() on "
-					"%zu-byte block at %p (new size is %zu bytes)",
-					xh->length, (void *) xh, newlen);
-			}
-
-			vmm_core_shrink(xh, xh->length, newlen);
-			XSTATS_LOCK;
-			xstats.realloc_inplace_vmm_shrinking++;
-			xstats.user_memory -= xh->length - newlen;
-			XSTATS_UNLOCK;
-			memusage_remove(xstats.user_mem, xh->length - newlen);
-			goto inplace;
+			goto relocate_vmm_shrink;
 		}
 
 		/*
@@ -5607,9 +5597,33 @@ relocate_vmm:
 		g_assert(xh->length >= newlen);
 
 		q = vmm_core_alloc(newlen);
+
+		/*
+		 * We did not lock the VMM space since we determine that we would
+		 * be able to move the block to a better space!
+		 *
+		 * If we find out that the new block we just allocated is not at
+		 * a better VMM space, free it and do nothing if the size does not
+		 * change, or shrink the VMM segment in-place to avoid data copying.
+		 *
+		 * 		--RAM, 2017-10-29
+		 */
+
+		if (!vmm_pointer_is_better(p, q)) {
+			vmm_core_free(q, newlen);
+			XSTATS_INCX(realloc_no_vmm_relocate);
+
+			if (newlen != xh->length)
+				goto relocate_vmm_shrink;
+
+			XSTATS_INCX(realloc_noop);
+			return p;
+		}
+
 		np = xmalloc_block_setup(q, newlen);
 
 		XSTATS_LOCK;
+		xstats.realloc_via_vmm_relocate++;
 		xstats.vmm_alloc_pages += vmm_page_count(newlen);
 		xstats.user_memory -= xh->length - newlen;
 		XSTATS_UNLOCK;
@@ -5623,6 +5637,22 @@ relocate_vmm:
 
 		goto relocate;
 	}
+
+relocate_vmm_shrink:
+	if (xmalloc_debugging(1)) {
+		s_debug("XM using vmm_core_shrink() on "
+			"%zu-byte block at %p (new size is %zu bytes)",
+			xh->length, (void *) xh, newlen);
+	}
+
+	vmm_core_shrink(xh, xh->length, newlen);
+	XSTATS_LOCK;
+	xstats.realloc_inplace_vmm_shrinking++;
+	xstats.user_memory -= xh->length - newlen;
+	XSTATS_UNLOCK;
+	memusage_remove(xstats.user_mem, xh->length - newlen);
+
+	/* FALL THROUGH */
 
 inplace:
 	xh->length = newlen;
@@ -6795,6 +6825,8 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(aligned_vmm_memory);
 	DUMP64(reallocs);
 	DUMP64(realloc_noop);
+	DUMP64(realloc_no_vmm_relocate);
+	DUMP(realloc_via_vmm_relocate);
 	DUMP(realloc_inplace_vmm_shrinking);
 	DUMP(realloc_inplace_shrinking);
 	DUMP(realloc_inplace_extension);

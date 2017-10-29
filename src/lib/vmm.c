@@ -2609,6 +2609,24 @@ vmm_is_relocatable(const void *base, size_t size)
 }
 
 /**
+ * Check whether new pointer is at a better position in the VMM space than old.
+ *
+ * @param o		the old pointer
+ * @param n		the new pointer
+ *
+ * @return TRUE if moving the content from the old pointer to the new pointer
+ * makes sense to compact the VMM space.
+ */
+bool
+vmm_pointer_is_better(const void *o, const void *n)
+{
+	if (kernel_mapaddr_increasing)
+		return ptr_cmp(o, n) > 0;
+	else
+		return ptr_cmp(o, n) < 0;
+}
+
+/**
  * Remove whole region from the list of identified fragments.
  */
 static void
