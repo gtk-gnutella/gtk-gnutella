@@ -390,7 +390,7 @@ static const [=  (. vtype)=][=(. item)=]_default[[=vector_size=]] = [=(. vdef)=]
 static const [=  (. vtype)=][=(. item)=]_default = [=(. vdef)=];[=
         ENDIF=][=
     IF (= (get "type") "multichoice")=]
-prop_def_choice_t [=(. item)=]_choices[] = {[=
+static const prop_def_choice_t [=(. item)=]_choices[] = {[=
             FOR choice =]
     {N_("[=name=]"), [=value=]},[=
             ENDFOR choice =]
