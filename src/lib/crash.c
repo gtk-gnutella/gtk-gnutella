@@ -2789,7 +2789,7 @@ done:
  * Report on emergency memory usage, once, if needed at all.
  */
 static void G_COLD
-crash_vmea_usage(void)
+crash_vmea_usage(const char *caller)
 {
 	static bool done;
 	size_t reserved;
@@ -2813,9 +2813,10 @@ crash_vmea_usage(void)
 			size_t nbf = vmea_freeings();
 			size_t allocated = vmea_allocated();
 
-			s_miniinfo("still using %'zu bytes out of the %'zu reserved, "
-				"after %zu emergency allocation%s and %zu freeing%s",
-				allocated, reserved, nba, plural(nba), nbf, plural(nbf));
+			s_miniinfo("%s(): still using %'zu bytes out of the %'zu reserved,"
+				" after %zu emergency allocation%s and %zu freeing%s",
+				caller, allocated, reserved,
+				nba, plural(nba), nbf, plural(nbf));
 		}
 	}
 }
@@ -2901,7 +2902,7 @@ plain_exit:
 static void G_COLD
 crash_restart_notify(const char *caller, bool in_child)
 {
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+	crash_vmea_usage(caller);	/* Report on emergency memory usage */
 
 	if (NULL == vars) {
 		s_minicrit("%s(): no crash_init() yet!", caller);
@@ -4572,7 +4573,7 @@ crash_oom(const char *format, ...)
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
 
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+	crash_vmea_usage(G_STRFUNC);	/* Report on emergency memory usage */
 
 	/*
 	 * Watch out for endless crash_oom() calls.
