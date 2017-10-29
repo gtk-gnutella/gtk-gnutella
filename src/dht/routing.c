@@ -5367,8 +5367,8 @@ dht_route_parse(FILE *f)
 	uint16 port;
 	kuid_t kuid;
 	vendor_code_t vcode;
-	time_t seen;
-	time_t ctim;
+	time_t seen = (time_t) -1;
+	time_t ctim = (time_t) -1;
 	uint32 major, minor;
 
 	g_return_if_fail(f);
