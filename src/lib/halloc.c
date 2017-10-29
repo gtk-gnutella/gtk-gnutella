@@ -865,6 +865,7 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(realloc_noop);
 	DUMP64(realloc_noop_same_vmm);
 	DUMP(realloc_via_wrealloc);
+	DUMP(realloc_via_xprealloc);
 	DUMP64(realloc_via_copy);
 	DUMP(realloc_via_vmm_shrink);
 	DUMP64(realloc_relocatable);
