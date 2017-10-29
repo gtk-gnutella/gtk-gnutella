@@ -3519,7 +3519,7 @@ static prop_map_t property_map[] = {
 
 #define PROPERTY_MAP_SIZE N_ITEMS(property_map)
 
-static bool init_list[GNET_PROPERTY_NUM];
+static uint8 init_list[GNET_PROPERTY_NUM];
 
 static void G_COLD
 settings_callbacks_init(void)
