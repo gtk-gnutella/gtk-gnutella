@@ -275,6 +275,13 @@ static struct vmm_stats {
 	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
+	AU64(move_requested);			/**< Number of vmm_move() calls honored */
+	AU64(move_attempted);			/**< Move attempted in vmm_move() */
+	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
+	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
+	AU64(move_failed);				/**< Move from vmm_move() unsuccessful */
+	uint64 move_succeeded;			/**< Move from vmm_move() successful */
+	uint64 move_bytes_copied;		/**< Bytes moved around by vmm_move() */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
 	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
@@ -325,6 +332,7 @@ static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 
 #define VMM_STATS_LOCK		spinlock_hidden(&vmm_stats_slk)
 #define VMM_STATS_UNLOCK	spinunlock_hidden(&vmm_stats_slk)
+#define VMM_STATS_IS_LOCKED	spinlock_is_held(&vmm_stats_slk)
 
 #define VMM_STATS_INCX(x)	AU64_INC(&vmm_stats.x)
 
@@ -838,18 +846,13 @@ vmm_dump_pmap(void)
 /**
  * Find a hole in the virtual memory map where we could allocate "size" bytes.
  *
- * This routine must be called with the pmap write-locked.
+ * This routine can be called with the pmap read-locked only but then the
+ * result is only a hint, we cannot assume we will be able to allocate that spot.
  */
 static const void *
-vmm_find_hole(size_t size)
+vmm_probe_hole(const struct pmap *pm, size_t size)
 {
-	struct pmap *pm = vmm_pmap();
 	size_t i;
-
-	assert_rwlock_is_owned(&pm->lock);
-
-	if G_UNLIKELY(!vmm_fully_inited)
-		return NULL;
 
 	if G_UNLIKELY(0 == pm->count)
 		return NULL;
@@ -889,6 +892,29 @@ vmm_find_hole(size_t size)
 			}
 		}
 	}
+
+	return NULL;
+}
+
+/**
+ * Find a hole in the virtual memory map where we could allocate "size" bytes.
+ *
+ * This routine must be called with the pmap write-locked.
+ */
+static const void *
+vmm_find_hole(size_t size)
+{
+	struct pmap *pm = vmm_pmap();
+	const void *p;
+
+	assert_rwlock_is_owned(&pm->lock);
+
+	if G_UNLIKELY(!vmm_fully_inited)
+		return NULL;
+
+	p = vmm_probe_hole(pm, size);
+	if (p != NULL)
+		return p;
 
 	if (vmm_debugging(0)) {
 		s_miniwarn("VMM no %'zuKiB hole found in pmap", size / 1024);
@@ -1681,6 +1707,33 @@ alloc_pages_emergency(size_t size)
 }
 
 /**
+ * Process allocated page.
+ *
+ * @param update_pmap	whether our VMM pmap should be updated
+ */
+static void
+page_allocated(struct pmap *pm, void *p, size_t size, bool update_pmap)
+{
+	g_assert_log(page_start(p) == p,
+		"%s(): aligned memory required: %p (%'zu bytes)", G_STRFUNC, p, size);
+
+	if (vmm_debugging(5)) {
+		s_minidbg("VMM allocated %'zuKiB region at %p", size / 1024, p);
+	}
+
+	vmm_hole_update(p, size, TRUE);
+
+	if (update_pmap) {
+		size_t idx;
+
+		assert_rwlock_is_owned(&pm->lock);
+
+		idx = pmap_insert(pm, p, size);
+		vmm_upper_hole_update(pm, idx);
+	}
+}
+
+/**
  * Allocates a page-aligned chunk of memory.
  *
  * @param size			the amount of bytes to allocate.
@@ -1790,21 +1843,10 @@ alloc_pages(size_t size, bool update_pmap)
 	}
 
 allocated:
-	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
+	page_allocated(pm, p, size, update_pmap);
 
-	if (vmm_debugging(5)) {
-		s_minidbg("VMM allocated %'zuKiB region at %p", size / 1024, p);
-	}
-
-	vmm_hole_update(p, size, TRUE);
-
-	if (update_pmap) {
-		size_t idx;
-
-		idx = pmap_insert(pm, p, size);
-		vmm_upper_hole_update(pm, idx);
+	if (update_pmap)
 		rwlock_wunlock(&pm->lock);
-	}
 
 	return p;
 }
@@ -2609,13 +2651,48 @@ vmm_is_relocatable(const void *base, size_t size)
 }
 
 /**
+ * Update allocation statistics.
+ *
+ * @param size		amount allocated, in bytes
+ * @param n			amount of pages
+ * @param user_mem	whether it was user or core memory
+ * @param zero_mem	whether memory was zeroed after allocation
+ *
+ * @note
+ * Must be called with the stats locked.
+ */
+static void
+update_allocation_stats(size_t size, size_t n, bool user_mem, bool zero_mem)
+{
+	g_assert(VMM_STATS_IS_LOCKED);
+
+	vmm_stats.allocations++;
+
+	if G_UNLIKELY(zero_mem)
+		vmm_stats.allocations_zeroed++;
+
+	if (user_mem) {
+		vmm_stats.allocations_user++;
+		vmm_stats.user_memory += size;
+		vmm_stats.user_pages += n;
+		vmm_stats.user_blocks++;
+		memusage_add(vmm_stats.user_mem, size);
+	} else {
+		vmm_stats.allocations_core++;
+		vmm_stats.core_memory += size;
+		vmm_stats.core_pages += n;
+		memusage_add(vmm_stats.core_mem, size);
+	}
+}
+
+/**
  * Check whether new pointer is at a better position in the VMM space than old.
  *
  * @param o		the old pointer
  * @param n		the new pointer
  *
  * @return TRUE if moving the content from the old pointer to the new pointer
- * makes sense to compact the VMM space.
+ * makes sense to compact the VM space.
  */
 bool
 vmm_pointer_is_better(const void *o, const void *n)
@@ -2624,6 +2701,129 @@ vmm_pointer_is_better(const void *o, const void *n)
 		return ptr_cmp(o, n) > 0;
 	else
 		return ptr_cmp(o, n) < 0;
+}
+
+/**
+ * Attempt to move the region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+void *
+vmm_move(void *base, size_t len)
+{
+	struct pmap *pm;
+	size_t size;
+	bool wlock;
+	void *p;
+
+	g_assert(base != NULL);
+	g_assert(size_is_positive(len));
+
+	/*
+	 * Moving regions is only useful under a long-term allocation strategy.
+	 */
+
+	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy || vmm_crashing || stop_freeing)
+		return base;
+
+	/*
+	 * The strategy is to first read-lock the pmap and see whether we are
+	 * able to find a place tht would be better suited.
+	 *
+	 * If not, we are done.
+	 *
+	 * If yes, attempt to upgrade the read-lock to a write-lock and retry the
+	 * process, allocating memory directly.  Note that this by-passes the
+	 * page cache and the thread magazines, but these regions are allocated
+	 * already, as far as the pmap is concerned!.
+	 */
+
+	VMM_STATS_INCX(move_requested);
+
+	pm = vmm_pmap();
+	wlock = FALSE;
+	size = round_pagesize_fast(len);		/* True VM region length */
+
+	assert_vmm_is_allocated(base, size, VMF_NATIVE, FALSE);
+
+	rwlock_rlock(&pm->lock);
+
+retry:
+	p = deconstify_pointer(vmm_probe_hole(pm, size));
+
+	if G_UNLIKELY(NULL == p)
+		goto nochange;
+
+	if (!vmm_pointer_is_better(base, p))
+		goto nochange;		/* Did not find better place */
+
+	if (!wlock) {
+		if (rwlock_upgrade(&pm->lock)) {
+			VMM_STATS_INCX(move_lock_upgraded);
+			wlock = TRUE;
+		} else {
+			VMM_STATS_INCX(move_lock_not_upgraded);
+			rwlock_runlock(&pm->lock);
+			rwlock_wlock(&pm->lock);
+			wlock = TRUE;
+			goto retry;
+		}
+	}
+
+	VMM_STATS_INCX(move_attempted);
+
+	p = vmm_mmap_anonymous(size, p);
+
+	if (NULL == p)
+		goto nochange;		/* Ouch, could not allocate memory! */
+
+	if (!vmm_pointer_is_better(base, p)) {
+		if (0 != vmm_vfree_fragment(p, size)) {
+			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
+				G_STRFUNC, size, p, symbolic_errno(errno));
+		}
+		goto nochange;		/* Did not find better place */
+	}
+
+	/*
+	 * New address is good, keep block and copy old data.
+	 */
+
+	page_allocated(pm, p, size, TRUE);
+
+	if G_UNLIKELY(wlock)
+		rwlock_wunlock(&pm->lock);
+	else
+		rwlock_runlock(&pm->lock);
+
+	/*
+	 * We allocated a new user block, we're freeing the old one, so statistics
+	 * must be updated accordingly.
+	 */
+
+	VMM_STATS_LOCK;
+	update_allocation_stats(size, pagecount_fast(size), TRUE, FALSE);
+	vmm_stats.move_succeeded++;
+	vmm_stats.move_bytes_copied += len;
+	VMM_STATS_UNLOCK;
+
+	memcpy(p, base, len);		/* Not `size': skip possible unused tail */
+	vmm_free(base, len);
+
+	return p;
+
+nochange:
+	if G_UNLIKELY(wlock)
+		rwlock_wunlock(&pm->lock);
+	else
+		rwlock_runlock(&pm->lock);
+
+	VMM_STATS_INCX(move_failed);
+
+	return base;
 }
 
 /**
@@ -4188,22 +4388,7 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	/* FALL THROUGH */
 
 update_stats:
-	vmm_stats.allocations++;
-	if G_UNLIKELY(zero_mem)
-		vmm_stats.allocations_zeroed++;
-
-	if (user_mem) {
-		vmm_stats.allocations_user++;
-		vmm_stats.user_memory += size;
-		vmm_stats.user_pages += n;
-		vmm_stats.user_blocks++;
-		memusage_add(vmm_stats.user_mem, size);
-	} else {
-		vmm_stats.allocations_core++;
-		vmm_stats.core_memory += size;
-		vmm_stats.core_pages += n;
-		memusage_add(vmm_stats.core_mem, size);
-	}
+	update_allocation_stats(size, n, user_mem, zero_mem);
 	VMM_STATS_UNLOCK;
 
 	return p;
@@ -5249,6 +5434,13 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
+	DUMP64(move_requested);
+	DUMP64(move_attempted);
+	DUMP64(move_failed);
+	DUMP(move_succeeded);
+	DUMP(move_bytes_copied);
+	DUMP64(move_lock_upgraded);
+	DUMP64(move_lock_not_upgraded);
 	DUMP(magazine_allocations);
 	DUMP(magazine_freeings);
 	DUMP(magazine_freeings_frag);

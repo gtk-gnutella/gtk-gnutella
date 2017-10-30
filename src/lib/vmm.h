@@ -134,6 +134,7 @@ bool vmm_pointer_is_better(const void *o, const void *n) G_PURE;
 bool vmm_is_native_pointer(const void *p);
 bool vmm_is_stack_pointer(const void *p, const void *top) G_PURE;
 bool vmm_grows_upwards(void) G_PURE;
+void *vmm_move(void *base, size_t size);
 
 void set_vmm_debug(uint32 level);
 bool vmm_is_debugging(uint32 level) G_PURE;
