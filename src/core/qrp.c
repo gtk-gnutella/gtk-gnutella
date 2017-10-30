@@ -179,6 +179,7 @@ struct routing_table {
 	int refcnt;				/**< Amount of references */
 	int generation;			/**< Generation number */
 	uint8 *arena;			/**< Where table starts */
+	uint len;				/**< Allocated arena length, in bytes */
 	int slots;				/**< Amount of slots in table */
 	int infinity;			/**< Value for "infinity" */
 	uint32 client_slots;	/**< Only for received tables, for shrinking ctrl */
@@ -557,6 +558,7 @@ qrt_compact(struct routing_table *rt)
 
 	HFREE_NULL(rt->arena);
 	rt->arena = (uchar *) narena;
+	rt->len = nsize;
 	rt->compacted = TRUE;
 
 	if (qrp_debugging(4)) {
@@ -4638,6 +4640,7 @@ qrt_handle_reset(
 
 	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
 	rt->arena = halloc0(slots);
+	rt->len = slots;
 
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
 		GNET_PROPERTY(qrp_memory) + slots);
@@ -4794,7 +4797,7 @@ qrt_handle_patch(
 		qrt_check(rt);
 		g_assert(rt->compacted);	/* 8 bits per byte, table is compacted */
 
-		rt->arena = hrealloc(rt->arena, rt->slots / 8);
+		rt->arena = hrealloc(rt->arena, rt->len);
 	}
 
 	/*
