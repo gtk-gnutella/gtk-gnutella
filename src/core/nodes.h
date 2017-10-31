@@ -185,6 +185,7 @@ typedef struct gnutella_node {
 	time_t shutdown_date;		/**< When we entered in shutdown mode */
 	time_t up_date;				/**< When remote server started (0 if unknown) */
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
+	time_t last_qrt_move;		/**< Time when we last attempted a QRT move */
 	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
 	const char *remove_msg;		/**< Reason of removing */

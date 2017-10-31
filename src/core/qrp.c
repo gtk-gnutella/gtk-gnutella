@@ -1190,6 +1190,17 @@ qrt_get_table(void)
 }
 
 /**
+ * Attempt to relocate the table arena to a better VM position.
+ */
+void
+qrt_arena_relocate(struct routing_table *rt)
+{
+	qrt_check(rt);
+
+	rt->arena = hrealloc(rt->arena, rt->len);
+}
+
+/**
  * Get a new reference on the query routing table.
  * @returns its argument.
  */
@@ -4788,17 +4799,10 @@ qrt_handle_patch(
 	qrcv->seqno++;
 
 	/*
-	 * Attempt to relocate the table if it is a standalone memory fragment.
+	 * Attempt to relocate the table if interesting for the VM space.
 	 */
 
-	{
-		struct routing_table *rt = qrcv->table;
-
-		qrt_check(rt);
-		g_assert(rt->compacted);	/* 8 bits per byte, table is compacted */
-
-		rt->arena = hrealloc(rt->arena, rt->len);
-	}
+	qrt_arena_relocate(qrcv->table);
 
 	/*
 	 * Process the patch data.

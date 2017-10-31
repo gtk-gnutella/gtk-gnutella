@@ -164,6 +164,7 @@
 #define NODE_LEGACY_TTL			7	  /**< Older node without X-Max-TTL */
 #define NODE_USELESS_GRACE		300	  /**< No kick if condition too recent */
 #define NODE_UP_USELESS_GRACE	600	  /**< No kick if condition too recent */
+#define NODE_QRT_MOVE_FREQ		300   /**< Time between QRT move attempts */
 
 #define SHUTDOWN_GRACE_DELAY	120	  /**< Grace time for shutdowning nodes */
 #define BYE_GRACE_DELAY			30	  /**< Bye sent, give time to propagate */
@@ -1663,6 +1664,22 @@ node_timer(time_t now)
 					}
 				}
 			}
+
+			/*
+			 * Periodically look at whether we can move around the
+			 * query tables in the VM space.
+			 */
+
+			if (delta_time(now, n->last_qrt_move) >= NODE_QRT_MOVE_FREQ) {
+				n->last_qrt_move = now;
+
+				if (n->sent_query_table != NULL)
+					qrt_arena_relocate(n->sent_query_table);
+
+				if (n->recv_query_table != NULL)
+					qrt_arena_relocate(n->recv_query_table);
+			}
+
 		}
 
 		/*
@@ -8638,7 +8655,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 	n->peermode = NODE_P_UNKNOWN;		/* Until end of handshaking */
 	n->start_peermode = (node_peer_t) GNET_PROPERTY(current_peermode);
 	n->hops_flow = MAX_HOP_COUNT;
-	n->last_update = n->last_tx = n->last_rx = tm_time();
+	n->last_qrt_move = n->last_update = n->last_tx = n->last_rx = tm_time();
 	n->country = gip_country(addr);
 
 	n->hello.ptr = NULL;
