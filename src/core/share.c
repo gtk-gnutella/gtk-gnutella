@@ -1519,6 +1519,7 @@ struct recursive_scan {
 	shared_file_t **ftable;		/* cloned file_table, contains ref-counted sf */
 	search_table_t *search_tb;	/* the new search table */
 	search_table_t *partial_tb;	/* the new partial table */
+	size_t partial_files_count;	/* amount of partials in hset when we started */
 	uint64 files_scanned;		/* amount of files shared in the library */
 	uint64 bytes_scanned;		/* size of the library */
 	int idx;					/* iterating index */
@@ -2596,6 +2597,7 @@ recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
 
 		hset_lock(partial_files);
 		iter = hset_iter_new(partial_files);
+		ctx->partial_files_count = hset_count(partial_files);
 
 		while (hset_iter_next(iter, &item)) {
 			const shared_file_t *sf = item;
@@ -2633,7 +2635,17 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 		const shared_file_t *sf = slist_iter_next(ctx->iter);
 
 		shared_file_check(sf);
-		g_assert(shared_file_is_partial(sf));
+
+		/*
+		 * Since file_info_upload_stop() calls shared_file_fileinfo_unref(),
+		 * we may end-up here with a partial file that had its sf->fi cleared
+		 * due a concurrent removal of the file from the GUI.  Hence if we
+		 * see that file as no longer being partial, skip it silently.
+		 * 		--RAM, 2017-10-31
+		 */
+
+		if (!shared_file_is_partial(sf))
+			continue;
 
 		st_insert_item(ctx->partial_tb, ST_SET_PLAIN, sf->name_canonic, sf);
 		if (sf->name_normal != NULL)
@@ -2799,8 +2811,8 @@ recursive_scan_step_update_qrp_partial(struct bgtask *bt, void *data, int ticks)
 		 * when inserting partial files.
 		 */
 
-		sf->file_index = scanned + (hset_count(partial_files) -
-			slist_length(ctx->partial_files));
+		sf->file_index = scanned + ctx->partial_files_count -
+			slist_length(ctx->partial_files);
 
 		qrp_add_file(sf, ctx->words);
 		shared_file_unref(&sf);
