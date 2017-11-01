@@ -1350,6 +1350,23 @@ rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line)
 }
 
 /**
+ * Convenience routine to read/write unlock based on parameter.
+ *
+ * @param rw		the read-write lock
+ * @param wlock		if TRUE, write-unlock, otherwise read-unlock
+ * @param file		file where we're releasing the lock
+ * @param line		line where we're releasing the lock
+ */
+void
+rwlock_ungrab_from(rwlock_t *rw, bool wlock, const char *file, unsigned line)
+{
+	if (wlock)
+		rwlock_wungrab_from(rw, file, line);
+	else
+		rwlock_rungrab_from(rw, file, line);
+}
+
+/**
  * Try to upgrade a read lock into a write lock.
  *
  * @param rw		the read-write lock
@@ -1477,6 +1494,45 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
 
 	rwlock_readers_record(rw, file, line);
 	rwlock_downgrade_account(rw, file, line);
+}
+
+/**
+ * Force upgrading of read-lock to a write-lock.
+ *
+ * If we cannot just upgrade the lock without releasing the read-lock, then
+ * force the upgrading by first releasing the read-lock and then waiting for
+ * the write lock.  Compared to plain upgrading, the latter is non-atomic and
+ * other writers can come in-between and change the data we inspected under
+ * the read-lock we had.
+ *
+ * The typical usage will be as follows:
+ *
+ * 	if (!rwlock_force_upgrade(&lock))
+ * 		goto retry;		// was not atomic, retry your tests first
+ *
+ *  ... write locked, can modify data probed earlier ...
+ *
+ * @param rw		the read-write lock
+ * @param file		file where we're attempting to get the lock
+ * @param line		line where we're attempting to get the lock
+ *
+ * @return TRUE if we got an atomic upgrade, FALSE if the read-lock was released
+ * before being able to get the write-lock.
+ */
+bool
+rwlock_force_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
+{
+	if (rwlock_upgrade_from(rw, file, line))
+		return TRUE;
+
+	/*
+	 * Cannot upgrade atomically: release read-lock and request a write-lock.
+	 */
+
+	rwlock_rungrab_from(rw, file, line);
+	rwlock_wgrab_from(rw, file, line);
+
+	return FALSE;	/* Upgrade was non-atomic, i.e. "forced" */
 }
 
 /**

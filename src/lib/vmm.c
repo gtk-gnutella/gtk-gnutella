@@ -1053,14 +1053,9 @@ retry:
 					/* Upgrade from read to write lock if needed */
 
 					if G_UNLIKELY(!wlock) {
-						if (rwlock_upgrade(&pm->lock)) {
-							wlock = TRUE;
-						} else {
-							rwlock_runlock(&pm->lock);
-							rwlock_wlock(&pm->lock);
-							wlock = TRUE;
+						wlock = TRUE;
+						if (!rwlock_force_upgrade(&pm->lock))
 							goto retry;
-						}
 					}
 
 					pmap_discard_index(pm, i);
@@ -1102,14 +1097,9 @@ retry:
 					/* Upgrade from read to write lock if needed */
 
 					if G_UNLIKELY(!wlock) {
-						if (rwlock_upgrade(&pm->lock)) {
-							wlock = TRUE;
-						} else {
-							rwlock_runlock(&pm->lock);
-							rwlock_wlock(&pm->lock);
-							wlock = TRUE;
+						wlock = TRUE;
+						if (!rwlock_force_upgrade(&pm->lock))
 							goto retry;
-						}
 					}
 
 					pmap_discard_index(pm, i - 1);
@@ -1128,10 +1118,7 @@ retry:
 	}
 
 done:
-	if (wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
+	rwlock_unlock(&pm->lock, wlock);
 
 	/*
 	 * This is just a hint, it's OK if, by the time we fill it in, it's been
@@ -2761,16 +2748,12 @@ retry:
 		goto nochange;		/* Did not find better place */
 
 	if (!wlock) {
-		if (rwlock_upgrade(&pm->lock)) {
-			VMM_STATS_INCX(move_lock_upgraded);
-			wlock = TRUE;
-		} else {
+		wlock = TRUE;
+		if (!rwlock_force_upgrade(&pm->lock)) {
 			VMM_STATS_INCX(move_lock_not_upgraded);
-			rwlock_runlock(&pm->lock);
-			rwlock_wlock(&pm->lock);
-			wlock = TRUE;
 			goto retry;
 		}
+		VMM_STATS_INCX(move_lock_upgraded);
 	}
 
 	VMM_STATS_INCX(move_attempted);
@@ -2793,11 +2776,7 @@ retry:
 	 */
 
 	page_allocated(pm, p, size, TRUE);
-
-	if G_UNLIKELY(wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
+	rwlock_unlock(&pm->lock, wlock);
 
 	/*
 	 * We allocated a new user block, we're freeing the old one, so statistics
@@ -2816,11 +2795,7 @@ retry:
 	return p;
 
 nochange:
-	if G_UNLIKELY(wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
-
+	rwlock_unlock(&pm->lock, wlock);
 	VMM_STATS_INCX(move_failed);
 
 	return base;
@@ -3913,14 +3888,9 @@ retry:
 		 */
 
 		if (!wlock) {
-			if (rwlock_upgrade(&pm->lock)) {
-				wlock = TRUE;
-			} else {
-				rwlock_runlock(&pm->lock);
-				rwlock_wlock(&pm->lock);
-				wlock = TRUE;
+			wlock = TRUE;
+			if (!rwlock_force_upgrade(&pm->lock))
 				goto retry;
-			}
 		}
 
 		/*
@@ -3951,10 +3921,7 @@ retry:
 		return FALSE;
 	}
 
-	if G_UNLIKELY(wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
+	rwlock_unlock(&pm->lock, wlock);
 
 	/* FALL THROUGH */
 
