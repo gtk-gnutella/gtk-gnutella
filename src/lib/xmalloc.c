@@ -491,6 +491,7 @@ static struct xstats {
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
+	AU64(alloc_forced_user_vmm);		/**< Allocations forced standalone VMM */
 	uint64 freeings;					/**< Total # of freeings */
 	AU64(freeings_in_handler);			/**< Freeings from sig handler */
 	AU64(free_sbrk_core);				/**< Freeing sbrk()-allocated core */
@@ -532,6 +533,7 @@ static struct xstats {
 	AU64(reallocs);						/**< Total # of reallocations */
 	AU64(realloc_noop);					/**< Reallocs not doing anything */
 	AU64(realloc_noop_same_vmm);		/**< Reallocs keeping VMM fragment */
+	AU64(realloc_vmm);					/**< Reallocating a VMM block */
 	AU64(realloc_vmm_moved);			/**< VMM relocation via a vmm_move() */
 	uint64 realloc_via_vmm_shrink;		/**< VMM region inplace shrinking */
 	uint64 realloc_via_vmm_move_shrink;	/**< Realloc with move + inplace shrink */
@@ -4735,13 +4737,26 @@ skip_pool:
 		vlen = round_pagesize(len);
 		via_vmm = XMALLOC_VIA_VMM(len);
 
+		/*
+		 * If we have a block smaller than the size for always choosing VMM,
+		 * look at whether the block will be split.  If not, then we can
+		 * live with the lost memory space and use VMM allocation.
+		 *		--RAM, 2017-11-03
+		 */
+
+		if (!via_vmm && !xmalloc_should_split(vlen, len)) {
+			via_vmm = TRUE;
+			XSTATS_INCX(alloc_forced_user_vmm);
+		}
+
 		if (via_vmm)
 			p = vmm_alloc(vlen);			/* That's a standalone user block */
 		else
 			p = vmm_core_alloc(vlen);		/* Parts of block will be core */
 
 		if (xmalloc_debugging(1)) {
-			s_debug("XM allocated %zu bytes via VMM at %p", vlen, p);
+			s_debug("XM allocated %zu bytes via \"%s\" VMM at %p",
+				vlen, via_vmm ? "user" : "core", p);
 		}
 
 		G_PREFETCH_HI_W(p);			/* User is going to write in block */
@@ -4767,7 +4782,8 @@ skip_pool:
 		 *		--RAM, 2017-11-02
 		 */
 
-		if (!via_vmm && xmalloc_should_split(vlen, len)) {
+		if (!via_vmm) {
+			/* Necessarily split, since we did not force user VMM allocation */
 			void *split = ptr_add_offset(p, len);
 			xstats.vmm_split_pages++;
 			xstats.user_memory += len;
@@ -4777,13 +4793,9 @@ skip_pool:
 			xmalloc_freelist_insert(split, vlen-len, FALSE, XM_COALESCE_AFTER);
 			return xmalloc_block_setup(p, len);
 		} else {
-			if (via_vmm) {
-				xstats.vmm_user_blocks++;	/* Counts standalone blocks */
-				xstats.vmm_total_user_blocks++;
-				xstats.vmm_alloc_user_pages += vmm_page_count(vlen);
-			} else {
-				xstats.vmm_alloc_pages += vmm_page_count(vlen);
-			}
+			xstats.vmm_user_blocks++;	/* Counts standalone blocks */
+			xstats.vmm_total_user_blocks++;
+			xstats.vmm_alloc_user_pages += vmm_page_count(vlen);
 			xstats.user_memory += vlen;
 			XSTATS_UNLOCK;
 			memusage_add(xstats.user_mem, vlen);
@@ -5043,6 +5055,7 @@ void
 xfree(void *p)
 {
 	struct xheader *xh;
+	bool is_vmm;
 
 	/*
 	 * Some parts of the libc can call free() with a NULL pointer.
@@ -5109,6 +5122,8 @@ xfree(void *p)
 	 * 		--RAM, 2017-11-02
 	 */
 
+	is_vmm = FALSE;
+
 	if G_UNLIKELY(
 		XMALLOC_VIA_VMM(xh->length) &&
 		!xmalloc_isheap(xh, xh->length)
@@ -5119,7 +5134,25 @@ xfree(void *p)
 				"since block start %p is not page-aligned",
 				p, xh->length, xh);
 		}
+		is_vmm = TRUE;
+	}
 
+	/*
+	 * Blocks smallers than XMALLOC_MAXSIZE bytes may also be a standalone
+	 * VMM region if aligned on a page and the size is consistent.
+	 * 		--RAM, 2017-11-03
+	 */
+
+	if (
+		!is_vmm &&
+		round_pagesize(xh->length) == xh->length &&
+		vmm_page_start(xh) == xh &&
+		!xmalloc_isheap(xh, xh->length)
+	) {
+		is_vmm = TRUE;
+	}
+
+	if (is_vmm) {
 		XSTATS_LOCK;
 		xstats.vmm_freed_user_pages += vmm_page_count(xh->length);
 		xstats.free_via_vmm++;
@@ -5165,6 +5198,7 @@ xreallocate(void *p, size_t size, bool can_thread)
 	void *np;
 	unsigned stid;
 	struct xchunk *xck;
+	bool is_vmm;
 
 	if (NULL == p)
 		return xallocate(size, TRUE, can_thread);
@@ -5253,6 +5287,8 @@ xreallocate(void *p, size_t size, bool can_thread)
 	 * not located in the heap.
 	 */
 
+	is_vmm = FALSE;
+
 	if (XMALLOC_VIA_VMM(xh->length) && !xmalloc_isheap(xh, xh->length)) {
 		if (vmm_page_start(xh) != xh) {
 			s_error_from(_WHERE_,
@@ -5260,8 +5296,22 @@ xreallocate(void *p, size_t size, bool can_thread)
 				"since block start %p is not page-aligned",
 				p, xh->length, xh);
 		}
+		is_vmm = TRUE;
+	}
 
+	if (
+		!is_vmm &&
+		round_pagesize(xh->length) == xh->length &&
+		vmm_page_start(xh) == xh &&
+		!xmalloc_isheap(xh, xh->length)
+	) {
+		is_vmm = TRUE;
+	}
+
+
+	if (is_vmm) {
 		newlen = round_pagesize(newlen);
+		XSTATS_INCX(realloc_vmm);
 
 		/*
 		 * If the size remains the same in the VMM space, we have nothing
@@ -5285,12 +5335,16 @@ xreallocate(void *p, size_t size, bool can_thread)
 		}
 
 		/*
-		 * If the new size is smaller than the original, yet remains larger
-		 * than the VMM user standalone limit, we can attempt to first move
-		 * the block and then shrink it inplace.
+		 * If the new size is smaller than the original, we can attempt to
+		 * first move the block and then shrink it inplace.
+		 *
+		 * Note that if the block was allocated as a standalone VM region
+		 * but was smaller than XMALLOC_MAXSIZE, it remains a VM region
+		 * when shrinking: we will remove whole pages, and possibly lose
+		 * memory space.
 		 */
 
-		if (newlen < xh->length && XMALLOC_VIA_VMM(newlen)) {
+		if (newlen < xh->length) {
 			size_t oldlen = xh->length;
 			void *q = vmm_move(xh, xh->length);
 			vmm_shrink(q, oldlen, newlen);
@@ -6822,6 +6876,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(alloc_via_thread_pool);
+	DUMP64(alloc_forced_user_vmm);
 	DUMP(freeings);
 	DUMP64(freeings_in_handler);
 	DUMP(free_via_vmm);
@@ -6862,6 +6917,7 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(reallocs);
 	DUMP64(realloc_noop);
 	DUMP64(realloc_noop_same_vmm);
+	DUMP64(realloc_vmm);
 	DUMP64(realloc_vmm_moved);
 	DUMP(realloc_via_vmm_shrink);
 	DUMP(realloc_via_vmm_move_shrink);
