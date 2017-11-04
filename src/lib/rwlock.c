@@ -1352,6 +1352,8 @@ rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line)
 /**
  * Convenience routine to read/write unlock based on parameter.
  *
+ * See leading comment of rwlock_force_upgrade_from() for a usage pattern.
+ *
  * @param rw		the read-write lock
  * @param wlock		if TRUE, write-unlock, otherwise read-unlock
  * @param file		file where we're releasing the lock
@@ -1507,10 +1509,18 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
  *
  * The typical usage will be as follows:
  *
- * 	if (!rwlock_force_upgrade(&lock))
- * 		goto retry;		// was not atomic, retry your tests first
- *
+ *  wlock = FALSE;          // flags whether we already have the write-lock
+ *  rwlock_rlock(&lock);
+ * retry:
+ *  ... some data probing under lock protection ...
+ *  ... decided we need to modify data and must write-lock ...
+ *  if (!wlock) {
+ * 	    wlock = TRUE;
+ * 	    if (!rwlock_force_upgrade(&lock))
+ * 		    goto retry;		// was not atomic, retry your tests first
+ *  }
  *  ... write locked, can modify data probed earlier ...
+ *  rwlock_unlock(&lock, wlock);	// release read or write lock as needed
  *
  * @param rw		the read-write lock
  * @param file		file where we're attempting to get the lock
