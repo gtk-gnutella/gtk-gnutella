@@ -7755,6 +7755,42 @@ thread_lock_held_count(const void *lock)
 }
 
 /**
+ * Counts how many times current thread holds lock of a given kind.
+ *
+ * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
+ * kind: we simply look whether the lock address is registered.
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param kind		kind of lock (useful for multiform locks like rwlocks)
+ *
+ * @return amount of times a lock is held by the current thread.
+ */
+size_t
+thread_lock_held_count_as(const void *lock, enum thread_lock_kind kind)
+{
+	struct thread_element *te = thread_get_element();
+	struct thread_lock_stack *tls;
+	unsigned i;
+	size_t count = 0;
+
+	tls = &te->locks;
+
+	if G_UNLIKELY(0 == tls->count)
+		return FALSE;
+
+	for (i = 0; i < tls->count; i++) {
+		const struct thread_lock *l = &tls->arena[i];
+
+		if G_UNLIKELY(l->lock == lock) {
+			if (THREAD_LOCK_ANY == kind || l->kind == kind)
+				count++;
+		}
+	}
+
+	return count;
+}
+
+/**
  * @return amount of locks held by the current thread.
  */
 size_t

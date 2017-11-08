@@ -1387,7 +1387,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 		"attempting to release read-lock %p with no readers at %s:%u",
 		rw, file, line);
 
-	count = thread_lock_held_count(rw);
+	count = thread_lock_held_count_as(rw, THREAD_LOCK_RLOCK);
 
 	g_assert_log(count != 0,
 		"attempting to upgrade non-held read-lock %p at %s:%u",
