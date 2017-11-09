@@ -4590,6 +4590,8 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	size_t len;
 	void *p;
 	uint stid;
+	size_t vlen;		/* Length of virual memory allocated via VMM if needed */
+	bool via_vmm;		/* If TRUE, do a user-VMM allocation */
 
 	g_assert(size_is_non_negative(size));
 
@@ -4692,13 +4694,35 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 skip_pool:
 
 	/*
-	 * First try to allocate from the freelist when the length is less than
-	 * the maximum we handle there.
+	 * These early checks will determine whether we can afford to allocate
+	 * from the freelist, or whether we will be better forcing a VMM user
+	 * block to avoid memory fragmentation.
 	 */
 
 	len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+	vlen = round_pagesize(len);
+	via_vmm = XMALLOC_VIA_VMM(len);
 
-	if G_LIKELY(!XMALLOC_VIA_VMM(len)) {
+	/*
+	 * If we have a block smaller than the size for always choosing VMM,
+	 * look at whether the block will be split.  If not, then we can
+	 * live with the lost memory space and use VMM allocation.
+	 *		--RAM, 2017-11-03
+	 */
+
+	if (!via_vmm && !xmalloc_should_split(vlen, len)) {
+		if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
+			via_vmm = TRUE;
+			XSTATS_INCX(alloc_forced_user_vmm);
+		}
+	}
+
+	/*
+	 * First try to allocate from the freelist when the length is less than
+	 * the maximum we handle there and we do not want to force a VMM allocation.
+	 */
+
+	if G_LIKELY(!via_vmm) {
 		size_t allocated;
 
 		p = xmalloc_freelist_alloc(len, &allocated);
@@ -4722,9 +4746,6 @@ skip_pool:
 	 */
 
 	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
-		size_t vlen;				/* Length of virual memory allocated */
-		bool via_vmm;
-
 		/*
 		 * The VMM layer is up, use it for all allocations.
 		 *
@@ -4733,21 +4754,6 @@ skip_pool:
 		 * as a whole, the "core" memory is memory that can be fragmented,
 		 * split and reallocated before ending-up being freed.
 		 */
-
-		vlen = round_pagesize(len);
-		via_vmm = XMALLOC_VIA_VMM(len);
-
-		/*
-		 * If we have a block smaller than the size for always choosing VMM,
-		 * look at whether the block will be split.  If not, then we can
-		 * live with the lost memory space and use VMM allocation.
-		 *		--RAM, 2017-11-03
-		 */
-
-		if (!via_vmm && !xmalloc_should_split(vlen, len)) {
-			via_vmm = TRUE;
-			XSTATS_INCX(alloc_forced_user_vmm);
-		}
 
 		if (via_vmm)
 			p = vmm_alloc(vlen);			/* That's a standalone user block */
