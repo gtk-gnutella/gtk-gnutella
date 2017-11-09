@@ -7734,24 +7734,7 @@ thread_lock_holds(const volatile void *lock)
 size_t
 thread_lock_held_count(const void *lock)
 {
-	struct thread_element *te = thread_get_element();
-	struct thread_lock_stack *tls;
-	unsigned i;
-	size_t count = 0;
-
-	tls = &te->locks;
-
-	if G_UNLIKELY(0 == tls->count)
-		return FALSE;
-
-	for (i = 0; i < tls->count; i++) {
-		const struct thread_lock *l = &tls->arena[i];
-
-		if G_UNLIKELY(l->lock == lock)
-			count++;
-	}
-
-	return count;
+	return thread_lock_held_count_as(lock, THREAD_LOCK_ANY);
 }
 
 /**
