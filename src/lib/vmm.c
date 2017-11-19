@@ -2185,9 +2185,11 @@ pmap_insert_region(struct pmap *pm,
 
 	if G_UNLIKELY(vmf != NULL) {
 		if (vmm_debugging(0)) {
-			s_miniwarn("pmap already contains new %s region [%p, %p]",
-				vmf_type_str(vmf->type),
-				start, const_ptr_add_offset(start, size - 1));
+			s_miniwarn("%s(): wants to insert %s %'zu bytes at [%p, %p], "
+					"but pmap already contains %s region [%p, %p]",
+				G_STRFUNC, vmf_type_str(type), size,
+				start, const_ptr_add_offset(start, size - 1),
+				vmf_type_str(vmf->type), vmf->start, vmf->end);
 			vmm_dump_pmap();
 		}
 		g_assert(VMF_FOREIGN == type);
