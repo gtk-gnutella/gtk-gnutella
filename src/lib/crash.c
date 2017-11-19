@@ -442,6 +442,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 	tm_t tv;
 	time_t loc;
 	cursor_t cursor;
+	static bool done;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -455,9 +456,28 @@ crash_time_internal(char *buf, size_t size, bool raw)
 	 * thread_check_suspended() calls during time computation.
 	 */
 
-	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level) {
-		tm_current_time(&tv);			/* Get system value, no locks */
-		loc = tm_localtime_raw();
+	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level || !done) {
+		static uint8 computing[THREAD_MAX];
+		uint stid = thread_small_id();
+
+		/*
+		 * Avoid deadly recursions if logging from a memory layer,
+		 * since these routines call libc routines that can allocate
+		 * some memory.
+		 * 		--RAM, 2017-11-19
+		 */
+
+		if (!computing[stid]) {
+			computing[stid] = TRUE;
+			tm_current_time(&tv);			/* Get system value, no locks */
+			loc = tm_localtime_raw();
+			done = TRUE;
+			computing[stid] = FALSE;
+		} else {
+			ZERO(&tm);
+			ZERO(&tv);
+			goto format;
+		}
 	} else {
 		tm_now_exact(&tv);
 		loc = tm_localtime();
@@ -468,6 +488,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		return;
 	}
 
+format:
 	crash_append_fmt_02u(&cursor, (TM_YEAR_ORIGIN + tm.tm_year) % 100);
 	crash_append_fmt_c(&cursor, '-');
 	crash_append_fmt_02u(&cursor, tm.tm_mon + 1);
