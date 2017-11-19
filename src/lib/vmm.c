@@ -192,6 +192,8 @@ static int vmm_oom_detected;
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
 #define VMM_WARN_THRESH		512	/**< Pages, 2 MiB with 4K pages */
 
+#define PMAP_FOREIGN_TRY	512	/**< Amount of foreign pages we try to allocate */
+
 struct page_info {
 	void *base;		/**< base address */
 	time_t stamp;	/**< time at which the page was inserted */
@@ -461,6 +463,8 @@ static size_t pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm,
 	const void *p, size_t size, vmf_type_t type);
+static void pmap_identify_foreign(struct pmap *pm,
+	void *hint, void *allocated, size_t len);
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
@@ -1538,70 +1542,24 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 */
 
 		if (!pm->extending && !is_running_on_mingw()) {
-			if (size <= kernel_pagesize) {
-				pmap_insert_foreign(pm, hint, kernel_pagesize);
-				if (vmm_debugging(0)) {
-					s_minidbg("VMM marked hint %p as foreign", hint);
-				}
-			} else if (
-				ptr_cmp(hint, ptr_add_offset(p, size)) >= 0 ||
-				ptr_cmp(hint, p) < 0
+			if (
+				ptr_cmp(hint, ptr_add_offset(p, size)) < 0 &&
+				ptr_cmp(hint, p) >= 0
 			) {
-				void *try;
-
-				/*
-				 * The hint address is not included in the allocated segment.
-				 *
-				 * Try allocating a single page at the hint location, and
-				 * if we don't succeed, we can mark it as foreign.  If
-				 * we succeed and we were previously trying to allocate
-				 * exactly two pages, then we know the next page is foreign.
-				 */
-
-				try = vmm_valloc(hint, kernel_pagesize);
-
-				if G_LIKELY(try != MAP_FAILED) {
-					if (try != hint) {
-						pmap_insert_foreign(pm, hint, kernel_pagesize);
-						if (vmm_debugging(0)) {
-							s_minidbg("VMM marked hint %p as foreign", hint);
-						}
-					} else if (2 == pagecount_fast(size)) {
-						void *next = ptr_add_offset(hint, kernel_pagesize);
-						if (next != p) {
-							pmap_insert_foreign(pm, next, kernel_pagesize);
-							if (vmm_debugging(0)) {
-								s_minidbg("VMM marked %p (page after %p) "
-									"as foreign", next, hint);
-							}
-						} else {
-							if (vmm_debugging(0)) {
-								s_minidbg("VMM funny kernel ignored hint %p "
-									"and allocated 8 KiB at %p whereas hint "
-									"was free", hint, p);
-							}
-						}
-					} else {
-						if (vmm_debugging(1)) {
-							s_minidbg("VMM hinted %p is not a foreign page",
-								hint);
-						}
-					}
-					if (0 != vmm_vfree(try, kernel_pagesize)) {
-						s_miniwarn("VMM cannot free one page at %p: %m", try);
-					}
-
-				} else {
-					if (vmm_debugging(0)) {
-						s_miniwarn("VMM cannot allocate one page at %p: %m",
-							hint);
-					}
-				}
-			} else {
 				if (vmm_debugging(0)) {
 					s_minidbg("VMM hint %p fell within allocated [%p, %p]",
 						hint, p, ptr_add_offset(p, size - 1));
 				}
+			} else {
+				/*
+				 * If allocation was for more than a single page, we cannot
+				 * easily know which page among the region was foreign and
+				 * caused the hint to be ignored, so do nothing for now.
+				 * 		--RAM, 2017-11-19
+				 */
+
+				if (size <= kernel_pagesize)
+					pmap_identify_foreign(pm, hint, p, size);
 			}
 		}
 		rwlock_wunlock(&pm->lock);		/* End critical section */
@@ -1648,6 +1606,103 @@ done:
 	return p;
 }
 #endif	/* HAS_MMAP */
+
+/**
+ * Identify foreign pages nearby `hint' which could not be allocated.
+ *
+ * @note
+ * The allocated region starting at `allocated' is not yet in the pmap, which
+ * is why we pass it here since we need to escape as soon as we bump into it.
+ *
+ * @param pm		the pmap
+ * @param hint		the hint we had requested
+ * @param allocated	where kernel allocated memory
+ * @param len		size of region allocated
+ */
+static void
+pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
+{
+	const struct vm_fragment *vmf;
+	void *start, *limit;
+	size_t n, inc;
+
+	assert_rwlock_is_owned(&pm->lock);
+	g_assert(len <= kernel_pagesize);
+
+	/*
+	 * The page could not be allocated, so clearly it is a foreign zone.
+	 *
+	 * We must NOT handle foreign zone if we are in a recursive allocation
+	 * pattern (for instance when trying to extend the region where the pmap
+	 * is stored) or when we are not going to update the pmap.
+	 *
+	 * Since our caller vmm_mmap_anonymous() will forcefully grab another
+	 * write-lock when it calls us, and we know the pmap is also write-locked
+	 * when we are going to update it after the allocation, the nominal depth
+	 * here is 2.  Anything smaller and we will not update the pmap, anything
+	 * greater and we are recursing!
+	 */
+
+	if (2 != rwlock_writers(&pm->lock))
+		return;
+
+	if (vmm_debugging(0)) {
+		s_minidbg("VMM page %p is foreign", hint);
+	}
+
+	pmap_insert_foreign(pm, hint, kernel_pagesize);
+
+	vmf = pmap_lookup(pm, hint, NULL);
+	g_assert(vmf != NULL);		/* Just inserted above */
+
+	/*
+	 * We're going to attempt to allocate after the region, until we reach
+	 * another known region or after we have tried to allocated at least
+	 * PMAP_FOREIGN_TRY pages.
+	 *
+	 * The starting point for us is either the end of the region (if kernel
+	 * addresses are allocated from lower to higher values) or the start of
+	 * the region minus one page (when kernel addresses are allocated from
+	 * higher to lower values).
+	 */
+
+	if (kernel_mapaddr_increasing) {
+		inc = kernel_pagesize;
+		start = deconstify_pointer(vmf->end);
+		limit = allocated;
+	} else {
+		inc = -kernel_pagesize;
+		start = ptr_add_offset(deconstify_pointer(vmf->start), inc);
+		limit = ptr_add_offset(allocated, len - kernel_pagesize);
+	}
+
+	for (n = 0; n < PMAP_FOREIGN_TRY; n++, start = ptr_add_offset(start, inc)) {
+		void *p;
+
+		if (start == limit)
+			break;
+
+		if (NULL != pmap_lookup(pm, start, NULL))
+			break;		/* Reached a known region */
+
+		p = vmm_valloc(start, kernel_pagesize);
+
+		if (MAP_FAILED == p)
+			break;
+
+		if (0 != vmm_vfree(p, kernel_pagesize))
+			s_error("%s(): cannot free %p: %m", G_STRFUNC, p);
+
+		if (start == p)
+			break;		/* Hint followed, we are outside the foreign region */
+
+		if (vmm_debugging(0)) {
+			s_minidbg("VMM page %p is also foreign", start);
+		}
+
+		pmap_insert_foreign(pm, start, kernel_pagesize);	/* Still foreign */
+	}
+}
 
 static void
 vmm_validate_pages(void *p, size_t size)
