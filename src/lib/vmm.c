@@ -276,12 +276,17 @@ static struct vmm_stats {
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
 	AU64(move_requested);			/**< Number of vmm_move() calls honored */
-	AU64(move_attempted);			/**< Move attempted in vmm_move() */
+	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
 	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
 	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
 	AU64(move_failed);				/**< Move from vmm_move() unsuccessful */
 	uint64 move_succeeded;			/**< Move from vmm_move() successful */
 	uint64 move_bytes_copied;		/**< Bytes moved around by vmm_move() */
+	uint64 move_alloc_from_cache;	/**< vmm_move() allocated from cache */
+	uint64 move_alloc_from_system;	/**< vmm_move() allocated from system */
+	AU64(move_system_over_cache);	/**< vmm_move() chose pmap over system */
+	AU64(move_cache_over_system);	/**< vmm_move() chose cache over pmap */
+	AU64(move_cache_only);			/**< vmm_move() relied solely on page cache */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
 	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
@@ -460,6 +465,7 @@ static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
+static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
 
 /**
@@ -1197,6 +1203,21 @@ vmm_vfree_fragment(void *addr, size_t size)
 }
 #endif	/* MINGW32 */
 
+/**
+ * Free memory fragment, with panic if we get an error back.
+ *
+ * @param caller		the calling routine, in case we have to panic
+ * @param p				start of the memory fragment
+ * @param size			length in byte of fragment to be freed
+ */
+static void
+vmm_free_fragment(const char *caller, void *p, size_t size)
+{
+	if (0 != vmm_vfree_fragment(p, size)) {
+		s_minierror("%s(): release of %'zu bytes at %p failed: %s",
+			caller, size, p, symbolic_errno(errno));
+	}
+}
 #else	/* !HAS_MMAP && !MINGW32 */
 static inline size_t
 vmm_first_hole(const void **unused, bool discard)
@@ -1865,16 +1886,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		goto pmap_update;
 
 #if defined(HAS_MMAP) || defined(MINGW32)
-	{
-		int ret = 0;
-
-		ret = vmm_vfree_fragment(p, size);
-
-		if G_UNLIKELY(ret != 0) {
-			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
-				G_STRFUNC, size, p, symbolic_errno(errno));
-		}
-	}
+	vmm_free_fragment(G_STRFUNC, p, size);
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
 	free(p);
@@ -2691,6 +2703,18 @@ vmm_pointer_is_better(const void *o, const void *n)
 }
 
 /**
+ * Return the `n' pages at `p' to the page cache.
+ */
+static void
+page_cache_return_pages(void *p, size_t n)
+{
+	size_t m = n;
+
+	page_cache_coalesce_pages(&p, &m);
+	page_cache_insert_pages(p, m);
+}
+
+/**
  * Attempt to move the region to a better location in the VM space.
  *
  * @param base		start of the region
@@ -2704,7 +2728,8 @@ vmm_move(void *base, size_t len)
 	struct pmap *pm;
 	size_t size;
 	bool wlock;
-	void *p;
+	size_t n;
+	void *p, *c;
 
 	g_assert(base != NULL);
 	g_assert(size_is_positive(len));
@@ -2716,9 +2741,27 @@ vmm_move(void *base, size_t len)
 	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy || vmm_crashing || stop_freeing)
 		return base;
 
+	VMM_STATS_INCX(move_requested);
+
+	pm = vmm_pmap();
+	wlock = FALSE;
+	size = round_pagesize_fast(len);		/* True VM region length */
+	n = pagecount_fast(size);
+
+	assert_vmm_is_allocated(base, size, VMF_NATIVE, FALSE);
+
 	/*
-	 * The strategy is to first read-lock the pmap and see whether we are
-	 * able to find a place tht would be better suited.
+	 * First try to see which pages are available in the cache.
+	 *
+	 * If non-NULL, we will consider this pointer later with the one we
+	 * can find in the pmap, to choose the best one.
+	 */
+
+	c = page_cache_find_pages(n, TRUE, FALSE);	/* Can be NULL */
+
+	/*
+	 * The strategy is to read-lock the pmap and see whether we are
+	 * able to find a place that would be better suited.
 	 *
 	 * If not, we are done.
 	 *
@@ -2728,24 +2771,16 @@ vmm_move(void *base, size_t len)
 	 * already, as far as the pmap is concerned!.
 	 */
 
-	VMM_STATS_INCX(move_requested);
-
-	pm = vmm_pmap();
-	wlock = FALSE;
-	size = round_pagesize_fast(len);		/* True VM region length */
-
-	assert_vmm_is_allocated(base, size, VMF_NATIVE, FALSE);
-
 	rwlock_rlock(&pm->lock);
 
 retry:
 	p = deconstify_pointer(vmm_probe_hole(pm, size));
 
 	if G_UNLIKELY(NULL == p)
-		goto nochange;
+		goto no_pmap;
 
 	if (!vmm_pointer_is_better(base, p))
-		goto nochange;		/* Did not find better place */
+		goto no_pmap;		/* Did not find better place */
 
 	if (!wlock) {
 		wlock = TRUE;
@@ -2756,37 +2791,59 @@ retry:
 		VMM_STATS_INCX(move_lock_upgraded);
 	}
 
-	VMM_STATS_INCX(move_attempted);
+	VMM_STATS_INCX(move_system_attempted);
 
 	p = vmm_mmap_anonymous(size, p);
 
 	if (NULL == p)
-		goto nochange;		/* Ouch, could not allocate memory! */
+		goto no_pmap;		/* Ouch, could not allocate memory! */
 
 	if (!vmm_pointer_is_better(base, p)) {
-		if (0 != vmm_vfree_fragment(p, size)) {
-			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
-				G_STRFUNC, size, p, symbolic_errno(errno));
-		}
-		goto nochange;		/* Did not find better place */
+		vmm_free_fragment(G_STRFUNC, p, size);
+		goto no_pmap;		/* Did not find better place */
 	}
 
 	/*
-	 * New address is good, keep block and copy old data.
+	 * New address is good, keep block.
 	 */
 
 	page_allocated(pm, p, size, TRUE);
 	rwlock_unlock(&pm->lock, wlock);
 
 	/*
+	 * See whether we have a better pointer with cached pages.
+	 */
+
+	if (c != NULL) {
+		if (vmm_pointer_is_better(p, c)) {
+			vmm_free(p, size);
+			vmm_validate_pages(c, size);
+			p = c;				/* Use cached pages */
+			VMM_STATS_INCX(move_cache_over_system);
+		} else {
+			page_cache_return_pages(c, n);
+			c = NULL;
+			VMM_STATS_INCX(move_system_over_cache);
+		}
+	}
+
+success:
+	/*
 	 * We allocated a new user block, we're freeing the old one, so statistics
 	 * must be updated accordingly.
 	 */
 
 	VMM_STATS_LOCK;
-	update_allocation_stats(size, pagecount_fast(size), TRUE, FALSE);
+	update_allocation_stats(size, n, TRUE, FALSE);
 	vmm_stats.move_succeeded++;
 	vmm_stats.move_bytes_copied += len;
+	if G_UNLIKELY(p == c) {
+		vmm_stats.alloc_from_cache++;
+		vmm_stats.alloc_from_cache_pages += n;
+		vmm_stats.move_alloc_from_cache++;
+	} else {
+		vmm_stats.move_alloc_from_system++;
+	}
 	VMM_STATS_UNLOCK;
 
 	memcpy(p, base, len);		/* Not `size': skip possible unused tail */
@@ -2794,8 +2851,25 @@ retry:
 
 	return p;
 
-nochange:
+no_pmap:
 	rwlock_unlock(&pm->lock, wlock);
+
+	/*
+	 * If we have a non-NULL allocation from the page cache at a better
+	 * place, we can used that instead.
+	 */
+
+	if (c != NULL) {
+		if (vmm_pointer_is_better(base, c)) {
+			vmm_validate_pages(c, size);
+			p = c;				/* Use cached pages */
+			VMM_STATS_INCX(move_cache_over_system);
+			goto success;
+		} else {
+			page_cache_return_pages(c, n);
+		}
+	}
+
 	VMM_STATS_INCX(move_failed);
 
 	return base;
@@ -5402,10 +5476,15 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(mmaps);
 	DUMP64(munmaps);
 	DUMP64(move_requested);
-	DUMP64(move_attempted);
 	DUMP64(move_failed);
 	DUMP(move_succeeded);
 	DUMP(move_bytes_copied);
+	DUMP64(move_system_attempted);
+	DUMP(move_alloc_from_cache);
+	DUMP(move_alloc_from_system);
+	DUMP64(move_system_over_cache);
+	DUMP64(move_cache_over_system);
+	DUMP64(move_cache_only);
 	DUMP64(move_lock_upgraded);
 	DUMP64(move_lock_not_upgraded);
 	DUMP(magazine_allocations);
