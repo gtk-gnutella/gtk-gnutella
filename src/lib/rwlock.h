@@ -199,6 +199,8 @@ bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
 
+unsigned rwlock_writers(const rwlock_t *rw);
+
 NON_NULL_PARAM((1, 2))
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);
 

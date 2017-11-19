@@ -1546,6 +1546,22 @@ rwlock_force_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 }
 
 /**
+ * How many writers are registered currently?
+ *
+ * When a thread owns the lock, this can be used to know the recursive
+ * depth of the lock.
+ *
+ * @return amount of writers for lock.
+ */
+unsigned
+rwlock_writers(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	return rw->writers;
+}
+
+/**
  * Log write lock ownership error.
  */
 static void G_NORETURN
