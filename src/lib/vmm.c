@@ -2920,7 +2920,7 @@ no_pmap:
 		if (vmm_pointer_is_better(base, c)) {
 			vmm_validate_pages(c, size);
 			p = c;				/* Use cached pages */
-			VMM_STATS_INCX(move_cache_over_system);
+			VMM_STATS_INCX(move_cache_only);
 			goto success;
 		} else {
 			page_cache_return_pages(c, n);
