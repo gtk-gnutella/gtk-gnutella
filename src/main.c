@@ -140,6 +140,7 @@
 #include "lib/mem.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
+#include "lib/mtwist.h"
 #include "lib/offtime.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -1785,9 +1786,16 @@ main_timer(void *unused_data)
 	return TRUE;
 }
 
+static void
+mtwist_randomness(sha1_t *digest)
+{
+	random_bytes_with(mt_thread_rand, PTRLEN(digest));
+}
+
 typedef void (*digest_collector_cb_t)(sha1_t *digest);
 
 static digest_collector_cb_t random_source[] = {
+	mtwist_randomness,
 	random_stats_digest,
 	halloc_stats_digest,
 	palloc_stats_digest,
