@@ -2873,7 +2873,7 @@ retry:
 
 	if (c != NULL) {
 		if (vmm_pointer_is_better(p, c)) {
-			vmm_free(p, size);
+			free_pages_intern(p, size, TRUE);
 			vmm_validate_pages(c, size);
 			p = c;				/* Use cached pages */
 			VMM_STATS_INCX(move_cache_over_system);
