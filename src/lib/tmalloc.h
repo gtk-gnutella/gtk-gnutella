@@ -36,6 +36,16 @@
 
 typedef struct tmalloc_depot tmalloc_t;
 
+/**
+ * Pointer assessment routine signature, for tmalloc_smart().
+ *
+ * @param o		old pointer
+ * @paran n		new pointer
+ *
+ * @return TRUE if the new pointer is deemed better than the old one.
+ */
+typedef bool (*tmalloc_better_fn_t)(const void *o, const void *n);
+
 enum tmalloc_info_magic { TMALLOC_INFO_MAGIC = 0x7e60619b };
 
 /**
@@ -60,6 +70,13 @@ typedef struct {
 	uint64 freeings;				/**< Amount of object freeings */
 	uint64 freeings_list;			/**< Amount of object freeings via list */
 	uint64 freeings_list_count;		/**< Total objects freed via list */
+	uint64 smart_allocations;		/**< Total amount of smart object allocations */
+	uint64 smart_success;			/**< Smart allocation success */
+	uint64 smart_via_magazine;		/**< Smart allocations via magazines */
+	uint64 smart_via_full_mag;		/**< Smart allocations via full magazines */
+	uint64 smart_via_excess;		/**< Smart allocations via excess magazines */
+	uint64 smart_via_trash;			/**< Smart allocations via depot trash */
+	uint64 smart_drop_full_mag;		/**< Full mag freed after a smart allocation */
 	uint64 threads;					/**< Total amount of threads attached */
 	uint64 contentions;				/**< Total amount of lock contentions */
 	uint64 preemptions;				/**< Signal handler preemptions seen */
@@ -104,6 +121,8 @@ struct eslist;
 
 void *tmalloc(tmalloc_t *tma) G_MALLOC;
 void *tmalloc0(tmalloc_t *tma) G_MALLOC;
+void *tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
+	G_MALLOC;
 void tmfree(tmalloc_t *tma, void *p);
 void tmfree_pslist(tmalloc_t *tma, struct pslist *pl);
 void tmfree_eslist(tmalloc_t *tma, struct eslist *el);

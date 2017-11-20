@@ -41,7 +41,7 @@
  * size that the TM allocator can distribute and collect.
  *
  * A magazine is full when all its M slots contain valid object pointers to
- * be handled to the application.  A magazine is empty when it is depleted.
+ * be handed to the application.  A magazine is empty when it is depleted.
  *
  * The high-level TM allocator is, by definition, tied to a thread, and it can
  * therefore perform all its operations without locks.  This is called the
@@ -144,7 +144,9 @@
 
 #include "tmalloc.h"
 
+#include "array_util.h"
 #include "atomic.h"
+#include "crash.h"
 #include "dump_options.h"
 #include "eslist.h"
 #include "evq.h"
@@ -159,10 +161,19 @@
 #include "thread.h"
 #include "tm.h"
 #include "unsigned.h"
+#include "vmm.h"
 #include "walloc.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+/**
+ * If defined, this enables safety assertions making sure the depot
+ * trash list is always consistent,
+ */
+#if 0
+#define TMALLOC_TRASH_SAFE
+#endif
 
 #define TMALLOC_PERIODIC		5003	/* ms: hearbeat period (prime) */
 #define TMALLOC_GC_PERIOD		997		/* ms: gc period (prime) */
@@ -188,6 +199,7 @@
 static thread_key_t tmalloc_magazines_key;
 static thread_key_t tmalloc_periodic_key;
 static once_flag_t tmalloc_keys_inited;
+static once_flag_t tmalloc_crash_inited;
 
 static uint32 tmalloc_debug = 0;		/* Debugging level */
 
@@ -204,6 +216,13 @@ struct tmalloc_stats {
 	AU64(tmas_freeings);			/* Total amount of object freeings */
 	AU64(tmas_freeings_list);		/* Total amount of list freeings */
 	AU64(tmas_freeings_list_count);	/* Amount of blocks freed via list */
+	AU64(tmas_smart_allocations);	/* Total amount of smart object allocations */
+	AU64(tmas_smart_success);		/* Total amount of smart allocation success */
+	AU64(tmas_smart_via_magazine);	/* Total of smart allocations via magazine */
+	AU64(tmas_smart_via_full_mag);	/* Smart allocations via full mag in depot */
+	AU64(tmas_smart_via_excess);		/* Total of smart allocations via excess */
+	AU64(tmas_smart_via_trash);		/* Total of smart allocations via trash */
+	AU64(tmas_smart_drop_full_mag);	/* Full magazines dropped in smart alloc */
 	AU64(tmas_threads);				/* Total amount of threads attached */
 	AU64(tmas_contentions);			/* Total amount of lock contentions */
 	AU64(tmas_preemptions);			/* Counts "concurrent" signal processing */
@@ -288,6 +307,7 @@ tmalloc_check(const tmalloc_t * const tma)
 
 #define TMALLOC_LOCK(d)				spinlock(&(d)->tma_lock)
 #define TMALLOC_UNLOCK(d)			spinunlock(&(d)->tma_lock)
+#define TMALLOC_IS_LOCKED(d)		spinlock_is_held(&(d)->tma_lock)
 
 #define TMALLOC_LOCK_HIDDEN(d)		spinlock_hidden(&(d)->tma_lock)
 #define TMALLOC_UNLOCK_HIDDEN(d)	spinunlock_hidden(&(d)->tma_lock)
@@ -375,6 +395,85 @@ tmalloc_vars_add(tmalloc_t *tm)
 	eslist_append(&tmalloc_vars, tm);
 	TMALLOC_VARS_UNLOCK;
 }
+
+#ifdef TMALLOC_TRASH_SAFE
+/**
+ * Look for cycles in the trash list.
+ */
+static void
+tmalloc_trash_list_cycles_check(const tmalloc_t *tm)
+{
+	void **l, *next;
+	size_t i, n = tm->tma_obj_trash_count;
+
+	/*
+	 * We are going to panic at this stage, so we do not care about corrupting
+	 * the list with pointer tagging.
+	 */
+
+	for (l = tm->tma_obj_trash, i = 0; l != NULL && i < n; l = next, i++) {
+		ulong t;
+
+		g_assert_log(next != l,
+			"%s(\"%s\"): item #%zu/%zu self-references itself",
+			G_STRFUNC, tm->tma_name, i, n);
+
+		next = *l;
+		t = pointer_to_ulong(next);
+		*l = ulong_to_pointer(t | 0x1);
+
+		g_assert_log(0 == (t & 0x1),
+			"%s(\"%s\"): cycle detected after item #%zu/%zu",
+			G_STRFUNC, tm->tma_name, i - 1, n);
+	}
+}
+
+/**
+ * Ensure the trash list is consistent and not corrupted.
+ *
+ * We use assertion checks to make sure we will trigger the registered
+ * crash hook for tmalloc() if any failure is detected.
+ */
+static void
+tmalloc_trash_list_check(const tmalloc_t *tm)
+{
+	void **l;
+	size_t cnt = 0;
+	bool aborted = FALSE, count_is_valid;
+
+	tmalloc_check(tm);
+	g_assert(TMALLOC_IS_LOCKED(tm));
+
+	for (l = tm->tma_obj_trash; l != NULL; l = *l) {
+
+		g_assert_log(vmm_is_native_pointer(l),
+			"%s(\"%s\"): item #%zu/%zu %p is not a valid pointer",
+			G_STRFUNC, tm->tma_name, cnt, tm->tma_obj_trash_count, l);
+
+		if (++cnt >= tm->tma_obj_trash_count) {
+			aborted = *l != NULL;
+			break;
+		}
+	}
+
+	count_is_valid = cnt == tm->tma_obj_trash_count && !aborted;
+
+	/*
+	 * If we had to abort (more items than the count suggests), maybe
+	 * there was a cycle introduced in the list?
+	 */
+
+	if (aborted)
+		tmalloc_trash_list_cycles_check(tm);
+
+	g_assert_log(count_is_valid,
+		"%s(\"%s\"): found %zu%s object%s, expected %zu",
+		G_STRFUNC, tm->tma_name, cnt, aborted ? "+" : "", plural(cnt),
+		tm->tma_obj_trash_count);
+}
+#else	/* !TMALLOC_TRASH_SAFE */
+#define tmalloc_trash_list_check(x)
+#endif	/* TMALLOC_TRASH_SAFE */
 
 /**
  * @return whether magazine is empty (a NULL magazine is empty).
@@ -514,10 +613,19 @@ tmalloc_magazine_free(tmalloc_t *d, tmalloc_magazine_t *m)
 
 	if G_UNLIKELY(head != NULL) {
 		g_assert(tail != NULL);
+
 		TMALLOC_LOCK_HIDDEN(d);
+
+		g_assert(size_is_non_negative(d->tma_obj_trash_count));
+		g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+		tmalloc_trash_list_check(d);
+
 		d->tma_obj_trash_count += m->tmag_count;
 		*tail = d->tma_obj_trash;
 		d->tma_obj_trash = head;
+
+		tmalloc_trash_list_check(d);
+
 		TMALLOC_UNLOCK_HIDDEN(d);
 	}
 
@@ -567,9 +675,32 @@ tmalloc_magazine_alloc(tmalloc_t *d)
 	m = d->tma_alloc(TMALLOC_OBJECT_OFFSET + cap * sizeof m->tmag_objects[0]);
 	m->tmag_magic = TMALLOC_MAGAZINE_MAGIC;
 	m->tmag_capacity = cap;
-	m->tmag_count = 0;							/* Allocates empty magazines */
+	m->tmag_count = 0;					/* Allocates empty magazines */
 
 	return m;
+}
+
+/**
+ * Empty magazine by putting its objects into the trash bin.
+ *
+ * @param d		the depot to which magazine belongs and where the trash bin is
+ * @param m		the magazine whose objects must be put to the trash bin
+ */
+static void
+tmalloc_magazine_empty(tmalloc_t *d, tmalloc_magazine_t *m)
+{
+	g_assert(TMALLOC_IS_LOCKED(d));
+
+	tmalloc_trash_list_check(d);
+
+	while (m->tmag_count != 0) {
+		void **p = m->tmag_objects[--m->tmag_count];
+		*p = d->tma_obj_trash;
+		d->tma_obj_trash = p;
+		d->tma_obj_trash_count++;
+	}
+
+	tmalloc_trash_list_check(d);
 }
 
 /**
@@ -648,6 +779,8 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 
 			TMALLOC_STATS_ADDX(d, object_trash_reused, n);
 
+			tmalloc_trash_list_check(d);
+
 			while (n-- > 0) {
 				void **p = d->tma_obj_trash;
 				d->tma_obj_trash = *p;	/* Next in the chain */
@@ -657,6 +790,7 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 
 			g_assert(size_is_non_negative(d->tma_obj_trash_count));
 			g_assert(fm->tmag_count == fm->tmag_capacity);	/* Full magazine */
+			tmalloc_trash_list_check(d);
 
 			TMALLOC_STATS_INCX(d, mag_full_rebuilt);
 		}
@@ -817,12 +951,7 @@ tmalloc_depot_unload(tmalloc_t *d, tmalloc_magazine_t *m, size_t i)
 	 * the end.
 	 */
 
-	while (m->tmag_count != 0) {
-		void **p = m->tmag_objects[--m->tmag_count];
-		*p = d->tma_obj_trash;
-		d->tma_obj_trash = p;
-		d->tma_obj_trash_count++;
-	}
+	tmalloc_magazine_empty(d, m);
 
 	/*
 	 * If the magazine no longer has the ideal capacity, free it.
@@ -863,11 +992,19 @@ tmalloc_depot_alloc(tmalloc_t *d)
 		void **p = NULL;
 
 		TMALLOC_LOCK_HIDDEN(d);
+
+		tmalloc_trash_list_check(d);
+
 		if (d->tma_obj_trash != NULL) {
 			p = d->tma_obj_trash;
 			d->tma_obj_trash = *p;		/* Next in the chain */
 			d->tma_obj_trash_count--;
 		}
+
+		g_assert(size_is_non_negative(d->tma_obj_trash_count));
+		g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+		tmalloc_trash_list_check(d);
+
 		TMALLOC_UNLOCK_HIDDEN(d);
 
 		if G_LIKELY(p != NULL) {
@@ -891,9 +1028,17 @@ tmalloc_depot_trash(tmalloc_t *d, void *p)
 	TMALLOC_STATS_INCX(d, depot_trashings);
 
 	TMALLOC_LOCK_HIDDEN(d);
+
+	g_assert(size_is_non_negative(d->tma_obj_trash_count));
+	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+	tmalloc_trash_list_check(d);
+
 	*(void **) p = d->tma_obj_trash;
 	d->tma_obj_trash = p;
 	d->tma_obj_trash_count++;
+
+	tmalloc_trash_list_check(d);
+
 	TMALLOC_UNLOCK_HIDDEN(d);
 }
 
@@ -926,9 +1071,17 @@ tmalloc_depot_trash_pslist(tmalloc_t *d, pslist_t *pl)
 	n = pslist_length(pl);
 
 	TMALLOC_LOCK_HIDDEN(d);
+
+	g_assert(size_is_non_negative(d->tma_obj_trash_count));
+	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+	tmalloc_trash_list_check(d);
+
 	last->next = (pslist_t *) d->tma_obj_trash;
 	d->tma_obj_trash = (void **) pl;
 	d->tma_obj_trash_count += n;
+
+	tmalloc_trash_list_check(d);
+
 	TMALLOC_UNLOCK_HIDDEN(d);
 }
 
@@ -1365,6 +1518,10 @@ tmalloc_gc(void *data)
 	 * Extract trashed objects.
 	 */
 
+	g_assert(size_is_non_negative(d->tma_obj_trash_count));
+	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+	tmalloc_trash_list_check(d);
+
 	while (d->tma_obj_trash != NULL && objcount < TMALLOC_GC_OBJ_COUNT) {
 		void **p = d->tma_obj_trash;
 		d->tma_obj_trash = *p;		/* Next in chain */
@@ -1376,6 +1533,7 @@ tmalloc_gc(void *data)
 
 	g_assert(size_is_non_negative(d->tma_obj_trash_count));
 	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+	tmalloc_trash_list_check(d);
 
 	TMALLOC_UNLOCK(d);
 
@@ -1395,7 +1553,7 @@ tmalloc_gc(void *data)
 	 * we're going to corrupt list traversal by freeing the objects.
 	 * This would have a negative fatal impact when safety assertions are turned
 	 * on at the eslist level, since some of them can iterate on the list.
-	 * 		--RAM, 2017-12-13
+	 * 		--RAM, 2017-09-13
 	 */
 
 	eslist_foreach_remove(&full,  tmalloc_free_magazine, d);
@@ -1630,6 +1788,30 @@ tmalloc_beat(void *data)
 }
 
 /**
+ * In case of assertion failure in this file, dump some information.
+ */
+static void
+tmalloc_crash_hook(void)
+{
+	/*
+	 * Disable locks to make sure we can dump the stats if the assertion
+	 * failure occurs whilst we had a depot locked.
+	 */
+
+	thread_crash_mode(TRUE);
+	tmalloc_dump_stats();
+}
+
+/**
+ * Register a crash hook in case something goes wrong here.
+ */
+static void
+tmalloc_crash_init_once(void)
+{
+	crash_hook_add(_WHERE_, tmalloc_crash_hook);
+}
+
+/**
  * Initialize the magazine list.
  */
 static inline void
@@ -1660,6 +1842,12 @@ tmalloc_create(const char *name, size_t size,
 	g_assert(size >= sizeof(void *));		/* Need to chain objects */
 	g_assert(allocate != NULL);
 	g_assert(deallocate != NULL);
+
+	/*
+	 * Using the tmalloc() layer, register a crash hook.
+	 */
+
+	ONCE_FLAG_RUN(tmalloc_crash_inited, tmalloc_crash_init_once);
 
 	/*
 	 * Once created, a thread magazine depot is never reclaimed, hence we
@@ -1726,7 +1914,7 @@ tmalloc_list_free(struct tma_list *tl, tmalloc_t *tma)
 	 * we're going to corrupt list traversal by freeing the objects.
 	 * This would have a negative fatal impact when safety assertions are turned
 	 * on at the eslist level, since some of them can iterate on the list.
-	 * 		--RAM, 2017-12-13
+	 * 		--RAM, 2017-09-13
 	 */
 
 	eslist_foreach_remove(&tl->tml_list,  tmalloc_free_magazine, tma);
@@ -1889,9 +2077,10 @@ tmalloc_reset(tmalloc_t *tma)
 	 */
 
 	TMALLOC_LOCK(tma);
+	tmalloc_trash_list_check(tma);
 	obj_trash = tma->tma_obj_trash;
-	tma->tma_obj_trash = NULL;
 	n = tma->tma_obj_trash_count;
+	tma->tma_obj_trash = NULL;
 	tma->tma_obj_trash_count = 0;
 	TMALLOC_UNLOCK(tma);
 
@@ -2054,6 +2243,405 @@ tmalloc_thread_get(tmalloc_t *tma)
 		tmt = tmalloc_thread_create(tma);
 
 	return tmt;
+}
+
+/**
+ * Try to allocate a better pointer from a given thread magazine.
+ *
+ * Given a pointer-assessment routine `cb' and a starting point `p', we
+ * attempt to find an object that lies at the best possible position.
+ *
+ * @param m			the magazine to probe
+ * @param cb		routine assessing whether pointer is "better"
+ * @param q			best pointer we found so far, NULL if none
+ * @param p			original pointer we try to optimize
+ *
+ * @note
+ * If we find a better object, we replace it in the magazine with the value
+ * of `q' if it was non-NULL.
+ *
+ * @return pointer to new object, or `q' if we cannot find anything better.
+ */
+static void *
+tmalloc_magazine_smart(
+	tmalloc_magazine_t *m, tmalloc_better_fn_t cb, void *q, const void *p)
+{
+	int i;
+
+	tmalloc_magazine_check(m);
+
+	for (i = 0; i < m->tmag_count; i++) {
+		void *o = m->tmag_objects[i];
+
+		g_assert(o != NULL);		/* Cannot have NULL objects in magazine */
+		g_assert(o != q);			/* No duplicates, ever! */
+
+		if (!(*cb)(NULL == q ? p : q, o))
+			continue;	/* `o' not better than what we already have */
+
+		if (NULL == q) {
+			/* First better object we find, remove it from magazine */
+			ARRAY_REMOVE_DEC(m->tmag_objects, i, m->tmag_count);
+			i--;		/* Stay at same index next time we loop */
+		} else {
+			/* Previously selected object is worse, swap it with `o' */
+			m->tmag_objects[i] = q;
+		}
+		q = o;	/* Selected object */
+	}
+
+	return q;
+}
+
+/**
+ * Try to allocate a better pointer from thread magazines.
+ *
+ * Given a pointer-assessment routine `cb' and a starting point `p', we
+ * attempt to find an object that lies at the best possible position.
+ *
+ * @param t			the thread layer
+ * @param cb		routine assessing whether pointer is "better"
+ * @param p			original pointer we try to optimize
+ *
+ * @return pointer to new object, or NULL if we cannot find anything better.
+ */
+static void *
+tmalloc_thread_alloc_smart(
+	struct tmalloc_thread *t, tmalloc_better_fn_t cb, const void *p)
+{
+	size_t i;
+	void *q = NULL;
+
+	tmalloc_thread_check(t);
+
+	/*
+	 * We are in the thread owning these data structures, we do not need
+	 * to take any locks here.  And there is no way any thread signal can
+	 * interrupt us since we are not taking any locks.
+	 *
+	 * We do not update the t->tmt_last_op field here because this is not
+	 * a regular allocation operation: if we end-up doing only such calls
+	 * for a given allocator, then we can consider it "idle" and reclaim
+	 * the allocated rounds in its magazines.
+	 */
+
+	/*
+	 * Scan the magazines for a better pointer.
+	 * The best object pointer we ever find is stored in `q'.
+	 */
+
+	for (i = 0; i < N_ITEMS(t->tmt_mag); i++) {
+		tmalloc_magazine_t *m = t->tmt_mag[i];
+
+		if (m != NULL)
+			q = tmalloc_magazine_smart(m, cb, q, p);
+	}
+
+	return q;
+}
+
+/**
+ * Origin or blocks returned by tmalloc_depot_alloc_smart().
+ */
+enum tmalloc_depot_source {
+	TMALLOC_SRC_OBJECT_TRASH,
+	TMALLOC_SRC_MAGAZINE,
+	TMALLOC_SRC_MAGAZINE_TRASH,
+};
+
+/**
+ * Try to allocate a better pointer from the trash list in depot.
+ *
+ * Given a pointer-assessment routine `cb' and a starting point `p', we
+ * attempt to find an object that lies at the best possible position.
+ *
+ * @param d			the depot
+ * @param cb		routine assessing whether pointer is "better"
+ * @param p			original pointer we try to optimize
+ * @param w			if we return non-NULL, source of the pointer we selected
+ *
+ * @return pointer to new object, or NULL if we cannot find anything better.
+ */
+static void *
+tmalloc_depot_alloc_smart(
+	tmalloc_t *d, tmalloc_better_fn_t cb, const void *p,
+	enum tmalloc_depot_source *w)
+{
+	void *q = NULL, *r = NULL;
+	void **l, **prev, **next;
+	bool had_object;
+	tmalloc_magazine_t *m;
+	size_t count = 0;
+	eslist_t to_free = ESLIST_INIT(offsetof(tmalloc_magazine_t, slk));
+
+	TMALLOC_LOCK(d);	/* Keeping it long enough, make it visible */
+
+	/*
+	 * The trash list is using the first word of each object to chain items.
+	 */
+
+	g_assert(size_is_non_negative(d->tma_obj_trash_count));
+	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
+	tmalloc_trash_list_check(d);
+
+	for (prev = NULL, l = d->tma_obj_trash; l != NULL; prev = l, l = next) {
+		void *o = l;		/* Current object */
+
+		g_assert(prev == NULL || o == *prev);
+		g_assert(prev != NULL || o == d->tma_obj_trash);
+		g_assert(o != q);
+
+		next = *l;
+		count++;			/* For assertion validating tma_obj_trash_count */
+
+		if (!(*cb)(NULL == q ? p : q, o))
+			continue;	/* `o' not better than what we already have */
+
+		if (NULL == q) {
+			/* `o' is the first object we grab from list */
+			d->tma_obj_trash_count--;
+			count--;
+			if (NULL == prev) {
+				d->tma_obj_trash = next;
+			} else {
+				*prev = next;
+			}
+			l = prev;	/* Back at previous since we removed current object */
+		} else {
+			/* `o' is better, put back `q' in list at `o`'s position */
+			*(void **) q = next;
+			if (NULL == prev) {
+				d->tma_obj_trash = q;
+			} else {
+				*prev = q;
+			}
+			l = q;		/* The new current place in list */
+		}
+		q = o;		/* Selected object */
+	}
+
+	g_assert(size_is_non_negative(d->tma_obj_trash_count));
+	g_assert(equiv(NULL == d->tma_obj_trash, 0 == d->tma_obj_trash_count));
+
+	g_assert_log(count == d->tma_obj_trash_count,
+		"%s(\"%s\"): count=%zu, tma_obj_trash_count=%zu",
+		G_STRFUNC, d->tma_name, count, d->tma_obj_trash_count);
+
+	tmalloc_trash_list_check(d);
+
+	if (q != NULL)
+		*w = TMALLOC_SRC_OBJECT_TRASH;
+
+	/*
+	 * Look through the "trashed" magazines: those whose size no longer fits
+	 * that of the depot's optimal size or those we discarded because the
+	 * memory working set of the thread does not warrant we keep around so
+	 * many full magazines.
+	 *
+	 * The fate of these magazines is to be collected, and their objects
+	 * put back into the trash list, so it is perfectly fine to steal from
+	 * them, even if that makes them partially filled in the process.
+	 */
+
+	r = q;
+
+	ESLIST_FOREACH_DATA(&d->tma_full.tml_trash, m) {
+		q = tmalloc_magazine_smart(m, cb, q, p);
+	}
+
+	if (r != q)
+		*w = TMALLOC_SRC_MAGAZINE_TRASH;	/* Found better spot there */
+
+	/*
+	 * Look through the "full" magazines list.
+	 *
+	 * If we haven't found any suitable pointer yet, maybe we will here, but
+	 * in that case the magazines will no longer be "full".  That is acceptable.
+	 * However we must remove a magazine from this list if we happen to select
+	 * the last item from it, as it would become empty.
+	 *
+	 * If we had an object selected from the trash though, we will swap it with
+	 * any object we remove from any magazine, meaning we will not alter its
+	 * object count.  Therefore, the final cleanup of empty magazines will only
+	 * be necessary when `had_object' is FALSE.
+	 */
+
+	had_object = q != NULL;
+	r = q;
+
+	ESLIST_FOREACH_DATA(&d->tma_full.tml_list, m) {
+		q = tmalloc_magazine_smart(m, cb, q, p);
+	}
+
+	if (r != q) {
+		*w = TMALLOC_SRC_MAGAZINE;	/* Found better spot there */
+	} else {
+		had_object = TRUE;			/* Did not steal anything from magazines */
+	}
+
+	/*
+	 * While we are still under the lock protection, remove non-full magazines
+	 * from the list.
+	 */
+
+	if (!had_object) {
+		tmalloc_magazine_t *b;	/* Previous magazine during eslist traversal */
+		eslist_t *list = &d->tma_full.tml_list;		/* Avoid typos below */
+
+		/*
+		 * We must avoid memory allocation from here, since we hold the
+		 * depot lock and small objects could be allocated back from the
+		 * same depot we locked.
+		 *
+		 * Therefore, we append magazines to be freed to the `to_free' embedded
+		 * list, using the link pointer in the magazine.
+		 */
+
+		tmalloc_trash_list_check(d);
+
+		for (
+			m = eslist_head(list), b = NULL;
+			m != NULL;
+			b = m, m = eslist_next_data(list, m)
+		) {
+			tmalloc_magazine_check(m);
+
+			if (m->tmag_capacity == m->tmag_count)
+				continue;
+
+			/*
+			 * Attempt to use trashed objects to re-fill magazine.
+			 */
+
+			while (m->tmag_count < m->tmag_capacity && d->tma_obj_trash != NULL) {
+				l = d->tma_obj_trash;
+				d->tma_obj_trash = *l;		/* Next in chain */
+				m->tmag_objects[m->tmag_count++] = l;
+				d->tma_obj_trash_count--;
+				TMALLOC_STATS_INCX(d, object_trash_reused);
+			}
+
+			/*
+			 * If not enough trashed objects to re-fill magazine, drop it!
+			 */
+
+			if (m->tmag_capacity != m->tmag_count) {
+				TMALLOC_STATS_INCX(d, smart_drop_full_mag);
+				(void) eslist_remove_after(list, b);
+				eslist_append(&to_free, m);
+				m = b;		/* Removed item, leave cursor at before */
+			}
+		}
+
+		tmalloc_trash_list_check(d);	/* In case we used trashed objects */
+	}
+
+	/*
+	 * If we have magazines in the `to_free' list, we need to empty them and
+	 * then insert them into the empty magazine list.
+	 *
+	 * This prevents any memory freeing, as would happen if we were calling
+	 * tmalloc_magazine_free(), differing freeing to a later stage and giving
+	 * a chance to the empty magazine to be actually reused before being freed.
+	 */
+
+	ESLIST_FOREACH_DATA(&to_free, m) {
+		tmalloc_magazine_empty(d, m);
+	}
+	eslist_prepend_list(&d->tma_empty.tml_list, &to_free);
+
+	TMALLOC_UNLOCK(d);
+
+	return q;
+}
+
+/**
+ * Return `p' to the magazines if `tmt' is not NULL, or to the `tma' depot.
+ */
+static void
+tmalloc_smart_release(tmalloc_t *tma, struct tmalloc_thread *tmt, void *p)
+{
+	if (NULL == tmt)
+		tmalloc_depot_trash(tma, p);
+	else
+		tmalloc_thread_free(tmt, p);
+}
+
+/**
+ * Smartly allocate new object, as governed by callback.
+ *
+ * Given a pointer-assessment routine `cb' and a starting point `p', we
+ * attempt to find an object that lies at the best possible position,
+ * either in the magazines or in the trash list from the depot.
+ *
+ * @param tma		the thread magazine allocator
+ * @param cb		routine assessing whether pointer is "better"
+ * @param p			original pointer we try to optimize
+ *
+ * @return pointer to new object, or NULL if we cannot find anything better.
+ */
+void *
+tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
+{
+	struct tmalloc_thread *tmt;
+	void *q, *r;
+	enum tmalloc_depot_source w = TMALLOC_SRC_OBJECT_TRASH;
+
+	tmalloc_check(tma);
+	g_assert(cb != NULL);
+	g_assert(p != NULL);
+
+	tmt = tmalloc_thread_get(tma);
+	TMALLOC_STATS_INCX(tma, smart_allocations);
+
+	if (tmt != NULL)
+		q = tmalloc_thread_alloc_smart(tmt, cb, p);
+	else
+		q = NULL;
+
+	r = tmalloc_depot_alloc_smart(tma, cb, NULL == q ? p : q, &w);
+
+	/*
+	 * Keep only the best non-NULL pointer between `q' and `r'.
+	 * Store it in `q'.
+	 */
+
+	if (q != NULL && r != NULL) {
+		g_assert((*cb)(p, q));		/* Our contract */
+		g_assert((*cb)(p, r));		/* Our contract */
+		g_assert((*cb)(q, r));		/* By construction */
+		tmalloc_smart_release(tma, tmt, q);
+		q = r;		/* `q' refers to kept pointer */
+	} else if (r != NULL) {
+		g_assert(NULL == q);
+		g_assert((*cb)(p, r));
+		q = r;			/* `q' refers to kept pointer */
+	} else if (q != NULL) {
+		g_assert(NULL == r);
+		g_assert((*cb)(p, q));
+	}
+
+	if (r != NULL) {
+		switch (w) {
+		case TMALLOC_SRC_MAGAZINE:
+			TMALLOC_STATS_INCX(tma, smart_via_full_mag);
+			break;
+		case TMALLOC_SRC_OBJECT_TRASH:
+			TMALLOC_STATS_INCX(tma, smart_via_trash);
+			TMALLOC_STATS_INCX(tma, object_trash_reused);
+			break;
+		case TMALLOC_SRC_MAGAZINE_TRASH:
+			TMALLOC_STATS_INCX(tma, smart_via_excess);
+			break;
+		}
+	} else if (q != NULL) {
+		TMALLOC_STATS_INCX(tma, smart_via_magazine);
+	}
+
+	if (q != NULL)
+		TMALLOC_STATS_INCX(tma, smart_success);
+
+	return q;		/* Can be NULL */
 }
 
 /**
@@ -2262,6 +2850,13 @@ tmalloc_info_list(void)
 		STATS_COPY(freeings);
 		STATS_COPY(freeings_list);
 		STATS_COPY(freeings_list_count);
+		STATS_COPY(smart_allocations);
+		STATS_COPY(smart_success);
+		STATS_COPY(smart_via_magazine);
+		STATS_COPY(smart_via_full_mag);
+		STATS_COPY(smart_via_excess);
+		STATS_COPY(smart_via_trash);
+		STATS_COPY(smart_drop_full_mag);
 		STATS_COPY(threads);
 		STATS_COPY(contentions);
 		STATS_COPY(object_trash_reused);
@@ -2355,6 +2950,13 @@ tmalloc_all_stats(tmalloc_info_t *stats)
 		STATS_COPY(freeings);
 		STATS_COPY(freeings_list);
 		STATS_COPY(freeings_list_count);
+		STATS_COPY(smart_allocations);
+		STATS_COPY(smart_success);
+		STATS_COPY(smart_via_magazine);
+		STATS_COPY(smart_via_full_mag);
+		STATS_COPY(smart_via_excess);
+		STATS_COPY(smart_via_trash);
+		STATS_COPY(smart_drop_full_mag);
 		STATS_COPY(contentions);
 		STATS_COPY(preemptions);
 		STATS_COPY(object_trash_reused);
@@ -2423,6 +3025,13 @@ tmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(freeings);
 	DUMP(freeings_list);
 	DUMP(freeings_list_count);
+	DUMP(smart_allocations);
+	DUMP(smart_success);
+	DUMP(smart_via_magazine);
+	DUMP(smart_via_full_mag);
+	DUMP(smart_via_excess);
+	DUMP(smart_via_trash);
+	DUMP(smart_drop_full_mag);
 	DUMP(contentions);
 	DUMP(preemptions);
 	DUMPV(depot_count);
@@ -2484,6 +3093,13 @@ tmalloc_info_dump(void *data, void *udata)
 	DUMPL(freeings);
 	DUMPL(freeings_list);
 	DUMPL(freeings_list_count);
+	DUMPL(smart_allocations);
+	DUMPL(smart_success);
+	DUMPL(smart_via_magazine);
+	DUMPL(smart_via_full_mag);
+	DUMPL(smart_via_excess);
+	DUMPL(smart_via_trash);
+	DUMPL(smart_drop_full_mag);
 	DUMPL(threads);
 	DUMPL(object_trash_reused);
 	DUMPL(empty_trash_reused);

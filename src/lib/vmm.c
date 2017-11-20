@@ -279,6 +279,7 @@ static struct vmm_stats {
 	AU64(munmaps);					/**< Total number of munmap() calls */
 	AU64(move_requested);			/**< Number of vmm_move() calls honored */
 	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
+	AU64(move_magazine_attempted);	/**< Magazine allocation try in vmm_move() */
 	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
 	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
 	AU64(move_failed);				/**< Move from vmm_move() unsuccessful */
@@ -286,9 +287,11 @@ static struct vmm_stats {
 	uint64 move_bytes_copied;		/**< Bytes moved around by vmm_move() */
 	uint64 move_alloc_from_cache;	/**< vmm_move() allocated from cache */
 	uint64 move_alloc_from_system;	/**< vmm_move() allocated from system */
+	uint64 move_alloc_from_magazine;/**< vmm_move() allocated from magazine */
 	AU64(move_system_over_cache);	/**< vmm_move() chose pmap over system */
 	AU64(move_cache_over_system);	/**< vmm_move() chose cache over pmap */
 	AU64(move_cache_only);			/**< vmm_move() relied solely on page cache */
+	AU64(move_magazine_supersede);	/**< vmm_move() magazine offered best object */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
 	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
@@ -471,6 +474,7 @@ static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
+static tmalloc_t *vmm_get_magazine(size_t npages, bool alloc);
 
 /**
  * @return whether VMM is in crash mode.
@@ -2786,7 +2790,7 @@ vmm_move(void *base, size_t len)
 	size_t size;
 	bool wlock;
 	size_t n;
-	void *p, *c;
+	void *p, *c, *t;
 
 	g_assert(base != NULL);
 	g_assert(size_is_positive(len));
@@ -2884,7 +2888,45 @@ retry:
 		}
 	}
 
+	/* FALL THROUGH */
+
 success:
+	/*
+	 * We succeeded in finding a new VM region at a better place.
+	 *
+	 * However, if the size of the VM region is such that it is subject to
+	 * allocation through thread magazines, we may have a better object still
+	 * in these magazines...  Worth a try.
+	 */
+
+	t = NULL;
+
+	if G_LIKELY(n <= N_ITEMS(vmm_magazine)) {
+		tmalloc_t *depot = vmm_get_magazine(n, TRUE);
+
+		VMM_STATS_INCX(move_magazine_attempted);
+
+		if (depot != NULL) {
+			t = tmalloc_smart(depot, vmm_pointer_is_better, p);
+
+			/*
+			 * We found a better position, have to undo earlier allocations.
+			 */
+
+			if (t != NULL) {
+				VMM_STATS_INCX(move_magazine_supersede);
+				if (p == c) {
+					vmm_invalidate_pages(c, size);
+					page_cache_return_pages(c, n);
+					c = NULL;
+				} else {
+					free_pages_intern(p, size, TRUE);
+				}
+				p = t;		/* Superseded by magazine allocation */
+			}
+		}
+	}
+
 	/*
 	 * We allocated a new user block, we're freeing the old one, so statistics
 	 * must be updated accordingly.
@@ -2898,6 +2940,8 @@ success:
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
 		vmm_stats.move_alloc_from_cache++;
+	} else if G_UNLIKELY(p == t) {
+		vmm_stats.move_alloc_from_magazine++;
 	} else {
 		vmm_stats.move_alloc_from_system++;
 	}
@@ -5537,11 +5581,14 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(move_succeeded);
 	DUMP(move_bytes_copied);
 	DUMP64(move_system_attempted);
+	DUMP64(move_magazine_attempted);
 	DUMP(move_alloc_from_cache);
 	DUMP(move_alloc_from_system);
+	DUMP(move_alloc_from_magazine);
 	DUMP64(move_system_over_cache);
 	DUMP64(move_cache_over_system);
 	DUMP64(move_cache_only);
+	DUMP64(move_magazine_supersede);
 	DUMP64(move_lock_upgraded);
 	DUMP64(move_lock_not_upgraded);
 	DUMP(magazine_allocations);
