@@ -1010,6 +1010,46 @@ zalloc_shift_pointer(const void *allocated, const void *used)
 #endif	/* TRACK_ZALLOC || MALLOC_FRAMES */
 
 /**
+ * Check that we are not attempting to perform an operation for a block in
+ * the wrong zone and that the block is indeed still allocated.
+ *
+ * @param zone		the zone to which the pointer must belong
+ * @param ptr		address of block
+ * @param what		what we are trying to do ("free block", "move block", ...)
+ */
+static inline void
+zcheck(zone_t *zone, void *ptr, const char *what)
+{
+#ifdef ZONE_ZAFE
+	char **tmp;
+
+	/* Go back at leading magic, also the start of the block */
+	tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
+
+	if G_UNLIKELY(tmp[0] != BLOCK_USED) {
+		const zone_t *ozone = (zone_t *) tmp[1];
+		zframe_dump(ptr, "block already freed");
+		s_error("trying to %s %p twice (in %s %zu-byte zone)",
+			what, ptr, ozone == zone ? "proper" :
+				ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
+			ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
+	}
+	if G_UNLIKELY(tmp[1] != (char *) zone) {
+		const zone_t *ozone = (zone_t *) tmp[1];
+		zframe_dump(ptr, "block allocated");
+		s_error("trying to %s %p to wrong %zu-byte zone %p, "
+			"allocated in %zu-byte zone %p",
+			what, ptr, zone_size(zone), zone,
+			ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
+	}
+#else	/* !ZONE_SAFE */
+	(void) zone;
+	(void) ptr;
+	(void) what;
+#endif	/* ZONE_SAFE */
+}
+
+/**
  * Return user pointer to (already locked) zone.
  */
 static inline void
@@ -1017,31 +1057,8 @@ zreturn(zone_t *zone, void *ptr)
 {
 	char **head;
 
-#ifdef ZONE_SAFE
-	{
-		char **tmp;
+	zcheck(zone, ptr, "free block");
 
-		/* Go back at leading magic, also the start of the block */
-		tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
-
-		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(ptr, "block already freed");
-			s_error("trying to free block %p twice (in %s %zu-byte zone)",
-				ptr, ozone == zone ? "proper" :
-					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
-		}
-		if G_UNLIKELY(tmp[1] != (char *) zone) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(ptr, "block allocated");
-			s_error("trying to free block %p to wrong %zu-byte zone %p, "
-				"allocated in %zu-byte zone %p",
-				ptr, zone_size(zone), zone,
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
-		}
-	}
-#endif	/* ZONE_SAFE */
 #ifdef MALLOC_FRAMES
 	{
 		struct frame **p = ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
@@ -1789,31 +1806,7 @@ zmove(zone_t *zone, void *p)
 
 	ZSTATS_INCX(zmove_attempts);
 
-#ifdef ZONE_SAFE
-	{
-		char **tmp;
-
-		/* Go back at leading magic, also the start of the block */
-		tmp = ptr_add_offset(p, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
-
-		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(p, "block already freed");
-			s_error("trying to move freed block %p twice (to %s %zu-byte zone)",
-				p, ozone == zone ? "proper" :
-					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
-		}
-		if G_UNLIKELY(tmp[1] != (char *) zone) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(p, "block allocated");
-			s_error("trying to move block %p to wrong %zu-byte zone %p, "
-				"allocated in %zu-byte zone %p",
-				p, zone_size(zone), zone,
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
-		}
-	}
-#endif	/* ZONE_SAFE */
+	zcheck(zone, p, "move block");
 
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
