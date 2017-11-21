@@ -214,6 +214,23 @@ eslist_data(const eslist_t *list, const slink_t * const lk)
 }
 
 /**
+ * @note
+ * As a special case, behaves as eslist_head() if `p' is NULL.
+ *
+ * This allows using the following code pattern to iterate over a one-way
+ * list and removing items during the traversal:
+ *
+ *   for (
+ *       i = eslist_head(list), b = NULL;	// `i' is item, `b' is previous
+ *       i != NULL;
+ *       b = i, i = eslist_next_data(list, i)
+ *   ) {
+ *       if (keep_item)
+ *           continue;
+ *       (void) eslist_remove_after(list, b);
+ *       i = b;		// removed item, leave cursor at before (could be NULL)
+ *   }
+ *
  * @return the data associated with the next item, NULL if none.
  */
 static inline void *
@@ -222,7 +239,9 @@ eslist_next_data(const eslist_t *list, const void *p)
 	const slink_t *lk;
 
 	eslist_check(list);
-	g_assert(p != NULL);
+
+	if G_UNLIKELY(NULL == p)
+		return eslist_head(list);
 
 	lk = const_ptr_add_offset(p, list->offset);
 	return NULL == lk->next ? NULL :
