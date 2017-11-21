@@ -59,6 +59,7 @@
 #include "tmalloc.h"
 #include "unsigned.h"
 #include "xmalloc.h"
+#include "vmm.h"			/* For vmm_pointer_is_better(), vmm_is_long_term() */
 #include "zalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -590,6 +591,30 @@ wfree_eslist(eslist_t *el, size_t size)
 	}
 }
 
+/*
+ * Check whether new pointer is at a better position in the VMM space than old.
+ *
+ * @param o		the old pointer
+ * @param n		the new pointer
+ *
+ * @return TRUE if moving the content from the old pointer to the new pointer
+ * makes sense in a long-term strategy memory management scheme.
+ */
+static bool
+walloc_ptr_is_better(const void *o, const void *n)
+{
+	if (!vmm_pointer_is_better(o, n))
+		return FALSE;
+
+	/*
+	 * Make sure pointers are not on the same VM page: we know `n' is better
+	 * than `o' but if it is in the same  page, we will gain nothing by moving
+	 * data to the new position from a zone perspective!
+	 */
+
+	return vmm_page_start(o) != vmm_page_start(n);
+}
+
 /**
  * Move block around if that can serve memory compaction.
  * @return new location for block.
@@ -597,12 +622,41 @@ wfree_eslist(eslist_t *el, size_t size)
 void *
 wmove(void *ptr, size_t size)
 {
-	zone_t *zone = walloc_get_zone(zalloc_round(size), FALSE);
+	size_t rounded = zalloc_round(size);
+	zone_t *zone = walloc_get_zone(rounded, FALSE);
+	void *q, *r;
+	tmalloc_t *depot;
 
 	if G_UNLIKELY(NULL == zone)
 		return ptr;
 
-	return zmove(zone, ptr);
+	q = zmove(zone, ptr);
+
+	if (q != ptr)
+		return q;		/* Zone was in GC mode, chose best already */
+
+	if (!vmm_is_long_term())
+		return q;		/* Don't bother if in short-term memory strategy */
+
+	/*
+	 * When zone is not in GC mode, or there was nothing obvious,
+	 * attempt to find a "better" pointer via tmalloc(), in case we
+	 * have something in one of the magazines or in the depot's trash,
+	 * something that still appears allocated to the zalloc() layer!
+	 * 		--RAM, 2017-11-21
+	 */
+
+	depot = walloc_get_magazine(rounded);
+
+	if G_UNLIKELY(NULL == depot)
+		return q;
+
+	r = tmalloc_smart(depot, walloc_ptr_is_better, q);
+
+	if G_LIKELY(NULL == r)
+		return q;
+
+	return zmoveto(zone, q, r);
 }
 
 /**

@@ -82,6 +82,7 @@ struct sha1;
 void *zalloc(zone_t *) G_MALLOC;
 void zfree(zone_t *, void *);
 void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
+void *zmoveto(zone_t *zone, void *o, void *n);
 void zfree_pslist(zone_t *, struct pslist *);
 void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);

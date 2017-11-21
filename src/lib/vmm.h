@@ -119,6 +119,7 @@ enum vmm_strategy {
 };
 
 void vmm_set_strategy(enum vmm_strategy strategy);
+bool vmm_is_long_term(void) G_PURE;
 
 struct logagent;
 

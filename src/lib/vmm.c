@@ -5474,6 +5474,15 @@ vmm_set_strategy(enum vmm_strategy strategy)
 }
 
 /**
+ * @return whether VMM is configured for long-term memory management.
+ */
+bool
+vmm_is_long_term(void)
+{
+	return VMM_STRATEGY_LONG_TERM == vmm_strategy;
+}
+
+/**
  * Called when memory allocator has been initialized and it is possible to
  * call routines that will allocate core memory and perform logging calls.
  */

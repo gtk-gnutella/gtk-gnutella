@@ -349,6 +349,7 @@ static struct zstats {
 	AU64(zmove_attempts);			/**< Total attempts to move blocks */
 	AU64(zmove_attempts_gc);		/**< Subset of moves attempted in GC mode */
 	AU64(zmove_successful_gc);		/**< Subset of successful moves */
+	AU64(zmove_successful_smart);	/**< Subset of successful moves */
 	AU64(zgc_zones_freed);			/**< Total amount of zones freed by GC */
 	AU64(zgc_zones_defragmented);	/**< Total amount of zones defragmented */
 	AU64(zgc_fragments_freed);		/**< Total fragment zones freed */
@@ -1816,6 +1817,45 @@ zmove(zone_t *zone, void *p)
 #endif
 }
 
+/**
+ * Move data from old block to new block and free old block.
+ * Both blocks must be used and belong to the same zone.
+ *
+ * @param zone		the zone to which blocks belong
+ * @param o			the old block
+ * @param n			the new block
+ *
+ * @return location of new block for convenience.
+ */
+void *
+zmoveto(zone_t *zone, void *o, void *n)
+{
+	void *ostart, *nstart;
+
+	zcheck(zone, o, "move data from block");
+	zcheck(zone, n, "move data to block");
+
+	ZSTATS_INCX(zmove_successful_smart);
+
+	/*
+	 * Also copy possible overhead (already included in zone's block size),
+	 * in order to keep original meta info attached to the old block.
+	 */
+
+	ostart = ptr_add_offset(o, -OVH_LENGTH);
+	nstart = ptr_add_offset(n, -OVH_LENGTH);
+	memcpy(nstart, ostart, zone->zn_size);
+
+	/*
+	 * Do not call zfree() as we do not want to account for freeing a block!
+	 */
+
+	zlock(zone);
+	zreturn(zone, o);
+	zunlock(zone);
+
+	return n;
+}
 
 /**
  * Iterator callback on hash table.
@@ -3616,6 +3656,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(zmove_attempts);
 	DUMP64(zmove_attempts_gc);
 	DUMP64(zmove_successful_gc);
+	DUMP64(zmove_successful_smart);
 	DUMP64(zgc_zones_freed);
 	DUMP64(zgc_zones_defragmented);
 	DUMP64(zgc_fragments_freed);
