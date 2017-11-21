@@ -1789,6 +1789,8 @@ found:
 			(double) count / buckets);
 	}
 
+	zone_check(zone);
+
 	return zone;
 }
 
@@ -1799,6 +1801,8 @@ found:
 void *
 zmove(zone_t *zone, void *p)
 {
+	zone_check(zone);
+
 	/*
 	 * If there is no garbage collection turned on for the zone, keep it as-is.
 	 */
@@ -1832,6 +1836,7 @@ zmoveto(zone_t *zone, void *o, void *n)
 {
 	void *ostart, *nstart;
 
+	zone_check(zone);
 	zcheck(zone, o, "move data from block");
 	zcheck(zone, n, "move data to block");
 
