@@ -493,7 +493,10 @@ OWLIST_remove(OWLIST_T *list, void *data)
 /**
  * Remove data item following sibling, if any.
  *
- * @return the item removed, NULL if there was nother after sibling.
+ * As a special case, if `sibling' is NULL then this behaves like a shift,
+ * that is we remove the head item.
+ *
+ * @return the item removed, NULL if there was nothing after sibling.
  */
 #define OWLIST_remove_after	CAT2(PREFIX,remove_after)
 void *
@@ -503,10 +506,14 @@ OWLIST_remove_after(OWLIST_T *list, void *sibling)
 	void *data;
 
 	CHECK(list);
-	g_assert(sibling != NULL);
 
-	lk = ptr_add_offset(sibling, list->offset);
-	next = NEXT(list, lk);
+	if G_UNLIKELY(NULL == sibling) {
+		lk = NULL;
+		next = list->head;
+	} else {
+		lk = ptr_add_offset(sibling, list->offset);
+		next = NEXT(list, lk);
+	}
 
 	if G_UNLIKELY(NULL == next)
 		return NULL;		/* Nothing after, not an error */
