@@ -1017,10 +1017,10 @@ zalloc_shift_pointer(const void *allocated, const void *used)
  * @param ptr		address of block
  * @param what		what we are trying to do ("free block", "move block", ...)
  */
+#ifdef ZONE_ZAFE
 static inline void
 zcheck(zone_t *zone, void *ptr, const char *what)
 {
-#ifdef ZONE_ZAFE
 	char **tmp;
 
 	/* Go back at leading magic, also the start of the block */
@@ -1042,12 +1042,10 @@ zcheck(zone_t *zone, void *ptr, const char *what)
 			what, ptr, zone_size(zone), zone,
 			ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
 	}
-#else	/* !ZONE_SAFE */
-	(void) zone;
-	(void) ptr;
-	(void) what;
-#endif	/* ZONE_SAFE */
 }
+#else	/* !ZONE_SAFE */
+#define zcheck(z,p,w)
+#endif	/* ZONE_SAFE */
 
 /**
  * Return user pointer to (already locked) zone.
