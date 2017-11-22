@@ -121,8 +121,6 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define PARENT_STDOUT_FILENO	3
-#define PARENT_STDERR_FILENO	4
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
@@ -1669,6 +1667,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	bool could_fork = has_fork();
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
+	int parent_stderr = STDERR_FILENO;
 	int spfd = -1;		/* set if we use spopenlp(), on Windows only */
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
@@ -1683,14 +1682,13 @@ retry_child:
 
 	if (has_fork()) {
 		/* In case fork() fails, make sure we leave stdout open */
-		if (PARENT_STDOUT_FILENO != dup(STDOUT_FILENO)) {
+		if (-1 == (parent_stdout = dup(STDOUT_FILENO))) {
 			stage = "parent's stdout duplication";
 			goto parent_failure;
 		}
-		parent_stdout = PARENT_STDOUT_FILENO;
 
 		/* Make sure child will get access to the stderr of its parent */
-		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+		if (-1 == (parent_stderr = dup(STDERR_FILENO))) {
 			stage = "parent's stderr duplication";
 			goto parent_failure;
 		}
@@ -1837,8 +1835,8 @@ retry_child:
 					}
 				}
 
-				fd_set_close_on_exec(PARENT_STDERR_FILENO);
-				fd_set_close_on_exec(PARENT_STDOUT_FILENO);
+				fd_set_close_on_exec(parent_stderr);
+				fd_set_close_on_exec(parent_stdout);
 			}
 
 			if (could_fork) {
@@ -1962,7 +1960,7 @@ retry_child:
 			 */
 
 			if (!retried_child) {
-				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
+				log_force_fd(LOG_STDERR, parent_stderr);
 				log_set_disabled(LOG_STDOUT, TRUE);
 
 				thread_lock_dump_all(STDOUT_FILENO);
@@ -2035,7 +2033,7 @@ retry_child:
 			/* Log child failure */
 
 			crash_logerr(what, pid_str,
-				PARENT_STDERR_FILENO, STDOUT_FILENO, parent_stdout);
+				parent_stderr, STDOUT_FILENO, parent_stdout);
 
 			_exit(EXIT_FAILURE);
 		}
@@ -2060,7 +2058,7 @@ parent_process:
 		bool child_ok = FALSE;
 
 		if (has_fork()) {
-			crash_fd_close(PARENT_STDERR_FILENO);
+			crash_fd_close(parent_stderr);
 		}
 
 		/*
@@ -2276,8 +2274,8 @@ no_fork:
 		if (has_fork()) {
 			if (
 				crash_fd_close(STDOUT_FILENO) ||
-				-1 == dup2(PARENT_STDOUT_FILENO, STDOUT_FILENO) ||
-				crash_fd_close(PARENT_STDOUT_FILENO)
+				-1 == dup2(parent_stdout, STDOUT_FILENO) ||
+				crash_fd_close(parent_stdout)
 			) {
 				stage = "stdout restore";
 				goto parent_failure;
