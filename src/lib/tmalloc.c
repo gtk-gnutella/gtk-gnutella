@@ -2076,13 +2076,13 @@ tmalloc_reset(tmalloc_t *tma)
 	 * The above filled in the object trash when processing full magazines.
 	 */
 
-	TMALLOC_LOCK(tma);
+	TMALLOC_LOCK_HIDDEN(tma);
 	tmalloc_trash_list_check(tma);
 	obj_trash = tma->tma_obj_trash;
 	n = tma->tma_obj_trash_count;
 	tma->tma_obj_trash = NULL;
 	tma->tma_obj_trash_count = 0;
-	TMALLOC_UNLOCK(tma);
+	TMALLOC_UNLOCK_HIDDEN(tma);
 
 	if (tmalloc_debugging(0) && n != 0) {
 		s_debug("%s(\"%s\"): clearing objects=%zu",
