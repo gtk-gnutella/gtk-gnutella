@@ -2961,7 +2961,7 @@ found:
 	 */
 
 	start = ptr_add_offset(p, -OVH_LENGTH);
-	np = zprepare(zone, blk);				/* Allow for block overhead */
+	np = ptr_add_offset(blk, OVH_LENGTH);	/* Allow for block overhead */
 	memcpy(blk, start, zone->zn_size);		/* Keep original meta info */
 
 	if (zalloc_debugging(1)) {
