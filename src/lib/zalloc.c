@@ -1580,7 +1580,7 @@ zcreate_internal(size_t size, unsigned hint, bool embedded)
 #ifndef REMAP_ZALLOC
 	if (zgc_always(zone)) {
 		zlock(zone);
-		if (NULL == zone->zn_gc)
+		if (NULL == zone->zn_gc && vmm_is_long_term())
 			zgc_allocate(zone);
 		zunlock(zone);
 	}
@@ -3171,7 +3171,12 @@ zgc(bool overloaded)
 	size_t i, count;
 	zone_t **zones;
 
-	if (NULL == zt)
+	/*
+	 * Garbage collecting only makes sense if we're going to be a long-running
+	 * process -- for short-lived processes, it is an overkill.
+	 */
+
+	if (NULL == zt || !vmm_is_long_term())
 		return;
 
 	ZSTATS_INCX(zgc_runs);
