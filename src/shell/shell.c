@@ -120,7 +120,7 @@ static htable_t *shell_cmds;
 
 static bool shell_interpret_line(struct gnutella_shell *sh, const char *line);
 static void shell_interpret_data(struct gnutella_shell *sh);
-static void shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
+static bool shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
 
 static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
@@ -176,7 +176,7 @@ static void
 shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 {
 	(void) unused_source;
-	shell_handle_event(data, cond);
+	(void) shell_handle_event(data, cond);
 }
 
 static void
@@ -694,16 +694,26 @@ shell_resume_processing(void *p)
 	struct shell_async_args *args = p;
 	struct gnutella_shell *sh = args->sh;
 	const char *line = args->next;
+	bool ok;
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): resuming in main after %s()",
-			G_STRFUNC, sh, stacktrace_function_name(args->handler));
+		s_debug("%s(%p): resuming in main after %s()%s",
+			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+			sh->shutdown ? " [\"shutdown\" on]" : "");
 	}
 
 	WFREE(args);
 	sh->last_update = tm_time();
 	sh->async = FALSE;
-	shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
+
+	ok = shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
+
+	if (!ok) {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): shell was destroyed", G_STRFUNC, sh);
+		}
+		return;
+	}
 
 	/*
 	 * Once the line is fully interpreted and we're no longer running any
@@ -852,9 +862,12 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 							THREAD_F_NO_CANCEL | THREAD_F_WARN,
 						SHELL_STACK_SIZE)
 				) {
+					bool ok;
+
 					WFREE(args);
 					sh->async = FALSE;
-					shell_handle_event(sh, INPUT_EVENT_NONE);
+					ok = shell_handle_event(sh, INPUT_EVENT_NONE);
+					g_assert(ok);
 					goto synchronous;
 				}
 
@@ -1108,7 +1121,13 @@ shell_read_data(struct gnutella_shell *sh)
 	shell_interpret_data(sh);
 }
 
-static void
+/**
+ * Handle event condition on the shell's socket.
+ *
+ * @return TRUE if we can continue, FALSE if the shell was destroyed
+ * and the `sh' object is therefore invalid!
+ */
+static bool
 shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
 	shell_check(sh);
@@ -1157,13 +1176,19 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	}
 
 	SHELL_UNLOCK(sh);
-	return;
+
+	if (!sh->shutdown)
+		return TRUE;
+
+	/* FALL THROUGH */
 
 destroy:
 	if (sh->async)
 		shell_shutdown(sh);
 	else
 		shell_destroy(sh);
+
+	return FALSE;		/* Cannot continue processing */
 }
 
 static void
@@ -1462,7 +1487,7 @@ shell_add(struct gnutella_socket *s)
 	}
 
 	/* We don't read anymore on shutdown, but be paranoid just in case. */
-	shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
+	(void) shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
 }
 
 void
