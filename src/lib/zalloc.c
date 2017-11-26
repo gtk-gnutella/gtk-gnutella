@@ -2258,10 +2258,8 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 	if G_UNLIKELY(1 == zone->zn_subzones) {
 		g_assert(zone->zn_blocks == zone->zn_hint);
-		zgc_subzone_defragment(zone, szi);
-
 		ZSTATS_INCX(zgc_last_zone_kept);
-		return FALSE;
+		goto defragment;
 	}
 
 	/*
@@ -2299,7 +2297,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 	if (delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
-		return FALSE;
+		goto defragment;
 	}
 
 	if (
@@ -2307,8 +2305,10 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 		delta_time(tm_time(), szi->szi_sz->sz_ctime) < 5 * ZGC_SUBZONE_MINLIFE
 	) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
-		return FALSE;
+		goto defragment;
 	}
+
+	/* FALL THROUGH */
 
 release_zone:
 
@@ -2419,6 +2419,10 @@ found:
 	zgc_remove_subzone(zone, szi);
 
 	return TRUE;
+
+defragment:
+	zgc_subzone_defragment(zone, szi);
+	return FALSE;
 }
 
 /**
