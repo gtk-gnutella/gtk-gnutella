@@ -277,14 +277,18 @@ static struct vmm_stats {
 	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
-	AU64(move_requested);			/**< Number of vmm_move() calls honored */
+	AU64(move_user_requested);		/**< Number of vmm_move() calls honored */
+	AU64(move_core_requested);		/**< Number of vmm_core_move() calls honored */
 	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
 	AU64(move_magazine_attempted);	/**< Magazine allocation try in vmm_move() */
 	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
 	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
-	AU64(move_failed);				/**< Move from vmm_move() unsuccessful */
-	uint64 move_succeeded;			/**< Move from vmm_move() successful */
-	uint64 move_bytes_copied;		/**< Bytes moved around by vmm_move() */
+	AU64(move_user_failed);			/**< Move from vmm_move() unsuccessful */
+	AU64(move_core_failed);			/**< Move from vmm_core_move() unsuccessful */
+	uint64 move_user_succeeded;		/**< Move from vmm_move() successful */
+	uint64 move_core_succeeded;		/**< Move from vmm_core_move() successful */
+	uint64 move_user_bytes_copied;	/**< Bytes moved around by vmm_move() */
+	uint64 move_core_bytes_copied;	/**< Bytes moved around by vmm_core_move() */
 	uint64 move_alloc_from_cache;	/**< vmm_move() allocated from cache */
 	uint64 move_alloc_from_system;	/**< vmm_move() allocated from system */
 	uint64 move_alloc_from_magazine;/**< vmm_move() allocated from magazine */
@@ -475,6 +479,7 @@ static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
 static tmalloc_t *vmm_get_magazine(size_t npages, bool alloc);
+static void vmm_free_internal(void *p, size_t size, bool user_mem);
 
 /**
  * @return whether VMM is in crash mode.
@@ -2780,11 +2785,12 @@ page_cache_return_pages(void *p, size_t n)
  *
  * @param base		start of the region
  * @param len		length of the region in bytes
+ * @param user_mem	TRUE if moving a user region, as opposed to a core one
  *
  * @return new pointer for the region (may be `base' still if not moved).
  */
-void *
-vmm_move(void *base, size_t len)
+static void *
+vmm_move_internal(void *base, size_t len, bool user_mem)
 {
 	struct pmap *pm;
 	size_t size;
@@ -2802,7 +2808,10 @@ vmm_move(void *base, size_t len)
 	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy || vmm_crashing || stop_freeing)
 		return base;
 
-	VMM_STATS_INCX(move_requested);
+	if (user_mem)
+		VMM_STATS_INCX(move_user_requested);
+	else
+		VMM_STATS_INCX(move_core_requested);
 
 	pm = vmm_pmap();
 	wlock = FALSE;
@@ -2816,6 +2825,11 @@ vmm_move(void *base, size_t len)
 	 *
 	 * If non-NULL, we will consider this pointer later with the one we
 	 * can find in the pmap, to choose the best one.
+	 *
+	 * NOTE: it is not an error that we forcefully request "user memory"
+	 * from the page cache here (second argument set to TRUE): we do not
+	 * want the algorithm to limit itself with a pre-computed VMM hole as
+	 * we are going to probe the pmap later.
 	 */
 
 	c = page_cache_find_pages(n, TRUE, FALSE);	/* Can be NULL */
@@ -2933,9 +2947,14 @@ success:
 	 */
 
 	VMM_STATS_LOCK;
-	update_allocation_stats(size, n, TRUE, FALSE);
-	vmm_stats.move_succeeded++;
-	vmm_stats.move_bytes_copied += len;
+	update_allocation_stats(size, n, user_mem, FALSE);
+	if (user_mem) {
+		vmm_stats.move_user_succeeded++;
+		vmm_stats.move_user_bytes_copied += len;
+	} else {
+		vmm_stats.move_core_succeeded++;
+		vmm_stats.move_core_bytes_copied += len;
+	}
 	if G_UNLIKELY(p == c) {
 		vmm_stats.alloc_from_cache++;
 		vmm_stats.alloc_from_cache_pages += n;
@@ -2948,7 +2967,14 @@ success:
 	VMM_STATS_UNLOCK;
 
 	memcpy(p, base, len);		/* Not `size': skip possible unused tail */
-	vmm_free(base, len);
+
+	/*
+	 * Note that we do NOT call vmm_free() for user regions, to be able to
+	 * completely bypass the magazines when freeing the old region: we do not
+	 * want to make that region re-allocatable by the thread after freeing it!
+	 */
+
+	vmm_free_internal(base, len, user_mem);
 
 	return p;
 
@@ -2971,9 +2997,40 @@ no_pmap:
 		}
 	}
 
-	VMM_STATS_INCX(move_failed);
+	if (user_mem)
+		VMM_STATS_INCX(move_user_failed);
+	else
+		VMM_STATS_INCX(move_core_failed);
 
 	return base;
+}
+
+/**
+ * Attempt to move the user region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+void *
+vmm_move(void *base, size_t len)
+{
+	return vmm_move_internal(base, len, TRUE);
+}
+
+/**
+ * Attempt to move the core region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+void *
+vmm_core_move(void *base, size_t len)
+{
+	return vmm_move_internal(base, len, FALSE);
 }
 
 /**
@@ -5585,10 +5642,14 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
-	DUMP64(move_requested);
-	DUMP64(move_failed);
-	DUMP(move_succeeded);
-	DUMP(move_bytes_copied);
+	DUMP64(move_user_requested);
+	DUMP64(move_user_failed);
+	DUMP(move_user_succeeded);
+	DUMP(move_user_bytes_copied);
+	DUMP64(move_core_requested);
+	DUMP64(move_core_failed);
+	DUMP(move_core_succeeded);
+	DUMP(move_core_bytes_copied);
 	DUMP64(move_system_attempted);
 	DUMP64(move_magazine_attempted);
 	DUMP(move_alloc_from_cache);

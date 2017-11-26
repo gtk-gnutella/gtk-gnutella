@@ -2161,74 +2161,74 @@ zgc_remove_subzone(const zone_t *zone, struct subzinfo *szi)
 }
 
 /**
- * Allocate a new subzone arena in the specified subzone and cram a free list
- * inside the new arena.
- *
- * @return the address of the first free block
- */
-static void *
-zgc_subzone_new_arena(const zone_t *zone, struct subzone *sz)
-{
-	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
-	zrange_clear(zone);
-
-	if G_UNLIKELY(NULL == sz->sz_base) {
-		s_error("cannot recreate %zu-byte zone arena", zone->zn_size);
-	}
-
-	zn_cram(zone, sz->sz_base, sz->sz_size);
-	return cast_to_void_ptr(sz->sz_base);
-}
-
-/**
- * Defragment a subzone in the VM space: if the subzone's arena happens to
- * be a VM fragment, free it and reallocate a new one.
+ * Defragment a subzone in the VM space by attempting to move it to a better
+ * location.
  */
 static void
 zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 {
 	struct zone_gc *zg = zone->zn_gc;
 	struct subzone *sz = szi->szi_sz;
-	char **blk;
-	struct subzinfo *nszi;
+	char *nbase;
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
 	g_assert(equiv(&zone->zn_arena == sz, 1 == zone->zn_subzones));
 	g_assert(szi->szi_free_cnt == zone->zn_hint);
+	g_assert(szi->szi_base == sz->sz_base);
 
-	if (!subzone_is_fragment(sz))
+	/*
+	 * Instead of testing whether subzone is a fragment by calling
+	 * subzone_is_fragment(), we attempt to see whether we can move
+	 * the arena around in the VM space.
+	 * 		--RAM, 2017-11-26
+	 */
+
+	nbase = vmm_core_move(sz->sz_base, sz->sz_size);
+	if (nbase == sz->sz_base)
 		return;
 
 	if (zalloc_debugging(1)) {
 		time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
 		s_debug("ZGC %zu-byte zone %p: %ssubzone "
-			"[%p, %p] %zuKiB, %u blocks, lifetime %s is a fragment",
+			"[%p, %p] %zuKiB, %u blocks, lifetime %s, moved to %p",
 			zone->zn_size, (void *) zone,
 			&zone->zn_arena == sz ? "first " : "extra ",
 			szi->szi_base, szi->szi_end - 1,
 			ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-			zone->zn_hint, compact_time(life));
+			zone->zn_hint, compact_time(life), nbase);
 	}
 
-	/*
-	 * Fragment will be freed by the VMM layer, not cached.
-	 */
-
-	subzone_free_arena(sz);
-	zrange_clear(zone);
 	zg->zg_zone_defragmented++;
 
 	ZSTATS_INCX(zgc_zones_defragmented);
 
-	zgc_remove_subzone(zone, szi);
-	blk = zgc_subzone_new_arena(zone, sz);
-	nszi = zgc_insert_subzone(zone, sz, blk);
+	/*
+	 * Rebuild free list for the new arena address.
+	 */
+
+	zn_cram(zone, nbase, sz->sz_size);	/* First free block is first block */
+
+	/*
+	 * Update memory addresses in relevant subzone structures.
+	 */
+
+	zrange_clear(zone);
+	sz->sz_base = szi->szi_base = nbase;
+	szi->szi_end = &sz->sz_base[sz->sz_size];
+	szi->szi_free = (char **) nbase;	/* First block */
+
+	/*
+	 * Re-sort the subzone array now that the base of the current
+	 * subzone has changed.
+	 */
+
+	xqsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
 
 	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p recreated %u blocks in [%p, %p]",
+		s_debug("ZGC %zu-byte zone %p moved %u blocks in [%p, %p]",
 			zone->zn_size, (void *) zone,
-			zone->zn_hint, nszi->szi_base, nszi->szi_end);
+			zone->zn_hint, szi->szi_base, szi->szi_end);
 	}
 }
 
@@ -2253,7 +2253,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	 * in the whole zone.
 	 *
 	 * To help defragmenting the VM space, if the subzone is actually a
-	 * fragment, deallocate it and reallocate a new one.
+	 * fragment, attempt to move it around.
 	 */
 
 	if G_UNLIKELY(1 == zone->zn_subzones) {
