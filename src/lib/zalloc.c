@@ -348,8 +348,10 @@ static struct zstats {
 	uint64 subzones_freed_pages;	/**< Total pages freed in subzones */
 	AU64(zmove_attempts);			/**< Total attempts to move blocks */
 	AU64(zmove_attempts_gc);		/**< Subset of moves attempted in GC mode */
+	AU64(zmove_1_block_in_subzone);	/**< Moving 1 single block in its subzone */
 	AU64(zmove_successful_gc);		/**< Subset of successful moves */
 	AU64(zmove_successful_smart);	/**< Subset of successful moves */
+	AU64(zmove_successful_subzone);	/**< Subset of successful moves */
 	AU64(zgc_zones_freed);			/**< Total amount of zones freed by GC */
 	AU64(zgc_zones_defragmented);	/**< Total amount of zones defragmented */
 	AU64(zgc_fragments_freed);		/**< Total fragment zones freed */
@@ -2161,6 +2163,74 @@ zgc_remove_subzone(const zone_t *zone, struct subzinfo *szi)
 }
 
 /**
+ * Update subzone information when arena was moved.
+ *
+ * @note
+ * The free blocks are already chained and szi->szi_free already points to the
+ * first available block in the new arena.
+ *
+ * @attention
+ * Upon return, the `szi' value MUST NOT be used again.
+ *
+ * @param zone		the zone to which subzone belongs to
+ * @param szi		subzone whose arena was moved
+ * @param nbase		new arena base
+ */
+static void
+zgc_subzone_moved(zone_t *zone, struct subzinfo *szi, char *nbase)
+{
+	struct zone_gc *zg = zone->zn_gc;
+	struct subzone *sz = szi->szi_sz;
+
+	g_assert(szi != NULL);
+	g_assert(zg != NULL);
+	g_assert(szi->szi_base == sz->sz_base);
+	g_assert(szi->szi_base != nbase);		/* Arena was moved but not updated */
+	g_assert(!zgc_within_subzone(szi, szi->szi_free));	/* Not yet! */
+
+	/*
+	 * Update memory addresses in relevant subzone structures.
+	 */
+
+	zrange_clear(zone);
+	sz->sz_base = szi->szi_base = nbase;
+	szi->szi_end = &sz->sz_base[sz->sz_size];
+
+	/*
+	 * Make sure the contract is fullfilled: the first free block must belong
+	 * to the arena!
+	 */
+
+	g_assert(zgc_within_subzone(szi, szi->szi_free));
+
+	if (zalloc_debugging(4)) {
+		s_debug("ZGC %zu-byte zone %p moved %u blocks in [%p, %p]",
+			zone->zn_size, (void *) zone,
+			zone->zn_hint, szi->szi_base, szi->szi_end);
+	}
+
+	/*
+	 * Re-sort the subzone array now that the base of the current
+	 * subzone has changed.
+	 *
+	 * NOTE: this changes `szi', since it moves around structures in the
+	 * array, so we must no longer use the old `szi' upon return from this
+	 * routine.
+	 */
+
+	xqsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
+
+	/*
+	 * We remember the index of the first subzinfo with free blocks to
+	 * accelerate zgc_zalloc().  Since we just moved a zone and we do not
+	 * want to re-scan the whole set of zones, simply reset the index
+	 * to the initial default value.
+	 */
+
+	zg->zg_free = addr_grows_upwards ? 0 : zg->zg_zones - 1;
+}
+
+/**
  * Defragment a subzone in the VM space by attempting to move it to a better
  * location.
  */
@@ -2208,28 +2278,9 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 	 */
 
 	zn_cram(zone, nbase, sz->sz_size);	/* First free block is first block */
-
-	/*
-	 * Update memory addresses in relevant subzone structures.
-	 */
-
-	zrange_clear(zone);
-	sz->sz_base = szi->szi_base = nbase;
-	szi->szi_end = &sz->sz_base[sz->sz_size];
 	szi->szi_free = (char **) nbase;	/* First block */
 
-	/*
-	 * Re-sort the subzone array now that the base of the current
-	 * subzone has changed.
-	 */
-
-	xqsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
-
-	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p moved %u blocks in [%p, %p]",
-			zone->zn_size, (void *) zone,
-			zone->zn_hint, szi->szi_base, szi->szi_end);
-	}
+	zgc_subzone_moved(zone, szi, nbase);
 }
 
 /**
@@ -2896,18 +2947,79 @@ zgc_zmove(zone_t *zone, void *p)
 
 	zg = zone->zn_gc;
 
-	if (NULL == zg || zone->zn_blocks == zone->zn_cnt) {
-		zunlock(zone);
-		return p;		/* No free blocks */
-	}
+	g_assert(zg != NULL);
 
 	szi = zgc_find_subzone(zg, p, NULL);
+
 	g_assert(szi != NULL);
 	g_assert(zgc_within_subzone(szi, p));
 	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	g_assert(szi->szi_free_cnt < zone->zn_hint);	/* Has 1+ allocated blocks */
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
-	if (zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
+
+	/*
+	 * If block is the only one allocated in its subzone, then we have an
+	 * opportunity to "defragment" by moving the whole zone and then move the
+	 * data to the first block.
+	 * 		--RAM, 2017-11-27
+	 */
+
+	if G_UNLIKELY(zone->zn_hint - 1 == szi->szi_free_cnt) {
+		char *nbase;
+
+		ZSTATS_INCX(zmove_1_block_in_subzone);
+
+		nbase = vmm_core_move(szi->szi_base, szi->szi_sz->sz_size);
+
+		if (nbase != szi->szi_base) {
+			size_t offset;
+			void *second_blk;
+
+			/*
+			 * Let's move the data to the first block in the new arena,
+			 * if not already the first block, and then let's rebuild
+			 * a free list with the remaining block, and update the
+			 * subzone information.
+			 */
+
+			start = ptr_add_offset(p, -OVH_LENGTH);		/* Real block start */
+			offset = ptr_diff(start, szi->szi_base);	/* In old arena */
+
+			g_assert(offset < szi->szi_sz->sz_size);
+			g_assert(size_is_non_negative(offset));
+
+			np = ptr_add_offset(nbase, OVH_LENGTH);		/* Skip block overhead */
+
+			if G_LIKELY(offset != 0) {
+				/* Keep original meta info */
+				memcpy(nbase, nbase + offset, zone->zn_size);
+			}
+
+			/*
+			 * Rebuild free list for new arena address, skipping the first
+			 * block of the new arena where we moved the data.
+			 */
+
+			second_blk = nbase + zone->zn_size;
+			zn_cram(zone, second_blk, szi->szi_sz->sz_size - zone->zn_size);
+
+			g_assert(szi->szi_free != NULL);			/* Old value */
+
+			szi->szi_free = (char **) second_blk;
+			zgc_subzone_moved(zone, szi, nbase);		/* Update subzone info */
+
+			ZSTATS_INCX(zmove_successful_subzone);
+			goto done;
+		}
+
+		/* FALL THROUGH */
+	}
+
+	if G_UNLIKELY(zone->zn_blocks == zone->zn_cnt)
+		goto no_change;		/* No free blocks at all */
+
+	if G_UNLIKELY(zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
 		goto no_change;		/* No free blocks in any other subzone */
 
 	/*
@@ -3022,13 +3134,12 @@ found:
 
 	zgc_insert_freelist(zone, start);
 
+done:
 	zunlock(zone);
-
 	return np;
 
 no_change:
 	zunlock(zone);
-
 	return p;
 }
 
@@ -3669,8 +3780,10 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(subzones_freed_pages);
 	DUMP64(zmove_attempts);
 	DUMP64(zmove_attempts_gc);
+	DUMP64(zmove_1_block_in_subzone);
 	DUMP64(zmove_successful_gc);
 	DUMP64(zmove_successful_smart);
+	DUMP64(zmove_successful_subzone);
 	DUMP64(zgc_zones_freed);
 	DUMP64(zgc_zones_defragmented);
 	DUMP64(zgc_fragments_freed);
