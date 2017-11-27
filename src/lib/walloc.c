@@ -335,7 +335,7 @@ walloc_get_magazine(size_t rounded)
 
 		/*
 		 * Until thread_set_main() has been called, do not create magazines.
-		 * If they call walloc_limit() to limit walloc() to a small subset
+		 * If they call walloc_active_limit() to limit walloc() to a small subset
 		 * of already created zones, we do not want a large magazine depot
 		 * container to have already been created (these can be around 2 KiB).
 		 */
@@ -812,16 +812,12 @@ wrealloc_track(void *old, size_t old_size, size_t new_size,
 #endif	/* TRACK_ZALLOC */
 
 /**
- * Destroy all the zones we allocated so far.
+ * Reset all the thread magazines.
  */
-void
-wdestroy(void)
+static void
+wmagazine_reset_all(void)
 {
 	size_t i;
-
-	/*
-	 * Reset all the thread magazines.
-	 */
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		tmalloc_t *d = wmagazine[i];
@@ -832,6 +828,17 @@ wdestroy(void)
 				tmalloc_reset(d);
 		}
 	}
+}
+
+/**
+ * Destroy all the zones we allocated so far.
+ */
+void
+wdestroy(void)
+{
+	size_t i;
+
+	wmagazine_reset_all();
 
 	/*
 	 * To limit race conditions with code that tests for "walloc_stopped"
@@ -890,6 +897,7 @@ walloc_active_limit(void)
 	size_t i, largest = 0;
 
 	thread_suspend_others(TRUE);
+	wmagazine_reset_all();		/* Free trash and magazine rounds */
 
 	WALLOC_LOCK;
 
