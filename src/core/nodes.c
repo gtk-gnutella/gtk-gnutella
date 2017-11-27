@@ -1766,7 +1766,6 @@ node_init(void)
 							HASH_KEY_FIXED, GUID_RAW_SIZE);
 
 	start_rfc822_date = atom_str_get(timestamp_rfc822_to_string(now));
-	gnet_prop_set_timestamp_val(PROP_START_STAMP, now);
 
 	udp_node = node_udp_create(NET_TYPE_IPV4);
 	udp6_node = node_udp_create(NET_TYPE_IPV6);

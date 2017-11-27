@@ -682,6 +682,8 @@ settings_init(bool resume)
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
 
+	gnet_prop_set_timestamp_val(PROP_START_STAMP, tm_time());
+
 	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
 	/*
