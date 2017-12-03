@@ -277,6 +277,15 @@ static struct vmm_stats {
 	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
+	uint64 core_normal_alloc;		/**< Regular core allocations */
+	uint64 core_smart_alloc;		/**< Core allocated via long-term strategy */
+	AU64(core_smart_forced_system);	/**< Core forced via system (should be 0) */
+	uint64 core_from_cache;			/**< Smart core allocated from cache */
+	uint64 core_from_cache_pages;	/**< Pages of core allocated from cache */
+	uint64 core_from_magazine;		/**< Smart core allocated from magazines */
+	uint64 core_from_magazine_pages;/**< Pages of core allocated from magazines */
+	uint64 core_from_system;		/**< Smart core allocated from system */
+	uint64 core_from_system_pages;	/**< Pages of core allocated from system */
 	AU64(move_user_requested);		/**< Number of vmm_move() calls honored */
 	AU64(move_core_requested);		/**< Number of vmm_core_move() calls honored */
 	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
@@ -4588,6 +4597,8 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 update_stats:
 	update_allocation_stats(size, n, user_mem, zero_mem);
+	if (!user_mem)
+		vmm_stats.core_normal_alloc++;
 	VMM_STATS_UNLOCK;
 
 	return p;
@@ -4595,6 +4606,160 @@ update_stats:
 failed:
 	crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
 		G_STRFUNC, size);
+}
+
+/**
+ * Allocate `size' bytes of core under a long-term allocation strategy.
+ */
+static void *
+vmm_alloc_core(size_t size)
+{
+	struct pmap *pm;
+	bool wlock;
+	size_t n;
+	void *p, *c, *t;
+
+	pm = vmm_pmap();
+	wlock = FALSE;
+	size = round_pagesize_fast(size);
+	n = pagecount_fast(size);
+
+	/*
+	 * Explicitly ask for "core" memory, so that we can select the
+	 * best possible cached pointer.
+	 */
+
+	c = page_cache_find_pages(n, FALSE, FALSE);  /* Can be NULL */
+
+	/*
+	 * We are now going to read-lock the pmap and see whether we can find
+	 * a free space that would be better suited than the cached pages
+	 * we possibly reserved above.
+	 */
+
+	rwlock_rlock(&pm->lock);
+
+retry:
+	p = deconstify_pointer(vmm_probe_hole(pm, size));
+
+	if G_UNLIKELY(NULL == p)
+		goto no_pmap;
+
+	if (c != NULL && !vmm_pointer_is_better(c, p))
+		goto no_pmap;	/* Cached pages are optimal */
+
+	/*
+	 * Found better position in pmap, need to write-lock now to be able
+	 * to allocate at that place.
+	 */
+
+	if (!wlock) {
+		wlock = TRUE;
+		if (!rwlock_force_upgrade(&pm->lock))
+			goto retry;
+	}
+
+	p = vmm_mmap_anonymous(size, p);
+
+	if (NULL == p)
+		goto no_pmap;	/* Ouch, no memory allocation possible! */
+
+	if (c != NULL && !vmm_pointer_is_better(c, p)) {
+		vmm_free_fragment(G_STRFUNC, p, size);
+		goto no_pmap;	/* Did not find better place finally */
+	}
+
+	/*
+	 * New address is good, keep block.
+	 */
+
+	page_allocated(pm, p, size, TRUE);
+	rwlock_unlock(&pm->lock, wlock);
+
+	/*
+	 * At this stage, either `c' was NULL or we allocated a better region.
+	 * Hence if `c' is not NULL, we need to return it to the page cache.
+	 */
+
+	if (c != NULL) {
+		page_cache_return_pages(c, n);
+		c = NULL;
+	}
+
+	/* FALL THROUGH */
+
+success:
+	g_assert(p != NULL);
+
+	/*
+	 * Look in the thread magazines whether there would not be a better
+	 * region still.
+	 */
+
+	t = NULL;
+
+	if G_LIKELY(n <= VMM_MAGAZINE_PAGEMAX) {
+		tmalloc_t *depot = vmm_get_magazine(n, TRUE);
+
+		if (depot != NULL) {
+			t = tmalloc_smart(depot, vmm_pointer_is_better, p);
+
+			/*
+			 * If we found a better region, we need to undo earlier allocation.
+			 */
+
+			if (t != NULL) {
+				if (p == c) {
+					vmm_invalidate_pages(c, size);
+					page_cache_return_pages(c, n);
+					c = NULL;
+				} else {
+					free_pages(p, size, TRUE);
+				}
+				p = t;	/* Allocated from magazines */
+			}
+		}
+	}
+
+	/*
+	 * We allocated a new core block, update statistics.
+	 */
+
+	VMM_STATS_LOCK;
+	vmm_stats.core_smart_alloc++;
+	update_allocation_stats(size, n, FALSE, FALSE);
+	if G_UNLIKELY(p == c) {
+		vmm_stats.core_from_cache++;
+		vmm_stats.core_from_cache_pages += n;
+	} else if G_UNLIKELY(p == t) {
+		vmm_stats.core_from_magazine++;
+		vmm_stats.core_from_magazine_pages += n;
+	} else {
+		vmm_stats.core_from_system++;
+		vmm_stats.core_from_system_pages += n;
+	}
+	VMM_STATS_UNLOCK;
+
+	return p;
+
+no_pmap:
+	rwlock_unlock(&pm->lock, wlock);
+
+	if (c != NULL) {
+		vmm_validate_pages(c, size);
+		p = c;
+	} else {
+		/* We need to be able to allocate something, even if sub-optimal! */
+		VMM_STATS_INCX(core_smart_forced_system);
+		p = alloc_pages(size, TRUE);
+
+		if G_UNLIKELY(NULL == p) {
+			crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
+				G_STRFUNC, size);
+		}
+	}
+
+	goto success;
 }
 
 /**
@@ -4968,7 +5133,22 @@ vmm_alloc0(size_t size)
 void *
 vmm_core_alloc(size_t size)
 {
-	return vmm_alloc_internal(size, FALSE, FALSE);
+	/*
+	 * Under a long-term strategy, core allocation is strategic because the
+	 * chunks we allocate are difficult to move afterwards since they are
+	 * split to allocate several user blocks.
+	 *
+	 * Hence we need to have a slower strategy, similar to the one used in
+	 * vmm_move_internal(), so that we immediately choose the best possible
+	 * place to allocate the core region.
+	 *
+	 * 		--RAM, 2017-12-03
+	 */
+
+	if (VMM_STRATEGY_LONG_TERM == vmm_strategy)
+		return vmm_alloc_core(size);
+	else
+		return vmm_alloc_internal(size, FALSE, FALSE);
 }
 
 /**
@@ -5642,6 +5822,15 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
+	DUMP(core_normal_alloc);
+	DUMP(core_smart_alloc);
+	DUMP64(core_smart_forced_system);
+	DUMP(core_from_cache);
+	DUMP(core_from_cache_pages);
+	DUMP(core_from_magazine);
+	DUMP(core_from_magazine_pages);
+	DUMP(core_from_system);
+	DUMP(core_from_system_pages);
 	DUMP64(move_user_requested);
 	DUMP64(move_user_failed);
 	DUMP(move_user_succeeded);

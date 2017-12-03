@@ -2591,7 +2591,17 @@ tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
 	g_assert(cb != NULL);
 	g_assert(p != NULL);
 
-	tmt = tmalloc_thread_get(tma);
+	/*
+	 * We must not call tmalloc_thread_get() here because it may cause a
+	 * memory allocation, leading to a possible infinite recursion through
+	 * vmm_core_alloc().
+	 *
+	 * This is actually what we want: if the thread magazines do not exist
+	 * for the current thread yet, there is nothing to allocate from them
+	 * anyway!
+	 */
+
+	tmt = thread_local_get(tma->tma_key);
 	TMALLOC_STATS_INCX(tma, smart_allocations);
 
 	if (tmt != NULL)
