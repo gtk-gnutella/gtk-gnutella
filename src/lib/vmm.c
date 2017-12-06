@@ -191,6 +191,7 @@ static int vmm_oom_detected;
 #define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
 #define VMM_WARN_THRESH		512	/**< Pages, 2 MiB with 4K pages */
+#define VMM_MOVE_THRESH		16	/**< Pages, user threshold if within region! */
 
 #define PMAP_FOREIGN_TRY	512	/**< Amount of foreign pages we try to allocate */
 
@@ -292,6 +293,7 @@ static struct vmm_stats {
 	AU64(move_magazine_attempted);	/**< Magazine allocation try in vmm_move() */
 	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
 	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
+	AU64(move_user_inner);			/**< Inner region declined for vmm_move() */
 	AU64(move_user_failed);			/**< Move from vmm_move() unsuccessful */
 	AU64(move_core_failed);			/**< Move from vmm_core_move() unsuccessful */
 	uint64 move_user_succeeded;		/**< Move from vmm_move() successful */
@@ -2830,6 +2832,31 @@ vmm_move_internal(void *base, size_t len, bool user_mem)
 	assert_vmm_is_allocated(base, size, VMF_NATIVE, FALSE);
 
 	/*
+	 * If user memory, see whether this at the extremity of a pmap region:
+	 * we do not want to create extra holes in the pmap that we will later
+	 * never be able to efficiently fill.
+	 *
+	 * However, we only perform this check for "small enough" regions.
+	 * Indeed, large regions are things we want to move to a better position
+	 * whenever we can.
+	 *
+	 * 		--RAM, 2017-12-06
+	 */
+
+	if (user_mem && n < VMM_MOVE_THRESH) {
+		bool is_extremity;
+
+		rwlock_rlock(&pm->lock);
+		is_extremity = pmap_is_extremity(pm, base, n);
+		rwlock_runlock(&pm->lock);
+
+		if (!is_extremity) {
+			VMM_STATS_INCX(move_user_inner);
+			goto failed;	/* Moving it would create a small "hole" */
+		}
+	}
+
+	/*
 	 * First try to see which pages are available in the cache.
 	 *
 	 * If non-NULL, we will consider this pointer later with the one we
@@ -3006,6 +3033,9 @@ no_pmap:
 		}
 	}
 
+	/* FALL THROUGH */
+
+failed:
 	if (user_mem)
 		VMM_STATS_INCX(move_user_failed);
 	else
@@ -5832,6 +5862,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(core_from_system);
 	DUMP(core_from_system_pages);
 	DUMP64(move_user_requested);
+	DUMP64(move_user_inner);
 	DUMP64(move_user_failed);
 	DUMP(move_user_succeeded);
 	DUMP(move_user_bytes_copied);
