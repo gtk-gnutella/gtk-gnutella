@@ -2952,7 +2952,7 @@ success:
 	t = NULL;
 
 	if G_LIKELY(n <= N_ITEMS(vmm_magazine)) {
-		tmalloc_t *depot = vmm_get_magazine(n, TRUE);
+		tmalloc_t *depot = vmm_magazine[n - 1];
 
 		VMM_STATS_INCX(move_magazine_attempted);
 
@@ -4728,8 +4728,8 @@ success:
 
 	t = NULL;
 
-	if G_LIKELY(n <= VMM_MAGAZINE_PAGEMAX) {
-		tmalloc_t *depot = vmm_get_magazine(n, TRUE);
+	if G_LIKELY(n <= N_ITEMS(vmm_magazine)) {
+		tmalloc_t *depot = vmm_magazine[n - 1];
 
 		if (depot != NULL) {
 			t = tmalloc_smart(depot, vmm_pointer_is_better, p);
