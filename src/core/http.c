@@ -1411,6 +1411,42 @@ http_async_option_ctl(http_async_t *ha, uint32 mask, http_ctl_op_t what)
 }
 
 /**
+ * Internal logging routine for debugging.
+ */
+static void
+http_async_logv(const http_async_t *ha,
+		GLogLevelFlags flags, const char *fmt, va_list args)
+{
+	const char *url;
+	const char *req;
+	host_addr_t addr;
+	uint16 port;
+	str_t *s = str_new(160);
+
+	http_async_check(ha);
+
+	url = http_async_info(ha, &req, NULL, &addr, &port);
+	str_vprintf(s, fmt, args);
+	gl_log(G_LOG_DOMAIN, flags, "HTTP \"%s %s\" at %s: %s",
+		req, url, host_addr_port_to_string(addr, port), str_2c(s));
+
+	str_destroy_null(&s);
+}
+
+/**
+ * Log debugging message about async request.
+ */
+static void
+http_async_logdbg(const http_async_t *ha, const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	http_async_logv(ha, G_LOG_LEVEL_MESSAGE, format, args);
+	va_end(args);
+}
+
+/**
  * Free this HTTP asynchronous request handler, disposing of all its
  * attached resources, recursively.
  */
@@ -2431,6 +2467,9 @@ http_got_header(http_async_t *ha, header_t *header)
 
 	http_async_check(ha);
 
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s()", G_STRFUNC);
+
 	s = ha->socket;
 	status = getline_str(s->getline);
 
@@ -2573,8 +2612,10 @@ http_got_header(http_async_t *ha, header_t *header)
 		struct rx_chunk_args args;
 
 		args.cb = &http_async_rx_chunk_cb;
-
 		ha->rx = rx_make_above(ha->rx, rx_chunk_get_ops(), &args);
+
+		if (GNET_PROPERTY(http_debug) > 1)
+			http_async_logdbg(ha, "installing chunked layer");
 	}
 
 	/*
@@ -2588,8 +2629,10 @@ http_got_header(http_async_t *ha, header_t *header)
 		struct rx_inflate_args args;
 
 		args.cb = &http_async_rx_inflate_cb;
-
 		ha->rx = rx_make_above(ha->rx, rx_inflate_get_ops(), &args);
+
+		if (GNET_PROPERTY(http_debug) > 1)
+			http_async_logdbg(ha, "installing inflate layer");
 	}
 
 	/*
@@ -2819,6 +2862,9 @@ http_async_connected(http_async_t *ha)
 	char req[2048];
 
 	http_async_check(ha);
+
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s()", G_STRFUNC);
 
 	s = ha->socket;
 	socket_check(s);
@@ -3086,6 +3132,9 @@ wget_header_ind(http_async_t *ha, struct header *header,
 	http_wget_check(wg);
 	(void) unused_message;
 
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s(code=%d)", G_STRFUNC, code);
+
 	/*
 	 * Save HTTP status code and headers so that they can be given to
 	 * the completion callback.
@@ -3151,6 +3200,9 @@ wget_data_ind(http_async_t *ha, const char *data, int len)
 	size_t new_length;
 
 	http_wget_check(wg);
+
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s(data=%p, len=%d)", G_STRFUNC, data, len);
 
 	if (NULL == data) {
 		char *result;
