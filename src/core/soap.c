@@ -532,7 +532,7 @@ soap_header_ind(http_async_t *ha, header_t *header,
  * The EOF condition is indicated by data being NULL.
  */
 static void
-soap_data_ind(http_async_t *ha, char *data, int len)
+soap_data_ind(http_async_t *ha, const char *data, int len)
 {
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 	size_t new_length;

@@ -189,7 +189,7 @@ typedef bool (*http_header_cb_t)(
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(http_async_t *, char *data, int len);
+typedef void (*http_data_cb_t)(http_async_t *, const char *data, int len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */

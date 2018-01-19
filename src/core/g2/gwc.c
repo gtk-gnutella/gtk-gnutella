@@ -806,7 +806,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-gwc_host_data_ind(http_async_t *ha, char *data, int len)
+gwc_host_data_ind(http_async_t *ha, const char *data, int len)
 {
 	gwc_parse_dispatch_lines(ha, data, len, gwc_host_line, gwc_host_eof);
 }

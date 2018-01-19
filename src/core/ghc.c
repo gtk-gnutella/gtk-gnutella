@@ -369,7 +369,7 @@ ghc_host_eof(struct parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-ghc_data_ind(struct http_async *handle, char *data, int len)
+ghc_data_ind(struct http_async *handle, const char *data, int len)
 {
 	parse_dispatch_lines(handle, data, len, ghc_host_line, ghc_host_eof);
 }

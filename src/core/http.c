@@ -2167,7 +2167,7 @@ http_subreq_header_ind(http_async_t *ha, struct header *header,
  * Reroute to parent request.
  */
 static void
-http_subreq_data_ind(http_async_t *ha, char *data, int len)
+http_subreq_data_ind(http_async_t *ha, const char *data, int len)
 {
 	http_async_check(ha);
 	g_assert(ha->parent != NULL);
@@ -2374,7 +2374,7 @@ static const struct rx_inflate_cb http_async_rx_inflate_cb = {
  * @return TRUE if we can continue reading data.
  */
 static bool
-http_got_data(http_async_t *ha, char *data, size_t len)
+http_got_data(http_async_t *ha, const char *data, size_t len)
 {
 	http_async_check(ha);
 	/* If not EOF, there must be data */
@@ -3145,7 +3145,7 @@ wget_header_ind(http_async_t *ha, struct header *header,
  * When data is NULL, it indicates an EOF condition.
  */
 static void
-wget_data_ind(http_async_t *ha, char *data, int len)
+wget_data_ind(http_async_t *ha, const char *data, int len)
 {
 	http_wget_t *wg = http_async_get_opaque(ha);
 	size_t new_length;
