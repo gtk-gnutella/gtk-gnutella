@@ -6065,9 +6065,9 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		xr->blocks = 1;
 
 		/*
-		 * Save length of first block to help the strategy should end-up with
-		 * two blocks being coalesced, with a length that does not fit the
-		 * freelist.
+		 * Save length of first block to help the strategy should we end-up
+		 * with two blocks being coalesced, and a length that does not fit
+		 * the freelist.
 		 */
 
 		xr->head = ptr_diff(end, start);	/* Necessarily fits */
