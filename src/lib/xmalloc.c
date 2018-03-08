@@ -65,8 +65,10 @@
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
 #include "elist.h"
+#include "endian.h"			/* For UINT32_ROTL() */
 #include "erbtree.h"
 #include "evq.h"
+#include "hashing.h"
 #include "log.h"
 #include "mem.h"			/* For mem_is_valid_ptr() */
 #include "mempcpy.h"
@@ -386,6 +388,8 @@ struct xchunk {
 	unsigned xc_size;			/* Object size */
 	unsigned xc_stid;			/* Thread STID owning this page */
 	unsigned xc_capacity;		/* Amount of items we can allocate  */
+	uint32 xc_tag;				/* Tag value derived from above 3 fields */
+	uint32 xc_cksum;			/* Checksum of previous 4 header fields */
 	unsigned xc_count;			/* Free items held */
 	unsigned xc_free_offset;	/* Offset of first free item in page */
 	struct xchunkhead *xc_head;	/* Chunk header */
@@ -3572,42 +3576,83 @@ xmalloc_is_malloc(void)
 }
 
 /**
+ * Compute checksum of the "constant" part of the chunk header.
+ */
+static inline uint32
+xmalloc_chunk_checksum(const struct xchunk *xck)
+{
+	return
+		xck->xc_stid +
+		UINT32_ROTL(xck->xc_size, 10) +
+		UINT32_ROTL(xck->xc_tag, 16) +
+		UINT32_ROTL(xck->xc_capacity, 20);
+}
+
+/**
+ * Compute tag (32-bit simple hash) for the chunk header.
+ */
+static inline uint32
+xmalloc_chunk_tag(const struct xchunk *xck)
+{
+	/*
+	 * We roughly know the data ranges for each of these variables,
+	 * all positive:
+	 *
+	 * 		xc_size <= XM_THREAD_MAXSIZE (512)
+	 * 		xc_stid < THREAD_MAX (64)
+	 *		xc_capacity <= 4096 / 8 = 512
+	 *
+	 * This makes the tag we compute below completely unique for a valid chunk,
+	 * with no collision possible.
+	 *
+	 * Now of course when computing the tag over a random buffer, where none
+	 * of the values are constrained, we can get a collision.
+	 */
+
+	return
+		UINT32_ROTL(xck->xc_size, 10) +
+		UINT32_ROTL(xck->xc_stid, 24) +
+		xck->xc_capacity;
+}
+
+/**
  * Validate that pointer is the start of what appears to be a valid chunk.
  */
-static bool
+static bool G_HOT
 xmalloc_chunk_is_valid(const struct xchunk *xck)
 {
-	const struct xchunkhead *ch;
+	/*
+	 * Collision avoidance is impossible, but we are trying to make them highly
+	 * unlikely -- if it happens, this will create a memory corruption at
+	 * runtime, but what are the actual chances?
+	 *
+	 * The start of the page must bear the chunk magic tag (32-bit value),
+	 * the computed tag must match what is being stored there (collisions
+	 * possible when dealing with random values) and the checksum (computed
+	 * again by mixing the same chunk values differently plus the tag) must
+	 * also match.
+	 *
+	 * At the tag level, 96 bits are "hashed" into 32 bits.  There are 2^(96-32)
+	 * collisions to be expected, i.e. 2^64 (amount of different values that
+	 * are going to hash to the same tag).
+	 *
+	 * To minimize the risk, we check that the values are within the expected
+	 * boundaries, without disrupting the execution flow with too many branches
+	 * (hence the summing of boolean values).
+	 */
 
-	if (XCHUNK_MAGIC != xck->magic)
-		return FALSE;
-
-	if (0 == xck->xc_size || xck->xc_size > XM_THREAD_MAXSIZE)
-		return FALSE;
-
-	if (xmalloc_round(xck->xc_size) != xck->xc_size)
-		return FALSE;
-
-	if (xck->xc_stid >= XM_THREAD_COUNT)
-		return FALSE;
-
-	if (xck->xc_count > xck->xc_capacity)
-		return FALSE;
-
-	ch = &xchunkhead[xch_find_chunkhead_index(xck->xc_size)][xck->xc_stid];
-	if (xck->xc_head != ch)
-		return FALSE;
-
-	if (xck->xc_capacity != (xmalloc_pagesize - sizeof *xck) / xck->xc_size)
-		return FALSE;
-
-	if (xck->xc_free_offset != 0 && xck->xc_free_offset < sizeof *xck)
-		return FALSE;
-
-	if (xck->xc_free_offset > xmalloc_pagesize - xck->xc_size)
-		return FALSE;
-
-	return TRUE;
+	return
+		XCHUNK_MAGIC == xck->magic &&		/* Fastest discriminent */
+		5 == (
+			/* All these boolean expressions must be TRUE(1) for a valid chunk */
+			(xck->xc_stid < XM_THREAD_COUNT) +
+			(xck->xc_size <= XM_THREAD_MAXSIZE) +
+			(xck->xc_size != 0) +
+			(xmalloc_round(xck->xc_size) == xck->xc_size) +
+			(xck->xc_capacity < 4096 / XMALLOC_ALIGNBYTES)	/* 4096 = page size */
+		) &&
+		xmalloc_chunk_tag(xck) == xck->xc_tag &&
+		xmalloc_chunk_checksum(xck) == xck->xc_cksum;
 }
 
 #ifdef XMALLOC_CHUNK_SAFETY
@@ -3777,6 +3822,16 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	xck->xc_stid = stid;
 	xck->xc_capacity = xck->xc_count = capacity;
 	xck->xc_free_offset = offset;
+
+	/*
+	 * This is used as a sanity check to validate that the chunk structure
+	 * is that of a valid chunk.
+	 */
+
+	xck->xc_tag = xmalloc_chunk_tag(xck);
+	xck->xc_cksum = xmalloc_chunk_checksum(xck);
+
+	g_assert(xmalloc_chunk_is_valid(xck));
 
 	xmalloc_chunk_cram(xck);
 	XSTATS_INCX(vmm_thread_pages);
