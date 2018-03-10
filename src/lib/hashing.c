@@ -58,7 +58,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define rotl(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
+#define rotl(x, k) UINT32_ROTL(x, k)	/* Shortcut for this file */
 
 /**
  * Hashing of pointers.
