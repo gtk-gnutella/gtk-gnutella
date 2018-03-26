@@ -1845,9 +1845,15 @@ tmalloc_create(const char *name, size_t size,
 
 	/*
 	 * Using the tmalloc() layer, register a crash hook.
+	 *
+	 * Use "safe" mode in case we end-up recursing here due to the fact
+	 * that tmalloc_crash_init_once() will require memory allocations!
+	 * It is perfectly OK then to skip the install of the crash hook if it is
+	 * already in progress earlier in our calling stack.
+	 * 		--RAM, 2018-03-26
 	 */
 
-	ONCE_FLAG_RUN(tmalloc_crash_inited, tmalloc_crash_init_once);
+	once_flag_run_safe(&tmalloc_crash_inited, tmalloc_crash_init_once);
 
 	/*
 	 * Once created, a thread magazine depot is never reclaimed, hence we
