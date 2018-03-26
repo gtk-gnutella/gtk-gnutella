@@ -4501,7 +4501,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 *		--RAM, 31/12/2001
 	 */
 
-	if (u->push && idx != u->file_index && GNET_PROPERTY(upload_debug)) {
+	if (
+		u->push && idx != u->file_index &&
+		GNET_PROPERTY(upload_debug) &&
+		0 != strcmp(u->name, shared_file_name_nfc(u->sf))
+	) {
 		g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->file_index, u->name, idx,
 				shared_file_name_nfc(u->sf));
