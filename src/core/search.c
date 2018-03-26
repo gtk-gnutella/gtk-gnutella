@@ -8716,6 +8716,16 @@ search_request_preprocess(gnutella_node_t *n,
 			 */
 
 			n->msg_flags |= NODE_M_EXT_CLEANUP | NODE_M_STRIP_GUESS;
+		} else {
+			/* Query relayed via TCP */
+			if G_UNLIKELY(seen_query_key && GNET_PROPERTY(guess_server_debug)) {
+				uint8 hops = gnutella_header_get_hops(&n->header) - 1;
+				g_warning(
+					"GUESS node %s %s TCP query #%s with GGEP QK (hops=%u)",
+					node_infostr(n),
+					0 == hops ? "sent" : "relayed",
+					guid_hex_str(gnutella_header_get_muid(&n->header)), hops);
+			}
 		}
 	}
 
