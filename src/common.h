@@ -661,6 +661,14 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 #define ZERO(x)		memset((x), 0, sizeof *(x))
 
 /**
+ * Generate argument list for the address of array `x' and its size, so that we
+ * can process the content of that variable.
+ *
+ * For instance, an array would be "char buf[12]" and we would use ARYLEN(buf).
+ */
+#define ARYLEN(x)		(x), sizeof(x)
+
+/**
  * Generate argument list for the address of `x' and its size, so that we can
  * process the content of that variable.
  *
