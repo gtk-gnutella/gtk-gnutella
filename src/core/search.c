@@ -6946,8 +6946,7 @@ search_oob_pending_results(
 {
 	search_ctrl_t *sch;
 	struct array token_opaque;
-	uint32 token;
-	uint32 kept;
+	uint32 token, kept, threshold;
 	unsigned ask;
 
 	g_assert(NODE_IS_UDP(n));
@@ -7076,15 +7075,18 @@ search_oob_pending_results(
 	/*
 	 * If we got more than 15% of our maximum amount of shown results,
 	 * then we have a very popular query here.  We don't really need
-	 * to get more results, ignore.
+	 * to get all the results: randomly ignore.
 	 *
 	 * Exception is made for "What's New?" searches of course since by
 	 * definition we need to grab all the hits that come back.
 	 */
 
+	threshold = search_max_results_for_ui(sch) * 0.15;
+
 	if (
 		!sbool_get(sch->whats_new) &&
-		kept > search_max_results_for_ui(sch) * 0.15
+		kept > threshold &&
+		random_value(999) > (uint32) (501.0 * threshold / kept)
 	) {
 		if (GNET_PROPERTY(search_debug)) {
 			g_debug("ignoring %d %s%sOOB hit%s for query #%s (already got %u) "
