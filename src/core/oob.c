@@ -281,8 +281,9 @@ results_timeout(cqueue_t *cq, void *obj)
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
-		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
+		g_debug("OOB query #%s, no ACK from %s to %sclaim %d hit%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
+			r->reliable ? "reliably " : "",
 			r->count, plural(r->count));
 	}
 
@@ -581,9 +582,9 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
-		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
+		g_debug("OOB query #%s: host %s wants %d hit%s, %sdelivering %d",
 			guid_hex_str(r->muid), node_addr(n), wanted, plural(wanted),
-			deliver_count);
+			r->reliable ? "reliably " : "", deliver_count);
 	}
 
 	if (deliver_count) {
