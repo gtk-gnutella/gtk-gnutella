@@ -425,7 +425,7 @@ guid_is_gtkg(const guid_t *guid, uint8 *majp, uint8 *minp, bool *relp)
 bool
 guid_is_requery(const guid_t *guid)
 {
-	return (peek_u8(&guid->v[15]) & GUID_REQUERY) ? TRUE : FALSE;
+	return booleanize(peek_u8(&guid->v[15]) & GUID_REQUERY);
 }
 
 /**
