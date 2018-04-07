@@ -2767,11 +2767,11 @@ stats_array_dump(FILE *f, struct afiller *filler)
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?
-			0 : hash_table_size(st->alloc_frames);
+			0 : hash_table_count(st->alloc_frames);
 		free_stacks = st->free_frames == NULL ?
-			0 : hash_table_size(st->free_frames);
+			0 : hash_table_count(st->free_frames);
 		realloc_stacks = st->realloc_frames == NULL ?
-			0 : hash_table_size(st->realloc_frames);
+			0 : hash_table_count(st->realloc_frames);
 #else
 		alloc_stacks = free_stacks = realloc_stacks = 0;
 #endif
@@ -2816,7 +2816,7 @@ alloc_dump(FILE *f, bool total)
 	struct afiller filler;
 	time_t now;
 
-	count = hash_table_size(stats);
+	count = hash_table_count(stats);
 
 	if (count == 0)
 		return;
@@ -2934,7 +2934,7 @@ malloc_glib12_check(void)
 #if !GLIB_CHECK_VERSION(2,0,0)
 	{
 		void *p;
-		size_t old_size = hash_table_size(reals);
+		size_t old_size = hash_table_count(reals);
 
 		/*
 		 * Check whether the remapping is effective. This may not be
@@ -2942,7 +2942,7 @@ malloc_glib12_check(void)
 		 * for example.
 		 */
 		p = g_strdup("");
-		if (hash_table_size(reals) == old_size) {
+		if (hash_table_count(reals) == old_size) {
 			static GMemVTable zero_vtable;
 			s_warning("resetting g_mem_set_vtable()");
 			g_mem_set_vtable(&zero_vtable);

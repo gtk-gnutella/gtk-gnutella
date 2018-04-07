@@ -11862,7 +11862,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
 	info->locks = thread_element_lock_count(te);
-	info->private_vars = NULL == te->pht ? 0 : hash_table_size(te->pht);
+	info->private_vars = NULL == te->pht ? 0 : hash_table_count(te->pht);
 	info->local_vars = thread_local_count(te);
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;

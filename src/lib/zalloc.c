@@ -1782,7 +1782,7 @@ found:
 	spinunlock(&zget_slk);
 
 	if (zalloc_debugging(1)) {
-		size_t count = hash_table_size(zt);
+		size_t count = hash_table_count(zt);
 		size_t buckets = hash_table_buckets(zt);
 		double clustering = hash_table_clustering(zt);
 		s_info("clustering in zalloc()'s zone table is %F for %zu/%zu items "
@@ -1908,7 +1908,7 @@ zclose(void)
 #ifdef MALLOC_FRAMES
 	if (zalloc_frames != NULL) {
 		extern void hash_table_destroy_real(hash_table_t *ht);
-		size_t frames = hash_table_size(zalloc_frames);
+		size_t frames = hash_table_count(zalloc_frames);
 		s_message("zalloc() tracked %zu distinct stack frame%s",
 			frames, plural(frames));
 		hash_table_destroy_real(zalloc_frames);
@@ -1917,18 +1917,18 @@ zclose(void)
 #endif
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 	if (not_leaking != NULL) {
-		size_t blocks = hash_table_size(not_leaking);
+		size_t blocks = hash_table_count(not_leaking);
 		s_message("zalloc() had %zu block%s registered as not-leaking",
 			blocks, plural(blocks));
 		hash_table_destroy(not_leaking);
 		not_leaking = NULL;
 	}
 	if (alloc_used_to_real != NULL) {
-		size_t blocks = hash_table_size(alloc_used_to_real);
+		size_t blocks = hash_table_count(alloc_used_to_real);
 		s_message("zalloc() had %zu block%s registered for address shifting",
 			blocks, plural(blocks));
 		hash_table_destroy(alloc_used_to_real);
-		if (hash_table_size(alloc_real_to_used) != blocks) {
+		if (hash_table_count(alloc_real_to_used) != blocks) {
 			s_warning("zalloc() had count mismatch in address shifting tables");
 		}
 		hash_table_destroy(alloc_real_to_used);
@@ -3301,7 +3301,7 @@ zgc(bool overloaded)
 
 	if (zalloc_debugging(3)) {
 		s_debug("ZGC iterating over %u zones (%u in GC mode)",
-			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt));
+			(unsigned) hash_table_count(zt), atomic_uint_get(&zgc_zone_cnt));
 	}
 
 	zgc_context.subzone_freed = overloaded ? ZGC_SUBZONE_OVERBASE : 0;
@@ -3327,7 +3327,7 @@ zgc(bool overloaded)
 		tm_t end;
 		tm_now_exact(&end);
 		s_debug("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
-			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt),
+			(unsigned) hash_table_count(zt), atomic_uint_get(&zgc_zone_cnt),
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
@@ -3603,10 +3603,10 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	 */
 
 	hash_table_lock(zt);
-	zcount = hash_table_size(zt);
+	zcount = hash_table_count(zt);
 	XMALLOC_ARRAY(fill->array, zcount);
-	while (hash_table_size(zt) != zcount) {
-		zcount = hash_table_size(zt);
+	while (hash_table_count(zt) != zcount) {
+		zcount = hash_table_count(zt);
 		XREALLOC_ARRAY(fill->array, zcount);
 	}
 	fill->capacity = zcount;
@@ -3753,7 +3753,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zone_count = %s",
-		size_t_to_string(NULL == zt ? 0 : hash_table_size(zt)));
+		size_t_to_string(NULL == zt ? 0 : hash_table_count(zt)));
 
 	ZSTATS_LOCK;
 	stats = zstats;			/* struct copy under lock protection */

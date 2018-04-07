@@ -373,8 +373,8 @@ win32dlp_scan_modules(void)
 	}
 
 	win32dlp_debugf("registered %zu initially loaded module%s",
-		hash_table_size(win32dlp_loaded),
-		plural(hash_table_size(win32dlp_loaded)));
+		hash_table_count(win32dlp_loaded),
+		plural(hash_table_count(win32dlp_loaded)));
 }
 
 /**
@@ -1296,7 +1296,7 @@ win32dlp_init(void *reserved, size_t size)
 	win32dlp_debug("scanning and patching loaded modules...");
 
 	win32dlp_scan_modules();
-	WIN32DLP_STATS_ADDX(modules_initial, hash_table_size(win32dlp_loaded));
+	WIN32DLP_STATS_ADDX(modules_initial, hash_table_count(win32dlp_loaded));
 	win32dlp_patch_loaded_modules();
 
 	win32dlp_debug("enabling foreign malloc() blocks...");
