@@ -5500,11 +5500,7 @@ fi_pick_chunk(fileinfo_t *fi)
 			 */
 
 			aligned = offset & ~file_info_align_mask;
-
-			if (aligned >= fc->from)
-				offset = aligned;
-			else
-				offset = fc->from;
+			offset = MAX(aligned, fc->from);
 
 			candidate = fc;
 			goto selected;
