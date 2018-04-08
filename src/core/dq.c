@@ -602,7 +602,7 @@ dq_pmsg_by_ttl(dquery_t *dq, int ttl)
 	t = dq->mb;					/* Our "template" */
 	len = pmsg_size(t);
 	db = pdata_new(len);
-	memcpy(pdata_start(db), pmsg_start(t), len);
+	memcpy(pdata_start(db), pmsg_phys_base(t), len);
 
 	/*
 	 * Patch the TTL in the new data buffer.
@@ -859,7 +859,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	pslist_t *nodes;
 
 	dquery_check(dq);
-	head = cast_to_constpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_phys_base(dq->mb));
 
 	/*
 	 * NB: In order to avoid qrt_build_query_target() selecting neighbouring
@@ -1007,7 +1007,7 @@ dq_free(dquery_t *dq)
 		bool found;
 
 		found = htable_lookup_extended(by_muid,
-				gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
+				gnutella_header_get_muid(pmsg_phys_base(dq->mb)), &key, &value);
 
 		if (found) {		/* Could be missing if a MUID conflict occurred */
 			if (value == dq) {	/* Make sure it's for us in case of conflicts */
@@ -1204,7 +1204,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 	 */
 
 	vmsg_send_qstat_req(n,
-		dq->lmuid ? dq->lmuid : gnutella_header_get_muid(pmsg_start(dq->mb)));
+		dq->lmuid ? dq->lmuid : gnutella_header_get_muid(pmsg_phys_base(dq->mb)));
 
 	/*
 	 * Compute the timout using the available ping-pong round-trip
@@ -1752,7 +1752,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the MUID of this query, warning if a conflict occurs.
 	 */
 
-	head = cast_to_constpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_phys_base(dq->mb));
 	muid = gnutella_header_get_muid(head);
 
 	if (htable_lookup_extended(by_muid, muid, NULL, &value)) {
@@ -1791,7 +1791,7 @@ dq_common_init(dquery_t *dq)
 		const void *packet;
 		uint16 flags;
 
-		packet = pmsg_start(dq->mb);
+		packet = pmsg_phys_base(dq->mb);
 		flags = gnutella_msg_search_get_flags(packet);
 
 		g_debug("DQ[%s] created for node #%s: TTL=%d max_results=%d "
@@ -2084,13 +2084,13 @@ dq_launch_net(
 	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
 		const void *packet;
 
-		packet = pmsg_start(dq->mb);
+		packet = pmsg_phys_base(dq->mb);
 		record_query_string(gnutella_header_get_muid(packet),
 			gnutella_msg_search_get_text(packet), sri->media_types);
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
-		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		const char *qstr = gnutella_msg_search_get_text(pmsg_phys_base(dq->mb));
 		char *safe_qstr = hex_escape(qstr, FALSE);
 		g_debug("DQ %s #%s (%s leaf-guidance) %s%squeries \"%s\" "
 			"for %u hits",
@@ -2178,9 +2178,9 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->flags = DQ_F_ROUTING_HITS | DQ_F_LOCAL;		/* We get our own hits! */
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
-		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		const char *qstr = gnutella_msg_search_get_text(pmsg_phys_base(dq->mb));
 		char *safe_qstr = hex_escape(qstr, FALSE);
-		uint16 qflags = gnutella_msg_search_get_flags(pmsg_start(dq->mb));
+		uint16 qflags = gnutella_msg_search_get_flags(pmsg_phys_base(dq->mb));
 		g_debug("DQ local %squeries \"%s\" for %u hits",
 			(qflags & QUERY_F_OOB_REPLY) ?  "OOB-" : "",
 			safe_qstr, dq->max_results);
@@ -2199,7 +2199,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 ignore:
 	if (GNET_PROPERTY(dq_debug))
 		g_warning("ignoring local dynamic query \"%s\": %s",
-			gnutella_msg_search_get_text(pmsg_start(mb)), msg);
+			gnutella_msg_search_get_text(pmsg_phys_base(mb)), msg);
 
 	pmsg_free(mb);
 	qhvec_free(qhv);

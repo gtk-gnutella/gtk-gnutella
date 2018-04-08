@@ -349,7 +349,7 @@ dump_packet_from_to(struct dump *dump,
 
 	g_assert(to != NULL);
 	g_assert(mb != NULL);
-	g_assert(pmsg_read_base(mb) == pmsg_start(mb));
+	g_assert(pmsg_is_unread(mb));
 
 	if (!dump_initialize(dump))
 		return;
@@ -358,7 +358,7 @@ dump_packet_from_to(struct dump *dump,
 	 * This is only for Gnutella packets, leave DHT messages out.
 	 */
 
-	if (GTA_MSG_DHT == gnutella_header_get_function(pmsg_start(mb)))
+	if (GTA_MSG_DHT == gnutella_header_get_function(pmsg_phys_base(mb)))
 		return;
 
 	if (!ipset_contains_addr(&dump_tx_to_addrs, to->addr, TRUE))
@@ -385,7 +385,7 @@ dump_packet_from_to(struct dump *dump,
 
 	dump_append(dump, dh_to.data, sizeof dh_to.data);
 	dump_append(dump, dh_from.data, sizeof dh_from.data);
-	dump_append(dump, pmsg_read_base(mb), pmsg_size(mb));
+	dump_append(dump, pmsg_start(mb), pmsg_size(mb));
 	dump_flush(dump);
 }
 

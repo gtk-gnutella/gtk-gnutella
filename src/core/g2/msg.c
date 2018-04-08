@@ -354,7 +354,7 @@ g2_msg_search_get_text(const pmsg_t *mb)
 	const g2_tree_t *t;
 
 	t = g2_frame_deserialize(
-			pmsg_start(mb), pmsg_written_size(mb), NULL, FALSE);
+			pmsg_phys_base(mb), pmsg_written_size(mb), NULL, FALSE);
 
 	if (NULL == t) {
 		return NULL;
@@ -470,7 +470,7 @@ g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), fmt, args);
+	g2_msg_log_dropped(pmsg_phys_base(mb), pmsg_written_size(mb), fmt, args);
 	va_end(args);
 }
 

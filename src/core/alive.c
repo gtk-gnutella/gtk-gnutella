@@ -188,7 +188,7 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 {
 	const gnutella_node_t *n = mq_node(q);
 	alive_t *a = n->alive_pings;
-	const struct guid *muid = cast_to_guid_ptr_const(pmsg_start(mb));
+	const struct guid *muid = cast_to_guid_ptr_const(pmsg_phys_base(mb));
 
 	g_assert(gnutella_header_get_function(muid) == GTA_MSG_INIT);
 
@@ -235,7 +235,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 				g_debug("ALIVE sent ping to %s", node_infostr(n));
 			} else {
 				g_debug("ALIVE sent ping #%s to %s",
-					guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
+					guid_hex_str(cast_to_guid_ptr_const(pmsg_phys_base(mb))),
 					node_infostr(n));
 			}
 		}
@@ -245,7 +245,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 
 		g_assert(a->node == n);
 
-		muid = NODE_TALKS_G2(n) ? NULL : cast_to_guid_ptr(pmsg_start(mb));
+		muid = NODE_TALKS_G2(n) ? NULL : cast_to_guid_ptr(pmsg_phys_base(mb));
 
 		if (GNET_PROPERTY(alive_debug)) {
 			if (NODE_TALKS_G2(n)) {

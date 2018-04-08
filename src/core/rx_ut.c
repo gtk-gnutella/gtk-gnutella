@@ -399,7 +399,7 @@ ut_header_read(pmsg_t *mb, struct ut_header *header)
 
 	g_assert(pmsg_size(mb) >= UDP_RELIABLE_HEADER_SIZE);
 
-	p = pmsg_read_base(mb);
+	p = pmsg_start(mb);
 	header->seqno = udp_reliable_header_get_seqno(p);
 	header->flags = udp_reliable_header_get_flags(p);
 	header->part  = udp_reliable_header_get_part(p) - 1;	/* Zero-based */

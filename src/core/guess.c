@@ -4208,7 +4208,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 			gnet_stats_inc_general(GNR_GUESS_ULTRA_QUERIED);
 			if (GNET_PROPERTY(guess_client_debug) > 4) {
 				g_debug("GUESS QUERY[%s] sent %s to %s",
-					nid_to_string(&gq->gid), gmsg_infostr(pmsg_start(mb)),
+					nid_to_string(&gq->gid), gmsg_infostr(pmsg_phys_base(mb)),
 					gnet_host_to_string(pmi->host));
 			}
 		}
@@ -4716,7 +4716,7 @@ guess_query_dump(const guess_t *gq, const gnutella_node_t *n, const pmsg_t *mb)
 	str_t *s = str_private(G_STRFUNC, 80);
 
 	str_printf(s, "GUESS query \"%s\" to %s", gq->query, node_infostr(n));
-	dump_hex(stderr, str_2c(s), pmsg_start(mb), pmsg_written_size(mb));
+	dump_hex(stderr, str_2c(s), pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 /**

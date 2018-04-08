@@ -233,7 +233,8 @@ vmsg_send_reply(gnutella_node_t *n, pmsg_t *mb)
 {
 	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
 		g_debug("VMSG sending %s to %s",
-			gmsg_infostr_full(pmsg_start(mb), pmsg_size(mb)), node_infostr(n));
+			gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)),
+			node_infostr(n));
 	}
 
 	if (NODE_IS_UDP(n))
@@ -1440,7 +1441,7 @@ handle_time_sync_reply(gnutella_node_t *n,
 static bool
 vmsg_time_sync_req_stamp(const pmsg_t *mb, const void *unused_q)
 {
-	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
+	struct guid *muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 	tm_t old, now;
 
 	(void) unused_q;
@@ -1510,7 +1511,7 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 	*payload = ntp ? 0x1 : 0x0;				/* bit0 indicates NTP */
 
 	mb = gmsg_to_ctrl_pmsg(v_tmp, msgsize);	/* Send as quickly as possible */
-	muid = cast_to_guid_ptr(pmsg_start(mb));
+	muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 
 	/*
 	 * The first 8 bytes of the MUID are used to store the time at which
@@ -1545,7 +1546,7 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 static bool
 vmsg_time_sync_reply_stamp(const pmsg_t *mb, const void *unused_q)
 {
-	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
+	struct guid *muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 	tm_t now;
 
 	(void) unused_q;
@@ -1592,7 +1593,7 @@ vmsg_send_time_sync_reply(gnutella_node_t *n, bool ntp, tm_t *got)
 	payload = poke_be32(payload, got->tv_usec);
 
 	mb = gmsg_to_ctrl_pmsg(v_tmp, msgsize);	/* Send as quickly as possible */
-	muid = pmsg_start(mb);					/* MUID of the reply */
+	muid = pmsg_phys_base(mb);				/* MUID of the reply */
 
 	/*
 	 * Propagate first half of the MUID, which is the time at which
@@ -1666,7 +1667,7 @@ void
 vmsg_send_udp_crawler_pong(gnutella_node_t *n, pmsg_t *mb)
 {
 	uint32 msgsize;
-	uint32 paysize = pmsg_size(mb);
+	uint32 paysize = pmsg_written_size(mb);
 	char *payload;
 
 	g_assert(NODE_IS_UDP(n));
@@ -1677,7 +1678,7 @@ vmsg_send_udp_crawler_pong(gnutella_node_t *n, pmsg_t *mb)
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
 
-	memcpy(payload, pmsg_start(mb), paysize);
+	memcpy(payload, pmsg_phys_base(mb), paysize);
 
 	udp_send_msg(n, v_tmp, msgsize);
 

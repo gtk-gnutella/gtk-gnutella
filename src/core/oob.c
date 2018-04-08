@@ -405,9 +405,9 @@ servent_service(struct gservent *s, cqueue_t *cq)
 
 	if (GNET_PROPERTY(udp_debug) > 19)
 		g_debug("UDP queuing OOB %s to %s for #%s",
-			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)),
+			gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)),
 			gnet_host_to_string(s->host),
-			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
+			guid_hex_str(cast_to_guid_ptr_const(pmsg_phys_base(mb))));
 
 	/*
 	 * Count enqueued deflated payloads, only when server was marked as
@@ -415,7 +415,7 @@ servent_service(struct gservent *s, cqueue_t *cq)
 	 */
 
 	if (s->can_deflate) {
-		if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+		if (gnutella_header_get_ttl(pmsg_phys_base(mb)) & GTA_UDP_DEFLATED)
 			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	}
 

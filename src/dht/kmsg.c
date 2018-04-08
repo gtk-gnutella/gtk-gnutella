@@ -343,8 +343,8 @@ static void
 kmsg_build_header_pmsg(pmsg_t *mb,
 	uint8 op, uint8 major, uint8 minor, const guid_t *muid)
 {
-	kmsg_build_header((void *) pmsg_start(mb), op, major, minor, muid);
-	kademlia_header_set_size(pmsg_start(mb),
+	kmsg_build_header((void *) pmsg_phys_base(mb), op, major, minor, muid);
+	kademlia_header_set_size(pmsg_phys_base(mb),
 		pmsg_phys_len(mb) - KDA_HEADER_SIZE);
 }
 
@@ -452,7 +452,7 @@ k_send_pong(gnutella_node_t *n, const guid_t *muid)
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + 40);
 
-	header = (kademlia_header_t *) pmsg_start(mb);
+	header = (kademlia_header_t *) pmsg_phys_base(mb);
 	/* Size unknown yet */
 	kmsg_build_header(header, KDA_MSG_PING_RESPONSE, 0, 0, muid);
 
@@ -515,7 +515,7 @@ k_send_find_node_response(
 
 	mb = pmsg_new(PMSG_P_DATA, NULL, KDA_HEADER_SIZE + 906);
 
-	header = (kademlia_header_t *) pmsg_start(mb);
+	header = (kademlia_header_t *) pmsg_phys_base(mb);
 	kmsg_build_header(header, KDA_MSG_FIND_NODE_RESPONSE, 0, 0, muid);
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
@@ -620,7 +620,7 @@ k_send_find_value_response(
 
 	mb = pmsg_new(PMSG_P_URGENT, NULL, MAX_VALUE_RESPONSE_SIZE);
 
-	header = (kademlia_header_t *) pmsg_start(mb);
+	header = (kademlia_header_t *) pmsg_phys_base(mb);
 	kmsg_build_header(header, KDA_MSG_FIND_VALUE_RESPONSE, 0, 0, muid);
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
@@ -774,7 +774,7 @@ k_send_store_response(
 
 	mb = pmsg_new(PMSG_P_CONTROL, NULL, MAX_STORE_RESPONSE_SIZE);
 
-	header = (kademlia_header_t *) pmsg_start(mb);
+	header = (kademlia_header_t *) pmsg_phys_base(mb);
 	kmsg_build_header(header, KDA_MSG_STORE_RESPONSE, 0, 0, muid);
 
 	pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
@@ -1750,20 +1750,20 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 	if (NULL == n) {
 		/* E.g. we're given an IPv6 node address but IPv6 support is off */
 		if (GNET_PROPERTY(dht_debug)) {
-			int len = pmsg_size(mb);
+			int len = pmsg_written_size(mb);
 			g_debug("DHT discarding %s (%d bytes) to %s",
-				kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn));
+				kmsg_infostr(pmsg_phys_base(mb)), len, knode_to_string(kn));
 		}
 		pmsg_free(mb);
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_debug) > 3) {
-		int len = pmsg_size(mb);
+		int len = pmsg_written_size(mb);
 		g_debug("DHT sending %s (%d bytes) to %s, RTT=%u",
-			kmsg_infostr(pmsg_start(mb)), len, knode_to_string(kn), kn->rtt);
+			kmsg_infostr(pmsg_phys_base(mb)), len, knode_to_string(kn), kn->rtt);
 		if (GNET_PROPERTY(dht_trace) & SOCK_TRACE_OUT)
-			dump_hex(stderr, "UDP datagram", pmsg_start(mb), len);
+			dump_hex(stderr, "UDP datagram", pmsg_phys_base(mb), len);
 	}
 
 	kn->last_sent = tm_time();
@@ -1866,7 +1866,7 @@ kmsg_send_find_value(knode_t *kn, const kuid_t *id, dht_value_type_t type,
 static void
 store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
 {
-	uint8 function = kademlia_header_get_function(pmsg_start(mb));
+	uint8 function = kademlia_header_get_function(pmsg_phys_base(mb));
 
 	g_assert(KDA_MSG_STORE_REQUEST == function);
 
@@ -1879,7 +1879,7 @@ store_finalize_pmsg(pmsg_t *mb, int values_held, pmsg_offset_t value_count)
 	}
 
 	/* Adjust Kademlia header size -- message block can be larger */
-	kademlia_header_set_size(pmsg_start(mb),
+	kademlia_header_set_size(pmsg_phys_base(mb),
 		pmsg_written_size(mb) - KDA_HEADER_SIZE);
 }
 
@@ -1963,7 +1963,7 @@ kmsg_build_store(const void *token, size_t toklen, dht_value_t **vvec, int vcnt)
 			 * get patched at the end in store_finalize_pmsg().
 			 */
 
-			header = (kademlia_header_t *) pmsg_start(mb);
+			header = (kademlia_header_t *) pmsg_phys_base(mb);
 			kmsg_build_header(header, KDA_MSG_STORE_REQUEST, 0, 0, &blank_guid);
 			pmsg_seek(mb, KDA_HEADER_SIZE);		/* Start of payload */
 			pmsg_write_u8(mb, toklen);

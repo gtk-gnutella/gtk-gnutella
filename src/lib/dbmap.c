@@ -175,7 +175,7 @@ dbmap_sdbm_store_superblock(const dbmap_t *dm)
 	/* Was large enough */
 	g_assert(pmsg_phys_len(mb) > UNSIGNED(pmsg_size(mb)));
 
-	value.dptr = pmsg_start(mb);
+	value.dptr = deconstify_pointer(pmsg_start(mb));
 	value.dsize = pmsg_size(mb);
 
 	if (-1 == sdbm_store(sdbm, key, value, DBM_REPLACE)) {

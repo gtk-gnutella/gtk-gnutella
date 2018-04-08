@@ -162,7 +162,7 @@ pmsg_check_consistency(const pmsg_t * const mb)
 }
 
 static inline char *
-pmsg_start(const pmsg_t *mb)
+pmsg_phys_base(const pmsg_t *mb)
 {
 	pmsg_check_consistency(mb);
 	pdata_check(mb->m_data);
@@ -208,7 +208,7 @@ pmsg_is_unread(const pmsg_t *mb)
 }
 
 static inline const char *
-pmsg_read_base(const pmsg_t *mb)
+pmsg_start(const pmsg_t *mb)
 {
 	pmsg_check_consistency(mb);
 	return mb->m_rptr;

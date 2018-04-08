@@ -355,7 +355,7 @@ again:
 
 	q->putq_entered++;
 
-	mbs = pmsg_start(mb);
+	mbs = pmsg_phys_base(mb);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	if (q->uops->msg_queued != NULL)

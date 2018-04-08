@@ -245,7 +245,7 @@ dh_pmsg_free(pmsg_t *mb, void *arg)
 
 	g_assert(pmsg_is_extended(mb));
 
-	muid = gnutella_header_get_muid(pmsg_start(mb));
+	muid = gnutella_header_get_muid(pmsg_phys_base(mb));
 	dh = dh_locate(muid);
 
 	if (dh == NULL)
@@ -526,7 +526,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 			mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
 					src->size + GTA_HEADER_SIZE);
 
-			if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+			if (gnutella_header_get_ttl(pmsg_phys_base(mb)) & GTA_UDP_DEFLATED)
 				gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 		} else {
 			mb = gmsg_split_to_pmsg(&src->header, src->data,

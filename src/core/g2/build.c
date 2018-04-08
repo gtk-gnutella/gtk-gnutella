@@ -128,7 +128,7 @@ g2_build_pmsg_prio(const g2_tree_t *t, int prio, pmsg_free_t freecb, void *arg)
 		mb = pmsg_new(prio, NULL, len);
 	else
 		mb = pmsg_new_extend(prio, NULL, len, freecb, arg);
-	g2_frame_serialize(t, pmsg_start(mb), len);
+	g2_frame_serialize(t, pmsg_phys_base(mb), len);
 	pmsg_seek(mb, len);
 
 	g_assert(UNSIGNED(pmsg_size(mb)) == len);

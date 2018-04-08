@@ -827,8 +827,8 @@ soap_rpc_launch(cqueue_t *cq, void *obj)
 	 */
 
 	post.content_type = SOAP_CONTENT_TYPE;
-	post.data = pmsg_start(sr->mb);
-	post.datalen = pmsg_size(sr->mb);
+	post.data = pmsg_phys_base(sr->mb);
+	post.datalen = pmsg_written_size(sr->mb);
 	post.data_free = NULL;
 	post.data_free_arg = NULL;
 

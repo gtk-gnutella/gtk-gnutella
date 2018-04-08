@@ -881,7 +881,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			g_assert(size > 0);
 			held += size;
 
-			iovec_set(&iov[i], deconstify_pointer(pmsg_read_base(mb)), size);
+			iovec_set(&iov[i], deconstify_pointer(pmsg_start(mb)), size);
 		}
 		slist_iter_free(&iter);
 	} else {

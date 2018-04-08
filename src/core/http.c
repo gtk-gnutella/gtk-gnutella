@@ -2446,7 +2446,7 @@ http_data_ind(rxdrv_t *rx, pmsg_t *mb)
 	if (NULL == mb)
 		return http_got_data(ha, NULL, 0);
 
-	ok = http_got_data(ha, pmsg_read_base(mb), pmsg_size(mb));
+	ok = http_got_data(ha, pmsg_start(mb), pmsg_size(mb));
 	pmsg_free(mb);
 
 	return ok;

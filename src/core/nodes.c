@@ -3994,9 +3994,9 @@ static void
 node_msg_accounting(void *o, const pmsg_t *mb)
 {
 	gnutella_node_t *n = o;
-	char *mb_start = pmsg_start(mb);
+	char *mb_start = pmsg_phys_base(mb);
 	uint8 function = gmsg_function(mb_start);
-	int mb_size = pmsg_size(mb);
+	int mb_size = pmsg_written_size(mb);
 
 	node_check(n);
 	g_assert(!NODE_TALKS_G2(n));
@@ -4022,7 +4022,7 @@ static void
 node_msg_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 {
 	gnutella_node_t *n = o;
-	char *mb_start = pmsg_start(mb);
+	char *mb_start = pmsg_phys_base(mb);
 	uint8 function = gmsg_function(mb_start);
 	int mb_size = pmsg_written_size(mb);
 
@@ -4050,7 +4050,7 @@ node_g2_ut_accounting(void *o, const pmsg_t *mb, const gnet_host_t *to)
 {
 	gnutella_node_t *n = o;
 	int mb_size = pmsg_written_size(mb);
-	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
+	enum g2_msg type = g2_msg_type(pmsg_phys_base(mb), mb_size);
 
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));
@@ -4072,7 +4072,7 @@ node_g2_msg_accounting(void *o, const pmsg_t *mb)
 {
 	gnutella_node_t *n = o;
 	int mb_size = pmsg_written_size(mb);
-	enum g2_msg type = g2_msg_type(pmsg_start(mb), mb_size);
+	enum g2_msg type = g2_msg_type(pmsg_phys_base(mb), mb_size);
 
 	node_check(n);
 	g_assert(NODE_TALKS_G2(n));
@@ -4219,19 +4219,19 @@ node_msg_flowc(void *unused_node, const pmsg_t *mb)
 {
 	(void) unused_node;
 
-	gnet_stats_count_flowc(pmsg_start(mb), FALSE);
+	gnet_stats_count_flowc(pmsg_phys_base(mb), FALSE);
 }
 
 static void
 node_msg_queued(void *node, const pmsg_t *mb)
 {
 	const gnutella_node_t *n = node;
-	const char *mbs = pmsg_start(mb);
+	const char *mbs = pmsg_phys_base(mb);
 	uint8 function = gmsg_function(mbs);
 
 	node_check(n);
 
-	gnet_stats_count_queued(n, function, mbs, pmsg_size(mb));
+	gnet_stats_count_queued(n, function, mbs, pmsg_written_size(mb));
 }
 
 static void
@@ -4241,7 +4241,7 @@ node_g2_msg_flowc(void *node, const pmsg_t *mb)
 
 	node_check(n);
 
-	gnet_stats_g2_count_flowc(n, pmsg_start(mb), pmsg_size(mb));
+	gnet_stats_g2_count_flowc(n, pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 static void
@@ -4251,7 +4251,7 @@ node_g2_msg_queued(void *node, const pmsg_t *mb)
 
 	node_check(n);
 
-	gnet_stats_g2_count_queued(n, pmsg_start(mb), pmsg_size(mb));
+	gnet_stats_g2_count_queued(n, pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 static int
@@ -8227,10 +8227,10 @@ node_pseudo_get_from_mb(pmsg_t *mb, const gnet_host_t *from)
 	node_check(n);
 
 	if (pmsg_size(mb) >= GTA_HEADER_SIZE) {
-		const gnutella_header_t *head = deconstify_pointer(pmsg_read_base(mb));
+		const gnutella_header_t *head = deconstify_pointer(pmsg_start(mb));
 		n->size = gmsg_size(head);
 		pmsg_read(mb, n->header, sizeof n->header);
-		n->data = deconstify_pointer(pmsg_read_base(mb));
+		n->data = deconstify_pointer(pmsg_start(mb));
 	} else {
 		ZERO(&n->header);
 		n->data = NULL;
@@ -9967,7 +9967,7 @@ node_udp_g2_data_ind(rxdrv_t *unused_rx, pmsg_t *mb, const gnet_host_t *from)
 	 */
 
 	n->size = pmsg_size(mb);
-	n->data = deconstify_pointer(pmsg_read_base(mb));
+	n->data = deconstify_pointer(pmsg_start(mb));
 
 	n->received++;
 	gnet_stats_count_received_payload(n, n->data);
@@ -13634,7 +13634,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 
 	db = rxbuf_new();
 	mb = pmsg_alloc(PMSG_P_DATA, db, 0, 3);		/* 3 bytes of header */
-	payload = (uchar *) pmsg_start(mb);
+	payload = (uchar *) pmsg_phys_base(mb);
 
 	/*
 	 * The first 3 bytes of the payload are:

@@ -1020,7 +1020,7 @@ ut_frag_hook(const pmsg_t *mb)
 
 do_not_send:
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, NULL == um ? NULL : um->to)) {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 		uint16 seqno = udp_reliable_header_get_seqno(pdu);
 
@@ -1173,7 +1173,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 		pmi->attempts++;
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
-			const void *pdu = pmsg_start(mb);
+			const void *pdu = pmsg_phys_base(mb);
 			udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 			uint16 seqno = udp_reliable_header_get_seqno(pdu);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
@@ -1225,7 +1225,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 
 			return;
 		} else {
-			const void *pdu = pmsg_start(mb);
+			const void *pdu = pmsg_phys_base(mb);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
 
 			if (flags & (UDP_RF_CUMULATIVE_ACK | UDP_RF_EXTENDED_ACK))
@@ -1234,7 +1234,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 				gnet_stats_inc_general(GNR_UDP_SR_TX_PLAIN_ACKS_DROPPED);
 		}
 	} else {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		uint8 flags = udp_reliable_header_get_flags(pdu);
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
@@ -1404,7 +1404,7 @@ ut_ack_send(pmsg_t *mb)
 	ut_attr_check(attr);
 
 	if (tx_ut_debugging(TX_UT_DBG_SEND, pmi->to)) {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 		uint16 seqno = udp_reliable_header_get_seqno(pdu);
 		uint8 fragno = udp_reliable_header_get_part(pdu);
@@ -1478,7 +1478,7 @@ ut_pending_send(struct attr *attr)
 			ut_pmsg_info_check(pmi);
 
 			if (tx_ut_debugging(TX_UT_DBG_SEND, pmi->to)) {
-				const void *pdu = pmsg_start(mb);
+				const void *pdu = pmsg_phys_base(mb);
 				udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 				uint16 seqno = udp_reliable_header_get_seqno(pdu);
 				uint8 fragno = udp_reliable_header_get_part(pdu);
@@ -1787,7 +1787,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	 */
 
 	pdulen = pmsg_size(mb);
-	pdu = pmsg_read_base(mb);
+	pdu = pmsg_start(mb);
 
 	if (pdulen > 5 && !pmsg_is_compressed(mb))
 		deflated = ut_deflate(attr, &pdu, &pdulen);

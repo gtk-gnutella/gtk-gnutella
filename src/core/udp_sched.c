@@ -468,7 +468,7 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 
 	if (NULL == bio) {
 		udp_sched_log(4, "%p: discarding mb=%p (%d bytes) to %s",
-			us, mb, pmsg_size(mb), gnet_host_to_string(to));
+			us, mb, pmsg_written_size(mb), gnet_host_to_string(to));
 		return udp_tx_drop(tx, cb);		/* TRUE, for "sent" */
 	}
 
@@ -476,16 +476,16 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 * OK, proceed if we have bandwidth.
 	 */
 
-	r = bio_sendto(bio, to, pmsg_start(mb), len);
+	r = bio_sendto(bio, to, pmsg_phys_base(mb), len);
 
 	if (r < 0) {		/* Error, or no bandwidth */
 		if (udp_sched_write_error(us, to, mb, G_STRFUNC)) {
 			udp_sched_log(4, "%p: dropped mb=%p (%d bytes): %m",
-				us, mb, pmsg_size(mb));
+				us, mb, pmsg_written_size(mb));
 			return udp_tx_drop(tx, cb);	/* TRUE, for "sent" */
 		}
 		udp_sched_log(3, "%p: no bandwidth for mb=%p (%d bytes)",
-			us, mb, pmsg_size(mb));
+			us, mb, pmsg_written_size(mb));
 		us->used_all = TRUE;
 		return FALSE;
 	}

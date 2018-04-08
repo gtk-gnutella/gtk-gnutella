@@ -749,7 +749,7 @@ qlink_cmp(const void *a, const void *b, void *data)
 
 	if (pmsg_prio(m1) == pmsg_prio(m2)) {
 		const mqueue_t *q = data;
-		return q->uops->msg_cmp(pmsg_start(m1), pmsg_start(m2));
+		return q->uops->msg_cmp(pmsg_phys_base(m1), pmsg_phys_base(m2));
 	} else
 		return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
@@ -1136,14 +1136,14 @@ make_room_internal(mqueue_t *q,
 			continue;
 
 		cmb = item->data;
-		cmb_start = pmsg_start(cmb);
+		cmb_start = pmsg_phys_base(cmb);
 
 		/*
 		 * Any partially written message, however unimportant, cannot be
 		 * removed or we'd break the flow of messages.
 		 */
 
-		if (pmsg_read_base(cmb) != cmb_start)	/* Started to write it  */
+		if (pmsg_start(cmb) != cmb_start)	/* Started to write it  */
 			continue;
 
 		/*
@@ -1258,7 +1258,7 @@ make_room_internal(mqueue_t *q,
 static bool
 make_room(mqueue_t *q, const pmsg_t *mb, int needed, int *offset)
 {
-	const char *header = pmsg_start(mb);
+	const char *header = pmsg_phys_base(mb);
 	uint prio = pmsg_prio(mb);
 	size_t msglen = pmsg_written_size(mb);
 
@@ -1299,7 +1299,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	if (
 		(q->flags & MQ_FLOWC) &&
 		has_normal_prio &&
-		gmsg_can_drop(pmsg_start(mb), msize) &&
+		gmsg_can_drop(pmsg_phys_base(mb), msize) &&
 		((make_room_called = TRUE)) &&			/* Call make_room() once only */
 		!make_room(q, mb, msize, &qlink_offset)
 	) {

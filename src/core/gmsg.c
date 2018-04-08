@@ -343,7 +343,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	{
 		void *header;
 
-		header = pmsg_start(mb);
+		header = pmsg_phys_base(mb);
 		gnutella_header_set_ttl(header,
 			gnutella_header_get_ttl(header) | GTA_UDP_DEFLATED);
 		gnutella_header_set_size(header, deflated_length);
@@ -479,10 +479,10 @@ gmsg_split_to_pmsg_extend(const void *head, const void *data,
 void
 gmsg_mb_sendto_all(const pslist_t *sl, pmsg_t *mb)
 {
-	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(pmsg_phys_base(mb), pmsg_written_size(mb));
 
-	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
-		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_phys_base(mb)) == 0)
+		gmsg_dump(stdout, pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *dn = sl->data;
@@ -504,13 +504,13 @@ gmsg_mb_routeto_one(const gnutella_node_t *from,
 {
 	g_assert(!NODE_TALKS_G2(to));
 	g_assert(!pmsg_was_sent(mb));
-	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	if (!NODE_IS_WRITABLE(to))
 		return;
 
-	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
-		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_phys_base(mb)) == 0)
+		gmsg_dump(stdout, pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	if (NODE_IS_UDP(to)) {
 		gnet_host_t host;
@@ -893,7 +893,7 @@ static bool
 gmsg_query_can_send(const pmsg_t *mb, const void *q)
 {
 	gnutella_node_t *n = mq_node(q);
-	const void *msg = pmsg_start(mb);
+	const void *msg = pmsg_phys_base(mb);
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
 
@@ -923,7 +923,7 @@ gmsg_query_can_send(const pmsg_t *mb, const void *q)
 void
 gmsg_install_presend(pmsg_t *mb)
 {
-	const void *msg = pmsg_start(mb);
+	const void *msg = pmsg_phys_base(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
 		pmsg_set_check(mb, gmsg_query_can_send);
@@ -1526,7 +1526,7 @@ gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 	char rbuf[256];
 	char buf[128];
 
-	gmsg_infostr_full_to_buf(pmsg_start(mb), pmsg_written_size(mb),
+	gmsg_infostr_full_to_buf(pmsg_phys_base(mb), pmsg_written_size(mb),
 		buf, sizeof buf);
 
 	if (reason) {

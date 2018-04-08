@@ -317,7 +317,7 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 			pmsg_reset(dw->mb);
 			(*dw->pack)(dw->mb, value->data);
 
-			dval.data = pmsg_start(dw->mb);
+			dval.data = deconstify_pointer(pmsg_start(dw->mb));
 			dval.len = pmsg_size(dw->mb);
 
 			/*

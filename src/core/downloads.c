@@ -1614,7 +1614,7 @@ buffers_match(const struct download *d, const char *data, size_t len)
 
 		n = pmsg_size(mb);
 		n = MIN(n, len);
-		if (0 != memcmp(pmsg_read_base(mb), data, n)) {
+		if (0 != memcmp(pmsg_start(mb), data, n)) {
 			break;
 		}
 		data += n;
