@@ -45,6 +45,7 @@
 #include "ctl.h"
 #include "downloads.h"
 #include "dump.h"
+#include "fileinfo.h"			/* For file_info_set_minchunksize() */
 #include "guess.h"
 #include "hcache.h"
 #include "hosts.h"
@@ -2961,6 +2962,17 @@ configured_dht_mode_changed(property_t prop)
 }
 
 static bool
+dl_minchunksize_changed(property_t prop)
+{
+    uint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	file_info_set_minchunksize(val);
+
+	return FALSE;
+}
+
+static bool
 download_rx_size_changed(property_t prop)
 {
     uint32 val;
@@ -3406,6 +3418,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_DHT_CONFIGURED_MODE,
 		configured_dht_mode_changed,
+		TRUE,
+	},
+	{
+		PROP_DL_MINCHUNKSIZE,
+		dl_minchunksize_changed,
 		TRUE,
 	},
 	{

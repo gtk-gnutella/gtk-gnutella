@@ -89,6 +89,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/rbtree.h"
@@ -126,6 +127,8 @@
  */
 #define FI_OFFSET_BOUNDARY		((filesize_t) 128 * 1024)
 #define FI_OFFSET_ALIGNMASK		(FI_OFFSET_BOUNDARY - 1)
+
+static uint32 file_info_align_mask = FI_OFFSET_ALIGNMASK;
 
 enum dl_file_chunk_magic { DL_FILE_CHUNK_MAGIC = 0x563b483d };
 
@@ -237,6 +240,31 @@ enum dl_file_info_field {
 
 #define FI_STORE_DELAY		60	/**< Max delay (secs) for flushing fileinfo */
 #define FI_TRAILER_INT		6	/**< Amount of uint32 in the trailer */
+
+/**
+ * Update the minimum download chunksize.
+ *
+ * We use this information to try to force the start of downloaded chunks on
+ * a natural boundary, compatible with that minimum chunk size.
+ */
+void
+file_info_set_minchunksize(uint32 val)
+{
+	if (is_pow2(val)) {
+		if (val <= FI_OFFSET_BOUNDARY)
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		else
+			file_info_align_mask = val - 1;
+	} else {
+		uint32 p2 = next_pow2(val);
+
+		if (p2 <= 2 * FI_OFFSET_BOUNDARY) {
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		} else {
+			file_info_align_mask = p2 / 2 - 1;
+		}
+	}
+}
 
 /**
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -5260,7 +5288,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 			length = end - start;
 			length -= size;
 			offset = start + get_random_file_offset(length);
-			offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
+			offset &= ~file_info_align_mask;	/* Align on natural boundary */
 			offset = MAX(offset, start);
 
 			g_assert(offset >= candidate->from && offset <= candidate->to);
@@ -5462,7 +5490,7 @@ fi_pick_chunk(fileinfo_t *fi)
 			 */
 
 			offset += fc->from;			/* Absolute file offset */
-			aligned = offset & ~FI_OFFSET_ALIGNMASK;
+			aligned = offset & ~file_info_align_mask;
 			if (aligned >= fc->from)
 				offset = aligned;
 
