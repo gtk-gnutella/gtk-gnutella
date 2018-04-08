@@ -5346,18 +5346,19 @@ fi_pick_chunk(fileinfo_t *fi)
 		const struct dl_file_chunk *fc;
 
 		/*
-		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
+		 * Check whether first chunks cover at least "pfsp_first_chunk" bytes
 		 * long.  If not, return that first chunk.
 		 */
 
-		fc = eslist_head(&fi->chunklist);		/* First chunk */
-		dl_file_chunk_check(fc);
+		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
+			dl_file_chunk_check(fc);
 
-		if (
-			DL_CHUNK_DONE != fc->status ||
-			fc->to < GNET_PROPERTY(pfsp_first_chunk)
-		)
-			return fc;
+			if (fc->from >= GNET_PROPERTY(pfsp_first_chunk))
+				break;		/* Already past the first "pfsp_first_chunk" bytes */
+
+			if (DL_CHUNK_EMPTY == fc->status)
+				return fc;
+		}
 	}
 
 	if (GNET_PROPERTY(pfsp_last_chunk) > 0) {
