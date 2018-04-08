@@ -48,7 +48,7 @@ void keys_close(void);
 
 bool keys_exists(const kuid_t *key);
 bool keys_is_store_loaded(const kuid_t *id);
-void keys_get_status(const kuid_t *id, bool *full, bool *loaded);
+void keys_get_status(const kuid_t *id, bool *full, bool *loaded, bool can_expire);
 uint64 keys_has(const kuid_t *id, const kuid_t *cid, bool store);
 void keys_add_value(const kuid_t *id, const kuid_t *cid,
 	uint64 dbkey, time_t expire);

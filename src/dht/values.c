@@ -1209,7 +1209,7 @@ validate_load(const dht_value_t *v)
 	bool full;
 	bool loaded;
 
-	keys_get_status(v->id, &full, &loaded);
+	keys_get_status(v->id, &full, &loaded, TRUE);
 
 	if (full && loaded)
 		return STORE_SC_FULL_LOADED;
@@ -2000,9 +2000,15 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 	/*
 	 * Ensure key is not full.  If the database is corrupted, then we may
 	 * attempt to load more values than the key can hold.
+	 *
+	 * NOTE: we do not allow key expiration to kick-in whilst we reload
+	 * values from the database.  That could create re-entrant queries on
+	 * the databases we are iterating over currently, and create assertion
+	 * failures.
+	 * 		--RAM, 2018-04-08
 	 */
 
-	keys_get_status(&vd->id, &full, &loaded);
+	keys_get_status(&vd->id, &full, &loaded, FALSE);
 
 	if (full) {
 		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: full key!",

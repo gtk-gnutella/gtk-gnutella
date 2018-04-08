@@ -529,12 +529,16 @@ discard_key:
 
 /**
  * Get key status (full and loaded boolean attributes).
+ *
+ * @param id			the key
+ * @param full			where we write whether key is full
+ * @param loaded		where we write whether key is loaded (too many requests)
+ * @param can_expire	where we can expire values from key
  */
 void
-keys_get_status(const kuid_t *id, bool *full, bool *loaded)
+keys_get_status(const kuid_t *id, bool *full, bool *loaded, bool can_expire)
 {
 	struct keyinfo *ki;
-	time_t now;
 
 	g_assert(id);
 	g_assert(full);
@@ -584,11 +588,13 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 	 * to avoid disabling a `ki' within a call chain using it.
 	 */
 
-	now = tm_time();
+	if (can_expire) {
+		time_t now = tm_time();
 
-	if (now >= ki->next_expire) {
-		if (!keys_expire_values(ki, now))
-			return;		/* Key info reclaimed */
+		if (now >= ki->next_expire) {
+			if (!keys_expire_values(ki, now))
+				return;		/* Key info reclaimed */
+		}
 	}
 
 	if (ki->values >= MAX_VALUES)
