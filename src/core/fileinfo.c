@@ -5481,18 +5481,30 @@ fi_pick_chunk(fileinfo_t *fi)
 
 			/*
 			 * Found our chunk.
-			 *
+			 */
+
+			offset += fc->from;			/* Absolute file offset */
+
+			/*
 			 * Try to align the starting offset to a natural boundary.
 			 *
 	 		 * The aim of the alignment is to avoid having too many small empty
 	 		 * chunks in the list (chunks of a few bytes), which would necessarily
 	 		 * happen after a while if we kept the random offsets as-is.
+			 *
+			 * If we cannot align (alignment falls before the beginning of
+			 * the chunk) then start at the beginning of the chunk to avoid
+			 * creating a small gap between the start of the chunk and the place
+			 * where we will start downloading (gap which is necessarily smaller
+			 * than our alignment requirement).
 			 */
 
-			offset += fc->from;			/* Absolute file offset */
 			aligned = offset & ~file_info_align_mask;
+
 			if (aligned >= fc->from)
 				offset = aligned;
+			else
+				offset = fc->from;
 
 			candidate = fc;
 			goto selected;
