@@ -5332,12 +5332,15 @@ done:
  * We also strive to get the latest "pfsp_last_chunk" bytes of the file as
  * well, since some file formats store important information at the tail of
  * the file as well, so we can select some of the latest chunks.
+ *
+ * @return the selected chunk (which may not be necessarily EMPTY)
  */
 static const struct dl_file_chunk *
 fi_pick_chunk(fileinfo_t *fi)
 {
-	filesize_t offset = 0;
+	filesize_t offset = 0, empty = 0;
 	slink_t *sl;
+	const struct dl_file_chunk *candidate = NULL;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -5378,31 +5381,26 @@ fi_pick_chunk(fileinfo_t *fi)
 		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 			dl_file_chunk_check(fc);
 
-			if (DL_CHUNK_DONE == fc->status)
+			if (DL_CHUNK_EMPTY != fc->status)
 				continue;
 
-			if (fc->from < last_chunk_offset && fc->to <= last_chunk_offset)
+			if (fc->to <= last_chunk_offset)
 				continue;
 
 			offset = fc->from < last_chunk_offset
 				? last_chunk_offset
 				: fc->from;
-			break;
+			candidate = fc;
+			goto selected;
 		}
 	}
 
 	/*
-	 * Only choose a random offset if the default value of "0" was not
-	 * forced to something else above.
-	 */
-
-	if (0 == offset) {
-		offset = get_random_file_offset(fi->size);
-		offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
-	}
-
-	/*
-	 * Pick the first chunk whose start is after the offset.
+	 * Pick a random empty chunk.
+	 *
+	 * To avoid any bias, we compute the amount of data belonging to empty
+	 * chunks, pick a random number in that range and then select the chunk
+	 * where this random number falls into.
 	 */
 
 	ESLIST_FOREACH(&fi->chunklist, sl) {
@@ -5410,58 +5408,113 @@ fi_pick_chunk(fileinfo_t *fi)
 
 		dl_file_chunk_check(fc);
 
-		if (fc->from >= offset)
-			return fc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-		/*
-		 * If offset lies within a free chunk, it will get split below.
-		 * So exit without selecting anything yet.
-		 */
-
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset)
-			break;
+		empty += fc->to - fc->from;		/* Sums "empty" data */
 	}
 
 	/*
-	 * If we have not picked anything, it means we have encountered a big chunk
-	 * and the selected offset lies within that chunk.
-	 * Be smarter and break-up any free chunk into two at the selected offset.
+	 * If there are no empty chunks, then return the head of the list.
+	 *
+	 * It does not matter that the chunk be not empty, our caller only uses
+	 * our returned value as a starting point to iterate (in a circular manner)
+	 * over the list of chunks.
 	 */
 
+	if G_UNLIKELY(0 == empty)
+		return eslist_head(&fi->chunklist);
+
+	/*
+	 * The random offset chosen among the amount of empty data is going to
+	 * become the point within that set of data we miss where we would want
+	 * to start downloading.
+	 *
+	 * To find the chunk to which that point belong, we need to iterate
+	 * again over the list of chunks, decreasing the offset until we reach
+	 * an offset whose value falls within the length of the current chunk.
+	 */
+
+	offset = get_random_file_offset(empty);
+
 	ESLIST_FOREACH(&fi->chunklist, sl) {
-		struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		filesize_t len;
 
 		dl_file_chunk_check(fc);
 
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset) {
-			struct dl_file_chunk *nfc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-			g_assert(fc->from < offset);	/* Or we'd have cloned above */
-			g_assert(fc->download == NULL);	/* Chunk is empty */
+		len = fc->to - fc->from;
+
+		if (offset < len) {
+			filesize_t aligned;
 
 			/*
-			 * fc was [from, to[.  It becomes [from, offset[.
-			 * nfc is [offset, to[ and is inserted after fc.
+			 * Found our chunk.
+			 *
+			 * Try to align the starting offset to a natural boundary.
+			 *
+	 		 * The aim of the alignment is to avoid having too many small empty
+	 		 * chunks in the list (chunks of a few bytes), which would necessarily
+	 		 * happen after a while if we kept the random offsets as-is.
 			 */
 
-			nfc = dl_file_chunk_alloc();
-			nfc->from = offset;
-			nfc->to = fc->to;
-			nfc->status = DL_CHUNK_EMPTY;
-			fc->to = nfc->from;
+			offset += fc->from;			/* Absolute file offset */
+			aligned = offset & ~FI_OFFSET_ALIGNMASK;
+			if (aligned >= fc->from)
+				offset = aligned;
 
-			eslist_insert_after(&fi->chunklist, fc, nfc);
-			return nfc;
+			candidate = fc;
+			goto selected;
 		}
+
+		offset -= len;		/* Skipping over this empty chunk */
+	}
+
+	g_assert_not_reached();	/* Must have found the randomly selected chunk */
+
+selected:
+	/*
+	 * We come here with "candidate" set to the selected chunk and "offset"
+	 * set to the value where we need to start requesting within that chunk.
+	 */
+
+	dl_file_chunk_check(candidate);
+	g_assert(DL_CHUNK_EMPTY == candidate->status);
+	g_assert(offset >= candidate->from && offset < candidate->to);
+	g_assert(NULL == candidate->download);	/* Chunk is empty */
+
+	/*
+	 * If the offset is not at the start of the chunk, split the chunk at
+	 * the specified offset.
+	 */
+
+	if (offset != candidate->from) {
+		struct dl_file_chunk *fc, *nfc;
+
+		/*
+		 * candidate was [from, to[.  It becomes [from, offset[.
+		 * nfc is [offset, to[ and is inserted after candidate, then
+		 * becomes the candidate.
+		 */
+
+		fc = deconstify_pointer(candidate);
+
+		nfc = dl_file_chunk_alloc();
+		nfc->from = offset;
+		nfc->to = fc->to;
+		nfc->status = DL_CHUNK_EMPTY;
+		fc->to = nfc->from;
+
+		eslist_insert_after(&fi->chunklist, fc, nfc);
+		candidate = nfc;
 	}
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	/*
-	 * If still no luck, never mind.  Use first chunk.
-	 */
-
-	return eslist_head(&fi->chunklist);
+	return candidate;
 }
 
 /**
