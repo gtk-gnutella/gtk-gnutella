@@ -161,7 +161,7 @@ bigint_zero(bigint_t *bi)
 /**
  * Is big integer zero?
  */
-gboolean
+bool
 bigint_is_zero(const bigint_t *bi)
 {
 	const struct bigint *b = BIGINT(bi);

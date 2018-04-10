@@ -58,7 +58,7 @@ void bigint_init(bigint_t *bi, size_t len);
 void bigint_free(bigint_t *bi);
 void bigint_zero(bigint_t *bi);
 void bigint_copy(bigint_t *res, const bigint_t *other);
-gboolean bigint_is_zero(const bigint_t *bi);
+bool bigint_is_zero(const bigint_t *bi);
 int bigint_cmp(const bigint_t *bi1, const bigint_t *bi2);
 void bigint_set32(bigint_t *bi, uint32 val);
 void bigint_set64(bigint_t *bi, uint64 val);
