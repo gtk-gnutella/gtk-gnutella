@@ -1285,6 +1285,9 @@ entropy_self_feed_maybe(SHA1_context *ctx)
  *
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
+ *
+ * @note
+ * As a side effect, this routine seeds a random value into "entropy_previous".
  */
 static void G_COLD
 entropy_seed(struct entropy_minictx *c)
@@ -1453,6 +1456,35 @@ entropy_seed(struct entropy_minictx *c)
 
 	tm_precise_time(&now);
 	SHA1_INPUT(&ctx, now);
+
+	/*
+	 * Before initializing the KISS PRNG, initialize a random number
+	 * as previous entropy.
+	 *
+	 * This variable is used to perturb the entropy we are generating by
+	 * summing all the entropy we generated so far.  Better seed it with a
+	 * random value that will remain unknown and unpredictable.
+	 *
+	 * We know that this routine will be called once, the first time we need
+	 * a random number during entropy computations, when we call
+	 * entropy_minirand().  At that time, entropy_previous must be zero.
+	 */
+
+	{
+		bigint_t v;
+		bigint_use(&v, VARLEN(entropy_previous));
+		g_assert(bigint_is_zero(&v));
+	}
+
+	SHA1_intermediate(&ctx, &entropy_previous);		/* No need for lock */
+
+	entropy_delay();
+	tm_precise_time(&now);
+	SHA1_INPUT(&ctx, now);		/* Hide value in "entropy_previous" */
+
+	/*
+	 * Now seed the KISS PRNG.
+	 */
 
 	{
 		sha1_t hash;
