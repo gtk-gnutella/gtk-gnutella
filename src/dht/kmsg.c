@@ -1012,7 +1012,7 @@ k_handle_pong(knode_t *kn, gnutella_node_t *n,
 		memmove(&buf[KUID_RAW_SIZE - bytes], buf, bytes);
 		memset(buf, 0, KUID_RAW_SIZE - bytes);
 
-		bigint_use(&estimated, buf, sizeof buf);
+		bigint_use(&estimated, ARYLEN(buf));
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT node %s estimates DHT size to %s hosts",

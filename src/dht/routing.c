@@ -3591,7 +3591,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		bool saturated = FALSE;
 
 		kuid_xor_distance(&dix, id, kuid);
-		bigint_use(&dist, dix.v, sizeof dix.v);
+		bigint_use(&dist, VARLEN(dix));
 		bigint_copy(&tmp, &dist);	/* Result has 168 bits, not 160 */
 
 		/*
@@ -3881,7 +3881,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 			kuid_t di;
 			bigint_t dist;
 			kuid_xor_distance(&di, &prev, id); /* Between consecutive IDs */
-			bigint_use(&dist, di.v, sizeof di.v);
+			bigint_use(&dist, VARLEN(di));
 			bigint_add(&accum, &dist);
 			intervals++;
 			kuid_xor_distance(&di, &first, id);	/* With first ID */
@@ -4330,7 +4330,7 @@ dht_get_size_estimate(void)
 	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
-	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
+	bigint_use(&size, VARLEN(size_estimate));
 	bigint_set64(&size, stats.average.estimate);
 
 	return &size_estimate;

@@ -281,8 +281,8 @@ entropy_merge(sha1_t *digest)
 
 	ENTROPY_PREV_LOCK;
 
-	bigint_use(&older, &entropy_previous, SHA1_RAW_SIZE);
-	bigint_use(&newer, digest, SHA1_RAW_SIZE);
+	bigint_use(&older, VARLEN(entropy_previous));
+	bigint_use(&newer, PTRLEN(digest));
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
 
@@ -1526,8 +1526,8 @@ entropy_fold(sha1_t *digest, size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n < SHA1_RAW_SIZE);
 
-	bigint_use(&v, &result, SHA1_RAW_SIZE);
-	bigint_use(&h, digest, SHA1_RAW_SIZE);
+	bigint_use(&v, VARLEN(result));
+	bigint_use(&h, PTRLEN(digest));
 
 	bigint_zero(&v);
 
