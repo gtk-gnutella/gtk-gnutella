@@ -60,14 +60,14 @@ vector_length(const vector_t *vec)
 }
 
 static inline vector_t
-vector_create(void *base, size_t element_size, size_t num_elements)
+vector_create(const void *base, size_t element_size, size_t num_elements)
 {
 	vector_t vec;
 
-	g_assert(base || 0 == num_elements);
+	g_assert(base != NULL || 0 == num_elements);
 	g_assert(element_size > 0);
 
-	vec.base = base;
+	vec.base = deconstify_pointer(base);
 	vec.n = num_elements;
 	vec.element_size = element_size;
 	return vec;
@@ -101,14 +101,14 @@ vector_iter_previous(vector_iter_t *iter)
 	return &iter->vec->base[iter->i-- * iter->vec->element_size];
 }
 
-vector_t *vector_alloc(void *base, size_t element_size, size_t n);
+vector_t *vector_alloc(const void *base, size_t element_size, size_t n);
 void vector_free(vector_t **);
 
 vector_iter_t *vector_iterator(vector_t *);
 vector_iter_t *vector_iterator_tail(vector_t *);
 void vector_iter_release(vector_iter_t **);
 
-void vector_foreach(const vector_t *v, GFunc func, void *data);
+void vector_foreach(const vector_t *v, data_fn_t func, void *data);
 
 #endif	/* _vector_h_ */
 
