@@ -1214,13 +1214,13 @@ search_gui_find(gnet_search_t sh)
  * @return NULL if there's no filename extension, otherwise a pointer
  *         to a static string holding the lowercased extension.
  */
-const gchar *
+const char *
 search_gui_get_filename_extension(const gchar *filename_utf8)
 {
-	const gchar *p = strrchr(filename_utf8, '.');
-	static gchar ext[32];
+	const char *p = strrchr(filename_utf8, '.');
+	static char ext[32];
 
-	if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
+	if (NULL == p || utf8_strlower(ARYLEN(ext), &p[1]) >= sizeof ext) {
 		/* If the guessed extension is really this long, assume the
 		 * part after the dot isn't an extension at all. */
 		return NULL;

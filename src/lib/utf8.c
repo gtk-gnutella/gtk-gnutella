@@ -4620,13 +4620,14 @@ utf32_remap(uint32 *dst, const uint32 *src, size_t size,
  * The returned value is the length of the converted string ``src''
  * regardless of the ``size'' parameter.
  *
- * @param dst the target buffer
- * @param src an UTF-32 string
- * @param size the size of dst in bytes
+ * @param dst	the target buffer
+ * @param size	the size of dst in bytes
+ * @param src	an UTF-32 string
+ *
  * @return the length in characters of the converted string ``src''.
  */
 size_t
-utf32_strlower(uint32 *dst, const uint32 *src, size_t size)
+utf32_strlower(uint32 *dst, size_t size, const uint32 *src)
 {
 	g_assert(dst != NULL);
 	g_assert(src != NULL);
@@ -4641,13 +4642,14 @@ utf32_strlower(uint32 *dst, const uint32 *src, size_t size)
  * The returned value is the length of the converted string ``src''
  * regardless of the ``size'' parameter.
  *
- * @param dst the target buffer
- * @param src an UTF-32 string
- * @param size the size of dst in bytes
+ * @param dst	the target buffer
+ * @param size	the size of dst in bytes
+ * @param src	an UTF-32 string
+ *
  * @return the length in characters of the converted string ``src''.
  */
 size_t
-utf32_strupper(uint32 *dst, const uint32 *src, size_t size)
+utf32_strupper(uint32 *dst, size_t size, const uint32 *src)
 {
 	g_assert(size == 0 || dst != NULL);
 	g_assert(src != NULL);
@@ -4664,13 +4666,14 @@ utf32_strupper(uint32 *dst, const uint32 *src, size_t size)
  * regardless of the ``size'' parameter. ``src'' must be validly UTF-8
  * encoded, otherwise the string will be truncated.
  *
- * @param dst the target buffer
- * @param src an UTF-8 string
- * @param size the size of dst in bytes
+ * @param dst	the target buffer
+ * @param size	the size of dst in bytes
+ * @param src	an UTF-8 string
+ *
  * @return the length in bytes of the converted string ``src''.
  */
 size_t
-utf8_strlower(char *dst, const char *src, size_t size)
+utf8_strlower(char *dst, size_t size, const char *src)
 {
 	g_assert(size == 0 || dst != NULL);
 	g_assert(src != NULL);
@@ -4687,13 +4690,14 @@ utf8_strlower(char *dst, const char *src, size_t size)
  * regardless of the ``size'' parameter. ``src'' must be validly UTF-8
  * encoded, otherwise the string will be truncated.
  *
- * @param dst the target buffer
- * @param src an UTF-8 string
- * @param size the size of dst in bytes
+ * @param dst	the target buffer
+ * @param size	the size of dst in bytes
+ * @param src	an UTF-8 string
+ *
  * @return the length in bytes of the converted string ``src''.
  */
 size_t
-utf8_strupper(char *dst, const char *src, size_t size)
+utf8_strupper(char *dst, size_t size, const char *src)
 {
 	g_assert(dst != NULL);
 	g_assert(src != NULL);
@@ -4707,6 +4711,7 @@ utf8_strupper(char *dst, const char *src, size_t size)
  * characters to lowercase.
  *
  * @param src an UTF-8 string
+ *
  * @return a newly halloc()'ed buffer containing the lowercased string.
  */
 char *
@@ -4717,10 +4722,11 @@ utf8_strlower_copy(const char *src)
 
 	g_assert(src != NULL);
 
-	len = utf8_strlower(NULL, src, 0);
+	len = utf8_strlower(NULL, 0, src);
 	size = len + 1;
 	dst = halloc(size);
-	len = utf8_strlower(dst, src, size);
+	len = utf8_strlower(dst, size, src);
+
 	g_assert(size == len + 1);
 	g_assert(len == strlen(dst));
 
@@ -4732,21 +4738,22 @@ utf8_strlower_copy(const char *src)
  * characters to uppercase.
  *
  * @param src an UTF-8 string
- * @return a newly allocated buffer containing the uppercased string.
+ *
+ * @return a newly halloc()'ed buffer containing the uppercased string.
  */
 char *
 utf8_strupper_copy(const char *src)
 {
-	char c, *dst;
+	char *dst;
 	size_t len, size;
 
 	g_assert(src != NULL);
 
-	len = utf8_strupper(&c, src, sizeof c);
-	g_assert(c == '\0');
+	len = utf8_strupper(NULL, 0, src);
 	size = len + 1;
-	dst = g_malloc(size);
-	len = utf8_strupper(dst, src, size);
+	dst = halloc(size);
+	len = utf8_strupper(dst, size, src);
+
 	g_assert(size == len + 1);
 	g_assert(len == strlen(dst));
 
@@ -6223,7 +6230,7 @@ regression_utf8_strlower(void)
 		char buf[sizeof blah];
 		size_t len;
 
-		len = utf8_strlower(buf, blah, sizeof buf);
+		len = utf8_strlower(ARYLEN(buf), blah);
 		g_assert(len == CONST_STRLEN(blah));
 		g_assert(0 == strcmp(blah, buf));
 		g_assert(len == utf8_char_count(blah));
@@ -6239,14 +6246,14 @@ regression_utf8_strlower(void)
 		char *dst;
 		const char *src = cast_to_constpointer(s);
 
-		len = utf8_strlower(NULL, src, 0);
+		len = utf8_strlower(NULL, 0, src);
 		size = len + 1;
-		dst = g_malloc(size);
-		len = utf8_strlower(dst, src, size);
+		dst = halloc(size);
+		len = utf8_strlower(dst, size, src);
 		g_assert(len == size - 1);
 		g_assert(utf8_strlen(dst) == utf8_strlen(src));
 		g_assert(utf8_strlen(dst) == utf8_char_count(dst));
-		G_FREE_NULL(dst);
+		HFREE_NULL(dst);
 	}
 }
 
