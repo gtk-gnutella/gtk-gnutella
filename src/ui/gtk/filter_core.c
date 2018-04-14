@@ -46,7 +46,7 @@
 #include "if/core/search.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/cstr.h"
 #include "lib/halloc.h"
 #include "lib/hstrfn.h"
 #include "lib/parse.h"
@@ -1033,12 +1033,10 @@ filter_rule_condition_to_string(const rule_t *r)
             gchar smin[256], smax[256];
             gchar smin_64[UINT64_DEC_BUFLEN], smax_64[UINT64_DEC_BUFLEN];
 
-            g_strlcpy(smin,
-				short_size(r->u.size.lower, show_metric_units()),
-				sizeof smin);
-            g_strlcpy(smax,
-				short_size(r->u.size.upper, show_metric_units()),
-				sizeof smax);
+			cstr_bcpy(ARYLEN(smin),
+				short_size(r->u.size.lower, show_metric_units()));
+			cstr_bcpy(ARYLEN(smax),
+				short_size(r->u.size.upper, show_metric_units()));
 			uint64_to_string_buf(r->u.size.lower, ARYLEN(smin_64));
 			uint64_to_string_buf(r->u.size.upper, ARYLEN(smax_64));
 
@@ -1870,10 +1868,10 @@ filter_replace_rule_in_session(filter_t *f,
     g_assert(filter != NULL);
 
     if (GUI_PROPERTY(gui_debug) >= 4) {
-        gchar f1[4096];
-		const gchar *f2;
+        char f1[4096];
+		const char *f2;
 
-		g_strlcpy(f1, filter_rule_to_string(old_rule), sizeof f1);
+		cstr_bcpy(ARYLEN(f1), filter_rule_to_string(old_rule));
         f2 = filter_rule_to_string(new_rule);
 
         g_debug("replacing rules (old <- new): %s <- %s", f1, f2);

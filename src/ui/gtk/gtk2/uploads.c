@@ -45,7 +45,7 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/atoms.h"
-#include "lib/glib-missing.h"
+#include "lib/cstr.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
 #include "lib/iso3166.h"
@@ -265,13 +265,13 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	}
 
 	if (u->range_start != rd->range_start || u->range_end != rd->range_end) {
-		static gchar str[256];
+		static char str[256];
 
 		rd->range_start  = u->range_start;
 		rd->range_end  = u->range_end;
 
 		if (u->range_start == 0 && u->range_end == 0)
-			g_strlcpy(str, "...", sizeof str);
+			cstr_lcpy(ARYLEN(str), "...");
 		else {
 			range_len = str_bprintf(ARYLEN(str), "%s%s",
 				short_size(u->range_end - u->range_start + 1,
@@ -389,8 +389,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
         titles[c_ul_range] = range_tmp;
     }
 
-	g_strlcpy(size_tmp, short_size(u->file_size, show_metric_units()),
-		sizeof size_tmp);
+	cstr_bcpy(ARYLEN(size_tmp), short_size(u->file_size, show_metric_units()));
     titles[c_ul_size] = size_tmp;
 
    	titles[c_ul_agent] = u->user_agent ? u->user_agent : "...";

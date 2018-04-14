@@ -33,6 +33,7 @@
 #include "if/core/gnutella.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/cstr.h"
 #include "lib/entropy.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
@@ -122,7 +123,7 @@ pkt_stat_str(gchar *dst, size_t size, const guint64 *val_tbl,
 	gint type, gboolean perc)
 {
 	if (0 == val_tbl[type])
-		g_strlcpy(dst, "-", size);
+		cstr_bcpy(dst, size, "-");
 	else {
 		if (!perc)
 			uint64_to_string_buf(val_tbl[type], dst, size);
@@ -140,9 +141,9 @@ byte_stat_str(gchar *dst, gulong n, const guint64 *val_tbl,
 	gint type, gboolean perc)
 {
 	if (0 == val_tbl[type])
-		g_strlcpy(dst, "-", n);
+		cstr_bcpy(dst, n, "-");
 	else if (!perc)
-		g_strlcpy(dst, compact_size(val_tbl[type], show_metric_units()), n);
+		cstr_bcpy(dst, n, compact_size(val_tbl[type], show_metric_units()));
 	else
 		str_bprintf(dst, n, "%.2f%%",
 		    (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
@@ -155,7 +156,7 @@ drop_stat_str(gchar *dst, size_t size, const gnet_stats_t *stats, gint reason,
 	gint selected_type)
 {
 	if (stats->drop_reason[reason][selected_type] == 0)
-		g_strlcpy(dst, "-", size);
+		cstr_bcpy(dst, size, "-");
 	else
 		uint64_to_string_buf(stats->drop_reason[reason][selected_type],
 			dst, size);

@@ -40,9 +40,9 @@
 
 #include "ascii.h"
 #include "concat.h"
-#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
 #include "hstrfn.h"
+#include "misc.h"			/* For clamp_strcat() */
 #include "path.h"
 #include "random.h"
 #include "str.h"
@@ -88,7 +88,7 @@ filename_shrink(const char *filename, char *buf, size_t size)
 
 	/* Append the filename extension */
 	if (ext) {
-		g_strlcat(buf, ext, size);
+		clamp_strcat(buf, size, ext);
 	}
 
 	ret = strlen(buf);

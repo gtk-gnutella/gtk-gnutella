@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-236]
 : $X-Id$
 
 case $CONFIG in
@@ -170,6 +170,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	cstr.c \
 	dam.c \
 	dbmap.c \
 	dbmw.c \
@@ -372,6 +373,7 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	cstr.o \
 	dam.o \
 	dbmap.o \
 	dbmw.o \

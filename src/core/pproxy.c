@@ -66,6 +66,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
@@ -653,7 +654,7 @@ validate_vendor(char *vendor, char *token, const host_addr_t addr)
 			char name[1024];
 
 			name[0] = '!';
-			g_strlcpy(&name[1], vendor, sizeof name - 1);
+			cstr_bcpy(ARYPOSLEN(name, 1), vendor);
 			result = atom_str_get(name);
 		} else
 			result = atom_str_get(vendor);

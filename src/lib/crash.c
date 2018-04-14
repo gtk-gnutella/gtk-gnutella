@@ -83,6 +83,7 @@
 #include "compat_poll.h"
 #include "compat_usleep.h"
 #include "cq.h"
+#include "cstr.h"
 #include "eslist.h"
 #include "evq.h"
 #include "fast_assert.h"
@@ -604,7 +605,7 @@ crash_run_time(char *buf, size_t size)
 		return;
 
 	if (NULL == vars) {
-		g_strlcpy(buf, "0 s?", size);
+		cstr_lcpy(buf, size, "0 s?");
 		return;
 	}
 

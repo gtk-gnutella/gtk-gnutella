@@ -72,6 +72,7 @@
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
+#include "cstr.h"
 #include "debug.h"
 #include "dl_util.h"
 #include "dualhash.h"
@@ -2918,7 +2919,7 @@ get_special(int which, char *what)
 	if (E_INVALIDARG == ret) {
 		s_carp("%s: could not get the %s directory", G_STRFUNC, what);
 		/* ASCII is valid UTF-8 */
-		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
+		cstr_bcpy(ARYLEN(utf8_path), G_DIR_SEPARATOR_S);
 	}
 
 	result = constant_str(utf8_path);
@@ -3101,7 +3102,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 
 	personal = mingw_get_personal_path();
 
-	g_strlcpy(dest, personal, size);
+	cstr_bcpy(dest, size, personal);
 
 	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
 
@@ -3127,7 +3128,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	return dest;
 
 fallback:
-	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
+	cstr_bcpy(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
 	STARTUP_DEBUG("%s(): returning fallback dest=%s", G_STRFUNC, dest);
 	return dest;
@@ -5432,7 +5433,7 @@ mingw_uname(struct utsname *buf)
 
 	ZERO(buf);
 
-	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
+	cstr_bcpy(ARYLEN(buf->sysname), "Windows");
 
 	switch (mingw_proc_arch()) {
 	case PROCESSOR_ARCHITECTURE_AMD64:	cpu = "x64"; break;
@@ -5440,7 +5441,7 @@ mingw_uname(struct utsname *buf)
 	case PROCESSOR_ARCHITECTURE_INTEL:	cpu = "x86"; break;
 	default:							cpu = "unknown"; break;
 	}
-	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
+	cstr_bcpy(ARYLEN(buf->machine), cpu);
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
@@ -5755,7 +5756,7 @@ mingw_filename_nearby(const char *filename)
 		}
 
 		if (error)
-			g_strlcpy(pathname, G_DIR_SEPARATOR_S, buf_size(b));
+			cstr_bcpy(pathname, buf_size(b), G_DIR_SEPARATOR_S);
 
 		offset = filepath_basename(pathname) - pathname;
 	}
@@ -7597,7 +7598,7 @@ skip_init:
 	 */
 
 	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
-		g_strlcpy(buf_data(name), symbol->Name, buf_size(name));
+		cstr_bcpy(buf_data(name), buf_size(name), symbol->Name);
 		info->dli_sname = buf_data(name);	/* Thread-private buffer */
 		info->dli_saddr = ptr_add_offset(addr, -disp);
 	}

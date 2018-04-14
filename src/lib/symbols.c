@@ -44,9 +44,9 @@
 #include "base16.h"
 #include "bfd_util.h"
 #include "constants.h"
+#include "cstr.h"
 #include "eslist.h"
 #include "file.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
 #include "htable.h"
 #include "log.h"
@@ -655,7 +655,7 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 {
 	size_t namelen;
 
-	namelen = g_strlcpy(buf, name, buflen);
+	namelen = cstr_lcpy(buf, buflen, name);
 	if (namelen >= buflen - 2)
 		return;
 
@@ -743,7 +743,7 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			if (st->garbage) {
 				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
-				g_strlcpy(ptr, " (", sizeof ptr);
+				cstr_lcpy(ARYLEN(ptr), " (");
 				pointer_to_string_buf(pc, ARYPOSLEN(ptr, 2));
 				clamp_strcat(ARYLEN(ptr), ")");
 				clamp_strcat(b, sizeof buf[0], ptr);

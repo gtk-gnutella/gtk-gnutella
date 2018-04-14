@@ -52,6 +52,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/getline.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
@@ -1682,7 +1683,7 @@ http_async_remote_host_port(const http_async_t *ha)
 		if (s->port != HTTP_PORT)
 			str_bprintf(ARYLEN(buf), "%s:%u", ha->host, (uint) s->port);
 		else
-			g_strlcpy(buf, ha->host, sizeof buf);
+			cstr_bcpy(ARYLEN(buf), ha->host);
 	} else {
 		if (s->port != HTTP_PORT)
 			host_addr_port_to_string_buf(s->addr, s->port, ARYLEN(buf));

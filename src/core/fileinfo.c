@@ -71,6 +71,7 @@
 #include "lib/base32.h"
 #include "lib/concat.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -8243,7 +8244,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		return buf;
     } else if (0 == status->lifecount) {
-		g_strlcpy(buf, _("No sources"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("No sources"));
 		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
         str_bprintf(ARYLEN(buf),
@@ -8253,7 +8254,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
     } else if (status->paused) {
         return _("Paused");
     } else {
-		g_strlcpy(buf, _("Waiting"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("Waiting"));
 		/* FALL THROUGH */
     }
 

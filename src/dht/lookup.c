@@ -56,6 +56,7 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
@@ -2787,7 +2788,7 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	if (lookup_c_class_get_count(nl, kn) >= NL_MAX_IN_NET) {
 		const char *msg = "reached class-C net quota";
 		if (len != 0)
-			g_strlcpy(buf, msg, len);
+			cstr_bcpy(buf, len, msg);
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA;
 		goto unsafe;
 	} else if (

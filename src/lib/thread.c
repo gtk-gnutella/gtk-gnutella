@@ -92,6 +92,7 @@
 #include "constants.h"			/* For constant_str() */
 #include "cq.h"
 #include "crash.h"				/* For crash_hook_add(), print_str() et al. */
+#include "cstr.h"
 #include "dam.h"
 #include "dump_options.h"
 #include "entropy.h"
@@ -99,7 +100,6 @@
 #include "evq.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "log.h"
@@ -8034,7 +8034,7 @@ thread_lock_deadlock(const volatile void *lock)
 		char buf[128];
 		const char *name = thread_element_name_raw(towner);
 
-		g_strlcpy(buf, name, sizeof buf);
+		cstr_lcpy(ARYLEN(buf), name);
 
 		s_rawwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name_raw(te),

@@ -46,6 +46,7 @@
 #include "buf.h"
 #include "compat_misc.h"
 #include "concat.h"
+#include "cstr.h"
 #include "endian.h"
 #include "entropy.h"
 #include "halloc.h"
@@ -937,7 +938,7 @@ short_rate_to_string_buf(uint64 rate, bool metric, char *dst, size_t size)
 {
 	short_value(dst, size, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	return g_strlcat(dst, _("B/s"), size);
+	return clamp_strcat(dst, size, _("B/s"));
 }
 
 short_string_t
@@ -993,7 +994,7 @@ guid_to_string_buf(const guid_t *guid, char *dst, size_t size)
 {
 	if G_UNLIKELY(NULL == guid) {
 		/* Our constant string is 32-byte long */
-		return g_strlcpy(dst, "<------ null GUID pointer ----->", size);
+		return cstr_bcpy(dst, size, "<------ null GUID pointer ----->");
 	}
 
 	return bin_to_hex_buf(guid->v, GUID_RAW_SIZE, dst, size);

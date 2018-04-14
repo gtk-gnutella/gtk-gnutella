@@ -93,6 +93,7 @@
 #include "lib/atoms.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/dbus_util.h"
 #include "lib/dualhash.h"
 #include "lib/endian.h"
@@ -4973,7 +4974,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	if (fmt) {
 		str_vbprintf(ARYLEN(d->error_str), fmt, ap);
 	} else {
-		g_strlcpy(d->error_str, "", sizeof d->error_str);
+		cstr_lcpy(ARYLEN(d->error_str), "");
 	}
 
 	if (DOWNLOAD_IS_RUNNING(d)) {

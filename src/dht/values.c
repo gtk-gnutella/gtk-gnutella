@@ -82,6 +82,7 @@
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/hashing.h"
@@ -611,7 +612,7 @@ size_t
 dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 {
 	if (type == DHT_VT_BINARY) {
-		return g_strlcpy(buf, "BIN.", size);
+		return cstr_bcpy(buf, size, "BIN.");
 	} else {
 		char tmp[5];
 		size_t i;
@@ -623,7 +624,7 @@ dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 				tmp[i] = '.';
 		}
 		tmp[4] = '\0';
-		return g_strlcpy(buf, tmp, size);
+		return cstr_bcpy(buf, size, tmp);
 	}
 }
 

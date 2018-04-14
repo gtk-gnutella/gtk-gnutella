@@ -60,8 +60,8 @@
 #include "lib/base16.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
@@ -70,7 +70,7 @@
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
-#include "lib/misc.h"			/* For xml_indent() */
+#include "lib/misc.h"			/* For xml_indent() and clamp_strcpy() */
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -538,7 +538,7 @@ search_gui_update_guess_stats(const struct search *search)
 		return;
 
 	if (0 == search->guess_queries) {
-		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("No GUESS queries run yet"));
 	} else if (
 		GUI_PROPERTY(guess_stats_show_total) ||
 		0 == search->guess_cur_start
@@ -1006,7 +1006,7 @@ search_gui_extract_ext(const gchar *filename)
 		p++;
 	}
 
-	rw = g_strlcpy(ext, p ? p : "", sizeof ext);
+	rw = cstr_lcpy(ARYLEN(ext), p != NULL ? p : "");
 	if (rw >= sizeof ext) {
 		/* If the guessed extension is really this long, assume the
 		 * part after the dot isn't an extension at all. */
@@ -1970,11 +1970,11 @@ search_gui_get_route(const struct results_set *rs)
 	 */
 
 	if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
-		g_strlcpy(&addr_buf[n], "+", sizeof addr_buf - n);
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "+");
 		n++;
 	}
 	if ((ST_GUESS & rs->status) && n < sizeof addr_buf) {
-		g_strlcpy(&addr_buf[n], "~", sizeof addr_buf - n);
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "~");
 	}
 	return addr_buf;
 }
@@ -3028,11 +3028,7 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 		char hostname[MAX_HOSTLEN + 1];
 
 		if (!is_host_addr(addr)) {
-			size_t size;
-
-			size = (endptr - s) + 1;
-			size = MIN(size, sizeof hostname);
-			g_strlcpy(hostname, s, size);
+			clamp_strncpy(ARYLEN(hostname), s, endptr - s);
 		}
 		if (':' == endptr[0]) {
 			int error;

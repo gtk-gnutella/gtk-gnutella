@@ -106,6 +106,7 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/dbus_util.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -1459,7 +1460,7 @@ node_timer(time_t now)
 				if (delta_time(now, n->shutdown_date) > n->shutdown_delay) {
 					char reason[1024];
 
-					g_strlcpy(reason, n->error_str, sizeof reason);
+					cstr_bcpy(ARYLEN(reason), n->error_str);
 					node_remove(n, _("Shutdown (%s)"), reason);
 					continue;
 				}
@@ -12399,9 +12400,9 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
 	}
 
     if (node->error_str[0] != '\0')
-        g_strlcpy(status->message, node->error_str, sizeof(status->message));
+        cstr_bcpy(ARYLEN(status->message), node->error_str);
     else if (node->remove_msg != NULL)
-        g_strlcpy(status->message, node->remove_msg, sizeof(status->message));
+        cstr_bcpy(ARYLEN(status->message), node->remove_msg);
     else
         status->message[0] = '\0';
 

@@ -31,6 +31,7 @@
 #include "if/core/net_stats.h"
 #include "if/bridge/ui2c.h"
 
+#include "lib/cstr.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 
@@ -165,7 +166,7 @@ gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
 	const uint64 value = stats->general[idx];
 
 	if (0 == value)
-		g_strlcpy(dst, "-", size);
+		cstr_bcpy(dst, size, "-");
 	else {
 		switch (idx) {
 		case GNR_QUERY_COMPACT_SIZE:
@@ -175,10 +176,10 @@ gnet_stats_gui_general_to_string_buf(char *dst, size_t size,
 		case GNR_UDP_READ_AHEAD_BYTES_MAX:
 		case GNR_RUDP_TX_BYTES:
 		case GNR_RUDP_RX_BYTES:
-			g_strlcpy(dst, compact_size(value, show_metric_units()), size);
+			cstr_bcpy(dst, size, compact_size(value, show_metric_units()));
 			break;
 		case GNR_UDP_READ_AHEAD_DELAY_MAX:
-			g_strlcpy(dst, compact_time(value), size);
+			cstr_bcpy(dst, size, compact_time(value));
 			break;
 		default:
 			uint64_to_string_buf(value, dst, size);

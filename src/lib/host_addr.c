@@ -51,8 +51,8 @@
 #include "ascii.h"
 #include "buf.h"
 #include "concat.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hset.h"
 #include "parse.h"
@@ -603,9 +603,9 @@ host_addr_to_string_buf(const host_addr_t ha, char *dst, size_t size)
 	case NET_TYPE_IPV6:
 		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
 	case NET_TYPE_LOCAL:
-		return g_strlcpy(dst, "<local>", size);
+		return cstr_bcpy(dst, size, "<local>");
 	case NET_TYPE_NONE:
-		return g_strlcpy(dst, "<none>", size);
+		return cstr_bcpy(dst, size, "<none>");
 	}
 
 	g_assert_not_reached();
@@ -678,7 +678,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 		n = concat_strings(dst, size, host_buf, ":", port_buf, NULL_PTR);
 		break;
 	default:
-		n = g_strlcpy(dst, host_buf, size);
+		n = cstr_bcpy(dst, size, host_buf);
 	}
 
 	return n;
@@ -748,7 +748,7 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 		n = concat_strings(dst, size, port_buf, ":", host_buf, NULL_PTR);
 		break;
 	default:
-		n = g_strlcpy(dst, host_buf, size);
+		n = cstr_bcpy(dst, size, host_buf);
 	}
 
 	return n;

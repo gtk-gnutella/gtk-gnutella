@@ -249,15 +249,13 @@ version_stamp(const char *str, version_t *ver)
 		if (end == NULL)
 			end = strchr(p, ')');		/* Only date present: short version */
 		if (end) {
-			size_t size = end - p + 1;
-
 			/*
 			 * Using date2time() will allow us to possibly change the date
 			 * format in the future, without impacting the ability of older
 			 * servents to parse it.
 			 */
 
-			g_strlcpy(stamp, p, MIN(size, sizeof(stamp)));
+			clamp_strncpy(ARYLEN(stamp), p, end - p);
 			ver->timestamp = date2time(stamp, tm_time());
 
 			if (ver->timestamp == -1) {

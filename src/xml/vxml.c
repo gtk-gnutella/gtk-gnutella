@@ -41,6 +41,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/buf.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/hstrfn.h"
@@ -1504,8 +1505,8 @@ vxml_fatal_error_uc(vxml_parser_t *vp, vxml_error_t error, uint32 uc)
 		s32[0] = uc;
 		s32[1] = 0;
 
-		if (utf32_to_utf8(s32, s8, sizeof s8) >= sizeof s8)
-			g_strlcpy(s8, "????", sizeof s8);
+		if (utf32_to_utf8(s32, ARYLEN(s8)) >= sizeof s8)
+			cstr_bcpy(ARYLEN(s8), "????");
 
 		g_warning("VXML %s near '%s' (U+%X): FATAL error: %s",
 			vxml_document_where(vp), s8, uc, vxml_strerror(error));

@@ -38,6 +38,7 @@
 
 #include "concat.h"
 
+#include "cstr.h"
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -59,7 +60,7 @@ concat_strings_v(char *dst, size_t size, const char *s, va_list ap)
 		while (NULL != s) {
 			size_t len;
 
-			len = g_strlcpy(p, s, size);
+			len = cstr_lcpy(p, size, s);
 			ret = size_saturate_add(ret, len);
 			s = va_arg(ap, const char *);
 			size = size_saturate_sub(size, len);

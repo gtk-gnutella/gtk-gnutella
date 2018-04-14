@@ -47,6 +47,7 @@
 #include "if/gui_property_priv.h"
 
 #include "lib/ascii.h"
+#include "lib/cstr.h"
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/str.h"
@@ -464,7 +465,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 
 				g_assert(n > hostname_len);
 				p = halloc(n);
-				g_strlcpy(p, hostname, n);
+				cstr_lcpy(p, n, hostname);
 				hostname = p;
 			}
 

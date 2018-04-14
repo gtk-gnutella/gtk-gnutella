@@ -38,6 +38,7 @@
 
 #include "lib/atoms.h"
 #include "lib/buf.h"
+#include "lib/cstr.h"
 #include "lib/etree.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
@@ -117,7 +118,7 @@ size_t
 xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
 {
 	if (NULL == xn)
-		return g_strlcpy(buf, "{null XML node pointer}", len);
+		return cstr_bcpy(buf, len, "{null XML node pointer}");
 
 	xnode_check(xn);
 

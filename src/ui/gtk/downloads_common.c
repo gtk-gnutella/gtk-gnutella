@@ -42,8 +42,8 @@
 
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/entropy.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
@@ -257,8 +257,7 @@ downloads_gui_pipeline_range_string(const struct download *d)
 
 	metric = show_metric_units();
 	if (dp->chunk.start) {
-		g_strlcpy(range_start, compact_size(dp->chunk.start, metric),
-			sizeof range_start);
+		cstr_bcpy(ARYLEN(range_start), compact_size(dp->chunk.start, metric));
 	} else {
 		range_start[0] = '\0';
 	}
@@ -508,11 +507,10 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_strlcpy(tmpstr,
+		cstr_bcpy(ARYLEN(tmpstr),
 			fi->tth_check ?
 				_("Waiting for TTH checking...") :
-				_("Waiting for SHA1 checking..."),
-			sizeof(tmpstr));
+				_("Waiting for SHA1 checking..."));
 		status = tmpstr;
 		break;
 
@@ -739,8 +737,7 @@ downloads_gui_range_string(const struct download *d)
 
 	metric = show_metric_units();
 	if (d->chunk.start) {
-		g_strlcpy(range_start, compact_size(d->chunk.start, metric),
-			sizeof range_start);
+		cstr_bcpy(ARYLEN(range_start), compact_size(d->chunk.start, metric));
 	} else {
 		range_start[0] = '\0';
 	}

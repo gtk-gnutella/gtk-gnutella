@@ -43,6 +43,7 @@
 #include "if/gui_property_priv.h"
 
 #include "lib/ascii.h"
+#include "lib/cstr.h"
 #include "lib/halloc.h"
 #include "lib/hstrfn.h"
 #include "lib/parse.h"
@@ -401,7 +402,7 @@ filter_gui_filter_add(filter_t *f, GList *ruleset)
 				f->match_count * 100 / count);
         }
     } else {
-		g_strlcpy(buf, "...", sizeof buf);
+		cstr_lcpy(ARYLEN(buf), "...");
     }
 
     parent = filter_gui_get_root(f);

@@ -106,6 +106,7 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"
@@ -1052,9 +1053,8 @@ hsep_get_static_str(int row, int column)
 			/* Make a copy because concurrent usage of short_kb_size()
 	 	 	 * could be hard to discover. */
 			v = hsep_table[row][HSEP_IDX_KIB] + other[0][HSEP_IDX_KIB];
-			g_strlcpy(buf,
-				short_kb_size(v, GNET_PROPERTY(display_metric_units)),
-				sizeof buf);
+			cstr_bcpy(ARYLEN(buf),
+				short_kb_size(v, GNET_PROPERTY(display_metric_units)));
   			ret = buf;
 		}
 		break;

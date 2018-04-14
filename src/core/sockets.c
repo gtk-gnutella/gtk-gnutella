@@ -76,6 +76,7 @@
 #include "lib/atoms.h"
 #include "lib/compat_un.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
 #include "lib/fd.h"
@@ -4130,11 +4131,11 @@ socket_local_listen(const char *pathname)
 
 	{
 		static const sockaddr_unix_t zero_un;
-		size_t size = sizeof addr.sun_path;
 
 		addr = zero_un;
 		addr.sun_family = AF_LOCAL;
-		if (g_strlcpy(addr.sun_path, pathname, size) >= size) {
+
+		if (!cstr_fcpy(ARYLEN(addr.sun_path), pathname)) {
 			g_warning("%s(): pathname is too long", G_STRFUNC);
 			return NULL;
 		}

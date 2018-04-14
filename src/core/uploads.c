@@ -85,6 +85,7 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
 #include "lib/file.h"
@@ -2217,7 +2218,6 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 {
 	char reason[1024];
 	char extra[1024];
-	size_t slen = 0;
 
 	upload_check(u);
 
@@ -2258,13 +2258,11 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 */
 
 	if (ext) {
-		slen = g_strlcpy(extra, ext, sizeof(extra));
-
-		if (slen < sizeof(extra)) {
+		if (cstr_fcpy(ARYLEN(extra), ext)) {
 			upload_http_extra_line_add(u, extra);
 		} else {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, slen);
+				G_STRFUNC, strlen(ext));
 		}
 	}
 
@@ -4883,8 +4881,8 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		size_t len, size = sizeof cd_buf;
 		char *p = cd_buf;
 
-		len = g_strlcpy(p,
-				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
+		len = cstr_lcpy(p, size,
+				"Content-Disposition: inline; filename*=\"utf-8'en'");
 		g_assert(len < sizeof cd_buf);
 
 		p += len;
@@ -4897,7 +4895,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			p += len;
 			size -= len;
 			if (size > CONST_STRLEN(term)) {
-				(void) g_strlcpy(p, term, size);
+				cstr_bcpy(p, size, term);
 				upload_http_extra_line_add(u, cd_buf);
 			}
 		}
@@ -5000,8 +4998,7 @@ upload_set_tos(struct upload *u)
 }
 
 static char *
-upload_parse_uri(header_t *header, const char *uri,
-	char *host, size_t host_size)
+upload_parse_uri(header_t *header, const char *uri, char *host, size_t host_size)
 {
 	const char *ep;
 
@@ -5026,7 +5023,7 @@ upload_parse_uri(header_t *header, const char *uri,
 			return NULL;
 		}
 
-		g_strlcpy(host, h, 1 + len);
+		clamp_strncpy(host, host_size, h, len + 1);
 		if (':' == *ep) {
 			uint32 v;
 			int error;
@@ -5044,7 +5041,7 @@ upload_parse_uri(header_t *header, const char *uri,
 		const char *value;
 
 		if (header && NULL != (value = header_get(header, "Host"))) {
-			g_strlcpy(host, value, host_size);
+			cstr_bcpy(host, host_size, value);
 		}
 	}
 	return deconstify_char(uri);

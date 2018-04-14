@@ -40,8 +40,8 @@
 
 #include "ascii.h"
 #include "buf.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -125,7 +125,7 @@ ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 	*p = '\0';
 
 	if (p0 != dst) {
-		g_strlcpy(dst, p0, size);
+		cstr_bcpy(dst, size, p0);
 	}
 	return p - p0;
 }

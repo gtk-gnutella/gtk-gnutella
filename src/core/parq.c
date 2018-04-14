@@ -64,6 +64,7 @@
 #include "lib/bit_array.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
@@ -5316,10 +5317,7 @@ parq_upload_load_queue(void)
 			}
 			break;
 		case PARQ_TAG_NAME:
-			if (
-				g_strlcpy(entry.name, value,
-					sizeof entry.name) >= sizeof entry.name
-			) {
+			if (!cstr_fcpy(ARYLEN(entry.name), value)) {
 				damaged = TRUE;
 			} else {
 				/* Expect next parq entry, this is the final tag */

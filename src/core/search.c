@@ -92,6 +92,7 @@
 #include "lib/compat_misc.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
 #include "lib/glib-missing.h"
@@ -507,7 +508,7 @@ search_media_mask_to_string(unsigned mask)
 		STR_CAT(str, "torrent");
 	}
 
-	g_strlcpy(buf, str_2c(str), sizeof buf);
+	cstr_bcpy(ARYLEN(buf), str_2c(str));
 	str_destroy(str);
 
 	return buf;
@@ -9783,7 +9784,7 @@ search_compact(gnutella_node_t *n)
 								prefix);
 						}
 
-						w = g_strlcpy(p, "urn:sha1", end - p);
+						w = cstr_bcpy(p, end - p, "urn:sha1");
 						p += w;
 						*p++ = ':';
 						paylen = MIN(paylen, SHA1_BASE32_SIZE);

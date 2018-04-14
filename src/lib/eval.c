@@ -40,6 +40,7 @@
 
 #include "ascii.h"
 #include "constants.h"
+#include "cstr.h"
 #include "debug.h"
 #include "gethomedir.h"
 #include "glib-missing.h"
@@ -159,7 +160,7 @@ eval_subst(const char *str)
 	if (str == NULL)
 		return NULL;
 
-	len = g_strlcpy(buf, str, sizeof buf);
+	len = cstr_lcpy(ARYLEN(buf), str);
 	if (len >= sizeof buf) {
 		g_warning("%s(): string too large for substitution (%zu bytes)",
 			G_STRFUNC, len);

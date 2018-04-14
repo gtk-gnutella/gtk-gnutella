@@ -37,8 +37,9 @@
 #include "common.h"
 
 #include "product.h"
+
+#include "cstr.h"
 #include "halloc.h"
-#include "glib-missing.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "parse.h"
@@ -230,7 +231,7 @@ product_build_full(void)
 			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
 
 			tmp = halloc(len);
-			g_strlcpy(tmp + 1, p, len - 1);
+			cstr_bcpy(tmp + 1, len - 1, p);
 			*tmp = '-';
 			q = strchr(tmp, ' ');
 			if (q != NULL)
