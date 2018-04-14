@@ -225,7 +225,7 @@ upload_stats_load_history(void)
 		goto done;
 
 	/* parse, insert names into ul_stats_clist */
-	while (fgets(line, sizeof line, upload_stats_file)) {
+	while (fgets(ARYLEN(line), upload_stats_file)) {
 		static const struct ul_stats zero_item;
 		struct ul_stats item;
 		struct sha1 sha1_buf;
@@ -234,7 +234,7 @@ upload_stats_load_history(void)
 
 		lineno++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s: line %u too long, aborting", G_STRFUNC, lineno);
 			break;
 		}
@@ -367,8 +367,8 @@ upload_stats_dump_item(void *p, void *user_data)
 	}
 	escaped = url_escape_cntrl(pathname);
 
-	time_t_to_string_buf(s->rtime, rtime_buf, sizeof rtime_buf);
-	time_t_to_string_buf(s->dtime, dtime_buf, sizeof dtime_buf);
+	time_t_to_string_buf(s->rtime, ARYLEN(rtime_buf));
+	time_t_to_string_buf(s->dtime, ARYLEN(dtime_buf));
 
 	fprintf(out, "%s\t%s\t%u\t%u\t%lu\t%lu\t%s\t%s\t%s\n",
 		escaped,

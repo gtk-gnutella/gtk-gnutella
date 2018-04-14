@@ -666,7 +666,7 @@ bigint_to_uint64(const bigint_t *bi)
 	if G_UNLIKELY(b->len < sizeof(uint64)) {
 		uint8 buf[sizeof(uint64)];
 
-		memset(buf, 0, sizeof buf);
+		ZERO(&buf);
 		memcpy(&buf[sizeof(uint64) - b->len], &b->v[0], b->len);
 		return peek_be64(buf);
 	} else {

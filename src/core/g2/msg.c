@@ -199,7 +199,7 @@ g2_msg_raw_name(const void *start, size_t len)
 	if (NULL == name)
 		return "";
 
-	clamp_strncpy(buf, sizeof buf, name, namelen);
+	clamp_strncpy(ARYLEN(buf), name, namelen);
 	return constant_str(buf);
 }
 
@@ -453,7 +453,7 @@ g2_msg_log_dropped(const void *data, size_t len, const char *fmt, va_list args)
 	if (fmt != NULL) {
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, fmt, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), fmt, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';

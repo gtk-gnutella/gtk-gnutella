@@ -170,7 +170,7 @@ pslist_free(pslist_t *pl)
 	 * limit the amount of overhead to process all the entries in the list.
 	 */
 
-	wfree_pslist(pl, sizeof *pl);
+	wfree_pslist(PTRLEN(pl));
 	return NULL;
 }
 

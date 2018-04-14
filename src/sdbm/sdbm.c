@@ -2445,7 +2445,7 @@ sdbm_shrink(DBM *db)
 		/* FALLTHROUGH */
 #endif
 
-		r = compat_pread(db->pagf, &count, sizeof count, offset);
+		r = compat_pread(db->pagf, VARLEN(count), offset);
 		if G_UNLIKELY(-1 == r || r != sizeof count)
 			return FALSE;
 
@@ -2857,7 +2857,7 @@ sdbm_rebuild(DBM *db)
 		goto failed;
 	}
 
-	str_bprintf(ext, sizeof ext, ".%08x", random_u32());
+	str_bprintf(ARYLEN(ext), ".%08x", random_u32());
 	dirname = h_strconcat(db->dirname, ext, (void *) 0);
 	pagname = h_strconcat(db->pagname, ext, (void *) 0);
 	datname = NULL == db->datname ? NULL :

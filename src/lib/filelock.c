@@ -297,7 +297,7 @@ filelock_read_pid(int fd)
 		return 0;
 	}
 
-	r = read(fd, buf, sizeof buf - 1);
+	r = read(fd, ARYLEN(buf) - 1);
 
 	if ((ssize_t) -1 == r) {
 		s_carp("%s(): cannot read from fd #%d: %m", G_STRFUNC, fd);
@@ -335,7 +335,7 @@ filelock_write_pid(int fd, pid_t ourpid)
 	ssize_t r;
 	char buf[ULONG_DEC_BUFLEN + 1];		/* +1 for "\n", since NUL is included */
 
-	w = str_bprintf(buf, sizeof buf, "%ld\n", (ulong) ourpid);
+	w = str_bprintf(ARYLEN(buf), "%ld\n", (ulong) ourpid);
 
 	/*
 	 * Since we don't expect any errors from the system calls, we trace

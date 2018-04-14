@@ -55,7 +55,7 @@ print_upload_info(struct gnutella_shell *sh,
 	g_return_if_fail(sh);
 	g_return_if_fail(info);
 
-	str_bprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
+	str_bprintf(ARYLEN(buf), "%-3.3s %-16.40s %s %s@%s %s%s%s",
 		info->encrypted ? "(E)" : "",
 		host_addr_to_string(info->addr),
 		iso3166_country_cc(info->country),

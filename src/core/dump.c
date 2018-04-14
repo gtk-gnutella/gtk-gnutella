@@ -329,8 +329,8 @@ dump_packet_from(struct dump *dump, const gnutella_node_t *node)
 		return;
 
 	dump_header_set(&dh, node);
-	dump_append(dump, dh.data, sizeof dh.data);
-	dump_append(dump, node->header, sizeof node->header);
+	dump_append(dump, ARYLEN(dh.data));
+	dump_append(dump, ARYLEN(node->header));
 	dump_append(dump, node->data, node->size);
 	dump_flush(dump);
 }
@@ -383,8 +383,8 @@ dump_packet_from_to(struct dump *dump,
 	if (pmsg_prio(mb) != PMSG_P_DATA)
 		dh_to.data[0] |= DH_F_CTRL;
 
-	dump_append(dump, dh_to.data, sizeof dh_to.data);
-	dump_append(dump, dh_from.data, sizeof dh_from.data);
+	dump_append(dump, ARYLEN(dh_to.data));
+	dump_append(dump, ARYLEN(dh_from.data));
 	dump_append(dump, pmsg_start(mb), pmsg_size(mb));
 	dump_flush(dump);
 }

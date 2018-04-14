@@ -81,7 +81,7 @@ bogons_load(FILE *f)
 		bogons_mtime = buf.st_mtime;
 	}
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		linenum++;
 
 		/*
@@ -89,7 +89,7 @@ bogons_load(FILE *f)
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s, line %d: too long a line", bogons_file, linenum);
 			break;
 		}
@@ -150,7 +150,7 @@ bogons_changed(const char *filename, void *unused_udata)
 	count = bogons_load(f);
 	fclose(f);
 
-	str_bprintf(buf, sizeof(buf), "Reloaded %d bogus IP ranges.", count);
+	str_bprintf(ARYLEN(buf), "Reloaded %d bogus IP ranges.", count);
 	gcu_statusbar_message(buf);
 }
 

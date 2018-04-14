@@ -1012,8 +1012,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 		} else {
 			if (GNET_PROPERTY(dht_publish_debug)) {
 				char msg[80];
-				clamp_strncpy(msg, sizeof msg,
-					status.description, status.length);
+				clamp_strncpy(ARYLEN(msg), status.description, status.length);
 				g_debug("DHT PUBLISH[%s] cannot STORE "
 					"pk=%s sk=%s at %s: %s (%s)",
 					nid_to_string(&pb->pid),
@@ -1952,7 +1951,7 @@ publish_value_iterate(publish_t *pb)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 4) {
 		char buf[80];
-		bin_to_hex_buf(rc->token, rc->token_len, buf, sizeof buf);
+		bin_to_hex_buf(rc->token, rc->token_len, ARYLEN(buf));
 		g_debug("DHT PUBLISH[%s] at root %u/%u, "
 			"using %u-byte token \"%s\" for %s",
 			nid_to_string(&pb->pid),

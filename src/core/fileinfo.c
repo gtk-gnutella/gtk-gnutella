@@ -435,6 +435,7 @@ static void
 TBUF_PUT_UINT32(uint32 x)
 {
 	TBUF_CHECK(sizeof x);
+	/* Can't use VARLEN(x) in case mempcpy() is a macro with 3 args declared */
 	tbuf.wptr = mempcpy(tbuf.wptr, &x, sizeof x);
 }
 
@@ -461,7 +462,7 @@ static void
 WRITE_CHAR(uint8 val, uint32 *checksum)
 {
 	TBUF_PUT_CHAR(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -469,7 +470,7 @@ WRITE_UINT32(uint32 val, uint32 *checksum)
 {
 	val = htonl(val);
 	TBUF_PUT_UINT32(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -487,7 +488,7 @@ static WARN_UNUSED_RESULT bool
 READ_CHAR(uint8 *val, uint32 *checksum)
 {
 	if (TBUF_GETCHAR(val)) {
-		file_info_checksum(checksum, val, sizeof *val);
+		file_info_checksum(checksum, PTRLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -501,7 +502,7 @@ READ_UINT32(uint32 *val_ptr, uint32 *checksum)
 
 	if (TBUF_GET_UINT32(&val)) {
 		*val_ptr = ntohl(val);
-		file_info_checksum(checksum, &val, sizeof val);
+		file_info_checksum(checksum, VARLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -1106,7 +1107,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 	if (dfi->size != fi->size || dfi->done != fi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(dfi->done), "/",
 			filesize_to_string2(dfi->size), NULL_PTR);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
@@ -1447,7 +1448,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 	}
 
-	r = read(fd, tr, sizeof tr);
+	r = read(fd, ARYLEN(tr));
 	if ((ssize_t) -1 == r) {
 		g_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
@@ -2046,13 +2047,13 @@ G_STMT_START {				\
 			goto eof;
 
 		if (0 == tmpuint) {
-			str_bprintf(tmp, sizeof tmp, "field #%d has zero size", field);
+			str_bprintf(ARYLEN(tmp), "field #%d has zero size", field);
 			BAILOUT(tmp);
 			/* NOT REACHED */
 		}
 
 		if (tmpuint > FI_MAX_FIELD_LEN) {
-			str_bprintf(tmp, sizeof tmp,
+			str_bprintf(ARYLEN(tmp),
 				"field #%d is too large (%u bytes) ", field, (uint) tmpuint);
 			BAILOUT(tmp);
 			/* NOT REACHED */
@@ -2976,7 +2977,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (GNET_PROPERTY(fileinfo_debug) > 3) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
@@ -2988,7 +2989,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (fi->done && xfi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
@@ -3044,7 +3045,7 @@ extract_sha1(const char *s)
 	if (strlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1, s, SHA1_BASE32_SIZE))
+	if (SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), s, SHA1_BASE32_SIZE))
 		return NULL;
 
 	return atom_sha1_get(&sha1);
@@ -3058,7 +3059,7 @@ extract_tth(const char *s)
 	if (strlen(s) < TTH_BASE32_SIZE)
 		return NULL;
 
-	if (TTH_RAW_SIZE != base32_decode(&tth, sizeof tth, s, TTH_BASE32_SIZE))
+	if (TTH_RAW_SIZE != base32_decode(VARLEN(tth), s, TTH_BASE32_SIZE))
 		return NULL;
 
 	return atom_tth_get(&tth);
@@ -3206,7 +3207,7 @@ file_info_retrieve(void)
 	if (!f)
 		return;
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		int error;
 		bool truncated = FALSE, damaged;
 		const char *ep;
@@ -3223,7 +3224,7 @@ file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		truncated = !file_line_chomp_tail(line, sizeof line, NULL);
+		truncated = !file_line_chomp_tail(ARYLEN(line), NULL);
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
@@ -7362,7 +7363,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -7449,7 +7450,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		dl_file_chunk_check(fc);
 		g_assert(DL_CHUNK_DONE == fc->status);
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -8193,15 +8194,14 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-        str_bprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
+        str_bprintf(ARYLEN(buf), _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
 		goto dht_status;
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
 		if (status->vrfy_hashed > 0) {
-			str_bprintf(buf, sizeof buf,
-					"%s %s (%.1f%%)",
+			str_bprintf(ARYLEN(buf), "%s %s (%.1f%%)",
 					status->tth_check ?
 						_("Computing TTH") : _("Computing SHA1"),
 					short_size(status->vrfy_hashed,
@@ -8217,7 +8217,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			str_bprintf(msg_sha1, sizeof msg_sha1, "%s %s",
+			str_bprintf(ARYLEN(msg_sha1), "%s %s",
 				_("SHA1"),
 				status->sha1_matched ? _("OK") :
 				status->sha1_failed ? _("failed") : _("not computed yet"));
@@ -8226,18 +8226,17 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		msg_copy[0] = '\0';
 		if (status->moving) {
 			if (0 == status->copied) {
-				str_bprintf(msg_copy, sizeof msg_copy, "%s",
-					_("Waiting for moving..."));
+				str_bprintf(ARYLEN(msg_copy), "%s", _("Waiting for moving..."));
 			} else if (status->copied > 0 && status->copied < status->size) {
-				str_bprintf(msg_copy, sizeof msg_copy,
-					"%s %s (%.1f%%)", _("Moving"),
+				str_bprintf(ARYLEN(msg_copy), "%s %s (%.1f%%)",
+					_("Moving"),
 					short_size(status->copied,
-						GNET_PROPERTY(display_metric_units)),
+					   	GNET_PROPERTY(display_metric_units)),
 					(1.0 * status->copied / status->size) * 100.0);
 			}
 		}
 
-		concat_strings(buf, sizeof buf, _("Finished"),
+		concat_strings(ARYLEN(buf), _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
 			NULL_PTR);
@@ -8247,7 +8246,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		g_strlcpy(buf, _("No sources"), sizeof buf);
 		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
-        str_bprintf(buf, sizeof buf,
+        str_bprintf(ARYLEN(buf),
             _("Queued (%u active, %u passive)"),
             status->active_queued, status->passive_queued);
 		goto dht_status;
@@ -8263,26 +8262,24 @@ dht_status:
 		size_t w = strlen(buf);
 
 		if (status->dht_lookup_running) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Querying DHT"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Querying DHT"));
 		} else if (status->dht_lookup_pending) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Pending DHT query"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Pending DHT query"));
 		}
 
 		if (status->dht_lookups != 0) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
 			if (status->dht_values != 0) {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_(
 						"%u/%u successful DHT lookup",
 						"%u/%u successful DHT lookups",
 						status->dht_lookups),
 					status->dht_values, status->dht_lookups);
 			} else {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_("%u DHT lookup", "%u DHT lookups", status->dht_lookups),
 					status->dht_lookups);
 			}

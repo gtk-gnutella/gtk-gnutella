@@ -176,7 +176,7 @@ plist_free(plist_t *pl)
 
 	STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
 
-	wfree_pslist((pslist_t *) pl, sizeof *pl);
+	wfree_pslist((pslist_t *) PTRLEN(pl));
 	return NULL;
 }
 

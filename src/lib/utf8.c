@@ -686,43 +686,43 @@ malformed:
 
 	switch (warning) {
 	case UTF8_WARN_EMPTY:
-		str_bprintf(msg, sizeof(msg), "empty string");
+		str_bprintf(ARYLEN(msg), "empty string");
 		break;
 	case UTF8_WARN_CONTINUATION:
-		str_bprintf(msg, sizeof(msg),
+		str_bprintf(ARYLEN(msg),
 			"unexpected continuation byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_NON_CONTINUATION:
-		str_bprintf(msg, sizeof(msg),
+		str_bprintf(ARYLEN(msg),
 			"unexpected non-continuation byte 0x%02lx "
 			"after start byte 0x%02lx", (ulong) s[1], (ulong) v);
 		break;
 	case UTF8_WARN_FE_FF:
-		str_bprintf(msg, sizeof(msg), "byte 0x%02lx", (ulong) v);
+		str_bprintf(ARYLEN(msg), "byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
 			len, plural(len), expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
-		str_bprintf(msg, sizeof(msg), "overflow at 0x%02lx, byte 0x%02lx",
+		str_bprintf(ARYLEN(msg), "overflow at 0x%02lx, byte 0x%02lx",
 			(ulong) ov, (ulong) *s);
 		break;
 	case UTF8_WARN_SURROGATE:
-		str_bprintf(msg, sizeof(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
+		str_bprintf(ARYLEN(msg), "UTF-16 surrogate 0x04%lx", (ulong) v);
 		break;
 	case UTF8_WARN_BOM:
-		str_bprintf(msg, sizeof(msg), "byte order mark 0x%04lx", (ulong) v);
+		str_bprintf(ARYLEN(msg), "byte order mark 0x%04lx", (ulong) v);
 		break;
 	case UTF8_WARN_LONG:
-		str_bprintf(msg, sizeof(msg), "%d byte%s, need %d",
+		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
 			expectlen, plural(expectlen), uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
-		str_bprintf(msg, sizeof(msg), "character 0x%04lx", (ulong) v);
+		str_bprintf(ARYLEN(msg), "character 0x%04lx", (ulong) v);
 		break;
 	default:
-		str_bprintf(msg, sizeof(msg), "unknown reason");
+		str_bprintf(ARYLEN(msg), "unknown reason");
 		break;
 	}
 
@@ -2480,13 +2480,12 @@ utf8_to_filename_charset(const char *src)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd_utf8_to_filename,
-			sbuf, sizeof sbuf, src, (size_t) -1, FALSE);
+	dst = hyper_iconv(cd_utf8_to_filename, ARYLEN(sbuf), src, (size_t) -1, FALSE);
 
 	if (!dst)
 		dst = primary_filename_charset_is_utf8()
-			? hyper_utf8_enforce(sbuf, sizeof sbuf, src, (size_t) -1)
-			: hyper_ascii_enforce(sbuf, sizeof sbuf, src);
+			? hyper_utf8_enforce(ARYLEN(sbuf), src, (size_t) -1)
+			: hyper_ascii_enforce(ARYLEN(sbuf), src);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
 }
@@ -2556,9 +2555,9 @@ convert_to_utf8_len(iconv_t cd, const char *src, size_t src_len)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, src_len, FALSE);
+	dst = hyper_iconv(cd, ARYLEN(sbuf), src, src_len, FALSE);
 	if (!dst)
-		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src, src_len);
+		dst = hyper_utf8_enforce(ARYLEN(sbuf), src, src_len);
 
 	return sbuf != dst ? dst : g_strdup(sbuf);
 }
@@ -2939,9 +2938,9 @@ convert_to_utf8_normalized(iconv_t cd, const char *src, uni_norm_t norm)
 
 	g_assert(src);
 
-	dst = hyper_iconv(cd, sbuf, sizeof sbuf, src, (size_t) -1, FALSE);
+	dst = hyper_iconv(cd, ARYLEN(sbuf), src, (size_t) -1, FALSE);
 	if (!dst)
-		dst = hyper_utf8_enforce(sbuf, sizeof sbuf, src, (size_t) -1);
+		dst = hyper_utf8_enforce(ARYLEN(sbuf), src, (size_t) -1);
 
 	g_assert(dst);
 	g_assert(dst != src);
@@ -4317,7 +4316,7 @@ utf8_decompose(const char *src, char *out, size_t size, bool nfkd)
 			while (d_len-- > 0) {
 				char *p = utf8_buf;
 
-				utf8_len = utf8_encode_char(*d++, utf8_buf, sizeof utf8_buf);
+				utf8_len = utf8_encode_char(*d++, ARYLEN(utf8_buf));
 				g_assert((size_t) (&buf[N_ITEMS(buf)] - q) >= utf8_len);
 				while (utf8_len-- > 0)
 					*q++ = *p++;
@@ -6021,7 +6020,7 @@ regression_normalization_test_txt(void)
 			size_t len, n;
 
 			src = normalization_test_txt[i].c[j - 1];
-			len = utf32_to_utf8(src, chars, sizeof chars);
+			len = utf32_to_utf8(src, ARYLEN(chars));
 			g_assert(len > 0);
 			g_assert(len < sizeof chars);
 			n = utf8_to_utf32(chars, buf, N_ITEMS(buf));
@@ -6309,7 +6308,7 @@ regression_utf8_bijection(void)
 		uint len, len1;
 		uint32 uc1;
 
-		len = utf8_encode_char(uc, utf8_char, sizeof utf8_char);
+		len = utf8_encode_char(uc, ARYLEN(utf8_char));
 		if (!len)
 			continue;
 		g_assert(len > 0 && len <= 4);
@@ -6378,7 +6377,7 @@ regression_utf8_decoder(void)
 			uint len;
 			bool eq;
 
-			len = utf8_encode_char(uc1, utf8_char, sizeof utf8_char);
+			len = utf8_encode_char(uc1, ARYLEN(utf8_char));
 			g_assert(len1 == len);
 			eq = 0 == memcmp(cast_to_constpointer(&uc), utf8_char, len);
 			g_assert(eq);
@@ -6578,9 +6577,9 @@ regression_utf8_vs_glib2(void)
 		x = utf32_strdup(y);
 		utf32_compose(x);
 		utf32_compose_hangul(x);
-		utf32_to_utf8(x, t, sizeof t);
+		utf32_to_utf8(x, ARYLEN(t));
 
-		utf32_to_utf8(test, s, sizeof s);
+		utf32_to_utf8(test, ARYLEN(s));
 
 #if 1  /* !defined(xxxUSE_ICU) */
 		s_nfc = g_utf8_normalize(s, (gssize) -1, G_NORMALIZE_NFKC);

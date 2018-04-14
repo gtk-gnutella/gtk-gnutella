@@ -870,7 +870,7 @@ thread_backtrace_dump_type_fd(int fd,
 
 	tm_now_exact_raw(&now);
 	elapsed = tm_elapsed_ms(&now, &bt->stamp);
-	compact_time_ms_to_buf(elapsed, delta, sizeof delta);
+	compact_time_ms_to_buf(elapsed, ARYLEN(delta));
 
 	str_new_buffer(s, attributes, 0, sizeof attributes);
 	if (te->reusable) {
@@ -1414,7 +1414,7 @@ thread_element_name_to_buf(const struct thread_element *te,
 			symbolic = te->entry_name;
 
 		if (NULL == symbolic) {
-			pointer_to_string_buf(te->entry, name, sizeof name);
+			pointer_to_string_buf(te->entry, ARYLEN(name));
 			symbolic = name;
 		}
 
@@ -6501,7 +6501,7 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 		print_str(thread_element_name_raw(te));	/* 0 */
 		print_str(" waiting for ");				/* 1 */
 
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 		type = thread_lock_kind_to_string(l->kind);
 
 		print_str(type);					/* 2 */
@@ -6617,7 +6617,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		bool waited_for;
 
 		type = thread_lock_kind_to_string(l->kind);
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 
 		rewind_str(0);
 
@@ -6651,7 +6651,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
-				if (!mem_is_valid_range(s, sizeof *s)) {
+				if (!mem_is_valid_range(PTRLEN(s))) {
 					print_str(" FREED");			/* 7 */
 				} else if (SPINLOCK_MAGIC != s->magic) {
 					if (SPINLOCK_DESTROYED == s->magic)
@@ -6676,7 +6676,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				char qwbuf[UINT_DEC_BUFLEN];
 				const char *r, *w, *qr, *qw;
 
-				if (!mem_is_valid_range(rw, sizeof *rw)) {
+				if (!mem_is_valid_range(PTRLEN(rw))) {
 					print_str(" FREED");			/* 7 */
 				} else if (RWLOCK_MAGIC != rw->magic) {
 					if (RWLOCK_DESTROYED == rw->magic)
@@ -6711,7 +6711,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
-				if (!mem_is_valid_range(m, sizeof *m)) {
+				if (!mem_is_valid_range(PTRLEN(m))) {
 					print_str(" FREED");			/* 7 */
 				} else if (MUTEX_MAGIC != m->magic) {
 					if (MUTEX_DESTROYED == m->magic)
@@ -8092,7 +8092,7 @@ thread_element_clear_locks(struct thread_element *te)
 				spinlock_t *s = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(s, sizeof *s) &&
+					mem_is_valid_range(PTRLEN(s)) &&
 					SPINLOCK_MAGIC == s->magic &&
 					1 == s->lock
 				) {
@@ -8107,7 +8107,7 @@ thread_element_clear_locks(struct thread_element *te)
 				rwlock_t *rw = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(rw, sizeof *rw) &&
+					mem_is_valid_range(PTRLEN(rw)) &&
 					RWLOCK_MAGIC == rw->magic &&
 					(0 != rw->readers || 0 != rw->writers || 0 != rw->waiters)
 				) {
@@ -8121,7 +8121,7 @@ thread_element_clear_locks(struct thread_element *te)
 				mutex_t *m = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(m, sizeof *m) &&
+					mem_is_valid_range(PTRLEN(m)) &&
 					MUTEX_MAGIC == m->magic &&
 					1 == m->lock.lock
 				) {
@@ -8137,9 +8137,9 @@ thread_element_clear_locks(struct thread_element *te)
 			char buf[POINTER_BUFLEN];
 			DECLARE_STR(10);
 
-			pointer_to_string_buf(l->lock, buf, sizeof buf);
+			pointer_to_string_buf(l->lock, ARYLEN(buf));
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);				/* 0 */
 			print_str(" WARNING: unlocked ");	/* 1 */
 			print_str(type);					/* 2 */
@@ -8248,7 +8248,7 @@ thread_forked(void)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		print_str(" WARNING: ");							/* 1 */
 		print_str(G_STRFUNC);								/* 2 */
@@ -11945,9 +11945,9 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 	} else {
 		char entry[128];
 		if (info->main_thread) {
-			str_bprintf(entry, sizeof entry, " main()");
+			str_bprintf(ARYLEN(entry), " main()");
 		} else if (info->entry != NULL) {
-			str_bprintf(entry, sizeof entry, " %s()",
+			str_bprintf(ARYLEN(entry), " %s()",
 				stacktrace_function_name(info->entry));
 		} else {
 			entry[0] = '\0';
@@ -12208,7 +12208,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		const struct thread_lock *l = &te->locks.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "lock[%03u]", i);
+		str_bprintf(ARYLEN(buf), "lock[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12217,7 +12217,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		const struct thread_lock *l = &te->waits.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "wait[%03u]", i);
+		str_bprintf(ARYLEN(buf), "wait[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12242,7 +12242,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		if (NULL != te->sigh[i]) {
 			char buf[10];
 
-			str_bprintf(buf, sizeof buf, "sigh[%02u]", i);
+			str_bprintf(ARYLEN(buf), "sigh[%02u]", i);
 			if (TSIG_IGN == te->sigh[i]) {
 				DUMPL("%s", buf, "IGN");
 			} else {

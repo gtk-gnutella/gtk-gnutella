@@ -252,7 +252,7 @@ g2_build_qht_reset(int slots, int inf_val)
 	p = poke_le32(p, slots);
 	p = poke_u8(p, inf_val);
 
-	t = g2_tree_alloc(G2_NAME(QHT), body, sizeof body);
+	t = g2_tree_alloc(G2_NAME(QHT), ARYLEN(body));
 	mb = g2_build_pmsg(t);
 	g2_tree_free_null(&t);
 
@@ -492,7 +492,7 @@ g2_build_add_gtkgv(g2_tree_t *t)
 	size_t len;
 	g2_tree_t *c;
 
-	len = ggept_gtkgv_build(buf, sizeof buf);
+	len = ggept_gtkgv_build(ARYLEN(buf));
 	c = g2_tree_alloc_copy("gtkgV", buf, len);
 	g2_tree_add_child(t, c);
 }
@@ -524,7 +524,7 @@ g2_build_lni(void)
 		p = poke_le32(p, files);
 		p = poke_le32(p, kbytes);
 
-		c = g2_tree_alloc_copy("LS", payload, sizeof payload);
+		c = g2_tree_alloc_copy("LS", ARYLEN(payload));
 		g2_tree_add_child(t, c);
 	}
 
@@ -622,7 +622,7 @@ g2_build_q2(const guid_t *muid, const char *query,
 	pmsg_t *mb;
 	static const char interest[] = "URL\0PFS\0DN\0A";
 
-	t = g2_tree_alloc_copy(G2_NAME(Q2), muid, sizeof *muid);
+	t = g2_tree_alloc_copy(G2_NAME(Q2), PTRLEN(muid));
 	c = g2_build_add_listening_address(t, "UDP");
 	g2_tree_append_payload(c, query_key, length);
 
@@ -839,7 +839,7 @@ g2_build_qh2_start(struct g2_qh2_builder *ctx)
 	 * The payload of the /QH2 message is one byte hop count + the MUID.
 	 */
 
-	ctx->t = g2_tree_alloc(G2_NAME(QH2), &ctx->payload[0], sizeof ctx->payload);
+	ctx->t = g2_tree_alloc(G2_NAME(QH2), ARYLEN(ctx->payload));
 
 	g2_build_add_node_address(ctx->t);	/* NA -- the IP:port of this node */
 	g2_build_add_guid(ctx->t);			/* GU -- the GUID of this node */
@@ -938,6 +938,8 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 		char payload[SHA1_RAW_SIZE + TTH_RAW_SIZE + sizeof G2_URN_BITPRINT];
 		char *p = payload;
 
+		/* Can't use ARYLEN(x) in case mempcpy() is a macro with 3 args declared */
+
 		if (NULL == tth) {
 			p = mempcpy(p, G2_URN_SHA1, sizeof G2_URN_SHA1);
 			p += clamp_memcpy(p, sizeof payload - ptr_diff(p, payload),
@@ -980,7 +982,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 			char payload[2];
 
 			poke_le16(payload, csc);
-			c = g2_tree_alloc_copy("CSC", payload, sizeof payload);
+			c = g2_tree_alloc_copy("CSC", ARYLEN(payload));
 			g2_tree_add_child(h, c);
 		}
 
@@ -1007,7 +1009,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 			} else {
 				/* Encode as a 64-bit quantity then */
 				poke_le64(payload, available);
-				g2_tree_set_payload(c, payload, sizeof payload, TRUE);
+				g2_tree_set_payload(c, ARYLEN(payload), TRUE);
 			}
 
 			/*
@@ -1065,8 +1067,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 		} else {
 			/* Does not fit a 32-bit quantity, emit a SZ child */
 			poke_le64(payload, fs);
-			g2_tree_add_child(h,
-				g2_tree_alloc_copy("SZ", payload, sizeof payload));
+			g2_tree_add_child(h, g2_tree_alloc_copy("SZ", ARYLEN(payload)));
 		}
 
 		name = shared_file_name_nfc(sf);
@@ -1115,7 +1116,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 					char payload[6];
 
 					host_ip_port_poke(payload, addr, port, NULL);
-					g2_tree_append_payload(c, payload, sizeof payload);
+					g2_tree_append_payload(c, ARYLEN(payload));
 				}
 			}
 
@@ -1196,7 +1197,7 @@ g2_build_send_qh2(const gnutella_node_t *h, gnutella_node_t *n,
 		goto done;		/* G2 support was disabled whilst processing */
 	}
 
-	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
+	clamp_memcpy(ARYPOSLEN(ctx.payload, 1), muid, GUID_RAW_SIZE);
 	ctx.muid = muid;
 	ctx.hs = hset_create(HASH_KEY_SELF, 0);
 	ctx.max_size = G2_BUILD_QH2_THRESH;
@@ -1267,7 +1268,7 @@ g2_build_qh2_results(const pslist_t *files, int count, size_t max_msgsize,
 	int sent;
 
 	ZERO(&ctx);
-	clamp_memcpy(&ctx.payload[1], sizeof ctx.payload - 1, muid, GUID_RAW_SIZE);
+	clamp_memcpy(ARYPOSLEN(ctx.payload, 1), muid, GUID_RAW_SIZE);
 	ctx.muid = muid;
 	ctx.max_size = max_msgsize;
 	ctx.flags = flags;

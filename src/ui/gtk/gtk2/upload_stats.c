@@ -151,7 +151,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 		text = uint64_to_string(data->us->attempts);
 		break;
 	case c_us_norm:
-		str_bprintf(buf, sizeof buf, "%1.3f", data->us->norm);
+		str_bprintf(ARYLEN(buf), "%1.3f", data->us->norm);
 		text = buf;
 		break;
 	case c_us_rtime:

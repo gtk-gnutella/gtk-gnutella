@@ -64,7 +64,7 @@ shell_exec_log_cwd(struct gnutella_shell *sh,
 	if (argc != 1)
 		return REPLY_ERROR;
 
-	if (NULL == getcwd(path, sizeof path)) {
+	if (NULL == getcwd(ARYLEN(path))) {
 		shell_set_msg(sh, _("Cannot determine current working directory"));
 		return REPLY_ERROR;
 	}

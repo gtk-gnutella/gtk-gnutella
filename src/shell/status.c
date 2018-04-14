@@ -178,7 +178,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			fd = empty;
 		}
 
-		str_bprintf(flags, sizeof flags,
+		str_bprintf(ARYLEN(flags),
 			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
 			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
@@ -200,7 +200,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			fw, dht,
 			settings_is_ultra() ? "UP" : "LF");
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"+%s+\n"
 			"| %-18s%51s |\n"
 			"|%s|\n",
@@ -230,7 +230,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			blackout = "None";
 		}
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"|   Mode: %-9s                   Last Switch: %-19s%2s|\n"
 			"| Uptime: %-9s                    Last Check: %-19s%2s|\n"
 			"|   Port: %-9u                      Blackout: %-7s%14s|\n"
@@ -252,7 +252,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 	case NET_USE_IPV4:
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| IPv4: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr()),
 			short_time_ascii(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
@@ -262,11 +262,11 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	/* IPv6 info */
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
-		str_bprintf(buf, sizeof buf, "|%s|\n", dashes);
+		str_bprintf(ARYLEN(buf), "|%s|\n", dashes);
 		shell_write(sh, buf);
 		/* FALL THROUGH */
 	case NET_USE_IPV6:
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| IPv6: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr6()),
 			short_time_ascii(
@@ -275,7 +275,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	/* Node counts */
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"|%s|\n"
 		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  G2 hub %4u/%-4u |\n"
 		"|            Downloads %4u/%-4u  Uploads %4u/%-7u Browse %4u/%-4u |\n"
@@ -342,7 +342,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		dht_out = short_rate_get_string(
 			cur ? bw_stats.current : bw_stats.average, metric);
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| %-70s|\n"
 			"|%71s|\n"
 			"| %5s  In:  %13s %13s %13s %13s   |\n"
@@ -359,9 +359,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		char line[128];
 		bool metric = GNET_PROPERTY(display_metric_units);
 
-		str_bprintf(buf, sizeof buf, "|%s|\n", equals);
+		str_bprintf(ARYLEN(buf), "|%s|\n", equals);
 		shell_write(sh, buf);
-		concat_strings(line, sizeof line,
+		concat_strings(ARYLEN(line),
 			"Shares ",
 			uint64_to_string(shared_files_scanned()),
 			" file",
@@ -370,13 +370,13 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",
 			NULL_PTR);
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| %-35s Up: %-11s Down: %-11s |\n",
 			line,
 			short_byte_size(GNET_PROPERTY(ul_byte_count), metric),
 			short_byte_size2(GNET_PROPERTY(dl_byte_count), metric));
 		shell_write(sh, buf);
-		str_bprintf(buf, sizeof buf, "+%s+\n", dashes);
+		str_bprintf(ARYLEN(buf), "+%s+\n", dashes);
 		shell_write(sh, buf);
 	}
 

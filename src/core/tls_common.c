@@ -416,10 +416,10 @@ tls_generate_self_signed_cert(const char *file, const char *keyfile)
 	{
 		guid_t *guid = (guid_t *) GNET_PROPERTY_PTR(servent_guid);
 
-		if (TRY(gnutls_x509_crt_set_subject_key_id)(crt, guid, sizeof *guid))
+		if (TRY(gnutls_x509_crt_set_subject_key_id)(crt, PTRLEN(guid)))
 			goto failed;
 
-		if (TRY(gnutls_x509_crt_set_authority_key_id)(crt, guid, sizeof *guid))
+		if (TRY(gnutls_x509_crt_set_authority_key_id)(crt, PTRLEN(guid)))
 			goto failed;
 	}
 
@@ -1456,7 +1456,7 @@ tls_version_string(void)
 		const char *current = gnutls_check_version(NULL);
 		int differ = strcmp(current, LIBGNUTLS_VERSION);
 
-		concat_strings(buf, sizeof buf, "GnuTLS ", current,
+		concat_strings(ARYLEN(buf), "GnuTLS ", current,
 			differ ? " (compiled against " : "",
 			differ ? LIBGNUTLS_VERSION : "",
 			differ ? ")" : "",

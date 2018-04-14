@@ -204,8 +204,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		special.soft_hyphen = utf8_char(0x00AD);
 		special.nbsp = utf8_char(0x00A0);
 		special.em_dash = utf8_char(0x2014);
-		concat_strings(special.list_item_prefix.str,
-			sizeof special.list_item_prefix.str,
+		concat_strings(ARYLEN(special.list_item_prefix.str),
 			" ", special.bullet.str, " ", NULL_PTR);
 	}
 
@@ -299,7 +298,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 			value = html_get_attribute(tag, HTML_ATTR_ALT);
 			if (value.data) {
-				str_bprintf(alt, sizeof alt, "\n[image alt=\"%.*s\"]\n",
+				str_bprintf(ARYLEN(alt), "\n[image alt=\"%.*s\"]\n",
 					(int)value.size, value.data);
 				text = alt;
 			}
@@ -316,7 +315,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
 				} else {
 					static gchar msg[1024];
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"\n[Image not found (\"%s\")]\n", filename);
 					text = msg;
 				}

@@ -1081,7 +1081,7 @@ tok_version_valid(
 	if (lvllen & 0x3)
 		return TOK_BAD_LEVEL_LENGTH;
 
-	lvllen = base64_decode_into(end, lvllen, lvldigest, sizeof(lvldigest));
+	lvllen = base64_decode_into(end, lvllen, ARYLEN(lvldigest));
 
 	if (lvllen == 0 || (lvllen & 0x1))
 		return TOK_BAD_LEVEL_ENCODING;

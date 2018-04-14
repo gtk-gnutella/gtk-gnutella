@@ -362,7 +362,7 @@ posix_worker(void *unused_arg)
 	(void) unused_arg;
 
 	thread_current_info(&info);
-	thread_info_to_string_buf(&info, name, sizeof name);
+	thread_info_to_string_buf(&info, ARYLEN(name));
 
 	emit("POSIX thread worker starting...");
 	emit("POSIX worker: %s", name);
@@ -374,7 +374,7 @@ posix_worker(void *unused_arg)
 
 		g_assert_log(thread_small_id() == stid,
 			"current STID=%u, prev=%u %s", thread_small_id(), stid,
-			thread_info_to_string_buf(&info, name, sizeof name));
+			thread_info_to_string_buf(&info, ARYLEN(name)));
 
 		p = xmalloc(100);
 		compat_sleep_ms(100);
@@ -384,7 +384,7 @@ posix_worker(void *unused_arg)
 
 		g_assert_log(thread_small_id() == stid,
 			"current STID=%u, prev=%u %s", thread_small_id(), stid,
-			thread_info_to_string_buf(&info, name, sizeof name));
+			thread_info_to_string_buf(&info, ARYLEN(name)));
 	}
 
 	return NULL;

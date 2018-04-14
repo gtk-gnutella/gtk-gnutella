@@ -392,16 +392,14 @@ server_host_info(const struct dl_server *server)
 	g_assert(dl_server_valid(server));
 
 	host_addr_port_to_string_buf(server->key->addr, server->key->port,
-		host, sizeof host);
+		ARYLEN(host));
 
 	name[0] = '\0';
 	if (server->hostname) {
-		concat_strings(name, sizeof name,
-			" (", server->hostname, ") ",
-			NULL_PTR);
+		concat_strings(ARYLEN(name), " (", server->hostname, ") ", NULL_PTR);
 	}
 
-	concat_strings(info, sizeof info,
+	concat_strings(ARYLEN(info),
 		"<",
 		(server->attrs & DLS_A_G2_ONLY) ? "G2 " : "",
 		host, name, " \'", server->vendor ? server->vendor : "", "\'>",
@@ -885,7 +883,7 @@ download_rx_error(void *o, const char *reason, ...)
 	}
 
 	va_start(args, reason);
-	str_vbprintf(msg, sizeof msg, reason, args);
+	str_vbprintf(ARYLEN(msg), reason, args);
 	download_repair(d, msg);
 	va_end(args);
 }
@@ -4685,7 +4683,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 	}
 
 	if (reason && no_reason != reason) {
-		str_vbprintf(d->error_str, sizeof(d->error_str), reason, ap);
+		str_vbprintf(ARYLEN(d->error_str), reason, ap);
 		d->remove_msg = d->error_str;
 	} else
 		d->remove_msg = NULL;
@@ -4933,14 +4931,14 @@ download_queue_update_status(struct download *d)
 	size_t rw;
 
 	/* Append times of event */
-	time_locale_to_string_buf(tm_time(), event, sizeof event);
+	time_locale_to_string_buf(tm_time(), ARYLEN(event));
 	rw = strlen(d->error_str);
-	rw += str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
+	rw += str_bprintf(ARYPOSLEN(d->error_str, rw),
 		_(" at %s"), lazy_locale_to_ui_string(event));
 
 	/* Append PFS indication if needed */
 	if (download_is_partial(d)) {
-		str_bprintf(&d->error_str[rw], sizeof d->error_str - rw,
+		str_bprintf(ARYPOSLEN(d->error_str, rw),
 			" <PFS %4.02f%%>", d->ranges_size * 100.0 / download_filesize(d));
 	}
 }
@@ -4973,7 +4971,7 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	 */
 
 	if (fmt) {
-		str_vbprintf(d->error_str, sizeof d->error_str, fmt, ap);
+		str_vbprintf(ARYLEN(d->error_str), fmt, ap);
 	} else {
 		g_strlcpy(d->error_str, "", sizeof d->error_str);
 	}
@@ -7244,7 +7242,7 @@ create_download(
 			if (tth != NULL && !tth_eq(file_info->tth, tth)) {
 				char buf[TTH_BASE32_SIZE + 1];
 
-				tth_to_base32_buf(tth, buf, sizeof buf);
+				tth_to_base32_buf(tth, ARYLEN(buf));
 				g_warning("ignoring new source for %s at %s: its TTH %s "
 					"differs from known %s (SHA1 is %s)",
 					filepath_basename(file_info->pathname),
@@ -11800,7 +11798,7 @@ http_version_nofix:
 		short_read[0] = '\0';
 	else {
 		uint count = header_num_lines(header);
-		str_bprintf(short_read, sizeof short_read,
+		str_bprintf(ARYLEN(short_read),
 			"[short %u line%s header] ", count, plural(count));
 
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
@@ -12184,20 +12182,20 @@ http_version_nofix:
 
 				download_passively_queued(d, TRUE);
 
-				rw = str_bprintf(tmp, sizeof(tmp), "%s", _("Queued"));
+				rw = str_bprintf(ARYLEN(tmp), "%s", _("Queued"));
 				if (pos > 0) {
-					rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
+					rw += str_bprintf(ARYPOSLEN(tmp, rw),
 						_(" (slot %d"), pos);		/* ) */
 
 					if (length > 0)
-						rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
-							"/%d", length);
+						rw += str_bprintf(ARYPOSLEN(tmp, rw), "/%d", length);
 
-					if (eta > 0)
-						rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw,
+					if (eta > 0) {
+						rw += str_bprintf(ARYPOSLEN(tmp, rw),
 							_(", ETA: %s"), short_time(eta));
+					}
 
-					rw += str_bprintf(&tmp[rw], sizeof(tmp)-rw, /* ( */ ")");
+					rw += str_bprintf(ARYPOSLEN(tmp, rw), /* ( */ ")");
 				}
 
 				download_queue_delay(d,
@@ -12501,7 +12499,7 @@ http_version_nofix:
 			) {
 				char got[64];
 
-				str_bprintf(got, sizeof got, "got %s - %s",
+				str_bprintf(ARYLEN(got), "got %s - %s",
 					uint64_to_string(start), uint64_to_string2(end));
 
 				/* XXX: Should we check whether we can use this range
@@ -13749,7 +13747,7 @@ picked:
 
 	g_assert(rw + 3U <= sizeof request_buf);	/* Has room for final "\r\n" */
 
-	rw += str_bprintf(&request_buf[rw], sizeof request_buf - rw, "\r\n");
+	rw += str_bprintf(ARYPOSLEN(request_buf, rw), "\r\n");
 
 	/*
 	 * Send the HTTP Request
@@ -14398,7 +14396,7 @@ download_push_ack(struct gnutella_socket *s)
 	 * GIV / PUSH request, which is stored in "s->getline".
 	 */
 
-	if (!parse_giv(giv, hex_guid, sizeof hex_guid)) {
+	if (!parse_giv(giv, ARYLEN(hex_guid))) {
 		g_warning("malformed GIV string \"%s\" from %s",
 			giv, host_addr_to_string(s->addr));
 		goto discard;
@@ -14638,7 +14636,7 @@ download_build_magnet(const struct download *d)
 			!is_strprefix(dl_url, "push://")
 		) {
 			char guid_buf[GUID_HEX_SIZE + 1];
-			guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
+			guid_to_string_buf(download_guid(d), ARYLEN(guid_buf));
 			magnet_set_guid(magnet, guid_buf);
 		}
 		magnet_set_dht(magnet,
@@ -14851,10 +14849,10 @@ download_retrieve_old(FILE *f)
 	d_name = NULL;
 	flags = 0;
 
-	while (fgets(dl_tmp, sizeof dl_tmp, f)) {
+	while (fgets(ARYLEN(dl_tmp), f)) {
 		line++;
 
-		if (!file_line_chomp_tail(dl_tmp, sizeof dl_tmp, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(dl_tmp), NULL)) {
 			g_warning("%s(): line %u too long, aborting", G_STRFUNC, line);
 			break;
 		}
@@ -14945,7 +14943,7 @@ download_retrieve_old(FILE *f)
 				g_assert(':' == *endptr);
 				endptr++;
 
-				endptr += clamp_strcpy(d_hexguid, sizeof d_hexguid, endptr);
+				endptr += clamp_strcpy(ARYLEN(d_hexguid), endptr);
 			}
 
 			if (',' != *endptr) {
@@ -14985,7 +14983,7 @@ download_retrieve_old(FILE *f)
 				goto no_sha1;
 			if (
 				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
-				SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
+				SHA1_RAW_SIZE != base32_decode(VARLEN(sha1),
 									dl_tmp, SHA1_BASE32_SIZE)
 			) {
 				g_warning("%s(): bad base32 SHA1 '%32s' at line #%u, ignoring",
@@ -16107,9 +16105,8 @@ download_url_for_uri(const struct download *d, const char *uri)
 			pproxy_set_sequence(d->server->proxies) : NULL;
 		host = hostp = magnet_proxies_to_string(seq);
 		sequence_release(&seq);
-		guid_to_string_buf(download_guid(d), guid_buf, sizeof guid_buf);
-		concat_strings(prefix_buf, sizeof prefix_buf,
-			"push://", guid_buf, NULL_PTR);
+		guid_to_string_buf(download_guid(d), ARYLEN(guid_buf));
+		concat_strings(ARYLEN(prefix_buf), "push://", guid_buf, NULL_PTR);
 		prefix = prefix_buf;
 	} else if (0 != port && is_host_addr(addr)) {
 		host = host_port_to_string(download_hostname(d), addr, port);
@@ -16150,7 +16147,7 @@ download_build_url(const struct download *d)
 	} else if (download_get_sha1(d)) {
 		char uri[128];
 
-		concat_strings(uri, sizeof uri,
+		concat_strings(ARYLEN(uri),
 			"/uri-res/N2R?",
 			bitprint_to_urn_string(download_get_sha1(d), download_get_tth(d)),
 			NULL_PTR);
@@ -16197,7 +16194,7 @@ download_get_hostname(const struct download *d)
 		outbound = FALSE;
 	}
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		host_addr_port_to_string(addr, port),
 		inbound ? _(", inbound") : "",
 		outbound ? _(", outbound") : "",

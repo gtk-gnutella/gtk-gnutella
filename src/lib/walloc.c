@@ -389,7 +389,7 @@ walloc_get_magazine(size_t rounded)
 				}
 			}
 
-			str_bprintf(name, sizeof name, "walloc-%zu", zsize);
+			str_bprintf(ARYLEN(name), "walloc-%zu", zsize);
 			depot = wmagazine[idx] = wmagazine[zidx] =
 				tmalloc_create(name, zsize, walloc_raw, wfree_raw);
 		}

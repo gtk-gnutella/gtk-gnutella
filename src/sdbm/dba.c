@@ -249,7 +249,7 @@ bdump(int datf)
 	for (b = 0; b < UNSIGNED(buf.st_size); b += DBM_BBLKSIZ * DBM_BBLKSIZ * 8) {
 		if ((fileoffset_t) -1 == lseek(datf, b, SEEK_SET))
 			oops("seek failed: offset %lu", b);
-		if (-1 == read(datf, dat, sizeof dat))
+		if (-1 == read(datf, ARYLEN(dat)))
 			oops("read failed: offset %lu", b);
 		for (i = 0; i < DBM_BBLKSIZ; i++)
 			used += bits_set(dat[i]);

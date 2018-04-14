@@ -1892,9 +1892,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			 */
 
 			if (asked_dragon) {
-				mlen = float_dragon(m, sizeof m, nv, &e);
+				mlen = float_dragon(ARYLEN(m), nv, &e);
 			} else {
-				mlen = float_fixed(m, sizeof m, nv, asked, &e);
+				mlen = float_fixed(ARYLEN(m), nv, asked, &e);
 			}
 
 			g_assert(size_is_positive(mlen));
@@ -1902,7 +1902,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 				char buf[32];
-				gm_snprintf(buf, sizeof buf, "%g", nv);
+				gm_snprintf(ARYLEN(buf), "%g", nv);
 				s_debug("%s with \"%%%c\": m=\"%.*s\" "
 					"(len=%zu, asked=%s), e=%d "
 					"[precis=%zu, digits=%zu, alt=%s]",
@@ -1987,7 +1987,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 					start = v; 			/* Starting index */
 					non_zero = alt || 0 == digits;
 
-					rlen = str_fround(m, mlen, v, r, sizeof r);
+					rlen = str_fround(m, mlen, v, ARYLEN(r));
 
 					do {
 						if (1 == v && (alt || start != 1))
@@ -2077,7 +2077,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 					}
 
 					/* Rounding for the precision digit */
-					rlen = str_fround(m, mlen, i, r, sizeof r);
+					rlen = str_fround(m, mlen, i, ARYLEN(r));
 
 					/* Don't emit if we're down to printing 0.0 */
 					if (0 == azeros || azeros < precis) {
@@ -2129,7 +2129,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 						if (i < precis)
 							fzeros = precis - i;
 
-						rlen = str_fround(m, mlen, i, r, sizeof r);
+						rlen = str_fround(m, mlen, i, ARYLEN(r));
 
 						i = rlen - 1;
 						d++;		/* Extra carry digit in r[] */
@@ -2190,7 +2190,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 			char buf[32];
-			gm_snprintf(buf, sizeof buf, "%g", nv);
+			gm_snprintf(ARYLEN(buf), "%g", nv);
 			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
 				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
 				"a=%zu, f=%zu>",
@@ -3800,12 +3800,12 @@ str_test(bool verbose)
 			char std[MLEN];										\
 			char value[MLEN];									\
 			/* Avoid truncation warning in logs */				\
-			gm_snprintf_unchecked(std, sizeof std,				\
+			gm_snprintf_unchecked(ARYLEN(std),					\
 				t->fmt, t->value);								\
 			std[t->buflen - 1] = '\0';	/* Truncate here */		\
 			if (0 == ptr_cmp(&test_##what##s, &test_doubles))	\
 				str_test_fix_exponent(std);						\
-			gm_snprintf(value, sizeof value, vfmt, t->value);	\
+			gm_snprintf(ARYLEN(value), vfmt, t->value);			\
 			if (0 != strcmp(std, buf)) {						\
 				discrepancies++;								\
 				if (verbose) g_message(							\
@@ -3848,8 +3848,8 @@ str_test(bool verbose)
 
 		STATIC_ASSERT(sizeof vsnp == sizeof ours);
 
-		vsn_count = gm_snprintf(vsnp, sizeof vsnp, FORMAT, ARGS);
-		our_count = str_bprintf(ours, sizeof ours, FORMAT, ARGS);
+		vsn_count = gm_snprintf(ARYLEN(vsnp), FORMAT, ARGS);
+		our_count = str_bprintf(ARYLEN(ours), FORMAT, ARGS);
 
 		g_assert_log(0 == strcmp(vsnp, ours),
 			"vsnprintf() returned \"%s\", str_vncatf() returned \"%s\"",

@@ -73,7 +73,7 @@ ggep_strerror(unsigned errnum)
 {
 	if (errnum >= N_ITEMS(ggep_error_str)) {
 		static char buf[40];
-		str_bprintf(buf, sizeof buf, "Invalid GGEP error code: %u", errnum);
+		str_bprintf(ARYLEN(buf), "Invalid GGEP error code: %u", errnum);
 		return buf;
 	}
 

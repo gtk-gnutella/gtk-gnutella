@@ -297,7 +297,7 @@ gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        str_vbprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(ARYLEN(buf), format, args);
     else
         buf[0] = '\0';
 
@@ -319,7 +319,7 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        str_vbprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(ARYLEN(buf), format, args);
     else
         buf[0] = '\0';
 

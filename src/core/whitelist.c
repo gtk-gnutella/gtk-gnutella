@@ -339,7 +339,7 @@ whitelist_retrieve(void)
 		return;
 	}
 
-    while (fgets(line, sizeof line, f)) {
+    while (fgets(ARYLEN(line), f)) {
 		pslist_t *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;
@@ -351,7 +351,7 @@ whitelist_retrieve(void)
 
         linenum++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s(): line %u too long, aborting", G_STRFUNC, linenum);
 			break;
 		}

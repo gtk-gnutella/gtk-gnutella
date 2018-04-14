@@ -287,7 +287,7 @@ g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
 		va_start(args, fmt);
 
 		if (fmt != NULL)
-			str_vbprintf(buf, sizeof buf, fmt, args);
+			str_vbprintf(ARYLEN(buf), fmt, args);
 		else
 			buf[0] = '\0';
 

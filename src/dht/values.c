@@ -637,7 +637,7 @@ dht_value_type_to_string(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -651,7 +651,7 @@ dht_value_type_to_string2(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -668,11 +668,11 @@ dht_value_to_string(const dht_value_t *v)
 	char kuid[KUID_RAW_SIZE * 2 + 1];
 	char type[5];
 
-	bin_to_hex_buf(v->id, KUID_RAW_SIZE, kuid, sizeof kuid);
-	knode_to_string_buf(v->creator, knode, sizeof knode);
-	dht_value_type_to_string_buf(v->type, type, sizeof type);
+	bin_to_hex_buf(v->id, KUID_RAW_SIZE, ARYLEN(kuid));
+	knode_to_string_buf(v->creator, ARYLEN(knode));
+	dht_value_type_to_string_buf(v->type, ARYLEN(type));
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
 		kuid, type, v->major, v->minor, v->length, plural(v->length),
 		knode);
@@ -876,7 +876,7 @@ kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return FALSE;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	return dbmw_exists(db_expired, buf);
 }
 
@@ -907,7 +907,7 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 	if (!keys_within_kball(key))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_write(db_expired, buf, NULL, 0);
 }
 
@@ -929,7 +929,7 @@ kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_delete(db_expired, buf);
 }
 
@@ -1741,7 +1741,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		dbmw_write(db_rawdata, &dbkey, deconstify_pointer(v->data), v->length);
 	}
 
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	return STORE_SC_OK;
 
@@ -1911,7 +1911,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
 	 */
 
 	vd->n_requests++;
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	if (vd->length) {
 		size_t length;

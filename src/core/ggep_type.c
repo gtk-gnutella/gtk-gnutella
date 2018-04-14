@@ -653,7 +653,7 @@ ggept_ipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	const gnet_host_t *evec, size_t ecnt,
 	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -677,7 +677,7 @@ ggept_status_t
 ggept_dhtipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -717,7 +717,7 @@ ggept_push_pack(ggep_stream_t *gs, const sequence_t *hseq, size_t max,
 ggept_status_t
 ggept_a_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -740,7 +740,7 @@ ggept_status_t
 ggept_alt_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	unsigned flags)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);

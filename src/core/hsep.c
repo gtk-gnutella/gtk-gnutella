@@ -1030,7 +1030,7 @@ hsep_get_static_str(int row, int column)
 			static char buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES];
-			uint64_to_string_buf(v, buf, sizeof buf);
+			uint64_to_string_buf(v, ARYLEN(buf));
 			ret = buf;
 		}
 		break;
@@ -1040,7 +1040,7 @@ hsep_get_static_str(int row, int column)
 			static char buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES];
-			uint64_to_string_buf(v, buf, sizeof buf);
+			uint64_to_string_buf(v, ARYLEN(buf));
 			ret = buf;
 		}
 		break;

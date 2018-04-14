@@ -515,7 +515,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	str_vbprintf(buf, sizeof buf, format, args);
+	str_vbprintf(ARYLEN(buf), format, args);
 	va_end(args);
 
 	g_warning("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -535,7 +535,7 @@ vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	str_vbprintf(buf, sizeof buf, format, args);
+	str_vbprintf(ARYLEN(buf), format, args);
 	va_end(args);
 
 	g_debug("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -1268,7 +1268,7 @@ vxml_fill_tokens(const nv_table_t *tokens, struct vxml_token *tvec, size_t tlen)
 	struct vxml_token *t;
 
 	for (i = 0, t = tvec; i < tlen; i++, t++) {
-		nv_table_insert_nocopy(tokens, t->name, t, sizeof *t);
+		nv_table_insert_nocopy(tokens, t->name, PTRLEN(t));
 	}
 }
 
@@ -1415,7 +1415,7 @@ vxml_document_where(vxml_parser_t *vp)
 
 	vxml_parser_check(vp);
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%sparsing \"%s\" (%s %u.%u), %soffset %zu, line %zu, at %s",
 		vp->glob.depth != vp->loc.depth ? "sub-" : "", vp->name,
 		vxml_versionsrc_to_string(vp->versource), vp->major, vp->minor,
@@ -6384,11 +6384,11 @@ vxml_run_ns_simple_test(int num, const char *name,
 	g_assert(!(flags & VXML_O_NO_NAMESPACES));
 	g_assert('\0' == data[len]);	/* Given length is correct */
 
-	str_bprintf(buf, sizeof buf, "%s (no NS)", name);
+	str_bprintf(ARYLEN(buf), "%s (no NS)", name);
 	vxml_run_simple_test(num, buf, data, len,
 		flags | VXML_O_NO_NAMESPACES, error_no_ns);
 
-	str_bprintf(buf, sizeof buf, "%s (with NS)", name);
+	str_bprintf(ARYLEN(buf), "%s (with NS)", name);
 	vxml_run_simple_test(num, buf, data, len, flags, error_with_ns);
 }
 

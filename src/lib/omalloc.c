@@ -260,7 +260,7 @@ assert_ochunk_valid(const struct ochunk *ck, const void *page,
 
 	g_assert_log(0 == ptr_cmp(&ck[1], end),
 		"%s(): chunk at %p (%zu bytes) not at the tail of page [%p, %p[",
-		caller, ck, sizeof *ck, page, end);
+		caller, PTRLEN(ck), page, end);
 	g_assert_log(ptr_cmp(ck->first, page) >= 0 && ptr_cmp(ck->first, end) < 0,
 		"%s(): chunk at %p lists first free byte at %p, not on page [%p, %p[",
 		caller, ck, ck->first, page, end);

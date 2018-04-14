@@ -324,7 +324,7 @@ gip_load(FILE *f, unsigned idx)
 		gip_source[idx].mtime = buf.st_mtime;
 	}
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		linenum++;
 
 		/*
@@ -332,7 +332,7 @@ gip_load(FILE *f, unsigned idx)
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s: line %d too long, aborting",
 				gip_source[idx].file, linenum);
 			break;
@@ -384,7 +384,7 @@ gip_changed(const char *filename, void *idx_ptr)
 	count = gip_load(f, idx);
 	fclose(f);
 
-	str_bprintf(buf, sizeof buf, "Reloaded %u geographic IPv%c ranges.",
+	str_bprintf(ARYLEN(buf), "Reloaded %u geographic IPv%c ranges.",
 		count, GIP_IPV4 == idx ? '4' : '6');
 
 	gcu_statusbar_message(buf);

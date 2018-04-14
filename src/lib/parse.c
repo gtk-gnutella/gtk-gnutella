@@ -354,7 +354,7 @@ parse_ipv6_addr(const char *s, uint8 *dst, const char **endptr)
 		return FALSE;
 
 	if (dst)
-		memcpy(dst, buf, sizeof buf);
+		memcpy(dst, ARYLEN(buf));
 
 	return TRUE;
 }

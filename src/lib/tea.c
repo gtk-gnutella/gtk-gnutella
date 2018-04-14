@@ -266,9 +266,9 @@ tea_test(void)
 	STATIC_ASSERT(sizeof in == sizeof recovered);
 
 	random_bytes(key.v, TEA_KEY_SIZE);
-	random_bytes(in, sizeof in);
-	tea_encrypt(&key, out, in, sizeof in);
-	tea_decrypt(&key, recovered, out, sizeof out);
+	random_bytes(ARYLEN(in));
+	tea_encrypt(&key, out, ARYLEN(in));
+	tea_decrypt(&key, recovered, ARYLEN(out));
 
 	if (0 != memcmp(in, recovered, sizeof in))
 		g_error("TEA implementation tests FAILED");

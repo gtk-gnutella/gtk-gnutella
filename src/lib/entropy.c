@@ -632,8 +632,8 @@ entropy_collect_user(SHA1_context *ctx)
 		char user[UINT32_DEC_BUFLEN];
 		char real[UINT32_DEC_BUFLEN];
 
-		uint32_to_string_buf(entropy_minirand(), user, sizeof user);
-		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
+		uint32_to_string_buf(entropy_minirand(), ARYLEN(user));
+		uint32_to_string_buf(entropy_minirand(), ARYLEN(real));
 		str[1] = user;
 		str[2] = real;
 		entropy_array_string_collect(ctx, str, N_ITEMS(str));

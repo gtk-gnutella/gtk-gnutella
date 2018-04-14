@@ -810,9 +810,9 @@ kbucket_to_string(const struct kbucket *kb)
 
 	g_assert(kb);
 
-	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
+	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, ARYLEN(kuid));
 
-	str_bprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
+	str_bprintf(ARYLEN(buf), "k-bucket %s (%sdepth %d%s%s)"
 			" [good: %u, stale: %u, pending: %u]",
 		kuid, kb->frozen_depth ? "frozen " : "",
 		kb->depth, kb->ours ? ", ours" : "",
@@ -1122,7 +1122,7 @@ dht_allocate_new_kuid_if_needed(void)
 	 * of the previously interrupted run.
 	 */
 
-	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
+	gnet_prop_get_storage(PROP_KUID, VARLEN(buf));
 
 	if (
 		kuid_is_blank(&buf) ||
@@ -1130,7 +1130,7 @@ dht_allocate_new_kuid_if_needed(void)
 	) {
 		if (GNET_PROPERTY(dht_debug)) g_debug("generating new DHT node ID");
 		kuid_random_fill(&buf);
-		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+		gnet_prop_set_storage(PROP_KUID, VARLEN(buf));
 	}
 
 	our_kuid = kuid_get_atom(&buf);
@@ -1463,7 +1463,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, void *unused_arg)
 		kuid_t id;
 		bool started;
 
-		random_bytes(id.v, sizeof id.v);
+		random_bytes(VARLEN(id));
 
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT improving bootstrap with random KUID is %s",
@@ -1635,7 +1635,7 @@ dht_reset_kuid(void)
 {
 	kuid_t buf;
 	kuid_zero(&buf);
-	gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+	gnet_prop_set_storage(PROP_KUID, VARLEN(buf));
 }
 
 /**
@@ -4722,7 +4722,7 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 		struct kbucket *kb;
 		knode_t *kn;
 
-		random_bytes(id.v, sizeof id.v);
+		random_bytes(VARLEN(id));
 		kb = dht_find_bucket(&id);
 		kn = hash_list_random(list_for(kb, KNODE_GOOD));
 
@@ -5376,7 +5376,7 @@ dht_route_parse(FILE *f)
 	bit_array_init(tag_used, NUM_DHT_ROUTE_TAGS);
 	nodes = patricia_create(KUID_RAW_BITSIZE);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		dht_route_tag_t tag;
@@ -5395,7 +5395,7 @@ dht_route_parse(FILE *f)
 
 		line_no++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * Line was too long or the file was corrupted or manually
 			 * edited without consideration for the advertised format.
@@ -5431,7 +5431,7 @@ dht_route_parse(FILE *f)
 		case DHT_ROUTE_TAG_KUID:
 			if (
 				KUID_RAW_SIZE * 2 != strlen(value) ||
-				KUID_RAW_SIZE != base16_decode(&kuid, sizeof kuid,
+				KUID_RAW_SIZE != base16_decode(VARLEN(kuid),
 					value, KUID_RAW_SIZE * 2)
 			)
 				goto damaged;

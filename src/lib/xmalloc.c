@@ -1203,10 +1203,9 @@ xmalloc_is_valid_pointer(const void *p, bool locked)
 		 * Can't call vmm_is_native_pointer() if we hold a lock for fear
 		 * of creating a deadlock.
 		 */
-		return locked ||
-			vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
+		return locked || vmm_is_native_pointer(p) || xmalloc_isheap(ARYLEN(p));
 	} else {
-		return xmalloc_isheap(p, sizeof p);
+		return xmalloc_isheap(ARYLEN(p));
 	}
 }
 
@@ -1225,14 +1224,14 @@ xmalloc_invalid_ptrstr(const void *p)
 		if (vmm_is_native_pointer(p)) {
 			return "valid VMM pointer!";		/* Should never happen */
 		} else {
-			if (xmalloc_isheap(p, sizeof p)) {
+			if (xmalloc_isheap(ARYLEN(p))) {
 				return "valid heap pointer!";	/* Should never happen */
 			} else {
 				return "neither VMM nor heap pointer";
 			}
 		}
 	} else {
-		if (xmalloc_isheap(p, sizeof p)) {
+		if (xmalloc_isheap(ARYLEN(p))) {
 			return "valid heap pointer!";		/* Should never happen */
 		} else {
 			return "not a heap pointer";
@@ -2029,7 +2028,7 @@ assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
 			char buf[80];
 
 			va_start(args, fmt);
-			str_vbprintf(buf, sizeof buf, fmt, args);
+			str_vbprintf(ARYLEN(buf), fmt, args);
 			va_end(args);
 
 			s_warning("XM freelist #%zu (%zu/%zu sorted) "

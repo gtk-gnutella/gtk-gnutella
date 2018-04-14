@@ -146,7 +146,7 @@ http_send_status(
 	bool retried = FALSE;
 
 	va_start(args, reason);
-	str_vbprintf(status_msg, sizeof status_msg - 1, reason, args);
+	str_vbprintf(ARYLEN(status_msg) - 1, reason, args);
 	va_end(args);
 
 	/*
@@ -887,7 +887,7 @@ http_parameter_get(const char *field, const char *name)
 
 		/* Found parameter, collect value in static buffer */
 
-		if (!http_value_collect(eq + 1, value, sizeof value))
+		if (!http_value_collect(eq + 1, ARYLEN(value)))
 			break;
 
 		return value;
@@ -951,7 +951,7 @@ http_url_parse(const char *url, uint16 *port, const char **host,
 	}
 
 	if (is_host_addr(addr)) {
-		host_addr_to_string_buf(addr, hostname, sizeof hostname);
+		host_addr_to_string_buf(addr, ARYLEN(hostname));
 	} else {
 		size_t len;
 		char *end;
@@ -1680,14 +1680,14 @@ http_async_remote_host_port(const http_async_t *ha)
 
 	if (ha->host) {
 		if (s->port != HTTP_PORT)
-			str_bprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
+			str_bprintf(ARYLEN(buf), "%s:%u", ha->host, (uint) s->port);
 		else
 			g_strlcpy(buf, ha->host, sizeof buf);
 	} else {
 		if (s->port != HTTP_PORT)
-			host_addr_port_to_string_buf(s->addr, s->port, buf, sizeof buf);
+			host_addr_port_to_string_buf(s->addr, s->port, ARYLEN(buf));
 		else
-			host_addr_to_string_buf(s->addr, buf, sizeof buf);
+			host_addr_to_string_buf(s->addr, ARYLEN(buf));
 	}
 
 	return buf;
@@ -2005,7 +2005,7 @@ http_async_host(const http_async_t *ha)
 	if (ha->host != NULL)
 		return ha->host;
 
-	host_addr_to_string_buf(ha->socket->addr, buf, sizeof buf);
+	host_addr_to_string_buf(ha->socket->addr, ARYLEN(buf));
 	return buf;
 }
 
@@ -2365,7 +2365,7 @@ http_async_rx_error(void *o, const char *reason, ...)
 		char buf[128];
 
 		va_start(args, reason);
-		str_vbprintf(buf, sizeof buf, reason, args);
+		str_vbprintf(ARYLEN(buf), reason, args);
 		va_end(args);
 		g_warning("HTTP RX error from %s for \"%s\": %s",
 			http_async_host(ha), ha->url, buf);
@@ -2874,11 +2874,11 @@ http_async_connected(http_async_t *ha)
 	 */
 
 	if (HTTP_POST == ha->type) {
-		rw = (*ha->op_post_request)(ha, req, sizeof(req),
+		rw = (*ha->op_post_request)(ha, ARYLEN(req),
 			(char *) http_verb[ha->type], ha->path,
 			ha->content_type, ha->datalen);
 	} else {
-		rw = (*ha->op_get_request)(ha, req, sizeof(req),
+		rw = (*ha->op_get_request)(ha, ARYLEN(req),
 			(char *) http_verb[ha->type], ha->path);
 	}
 

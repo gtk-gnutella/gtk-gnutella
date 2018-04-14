@@ -324,7 +324,7 @@ retry:
 	line = 0;
 	added = 0;
 
-	while (fgets(tmp, sizeof(tmp), in)) {
+	while (fgets(ARYLEN(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')		/* Skip comments */

@@ -774,7 +774,7 @@ random_add_pool(void *buf, size_t len)
 		 */
 
 		if G_UNLIKELY(idx >= N_ITEMS(data)) {
-			random_add(data, sizeof data);
+			random_add(ARYLEN(data));
 			ZERO(&data);		/* Hide them now */
 			idx = 0;
 			flushed = TRUE;
@@ -858,7 +858,7 @@ random_collect(void)
 
 	spinunlock(&collect_slk);
 
-	random_pool_append(&rbyte, sizeof rbyte);
+	random_pool_append(VARLEN(rbyte));
 }
 
 /**

@@ -1882,7 +1882,7 @@ hcache_load_file(hostcache_t *hc, FILE *f)
 	g_return_if_fail(f);
 
 	now = tm_time();
-	while (fgets(buffer, sizeof buffer, f)) {
+	while (fgets(ARYLEN(buffer), f)) {
 		const char *endptr;
 		host_addr_t addr;
 		uint16 port;

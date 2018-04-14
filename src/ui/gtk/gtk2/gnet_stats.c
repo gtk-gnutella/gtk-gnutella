@@ -213,7 +213,7 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 
 		if (stats->general[n] != general[n]) {
 			general[n] = stats->general[n];
-			general_stat_str(buf, sizeof buf, stats, n);
+			general_stat_str(ARYLEN(buf), stats, n);
 			gtk_list_store_set(store, &iter, 1, buf, (-1));
 		}
 
@@ -241,7 +241,7 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 
 		if (stats->drop_reason[n][i] != drop_reason[n][i]) {
 			drop_reason[n][i] = stats->drop_reason[n][i];
-			drop_stat_str(buf, sizeof buf, stats, n, i);
+			drop_stat_str(ARYLEN(buf), stats, n, i);
 			gtk_list_store_set(store, &iter, 1, buf, (-1));
 		}
 
@@ -463,7 +463,7 @@ gnet_stats_gui_flowc_init(void)
 	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
 
-		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
+		str_bprintf(ARYLEN(buf), "%d%c", n - 1,
 				n + 1 < STATS_FLOWC_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? _("Type") : buf);
@@ -641,7 +641,7 @@ gnet_stats_gui_recv_init(void)
 	for (n = 0; n < N_ITEMS(width); n++) {
 		gchar buf[16];
 
-		str_bprintf(buf, sizeof(buf), "%d%c", n - 1,
+		str_bprintf(ARYLEN(buf), "%d%c", n - 1,
 				n + 1 < STATS_RECV_COLUMNS ? '\0' : '+');
 		add_column(treeview, n, width[n], (gfloat) (n != 0),
 			n == 0 ? _("Type") : buf);

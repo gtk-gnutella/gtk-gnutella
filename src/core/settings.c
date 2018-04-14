@@ -462,8 +462,8 @@ settings_init_session_id(void)
 	 * sufficiently random to be used as-is.
 	 */
 
-	random_bytes(&id, sizeof id);
-	gnet_prop_set_storage(PROP_SESSION_ID, &id, sizeof id);
+	random_bytes(VARLEN(id));
+	gnet_prop_set_storage(PROP_SESSION_ID, VARLEN(id));
 }
 
 /**
@@ -850,8 +850,8 @@ settings_init(bool resume)
 	{
 		sha1_t buf;		/* 160 bits */
 
-		gnet_prop_get_storage(PROP_RANDOMNESS, &buf, sizeof buf);
-		random_add(&buf, sizeof buf);
+		gnet_prop_get_storage(PROP_RANDOMNESS, VARLEN(buf));
+		random_add(VARLEN(buf));
 	}
 
 	settings_init_session_id();
@@ -883,7 +883,7 @@ settings_gen_randomness(void *unused)
 	g_assert(thread_is_main());
 
 	aje_random_bytes(&buf, SHA1_RAW_SIZE);
-	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+	gnet_prop_set_storage(PROP_RANDOMNESS, VARLEN(buf));
 }
 
 /**

@@ -76,7 +76,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	 *		--RAM, 2016-01-02
 	 */
 
-	crash_time_raw(time_buf, sizeof time_buf);
+	crash_time_raw(ARYLEN(time_buf));
 	stid = thread_safe_small_id();
 
 	/*
@@ -92,7 +92,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	if (0 == stid) {
 		print_str(fatal ? " (FATAL): " : " (WARNING): ");
 	} else {
-		str_bprintf(prefix, sizeof prefix, " (%s-%u): ",
+		str_bprintf(ARYLEN(prefix), " (%s-%u): ",
 			fatal ? "FATAL" : "WARNING", stid);
 		print_str(prefix);
 	}
@@ -296,13 +296,13 @@ assertion_warning_log(const assertion_data * const data,
 		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time_raw(time_buf, sizeof time_buf);
+		crash_time_raw(ARYLEN(time_buf));
 
 		print_str(time_buf);
 		if (0 == stid) {
 			print_str(" (WARNING): ");
 		} else {
-			str_bprintf(prefix, sizeof prefix, " (WARNING-%u): ", stid);
+			str_bprintf(ARYLEN(prefix), " (WARNING-%u): ", stid);
 			print_str(prefix);
 		}
 		print_str(str_2c(str));
@@ -363,13 +363,13 @@ assertion_failure_log(const assertion_data * const data,
 		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time_raw(time_buf, sizeof time_buf);
+		crash_time_raw(ARYLEN(time_buf));
 
 		print_str(time_buf);
 		if (0 == stid) {
 			print_str(" (FATAL): ");
 		} else {
-			str_bprintf(prefix, sizeof prefix, " (FATAL-%u): ", stid);
+			str_bprintf(ARYLEN(prefix), " (FATAL-%u): ", stid);
 			print_str(prefix);
 		}
 		print_str(msg);

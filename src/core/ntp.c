@@ -224,7 +224,7 @@ ntp_send_probe(const host_addr_t addr)
 	tm_now_exact(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
-	return 0 == urpc_send("NTP", addr, NTP_PORT, &m, sizeof m, NTP_WAIT_MS,
+	return 0 == urpc_send("NTP", addr, NTP_PORT, VARLEN(m), NTP_WAIT_MS,
 		ntp_received, NULL);
 }
 

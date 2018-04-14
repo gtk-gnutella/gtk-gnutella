@@ -156,8 +156,7 @@ leak_add(leak_set_t *ls, size_t size, const char *file, int line)
 	g_assert(file);
 	g_assert(line >= 0);
 
-	concat_strings(key, sizeof key,
-		file, ":", uint64_to_string(line), NULL_PTR);
+	concat_strings(ARYLEN(key), file, ":", uint64_to_string(line), NULL_PTR);
 	found = htable_lookup_extended(ls->places, key, NULL, &v);
 
 	if (found) {

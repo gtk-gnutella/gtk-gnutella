@@ -445,7 +445,7 @@ flush_match(void)
 	trailer_start = found_open();
 	found_close(0);	/* Nothing written */
 
-	if (!found_write(trailer, sizeof trailer)) /* Store the open trailer */
+	if (!found_write(ARYLEN(trailer))) /* Store the open trailer */
 		goto failure;
 
 	/*
@@ -467,7 +467,7 @@ flush_match(void)
 		size_t len;
 		bool ok;
 
-		len = ggept_gtkgv_build(buf, sizeof buf);
+		len = ggept_gtkgv_build(ARYLEN(buf));
 
 		ok =
 			ggep_stream_begin(&gs, GGEP_NAME(GTKGV), 0) &&
@@ -815,7 +815,7 @@ add_file(const shared_file_t *sf)
 		 * available on the server.		--RAM, 2012-11-03
 		 */
 
-		len = ggept_stamp_filesize_encode(mtime, available, buf, sizeof buf);
+		len = ggept_stamp_filesize_encode(mtime, available, ARYLEN(buf));
 		ok = ggep_stream_pack(&gs, GGEP_NAME(PRU), buf, len, GGEP_W_COBS);
 		if (!ok)
 			qhit_log_ggep_write_failure("PRU");
@@ -868,7 +868,7 @@ add_file(const shared_file_t *sf)
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
+		len = ggept_filesize_encode(shared_file_size(sf), ARYLEN(buf));
 
 		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 
@@ -915,7 +915,7 @@ add_file(const shared_file_t *sf)
 			 */
 			create_time = MAX(0, create_time);
 
-			len = ggept_ct_encode(create_time, buf, sizeof buf);
+			len = ggept_ct_encode(create_time, ARYLEN(buf));
 			g_assert(UNSIGNED(len) <= sizeof buf);
 
 			ok = ggep_stream_pack(&gs, GGEP_NAME(CT), buf, len, GGEP_W_COBS);

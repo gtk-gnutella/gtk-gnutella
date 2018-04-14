@@ -150,8 +150,8 @@ arc4_stir(struct arc4_stream *as)
 	for (n = 0; n < 4; n++) {
 		unsigned char buf[ARC4_BOXES];
 
-		entropy_fill(buf, sizeof buf);
-		arc4_addrandom(as, buf, sizeof buf);
+		entropy_fill(ARYLEN(buf));
+		arc4_addrandom(as, ARYLEN(buf));
 	}
 
 	/*

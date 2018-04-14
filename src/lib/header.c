@@ -247,7 +247,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 			const char *p = s;
 			int c;
 			size_t len = strlen(s);
-			str_bprintf(buf, sizeof buf, "<%u non-printable byte%s>",
+			str_bprintf(ARYLEN(buf), "<%u non-printable byte%s>",
 				(unsigned) len, plural(len));
 			fputs(buf, out);
 			while ((c = *p++)) {

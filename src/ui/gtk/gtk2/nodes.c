@@ -346,7 +346,7 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 	g_assert(data->node_id == info->node_id);
 
     if (guc_node_get_status(info->node_id, &status)) {
-		str_bprintf(data->version, sizeof data->version, "%u.%u",
+		str_bprintf(ARYLEN(data->version), "%u.%u",
 				info->proto_major, info->proto_minor);
 		atom_str_free_null(&data->user_agent);
 		data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
@@ -364,7 +364,7 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 
 	g_assert(NULL != data);
 
-	concat_strings(data->flags, sizeof data->flags,
+	concat_strings(ARYLEN(data->flags),
 		"<tt>", guc_node_flags_to_string(flags), "</tt>", NULL_PTR);
 
 	ultra = NODE_P_ULTRA == flags->peermode || NODE_P_G2HUB == flags->peermode;
@@ -404,7 +404,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		guc_node_fill_info(data->node_id, &info);
 		g_assert(info.node_id == data->node_id);
 
-		str_bprintf(text, sizeof text,
+		str_bprintf(ARYLEN(text),
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %s (%s)\n"
@@ -648,7 +648,7 @@ nodes_gui_add_node(gnet_node_info_t *info)
 	data->host_size = w_concat_strings(&data->host,
 						host_addr_port_to_string(info->addr, info->port),
 						NULL_PTR);
-	str_bprintf(data->version, sizeof data->version, "%u.%u",
+	str_bprintf(ARYLEN(data->version), "%u.%u",
 		info->proto_major, info->proto_minor);
 
 	guc_node_fill_flags(data->node_id, &flags);

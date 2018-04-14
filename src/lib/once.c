@@ -126,8 +126,8 @@ static pcell_alloc_t once_cell_allocator = {
 static void
 once_init(void)
 {
-	once_running = hash_table_new_fixed(once_buffer, sizeof once_buffer);
-	balloc_init(sizeof(pslist_t), once_cells, sizeof once_cells);
+	once_running = hash_table_new_fixed(ARYLEN(once_buffer));
+	balloc_init(sizeof(pslist_t), ARYLEN(once_cells));
 }
 
 static void

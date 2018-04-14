@@ -479,7 +479,7 @@ socket_tos(const struct gnutella_socket *s, int tos)
 	if (
 		GNET_PROPERTY(use_ip_tos) &&
 		NET_TYPE_IPV4 == s->net &&
-		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, &tos, sizeof tos)
+		-1 == setsockopt(s->file_desc, sol_ip(), IP_TOS, VARLEN(tos))
 	) {
 		if (ECONNRESET != errno) {
 			const char *name;
@@ -586,7 +586,7 @@ socket_tcp_linger2(struct gnutella_socket *s, int secs, const char *caller)
 		return;
 
 #ifdef TCP_LINGER2
-	if (setsockopt(s->file_desc, sol_tcp(), TCP_LINGER2, &secs, sizeof secs)) {
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_LINGER2, VARLEN(secs))) {
 		if (ECONNRESET != errno) {
 			g_warning("%s(): cannot set TCP_LINGER2 to %d sec%s on fd#%d: %m",
 				caller, secs, plural(secs), s->file_desc);
@@ -617,7 +617,7 @@ socket_no_linger(socket_fd_t fd, const char *caller)
 	lb.l_onoff = 1;
 	lb.l_linger = 0;	/* closes connections with RST */
 
-	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, &lb, sizeof lb)) {
+	if (setsockopt(fd, SOL_SOCKET, SO_LINGER, VARLEN(lb))) {
 		switch (errno) {
 		case ENOPROTOOPT:		/* On Windows, for SO_LINGER */
 		case EOPNOTSUPP:		/* POSIX way for op not supported on socket */
@@ -1890,7 +1890,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 			/* Peek at the socket buffer to check whether the incoming
 			 * connection uses TLS or not. */
-			ret = recv(s->file_desc, &c, sizeof c, MSG_PEEK);
+			ret = recv(s->file_desc, VARLEN(c), MSG_PEEK);
 			if ((ssize_t) -1 == ret) {
 				if (!is_temporary_error(errno)) {
 					socket_destroy(s, _("Read error"));
@@ -3257,8 +3257,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 
 		timeout = MIN(GNET_PROPERTY(tcp_defer_accept_timeout), (uint) INT_MAX);
 		if (
-			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT,
-				&timeout, sizeof timeout)
+			setsockopt(s->file_desc, sol_tcp(), TCP_DEFER_ACCEPT, VARLEN(timeout))
 		) {
 			g_warning("setsockopt() for TCP_DEFER_ACCEPT(%d) failed: %m",
 				timeout);
@@ -3275,9 +3274,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
 		strncpy(arg.af_name, name, sizeof arg.af_name);
 
-		if (setsockopt(s->file_desc, SOL_SOCKET, SO_ACCEPTFILTER,
-				&arg, sizeof arg)
-		) {
+		if (setsockopt(s->file_desc, SOL_SOCKET, SO_ACCEPTFILTER, VARLEN(arg))) {
 			/* This is usually not supported for IPv6. Thus suppress
 			 * the warning by default. */
 			if (NET_TYPE_IPV6 != s->net || GNET_PROPERTY(socket_debug) > 0) {
@@ -3301,7 +3298,7 @@ socket_set_fastack(struct gnutella_socket *s)
 
 	(void) on;
 #if defined(TCP_FASTACK)
-	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, &on, sizeof on)) {
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_FASTACK, VARLEN(on))) {
 		g_warning("could not set TCP_FASTACK (fd=%d): %m", s->file_desc);
 	}
 #endif /* TCP_FASTACK */
@@ -3323,7 +3320,7 @@ socket_set_quickack(struct gnutella_socket *s, int on)
 
 	(void) on;
 #if defined(TCP_QUICKACK)
-	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, &on, sizeof on)) {
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_QUICKACK, VARLEN(on))) {
 		g_warning("could not set TCP_QUICKACK (fd=%d): %m", s->file_desc);
 	}
 #endif	/* TCP_QUICKACK*/
@@ -3343,7 +3340,7 @@ socket_set_keepalive(socket_fd_t fd, const char *caller)
 
 	g_assert(is_valid_fd(fd));
 
-	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, &on, sizeof on)) {
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_KEEPALIVE, VARLEN(on))) {
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_KEEPALIVE) failed: %m",
 			caller, (int) fd);
 	}
@@ -3363,14 +3360,14 @@ socket_set_reuseaddr(socket_fd_t fd, const char *caller)
 	g_assert(is_valid_fd(fd));
 
 	/* Linux absolutely wants this before bind() unlike BSD */
-	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof on)) {
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEADDR, VARLEN(on))) {
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEADDR) failed: %m",
 			caller, (int) fd);
 	}
 
 	/* On Linux 3.9 and above, SO_REUSEPORT is also required. */
 #ifdef SO_REUSEPORT
-	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, &on, sizeof on)) {
+	if (-1 == setsockopt(fd, SOL_SOCKET, SO_REUSEPORT, VARLEN(on))) {
 		g_warning("%s(): setsockopt(%d, SOL_SOCKET, SO_REUSEPORT) failed: %m",
 			caller, (int) fd);
 	}
@@ -3388,7 +3385,7 @@ socket_set_ipv6only(socket_fd_t fd, const char *caller)
 #if defined(HAS_IPV6) && defined(IPV6_V6ONLY)
 	const int on = 1;
 
-	if (-1 == setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, &on, sizeof on)) {
+	if (-1 == setsockopt(fd, sol_ipv6(), IPV6_V6ONLY, VARLEN(on))) {
 		g_warning("%s(): setsockopt(%d, SOL_IPV6, IPV6_V6ONLY) failed: %m",
 			caller, (int) fd);
 	}
@@ -4049,7 +4046,7 @@ socket_bound:
 	if (!is_valid_fd(fd) && (EACCES == saved_errno || EPERM == saved_errno)) {
 		char addr_str[128];
 
-		host_addr_to_string_buf(bind_addr, addr_str, sizeof addr_str);
+		host_addr_to_string_buf(bind_addr, ARYLEN(addr_str));
 		fd = socker_get(family, type, 0, addr_str, port);
 		if (!is_valid_fd(fd)) {
 			g_warning("socker_get() failed: %m");
@@ -4069,8 +4066,7 @@ socket_bound:
 		} else {
 			char bind_addr_str[HOST_ADDR_PORT_BUFLEN];
 
-			host_addr_port_to_string_buf(bind_addr, port,
-				bind_addr_str, sizeof bind_addr_str);
+			host_addr_port_to_string_buf(bind_addr, port, ARYLEN(bind_addr_str));
 			g_warning("%s(): unable to bind() the %s (%s) socket to %s: %m",
 				G_STRFUNC, type_str, net_str, bind_addr_str);
 		}
@@ -4159,7 +4155,7 @@ socket_local_listen(const char *pathname)
 
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = compat_bind(fd, cast_to_constpointer(&addr), sizeof addr);
+    	ret = compat_bind(fd, VARLEN(addr));
 		saved_errno = errno;
 		(void) umask(mask);
 
@@ -4277,7 +4273,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 	switch (s->net) {
 	case NET_TYPE_IPV4:
 #if defined(IP_RECVDSTADDR) && IP_RECVDSTADDR
-		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, &on, sizeof on)) {
+		if (setsockopt(fd, sol_ip(), IP_RECVDSTADDR, VARLEN(on))) {
 			g_warning("%s(): setsockopt() for IP_RECVDSTADDR failed: %m",
 				G_STRFUNC);
 		}
@@ -4286,7 +4282,7 @@ socket_enable_recvdstaddr(const struct gnutella_socket *s)
 
 	case NET_TYPE_IPV6:
 #if defined(HAS_IPV6) && defined(IPV6_RECVPKTINFO)
-		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, &on, sizeof on)) {
+		if (setsockopt(fd, sol_ipv6(), IPV6_RECVPKTINFO, VARLEN(on))) {
 			g_warning("%s(): setsockopt() for IPV6_RECVPKTINFO failed: %m",
 				G_STRFUNC);
 		}
@@ -4439,7 +4435,7 @@ socket_cork(struct gnutella_socket *s, bool on)
 	if (!(s->flags & SOCK_F_CORKED) == !on)
 		return;
 
-	if (setsockopt(s->file_desc, sol_tcp(), option, &arg, sizeof arg)) {
+	if (setsockopt(s->file_desc, sol_tcp(), option, VARLEN(arg))) {
 		if (ECONNRESET != errno) {
 			g_warning("unable to %s TCP_CORK on fd#%d: %m",
 				on ? "set" : "clear", s->file_desc);
@@ -4502,7 +4498,7 @@ socket_set_intern(int fd, int option, unsigned size,
 		return old_len;
 	}
 
-	if (-1 == setsockopt(fd, SOL_SOCKET, option, &size, sizeof(size)))
+	if (-1 == setsockopt(fd, SOL_SOCKET, option, VARLEN(size)))
 		g_warning("%s(): cannot set new %s buffer length to %u on fd #%d: %m",
 			G_STRFUNC, type, size, fd);
 
@@ -4568,7 +4564,7 @@ socket_nodelay(struct gnutella_socket *s, bool on)
 	if (!(SOCK_F_NODELAY & s->flags) == !on)
 		return;
 
-	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, &arg, sizeof arg)) {
+	if (setsockopt(s->file_desc, sol_tcp(), TCP_NODELAY, VARLEN(arg))) {
 		if (
 			errno != ECONNRESET &&
 			errno != EINVAL /* Socket has been shutdown on DARWIN */

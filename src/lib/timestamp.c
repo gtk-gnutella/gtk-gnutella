@@ -160,7 +160,7 @@ short_string_t
 timestamp_get_string(time_t date)
 {
 	short_string_t buf;
-	timestamp_to_string_buf(date, buf.str, sizeof buf.str);
+	timestamp_to_string_buf(date, ARYLEN(buf.str));
 	return buf;
 }
 

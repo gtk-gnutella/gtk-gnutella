@@ -86,7 +86,7 @@ horizon_stat_str(gint row, c_horizon_t column)
 		{
     		static gchar buf[UINT64_DEC_BUFLEN];
 
-			str_bprintf(buf, sizeof(buf), "%d", row);
+			str_bprintf(ARYLEN(buf), "%d", row);
            	return buf;
 		}
     case c_horizon_nodes:

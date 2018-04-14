@@ -464,14 +464,14 @@ gtk_version_string(void)
 	static char buf[80];
 
 	if ('\0' == buf[0]) {
-		str_bprintf(buf, sizeof buf, "Gtk+ %u.%u.%u",
+		str_bprintf(ARYLEN(buf), "Gtk+ %u.%u.%u",
 				gtk_major_version, gtk_minor_version, gtk_micro_version);
 		if (
 				GTK_MAJOR_VERSION != gtk_major_version ||
 				GTK_MINOR_VERSION != gtk_minor_version ||
 				GTK_MICRO_VERSION != gtk_micro_version
 		   ) {
-			str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+			str_bcatf(ARYLEN(buf), " (compiled against %u.%u.%u)",
 					GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
 		}
 	}

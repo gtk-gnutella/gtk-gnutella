@@ -2681,7 +2681,7 @@ test_keys(uint32 keys[], size_t nkeys)
 		char target[4];
 		bool removed;
 
-		random_bytes(target, sizeof target);
+		random_bytes(ARYLEN(target));
 		found = patricia_closest_extended(pt, target, &key, NULL);
 		g_assert(found);
 		g_assert(key);
@@ -2904,7 +2904,7 @@ patricia_test(void)
 		int j;
 
 		for (j = 0; j < 10; j++) {
-			random_bytes(&keys[i], sizeof keys[i]);
+			random_bytes(VARLEN(keys[i]));
 			if (!patricia_contains(pt, &keys[i]) && keys[i] != 0)
 				break;
 		}

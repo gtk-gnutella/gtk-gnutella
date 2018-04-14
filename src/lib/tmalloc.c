@@ -1125,7 +1125,7 @@ tmalloc_thread_layer_free(void *data)
 	}
 
 	tmt->tmt_magic = 0;
-	d->tma_free(tmt, sizeof *tmt);
+	d->tma_free(PTRLEN(tmt));
 
 	/*
 	 * There is no need to remove the now destroyed "tmt" variable from

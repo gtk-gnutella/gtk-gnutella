@@ -159,7 +159,7 @@ file_locate_from_path(const char *argv0)
 
 		if ('\0' == *dir)
 			dir = ".";
-		concat_strings(filepath, sizeof filepath,
+		concat_strings(ARYLEN(filepath),
 			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL_PTR);
 
 		if (-1 != stat(filepath, &buf)) {
@@ -192,9 +192,9 @@ file_program_path(const char *argv0)
 	char filepath[MAX_PATH_LEN + 1];
 
 	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
-		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
+		concat_strings(ARYLEN(filepath), argv0, ".exe", NULL_PTR);
 	} else {
-		clamp_strcpy(filepath, sizeof filepath, argv0);
+		clamp_strcpy(ARYLEN(filepath), argv0);
 	}
 
 	if (-1 == stat(filepath, &buf)) {

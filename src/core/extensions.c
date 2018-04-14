@@ -2102,7 +2102,7 @@ ext_to_string(const extvec_t *e)
 {
 	static char buf[80];
 
-	ext_to_string_buf(e, buf, sizeof buf);
+	ext_to_string_buf(e, ARYLEN(buf));
 	return buf;
 }
 

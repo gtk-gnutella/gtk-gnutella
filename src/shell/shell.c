@@ -616,8 +616,7 @@ shell_pending_flush(struct gnutella_shell *sh, bool last)
 	if (sh->pending.msg != NULL) {
 		char buf[5];
 
-		str_bprintf(buf, sizeof buf, "%03d%c",
-			sh->pending.code, last ? ' ' : '-');
+		str_bprintf(ARYLEN(buf), "%03d%c", sh->pending.code, last ? ' ' : '-');
 		shell_write(sh, buf);
 		shell_write(sh, sh->pending.msg);
 		shell_write(sh, "\n");
@@ -880,7 +879,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 			shell_post_handle(sh, reply_code);
 		} else {
 			char buf[80];
-			str_bprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
+			str_bprintf(ARYLEN(buf), _("Unknown command: \"%s\""), argv[0]);
 			shell_set_msg(sh, buf);
 			reply_code = REPLY_ERROR;
 		}
@@ -1346,7 +1345,7 @@ shell_auth_cookie(void)
 	if (!initialized) {
 		uint32 noise[64];
 
-		random_strong_bytes(noise, sizeof noise);
+		random_key_bytes(ARYLEN(noise));
 		SHA1_COMPUTE(noise, &cookie);
 		shell_dump_cookie(&cookie);
 		initialized = TRUE;

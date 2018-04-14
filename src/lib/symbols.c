@@ -157,7 +157,7 @@ symbols_log_loaded(const char *path,
 
 		buf[0] = '\0';
 		if (ago != 0.0)
-			str_bprintf(buf, sizeof buf, " %.3f secs ago", ago);
+			str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
 
 		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
 			count, plural(count), path, method, secs, buf);
@@ -744,8 +744,8 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
 				g_strlcpy(ptr, " (", sizeof ptr);
-				pointer_to_string_buf(pc, &ptr[2], sizeof ptr - 2);
-				clamp_strcat(ptr, sizeof ptr, ")");
+				pointer_to_string_buf(pc, ARYPOSLEN(ptr, 2));
+				clamp_strcat(ARYLEN(ptr), ")");
 				clamp_strcat(b, sizeof buf[0], ptr);
 			}
 		}
@@ -1084,7 +1084,7 @@ symbols_sha1(const char *file, struct sha1 *digest)
 		char buf[512];
 		int r;
 
-		r = read(fd, buf, sizeof buf);
+		r = read(fd, ARYLEN(buf));
 
 		if (-1 == r) {
 			close(fd);
@@ -1154,7 +1154,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	char line[512];
 	int i = 0;
 
-	if (!symbols_read_line(f, line, sizeof line))
+	if (!symbols_read_line(f, ARYLEN(line)))
 		return FALSE;
 
 	/*
@@ -1180,7 +1180,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	 *		--RAM, 2013-10-03
 	 */
 
-	while (symbols_read_line(f, line, sizeof line)) {
+	while (symbols_read_line(f, ARYLEN(line))) {
 		char *p;
 
 		if ('\0' == line[0])		/* Reached end of header */
@@ -1386,7 +1386,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 			}
 		}
 
-		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", exe);
+		rw = str_bprintf(ARYLEN(tmp), "nm -p %s", exe);
 		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
 			s_warning("full path \"%s\" too long, cannot load symbols", exe);
 			goto use_pre_computed;
@@ -1407,7 +1407,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 #endif	/* MINGW32 */
 
 retry:
-	while (fgets(tmp, sizeof tmp, f)) {
+	while (fgets(ARYLEN(tmp), f)) {
 		symbols_parse_nm(st, tmp);
 	}
 

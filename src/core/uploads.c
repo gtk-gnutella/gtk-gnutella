@@ -484,8 +484,8 @@ upload_host_info(const struct upload *u)
 
 	upload_check(u);
 
-	host_addr_to_string_buf(u->addr, host, sizeof host);
-	concat_strings(info, sizeof info,
+	host_addr_to_string_buf(u->addr, ARYLEN(host));
+	concat_strings(ARYLEN(info),
 		"<", host, " \'", upload_vendor_str(u), "\'>",
 		NULL_PTR);
 	return info;
@@ -1693,7 +1693,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 	)
 		return 0;
 
-	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+	gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(guid));
 
 	rw = concat_strings(buf, size,
 			"X-GUID: ", guid_hex_str(&guid), "\r\n",
@@ -1913,7 +1913,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		 */
 
 		mesh_len = dmesh_alternate_location(sha1,
-					alt_locs, sizeof alt_locs, u->addr,
+					ARYLEN(alt_locs), u->addr,
 					last_sent, u->user_agent, NULL, FALSE,
 					u->fwalt ? u->guid : NULL, u->net);
 
@@ -1988,7 +1988,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 	(void) unused_flags;
 	upload_check(u);
 
-	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
+	uint64_to_string_buf(u->file_size, ARYLEN(fsize));
 	len = concat_strings(buf, size,
 			"Content-Range: bytes */", fsize, NULL_PTR);
 
@@ -2240,7 +2240,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	if (msg && no_reason != msg) {
-		str_vbprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(ARYLEN(reason), msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -2311,7 +2311,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				char *uri;
 
 				uri = url_escape(u->name);
-				if (html_escape(uri, href, sizeof href) >= sizeof href) {
+				if (html_escape(uri, ARYLEN(href)) >= sizeof href) {
 					/* If the escaped href is too long, leave it out. They
 				 	 * might get an ugly filename but at least the URI
 				 	 * works. */
@@ -2321,9 +2321,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					HFREE_NULL(uri);
 			}
 
-			str_bprintf(index_href, sizeof index_href,
+			str_bprintf(ARYLEN(index_href),
 				"/get/%lu/", (ulong) u->file_index);
-			str_bprintf(buf, sizeof buf,
+			str_bprintf(ARYLEN(buf),
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
@@ -2505,11 +2505,11 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	VA_COPY(apcopy, ap);
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, reason, ap);
+		str_vbprintf(ARYLEN(errbuf), reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			str_bprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			str_bprintf(ARYLEN(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -2585,7 +2585,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	 */
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		str_vbprintf(ARYLEN(errbuf), _(reason), apcopy);
 		logreason = errbuf;
 	} else {
 		logreason = NULL;
@@ -2813,7 +2813,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		if (faked) {
 			char name[1024];
 
-			concat_strings(name, sizeof name, "!", user_agent, NULL_PTR);
+			concat_strings(ARYLEN(name), "!", user_agent, NULL_PTR);
 			u->user_agent = atom_str_get(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);
@@ -3044,10 +3044,9 @@ upload_connect_conf(struct upload *u)
 	guid = cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid));
 
 	if (u->g2) {
-		rw = str_bprintf(giv, sizeof giv, "PUSH guid:%s\r\n\r\n",
-				guid_hex_str(guid));
+		rw = str_bprintf(ARYLEN(giv), "PUSH guid:%s\r\n\r\n", guid_hex_str(guid));
 	} else {
-		rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+		rw = str_bprintf(ARYLEN(giv), "GIV %lu:%s/file\n\n",
 				(ulong) u->file_index, guid_hex_str(guid));
 	}
 
@@ -3412,7 +3411,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
-			str_bprintf(location, sizeof(location),
+			str_bprintf(ARYLEN(location),
 				"Location: /get/%lu/%s\r\n",
 				(ulong) shared_file_index(sfn), escaped);
 
@@ -4124,7 +4123,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		static const char fmt[] = "Location: http://%s:%u/\r\n";
 		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		str_bprintf(location, sizeof location, fmt,
+		str_bprintf(ARYLEN(location), fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, HTTP_ATOMIC_SEND, "Redirecting");
@@ -4156,7 +4155,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	{
 		static char lm_buf[64];
 
-		str_bprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
+		str_bprintf(ARYLEN(lm_buf), "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
 		upload_http_extra_line_add(u, lm_buf);
 	}
@@ -4732,7 +4731,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
-			str_bprintf(retry_after, sizeof(retry_after),
+			str_bprintf(ARYLEN(retry_after),
 				"Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
@@ -5198,7 +5197,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			upload_http_extra_line_add(u, content_encoding);
 		}
 
-		str_bprintf(name, sizeof name,
+		str_bprintf(ARYLEN(name),
 				_("<Browse Host %sRequest> [%s%s%s]"),
 				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
@@ -5277,7 +5276,7 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 	 * upgrading the socket on its side.
 	 */
 
-	str_bprintf(buf, sizeof buf, "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
+	str_bprintf(ARYLEN(buf), "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
 		u->http_major, u->http_minor);
 
 	upload_http_extra_line_add(u, buf);
@@ -5763,7 +5762,7 @@ upload_request(struct upload *u, header_t *header)
 
 	/* Extract the host and path from an absolute URI */
 
-	uri = upload_parse_uri(header, uri, host, sizeof host);
+	uri = upload_parse_uri(header, uri, ARYLEN(host));
 	if (NULL == uri) {
 		upload_send_error(u, 400, N_("Bad URI"));
 		return;

@@ -101,7 +101,7 @@ parse_netstat(host_addr_t *addrp)
 	 * output is "default" for the default route.
 	 */
 
-	while (fgets(tmp, sizeof tmp, f)) {
+	while (fgets(ARYLEN(tmp), f)) {
 		char *p;
 		uint32 ip;
 
@@ -219,7 +219,7 @@ getgateway(host_addr_t *addrp)
 		 */
 
 		for (i = 0; i < 1000; i++) {
-			rw = recv(fd, &nlm, sizeof nlm, MSG_DONTWAIT);
+			rw = recv(fd, VARLEN(nlm), MSG_DONTWAIT);
 			if ((ssize_t) -1 == rw) {
 				if (EAGAIN == errno || EWOULDBLOCK == errno) {
 					compat_usleep(1000);	/* 1 ms */
@@ -387,7 +387,7 @@ try_cached:
 		goto error;
 
 	for (;;) {
-		rw = read(fd, &rtm, sizeof rtm);
+		rw = read(fd, VARLEN(rtm));
 
 		if ((ssize_t) -1 == rw)
 			goto error;

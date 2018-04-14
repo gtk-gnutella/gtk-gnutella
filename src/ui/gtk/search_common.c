@@ -407,8 +407,8 @@ search_gui_update_tab_label(const struct search *search)
 	if (NULL == search)
 		return;
 
-    uint32_to_string_buf(search->items, items, sizeof items);
-	concat_strings(label, sizeof label,
+    uint32_to_string_buf(search->items, ARYLEN(items));
+	concat_strings(ARYLEN(label),
 		lazy_utf8_to_ui_string(search_gui_query(search)),
 		"\n(", items,
 		search->unseen_items > 0 ? ", " : "",
@@ -448,16 +448,15 @@ search_gui_update_status_label(const struct search *search)
 		unsigned queued = search_gui_queue_length(search);
 
 		if (queued > 0) {
-       		str_bprintf(expire, sizeof expire,
+       		str_bprintf(ARYLEN(expire),
 				_("Flushing queue (%u results pending)"), queued);
 		} else {
-			str_bprintf(expire, sizeof expire, "%s",
-				_("The search has been stopped"));
+			str_bprintf(ARYLEN(expire), "%s", _("The search has been stopped"));
 		}
 	} else if (search_gui_is_passive(search)) {
-		str_bprintf(expire, sizeof expire, "%s", _("Passive search"));
+		str_bprintf(ARYLEN(expire), "%s", _("Passive search"));
 	} else if (search_gui_is_expired(search)) {
-		str_bprintf(expire, sizeof expire, "%s", _("Expired"));
+		str_bprintf(ARYLEN(expire), "%s", _("Expired"));
 	} else {
 		unsigned time_left;
 
@@ -471,16 +470,14 @@ search_gui_update_status_label(const struct search *search)
 			d = delta_time(tm_time(), created);
 			d = MAX(0, d);
 			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
-			str_bprintf(expire, sizeof expire,
-				_("Expires in %s"), short_time(d));
+			str_bprintf(ARYLEN(expire), _("Expires in %s"), short_time(d));
 		} else {
-   			str_bprintf(expire, sizeof expire, "%s",
-				_("Expires with this session"));
+   			str_bprintf(ARYLEN(expire), "%s", _("Expires with this session"));
 		}
 	}
 
 	if (dlcount != 0) {
-		str_bprintf(downloads, sizeof downloads,
+		str_bprintf(ARYLEN(downloads),
 			NG_(" [%u download]", " [%u downloads]", dlcount), dlcount);
 	}
 
@@ -553,7 +550,7 @@ search_gui_update_guess_stats(const struct search *search)
 		char prev[128];
 		uint64 hits = search->guess_results + search->guess_cur_results;
 		if (search->guess_elapsed != 0) {
-			str_bprintf(prev, sizeof prev,
+			str_bprintf(ARYLEN(prev),
 				_(" previous took %s querying %zu %s with %zu %s kept"),
 				compact_time(search->guess_elapsed),
 				search->guess_hosts,
@@ -563,7 +560,7 @@ search_gui_update_guess_stats(const struct search *search)
 		} else {
 			prev[0] = '\0';
 		}
-		str_bprintf(buf, sizeof buf, _("GUESS %s [Total: %zu %s "
+		str_bprintf(ARYLEN(buf), _("GUESS %s [Total: %zu %s "
 			"(%s %s, %s kept, %s queries, %s keys)%s]"),
 			0 == search->guess_cur_start ? _("idle") :
 				compact_time(delta_time(tm_time(), search->guess_cur_start)),
@@ -581,7 +578,7 @@ search_gui_update_guess_stats(const struct search *search)
 		/*
 		 * A GUESS search is active AND they don't want only summary stats.
 		 */
-		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
+		str_bprintf(ARYLEN(buf), _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
 			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
 			"%zu reached, %zu pending, %zu %s%s%s]"),
@@ -1265,23 +1262,23 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%s%s",
 				info[0] != '\0' ? "; " : "", vinfo);
 	}
 
 	if (rc->flags & SR_PARTIAL_HIT) {
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%s%s",
 			info[0] != '\0' ? ", " : "", _("partial"));
 	}
 
 	if (rc->alt_locs != NULL) {
 		guint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%salt",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%salt",
 			info[0] != '\0' ? ", " : "");
 		if (count > 1)
-			rw += str_bprintf(&info[rw], sizeof info - rw, "(%u)", count);
+			rw += str_bprintf(ARYPOSLEN(info, rw), "(%u)", count);
 	}
 
 	return info[0] != '\0' ? atom_str_get(info) : NULL;
@@ -1965,7 +1962,7 @@ search_gui_get_route(const struct results_set *rs)
 	if (ST_LOCAL & rs->status)
 		return NULL;
 
-	n = host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+	n = host_addr_to_string_buf(rs->last_hop, ARYLEN(addr_buf));
 
 	/*
 	 * For successful OOBv3 results, append a "+" to the route address.
@@ -2392,7 +2389,7 @@ search_gui_switch_search(struct search *search)
 			g_object_ref(sw);	/* Never free this until shutdown */
 			gtk_container_add(GTK_CONTAINER(sw), tree);
 			gtk_notebook_append_page(notebook_search_results, sw, NULL);
-			str_bprintf(text, sizeof text, "(%s)", _("No search"));
+			str_bprintf(ARYLEN(text), "(%s)", _("No search"));
 			gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
 			dflt_search_widget = sw;
 		}
@@ -2773,9 +2770,9 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		if (n_downloads > 0 || n_searches > 0) {
 			gchar msg_search[128], msg_download[128];
 
-			str_bprintf(msg_download, sizeof msg_download,
+			str_bprintf(ARYLEN(msg_download),
 				NG_("%u download", "%u downloads", n_downloads), n_downloads);
-			str_bprintf(msg_search, sizeof msg_search,
+			str_bprintf(ARYLEN(msg_search),
 				NG_("%u search", "%u searches", n_searches), n_searches);
 			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
 				msg_download, msg_search);
@@ -2895,8 +2892,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 		strlen(text) >= SHA1_BASE16_SIZE &&
 		!is_ascii_alnum(text[SHA1_BASE16_SIZE])
 	) {
-		ret = base16_decode(sha1.data, sizeof sha1.data,
-				text, SHA1_BASE16_SIZE);
+		ret = base16_decode(VARLEN(sha1), text, SHA1_BASE16_SIZE);
 	} else {
 		ret = (size_t) -1;
 	}
@@ -2908,7 +2904,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 		static const gchar prefix[] = "urn:sha1:";
 		gchar urn[SHA1_BASE32_SIZE + sizeof prefix];
 
-		concat_strings(urn, sizeof urn, prefix, sha1_base32(&sha1), NULL_PTR);
+		concat_strings(ARYLEN(urn), prefix, sha1_base32(&sha1), NULL_PTR);
 		return search_gui_handle_urn(urn, error_str);
 	}
 }
@@ -3920,7 +3916,7 @@ search_gui_get_vendor(const struct results_set *rs)
 		if (rs->version) {
 			static gchar buf[128];
 
-			concat_strings(buf, sizeof buf, vendor, "/", rs->version, NULL_PTR);
+			concat_strings(ARYLEN(buf), vendor, "/", rs->version, NULL_PTR);
 			vendor = buf;
 		}
 	} else {
@@ -4055,7 +4051,7 @@ search_gui_set_details(const record_t *rc)
 		if (rc->size != 0) {
 			char buf[80];
 			double pct = 100.0 * prc->available / (double) rc->size;
-			str_bprintf(buf, sizeof buf, _("%s [%.2f%%]"),
+			str_bprintf(ARYLEN(buf), _("%s [%.2f%%]"),
 				nice_size(prc->available, show_metric_units()), pct);
 			search_gui_append_detail(_("Available"), buf);
 		}
@@ -4104,7 +4100,7 @@ search_gui_set_details(const record_t *rc)
 		if (rs->status & ST_BANNED_GUID) {
 			char buf[80];
 
-			str_bprintf(buf, sizeof buf, "%s [%s]",
+			str_bprintf(ARYLEN(buf), "%s [%s]",
 				guid_to_string(rs->guid), _("banned"));
 
 			search_gui_append_detail(_("Servent ID"), buf);

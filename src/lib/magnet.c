@@ -944,9 +944,8 @@ magnet_source_to_string(const struct magnet_source *s)
 		if (s->guid) {
 			char guid_buf[GUID_HEX_SIZE + 1];
 
-			guid_to_string_buf(s->guid, guid_buf, sizeof guid_buf);
-			concat_strings(prefix_buf, sizeof prefix_buf,
-				"push://", guid_buf, NULL_PTR);
+			guid_to_string_buf(s->guid, ARYLEN(guid_buf));
+			concat_strings(ARYLEN(prefix_buf), "push://", guid_buf, NULL_PTR);
 			prefix = prefix_buf;
 		} else {
 			prefix = "http://";
@@ -956,8 +955,7 @@ magnet_source_to_string(const struct magnet_source *s)
 		if (s->hostname) {
 			host = s->hostname;
 			if (80 != s->port) {
-				str_bprintf(port_buf, sizeof port_buf, ":%u",
-					(unsigned) s->port);
+				str_bprintf(ARYLEN(port_buf), ":%u", (unsigned) s->port);
 			}
 		} else if (s->guid) {
 			proxies = proxies_to_string(s->proxies);
@@ -1002,7 +1000,7 @@ magnet_to_string(const struct magnet_resource *res)
 	if (0 != res->size) {
 		char buf[UINT64_DEC_BUFLEN];
 
-		uint64_to_string_buf(res->size, buf, sizeof buf);
+		uint64_to_string_buf(res->size, ARYLEN(buf));
 		magnet_append_item(s, FALSE, "xl", buf);
 	}
 	if (res->sha1) {

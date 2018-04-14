@@ -859,7 +859,7 @@ nice_size(uint64 size, bool metric)
 	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 	char bytes[UINT64_DEC_BUFLEN];
 
-	uint64_to_string_buf(size, bytes, sizeof bytes);
+	uint64_to_string_buf(size, ARYLEN(bytes));
 	str_printf(s, _("%s (%s bytes)"), short_size(size, metric), bytes);
 	return str_2c(s);
 }
@@ -904,7 +904,7 @@ compact_size(uint64 size, bool metric)
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, size, metric);
+	compact_value(ARYLEN(buf), size, metric);
 	str_printf(s, "%sB", buf);
 	return str_2c(s);
 }
@@ -915,7 +915,7 @@ compact_size2(uint64 size, bool metric)
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, size, metric);
+	compact_value(ARYLEN(buf), size, metric);
 	str_printf(s, "%sB", buf);
 	return str_2c(s);
 }
@@ -926,7 +926,7 @@ compact_rate(uint64 rate, bool metric)
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, rate, metric);
+	compact_value(ARYLEN(buf), rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
 	str_printf(s, "%s%s", buf, _("B/s"));
 	return str_2c(s);
@@ -944,7 +944,7 @@ short_string_t
 short_rate_get_string(uint64 rate, bool metric)
 {
 	short_string_t buf;
-	short_rate_to_string_buf(rate, metric, buf.str, sizeof buf.str);
+	short_rate_to_string_buf(rate, metric, ARYLEN(buf.str));
 	return buf;
 }
 
@@ -1227,7 +1227,7 @@ hex_to_guid(const char *hexguid, guid_t *guid)
 {
 	size_t ret;
 
-	ret = base16_decode(guid->v, sizeof guid->v, hexguid, GUID_HEX_SIZE);
+	ret = base16_decode(PTRLEN(guid), hexguid, GUID_HEX_SIZE);
 	return GUID_RAW_SIZE == ret;
 }
 
@@ -1261,7 +1261,7 @@ base32_to_guid(const char *base32, guid_t *guid)
 	g_assert(base32 != NULL);
 	g_assert(guid != NULL);
 
-	ret = base32_decode(guid, sizeof *guid, base32, GUID_BASE32_SIZE);
+	ret = base32_decode(PTRLEN(guid), base32, GUID_BASE32_SIZE);
 	return (size_t) 0 + GUID_RAW_SIZE == ret ? guid : NULL;
 }
 
@@ -1282,7 +1282,7 @@ sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
 		size_t len;
 		size_t offset;
 
-		len = base32_encode(dst, size, sha1->data, sizeof sha1->data);
+		len = base32_encode(dst, size, PTRLEN(sha1));
 		g_assert(len <= size);
 		offset = len < size ? len : size - 1;
 		dst[offset] = '\0';
@@ -1325,7 +1325,7 @@ sha1_to_base16_buf(const struct sha1 *sha1, char *dst, size_t size)
 		size_t len;
 		size_t offset;
 
-		len = base16_encode(dst, size, sha1->data, sizeof sha1->data);
+		len = base16_encode(dst, size, PTRLEN(sha1));
 		g_assert(len <= size);
 		offset = len < size ? len : size - 1;
 		dst[offset] = '\0';
@@ -1426,22 +1426,22 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 		char *p = buf;
 
 		p = mempcpy(p, prefix, CONST_STRLEN(prefix));
-		base32_encode(p, end - p, sha1->data, sizeof sha1->data);
+		base32_encode(p, end - p, PTRLEN(sha1));
 		p += SHA1_BASE32_SIZE;
 
 		*p++ = '.';
 
-		base32_encode(p, end - p, tth->data, sizeof tth->data);
+		base32_encode(p, end - p, PTRLEN(tth));
 		p += TTH_BASE32_SIZE;
 		*p = '\0';
 		g_assert(ptr_diff(p, buf) <= sizeof buf);
 
-		buf_copyin(b, buf, sizeof buf);
+		buf_copyin(b, ARYLEN(buf));
 	} else {
 		char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
 
-		sha1_to_urn_string_buf(sha1, buf, sizeof buf);
-		buf_copyin(b, buf, sizeof buf);
+		sha1_to_urn_string_buf(sha1, ARYLEN(buf));
+		buf_copyin(b, ARYLEN(buf));
 	}
 
 	return buf_data(b);
@@ -1465,7 +1465,7 @@ base32_sha1(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(s, sizeof *s, base32, SHA1_BASE32_SIZE);
+	len = base32_decode(PTRLEN(s), base32, SHA1_BASE32_SIZE);
 	return SHA1_RAW_SIZE == len ? s : NULL;
 }
 
@@ -1483,7 +1483,7 @@ tth_base32(const struct tth *tth)
 
 	g_assert(tth != NULL);
 
-	n = 1 + base32_encode(p, sz, tth->data, sizeof tth->data);
+	n = 1 + base32_encode(p, sz, PTRLEN(tth));
 	p[MAX(n, sz) - 1] = '\0';
 	return p;
 }
@@ -1506,7 +1506,7 @@ base32_tth(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(t, sizeof *t, base32, TTH_BASE32_SIZE);
+	len = base32_decode(PTRLEN(t), base32, TTH_BASE32_SIZE);
 	return TTH_RAW_SIZE == len ? t : NULL;
 }
 
@@ -1524,7 +1524,7 @@ tth_to_base32_buf(const struct tth *tth, char *dst, size_t size)
 {
 	g_assert(tth);
 	if (size > 0) {
-		size_t n = 1 + base32_encode(dst, size, tth->data, sizeof tth->data);
+		size_t n = 1 + base32_encode(dst, size, PTRLEN(tth));
 		dst[MIN(n, size) - 1] = '\0';
 	}
 	return dst;

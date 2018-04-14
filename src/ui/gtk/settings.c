@@ -1034,7 +1034,7 @@ update_label_date(property_t prop)
 		gchar buf[128];
 		size_t len;
 
-		len = strftime(buf, sizeof buf, date_fmt, localtime(&t));
+		len = strftime(ARYLEN(buf), date_fmt, localtime(&t));
 		buf[len] = '\0';
 		gtk_label_set_text(GTK_LABEL(w), buf);
 	}
@@ -1207,7 +1207,7 @@ set_host_progress(const gchar *w, guint32 cur, guint32 max)
     frac = MIN(cur, max) * 100;
 	frac = max ? (frac / max) : 0;
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		NG_("%u/%u host (%u%%)", "%u/%u hosts (%u%%)", max),
 		cur, max, frac);
 
@@ -2126,18 +2126,16 @@ update_address_information(void)
 		gchar buf[256];
 
 		if (is_host_addr(addr)) {
-			host_addr_port_to_string_buf(addr, port,
-				addr_buf, sizeof addr_buf);
+			host_addr_port_to_string_buf(addr, port, ARYLEN(addr_buf));
 		} else {
 			addr_buf[0] = '\0';
 		}
 		if (is_host_addr(addr_v6)) {
-			host_addr_port_to_string_buf(addr_v6, port,
-				addr_v6_buf, sizeof addr_v6_buf);
+			host_addr_port_to_string_buf(addr_v6, port, ARYLEN(addr_v6_buf));
 		} else {
 			addr_v6_buf[0] = '\0';
 		}
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			addr_buf,
 			'\0' != addr_buf[0] && '\0' != addr_v6_buf[0] ? ", " : "",
 			addr_v6_buf, NULL_PTR);
@@ -2325,7 +2323,7 @@ guid_changed(property_t prop)
 {
     struct guid guid_buf;
 
-    gnet_prop_get_storage(prop, guid_buf.v, sizeof guid_buf.v);
+    gnet_prop_get_storage(prop, VARLEN(guid_buf));
 
 #ifdef USE_GTK2
 	{
@@ -2333,7 +2331,7 @@ guid_changed(property_t prop)
 		gchar buf[64];
 
 	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_guid"));
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			"<tt>", guid_hex_str(&guid_buf), "</tt>", NULL_PTR);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
@@ -2352,7 +2350,7 @@ kuid_changed(property_t prop)
 {
     kuid_t kuid_buf;
 
-    gnet_prop_get_storage(prop, kuid_buf.v, sizeof kuid_buf.v);
+    gnet_prop_get_storage(prop, VARLEN(kuid_buf));
 
 #ifdef USE_GTK2
 	{
@@ -2360,7 +2358,7 @@ kuid_changed(property_t prop)
 		gchar buf[64];
 
 	   	label = GTK_LABEL(gui_main_window_lookup("label_nodes_kuid"));
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			"<tt>", kuid_to_hex_string(&kuid_buf), "</tt>", NULL_PTR);
 		gtk_label_set_use_markup(label, TRUE);
 		gtk_label_set_markup(label, buf);
@@ -2710,14 +2708,14 @@ gnet_connections_changed(property_t unused_prop)
     case NODE_P_NORMAL: /* normal */
         nodes = g2_count + ((peermode == NODE_P_NORMAL) ?
             max_connections : max_ultrapeers);
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
             "%u/%uU | %u/%uH",
 			ultra_count, max_ultrapeers,
 			g2_count, max_g2);
         break;
     case NODE_P_ULTRA: /* ultra */
         nodes = max_connections + max_leaves + max_normal + max_g2;
-        str_bprintf(buf, sizeof buf,
+        str_bprintf(ARYLEN(buf),
             "%u/%uU | %u/%uH | %u/%uL",
             ultra_count,
 			max_connections < max_normal ? 0 : max_connections - max_normal,
@@ -2749,7 +2747,7 @@ uploads_count_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_UL_REGISTERED, &registered);
     gnet_prop_get_guint32_val(PROP_UL_RUNNING, &running);
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		NG_("%u/%u upload", "%u/%u uploads", registered),
 		running, registered);
 
@@ -2774,7 +2772,7 @@ downloads_count_changed(property_t unused_prop)
     gnet_prop_get_guint32_val(PROP_DL_ACTIVE_COUNT, &active);
     gnet_prop_get_guint32_val(PROP_DL_RUNNING_COUNT, &running);
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		NG_("%u/%u download", "%u/%u downloads", running),
 		active, running);
 
@@ -2794,7 +2792,7 @@ clock_skew_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 	sval = val;
-	str_bprintf(buf, sizeof buf, "%c%s",
+	str_bprintf(ARYLEN(buf), "%c%s",
 		sval < 0 ? '-' : '+', short_time(ABS(sval)));
     gtk_label_set_text(GTK_LABEL(gui_dlg_prefs_lookup("label_clock_skew")),
 		buf);

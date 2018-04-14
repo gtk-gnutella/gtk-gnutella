@@ -731,7 +731,7 @@ crash_run_hook(int fd, callback_fn_t hook)
 
 	routine = stacktrace_function_name(hook);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -758,7 +758,7 @@ crash_run_hook(int fd, callback_fn_t hook)
 
 	routine = stacktrace_function_name(hook);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -820,7 +820,7 @@ crash_run_hooks(const char *logfile, int logfd)
 			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(6);
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);					/* 0 */
 			print_str(" WARNING: cannot reopen ");	/* 1 */
 			print_str(logfile);						/* 2 */
@@ -864,8 +864,8 @@ crash_message(const char *signame, bool trace, bool recursive)
 	char build_buf[ULONG_DEC_BUFLEN];
 	unsigned iov_prolog;
 
-	crash_time(time_buf, sizeof time_buf);
-	crash_run_time(runtime_buf, sizeof runtime_buf);
+	crash_time(ARYLEN(time_buf));
+	crash_run_time(ARYLEN(runtime_buf));
 
 	/* The following precedes each line */
 	print_str(time_buf);				/* 0 */
@@ -920,7 +920,7 @@ crash_decorating_stack(void)
 	if (!vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -944,7 +944,7 @@ crash_end_of_line(bool forced)
 	if (!forced && !vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
@@ -1023,7 +1023,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char time_buf[ULONG_HEX_BUFLEN];
 		const char *time_str;
 
-		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
+		time_str = print_hex(ARYLEN(time_buf), vars->start_time);
 		clamp_strcat(buf, len, time_str);
 	}
 
@@ -1047,7 +1047,7 @@ crash_logpath(char *buf, size_t len)
 	char filename[80];
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
-	crash_logname(filename, sizeof filename, pid_str);
+	crash_logname(ARYLEN(filename), pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(buf, len,
 			"%s%c%s", vars->crashdir, G_DIR_SEPARATOR, filename);
@@ -1256,7 +1256,7 @@ crash_fork_timeout(int signo)
 	DECLARE_STR(2);
 	char time_buf[CRASH_TIME_BUFLEN];
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);
 	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
 	flush_err_str();
@@ -1352,8 +1352,8 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	long cpucount = getcpucount();
 	DECLARE_STR(15);
 
-	crash_time_iso(tbuf, sizeof tbuf);
-	crash_run_time(rbuf, sizeof rbuf);
+	crash_time_iso(ARYLEN(tbuf));
+	crash_run_time(ARYLEN(rbuf));
 	t = delta_time(time(NULL), vars->start_time);
 
 	print_str("Operating-System: ");	/* 0 */
@@ -1587,11 +1587,11 @@ crash_generate_crashlog(int signo)
 	const mode_t mode = S_IRUSR | S_IWUSR;
 	const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 
-	crash_logpath(crashlog, sizeof crashlog);
+	crash_logpath(ARYLEN(crashlog));
 	clf = open(crashlog, flags, mode);
 	if (-1 == clf) {
 		char buf[256];
-		str_bprintf(buf, sizeof buf, "cannot create %s: %m", crashlog);
+		str_bprintf(ARYLEN(buf), "cannot create %s: %m", crashlog);
 		s_miniwarn("%s", buf);
 		return;
 	}
@@ -1606,7 +1606,7 @@ crash_generate_crashlog(int signo)
 		uint8 t = TRUE;
 		crash_set_var(logged, t);
 		if (vars->dumps_core) {
-			bool gotcwd = NULL != getcwd(crashlog, sizeof crashlog);
+			bool gotcwd = NULL != getcwd(ARYLEN(crashlog));
 			s_minimsg("core dumped in %s",
 				gotcwd ? crashlog : "current directory");
 		}
@@ -1630,7 +1630,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
 	char tbuf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(10);
 
-	crash_time(tbuf, sizeof tbuf);
+	crash_time(ARYLEN(tbuf));
 	rewind_str(0);
 	print_str(tbuf);					/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
@@ -1707,7 +1707,7 @@ retry_child:
 		DECLARE_STR(2);
 		char time_buf[CRASH_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" (WARNING): cannot fork() on this platform\n");
 		flush_err_str();
@@ -1728,7 +1728,7 @@ retry_child:
 			DECLARE_STR(6);
 			char time_buf[CRASH_TIME_BUFLEN];
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" (WARNING): fork() failed: ");
 			print_str(symbolic_errno(errno));
@@ -1773,7 +1773,7 @@ retry_child:
 			 * want to lose any information already present there.
 			 */
 
-			crash_logname(filename, sizeof filename, pid_str);
+			crash_logname(ARYLEN(filename), pid_str);
 
 			file_existed = retried_child || file_exists(filename);
 
@@ -1792,8 +1792,8 @@ retry_child:
 				const char quote_ch = '\'';
 				size_t max_argv0;
 
-				clamp_strcpy(cmd, sizeof cmd, "gdb -q -n -p ");
-				clamp_strcat(cmd, sizeof cmd, pid_str);
+				clamp_strcpy(ARYLEN(cmd), "gdb -q -n -p ");
+				clamp_strcat(ARYLEN(cmd), pid_str);
 
 				/**
 				 * The parameter -e argv0 is required on some platforms but
@@ -1806,9 +1806,9 @@ retry_child:
 					NULL == strchr(vars->argv0, quote_ch) &&
 					strlen(vars->argv0) < max_argv0
 				) {
-					clamp_strcat(cmd, sizeof cmd, " -se '");
-					clamp_strcat(cmd, sizeof cmd, vars->argv0);
-					clamp_strcat(cmd, sizeof cmd, "'");
+					clamp_strcat(ARYLEN(cmd), " -se '");
+					clamp_strcat(ARYLEN(cmd), vars->argv0);
+					clamp_strcat(ARYLEN(cmd), "'");
 				}
 
 				/*
@@ -2096,7 +2096,7 @@ parent_process:
 		 * "Hangup detected on fd 0".
 		 */
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 
 		/* The following precedes each line */
 		print_str(time_buf);				/* 0 */
@@ -2196,7 +2196,7 @@ no_fork:
 			 * them and redirect a copy of the messages to the crash log.
 			 */
 
-			crash_logname(buf, sizeof buf, pid_str);
+			crash_logname(ARYLEN(buf), pid_str);
 			if (!could_fork)
 				crash_run_hooks(buf, -1);
 
@@ -2309,7 +2309,7 @@ parent_failure:
 		DECLARE_STR(6);
 		char time_buf[CRASH_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);					/* 0 */
 		print_str(" CRASH (pid=");				/* 1 */
 		print_str(pid_str);						/* 2 */
@@ -2509,8 +2509,7 @@ static once_flag_t disable_inited;
 static void
 crash_disable_init(void)
 {
-	crash_disabled = hash_table_new_fixed(
-		crash_disable_buffer, sizeof crash_disable_buffer);
+	crash_disabled = hash_table_new_fixed(ARYLEN(crash_disable_buffer));
 }
 
 /**
@@ -2781,7 +2780,7 @@ done:
 			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" WARNING: formatting string held in read-only chunk\n");
 			flush_err_str();
@@ -2794,7 +2793,7 @@ done:
 			DECLARE_STR(2);
 
 			warned = TRUE;
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" WARNING: crashing before any crash_init() call\n");
 			flush_err_str();
@@ -2881,7 +2880,7 @@ dump_core:
 
 				pid_str = PRINT_NUMBER(pid_buf, getpid());
 
-				crash_time(time_buf, sizeof time_buf);
+				crash_time(ARYLEN(time_buf));
 				print_str(time_buf);							/* 0 */
 				print_str(" (WARNING) core from child PID=");	/* 1 */
 				print_str(pid_str);								/* 2 */
@@ -2890,7 +2889,7 @@ dump_core:
 			}
 			break;
 		case -1:
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);								/* 0 */
 			print_str(" (WARNING) cannot fork() for core: ");	/* 1 */
 			print_str(symbolic_errno(errno));					/* 2 */
@@ -2998,7 +2997,7 @@ crash_try_reexec(void)
 	 */
 
 	if (NULL != vars->cwd) {
-		bool gotcwd = NULL != getcwd(dir, sizeof dir);
+		bool gotcwd = NULL != getcwd(ARYLEN(dir));
 
 		if (-1 == chdir(vars->cwd)) {
 			s_miniwarn("%s(): cannot chdir() to \"%s\": %m",
@@ -3052,7 +3051,7 @@ crash_try_reexec(void)
 		char tbuf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(tbuf, sizeof tbuf);
+		crash_time(ARYLEN(tbuf));
 		print_str(tbuf);							/* 0 */
 		print_str(" (CRITICAL) exec() error: ");	/* 1 */
 		print_str(symbolic_errno(errno));			/* 2 */
@@ -3071,7 +3070,7 @@ crash_try_reexec(void)
 		if (log_stdout_is_distinct())
 			flush_str(STDOUT_FILENO);
 
-		if (NULL != getcwd(dir, sizeof dir)) {
+		if (NULL != getcwd(ARYLEN(dir))) {
 			rewind_str(1);
 			print_str(" (CRITICAL) current directory was: ");	/* 1 */
 			print_str(dir);										/* 2 */
@@ -3103,7 +3102,7 @@ crash_auto_restart(void)
 		char pid_buf[ULONG_DEC_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		parent = getppid();
 
@@ -3151,8 +3150,8 @@ crash_auto_restart(void)
 			char runtime_buf[CRASH_RUNTIME_BUFLEN];
 			DECLARE_STR(5);
 
-			crash_time(time_buf, sizeof time_buf);
-			crash_run_time(runtime_buf, sizeof runtime_buf);
+			crash_time(ARYLEN(time_buf));
+			crash_run_time(ARYLEN(runtime_buf));
 			print_str(time_buf);							/* 0 */
 			print_str(" (WARNING) not auto-restarting ");	/* 1 */
 			print_str("since process was only up for ");	/* 2 */
@@ -3170,8 +3169,8 @@ crash_auto_restart(void)
 		char runtime_buf[CRASH_RUNTIME_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(time_buf, sizeof time_buf);
-		crash_run_time(runtime_buf, sizeof runtime_buf);
+		crash_time(ARYLEN(time_buf));
+		crash_run_time(ARYLEN(runtime_buf));
 		print_str(time_buf);					/* 0 */
 		print_str(" (INFO) ");					/* 1 */
 		if (vars->dumps_core) {
@@ -3203,7 +3202,7 @@ crash_auto_restart(void)
 			pid_t pid = crash_fork();
 			switch (pid) {
 			case -1:	/* fork() error */
-				crash_time(time_buf, sizeof time_buf);
+				crash_time(ARYLEN(time_buf));
 				print_str(time_buf);						/* 0 */
 				print_str(" (CRITICAL) fork() error: ");	/* 1 */
 				print_str(symbolic_errno(errno));			/* 2 */
@@ -3234,7 +3233,7 @@ crash_auto_restart(void)
 		/* The exec() failed, we may dump a core then */
 
 		if (vars->dumps_core) {
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);					/* 0 */
 			print_str(" (CRITICAL) ");				/* 1 */
 			print_str("core dump re-enabled");		/* 2 */
@@ -3738,7 +3737,7 @@ crash_init(const char *argv0, const char *progname,
 
 	vars = &iv;
 
-	if (NULL == getcwd(dir, sizeof dir)) {
+	if (NULL == getcwd(ARYLEN(dir))) {
 		dir[0] = '\0';
 		s_miniwarn("%s(): cannot get current working directory: %m", G_STRFUNC);
 	}
@@ -3802,7 +3801,7 @@ crash_init(const char *argv0, const char *progname,
 		signal_set(signals[i], crash_handler);
 	}
 
-	vars = ck_copy(iv.mem, &iv, sizeof iv);
+	vars = ck_copy(iv.mem, VARLEN(iv));
 	ck_readonly(vars->mem);
 
 	/*
@@ -3916,7 +3915,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
-	crash_logname(filename, sizeof filename, pid_str);
+	crash_logname(ARYLEN(filename), pid_str);
 
 	if (NULL == dst) {
 		dst = deconstify_char("");
@@ -3957,7 +3956,7 @@ crash_setdir(const char *pathname)
 	g_assert(is_absolute_path(pathname));
 
 	if (
-		NULL != getcwd(dir, sizeof dir) &&
+		NULL != getcwd(ARYLEN(dir)) &&
 		(NULL == vars->cwd || 0 != strcmp(dir, vars->cwd))
 	) {
 		curdir = dir;
@@ -4374,7 +4373,7 @@ crash_force_restart(cqueue_t *cq, void *unused)
 
 	cq_zero(cq, &crash_restart_ev);
 
-	crash_run_time(buf, sizeof buf);
+	crash_run_time(ARYLEN(buf));
 	s_miniwarn("%s(): forcing immediate restart after %s", G_STRFUNC, buf);
 	crash_reexec();		/* Does not return */
 }
@@ -4492,7 +4491,7 @@ crash_restart(const char *format, ...)
 	 * If it does not, we attempt to re-exec ourselves anway.
 	 */
 
-	crash_run_time(buf, sizeof buf);
+	crash_run_time(ARYLEN(buf));
 	s_miniinfo("%s(): attempting auto-restart%s after %s...",
 		G_STRFUNC, has_callback ? " on clean shutdown" : "", buf);
 
@@ -4531,7 +4530,7 @@ crash_restarting(void)
 
 		cq_cancel(&crash_restart_ev);
 
-		crash_run_time(buf, sizeof buf);
+		crash_run_time(ARYLEN(buf));
 		s_miniinfo("%s(): auto-restart initiated after %s...", G_STRFUNC, buf);
 	}
 }
@@ -4906,7 +4905,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 	} else {
 		static char msg[CRASH_MSG_SAFELEN];
 
-		str_vbprintf(msg, sizeof msg, fmt, ap);
+		str_vbprintf(ARYLEN(msg), fmt, ap);
 		return msg;
 	}
 }

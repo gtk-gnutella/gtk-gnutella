@@ -350,7 +350,7 @@ target_to_string(filter_t *target)
 		htable_insert(target_map, target, value);
 	}
 
-    str_bprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
+    str_bprintf(ARYLEN(buf), "0x%x", GPOINTER_TO_UINT(value));
 
 	return buf;
 }
@@ -784,10 +784,10 @@ rule_to_xml(xnode_t *parent, rule_t *r)
 		{
 			char buf[UINT64_DEC_BUFLEN];
 
-			uint64_to_string_buf(r->u.size.lower, buf, sizeof buf);
+			uint64_to_string_buf(r->u.size.lower, ARYLEN(buf));
         	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
         	xnode_prop_printf(newxml, TAG_RULE_SIZE_LOWER, "%s", buf);
-			uint64_to_string_buf(r->u.size.upper, buf, sizeof buf);
+			uint64_to_string_buf(r->u.size.upper, ARYLEN(buf));
         	xnode_prop_printf(newxml, TAG_RULE_SIZE_UPPER, "%s", buf);
 		}
         break;

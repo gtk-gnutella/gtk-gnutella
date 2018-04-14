@@ -71,7 +71,7 @@ filehead_uint64(const char *path, bool missing, int *errptr)
 	if (-1 == fd)
 		goto error;
 
-	r = read(fd, data, sizeof data - 1); /* reserve one byte for NUL */
+	r = read(fd, ARYLEN(data) - 1); /* reserve one byte for NUL */
 
 	if ((ssize_t) -1 == r)
 		goto error_close;

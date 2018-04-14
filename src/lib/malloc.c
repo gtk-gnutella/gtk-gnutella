@@ -762,10 +762,8 @@ malloc_periodic(void *unused_obj)
 
 	tm_now_exact(&end);
 
-	short_size_to_string_buf(ctx.tracked_size, FALSE,
-		tracked_size, sizeof tracked_size);
-	short_size_to_string_buf(ctx.real_size, FALSE,
-		real_size, sizeof real_size);
+	short_size_to_string_buf(ctx.tracked_size, FALSE, ARYLEN(tracked_size));
+	short_size_to_string_buf(ctx.real_size, FALSE, ARYLEN(real_size));
 
 	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
 		s_message("malloc periodic check done (%u msecs): "
@@ -1300,7 +1298,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), b->ttime)));
 #else
 	ago[0] = '\0';
@@ -1393,7 +1391,7 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 		return;		/* Was already logged through malloc_log_block() */
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), rb->atime)));
 #else
 	ago[0] = '\0';
@@ -2247,7 +2245,7 @@ gslist_record(const GSList * const list, const char *file, int line)
 	const GSList *iter;
 
 	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		malloc_record(iter, sizeof *iter, FALSE, file, line);
+		malloc_record(PTRLEN(iter), FALSE, file, line);
 	}
 	return deconstify_pointer(list);
 }
@@ -2474,7 +2472,7 @@ glist_record(const GList * const list, const char *file, int line)
 	const GList *iter;
 
 	for (iter = list; NULL != iter; iter = g_list_next(iter)) {
-		malloc_record(iter, sizeof *iter, FALSE, file, line);
+		malloc_record(PTRLEN(iter), FALSE, file, line);
 	}
 	return deconstify_pointer(list);
 }

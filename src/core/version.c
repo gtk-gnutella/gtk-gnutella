@@ -135,52 +135,52 @@ version_ext_str(const version_ext_t *vext, bool full)
 	bool has_extra = FALSE;
 	bool need_closing = FALSE;
 
-	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(ARYLEN(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(ARYPOSLEN(str, rw), ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%c", ver->tag);
 		if (ver->taglevel)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-%u", ver->build);
 
 	if (vext->commit_len != 0) {
 		static char digest[SHA1_BASE16_SIZE + 1];
 		size_t offset = MIN(vext->commit_len, SHA1_BASE16_SIZE);
 
-		sha1_to_base16_buf(&vext->commit, digest, sizeof digest);
+		sha1_to_base16_buf(&vext->commit, ARYLEN(digest));
 		digest[offset] = '\0';
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-g%s", digest);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-g%s", digest);
 	}
 
 	if (vext->dirty)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-dirty");
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-dirty");
 
 	if (ver->timestamp || (full && vext->osname != NULL)) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (");
+		rw += str_bprintf(ARYPOSLEN(str, rw), " (");
 		need_closing = TRUE;
 	}
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%d-%02d-%02d",
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%d-%02d-%02d",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 		has_extra = TRUE;
 	}
 
 	if (full && vext->osname != NULL) {
 		if (has_extra)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "; ");
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "; ");
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%s", vext->osname);
 	}
 
 	if (need_closing)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ")");
+		rw += str_bprintf(ARYPOSLEN(str, rw), ")");
 
 	return str;
 }
@@ -195,23 +195,23 @@ version_str(const version_t *ver)
 	static char str[80];
 	int rw;
 
-	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(ARYLEN(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(ARYPOSLEN(str, rw), ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%c", ver->tag);
 		if (ver->taglevel)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-%u", ver->build);
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (%d-%02d-%02d)",
+		rw += str_bprintf(ARYPOSLEN(str, rw), " (%d-%02d-%02d)",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 	}
 
@@ -342,8 +342,7 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	memcpy(commit, v, commit_len);
 
 	ZERO(&vext->commit);
-	(void) base16_decode(vext->commit.data, sizeof vext->commit,
-		commit, SHA1_BASE16_SIZE);
+	(void) base16_decode(VARLEN(vext->commit), commit, SHA1_BASE16_SIZE);
 
 	if (e != NULL && is_strprefix(e, "-dirty")) {
 		vext->dirty = TRUE;
@@ -588,15 +587,15 @@ version_new_found(const char *text, bool stable)
         utf8_strlcpy(last_dev, text, sizeof last_dev);
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer versions available: release %s / from git %s"),
 			last_stable, last_dev);
 	} else if ('\0' != last_stable[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer version available: release %s"),
 			last_stable);
 	} else if ('\0' != last_dev[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer version available: from git %s"),
 			last_dev);
 	}
@@ -820,7 +819,7 @@ version_build_internal(bool hide)
 #endif /* HAS_UNAME */
 	}
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%s/%s%s (%s; %s; %s%s%s)",
 		product_name(), product_version(),
 		hide ? "" : product_build_full(),
@@ -852,7 +851,7 @@ version_build_string(void)
 
 	if G_UNLIKELY('\0' == buf[0]) {
 		const char *v = version_build_internal(FALSE);
-		clamp_strcpy(buf, sizeof buf, v);
+		clamp_strcpy(ARYLEN(buf), v);
 	}
 
 	return buf;
@@ -892,7 +891,7 @@ version_init(bool hide)
 	{
 		char buf[128];
 
-		str_bprintf(buf, sizeof(buf),
+		str_bprintf(ARYLEN(buf),
 			"%s/%s%s (%s)",
 			product_name(), product_version(),
 			hide ? "" : product_build_full(), product_date());
@@ -1037,14 +1036,14 @@ version_string_dump_log(logagent_t *la, bool full)
 	log_info(la, "(libraries are using the system's malloc() implementation)");
 #endif
 
-	str_bprintf(buf, sizeof buf, "GLib %u.%u.%u",
+	str_bprintf(ARYLEN(buf), "GLib %u.%u.%u",
 			glib_major_version, glib_minor_version, glib_micro_version);
 	if (
 			GLIB_MAJOR_VERSION != glib_major_version ||
 			GLIB_MINOR_VERSION != glib_minor_version ||
 			GLIB_MICRO_VERSION != glib_micro_version
 	   ) {
-		str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+		str_bcatf(ARYLEN(buf), " (compiled against %u.%u.%u)",
 				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
 	}
 	log_info(la, "%s", buf);

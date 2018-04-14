@@ -758,7 +758,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const uint64 *src,
 			if (newval < d->data.guint64.min)
 				newval = d->data.guint64.min;
 
-			concat_strings(buf, sizeof buf,
+			concat_strings(ARYLEN(buf),
 				uint64_to_string(d->data.guint64.min), "/",
 				uint64_to_string2(d->data.guint64.max),
 				NULL_PTR);
@@ -996,7 +996,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 			if (newval < d->data.timestamp.min)
 				newval = d->data.timestamp.min;
 
-			concat_strings(buf, sizeof buf,
+			concat_strings(ARYLEN(buf),
 				timestamp_to_string(d->data.timestamp.min), "/",
 				timestamp_to_string2(d->data.timestamp.max),
 				NULL_PTR);
@@ -1444,7 +1444,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_guint32(ps, prop, &val, n, 1);
-			uint32_to_string_buf(val, buf, sizeof buf);
+			uint32_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1464,7 +1464,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_guint64(ps, prop, &val, n, 1);
-			uint64_to_string_buf(val, buf, sizeof buf);
+			uint64_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1484,7 +1484,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_timestamp(ps, prop, &val, n, 1);
-			timestamp_to_string_buf(val, buf, sizeof buf);
+			timestamp_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1507,7 +1507,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_ip(ps, prop, &addr, n, 1);
-			host_addr_to_string_buf(addr, buf, sizeof buf);
+			host_addr_to_string_buf(addr, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1593,14 +1593,14 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	case PROP_TYPE_GUINT64:
 		{
 			char buf[UINT64_DEC_BUFLEN];
-			uint64_to_string_buf(p->data.guint64.def[0], buf, sizeof buf);
+			uint64_to_string_buf(p->data.guint64.def[0], ARYLEN(buf));
 			str_cpy(s, buf);
 		}
 		goto done;
 	case PROP_TYPE_TIMESTAMP:
 		{
 			char buf[UINT64_DEC_BUFLEN];
-			uint64_to_string_buf(p->data.timestamp.def[0], buf, sizeof buf);
+			uint64_to_string_buf(p->data.timestamp.def[0], ARYLEN(buf));
 			str_cpy(s, buf);
 		}
 		goto done;
@@ -1732,7 +1732,7 @@ unique_file_token(const filestat_t *st)
 	SHA1_input(&ctx, hostname, strlen(hostname));
 	SHA1_result(&ctx, &digest);
 
-	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
+	bin_to_hex_buf(VARLEN(digest), ARYLEN(buf));
 	buf[SHA1_BASE16_SIZE] = '\0';
 
 	str_cpy(s, buf);
@@ -1890,7 +1890,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				v = p->data.guint32.value[i];
 				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
-				str_bprintf(sbuf, sizeof(sbuf), "%u", v);
+				str_bprintf(ARYLEN(sbuf), "%u", v);
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1905,7 +1905,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				if (v != p->data.guint64.def[i])
 					defaultvalue = FALSE;
 
-				uint64_to_string_buf(v, sbuf, sizeof sbuf);
+				uint64_to_string_buf(v, ARYLEN(sbuf));
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1920,7 +1920,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				if (t != p->data.timestamp.def[i])
 					defaultvalue = FALSE;
 
-				timestamp_utc_to_string_buf(t, sbuf, sizeof sbuf);
+				timestamp_utc_to_string_buf(t, ARYLEN(sbuf));
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -2375,12 +2375,12 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
 	 *
 	 */
-	while (fgets(prop_tmp, sizeof prop_tmp, config)) {
+	while (fgets(ARYLEN(prop_tmp), config)) {
 		char *s, *k, *v;
 		int c;
 		property_t prop;
 
-		if (!file_line_chomp_tail(prop_tmp, sizeof prop_tmp, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(prop_tmp), NULL)) {
 			s_warning("%s(): config file \"%s\", line %u: "
 				"too long a line, ignored", G_STRFUNC, filename, n);
 			truncated = TRUE;

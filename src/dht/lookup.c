@@ -359,7 +359,7 @@ lookup_type_to_string(const nlookup_t *nl)
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	case LOOKUP_TOKEN:		what = "token"; break;
 	case LOOKUP_VALUE:
-		str_bprintf(buf, sizeof buf, "\"%s\" value",
+		str_bprintf(ARYLEN(buf), "\"%s\" value",
 			dht_value_type_to_string(nl->u.fv.vtype));
 		return buf;
 	}
@@ -1544,7 +1544,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (NULL == v) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+				str_bprintf(ARYLEN(msg), "cannot parse DHT value %d/%u",
 					i + 1, expanded);
 			}
 			reason = msg;
@@ -1606,7 +1606,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+				str_bprintf(ARYLEN(msg), "cannot read secondary key %d/%u",
 					i + 1, seckeys);
 			}
 			reason = msg;
@@ -3034,7 +3034,7 @@ lookup_handle_reply(
 
 		if (NULL == cn) {
 			if (GNET_PROPERTY(dht_lookup_debug))
-				str_bprintf(msg, sizeof msg, "cannot parse contact #%d", n);
+				str_bprintf(ARYLEN(msg), "cannot parse contact #%d", n);
 			reason = msg;
 			goto bad;
 		}
@@ -3053,8 +3053,7 @@ lookup_handle_reply(
 
 		if (kuid_eq(get_our_kuid(), cn->id)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg,
-					"%s bears our KUID", knode_to_string(cn));
+				str_bprintf(ARYLEN(msg), "%s bears our KUID", knode_to_string(cn));
 			}
 			goto skip;
 		}
@@ -3066,7 +3065,7 @@ lookup_handle_reply(
 
 		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "unsafe %s: %s",
+				str_bprintf(ARYLEN(msg), "unsafe %s: %s",
 					knode_to_string(cn), unsafe);
 			}
 			goto skip;
@@ -3093,7 +3092,7 @@ lookup_handle_reply(
 
 		if (!knode_is_usable(cn)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg,
+				str_bprintf(ARYLEN(msg),
 					"%s has unusable address", knode_to_string(cn));
 			}
 			goto skip;
@@ -3153,7 +3152,7 @@ lookup_handle_reply(
 					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						str_bprintf(msg, sizeof msg,
+						str_bprintf(ARYLEN(msg),
 							"%s already queried, RPC pending, alternate IP %s",
 							knode_to_string(xn),
 							host_addr_port_to_string(cn->addr, cn->port));
@@ -3162,14 +3161,14 @@ lookup_handle_reply(
 					lookup_fix_contact(nl, xn, cn);
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						str_bprintf(msg, sizeof msg,
+						str_bprintf(ARYLEN(msg),
 							"for now, fixed as %s and re-added to shortlist",
 							host_addr_port_to_string(cn->addr, cn->port));
 					}
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s was already queried", knode_to_string(xn));
 				}
 			}
@@ -3222,14 +3221,14 @@ lookup_handle_reply(
 				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s still in our shorlist, recorded alternate IP %s",
 						knode_to_string(cn),
 						host_addr_port_to_string(cn->addr, cn->port));
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s is still in our shortlist", knode_to_string(cn));
 				}
 			}
@@ -3340,7 +3339,7 @@ lookup_handle_reply(
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 4) {
 			char buf[80];
-			bin_to_hex_buf(token->v, token->length, buf, sizeof buf);
+			bin_to_hex_buf(token->v, token->length, ARYLEN(buf));
 			g_debug("DHT LOOKUP[%s] collected %u-byte token \"%s\" for %s",
 				nid_to_string(&nl->lid),
 				token->length, buf, knode_to_string(kn));
@@ -4662,7 +4661,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 
 	if (expanded != 1) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			str_bprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
+			str_bprintf(ARYLEN(msg), "expected 1 value, got %u", expanded);
 		reason = msg;
 		goto bad;
 	}

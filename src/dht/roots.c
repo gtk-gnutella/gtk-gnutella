@@ -454,7 +454,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 				c->port = kn->port;
 				c->addr = kn->addr;
 				c->first_seen = tm_time();	/* New node address */
-				dbmw_write(db_contact, dbkey_ptr, c, sizeof *c);
+				dbmw_write(db_contact, dbkey_ptr, PTRLEN(c));
 				gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_CONTACT_REFRESHED);
 			}
 
@@ -476,7 +476,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 			contacts_managed++;
 			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_HELD);
 
-			dbmw_write(db_contact, &dbkey, &nc, sizeof nc);
+			dbmw_write(db_contact, &dbkey, VARLEN(nc));
 
 			rd->dbkeys[i++] = dbkey;
 			new++;
@@ -498,7 +498,7 @@ roots_record(patricia_t *nodes, const kuid_t *kuid)
 	 */
 
 	rd->last_update = tm_time();
-	dbmw_write(db_rootdata, kuid, rd, sizeof *rd);
+	dbmw_write(db_rootdata, kuid, PTRLEN(rd));
 
 	if (ri->expire_ev) {
 		cq_resched(ri->expire_ev, ROOTKEY_LIFETIME);

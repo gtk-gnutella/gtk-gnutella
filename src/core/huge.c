@@ -182,8 +182,8 @@ cache_entry_print(FILE *f, const char *filename,
 	g_return_if_fail(sha1);
 	g_return_if_fail(size > 0);
 
-	uint64_to_string_buf(size, size_buf, sizeof size_buf);
-	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);
+	uint64_to_string_buf(size, ARYLEN(size_buf));
+	uint64_to_string_buf(mtime, ARYLEN(mtime_buf));
 
 	fprintf(f, "%s\t%s\t%s\t%s\n", bitprint_to_urn_string(sha1, tth),
 		size_buf, mtime_buf, filename);
@@ -320,7 +320,7 @@ parse_and_append_cache_entry(char *line)
 		if (
 			*p != '\t' ||
 			(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
-			SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
+			SHA1_RAW_SIZE != base32_decode(VARLEN(sha1),
 								sha1_digest_ascii, SHA1_BASE32_SIZE)
 		) {
 			goto failure;
@@ -402,10 +402,10 @@ sha1_read_cache(void)
 		for (;;) {
 			char buffer[4096];
 
-			if (NULL == fgets(buffer, sizeof buffer, f))
+			if (NULL == fgets(ARYLEN(buffer), f))
 				break;
 
-			if (!file_line_chomp_tail(buffer, sizeof buffer, NULL)) {
+			if (!file_line_chomp_tail(ARYLEN(buffer), NULL)) {
 				truncated = TRUE;
 			} else if (truncated) {
 				truncated = FALSE;
@@ -803,21 +803,21 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
 
-	if (SHA1_RAW_SIZE != base32_decode(sha1, sizeof *sha1, buf, len))
+	if (SHA1_RAW_SIZE != base32_decode(PTRLEN(sha1), buf, len))
 		goto bad;
 
 	/*
 	 * Make sure the decoded value in `sha1' is "valid".
 	 */
 
-	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
+	if (huge_improbable_sha1(ARYLEN(sha1->data))) {
 		if (GNET_PROPERTY(share_debug)) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has improbable SHA1 (len=%lu): %.*s, hex: %s",
 					gmsg_node_infostr(n),
 					(unsigned long) len,
 					(int) MIN(len, (size_t) INT_MAX),
-					buf, data_hex_str(sha1->data, sizeof sha1->data));
+					buf, data_hex_str(ARYLEN(sha1->data)));
 			} else
 				goto bad;		/* SHA1 should be printable originally */
 		}
@@ -852,7 +852,7 @@ huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	if (len != TTH_BASE32_SIZE)
 		goto bad;
 
-	if (TTH_RAW_SIZE != base32_decode(tth, sizeof *tth, buf, len))
+	if (TTH_RAW_SIZE != base32_decode(PTRLEN(tth), buf, len))
 		goto bad;
 
 	return TRUE;

@@ -104,7 +104,7 @@ absolute_pathname(const char *file)
 	} else {
 		char buf[4096], *ret;
 
-		ret = getcwd(buf, sizeof buf);
+		ret = getcwd(ARYLEN(buf));
 		return ret ? make_pathname(ret, file) : NULL;
 	}
 }

@@ -885,7 +885,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 #ifdef MALLOC_TIME
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
-		str_bprintf(ago, sizeof ago, " [%s]",
+		str_bprintf(ARYLEN(ago), " [%s]",
 			short_time_ascii(delta_time(tm_time(), *t)));
 	}
 #else

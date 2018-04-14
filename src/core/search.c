@@ -1068,10 +1068,10 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 
 	if (n != NULL) {
 		if (NODE_TALKS_G2(n)) {
-			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+			g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 		} else {
 			gmsg_infostr_full_split_to_buf(
-				&n->header, n->data, n->size, buf, sizeof buf);
+				&n->header, n->data, n->size, ARYLEN(buf));
 		}
 	} else {
 		buf[0] = '\0';
@@ -1112,10 +1112,10 @@ search_results_records_log(const gnutella_node_t *n,
 
 	if (n != NULL) {
 		if (NODE_TALKS_G2(n)) {
-			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+			g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 		} else {
 			gmsg_infostr_full_split_to_buf(
-				&n->header, n->data, n->size, buf, sizeof buf);
+				&n->header, n->data, n->size, ARYLEN(buf));
 		}
 	} else {
 		buf[0] = '\0';
@@ -1186,10 +1186,10 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 
 	if (n != NULL) {
 		if (NODE_TALKS_G2(n)) {
-			g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+			g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 		} else {
 			gmsg_infostr_full_split_to_buf(
-				&n->header, n->data, n->size, buf, sizeof buf);
+				&n->header, n->data, n->size, ARYLEN(buf));
 		}
 	} else {
 		buf[0] = '\0';
@@ -1204,7 +1204,7 @@ search_log_spam(const gnutella_node_t *n, const gnet_results_set_t *rs,
 			rbuf[1] = ' ';
 			off = 2;
 		}
-		str_vbprintf(&rbuf[off], sizeof rbuf - off, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, off), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -2124,7 +2124,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				} else {
 					char hostname[MAX_HOSTLEN];
 
-					ret = ggept_hname_extract(e, hostname, sizeof(hostname));
+					ret = ggept_hname_extract(e, ARYLEN(hostname));
 					if (ret == GGEP_OK)
 						rs->hostname = atom_str_get(hostname);
 					else {
@@ -2144,7 +2144,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 					if (rc && !rc->xml && paylen > 0) {
 						char buf[4096];
 
-						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
+						clamp_strncpy(ARYLEN(buf), ext_payload(e), paylen);
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
 						}
@@ -2231,7 +2231,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 				GNET_PROPERTY(secure_oob_debug)
 			) {
 				char buf[9];
-				bin_to_hex_buf(&token, sizeof token, buf, sizeof buf);
+				bin_to_hex_buf(VARLEN(token), ARYLEN(buf));
 				g_debug("OOB received unrequested %squery hit #%s "
 					"from %s%s%s [%s]",
 					guess_is_search_muid(muid) ? "GUESS " : "",
@@ -2721,7 +2721,7 @@ search_record_warn(const gnutella_node_t *n,
 	char buf[256];
 
 	va_start(args, fmt);
-	str_vbprintf(buf, sizeof buf, fmt, args);
+	str_vbprintf(ARYLEN(buf), fmt, args);
 	va_end(args);
 
 	if (GNET_PROPERTY(qhit_bad_debug)) {
@@ -2953,7 +2953,7 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 				if (p != NULL) {
 					char buf[1024];
 					payload = g2_tree_node_payload(p, &paylen);
-					clamp_strncpy(buf, sizeof buf, payload, paylen);
+					clamp_strncpy(ARYLEN(buf), payload, paylen);
 					rc->path = atom_str_get(buf);
 				}
 			}
@@ -3024,7 +3024,7 @@ get_g2_results_record(const g2_tree_t *t, const gnutella_node_t *n,
 						"ignoring URN payload with no NUL (%zu bytes)", paylen);
 					break;
 				}
-				clamp_strncpy(name, sizeof name, payload, l);
+				clamp_strncpy(ARYLEN(name), payload, l);
 				paylen -= l + 1;		/* Skip urn string + NUL */
 				p = const_ptr_add_offset(payload, l + 1);
 				type = TOKENIZE(name, g2_qh2_urn);
@@ -3249,7 +3249,7 @@ get_g2_results_set(gnutella_node_t *n, const g2_tree_t *t,
 			if (payload != NULL && NULL == rs->hostname) {
 				char buf[MAX_HOSTLEN];
 
-				clamp_strncpy(buf, sizeof buf, payload, paylen);
+				clamp_strncpy(ARYLEN(buf), payload, paylen);
 				if (utf8_is_valid_string(buf)) {
 					const char *endptr;
 					host_addr_t addr;
@@ -3712,9 +3712,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 
 						has_hash = TRUE;
 						if (urn_get_sha1_no_prefix(buf, &sha1_digest)) {
-							if (huge_improbable_sha1(sha1_digest.data,
-									sizeof sha1_digest.data)
-							) {
+							if (huge_improbable_sha1(ARYLEN(sha1_digest.data))) {
 								if (GNET_PROPERTY(search_debug) > 0) {
 									g_debug("improbable SHA-1 detected");
 								}
@@ -3739,9 +3737,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 						if (GGEP_OK == ggept_h_tth_extract(e, &tth_digest)) {
 							atom_tth_change(&rc->tth, &tth_digest);
 						}
-						if (huge_improbable_sha1(sha1_digest.data,
-								sizeof sha1_digest.data)
-						) {
+						if (huge_improbable_sha1(ARYLEN(sha1_digest.data))) {
 							if (GNET_PROPERTY(search_debug) > 0) {
 								g_debug("Improbable SHA-1 detected");
 							}
@@ -3809,7 +3805,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 					if (!rc->xml && paylen > 0) {
 						char buf[4096];
 
-						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
+						clamp_strncpy(ARYLEN(buf), ext_payload(e), paylen);
 						if (utf8_is_valid_string(buf)) {
 							rc->xml = atom_str_get(buf);
 						}
@@ -3820,7 +3816,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 					if (!rc->path && paylen > 0) {
 						char buf[1024];
 
-						clamp_strncpy(buf, sizeof buf, ext_payload(e), paylen);
+						clamp_strncpy(ARYLEN(buf), ext_payload(e), paylen);
 						rc->path = atom_str_get(buf);
 					}
 					break;
@@ -4212,8 +4208,8 @@ update_neighbour_info(gnutella_node_t *n, gnet_results_set_t *rs)
 			char vc_new[VENDOR_CODE_BUFLEN];
 
 			n->n_weird++;
-			vendor_code_to_string_buf(n->vcode.u32, vc_old, sizeof vc_old);
-			vendor_code_to_string_buf(rs->vcode.u32, vc_new, sizeof vc_new);
+			vendor_code_to_string_buf(n->vcode.u32, ARYLEN(vc_old));
+			vendor_code_to_string_buf(rs->vcode.u32, ARYLEN(vc_new));
 
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_warning("[weird #%d] %s moved from tag %4.4s to %4.4s in %s",
@@ -4602,7 +4598,7 @@ build_search_message(const guid_t *muid, const char *query,
 		unsigned len;
 		bool ok;
 
-		len = ggept_m_encode(mtype, media_type, sizeof media_type);
+		len = ggept_m_encode(mtype, ARYLEN(media_type));
 		ok = ggep_stream_pack(&gs, GGEP_NAME(M), media_type, len, 0);
 
 		if (!ok) {
@@ -4620,7 +4616,7 @@ build_search_message(const guid_t *muid, const char *query,
 		uchar b = 1;		/* Feature #1 is "What's New?" */
 		bool ok;
 
-		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), &b, sizeof(b), 0);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(WH), VARLEN(b), 0);
 
 		if (!ok) {
 			g_carp("could not add GGEP \"WH\" to query: %s", ggep_errstr());
@@ -4684,7 +4680,7 @@ build_search_message(const guid_t *muid, const char *query,
 		 * Only running IPv6, let them know we're not interested in IPv4.
 		 */
 
-		if (!ggep_stream_pack(&gs, GGEP_NAME(I6), &b, sizeof b, 0)) {
+		if (!ggep_stream_pack(&gs, GGEP_NAME(I6), VARLEN(b), 0)) {
 			g_carp("could not add GGEP \"I6\" to query");
 			/* It's OK, "I6" is not critical and can be missing */
 		}
@@ -4887,7 +4883,7 @@ search_whats_new_can_reissue(void)
 		char buf[80];
 		time_delta_t grace = WHATS_NEW_DELAY - elapsed + 1;
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			_("Must wait %u more seconds before resending \"What's New\""),
 			(unsigned) grace);
 		gcu_statusbar_warning(buf);
@@ -7010,15 +7006,14 @@ search_oob_pending_results(
 		sectoken_generate_with_context(ora_stg, &tok,
 			n->addr, n->port, muid, GUID_RAW_SIZE);
 		token = peek_be32(tok.v);
-		token_opaque = array_init(&token, sizeof token);
+		token_opaque = array_init(VARLEN(token));
 
 		if (
 			GNET_PROPERTY(search_debug) > 1 ||
 			GNET_PROPERTY(secure_oob_debug)
 		) {
 			char buf[17];
-			bin_to_hex_buf(
-				token_opaque.data, token_opaque.size, buf, sizeof buf);
+			bin_to_hex_buf(token_opaque.data, token_opaque.size, ARYLEN(buf));
 			g_debug("OOB secure token for %s and #%s is 0x%s",
 				host_addr_port_to_string(n->addr, n->port),
 				guid_hex_str(muid), buf);
@@ -7317,7 +7312,7 @@ search_add_local_file(gnet_results_set_t *rs, shared_file_t *sf)
 		 */
 
 		if (hcnt > 0) {
-			vector_t vec = vector_create(hvec, sizeof hvec[0], hcnt);
+			vector_t vec = vector_create(VARLEN(hvec[0]), hcnt);
 			rc->alt_locs = gnet_host_vec_from_vector(&vec);
 		}
 	}
@@ -7516,7 +7511,7 @@ search_handle_magnet(const char *url)
 		if (res->sha1 && NULL == res->display_name) {
 			char urn_buf[64];
 
-			sha1_to_urn_string_buf(res->sha1, urn_buf, sizeof urn_buf);
+			sha1_to_urn_string_buf(res->sha1, ARYLEN(urn_buf));
 			if (
 				gcu_search_gui_new_search(urn_buf,
 					SEARCH_F_ENABLED | SEARCH_F_LITERAL)
@@ -7874,7 +7869,7 @@ search_flags_to_string(uint16 flags)
 {
 	static char buf[64];
 
-	str_bprintf(buf, sizeof buf, "%s%s%s%s%s%s%s%s",
+	str_bprintf(ARYLEN(buf), "%s%s%s%s%s%s%s%s",
 		(flags & QUERY_F_MARK) ? "MARKED" : "",
 		(flags & QUERY_F_FIREWALLED) ? " FW" : "",
 		(flags & QUERY_F_XML) ? " XML" : "",
@@ -8367,7 +8362,7 @@ search_request_preprocess(gnutella_node_t *n,
 				} else {
 					char buf[MAX_EXTENDED_QUERY_LEN + 1];
 
-					switch (ggept_utf8_string_extract(e, buf, sizeof buf)) {
+					switch (ggept_utf8_string_extract(e, ARYLEN(buf))) {
 					case GGEP_OK:
 						sri->extended_query = atom_str_get(buf);
 						break;
@@ -8793,7 +8788,7 @@ search_request_preprocess(gnutella_node_t *n,
 		g_assert(NODE_IS_LEAF(n));
 
 		if (last_sha1_digest) {
-			sha1_to_urn_string_buf(last_sha1_digest, stmp_1, sizeof stmp_1);
+			sha1_to_urn_string_buf(last_sha1_digest, ARYLEN(stmp_1));
 			query = stmp_1;
 		}
 
@@ -8838,11 +8833,11 @@ search_request_preprocess(gnutella_node_t *n,
 		 */
 
 		if (last_sha1_digest == NULL)
-			str_bprintf(stmp_1, sizeof(stmp_1), "%u/%u%s",
+			str_bprintf(ARYLEN(stmp_1), "%u/%u%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header), search);
 		else
-			str_bprintf(stmp_1, sizeof(stmp_1), "%u/%uurn:sha1:%s",
+			str_bprintf(ARYLEN(stmp_1), "%u/%uurn:sha1:%s",
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sha1_base32(last_sha1_digest));
@@ -8934,7 +8929,7 @@ skip_throttling:
 			if (GNET_PROPERTY(query_debug) > 3) {
 				char origin[60];
 				if (sri->oob) {
-					str_bprintf(origin, sizeof origin, " from %s",
+					str_bprintf(ARYLEN(origin), " from %s",
 						host_addr_port_to_string(sri->addr, sri->port));
 				}
 				g_debug("GTKG %s%squery from %d.%d%s #%s%s",

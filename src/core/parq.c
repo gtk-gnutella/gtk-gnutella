@@ -2263,7 +2263,7 @@ parq_upload_find(const struct upload *u)
 	if (u->parq_ul) {
 		return u->parq_ul;
 	} else if (u->name) {
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			host_addr_to_string(u->addr), " ", u->name,
 			NULL_PTR);
 		return hikset_lookup(ul_all_parq_by_addr_and_name, buf);
@@ -4477,9 +4477,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 			}
 		}
 
-		len = concat_strings(&buf[rw], sizeof "\r\n",
-				"\r\n",
-				NULL_PTR);
+		len = concat_strings(&buf[rw], size, "\r\n", NULL_PTR);
 		rw += len;
 	}
 	return rw;
@@ -4818,7 +4816,7 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	puq->flags &= ~PARQ_UL_QUEUE;
 
-	rw = str_bprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
+	rw = str_bprintf(ARYLEN(queue), "QUEUE %s %s\r\n",
 			guid_hex_str(&puq->id),
 			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 
@@ -4897,8 +4895,8 @@ parq_store(void *data, void *file_ptr)
 			  puq->name);
 	}
 
-	timestamp_to_string_buf(puq->enter, enter_buf, sizeof enter_buf);
-	timestamp_to_string_buf(puq->last_queue_sent, last_buf, sizeof last_buf);
+	timestamp_to_string_buf(puq->enter, ARYLEN(enter_buf));
+	timestamp_to_string_buf(puq->last_queue_sent, ARYLEN(last_buf));
 
 	/*
 	 * Save all needed parq information. The ip and port information gathered
@@ -5123,7 +5121,7 @@ parq_upload_load_queue(void)
 	entry = zero_entry;
 	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *colon;
 		bool damaged;
@@ -5132,7 +5130,7 @@ parq_upload_load_queue(void)
 		line_no++;
 
 		damaged = FALSE;
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the

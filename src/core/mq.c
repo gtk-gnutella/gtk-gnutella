@@ -196,12 +196,11 @@ mq_info(const mqueue_t *q)
 	static char buf[160];
 
 	if (q->magic != MQ_MAGIC) {
-		str_bprintf(buf, sizeof(buf),
-			"queue %p INVALID (bad magic)", (void *) q);
+		str_bprintf(ARYLEN(buf), "queue %p INVALID (bad magic)", q);
 	} else {
 		bool udp = NODE_USES_UDP(q->node);
 
-		str_bprintf(buf, sizeof(buf),
+		str_bprintf(ARYLEN(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
 			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :

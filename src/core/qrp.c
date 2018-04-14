@@ -269,7 +269,7 @@ qrp_patch_to_string(const struct routing_patch * const rp)
 
 	if (rp->compressed) {
 		int theoretical = rp->size * rp->entry_bits / 8;
-		str_bprintf(buf, sizeof buf, ", %.2f%%", rp->len * 100.0 / theoretical);
+		str_bprintf(ARYLEN(buf), ", %.2f%%", rp->len * 100.0 / theoretical);
 	} else {
 		buf[0] = '\0';
 	}
@@ -3058,7 +3058,7 @@ qrp_send_reset(gnutella_node_t *n, int slots, int inf_val)
 		gnutella_msg_qrp_reset_set_table_length(&msg, slots);
 		gnutella_msg_qrp_reset_set_infinity(&msg, inf_val);
 
-		gmsg_sendto_one(n, &msg, sizeof msg);
+		gmsg_sendto_one(n, VARLEN(msg));
 	}
 
 	if (qrp_debugging(2)) {

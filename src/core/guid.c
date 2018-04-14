@@ -726,7 +726,7 @@ guid_add_banned(const guid_t *guid)
 		gd->last_time = tm_time();
 	}
 
-	dbmw_write(db_guid, guid, gd, sizeof *gd);
+	dbmw_write(db_guid, guid, PTRLEN(gd));
 }
 
 /**

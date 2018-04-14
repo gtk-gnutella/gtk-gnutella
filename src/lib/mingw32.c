@@ -224,11 +224,11 @@ getlog(bool initial)
 	 * necessary.
 	 */
 
-	str_bprintf(buf, sizeof buf, "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
+	str_bprintf(ARYLEN(buf), "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
 	exe = is_strcasesuffix(buf, (size_t) -1, ".exe");
 	if (exe != NULL)
 		*exe = '\0';
-	clamp_strcat(buf, sizeof buf, "-log.txt");
+	clamp_strcat(ARYLEN(buf), "-log.txt");
 
 	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
@@ -351,7 +351,7 @@ get_native_path(const char *pathname, int *error)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN);
 	}
@@ -476,7 +476,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN * sizeof(wchar_t));
 	}
@@ -2908,7 +2908,7 @@ get_special(int which, char *what)
 	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
 	if (E_INVALIDARG != ret) {
-		size_t conv = utf16_to_utf8(pathname, utf8_path, sizeof utf8_path);
+		size_t conv = utf16_to_utf8(pathname, ARYLEN(utf8_path));
 		if (conv > sizeof utf8_path) {
 			s_warning("cannot convert %s path from UTF-16 to UTF-8", what);
 			ret = E_INVALIDARG;
@@ -3143,9 +3143,9 @@ mingw_getstdout_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stdout", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stdout", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3158,9 +3158,9 @@ mingw_getstderr_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stderr", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3173,9 +3173,9 @@ mingw_get_supervisor_log_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.super", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.super", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3420,7 +3420,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			if (signal_in_unsafe_handler()) {
 				static char path[MAX_PATH_LEN];
 
-				clamp_strncpy(path, sizeof path, pathname, len);
+				clamp_strncpy(ARYLEN(path), pathname, len);
 				if (0 == pncs_convert(&pncs, path))
 					res = _wstati64(pncs.utf16, buf);
 			} else {
@@ -3984,7 +3984,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 
 	thread_in_syscall_set(TRUE);
 
-	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
+	r = bind(ls, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 	r = listen(ls, 1);
@@ -4009,7 +4009,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	 * of 1 and the connection will happen "immediately".
 	 */
 
-	r = connect(cs, (struct sockaddr *) &laddr, sizeof laddr);
+	r = connect(cs, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 
@@ -4284,7 +4284,7 @@ mingw_mem_committed(void)
 {
 	PROCESS_MEMORY_COUNTERS c;
 
-	if (GetProcessMemoryInfo(GetCurrentProcess(), &c, sizeof c))
+	if (GetProcessMemoryInfo(GetCurrentProcess(), VARLEN(c)))
 		return c.PagefileUsage;
 
 	errno = mingw_last_error();
@@ -4695,7 +4695,7 @@ mingw_log_meminfo(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("VirtualQuery() failed for %p: %m", p);
@@ -4724,7 +4724,7 @@ mingw_memstart(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("%s(): VirtualQuery() failed for %p: %m", G_STRFUNC, p);
@@ -4849,7 +4849,7 @@ mingw_fopen(const char *pathname, const char *mode)
 	FILE *res;
 
 	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -4886,7 +4886,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 		return NULL;
 
 	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -5444,9 +5444,9 @@ mingw_uname(struct utsname *buf)
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
-		str_bprintf(buf->release, sizeof buf->release, "%u.%u",
+		str_bprintf(ARYLEN(buf->release), "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		str_bprintf(buf->version, sizeof buf->version, "%u %s",
+		str_bprintf(ARYLEN(buf->version), "%u %s",
 			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
@@ -5742,7 +5742,7 @@ mingw_filename_nearby(const char *filename)
 		bool error = FALSE;
 		size_t pathsz = buf_size(b);
 
-		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
+		if (0 == GetModuleFileNameW(NULL, ARYLEN(wpathname))) {
 			error = TRUE;
 			errno = mingw_last_error();
 			s_warning("cannot locate my executable: %m");
@@ -7582,7 +7582,7 @@ skip_init:
 
 	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
 
-	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
+	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, ARYLEN(wpath))) {
 		size_t conv = utf16_to_utf8(wpath, path, pathsz);
 		if (conv <= pathsz)
 			info->dli_fname = path;		/* Thread-private buffer */
@@ -7680,7 +7680,7 @@ mingw_exception_log(int stid, uint code, const void *pc)
 	char buf[ULONG_DEC_BUFLEN];
 	const char *s, *name, *file = NULL;
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
@@ -7741,7 +7741,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 		va = ulong_to_pointer(er->ExceptionInformation[1]);
 	}
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 
 	print_str(time_buf);				/* 0 */
 	print_str(" (CRITICAL-");			/* 1 */
@@ -7764,7 +7764,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	{
 		char data[80];
 
-		str_bprintf(data, sizeof data, "; %s fault at VA=%p", prot, va);
+		str_bprintf(ARYLEN(data), "; %s fault at VA=%p", prot, va);
 		crash_append_error(data);
 	}
 }
@@ -8096,20 +8096,20 @@ mingw_file_rotate(const char *pathname, int keep)
 	int i;
 
 	if (keep > 0) {
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, keep - 1);
 		if (-1 != mingw_unlink(npath))
 			STARTUP_DEBUG("removed file \"%s\"", npath);
 	}
 
 	for (i = keep - 1; i > 0; i--) {
 		static char opath[MAX_PATH_LEN];
-		str_bprintf(opath, sizeof opath, "%s.%d", pathname, i - 1);
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, i);
+		str_bprintf(ARYLEN(opath), "%s.%d", pathname, i - 1);
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, i);
 		if (-1 != mingw_rename(opath, npath))
 			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
 	}
 
-	str_bprintf(npath, sizeof npath, "%s.0", pathname);
+	str_bprintf(ARYLEN(npath), "%s.0", pathname);
 
 	if (-1 != mingw_rename(pathname, npath))
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);

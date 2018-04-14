@@ -89,7 +89,7 @@ main(int argc, char **argv)
 		static char buf[128 * 1024];
 		int r;
 
-		r = read(fd, buf, sizeof buf);
+		r = read(fd, ARYLEN(buf));
 
 		if (-1 == r)
 			s_fatal_exit(EXIT_FAILURE, "read() error: %m");

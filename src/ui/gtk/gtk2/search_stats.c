@@ -194,7 +194,7 @@ search_stats_notify_whole(query_type_t type, const char *search,
 	(void) unused_addr;
 	(void) unused_port;
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		type == QUERY_SHA1 ? "urn:sha1:" : "[",
 		search,
 		type == QUERY_SHA1 ? "" : "]",

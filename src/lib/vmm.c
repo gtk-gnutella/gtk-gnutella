@@ -5057,7 +5057,7 @@ vmm_get_magazine(size_t npages, bool alloc)
 			char name[STR_CONST_LEN("vmm-") + SIZE_T_DEC_BUFLEN + 1];
 
 			maginit[idx] = TRUE;
-			str_bprintf(name, sizeof name, "vmm-%zu", nsize_fast(npages));
+			str_bprintf(ARYLEN(name), "vmm-%zu", nsize_fast(npages));
 			depot = vmm_magazine[idx] =
 				tmalloc_create(name, nsize_fast(npages),
 					vmm_alloc_raw, vmm_free_raw);
@@ -7357,7 +7357,7 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), pt->atime)));
 #else
 	ago[0] = '\0';

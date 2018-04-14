@@ -1355,7 +1355,7 @@ k_handle_store(knode_t *kn, gnutella_node_t *n,
 		}
 
 		if (sizeof(security.v) == UNSIGNED(token_len))
-			bstr_read(bs, security.v, sizeof(security.v));
+			bstr_read(bs, ARYLEN(security.v));
 		else
 			bstr_skip(bs, token_len);
 
@@ -1421,8 +1421,7 @@ k_handle_store(knode_t *kn, gnutella_node_t *n,
 		dht_value_t *v = dht_value_deserialize(bs);
 
 		if (NULL == v) {
-			str_bprintf(msg, sizeof msg,
-				"could not read value #%d/%u", i, values);
+			str_bprintf(ARYLEN(msg), "could not read value #%d/%u", i, values);
 			reason = msg;
 			goto error;
 		}
@@ -1598,7 +1597,7 @@ k_handle_find_value(knode_t *kn, gnutella_node_t *n,
 			kuid_t sec_id;
 
 			if (!bstr_read(bs, sec_id.v, KUID_RAW_SIZE)) {
-				str_bprintf(msg, sizeof msg,
+				str_bprintf(ARYLEN(msg),
 					"could not read secondary key #%d/%u", i, count);
 				reason = msg;
 				goto error;
@@ -2633,10 +2632,10 @@ kmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 	host_addr_port_to_string_buf(
 			host_addr_get_ipv4(kademlia_header_get_contact_addr(msg)),
 			kademlia_header_get_contact_port(msg),
-			host, sizeof host);
+			ARYLEN(host));
 
 	if (extlen != 0) {
-		str_bprintf(ext, sizeof ext, "(+%u)", extlen);
+		str_bprintf(ARYLEN(ext), "(+%u)", extlen);
 	} else {
 		ext[0] = '\0';
 	}
@@ -2665,7 +2664,7 @@ const char *
 kmsg_infostr(const void *msg)
 {
 	static char buf[80];
-	kmsg_infostr_to_buf(msg, buf, sizeof buf);
+	kmsg_infostr_to_buf(msg, ARYLEN(buf));
 	return buf;
 }
 

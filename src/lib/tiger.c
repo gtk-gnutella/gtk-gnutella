@@ -268,7 +268,7 @@ tiger_check(void)
 
 		ZERO(&buf);
 		tiger(tests[i].s, tests[i].len, hash);
-		base32_encode(buf, sizeof buf, hash, sizeof hash);
+		base32_encode(ARYLEN(buf), ARYLEN(hash));
 		buf[N_ITEMS(buf) - 1] = '\0';
 
 		ok = 0 == strcmp(tests[i].r, buf);

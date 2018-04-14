@@ -216,10 +216,10 @@ vmsg_infostr(const void *data, size_t size)
 	version = gnutella_vendor_get_version(data);
 
 	if (!find_message(&vmsg, vc, id, version))
-		str_bprintf(msg, sizeof msg , "%s/%uv%u",
+		str_bprintf(ARYLEN(msg) , "%s/%uv%u",
 			vendor_code_to_string(vc.u32), id, version);
 	else
-		str_bprintf(msg, sizeof msg, "%s/%uv%u '%s'",
+		str_bprintf(ARYLEN(msg), "%s/%uv%u '%s'",
 			vendor_code_to_string(vc.u32), id, version, vmsg.name);
 
 	return msg;
@@ -1346,7 +1346,7 @@ vmsg_send_oob_reply_ack(gnutella_node_t *n,
 	) {
 		char buf[17];
 		if (token->data)
-			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
+			bin_to_hex_buf(token->data, token->size, ARYLEN(buf));
 		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
 			gmsg_infostr_full(v_tmp, msgsize),
 			node_infostr(n), want, plural(want),
@@ -1817,7 +1817,7 @@ vmsg_send_node_info_ans(gnutella_node_t *n, const rnode_info_t *ri)
 		char uptime[sizeof(uint64)];
 		uint len;
 
-		len = ggept_du_encode(ri->ggep_du, uptime, sizeof uptime);
+		len = ggept_du_encode(ri->ggep_du, ARYLEN(uptime));
 		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 	}
 
@@ -2163,7 +2163,7 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 		&v_tmp[sizeof(v_tmp)] - &payload[paysize]);
 
 	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
-		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(C), VARLEN(code), 0))
 			goto failure;
 	} else {
 		uint8 queue;
@@ -2171,18 +2171,18 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 
 		code |= GNET_PROPERTY(is_firewalled) ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
-		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(C), VARLEN(code), 0))
 			goto failure;
 
 		queue = head_pong_queue_status();
-		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), VARLEN(queue), 0))
 			goto failure;
 
 		if (!ggep_stream_pack(&gs, GGEP_NAME(V), GTA_VENDOR_CODE, 4, 0))
 			goto failure;
 
 		caps = tls_enabled() ? VMSG_HEAD_F_TLS : 0;
-		if (!ggep_stream_pack(&gs, GGEP_NAME(F), &caps, sizeof caps, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(F), VARLEN(caps), 0))
 			goto failure;
 
 		/* Optional alternate locations */
@@ -2476,7 +2476,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, uint16 port,
 		 * Only running IPv6, let them know we're not interested in IPv4.
 		 */
 
-		(void) ggep_stream_pack(&gs, GGEP_NAME(I6), &b, sizeof b, 0);
+		(void) ggep_stream_pack(&gs, GGEP_NAME(I6), VARLEN(b), 0);
 	}
 
 	ggep_len = ggep_stream_close(&gs);

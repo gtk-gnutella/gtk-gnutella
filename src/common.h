@@ -668,6 +668,15 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
  */
 #define ARYLEN(x)		(x), sizeof(x)
 
+/*
+ * Generates argument list for the address within array at a specified offset
+ * followed by the length of the remaining space within that array, in bytes.
+ *
+ * For instance, with "size_t buf[12]", an ARYPOSLEN(buf, 1) would generate
+ * the two arguments: &buf[1], sizeof buf - 1 * sizeof buf[0]
+ */
+#define ARYPOSLEN(x,y)	&(x)[y], sizeof(x) - (y) * sizeof((x)[0])
+
 /**
  * Generate argument list for the address of `x' and its size, so that we can
  * process the content of that variable.

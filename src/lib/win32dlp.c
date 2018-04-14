@@ -334,7 +334,7 @@ win32dlp_scan_modules(void)
 	win32dlp_ignore(GetModuleHandle(NULL));
 	win32dlp_ignore(win32dlp_module_base(pthread_self));
 
-	ok = EnumProcessModules(proc, modules, sizeof modules, &needed);
+	ok = EnumProcessModules(proc, ARYLEN(modules), &needed);
 
 	if (!ok) {
 		s_error("%s(): EnumProcessModules() failed: %lu",
@@ -357,8 +357,8 @@ win32dlp_scan_modules(void)
 			wchar_t wname[MAX_PATH + 1];
 			char utf8_name[MAX_PATH];
 
-			GetModuleBaseNameW(proc, *p, wname, sizeof wname - 2);
-			(void) utf16_to_utf8(wname, utf8_name, sizeof utf8_name);
+			GetModuleBaseNameW(proc, *p, ARYLEN(wname) - 2);
+			(void) utf16_to_utf8(wname, ARYLEN(utf8_name));
 			utf8_name[MAX_PATH - 1] = '\0';
 			name = ostrdup_readonly(utf8_name);
 		}
@@ -437,7 +437,7 @@ win32dlp_iat_change(PROC *fn, PROC addr)
 
 	ZERO(&mbi);
 
-	if (0 == VirtualQuery(fn, &mbi, sizeof mbi)) {
+	if (0 == VirtualQuery(fn, VARLEN(mbi))) {
 		errno = mingw_last_error();
 		s_warning("%s(): cannot probe targeted address %p: %m", G_STRFUNC, fn);
 		return FALSE;
@@ -867,7 +867,7 @@ win32dlp_LoadLibraryW(const uint16 *file)
 		char path[MAX_PATH];
 		size_t conv;
 
-		conv = utf16_to_utf8(file, path, sizeof path);
+		conv = utf16_to_utf8(file, ARYLEN(path));
 		if (conv > sizeof path) {
 			s_warning("%s(): cannot convert path from UTF-16 to UTF-8",
 				G_STRFUNC);

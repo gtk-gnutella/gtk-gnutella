@@ -531,15 +531,14 @@ tth_cache_cleanup_unlink(
 		if (NULL == path)
 			return FTW_STATUS_ABORT;	/* Weird, empty relative path? */
 
-		len = str_bprintf(b32, sizeof b32, "%s", path[0]);
+		len = str_bprintf(ARYLEN(b32), "%s", path[0]);
 		if (len != 2)		/* Expected first path component is 2-char long */
 			len = 0;
-		len += str_bprintf(&b32[len], sizeof b32 - len, "%s", path[1]);
+		len += str_bprintf(ARYPOSLEN(b32, len), "%s", path[1]);
 
 		if (
 			TTH_BASE32_SIZE != len ||
-			TTH_RAW_SIZE !=
-				base32_decode(&tth, sizeof tth, b32, TTH_BASE32_SIZE)
+			TTH_RAW_SIZE != base32_decode(VARLEN(tth), b32, TTH_BASE32_SIZE)
 		) {
 			tth_cache_file_remove(info->fpath, "invalid");
 			goto done;

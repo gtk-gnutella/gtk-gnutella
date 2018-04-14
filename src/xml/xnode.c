@@ -857,7 +857,7 @@ xnode_prop_ns_vprintf(xnode_t *element,
 	bool result;
 
 	VA_COPY(args2, args);
-	if (str_vbprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
+	if (str_vbprintf(ARYLEN(buf), fmt, args2) >= sizeof buf - 1) {
 		value = h_strdup_vprintf(fmt, args);
 	} else {
 		value = buf;

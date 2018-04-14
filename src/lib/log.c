@@ -690,7 +690,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 	lf = &logfile[which];
 
 	if (stid != 0) {
-		str_bprintf(buf, sizeof buf, "%s-%u", prefix, stid);
+		str_bprintf(ARYLEN(buf), "%s-%u", prefix, stid);
 		tprefix = buf;
 	} else {
 		tprefix = prefix;
@@ -826,7 +826,7 @@ log_abort(void)
 		DECLARE_STR(3);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time(ARYLEN(time_buf));
 		print_str(time_buf);							/* 0 */
 		print_str(" (CRITICAL): crash log generated");	/* 1 */
 		print_str(", good bye.\n");						/* 2 */
@@ -869,7 +869,7 @@ log_abort(void)
 		DECLARE_STR(3);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time(time_buf, sizeof time_buf);
+		log_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		print_str(" (CRITICAL): back from raise(SIGBART)"); /* 1 */
 		print_str(" -- invoking crash_handler()\n");		/* 2 */
@@ -886,7 +886,7 @@ log_abort(void)
 		 */
 
 		rewind_str(0);
-		log_time(time_buf, sizeof time_buf);
+		log_time(ARYLEN(time_buf));
 		print_str(time_buf);			/* 0 */
 		print_str(" (CRITICAL): back from crash_handler()"); /* 1 */
 		print_str(" -- exiting\n");		/* 2 */
@@ -968,11 +968,11 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	if G_UNLIKELY(raw) {
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
-		log_time_raw(time_buf, sizeof time_buf);	/* Raw, no locks! */
+		log_time_raw(ARYLEN(time_buf));				/* Raw, no locks! */
 	} else {
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = thread_small_id();				/* New discovered thread! */
-		log_time(time_buf, sizeof time_buf);
+		log_time(ARYLEN(time_buf));
 	}
 
 	/*
@@ -980,7 +980,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	 * to here through it.
 	 */
 
-	str_vbprintf(data, sizeof data, fmt, args);		/* Uses str_vncatf() */
+	str_vbprintf(ARYLEN(data), fmt, args);			/* Uses str_vncatf() */
 
 	print_str(time_buf);		/* 0 */
 	print_str(" (");			/* 1 */
@@ -1022,7 +1022,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
 		int fd = logfile[LOG_STDERR].crash_fd;
 		iovec_t iov[2];
-		iovec_set(&iov[0], data, clamp_strlen(data, sizeof data));
+		iovec_set(&iov[0], data, clamp_strlen(ARYLEN(data)));
 		iovec_set(&iov[1], "\n", 1);
 		if (raw)
 			IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
@@ -1240,7 +1240,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
 
-		log_time_raw(time_buf, sizeof time_buf);
+		log_time_raw(ARYLEN(time_buf));
 		print_str(time_buf);		/* 0 */
 		print_str(" (CRITICAL");	/* 1 */
 		if (0 != stid) {
@@ -1302,7 +1302,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(6);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
+		log_time_careful(ARYLEN(time_buf), in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
 		print_str(format);		/* 2 */
@@ -1333,7 +1333,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		DECLARE_STR(11);
 		char time_buf[LOG_TIME_BUFLEN];
 
-		log_time_careful(time_buf, sizeof time_buf, in_signal_handler);
+		log_time_careful(ARYLEN(time_buf), in_signal_handler);
 		print_str(time_buf);	/* 0 */
 		print_str(" (");		/* 1 */
 		print_str(prefix);		/* 2 */
@@ -1431,7 +1431,7 @@ log_check_recursive(const char *format, va_list ap)
 	depth = atomic_int_inc(&recursive);
 
 	if (0 == depth) {
-		str_vbprintf(buf, sizeof buf, format, ap);
+		str_vbprintf(ARYLEN(buf), format, ap);
 		stid = thread_safe_small_id();
 		return FALSE;
 	} else if (1 == depth) {
@@ -1787,12 +1787,12 @@ s_minierror(const char *format, ...)
 	recursing = 0 != atomic_int_inc(&recursion);
 
 	va_start(args, format);
-	str_vbprintf(data, sizeof data, format, args);
+	str_vbprintf(ARYLEN(data), format, args);
 	va_end(args);
 
 	crash_set_error(data);
 
-	log_time(time_buf, sizeof time_buf);
+	log_time(ARYLEN(time_buf));
 	print_str(time_buf);					/* 0 */
 	print_str(" (ERROR");					/* 1 */
 	if (stid != 0) {
@@ -2172,7 +2172,7 @@ log_stdout_logv(const char *format, va_list args)
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(2);
 
-	str_vbprintf(data, sizeof data, format, args);	/* Uses str_vncatf() */
+	str_vbprintf(ARYLEN(data), format, args);	/* Uses str_vncatf() */
 
 	print_str(data);			/* 0 */
 	print_str("\n");			/* 1 */
@@ -2433,7 +2433,7 @@ log_reopen(enum log_file which)
 			DECLARE_STR(8);
 			char time_buf[LOG_TIME_BUFLEN];
 
-			log_time(time_buf, sizeof time_buf);
+			log_time(ARYLEN(time_buf));
 			print_str(time_buf);	/* 0 */
 			print_str(" (CRITICAL): cannot freopen() stderr to "); /* 1 */
 			print_str(lf->path);	/* 2 */
@@ -2559,7 +2559,7 @@ void
 log_show_pid(bool enabled)
 {
 	if (enabled) {
-		str_bprintf(logpid, sizeof logpid, " [%lu]", (ulong) getpid());
+		str_bprintf(ARYLEN(logpid), " [%lu]", (ulong) getpid());
 	} else {
 		logpid[0] = '\0';	/* Empty string, shows nothing */
 	}

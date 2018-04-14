@@ -273,7 +273,7 @@ url_fix_escape(const char *url)
 			buf[0] = ESCAPE_CHAR;
 			buf[1] = hex_alphabet[c >> 4];
 			buf[2] = hex_alphabet[c & 0xf];
-			str_cat_len(s, buf, sizeof buf);
+			str_cat_len(s, ARYLEN(buf));
 		}
 	}
 

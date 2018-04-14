@@ -469,8 +469,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	mid_len = utf8_truncate(mid, mid_buf, mid_len + 1);
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
-	str_bprintf(filename_buf, sizeof filename_buf, "%s%s%s",
-		name_buf, mid_buf, ext_buf);
+	str_bprintf(ARYLEN(filename_buf), "%s%s%s", name_buf, mid_buf, ext_buf);
 
 	pathname = unique_pathname(path, filename_buf, name_is_uniq);
 	if (pathname)
@@ -491,7 +490,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%02u%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%02u%s%s",
 			name_buf, i, mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
@@ -510,7 +509,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%x%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%x%s%s",
 			name_buf, (unsigned) random_u32(), mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
@@ -534,7 +533,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 		struct guid guid;
 
 		guid_random_fill(&guid);
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%s%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%s%s%s",
 			name_buf, guid_hex_str(&guid), mid_buf, ext_buf);
 	}
 

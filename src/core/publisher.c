@@ -269,7 +269,7 @@ publisher_retry(struct publisher_entry *pe, int delay, const char *msg)
 	pd = get_pubdata(pe->sha1);
 	if (pd != NULL) {
 		pd->next_enqueue = time_advance(tm_time(), UNSIGNED(delay));
-		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+		dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 	}
 
 	pe->publish_ev = cq_insert(publish_cq, delay * 1000, handle_entry, pe);
@@ -302,7 +302,7 @@ publisher_hold(struct publisher_entry *pe, int delay, const char *msg)
 	pd = get_pubdata(pe->sha1);
 	if (pd != NULL) {
 		pd->expiration = 0;		/* Signals: do not care any more */
-		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+		dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 	}
 
 	publisher_retry(pe, delay, msg);
@@ -481,8 +481,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 		if (pe->last_publish) {
 			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
 
-			str_bprintf(after, sizeof after,
-				" after %s", compact_time(elapsed));
+			str_bprintf(ARYLEN(after), " after %s", compact_time(elapsed));
 
 			if (pd != NULL) {
 				if (expired)
@@ -492,7 +491,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			}
 		}
 
-		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(ARYLEN(retry), "%s", compact_time(delay));
 
 		g_debug("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
@@ -523,7 +522,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 		if (pd != NULL) {
 			pd->expiration =
 				time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
-			dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+			dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 		}
 	}
 
@@ -780,7 +779,7 @@ publisher_add(const sha1_t *sha1)
 		new_pd.next_enqueue = 0;
 		new_pd.expiration = 0;
 
-		dbmw_write(db_pubdata, sha1, &new_pd, sizeof new_pd);
+		dbmw_write(db_pubdata, sha1, VARLEN(new_pd));
 
 		if (GNET_PROPERTY(publisher_debug) > 2) {
 			g_debug("PUBLISHER allocating new SHA-1 %s",

@@ -1204,7 +1204,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	if (flags & STACKTRACE_F_THREAD) {
 		unsigned stid = thread_safe_small_id();
 		if (stid != 0)
-			str_bprintf(tid, sizeof tid, "[%u] ", stid);
+			str_bprintf(ARYLEN(tid), "[%u] ", stid);
 		else
 			tid[0] = 0;
 	} else {
@@ -1346,11 +1346,11 @@ stack_print_decorated_to(struct sxfile *xf,
 				 */
 
 				if (gdb_like)
-					str_bprintf(name, sizeof name, "%s", sym);
+					str_bprintf(ARYLEN(name), "%s", sym);
 				else if (0 == disp)
-					str_bprintf(name, sizeof name, "<%s>", sym);
+					str_bprintf(ARYLEN(name), "<%s>", sym);
 				else
-					str_bprintf(name, sizeof name, "<%s%+ld>", sym, disp);
+					str_bprintf(ARYLEN(name), "<%s%+ld>", sym, disp);
 				sym = name;
 			} else {
 				if (symbols != NULL) {
@@ -1371,7 +1371,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			if (flags & STACKTRACE_F_MAIN_STOP)
 				reached_main = 0 == strcmp(loc.function, "main");
 
-			str_bprintf(name, sizeof name, "%s()", loc.function);
+			str_bprintf(ARYLEN(name), "%s()", loc.function);
 			has_parens = TRUE;
 			loc.function = name;
 		}
@@ -1665,7 +1665,7 @@ stacktrace_routine_name(const void *pc, bool offset)
 
 	if (NULL == name) {
 		static char buf[POINTER_BUFLEN];
-		str_bprintf(buf, sizeof buf, "%p", pc);
+		str_bprintf(ARYLEN(buf), "%p", pc);
 		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
 	}
 
@@ -1925,7 +1925,7 @@ stacktrace_got_signal(int signo)
 
 	stid = thread_small_id();
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);
 	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
@@ -1962,7 +1962,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char sbuf[UINT_DEC_BUFLEN];
 		DECLARE_STR(7);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);						/* 0 */
 		print_str(" (WARNING");						/* 1 */
 		if (stid != 0) {
@@ -1995,7 +1995,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" WARNING: truncated stack printing\n");
 		flush_str(fd);
@@ -2006,7 +2006,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
@@ -2235,7 +2235,7 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 	}
 	local.len = len;
 
-	result = ocopy_readonly(&local, sizeof local);
+	result = ocopy_readonly(VARLEN(local));
 
 	if (!hash_table_insert(stack_atoms, result, result))
 		g_error("cannot record stack trace atom");

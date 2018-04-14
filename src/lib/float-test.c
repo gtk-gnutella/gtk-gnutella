@@ -74,7 +74,7 @@ static void read_floats(FILE *f) {
   }
 
   nfloats = longin(f);
-  floats = (double *)malloc(nfloats*sizeof(double));
+  floats = (double *) malloc(nfloats * sizeof(double));
   for (n = nfloats, fp = floats; n > 0; n--) {
     char s;
     int e, h, l;
@@ -238,7 +238,7 @@ int main (int argc, char **argv) {
     char s[32];
 
     for (n = nfloats, fp = floats; n > 0; n--) {
-      float_dragon(s, sizeof s, *fp++, &k);
+      float_dragon(ARYLEN(s), *fp++, &k);
       printf("%s %d\n", s, k);
     }
   }
@@ -248,7 +248,7 @@ int main (int argc, char **argv) {
     char s[32];
 
     for (n = nfloats, fp = floats; n > 0; n--) {
-      float_fixed(s, sizeof s, *fp++, 17, &k);
+      float_fixed(ARYLEN(s), *fp++, 17, &k);
       printf(".%se%d\n", s, k+1);
     }
   }
@@ -260,7 +260,7 @@ int main (int argc, char **argv) {
     for (n = nfloats, fp = floats; n > 0; n--, fp++) {
        sprintf(s,"%.17g", *fp);
        k1 = convert(s, buf, 17);
-       float_fixed(s, sizeof s, *fp, 17, &k2);
+       float_fixed(ARYLEN(s), *fp, 17, &k2);
        if (s[17] == '5') {
          int i;
          char *p, c;

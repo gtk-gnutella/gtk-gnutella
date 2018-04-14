@@ -160,7 +160,7 @@ cmwc_seed_with(random_fn_t rf, cmwc_state_t *cs)
 	if (NULL == rf)
 		rf = entropy_random;
 
-	random_bytes_with(rf, &cs->Q, sizeof cs->Q);
+	random_bytes_with(rf, VARLEN(cs->Q));
 	cs->c = random_upto(rf, CMWC_MULT - 1);
 	cs->i = CMWC_STATE_SIZE - 1;
 	cmwc_state_discard(cs);
@@ -271,7 +271,7 @@ cmwc_state_merge_random(cmwc_state_t *cs, const void *data, size_t len)
 			buf[i] = ((char *) data)[i];
 		}
 
-		cmwc_state_patch(cs, buf, sizeof buf);
+		cmwc_state_patch(cs, ARYLEN(buf));
 	}
 
 	/*

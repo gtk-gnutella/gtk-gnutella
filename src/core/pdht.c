@@ -615,7 +615,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
+		len = ggept_filesize_encode(shared_file_size(sf), ARYLEN(buf));
 		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(length), buf, len, 0);
 	}
@@ -627,7 +627,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 			char buf[sizeof(uint64)];
 			int len;
 
-			len = ggept_filesize_encode(fi->done, buf, sizeof buf);
+			len = ggept_filesize_encode(fi->done, ARYLEN(buf));
 			g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
 			ok = ok && ggep_stream_pack(&gs, GGEP_NAME(avail), buf, len, 0);
 		}
@@ -638,7 +638,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	if (tls_enabled()) {
@@ -647,8 +647,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 
 	tth = shared_file_tth(sf);
 	if (tth != NULL) {
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(ttroot),
-			tth->data, sizeof tth->data, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(ttroot), ARYLEN(tth->data), 0);
 	}
 
 	if (
@@ -726,18 +725,18 @@ pdht_get_prox(const kuid_t *key)
 
 	/* "features" emitted as a little-endian integer with no trailing 0s */
 	ok = ok &&
-		ggep_stream_pack(&gs, GGEP_NAME(features), &zero, sizeof zero, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(features), VARLEN(zero), 0);
 
 	/* "fwt_version" emitted as a little-endian integer with no trailing 0s */
 	ok = ok &&
-		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), &zero, sizeof zero, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), VARLEN(zero), 0);
 
 	{
 		char buf[sizeof(uint16)];
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	ok = ok && pdht_proxy.proxies_count > 0;
@@ -774,7 +773,7 @@ pdht_get_prox(const kuid_t *key)
 				continue;
 			}
 
-			ok = ok && ggep_stream_write(&gs, &len, sizeof len);
+			ok = ok && ggep_stream_write(&gs, VARLEN(len));
 			ok = ok && ggep_stream_write(&gs, proxy, len);
 
 			if (
@@ -861,7 +860,7 @@ pdht_get_nope(const guid_t *guid, const kuid_t *key)
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	if (tls_enabled()) {
@@ -1330,7 +1329,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 				late = "late, ";
 		}
 
-		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(ARYLEN(retry), "%s", compact_time(delay));
 
 		g_debug("PDHT PROX %s%spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"

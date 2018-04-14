@@ -138,7 +138,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		size_t i;
 
 		STATIC_ASSERT(sizeof data == sizeof valid);
-		read_memory(fd, addr, length, data, sizeof data, valid);
+		read_memory(fd, addr, length, ARYLEN(data), valid);
 
 		str_cpy(s, pointer_to_string(addr));
 		STR_CAT(s, "  ");

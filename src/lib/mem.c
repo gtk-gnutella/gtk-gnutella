@@ -465,7 +465,7 @@ mem_test(void)
 
 	g_assert('x' == str[0]);	/* mem_protection() leaves memory intact */
 
-	if (!mem_is_valid_range(str, sizeof str))
+	if (!mem_is_valid_range(ARYLEN(str)))
 		s_warning("%s(): memory range checks are not working", G_STRFUNC);
 }
 

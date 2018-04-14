@@ -134,7 +134,7 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 	STATIC_ASSERT(sizeof(tok->v) == sizeof(uint32));
 	STATIC_ASSERT(sizeof(block) == sizeof(enc));
 
-	tea_encrypt(&stg->keys[n], enc, block, sizeof block);
+	tea_encrypt(&stg->keys[n], enc, ARYLEN(block));
 
 	/*
 	 * If they gave contextual data, encrypt them by block of TEA_BLOCK_SIZE
@@ -165,14 +165,14 @@ sectoken_generate_n(sectoken_gen_t *stg, size_t n,
 			 * output with XOR.
 			 */
 
-			tea_encrypt(&stg->keys[n], denc, block, sizeof block);
+			tea_encrypt(&stg->keys[n], denc, ARYLEN(block));
 
 			for (i = 0; i < sizeof denc; i++)
 				enc[i] ^= denc[i];
 		}
 	}
 
-	poke_be32(tok->v, tea_squeeze(enc, sizeof enc));
+	poke_be32(tok->v, tea_squeeze(ARYLEN(enc)));
 }
 
 /**
@@ -237,7 +237,7 @@ sectoken_is_valid_internal(sectoken_gen_t *stg,
 		sectoken_t gen;
 
 		sectoken_generate_n(stg, i, &gen, addr, port, data, len);
-		if (0 == memcmp(gen.v, tok->v, sizeof(tok->v)))
+		if (0 == memcmp(&gen, PTRLEN(tok)))
 			return TRUE;
 	}
 
@@ -283,7 +283,7 @@ sectoken_rotate(cqueue_t *cq, void *obj)
 		stg->keys[i + 1] = stg->keys[i];
 
 	/* 0 is most recent key */
-	random_strong_bytes(&stg->keys[0], sizeof(stg->keys[0]));
+	random_strong_bytes(VARLEN(stg->keys[0]));
 }
 
 /**
@@ -331,7 +331,7 @@ sectoken_gen_new(size_t keys, time_delta_t refresh)
 	stg->refresh = refresh;
 
 	for (i = 0; i < stg->keycnt; i++)
-		random_strong_bytes(&stg->keys[i], sizeof(stg->keys[0]));
+		random_strong_bytes(VARLEN(stg->keys[i]));
 
 	stg->rotate_ev = cq_main_insert(refresh * 1000, sectoken_rotate, stg);
 
