@@ -112,6 +112,7 @@ typedef struct {
 #include "compat_poll.h"
 #include "fd.h"
 #include "glib-missing.h"	/* For g_main_context_get_poll_func() with GTK1 */
+#include "halloc.h"
 #include "hashlist.h"
 #include "htable.h"
 #include "log.h"			/* For s_error() */
@@ -1755,8 +1756,8 @@ inputevt_close(void)
 	inputevt_purge_removed(ctx);
 	htable_free_null(&ctx->ht);
 	hash_list_free(&ctx->readable);
-	G_FREE_NULL(ctx->used_poll_idx);
-	G_FREE_NULL(ctx->used_event_id);
+	HFREE_NULL(ctx->used_poll_idx);
+	HFREE_NULL(ctx->used_event_id);
 	XFREE_NULL(ctx->relay);
 	XFREE_NULL(ctx->pfd_arr);
 	fd_close(&ctx->master_fd);
