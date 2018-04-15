@@ -361,17 +361,30 @@ typedef int socket_fd_t;
 #include "lib/regex.h"
 #endif	/* HAS_REGCOMP */
 
+#define SRC_PREFIX	"src/"		/**< Common prefix to remove in filenames */
+
+/*
+ * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
+ * on the resulting string before perusing it to remove the common prefix
+ * defined by SRC_PREFIX.
+ */
+#ifdef CURDIR					/* Set by makefile */
+#define _WHERE_	STRINGIFY(CURDIR) "/" __FILE__
+#else
+#define _WHERE_	__FILE__
+#endif
+
 #ifdef USE_GLIB2
 #undef G_STRLOC			/* Want our version */
 #undef G_STRFUNC		/* Version from glib uses __PRETTY_FUNCTION__ */
 #endif	/* USE_GLIB2 */
 
 /*
- * G_STRLOC is the current source location (file:line).
+ * G_STRLOC is the current source location (path/file:line).
  * G_STRFUNC is the name of the current function, or location if unavailable.
  */
 
-#define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)
+#define G_STRLOC _WHERE_ ":" STRINGIFY(__LINE__)
 
 #if defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 19901L)
 #define G_STRFUNC (__func__)
@@ -485,19 +498,6 @@ typedef int socket_fd_t;
 /*
  * Other common macros.
  */
-
-#define SRC_PREFIX	"src/"		/**< Common prefix to remove in filenames */
-
-/*
- * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
- * on the resulting string before perusing it to remove the common prefix
- * defined by SRC_PREFIX.
- */
-#ifdef CURDIR					/* Set by makefile */
-#define _WHERE_	STRINGIFY(CURDIR) "/" __FILE__
-#else
-#define _WHERE_	__FILE__
-#endif
 
 /*
  * PACKAGE_EXTRA_SOURCE_DIR is set to $srcdir/extra_files when not compiling an

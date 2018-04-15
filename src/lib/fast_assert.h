@@ -49,21 +49,18 @@
 #define _fast_assert_h_
 
 /*
- * Highest integer bit flags an assertion data for "code not reached".
- * In which case the expr is not a failing expression but the routine name
- * where the unreachable code was reached by the execution flow.
+ * When expr is NULL, it means this is a "not-reached" type of assertion.
  *
+ * As noted on 2013-10-28, we carry both the location and the routine name.
  * This can help debug situations where the assertion fails in code that has
  * been changed (e.g. from an old release) and the source location is not
- * enough to spot where the failure happens, with no symbolic stack trace
- * reported.
- *		--RAM, 2013-10-28
+ * enough to spot where the failure happens, especially when no symbolic stack
+ * trace can be generated.
  */
-#define FAST_ASSERT_NOT_REACHED	(1U << (INTSIZE * CHAR_BIT - 1))
 
 typedef struct assertion_data {
-	const char *file, *expr;
-	unsigned line;				/* Highest bit flags "code not reached" */
+	const char *file, *expr, *routine;
+	unsigned line;
 } assertion_data;
 
 /*
@@ -93,7 +90,7 @@ assertion_warning_log(const assertion_data * const data, const char *fmt, ...);
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_failure(&assertion_data_); \
 	} \
@@ -103,7 +100,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_failure_log(&assertion_data_, (fmt), __VA_ARGS__); \
 	} \
@@ -112,7 +109,7 @@ G_STMT_START { \
 #define fast_assert_not_reached() \
 G_STMT_START { \
 	static const struct assertion_data assertion_data_ = { \
-		_WHERE_, G_STRFUNC, FAST_ASSERT_NOT_REACHED | __LINE__ \
+		_WHERE_, NULL, G_STRFUNC, __LINE__ \
 	}; \
 	assertion_failure(&assertion_data_); \
 } G_STMT_END
@@ -126,7 +123,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return; \
@@ -137,7 +134,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
 		return; \
@@ -151,7 +148,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning(&assertion_data_); \
 		return (val); \
@@ -162,7 +159,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
 		return (val); \
@@ -173,7 +170,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning(&assertion_data_); \
 	} \
@@ -183,7 +180,7 @@ G_STMT_START { \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
-			_WHERE_, expr_string, __LINE__ \
+			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
 		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
 	} \
@@ -233,4 +230,5 @@ G_STMT_START { \
 #endif /* FAST_ASSERTIONS */
 
 #endif /* _fast_assert_h_ */
+
 /* vi: set ts=4 sw=4 cindent: */

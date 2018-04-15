@@ -1351,7 +1351,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
-	DECLARE_STR(15);
+	DECLARE_STR(17);
 
 	crash_time_iso(ARYLEN(tbuf));
 	crash_run_time(ARYLEN(rbuf));
@@ -1450,8 +1450,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("\n");					/* 2 */
 	if (vars->failure != NULL) {
 		const assertion_data *failure = vars->failure;
-		unsigned line = failure->line & ~FAST_ASSERT_NOT_REACHED;
-		bool assertion = line == failure->line;
+		bool assertion = NULL != failure->expr;
 		if (assertion) {
 			print_str("Assertion-At: ");	/* 3 */
 		} else {
@@ -1459,21 +1458,20 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		}
 		print_str(failure->file);			/* 4 */
 		print_str(":");						/* 5 */
-		print_str(PRINT_NUMBER(lbuf, line));/* 6 */
+		print_str(PRINT_NUMBER(lbuf, failure->line));/* 6 */
 		print_str("\n");					/* 7 */
 		if (assertion) {
 			print_str("Assertion-Expr: ");	/* 8 */
 			print_str(failure->expr);		/* 9 */
 			print_str("\n");				/* 10 */
-		} else {
-			print_str("Routine-Name: ");	/* 8 */
-			print_str(failure->expr);		/* 9 */
-			print_str("()\n");				/* 10 */
 		}
+		print_str("Routine-Name: ");		/* 11 */
+		print_str(failure->routine);		/* 12 */
+		print_str("()\n");					/* 13 */
 		if (vars->message != NULL) {
-			print_str("Assertion-Info: ");	/* 11 */
-			print_str(vars->message);		/* 12 */
-			print_str("\n");				/* 13 */
+			print_str("Assertion-Info: ");	/* 14 */
+			print_str(vars->message);		/* 15 */
+			print_str("\n");				/* 16 */
 		}
 	} else if (vars->message != NULL) {
 		print_str("Error-Message: ");		/* 3 */
