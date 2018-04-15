@@ -305,7 +305,7 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 
 	for (i = 0; i < count; i++) {
 		datum val;
-		char valbuf[1024];
+		char valbuf[DBM_PBLKSIZ];
 
 		if (progress && 0 == i % 500)
 			show_progress(i, count);
@@ -317,7 +317,7 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 			if (large_keys) {
 				val.dsize = key.dsize;
 			} else {
-				memset(valbuf, 0, sizeof valbuf);
+				ZERO(&valbuf);
 				memcpy(valbuf, key.dptr, NORMAL_KEY_LEN);
 				val.dsize = sizeof valbuf;
 				val.dptr = valbuf;

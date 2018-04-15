@@ -326,7 +326,7 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 	if G_UNLIKELY(NULL == clist_general) {
 		clist_general =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_general"));
-		memset(general, 255, sizeof general);
+		MEMSET(&general, 255);
 	}
 
     gtk_clist_freeze(clist_general);
@@ -352,7 +352,7 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 	if G_UNLIKELY(NULL == clist_reason) {
 		clist_reason =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
-		memset(drop_reason, 255, sizeof drop_reason);
+		MEMSET(&drop_reason, 255);
 	}
 
     gtk_clist_freeze(clist_reason);

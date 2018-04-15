@@ -14938,8 +14938,7 @@ download_retrieve_old(FILE *f)
 			}
 
 			if (',' == *endptr) {
-				memset(d_hexguid, '0', 32);		/* GUID missing -> blank */
-				d_hexguid[32] = '\0';
+				ZERO(&d_hexguid);		/* GUID missing -> blank */
 			} else {
 				g_assert(':' == *endptr);
 				endptr++;

@@ -454,7 +454,7 @@ gwc_forget_url(const char *url)
 	 * filled from 0 and upwards.
 	 */
 
-	memset(url_tmp, 0, sizeof(url_tmp));
+	ZERO(&url_tmp);
 
 	if (count == MAX_GWC_URLS) {		/* Buffer was full */
 		for (i = gwc_url_slot;;) {

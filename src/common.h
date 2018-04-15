@@ -661,6 +661,12 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 #define ZERO(x)		memset((x), 0, sizeof *(x))
 
 /**
+ * Set all bytes within structure to specified value.
+ * MEMSET(&var, 0) is equivalent to ZERO(&var).
+ */
+#define MEMSET(x,v)	memset((x), (v), sizeof *(x))
+
+/**
  * Generate argument list for the address of array `x' and its size, so that we
  * can process the content of that variable.
  *

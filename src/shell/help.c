@@ -120,7 +120,7 @@ shell_exec_help(struct gnutella_shell *sh, int argc, const char *argv[])
 				char pad[10];
 
 				if (len < sizeof pad) {
-					memset(pad, ' ', sizeof pad);
+					MEMSET(&pad, ' ');
 					pad[sizeof pad - len] = '\0';
 					shell_write(sh, pad);
 				}

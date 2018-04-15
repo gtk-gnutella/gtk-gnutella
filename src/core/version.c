@@ -335,8 +335,7 @@ version_ext_parse(const char *str, version_ext_t *vext)
 
 	vext->commit_len = commit_len;
 
-	memset(commit, '0', sizeof commit - 1);
-	commit[SHA1_BASE16_SIZE] = '\0';
+	ZERO(&commit);
 	memcpy(commit, v, commit_len);
 
 	ZERO(&vext->commit);
