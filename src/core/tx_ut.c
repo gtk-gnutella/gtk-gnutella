@@ -1633,7 +1633,7 @@ ut_frag_create(const struct attr *attr, unsigned fragno,
 	 * when we pmsg_clone() it before sending.
 	 */
 
-	pmsg_set_hook(mb, ut_frag_hook);
+	pmsg_set_transmit_hook(mb, ut_frag_hook);
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, um->to)) {
 		g_debug("TX UT[%s]: %s: created %d-byte %s fragment (#%u/%u) to %s",

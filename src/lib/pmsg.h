@@ -218,7 +218,7 @@ pmsg_start(const pmsg_t *mb)
  * Pre-send checks.
  */
 static inline bool
-pmsg_check(const pmsg_t *mb, const void *arg)
+pmsg_can_send(const pmsg_t *mb, const void *arg)
 {
 	pmsg_check_consistency(mb);
 	return (NULL != mb->m_u.m_check && !(mb->m_flags & PMSG_PF_HOOK)) ?
@@ -229,7 +229,7 @@ pmsg_check(const pmsg_t *mb, const void *arg)
  * Pre-transmit hook.
  */
 static inline bool
-pmsg_hook_check(const pmsg_t *mb)
+pmsg_can_transmit(const pmsg_t *mb)
 {
 	pmsg_check_consistency(mb);
 	return (NULL != mb->m_u.m_hook && (mb->m_flags & PMSG_PF_HOOK)) ?
@@ -346,8 +346,8 @@ pmsg_t *pmsg_clone_extend(const pmsg_t *mb, pmsg_free_t free_cb, void *arg);
 pmsg_free_t pmsg_replace_ext(
 	pmsg_t *mb, pmsg_free_t nfree, void *narg, void **oarg);
 void *pmsg_get_metadata(const pmsg_t *mb);
-void pmsg_set_check(pmsg_t *mb, pmsg_check_t check);
-void pmsg_set_hook(pmsg_t *mb, pmsg_hook_t hook);
+void pmsg_set_send_callback(pmsg_t *mb, pmsg_check_t check);
+void pmsg_set_transmit_hook(pmsg_t *mb, pmsg_hook_t hook);
 void pmsg_free(pmsg_t *mb);
 void pmsg_free_null(pmsg_t **mb_ptr);
 int pmsg_write(pmsg_t *mb, const void *data, int len);

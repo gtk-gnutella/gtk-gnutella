@@ -1529,9 +1529,9 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 	 */
 
 	if (NODE_IS_UDP(n))
-		pmsg_set_hook(mb, vmsg_time_sync_req_stamp_udp);
+		pmsg_set_transmit_hook(mb, vmsg_time_sync_req_stamp_udp);
 	else
-		pmsg_set_check(mb, vmsg_time_sync_req_stamp);
+		pmsg_set_send_callback(mb, vmsg_time_sync_req_stamp);
 
 	poke_be32(&muid->v[0], sent->tv_sec);
 	poke_be32(&muid->v[4], sent->tv_usec);
@@ -1607,7 +1607,7 @@ vmsg_send_time_sync_reply(gnutella_node_t *n, bool ntp, tm_t *got)
 	/* First half of MUID */
 	memcpy(muid, gnutella_header_get_muid(&n->header), 8);
 
-	pmsg_set_check(mb, vmsg_time_sync_reply_stamp);
+	pmsg_set_send_callback(mb, vmsg_time_sync_reply_stamp);
 
 	vmsg_send_reply(n, mb);
 }

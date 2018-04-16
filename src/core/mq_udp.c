@@ -206,7 +206,7 @@ mq_udp_service(void *data)
 		int mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
 
-		if (!pmsg_check(mb, q)) {
+		if (!pmsg_can_send(mb, q)) {
 			dropped++;
 			goto skip;
 		}
@@ -349,7 +349,7 @@ again:
 	if (q->qhead == NULL) {
 		ssize_t written;
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			written = tx_sendto(q->tx_drv, mb, to);
 		} else {
 			if (q->uops->msg_flowc != NULL)

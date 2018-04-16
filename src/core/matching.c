@@ -67,7 +67,7 @@ typedef uint64 st_mask_t;
  * We're building an inverted index of all the file names by linking
  * together all the names having in common sequences of two chars.
  *
- * For instance, given the filenames "foo", "bar", "ar" and "arc", we'll
+ * For instance, given the strings "foo", "bar", "ar" and "arc", we'll
  * have the following bins:
  *
  *    bin["fo"] = { "foo" };
@@ -77,7 +77,7 @@ typedef uint64 st_mask_t;
  *    bin["rc"] = { "arc" };
  *
  * Now assume we're looking for "arc". We're scanning the pattern to find
- * the bin which has the less amount of files listed insided.  The patterns
+ * the bin which has the less amount of strings listed inside.  The patterns
  * gives us the bins "ar" and "rc", and:
  *
  *    bin["ar"] has 3 items

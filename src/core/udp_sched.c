@@ -442,7 +442,7 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 * Check whether message still needs to be sent.
 	 */
 
-	if (!pmsg_hook_check(mb))
+	if (!pmsg_can_transmit(mb))
 		return TRUE;			/* Dropped */
 
 	/*

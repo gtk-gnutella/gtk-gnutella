@@ -307,7 +307,7 @@ alive_send_ping(alive_t *a)
 		g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
 
 		mb = gmsg_to_ctrl_pmsg_extend(m, size, alive_pmsg_free, a->node);
-		pmsg_set_check(mb, alive_ping_can_send);
+		pmsg_set_send_callback(mb, alive_ping_can_send);
 
 		gmsg_mb_sendto_one(a->node, mb);
 	}

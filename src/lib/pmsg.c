@@ -36,7 +36,10 @@
 #include "pmsg.h"
 
 #include "halloc.h"
+#include "log.h"				/* For s_carp_once() */
 #include "mempcpy.h"
+#include "stacktrace.h"
+#include "stringify.h"			/* For plural() */
 #include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
 
@@ -285,6 +288,29 @@ pmsg_get_metadata(const pmsg_t *mb)
 	return cast_to_pmsg_ext(mb)->m_arg;
 }
 
+/*
+ * Ensure we do not have a check/hook installed already, otherwise loudly
+ * warn them once, as this is probably not intended!
+ */
+static void
+pmsg_no_presend_check(const pmsg_t * const mb, const char *caller)
+{
+	/*
+	 * Because m_check and m_hook are in the same union and have the same
+	 * memory size, it is sufficient to check for one field being non-NULL.
+	 */
+
+	if G_LIKELY(NULL == mb->m_u.m_check)
+		return;
+
+	s_carp_once("%s(): mb=%p (%d byte%s, prio=%u, refcnt=%u, flags=0x%x)"
+		" already has %s %s()",
+		caller, mb, pmsg_size(mb), plural(pmsg_size(mb)),
+		mb->m_prio, mb->m_refcnt, mb->m_flags,
+		(mb->m_flags & PMSG_PF_HOOK) ? "transmit hook" : "can-send callback",
+		stacktrace_function_name(mb->m_u.m_check));
+}
+
 /**
  * Set the pre-send checking routine for the buffer.
  *
@@ -296,16 +322,23 @@ pmsg_get_metadata(const pmsg_t *mb)
  * be shared among multiple messages, unless its refcount is 1.
  */
 void
-pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
+pmsg_set_send_callback(pmsg_t *mb, pmsg_check_t check)
 {
 	pmsg_check_consistency(mb);
+
+	/*
+	 * If there is already something installed (a hook or a callback),
+	 * then warn them as it is probably a mistake.
+	 */
+
+	pmsg_no_presend_check(mb, G_STRFUNC);
 
 	mb->m_u.m_check = check;
 	mb->m_flags &= ~PMSG_PF_HOOK;	/* Is not a hook */
 }
 
 /**
- * Set the pre-send hook routine for the buffer.
+ * Set the pre-transmit hook routine for the buffer.
  *
  * This routine, if it exists (non-NULL) is called just before sending
  * the message at the lowest level.  If it returns FALSE, the message is
@@ -313,15 +346,22 @@ pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
  *
  * The callback routine must not modify the message.
  *
- * The difference with a "check callback" is that a hook is only invoked
+ * The difference with a "can-send callback" is that a hook is only invoked
  * on the standalone buffer, the layer perusing this information being
  * able to gather all its context from the message, using its protocol header
  * relevant to the layer.
  */
 void
-pmsg_set_hook(pmsg_t *mb, pmsg_hook_t hook)
+pmsg_set_transmit_hook(pmsg_t *mb, pmsg_hook_t hook)
 {
 	pmsg_check_consistency(mb);
+
+	/*
+	 * If there is already something installed (a hook or a callback),
+	 * then warn them as it is probably a mistake.
+	 */
+
+	pmsg_no_presend_check(mb, G_STRFUNC);
 
 	mb->m_u.m_hook = hook;
 	mb->m_flags |= PMSG_PF_HOOK;	/* Is a hook */

@@ -926,7 +926,7 @@ gmsg_install_presend(pmsg_t *mb)
 	const void *msg = pmsg_phys_base(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
-		pmsg_set_check(mb, gmsg_query_can_send);
+		pmsg_set_send_callback(mb, gmsg_query_can_send);
 	}
 }
 
