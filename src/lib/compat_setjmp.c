@@ -50,6 +50,7 @@
 
 #include "compat_setjmp.h"
 
+#include "log.h"
 #include "signal.h"
 #include "thread.h"
 
@@ -108,17 +109,15 @@ sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_longjmp(jmp_buf env, int val)
+compat_longjmp(jmp_buf env, int val, const char *file, uint line)
 {
 	uint stid = thread_small_id();
 
 	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u", env->file, env->line);
-
-	if G_UNLIKELY(SIGSETJMP_MAGIC == env->magic) {
-		g_error("%s(): using longjmp() after sigsetjmp() from %s:%u",
-			G_STRFUNC, env->file, env->line);
-	}
+		"context was taken at %s:%u and longjmp(%d) called at %s:%u in %s",
+		env->file, env->line,
+		env->used.arg, env->used.file, env->used.line,
+		thread_safe_id_name(env->stid));
 
 	g_assert_log(SETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
@@ -129,7 +128,12 @@ compat_longjmp(jmp_buf env, int val)
 		stid, thread_safe_id_name(stid), env->file, env->line);
 
 	signal_thread_handler_level_set(stid, env->sig_level);
+
 	env->magic = SETJMP_USED_MAGIC;
+	env->used.arg = val;
+	env->used.file = file;
+	env->used.line = line;
+
 	longjmp(env->buf, val);
 }
 
@@ -140,17 +144,15 @@ compat_longjmp(jmp_buf env, int val)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_siglongjmp(sigjmp_buf env, int val)
+compat_siglongjmp(sigjmp_buf env, int val, const char *file, uint line)
 {
 	uint stid = thread_small_id();
 
 	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u", env->file, env->line);
-
-	if G_UNLIKELY(SETJMP_MAGIC == env->magic) {
-		g_error("%s(): using siglongjmp() after setjmp() from %s:%u",
-			G_STRFUNC, env->file, env->line);
-	}
+		"context was taken at %s:%u and longjmp(%d) called at %s:%u in %s",
+		env->file, env->line,
+		env->used.arg, env->used.file, env->used.line,
+		thread_safe_id_name(env->stid));
 
 	g_assert_log(SIGSETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
@@ -166,7 +168,12 @@ compat_siglongjmp(sigjmp_buf env, int val)
 #endif	/* !HAS_SIGSETJMP */
 
 	signal_thread_handler_level_set(stid, env->sig_level);
+
 	env->magic = SETJMP_USED_MAGIC;
+	env->used.arg = val;
+	env->used.file = file;
+	env->used.line = line;
+
 	Siglongjmp(env->buf, val);		/* metaconfig symbol definition */
 }
 

@@ -96,9 +96,9 @@
 	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__), setjmp((e)->buf))
 #endif
 
-#define longjmp(e,v)	compat_longjmp((e), (v))
-#define siglongjmp(e,v)	compat_siglongjmp((e), (v))
-#define Siglongjmp(e,v)	compat_siglongjmp((e), (v))
+#define longjmp(e,v)	compat_longjmp((e), (v), _WHERE_, __LINE__)
+#define siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__)
+#define Siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__)
 #endif	/* SETJMP_SOURCE */
 
 /*
@@ -119,26 +119,30 @@ enum setjmp_magic {
 	SETJMP_USED_MAGIC = 0x780be360
 };
 
+#define JMPBUF_COMMON_ATTRIBUTES \
+	sig_atomic_t sig_level;		/**< Internal signal handler level */ \
+	enum setjmp_magic magic;	/**< Magic number */ \
+	uint stid;					/**< Thread which saved the context */ \
+	uint line;					/**< Line number where state was taken */ \
+	const char *file;			/**< File name where state was taken */ \
+	struct {					/**< To help debug multiple context usage */ \
+		const char *file;		/**< File name where state was used */ \
+		uint line;				/**< Line where state was used */ \
+		int arg;				/**< Argument passed to (sig)longjmp() */ \
+	} used;
+
 typedef struct compat_jmpbuf {
 	native_jmp_buf buf;			/**< CPU state, must be at the start */
-	sig_atomic_t sig_level;		/**< Internal signal handler level */
-	enum setjmp_magic magic;	/**< Magic number */
-	uint stid;					/**< Thread which saved the context */
-	uint line;					/**< Line number where state was taken */
-	const char *file;			/**< File name where state was taken */
+	JMPBUF_COMMON_ATTRIBUTES
 } jmp_buf[1];
 
 typedef struct compat_sigjmpbuf {
 	native_sigjmp_buf buf;		/**< CPU state, must be at the start */
-	sig_atomic_t sig_level;		/**< Internal signal handler level */
-	enum setjmp_magic magic;	/**< Magic number */
-	uint stid;					/**< Thread which saved the context */
+	JMPBUF_COMMON_ATTRIBUTES
 #ifndef HAS_SIGSETJMP
 	bool mask_saved;			/**< Did we save the signal mask? */
 	sigset_t mask;				/**< Signal mask saved */
 #endif	/* !HAS_SIGSETJMP */
-	uint line;					/**< Line number where state was taken */
-	const char *file;			/**< File name where state was taken */
 } sigjmp_buf[1];
 
 /*
@@ -148,8 +152,8 @@ typedef struct compat_sigjmpbuf {
 void setjmp_prep(jmp_buf env, const char *file, uint line);
 void sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line);
 
-void compat_longjmp(jmp_buf env, int val) G_NORETURN;
-void compat_siglongjmp(sigjmp_buf env, int val) G_NORETURN;
+void compat_longjmp(jmp_buf env, int val, const char *, uint) G_NORETURN;
+void compat_siglongjmp(sigjmp_buf env, int val, const char *, uint) G_NORETURN;
 
 #endif	/* _compat_setjmp_h_ */
 
