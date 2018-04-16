@@ -2344,6 +2344,28 @@ log_handler(const char *domain, GLogLevelFlags level,
 			crash_set_error(safer);
 	}
 
+	/*
+	 * For "foreign" domains (GTK, Pango, glib, ...), we will have a non-NULL
+	 * domain passed (by default, G_LOG_DOMAIN is NULL).  In that case, since
+	 * we do not expect these low-level libraries to emit any warning, we force
+	 * a stacktrace as if they were actually "carping", which they really are...
+	 *
+	 * This help diagnose in our code what is the path leading to such an error
+	 * message.  Note that we do not wish to emit a stacktrace everytime though,
+	 * so we use a logic similar to that of s_carp_once() to actually record the
+	 * event once per calling stack.
+	 *
+	 * We stick to G_LOG_LEVEL_WARNING here since anything more serious will
+	 * trigger a stacktrace below.
+	 *
+	 * 	--RAM, 2018-04-16
+	 */
+
+	if G_UNLIKELY(domain != NULL && (level & G_LOG_LEVEL_WARNING)) {
+		if (!stacktrace_caller_known(3))
+			s_stacktrace(FALSE, 3);
+	}
+
 	if G_UNLIKELY(
 		level & (
 			G_LOG_FLAG_FATAL | G_LOG_FLAG_RECURSION |
