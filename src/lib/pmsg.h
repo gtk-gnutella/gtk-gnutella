@@ -154,7 +154,7 @@ typedef void (*pmsg_free_t)(pmsg_t *mb, void *arg);
 #define PMSG_PF_HOOK	(1U << 3)	/**< Use ``m_check'' as standalone hook */
 
 static inline void
-pmsg_check_consistency(const pmsg_t * const mb)
+pmsg_check(const pmsg_t * const mb)
 {
 	g_assert(mb != NULL);
 	g_assert((PMSG_MAGIC == mb->magic) ^ (PMSG_EXT_MAGIC == mb->magic));
@@ -164,7 +164,7 @@ pmsg_check_consistency(const pmsg_t * const mb)
 static inline char *
 pmsg_phys_base(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	pdata_check(mb->m_data);
 
 	return mb->m_data->d_arena;
@@ -173,14 +173,14 @@ pmsg_phys_base(const pmsg_t *mb)
 static inline size_t
 pmsg_phys_len(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return pdata_len(mb->m_data);
 }
 
 static inline bool
 pmsg_is_writable(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	pdata_check(mb->m_data);
 	return 1 == mb->m_data->d_refcnt;
 }
@@ -188,21 +188,21 @@ pmsg_is_writable(const pmsg_t *mb)
 static inline unsigned
 pmsg_prio(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return mb->m_prio;
 }
 
 static inline unsigned
 pmsg_refcnt(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return mb->m_refcnt;
 }
 
 static inline bool
 pmsg_is_unread(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	pdata_check(mb->m_data);
 	return mb->m_rptr == mb->m_data->d_arena;
 }
@@ -210,7 +210,7 @@ pmsg_is_unread(const pmsg_t *mb)
 static inline const char *
 pmsg_start(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return mb->m_rptr;
 }
 
@@ -220,7 +220,7 @@ pmsg_start(const pmsg_t *mb)
 static inline bool
 pmsg_can_send(const pmsg_t *mb, const void *arg)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return (NULL != mb->m_u.m_check && !(mb->m_flags & PMSG_PF_HOOK)) ?
 		mb->m_u.m_check(mb, arg) : TRUE;
 }
@@ -231,7 +231,7 @@ pmsg_can_send(const pmsg_t *mb, const void *arg)
 static inline bool
 pmsg_can_transmit(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return (NULL != mb->m_u.m_hook && (mb->m_flags & PMSG_PF_HOOK)) ?
 		mb->m_u.m_hook(mb) : TRUE;
 }
@@ -242,7 +242,7 @@ pmsg_can_transmit(const pmsg_t *mb)
 static inline size_t
 pmsg_available(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	pdata_check(mb->m_data);
 	return ptr_diff(mb->m_data->d_end, mb->m_wptr);
 }
@@ -250,14 +250,14 @@ pmsg_available(const pmsg_t *mb)
 static inline bool
 pmsg_is_extended(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return 0 != (mb->m_flags & PMSG_PF_EXT);
 }
 
 static inline bool
 pmsg_was_sent(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return 0 != (mb->m_flags & PMSG_PF_SENT);
 }
 
@@ -265,14 +265,14 @@ pmsg_was_sent(const pmsg_t *mb)
 static inline bool
 pmsg_is_reliable(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return 0 != (mb->m_flags & PMSG_PF_ACKME);
 }
 
 static inline bool
 pmsg_is_compressed(const pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return 0 != (mb->m_flags & PMSG_PF_COMP);
 }
 

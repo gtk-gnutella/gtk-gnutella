@@ -113,7 +113,7 @@ pmsg_close(void)
 void
 pmsg_reset(pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	mb->m_rptr = mb->m_wptr = mb->m_data->d_arena;	/* Empty buffer */
 	mb->m_flags = PMSG_EXT_MAGIC == mb->magic ? PMSG_PF_EXT : 0;
@@ -145,7 +145,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, bool ext, const void *buf, int len)
 
 	g_assert(implies(buf, len == pmsg_size(mb)));
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return mb;
 }
 
@@ -230,7 +230,7 @@ pmsg_clone_extend(const pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 {
 	pmsg_ext_t *nmb;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	WALLOC(nmb);
 	nmb->pmsg = *mb;		/* Struct copy */
@@ -324,7 +324,7 @@ pmsg_no_presend_check(const pmsg_t * const mb, const char *caller)
 void
 pmsg_set_send_callback(pmsg_t *mb, pmsg_check_t check)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	/*
 	 * If there is already something installed (a hook or a callback),
@@ -354,7 +354,7 @@ pmsg_set_send_callback(pmsg_t *mb, pmsg_check_t check)
 void
 pmsg_set_transmit_hook(pmsg_t *mb, pmsg_hook_t hook)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	/*
 	 * If there is already something installed (a hook or a callback),
@@ -399,7 +399,7 @@ pmsg_clone(const pmsg_t *mb)
 	} else {
 		pmsg_t *nmb;
 
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 		WALLOC(nmb);
 		*nmb = *mb;					/* Struct copy */
 		nmb->m_refcnt = 1;
@@ -418,7 +418,7 @@ pmsg_clone_plain(const pmsg_t *mb)
 {
 	pmsg_t *nmb;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	WALLOC(nmb);
 	memcpy(nmb, mb, sizeof *nmb);
@@ -446,7 +446,7 @@ pmsg_clone_plain(const pmsg_t *mb)
 pmsg_t *
 pmsg_ref(pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(mb->m_refcnt != 0);
 
 	mb->m_refcnt++;
@@ -468,7 +468,7 @@ pmsg_free(pmsg_t *mb)
 {
 	pdata_t *db = mb->m_data;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(mb->m_refcnt != 0);
 
 	/*
@@ -525,7 +525,7 @@ pmsg_writable_length(const pmsg_t *mb)
 	pdata_t *arena;
 	int available;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	/*
 	 * If buffer is not writable (shared among several readers), it is
@@ -549,7 +549,7 @@ pmsg_write(pmsg_t *mb, const void *data, int len)
 	pdata_t *arena;
 	int available, written;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
@@ -572,7 +572,7 @@ pmsg_read(pmsg_t *mb, void *data, int len)
 {
 	int available, readable;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -594,7 +594,7 @@ pmsg_discard(pmsg_t *mb, int len)
 {
 	int available, n;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -618,7 +618,7 @@ pmsg_discard_trailing(pmsg_t *mb, int len)
 {
 	int available, n;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -646,8 +646,8 @@ pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
 {
 	int copied, available;
 
-	pmsg_check_consistency(dest);
-	pmsg_check_consistency(src);
+	pmsg_check(dest);
+	pmsg_check(src);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(dest));	/* Not shared, or would corrupt data */
 
@@ -672,7 +672,7 @@ pmsg_compact(pmsg_t *mb)
 {
 	int shifting;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
 	g_assert(mb->m_rptr <= mb->m_wptr);
 
@@ -696,7 +696,7 @@ pmsg_fractional_compact(pmsg_t *mb, int n)
 	int shifting;
 
 	g_assert(n > 0);
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
 	g_assert(mb->m_rptr <= mb->m_wptr);
 
@@ -729,7 +729,7 @@ pmsg_split(pmsg_t *mb, int offset)
 
 	g_assert(offset >= 0);
 	g_assert(offset < pmsg_size(mb));
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	start = mb->m_rptr + offset;
 	slen = mb->m_wptr - start;
@@ -915,7 +915,7 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			size_t size;
 
 			mb = slist_iter_next(iter);
-			pmsg_check_consistency(mb);
+			pmsg_check(mb);
 
 			size = pmsg_size(mb);
 			g_assert(size > 0);
@@ -954,7 +954,7 @@ pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 
 		g_assert(slist_iter_has_item(iter));
 		mb = slist_iter_current(iter);
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 
 		size = pmsg_size(mb);
 		if (size > n_bytes) {
@@ -1021,7 +1021,7 @@ pmsg_slist_size(const slist_t *slist)
 		const pmsg_t *mb;
 
 		mb = slist_iter_next(iter);
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 
 		size += pmsg_size(mb);
 	}

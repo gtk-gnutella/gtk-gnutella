@@ -708,7 +708,7 @@ download_pipeline_socket_feed(struct download *d, pmsg_t *mb)
 	int r;
 
 	download_check(d);
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	s = d->socket;
 	g_assert(s != NULL);
