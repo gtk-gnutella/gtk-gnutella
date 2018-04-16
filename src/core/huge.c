@@ -733,10 +733,19 @@ request_sha1(shared_file_t *sf)
 		cached->shared = TRUE;
 		shared_file_set_sha1(sf, cached->sha1);
 		shared_file_set_tth(sf, cached->tth);
-		if (NULL == cached->tth || !shared_file_tth_is_available(sf))
-			request_tigertree(sf, NULL == cached->tth);
-	} else {
 
+		if (NULL == cached->tth || !shared_file_tth_is_available(sf)) {
+			if (GNET_PROPERTY(share_debug) > 1) {
+				if (NULL == cached->tth)
+					g_debug("no known TTH entry for \"%s\"", shared_file_path(sf));
+				else
+					g_debug("no TTH %s entry cached for \"%s\"",
+						tth_base32(cached->tth), shared_file_path(sf));
+			}
+
+			request_tigertree(sf, NULL == cached->tth);
+		}
+	} else {
 		if (GNET_PROPERTY(share_debug) > 1) {
 			if (cached)
 				g_debug("cached SHA1 entry for \"%s\" outdated: "
