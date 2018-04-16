@@ -242,6 +242,7 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	istream.c \
 	launch.c \
 	leak.c \
 	list.c \
@@ -452,6 +453,7 @@ LOBJ = \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
+	istream.o \
 	launch.o \
 	leak.o \
 	list.o \
