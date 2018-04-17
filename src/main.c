@@ -136,6 +136,7 @@
 #include "lib/iso3166.h"
 #include "lib/launch.h"
 #include "lib/log.h"
+#include "lib/logfilter.h"
 #include "lib/map.h"
 #include "lib/mem.h"
 #include "lib/mime_type.h"
@@ -1385,6 +1386,8 @@ prehandle_arguments(char **argv)
 		case main_arg_child:
 		case main_arg_no_supervise:
 		case main_arg_topless:
+		case main_arg_shell:
+		case main_arg_ping:
 			o->used = TRUE;
 			break;
 		default:
@@ -1958,6 +1961,20 @@ handle_compile_info_argument(void)
 	exit(EXIT_SUCCESS);
 }
 
+/**
+ * Is the process going to be long-lived?
+ *
+ * When they use --shell or --ping, the process is probably not going to
+ * run for long, so avoid sophisticated crash handling.
+ *
+ * @return whether we are going to run for a relatively short period of time.
+ */
+static bool
+short_lived_process(void)
+{
+	return OPT(shell) || OPT(ping);
+}
+
 /* Handle certain arguments as soon as possible */
 static void
 handle_arguments_asap(void)
@@ -1991,7 +2008,7 @@ handle_arguments_asap(void)
 	 * to be running only for a short period of time.
 	 */
 
-	if (OPT(shell) || OPT(ping)) {
+	if (short_lived_process()) {
 		crash_ctl(CRASH_FLAG_CLEAR,
 			CRASH_F_RESTART | CRASH_F_PAUSE | CRASH_F_GDB);
 	}
@@ -2403,7 +2420,7 @@ main(int argc, char **argv)
 	 * is where the config directory is initialized.
 	 */
 
-	settings_early_init();
+	settings_early_init(!short_lived_process());
 	handle_arguments();		/* Returning from here means we're good to go */
 
 	crash_setdir(settings_crash_dir());

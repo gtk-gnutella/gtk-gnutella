@@ -179,6 +179,7 @@ LSRC = \
 	list.c \
 	listener.c \
 	log.c \
+	logfilter.c \
 	magnet.c \
 	malloc.c \
 	map.c \

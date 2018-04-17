@@ -251,6 +251,7 @@ LSRC = \
 	list.c \
 	listener.c \
 	log.c \
+	logfilter.c \
 	magnet.c \
 	malloc.c \
 	map.c \
@@ -469,6 +470,7 @@ LOBJ = \
 	list.o \
 	listener.o \
 	log.o \
+	logfilter.o \
 	magnet.o \
 	malloc.o \
 	map.o \

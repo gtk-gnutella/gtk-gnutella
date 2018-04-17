@@ -1023,7 +1023,7 @@ static struct {
 	FN(make_pathname),
 	FN(parse_pointer),
 	FN(pointer_to_string_buf),
-	FN(s_info),
+	FN(s_where),
 	FN(short_size),
 	FN(str_bprintf),
 	FN(symbols_sort),
