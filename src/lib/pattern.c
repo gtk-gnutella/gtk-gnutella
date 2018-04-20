@@ -506,6 +506,17 @@ pattern_build_period(cpattern_t *p)
 		XFREE_NULL(p->uperiod);
 }
 
+/**
+ * @return pattern string
+ */
+const char *
+pattern_string(const cpattern_t *p)
+{
+	pattern_check(p);
+
+	return p->pattern;
+}
+
 /*
  * Code factorization for routines below.
  *
