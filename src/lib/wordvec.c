@@ -34,10 +34,12 @@
 #include "common.h"
 
 #include "wordvec.h"
-#include "utf8.h"
+
 #include "halloc.h"
 #include "hstrfn.h"
 #include "htable.h"
+#include "unsigned.h"
+#include "utf8.h"
 #include "walloc.h"
 #include "zalloc.h"
 
@@ -122,7 +124,6 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 	const char *start = NULL;
 	char * const query_dup = h_strdup(query_str);
 	char *query;
-	char first = TRUE;
 	uchar c;
 
 	g_assert(wovec != NULL);
@@ -149,7 +150,7 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 			*query = '\0';
 
 			/* Only create a hash table if there is more than one word. */
-			if (first)
+			if G_UNLIKELY(0 == n)
 				np1 = 0;
 			else {
 				if G_UNLIKELY(NULL == seen_word) {
@@ -159,18 +160,23 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 
 				/*
 			 	 * If word already seen in query, it's in the seen_word table.
-		 	 	 * The associated value is the index in the vector plus 1.
+				 * The associated value is the index in the vector plus 1: that
+				 * way, we can know a word is not present in the table since
+				 * the line below will evaluate to 0.
 		 	 	 */
 
 				np1 = pointer_to_uint(htable_lookup(seen_word, start));
 			}
 
 			if (np1--) {
+				/* Word already seen before */
+				g_assert(np1 < n);
 				wv[np1].amount++;
-				wv[np1].len = query - start;
 			} else {
+				/* We are dealing with a new word */
 				word_vec_t *entry;
-				if (n == nv) {				/* Filled all the slots */
+
+				if G_UNLIKELY(n == nv) {		/* Filled all the slots */
 					nv *= 2;
 					if (n > WOVEC_DFLT)
 						HREALLOC_ARRAY(wv, nv);
@@ -187,15 +193,11 @@ word_vec_make(const char *query_str, word_vec_t **wovec)
 				/*
 				 * Delay insertion of first word until we find another one.
 				 * The hash table storing duplicates is not created for
-				 * the first word.  The word entry is saved into `first_word'
-				 * for later insertion, if needed.
+				 * the first word.
 				 */
 
-				if (first)
-					first = FALSE;
-				else {
+				if (n > 1)
 					htable_insert(seen_word, entry->word, uint_to_pointer(n));
-				}
 			}
 			start = NULL;
 		}
@@ -219,6 +221,8 @@ void
 word_vec_free(word_vec_t *wovec, uint n)
 {
 	uint i;
+
+	g_assert(uint_is_positive(n));
 
 	for (i = 0; i < n; i++)
 		wfree(wovec[i].word, wovec[i].len + 1);
