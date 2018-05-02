@@ -264,7 +264,7 @@ typedef struct gnet_node_status {
 	uint32 udp_rtt;			/**< RTT in ms over UDP */
 
     uint    shutdown_remain;	/**< Number of seconds before shutdown */
-    char    message[128];		/**< Additional information */
+    char    message[192];		/**< Additional information */
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
