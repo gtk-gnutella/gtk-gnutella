@@ -686,7 +686,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		 * set already.
 		 */
 		if (r->ev_timeout) {
-			goto drop_results;
+			return;		/* Nothing to do, we're set since the first sending */
 		} else {
 
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
