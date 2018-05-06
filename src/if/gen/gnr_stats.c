@@ -1,5 +1,5 @@
 /*
- * Generated on Sun May  6 21:43:50 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun May  6 22:15:51 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -52,6 +52,8 @@ static const char *stats_symbols[] = {
 	"unclaimed_reliable_oob_hits",
 	"partially_claimed_oob_hits",
 	"partially_claimed_reliable_oob_hits",
+	"expired_oob_hits",
+	"expired_reliable_oob_hits",
 	"spurious_oob_hit_claim",
 	"unrequested_oob_hits",
 	"query_hit_for_untracked_query",
@@ -386,6 +388,8 @@ static const char *stats_text[] = {
 	N_("Unclaimed locally-generated reliable OOB hits"),
 	N_("Partially claimed locally-generated OOB hits"),
 	N_("Partially claimed locally-generated reliable OOB hits"),
+	N_("Expired delivery for local OOB hits"),
+	N_("Expired delivery for local reliable OOB hits"),
 	N_("Spurious OOB hit claiming received"),
 	N_("Unrequested OOB hits received"),
 	N_("Received query hits for untracked queries"),

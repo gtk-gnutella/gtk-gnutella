@@ -294,7 +294,7 @@ results_destroy(cqueue_t *cq, void *obj)
 	}
 
 	gnet_stats_inc_general(r->reliable ?
-		GNR_UNCLAIMED_RELIABLE_OOB_HITS : GNR_UNCLAIMED_OOB_HITS);
+		GNR_EXPIRED_RELIABLE_OOB_HITS : GNR_EXPIRED_OOB_HITS);
 
 	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
 	r->refcount--;

@@ -57,6 +57,8 @@ UNCLAIMED_RELIABLE_OOB_HITS	"Unclaimed locally-generated reliable OOB hits"
 PARTIALLY_CLAIMED_OOB_HITS	"Partially claimed locally-generated OOB hits"
 PARTIALLY_CLAIMED_RELIABLE_OOB_HITS
 	"Partially claimed locally-generated reliable OOB hits"
+EXPIRED_OOB_HITS			"Expired delivery for local OOB hits"
+EXPIRED_RELIABLE_OOB_HITS	"Expired delivery for local reliable OOB hits"
 SPURIOUS_OOB_HIT_CLAIM		"Spurious OOB hit claiming received"
 UNREQUESTED_OOB_HITS		"Unrequested OOB hits received"
 QUERY_HIT_FOR_UNTRACKED_QUERY	"Received query hits for untracked queries"
