@@ -293,7 +293,8 @@ results_destroy(cqueue_t *cq, void *obj)
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
-	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
+	gnet_stats_inc_general(r->reliable ?
+		GNR_UNCLAIMED_RELIABLE_OOB_HITS : GNR_UNCLAIMED_OOB_HITS);
 
 	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
 	r->refcount--;
@@ -326,7 +327,8 @@ results_timeout(cqueue_t *cq, void *obj)
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
-	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
+	gnet_stats_inc_general(r->reliable ?
+		GNR_UNCLAIMED_RELIABLE_OOB_HITS : GNR_UNCLAIMED_OOB_HITS);
 
 	/*
 	 * Record an "event" that the OOB results went unclaimed.
@@ -637,8 +639,11 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 			oob_record_hit, s, r->muid, r->flags, token);
 	}
 
-	if (wanted < r->count)
-		gnet_stats_inc_general(GNR_PARTIALLY_CLAIMED_OOB_HITS);
+	if (wanted < r->count) {
+		gnet_stats_inc_general(r->reliable ?
+			GNR_PARTIALLY_CLAIMED_RELIABLE_OOB_HITS :
+			GNR_PARTIALLY_CLAIMED_OOB_HITS);
+	}
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the
@@ -688,11 +693,20 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 				char buf[OOB_GTKG_FMTLEN];
 
-				g_debug("OOB query #%s, notified %s about %d hit%s%s",
-					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
+				g_debug("OOB query #%s, %snotified %s about %d hit%s%s",
+					guid_hex_str(r->muid),
+					r->reliable ? "reliably " : "",
+					gnet_host_to_string(&r->dest),
 					r->count, plural(r->count),
 					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 			}
+
+			/*
+			 * Count how many notifications we sent about pending OOB hits.
+			 */
+
+			gnet_stats_inc_general(r->reliable ?
+					GNR_RELIABLY_NOTIFIED_OOB_HITS : GNR_NOTIFIED_OOB_HITS);
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.

@@ -1,5 +1,5 @@
 /*
- * Generated on Sun Nov  6 23:31:52 2016 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun May  6 21:43:50 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -46,8 +46,12 @@ static const char *stats_symbols[] = {
 	"oob_hits_with_alien_ip",
 	"oob_hits_ignored_on_spammer_hit",
 	"oob_hits_ignored_on_unsecure_hit",
+	"notified_oob_hits",
+	"reliably_notified_oob_hits",
 	"unclaimed_oob_hits",
+	"unclaimed_reliable_oob_hits",
 	"partially_claimed_oob_hits",
+	"partially_claimed_reliable_oob_hits",
 	"spurious_oob_hit_claim",
 	"unrequested_oob_hits",
 	"query_hit_for_untracked_query",
@@ -376,8 +380,12 @@ static const char *stats_text[] = {
 	N_("OOB hits bearing alien IP address"),
 	N_("OOB hits ignored due to identified spamming address"),
 	N_("OOB hits ignored due to unsecure promise from known secure host"),
+	N_("Notifications sent for local OOB hits"),
+	N_("Notifications reliably sent for local OOB hits"),
 	N_("Unclaimed locally-generated OOB hits"),
+	N_("Unclaimed locally-generated reliable OOB hits"),
 	N_("Partially claimed locally-generated OOB hits"),
+	N_("Partially claimed locally-generated reliable OOB hits"),
 	N_("Spurious OOB hit claiming received"),
 	N_("Unrequested OOB hits received"),
 	N_("Received query hits for untracked queries"),
