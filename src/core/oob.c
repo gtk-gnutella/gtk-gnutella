@@ -205,6 +205,19 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 }
 
 /**
+ * Cancel global expiration event.
+ */
+static void
+results_expire_cancel(struct oob_results *r)
+{
+	if (r->ev_expire) {
+		cq_cancel(&r->ev_expire);
+		g_assert(r->refcount > 0);
+		r->refcount--;
+	}
+}
+
+/**
  * Dispose of results.
  */
 static void
@@ -212,11 +225,8 @@ results_free_remove(struct oob_results *r)
 {
 	oob_results_check(r);
 
-	if (r->ev_expire) {
-		cq_cancel(&r->ev_expire);
-		g_assert(r->refcount > 0);
-		r->refcount--;
-	}
+	results_expire_cancel(r);
+
 	if (r->ev_timeout) {
 		cq_cancel(&r->ev_timeout);
 		g_assert(r->refcount > 0);
@@ -284,6 +294,9 @@ results_destroy(cqueue_t *cq, void *obj)
 
 	oob_results_check(r);
 
+	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
+	r->refcount--;
+
 	if (GNET_PROPERTY(query_debug)) {
 		char buf[OOB_GTKG_FMTLEN];
 
@@ -295,9 +308,6 @@ results_destroy(cqueue_t *cq, void *obj)
 
 	gnet_stats_inc_general(r->reliable ?
 		GNR_EXPIRED_RELIABLE_OOB_HITS : GNR_EXPIRED_OOB_HITS);
-
-	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
-	r->refcount--;
 
 	results_free_remove(r);
 }
@@ -315,6 +325,8 @@ results_timeout(cqueue_t *cq, void *obj)
 	oob_results_check(r);
 
 	cq_zero(cq, &r->ev_timeout);
+	r->refcount--;
+
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
@@ -344,8 +356,6 @@ results_timeout(cqueue_t *cq, void *obj)
 				host_addr_to_string(addr), delay, plural(delay));
 		}
 	}
-
-	r->refcount--;
 
 	results_free_remove(r);
 }
@@ -706,6 +716,22 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 
 			gnet_stats_inc_general(r->reliable ?
 					GNR_RELIABLY_NOTIFIED_OOB_HITS : GNR_NOTIFIED_OOB_HITS);
+
+			/*
+			 * Now that we know for sure we were able to notify the remote
+			 * party about the existence of hits, we do not care about the
+			 * general expiration timer: what matters is the time we give
+			 * the remote party to claim the enqueued local hits.
+			 *
+			 * Indeed, it could have taken some time to get the indication
+			 * through, especially when sending it back reliably, and we need
+			 * to make sure we're not going to have the expiration timer trigger
+			 * before the timeout we're setting here.
+			 *
+			 * 		--RAM, 2018-05-06
+			 */
+
+			results_expire_cancel(r);		/* We managed to notify them */
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.
