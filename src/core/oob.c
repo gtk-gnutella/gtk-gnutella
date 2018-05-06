@@ -345,7 +345,6 @@ results_timeout(cqueue_t *cq, void *obj)
 		}
 	}
 
-	r->ev_timeout = NULL;		/* The timer which just triggered */
 	r->refcount--;
 
 	results_free_remove(r);
