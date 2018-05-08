@@ -1,5 +1,5 @@
 /*
- * Generated on Sun May  6 22:15:51 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May  8 18:06:45 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -48,6 +48,8 @@ static const char *stats_symbols[] = {
 	"oob_hits_ignored_on_unsecure_hit",
 	"notified_oob_hits",
 	"reliably_notified_oob_hits",
+	"claimed_oob_hits",
+	"claimed_reliable_oob_hits",
 	"unclaimed_oob_hits",
 	"unclaimed_reliable_oob_hits",
 	"partially_claimed_oob_hits",
@@ -384,6 +386,8 @@ static const char *stats_text[] = {
 	N_("OOB hits ignored due to unsecure promise from known secure host"),
 	N_("Notifications sent for local OOB hits"),
 	N_("Notifications reliably sent for local OOB hits"),
+	N_("Claimed locally-generated OOB hits"),
+	N_("Claimed locally-generated reliable OOB hits"),
 	N_("Unclaimed locally-generated OOB hits"),
 	N_("Unclaimed locally-generated reliable OOB hits"),
 	N_("Partially claimed locally-generated OOB hits"),

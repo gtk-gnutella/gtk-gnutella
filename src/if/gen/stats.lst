@@ -52,6 +52,8 @@ OOB_HITS_IGNORED_ON_UNSECURE_HIT
 	"OOB hits ignored due to unsecure promise from known secure host"
 NOTIFIED_OOB_HITS			"Notifications sent for local OOB hits"
 RELIABLY_NOTIFIED_OOB_HITS	"Notifications reliably sent for local OOB hits"
+CLAIMED_OOB_HITS			"Claimed locally-generated OOB hits"
+CLAIMED_RELIABLE_OOB_HITS	"Claimed locally-generated reliable OOB hits"
 UNCLAIMED_OOB_HITS			"Unclaimed locally-generated OOB hits"
 UNCLAIMED_RELIABLE_OOB_HITS	"Unclaimed locally-generated reliable OOB hits"
 PARTIALLY_CLAIMED_OOB_HITS	"Partially claimed locally-generated OOB hits"

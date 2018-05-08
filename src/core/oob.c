@@ -652,6 +652,10 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 		gnet_stats_inc_general(r->reliable ?
 			GNR_PARTIALLY_CLAIMED_RELIABLE_OOB_HITS :
 			GNR_PARTIALLY_CLAIMED_OOB_HITS);
+	} else {
+		gnet_stats_inc_general(r->reliable ?
+			GNR_CLAIMED_RELIABLE_OOB_HITS :
+			GNR_CLAIMED_OOB_HITS);
 	}
 
 	/*
