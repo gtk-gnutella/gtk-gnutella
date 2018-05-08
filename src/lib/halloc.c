@@ -46,7 +46,7 @@
 
 #include "atomic.h"
 #include "dump_options.h"
-#include "glib-missing.h"
+#include "entropy.h"
 #include "hashtable.h"
 #include "malloc.h"
 #include "once.h"
@@ -867,12 +867,14 @@ halloc_chunks_allocated(void)
 void
 halloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	HSTATS_INCX(halloc_stats_digest);
-	SHA1_COMPUTE(hstats, digest);
+	SHA1_COMPUTE_NONCE(hstats, &n, digest);
 }
 
 /**

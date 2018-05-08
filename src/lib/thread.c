@@ -11977,13 +11977,14 @@ void
 thread_stats_digest(sha1_t *digest)
 {
 	struct thread_stats t;
+	uint32 n = entropy_nonce();
 
 	THREAD_STATS_INCX(thread_stats_digest);
 
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
-	SHA1_COMPUTE(t, digest);
+	SHA1_COMPUTE_NONCE(t, &n, digest);
 }
 
 /**

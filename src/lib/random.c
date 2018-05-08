@@ -1251,9 +1251,10 @@ random_init(void)
 void
 random_stats_digest(sha1_t *digest)
 {
-	RANDOM_STATS_INC(random_stats_digest);
+	uint32 n = entropy_nonce();
 
-	SHA1_COMPUTE(random_stats, digest);
+	RANDOM_STATS_INC(random_stats_digest);
+	SHA1_COMPUTE_NONCE(random_stats, &n, digest);
 }
 
 /**

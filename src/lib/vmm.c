@@ -114,6 +114,7 @@
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
+#include "entropy.h"
 #include "evq.h"
 #include "fd.h"
 #include "log.h"
@@ -5770,12 +5771,14 @@ vmm_malloc_inited(void)
 void
 vmm_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	VMM_STATS_INCX(vmm_stats_digest);
-	SHA1_COMPUTE(vmm_stats, digest);
+	SHA1_COMPUTE_NONCE(vmm_stats, &n, digest);
 }
 
 /**

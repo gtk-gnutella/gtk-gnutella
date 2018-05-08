@@ -66,6 +66,7 @@
 #include "dump_options.h"
 #include "elist.h"
 #include "endian.h"			/* For UINT32_ROTL() */
+#include "entropy.h"
 #include "erbtree.h"
 #include "evq.h"
 #include "hashing.h"
@@ -6870,12 +6871,14 @@ xmalloc_stop_freeing(void)
 void
 xmalloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	XSTATS_INCX(xmalloc_stats_digest);
-	SHA1_COMPUTE(xstats, digest);
+	SHA1_COMPUTE_NONCE(xstats, &n, digest);
 }
 
 /**

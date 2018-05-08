@@ -148,6 +148,7 @@
 #include "atomic.h"
 #include "crash.h"
 #include "dump_options.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "glib-missing.h"	/* For pslist_free_null() */
@@ -3011,9 +3012,10 @@ void
 tmalloc_stats_digest(sha1_t *digest)
 {
 	tmalloc_info_t stats;
+	uint32 n = entropy_nonce();
 
 	tmalloc_all_stats(&stats);
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE_NONCE(stats, &n, digest);
 }
 
 /**

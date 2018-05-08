@@ -97,6 +97,7 @@
 #include "array_util.h"
 #include "atomic.h"
 #include "dump_options.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "hashing.h"		/* For integer_hash() and friends */
@@ -3633,12 +3634,14 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 void
 zalloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	ZSTATS_INCX(zalloc_stats_digest);
-	SHA1_COMPUTE(zstats, digest);
+	SHA1_COMPUTE_NONCE(zstats, &n, digest);
 }
 
 /**

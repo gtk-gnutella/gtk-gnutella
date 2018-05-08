@@ -150,7 +150,7 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
  */
 #define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
 
-#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" after that many uses */
+#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" base after that many uses */
 
 /**
  * Context for the entropy_minirand() routine.
@@ -1548,6 +1548,7 @@ struct entropy_ops {
 	void (*ent_collect)(sha1_t *digest);
 	void (*ent_mini_collect)(sha1_t *digest);
 	uint32 (*ent_random)(void);
+	uint32 (*ent_random_safe)(void);
 	void (*ent_fill)(void *buffer, size_t len);
 };
 
@@ -1572,6 +1573,7 @@ entropy_aje_inited(void)
 	entropy_ops.ent_collect      = entropy_aje_collect;
 	entropy_ops.ent_mini_collect = entropy_aje_collect;
 	entropy_ops.ent_random       = aje_rand_strong;
+	entropy_ops.ent_random_safe  = aje_rand_strong;
 	entropy_ops.ent_fill         = aje_random_bytes;
 	atomic_mb();
 }
@@ -1661,6 +1663,17 @@ entropy_do_random(void)
 }
 
 /**
+ * Early fallback for entropy_random_safe() until AJE is up.
+ *
+ * @return 32-bit random number.
+ */
+static uint32
+entropy_do_random_safe(void)
+{
+	return rand31_u32();
+}
+
+/**
  * Fill supplied buffer with random entropy bytes.
  *
  * Memory allocation may happen during this call.
@@ -1742,7 +1755,7 @@ entropy_minimal_collect(sha1_t *digest)
  * allocation).
  *
  * This is a strong random number generator, but it is very slow and should
- * be reserved to low-level initializations, before the ARC4 random number
+ * be reserved to low-level initializations, before the AJE random number
  * has been properly seeded.
  *
  * @note
@@ -1755,6 +1768,25 @@ uint32
 entropy_random(void)
 {
 	return entropy_ops.ent_random();
+}
+
+/**
+ * Random number generation based on entropy collection (without any memory
+ * allocation).
+ *
+ * When AJE has been initialized, this is a strong random number generator.
+ * Otherwise it is a weak one.
+ *
+ * The above means this call is intended to avoid deadly recursions during
+ * early initializations.  This is why this is an internal call and is
+ * not exported.
+ *
+ * @return 32-bit random number.
+ */
+static uint32
+entropy_random_safe(void)
+{
+	return entropy_ops.ent_random_safe();
 }
 
 /**
@@ -1778,6 +1810,7 @@ static struct entropy_ops entropy_ops = {
 	entropy_do_collect,			/* ent_collect */
 	entropy_do_minimal_collect,	/* ent_mini_collect */
 	entropy_do_random,			/* ent_random */
+	entropy_do_random_safe,		/* ent_random_safe */
 	entropy_do_fill,			/* ent_fill */
 };
 
@@ -1785,9 +1818,9 @@ static struct entropy_ops entropy_ops = {
  * Get the entropy nonce, a number used to alter time-based entropy collection
  * in a way that cannot be guessed by an outsider.
  *
- * @return the nonce to use for the session
+ * @return the nonce to use for the session / computation.
  */
-static uint32
+uint32
 entropy_nonce(void)
 {
 	static uint32 base;
@@ -1809,7 +1842,7 @@ entropy_nonce(void)
 		uint32 newbase;
 
 		do {
-			newbase = entropy_random();
+			newbase = entropy_random_safe();
 		} while (0 == newbase);
 
 		spinlock_hidden(&base_slk);
