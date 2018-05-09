@@ -103,7 +103,7 @@ mutex_crash_mode(void)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Invoked on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -111,20 +111,8 @@ static NO_INLINE void G_COLD
 mutex_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
-	const volatile mutex_t *m = obj;
-	unsigned stid;
-
-	mutex_check(m);
-
-	stid = thread_stid_from_thread(m->owner);
-
-#ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p already held (depth %zu) by %s:%u (%s)",
-		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid));
-#endif
-
-	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
-		count, obj, file, line);
+	(void) count;
+	thread_deadlock_check(obj, file, line);
 }
 
 /**

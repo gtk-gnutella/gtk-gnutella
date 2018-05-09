@@ -37,6 +37,9 @@ void sdbm_endkey(\s-1DBM\s0 *db)
 long sdbm_hash(char *string, size_t len)
 .sp
 ssize_t sdbm_sync(\s-1DBM\s0 *db)
+ssize_t sdbm_count(const \s-1DBM\s0 *db)
+ssize_t sdbm_delta(const \s-1DBM\s0 *db)
+void sdbm_delta_reset(\s-1DBM\s0 *db)
 .sp
 int sdbm_set_cache(\s-1DBM\s0 *db, long pages)
 int sdbm_set_wdelay(\s-1DBM\s0 *db, bool on)
@@ -67,9 +70,19 @@ bool sdbm_is_storable(size_t key, size_t value)
 void sdbm_thread_safe(\s-1DBM\s0 *db)
 void sdbm_lock(\s-1DBM\s0 *db)
 void sdbm_unlock(\s-1DBM\s0 *db)
+bool sdbm_is_thread_safe(const \s-1DBM\s0 *db)
+bool sdbm_is_locked(const \s-1DBM\s0 *db)
+\s-1DBM\s0 *sdbm_ref(const \s-1DBM\s0 *db)
+void sdbm_unref(const \s-1DBM\s0 **db_ptr)
+int sdbm_refcnt(const \s-1DBM\s0 *db)
+int sdbm_rebuild_async(\s-1DBM\s0 *db)
 .sp
 size_t sdbm_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(\s-1DBM\s0 *db, int flags, sdbm_cbr_t cb, void *arg);
+.sp
+size_t sdbm_loose_foreach(\s-1DBM\s0 *db, int flags, sdbm_cb_t cb, void *arg);
+size_t sdbm_loose_foreach_remove(\s-1DBM\s0 *db,
+        int flags, sdbm_cbr_t cb, void *arg);
 .ft R
 .fi
 .SH DESCRIPTION
@@ -149,6 +162,17 @@ extension) is created to store the large data, with indirection pointers
 left in the
 .B \.pag
 file to be able to access the underlying data.
+.LP
+A
+.BR \.tmp
+file can also be created to store all the temporary file extensions used by
+the database during a rebuild operation.  If the process is killed in the
+middle of a rebuild, the left-over files can then be properly reclaimed when
+the application calls
+.BR sdbm_prep (\|)
+or
+.BR sdbm_open (\|)
+in a later invocation, from another process.
 .LP
 The application interface uses the
 .B datum
@@ -325,7 +349,9 @@ returns the file descriptor associated with the page file.
 .IP
 .BR sdbm_datfno (\|)
 returns the file descriptor associated with the data file (large keys and
-values), or -1 if the file was not opened yet because it was not needed so far.
+values), or
+.B -1
+if the file was not opened yet because it was not needed so far.
 .IP
 .BR sdbm_name (\|)
 returns the database name previously set using
@@ -344,9 +370,41 @@ space, after many value deletions for instance.  Returns
 .B FALSE
 on errors.
 .IP
+.BR sdbm_count (\|)
+quickly counts the amount of entries (key/value pairs) in the database by
+scanning the whole
+database file.  Returns
+.B -1
+on error.
+.IP
+.BR sdbm_delta (\|)
+returns the algebraic count of entries added (if positive) or removed
+(if negative) from the database since the last reset of the counter.
+This is simply the result of
+.I added
+minus
+.I deleted
+pairs.
+It is initially set to
+.B 0
+after the database has been opened.
+.IP
+.BR sdbm_delta_reset (\|)
+resets the algebraic count of
+.I added
+minus
+.I deleted
+pairs to
+.BR 0 .
+.IP
 .BR sdbm_clear (\|)
 erases all the data held in the database but keeps it opened.
-Returns -1 on errors.
+Returns
+.B -1
+on error.
+It also issues a
+.BR sdbm_delta_reset (\|)
+call.
 .IP
 .BR sdbm_rename (\|)
 renames the database files using the specified name base (without a
@@ -363,7 +421,11 @@ but with the new filenames explicitly given.
 .IP
 .BR sdbm_rebuild (\|)
 rebuilds the database, hopefully leading to a more compact on-disk
-representation. It returns -1 on failure.
+representation. It returns -1 on failure.  It is also possible to rebuild
+the database asynchronously, from a separate thread by using
+.BR sdbm_rebuild_async (\|)
+instead: concurrent usage from other threads is possible during that
+asynchronous rebuild.
 .SH ITERATING
 It is possible to use high-level iterators on the database to process all the
 items (key / value pairs) via a common routine.  That processing callback
@@ -460,6 +522,18 @@ not marked as being concurrent via
 .BR sdbm_thread_safe (\|)
 beforehand.
 .LP
+The
+.BR sdbm_is_thread_safe (\|)
+and
+.BR sdbm_is_locked (\|)
+predicates can be used in assertions to check respectively whether the database
+was flagged as being thread-safe and whether it is currently locked by the
+calling thread.  The
+.BR sdbm_is_locked (\|)
+routine will always return
+.BR \s-1FALSE\s0
+for databases that have not been marked thread-safe.
+.LP
 Concurrent iterations on the database are forbidden, and this is enforced by
 having the iterators return
 .B nullitem
@@ -467,6 +541,59 @@ and set
 .B errno
 to
 .BR \s-1EPERM\s0 .
+.LP
+When iterating, it is required to take the DB lock during the whole operation.
+Iterating routines such as
+.BR sdbm_firstkey (\|)
+or
+.BR sdbm_value (\|)
+do not return a thread-private datum and enforce the requirement that the
+database be locked.
+.LP
+When passing the database descriptor to other threads, be sure to use
+.BR sdbm_ref (\|)
+on the receiving side to properly account for the extra reference.  The
+.BR sdbm_close (\|)
+call will panic when attempting to close a descriptor that has more than one
+reference still.  Thus, when sharing descriptors, it is more suitable to call
+.BR sdbm_unref (\|)
+which will only close when the last reference is gone and which nullifies the
+pointer to the descriptor in the thread, preventing further access through
+that variable since the reference was dropped.
+.LP
+Iterating over a large database can take a very long time, and locks the
+database for the whole duration of the iteration.  However, sometimes the
+application does not require such a
+.I strict
+iterating policy, but can very well cope with a
+.I loose
+iterating policy.  The
+.BR sdbm_loose_foreach (\|)
+and
+.BR sdbm_loose_foreach_remove (\|)
+routines do just that: they do not grab the lock for the entire duration
+of the iteration, allowing concurrent updates to be done by other threads.
+However, they do not guarantee that all the items will be traversed, that
+no item will not be traversed more than once, that the traversed items
+hold the latest value (in case of concurrent update), or even that the
+items still exist (in case of concurrent deletion).
+.LP
+However, the loose traversal guarantees that the keys and values passed
+to the callbacks are consistent, and especially that values are not
+containing parts of several concurrent updates.  Furthermore, the delete
+operation in
+.BR sdbm_loose_foreach_remove (\|)
+only takes place if no changes occurred on the page where the item lies
+since it was given to the callback, to avoid deleting a record for the
+wrong reasons.
+.LP
+By passing the
+.B \s-1DBM_F_ALLKEYS\s0
+flag to the loosely iterating routines, the database is locked as pages are
+processed, meaning all the keys are guaranteed to be traversed and all
+deletions will succeed.  However, callbacks are invoked with
+the database locked and that reduces opportunities for more concurrency.
+The lock is yield back after each processed page.
 .SH PAGE CACHING
 This
 .B sdbm
@@ -584,6 +711,9 @@ routine is called from within an iteration loop, it will fail and set
 .B errno
 to
 .BR \s-1EBUSY\s0 .
+That same error is also returned when
+.BR sdbm_rebuild_async (\|)
+is called whilst another asynchronous rebuilding is in progress.
 .LP
 Conversely, if
 .BR sdbm_nextkey (\|) ,
@@ -656,9 +786,6 @@ The
 data item, and the
 .BR sdbm_prep (\|),
 .BR sdbm_hash (\|),
-.BR sdbm_thread_safe (\|),
-.BR sdbm_lock (\|),
-.BR sdbm_unlock (\|),
 .BR sdbm_rdonly (\|),
 .BR sdbm_dirfno (\|),
 and
@@ -682,6 +809,12 @@ The following functions:
 .br
 .BR sdbm_is_storable (\|)
 .br
+.BR sdbm_count (\|)
+.br
+.BR sdbm_delta (\|)
+.br
+.BR sdbm_delta_reset (\|)
+.br
 .BR sdbm_sync (\|)
 .br
 .BR sdbm_shrink (\|)
@@ -695,6 +828,8 @@ The following functions:
 .BR sdbm_rename_files (\|)
 .br
 .BR sdbm_rebuild (\|)
+.br
+.BR sdbm_rebuild_async (\|)
 .br
 .BR sdbm_get_cache (\|)
 .br
@@ -712,9 +847,29 @@ The following functions:
 .br
 .BR sdbm_name (\|)
 .br
+.BR sdbm_thread_safe (\|)
+.br
+.BR sdbm_is_thread_safe (\|)
+.br
+.BR sdbm_lock (\|)
+.br
+.BR sdbm_unlock (\|)
+.br
+.BR sdbm_is_locked (\|)
+.br
+.BR sdbm_ref (\|)
+.br
+.BR sdbm_unref (\|)
+.br
+.BR sdbm_refcnt (\|)
+.br
 .BR sdbm_foreach (\|)
 .br
 .BR sdbm_foreach_remove (\|)
+.br
+.BR sdbm_loose_foreach (\|)
+.br
+.BR sdbm_loose_foreach_remove (\|)
 .br
 .sp
 .in -5

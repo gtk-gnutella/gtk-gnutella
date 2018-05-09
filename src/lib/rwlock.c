@@ -462,7 +462,7 @@ rwlock_waiters_for_read(const rwlock_t *rw)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Called on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -470,12 +470,9 @@ static NO_INLINE void G_COLD
 rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 	const char *file, unsigned line)
 {
-	rwlock_check(rw);
-
-	s_minicarp("possible deadlock #%u on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
-		" at %s:%u",
-		count, reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-		rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
+	(void) reading;
+	(void) count;
+	thread_deadlock_check(rw, file, line);
 }
 
 /*

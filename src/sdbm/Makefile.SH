@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -71,7 +71,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -83,21 +83,27 @@ all:: .FORCE_DEPEND
 ########################################################################
 # Start of Jmakefile
 
-# $X-Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
-
 SRC = \
 	big.c \
+	chkpage.c \
 	hash.c \
+	loose.c \
 	lru.c \
 	pair.c \
-	sdbm.c
+	rebuild.c \
+	sdbm.c \
+	tmp.c
 
 OBJ = \
 	big.o \
+	chkpage.o \
 	hash.o \
+	loose.o \
 	lru.o \
 	pair.o \
-	sdbm.o 
+	rebuild.o \
+	sdbm.o \
+	tmp.o 
 
 SDBM_FLAGS = -DSDBM -DDUFF
 
@@ -176,11 +182,7 @@ dbu dbe dbt: libsdbm.a
 	cd ../lib; $(MAKE) libshared.a
 	@echo "Continuing in $(CURRENT)..."
 
-dbu:  ../lib/libshared.a
-
-dbe:  ../lib/libshared.a
-
-dbt:  ../lib/libshared.a
+dba dbu dbe dbt:  ../lib/libshared.a
 
 all:: dba
 
@@ -225,6 +227,15 @@ dbt:  $(DBT_OBJ)
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  $(DBT_OBJ) $(JLDFLAGS) $(LIBS)
+
+#
+# Tests
+#
+
+sdbm-test: dbt
+
+test: sdbm-test
+	time ./sdbm-test
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

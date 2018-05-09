@@ -69,11 +69,24 @@ static reclaim_fd_t reclaim_fd = NULL;
 bool
 file_exists(const char *pathname)
 {
-  	filestat_t st;
+	filestat_t st;
 
-    g_assert(pathname != NULL);
+	g_assert(pathname != NULL);
 
-    return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
+	return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
+}
+
+/**
+ * Check whether file is empty.
+ */
+bool
+file_is_empty(const char *pathname)
+{
+	filestat_t st;
+
+	g_assert(pathname != NULL);
+
+	return 0 == stat(pathname, &st) && 0 == st.st_size;
 }
 
 /**

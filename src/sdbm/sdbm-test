@@ -1,0 +1,62 @@
+#!/bin/sh
+# Exercise the SDBM code
+
+DB=dbtest
+SMALL=1024
+MEDIUM=5000
+LARGE=20000
+T=-t
+
+set -ex
+
+rm -f $DB.dir $DB.pag $DB.dat
+rm -f $DB.dir.* $DB.pag.* $DB.dat.*
+
+./dbt -w $T $DB $SMALL
+./dbt -r $T $DB $SMALL
+./dbt -e $T $DB $SMALL
+./dbt -i $T $DB $SMALL
+./dbt -l $T $DB $SMALL
+./dbt -b $T $DB 1
+./dbt -ar $T $DB
+./dbt -Aar $T $DB
+./dbt -lar $T $DB
+./dbt -is $T $DB
+./dbt -x $DB $SMALL
+
+./dbt -Ew -D $T $DB $SMALL
+./dbt -r -D $T $DB $SMALL
+./dbt -e -D $T $DB $SMALL
+./dbt -i -D $T $DB $SMALL
+./dbt -l -D $T $DB $SMALL
+./dbt -b -D $T $DB 1
+./dbt -ar -D $T $DB
+./dbt -Aar -D $T $DB
+./dbt -lar -D $T $DB
+./dbt -is $T $DB
+./dbt -x $DB $SMALL
+
+./dbt -Ew -D $T $DB $LARGE
+./dbt -r -D $T $DB $LARGE
+./dbt -e -D $T $DB $LARGE
+./dbt -i -D $T $DB $LARGE
+./dbt -l -D $T $DB $LARGE
+./dbt -b -D $T $DB 1
+./dbt -ar -D $T $DB
+./dbt -Aar -D $T $DB
+./dbt -lar -D $T $DB
+./dbt -is $T $DB
+./dbt -x $DB $LARGE
+
+./dbt -Ewkv -D $T $DB $MEDIUM
+./dbt -rk -D $T $DB $MEDIUM
+./dbt -ek -D $T $DB $MEDIUM
+./dbt -i -D $T $DB $MEDIUM
+./dbt -l -D $T $DB $MEDIUM
+./dbt -b -D $T $DB 1
+./dbt -ark -D $T $DB
+./dbt -lark -D $T $DB
+./dbt -is $T $DB
+./dbt -x $DB $MEDIUM
+
+rm -f $DB.dir $DB.pag $DB.dat

@@ -180,7 +180,7 @@ spinlock_exit_mode(void)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Invoked on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -188,23 +188,8 @@ static NO_INLINE void G_COLD
 spinlock_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
-	const volatile spinlock_t *s = obj;
-
-	spinlock_check(s);
-
-#ifdef SPINLOCK_DEBUG
-#ifdef SPINLOCK_OWNER_DEBUG
-	s_miniwarn("spinlock %p already %s by %s:%u (thread #%u)",
-		obj, s->lock ? "held" : "freed", s->file, s->line, s->stid);
-#else
-	s_miniwarn("spinlock %p already %s by %s:%u",
-		obj, s->lock ? "held" : "freed", s->file, s->line);
-#endif
-#endif
-
-	atomic_mb();
-	s_minicarp("%s spinlock deadlock #%u on %p at %s:%u",
-		s->lock ? "possible" : "improbable", count, obj, file, line);
+	(void) count;
+	thread_deadlock_check(obj, file, line);
 }
 
 /**

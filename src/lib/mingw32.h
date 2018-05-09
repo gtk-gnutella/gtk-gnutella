@@ -194,6 +194,7 @@
 #define write mingw_write
 #define writev mingw_writev
 #define truncate mingw_truncate
+#define ftruncate mingw_ftruncate
 #define recv mingw_recv
 #define sendto mingw_sendto
 #define recvfrom mingw_recvfrom

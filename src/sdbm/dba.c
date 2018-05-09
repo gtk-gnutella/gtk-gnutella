@@ -153,8 +153,9 @@ pagestat(char *pag,
 		pfree = offset(ino[n]) - (n + 1) * sizeof(short);
 
 		if (!summary_only) {
-			printf("%3d entries, %2d%% used, keys %3d, values %3d, free %3d%s",
-				n / 2, ((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
+			printf("%3d entr%-3s, %2d%% used, keys %3d, values %3d, free %3d%s",
+				n / 2, plural_y(n / 2),
+				((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
 				keysize, valsize, pfree,
 				(DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
 					" (LOW)" : "");
@@ -195,7 +196,7 @@ sdump(int pagf, long npag)
 	while ((b = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
 		int lk, lv;
 		unsigned ks, vs;
-		bool is_bad = !sdbm_internal_chkpage(pag);
+		bool is_bad = !sdbm_chkpage(pag);
 		bool is_empty = page_is_empty(pag);
 
 		if (summary_only && 0 == n % 1000) show_progress(n, npag);
@@ -223,9 +224,11 @@ sdump(int pagf, long npag)
 	}
 
 	if (b == 0) {
-		printf("%d pages (%d holes):  %d entries\n", n, o, t);
-		if (bad != 0) printf("%d bad pages\n", bad);
-		printf("keys: %u bytes, values: %u bytes\n", ksize, vsize);
+		printf("%d page%s (%d hole%s):  %d entr%s\n",
+			n, plural(n), o, plural(o), t, plural_y(t));
+		if (bad != 0) printf("%d bad page%s\n", bad, plural(bad));
+		printf("keys: %u byte%s, values: %u byte%s\n",
+			ksize, plural(ksize), vsize, plural(vsize));
 		if (tlk || tlv)
 			printf("%d large key%s, %d large value%s\n",
 				tlk, plural(tlk), tlv, plural(tlv));
@@ -259,8 +262,8 @@ bdump(int datf)
 	if (buf.st_size % DBM_BBLKSIZ)
 		total++;
 
-	printf("%lu blocks used / %lu total (%.2f%% used)\n",
-		used, total, used * 100.0 / (total ? total : 1));
+	printf("%lu block%s used / %lu total (%.2f%% used)\n",
+		used, plural(used), total, used * 100.0 / (total ? total : 1));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
