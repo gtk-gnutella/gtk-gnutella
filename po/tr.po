@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: 2016-08-31 15:19+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -767,9 +767,6 @@ msgstr "İPv6 UDP soketi oluşturulamadı"
 msgid "Failed to create local socket"
 msgstr "Yerel soket oluşturulamadı"
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "TCP veri duvarı arkasındayken sadece yaprak kipi mümkündür"
-
 msgid "Read error"
 msgstr "Okuma hatası"
 
@@ -1106,11 +1103,51 @@ msgstr ""
 "Bilinen güvenli makineden güvensiz söz verme sebebiyle görmezden gelinen OOB "
 "isabetleri"
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Sahte OOB isabet talebi alındı"
@@ -4992,6 +5029,9 @@ msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
 #, fuzzy
 msgid "Defines whether lock sleeps should be traced."
 msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
 
 msgid "disable"
 msgstr "devre dışı"
@@ -9904,6 +9944,9 @@ msgstr "QUEUE yollanıyor, tekrar bağlanılıyor..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE yollandı, başlıklar bekleniyor..."
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "TCP veri duvarı arkasındayken sadece yaprak kipi mümkündür"
 
 #~ msgid "Unauthorized"
 #~ msgstr "İzinsiz"

@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -755,9 +755,6 @@ msgstr "IPv6 UDPソケットの作成に失敗しました"
 msgid "Failed to create local socket"
 msgstr "ローカルソケットの作成に失敗しました"
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
-
 msgid "Read error"
 msgstr "読込エラー"
 
@@ -1089,11 +1086,51 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "要求のないローカル生成OOBヒット"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "一部要求されているローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "一部要求されているローカル生成OOBヒット"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "受信した偽のOOBヒット要求"
@@ -4629,6 +4666,9 @@ msgstr "受信した検索クエリーの数を表示するかどうかを選択
 #, fuzzy
 msgid "Defines whether lock sleeps should be traced."
 msgstr "受信した検索クエリーの数を表示するかどうかを選択します。"
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
 
 msgid "disable"
 msgstr "表示しない"
@@ -9445,6 +9485,9 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
 #~ msgid "< 1s"
 #~ msgstr "1秒未満"

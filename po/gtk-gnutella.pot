@@ -6,9 +6,9 @@
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1.13u\n"
+"Project-Id-Version: gtk-gnutella 1.1.13\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -762,9 +762,6 @@ msgstr ""
 msgid "Failed to create local socket"
 msgstr ""
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr ""
-
 msgid "Read error"
 msgstr ""
 
@@ -1093,10 +1090,46 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+msgid "Claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr ""
+
 msgid "Unclaimed locally-generated OOB hits"
 msgstr ""
 
+msgid "Unclaimed locally-generated reliable OOB hits"
+msgstr ""
+
 msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
 msgstr ""
 
 msgid "Spurious OOB hit claiming received"
@@ -4268,6 +4301,9 @@ msgid "Defines whether lock contentions should be traced."
 msgstr ""
 
 msgid "Defines whether lock sleeps should be traced."
+msgstr ""
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
 msgid "disable"

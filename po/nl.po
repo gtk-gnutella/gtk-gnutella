@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -769,9 +769,6 @@ msgstr "Aanmaken van IPv6 UDP socket mislukt"
 msgid "Failed to create local socket"
 msgstr "Aanmaken van lokale socket mislukt"
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
-
 msgid "Read error"
 msgstr "Lees fout"
 
@@ -1106,11 +1103,51 @@ msgstr ""
 "OOB treffer genegeerd vanwege onbeveiligde toezegging van bekende veilige "
 "host"
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "Ongevraagde lokaal gegenereerde OOB resultaat"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "Gedeeltelijke toegeeiste lokaal gegenereerde OOB resultaten"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Vals OOB hit beweert te zijn ontvangen"
@@ -4964,6 +5001,9 @@ msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
 #, fuzzy
 msgid "Defines whether lock sleeps should be traced."
 msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
 
 msgid "disable"
 msgstr "uitschakelen"
@@ -9909,6 +9949,9 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"
 
 #~ msgid "Unauthorized"
 #~ msgstr "Onbevoegd"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: 2016-08-31 12:04+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -769,9 +769,6 @@ msgstr "Impossible de créer une socket IPv6 UDP"
 msgid "Failed to create local socket"
 msgstr "Impossible de créer la socket locale"
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "Ne fonctionne qu'en mode feuille sans connexions TCP entrantes"
-
 msgid "Read error"
 msgstr "Erreur de lecture"
 
@@ -1106,11 +1103,51 @@ msgstr ""
 "Résultats OOB ignorés pour cause de promesse non sécurisée depuis un hôte "
 "sûr connu"
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "Résultats OOB locaux non demandés"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "Résultats OOB locaux non demandés"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "Résultats OOB locaux non demandés"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "Résultats OOB locaux non demandés"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Résultats OOB locaux demandés partiellement"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "Résultats OOB locaux demandés partiellement"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Fausse demande de résultats OOB reçue"
@@ -4988,6 +5025,9 @@ msgstr "Définit quels en-têtes Gnutella doivent être tracés."
 #, fuzzy
 msgid "Defines whether lock sleeps should be traced."
 msgstr "Définit quels en-têtes Gnutella doivent être tracés."
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
 
 msgid "disable"
 msgstr "désactiver"
@@ -9931,6 +9971,9 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "Ne fonctionne qu'en mode feuille sans connexions TCP entrantes"
 
 #~ msgid "Unauthorized"
 #~ msgstr "Non autorisé"

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-05-09 13:30+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -763,9 +763,6 @@ msgstr "Klarte ikke lage IPv6 UDP-sokkel"
 msgid "Failed to create local socket"
 msgstr "Klarte ikke lage lokal lyttesokkel"
 
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
-
 msgid "Read error"
 msgstr "Lesefeil"
 
@@ -1098,11 +1095,51 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "Ukrevde lokallagde OOB-treff"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "Ukrevde lokallagde OOB-treff"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "Ukrevde lokallagde OOB-treff"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "Ukrevde lokallagde OOB-treff"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Delvis krevde lokallagde OOB-treff"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "Delvis krevde lokallagde OOB-treff"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Mottok flask OOB-treff"
@@ -4699,6 +4736,9 @@ msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
 #, fuzzy
 msgid "Defines whether lock sleeps should be traced."
 msgstr "Velg hvilke utvekslinger av Gnutella-hoder som skal spores."
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
 
 msgid "disable"
 msgstr "slå av"
@@ -9552,6 +9592,9 @@ msgstr "Sender KØ, kobler tilbake . . ."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Sendte KØ, venter på hoder . . ."
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "Kan kun kjøre som blad når TCP er bak brannmur"
 
 #~ msgid "< 1s"
 #~ msgstr "< 1s"
