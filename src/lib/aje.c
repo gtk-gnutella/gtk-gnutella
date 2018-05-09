@@ -395,7 +395,7 @@ aje_rekey(aje_state_t *as)
 	 * Update the encryption key and reset the key random index.
 	 */
 
-	memcpy(as->key, ARYLEN(key));
+	memcpy(as->key, key, sizeof key);
 	as->krnd = 0;
 
 	/*
@@ -574,7 +574,7 @@ aje_spread(aje_state_t *as)
 	STATIC_ASSERT(sizeof as->counter == sizeof buf);
 
 	aje_counter_encrypt(as, ARYLEN(buf));
-	memcpy(as->counter, ARYLEN(buf));
+	memcpy(as->counter, buf, sizeof buf);
 
 	/*
 	 * Now feed entropy to the pools, excluding pool #0.

@@ -354,7 +354,7 @@ parse_ipv6_addr(const char *s, uint8 *dst, const char **endptr)
 		return FALSE;
 
 	if (dst)
-		memcpy(dst, ARYLEN(buf));
+		memcpy(dst, buf, sizeof buf);	/* No ARYLEN(), memcpy() can be a macro */
 
 	return TRUE;
 }
