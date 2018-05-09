@@ -273,7 +273,7 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 		if (progress && 0 == i % 500)
 			show_progress(i, count);
 
-		fill_key(buf, sizeof buf, i);
+		fill_key(ARYLEN(buf), i);
 		val = sdbm_fetch(db, key);
 		if (NULL == val.dptr) {
 			if (sdbm_error(db))
@@ -308,7 +308,7 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 		if (progress && 0 == i % 500)
 			show_progress(i, count);
 
-		fill_key(buf, sizeof buf, i);
+		fill_key(ARYLEN(buf), i);
 		res = sdbm_exists(db, key);
 		if (res <= 0) {
 			if (sdbm_error(db))
@@ -347,7 +347,7 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 		if (progress && 0 == i % 500)
 			show_progress(i, count);
 
-		fill_key(buf, sizeof buf, i);
+		fill_key(ARYLEN(buf), i);
 
 		val.dptr = key.dptr;
 		if (large_values) {
@@ -394,7 +394,7 @@ delete_db(const char *name, long count, long cache, int wflags, tm_t *done)
 		if (progress && 0 == i % 500)
 			show_progress(i, count);
 
-		fill_key(buf, sizeof buf, i);
+		fill_key(ARYLEN(buf), i);
 		if (-1 == sdbm_delete(db, key))
 			oops("delete error at item #%ld", i);
 	}
@@ -546,7 +546,7 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 			break;
 
 		i = random_value(count - 1);
-		fill_key(buf, sizeof buf, i);
+		fill_key(ARYLEN(buf), i);
 
 		/*
 		 * fetch + store back must be atomic if we're deleting items.

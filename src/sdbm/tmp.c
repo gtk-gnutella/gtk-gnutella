@@ -219,18 +219,18 @@ tmp_clean_entries(int *fd, const char *ext, const DBM *db, const char *caller)
 	eslist_init(&items, offsetof(struct tmp_entry, next));
 	s = str_new(32);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		char *extension;
 		pid_t pid;
 		struct tmp_entry *item;
 
 		lineno++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			s_warning("%s(): SDBM \"%s\": line #%zu: too long a line \"%*s\","
 				" attempting to resync",
 				caller, sdbm_name(db), lineno,
-				(int) clamp_strlen(line, sizeof line), line);
+				(int) clamp_strlen(ARYLEN(line)), line);
 			continue;
 		}
 
