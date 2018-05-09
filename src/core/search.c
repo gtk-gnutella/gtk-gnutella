@@ -38,6 +38,7 @@
 
 #include "ban.h"
 #include "bogons.h"
+#include "bsched.h"
 #include "ctl.h"
 #include "dh.h"
 #include "dmesh.h"
@@ -7069,6 +7070,16 @@ search_oob_pending_results(
 	}
 
 	/*
+	 * Skip throttling logic if we detect we have enough bandwidth.
+	 */
+
+	if (
+		!bsched_saturated(BSCHED_BWS_GOUT_UDP) &&
+		!bsched_saturated(BSCHED_BWS_GIN_UDP)
+	)
+		goto has_bandwidth;
+
+	/*
 	 * If we got more than 15% of our maximum amount of shown results,
 	 * then we have a very popular query here.  We don't really need
 	 * to get all the results: randomly ignore.
@@ -7076,6 +7087,9 @@ search_oob_pending_results(
 	 * Exception is made for "What's New?" searches of course since by
 	 * definition we need to grab all the hits that come back.
 	 */
+
+
+	gnet_stats_inc_general(GNR_OOB_HITS_TIGHT_BANDWIDTH);
 
 	threshold = search_max_results_for_ui(sch) * 0.15;
 
@@ -7091,8 +7105,11 @@ search_oob_pending_results(
 				guess_is_search_muid(muid) ? "GUESS " : "",
 				plural(hits), guid_hex_str(muid), kept, node_infostr(n));
 		}
+		gnet_stats_inc_general(GNR_OOB_HITS_THROTTLED);
 		return;
 	}
+
+has_bandwidth:
 
 	/*
 	 * They have configured us to never reply to a query with more than
@@ -7120,12 +7137,15 @@ search_oob_pending_results(
 	 * Ok, ask them the hits then.
 	 */
 
+
+	gnet_stats_inc_general(GNR_OOB_HITS_CLAIMED);
 	vmsg_send_oob_reply_ack(n, muid, ask, &token_opaque);
 
 record_secure:
 	if (secure) {
 		gnet_host_t host;
 
+		gnet_stats_inc_general(GNR_OOB_HITS_SECURELY_CLAIMED);
 		gnet_host_set(&host, n->addr, n->port);
 		if (!aging_lookup_revitalise(ora_secure, &host))
 			aging_record(ora_secure, atom_host_get(&host));

@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May  8 18:06:45 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May  9 12:03:20 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -46,6 +46,10 @@ static const char *stats_symbols[] = {
 	"oob_hits_with_alien_ip",
 	"oob_hits_ignored_on_spammer_hit",
 	"oob_hits_ignored_on_unsecure_hit",
+	"oob_hits_claimed",
+	"oob_hits_securely_claimed",
+	"oob_hits_throttled",
+	"oob_hits_tight_bandwidth",
 	"notified_oob_hits",
 	"reliably_notified_oob_hits",
 	"claimed_oob_hits",
@@ -384,6 +388,10 @@ static const char *stats_text[] = {
 	N_("OOB hits bearing alien IP address"),
 	N_("OOB hits ignored due to identified spamming address"),
 	N_("OOB hits ignored due to unsecure promise from known secure host"),
+	N_("OOB hits we claimed after notification"),
+	N_("OOB hits subset that we claimed securely"),
+	N_("OOB hit-notifications discarded due to popularity"),
+	N_("OOB hit-notifications processed under tight bandwidth"),
 	N_("Notifications sent for local OOB hits"),
 	N_("Notifications reliably sent for local OOB hits"),
 	N_("Claimed locally-generated OOB hits"),

@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May  8 18:06:45 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May  9 12:03:20 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 317
+ * Enum count: 321
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -42,6 +42,10 @@ typedef enum {
 	GNR_OOB_HITS_WITH_ALIEN_IP,
 	GNR_OOB_HITS_IGNORED_ON_SPAMMER_HIT,
 	GNR_OOB_HITS_IGNORED_ON_UNSECURE_HIT,
+	GNR_OOB_HITS_CLAIMED,
+	GNR_OOB_HITS_SECURELY_CLAIMED,
+	GNR_OOB_HITS_THROTTLED,
+	GNR_OOB_HITS_TIGHT_BANDWIDTH,
 	GNR_NOTIFIED_OOB_HITS,
 	GNR_RELIABLY_NOTIFIED_OOB_HITS,
 	GNR_CLAIMED_OOB_HITS,

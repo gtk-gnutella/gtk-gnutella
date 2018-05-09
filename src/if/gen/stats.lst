@@ -50,6 +50,11 @@ OOB_HITS_IGNORED_ON_SPAMMER_HIT
 	"OOB hits ignored due to identified spamming address"
 OOB_HITS_IGNORED_ON_UNSECURE_HIT
 	"OOB hits ignored due to unsecure promise from known secure host"
+OOB_HITS_CLAIMED			"OOB hits we claimed after notification"
+OOB_HITS_SECURELY_CLAIMED	"OOB hits subset that we claimed securely"
+OOB_HITS_THROTTLED			"OOB hit-notifications discarded due to popularity"
+OOB_HITS_TIGHT_BANDWIDTH
+	"OOB hit-notifications processed under tight bandwidth"
 NOTIFIED_OOB_HITS			"Notifications sent for local OOB hits"
 RELIABLY_NOTIFIED_OOB_HITS	"Notifications reliably sent for local OOB hits"
 CLAIMED_OOB_HITS			"Claimed locally-generated OOB hits"
