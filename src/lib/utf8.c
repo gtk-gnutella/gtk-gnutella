@@ -1586,7 +1586,7 @@ get_iconv_charset_alias(const char *cs)
 
  		len = end - start;
 		if (len > 0 && is_strcaseprefix(start, cs)) {
-			len = first_end - codesets[i] + 1;
+			len = first_end - codesets[i];
 			clamp_strncpy(ARYLEN(buf), codesets[i], len);
 			return buf;
 		}
