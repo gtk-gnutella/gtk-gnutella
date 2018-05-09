@@ -1272,7 +1272,7 @@ lazy_string_to_printf_escape(const char *src)
 	}
 	*p = '\0';
 
-	memcpy(bd, VARLEN(prev));
+	memcpy(bd, &prev, sizeof prev);		/* No VARLEN(): memcpy() may be a macro */
 	return NOT_LEAKING(prev);
 }
 
