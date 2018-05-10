@@ -1005,62 +1005,6 @@ http_url_parse(const char *url, uint16 *port, const char **host,
 	return TRUE;
 }
 
-/***
- *** HTTP buffer management.
- ***/
-
-/**
- * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
- * and whose `written' bytes have already been sent out.
- */
-http_buffer_t *
-http_buffer_alloc(const char *buf, size_t len, size_t written)
-{
-	http_buffer_t *b;
-
-	g_assert(buf);
-	g_assert(size_is_positive(len));
-	g_assert(written < len);
-
-	WALLOC(b);
-	b->magic = HTTP_BUFFER_MAGIC;
-	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
-	b->hb_len = len;
-	b->hb_end = b->hb_arena + len;
-	b->hb_rptr = b->hb_arena + written;
-
-	memcpy(b->hb_arena, buf, len);
-
-	return b;
-}
-
-/**
- * Dispose of HTTP buffer.
- */
-static void
-http_buffer_free(http_buffer_t *b)
-{
-	http_buffer_check(b);
-
-	wfree(b->hb_arena, b->hb_len);
-	b->magic = 0;
-	WFREE(b);
-}
-
-/**
- * Dispose of HTTP buffer and nullify its pointer.
- */
-void
-http_buffer_free_null(http_buffer_t **b_ptr)
-{
-	http_buffer_t *b = *b_ptr;
-
-	if (b != NULL) {
-		http_buffer_free(b);
-		*b_ptr = NULL;
-	}
-}
-
 /**
  * Parses the content of a Content-Range header.
  *
@@ -1171,7 +1115,7 @@ struct http_async {
 	void *user_opaque;				/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
-	pslist_t *delayed;				/**< Delayed data (list of http_buffer_t) */
+	pslist_t *delayed;				/**< Delayed data (list of pmsg_t) */
 	pslist_t *children;				/**< Child requests */
 	unsigned header_sent:1;			/**< Whether HTTP request header was sent */
 
@@ -1484,7 +1428,7 @@ http_async_free_recursive(http_async_t *ha)
 		pslist_t *sl;
 
 		PSLIST_FOREACH(ha->delayed, sl) {
-			http_buffer_free(sl->data);
+			pmsg_free(sl->data);
 		}
 		pslist_free_null(&ha->delayed);
 	}
@@ -2767,10 +2711,10 @@ http_async_write_request(void *data, int unused_source,
 {
 	http_async_t *ha = data;
 	struct gnutella_socket *s;
-	http_buffer_t *r;
+	pmsg_t *r;
 	ssize_t sent;
-	size_t rw;
-	char *base;
+	size_t rw, length = 0;
+	const char *base;
 
 	(void) unused_source;
 
@@ -2783,8 +2727,9 @@ http_async_write_request(void *data, int unused_source,
 next_buffer:
 
 	r = ha->delayed->data;
+	length += pmsg_phys_len(r);
 
-	http_buffer_check(r);
+	pmsg_check(r);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
@@ -2792,8 +2737,8 @@ next_buffer:
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
@@ -2802,19 +2747,18 @@ next_buffer:
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Data has been read back and sent */
 		return;
 	} else {
 		if (!ha->header_sent) {
 			ha->header_sent = TRUE;
 
 			/* Log HTTP request header sent so far */
-			(*ha->op_headsent)(ha, s,
-				http_buffer_base(r), http_buffer_length(r), TRUE);
+			(*ha->op_headsent)(ha, s, pmsg_phys_base(r), pmsg_phys_len(r), TRUE);
 		} else {
 			/* Log HTTP data sent so far */
 			(*ha->op_datasent)(ha, s,
-				http_buffer_base(r), http_buffer_length(r), TRUE);
+				pmsg_phys_base(r), pmsg_phys_len(r), TRUE);
 		}
 
 		g_assert(ha->header_sent);
@@ -2826,28 +2770,44 @@ next_buffer:
 		 * holds the data.
 		 */
 
-		ha->delayed = pslist_next(ha->delayed);
-		if (ha->delayed != NULL) {
-			http_buffer_free(r);
+		pmsg_free_null(&r);
+		(void) pslist_shift(&ha->delayed);
+
+		if (ha->delayed != NULL)
 			goto next_buffer;
-		}
 	}
 
 	/*
 	 * HTTP request was completely sent (header + data for POST).
 	 */
 
-	if (GNET_PROPERTY(http_debug))
-		g_warning("flushed partially written HTTP request to %s (%d bytes)",
-			host_addr_port_to_string(s->addr, s->port),
-			http_buffer_length(r));
+	if (GNET_PROPERTY(http_debug)) {
+		g_warning("flushed partially written HTTP request to %s (%zu bytes)",
+			host_addr_port_to_string(s->addr, s->port), length);
+	}
 
 	socket_evt_clear(s);
 
-	http_buffer_free(r);
-	ha->delayed = NULL;
+	g_assert(NULL == ha->delayed);
 
 	http_async_request_sent(ha);
+}
+
+/**
+ * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
+ * and whose `written' bytes have already been sent out.
+ *
+ * @returm message with read-pointer positionned to the first unsent byte.
+ */
+pmsg_t *
+http_pmsg_alloc(const char *buf, size_t len, size_t written)
+{
+	pmsg_t *mb;
+
+	mb = pmsg_new(PMSG_P_DATA, buf, len);	/* The whole data we had to send */
+	pmsg_discard(mb, written);				/* Discard the part we already sent */
+
+	return mb;
 }
 
 /**
@@ -2902,14 +2862,14 @@ http_async_connected(http_async_t *ha)
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
-		http_buffer_t *r;
+		pmsg_t *r;
 
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
 			host_addr_port_to_string(s->addr, s->port), (int) sent, (int) rw);
 
 		g_assert(ha->delayed == NULL);
 
-		r = http_buffer_alloc(req, rw, sent);
+		r = http_pmsg_alloc(req, rw, sent);
 		ha->delayed = pslist_append(ha->delayed, r);
 
 		/*
@@ -2917,7 +2877,7 @@ http_async_connected(http_async_t *ha)
 		 */
 
 		if (HTTP_POST == ha->type && ha->datalen != 0) {
-			r = http_buffer_alloc(ha->data, ha->datalen, 0);
+			r = http_pmsg_alloc(ha->data, ha->datalen, 0);
 			ha->delayed = pslist_append(ha->delayed, r);
 		}
 
@@ -2947,7 +2907,7 @@ http_async_connected(http_async_t *ha)
 			http_async_syserr(ha, errno);
 			return;
 		} else if ((size_t) sent < ha->datalen) {
-			http_buffer_t *r;
+			pmsg_t *r;
 
 			g_warning("partial HTTP data write to %s: "
 				"only %zu of %zu bytes sent",
@@ -2956,7 +2916,7 @@ http_async_connected(http_async_t *ha)
 
 			g_assert(ha->delayed == NULL);
 
-			r = http_buffer_alloc(ha->data, ha->datalen, sent);
+			r = http_pmsg_alloc(ha->data, ha->datalen, sent);
 			ha->delayed = pslist_append(ha->delayed, r);
 
 			/*

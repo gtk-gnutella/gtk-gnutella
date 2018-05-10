@@ -577,7 +577,7 @@ download_pipeline_free_null(struct dl_pipeline **dp_ptr)
 	if (dp != NULL) {
 		dl_pipeline_check(dp);
 
-		http_buffer_free_null(&dp->req);
+		pmsg_free_null(&dp->req);
 		pmsg_free_null(&dp->extra);
 		dp->magic = 0;
 		WFREE(dp);
@@ -4728,7 +4728,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
 	}
-	http_buffer_free_null(&d->req);
+	pmsg_free_null(&d->req);
 	if (d->cproxy) {
 		cproxy_free(d->cproxy);
 		d->cproxy = NULL;
@@ -5453,7 +5453,7 @@ download_remove(struct download *d)
 		download_by_sha1_remove(d);
 
 	http_rangeset_free_null(&d->ranges);
-	http_buffer_free_null(&d->req);
+	pmsg_free_null(&d->req);
 
 	/*
 	 * Let parq remove and free its allocated memory
@@ -13144,10 +13144,10 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct download *d = data;
 	struct gnutella_socket *s;
-	http_buffer_t *r;
+	pmsg_t *r;
 	ssize_t sent;
 	int rw;
-	char *base;
+	const char *base;
 
 	(void) unused_source;
 	download_check(d);
@@ -13156,7 +13156,7 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 	r = download_pipelining(d) ? d->pipeline->req : d->req;
 
 	g_assert(s->gdk_tag);		/* I/O callback still registered */
-	http_buffer_check(r);
+	pmsg_check(r);
 	g_assert(d->pipeline != NULL || GTA_DL_REQ_SENDING == d->status);
 	g_assert(NULL == d->pipeline || GTA_DL_PIPE_SENDING == d->pipeline->status);
 
@@ -13182,8 +13182,8 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
@@ -13200,15 +13200,15 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 		}
 		return;
 	} else if (sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Move start past the data we sent */
 		return;
 	} else if (GNET_PROPERTY(download_trace) & SOCK_TRACE_OUT) {
-		g_debug("----Sent Request (%s%s) completely to %s (%u bytes):",
+		g_debug("----Sent Request (%s%s) completely to %s (%zu bytes):",
 			download_pipelining(d) ? "pipelined " : "",
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			http_buffer_length(r));
-		dump_string(stderr, http_buffer_base(r), http_buffer_length(r), "----");
+			pmsg_phys_len(r));
+		dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
 	}
 
 	/*
@@ -13216,18 +13216,18 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 	 */
 
 	if (GNET_PROPERTY(download_debug)) {
-		g_debug("flushed partially written %sHTTP request to %s (%u bytes)",
+		g_debug("flushed partially written %sHTTP request to %s (%zu bytes)",
 			download_pipelining(d) ? "pipelined " : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
-			http_buffer_length(r));
+			pmsg_phys_len(r));
     }
 
 	socket_evt_clear(s);
 
 	if (download_pipelining(d)) {
-		http_buffer_free_null(&d->pipeline->req);
+		pmsg_free_null(&d->pipeline->req);
 	} else {
-		http_buffer_free_null(&d->req);
+		pmsg_free_null(&d->req);
 	}
 
 	download_request_sent(d);
@@ -13796,10 +13796,10 @@ picked:
 
 		if (download_pipelining(d)) {
 			g_assert(NULL == d->pipeline->req);
-			d->pipeline->req = http_buffer_alloc(request_buf, rw, sent);
+			d->pipeline->req = http_pmsg_alloc(request_buf, rw, sent);
 		} else {
 			g_assert(NULL == d->req);
-			d->req = http_buffer_alloc(request_buf, rw, sent);
+			d->req = http_pmsg_alloc(request_buf, rw, sent);
 		}
 
 		/*
@@ -16216,12 +16216,13 @@ download_get_hostname(const struct download *d)
 int
 download_get_http_req_percent(const struct download *d)
 {
-	const http_buffer_t *r;
+	const pmsg_t *r;
 
 	download_check(d);
 	r = d->req;
-	return (http_buffer_read_base(r) - http_buffer_base(r))
-				* 100 / http_buffer_length(r);
+	pmsg_check(r);
+
+	return (pmsg_start(r) - pmsg_phys_base(r)) * 100 / pmsg_phys_len(r);
 }
 
 /**

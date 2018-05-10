@@ -1425,7 +1425,7 @@ upload_free_resources(struct upload *u)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	HFREE_NULL(u->request);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
 	HFREE_NULL(u->sending_error);
 
     upload_free_handle(u->upload_handle);
@@ -4367,7 +4367,7 @@ static void
 upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct upload *u = data;
-	http_buffer_t *r;
+	pmsg_t *r;
 	gnutella_socket_t *s;
 	int rw;
 	const char *base;
@@ -4381,7 +4381,7 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 	r = u->reply;
 
 	g_assert(s->gdk_tag);		/* I/O callback is still registered */
-	http_buffer_check(r);
+	pmsg_check(r);
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
@@ -4389,23 +4389,22 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		upload_remove(u, "%s: %s", msg, g_strerror(errno));
 		return;
 	} else if (sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Move start past the data we sent */
 		u->last_update = tm_time();
 		return;
 	} else {
 		if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
-			g_debug("----Sent HTTP status completely to %s (%u bytes):",
-				host_addr_to_string(s->addr), http_buffer_length(r));
-			dump_string(stderr,
-				http_buffer_base(r), http_buffer_length(r), "----");
+			g_debug("----Sent HTTP status completely to %s (%zu bytes):",
+				host_addr_to_string(s->addr), pmsg_phys_len(r));
+			dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
 		}
 	}
 
@@ -4415,14 +4414,14 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 
 	if (GNET_PROPERTY(upload_debug)) {
 		int code =
-			http_status_parse(http_buffer_base(r), "HTTP", NULL, NULL, NULL);
+			http_status_parse(pmsg_phys_base(r), "HTTP", NULL, NULL, NULL);
 
-		g_debug("flushed partially written HTTP %d status to %s (%u bytes)",
-			code, host_addr_to_string(s->addr), http_buffer_length(r));
+		g_debug("flushed partially written HTTP %d status to %s (%zu bytes)",
+			code, host_addr_to_string(s->addr), pmsg_phys_len(r));
 	}
 
 	socket_evt_clear(s);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
 
 	upload_http_status_sent(u);
 }
@@ -4444,7 +4443,7 @@ upload_http_status_partially_sent(
 	upload_check(u);
 	g_assert(NULL == u->reply);
 
-	u->reply = http_buffer_alloc(data, len, sent);
+	u->reply = http_pmsg_alloc(data, len, sent);
 	u->last_update = tm_time();
 
 	/*

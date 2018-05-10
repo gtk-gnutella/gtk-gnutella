@@ -42,6 +42,7 @@
 
 #include "lib/host_addr.h"
 #include "lib/header.h"
+#include "lib/pmsg.h"
 
 #define HTTP_PORT		80		/**< Registered HTTP port */
 
@@ -247,34 +248,6 @@ extern http_url_error_t http_url_errno;
 typedef void (*http_state_change_t)(http_async_t *, http_state_t newstate);
 
 /**
- * HTTP data buffered when it cannot be sent out immediately.
- */
-
-enum http_buffer_magic { HTTP_BUFFER_MAGIC = 0x5613d362U };
-
-typedef struct http_buffer {
-	enum http_buffer_magic magic;
-	char *hb_arena;				/**< The whole thing */
-	char *hb_rptr;				/**< Reading pointer within arena */
-	char *hb_end;				/**< First char after buffer */
-	int hb_len;					/**< Total arena length */
-} http_buffer_t;
-
-#define http_buffer_base(hb)		((hb)->hb_arena)
-#define http_buffer_length(hb)		((hb)->hb_len)
-#define http_buffer_read_base(hb)	((hb)->hb_rptr)
-#define http_buffer_unread(hb)		((hb)->hb_end - (hb)->hb_rptr)
-
-#define http_buffer_add_read(hb,tx)	do { (hb)->hb_rptr += (tx); } while (0)
-
-static inline void
-http_buffer_check(const http_buffer_t * const b)
-{
-	g_assert(b != NULL);
-	g_assert(HTTP_BUFFER_MAGIC == b->magic);
-}
-
-/**
  * Callback used when http_async_wget() completes.
  *
  * @param data		the retrieved data, NULL on error, freed with hfree().
@@ -308,6 +281,8 @@ typedef void (*http_send_status_cb_t)(
  * Public interface
  */
 
+pmsg_t *http_pmsg_alloc(const char *buf, size_t len, size_t written);
+
 void http_timer(time_t now);
 
 bool http_send_status(http_layer_t layer, struct gnutella_socket *s,
@@ -325,9 +300,6 @@ int http_status_parse(const char *line,
 
 bool http_extract_version(
 	const char *request, size_t len, uint *major, uint *minor);
-
-http_buffer_t *http_buffer_alloc(const char *buf, size_t len, size_t written);
-void http_buffer_free_null(http_buffer_t **b_ptr);
 
 int
 http_content_range_parse(const char *buf,

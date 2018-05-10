@@ -42,6 +42,8 @@
 #include "hcache.h"
 #include "http.h"
 
+#include "lib/pmsg.h"
+
 #include "if/core/uploads.h"
 
 struct dl_file_info;
@@ -80,7 +82,7 @@ struct upload {
 	struct sendfile_ctx sendfile_ctx;
 
 	char *request;
-	http_buffer_t *reply;			/**< HTTP reply, when partially sent */
+	pmsg_t *reply;					/**< HTTP reply, when partially sent */
 	struct upload_http_cb cb_parq_arg;
 	struct upload_http_cb cb_sha1_arg;
 	struct upload_http_cb cb_416_arg;
