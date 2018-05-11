@@ -269,6 +269,7 @@ buf_resize(buf_t *b, size_t size)
 {
 	buf_check(b);
 	g_assert(BUF_MAGIC_PRIVATE != b->b_magic);
+	g_assert(BUF_MAGIC_STATIC != b->b_magic);
 
 	return buf_resize_internal(b, size);
 }
@@ -287,6 +288,7 @@ buf_grow(buf_t *b, size_t total)
 {
 	buf_check(b);
 	g_assert(BUF_MAGIC_PRIVATE != b->b_magic);
+	g_assert(BUF_MAGIC_STATIC != b->b_magic);
 
 	if G_LIKELY(b->b_size >= total)
 		return b;
