@@ -531,7 +531,7 @@ mts_rand64_internal(register mt_state_t *mts)
 	rn2 = mts->vec[--mts->sp];
 	MT_PRE_TEMPER(rn2);
 
-	return ((uint64) rn1 << 32) | (uint64) MT_FINAL_TEMPER(rn2);
+	return UINT64_VALUE(rn1, MT_FINAL_TEMPER(rn2));
 }
 
 /**

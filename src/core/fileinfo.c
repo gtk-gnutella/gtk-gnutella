@@ -2161,10 +2161,10 @@ G_STMT_START {				\
 					g_assert(version >= 6);
 					hi = ntohl(tmpchunk[0]);
 					lo = ntohl(tmpchunk[1]);
-					fc->from = (hi << 32) | lo;
+					fc->from = UINT64_VALUE(hi, lo);
 					hi = ntohl(tmpchunk[2]);
 					lo = ntohl(tmpchunk[3]);
-					fc->to = (hi << 32) | lo;
+					fc->to = UINT64_VALUE(hi, lo);
 					fc->status = ntohl(tmpchunk[4]);
 				}
 

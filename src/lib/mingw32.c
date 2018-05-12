@@ -5128,7 +5128,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
+	v = UINT64_VALUE(ft->dwHighDateTime, ft->dwLowDateTime) / 10;
 	v -= offset;
 	tv->tv_usec = v % TM_MILLION;
 	v /= TM_MILLION;

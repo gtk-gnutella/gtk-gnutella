@@ -426,7 +426,7 @@ well_state_merge_random(well_state_t *ws, const void *data, size_t len)
 static uint64
 well_rand64_internal(well_state_t *ws)
 {
-	return ((uint64) well_rand_internal(ws) << 32) | well_rand_internal(ws);
+	return UINT64_VALUE(well_rand_internal(ws), well_rand_internal(ws));
 }
 
 /**

@@ -288,7 +288,7 @@ cmwc_state_merge_random(cmwc_state_t *cs, const void *data, size_t len)
 static uint64
 cmwc_rand64_internal(cmwc_state_t *cs)
 {
-	return ((uint64) cmwc_rand_internal(cs) << 32) | cmwc_rand_internal(cs);
+	return UINT64_VALUE(cmwc_rand_internal(cs), cmwc_rand_internal(cs));
 }
 
 /**

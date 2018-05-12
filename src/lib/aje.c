@@ -835,7 +835,7 @@ aje_rand64_internal(register aje_state_t *as)
 
 	rn2 = as->vec[--as->sp];
 
-	return ((uint64) rn1 << 32) | (uint64) rn2;
+	return UINT64_VALUE(rn1, rn2);
 }
 
 /**
