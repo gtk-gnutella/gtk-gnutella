@@ -251,6 +251,27 @@
 	((t) -MAX_INT_VAL(t) - 1)
 
 /*
+ * These macros computes the maximum/minimum signed/unsigned value of the
+ * given variable.
+ *
+ * We cannot determine whether the variable can hold a signed or unsigned value,
+ * hence we MAX_UINT_VALUE() is for unsigned variables and MAX_INT_VALUE() for
+ * signed ones.
+ *
+ * There is no MIN_UINT_VALUE(), because that value is 0...
+ *
+ * Note that the macros can also work when the argument is a type.
+ */
+
+#define MAX_UINT_VALUE(v)									\
+	(sizeof(v) >= sizeof(uint64) ?							\
+		(uint64) -1 :										\
+		((uint64) 1 << (sizeof(v) * CHAR_BIT)) - 1)
+
+#define MAX_INT_VALUE(v)	(MAX_UINT_VALUE(v) >> 1)
+#define MIN_INT_VALUE(v)	(-(int64) MAX_INT_VALUE(v) - 1)
+
+/*
  * For pedantic lint checks, define USE_LINT. We override some definitions
  * and hide ``inline'' to prevent certain useless warnings.
  */
@@ -654,6 +675,11 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 	((uint32) (uchar) ((b) & 0xffU) << 16) | \
 	((uint32) (uchar) ((c) & 0xffU) << 8)  | \
 	((uint32) (uchar) ((d) & 0xffU)))
+
+/**
+ * Composes an unsigned 64-bit value from high and low 32-bit parts.
+ */
+#define UINT64_VALUE(h,l)	(((uint64) (h) << 32) | (uint64) (l))
 
 /**
  * Zero memory used by structure pointed at.
