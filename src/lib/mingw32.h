@@ -544,6 +544,7 @@ int mingw_unlink(const char *pathname);
 fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
 int mingw_truncate(const char *pathname, fileoffset_t len);
+int mingw_ftruncate(int fd, fileoffset_t len);
 int mingw_mkdir(const char *pathname, mode_t mode);
 int mingw_rmdir(const char *pathname);
 int mingw_access(const char *pathname, int mode);
