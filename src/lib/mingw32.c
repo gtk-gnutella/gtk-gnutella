@@ -3384,6 +3384,8 @@ mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
+	size_t len;
+	const char exe[] = ".exe";
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
@@ -3401,8 +3403,10 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		 */
 
 		if (ENOENT == errno) {
-			size_t len = strlen(pathname);
-			const char *p = &pathname[len - 1];
+			const char *p;
+		   
+			len = strlen(pathname);
+			p = &pathname[len - 1];
 
 			if (len <= 1)
 				goto nofix;		/* A simple "/" would have worked */
@@ -3412,7 +3416,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			else if ('.' == *p && '/' == p[-1])
 				len -= 2;
 			else
-				goto nofix;
+				goto exefix;	/* See whether we try to stat() an executable */
 
 			/*
 			 * In a signal handler, don't allocate memory.
@@ -3435,7 +3439,43 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		}
 	}
 
+	/* FALL THROUGH */
+
 nofix:
+	return res;
+
+exefix:
+	/*
+	 * Maybe the are stat()ing "foo" but "foo.exe" exists?
+	 *
+	 * In which case we want to transparently succeed by stat()ing the
+	 * executable instead!
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (is_strsuffix(pathname, len, exe))
+		goto nofix;		/* Already had the trailing .exe in path */
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_unsafe_handler()) {
+		static char path[MAX_PATH_LEN];
+
+		clamp_strncpy(ARYLEN(path), pathname, len);
+		clamp_strcat(ARYLEN(path), exe);
+		if (0 == pncs_convert(&pncs, path))
+			res = _wstati64(pncs.utf16, buf);
+	} else {
+		char *fixed;
+
+		fixed = h_strconcat(pathname, exe, NULL);
+		if (0 == pncs_convert(&pncs, fixed))
+			res = _wstati64(pncs.utf16, buf);
+		hfree(fixed);
+	}
+
 	return res;
 }
 
