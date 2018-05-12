@@ -204,7 +204,22 @@ typedef struct processor_power_information {
 extern bool vmm_is_debugging(uint32 level);
 
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
-WSAPoll_func_t WSAPoll = NULL;
+static WSAPoll_func_t WSAPoll;
+
+/*
+ * Support for GetFileInformationByHandleEx() only comes with VISTA.
+ */
+
+static once_flag_t mingw_gfibhe_inited;
+typedef BOOL (WINAPI *GetFileInformationByHandleEx_t)(HANDLE, int, LPVOID, DWORD);
+static GetFileInformationByHandleEx_t GetFileInformationByHandleEx;
+
+#define FileNameInfo 2
+
+typedef struct _FILE_NAME_INFO {
+	DWORD FileNameLength;
+	WCHAR FileName[1];
+} FILE_NAME_INFO;
 
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *mingw_debug_lf;
@@ -3379,6 +3394,242 @@ mingw_pipe(int fd[2])
 	return res;
 }
 
+static void
+mingw_copy_stat_struct(const struct _stati64 *nbuf, filestat_t *buf)
+{
+#define C(x)	buf->st_ ## x = nbuf->st_ ## x
+
+	C(dev);
+	C(ino);
+	C(mode);
+	C(nlink);
+	C(uid);
+	C(gid);
+	C(rdev);
+	C(size);
+	C(atime);
+	C(mtime);
+	C(ctime);
+
+	/*
+	 * Fake these on Windows.
+	 *
+	 * These are not even present in the _stati64 structure, but some C code
+	 * may depend on these fields being set properly, so compute some meaningful
+	 * values.
+	 */
+
+	buf->st_blksize = 131072;				/* magic "random" number */
+	buf->st_blocks = nbuf->st_size >> 9;	/* # of 512B blocks allocated */
+	if (nbuf->st_size & ((1 << 9) - 1))		/* partial trailing block? */
+		buf->st_blocks++;
+
+#undef C
+}
+
+/**
+ * Initialize the GetFileInformationByHandleEx pointer, once, by probing
+ * the kernel libraray.
+ *
+ * Indeed, the GetFileInformationByHandleEx() routine is only available
+ * starting with VISTA, which comes between XP and WIN7.
+ */
+static void
+mingw_gfibhe_init(void)
+{
+	HMODULE kernel32 = LoadLibrary("kernel32.dll");
+
+	if (kernel32 != NULL) {
+		GetFileInformationByHandleEx = (GetFileInformationByHandleEx_t)
+			GetProcAddress(kernel32, "GetFileInformationByHandleEx");
+	}
+}
+
+static bool
+mingw_fix_statbuf(HANDLE h,
+	const struct _stati64 *nbuf, bool is_fstat,
+	filestat_t *buf)
+{
+	BY_HANDLE_FILE_INFORMATION fi;
+	bool ok;
+	DWORD type = GetFileType(h);
+
+	mingw_copy_stat_struct(nbuf, buf);
+
+	/*
+	 * We only know how to fix the buffer for disk files and pipes.
+	 */
+
+	if G_UNLIKELY(FILE_TYPE_PIPE == type) {
+		DWORD pending;
+
+		if (PeekNamedPipe(h, NULL, 0, NULL, &pending, NULL))
+			buf->st_size = pending;
+
+		/* Silenetly ignore errors on PeekNamedPipe() */
+
+		return TRUE;
+	}
+
+	if (FILE_TYPE_DISK != type)
+		return TRUE;
+
+	ok = 0 != GetFileInformationByHandle(h, &fi);
+
+	if (ok) {
+		buf->st_dev = (uint) fi.dwVolumeSerialNumber;
+		buf->st_ino = UINT64_VALUE(fi.nFileIndexHigh, fi.nFileIndexLow);
+
+		/*
+		 * This computation sometimes yields the wrong results: for a file
+		 * on a remote SMB share with 2 links, it sometimes gives back 2,
+		 * but sometimes it returns 1.
+		 *
+		 * Hence disabling it, as we disabled the code further below that
+		 * attempts to correct it for fstat() calls.
+		 * 		--RAM, 2018-05-13
+		 */
+
+#if 0
+		buf->st_nlink = MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+#endif
+	}
+
+	/*
+	 * Always clear the trailing bits in mode that cannot be set on Windows
+	 * (the 6 trailing bits corresponding to "other" permissions) and that we
+	 * cannot check for.
+	 *
+	 * Our runtime remaps S_IxGRP to S_IxUSR and S_IxOTH tests are meaningless.
+	 * Hence it does not make sense to keep these trailing bits.
+	 */
+
+	buf->st_mode &= ~0x3f;
+
+	/*
+	 * If coming from fstat(), then we need to query for the underlying
+	 * file name to check whether it is an executable, in order to restore
+	 * the executable bits in the mode.
+	 *
+	 * Unfortunately, GetFileInformationByHandleEx() is not available on XP:
+	 * it starts with VISTA, hence the contorsions below since we are compiling
+	 * on Windows XP and therefore do not have the right compile-time support.
+	 */
+
+	if (is_fstat && S_ISREG(buf->st_mode)) {
+		ONCE_FLAG_RUN(mingw_gfibhe_inited, mingw_gfibhe_init);
+
+		if (GetFileInformationByHandleEx != NULL) {
+			size_t len = MAX_PATH_LEN * sizeof(wchar_t) + sizeof(FILE_NAME_INFO);
+			void *b = walloc0(len);
+			FILE_NAME_INFO *fni = NULL;
+
+			if (GetFileInformationByHandleEx(h, FileNameInfo, b, len))
+				fni = b;
+
+			/*
+			 * Look for an "executable" extension in the file name.
+			 */
+
+			if (fni != NULL) {
+				size_t len8;		/* UTF-8 length */
+				char *n8;			/* UTF-8 file name */
+
+				/* Convert back the UTF-16 into UTF-8 */
+
+				len8 = 1 + utf16_to_utf8(fni->FileName, NULL, 0);
+				n8 = walloc(len8);
+				(void) utf16_to_utf8(fni->FileName, n8, len8);
+
+				/* Assume case-independance for extensions */
+
+				if (
+					is_strcasesuffix(n8, len8 - 1, ".exe") ||
+					is_strcasesuffix(n8, len8 - 1, ".bat") ||
+					is_strcasesuffix(n8, len8 - 1, ".com") ||
+					is_strcasesuffix(n8, len8 - 1, ".cmd")
+				)
+					buf->st_mode |= S_IXUSR;
+
+				wfree(n8, len8);
+			}
+
+			/*
+			 * Compute the proper number of links by stat()-ing the file.
+			 *
+			 * FIXME:
+			 * Unfortunately, this is unreliable and can return a
+			 * different value from time to time when dealing with
+			 * files on a remote volume shared by SMB.
+			 * This is disturbing...
+			 *
+			 * On Windows, regardless of NTFS supporting links, it seems
+			 * that the st_nlink value is unreliable.
+			 *
+			 * Therefore, disabling this code for now.
+			 * 		--RAM, 2018-05-13
+			 */
+
+#if 0	/* Disabled because results are unreliable */
+			if (fni != NULL) {
+				HANDLE dh;
+
+				dh = CreateFileW(fni->FileName, FILE_READ_ATTRIBUTES,
+						FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+						NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+				if (
+					INVALID_HANDLE_VALUE != dh &&
+					GetFileInformationByHandle(dh, &fi)
+				) {
+					buf->st_nlink =
+						MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+				}
+
+				CloseHandle(dh);
+			}
+#endif	/* Disabled because results are unreliable */
+
+			wfree(b, len);
+		}
+	}
+
+	return ok;
+}
+
+static bool
+mingw_fix_fstat(HANDLE h, const struct _stati64 *nbuf, filestat_t *buf)
+{
+	return mingw_fix_statbuf(h, nbuf, TRUE, buf);
+}
+
+static bool
+mingw_fix_stat(const wchar_t *pathname,
+	const struct _stati64 *nbuf, filestat_t *buf)
+{
+	HANDLE h;
+	bool ok;
+
+	/*
+	 * The given pathname is expected to already be UTF-16.
+	 *
+	 * We need FILE_FLAG_BACKUP_SEMANTICS to be able to obtain a handle
+	 * on a directory.
+	 */
+
+	h = CreateFileW(pathname, FILE_READ_ATTRIBUTES,
+			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+	if (INVALID_HANDLE_VALUE == h)
+		return FALSE;
+
+	ok = mingw_fix_statbuf(h, nbuf, FALSE, buf);
+	CloseHandle(h);
+
+	return ok;
+}
+
 int
 mingw_stat(const char *pathname, filestat_t *buf)
 {
@@ -3386,11 +3637,12 @@ mingw_stat(const char *pathname, filestat_t *buf)
 	int res;
 	size_t len;
 	const char exe[] = ".exe";
+	struct _stati64 nbuf;
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
-	res = _wstati64(pncs.utf16, buf);
+	res = _wstati64(pncs.utf16, &nbuf);
 	if (-1 == res) {
 		errno = mingw_last_error();
 
@@ -3427,13 +3679,13 @@ mingw_stat(const char *pathname, filestat_t *buf)
 
 				clamp_strncpy(ARYLEN(path), pathname, len);
 				if (0 == pncs_convert(&pncs, path))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 			} else {
 				char *fixed;
 
 				fixed = h_strndup(pathname, len);
 				if (0 == pncs_convert(&pncs, fixed))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 				hfree(fixed);
 			}
 		}
@@ -3442,6 +3694,18 @@ mingw_stat(const char *pathname, filestat_t *buf)
 	/* FALL THROUGH */
 
 nofix:
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res && !mingw_fix_stat(pncs.utf16, &nbuf, buf)) {
+		s_carp("%s(): cannot fix information correctly for \"%s\"",
+			G_STRFUNC, pathname);
+	}
+
 	return res;
 
 exefix:
@@ -3466,27 +3730,40 @@ exefix:
 		clamp_strncpy(ARYLEN(path), pathname, len);
 		clamp_strcat(ARYLEN(path), exe);
 		if (0 == pncs_convert(&pncs, path))
-			res = _wstati64(pncs.utf16, buf);
+			res = _wstati64(pncs.utf16, &nbuf);
 	} else {
 		char *fixed;
 
 		fixed = h_strconcat(pathname, exe, NULL);
 		if (0 == pncs_convert(&pncs, fixed))
-			res = _wstati64(pncs.utf16, buf);
+			res = _wstati64(pncs.utf16, &nbuf);
 		hfree(fixed);
 	}
 
-	return res;
+	goto nofix;
 }
 
 int
 mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
+	struct _stati64 nbuf;
 
-	res = _fstati64(fd, buf);
+	res = _fstati64(fd, &nbuf);
 	if (-1 == res)
 		errno = mingw_last_error();
+
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res && !mingw_fix_fstat((HANDLE) _get_osfhandle(fd), &nbuf, buf)) {
+		s_carp("%s(): cannot fix information correctly for fd #%d",
+			G_STRFUNC, fd);
+	}
 
 	return res;
 }
@@ -5860,57 +6137,6 @@ bool
 mingw_stdin_pending(bool fifo)
 {
 	return fifo ? mingw_fifo_pending(STDIN_FILENO) : booleanize(_kbhit());
-}
-
-/**
- * Get file ID.
- *
- * @return TRUE on success.
- */
-static bool
-mingw_get_file_id(const char *pathname, uint64 *id)
-{
-	HANDLE h;
-	BY_HANDLE_FILE_INFORMATION fi;
-	bool ok;
-	pncs_t pncs;
-
-	if (pncs_convert(&pncs, pathname))
-		return FALSE;
-
-	h = CreateFileW(pncs.utf16, 0,
-			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-			NULL, OPEN_EXISTING, 0, NULL);
-
-	if (INVALID_HANDLE_VALUE == h)
-		return FALSE;
-
-	ok = 0 != GetFileInformationByHandle(h, &fi);
-	CloseHandle(h);
-
-	if (!ok)
-		return FALSE;
-
-	*id = (uint64) fi.nFileIndexHigh << 32 | (uint64) fi.nFileIndexLow;
-
-	return TRUE;
-}
-
-/**
- * Are the two files sharing the same file ID?
- */
-bool
-mingw_same_file_id(const char *pathname_a, const char *pathname_b)
-{
-	uint64 ia, ib;
-
-	if (!mingw_get_file_id(pathname_a, &ia))
-		return FALSE;
-
-	if (!mingw_get_file_id(pathname_b, &ib))
-		return FALSE;
-
-	return ia == ib;
 }
 
 /**

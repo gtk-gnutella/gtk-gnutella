@@ -979,6 +979,7 @@ src/lib/spopen.c
 src/lib/spopen.h
 src/lib/stacktrace.c
 src/lib/stacktrace.h
+src/lib/stat-test.c
 src/lib/stats.c
 src/lib/stats.h
 src/lib/str.c

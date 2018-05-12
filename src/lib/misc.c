@@ -472,16 +472,7 @@ is_same_file(const char *pathname_a, const char *pathname_b)
 	if (stat(pathname_b, &sb_b))
 		return -1;
 
-	/*
-	 * On Windows there is no concept of inode number.
-	 */
-
-#ifdef MINGW32
-	return sb_a.st_dev == sb_b.st_dev &&
-		mingw_same_file_id(pathname_a, pathname_b);
-#else
 	return sb_a.st_dev == sb_b.st_dev && sb_a.st_ino == sb_b.st_ino;
-#endif
 }
 
 /**

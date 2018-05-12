@@ -353,6 +353,7 @@ NormalTestTarget(launch)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(spopen)
+NormalTestTarget(stat)
 NormalTestTarget(thread)
 
 #define LinkGenInterface(file)	@!\

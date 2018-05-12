@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -696,6 +696,17 @@ spopen-test:  spopen-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  spopen-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: stat-test
+
+local_realclean::
+	$(RM) stat-test$(_EXE)
+
+stat-test:  stat-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  stat-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 
