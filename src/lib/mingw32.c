@@ -622,7 +622,6 @@ mingw_win2posix(int error)
 	case ERROR_INVALID_FUNCTION:
 		return ENOSYS;
 	case ERROR_FILE_NOT_FOUND:
-		return ENOFILE;
 	case ERROR_PATH_NOT_FOUND:
 		return ENOENT;
 	case ERROR_TOO_MANY_OPEN_FILES:
