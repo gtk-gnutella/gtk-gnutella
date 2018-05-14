@@ -657,6 +657,7 @@ mingw_win2posix(int error)
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
+	case ERROR_BAD_PATHNAME:		/* Invalid pathname */
 		return EINVAL;
 	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
 		return ENOTDIR;				/* Seems the closest mapping */
@@ -692,6 +693,10 @@ mingw_win2posix(int error)
 	case ERROR_SEEK:
 	case ERROR_NOT_DOS_DISK:
 	case ERROR_SECTOR_NOT_FOUND:
+	case ERROR_GEN_FAILURE:
+	case ERROR_WRONG_DISK:
+	case ERROR_SHARING_BUFFER_EXCEEDED:
+	case ERROR_DEVICE_REMOVED:
 		return EIO;
 	case ERROR_OUT_OF_PAPER:
 		return ENOSPC;
@@ -699,10 +704,6 @@ mingw_win2posix(int error)
 	case ERROR_READ_FAULT:
 	case ERROR_NOACCESS:		/* Invalid access to memory location */
 		return EFAULT;
-	case ERROR_GEN_FAILURE:
-	case ERROR_WRONG_DISK:
-	case ERROR_SHARING_BUFFER_EXCEEDED:
-		return EIO;
 	case ERROR_HANDLE_EOF:
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
