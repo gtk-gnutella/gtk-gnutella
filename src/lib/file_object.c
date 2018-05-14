@@ -827,9 +827,9 @@ file_object_special_op(enum file_object_op op,
 		 * without first taking the lock.
 		 */
 
-		hikset_remove(file_descriptors, fd->pathname);
+		file_object_remove(fd);
 		atom_str_change(&fd->pathname, new_name);
-		hikset_insert(file_descriptors, fd);
+		file_object_insert(fd);
 	} else {
 		/*
 		 * Revoke the file descriptor on unlinking.
