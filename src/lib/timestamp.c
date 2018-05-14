@@ -98,7 +98,11 @@ timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 	g_assert(size > 0);
 	tm = gmtime(&date);
 	len = strftime(dst, size, "%Y-%m-%d %H:%M:%SZ", tm);
-	dst[len] = '\0';		/* Be really sure */
+
+	if (len < size)
+		dst[len] = '\0';		/* Be really sure */
+	else
+		dst[size - 1] = '\0';	/* Paranoid: should never happen */
 
 	return len;
 }
@@ -151,7 +155,11 @@ timestamp_to_string_buf(time_t date, char *dst, size_t size)
 	g_assert(size > 0);
 	tm = localtime(&date);
 	len = strftime(dst, size, "%Y-%m-%d %H:%M:%S", tm);
-	dst[len] = '\0';		/* Be really sure */
+
+	if (len < size)
+		dst[len] = '\0';		/* Be really sure */
+	else
+		dst[size - 1] = '\0';	/* Paranoid: should never happen */
 
 	return len;
 }
