@@ -7746,11 +7746,21 @@ static int mingw_dl_error;
 /**
  * Return a human readable string describing the most recent error
  * that occurred.
+ *
+ * It returns NULL if no errors have occurred since initialization
+ * or since it was last called.
  */
 const char *
 mingw_dlerror(void)
 {
-	return g_strerror(mingw_dl_error);
+	int e = mingw_dl_error;
+
+	if (0 == e)
+		return NULL;
+
+	mingw_dl_error = 0;
+
+	return g_strerror(e);
 }
 
 /**
@@ -7779,6 +7789,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 	size_t pathsz = buf_size(b);
 	buf_t *name = buf_private("mingw_dladdr:name", 255);
 	time_t now;
+	int error = 0;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
 	DWORD disp = 0;
@@ -7826,12 +7837,11 @@ mingw_dladdr(void *addr, Dl_info *info)
 			SymCleanup(process);
 
 		if (!SymInitialize(process, NULL, TRUE)) {
-			mingw_dl_error = GetLastError();
-			s_warning("SymInitialize() failed: error = %d (%s)",
-				mingw_dl_error, mingw_dlerror());
+			error = mingw_dl_error = GetLastError();
+			s_warning("%s(): SymInitialize() failed: error = %d (%s)",
+				G_STRFUNC, mingw_dl_error, g_strerror(error));
 		} else {
 			initialized = TRUE;
-			mingw_dl_error = 0;
 		}
 
 		last_init = now;
@@ -7841,7 +7851,7 @@ mingw_dladdr(void *addr, Dl_info *info)
 skip_init:
 	ZERO(info);
 
-	if (0 != mingw_dl_error)
+	if (0 != error)
 		return 0;		/* Signals error */
 
 	if (NULL == addr)
