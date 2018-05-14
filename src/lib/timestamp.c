@@ -54,6 +54,9 @@
 time_delta_t
 diff_tm(const struct tm *a, const struct tm * b)
 {
+	g_assert(a != NULL);
+	g_assert(b != NULL);
+
 	/*
 	 * Compute intervening leap days correctly even if year is negative.
 	 * Take care to avoid int overflow in leap day calculations,
@@ -97,7 +100,13 @@ timestamp_utc_to_string_buf(time_t date, char *dst, size_t size)
 
 	g_assert(size > 0);
 	tm = gmtime(&date);
-	len = strftime(dst, size, "%Y-%m-%d %H:%M:%SZ", tm);
+
+	if (NULL == tm) {
+		s_carp("%s(): given invalid date %lu", G_STRFUNC, date);
+		len = clamp_strcpy(dst, size, "INVALID DATE");
+	} else {
+		len = strftime(dst, size, "%Y-%m-%d %H:%M:%SZ", tm);
+	}
 
 	if (len < size)
 		dst[len] = '\0';		/* Be really sure */
@@ -154,7 +163,13 @@ timestamp_to_string_buf(time_t date, char *dst, size_t size)
 
 	g_assert(size > 0);
 	tm = localtime(&date);
-	len = strftime(dst, size, "%Y-%m-%d %H:%M:%S", tm);
+
+	if (NULL == tm) {
+		s_carp("%s(): given invalid date %lu", G_STRFUNC, date);
+		len = clamp_strcpy(dst, size, "INVALID DATE");
+	} else {
+		len = strftime(dst, size, "%Y-%m-%d %H:%M:%S", tm);
+	}
 
 	if (len < size)
 		dst[len] = '\0';		/* Be really sure */
@@ -219,11 +234,21 @@ timestamp_gmt_offset(time_t date, struct tm **tm_ptr)
 	struct tm gmt_tm;
 
 	tm = gmtime(&date);
+
+	if (NULL == tm) {
+		s_carp("%s(): given invalid date %lu", G_STRFUNC, date);
+		if (tm_ptr != NULL)
+			*tm_ptr = NULL;
+		return 0;
+	}
+
 	gmt_tm = *tm;					/* struct copy */
 	tm = localtime(&date);
 
 	if (tm_ptr != NULL)
 		*tm_ptr = tm;
+
+	g_return_val_unless(tm != NULL, 0);
 
 	return diff_tm(tm, &gmt_tm);	/* in seconds */
 }
@@ -270,6 +295,9 @@ timestamp_rfc822_to_string_buf(time_t date, char *buf, size_t size)
 		gmt_off = -gmt_off;
 	} else
 		sign = '+';
+
+	if (NULL == tm)
+		return clamp_strcpy(buf, size, "INVALID DATE");
 
 	return str_bprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d %c%04d",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
@@ -326,6 +354,12 @@ timestamp_rfc1123_to_string_buf(time_t date, char *buf, size_t size)
 
 	g_assert(size > 0);
 	tm = gmtime(&date);
+
+	if (NULL == tm) {
+		s_carp("%s(): given invalid date %lu", G_STRFUNC, date);
+		return clamp_strcpy(buf, size, "INVALID DATE");
+	}
+
 	return str_bprintf(buf, size, "%s, %02d %s %04d %02d:%02d:%02d GMT",
 		days[tm->tm_wday], tm->tm_mday, months[tm->tm_mon], tm->tm_year + 1900,
 		tm->tm_hour, tm->tm_min, tm->tm_sec);
