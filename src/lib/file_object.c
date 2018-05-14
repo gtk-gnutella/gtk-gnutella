@@ -49,6 +49,12 @@
  * fstat(). However this is not necessarily the same file referenced by the
  * file object.
  *
+ * To mitigate the above risks, the file_object_find() routine checks whether
+ * the cached file descriptor matches the pathname and will loudly warn if we
+ * detect a mismatch (based on the st_dev and st_ino values).  From 2018-05-13,
+ * this was made possible by making sure the Windows version of stat() and
+ * fstat() return meaningful st_dev and st_ino values, and not just zero!
+ *
  * The current offset is shared that means, you should always use pread()
  * instead of read(), pwrite() instead of write() etc. The replacement
  * functions -- compat_pread() and compat_pwrite() -- do not restore the
@@ -99,6 +105,7 @@
 #include "pslist.h"
 #include "spinlock.h"
 #include "str.h"			/* For str_private() */
+#include "stringify.h"		/* For uint64_to_string() */
 #include "walloc.h"
 
 #include "override.h"       /* Must be the last header included */
@@ -200,20 +207,6 @@ file_object_mode_to_string(const int mode)
 }
 
 /**
- * Lookup file decriptor in the table.
- *
- * @param pathname		path to file for which we want a file descriptor
- *
- * @return found file descriptor, NULL if not found
- */
-static inline struct file_descriptor *
-file_object_lookup(const char * const pathname)
-{
-	assert_file_objects_locked();
-	return hikset_lookup(file_descriptors, pathname);
-}
-
-/**
  * Insert file descriptor in the table.
  *
  * @param fd		the file descriptor to insert
@@ -252,13 +245,36 @@ file_object_find(const char * const pathname)
 	g_return_val_if_fail(pathname != NULL, NULL);
 	g_return_val_if_fail(is_absolute_path(pathname), NULL);
 
-	fd = file_object_lookup(pathname);
+	fd = hikset_lookup(file_descriptors, pathname);
 
 	if (fd != NULL) {
+		filestat_t fbuf, pbuf;
+
 		file_descriptor_check(fd);
 		g_assert(is_valid_fd(fd->fd));
 		g_assert(fd_accmode_is_valid(fd->fd, fd->omode));
 		g_assert(!fd->revoked);
+
+		/*
+		 * Check that we are still referencing the same file we initially opened
+		 * and loudly complain if we cannot check it or we spot a mismatch.
+		 * 		--RAM, 2018-05-14
+		 */
+
+		if (-1 == fstat(fd->fd, &fbuf)) {
+			s_warning("%s(): cannot fstat() fd #%d: %m", G_STRFUNC, fd->fd);
+			s_warning("%s(): cannot check that \"%s\" is still fd #%d",
+				G_STRFUNC, pathname, fd->fd);
+		} else if (-1 == stat(pathname, &pbuf)) {
+			s_carp("%s(): reusing fd #%d for \"%s\" blindly: cannot stat(): %m",
+				G_STRFUNC, fd->fd, pathname);
+		} else if (fbuf.st_dev != pbuf.st_dev || fbuf.st_ino != pbuf.st_ino) {
+			s_carp("%s(): mismatch between fd #%d (dev=%lu, ino=%s) and "
+				"\"%s\" (dev=%lu, ino=%s) -- really accessing the former!",
+				G_STRFUNC,
+				fd->fd, (ulong) fbuf.st_dev, uint64_to_string(fbuf.st_ino),
+				pathname, (ulong) pbuf.st_dev, uint64_to_string2(pbuf.st_ino));
+		}
 	}
 
 	return fd;
