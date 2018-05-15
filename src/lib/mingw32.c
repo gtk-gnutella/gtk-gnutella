@@ -1917,7 +1917,7 @@ mingw_launch_init_once(void)
 }
 
 /*
- * Create escpaed command-line string from argv[].
+ * Create escaped command-line string from argv[].
  *
  * Just like mingw_execve(), we need to properly enclose in double-quotes
  * all the arguments with embedded spaces or the constructed argv[] array
@@ -4077,19 +4077,13 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 	if (-1 == fd)
 		return -1;
 
-	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((fileoffset_t) -1 == offset || offset != len) {
+	if (-1 == mingw_ftruncate(fd, len)) {
 		int saved_errno = errno;
 		fd_close(&fd);
 		errno = saved_errno;
 		return -1;
 	}
-	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		int saved_errno = mingw_last_error();
-		fd_close(&fd);
-		errno = saved_errno;
-		return -1;
-	}
+
 	fd_close(&fd);
 	return 0;
 }
