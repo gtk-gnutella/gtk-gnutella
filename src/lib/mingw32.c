@@ -7779,7 +7779,9 @@ mingw_dlerror(void)
 int
 mingw_dladdr(void *addr, Dl_info *info)
 {
-	static time_t last_init;
+	static uint64 loaded_library_count;
+	static bool initialized;
+	static bool reload_symbols;
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
 	static mutex_t dladdr_lk = MUTEX_INIT;
@@ -7788,31 +7790,35 @@ mingw_dladdr(void *addr, Dl_info *info)
 	char *path = buf_data(b);
 	size_t pathsz = buf_size(b);
 	buf_t *name = buf_private("mingw_dladdr:name", 255);
-	time_t now;
+	uint64 current_loaded_library_count;
 	int error = 0;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
 	DWORD disp = 0;
 
 	/*
-	 * Do not issue a SymInitialize() too often, yet let us do one from time
-	 * to time in case we loaded a new DLL since last time.
-	 *
-	 * Unfortunately, MinGW does not provide SymRefreshModuleList() to
-	 * refresh the module list, so we have to SymCleanup() and SymInitialize()
-	 * periodically.
-	 *
-	 * When called during a crash, do not attempt to refresh the symbols via
-	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 * When we detect we have a changed loaded_library_count, we need to
+	 * reload the symbols.
 	 */
 
-	now = tm_time();
+	current_loaded_library_count = win32dlp_loaded_library_count();
 
-	if (
-		0 == last_init ||
-		(delta_time(now, last_init) > 60 && !signal_in_exception())
-	) {
-		static bool initialized;
+	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
+	if (current_loaded_library_count != loaded_library_count) {
+		loaded_library_count = current_loaded_library_count;
+		reload_symbols = TRUE;
+	}
+	spinunlock_hidden(&dladdr_slk);
+
+	/*
+	 * When called during a crash, do not attempt to refresh the symbols via
+	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 *
+	 * However, if we never initialized them, then do so regardless of whether
+	 * we are crashing.
+	 */
+
+	if (!initialized || (reload_symbols && !signal_in_exception())) {
 		static bool first_init;
 		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
 		bool is_first = FALSE;
@@ -7841,10 +7847,12 @@ mingw_dladdr(void *addr, Dl_info *info)
 			s_warning("%s(): SymInitialize() failed: error = %d (%s)",
 				G_STRFUNC, mingw_dl_error, g_strerror(error));
 		} else {
+			spinlock_hidden(&dladdr_slk);
 			initialized = TRUE;
+			reload_symbols = FALSE;
+			spinunlock_hidden(&dladdr_slk);
 		}
 
-		last_init = now;
 		mutex_unlock_fast(&dladdr_lk);
 	}
 

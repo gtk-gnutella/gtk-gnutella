@@ -41,6 +41,8 @@
 void win32dlp_init(void *reserved, size_t size);
 void win32dlp_exiting(void);
 
+uint64 win32dlp_loaded_library_count(void);
+
 struct logagent;
 
 void win32dlp_show_settings_log(struct logagent *la);

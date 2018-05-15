@@ -31,7 +31,9 @@
  * is dynamically patched to redirect the calls to xmalloc().
  *
  * We also supersede the LoadLibrary() calls to make sure each new DLL that
- * is brought in the process gets properly patched.
+ * is brought in the process gets properly patched.  As a useful side effect,
+ * this allows us to count how many LoadLibrary() calls were made, and as such
+ * helps mingw_dladdr() to monitor whether new libraries were loaded.
  *
  * The logic here was heavily inspired by the winpatcher code from nedmalloc()
  * which can be found at:
@@ -199,6 +201,17 @@ static const struct win32dlp_with *win32dlp_with_compute(
 #define win32dlp_debug(str)		{}
 #define win32dlp_debugf(...)	{}
 #endif	/* WIN32DLP_DEBUG */
+
+/**
+ * @return amount of libraries loaded so far.
+ */
+uint64
+win32dlp_loaded_library_count(void)
+{
+	return
+		AU64_VALUE(&win32dlp_stats.trapped_LoadLibraryA) +
+		AU64_VALUE(&win32dlp_stats.trapped_LoadLibraryW);
+}
 
 /**
  * Compute the module base address given a pointer within that module.
