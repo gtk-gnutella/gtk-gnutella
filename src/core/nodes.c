@@ -4601,12 +4601,6 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 				return FALSE;
 			}
 
-			if (!(n->attrs & NODE_A_ULTRA)) {
-				node_send_error(n, 503, "Looking for an ultra node");
-				node_remove(n, _("Not an ultra node"));
-				return FALSE;
-			}
-
 			if (
 				GNET_PROPERTY(node_ultra_count) >= GNET_PROPERTY(max_ultrapeers)
 			) {
