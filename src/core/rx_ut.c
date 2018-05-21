@@ -254,6 +254,38 @@ ut_rmsg_expired(cqueue_t *cq, void *obj)
 			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
+	/*
+	 * We keep stats about how many fragments each message had.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	g_assert(um->fragcnt > 1);	/* If it expired, it had more than 1 fragment */
+
+	if (um->reliable) {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_3_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_5_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_6PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 2;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	} else {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 2;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
+
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EXPIRED);
 	ut_rmsg_free(um, TRUE);
 }
@@ -506,13 +538,50 @@ ut_received(const struct attr *attr, pmsg_t *mb, const gnet_host_t *from)
 
 /**
  * Update statistics on messages received.
+ *
+ * @param reliable		whether message was reliable
+ * @param fragcnt		amount of fragments in message
  */
 static void
-ut_update_rx_messages_stats(bool reliable)
+ut_update_rx_messages_stats(bool reliable, uint8 fragcnt)
 {
+	g_assert(fragcnt != 0);
+
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_RECEIVED);
 	if (!reliable)
 		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_UNRELIABLE);
+
+	/*
+	 * We keep stats about how many fragments each message had.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	if (reliable) {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_1_FRAG,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_3_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_4_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_5_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_6PLUS_FRAGS,
+		};
+		size_t n = fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	} else {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG,
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_3PLUS_FRAGS,
+		};
+		size_t n = fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
 }
 
 /**
@@ -538,7 +607,7 @@ ut_assemble_message(struct ut_rmsg *um)
 			um->id.seqno, um->fragcnt, plural(um->fragcnt), len);
 	}
 
-	ut_update_rx_messages_stats(um->reliable);
+	ut_update_rx_messages_stats(um->reliable, um->fragcnt);
 
 	if (um->deflated) {
 		zlib_inflater_t *zi = um->attr->zi;
@@ -1310,7 +1379,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 
 		/* Special-case non-ACKed single fragment messages */
 		if (1 == head.count && !(head.flags & UDP_RF_ACKME)) {
-			ut_update_rx_messages_stats(FALSE);
+			ut_update_rx_messages_stats(FALSE, 1);
 			ut_received(attr, mb, from);
 			return;		/* Message freed by data indication routine */
 		}

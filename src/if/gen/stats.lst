@@ -163,8 +163,23 @@ UDP_SR_TX_RELIABLE_MESSAGES_SENT
 	"Semi-reliable UDP reliable messages correctly transmited"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
 	"Semi-reliable UDP reliable messages not fully acknowledged"
+UDP_SR_TX_MSG_RELIABLE_1_FRAG	"Semi-reliable UDP reliable TX with 1 fragment"
+UDP_SR_TX_MSG_RELIABLE_2_FRAGS	"Semi-reliable UDP reliable TX with 2 fragments"
+UDP_SR_TX_MSG_RELIABLE_3_FRAGS	"Semi-reliable UDP reliable TX with 3 fragments"
+UDP_SR_TX_MSG_RELIABLE_4_FRAGS	"Semi-reliable UDP reliable TX with 4 fragments"
+UDP_SR_TX_MSG_RELIABLE_5_FRAGS	"Semi-reliable UDP reliable TX with 5 fragments"
+UDP_SR_TX_MSG_RELIABLE_6PLUS_FRAGS
+	"Semi-reliable UDP reliable TX with 6+ fragments"
+UDP_SR_TX_MSG_UNRELIABLE_1_FRAG
+	"Semi-reliable UDP unreliable TX with 1 fragment"
+UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable TX with 2 fragments"
+UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable TX with 3+ fragments"
 UDP_SR_TX_FRAGMENTS_SENT	"Semi-reliable UDP fragments sent"
 UDP_SR_TX_FRAGMENTS_RESENT	"Semi-reliable UDP fragments resent"
+UDP_SR_TX_FRAGMENTS_RELIABLE_SENT	"Semi-reliable UDP reliable fragments sent"
+UDP_SR_TX_FRAGMENTS_UNRELIABLE_SENT	"Semi-reliable UDP unreliable fragments sent"
 UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED
 	"Semi-reliable UDP fragment sendings avoided"
 UDP_SR_TX_FRAGMENTS_OVERSENT
@@ -218,6 +233,38 @@ UDP_SR_RX_MESSAGES_INFLATION_ERROR
 UDP_SR_RX_MESSAGES_UNRELIABLE
 	"Semi-reliable UDP unreliable messages received"
 UDP_SR_RX_MESSAGES_EMPTY	"Semi-reliable UDP empty messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_1_FRAG
+	"Semi-reliable UDP reliable RX 1-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_2_FRAGS
+	"Semi-reliable UDP reliable RX 2-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_3_FRAGS
+	"Semi-reliable UDP reliable RX 3-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_4_FRAGS
+	"Semi-reliable UDP reliable RX 4-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_5_FRAGS
+	"Semi-reliable UDP reliable RX 5-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_6PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 6+-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG
+	"Semi-reliable UDP unreliable RX 1-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable RX 2-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable RX 3+-frag messages received"
+UDP_SR_RX_MSG_EXP_RELIABLE_2_FRAGS
+	"Semi-reliable UDP reliable RX 2-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_3_FRAGS
+	"Semi-reliable UDP reliable RX 3-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS
+	"Semi-reliable UDP reliable RX 4-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_5_FRAGS
+	"Semi-reliable UDP reliable RX 5-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_6PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 6+-frag messages expired"
+UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable RX 2-frag messages expired"
+UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable RX 3+-frag messages expired"
 UDP_SR_RX_TOTAL_ACKS_SENT	"Semi-reliable UDP total acknowledgments sent"
 UDP_SR_RX_CUMULATIVE_ACKS_SENT
 	"Semi-reliable UDP cumulative acknowledgments sent"

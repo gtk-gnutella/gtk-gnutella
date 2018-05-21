@@ -526,6 +526,41 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 	}
 
 	/*
+	 * We keep stats about how many fragments each message had, whether
+	 * it was sent or not.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	g_assert(um->fragcnt != 0);
+
+	if (um->reliable) {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG,
+			GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS,
+			GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS,
+			GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS,
+			GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS,
+			GNR_UDP_SR_TX_MSG_RELIABLE_6PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	} else {
+		gnr_stats_t s[] = {
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_1_FRAG,
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
+
+	/*
 	 * If all the fragments were sent, mark the message as sent: should someone
 	 * monitor the original PDU with a free routine, they will know the fate
 	 * of the message that way.
@@ -1098,6 +1133,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		}
 
 		if (um->reliable) {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_RELIABLE_SENT);
 			if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
 				g_debug("TX UT[%s]: %s: fragment #%u/%u seq=0x%04x tx=%d to %s "
 					"will be resent in %d ms",
@@ -1123,6 +1159,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 			if (1 == um->fragtx)
 				cq_resched(um->expire_ev, TX_UT_EXPIRE_MS);
 		} else {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_UNRELIABLE_SENT);
 			ut_frag_free(uf, TRUE);
 		}
 	} else {
