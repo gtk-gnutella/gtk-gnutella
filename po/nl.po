@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-09 13:30+0200\n"
+"POT-Creation-Date: 2018-05-21 13:06+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -553,9 +553,6 @@ msgstr "Teveel nodes (max %d)"
 
 msgid "Sent shielded indication"
 msgstr "Afgeschermd indicatie verzonden"
-
-msgid "Not an ultra node"
-msgstr "Geen ultranode"
 
 msgid "Unknown error"
 msgstr "Onbekende error"
@@ -1414,11 +1411,55 @@ msgstr "Semibetrouwbare UDP betrouwbare berichten correct verzonden"
 msgid "Semi-reliable UDP reliable messages not fully acknowledged"
 msgstr "Semibetrouwbare UDP betrouwbare berichten nog niet volledig bevestigd"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6+ fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
+
 msgid "Semi-reliable UDP fragments sent"
 msgstr "Semibetrouwbare UDP fragmenten verzonden"
 
 msgid "Semi-reliable UDP fragments resent"
 msgstr "Semibetrouwbare UDP fragmenten opnieuw verzonden"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr "Semibetrouwbare UDP fragmenten verzonden"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable fragments sent"
+msgstr "Semibetrouwbare UDP onbetrouwbare fragmenten ontvangen"
 
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr "Semibetrouwbare UDP fragmenten verzending voorkomen"
@@ -1504,6 +1545,70 @@ msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
 
 msgid "Semi-reliable UDP empty messages received"
 msgstr "Semibetrouwbare UDP lege berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
+msgstr "Semibetrouwbare UDP berichten onbetrouwbare berichten ontvangen"
 
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr "Semibetrouwbare UDP totaal aantal bevestigingen verstuurd"
@@ -9949,6 +10054,9 @@ msgstr "QUEUE wordt verstuurd, bezig met terug verbinden..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE verstuurd, wacht op koppen..."
+
+#~ msgid "Not an ultra node"
+#~ msgstr "Geen ultranode"
 
 #~ msgid "Can only run as a leaf when TCP-firewalled"
 #~ msgstr "Als TCP-firewalled kan er alleen als leaf worden geopereerd"

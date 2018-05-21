@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-09 13:30+0200\n"
+"POT-Creation-Date: 2018-05-21 13:06+0200\n"
 "PO-Revision-Date: 2016-08-31 12:04+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -550,9 +550,6 @@ msgstr "Trop de noeuds (%d max)"
 
 msgid "Sent shielded indication"
 msgstr "Indication de protection feuille envoyée"
-
-msgid "Not an ultra node"
-msgstr "Pas un noeud ultra"
 
 msgid "Unknown error"
 msgstr "Erreur inconnue"
@@ -1411,11 +1408,55 @@ msgstr "UDP semi-fiable messages UDP fiables transmis correctement"
 msgid "Semi-reliable UDP reliable messages not fully acknowledged"
 msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6+ fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
 msgid "Semi-reliable UDP fragments sent"
 msgstr "UDP semi-fiable fragments UDP émis"
 
 msgid "Semi-reliable UDP fragments resent"
 msgstr "UDP semi-fiable fragments UDP réexpédiés"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr "UDP semi-fiable fragments UDP émis"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
 
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr "UDP semi-fiable envois de fragments évités"
@@ -1500,6 +1541,70 @@ msgstr "Messages UDP semi-fiables douteux reçus"
 
 msgid "Semi-reliable UDP empty messages received"
 msgstr "Messages UDP vides semi-fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
 
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr "UDP semi-fiable total des accusés de réception émis"
@@ -9971,6 +10076,9 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Not an ultra node"
+#~ msgstr "Pas un noeud ultra"
 
 #~ msgid "Can only run as a leaf when TCP-firewalled"
 #~ msgstr "Ne fonctionne qu'en mode feuille sans connexions TCP entrantes"

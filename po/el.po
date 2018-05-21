@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-09 13:30+0200\n"
+"POT-Creation-Date: 2018-05-21 13:06+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Greek (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -549,9 +549,6 @@ msgstr "Πάρα πολλοί κόμβοι (μέγιστο %d)"
 
 msgid "Sent shielded indication"
 msgstr "Απέστειλε ένδειξη προστατευμένου"
-
-msgid "Not an ultra node"
-msgstr "Όχι υπερ-κόμβος"
 
 msgid "Unknown error"
 msgstr "Άγνωστο σφάλμα"
@@ -1400,10 +1397,43 @@ msgstr ""
 msgid "Semi-reliable UDP reliable messages not fully acknowledged"
 msgstr ""
 
+msgid "Semi-reliable UDP reliable TX with 1 fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 2 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 3 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 4 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 5 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 6+ fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
+msgstr ""
+
 msgid "Semi-reliable UDP fragments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments resent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP fragment sendings avoided"
@@ -1488,6 +1518,54 @@ msgid "Semi-reliable UDP unreliable messages received"
 msgstr ""
 
 msgid "Semi-reliable UDP empty messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
 msgstr ""
 
 msgid "Semi-reliable UDP total acknowledgments sent"
@@ -9449,6 +9527,9 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid "Not an ultra node"
+#~ msgstr "Όχι υπερ-κόμβος"
 
 #~ msgid "Can only run as a leaf when TCP-firewalled"
 #~ msgstr "Τρέχει μόνο ως δικτυακός όταν έχει τοίχος προστασίας TCP"
