@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-21 13:06+0200\n"
+"POT-Creation-Date: 2018-05-22 23:53+0200\n"
 "PO-Revision-Date: 2016-08-31 15:19+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1399,37 +1399,114 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr "Yarı güvenilir UDP doğru aktarılan güvenilir mesajlar"
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 1 fragment"
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 2 fragments"
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 3 fragments"
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 4 fragments"
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 5 fragments"
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 6+ fragments"
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
 msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
 
 #, fuzzy
@@ -1451,6 +1528,14 @@ msgid "Semi-reliable UDP fragments resent"
 msgstr "Yarı güvenilir UDP tekrar yollanan parçalar"
 
 #, fuzzy
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable fragments sent"
 msgstr "Yarı güvenilir UDP yollanan parçalar"
 
@@ -1464,6 +1549,10 @@ msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
 
+#, fuzzy
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
+msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+
 msgid "Semi-reliable UDP total acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan toplam teyitler"
 
@@ -1472,6 +1561,10 @@ msgstr "Yarı güvenilir UDP alınan kümülatif teyitler"
 
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan genişletilmiş teyitler"
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
+msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan sahte teyitler"
@@ -1503,6 +1596,10 @@ msgstr "Yarı güvenilir UDP gönderilen EAR'ler"
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr "Yarı güvenilir UDP çok fazla gönderilen EAR'ler"
 
+#, fuzzy
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr "Yarı güvenilir UDP beklerken alınan EAR'ler"
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan EAR negatif teyitler"
 
@@ -1523,6 +1620,10 @@ msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
 
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
 
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr "Yarı güvenilir UDP yeniden birleştirme öncesi ömrü dolan mesajlar"
@@ -1563,7 +1664,23 @@ msgid "Semi-reliable UDP reliable RX 5-frag messages received"
 msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
 msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
 
 #, fuzzy
@@ -1595,7 +1712,23 @@ msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
 msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
 msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
 
 #, fuzzy
@@ -1617,6 +1750,26 @@ msgstr "Yarı güvenilir UDP yollanan genişletilmiş teyitler"
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
 msgstr "Yarı güvenilir UDP önlenen teyit gönderimleri"
+
+#, fuzzy
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr "Yarı güvenilir UDP alınan çift parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr "Yarı güvenilir UDP EAR gönderildikten sonra alınan teyitler"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
+
+#, fuzzy
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
+msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
 
 msgid "Semi-reliable UDP EARs received"
 msgstr "Yarı güvenilir UDP alınan EAR'ler"

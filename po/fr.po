@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-21 13:06+0200\n"
+"POT-Creation-Date: 2018-05-22 23:53+0200\n"
 "PO-Revision-Date: 2016-08-31 12:04+0000\n"
 "Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1399,37 +1399,114 @@ msgstr ""
 "UDP semi-fiable total des messages envoyés partiellement à cause d'un "
 "embouteillage"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr "UDP semi-fiable messages fiables proposés pour la transmission"
+
+#, fuzzy
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr "UDP semi-fiable total des messages non envoyés"
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr "UDP semi-fiable messages fiables proposés pour la transmission"
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr "UDP semi-fiable messages UDP fiables transmis correctement"
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 1 fragment"
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 2 fragments"
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 3 fragments"
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 4 fragments"
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 5 fragments"
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable TX with 6+ fragments"
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr "UDP semi-fiable fragments non fiables reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
 msgstr "UDP semi-fiable fragments non fiables reçus"
 
 #, fuzzy
@@ -1451,6 +1528,14 @@ msgid "Semi-reliable UDP fragments resent"
 msgstr "UDP semi-fiable fragments UDP réexpédiés"
 
 #, fuzzy
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr "UDP semi-fiable fragments reçus lors de l'attente"
+
+#, fuzzy
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr "UDP semi-fiable fragments reçus lors de l'attente"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable fragments sent"
 msgstr "UDP semi-fiable fragments UDP émis"
 
@@ -1464,6 +1549,10 @@ msgstr "UDP semi-fiable envois de fragments évités"
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "UDP semi-fiable fragments UDP émis trop de fois"
 
+#, fuzzy
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
+msgstr "UDP semi-fiable fragments reçus lors de l'attente"
+
 msgid "Semi-reliable UDP total acknowledgments received"
 msgstr "UDP semi-fiable total des accusés de réception reçus"
 
@@ -1472,6 +1561,10 @@ msgstr "UDP semi-fiable cumul des accusés de réception reçus"
 
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr "UDP semi-fiable accusés de réception étendues reçues"
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
+msgstr "UDP semi-fiable fragments reçus lors de l'attente"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr "UDP semi-fiable accusés de réception contrefaits reçues"
@@ -1503,6 +1596,10 @@ msgstr "UDP semi-fiable EARs émis"
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr "UDP semi-fiable trop d'EAR émis"
 
+#, fuzzy
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr "UDP semi-fiable EARs reçus lors de l'attente"
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr "UDP semi-fiable EAR accusés de réception négatifs reçues"
 
@@ -1523,6 +1620,10 @@ msgstr "UDP semi-fiable fragments reçus mis au rebut"
 
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr "UDP semi-fiable fragments reçus lors de l'attente"
+
+#, fuzzy
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr "UDP semi-fiable total des messages non envoyés"
 
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr "UDP semi-fiable messages expirés avant le ré-assemblage"
@@ -1563,7 +1664,23 @@ msgid "Semi-reliable UDP reliable RX 5-frag messages received"
 msgstr "Messages UDP semi-fiables douteux reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
 msgstr "Messages UDP semi-fiables douteux reçus"
 
 #, fuzzy
@@ -1595,7 +1712,23 @@ msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
 msgstr "Messages UDP semi-fiables douteux reçus"
 
 #, fuzzy
-msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr "Messages UDP semi-fiables douteux reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
 msgstr "Messages UDP semi-fiables douteux reçus"
 
 #, fuzzy
@@ -1617,6 +1750,26 @@ msgstr "UDP semi-fiable accusés de réception étendus émis"
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
 msgstr "UDP semi-fiable envois évités d'accusés de réception"
+
+#, fuzzy
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr "UDP semi-fiable fragments dupliqués reçus"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr "UDP semi-fiable accusés de réception reçus après l'envoi d'EARs"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr "UDP semi-fiable fragments reçus mis au rebut"
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr "UDP semi-fiable fragments reçus mis au rebut"
+
+#, fuzzy
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
+msgstr "UDP semi-fiable envois de fragments évités"
 
 msgid "Semi-reliable UDP EARs received"
 msgstr "EARs UDP semi-fiables reçus"

@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-21 13:06+0200\n"
+"POT-Creation-Date: 2018-05-22 23:53+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1389,32 +1389,115 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr ""
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr ""
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 1 fragment"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 2 fragments"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 3 fragments"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 4 fragments"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 5 fragments"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable TX with 6+ fragments"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP unreliable TX with 1 fragment"
 msgstr ""
@@ -1431,6 +1514,13 @@ msgstr ""
 msgid "Semi-reliable UDP fragments resent"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP reliable fragments sent"
 msgstr ""
 
@@ -1443,6 +1533,9 @@ msgstr ""
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr ""
 
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP total acknowledgments received"
 msgstr ""
 
@@ -1451,6 +1544,10 @@ msgstr ""
 
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr ""
@@ -1482,6 +1579,9 @@ msgstr ""
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr ""
 
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr ""
 
@@ -1502,6 +1602,10 @@ msgstr ""
 
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr ""
@@ -1541,8 +1645,25 @@ msgstr "Mensajes UDP comprimidos recibidos"
 msgid "Semi-reliable UDP reliable RX 5-frag messages received"
 msgstr "Mensajes UDP comprimidos recibidos"
 
-msgid "Semi-reliable UDP reliable RX 6+-frag messages received"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
 msgstr ""
@@ -1565,8 +1686,25 @@ msgstr ""
 msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
 msgstr ""
 
-msgid "Semi-reliable UDP reliable RX 6+-frag messages expired"
-msgstr ""
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
 msgstr ""
@@ -1584,6 +1722,22 @@ msgid "Semi-reliable UDP extended acknowledgments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr ""
+
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
 msgstr ""
 
 msgid "Semi-reliable UDP EARs received"
