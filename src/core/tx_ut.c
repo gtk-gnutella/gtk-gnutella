@@ -1766,13 +1766,15 @@ ut_um_expired(cqueue_t *cq, void *obj)
 	 * If we were unable to transmit all the fragments of the message at
 	 * least once, count it as a clogged UDP output queue.
 	 *
-	 * Otherwise, further messages to that host will be dropped for a while,
-	 * the remote party being probably unresponsive, dead, or clogged.
+	 * Otherwise, if we were not able to get at least 50% of the fragments
+	 * of a reliable message ACK-ed, further messages to that host will be
+	 * dropped for a while, the remote party being probably unresponsive,
+	 * dead, or clogged.
 	 */
 
 	if (um->fragtx - um->fragtx2 < um->fragcnt)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_CLOGGING);
-	else
+	else if (um->reliable && um->fragsent < um->fragcnt / 2)
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 
 	/*
