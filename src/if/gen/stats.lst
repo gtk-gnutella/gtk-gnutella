@@ -342,6 +342,16 @@ UDP_SR_RX_CUMULATIVE_ACKS_SENT
 UDP_SR_RX_EXTENDED_ACKS_SENT
 	"Semi-reliable UDP extended acknowledgments sent"
 UDP_SR_RX_AVOIDED_ACKS		"Semi-reliable UDP avoided acknowledgment sendings"
+UDP_SR_RX_FLUSHED_ACKS
+	"Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+UDP_SR_RX_RESENDING_ACKS_ON_EAR
+	"Semi-reliable UDP re-acknowledging received fragments after EAR"
+UDP_SR_RX_RESENDING_ACKS_ON_DUP
+	"Semi-reliable UDP re-acknowledging received fragments after duplicate"
+UDP_SR_RX_RESENDING_ACKS_BEFORE_EXPIRE
+	"Semi-reliable UDP re-acknowledging received fragments before expiration"
+UDP_SR_RX_RESENT_ACKS
+	"Semi-reliable UDP resent ACKs during re-acknowledging"
 UDP_SR_RX_EARS_RECEIVED		"Semi-reliable UDP EARs received"
 UDP_SR_RX_EARS_FOR_UNKNOWN_MESSAGE
 	"Semi-reliable UDP EARs received for unknown message"

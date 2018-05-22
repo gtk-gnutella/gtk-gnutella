@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 17:01:53 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 23:29:14 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 381
+ * Enum count: 386
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -236,6 +236,11 @@ typedef enum {
 	GNR_UDP_SR_RX_CUMULATIVE_ACKS_SENT,
 	GNR_UDP_SR_RX_EXTENDED_ACKS_SENT,
 	GNR_UDP_SR_RX_AVOIDED_ACKS,
+	GNR_UDP_SR_RX_FLUSHED_ACKS,
+	GNR_UDP_SR_RX_RESENDING_ACKS_ON_EAR,
+	GNR_UDP_SR_RX_RESENDING_ACKS_ON_DUP,
+	GNR_UDP_SR_RX_RESENDING_ACKS_BEFORE_EXPIRE,
+	GNR_UDP_SR_RX_RESENT_ACKS,
 	GNR_UDP_SR_RX_EARS_RECEIVED,
 	GNR_UDP_SR_RX_EARS_FOR_UNKNOWN_MESSAGE,
 	GNR_UDP_SR_RX_EARS_FOR_LINGERING_MESSAGE,

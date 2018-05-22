@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 17:01:53 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 23:29:14 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -240,6 +240,11 @@ static const char *stats_symbols[] = {
 	"udp_sr_rx_cumulative_acks_sent",
 	"udp_sr_rx_extended_acks_sent",
 	"udp_sr_rx_avoided_acks",
+	"udp_sr_rx_flushed_acks",
+	"udp_sr_rx_resending_acks_on_ear",
+	"udp_sr_rx_resending_acks_on_dup",
+	"udp_sr_rx_resending_acks_before_expire",
+	"udp_sr_rx_resent_acks",
 	"udp_sr_rx_ears_received",
 	"udp_sr_rx_ears_for_unknown_message",
 	"udp_sr_rx_ears_for_lingering_message",
@@ -642,6 +647,11 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP cumulative acknowledgments sent"),
 	N_("Semi-reliable UDP extended acknowledgments sent"),
 	N_("Semi-reliable UDP avoided acknowledgment sendings"),
+	N_("Semi-reliable UDP flushing pending ACKs on duplicate fragment"),
+	N_("Semi-reliable UDP re-acknowledging received fragments after EAR"),
+	N_("Semi-reliable UDP re-acknowledging received fragments after duplicate"),
+	N_("Semi-reliable UDP re-acknowledging received fragments before expiration"),
+	N_("Semi-reliable UDP resent ACKs during re-acknowledging"),
 	N_("Semi-reliable UDP EARs received"),
 	N_("Semi-reliable UDP EARs received for unknown message"),
 	N_("Semi-reliable UDP EARs received whilst lingering"),
