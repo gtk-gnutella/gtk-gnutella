@@ -4072,7 +4072,6 @@ int
 mingw_truncate(const char *pathname, fileoffset_t len)
 {
 	int fd;
-	fileoffset_t offset;
 
 	fd = mingw_open(pathname, O_RDWR);
 	if (-1 == fd)
