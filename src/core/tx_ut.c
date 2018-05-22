@@ -374,8 +374,9 @@ ut_pmsg_info_check(const struct ut_pmsg_info * const pmi)
 	g_assert(UT_PMI_MAGIC == pmi->magic);
 }
 
-static hevset_t *ut_mset;		/* Alive mesages */
+static hevset_t *ut_mset;			/* Alive mesages */
 static unsigned ut_mset_refcnt;
+static unsigned tx_ut_lingering;	/* TX lingering messages */
 
 static bool ut_frag_free(struct ut_frag *uf, bool free_message);
 static void ut_frag_send(const struct ut_frag *uf);
@@ -583,6 +584,19 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 		n = MIN(n, N_ITEMS(s) - 1);
 		gnet_stats_inc_general(s[n]);
+	}
+
+	/*
+	 * We have to deal with this here and not in ut_um_lingered() because
+	 * as soon as the message is fully acknowledged whilst lingering,
+	 * ut_msg_free() is called so we do not go through ut_um_lingered() to
+	 * cleanup the count.
+	 */
+
+	if (um->lingering) {
+		tx_ut_lingering--;
+		gnet_stats_set_general(
+			GNR_UDP_SR_TX_MESSAGES_LINGER_COUNT, tx_ut_lingering);
 	}
 
 	/*
@@ -1902,6 +1916,10 @@ ut_um_expired(cqueue_t *cq, void *obj)
 	um->expire_ev = cq_main_insert(TX_UT_LINGER_MS, ut_um_lingered, um);
 	um->lingering = TRUE;
 	um->alpha = um->fragcnt;		/* Send everything if needed */
+
+	tx_ut_lingering++;
+	gnet_stats_set_general(
+		GNR_UDP_SR_TX_MESSAGES_LINGER_COUNT, tx_ut_lingering);
 }
 
 /**

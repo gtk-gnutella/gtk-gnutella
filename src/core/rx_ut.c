@@ -149,6 +149,8 @@ ut_rmsg_check(const struct ut_rmsg * const um)
 	g_assert(UT_RMSG_MAGIC == um->magic);
 }
 
+static unsigned rx_ut_lingering;	/* Lingering messages */
+
 static void ut_rmsg_reack(struct ut_rmsg *um);
 
 /**
@@ -347,6 +349,10 @@ ut_rmsg_lingered(cqueue_t *cq, void *obj)
 
 	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
 
+	rx_ut_lingering--;
+	gnet_stats_set_general(
+		GNR_UDP_SR_RX_MESSAGES_LINGER_COUNT, rx_ut_lingering);
+
 	/*
 	 * We delayed freeing to be able to re-ACK messages and avoid duplicate
 	 * message reception.
@@ -370,6 +376,11 @@ ut_rmsg_linger(struct ut_rmsg *um)
 
 	ut_rmsg_fragments_free(um);		/* No longer need collected message data */
 	um->lingering = TRUE;
+
+	rx_ut_lingering++;
+	gnet_stats_set_general(
+		GNR_UDP_SR_RX_MESSAGES_LINGER_COUNT, rx_ut_lingering);
+
 	cq_replace(um->expire_ev, ut_rmsg_lingered, um);
 }
 

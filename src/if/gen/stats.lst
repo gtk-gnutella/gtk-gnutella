@@ -157,6 +157,8 @@ UDP_SR_TX_MESSAGES_GOOD
 	"Semi-reliable UDP total messages sent to known responsive hosts"
 UDP_SR_TX_MESSAGES_CLOGGING
 	"Semi-reliable UDP total messages partially sent due to clogging"
+UDP_SR_TX_MESSAGES_LINGER_COUNT
+	"Semi-reliable UDP TX messages currently lingering"
 UDP_SR_TX_RELIABLE_MESSAGES_GIVEN
 	"Semi-reliable UDP reliable messages given for transmission"
 UDP_SR_TX_RELIABLE_MESSAGES_SENT
@@ -267,6 +269,8 @@ UDP_SR_RX_FRAGMENTS_DROPPED
 	"Semi-reliable UDP dropped received fragments"
 UDP_SR_RX_FRAGMENTS_LINGERING
 	"Semi-reliable UDP fragments received whilst lingering"
+UDP_SR_RX_MESSAGES_LINGER_COUNT
+	"Semi-reliable UDP RX messages currently lingering"
 UDP_SR_RX_MESSAGES_EXPIRED
 	"Semi-reliable UDP messages expired before re-assembly"
 UDP_SR_RX_MESSAGES_RECEIVED

@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 14:45:44 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 14:55:11 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -143,6 +143,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_messages_banned",
 	"udp_sr_tx_messages_good",
 	"udp_sr_tx_messages_clogging",
+	"udp_sr_tx_messages_linger_count",
 	"udp_sr_tx_reliable_messages_given",
 	"udp_sr_tx_reliable_messages_sent",
 	"udp_sr_tx_reliable_messages_linger_sent",
@@ -201,6 +202,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_rx_fragments_unreliable",
 	"udp_sr_rx_fragments_dropped",
 	"udp_sr_rx_fragments_lingering",
+	"udp_sr_rx_messages_linger_count",
 	"udp_sr_rx_messages_expired",
 	"udp_sr_rx_messages_received",
 	"udp_sr_rx_messages_inflated",
@@ -532,6 +534,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP total messages dropped due to temporary ban"),
 	N_("Semi-reliable UDP total messages sent to known responsive hosts"),
 	N_("Semi-reliable UDP total messages partially sent due to clogging"),
+	N_("Semi-reliable UDP TX messages currently lingering"),
 	N_("Semi-reliable UDP reliable messages given for transmission"),
 	N_("Semi-reliable UDP reliable messages correctly transmited"),
 	N_("Semi-reliable UDP reliable messages fully acknowledged whilst lingering"),
@@ -590,6 +593,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP unreliable fragments received"),
 	N_("Semi-reliable UDP dropped received fragments"),
 	N_("Semi-reliable UDP fragments received whilst lingering"),
+	N_("Semi-reliable UDP RX messages currently lingering"),
 	N_("Semi-reliable UDP messages expired before re-assembly"),
 	N_("Semi-reliable UDP messages re-assembled completely"),
 	N_("Semi-reliable UDP messages inflated successfully"),
