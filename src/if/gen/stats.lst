@@ -164,7 +164,11 @@ UDP_SR_TX_RELIABLE_MESSAGES_SENT
 UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT
 	"Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
-	"Semi-reliable UDP reliable messages not fully acknowledged"
+	"Semi-reliable UDP reliable messages not fully sent"
+UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK
+	"Semi-reliable UDP reliable messages partially acknowledged"
+UDP_SR_TX_RELIABLE_MSG_NO_ACK
+	"Semi-reliable UDP reliable messages with no acknowledgment at all"
 UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT
 	"Semi-reliable UDP reliable TX with 1 fragment sent"
 UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT

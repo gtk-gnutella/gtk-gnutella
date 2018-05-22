@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 14:23:01 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 14:45:44 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 366
+ * Enum count: 368
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -143,6 +143,8 @@ typedef enum {
 	GNR_UDP_SR_TX_RELIABLE_MESSAGES_SENT,
 	GNR_UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT,
 	GNR_UDP_SR_TX_RELIABLE_MESSAGES_UNSENT,
+	GNR_UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK,
+	GNR_UDP_SR_TX_RELIABLE_MSG_NO_ACK,
 	GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT,
 	GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT,
 	GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT,

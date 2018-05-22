@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 14:23:01 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 14:45:44 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -147,6 +147,8 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_reliable_messages_sent",
 	"udp_sr_tx_reliable_messages_linger_sent",
 	"udp_sr_tx_reliable_messages_unsent",
+	"udp_sr_tx_reliable_msg_partial_ack",
+	"udp_sr_tx_reliable_msg_no_ack",
 	"udp_sr_tx_msg_reliable_1_frag_sent",
 	"udp_sr_tx_msg_reliable_2_frags_sent",
 	"udp_sr_tx_msg_reliable_3_frags_sent",
@@ -533,7 +535,9 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP reliable messages given for transmission"),
 	N_("Semi-reliable UDP reliable messages correctly transmited"),
 	N_("Semi-reliable UDP reliable messages fully acknowledged whilst lingering"),
-	N_("Semi-reliable UDP reliable messages not fully acknowledged"),
+	N_("Semi-reliable UDP reliable messages not fully sent"),
+	N_("Semi-reliable UDP reliable messages partially acknowledged"),
+	N_("Semi-reliable UDP reliable messages with no acknowledgment at all"),
 	N_("Semi-reliable UDP reliable TX with 1 fragment sent"),
 	N_("Semi-reliable UDP reliable TX with 2 fragments sent"),
 	N_("Semi-reliable UDP reliable TX with 3 fragments sent"),

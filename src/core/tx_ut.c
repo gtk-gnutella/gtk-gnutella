@@ -621,8 +621,13 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			(*attr->cb->add_tx_dropped)(attr->tx->owner, 1);
 
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_UNSENT);
-		if (um->reliable)
+		if (um->reliable) {
 			gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_UNSENT);
+			if (0 == um->fragsent)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_NO_ACK);
+			else
+				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK);
+		}
 	}
 
 	/*
