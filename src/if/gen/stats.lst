@@ -163,13 +163,46 @@ UDP_SR_TX_RELIABLE_MESSAGES_SENT
 	"Semi-reliable UDP reliable messages correctly transmited"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
 	"Semi-reliable UDP reliable messages not fully acknowledged"
-UDP_SR_TX_MSG_RELIABLE_1_FRAG	"Semi-reliable UDP reliable TX with 1 fragment"
-UDP_SR_TX_MSG_RELIABLE_2_FRAGS	"Semi-reliable UDP reliable TX with 2 fragments"
-UDP_SR_TX_MSG_RELIABLE_3_FRAGS	"Semi-reliable UDP reliable TX with 3 fragments"
-UDP_SR_TX_MSG_RELIABLE_4_FRAGS	"Semi-reliable UDP reliable TX with 4 fragments"
-UDP_SR_TX_MSG_RELIABLE_5_FRAGS	"Semi-reliable UDP reliable TX with 5 fragments"
-UDP_SR_TX_MSG_RELIABLE_6PLUS_FRAGS
-	"Semi-reliable UDP reliable TX with 6+ fragments"
+UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT
+	"Semi-reliable UDP reliable TX with 1 fragment sent"
+UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 2 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 3 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_4_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 4 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_5_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 5 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_6_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 6 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_7_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 7 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_8_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 8 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_9_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 9 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 10+ fragments sent"
+UDP_SR_TX_MSG_RELIABLE_1_FRAG_UNSENT
+	"Semi-reliable UDP reliable TX with 1 fragment unsent"
+UDP_SR_TX_MSG_RELIABLE_2_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 2 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_3_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 3 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_4_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 4 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_5_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 5 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_6_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 6 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_7_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 7 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_8_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 8 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_9_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 9 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 10+ fragments unsent"
 UDP_SR_TX_MSG_UNRELIABLE_1_FRAG
 	"Semi-reliable UDP unreliable TX with 1 fragment"
 UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS

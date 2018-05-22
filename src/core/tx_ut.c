@@ -509,6 +509,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 {
 	unsigned i;
 	struct attr *attr;
+	size_t n;
 
 	ut_msg_check(um);
 	ut_attr_check(um->attr);
@@ -535,26 +536,48 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 	g_assert(um->fragcnt != 0);
 
-	if (um->reliable) {
-		gnr_stats_t s[] = {
-			GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG,
-			GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS,
-			GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS,
-			GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS,
-			GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS,
-			GNR_UDP_SR_TX_MSG_RELIABLE_6PLUS_FRAGS,
-		};
-		size_t n = um->fragcnt - 1;
+	n = um->fragcnt - 1;
 
-		n = MIN(n, N_ITEMS(s) - 1);
-		gnet_stats_inc_general(s[n]);
+	if (um->reliable) {
+		if (um->fragcnt == um->fragsent) {
+			gnr_stats_t s[] = {
+				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_6_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_7_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_8_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_9_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_SENT,
+			};
+
+			n = MIN(n, N_ITEMS(s) - 1);
+			gnet_stats_inc_general(s[n]);
+		} else {
+			gnr_stats_t s[] = {
+				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_6_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_7_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_8_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_9_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_UNSENT,
+			};
+
+			n = MIN(n, N_ITEMS(s) - 1);
+			gnet_stats_inc_general(s[n]);
+		}
 	} else {
 		gnr_stats_t s[] = {
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_1_FRAG,
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS,
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS,
 		};
-		size_t n = um->fragcnt - 1;
 
 		n = MIN(n, N_ITEMS(s) - 1);
 		gnet_stats_inc_general(s[n]);
