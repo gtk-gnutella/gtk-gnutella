@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 14:55:11 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 16:04:46 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -214,7 +214,11 @@ static const char *stats_symbols[] = {
 	"udp_sr_rx_msg_ok_reliable_3_frags",
 	"udp_sr_rx_msg_ok_reliable_4_frags",
 	"udp_sr_rx_msg_ok_reliable_5_frags",
-	"udp_sr_rx_msg_ok_reliable_6plus_frags",
+	"udp_sr_rx_msg_ok_reliable_6_frags",
+	"udp_sr_rx_msg_ok_reliable_7_frags",
+	"udp_sr_rx_msg_ok_reliable_8_frags",
+	"udp_sr_rx_msg_ok_reliable_9_frags",
+	"udp_sr_rx_msg_ok_reliable_10plus_frags",
 	"udp_sr_rx_msg_ok_unreliable_1_frag",
 	"udp_sr_rx_msg_ok_unreliable_2_frags",
 	"udp_sr_rx_msg_ok_unreliable_3plus_frags",
@@ -222,7 +226,11 @@ static const char *stats_symbols[] = {
 	"udp_sr_rx_msg_exp_reliable_3_frags",
 	"udp_sr_rx_msg_exp_reliable_4_frags",
 	"udp_sr_rx_msg_exp_reliable_5_frags",
-	"udp_sr_rx_msg_exp_reliable_6plus_frags",
+	"udp_sr_rx_msg_exp_reliable_6_frags",
+	"udp_sr_rx_msg_exp_reliable_7_frags",
+	"udp_sr_rx_msg_exp_reliable_8_frags",
+	"udp_sr_rx_msg_exp_reliable_9_frags",
+	"udp_sr_rx_msg_exp_reliable_10plus_frags",
 	"udp_sr_rx_msg_exp_unreliable_2_frags",
 	"udp_sr_rx_msg_exp_unreliable_3plus_frags",
 	"udp_sr_rx_total_acks_sent",
@@ -605,7 +613,11 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP reliable RX 3-frag messages received"),
 	N_("Semi-reliable UDP reliable RX 4-frag messages received"),
 	N_("Semi-reliable UDP reliable RX 5-frag messages received"),
-	N_("Semi-reliable UDP reliable RX 6+-frag messages received"),
+	N_("Semi-reliable UDP reliable RX 6-frag messages received"),
+	N_("Semi-reliable UDP reliable RX 7-frag messages received"),
+	N_("Semi-reliable UDP reliable RX 8-frag messages received"),
+	N_("Semi-reliable UDP reliable RX 9-frag messages received"),
+	N_("Semi-reliable UDP reliable RX 10+-frag messages received"),
 	N_("Semi-reliable UDP unreliable RX 1-frag messages received"),
 	N_("Semi-reliable UDP unreliable RX 2-frag messages received"),
 	N_("Semi-reliable UDP unreliable RX 3+-frag messages received"),
@@ -613,7 +625,11 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP reliable RX 3-frag messages expired"),
 	N_("Semi-reliable UDP reliable RX 4-frag messages expired"),
 	N_("Semi-reliable UDP reliable RX 5-frag messages expired"),
-	N_("Semi-reliable UDP reliable RX 6+-frag messages expired"),
+	N_("Semi-reliable UDP reliable RX 6-frag messages expired"),
+	N_("Semi-reliable UDP reliable RX 7-frag messages expired"),
+	N_("Semi-reliable UDP reliable RX 8-frag messages expired"),
+	N_("Semi-reliable UDP reliable RX 9-frag messages expired"),
+	N_("Semi-reliable UDP reliable RX 10+-frag messages expired"),
 	N_("Semi-reliable UDP unreliable RX 2-frag messages expired"),
 	N_("Semi-reliable UDP unreliable RX 3+-frag messages expired"),
 	N_("Semi-reliable UDP total acknowledgments sent"),

@@ -292,8 +292,16 @@ UDP_SR_RX_MSG_OK_RELIABLE_4_FRAGS
 	"Semi-reliable UDP reliable RX 4-frag messages received"
 UDP_SR_RX_MSG_OK_RELIABLE_5_FRAGS
 	"Semi-reliable UDP reliable RX 5-frag messages received"
-UDP_SR_RX_MSG_OK_RELIABLE_6PLUS_FRAGS
-	"Semi-reliable UDP reliable RX 6+-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_6_FRAGS
+	"Semi-reliable UDP reliable RX 6-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_7_FRAGS
+	"Semi-reliable UDP reliable RX 7-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_8_FRAGS
+	"Semi-reliable UDP reliable RX 8-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_9_FRAGS
+	"Semi-reliable UDP reliable RX 9-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_10PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 10+-frag messages received"
 UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG
 	"Semi-reliable UDP unreliable RX 1-frag messages received"
 UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS
@@ -308,8 +316,16 @@ UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS
 	"Semi-reliable UDP reliable RX 4-frag messages expired"
 UDP_SR_RX_MSG_EXP_RELIABLE_5_FRAGS
 	"Semi-reliable UDP reliable RX 5-frag messages expired"
-UDP_SR_RX_MSG_EXP_RELIABLE_6PLUS_FRAGS
-	"Semi-reliable UDP reliable RX 6+-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_6_FRAGS
+	"Semi-reliable UDP reliable RX 6-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_7_FRAGS
+	"Semi-reliable UDP reliable RX 7-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_8_FRAGS
+	"Semi-reliable UDP reliable RX 8-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_9_FRAGS
+	"Semi-reliable UDP reliable RX 9-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_10PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 10+-frag messages expired"
 UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS
 	"Semi-reliable UDP unreliable RX 2-frag messages expired"
 UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS
