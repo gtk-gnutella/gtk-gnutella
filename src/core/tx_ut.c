@@ -210,6 +210,7 @@
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 #define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
 #define TX_UT_REQUEUE_DELAY	5000	/* Time to requeue message after drop */
+#define TX_UT_ALPHA			3		/* Initial parallelism */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
 #define TX_UT_LINGER_MS		(45*1000)	/* Lingering time for packets, in ms */
@@ -772,8 +773,25 @@ ut_sending_delay(unsigned txcnt)
 static int
 ut_frag_delay(const struct ut_frag *uf)
 {
+	struct ut_msg *um;
+
 	ut_frag_check(uf);
 	g_assert(uf->txcnt != 0);
+
+	um = uf->msg;
+	ut_msg_check(um);
+
+	/*
+	 * If we are cautious for this message (we do not know whether the remote
+	 * host is up), we're only sending the last fragment.
+	 * Use a linear delay of 1 second plus 3 seconds per sending attempt,
+	 * instead of an exponential-type one. At least until it's been sent 3 times.
+	 * The retries are therefore 4 sec, 7 secs, 10 secs before jumping to 22.5.
+	 * 		--RAM, 2018-05-22
+	 */
+
+	if G_UNLIKELY(um->cautious && uf->txcnt <= 3)
+		return 1000 + 3000 * uf->txcnt;
 
 	return ut_sending_delay(uf->txcnt);
 }
@@ -909,7 +927,8 @@ ut_resend_iterate(cqueue_t *cq, void *obj)
 	 * We're getting ACKs for our fragments, send more.
 	 */
 
-	um->alpha++;
+	if (um->alpha < um->fragcnt)
+		um->alpha++;
 
 	while (um->pending < um->alpha) {
 		struct ut_frag *uf = elist_shift(&um->resend);
@@ -937,6 +956,35 @@ ut_resend_async(struct ut_msg *um)
 
 	if (NULL == um->iterate_ev && 0 != elist_count(&um->resend))
 		um->iterate_ev = cq_main_insert(1, ut_resend_iterate, um);
+}
+
+/**
+ * Force (re)sending of all the un-acknowledged fragments.
+ */
+static void
+ut_send_unacknowleged(struct ut_msg *um)
+{
+	size_t i;
+
+	ut_msg_check(um);
+
+	for (i = 0; i < um->fragcnt; i++) {
+		struct ut_frag *uf = um->fragments[i];
+
+		if (uf != NULL) {
+			/* Fragment still present means not ACK-ed yet */
+			ut_frag_check(uf);
+			g_assert(uf->msg == um);
+
+			if (!uf->resend) {
+				uf->resend = TRUE;
+				uf->pending = FALSE;	/* Awaiting retransmit */
+				elist_prepend(&um->resend, uf);
+			}
+		}
+	}
+
+	ut_resend_async(um);
 }
 
 /**
@@ -1025,7 +1073,25 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 	um = uf->msg;
 
 	/*
-	 * If already lingering, do not resend.
+	 * If fragment was marked as "pending ACK", then it was resent and the
+	 * acknowledgment did not come in the allocated time.
+	 */
+
+	if (uf->pending) {				/* Was pending ACK */
+		/*
+		 * Decrease the amount of pending messages, but also decrease
+		 * parallelism for the next batch, if not already lingering.
+		 */
+
+		um->pending--;
+		if (!um->lingering) {
+			if (um->alpha > 1)
+				um->alpha--;		/* Decrease sending parallelism */
+		}
+	}
+
+	/*
+	 * If already lingering, do not resend this fragment.
 	 */
 
 	if (um->lingering) {
@@ -1037,6 +1103,7 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 				gnet_host_to_string(um->to), uf->txcnt);
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_UNSENT);
+		ut_resend_async(um);	/* Keep sending pending fragments though */
 		return;
 	}
 
@@ -1046,19 +1113,6 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 			nid_to_string(&um->mid), G_STRFUNC,
 			uf->fragno + 1, um->fragcnt, um->seqno,
 			gnet_host_to_string(um->to), uf->txcnt);
-	}
-
-	/*
-	 * If fragment was marked as "pending ACK", then it was resent and the
-	 * acknowledgment did not come in the allocated time.
-	 *
-	 * Decrease the amount of pending messages, but also decrease parallelism
-	 * for the next batch.
-	 */
-
-	if (uf->pending) {				/* Was pending ACK */
-		um->pending--;
-		um->alpha /= 2;				/* Decrease sending parallelism */
 	}
 
 	/*
@@ -1210,9 +1264,13 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		uf->txcnt++;
 		um->fragtx++;
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_SENT);
+		if (um->lingering)
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_SENT);
 		if (uf->txcnt > 1) {
 			um->fragtx2++;
 			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_RESENT);
+			if (um->lingering)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_RESENT);
 		}
 
 		if (um->reliable) {
@@ -1900,6 +1958,21 @@ ut_um_expired(cqueue_t *cq, void *obj)
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 
 	/*
+	 * Before entering lingering time, and provided the lower layer is not in
+	 * flow-control mode and that at least 50% of the fragments were acknowledged
+	 * for a reliable message, resend all the fragments for which an ACK was
+	 * still not received.
+	 * 		--RAM, 2018-05-22
+	 */
+
+	um->alpha = um->fragcnt;		/* Send everything if needed */
+
+	if (um->reliable && um->fragsent >= um->fragcnt / 2) {
+		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_LINGER_FLUSH);
+		ut_send_unacknowleged(um);
+	}
+
+	/*
 	 * We're going to linger for a while, with the message still allocated
 	 * but "inactive": during lingering, we are simply dealing with ACK
 	 * reception.
@@ -1915,7 +1988,6 @@ ut_um_expired(cqueue_t *cq, void *obj)
 
 	um->expire_ev = cq_main_insert(TX_UT_LINGER_MS, ut_um_lingered, um);
 	um->lingering = TRUE;
-	um->alpha = um->fragcnt;		/* Send everything if needed */
 
 	tx_ut_lingering++;
 	gnet_stats_set_general(
@@ -1991,6 +2063,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	um->mid = ut_msg_id_create();
 	um->attr = attr;
 	um->deflated = booleanize(deflated);
+	um->alpha = TX_UT_ALPHA;
 	elist_init(&um->resend, offsetof(struct ut_frag, lk));
 
 	um->fragcnt = pdulen / TX_UT_MTU;
