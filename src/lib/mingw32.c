@@ -68,6 +68,7 @@
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
 #include "buf.h"
+#include "compat_pio.h"			/* For compat_pio_lock() */
 #include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
@@ -4091,23 +4092,71 @@ mingw_truncate(const char *pathname, fileoffset_t len)
 int
 mingw_ftruncate(int fd, fileoffset_t len)
 {
-	fileoffset_t offset;
+	fileoffset_t offset, current;
 
 	if (-1 == fd) {
 		errno = EBADF;
 		return -1;
 	}
 
-	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((fileoffset_t) -1 == offset || offset != len)
-		return -1;
+	/*
+	 * This emulation is NOT atomic and any concurrent thread trying to
+	 * pread() or pwrite() on that file could get an inconsistent result
+	 * due to the file offset changing underneath.
+	 *
+	 * Because we know that no call below can enter the compat_pio.c logic,
+	 * we use the same locks as the compatibility routines to ensure we
+	 * are at least consistent with our own emulations.
+	 *
+	 * Of course, concurrent threads accessing the file being ftruncate()-ed
+	 * without using compat_pread(), compat_pwrite() or their vectorized
+	 * friends to perform their I/Os would face a multi-threaded design bug!
+	 */
+
+	compat_pio_lock(fd);
+
+	current = mingw_lseek(fd, 0, SEEK_CUR);
+	if ((fileoffset_t) -1 == current)
+		goto failed;
+
+	if (current != len) {
+		offset = mingw_lseek(fd, len, SEEK_SET);
+		if ((fileoffset_t) -1 == offset || offset != len)
+			goto failed;
+	} else {
+		offset = len;
+	}
 
 	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		errno = mingw_last_error();
-		return -1;
+		int saved_errno = mingw_last_error();
+		if (offset != current)
+			(void) mingw_lseek(fd, current, SEEK_SET);
+		errno = saved_errno;
+		goto failed;
+	}
+
+	if (offset != current)
+		(void) mingw_lseek(fd, current, SEEK_SET);
+
+	compat_pio_unlock(fd);
+
+	/*
+	 * It would be weird to have the current offset larger than the truncation
+	 * offset.  Since we are in an emulation layer, warn for that loudly because
+	 * it is certainly pinpointing an application bug.
+	 */
+
+	if G_UNLIKELY(current > len) {
+		s_carp_once("%s(): current offset %s on fd #%d was beyond new end at %s",
+			G_STRFUNC, fileoffset_t_to_string(current), fd,
+			filesize_to_string(len));
 	}
 
 	return 0;
+
+failed:
+	compat_pio_unlock(fd);
+	return -1;
 }
 
 /***
