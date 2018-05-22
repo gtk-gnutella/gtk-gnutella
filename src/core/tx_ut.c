@@ -212,6 +212,7 @@
 #define TX_UT_REQUEUE_DELAY	5000	/* Time to requeue message after drop */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
+#define TX_UT_LINGER_MS		(45*1000)	/* Lingering time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
 #define TX_UT_SEQNO_THRESH	1024		/* Sequence ID freeing threshold */
 
@@ -331,6 +332,7 @@ struct ut_msg {
 	unsigned expecting_ack:1;		/* Expecting ACK to continue */
 	unsigned ear_pending:1;			/* Sent EAR to lower layer, waiting CONF */
 	unsigned cautious:1;			/* Cautious TX: only sent last fragment */
+	unsigned lingering:1;			/* Set when lingering after TX expiration */
 };
 
 static void
@@ -604,8 +606,13 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 		if (attr->cb->msg_account != NULL)
 			(*attr->cb->msg_account)(attr->tx->owner, um->mb, um->to);
 
-		if (um->reliable)
+		if (um->reliable) {
 			gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_SENT);
+			if (um->lingering) {
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT);
+			}
+		}
 		if (um->deflated)
 			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	} else {
@@ -936,6 +943,24 @@ ut_ear_resend(cqueue_t *cq, void *obj)
 	}
 
 	/*
+	 * If we are already lingering, do not resend an EAR.
+	 */
+
+	if (um->lingering) {
+		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, um->to)) {
+			g_debug("TX UT[%s]: %s: EAR unsent for %s whilst lingering "
+				"(send count: %u) "
+				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent)",
+				nid_to_string(&um->mid), G_STRFUNC,
+				gnet_host_to_string(um->to), um->ears,
+				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
+				um->fragcnt, plural(um->fragcnt));
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_LINGER_UNSENT);
+		return;
+	}
+
+	/*
 	 * If we already sent too many EARs, give up on the whole message.
 	 */
 
@@ -979,6 +1004,22 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 
 	cq_zero(cq, &uf->resend_ev);	/* Callback triggered */
 	um = uf->msg;
+
+	/*
+	 * If already lingering, do not resend.
+	 */
+
+	if (um->lingering) {
+		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
+			g_debug("TX UT[%s]: %s: lingering started, "
+				"not resending fragment #%u/%u seq=0x%04x to %s (TX count %u)",
+				nid_to_string(&um->mid), G_STRFUNC,
+				uf->fragno + 1, um->fragcnt, um->seqno,
+				gnet_host_to_string(um->to), uf->txcnt);
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_UNSENT);
+		return;
+	}
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
 		g_debug("TX UT[%s]: %s: will resend fragment #%u/%u seq=0x%04x to %s "
@@ -1758,6 +1799,44 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 }
 
 /**
+ * Callout queue callback invoked when the whole packet has finished lingering.
+ */
+static void
+ut_um_lingered(cqueue_t *cq, void *obj)
+{
+	struct ut_msg *um = obj;
+
+	ut_msg_check(um);
+	g_assert(um->expire_ev != NULL);
+	g_assert(um->lingering);
+
+	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
+
+	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
+		g_debug("TX UT[%s]: %s: message for %s expired "
+			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s %s, "
+			"%u transmitted with %u re-transmissions, %u pending ACK%s, "
+			"%zu fragment%s pending TX)",
+			nid_to_string(&um->mid), G_STRFUNC,
+			gnet_host_to_string(um->to),
+			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
+			um->fragcnt, plural(um->fragcnt),
+			um->reliable ? "ack-ed" : "sent",
+			um->fragtx, um->fragtx2,
+			um->pending, plural(um->pending),
+			elist_count(&um->resend), plural(elist_count(&um->resend)));
+	}
+
+	/*
+	 * Because all the fragments we enqueue have a pre-TX hook, we can simply
+	 * free up the message.  None of the pending fragments, if any, will be
+	 * sent.
+	 */
+
+	ut_msg_free(um, TRUE);
+}
+
+/**
  * Callout queue callback invoked when the whole packet has expired.
  */
 static void
@@ -1767,6 +1846,7 @@ ut_um_expired(cqueue_t *cq, void *obj)
 
 	ut_msg_check(um);
 	g_assert(um->expire_ev != NULL);
+	g_assert(!um->lingering);
 
 	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
 
@@ -1801,12 +1881,22 @@ ut_um_expired(cqueue_t *cq, void *obj)
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 
 	/*
-	 * Because all the fragments we enqueue have a pre-TX hook, we can simply
-	 * free up the message.  None of the pending fragments, if any, will be
-	 * sent.
+	 * We're going to linger for a while, with the message still allocated
+	 * but "inactive": during lingering, we are simply dealing with ACK
+	 * reception.
+	 *
+	 * Lingering is done in order to:
+	 * - give a little extra time for ACKs to come back, so that we finally
+	 * 	 know whether the message was fully sent or not.
+	 * - prevent the reuse of the sequence ID too soon after the message was
+	 *   expired for transmission.
+	 *
+	 * 		--RAM, 2018-05-22
 	 */
 
-	ut_msg_free(um, TRUE);
+	um->expire_ev = cq_main_insert(TX_UT_LINGER_MS, ut_um_lingered, um);
+	um->lingering = TRUE;
+	um->alpha = um->fragcnt;		/* Send everything if needed */
 }
 
 /**
@@ -2087,6 +2177,9 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED);
 	if (ack->received != 0)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EXTENDED_ACKS_RECEIVED);
+
+	if (um->lingering)
+		gnet_stats_inc_general(GNR_UDP_SR_TX_LINGER_ACKS_RECEIVED);
 
 	/*
 	 * Got something back, so remote host is alive.

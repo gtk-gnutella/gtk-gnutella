@@ -161,6 +161,8 @@ UDP_SR_TX_RELIABLE_MESSAGES_GIVEN
 	"Semi-reliable UDP reliable messages given for transmission"
 UDP_SR_TX_RELIABLE_MESSAGES_SENT
 	"Semi-reliable UDP reliable messages correctly transmited"
+UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT
+	"Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
 	"Semi-reliable UDP reliable messages not fully acknowledged"
 UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT
@@ -217,12 +219,16 @@ UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED
 	"Semi-reliable UDP fragment sendings avoided"
 UDP_SR_TX_FRAGMENTS_OVERSENT
 	"Semi-reliable UDP fragments sent too many times"
+UDP_SR_TX_FRAGMENTS_LINGER_UNSENT
+	"Semi-reliable UDP fragments not resent whilst lingering"
 UDP_SR_TX_TOTAL_ACKS_RECEIVED
 	"Semi-reliable UDP total acknowledgments received"
 UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED
 	"Semi-reliable UDP cumulative acknowledgments received"
 UDP_SR_TX_EXTENDED_ACKS_RECEIVED
 	"Semi-reliable UDP extended acknowledgments received"
+UDP_SR_TX_LINGER_ACKS_RECEIVED
+	"Semi-reliable UDP acknowledgments received whilst lingering"
 UDP_SR_TX_SPURIOUS_ACKS_RECEIVED
 	"Semi-reliable UDP spurious acknowledgments received"
 UDP_SR_TX_INVALID_ACKS_RECEIVED
@@ -241,6 +247,8 @@ UDP_SR_TX_EXTENDED_ACKS_SENT
 	"Semi-reliable UDP extended acknowledgments transmitted"
 UDP_SR_TX_EARS_SENT			"Semi-reliable UDP EARs sent"
 UDP_SR_TX_EARS_OVERSENT		"Semi-reliable UDP too many EARs sent"
+UDP_SR_TX_EARS_LINGER_UNSENT
+	"Semi-reliable UDP EAR not resent whilst lingering"
 UDP_SR_TX_EAR_NACKS_RECEIVED
 	"Semi-reliable UDP EAR negative acknowledgments received"
 UDP_SR_TX_EAR_FOLLOWED_BY_ACKS

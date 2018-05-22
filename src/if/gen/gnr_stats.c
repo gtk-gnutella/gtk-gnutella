@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 10:04:23 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue May 22 14:23:01 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -145,6 +145,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_messages_clogging",
 	"udp_sr_tx_reliable_messages_given",
 	"udp_sr_tx_reliable_messages_sent",
+	"udp_sr_tx_reliable_messages_linger_sent",
 	"udp_sr_tx_reliable_messages_unsent",
 	"udp_sr_tx_msg_reliable_1_frag_sent",
 	"udp_sr_tx_msg_reliable_2_frags_sent",
@@ -175,9 +176,11 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_fragments_unreliable_sent",
 	"udp_sr_tx_fragments_sending_avoided",
 	"udp_sr_tx_fragments_oversent",
+	"udp_sr_tx_fragments_linger_unsent",
 	"udp_sr_tx_total_acks_received",
 	"udp_sr_tx_cumulative_acks_received",
 	"udp_sr_tx_extended_acks_received",
+	"udp_sr_tx_linger_acks_received",
 	"udp_sr_tx_spurious_acks_received",
 	"udp_sr_tx_invalid_acks_received",
 	"udp_sr_tx_acks_requeued",
@@ -188,6 +191,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_extended_acks_sent",
 	"udp_sr_tx_ears_sent",
 	"udp_sr_tx_ears_oversent",
+	"udp_sr_tx_ears_linger_unsent",
 	"udp_sr_tx_ear_nacks_received",
 	"udp_sr_tx_ear_followed_by_acks",
 	"udp_sr_rx_fragments_received",
@@ -528,6 +532,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP total messages partially sent due to clogging"),
 	N_("Semi-reliable UDP reliable messages given for transmission"),
 	N_("Semi-reliable UDP reliable messages correctly transmited"),
+	N_("Semi-reliable UDP reliable messages fully acknowledged whilst lingering"),
 	N_("Semi-reliable UDP reliable messages not fully acknowledged"),
 	N_("Semi-reliable UDP reliable TX with 1 fragment sent"),
 	N_("Semi-reliable UDP reliable TX with 2 fragments sent"),
@@ -558,9 +563,11 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP unreliable fragments sent"),
 	N_("Semi-reliable UDP fragment sendings avoided"),
 	N_("Semi-reliable UDP fragments sent too many times"),
+	N_("Semi-reliable UDP fragments not resent whilst lingering"),
 	N_("Semi-reliable UDP total acknowledgments received"),
 	N_("Semi-reliable UDP cumulative acknowledgments received"),
 	N_("Semi-reliable UDP extended acknowledgments received"),
+	N_("Semi-reliable UDP acknowledgments received whilst lingering"),
 	N_("Semi-reliable UDP spurious acknowledgments received"),
 	N_("Semi-reliable UDP invalid acknowledgments received"),
 	N_("Semi-reliable UDP acknowledgments re-queued for sending"),
@@ -571,6 +578,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP extended acknowledgments transmitted"),
 	N_("Semi-reliable UDP EARs sent"),
 	N_("Semi-reliable UDP too many EARs sent"),
+	N_("Semi-reliable UDP EAR not resent whilst lingering"),
 	N_("Semi-reliable UDP EAR negative acknowledgments received"),
 	N_("Semi-reliable UDP acknowledgments received after sending EARs"),
 	N_("Semi-reliable UDP fragments received"),
