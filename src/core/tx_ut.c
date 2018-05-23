@@ -2491,8 +2491,19 @@ ear_nack:
 	 * the pending fragments.
 	 */
 
-	if (um->expecting_ack)
-		ut_resend_async(um);
+	if (um->expecting_ack) {
+		if (ack->ear) {
+			/*
+			 * We got a signal that the remote RX stack is up but did not
+			 * get any of our fragments.  Time to flush all un-ACKed fragments.
+			 */
+			gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_EAR_FLUSH);
+			um->alpha = um->fragcnt;		/* Maximum parallelism... */
+			ut_send_unacknowleged(um);
+		} else {
+			ut_resend_async(um);
+		}
+	}
 
 	um->expecting_ack = FALSE;
 

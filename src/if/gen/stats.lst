@@ -157,6 +157,8 @@ UDP_SR_TX_MESSAGES_GOOD
 	"Semi-reliable UDP total messages sent to known responsive hosts"
 UDP_SR_TX_MESSAGES_CLOGGING
 	"Semi-reliable UDP total messages partially sent due to clogging"
+UDP_SR_TX_MESSAGES_EAR_FLUSH
+	"Semi-reliable UDP reliable messages flushed after EAR negative ACK"
 UDP_SR_TX_MESSAGES_LINGER_FLUSH
 	"Semi-reliable UDP reliable messages flushed before lingering"
 UDP_SR_TX_MESSAGES_LINGER_COUNT

@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 23:29:14 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 23 07:44:25 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 386
+ * Enum count: 387
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -139,6 +139,7 @@ typedef enum {
 	GNR_UDP_SR_TX_MESSAGES_BANNED,
 	GNR_UDP_SR_TX_MESSAGES_GOOD,
 	GNR_UDP_SR_TX_MESSAGES_CLOGGING,
+	GNR_UDP_SR_TX_MESSAGES_EAR_FLUSH,
 	GNR_UDP_SR_TX_MESSAGES_LINGER_FLUSH,
 	GNR_UDP_SR_TX_MESSAGES_LINGER_COUNT,
 	GNR_UDP_SR_TX_RELIABLE_MESSAGES_GIVEN,

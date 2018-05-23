@@ -1,5 +1,5 @@
 /*
- * Generated on Tue May 22 23:29:14 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 23 07:44:25 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -143,6 +143,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_messages_banned",
 	"udp_sr_tx_messages_good",
 	"udp_sr_tx_messages_clogging",
+	"udp_sr_tx_messages_ear_flush",
 	"udp_sr_tx_messages_linger_flush",
 	"udp_sr_tx_messages_linger_count",
 	"udp_sr_tx_reliable_messages_given",
@@ -550,6 +551,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP total messages dropped due to temporary ban"),
 	N_("Semi-reliable UDP total messages sent to known responsive hosts"),
 	N_("Semi-reliable UDP total messages partially sent due to clogging"),
+	N_("Semi-reliable UDP reliable messages flushed after EAR negative ACK"),
 	N_("Semi-reliable UDP reliable messages flushed before lingering"),
 	N_("Semi-reliable UDP TX messages currently lingering"),
 	N_("Semi-reliable UDP reliable messages given for transmission"),
