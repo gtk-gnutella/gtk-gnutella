@@ -920,7 +920,9 @@ ut_resend_iterate(cqueue_t *cq, void *obj)
 	 * resend timeout.
 	 */
 
-	if (um->pending != 0 && um->pending >= um->alpha)
+	g_assert(um->alpha != 0);
+
+	if (um->pending >= um->alpha)
 		return;
 
 	/*
@@ -978,8 +980,12 @@ ut_send_unacknowleged(struct ut_msg *um)
 
 			if (!uf->resend) {
 				uf->resend = TRUE;
-				uf->pending = FALSE;	/* Awaiting retransmit */
+				if (uf->pending) {
+					uf->pending = FALSE;		/* Awaiting retransmit */
+					um->pending--;
+				}
 				elist_prepend(&um->resend, uf);
+				cq_cancel(&uf->resend_ev);	/* No resend on ACK timeout */
 			}
 		}
 	}
