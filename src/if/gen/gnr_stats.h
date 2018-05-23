@@ -1,5 +1,5 @@
 /*
- * Generated on Wed May 23 10:44:11 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 23 11:00:32 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 389
+ * Enum count: 390
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -181,6 +181,7 @@ typedef enum {
 	GNR_UDP_SR_TX_FRAGMENTS_UNRELIABLE_SENT,
 	GNR_UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED,
 	GNR_UDP_SR_TX_FRAGMENTS_OVERSENT,
+	GNR_UDP_SR_TX_FRAGMENTS_OVERSENT_GIVEUP,
 	GNR_UDP_SR_TX_FRAGMENTS_LINGER_UNSENT,
 	GNR_UDP_SR_TX_TOTAL_ACKS_RECEIVED,
 	GNR_UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED,

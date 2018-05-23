@@ -237,6 +237,8 @@ UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED
 	"Semi-reliable UDP fragment sendings avoided"
 UDP_SR_TX_FRAGMENTS_OVERSENT
 	"Semi-reliable UDP fragments sent too many times"
+UDP_SR_TX_FRAGMENTS_OVERSENT_GIVEUP
+	"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
 UDP_SR_TX_FRAGMENTS_LINGER_UNSENT
 	"Semi-reliable UDP fragments not resent whilst lingering"
 UDP_SR_TX_TOTAL_ACKS_RECEIVED

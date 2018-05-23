@@ -1141,22 +1141,29 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 
 	/*
 	 * If we sent the fragment too many times already, give up on the whole
-	 * message.
+	 * message if we got no acknowledgment at all yet.
 	 */
 
 	if (uf->txcnt >= TX_UT_SEND_MAX) {
+		bool give_up = 0 == um->fragsent;
+
 		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, um->to)) {
 			g_debug("TX UT[%s]: %s: fragment #%u for %s already sent %u times "
-				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent) -- giving up",
+				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent) -- %s",
 				nid_to_string(&um->mid), G_STRFUNC, uf->fragno + 1,
 				gnet_host_to_string(um->to), uf->txcnt,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt));
+				um->fragcnt, plural(um->fragcnt),
+				give_up ? "giving up" : "continuing");
 		}
 
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT);
-		ut_msg_free(um, TRUE);
-		return;
+
+		if (give_up) {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT_GIVEUP);
+			ut_msg_free(um, TRUE);
+			return;
+		}
 	}
 
 	/*

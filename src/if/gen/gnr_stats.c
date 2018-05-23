@@ -1,5 +1,5 @@
 /*
- * Generated on Wed May 23 10:44:11 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed May 23 11:00:32 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -185,6 +185,7 @@ static const char *stats_symbols[] = {
 	"udp_sr_tx_fragments_unreliable_sent",
 	"udp_sr_tx_fragments_sending_avoided",
 	"udp_sr_tx_fragments_oversent",
+	"udp_sr_tx_fragments_oversent_giveup",
 	"udp_sr_tx_fragments_linger_unsent",
 	"udp_sr_tx_total_acks_received",
 	"udp_sr_tx_cumulative_acks_received",
@@ -595,6 +596,7 @@ static const char *stats_text[] = {
 	N_("Semi-reliable UDP unreliable fragments sent"),
 	N_("Semi-reliable UDP fragment sendings avoided"),
 	N_("Semi-reliable UDP fragments sent too many times"),
+	N_("Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"),
 	N_("Semi-reliable UDP fragments not resent whilst lingering"),
 	N_("Semi-reliable UDP total acknowledgments received"),
 	N_("Semi-reliable UDP cumulative acknowledgments received"),
