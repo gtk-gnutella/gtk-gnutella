@@ -169,8 +169,12 @@ UDP_SR_TX_RELIABLE_MESSAGES_SENT
 	"Semi-reliable UDP reliable messages correctly transmited"
 UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT
 	"Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_SENT
+	"Semi-reliable UDP reliable messages fully acknowledged after flush"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
 	"Semi-reliable UDP reliable messages not fully sent"
+UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_UNSENT
+	"Semi-reliable UDP reliable messages not fully sent despite flush"
 UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK
 	"Semi-reliable UDP reliable messages partially acknowledged"
 UDP_SR_TX_RELIABLE_MSG_NO_ACK

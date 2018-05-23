@@ -334,6 +334,7 @@ struct ut_msg {
 	unsigned ear_pending:1;			/* Sent EAR to lower layer, waiting CONF */
 	unsigned cautious:1;			/* Cautious TX: only sent last fragment */
 	unsigned lingering:1;			/* Set when lingering after TX expiration */
+	unsigned flushed:1;				/* Whether fragment flush was requested */
 };
 
 static void
@@ -627,6 +628,10 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 				gnet_stats_inc_general(
 					GNR_UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT);
 			}
+			if (um->flushed) {
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_SENT);
+			}
 		}
 		if (um->deflated)
 			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
@@ -642,6 +647,9 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_NO_ACK);
 			else
 				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK);
+			if (um->flushed)
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_UNSENT);
 		}
 	}
 
@@ -990,6 +998,7 @@ ut_send_unacknowleged(struct ut_msg *um)
 		}
 	}
 
+	um->flushed = TRUE;
 	ut_resend_async(um);
 }
 
