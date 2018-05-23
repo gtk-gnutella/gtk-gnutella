@@ -2498,6 +2498,7 @@ ear_nack:
 			 * get any of our fragments.  Time to flush all un-ACKed fragments.
 			 */
 			gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_EAR_FLUSH);
+			ut_to_flag_good(attr, um->to);	/* Remote RX stack is there */
 			um->alpha = um->fragcnt;		/* Maximum parallelism... */
 			ut_send_unacknowleged(um);
 		} else {
