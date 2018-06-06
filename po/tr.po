@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2018-05-22 23:53+0200\n"
-"PO-Revision-Date: 2016-08-31 15:19+0000\n"
+"PO-Revision-Date: 2018-06-02 15:32+0300\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/tr/)\n"
@@ -20,6 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
+"X-Generator: Poedit 2.0.6\n"
 
 msgid "Harmful version banned, upgrade required"
 msgstr "Zararlı sürüm yasaklandı, güncelleme gerekiyor"
@@ -419,9 +420,8 @@ msgstr "Zaman aşımı"
 msgid "Requeued due to timeout"
 msgstr "Zaman aşımı yüzünden kuyruğa alındı"
 
-#, fuzzy
 msgid "File info being freed"
-msgstr "Dosya verileri sıfırlanmakta"
+msgstr "Boşaltılmakta olan dosya verileri"
 
 msgid "Partial file removed"
 msgstr "Kısmi dosya kaldırıldı"
@@ -857,11 +857,10 @@ msgid "Browse Host Disabled"
 msgstr "Kişiye Gözat devre dışı"
 
 msgid "Browsing abuse detected"
-msgstr ""
+msgstr "Göz atma istismarı tespit edildi"
 
-#, fuzzy
 msgid "Browsing throttled"
-msgstr "Mesaj sayısı sınırlaması"
+msgstr "Göz atma sınırlandı"
 
 #, c-format
 msgid "Redirected to %s:%u"
@@ -873,9 +872,8 @@ msgstr "Değiştirilmemiş"
 msgid "Stalling upload replaced"
 msgstr "Duraklayan gönderme yenilendi"
 
-#, fuzzy
 msgid "Could not send whole HTTP status"
-msgstr "Tüm HTTP durumu gönderilemiyor"
+msgstr "Tüm HTTP durumu gönderilemedi"
 
 msgid "Already downloading this file"
 msgstr "Bu dosya zaten indirilmekte"
@@ -928,16 +926,15 @@ msgstr ", parçalar hâlinde"
 msgid "THEX failure"
 msgstr "THEX başarısızlığı"
 
-#, fuzzy
 msgid "Cannot send whole HTTP status after OPTIONS"
-msgstr "Tüm HTTP durumu gönderilemiyor"
+msgstr "OPTIONS ardından tüm HTTP durumu gönderilemez"
 
 msgid "EOF while sinking"
-msgstr ""
+msgstr "Atılma sırasında EOF (dosya sonu)"
 
 #, c-format
 msgid "Read error while sinking: %m"
-msgstr ""
+msgstr "Atılma sırasında okuma hatası: %m"
 
 msgid "Content Too Large"
 msgstr "Fazla Geniş İçerik"
@@ -1065,9 +1062,8 @@ msgstr "Yerel veritabanında G2 isabetleri"
 msgid "G2 hits on local partial files"
 msgstr "Yerel kısmi dosyalara G2 isabetleri"
 
-#, fuzzy
 msgid "Hits on aliased queries"
-msgstr "\"Yeni olanlar\" sorgularına isabetler"
+msgstr "takma sorgulardaki isabetler"
 
 msgid "Query hits received for OOB-proxied queries"
 msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
@@ -1101,50 +1097,47 @@ msgstr ""
 "isabetleri"
 
 msgid "OOB hits we claimed after notification"
-msgstr ""
+msgstr "Bildirimden sonra talep ettiğimiz OOB isabetleri"
 
 msgid "OOB hits subset that we claimed securely"
-msgstr ""
+msgstr "Güvenli bir şekilde talep ettiğimiz OOB isabetleri alt kümesi"
 
 msgid "OOB hit-notifications discarded due to popularity"
-msgstr ""
+msgstr "Popülarite sebebiyle atılan OOB isabet bildirimleri"
 
 msgid "OOB hit-notifications processed under tight bandwidth"
-msgstr ""
+msgstr "Dar bant genişliği altında işlenen OOB isabet bildirimleri"
 
 msgid "Notifications sent for local OOB hits"
-msgstr ""
+msgstr "Yerel OOB isabetleri için gönderilen bildirimler"
 
 msgid "Notifications reliably sent for local OOB hits"
-msgstr ""
+msgstr "Yerel OOB isabetleri için güvenilir bir şekilde gönderilen bildirimler"
 
-#, fuzzy
 msgid "Claimed locally-generated OOB hits"
-msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+msgstr "Talep edilen yerel olarak oluşturulmuş OOB isabetleri"
 
-#, fuzzy
 msgid "Claimed locally-generated reliable OOB hits"
-msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+msgstr "Talep edilen yerel olarak oluşturulmuş güvenilir OOB isabetleri"
 
 msgid "Unclaimed locally-generated OOB hits"
 msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
 
-#, fuzzy
 msgid "Unclaimed locally-generated reliable OOB hits"
-msgstr "Talep edilmeyen yerel olarak oluşturulmuş OOB isabetleri"
+msgstr "Talep edilmeyen yerel olarak oluşturulmuş güvenilir OOB isabetleri"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
 
-#, fuzzy
 msgid "Partially claimed locally-generated reliable OOB hits"
-msgstr "Kısmi olarak talep edilen yerel olarak oluşturulmuş OOB isabetleri"
+msgstr ""
+"Kısmi olarak talep edilen yerel olarak oluşturulmuş güvenilir OOB isabetleri"
 
 msgid "Expired delivery for local OOB hits"
-msgstr ""
+msgstr "Yerel OOB isabetleri için ömrü bitmiş teslimat"
 
 msgid "Expired delivery for local reliable OOB hits"
-msgstr ""
+msgstr "Yerel güvenilir OOB isabetleri için ömrü bitmiş teslimat"
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Sahte OOB isabet talebi alındı"
@@ -1180,7 +1173,7 @@ msgid "SHA1 G2 queries"
 msgstr "SHA1 G2 sorguları"
 
 msgid "Queries with aliased words"
-msgstr ""
+msgstr "Takma kelimeler ile sorgular"
 
 msgid "GUESS queries"
 msgstr "GUESS sorguları"
@@ -1399,13 +1392,13 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
-msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
+msgstr ""
+"Beklemeden önce temizlenen yarı güvenilir UDP iletim için verilen güvenli "
+"mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP TX messages currently lingering"
-msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
+msgstr "Güncel olarak bekleyen yarı güvenilir UDP TX mesajları"
 
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
@@ -1413,113 +1406,87 @@ msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr "Yarı güvenilir UDP doğru aktarılan güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
-msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+msgstr ""
+"Beklemedeyken tamamen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages not fully sent"
-msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+msgstr "Tamamen gönderilmeyen yarı güvenilir UDP güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages partially acknowledged"
-msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+msgstr "Kısmen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
-msgstr "Yarı güvenilir UDP tamamen teyit edilmeyen güvenilir mesajlar"
+msgstr "Hiç teyit edilmeyen yarı güvenilir UDP güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "1 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "2 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "3 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "4 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "5 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "6 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "7 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "8 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "9 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "10+ parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "1 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "2 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "3 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "4 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "5 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "6 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "7 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "8 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "9 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "10+ parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable TX with 1 fragment"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "1 parçalı yarı güvenilir UDP güvenilmez TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable TX with 2 fragments"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "2 parçalı yarı güvenilir UDP güvenilmez TX"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "3+ parçalı yarı güvenilir UDP güvenilmez TX"
 
 msgid "Semi-reliable UDP fragments sent"
 msgstr "Yarı güvenilir UDP yollanan parçalar"
@@ -1527,21 +1494,17 @@ msgstr "Yarı güvenilir UDP yollanan parçalar"
 msgid "Semi-reliable UDP fragments resent"
 msgstr "Yarı güvenilir UDP tekrar yollanan parçalar"
 
-#, fuzzy
 msgid "Semi-reliable UDP fragments sent whilst lingering"
-msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+msgstr "Beklemedeyken gönderilen yarı güvenilir UDP parçaları"
 
-#, fuzzy
 msgid "Semi-reliable UDP fragments resent whilst lingering"
-msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+msgstr "Beklemedeyken tekrar gönderilen yarı güvenilir UDP parçaları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable fragments sent"
-msgstr "Yarı güvenilir UDP yollanan parçalar"
+msgstr "Yarı güvenilir UDP güvenilir yollanan parçalar"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable fragments sent"
-msgstr "Yarı güvenilir UDP alınan güvenilmez parçalar"
+msgstr "Yarı güvenilir UDP güvenilmez yollanan parçalar"
 
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
@@ -1549,9 +1512,8 @@ msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
 
-#, fuzzy
 msgid "Semi-reliable UDP fragments not resent whilst lingering"
-msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+msgstr "Beklemedeyken tekrar gönderilmeyen yarı güvenilir UDP parçaları"
 
 msgid "Semi-reliable UDP total acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan toplam teyitler"
@@ -1562,9 +1524,8 @@ msgstr "Yarı güvenilir UDP alınan kümülatif teyitler"
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan genişletilmiş teyitler"
 
-#, fuzzy
 msgid "Semi-reliable UDP acknowledgments received whilst lingering"
-msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
+msgstr "Yarı güvenilir UDP beklemedeyken alınan teyitler"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan sahte teyitler"
@@ -1596,9 +1557,8 @@ msgstr "Yarı güvenilir UDP gönderilen EAR'ler"
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr "Yarı güvenilir UDP çok fazla gönderilen EAR'ler"
 
-#, fuzzy
 msgid "Semi-reliable UDP EAR not resent whilst lingering"
-msgstr "Yarı güvenilir UDP beklerken alınan EAR'ler"
+msgstr "Yarı güvenilir UDP beklerken tekrar gönderilmeyen EAR'ler"
 
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan EAR negatif teyitler"
@@ -1621,9 +1581,8 @@ msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr "Yarı güvenilir UDP beklenirken alınan parçalar"
 
-#, fuzzy
 msgid "Semi-reliable UDP RX messages currently lingering"
-msgstr "Yarı güvenilir UDP toplam gönderilmeyen mesajlar"
+msgstr "Yarı güvenilir UDP güncel olarak beklemedeki RX mesajları"
 
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr "Yarı güvenilir UDP yeniden birleştirme öncesi ömrü dolan mesajlar"
@@ -1643,101 +1602,77 @@ msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
 msgid "Semi-reliable UDP empty messages received"
 msgstr "Yarı güvenilir UDP alınan boş mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 1-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 1 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 2-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 2 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 3-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 3 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 4-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 4 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 5-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 5 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 6-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 6 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 7-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 7 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 8-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 8 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 9-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 9 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilir RX 10+ parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilmez RX 1 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilmez RX 2 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilmez RX 3+ parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 2 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 3 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 4 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 5 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 6 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 7 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 8 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilir RX 9 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP alınan güvenilmez RX 10+ parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilmez RX 2 parça mesajları"
 
-#, fuzzy
 msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
-msgstr "Yarı güvenilir UDP alınan güvenilmez mesajlar"
+msgstr "Yarı güvenilir UDP ömrü bitmiş güvenilmez RX 3+ parça mesajları"
 
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr "Yarı güvenilir UDP yollanan toplam teyitler"
@@ -1751,25 +1686,22 @@ msgstr "Yarı güvenilir UDP yollanan genişletilmiş teyitler"
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
 msgstr "Yarı güvenilir UDP önlenen teyit gönderimleri"
 
-#, fuzzy
 msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
-msgstr "Yarı güvenilir UDP alınan çift parçalar"
+msgstr "Yarı güvenilir UDP yinelenen parçadaki ACK'ler beklenirken temizleme"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
-msgstr "Yarı güvenilir UDP EAR gönderildikten sonra alınan teyitler"
+msgstr "Yarı güvenilir UDP EAR'den sonra alınan parçalar teyit ediliyor"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
-msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
+msgstr ""
+"Yarı güvenilir UDP kopyadan sonra alınan parçalar tekrar teyit ediliyor"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
-msgstr "Yarı güvenilir UDP alınan ve çöpe atılan parçalar"
+msgstr ""
+"Yarı güvenilir UDP ömürleri bitmeden alınan parçalar tekrar teyit ediliyor"
 
-#, fuzzy
 msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
-msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
+msgstr "Yarı güvenilir UDP tekrar teyit esnasında yeniden yollanan ACK'ler"
 
 msgid "Semi-reliable UDP EARs received"
 msgstr "Yarı güvenilir UDP alınan EAR'ler"
@@ -2237,13 +2169,13 @@ msgid "DHT re-seeding of orphan downloads"
 msgstr "DHT öksüz indirmelerin tekrar sunumu"
 
 msgid "Digests computed on general statistics"
-msgstr ""
+msgstr "Genel istatistiklerde hesaplanan özetler"
 
 msgid "Digests computed on TCP statistics"
-msgstr ""
+msgstr "TCP istatistiklerinde hesaplanan özetler"
 
 msgid "Digests computed on UDP statistics"
-msgstr ""
+msgstr "UDP istatistiklerinde hesaplanan özetler"
 
 msgid "Ping"
 msgstr "Ping"
@@ -4513,7 +4445,7 @@ msgstr ""
 "KUİD'nin bir oturumdan diğerine tutulup tutulmayacağını ayarlar. Tutulan bir "
 "KUİD DHT için yararlıdır çünkü yönlendirme tablosunun kararlılığını "
 "destekler ve en yakın düğümlerin birbirleri hakkında verileri korumalarını "
-"sağlar."
+"sağlar"
 
 msgid "Debug level for the DHT user lookup queue."
 msgstr "DHT kullanıcı aramaları kuyruğu için hata ayıklama seviyesi."
@@ -4656,7 +4588,7 @@ msgid "Debug level for country limits."
 msgstr "Ülke tercihleri için hata ayıklama seviyesi."
 
 msgid "Whether to log dropped Gnutella messages"
-msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar."
+msgstr "Atılan Gnutella mesajları için kütük tutulup tutulmayacağını ayarlar"
 
 msgid "Debug level for whitelist management."
 msgstr "Beyaz liste yönetimi için hata ayıklama seviyesi."
@@ -4968,7 +4900,7 @@ msgid ""
 msgstr ""
 "GUESS sorgulamaları için bant genişliği önerisi, bayt/saniye olarak, ki bu "
 "GUESS sorgularının eşzamanlılığını sınırlar. Düşük değerler daha yavaş "
-"sorgulama anlamına gelir."
+"sorgulama anlamına gelir"
 
 msgid "Debug level for the matching code."
 msgstr "Denkleşme kodu için hata ayıklama seviyesi."
@@ -5191,7 +5123,7 @@ msgid "ID of the current process."
 msgstr "Güncel sürecin kimliği."
 
 msgid "Debug level for HTTP range parsing / handling."
-msgstr "HTTP alan analizi / yönetimi için hata ayıklama seviyesi"
+msgstr "HTTP alan analizi / yönetimi için hata ayıklama seviyesi."
 
 msgid ""
 "Lease time when installing port mappings via UPnP or NAT-PMP, in seconds.  A "
@@ -5206,7 +5138,7 @@ msgstr ""
 "başlamayacağını belirler."
 
 msgid "Debug level for time management."
-msgstr "Zaman yönetimi için hata ayıklama seviyesi"
+msgstr "Zaman yönetimi için hata ayıklama seviyesi."
 
 msgid "Debug level for the tmalloc() thread-magazine object distributor."
 msgstr ""
@@ -5272,24 +5204,20 @@ msgstr ""
 "İçeri gelen bağlantılara izin vermek için bağlı hiçbir TCP dinleme soketi "
 "yoktur."
 
-#, fuzzy
 msgid "Defines whether Gnutella queries should be traced."
-msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+msgstr "Gnutella sorgularının izlenmesinin gerekip gerekmediğini tanımlar."
 
-#, fuzzy
 msgid "Defines whether I/O event callbacks should be traced."
-msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+msgstr "G/Ç olay geri çağrılarının izlenip izlenmeyeceğini tanımlar."
 
-#, fuzzy
 msgid "Defines whether lock contentions should be traced."
-msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+msgstr "Kilitlenmelerin izlenmesinin gerekip gerekmediğini tanımlar."
 
-#, fuzzy
 msgid "Defines whether lock sleeps should be traced."
-msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+msgstr "Kilit uykularının izlenmelerinin gerekip gerekmediğini tanımlar."
 
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
-msgstr ""
+msgstr "Eğer DOĞRU ise, gtk-gnutella grafik arayüzü olmadan çalışır."
 
 msgid "disable"
 msgstr "devre dışı"
@@ -5837,17 +5765,16 @@ msgstr ""
 "istatistikerini mi göstereceğini belirler."
 
 msgid "Notebook tab number for the fileinfo listing"
-msgstr ""
+msgstr "Dosya bilgisi listesi için defter sekmesi numarası"
 
 msgid "Notebook tab number for the main page"
-msgstr ""
+msgstr "Ana sayfa için defter sekmesi numarası"
 
-#, fuzzy
 msgid "Notebook tab number for the Gnet stats page"
-msgstr "Gnet istatistikleri panosunda ayracın konumu."
+msgstr "Gnet istatistik sayfası için not defteri sekmesi numarası"
 
 msgid "Notebook tab number for download info / tools"
-msgstr ""
+msgstr "İndirme bilgisi / araçları için defter sekmesi numarası"
 
 msgid "Anonymizing proxies"
 msgstr "Anonimleştiren vekil sunucular"
@@ -6857,13 +6784,12 @@ msgstr "Mevcut değil"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, fuzzy, c-format
+#, c-format
 msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
-msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s"
+msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s%s"
 
-#, fuzzy
 msgid " [re-computed]"
-msgstr "tamamlanmış"
+msgstr " [tekrar hesaplanmış]"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9434,7 +9360,7 @@ msgid "[IP:port placeholder]"
 msgstr "[IP:port alan tutucu]"
 
 msgid "Served "
-msgstr "Sunulmuş"
+msgstr "Sunulmuş "
 
 msgid "[G2 served]"
 msgstr "[G2 sunulmuş]"
