@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-22 23:53+0200\n"
+"POT-Creation-Date: 2018-06-06 14:16+0200\n"
 "PO-Revision-Date: 2018-06-02 15:32+0300\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1392,6 +1392,12 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr ""
+"Beklemeden önce temizlenen yarı güvenilir UDP iletim için verilen güvenli "
+"mesajlar"
+
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
 msgstr ""
 "Beklemeden önce temizlenen yarı güvenilir UDP iletim için verilen güvenli "
@@ -1410,7 +1416,16 @@ msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr ""
 "Beklemedeyken tamamen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr ""
+"Beklemedeyken tamamen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
+
 msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "Tamamen gönderilmeyen yarı güvenilir UDP güvenilir mesajlar"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
 msgstr "Tamamen gönderilmeyen yarı güvenilir UDP güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable messages partially acknowledged"
@@ -1511,6 +1526,11 @@ msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
 
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
+
+#, fuzzy
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr "Yarı güvenilir UDP güvenilir yollanan parçalar"
 
 msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr "Beklemedeyken tekrar gönderilmeyen yarı güvenilir UDP parçaları"

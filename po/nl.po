@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-22 23:53+0200\n"
+"POT-Creation-Date: 2018-06-06 14:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1403,6 +1403,10 @@ msgstr ""
 "gedeeltelijk verzonden"
 
 #, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr "Semibetrouwbare UDP betrouwbare berichten overhandigd voor verzending"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
 msgstr "Semibetrouwbare UDP betrouwbare berichten overhandigd voor verzending"
 
@@ -1421,7 +1425,15 @@ msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr "Semibetrouwbare UDP betrouwbare berichten nog niet volledig bevestigd"
 
 #, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr "Semibetrouwbare UDP betrouwbare berichten nog niet volledig bevestigd"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "Semibetrouwbare UDP betrouwbare berichten nog niet volledig bevestigd"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
 msgstr "Semibetrouwbare UDP betrouwbare berichten nog niet volledig bevestigd"
 
 #, fuzzy
@@ -1551,6 +1563,11 @@ msgstr "Semibetrouwbare UDP fragmenten verzending voorkomen"
 
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "Semibetrouwbare UDP fragmenten te vaak verzonden"
+
+#, fuzzy
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr "Semibetrouwbare UDP fragmenten verzonden"
 
 #, fuzzy
 msgid "Semi-reliable UDP fragments not resent whilst lingering"

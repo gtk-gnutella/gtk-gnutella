@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 1.1.13\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-22 23:53+0200\n"
+"POT-Creation-Date: 2018-06-06 14:16+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1378,6 +1378,9 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr ""
+
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
 msgstr ""
 
@@ -1393,7 +1396,13 @@ msgstr ""
 msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr ""
 
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr ""
+
 msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
 msgstr ""
 
 msgid "Semi-reliable UDP reliable messages partially acknowledged"
@@ -1493,6 +1502,10 @@ msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments not resent whilst lingering"

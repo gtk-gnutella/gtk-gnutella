@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-05-22 23:53+0200\n"
+"POT-Creation-Date: 2018-06-06 14:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -1379,6 +1379,10 @@ msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
 #, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
 msgstr "受信した圧縮UDPメッセージ"
 
@@ -1397,7 +1401,15 @@ msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr "受信した圧縮UDPメッセージ"
 
 #, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
 msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
 msgstr "受信した圧縮UDPメッセージ"
 
 #, fuzzy
@@ -1521,6 +1533,11 @@ msgstr ""
 
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr ""
+
+#, fuzzy
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr "受信した圧縮UDPメッセージ"
 
 msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr ""
