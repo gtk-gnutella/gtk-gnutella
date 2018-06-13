@@ -406,6 +406,22 @@ zalloc_overhead(void)
 	return OVH_LENGTH;
 }
 
+/**
+ * Describe zone verbosely in case of critical events, for debugging clues.
+ */
+static void G_COLD
+zdescribe(const zone_t *zone)
+{
+	s_rawinfo("%s%szone %p, %s, "
+		"refcnt=%u, hint=%u, cnt=%u, blocks=%u, free=%p, subzones=%u%s%s",
+		zone->embedded ? "embedded " : "", zone->private ? "private " : "",
+		zone, zone->zn_gc != NULL ? "GC mode" : "no GC",
+		zone->zn_refcnt, zone->zn_hint, zone->zn_cnt, zone->zn_blocks,
+		zone->zn_free, zone->zn_subzones,
+		zone->private ? "for " : "",
+		zone->private ? thread_safe_id_name(zone->zn_stid) : "");
+}
+
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
 #ifdef REMAP_ZALLOC
@@ -552,8 +568,9 @@ zbelongs(const zone_t *zone, const void *blk)
 	BINARY_SEARCH(const zrange_t *, blk, zone->zn_subzones,
 		zrange_falls_in, GET_ITEM, FOUND);
 
-	s_rawcrit("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone",
-		G_STRFUNC, blk, zone->zn_size - OVH_LENGTH, zone->zn_size);
+	s_rawcrit("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone %p",
+		G_STRFUNC, blk, zone->zn_size - OVH_LENGTH, zone->zn_size, zone);
+	zdescribe(zone);
 
 	return FALSE;
 }
@@ -1107,7 +1124,10 @@ zreturn(zone_t *zone, void *ptr)
 	G_PREFETCH_W(&zone->zn_free);
 	G_PREFETCH_W(&zone->zn_cnt);
 
-	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
+	if G_UNLIKELY(!uint_is_positive(zone->zn_cnt)) {
+		zdescribe(zone);
+		s_error("zone %p has no outstanding blocks to be freed", zone);
+	}
 
 	head = zone->zn_free;
 	safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
