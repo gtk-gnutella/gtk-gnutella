@@ -552,7 +552,7 @@ zbelongs(const zone_t *zone, const void *blk)
 	BINARY_SEARCH(const zrange_t *, blk, zone->zn_subzones,
 		zrange_falls_in, GET_ITEM, FOUND);
 
-	s_rawwarn("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone",
+	s_rawcrit("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone",
 		G_STRFUNC, blk, zone->zn_size - OVH_LENGTH, zone->zn_size);
 
 	return FALSE;
