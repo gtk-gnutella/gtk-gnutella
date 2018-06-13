@@ -1834,7 +1834,7 @@ s_rawcrit(const char *format, ...)
 	s_rawlogv(G_LOG_LEVEL_CRITICAL, TRUE, TRUE, format, args);
 	va_end(args);
 
-	s_stacktrace(in_signal_handler, 1);	/* Copied to stdout if different */
+	s_stacktrace(TRUE, 1);	/* Copied to stdout if different */
 }
 
 /**
