@@ -1827,7 +1827,6 @@ s_minierror(const char *format, ...)
 void
 s_rawcrit(const char *format, ...)
 {
-	bool in_signal_handler = signal_in_unsafe_handler();
 	va_list args;
 
 	va_start(args, format);
