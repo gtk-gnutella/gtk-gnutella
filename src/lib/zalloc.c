@@ -3847,4 +3847,49 @@ zalloc_dump_stats(void)
 	zalloc_dump_zones_log(log_agent_stderr_get());
 }
 
+/**
+ * Called from main() to log settings at startup.
+ */
+void G_COLD
+zalloc_show_settings_log(logagent_t *la)
+{
+	bool has_setting = FALSE;
+	struct zalloc_settings {
+		uint8 safety_assert;
+		uint8 zone_safe;
+		uint8 zone_frames;
+	} settings;
+
+	ZERO(&settings);
+
+#ifdef ZALLOC_SAFETY_ASSERT
+	settings.safety_assert = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef ZONE_SAFE
+	settings.zone_safe = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef ZONE_FRAMES
+	settings.zone_frames = TRUE;
+	has_setting = TRUE;
+#endif
+
+	if (has_setting) {
+		log_message(la, "zalloc settings: %s%s%s",
+			settings.safety_assert ? "ZALLOC_SAFETY_ASSERT " : "",
+			settings.zone_safe ? "ZONE_SAFE " : "",
+			settings.zone_frames ? "ZONE_FRAMES " : "");
+	}
+}
+
+/**
+ * Called from main() to log settings at startup.
+ */
+void G_COLD
+zalloc_show_settings(void)
+{
+	zalloc_show_settings_log(log_agent_stderr_get());
+}
+
 /* vi: set ts=4 sw=4 cindent: */

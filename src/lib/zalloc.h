@@ -101,6 +101,8 @@ void zalloc_dump_stats(void);
 void zalloc_dump_usage_log(struct logagent *la, unsigned options);
 void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
+void zalloc_show_settings(void);
+void zalloc_show_settings_log(struct logagent *la);
 
 enum zalloc_stack_ctrl {
 	ZALLOC_SA_SET = 0,		/**< Turn stack accounting on/off */

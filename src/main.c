@@ -2413,6 +2413,7 @@ main(int argc, char **argv)
 	version_init(OPT(no_build_version));
 	xmalloc_show_settings();
 	malloc_show_settings();
+	zalloc_show_settings();
 	crash_setver(version_build_string());	/* Wants true full version */
 	crash_setccdate(__DATE__);
 	crash_setcctime(__TIME__);

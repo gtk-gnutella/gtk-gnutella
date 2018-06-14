@@ -296,7 +296,7 @@ static enum shell_reply
 shell_exec_memory_show_options(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	show_vec_t v[3];
+	show_vec_t v[4];
 
 	shell_check(sh);
 	g_assert(argv);
@@ -306,8 +306,10 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 	v[0].prefix = NULL;
 	v[1].cb = malloc_show_settings_log;
 	v[1].prefix = "malloc ";
-	v[2].cb = shell_vtable_settings_log;
-	v[2].prefix = NULL;
+	v[2].cb = zalloc_show_settings_log;
+	v[2].prefix = "zalloc ";
+	v[3].cb = shell_vtable_settings_log;
+	v[3].prefix = NULL;
 
 	return memory_run_showerv(sh, v, N_ITEMS(v));
 }
