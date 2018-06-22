@@ -7,7 +7,7 @@ case "$1" in
 	brew remove --force $(brew list) --ignore-dependencies
 
 	[ -n "${OBJECTSTORE_URL}" ] && mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.gz | tar -zx  -C ~/gtk-gnutella || echo "Nothing prebuild"
-	curl https://git.gnome.org/browse/gtk-osx/plain/gtk-osx-build-setup.sh | sh
+	curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-build-setup.sh | sh
 	cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella && cp -v osx/gtk-gnutella.modules ~/gtk-gnutella.modules
 	git clone https://github.com/jralls/gtk-mac-bundler.git
 	;;
