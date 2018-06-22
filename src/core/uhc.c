@@ -109,7 +109,6 @@ static const struct {
 	/* Peers */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "2.uhc.gtk-gnutella.nl:4876" },
-	{ "uhc.gtk-gnutella.nl:15749" },
 	{ "useast.gnutella.dyslexicfish.net:15321" },
 	{ "uswest.gnutella.dyslexicfish.net:18037" },
 	{ "uk.gnutella.dyslexicfish.net:41481" },
