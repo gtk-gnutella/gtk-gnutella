@@ -578,10 +578,10 @@ version_new_found(const char *text, bool stable)
     static char last_dev[256] = "";
 	char s[1024];
 
-    if (stable)
-        utf8_strlcpy(last_stable, text, sizeof last_stable);
-    else
-        utf8_strlcpy(last_dev, text, sizeof last_dev);
+	if (stable)
+		utf8_strlcpy(last_stable, text, sizeof last_stable);
+	else
+		utf8_strlcpy(last_dev, text, sizeof last_dev);
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
 		str_bprintf(ARYLEN(s),

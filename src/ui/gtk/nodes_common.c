@@ -490,10 +490,10 @@ nodes_gui_is_visible(void)
 void
 nodes_gui_timer(time_t now)
 {
-    static time_t last_update;
+	static time_t last_update;
 
-    if (last_update == now)
-        return;
+	if (last_update == now)
+		return;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -507,7 +507,7 @@ nodes_gui_timer(time_t now)
 		nodes_gui_is_visible() ||
 		delta_time(now, last_update) >= UPDATE_MIN
 	) {
-    	last_update = now;
+		last_update = now;
 		nodes_gui_update_display(now);
 	}
 }

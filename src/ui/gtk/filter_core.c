@@ -1347,36 +1347,36 @@ filter_remove_from_session(filter_t *f)
 static void
 filter_free(filter_t *f)
 {
-    GList *copy;
+	GList *copy;
 
-    g_assert(f != NULL);
+	g_assert(f != NULL);
 
-    if (shadow_find(f) != NULL)
-        g_error("Unable to free shadowed filter \"%s\" with refcount %d",
-            f->name, f->refcount);
+	if (shadow_find(f) != NULL)
+		g_error("Unable to free shadowed filter \"%s\" with refcount %d",
+			f->name, f->refcount);
 
-    if (f->refcount != 0)
-        g_error("Unable to free referenced filter \"%s\" with refcount %d",
-            f->name, f->refcount);
+	if (f->refcount != 0)
+		g_error("Unable to free referenced filter \"%s\" with refcount %d",
+			f->name, f->refcount);
 
-    /*
-     * Remove the filter from current and session data
-     */
-    if (g_list_find(filters, f) != NULL)
-        filters = g_list_remove(filters, f);
-    if (g_list_find(filters_current, f) != NULL)
-        filters_current = g_list_remove(filters_current, f);
-    if (g_list_find(filters_added, f) != NULL)
-        filters_added = g_list_remove(filters_added, f);
-    if (g_list_find(filters_removed, f) != NULL)
-        filters_removed = g_list_remove(filters_removed, f);
+	/*
+	 * Remove the filter from current and session data
+	 */
+	if (g_list_find(filters, f) != NULL)
+		filters = g_list_remove(filters, f);
+	if (g_list_find(filters_current, f) != NULL)
+		filters_current = g_list_remove(filters_current, f);
+	if (g_list_find(filters_added, f) != NULL)
+		filters_added = g_list_remove(filters_added, f);
+	if (g_list_find(filters_removed, f) != NULL)
+		filters_removed = g_list_remove(filters_removed, f);
 
 	copy = g_list_copy(f->ruleset);
 	G_LIST_FOREACH_SWAPPED(copy, filter_remove_rule, f);
-    g_list_free(copy);
+	g_list_free(copy);
 
-    atom_str_free_null(&f->name);
-    WFREE(f);
+	atom_str_free_null(&f->name);
+	WFREE(f);
 }
 
 /**

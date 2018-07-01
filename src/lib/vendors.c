@@ -168,8 +168,8 @@ find_vendor(uint32 code)
 bool
 is_vendor_known(vendor_code_t code)
 {
-    if (code.u32 == T_0000)
-        return FALSE;
+	if (code.u32 == T_0000)
+		return FALSE;
 
 	return find_vendor(code.u32) != NULL;
 }

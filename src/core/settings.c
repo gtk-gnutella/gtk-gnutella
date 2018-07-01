@@ -2256,10 +2256,10 @@ bw_switch(property_t prop, bsched_bws_t bs)
     bool val;
 
     gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bs);
-    else
-        bsched_disable(bs);
+	if (val)
+		bsched_enable(bs);
+	else
+		bsched_disable(bs);
 	return FALSE;
 }
 

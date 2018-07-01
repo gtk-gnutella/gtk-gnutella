@@ -164,18 +164,18 @@ static void
 search_stats_notify_word(query_type_t type, const char *search,
 	 const host_addr_t unused_addr, guint16 unused_port)
 {
-    word_vec_t *wovec;
-    unsigned wocnt;
+	word_vec_t *wovec;
+	unsigned wocnt;
 
 	(void) unused_addr;
 	(void) unused_port;
 
-    if (type == QUERY_SHA1)
-        return;
+	if (type == QUERY_SHA1)
+		return;
 
-   	wocnt = word_vec_make(search, &wovec);
+	wocnt = word_vec_make(search, &wovec);
 	if (wocnt != 0) {
-    	unsigned i;
+		unsigned i;
 
 		for (i = 0; i < wocnt; i++) {
 			search_stats_tally(&wovec[i]);
@@ -364,29 +364,29 @@ search_stats_gui_reset(void)
 void
 search_stats_gui_set_type(int type)
 {
-    if (type == selected_type)
-        return;
+	if (type == selected_type)
+		return;
 
 	search_stats_gui_reset();
-    search_stats_gui_disable();
-    selected_type = type;
+	search_stats_gui_disable();
+	selected_type = type;
 
-    switch (type) {
-    case NO_SEARCH_STATS:
-        /* already disabled */
-        break;
-    case WORD_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_word);
-        break;
-    case WHOLE_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_whole);
-        break;
-    case ROUTED_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_routed);
-        break;
-    default:
-        g_assert_not_reached();
-    }
+	switch (type) {
+	case NO_SEARCH_STATS:
+		/* already disabled */
+		break;
+	case WORD_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_word);
+		break;
+	case WHOLE_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_whole);
+		break;
+	case ROUTED_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_routed);
+		break;
+	default:
+		g_assert_not_reached();
+	}
 }
 
 /* FIXME: merge all `add_column' functions into one */

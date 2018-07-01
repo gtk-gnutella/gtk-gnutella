@@ -3752,8 +3752,8 @@ get_file_to_upload(struct upload *u, const header_t *header,
 	upload_check(u);
 	g_assert(NULL == u->sf);
 
-    if (u->name == NULL)
-        u->name = atom_str_get(uri);
+	if (u->name == NULL)
+		u->name = atom_str_get(uri);
 
 	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
 		uint32 idx;
@@ -6537,9 +6537,11 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 		si->avg_bps = bio_avg_bps(u->bio);
 	}
 
-    if (u->last_update != u->start_date)
-        si->avg_bps = (u->pos - u->skip) /
+	if (u->last_update != u->start_date) {
+		si->avg_bps = (u->pos - u->skip) /
 			delta_time(u->last_update, u->start_date);
+	}
+
 	if (0 == si->avg_bps)
         si->avg_bps++;
 }

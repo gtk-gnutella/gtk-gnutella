@@ -614,8 +614,8 @@ node_ht_connected_nodes_add(const gnutella_node_t *n)
 		total_nodes_connected++;
 	}
 
-    if (node_ht_connected_nodes_has(addr, port))
-        return;
+	if (node_ht_connected_nodes_has(addr, port))
+		return;
 
 	htable_insert(ht_connected_nodes, gnet_host_new(addr, port), NO_METADATA);
 }
@@ -12397,8 +12397,8 @@ node_get_status(const struct nid *node_id, gnet_node_status_t *status)
         cstr_bcpy(ARYLEN(status->message), node->error_str);
     else if (node->remove_msg != NULL)
         cstr_bcpy(ARYLEN(status->message), node->remove_msg);
-    else
-        status->message[0] = '\0';
+	else
+		status->message[0] = '\0';
 
 	if (node->alive_pings != NULL && node->status == GTA_NODE_CONNECTED)
 		alive_get_roundtrip_ms(node->alive_pings,

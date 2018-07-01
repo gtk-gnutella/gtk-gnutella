@@ -499,8 +499,8 @@ parse_netmasks(const char *str)
 
 	free_networks();
 
-    if (!masks)
-        return;
+	if (!masks)
+		return;
 
 	for (i = 0; masks[i]; i++)
 		/* just count */ ;
