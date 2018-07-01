@@ -440,8 +440,8 @@ prop_get_def(prop_set_t *ps, property_t p)
 				h_strdup(d->data.guint32.choices[n].title);
 			n++;
 		}
-		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
+	/* FALL THROUGH -- continue to PROP_TYPE_GUINT32 */
 	case PROP_TYPE_GUINT32:
 		buf->data.guint32.def =
 			HCOPY_ARRAY(d->data.guint32.def, d->vector_size);
@@ -508,8 +508,8 @@ prop_free_def(prop_def_t *d)
 		}
 
 		HFREE_NULL(d->data.guint32.choices);
-		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
+	/* FALL THROUGH -> continue to PROP_TYPE_GUINT32 */
 	case PROP_TYPE_GUINT32:
 		HFREE_NULL(d->data.guint32.value);
 		HFREE_NULL(d->data.guint32.def);
@@ -2132,6 +2132,7 @@ prop_reset(prop_set_t *ps, property_t prop)
 		for (i = 0; i < d->vector_size; i++) {
 			d->data.timestamp.value[i] = d->data.timestamp.def[i];
 		}
+		break;
 	case PROP_TYPE_STRING:
 		for (i = 0; i < d->vector_size; i++) {
 			d->data.string.value[i] = d->data.string.def[i];

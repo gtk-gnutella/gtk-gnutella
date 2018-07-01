@@ -329,6 +329,16 @@
 #define G_IGNORE(x)
 #endif
 
+/**
+ * G_FALL_THROUGH can be used to disable the fall-through warning in case
+ * statements.
+ */
+#if HAS_GCC(7, 0)
+#define G_FALL_THROUGH	__attribute__((fallthrough));
+#else
+#define G_FALL_THROUGH
+#endif
+
 #endif	/* _gcc.h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

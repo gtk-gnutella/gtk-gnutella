@@ -793,16 +793,17 @@ delipair(DBM *db, char *pag, int i, bool free_bigdata)
 		m = poffset(ino[i + 1]) - poffset(ino[n]);
 #ifdef DUFF
 #define MOVB 	*--dst = *--src
+#define MOVBX	MOVB; G_FALL_THROUGH
 
 		if (m > 0) {
 			int loop = (m + 8 - 1) >> 3;
 
 			switch (m & (8 - 1)) {
 			case 0:	do {
-				MOVB;	case 7:	MOVB;
-			case 6:	MOVB;	case 5:	MOVB;
-			case 4:	MOVB;	case 3:	MOVB;
-			case 2:	MOVB;	case 1:	MOVB;
+				MOVBX;	case 7:	MOVBX;
+			case 6:	MOVBX;	case 5:	MOVBX;
+			case 4:	MOVBX;	case 3:	MOVBX;
+			case 2:	MOVBX;	case 1:	MOVB;
 				} while (--loop);
 			}
 		}

@@ -307,8 +307,8 @@ universal_hash(const void *data, size_t len)
 	k = 0;
 
 	switch (remain) {
-	case 3: k ^= *(p + 2) << 16;
-	case 2: k ^= *(p + 1) << 8;
+	case 3: k ^= *(p + 2) << 16;	G_FALL_THROUGH
+	case 2: k ^= *(p + 1) << 8;		G_FALL_THROUGH
 	case 1: k ^= *p;
 			k *= HASH_M3_C1; k = rotl(k, 15); k *= HASH_M3_C2;
 			hash ^= k;
@@ -404,6 +404,7 @@ universal_mix_hash(const void *data, size_t len)
 		/* FALL THROUGH */
 	case 2:
 		a += ((uint32) p[1]) << 8;
+		/* FALL THROUGH */
 	case 1:
 		a += p[0];
 		break;

@@ -5456,6 +5456,7 @@ dht_route_parse(FILE *f)
 			ctim = date2time(value, tm_time());
 			if ((time_t) -1 == ctim)
 				goto damaged;
+			break;
 		case DHT_ROUTE_TAG_SEEN:
 			seen = date2time(value, tm_time());
 			if ((time_t) -1 == seen)

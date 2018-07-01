@@ -9844,6 +9844,7 @@ download_check_status(struct download *d, header_t *header, int code)
 			) {
 				break;
 			}
+			/* FALL THROUGH */
 		case 416:	/* Range not available */
 		case 200:	/* Okay */
 		case 206:	/* Partial Content */
@@ -16957,6 +16958,7 @@ download_clear_stopped(bool complete,
 				 * GUI. */
 				continue;
 			}
+			break;
 		default:
 			continue;
 		}
