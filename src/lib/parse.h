@@ -37,29 +37,20 @@
 #ifndef _parse_h_
 #define _parse_h_
 
-uint8 parse_uint8(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-uint16 parse_uint16(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-uint32 parse_uint32(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-uint64 parse_uint64(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-unsigned parse_uint(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-unsigned long parse_ulong(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
-size_t parse_size(const char *, char const **, unsigned, int *)
-	NON_NULL_PARAM((1));
+uint8 parse_uint8(const char *, char const **, unsigned, int *);
+uint16 parse_uint16(const char *, char const **, unsigned, int *);
+uint32 parse_uint32(const char *, char const **, unsigned, int *);
+uint64 parse_uint64(const char *, char const **, unsigned, int *);
+unsigned parse_uint(const char *, char const **, unsigned, int *);
+unsigned long parse_ulong(const char *, char const **, unsigned, int *);
+size_t parse_size(const char *, char const **, unsigned, int *);
 const void *parse_pointer(const char *, char const **, int *)
 	NON_NULL_PARAM((1));
-bool parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr)
-	NON_NULL_PARAM((1));
+bool parse_ipv6_addr(const char *s, uint8_t *dst, const char **endptr);
 int parse_major_minor(const char *src, char const **endptr,
-	unsigned *major, unsigned *minor)
-	NON_NULL_PARAM((1));
+	unsigned *major, unsigned *minor);
 
-uint parse_base(const char *src, char const **) NON_NULL_PARAM((1));
+uint parse_base(const char *src, char const **);
 uint32 parse_v32(const char *, char const **, int *) NON_NULL_PARAM((1));
 uint64 parse_v64(const char *, char const **, int *) NON_NULL_PARAM((1));
 
