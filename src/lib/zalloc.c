@@ -1038,7 +1038,7 @@ zalloc_shift_pointer(const void *allocated, const void *used)
  * @param ptr		address of block
  * @param what		what we are trying to do ("free block", "move block", ...)
  */
-#ifdef ZONE_ZAFE
+#ifdef ZONE_SAFE
 static inline void
 zcheck(zone_t *zone, void *ptr, const char *what)
 {
