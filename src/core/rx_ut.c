@@ -656,6 +656,9 @@ ut_assemble_message(struct ut_rmsg *um)
 		if (0 != ret)
 			goto drop;
 
+		if (zlib_inflater_outlen(zi) <= 0)
+			goto drop;		/* Empty? But then why deflate? */
+
 		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATED);
 		mb = pmsg_new(PMSG_P_DATA,
 				zlib_inflater_out(zi), zlib_inflater_outlen(zi));
