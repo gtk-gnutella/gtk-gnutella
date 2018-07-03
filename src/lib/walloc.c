@@ -155,7 +155,8 @@ wzone_index(size_t rounded)
 	size_t idx;
 
 	g_assert(rounded == zalloc_round(rounded));
-	g_assert(size_is_positive(rounded) && rounded <= WALLOC_MAX);
+	g_assert_log(size_is_positive(rounded) && rounded <= WALLOC_MAX,
+		"%s(): rounded=%zu, walloc_max=%zu", G_STRFUNC, rounded, walloc_max);
 
 	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
 	idx = rounded / ZALLOC_ALIGNBYTES;
