@@ -2167,7 +2167,12 @@ void
 prop_crash_dump(prop_set_t *ps)
 {
 	uint n;
-	str_t *s = str_new(80);
+	str_t *s;
+
+	if G_UNLIKELY(NULL == ps)
+		return;		/* Already called the _prop_shutdown() routine */
+   
+	s = str_new(80);
 
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
