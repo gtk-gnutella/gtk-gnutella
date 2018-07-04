@@ -302,7 +302,8 @@ wfree_raw(void *ptr, size_t size)
  *
  * @param rounded		rounded allocation size
  *
- * @return the magazine depot corresponding to the requested size.
+ * @return the magazine depot corresponding to the requested size or NULL if
+ * we cannot get a magazine yet or for this particular size.
  */
 static tmalloc_t *
 walloc_get_magazine(size_t rounded)
@@ -379,6 +380,23 @@ walloc_get_magazine(size_t rounded)
 			}
 
 			zsize = zone_size(zone);
+
+			/*
+			 * If the size of the zone we allocated is greater than the maximum
+			 * we want to allow through walloc(), we cannot use it.
+			 *
+			 * This can happen when zalloc() is configured with some additional
+			 * overhead in the blocks for debugging purposes: due to rounding,
+			 * the size of blocks used may be much larger than the maximum
+			 * we want to handle.
+			 * 		--RAM, 2018-07-04
+			 */
+
+			if G_UNLIKELY(zsize > WALLOC_MAX) {
+				depot = NULL;
+				goto done;
+			}
+
 			zidx = wzone_index(zsize);
 
 			if (zsize != rounded) {
