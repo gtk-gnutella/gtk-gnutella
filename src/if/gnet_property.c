@@ -11415,15 +11415,15 @@ gnet_prop_shutdown(void) {
 
     htable_free_null(&gnet_property->by_name);
 
-    for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
-        if (gnet_property->props[n].type == PROP_TYPE_STRING) {
+	for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
+		if (gnet_property->props[n].type == PROP_TYPE_STRING) {
 			char **p = gnet_property->props[n].data.string.value;
-            struct event *e = gnet_property->props[n].ev_changed;
-	    G_FREE_NULL(*p);
-            if (e)
-                event_destroy(e);
-        }
-    }
+			struct event *e = gnet_property->props[n].ev_changed;
+		G_FREE_NULL(*p);
+		if (e)
+			event_destroy(e);
+		}
+	}
 
 	/*
 	 * We don't free gnet_property->props and gnet_property.

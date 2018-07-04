@@ -587,15 +587,15 @@ void G_COLD
 
     htable_free_null(&[=(. prop-set)=]->by_name);
 
-    for (n = 0; n < [=(. prop-num)=]; n ++) {
-        if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
+	for (n = 0; n < [=(. prop-num)=]; n ++) {
+		if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
 			char **p = [=(. prop-array)=][n].data.string.value;
-            struct event *e = [=(. prop-array)=][n].ev_changed;
-	    G_FREE_NULL(*p);
-            if (e)
-                event_destroy(e);
-        }
-    }
+			struct event *e = [=(. prop-array)=][n].ev_changed;
+		G_FREE_NULL(*p);
+		if (e)
+			event_destroy(e);
+		}
+	}
 
 	/*
 	 * We don't free [=(. prop-array)=] and [=(. prop-set)=].

@@ -2934,15 +2934,15 @@ gui_prop_shutdown(void) {
 
     htable_free_null(&gui_property->by_name);
 
-    for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
-        if (gui_property->props[n].type == PROP_TYPE_STRING) {
+	for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
+		if (gui_property->props[n].type == PROP_TYPE_STRING) {
 			char **p = gui_property->props[n].data.string.value;
-            struct event *e = gui_property->props[n].ev_changed;
-	    G_FREE_NULL(*p);
-            if (e)
-                event_destroy(e);
-        }
-    }
+			struct event *e = gui_property->props[n].ev_changed;
+		G_FREE_NULL(*p);
+		if (e)
+			event_destroy(e);
+		}
+	}
 
 	/*
 	 * We don't free gui_property->props and gui_property.
