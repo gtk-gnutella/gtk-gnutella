@@ -4156,7 +4156,7 @@ socket_local_listen(const char *pathname)
 
 		/* umask 177 -> mode 200; write-only for user */
 		mask = umask(S_IRUSR | S_IXUSR | S_IRWXG | S_IRWXO);
-    	ret = compat_bind(fd, VARLEN(addr));
+		ret = compat_bind(fd, (struct sockaddr *) VARLEN(addr));
 		saved_errno = errno;
 		(void) umask(mask);
 
