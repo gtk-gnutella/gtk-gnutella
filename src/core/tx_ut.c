@@ -993,8 +993,23 @@ ut_send_unacknowleged(struct ut_msg *um)
 					um->pending--;
 				}
 				elist_prepend(&um->resend, uf);
-				cq_cancel(&uf->resend_ev);	/* No resend on ACK timeout */
 			}
+
+			/*
+			 * Since the fragment is now part of the um->resend list, we must
+			 * make sure it has no resend_ev on ACK timeout.  Indeed, we will
+			 * iterate over the list and resend this fragment.  It would break
+			 * the pre-condition of ut_frag_send() if it had already a resend
+			 * event registered.
+			 *
+			 * If, by chance, we get the ACK for this fragment before we were
+			 * able to resend it, then ut_frag_free() will remove it from the
+			 * um->resend list.
+			 *
+			 * 		--RAM, 2018-07-22
+			 */
+
+			cq_cancel(&uf->resend_ev);
 		}
 	}
 
