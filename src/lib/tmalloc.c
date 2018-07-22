@@ -1068,8 +1068,7 @@ tmalloc_depot_trash_pslist(tmalloc_t *d, pslist_t *pl)
 	 * returned to the proper depot.
 	 */
 
-	last = pslist_last(pl);
-	n = pslist_length(pl);
+	last = pslist_last_count(pl, &n);
 
 	TMALLOC_LOCK_HIDDEN(d);
 

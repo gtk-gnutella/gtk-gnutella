@@ -244,6 +244,33 @@ pslist_last(const pslist_t *pl)
 }
 
 /**
+ * Go to last cell and computes length as we go.
+ *
+ * @param pl	the head of the list
+ * @param count	where count is written back
+ *
+ * @return the last cell of the list, with length set in ``count''.
+ */
+pslist_t *
+pslist_last_count(const pslist_t *pl, size_t *count)
+{
+	size_t n = 0;
+	pslist_t *l = deconstify_pointer(pl);
+
+	g_assert(count != NULL);	/* Use pslist_last() if you don't care! */
+
+	if G_LIKELY(l != NULL) {
+		while (l->next != NULL) {
+			l = l->next;
+			n++;
+		}
+	}
+
+	*count = n;
+	return l;
+}
+
+/**
  * Append new item at the end of the list.
  *
  * @attention
