@@ -682,7 +682,9 @@ sequence_backward_iterator(const sequence_t *s, bool check)
 		si->u.li = list_iter_after_tail(s->u.l);
 		break;
 	case SEQUENCE_PSLIST:
-		si->u.psl = pslist_last(s->u.psl);
+		if (check)
+			goto panic;
+		si->u.psl = s->u.psl;	/* Forward iteration from head */
 		break;
 	case SEQUENCE_PLIST:
 		si->u.pl = plist_last(s->u.pl);
