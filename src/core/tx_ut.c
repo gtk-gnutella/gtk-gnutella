@@ -882,8 +882,10 @@ ut_send_remaining(struct ut_msg *um)
 	for (i = 0; i < um->fragcnt; i++) {
 		struct ut_frag *uf = um->fragments[i];
 
-		if (uf != NULL)
+		if (uf != NULL) {
+			cq_cancel(&uf->resend_ev);
 			ut_frag_send(uf);
+		}
 	}
 }
 
