@@ -883,6 +883,15 @@ ut_send_remaining(struct ut_msg *um)
 		struct ut_frag *uf = um->fragments[i];
 
 		if (uf != NULL) {
+			/*
+			 * If somehow the fragment was already scheduled for resending,
+			 * remove it from the list and clear the flag indicating it is
+			 * being part of that list.
+			 */
+			if (uf->resend) {
+				elist_remove(&um->resend, uf);
+				uf->resend = FALSE;
+			}
 			cq_cancel(&uf->resend_ev);
 			ut_frag_send(uf);
 		}
