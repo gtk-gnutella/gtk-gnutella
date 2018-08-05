@@ -74,6 +74,36 @@
 #define safety_assert(x)
 #endif
 
+/*
+ * Check whether link is part of a list.
+ *
+ * @attention
+ * We are not verifying that the link is part of THIS list, simply that
+ * it looks like a valid link belonging to SOME list.
+ *
+ * @param list	the list
+ * @param lk	the link we wish to check
+ *
+ * @return whether link is part of a list.
+ */
+static inline bool
+elist_link_in_list(const elist_t * const list, const link_t * const lk)
+{
+	g_assert(lk != NULL);
+
+	/*
+	 * Checking whether lk->next and lk->prev are not both NULL is
+	 * not sufficient because the list could contain just that item.
+	 *
+	 * If link is part of some list, then either "prev" is not NULL or
+	 * the item is the head of the list.  Symetric reasonning for "next".
+	 */
+
+	return
+		(lk->prev != NULL || list->head == lk) &&
+		(lk->next != NULL || list->tail == lk);
+}
+
 /**
  * Initialize embedded list.
  *
@@ -184,6 +214,8 @@ elist_wfree(elist_t *list, size_t size)
 static inline void
 elist_link_append_internal(elist_t *list, link_t *lk)
 {
+	g_assert(!elist_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->tail) {
 		g_assert(NULL == list->head);
 		g_assert(0 == list->count);
@@ -213,7 +245,6 @@ void
 elist_link_append(elist_t *list, link_t *lk)
 {
 	elist_check(list);
-	g_assert(lk != NULL);
 
 	elist_link_append_internal(list, lk);
 }
@@ -238,6 +269,8 @@ elist_append(elist_t *list, void *data)
 static inline void
 elist_link_prepend_internal(elist_t *list, link_t *lk)
 {
+	g_assert(!elist_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->head) {
 		g_assert(NULL == list->tail);
 		g_assert(0 == list->count);
@@ -265,7 +298,6 @@ void
 elist_link_prepend(elist_t *list, link_t *lk)
 {
 	elist_check(list);
-	g_assert(lk != NULL);
 
 	elist_link_prepend_internal(list, lk);
 }
@@ -375,6 +407,7 @@ static inline void
 elist_link_remove_internal(elist_t *list, link_t *lk, bool safe)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(elist_link_in_list(list, lk));
 	elist_invariant(list);
 
 	if G_UNLIKELY(list->head == lk)
@@ -408,7 +441,7 @@ void
 elist_link_remove(elist_t *list, link_t *lk)
 {
 	elist_check(list);
-	g_assert(lk != NULL);
+	g_assert(elist_link_in_list(list, lk));
 
 	elist_link_remove_internal(list, lk, TRUE);
 }
@@ -429,15 +462,6 @@ elist_remove(elist_t *list, void *data)
 
 	lk = ptr_add_offset(data, list->offset);
 
-	/*
-	 * Low-cost version of elist_contains(): since we're removing an item,
-	 * it has to be part of some list, hence either "prev" is not NULL or
-	 * the item is the head of the list.  Same reasonning for "next".
-	 */
-
-	g_assert(lk->prev != NULL || list->head == lk);
-	g_assert(lk->next != NULL || list->tail == lk);
-
 	elist_link_remove_internal(list, lk, TRUE);
 }
 
@@ -445,6 +469,8 @@ static void
 elist_link_insert_before_internal(elist_t *list, link_t *siblk, link_t *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(elist_link_in_list(list, siblk));
+	g_assert(!elist_link_in_list(list, lk));
 	elist_invariant(list);
 
 	if G_UNLIKELY(list->head == siblk)
@@ -507,6 +533,8 @@ static void
 elist_link_insert_after_internal(elist_t *list, link_t *siblk, link_t *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(elist_link_in_list(list, siblk));
+	g_assert(!elist_link_in_list(list, lk));
 	elist_invariant(list);
 
 	if G_UNLIKELY(list->tail == siblk)
@@ -569,6 +597,8 @@ static inline void
 elist_link_replace_internal(elist_t *list, link_t *old, link_t *new, bool valid)
 {
 	elist_invariant(list);
+	g_assert(implies(valid,  elist_link_in_list(list, old)));
+	g_assert(implies(valid, !elist_link_in_list(list, new)));
 
 	if G_UNLIKELY(list->head == old)
 		list->head = new;
@@ -596,9 +626,7 @@ elist_link_replace(elist_t *list, link_t *old, link_t *new)
 	elist_check(list);
 	g_assert(old != NULL);
 	g_assert(new != NULL);
-
-	if G_UNLIKELY(old == new)
-		return;
+	g_assert(old != new);
 
 	elist_link_replace_internal(list, old, new, TRUE);
 
@@ -620,9 +648,7 @@ elist_replace(elist_t *list, void *old, void *new)
 	elist_check(list);
 	g_assert(old != NULL);
 	g_assert(new != NULL);
-
-	if G_UNLIKELY(old == new)
-		return;
+	g_assert(old != new);
 
 	ol = ptr_add_offset(old, list->offset);
 	nl = ptr_add_offset(new, list->offset);

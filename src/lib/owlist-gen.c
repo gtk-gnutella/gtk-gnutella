@@ -110,6 +110,32 @@
 #endif
 
 /**
+ * Check whether link is part of a list.
+ *
+ * @attention
+ * We are not verifying that the link is part of THIS list, simply that
+ * it looks like a valid link belonging to SOME list.
+ *
+ * @param list	the list
+ * @param lk	the link we wish to check
+ *
+ * @return whether link is part of a list.
+ */
+#define OWLIST_link_in_list	CAT2(PREFIX,link_in_list)
+static inline bool
+OWLIST_link_in_list(const OWLIST_T * const list, const OWLINK_T * const lk)
+{
+	g_assert(lk != NULL);
+
+	/*
+	 * Checking whether the next item is not NULL is not sufficient as the
+	 * list could contain just that single item.
+	 */
+
+	return NEXT(list, lk) != NULL || list->tail == lk;
+}
+
+/**
  * Discard list, making the list object invalid.
  *
  * This does not free any of the items, it just discards the list descriptor.
@@ -145,6 +171,8 @@ OWLIST_clear(OWLIST_T *list)
 static inline void
 OWLIST_link_append_internal(OWLIST_T *list, OWLINK_T *lk)
 {
+	g_assert(!OWLIST_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->tail) {
 		g_assert(NULL == list->head);
 		g_assert(0 == list->count);
@@ -174,7 +202,6 @@ void
 OWLIST_link_append(OWLIST_T *list, OWLINK_T *lk)
 {
 	CHECK(list);
-	g_assert(lk != NULL);
 
 	OWLIST_link_append_internal(list, lk);
 }
@@ -201,6 +228,8 @@ OWLIST_append(OWLIST_T *list, void *data)
 static inline void
 OWLIST_link_prepend_internal(OWLIST_T *list, OWLINK_T *lk)
 {
+	g_assert(!OWLIST_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->head) {
 		g_assert(NULL == list->tail);
 		g_assert(0 == list->count);
@@ -335,6 +364,7 @@ static inline void
 OWLIST_link_remove_after_internal(OWLIST_T *list, OWLINK_T *prevlk, OWLINK_T *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(OWLIST_link_in_list(list, lk));
 	INVARIANT(list);
 
 	if G_UNLIKELY(list->tail == lk)
@@ -404,6 +434,8 @@ static void
 OWLIST_link_insert_after_internal(OWLIST_T *list, OWLINK_T *siblk, OWLINK_T *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(OWLIST_link_in_list(list, siblk));
+	g_assert(!OWLIST_link_in_list(list, lk));
 	INVARIANT(list);
 
 	if G_UNLIKELY(list->tail == siblk)

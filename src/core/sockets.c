@@ -2957,7 +2957,7 @@ socket_udp_queue(gnutella_socket_t *s, bool truncated)
 
 	uctx = s->resource.udp;
 
-	WALLOC(uq);
+	WALLOC0(uq);
 	uq->buf = wcopy(s->buf, s->pos);
 	uq->len = s->pos;
 	uq->queued = tm_time();

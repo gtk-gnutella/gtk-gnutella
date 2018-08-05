@@ -3816,6 +3816,7 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	else
 		xck = vmm_core_alloc(xmalloc_pagesize);
 
+	ZERO(xck);
 	xck->magic = XCHUNK_MAGIC;
 	xck->xc_head = deconstify_pointer(ch);
 	xck->xc_size = ch->blocksize;

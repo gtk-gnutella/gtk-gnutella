@@ -94,7 +94,7 @@ ap_make(struct guid *muid)
 {
 	struct alive_ping *ap;
 
-	WALLOC(ap);
+	WALLOC0(ap);
 
 	ap->muid = NULL == muid ? NULL : atom_guid_get(muid);
 	tm_now_exact(&ap->sent);

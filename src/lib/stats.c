@@ -167,7 +167,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 
 			g_assert(dp != NULL);		/* Found it */
 		} else {
-			WALLOC(dp);
+			WALLOC0(dp);
 			dp->value = val;
 			elist_prepend(&sx->data, dp);
 		}

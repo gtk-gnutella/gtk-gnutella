@@ -561,6 +561,7 @@ pfree(pool_t *p, void *obj)
 		p->dealloc(obj, p->size, TRUE);
 		POOL_STATS_INCX(p, free_fragments);
 	} else {
+		*(void **) obj = NULL;		/* Clear "slink_t" for eslist_prepend() */
 		eslist_prepend(&p->buffers, obj);
 		if G_UNLIKELY(p->allocated < eslist_count(&p->buffers))
 			p->allocated = eslist_count(&p->buffers);

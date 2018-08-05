@@ -643,6 +643,7 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 */
 
 	txd = palloc(us->txpool);
+	ZERO(txd);
 	txd->magic = UDP_TX_DESC_MAGIC;
 	txd->mb = pmsg_ref(mb);		/* Take ownership of message */
 	txd->to = atom_host_get(to);

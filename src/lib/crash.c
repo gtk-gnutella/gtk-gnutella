@@ -4168,6 +4168,7 @@ crash_dumper_add(const callback_fn_t dumper)
 		ci = ck_alloc(vars->hookmem, sizeof *ci);
 		if (NULL == ci)
 			s_error("%s(): too many dumpers registered", G_STRFUNC);
+		ZERO(ci);
 		ci->dumper = dumper;
 		eslist_append(vars->dumpers, ci);
 

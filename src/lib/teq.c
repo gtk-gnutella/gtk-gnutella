@@ -1069,6 +1069,7 @@ teq_post_rpc(unsigned id, struct teq *teq, teq_rpc_fn_t routine, void *data,
 	if (NULL == teq)
 		teq = teq_get_mandatory(id, G_STRFUNC);
 
+	ZERO(&rpc);
 	rpc.magic = magic;
 	rpc.routine = routine;
 	rpc.data = data;

@@ -674,9 +674,10 @@ tmalloc_magazine_alloc(tmalloc_t *d)
 	cap = d->tma_mag_capacity;			/* Current optimal capacity */
 
 	m = d->tma_alloc(TMALLOC_OBJECT_OFFSET + cap * sizeof m->tmag_objects[0]);
+
+	ZERO(m);					/* Allocates empty magazines */
 	m->tmag_magic = TMALLOC_MAGAZINE_MAGIC;
 	m->tmag_capacity = cap;
-	m->tmag_count = 0;					/* Allocates empty magazines */
 
 	return m;
 }
