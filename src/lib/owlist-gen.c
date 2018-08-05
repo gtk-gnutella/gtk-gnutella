@@ -94,7 +94,7 @@
  ***
  *** safety_assert(x)	either empty or g_assert(x)
  *** CHECK(l)			either eslist_check(l) or xslist_check(l)
- *** INVARIANT(l)		either eslist_invariant(l) or INVARIANT(l)
+ *** INVARIANT(l)		either eslist_invariant(l) or xslist_invariant(l)
  *** PREFIX				routine prefix, usually eslist_ or xslist_
  *** OWLIST_T			type of the list object (e.g. eslist_t)
  *** OWLINK_T			type of the chaining structure (e.g. slink_t)
