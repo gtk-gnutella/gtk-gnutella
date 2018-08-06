@@ -2169,8 +2169,10 @@ prop_crash_dump(prop_set_t *ps)
 	uint n;
 	str_t *s;
 
-	if G_UNLIKELY(NULL == ps)
+	if G_UNLIKELY(NULL == ps) {
+		s_warning("%s(): _prop_shutdown() was already called", G_STRFUNC);
 		return;		/* Already called the _prop_shutdown() routine */
+	}
    
 	s = str_new(80);
 
