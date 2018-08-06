@@ -1055,7 +1055,12 @@ gtk_gnutella_exit(int exit_code)
 			g_info("suspending other %u thread%s", n, plural(n));
 	}
 
-	thread_suspend_others(FALSE);
+	{
+		size_t n = thread_suspend_others(FALSE);
+
+		if (debugging(0))
+			g_info("suspended %zu thread%s", n, plural(n));
+	}
 
 	/*
 	 * Now we won't be dispatching any more TEQ events, which happen mostly
