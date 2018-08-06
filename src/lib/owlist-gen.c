@@ -167,6 +167,62 @@ OWLIST_clear(OWLIST_T *list)
 	list->count = 0;
 }
 
+/*
+ * Mark link as being removed from the list by clearing its "next" pointer.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param lk 	the link we wish to clear the chaining pointer from
+ */
+#define OWLIST_link_mark_removed	CAT2(PREFIX,link_mark_removed)
+void
+OWLIST_link_mark_removed(const OWLIST_T *list, OWLINK_T *lk)
+{
+	CHECK(list);
+	g_assert(lk != NULL);
+
+	/*
+	 * We cannot assert:
+	 *
+	 *	OWLIST_link_in_list(list, lk);
+	 *
+	 * here because the calling routine may not really know the original
+	 * list whether the pointer was.
+	 *
+	 * All it needs to supply is the NEW list to which it would like to
+	 * add the link, and of course the link pointer must be identical with
+	 * that of the list from which the data used to belong to!
+	 */
+
+	SET_NEXT(list, lk, NULL);
+}
+
+/**
+ * Mark data as being removed from the list by clearing its "next" pointer.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param data 	the data we wish to clear the chaining pointer from
+ */
+#define OWLIST_mark_removed	CAT2(PREFIX,mark_removed)
+void
+OWLIST_mark_removed(const OWLIST_T *list, void *data)
+{
+	OWLINK_T *lk;
+
+	CHECK(list);
+	g_assert(data != NULL);
+
+	lk = ptr_add_offset(data, list->offset);
+	OWLIST_link_mark_removed(list, lk);
+}
+
 #define OWLIST_link_append_internal	CAT2(PREFIX,link_append_internal)
 static inline void
 OWLIST_link_append_internal(OWLIST_T *list, OWLINK_T *lk)

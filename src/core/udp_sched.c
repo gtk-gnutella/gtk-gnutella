@@ -253,6 +253,7 @@ udp_tx_desc_flag_release(struct udp_tx_desc *txd, udp_sched_t *us)
 	udp_tx_desc_check(txd);
 	udp_sched_check(us);
 
+	eslist_mark_removed(&us->tx_released, txd);		/* For assertions */
 	eslist_append(&us->tx_released, txd);
 }
 

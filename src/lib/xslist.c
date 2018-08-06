@@ -173,6 +173,8 @@ xslist_load(xslist_t *list, void *head, size_t offset, size_t link_offset)
 
 #define xslist_discard						OWLIST_discard
 #define xslist_clear						OWLIST_clear
+#define xslist_mark_removed					OWLIST_mark_removed
+#define xslist_link_mark_removed			OWLIST_link_mark_removed
 #define xslist_link_append_internal			OWLIST_link_append_internal
 #define xslist_link_append					OWLIST_link_append
 #define xslist_append						OWLIST_append

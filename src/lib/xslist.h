@@ -279,6 +279,8 @@ xslist_contains(const xslist_t *list, const void *p)
 void xslist_init(xslist_t *list, size_t offset, size_t link_offset);
 void xslist_discard(xslist_t *list);
 void xslist_clear(xslist_t *list);
+void xslist_mark_removed(const xslist_t *list, void *data);
+void xslist_link_mark_removed(const xslist_t *list, xslink_t *lk);
 size_t xslist_load(xslist_t *list,
 	void *head, size_t offset, size_t link_offset);
 

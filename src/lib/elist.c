@@ -211,6 +211,65 @@ elist_wfree(elist_t *list, size_t size)
 	elist_clear(list);
 }
 
+/*
+ * Mark link as being removed from the list by clearing its chaining pointers.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @note
+ * In therory, the list argument is not required here, but we supply it
+ * nonetheless for uniformity with the OWLIST_link_mark_removed() routine.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param lk 	the link we wish to clear the chaining pointer from
+ */
+void
+elist_link_mark_removed(const elist_t *list, link_t *lk)
+{
+	elist_check(list);
+	g_assert(lk != NULL);
+
+	/*
+	 * We cannot assert:
+	 *
+	 *	elist_link_in_list(list, lk);
+	 *
+	 * here because the calling routine may not really know the original
+	 * list whether the pointer was.
+	 *
+	 * All it needs to supply is the NEW list to which it would like to
+	 * add the link, and of course the link pointer must be identical with
+	 * that of the list from which the data used to belong to!
+	 */
+
+	lk->next = lk->prev = NULL;
+}
+
+/**
+ * Mark data as being removed from the list by clearing its chaining pointers.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param data 	the data we wish to clear the chaining pointer from
+ */
+void
+elist_mark_removed(const elist_t *list, void *data)
+{
+	link_t *lk;
+
+	elist_check(list);
+	g_assert(data != NULL);
+
+	lk = ptr_add_offset(data, list->offset);
+	elist_link_mark_removed(list, lk);
+}
+
+
 static inline void
 elist_link_append_internal(elist_t *list, link_t *lk)
 {

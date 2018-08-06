@@ -278,6 +278,8 @@ eslist_contains(const eslist_t *list, const void *p)
 void eslist_init(eslist_t *list, size_t offset);
 void eslist_discard(eslist_t *list);
 void eslist_clear(eslist_t *list);
+void eslist_mark_removed(const eslist_t *list, void *data);
+void eslist_link_mark_removed(const eslist_t *list, slink_t *lk);
 void eslist_wfree(eslist_t *list, size_t size);
 size_t eslist_load(eslist_t *list, void *head, size_t offset);
 
