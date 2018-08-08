@@ -273,7 +273,7 @@ ut_rmsg_expired(cqueue_t *cq, void *obj)
 	g_assert(um->fragcnt > 1);	/* If it expired, it had more than 1 fragment */
 
 	if (um->reliable) {
-		gnr_stats_t s[] = {
+		static gnr_stats_t s[] = {
 			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_2_FRAGS,
 			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_3_FRAGS,
 			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS,
@@ -289,7 +289,7 @@ ut_rmsg_expired(cqueue_t *cq, void *obj)
 		n = MIN(n, N_ITEMS(s) - 1);
 		gnet_stats_inc_general(s[n]);
 	} else {
-		gnr_stats_t s[] = {
+		static gnr_stats_t s[] = {
 			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS,
 			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS,
 		};
@@ -581,7 +581,7 @@ ut_update_rx_messages_stats(bool reliable, uint8 fragcnt)
 	 */
 
 	if (reliable) {
-		gnr_stats_t s[] = {
+		static gnr_stats_t s[] = {
 			GNR_UDP_SR_RX_MSG_OK_RELIABLE_1_FRAG,
 			GNR_UDP_SR_RX_MSG_OK_RELIABLE_2_FRAGS,
 			GNR_UDP_SR_RX_MSG_OK_RELIABLE_3_FRAGS,
@@ -598,7 +598,7 @@ ut_update_rx_messages_stats(bool reliable, uint8 fragcnt)
 		n = MIN(n, N_ITEMS(s) - 1);
 		gnet_stats_inc_general(s[n]);
 	} else {
-		gnr_stats_t s[] = {
+		static gnr_stats_t s[] = {
 			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG,
 			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS,
 			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_3PLUS_FRAGS,

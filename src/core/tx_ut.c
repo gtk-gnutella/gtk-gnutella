@@ -545,7 +545,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 
 	if (um->reliable) {
 		if (um->fragcnt == um->fragsent) {
-			gnr_stats_t s[] = {
+			static gnr_stats_t s[] = {
 				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT,
 				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT,
 				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT,
@@ -561,7 +561,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			n = MIN(n, N_ITEMS(s) - 1);
 			gnet_stats_inc_general(s[n]);
 		} else {
-			gnr_stats_t s[] = {
+			static gnr_stats_t s[] = {
 				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_UNSENT,
 				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_UNSENT,
 				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_UNSENT,
@@ -578,7 +578,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			gnet_stats_inc_general(s[n]);
 		}
 	} else {
-		gnr_stats_t s[] = {
+		static gnr_stats_t s[] = {
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_1_FRAG,
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS,
 			GNR_UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS,
