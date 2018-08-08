@@ -143,6 +143,43 @@ UDP_RX_COMPRESSED			"Compressed UDP messages received"
 UDP_COMPRESSION_ATTEMPTS	"Candidates for UDP message compression"
 UDP_LARGER_HENCE_NOT_COMPRESSED
 	"Uncompressed UDP messages due to no gain"
+UDP_SCHED_DIRECTLY_SENT_PRIO_DATA
+	"UDP scheduler directly sent (P_DATA)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_CONTROL
+	"UDP scheduler directly sent (P_CONTROL)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_URGENT
+	"UDP scheduler directly sent (P_URGENT)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_HIGHEST
+	"UDP scheduler directly sent (P_HIGHEST)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_DATA
+	"UDP scheduler flow controlled (P_DATA)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_CONTROL
+	"UDP scheduler flow controlled (P_CONTROL)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_URGENT
+	"UDP scheduler flow controlled (P_URGENT)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_HIGHEST
+	"UDP scheduler flow controlled (P_HIGHEST)"
+UDP_SCHED_ENQUEUED_PRIO_DATA		"UDP scheduler message enqueued (P_DATA)"
+UDP_SCHED_ENQUEUED_PRIO_CONTROL		"UDP scheduler message enqueued (P_CONTROL)"
+UDP_SCHED_ENQUEUED_PRIO_URGENT		"UDP scheduler message enqueued (P_URGENT)"
+UDP_SCHED_ENQUEUED_PRIO_HIGHEST		"UDP scheduler message enqueued (P_HIGHEST)"
+UDP_SCHED_FINALLY_SENT_PRIO_DATA
+	"UDP scheduler message finally sent (P_DATA)"
+UDP_SCHED_FINALLY_SENT_PRIO_CONTROL
+	"UDP scheduler message finally sent (P_CONTROL)"
+UDP_SCHED_FINALLY_SENT_PRIO_URGENT
+	"UDP scheduler message finally sent (P_URGENT)"
+UDP_SCHED_FINALLY_SENT_PRIO_HIGHEST
+	"UDP scheduler message finally sent (P_HIGHEST)"
+UDP_SCHED_TIMED_OUT_PRIO_DATA		"UDP scheduler message timeout (P_DATA)"
+UDP_SCHED_TIMED_OUT_PRIO_CONTROL	"UDP scheduler message timeout (P_CONTROL)"
+UDP_SCHED_TIMED_OUT_PRIO_URGENT		"UDP scheduler message timeout (P_URGENT)"
+UDP_SCHED_TIMED_OUT_PRIO_HIGHEST	"UDP scheduler message timeout (P_HIGHEST)"
+UDP_SCHED_DROP_ZERO_PORT			"UDP scheduler message dropped: port=0"
+UDP_SCHED_DROP_NO_SOCKET			"UDP scheduler message dropped: no socket"
+UDP_SCHED_DROP_IO_ERROR				"UDP scheduler message dropped: I/O error"
+UDP_SCHED_DROP_NO_LONGER_NEEDED
+	"UDP scheduler message dropped: no longer needed"
 UDP_AMBIGUOUS				"Ambiguous UDP messages received"
 UDP_AMBIGUOUS_DEEPER_INSPECTION	"Ambiguous UDP messages inspected more deeply"
 UDP_AMBIGUOUS_AS_SEMI_RELIABLE

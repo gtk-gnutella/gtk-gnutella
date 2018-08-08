@@ -1,5 +1,5 @@
 /*
- * Generated on Wed May 23 11:00:32 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Wed Aug  8 14:55:47 2018 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -134,6 +134,30 @@ static const char *stats_symbols[] = {
 	"udp_rx_compressed",
 	"udp_compression_attempts",
 	"udp_larger_hence_not_compressed",
+	"udp_sched_directly_sent_prio_data",
+	"udp_sched_directly_sent_prio_control",
+	"udp_sched_directly_sent_prio_urgent",
+	"udp_sched_directly_sent_prio_highest",
+	"udp_sched_flow_controlled_prio_data",
+	"udp_sched_flow_controlled_prio_control",
+	"udp_sched_flow_controlled_prio_urgent",
+	"udp_sched_flow_controlled_prio_highest",
+	"udp_sched_enqueued_prio_data",
+	"udp_sched_enqueued_prio_control",
+	"udp_sched_enqueued_prio_urgent",
+	"udp_sched_enqueued_prio_highest",
+	"udp_sched_finally_sent_prio_data",
+	"udp_sched_finally_sent_prio_control",
+	"udp_sched_finally_sent_prio_urgent",
+	"udp_sched_finally_sent_prio_highest",
+	"udp_sched_timed_out_prio_data",
+	"udp_sched_timed_out_prio_control",
+	"udp_sched_timed_out_prio_urgent",
+	"udp_sched_timed_out_prio_highest",
+	"udp_sched_drop_zero_port",
+	"udp_sched_drop_no_socket",
+	"udp_sched_drop_io_error",
+	"udp_sched_drop_no_longer_needed",
 	"udp_ambiguous",
 	"udp_ambiguous_deeper_inspection",
 	"udp_ambiguous_as_semi_reliable",
@@ -413,7 +437,7 @@ static const char *stats_symbols[] = {
 const char *
 gnet_stats_general_to_string(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_symbols)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_symbols)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);
@@ -545,6 +569,30 @@ static const char *stats_text[] = {
 	N_("Compressed UDP messages received"),
 	N_("Candidates for UDP message compression"),
 	N_("Uncompressed UDP messages due to no gain"),
+	N_("UDP scheduler directly sent (P_DATA)"),
+	N_("UDP scheduler directly sent (P_CONTROL)"),
+	N_("UDP scheduler directly sent (P_URGENT)"),
+	N_("UDP scheduler directly sent (P_HIGHEST)"),
+	N_("UDP scheduler flow controlled (P_DATA)"),
+	N_("UDP scheduler flow controlled (P_CONTROL)"),
+	N_("UDP scheduler flow controlled (P_URGENT)"),
+	N_("UDP scheduler flow controlled (P_HIGHEST)"),
+	N_("UDP scheduler message enqueued (P_DATA)"),
+	N_("UDP scheduler message enqueued (P_CONTROL)"),
+	N_("UDP scheduler message enqueued (P_URGENT)"),
+	N_("UDP scheduler message enqueued (P_HIGHEST)"),
+	N_("UDP scheduler message finally sent (P_DATA)"),
+	N_("UDP scheduler message finally sent (P_CONTROL)"),
+	N_("UDP scheduler message finally sent (P_URGENT)"),
+	N_("UDP scheduler message finally sent (P_HIGHEST)"),
+	N_("UDP scheduler message timeout (P_DATA)"),
+	N_("UDP scheduler message timeout (P_CONTROL)"),
+	N_("UDP scheduler message timeout (P_URGENT)"),
+	N_("UDP scheduler message timeout (P_HIGHEST)"),
+	N_("UDP scheduler message dropped: port=0"),
+	N_("UDP scheduler message dropped: no socket"),
+	N_("UDP scheduler message dropped: I/O error"),
+	N_("UDP scheduler message dropped: no longer needed"),
 	N_("Ambiguous UDP messages received"),
 	N_("Ambiguous UDP messages inspected more deeply"),
 	N_("Ambiguous UDP messages handled as semi-reliable UDP"),
@@ -824,7 +872,7 @@ static const char *stats_text[] = {
 const char *
 gnet_stats_general_description(gnr_stats_t x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS(stats_text)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(stats_text)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid gnr_stats_t code: %d", (int) x);
 		return str_2c(s);
