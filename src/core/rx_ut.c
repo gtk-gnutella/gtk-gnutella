@@ -1273,7 +1273,7 @@ ut_rmsg_reack(struct ut_rmsg *um, enum ut_reack_reason reason)
 		ut_rmsg_reack_improved(um);
 	} else if (
 		UT_REACK_ALMOST_EXPIRED == reason ||	/* Always re-ACK in that case */
-		um->resent_acks < 2 * um->fragcnt		/* Avoid amplificaiton */
+		um->resent_acks < 2 * um->fragcnt		/* Avoid amplification */
 	) {
 		size_t i;
 
