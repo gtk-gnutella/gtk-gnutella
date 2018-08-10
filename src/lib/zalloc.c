@@ -2264,7 +2264,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
-	g_assert(equiv(&zone->zn_arena == sz, 1 == zone->zn_subzones));
+	g_assert(implies(1 == zone->zn_subzones, &zone->zn_arena == sz));
 	g_assert(szi->szi_free_cnt == zone->zn_hint);
 	g_assert(szi->szi_base == sz->sz_base);
 
