@@ -1132,10 +1132,11 @@ zreturn(zone_t *zone, void *ptr)
 
 	safety_assert(zbelongs_uptr(zone, ptr));
 
+	G_PREFETCH_W(&zone->zn_cnt);
+	G_PREFETCH_W(&zone->zn_free);
+
 	ptr = ptr_add_offset(ptr, -OVH_LENGTH);
 	G_PREFETCH_W(ptr);
-	G_PREFETCH_W(&zone->zn_free);
-	G_PREFETCH_W(&zone->zn_cnt);
 
 	if G_UNLIKELY(!uint_is_positive(zone->zn_cnt)) {
 		s_error("%s(): zone %s has no outstanding blocks to be freed",
