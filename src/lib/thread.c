@@ -4568,6 +4568,9 @@ thread_wait_others(const struct thread_element *te)
 			if G_UNLIKELY(xte == te)
 				continue;
 
+			if (!xte->valid)
+				continue;
+
 			if (xte->suspended || 0 == thread_element_lock_count(xte))
 				continue;
 
@@ -5095,6 +5098,9 @@ thread_suspend_others(bool lockwait)
 				continue;
 			}
 
+			if (!xte->valid)
+				continue;
+
 			/* Note: done without a lock on "xte" using an atomic operation */
 			atomic_int_inc(&xte->suspend);
 			n++;
@@ -5138,6 +5144,9 @@ thread_suspend_others(bool lockwait)
 			s_rawwarn("%s(): corrupted thread element #%zu", G_STRFUNC, i);
 			continue;
 		}
+
+		if (!xte->valid)
+			continue;
 
 		if (lockwait) {
 			THREAD_LOCK(xte);
