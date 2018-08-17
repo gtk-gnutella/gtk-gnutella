@@ -2494,7 +2494,6 @@ main(int argc, char **argv)
 	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
-	watcher_init();
 	ctl_init();
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
