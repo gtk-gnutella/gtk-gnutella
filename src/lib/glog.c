@@ -72,12 +72,6 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 
 	G_IGNORE_POP;
 
-	/*
-	 * This call is thread-unsafe by construction, and supposed to be called
-	 * only from the main thread.  This is why it's OK to have a global
-	 * ``logging'' variable.
-	 */
-
 	logging[stid] = TRUE;
 
 	if G_UNLIKELY(NULL == msg[stid])
@@ -96,7 +90,8 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 /**
  * Log message.
  */
-void gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
+void
+gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
 {
 	va_list args;
 
@@ -110,7 +105,8 @@ void gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
  *
  * This routine does not return.
  */
-void gl_error(const char *domain, const char *format, ...)
+void
+gl_error(const char *domain, const char *format, ...)
 {
 	va_list args;
 
