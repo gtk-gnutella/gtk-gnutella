@@ -1812,7 +1812,7 @@ node_init(void)
 	 * leading space as well.
 	 */
 
-#define PAT_COMPILE(x)	pattern_compile_fast((x), CONST_STRLEN(x))
+#define PAT_COMPILE(x)	pattern_compile_fast((x), CONST_STRLEN(x), FALSE)
 
 	pat_gtkg_23v1	= PAT_COMPILE(" GTKG/23v1");
 	pat_hsep		= PAT_COMPILE(" HSEP/");

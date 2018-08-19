@@ -49,6 +49,7 @@ struct cpattern {				/**< Compiled pattern */
 	enum cpattern_magic magic;	/**< Magic number */
 	uint duped:1;				/**< Was `pattern' strdup()'ed? */
 	uint d8bits:1;				/**< If true, then delta is a uint8 array */
+	uint icase:1;				/**< If true, use case-insensitive match */
 	const char *pattern;		/**< The pattern */
 	size_t len;					/**< Pattern length */
 	/*
@@ -142,8 +143,22 @@ pattern_build_delta_small(cpattern_t *p)
 
 	c = cast_to_constpointer(p->pattern);
 
-	for (pd = p->delta, i = 0; i < plen; c++, i++)
-		pd[*c] = plen - i;
+	/*
+	 * If we are case-insensitive, use same delta for the lower-case
+	 * and upper-case version.
+	 */
+
+	if (p->icase) {
+		for (pd = p->delta, i = 0; i < plen; c++, i++) {
+			uchar x = ascii_toupper(*c);
+			uchar y = ascii_tolower(x);
+			pd[x] = plen - i;
+			pd[y] = plen - i;
+		}
+	} else {
+		for (pd = p->delta, i = 0; i < plen; c++, i++)
+			pd[*c] = plen - i;
+	}
 
 	return p;
 }
@@ -235,15 +250,19 @@ pattern_delta_free(cpattern_t *p)
  * Compile given string pattern by computing the delta shift table.
  * The pattern string given is duplicated.
  *
+ * @param pattern	the pattern we wish to compile
+ * @param icase		if TRUE, ignore case when searching
+ *
  * @return a compiled pattern structure.
  */
 cpattern_t *
-pattern_compile(const char *pattern)
+pattern_compile(const char *pattern, bool icase)
 {
 	cpattern_t *p;
 
 	WALLOC(p);
 	p->magic = CPATTERN_MAGIC;
+	p->icase = booleanize(icase);
 	p->pattern = xstrdup(pattern);
 	p->len = strlen(p->pattern);
 	p->duped = TRUE;
@@ -256,16 +275,21 @@ pattern_compile(const char *pattern)
  * Same as pattern_compile(), but the pattern string is NOT duplicated,
  * and its length is known upon entry.
  *
+ * @param pattern	the pattern we wish to compile
+ * @param plen		the length of the pattern
+ * @param icase		if TRUE, ignore case when searching
+ *
  * @attention
  * NB: There is no pattern_free_fast(), just call pattern_free() on the result.
  */
 cpattern_t * G_HOT
-pattern_compile_fast(const char *pattern, size_t plen)
+pattern_compile_fast(const char *pattern, size_t plen, bool icase)
 {
 	cpattern_t *p;
 
 	WALLOC(p);
 	p->magic = CPATTERN_MAGIC;
+	p->icase = booleanize(icase);
 	p->pattern = pattern;
 	p->len = plen;
 	p->duped = FALSE;
@@ -381,6 +405,7 @@ pattern_qsearch(
 	size_t i;				/* Position within pattern string */
 	size_t plen;
 	bool d8bits = cpat->d8bits;
+	bool icase = cpat->icase;
 
 	pattern_check(cpat);
 
@@ -393,15 +418,30 @@ pattern_qsearch(
 
 	while (tp + plen <= end) {		/* Enough text left for matching */
 
-		for (p = cpat->pattern, t = tp, i = 0; i < plen; p++, t++, i++)
-			if (*p != *t)
-				break;				/* Mismatch, stop looking here */
+		if G_UNLIKELY(icase) {
+			for (p = cpat->pattern, t = tp, i = 0; i < plen; p++, t++, i++) {
+				int a = *p, b = *t;
+				if (a != b && ascii_tolower(a) != ascii_tolower(b))
+					break;			/* Mismatch, stop looking here */
+			}
+		} else {
+			for (p = cpat->pattern, t = tp, i = 0; i < plen; p++, t++, i++)
+				if (*p != *t)
+					break;				/* Mismatch, stop looking here */
+		}
 
 		if G_UNLIKELY(i == plen) {	/* OK, we got a pattern match */
 			if (pattern_has_matched(cpat, tp, text, tlen, word))
 				return tp;
 			/* FALL THROUGH */
 		}
+
+		/*
+		 * This works regardless of the icase value because a case
+		 * insensitive pattern is compiled with identical deltas for
+		 * each ASCII case.  For instance, 'A' and 'a' will share
+		 * the same value in the delta[] array.
+		 */
 
 		if (d8bits) {
 			const uint8 *d = cpat->delta;

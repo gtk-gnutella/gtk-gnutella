@@ -580,7 +580,7 @@ entry_match(const char *text, size_t tlen,
 		size_t j, offset = 0, amount = wovec[i].amount;
 
 		if (pw[i] == NULL)
-			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len);
+			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len, FALSE);
 
 		for (j = 0; j < amount; j++) {
 			const char *pos;

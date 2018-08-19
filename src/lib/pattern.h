@@ -48,8 +48,8 @@ typedef enum {
 void pattern_init(void);
 void pattern_close(void);
 
-cpattern_t *pattern_compile(const char *pattern);
-cpattern_t *pattern_compile_fast(const char *pattern, size_t plen);
+cpattern_t *pattern_compile(const char *pattern, bool icase);
+cpattern_t *pattern_compile_fast(const char *pattern, size_t plen, bool icase);
 void pattern_free(cpattern_t *cpat);
 void pattern_free_null(cpattern_t **cpat_ptr);
 const char *pattern_qsearch(const cpattern_t *cpat,

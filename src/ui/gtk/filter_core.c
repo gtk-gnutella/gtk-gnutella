@@ -556,7 +556,7 @@ filter_new_text_rule(const gchar *match, gint type,
 		GList *l = NULL;
 
 		for (s = strtok(buf, " \t\n"); s; s = strtok(NULL, " \t\n"))
-			l = g_list_prepend(l, pattern_compile(s));
+			l = g_list_prepend(l, pattern_compile(s, FALSE));
 
 		r->u.text.u.words = g_list_reverse(l);
 	} else if (r->u.text.type == RULE_TEXT_REGEXP) {
@@ -584,7 +584,7 @@ filter_new_text_rule(const gchar *match, gint type,
 
 	/* no "else" because REGEXP can fall back here */
 	if (r->u.text.type == RULE_TEXT_SUBSTR) {
-		r->u.text.u.pattern = pattern_compile(buf);
+		r->u.text.u.pattern = pattern_compile(buf, FALSE);
 	}
     hfree(buf);
 

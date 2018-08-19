@@ -1073,7 +1073,7 @@ huge_init(void)
 	sha1_cache = hikset_create(		/* Keys are atoms */
 		offsetof(struct sha1_cache_entry, file_name), HASH_KEY_SELF, 0);
 	sha1_read_cache();
-	has_http_urls = pattern_compile("http://");
+	has_http_urls = pattern_compile("http://", FALSE);
 }
 
 /**
