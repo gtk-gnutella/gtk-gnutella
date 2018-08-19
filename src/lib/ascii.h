@@ -49,6 +49,7 @@
 #define A_GRAPH		(1 << 7)
 #define A_PRINT		(1 << 8)
 #define A_PUNCT		(1 << 9)
+#define A_IDENT		(1 << 10)	/* Identifier: alphanumeric + "_" */
 
 extern const uint16 ascii_ctype[];
 
@@ -148,6 +149,13 @@ static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alnum(int c)
 {
 	return !(c & ~0x7f) && 0 != ((A_DIGIT | A_UPPER | A_LOWER) & ascii_ctype[c]);
+}
+
+static inline G_CONST WARN_UNUSED_RESULT bool
+is_ascii_ident(int c)
+{
+	/* Part of an identifier, i,e, one of [A-Za-z0-9_] */
+	return !(c & ~0x7f) && 0 != (A_IDENT & ascii_ctype[c]);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
