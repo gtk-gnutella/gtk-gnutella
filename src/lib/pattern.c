@@ -318,32 +318,41 @@ static bool G_HOT
 pattern_has_matched(const cpattern_t *p, const char *tp,
 	const char *text, size_t tlen, qsearch_mode_t word)
 {
-	bool at_start = FALSE;	/* At beginning of word? */
+	bool at_start; 		/* At word boundary for the match start? */
 
 	if (word == qs_any)
 		return TRUE;		/* Start of substring */
+
+	at_start = FALSE;
 
 	/*
 	 * They set `word', so we must look whether we are at the start
 	 * of a word, i.e. if it is either the beginning of the text,
 	 * or if the character before is a non-alphanumeric character.
+	 *
+	 * To determine whether we are at a "word boundary", we rely on the
+	 * is_ascii_ident() routine which returns TRUE if the character is
+	 * one of [A-Za-z0-9_].  We say we are at a word boundary if, at some
+	 * position, the current character and the next one yield different
+	 * values of is_ascii_ident().
 	 */
 
-	g_assert(word == qs_begin || word == qs_whole);
-
-	if G_UNLIKELY(tp == text) {				/* At beginning of text */
+	if G_UNLIKELY(tp == text) {					/* At beginning of text */
 		if (word == qs_begin) return TRUE;
 		else at_start = TRUE;
-	} else if (is_ascii_space(*(tp-1))) {	/* At word boundary */
+	} else if (is_ascii_ident(*(tp-1)) != is_ascii_ident(*tp)) {
+		/* At word boundary before match */
 		if (word == qs_begin) return TRUE;
 		else at_start = TRUE;
 	}
 
-	if (at_start && word == qs_whole) {
-		if (&tp[p->len] == text + tlen)		/* At end of string */
-			return TRUE;
-		else if (is_ascii_space(tp[p->len]))
-			return TRUE; 					/* At word boundary after */
+	if G_UNLIKELY(&tp[p->len] == text + tlen) {	/* At end of text */
+		if (word == qs_end) return TRUE;
+		else if (at_start && word == qs_whole) return TRUE;
+	} else if (is_ascii_ident(tp[p->len]) != is_ascii_ident(tp[p->len - 1])) {
+		/* At word boundary after match */
+		if (word == qs_end) return TRUE;
+		else if (at_start && word == qs_whole) return TRUE;
 	}
 
 	return FALSE;	/* No match */

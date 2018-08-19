@@ -39,9 +39,10 @@
 typedef struct cpattern cpattern_t;
 
 typedef enum {
-	qs_any = 0,					/**< Match anywhere */
-	qs_begin,					/**< Match beginning of words */
-	qs_whole					/**< Match whole words only */
+	qs_any = 0,				/**< Match anywhere */
+	qs_begin,				/**< Match if starting with a word boundary */
+	qs_end,					/**< Match if ending with a word boundary */
+	qs_whole				/**< Match whole words (start and end at boundary) */
 } qsearch_mode_t;
 
 void pattern_init(void);
