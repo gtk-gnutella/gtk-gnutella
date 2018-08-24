@@ -39,6 +39,7 @@
 #define OPSIZ	(sizeof(op_t))
 
 #define op_aligned(x)	(0 == ((op_t) (x) & (OPSIZ - 1)))
+#define op_roundup(x)	(((x) + OPSIZ - 1) & ~(OPSIZ - 1))
 
 #endif /* _op_h_ */
 
