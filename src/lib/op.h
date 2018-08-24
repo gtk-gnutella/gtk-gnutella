@@ -41,6 +41,8 @@
 #define op_aligned(x)	(0 == ((op_t) (x) & (OPSIZ - 1)))
 #define op_roundup(x)	(((x) + OPSIZ - 1) & ~(OPSIZ - 1))
 
+#define op_ptr_roundup(x)	(void *) (((size_t) (x) + OPSIZ - 1) & ~(OPSIZ - 1))
+
 #endif /* _op_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
