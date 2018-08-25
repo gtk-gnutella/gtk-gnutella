@@ -10638,7 +10638,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (strchr(tok, '/'))
 			continue;
 
 		/* Skip first "pptsl=" indication */

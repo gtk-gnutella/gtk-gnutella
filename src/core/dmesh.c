@@ -3040,7 +3040,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (strchr(tok, '/'))
 			continue;
 
 		/* Skip first "pptls=" indication */

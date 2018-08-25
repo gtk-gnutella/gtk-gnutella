@@ -2094,7 +2094,7 @@ mingw_environment_block(char * const envp[], int *flags)
 
 		if (environ[0] != NULL) {
 			char *p = environ[0];
-			char *q = strstr(p, "=");
+			char *q = strchr(p, '=');
 
 			/*
 			 * If there is a NUL byte before '=' or the '=' sign is indeed
