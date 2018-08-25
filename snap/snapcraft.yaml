@@ -3,10 +3,8 @@
   version: '1.1.13'
   summary: The Most Efficient Gnutella Client
   description: |
-    This is my-snap's description. You have a paragraph or two to tell the
-    most important story about your snap. Keep it under 100 words though,
-    we live in tweetspace and your description wants to look good in the snap
-    store.
+    gtk-gnutella is a server/client for the Gnutella peer-to-peer network.
+    It runs on Microsoft Windows, MacOS and every Unix-like system which supports GTK+ (1.2 or above)
 
   grade: devel # must be 'stable' to release into candidate/stable channels
   confinement: devmode # use 'strict' once you have the right plugs and slots
