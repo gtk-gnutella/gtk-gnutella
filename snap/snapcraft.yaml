@@ -11,5 +11,5 @@
 
   parts:
     gtk-gnutella:
-      source: https://github.com/luciomarinelli/gtk-gnutella/tree/master
+      source: https://github.com/luciomarinelli/gtk-gnutella
       plugin: make
