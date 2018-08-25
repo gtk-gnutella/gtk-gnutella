@@ -30,3 +30,5 @@ char *lru_cached_page(DBM *, long);
 void lru_discard(DBM *, long);
 void lru_invalidate(DBM *, long);
 fileoffset_t lru_tail_offset(const DBM *);
+
+/* vi: set ts=4 sw=4 cindent: */

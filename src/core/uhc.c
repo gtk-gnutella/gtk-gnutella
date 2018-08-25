@@ -51,10 +51,11 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
+#include "lib/hstrfn.h"
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
-#include "lib/str.h"
 #include "lib/shuffle.h"
+#include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -104,12 +105,14 @@ static const struct {
 	{ "useast.gnutella.dyslexicfish.net:3558" },
 	{ "uswest.gnutella.dyslexicfish.net:3558" },
 	{ "uk.gnutella.dyslexicfish.net:3558" },
+	{ "au.gnutella.dyslexicfish.net:3558" },
 	/* Peers */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
+	{ "2.uhc.gtk-gnutella.nl:4876" },
 	{ "uhc.gtk-gnutella.nl:15749" },
-	{ "useast.gnutella.dyslexicfish.net:19814" },
-	{ "uswest.gnutella.dyslexicfish.net:26562" },
-	{ "uk.gnutella.dyslexicfish.net:55577" },
+	{ "useast.gnutella.dyslexicfish.net:15321" },
+	{ "uswest.gnutella.dyslexicfish.net:18037" },
+	{ "uk.gnutella.dyslexicfish.net:41481" },
 #endif	/* USE_LOCAL_UHC */
 };
 

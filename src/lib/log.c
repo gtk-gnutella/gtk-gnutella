@@ -70,7 +70,7 @@
 #include "halloc.h"
 #include "hashing.h"		/* For string_mix_hash() and string_eq() */
 #include "hashtable.h"
-#include "misc.h"			/* For CONST_STRLEN() */
+#include "misc.h"			/* For CONST_STRLEN() and english_strerror() */
 #include "offtime.h"
 #include "once.h"
 #include "signal.h"
@@ -219,23 +219,24 @@ logagent_check(const struct logagent * const la)
 /**
  * Set of log files.
  */
-static struct logfile logfile[LOG_MAX_FILES];
+static struct logfile logfile[LOG_MAX_FILES] = {
+	/* LOG_STDOUT: */
+	{
+		.fd = STDOUT_FILENO,
+		.name = "out",
+	},
+	/* LOG_STDERR: */
+	{
+		.fd = STDERR_FILENO,
+		.name = "err",
+	},
+};
 
-#define log_flush_out()	\
-	flush_str(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
+#define log_flush_out()			flush_str(logfile[LOG_STDOUT].fd)
+#define log_flush_err()			flush_str(logfile[LOG_STDERR].fd)
 
-#define log_flush_err()	\
-	flush_str(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
-
-#define log_flush_out_atomic()	\
-	flush_str_atomic(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDOUT].fd : STDOUT_FILENO)
-
-#define log_flush_err_atomic()	\
-	flush_str_atomic(			\
-		G_LIKELY(log_inited) ? logfile[LOG_STDERR].fd : STDERR_FILENO)
+#define log_flush_out_atomic()	flush_str_atomic(logfile[LOG_STDOUT].fd)
+#define log_flush_err_atomic()	flush_str_atomic(logfile[LOG_STDERR].fd)
 
 static bool log_crashing;
 static const char DEV_NULL[] = "/dev/null";
@@ -1058,13 +1059,14 @@ enum stacktrace_stack_level {
 };
 
 /**
- * Emit stacktrace to stderr and stdout (if distinct from stderr).
+ * Emit stacktrace to stderr and optionally stdout (if distinct from stderr).
  *
  * @param no_stdio		whether we must avoid stdio
+ * @param copy			whether to copy stacktrace to stdout
  * @param offset		stack offset to apply to remove overhead from stack
  */
-void NO_INLINE
-s_stacktrace(bool no_stdio, unsigned offset)
+static void NO_INLINE
+s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
 {
 	static enum stacktrace_stack_level tracing[THREAD_MAX];
 	static bool warned[THREAD_MAX];
@@ -1116,11 +1118,11 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	if (STACKTRACE_NORMAL == tracing[stid]) {
 		if (no_stdio) {
 			stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
-			if (log_stdout_is_distinct())
+			if (copy && log_stdout_is_distinct())
 				stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
 		} else {
 			stacktrace_where_sym_print_offset(stderr, offset + 1);
-			if (log_stdout_is_distinct())
+			if (copy && log_stdout_is_distinct())
 				stacktrace_where_sym_print_offset(stdout, offset + 1);
 
 			if (is_running_on_mingw()) {
@@ -1131,7 +1133,7 @@ s_stacktrace(bool no_stdio, unsigned offset)
 		}
 	} else {
 		stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
-		if (log_stdout_is_distinct())
+		if (copy && log_stdout_is_distinct())
 			stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
 	}
 
@@ -1141,6 +1143,29 @@ s_stacktrace(bool no_stdio, unsigned offset)
 	} else {
 		tracing[stid] = STACKTRACE_NONE;
 	}
+}
+
+/**
+ * Emit stacktrace to stderr and stdout (if distinct from stderr).
+ *
+ * @param no_stdio		whether we must avoid stdio
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+void
+s_stacktrace(bool no_stdio, unsigned offset)
+{
+	s_emit_stacktrace(no_stdio, TRUE, offset + 1);
+}
+
+/**
+ * Emit stacktrace to stderr.
+ *
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+void
+s_where(unsigned offset)
+{
+	s_emit_stacktrace(TRUE, FALSE, offset + 1);
 }
 
 /**
@@ -2415,7 +2440,7 @@ log_reopen(enum log_file which)
 			print_str(": ");		/* 3 */
 			print_str(symbolic_errno(errno));	/* 4 */
 			print_str(" (");		/* 5 */
-			print_str(g_strerror(errno));		/* 6 */
+			print_str(english_strerror(errno));	/* 6 */
 			print_str(")\n");		/* 7 */
 			flush_str_atomic(fd);
 			log_flush_out_atomic();
@@ -2790,18 +2815,7 @@ log_get_fd(enum log_file which)
 {
 	log_file_check(which);
 
-	if G_LIKELY(log_inited) {
-		return logfile[which].fd;
-	}
-
-	switch (which) {
-	case LOG_STDOUT: return STDOUT_FILENO;
-	case LOG_STDERR: return STDERR_FILENO;
-	case LOG_MAX_FILES:
-		break;
-	}
-
-	g_assert_not_reached();
+	return logfile[which].fd;
 }
 
 /**

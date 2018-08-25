@@ -98,6 +98,7 @@ char *guc_download_build_url(const struct download *);
 char *guc_file_info_build_magnet(gnet_fi_t);
 char *guc_file_info_get_file_url(gnet_fi_t);
 const char *guc_file_info_status_to_string(const gnet_fi_status_t *);
+void guc_file_info_clear_completed(void);
 int guc_download_get_http_req_percent(const struct download *);
 void guc_download_fallback_to_push(struct download *, bool on_timeout,
 		bool user_request);
@@ -107,7 +108,6 @@ bool guc_download_file_exists(const struct download *);
 void guc_download_requeue(struct download *);
 void guc_download_start(struct download *);
 void guc_download_pause(struct download *);
-void guc_download_abort(struct download *);
 void guc_download_resume(struct download *);
 void guc_download_freeze_queue(void);
 void guc_download_thaw_queue(void);
@@ -118,8 +118,8 @@ uint guc_download_handle_magnet(const char *url);
 const char *guc_download_get_hostname(const struct download *);
 const char *guc_download_get_country(const struct download *);
 const char *guc_download_get_vendor(const struct download *);
-gdouble guc_download_source_progress(const struct download *);
-gdouble guc_download_total_progress(const struct download *);
+double guc_download_source_progress(const struct download *);
+double guc_download_total_progress(const struct download *);
 bool guc_download_something_to_clear(void);
 void guc_download_index_changed(const host_addr_t addr, uint16 port,
 	const struct guid *guid, filesize_t from, filesize_t to);

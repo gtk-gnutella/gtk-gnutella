@@ -45,5 +45,6 @@ gboolean on_clist_uploads_button_press_event(GtkWidget *, GdkEventButton *,
 	gpointer);
 #endif /* USE_GTK1 */
 
-
 #endif /* _gtk_uploads_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

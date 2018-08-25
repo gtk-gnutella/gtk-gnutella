@@ -89,4 +89,4 @@ sppidof(int fd)
 
 #endif	/* _spopen_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

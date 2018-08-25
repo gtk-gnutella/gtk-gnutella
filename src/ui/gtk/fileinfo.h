@@ -41,3 +41,4 @@ void fi_gui_shutdown(void);
 
 #endif /* _gtk_fileinfo_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

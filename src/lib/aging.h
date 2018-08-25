@@ -58,7 +58,17 @@ void aging_insert(aging_table_t *ag, const void *key, void *value);
 bool aging_remove(aging_table_t *ag, const void *key);
 size_t aging_count(const aging_table_t *ag);
 
+void *aging_replace(aging_table_t *ag, const void *key, void *value);
+void *aging_replace_revitalise(aging_table_t *ag, const void *key, void *value);
+
+void aging_record(aging_table_t *ag, const void *key);
+
+size_t aging_saw_another(aging_table_t *ag, const void *key, clone_fn_t cf);
+size_t aging_saw_another_revitalise(
+	aging_table_t *ag, const void *key, clone_fn_t cf);
+size_t aging_seen_count(const aging_table_t *ag, const void *key);
+
 #endif	/* _aging_h_ */
 
-/* vi: set ts=4: sw=4 cindent: */
+/* vi: set ts=4 sw=4 cindent: */
 

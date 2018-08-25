@@ -52,3 +52,5 @@ extern const struct guid blank_guid;
 bool guid_is_blank(const struct guid *);
 
 #endif /* _if_core_guid_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

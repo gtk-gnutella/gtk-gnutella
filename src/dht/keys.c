@@ -89,6 +89,7 @@
 #include "lib/atoms.h"
 #include "lib/bstr.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
@@ -422,7 +423,9 @@ static void
 keys_reclaim(struct keyinfo *ki, bool can_remove)
 {
 	g_assert(ki);
-	g_assert(0 == ki->values);
+	g_assert_log(0 == ki->values || can_remove,
+		"%s(): ki->values=%u, can_remove=%s",
+		G_STRFUNC, ki->values, can_remove ? "y" : "n");
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
@@ -1573,7 +1576,9 @@ keys_init_keyinfo(void)
 
 	hikset_foreach_remove(keys, keys_discard_if_empty, NULL);
 	dbmw_foreach_remove(db_keydata, keys_delete_if_empty, NULL);
-	dbstore_compact(db_keydata);
+
+	if (!crash_was_restarted())
+		dbstore_compact(db_keydata);
 
 	g_soft_assert_log(hikset_count(keys) == dbmw_count(db_keydata),
 		"keys reloaded: %zu, key data persisted: %zu",

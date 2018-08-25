@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-224]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -50,13 +50,13 @@ RM = $rm -f
 ########################################################################
 # Automatically generated parameters -- do not edit
 
-SUBDIRS = el en fr ja tr
+SUBDIRS = el en it fr ja tr
 
 !GROK!THIS!
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Start of Jmakefile

@@ -43,6 +43,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
@@ -643,7 +644,6 @@ main(int argc, char **argv)
 	stacktrace_init(argv[0], FALSE);
 	log_show_pid(TRUE);
 
-	misc_init();
 	signal_catch(SIGPIPE, log_sigpipe);
 
 	while ((c = getopt(argc, argv, options)) != EOF) {

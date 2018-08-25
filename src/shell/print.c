@@ -63,7 +63,7 @@ shell_exec_print(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	shell_write(sh, _("Value: "));
-	shell_write(sh, shell_property_to_string(prop));
+	shell_write(sh, gnet_prop_to_typed_string(prop));
 	shell_write(sh, "\n");
 
 	shell_set_msg(sh, _("Value found and displayed"));

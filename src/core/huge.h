@@ -71,6 +71,8 @@ void huge_collect_locations(
 	const struct sha1 *sha1, const struct header *header,
 	const struct gnutella_host *origin);
 
+void huge_sha1_cache_prune(void);
+
 #endif	/* _core_huge_h_ */
 
 /*
@@ -82,3 +84,4 @@ void huge_collect_locations(
  * indent-tabs-mode: nil ***
  * End: ***
  */
+/* vi: set ts=4 sw=4 cindent: */

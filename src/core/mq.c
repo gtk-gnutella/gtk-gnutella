@@ -1509,4 +1509,4 @@ mq_get_cops(void)
 	return &mq_cops;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

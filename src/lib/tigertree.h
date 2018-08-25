@@ -97,6 +97,7 @@ filesize_t tt_block_count(filesize_t filesize);
 unsigned tt_full_depth(filesize_t filesize);
 unsigned tt_good_depth(filesize_t filesize);
 unsigned tt_depth(size_t leaves);
+filesize_t tt_slice_size(filesize_t size, size_t nleaves);
 
 #endif /* _tigertree_h_ */
 /* vi: set ts=4 sw=4 cindent: */

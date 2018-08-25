@@ -56,6 +56,7 @@ MIME_TYPE(APPLICATION_TROFF_ME,		"application/x-troff-me")
 MIME_TYPE(APPLICATION_TROFF_MS,		"application/x-troff-ms")
 MIME_TYPE(APPLICATION_ZIP,		"application/zip")
 MIME_TYPE(APPLICATION_ZOO,		"application/x-zoo")
+MIME_TYPE(AUDIO_APE,			"audio/x-ape")
 MIME_TYPE(AUDIO_BASIC,			"audio/basic")
 MIME_TYPE(AUDIO_FLAC,			"audio/flac")
 MIME_TYPE(AUDIO_MATROSKA,		"audio/x-matroska")
@@ -107,3 +108,5 @@ MIME_TYPE(VIDEO_OGG,			"video/ogg")
 MIME_TYPE(VIDEO_OGM,			"video/x-ogg")
 MIME_TYPE(VIDEO_QUICKTIME,		"video/quicktime")
 MIME_TYPE(VIDEO_WEBM,			"video/webm")
+
+/* vi: set ts=4 sw=4 cindent: */

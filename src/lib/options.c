@@ -215,4 +215,4 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 	return i;
 }
 
-/* vi: set sw=4 ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

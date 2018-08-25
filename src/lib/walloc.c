@@ -202,7 +202,12 @@ wzone_get(size_t rounded)
  * @param rounded		rounded allocation size
  * @param allocate		whether we should allocate a missing zone
  *
- * @return the zone corresponding to the requested size.
+ * @attention
+ * This routine can return NULL, caller must check for that condition before
+ * blindly using the returned value.
+ *
+ * @return the zone corresponding to the requested size, NULL if the walloc
+ * layer was stopped.
  */
 static zone_t *
 walloc_get_zone(size_t rounded, bool allocate)
@@ -216,6 +221,9 @@ walloc_get_zone(size_t rounded, bool allocate)
 		WALLOC_LOCK;
 
 		if (NULL == (zone = wzone[idx])) {
+			if (walloc_stopped)
+				return NULL;
+
 			if (!allocate)
 				s_error("missing %zu-byte zone", rounded);
 
@@ -246,15 +254,15 @@ walloc_raw(size_t size)
 
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(walloc_stopped)
-		return xmalloc(size);
-
 	if G_UNLIKELY(rounded > walloc_max) {
 		/* Too big for efficient zalloc() */
 		return xmalloc(size);
 	}
 
 	zone = walloc_get_zone(rounded, TRUE);
+
+	if G_UNLIKELY(NULL == zone)
+		return xmalloc(size);
 
 	return zalloc(zone);
 }
@@ -274,15 +282,15 @@ wfree_raw(void *ptr, size_t size)
 	g_assert(ptr != NULL);
 	g_assert(size_is_positive(size));
 
-	if G_UNLIKELY(walloc_stopped)
-		return;
-
 	if G_UNLIKELY(rounded > walloc_max) {
 		xfree(ptr);
 		return;
 	}
 
 	zone = walloc_get_zone(rounded, FALSE);
+
+	if G_UNLIKELY(NULL == zone)
+		return;
 
 	zfree(zone, ptr);
 }
@@ -362,6 +370,12 @@ walloc_get_magazine(size_t rounded)
 			 */
 
 			zone = walloc_get_zone(rounded, TRUE);
+
+			if G_UNLIKELY(NULL == zone) {
+				depot = NULL;		/* Race condition with walloc_stopped */
+				goto done;
+			}
+
 			zsize = zone_size(zone);
 			zidx = wzone_index(zsize);
 
@@ -519,12 +533,11 @@ wfree_pslist(pslist_t *pl, size_t size)
 #endif
 
 	if G_UNLIKELY(NULL == depot) {
-		zone_t *zone;
+		zone_t *zone = walloc_get_zone(rounded, FALSE);
 
-		if G_UNLIKELY(walloc_stopped)
+		if G_UNLIKELY(NULL == zone)
 			return;
 
-		zone = walloc_get_zone(rounded, FALSE);
 		zfree_pslist(zone, pl);
 	} else {
 		tmfree_pslist(depot, pl);
@@ -566,12 +579,11 @@ wfree_eslist(eslist_t *el, size_t size)
 #endif
 
 	if G_UNLIKELY(NULL == depot) {
-		zone_t *zone;
+		zone_t *zone = walloc_get_zone(rounded, FALSE);
 
-		if G_UNLIKELY(walloc_stopped)
+		if G_UNLIKELY(NULL == zone)
 			return;
 
-		zone = walloc_get_zone(rounded, FALSE);
 		zfree_eslist(zone, el);
 	} else {
 		tmfree_eslist(depot, el);
@@ -587,10 +599,8 @@ wmove(void *ptr, size_t size)
 {
 	zone_t *zone = walloc_get_zone(zalloc_round(size), FALSE);
 
-	if G_UNLIKELY(walloc_stopped)
+	if G_UNLIKELY(NULL == zone)
 		return ptr;
-
-	g_assert(zone != NULL);
 
 	return zmove(zone, ptr);
 }
@@ -632,6 +642,9 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 
 	old_zone = walloc_get_zone(old_rounded, FALSE);
 	new_zone = walloc_get_zone(new_rounded, TRUE);
+
+	if G_UNLIKELY(NULL == new_zone)
+		return old;						/* walloc_stopped has been set */
 
 	if (old_zone == new_zone)
 		return zmove(old_zone, old);	/* Move around if interesting */
@@ -682,6 +695,9 @@ walloc_track(size_t size, const char *file, int line)
 	}
 
 	zone = walloc_get_zone(rounded, TRUE);
+
+	if G_UNLIKELY(NULL == zone)
+		return xmalloc(size);
 
 	return zalloc_track(zone, file, line);
 }
@@ -763,18 +779,38 @@ wdestroy(void)
 		}
 	}
 
-	walloc_stopped = TRUE;
+	/*
+	 * To limit race conditions with code that tests for "walloc_stopped"
+	 * and would decide to use a zone, we make sure we nullify the zone
+	 * before destroying it and ensure walloc_get_zone() will return NULL
+	 * when "walloc_stopped" is set, regardless of whether it could allocate
+	 * one on the fly otherwise.
+	 *
+	 * We also attempt to suspend all the other running threads to make sure
+	 * they are not in the middle of using walloc() on the zones we're
+	 * precisely going to destroy!
+	 *
+	 *		--RAM, 2016-08-25
+	 */
+
+	walloc_stopped = TRUE;		/* Prevents creation of new zones on the fly */
+
+	thread_suspend_others(TRUE);
 
 	/*
 	 * Physically destroy the zones.
 	 */
 
 	for (i = 0; i < WZONE_SIZE; i++) {
-		if (wzone[i] != NULL) {
-			zdestroy(wzone[i]);
-			wzone[i] = NULL;
-		}
+		zone_t *zone = wzone[i];
+
+		wzone[i] = NULL;
+
+		if (zone != NULL)
+			zdestroy(zone);
 	}
+
+	thread_unsuspend_others();
 }
 
 /**

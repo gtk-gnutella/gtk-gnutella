@@ -68,5 +68,4 @@ void getline_set_maxlen(getline_t *, size_t);
 
 #endif	/* _getline_h_ */
 
-/* vi: set ts=4: */
-
+/* vi: set ts=4 sw=4 cindent: */

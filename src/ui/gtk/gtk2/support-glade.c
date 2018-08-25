@@ -151,3 +151,4 @@ glade_set_atk_action_description       (AtkAction       *action,
     }
 }
 
+/* vi: set ts=4 sw=4 cindent: */

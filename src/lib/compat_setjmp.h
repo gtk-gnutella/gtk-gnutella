@@ -86,12 +86,14 @@
 #undef siglongjmp
 #undef Siglongjmp
 
-#define Setjmp(e)		(setjmp_prep(e), setjmp((e)->buf))
+#define Setjmp(e)		(setjmp_prep((e), _WHERE_, __LINE__), setjmp((e)->buf))
 
 #ifdef HAS_SIGSETJMP
-#define Sigsetjmp(e,s)	(sigsetjmp_prep((e), (s)), sigsetjmp((e)->buf, (s)))
+#define Sigsetjmp(e,s)	\
+	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__), sigsetjmp((e)->buf, (s)))
 #else
-#define Sigsetjmp(e,s)	(sigsetjmp_prep((e), (s)), setjmp((e)->buf))
+#define Sigsetjmp(e,s)	\
+	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__), setjmp((e)->buf))
 #endif
 
 #define longjmp(e,v)	compat_longjmp((e), (v))
@@ -122,6 +124,8 @@ typedef struct compat_jmpbuf {
 	sig_atomic_t sig_level;		/**< Internal signal handler level */
 	enum setjmp_magic magic;	/**< Magic number */
 	uint stid;					/**< Thread which saved the context */
+	uint line;					/**< Line number where state was taken */
+	const char *file;			/**< File name where state was taken */
 } jmp_buf[1];
 
 typedef struct compat_sigjmpbuf {
@@ -133,14 +137,16 @@ typedef struct compat_sigjmpbuf {
 	bool mask_saved;			/**< Did we save the signal mask? */
 	sigset_t mask;				/**< Signal mask saved */
 #endif	/* !HAS_SIGSETJMP */
+	uint line;					/**< Line number where state was taken */
+	const char *file;			/**< File name where state was taken */
 } sigjmp_buf[1];
 
 /*
  * Public interface.
  */
 
-void setjmp_prep(jmp_buf env);
-void sigsetjmp_prep(sigjmp_buf env, int savesigs);
+void setjmp_prep(jmp_buf env, const char *file, uint line);
+void sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line);
 
 void compat_longjmp(jmp_buf env, int val) G_NORETURN;
 void compat_siglongjmp(sigjmp_buf env, int val) G_NORETURN;

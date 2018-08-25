@@ -87,3 +87,4 @@ typedef enum filter_prop_state {
 
 #endif /* _if_core_filter_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

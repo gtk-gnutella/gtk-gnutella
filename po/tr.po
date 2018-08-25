@@ -4,15 +4,15 @@
 #
 # Translators:
 # mauron, 2013
-# mauron, 2013-2015
+# mauron, 2013-2016
 # Uğur Çetin <ugur.jnmbk@gmail.com>, 2006
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 08:49+0100\n"
-"PO-Revision-Date: 2016-02-15 08:28+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"PO-Revision-Date: 2016-08-31 15:19+0000\n"
+"Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/tr/)\n"
 "Language: tr\n"
@@ -266,7 +266,7 @@ msgid "No support for Content-Encoding (%s)"
 msgstr "İçerik-Kodlama (Content-Encoding) desteklenmiyor (%s)"
 
 msgid "Incomplete headers during TLS upgrade"
-msgstr ""
+msgstr "TLS yükseltmesi sırasında eksik başlıklar"
 
 msgid "Spammer detected"
 msgstr "Spamcı tespit edildi"
@@ -418,6 +418,10 @@ msgstr "Zaman aşımı"
 
 msgid "Requeued due to timeout"
 msgstr "Zaman aşımı yüzünden kuyruğa alındı"
+
+#, fuzzy
+msgid "File info being freed"
+msgstr "Dosya verileri sıfırlanmakta"
 
 msgid "Partial file removed"
 msgstr "Kısmi dosya kaldırıldı"
@@ -593,10 +597,10 @@ msgid "Protocol not acceptable"
 msgstr "Kabul edilemez protokol"
 
 msgid "Conflict"
-msgstr ""
+msgstr "Çatışma"
 
 msgid "Upgrade Header Missing"
-msgstr ""
+msgstr "Yükseltme Başlığı Eksik"
 
 msgid "Servent Shutdown"
 msgstr "İstemci kapanıyor"
@@ -745,11 +749,11 @@ msgstr "\"%s\" klasörü %s için oluşturuluyor"
 
 #, c-format
 msgid "Another gtk-gnutella supervisor is running as PID %lu"
-msgstr ""
+msgstr "Başka bir gtk-gnutella gözetmeni PID %lu olarak çalışmaktadır"
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
-msgstr ""
+msgstr "Başka bir gtk-gnutella PID %lu olarak çalışmaktadır"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Geçerli bir yapılandırma klasörü olmadan devam edilemez"
@@ -807,13 +811,6 @@ msgstr "Devam beklemesi zaman aşımına uğradı"
 msgid "Lifetime expired"
 msgstr "Ömrünü doldurdu"
 
-msgid "Unauthorized"
-msgstr "İzinsiz"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "%s unsurundan gelen bağlantılar sınırlanıyor"
-
 msgid "No reason given"
 msgstr "Herhangi bir sebep gösterilmemiş"
 
@@ -837,9 +834,6 @@ msgstr "Bulanamadı"
 
 msgid "File was modified"
 msgstr "Dosya değiştirilmiş"
-
-msgid "Moved Permanently"
-msgstr "Daimi olarak taşınmış"
 
 msgid "File index/name mismatch"
 msgstr "Dosya indeksi/ismi uyumsuzluğu"
@@ -868,6 +862,13 @@ msgstr "<Kişiye Gözatma Talebi>"
 msgid "Browse Host Disabled"
 msgstr "Kişiye Gözat devre dışı"
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Mesaj sayısı sınırlaması"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "%s:%u konumuna yönlendirildi"
@@ -877,6 +878,10 @@ msgstr "Değiştirilmemiş"
 
 msgid "Stalling upload replaced"
 msgstr "Duraklayan gönderme yenilendi"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Tüm HTTP durumu gönderilemiyor"
 
 msgid "Already downloading this file"
 msgstr "Bu dosya zaten indirilmekte"
@@ -907,9 +912,6 @@ msgstr "Asgari tekrar deneme aralığı"
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Kuyrukta (oluk %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Tüm HTTP durumu gönderilemiyor"
-
 msgid "Not Acceptable"
 msgstr "Kabul edilemez"
 
@@ -932,6 +934,10 @@ msgstr ", parçalar hâlinde"
 msgid "THEX failure"
 msgstr "THEX başarısızlığı"
 
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Tüm HTTP durumu gönderilemiyor"
+
 msgid "EOF while sinking"
 msgstr ""
 
@@ -940,7 +946,7 @@ msgid "Read error while sinking: %m"
 msgstr ""
 
 msgid "Content Too Large"
-msgstr ""
+msgstr "Fazla Geniş İçerik"
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Bilinmeyen/Eksik protokol etiketi"
@@ -1065,6 +1071,10 @@ msgstr "Yerel veritabanında G2 isabetleri"
 msgid "G2 hits on local partial files"
 msgstr "Yerel kısmi dosyalara G2 isabetleri"
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "\"Yeni olanlar\" sorgularına isabetler"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
 
@@ -1134,6 +1144,9 @@ msgstr "UTF8 G2 sorguları"
 
 msgid "SHA1 G2 queries"
 msgstr "SHA1 G2 sorguları"
+
+msgid "Queries with aliased words"
+msgstr ""
 
 msgid "GUESS queries"
 msgstr "GUESS sorguları"
@@ -3311,6 +3324,8 @@ msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
+"Kabul edebileceğimiz azami yaprak sayısı. Ultra durumuna terfi etmek için "
+"yaprak başına 32 bayt/saniye bant genişliği ayırmanız önerilir."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "İndirmeler için görmezden gelinecek dosyalar ile ne yapılacağı."
@@ -4953,9 +4968,30 @@ msgid ""
 "unchanged when gtk-gnutella restarts after a crash or an explicit restart "
 "request."
 msgstr ""
+"Güncel oturumun başladığı zamanla ilişkili zaman damgası. gtk-gnutella bir "
+"çökmenin ardından ya da açık bir tekrar başlatma talebinden sonra tekrar "
+"başladığında bu zaman damgası değişmez."
 
 msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
+"İçeri gelen bağlantılara izin vermek için bağlı hiçbir TCP dinleme soketi "
+"yoktur."
+
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Hangi Gnutella başlık alışverişlerinin izleneceğini tanımlar."
 
 msgid "disable"
 msgstr "devre dışı"
@@ -5467,7 +5503,7 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, "
 "rpm and also exe files."
 msgstr ""
 "Dosya tipi filtrelemesini destekleyen diğer düğümler sorgunuzu ZİP, 7z, tar, "
@@ -5501,6 +5537,19 @@ msgid ""
 msgstr ""
 "GUESS özet satırının toplam istatistikleri mi yoksa sadece güncel aramanın "
 "istatistikerini mi göstereceğini belirler."
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Gnet istatistikleri panosunda ayracın konumu."
+
+msgid "Notebook tab number for download info / tools"
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Anonimleştiren vekil sunucular"
@@ -6453,7 +6502,7 @@ msgid "Value missing"
 msgstr "Değer eksik"
 
 msgid "Property cannot be changed"
-msgstr ""
+msgstr "Özellik değiştirilemez"
 
 #, c-format
 msgid "Previous value was %s"
@@ -6510,9 +6559,13 @@ msgstr "Mevcut değil"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "tamamlanmış"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9028,7 +9081,7 @@ msgid "_Auto-hide leaf traffic stats"
 msgstr "Yaprak trafiği istatistiklerini _otomatik sakla"
 
 msgid "Glossary"
-msgstr ""
+msgstr "Sözlük"
 
 msgid "_Search"
 msgstr "A_ra"
@@ -9200,14 +9253,14 @@ msgstr "Durum ikonu göster"
 msgid "Avg. downtime of this servent"
 msgstr "Bu istemcinin ortalama devre dışı süresi"
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Tamamlanan indirmeleri listeden kaldır"
 
 msgid "_Clear completed"
 msgstr "Bitenleri _temizle"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Eş:"
@@ -9315,6 +9368,8 @@ msgid ""
 "<html><head><title>Glossary</title></head><body><p>The glossary document "
 "could not be loaded.</p></body></html>"
 msgstr ""
+"<html><head><title>Sözlük</title></head><body><p>Sözlük belgesi yüklenemedi."
+"</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9729,6 +9784,7 @@ msgstr ""
 
 msgid "*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"
 msgstr ""
+"*** HİÇBİR TCP DİNLEME SOKETİ YOKTUR -- İÇERİ GELEN BAĞLANTI YOKTUR ***"
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** GÖNDERMELER DURAKLIYOR, BANT GENİŞLİĞİ YETERSİZ Mİ? ***"
@@ -9785,7 +9841,7 @@ msgid "Queue frozen"
 msgstr "Kuyruk donduruldu"
 
 msgid "Internal"
-msgstr ""
+msgstr "Dahili"
 
 msgid "Select a property to see its description."
 msgstr "Görüntülemek için bir özellik seçin."
@@ -9799,9 +9855,6 @@ msgstr "Henüz bir çıktı yok..."
 
 msgid "Got push, connecting back..."
 msgstr "İtme alındı, tekrar bağlanılıyor..."
-
-msgid "< 1s"
-msgstr "< 1s"
 
 msgid "(quick) "
 msgstr "(çabuk) "
@@ -9851,3 +9904,15 @@ msgstr "QUEUE yollanıyor, tekrar bağlanılıyor..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE yollandı, başlıklar bekleniyor..."
+
+#~ msgid "Unauthorized"
+#~ msgstr "İzinsiz"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "%s unsurundan gelen bağlantılar sınırlanıyor"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Daimi olarak taşınmış"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

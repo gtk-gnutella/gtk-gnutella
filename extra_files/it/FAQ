@@ -1,0 +1,275 @@
+<html>
+<head>
+<meta content="text/html; charset=windows-1252" http-equiv="content-type">
+<title>FAQ di gtk-gnutella</title>
+</head>
+<body>
+    <h1>FAQ</h1>
+    
+    <!--  **  ** TOC  **  -->
+    <h2>Generale</h2>
+    <ul>
+<li><a href="#general0">Ad ogni modo, cos'è Gnutella?</a></li>
+        <li><a href="#general-G2">E a proposito di G2?</a></li>
+        <li><a href="#general-gtkg">Cosa è GTKG?</a></li>
+        <li><a href="#general1">Richiede troppa banda!</a></li>
+        <li><a href="#general-ultrapeer">Cosa sono gli ultranodi ed i nodi foglia?</a></li>
+        <li><a href="#general-firewall">Perché gtk-gnutella dice di essere dietro firewall se non è vero?</a></li>
+    </ul>
+<h2>Compilare il sorgente</h2>
+    <ul>
+<li><a href="#build1">Come posso fare in  modo che Configure smetta di farmi tutte quelle domande?</a></li>
+    </ul>
+<h2>Connessioni Gnutella</h2>
+    <ul>
+<li><a href="#gnet0">Qual'è il numero ottimale di connessioni?</a></li>
+        <li><a href="#gnet1">Devo attivare il port forwarding sul mio firewall?</a></li>
+        <li><a href="#gnet-forward-howto">Come configuro il port forwarding?</a></li>
+        <li><a href="#gnet-udp">Gtk-gnutella usa UDP?</a></li>
+        <li><a href="#gnet2">Cosa significa "[FC]"?</a></li>
+        <li><a href="#gnet3">Perché perdo connessioni gnet quando ho un upload?</a></li>
+        <li><a href="#gnet4">Cosa significa tutta questa roba nella colonna Flag?</a></li>
+        <li><a href="#gnet-user-agent">Cosa significa il "!" iniziale nel nome del programma?</a></li>
+        <li><a href="#gnet5">Cosa significa "Questa versione contiene dei bug, appena possibile aggiornarla"?</a></li>
+        <li><a href="#gnet6">Cosa significa "Versione obsoleta, per cortesia aggiornare"?</a></li>
+        <li><a href="#gnet7">Perché il mio proxy HTTP non funziona?</a></li>
+        <li><a href="#gnet8">Come incremento i timeout?</a></li>
+        <li><a href="#gnet-auto">In che modo la modalità automatica decide tra ultra e foglia?</a></li>
+        <li><a href="#gnet-cache">Sono in esecuzione come ultranodo; come mai GTKG ha difficoltà a raggiungere il numero massimo di ultranodi collegati mentre il numero di foglie è costantemente prossimo al 100%?</a></li>
+    </ul>
+<h2>Ricerche</h2>
+    <ul>
+<li><a href="#search0">Come posso ottenere più risultati?</a></li>
+        <li><a href="#search-entry">Dove è finito il campo per le ricerche?</a></li>
+        <li><a href="#search-passive">Cosa sono le ricerche "Passive"?</a></li>
+        <li><a href="#search-local">Come posso copiare il magnet link di un file che sto condividendo?</a></li>
+    </ul>
+<h2>Download</h2>
+    <ul>
+<li><a href="#down0">Cosa significa lo stato "Ignoro richiesta [SHA1|nome &amp; dimensione]"?</a></li>
+        <li><a href="#down1">Cosa significa lo stato "No URN sul server"?</a></li>
+        <li><a href="#down2">Perché lo stesso file viene scaricato X volte?</a></li>
+        <li><a href="#down3">Cosa è lo "swarming"?</a></li>
+        <li><a href="#down4">Cosa è un "pezzo" o "chunk"?</a></li>
+        <li><a href="#down5">Cosa è il "download mesh"?</a></li>
+        <li><a href="#down_push">Cosa è una "richiesta push"?</a></li>
+        <li><a href="#down7">Perché gtk-gnutella aggiunge uno .OK ai nomi dei miei file?</a></li>
+        <li><a href="#down8">C'è un file che non si riesce a scaricare!</a></li>
+        <li><a href="#down9">Nella schermata dei download, cosa significa se il colore è grigio invece che nero?</a></li>
+    </ul>
+<h2>Upload e Condivisioni</h2>
+    <ul>
+<li><a href="#up0">Cosa significa "Normalizzato"?</a></li>
+        <li><a href="#up1">Perchè non tutti i file delle cartelle che ho messo in condivisione vengono condivisi?</a></li>
+    </ul>
+<h2>GTK+ 2.x</h2>
+    <ul>
+<li><a href="#gtk2_ctype">I caratteri non-ASCII compaiono come un _ (trattino basso).</a></li>
+    </ul>
+<!--  **  ** Questions and answers below  **  --><hr>
+<h2>Generale</h2>
+    <h3><a name="general0">Ad ogni modo, cosa è Gnutella?</a></h3>
+    <p>GNutella è una rete di scambio informazioni peer-to-peer decentralizzata. Al momento puoi pubblicare e scaricare file di ogni tipo tramite la rete Gnutella. Per maggiori informazioni date un'occhiata alla <a href="https://it.wikipedia.org/wiki/Gnutella">definizione di Gnutella su Wikipedia</a>.</p>
+        
+    <h3><a name="general-G2">E a proposito di G2?</a></h3>
+    <p><a href="http://www.wikipedia.org/wiki/Gnutella2">G2</a> è un protodollo peer-to-peer ispirato a Gnutella, sviluppato da Michael Stokes e pubblicato nel 2002 nel client <a href="http://shareaza.sourceforge.net/">Shareaza</a> per sistema operativo Windows. Dalla versione 1.1, gtkg può collegarsi a G2 in modalità foglia in modo da cercare e condividere i file anche lì oltre che su Gnutella. Gli equivalenti degli <a href="#general-ultrapeer">ultranodi</a> sono chiamati <em>hub</em> sulla rete G2.</p>
+      
+    <h3><a name="general-gtkg">Cosa è GTKG?</a></h3>
+    <p>Ci riferiamo spesso a gtk-gnutella come GTKG o gtkg (perché è più corto). GTK deriva da GTK+, l'ambiente grafico usato da gtk-gnutella.</p>
+      
+    <h3><a name="general1">Richiede troppa banda!</a></h3>
+    <p>Al momento puoi provare uno o più dei provvedimenti seguenti se ti trovi su una linea lenta:</p>
+    <ul>
+<li>Scegli la modalità foglia. Puoi cambiare la modalità nel pannello di configurazione sotto GnutellaNet. Un'icona nella barra di stato indica la modalità di esecuzione.</li>
+        <li>Limita il numero di connessioni gnet che possiedi.</li>
+        <li>Se sei in grado di ricevere connessioni in ingresso, abilita <em>Preferisci connessioni compresse</em> nelle opzioni <em>Banda</em>.</li>
+        <li>Anche se hai una connessione lenta, è comunque importante condividere files. Con lo <a href="#down3">swarming</a>, le persone ricevere da te piccole porzioni di file in modo che, anche se lente, molteplici fonti possono determinare un contributo sostanziale.
+        Impostare <em>Limiti di banda per il traffico HTTP</em> - <em>Velocità cumulativa in upload</em> fino al 50% della banda disponibile non dovrebbe compromettere la navigazione e l'uso di internet da parte di altri programmi.</li>
+          <li>Se si sta usando un router ADSL, considerate di configurare il  <em>Quality of Service</em> (QoS) per ottimizzare la banda disponibile secondo regole personalizzabili.</li>
+        <li>Deselezionate il tasto in basso a sinistra nella schermata grafica dopo che il download è iniziato. Questo determinerà la disconnessione dalla rete Gnutella. Sconsigliamo decisamente di NON farlo. Non sarete in grado di ottenere fonti alternative dalla rete e gli altri nodi non saranno in grado di cercare tra i vostri file condivisi.</li>
+    </ul>
+<h3><a name="general-ultrapeer">Cosa sono i nodi ultranodo e foglia?</a></h3>
+    <p>Dalla versione 0.92, gtk-gnutella ha implementato gli <em>ultranodi</em>
+      e i <em>nodi foglia</em>. In questo modo i nodi di gnet si dividono in foglie, che si connettono solo agli ultranodi, che si connettono a molte foglie e a un ridotto numero di altri ultranodi (vedi <a href="#gnet0">Quale è il numero ottimale di connessioni?</a>).</p>
+    <p>Gli ultranodi non devono trovarsi dietro un firewall e ci si aspetta che rimangano attivi a lungo (più di due ore) avendo abbastanza banda da donare a gnet. Gli ultranodi inoltrano le query dei loro nodi foglia, mentre i nodi foglia mandano ai propri ultranodi le tabelle QRP che contengono hash di parole chiave corrispondenti ai file condivisi dalla foglia. Quando un ultranodo riceve una richiesta sulla tabella di routing delle ricerche, rimanda la richiesta al nodo foglia corrispondente. La conseguenza di questa organizzazione è che alle foglie arriva poco traffico, liberando spazio per la condivisione e il download (che avviene direttamente tra i due nodi). Gli ultranodi possono anche fungere da <a href="#down_push">push-proxy</a> per le foglie che si trovano dietro un firewall.</p>
+      
+    <h3><a name="general-firewall">Perché gtk-gnutella sostiene di essere dietro firewall quando non è così?</a></h3>
+    <p>gtk-gnutella ha bisogno di ricevere una connessione in ingresso per capire se puoi essere raggiunto dall'esterno. Fino a quel momento, suppone di trovarsi dietro un firewall che blocca la porta TCP di ascolto definita. Se desideri accelerare il rilevamento, usa un browser web, telnet o similari e collegati alla porta in ascolto dall'esterno. Se la connessione è rifiutata o ignorata, molto probabilmente non sei raggiungibile a causa di un firewall che blocca la porta, un NAT mal configurato o simili. Potresti voler provare una porta TCP diversa in quanto alcuni provider bloccano la porta default di Gnutella (6346). Vedi anche: <a href="#gnet1"><q>Devo inoltrare una porta sul mio firewall?</q></a>.</p>
+
+
+    <h2>Compilare il sorgente</h2>
+    
+    <h3><a name="build1">Come posso fare in  modo che Configure smetta di farmi tutte quelle domande?</a></h3>
+    <p>Puoi configurare lo script <code>Configure</code> nel modo seguente in modo da farglin usare le impostazioni di default. Così si comporta come quando in passato si chiamava il vecchio script <code>configure</code> da autoconf.</p>
+    <p><code>$ ./Configure -ders</code></p>
+    <p>Puoi impostare le opzioni di compilazione anche dalla riga di comando. Qui c'è un esempio che configurerà gtk-gnutella in modo da</p>
+    <ul>
+<li>accettare impostazioni personalizzate (<code>-O</code>). Senza questo tutti i parametri sotto non avranno effetto.</li>
+        <li>usa l'interfaccia Gtk1, attiva la shell remota (<code>-D
+          gtkversion=1 -D remotectrl=y</code>)</li>
+        <li>compila per un pentium con supporto MMX (<code>-Dccflags="-march=pentium
+          -mmmx"</code>).</li>
+        <li>compila le informazioni di debug disabilitando tutte le ottimizzazioni del compilatore (<code>-Doptimize="-g -O0"</code>).</li>
+    </ul>
+<p><code>$ ./Configure -ders -O -D gtkversion=1 -D remotectrl=y
+        -Dccflags="-march=pentium -mmmx" -Doptimize="-g -O0"</code></p>
+        
+        
+    <h2>Connessioni Gnutella</h2>
+    
+    <h3><a name="gnet0">Quale è il numero ottimale di connessioni?</a></h3>
+    <p>In modalità <a href="#general-ultrapeer">foglia</a> 4 ultranodi, in modalità <a href="#general-ultrapeer">ultranodo</a> 32/50 (minimo/massimo) ultranodi e almeno 100 nodi foglia.
+Il numero effettivo dovrebbe dipendere dalla banda disponibile.
+Se hai impostato "Preferisci connessioni compresse", la banda utilizzata sarà molto minore. Non dovresti mai usare tutta la banda per le connessioni gnet.
+Specialmente su connessioni asimmetriche tipo ADSL è facile disturbare il traffico in ingresso generando un eccesso di traffico in uscita (problematica TCP/IP).
+Utilizza al massimo metà della banda uscente per i collegamenti gnet.</p>
+    <p>Dall'adozione delle "alte diramazioni" nella versione 0.95 dovreste avere 32/50 connessioni ad altri ultranodi. Il numero di connessioni foglia da usare dipende dalla larghezza di banda disponibile e dalla velocità della cpu. Come minimo assoluto un ultranodo dovrebbe collegarsi a 20 nodi foglia, ma è molto meglio collegarsi a 100 o più. Osserva gli indicatori dell'uso della banda in basso a sinistra e usa il comando top per controllare l'uso della cpu. Aumenta il numero di connessioni foglia finché non raggiungi il massimo della banda e risorse di sistema che intendi dedicare a questo scopo.</p>
+    <p>Il campo di controllo della larghezza di banda ti aiuterà ad affinare ulteriormente l'utilizzo di banda di gtk-gnutella.</p>
+      
+    <h3><a name="gnet1">Devo inoltrare una porta sul mio firewall?</a></h3>
+    <p>Non è necessario effettuare il forwarding delle porte TCP per far funzionare gtk-gnutella, ma tutto funzionerà meglio se lo fate. Se gtk-gnutella rileva di essere dietro firewall, non mostrerà alcun risultato <a href="#down_push">"push"</a> dal momento che non riuscirete a scaricarli comunque.<br>Anche se gli altri non potranno collegarsi direttamente a voi, possono ancora scaricare file dal vostro nodo usando una <a href="#down_push">richiesta push</a>.<br>Potete configurare la porta su cui gtk-gnutella resta in ascolto. L'impostazione <em>Porta in ascolto</em> è localizzata in <em>File-&gt;Preferenze-&gt;Rete</em>.</p>
+        
+    <h3><a name="gnet-forward-howto">Come configuro il port forwarding?</a></h3>
+    <p>Potete trovare istruzioni per i router più popolari su <a href="http://www.portforward.com/routers.htm">http://www.portforward.com/routers.htm</a>.
+Provate <a href="http://www.canyouseeme.org/">http://www.canyouseeme.org/</a>per controllare il port forwarding.</p>
+      
+    <h3><a name="gnet-udp">gtk-gnutella usa l'UDP?</a></h3>
+    <p>Si, a partire dalla versione 0.95 gtk-gnutella può anche usare <a href="http://www.faqs.org/rfcs/rfc768.html">UDP</a> in aggiunta a <a href="http://www.faqs.org/rfcs/rfc793.html">TCP</a>.</p>
+      
+    <h3><a name="gnet2">Cosa significa "[FC]"?</a></h3>
+    <p><em>FC</em> vuol dire "flow control" ovvero controllo di flusso.<br>In generale, dovresti accertarti che i servent a cui sei connesso non effettuino controllo di flusso. Guarda l'indicazione <em>[FC]</em> alla fine della riga <em>Info</em> (potresti dover trascinare il bordo destro oltre la finestra per attivare la barra di scorrimento), oppure controlla lo stato FC nella colonna <a href="#gnet4">Flags</a>. Come regola, se hai più di un nodo che effettua controllo di flusso in un certo momento, non hai abbastanza banda dedicata a gnet, quindi stai danneggiando la rete: diminuisci il numero di connessioni, attiva l'opzione  <em>Preferisci connessioni compresse</em> oppure aumenta il limite per la banda in uscita.</p>
+      
+    <h3><a name="gnet3">Perché perdo connessioni gnet quando ho un upload?</a></h3>
+    <p>Cerca di limitare la banda. Se questo non aiuta, forse il vostro provider modula il traffico gnutella. Provate a cambiare la porta per gnutella nelle impostazioni di rete di gtk-gnutella.</p>
+      
+    <h3><a name="gnet4">Cosa significa tutta questa roba nella colonna Flag?</a></h3>
+    <p>Qui potete vedere il tipo di connessione e alcuni settaggi relativi. Notate che i push-proxy sono implementati solo a partire dalla versione 0.92.1c.</p>
+    <pre>012345678AB (offset)
+  NIrwqxZPFhE
+  ||||||||||+ indica una connessione TLS <strong>E</strong>ncripted (criptata)
+  |||||||||+- flusso di hop triggerato (<strong>h</strong>), o controllo totale del flusso query (<strong>f</strong>)
+  ||||||||+-- controllo flusso (<strong>F</strong>), dati in attesa in coda (<strong>d</strong>)
+  |||||||+--- Noi siamo push-proxy per il nodo (<strong>P</strong>) o il nodo è il nostro push-proxy (<strong>p</strong>)
+  ||||||+---- indica se <strong>R</strong>x, <strong>T</strong>x o entrambi (<strong>Z</strong>) sono compressi
+  |||||+----- noi abbiamo inviato il nostro ultimo-hop QRT a un UP remoto (<strong>X</strong>), o ne stiamo inviando uno  (<strong>x</strong>)
+  ||||+------ noi abbiamo inviato/ricevuto un <strong>Q</strong>RT, o ne stiamo inviando/ricevendo uno (<strong>q</strong>)
+  |||+------- indica se il nodo è <strong>w</strong>ritable (scrivibile)
+  ||+-------- indica se il nodo è <strong>r</strong>eadable (leggibile)
+  |+--------- tipo di connessione: (<strong>I</strong>ncoming (in ingresso), <strong>O</strong>utgoing (in uscita), genera messaggi <strong>P</strong>ong)
+  +---------- modalità peer: G2 <strong>H</strong>ub, <strong>U</strong>ltra, <strong>L</strong>eaf (foglia), or Legacy (cioè <strong>N</strong>ormale)</pre>
+    
+    <h3><a name="gnet-user-agent">Cosa significa il "!" iniziale nel nome del programma?</a></h3>
+    <p>Indica che il nome del programma <em>potrebbe</em> essere fasullo ma
+potrebbe trattarsi di un falso positivo dovuto a un tempo errato in uno dei lati,</p>
+      
+    <h3><a name="gnet5">Cosa significa "Questa versione contiene dei bug, appena possibile aggiornarla"?</a></h3>
+    <p>Talora vengono rilevati ed esclusi servent con un bug o con comportamento tale da danneggiare gnet. Per esempio gtk-gnutella-0.92b aveva un bug che generava un numero eccessivo di query che disturbavano il sistema GWebCache. Questa esclusione è eccezionale, di solito ristretta a versioni specifiche, e l'autore del servent ne viene informato.</p>
+      
+    <h3><a name="gnet6">Cosa significa "Versione obsoleta, per cortesia aggiornare"?</a></h3>
+    <p>E' importante aggiornare le versioni di gtk-gnutella più vecchie di un anno poiché mancano caratteristiche essenziali per la salute e scalabilità della rete Gnutella che è in rapida evoluzione.</p>
+      
+    <h3><a name="gnet7">Perché il mio proxy HTTP non funziona?</a></h3>
+    <p>Il vostro proxy HTTP deve supportare il metodo <code>CONNECT</code> in quanto il normale <code>GET</code> non funziona con le connessioni Gnutella. Questa è un'estensione del protocollo HTTP supportata principalmente da proxy SQUID.
+E' spesso disattivata perché il vostro provider potrebbe considerarla problematica per la sicurezza del proxy. Al momento il supporto proxy - anche per SOCKS - non è molto buono. Gli sviluppatori non usano proxy ma se pensate di poterlo sistemare, accetteremo volentieri le vostre correzioni.</p>
+      
+    <h3><a name="gnet8">Come posso aumentare i timeout?</a></h3>
+    <p>Se la vostra connessione ha problemi di latenza elevata, aumentare i timeout potrebbe essere utile. Andate su <em>File-&gt;Preferenze-&gt;Interfaccia Utente</em> e selezionate <em>Modalità esperto</em>. Così troverete molti più settaggi da cambiare quando andate su <em>File-&gt;Preferenze-&gt;Gnutella</em>.</p>
+      
+    <h3><a name="gnet-auto">In che modo la modalità automatica decide tra ultra e foglia?</a></h3>
+    <p>Al fine di essere promosso <a href="#general-ultrapeer">ultranodo</a> devono essere soddisfatte le seguenti condizioni:</p>
+    <ol>
+<li>Devono esserci più di 8192 byte/s di banda uscente disponibili.</li>
+        <li>Se sono attivi sistemi di gestione automatica della banda, i nodi foglia non devono essere configurati in modo da utilizzare tutta la banda HTTP uscente.</li>
+        <li>Se un gestore automatico della banda è attivo per Gnet, devono essere disponibili almeno 256 byte/s per ogni connessione gnet (ultranodo o normale/legacy).</li>
+        <li>Complessivamente devono essere disponibili 32 byte/s per ogni foglia più 256 byte/s per gnet.</li>
+    </ol>
+<h3><a name="gnet-cache">Sono in esecuzione come ultranodo; come mai GTKG ha difficoltà a raggiungere il numero massimo di ultranodi collegati mentre il numero di foglie è costantemente prossimo al 100%?</a></h3>
+    <p>Possono esserci teoricamente due motivi all'origine di questo fenomeno: 1) una carenza globale di ultranodi sulla rete Gnutella, 2) problemi di collegamento in uscita. Quest'ultima è senz'altro la spiegazione più verosimile. Quando sono in esecuzione come ultranodi, molte foglie cercano continuamente di collegarsi a voi. Analogamente, un numero relativamente inferiore di ultranodi cerca di fare lo stesso. Il vostro nodo cerca a sua volta di collegarsi attivamente ad altri ultranodi, ma non a foglie. Se la vostra connessione in uscita è problematica (banda uscente saturata, limitazioni da parte del provider, ecc) avrete difficoltà a collegarvi ad alcuni ultranodi, il cui indirizzo IP viene quindi rimosso dalla vostra cache. Probabilmente avrete anche notato che nella pagina della cache il livello degli host regolari aumenta gradualmente fino a raggiungere il massimo, mentre la cache degli ultranodi è molto più limitata e il numero di nodi diminuisce invece che aumentare. In effetti non c'è molto da fare. Provate a ridurre il numero di connessioni simultanee e/o il numero di collegamenti verso ultranodi e foglie; in alternativa scegliete la modalità in esecuzione come foglia.</p>
+    
+    
+<h2>Ricerche</h2>
+
+    <h3><a name="search0">Come posso ottenere più risultati?</a></h3>
+    <p>Il numero di risultati ottenuti dipende grandemente dal fatto che altri vogliano collegarsi con voi (vedere <a href="#gnet1">port forwarding</a>) e il <a href="#gnet0">numero di connessioni</a> a altri nodi.</p>
+      
+    <h3><a name="search-entry">Dove è finito il campo per le ricerche?</a></h3>
+    <p>Le ricerche vanno inserite nella casella <q><em>Cerca:</em></q> della barra laterale.</p>
+      
+    <h3><a name="search-passive">Cosa sono le ricerche "passive"?</a></h3>
+    <p>Una ricerca <q><em>passiva</em></q> fornisce tutti i risultati delle ricerche che transitano in gtk-gnutella. Questi risultati possono essere utili se filtrati.</p>
+      
+    <p>Se ci si trova in modalità <a href="#general-ultrapeer">ultra</a>, molti risultati di ricerca stanno già transitando attraverso il proprio nodo a fianco dei risultati delle proprie ricerche. Potete trarre vantaggio da ciò eseguendo ricerche senza generare traffico Gnutella aggiuntivo. Per esempio, sul mio ultranodo con 200 <a href="#general-ultrapeer">nodi foglia</a>, ho aperto una ricerca passiva e filtrato i risultati per mostrare solo quelli contenenti il termine <q><em>linux</em></q>. Nel giro di un'ora ho ottenuto 1500 risultati. Naturalmente, più popolare è un termine di ricerca e più pazienti si è, tanto più questa tecnica è utile.</p>
+    <p>If you are in leaf mode, then the only search results that will pass
+      through gtk-gnutella will be those from your own searches, so the above
+      technique won't be useful. But there is another way to use passive
+      searches that is only useful in leaf mode. For example, if you start a
+      passive search and filter it to display only mp3 files, then all mp3 files
+      from all your open searches will be conveniently aggregated in one search
+      window. By opening more passive searches with different filters, you can
+      display different file types in each.</p>
+      
+    <h3><a name="search-local">Come posso copiare il magnet link di un file che sto condividendo?</a></h3>
+    <p>Fate una ricerca con la parola chiave <code>local:,</code>. Il "." è un'espressione regolare, che qui corrisponde a qualsiasi file: questo fornirà una lista completa dei propri file condivisi. Selezionate quindi una voce, fate clic con il tasto destro e copiate il magnet link negli appunti.</p>
+      
+    <h3>Download</h3>
+    <h3><a name="down0">Cosa significa lo stato "Ignoro richiesta [SHA1|nome &amp; dimensione]"?</a></h3>
+    <p>Questo significa che gtk-gnutella ha quel file memorizzato come completo nel proprio database. Questo database è di solito localizzato in <code>~/.gtk-gnutella/done.sha1</code> e <code>~/.gtk-gnutella/done.namesize</code>. Al momento non c'è modo di rimuovere o modificare una voce del database dall'interfaccia grafica, ma potete editare il file con qualsiasi editor di testo mentre gtk-gnutella non è in esecuzione. Se aggiungete o rimuovete qualcosa da un file, fate lo stesso con gli altri.</p>
+      
+    <h3><a name="down1">Cosa significa lo stato "No URN sul server"?</a></h3>
+    <p>Questo significa che gtk-gnutella vuole scaricare un nuovo file da un nodo, ma quel nodo non fornisce un hash SHA1 per quel file. Dal momento che il file è nuovo (non ancora parzialmente scaricato), gtk-gnutella non può controllare che il file sul nodo sia proprio quello che desiderate. In tal caso utilizza lo SHA1 fornito dal nodo remoto, ma se nessun SHA1 viene fornito, gtk-gnutella non ha modo di accertarsi che il file da scaricare e quello sul server remoto siano davvero gli stessi.<br>Se questi messaggi vi stufano, potete attivare l'opzione <em>Calcolo ottimistico del primo pezzo</em> nel <em>File-&gt;Preferenze-&gt;Download</em> (dovrete prima andare in <em>Impostazioni-&gt;Preferenze-&gt;Interfaccia utente</em> e selezionare <em>Modalità esperto</em>).</p>
+        
+    <h3><a name="down2">Perché lo stesso file viene scaricato X volte?</a></h3>
+    <p>Controlla la colonna <em>Range</em>. Questo è chiamato <a href="#down3">swarming</a>.
+      gtk-gnutella cerca di ottenere il file a <a href="#down4">pezzi</a> e lo recupera da molteplici nodi in parallelo, se possibile.</p>
+      
+    <h3><a name="down3">Cosa è lo "swarming"?</a></h3>
+    <p>Lo "swarming" descrive la capacità di scaricare un singolo file da molteplici host in parallelo. gtk-gnutella cercherà automaticamente surgenti aggiuntive per ogni file in coda utilizzando il  <a href="#down5">download mesh</a> e monitorando i risultati ottenuti.</p>
+      
+    <h3><a name="down4">Cosa è un "pezzo" o "chunk"?</a></h3>
+    <p>Un <em>chunk o pezzo</em> è un modo per definire <em>parte di un file</em>. Quando
+      gtk-gnutella funziona in <a href="#down3">modalità swarming</a> riceverà molteplici pezzi di un file in download finché l'intero file è stato completato. La colonna <em>Range</em> mostra qualche pezzo stai scaricando.</p>
+      
+    <h3><a name="down5">Cosa è il "download mesh"?</a></h3>
+    <p>Quando scarichi un file da uno host che supporta il download mesh, questo ti comunicherà sorgenti aggiuntive fer il file ricercato (sempre che ne conosca). Queste saranno quindi utilizzate per lo <a href="#down3">swarming</a>.</p>
+      
+    <h3><a name="down_push">Cosa è una "richiesta push"?</a></h3>
+    <p>La <em>richiesta di push</em> è una funzione per scaricare file da nodi a cui non è possibile collegarsi direttamente (in quanto si è dietro firewall). Bene, non potete collegarvi a questi nodi, ma questi potrebbero essere in grado di collegarsi a voi. Per chiedere a un nodo remoto di connettersi a voi in modo che possiate scaricare un file da esso, inviate una richiesta di push.<br>Se scaricate un file usando una push request e perdete il contatto con l'host che originariamente vi aveva fornito i risultati per quel file, allora il <em>push route</em> è perduto e non potete più scaricare questo file. I push route sono piuttosto fragili. Non potere usare richieste push quando siete dietro a un firewall (vedere <a href="#gnet1">port forwarding</a>).</p>
+      
+    <h3><a name="down7">Perché gtk-gnutella aggiunge uno .OK ai nomi dei miei file?</a></h3>
+    <p>Probabilmente non avete impostato cartelle diverse per i file scaricati, temporanei o cattivi.</p>
+      
+    <h3><a name="down8">C'è un file che non si riesce a scaricare!</a></h3>
+    <p>Se non vedete nella barra di stato un'icona gialla sorridente con gli occhiali da sole, dovreste cercare di cambiarlo. Date un'occhiata alla sezione sui <a href="#gnet1">firewall</a>.</p>
+    <p>Altrimenti, se gtk-gnutella dice di avere poche sorgenti per il file (visto meglio nella sezione fileinfo della schermata dei download), questo può essere dovuto a due ragioni:</p>
+    <ul>
+<li>questo file è raro</li>
+        <li>Avete scelto una versione del file che è unica. Ci sono possibilità che esista una versione più diffusa. Un file può diventare unico per esempio quando qualcuno modifica le informazioni id tag di un file mp3 oppure ne produce un versione personalizzata.</li>
+    </ul>
+<p>Potete provare a cercare nuovamente il file e vedere se trovate un'altra versione più diffusa. Di solito è positivo se il "#" mostra un numero per quel file. Maggiore il numero, più alte sono le possibilità di ottenere il file rapidamente.</p>
+      
+    <h3><a name="down9">Nella schermata dei download, cosa significa se il colore è grigio invece che nero?</a></h3>
+    <p>Significa che il file viene ricevuto attraverso un <a href="#down_push">percorso push</a>.</p>
+        
+        
+    <h2>Upload e Condivisioni</h2>
+    
+    <h3><a name="up0">Cosa significa "Normalizzato"?</a></h3>
+    <p>Mostra il numero totale di byte inviati fratto la dimensione del file.</p>
+      
+    <h3><a name="up1">Perchè non tutti i file delle cartelle che ho messo in condivisione vengono condivisi?</a></h3>
+    <p>Di default Gtk-Gnutella condivide solo file le cui estensioni sono incluse in <em>Estensioni ricerche</em>
+sotto la lista delle cartelle condivise nelle Preferenze. Se alcuni fine non vengono condivisi, probabilmente la loro estensione non è inclusa nella lista. Ci sono 2 modi per risolvere il problema:</p>
+    <ol>
+<li>includere le estensioni dei file non condivisi nella lista <em>Estensioni ricerche</em>;</li>
+        <li>sostituire l'intera lista di estensioni con la parola chiave "--all--".</li>
+    </ol>
+<p>Notate che è possibile controllare quali file sono effettivamente in condivisione effettuando una ricerca con la sola parola chiave "local:".</p>
+      
+      
+    <h2>GTK+ 2.x</h2>
+    <h3><a name="gtk2_ctype">I caratteri non-ASCII compaiono come un _ (trattino basso).</a></h3>
+    <p>Impostate la variabile di ambiente <code>LC_CTYPE</code> o <code>LC_ALL</code> al valore corretto in base alla codifica che utilizzate. Per esempio, se usate caratteri accentati nei nomi dei file, impostatele su <code>it_IT.ISO8859-1</code>. I valori validi dipendono dal vostro sistema operativo, controllate la pagina del manuale setlocale(3) per dettagli. Idealmente tutti dovrebbero utilizzare la codifica UTF-8 che compre quasi tutte le lingue.</p>
+    <!-- end faq -->
+    <!-- vi: set et ts=2 sw=2: -->
+  </body>
+</html>

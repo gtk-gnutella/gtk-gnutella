@@ -47,6 +47,8 @@
 #include <zlib.h>
 
 #include "qrp.h"
+
+#include "alias.h"
 #include "gmsg.h"
 #include "gnet_stats.h"
 #include "nodes.h"					/* For NODE_IS_WRITABLE() */
@@ -64,6 +66,7 @@
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/mutex.h"
 #include "lib/pow2.h"
@@ -822,13 +825,18 @@ qrt_diff_1(struct routing_table *old, struct routing_table *new, bool reverse)
 				*pp++ = v;
 			} else {
 				*pp++ = reverse_byte(v);
+				changed = TRUE;
 			}
 		}
 	} else {
 		for (i = 0, bytes = new->slots / 8; i < bytes; i++) {
 			uint8 obyte = op ? *op++ : 0x0;	/* Nothing */
+			uint8 v = obyte ^ *np++;
 
-			*pp++ = obyte ^ *np++;
+			*pp++ = v;
+
+			if G_UNLIKELY(v != 0)
+				changed = TRUE;
 		}
 	}
 
@@ -924,8 +932,9 @@ qrt_step_compress(struct bgtask *h, void *u, int ticks)
 		 */
 
 		if (qrp_debugging(1)) {
-			g_debug("QRP %d-bit patch %p: len=%d, compressed=%d (ratio %.2f%%)",
-				ctx->rp->entry_bits, ctx->rp, ctx->rp->len,
+			g_debug(
+				"QRP %s %p: len=%d, compressed=%d (ratio %.2f%%)",
+				qrp_patch_to_string(ctx->rp), ctx->rp, ctx->rp->len,
 				zlib_deflater_outlen(ctx->zd),
 				100.0 * (ctx->rp->len - zlib_deflater_outlen(ctx->zd)) /
 					ctx->rp->len);
@@ -1666,13 +1675,10 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 	word_vec_t *wovec;
 	uint wocnt;
 	uint i;
+	char **aliases, **a;
 
 	g_assert(sf != NULL);
 	g_assert(words != NULL);
-
-	/*
-	 * Copy filename to buffer, since we're going to map it inplace.
-	 */
 
 	g_assert(utf8_is_valid_data(shared_file_name_nfc(sf),
 				shared_file_name_nfc_len(sf)));
@@ -1680,7 +1686,8 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 				shared_file_name_canonic_len(sf)));
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP adding file \"%s\"", shared_file_name_canonic(sf));
+		g_debug("QRP adding file \"%s\"%s", shared_file_name_canonic(sf),
+			shared_file_needs_aliasing(sf) ?  " (with aliases)" : "");
 	}
 
 	/*
@@ -1699,10 +1706,8 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 
 	for (i = 0; i < wocnt; i++) {
 		const char *word = wovec[i].word;
-		size_t word_len;
 
 		g_assert(word[0] != '\0');
-		word_len = strlen(word);
 
 		/*
 		 * Record word if we haven't seen it yet.
@@ -1711,11 +1716,10 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			void *p;
+			size_t word_len = strlen(word);
 			size_t n = 1 + word_len;
 
-			p = wcopy(word, n);
-			htable_insert(words, p, size_to_pointer(n));
+			htable_insert(words, wcopy(word, n), size_to_pointer(n));
 		}
 
 		if (qrp_debugging(8)) {
@@ -1725,6 +1729,37 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 	}
 
 	word_vec_free(wovec, wocnt);
+
+	/*
+	 * Handle aliases if needed.
+	 */
+
+	if (!shared_file_needs_aliasing(sf))
+		return;		/* Done, no aliases */
+
+	aliases = alias_expand(shared_file_name_canonic(sf), " ");
+
+	g_assert(NULL != aliases);		/* Normalized form is different */
+
+	for (a = aliases; *a != NULL; a++) {
+		const char *word = *a;
+
+		if (htable_contains(words, word)) {
+			continue;
+		} else {
+			size_t word_len = strlen(word);
+			size_t n = 1 + word_len;
+
+			htable_insert(words, wcopy(word, n), size_to_pointer(n));
+		}
+
+		if (qrp_debugging(8)) {
+			g_debug("new QRP word \"%s\" [alias from %s]",
+				word, shared_file_name_nfc(sf));
+		}
+	}
+
+	h_strfreev(aliases);
 }
 
 /*
@@ -3211,6 +3246,12 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 	qup->compress = NULL;
 	qup->ready = TRUE;
 
+	if (qrp_debugging(2)) {
+		g_debug("%s(): QRP patch %p compression done for %s, status=%s",
+			G_STRFUNC, qup->patch, node_infostr(qup->node),
+			bgstatus_to_string(status));
+	}
+
 	if G_UNLIKELY(BGS_KILLED == status || BGS_CANCELLED == status)
 		goto error;
 	else if G_UNLIKELY(status == BGS_ERROR) {	/* Error during processing */
@@ -3223,25 +3264,22 @@ qrt_compressed(struct bgtask *unused_h, void *unused_u,
 		goto error;
 
 	/*
-	 * In this routine, we reference the `routing_patch4' global variable
-	 * directly, because there can be only one default routing patch,
-	 * whether we are an UP or a leaf, and it is the default patch that
-	 * can be sent against a NULL table to bring them up-to-date wrt
-	 * the `routing_table' table, our QRT (computed against local files
-	 * only when we're a leaf, or the result of the merging of our local
-	 * table for the local files and all the QRT of our leaves when we're
-	 * running as an UP).
+	 * The default routing patch is what can be sent against a NULL table
+	 * to bring the remote node up-to-date wrt our `routine_table' table.
+	 * It is computed against local files only when we're a leaf, or the
+	 * result of the merging of our local table for the local files and all
+	 * the QRT of our leaves when we're running as an UP.
 	 */
+
+	rp = qrt_default_patch(qup->node);
+
+	g_assert(rp != NULL || qup->patch != NULL);
 
 	/*
 	 * If the computed patch for this connection is larger than the
 	 * size of the default patch (against an empty table), send that
 	 * one instead.  We'll need an extra RESET though.
 	 */
-
-	rp = qrt_default_patch(qup->node);
-
-	g_assert(rp != NULL || qup->patch != NULL);
 
 	if G_UNLIKELY(rp != NULL && qup->patch->len > rp->len) {
 		if (qrp_debugging(0)) {
@@ -3492,11 +3530,19 @@ qrt_update_create(gnutella_node_t *n, struct routing_table *query_table)
 		}
 
 		if (qup->patch != NULL) {
+			if (qrp_debugging(1)) {
+				g_debug("QRP compressing %s %p for %s",
+					qrp_patch_to_string(qup->patch), qup->patch,
+					node_infostr(n));
+			}
 			qup->compress =
 				qrt_patch_compress(qup->patch, NULL, qrt_compressed, qup, NULL);
 			if (qup->compress != NULL)
 				bg_task_run(qup->compress);
 		} else {
+			if (qrp_debugging(1)) {
+				g_debug("QRP no patch necessary for %s", node_infostr(n));
+			}
 			qup->empty_patch = TRUE;
 			qup->ready = TRUE;
 		}

@@ -35,3 +35,5 @@ void upload_stats_gui_clear_model();
 void upload_stats_gui_update_model(struct ul_stats *us);
 
 #endif /* _gtk_uploads_stats_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

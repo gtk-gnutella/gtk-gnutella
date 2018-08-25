@@ -80,6 +80,7 @@ struct upload {
 	struct sendfile_ctx sendfile_ctx;
 
 	char *request;
+	http_buffer_t *reply;			/**< HTTP reply, when partially sent */
 	struct upload_http_cb cb_parq_arg;
 	struct upload_http_cb cb_sha1_arg;
 	struct upload_http_cb cb_416_arg;
@@ -87,6 +88,7 @@ struct upload {
 	struct upload_http_cb cb_length_arg;
 	http_extra_desc_t hev[16];
 	uint hevcnt;
+	uint special_flags;				/**< Flags used for special uploads */
 
 	char *buffer;
 	int bpos;
@@ -96,6 +98,7 @@ struct upload {
 	uint file_index;
 	uint reqnum;				/**< Request number, incremented when serving */
 	uint error_count;			/**< Amount of errors on connection */
+	char *sending_error;		/**< Sending HTTP error status back */
 
 	time_t start_date;
 	time_t last_update;
@@ -163,6 +166,7 @@ upload_is_special(const struct upload *u)
  */
 
 enum {
+	UPLOAD_F_G2	            = 1 << 6,	/**< Initiated from G2 servent */
 	UPLOAD_F_NORMAL_LIMIT	= 1 << 5,	/**< Normal limits */
 	UPLOAD_F_STEALTH_LIMIT	= 1 << 4,	/**< Stealth limits */
 	UPLOAD_F_LIMITED		= 1 << 3,	/**< Subject to limitation */
@@ -194,6 +198,8 @@ void upload_send_giv(const host_addr_t addr, uint16 port, uint8 hops,
 struct upload *upload_create(struct gnutella_socket *, bool push);
 void upload_fire_upload_info_changed(struct upload *);
 void expect_http_header(struct upload *, upload_stage_t new_status);
+
+uint upload_max_by_addr(host_addr_t addr);
 
 struct pslist *upload_get_info_list(void);
 void upload_free_info_list(struct pslist **sl_ptr);

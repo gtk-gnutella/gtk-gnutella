@@ -67,6 +67,7 @@
 #include "lib/ascii.h"
 #include "lib/halloc.h"
 #include "lib/host_addr.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"			/* For dump_hex() */
 #include "lib/pmsg.h"
 #include "lib/str.h"
@@ -321,7 +322,7 @@ g2_node_handle_ping(gnutella_node_t *n, const g2_tree_t *t)
 			gnet_stats_count_dropped(n, MSG_DROP_THROTTLE);
 			return;
 		}
-		aging_insert(g2_udp_pings, WCOPY(&n->addr), uint_to_pointer(1));
+		aging_record(g2_udp_pings, WCOPY(&n->addr));
 
 		/* FALL THROUGH */
 	}
@@ -876,6 +877,7 @@ g2_node_handle_q2(gnutella_node_t *n, const g2_tree_t *t)
 	 */
 
 	ZERO(&sri);
+	sri.magic = SEARCH_REQUEST_INFO_MAGIC;
 
 	/*
 	 * Handle the children of /Q2.

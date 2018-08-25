@@ -58,7 +58,7 @@ InstallMultiple($(DESKTOP_FILES), $(INSTALLPREFIX)/share/applications)
 InstallMultiple($(APPDATA_FILES), $(INSTALLPREFIX)/share/appdata)
 InstallMultiple($(PIXMAP_FILES), $(INSTALLPREFIX)/share/pixmaps)
 
-SetSubdirs(el en fr ja tr)
+SetSubdirs(el en it fr ja tr)
 
 ;#
 ;# Update the bogons and GeoIp databases

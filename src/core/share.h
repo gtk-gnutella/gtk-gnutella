@@ -125,6 +125,7 @@ bool sha1_hash_is_uptodate(shared_file_t *sf);
 bool shared_file_is_partial(const shared_file_t *sf) G_PURE;
 bool shared_file_is_finished(const shared_file_t *sf) G_PURE;
 bool shared_file_is_shareable(const shared_file_t *sf) G_PURE;
+bool shared_file_is_servable(const shared_file_t *sf) G_PURE;
 filesize_t shared_file_size(const shared_file_t *sf) G_PURE;
 uint32 shared_file_index(const shared_file_t *sf) G_PURE;
 time_t shared_file_modification_time(const shared_file_t *sf) G_PURE;
@@ -135,13 +136,17 @@ const struct sha1 *shared_file_sha1(const shared_file_t *sf) G_PURE;
 const struct tth *shared_file_tth(const shared_file_t *sf) G_PURE;
 const char *shared_file_name_nfc(const shared_file_t *sf) G_PURE;
 const char *shared_file_name_canonic(const shared_file_t *sf) G_PURE;
+const char *shared_file_name_normalized(const shared_file_t *sf) G_PURE;
+bool shared_file_needs_aliasing(const shared_file_t *sf) G_PURE;
 const char *shared_file_relative_path(const shared_file_t *sf) G_PURE;
 size_t shared_file_name_nfc_len(const shared_file_t *sf) G_PURE;
 size_t shared_file_name_canonic_len(const shared_file_t *sf) G_PURE;
+size_t shared_file_name_normalized_len(const shared_file_t *sf) G_PURE;
 uint32 shared_file_flags(const shared_file_t *sf) G_PURE;
 fileinfo_t *shared_file_fileinfo(const shared_file_t *sf) G_PURE;
 const char *shared_file_mime_type(const shared_file_t *sf) G_PURE;
 bool shared_file_indexed(const shared_file_t *sf) G_PURE;
+bool shared_file_tth_is_available(const shared_file_t *sf);
 void shared_file_from_fileinfo(fileinfo_t *fi);
 bool shared_file_has_media_type(const shared_file_t *sf, unsigned m)
 	G_PURE;
@@ -154,7 +159,10 @@ void share_add_partial(const shared_file_t *sf);
 void share_remove_partial(const shared_file_t *sf);
 void share_update_matching_information(void);
 
+struct search_request_info;
+
 void shared_files_match(const char *query,
+		const struct search_request_info *sri,
 		st_search_callback callback, void *user_data,
 		int max_res, uint32 partials, struct query_hashvec *qhv);
 

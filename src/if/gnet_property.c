@@ -325,18 +325,18 @@ guint32  gnet_property_variable_max_high_ttl_msg     = 10;
 static const guint32  gnet_property_variable_max_high_ttl_msg_default = 10;
 guint32  gnet_property_variable_max_high_ttl_radius     = 2;
 static const guint32  gnet_property_variable_max_high_ttl_radius_default = 2;
-guint32  gnet_property_variable_bw_http_in     = 8192;
-static const guint32  gnet_property_variable_bw_http_in_default = 8192;
-guint32  gnet_property_variable_bw_http_out     = 8192;
-static const guint32  gnet_property_variable_bw_http_out_default = 8192;
-guint32  gnet_property_variable_bw_gnet_in     = 8192;
-static const guint32  gnet_property_variable_bw_gnet_in_default = 8192;
-guint32  gnet_property_variable_bw_gnet_out     = 8192;
-static const guint32  gnet_property_variable_bw_gnet_out_default = 8192;
-guint32  gnet_property_variable_bw_gnet_lin     = 3072;
-static const guint32  gnet_property_variable_bw_gnet_lin_default = 3072;
-guint32  gnet_property_variable_bw_gnet_lout     = 2048;
-static const guint32  gnet_property_variable_bw_gnet_lout_default = 2048;
+guint64  gnet_property_variable_bw_http_in     = 8192;
+static const guint64  gnet_property_variable_bw_http_in_default = 8192;
+guint64  gnet_property_variable_bw_http_out     = 8192;
+static const guint64  gnet_property_variable_bw_http_out_default = 8192;
+guint64  gnet_property_variable_bw_gnet_in     = 8192;
+static const guint64  gnet_property_variable_bw_gnet_in_default = 8192;
+guint64  gnet_property_variable_bw_gnet_out     = 8192;
+static const guint64  gnet_property_variable_bw_gnet_out_default = 8192;
+guint64  gnet_property_variable_bw_gnet_lin     = 3072;
+static const guint64  gnet_property_variable_bw_gnet_lin_default = 3072;
+guint64  gnet_property_variable_bw_gnet_lout     = 2048;
+static const guint64  gnet_property_variable_bw_gnet_lout_default = 2048;
 guint32  gnet_property_variable_search_queries_forward_size     = 256;
 static const guint32  gnet_property_variable_search_queries_forward_size_default = 256;
 guint32  gnet_property_variable_search_queries_kick_size     = 1024;
@@ -357,8 +357,8 @@ guint32  gnet_property_variable_min_dup_msg     = 5;
 static const guint32  gnet_property_variable_min_dup_msg_default = 5;
 guint32  gnet_property_variable_min_dup_ratio     = 150;
 static const guint32  gnet_property_variable_min_dup_ratio_default = 150;
-char   *gnet_property_variable_scan_extensions     = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;opus;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
-static const char   *gnet_property_variable_scan_extensions_default = "aac;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;opus;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
+char   *gnet_property_variable_scan_extensions     = "aac;ape;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;opus;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
+static const char   *gnet_property_variable_scan_extensions_default = "aac;ape;avi;bin;bz2;7z;cue;dmg;deb;divx;flac;flc;fli;gif;gz;ifo;iso;it;jpeg;jpg;m4a;mjpg;mka;mkv;mod;mov;mp1;mp2;mp3;mp4;mpa;mpeg;mpega;mpg;mpv;nes;oga;ogg;ogm;ogv;opus;qt;pdf;png;ps;ram;rar;rm;rom;rpm;s3m;shn;sid;smc;smd;spx;srt;stm;tar;tbz2;tgz;bittorrent;torrent;txt;vob;voc;vqf;wav;webm;xm;xvid;zip;zoo";
 gboolean gnet_property_variable_scan_ignore_symlink_dirs     = FALSE;
 static const gboolean gnet_property_variable_scan_ignore_symlink_dirs_default = FALSE;
 gboolean gnet_property_variable_scan_ignore_symlink_regfiles     = FALSE;
@@ -724,10 +724,10 @@ guint32  gnet_property_variable_dht_storage_debug     = 0;
 static const guint32  gnet_property_variable_dht_storage_debug_default = 0;
 guint32  gnet_property_variable_dht_publish_debug     = 0;
 static const guint32  gnet_property_variable_dht_publish_debug_default = 0;
-guint32  gnet_property_variable_bw_dht_lookup_out     = 2048;
-static const guint32  gnet_property_variable_bw_dht_lookup_out_default = 2048;
-guint32  gnet_property_variable_bw_dht_lookup_in     = 8192;
-static const guint32  gnet_property_variable_bw_dht_lookup_in_default = 8192;
+guint64  gnet_property_variable_bw_dht_lookup_out     = 2048;
+static const guint64  gnet_property_variable_bw_dht_lookup_out_default = 2048;
+guint64  gnet_property_variable_bw_dht_lookup_in     = 8192;
+static const guint64  gnet_property_variable_bw_dht_lookup_in_default = 8192;
 gboolean gnet_property_variable_sticky_guid     = TRUE;
 static const gboolean gnet_property_variable_sticky_guid_default = TRUE;
 gboolean gnet_property_variable_sticky_kuid     = TRUE;
@@ -848,8 +848,8 @@ prop_def_choice_t gnet_property_variable_dht_trace_choices[] = {
 };
 gboolean gnet_property_variable_bws_dht_out_enabled     = FALSE;
 static const gboolean gnet_property_variable_bws_dht_out_enabled_default = FALSE;
-guint32  gnet_property_variable_bw_dht_out     = 12288;
-static const guint32  gnet_property_variable_bw_dht_out_default = 12288;
+guint64  gnet_property_variable_bw_dht_out     = 12288;
+static const guint64  gnet_property_variable_bw_dht_out_default = 12288;
 guint32  gnet_property_variable_node_dht_sendqueue_size     = 131072;
 static const guint32  gnet_property_variable_node_dht_sendqueue_size_default = 131072;
 guint32  gnet_property_variable_bsched_debug     = 0;
@@ -980,8 +980,8 @@ gboolean gnet_property_variable_pfsp_rare_server     = TRUE;
 static const gboolean gnet_property_variable_pfsp_rare_server_default = TRUE;
 gboolean gnet_property_variable_enable_guess_client     = TRUE;
 static const gboolean gnet_property_variable_enable_guess_client_default = TRUE;
-guint32  gnet_property_variable_bw_guess_out     = 1536;
-static const guint32  gnet_property_variable_bw_guess_out_default = 1536;
+guint64  gnet_property_variable_bw_guess_out     = 1536;
+static const guint64  gnet_property_variable_bw_guess_out_default = 1536;
 guint32  gnet_property_variable_matching_debug     = 0;
 static const guint32  gnet_property_variable_matching_debug_default = 0;
 guint32  gnet_property_variable_tsync_debug     = 0;
@@ -1122,6 +1122,14 @@ time_t  gnet_property_variable_session_start_stamp     = 0;
 static const time_t  gnet_property_variable_session_start_stamp_default = 0;
 gboolean gnet_property_variable_tcp_no_listening     = FALSE;
 static const gboolean gnet_property_variable_tcp_no_listening_default = FALSE;
+gboolean gnet_property_variable_query_trace     = FALSE;
+static const gboolean gnet_property_variable_query_trace_default = FALSE;
+gboolean gnet_property_variable_inputevt_trace     = FALSE;
+static const gboolean gnet_property_variable_inputevt_trace_default = FALSE;
+gboolean gnet_property_variable_lock_contention_trace     = FALSE;
+static const gboolean gnet_property_variable_lock_contention_trace_default = FALSE;
+gboolean gnet_property_variable_lock_sleep_trace     = FALSE;
+static const gboolean gnet_property_variable_lock_sleep_trace_default = FALSE;
 
 static prop_set_t *gnet_property;
 
@@ -3884,12 +3892,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[129].lock);
 
     /* Type specific data: */
-    gnet_property->props[129].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[129].data.guint32.def   = (void *) &gnet_property_variable_bw_http_in_default;
-    gnet_property->props[129].data.guint32.value = (void *) &gnet_property_variable_bw_http_in;
-    gnet_property->props[129].data.guint32.choices = NULL;
-    gnet_property->props[129].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[129].data.guint32.min   = 1024;
+    gnet_property->props[129].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[129].data.guint64.def   = (void *) &gnet_property_variable_bw_http_in_default;
+    gnet_property->props[129].data.guint64.value = (void *) &gnet_property_variable_bw_http_in;
+    gnet_property->props[129].data.guint64.choices = NULL;
+    gnet_property->props[129].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[129].data.guint64.min   = 1024;
 
 
     /*
@@ -3906,12 +3914,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[130].lock);
 
     /* Type specific data: */
-    gnet_property->props[130].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[130].data.guint32.def   = (void *) &gnet_property_variable_bw_http_out_default;
-    gnet_property->props[130].data.guint32.value = (void *) &gnet_property_variable_bw_http_out;
-    gnet_property->props[130].data.guint32.choices = NULL;
-    gnet_property->props[130].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[130].data.guint32.min   = 1024;
+    gnet_property->props[130].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[130].data.guint64.def   = (void *) &gnet_property_variable_bw_http_out_default;
+    gnet_property->props[130].data.guint64.value = (void *) &gnet_property_variable_bw_http_out;
+    gnet_property->props[130].data.guint64.choices = NULL;
+    gnet_property->props[130].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[130].data.guint64.min   = 1024;
 
 
     /*
@@ -3928,12 +3936,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[131].lock);
 
     /* Type specific data: */
-    gnet_property->props[131].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[131].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_in_default;
-    gnet_property->props[131].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_in;
-    gnet_property->props[131].data.guint32.choices = NULL;
-    gnet_property->props[131].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[131].data.guint32.min   = 1024;
+    gnet_property->props[131].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[131].data.guint64.def   = (void *) &gnet_property_variable_bw_gnet_in_default;
+    gnet_property->props[131].data.guint64.value = (void *) &gnet_property_variable_bw_gnet_in;
+    gnet_property->props[131].data.guint64.choices = NULL;
+    gnet_property->props[131].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[131].data.guint64.min   = 1024;
 
 
     /*
@@ -3950,12 +3958,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[132].lock);
 
     /* Type specific data: */
-    gnet_property->props[132].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[132].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_out_default;
-    gnet_property->props[132].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_out;
-    gnet_property->props[132].data.guint32.choices = NULL;
-    gnet_property->props[132].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[132].data.guint32.min   = 1024;
+    gnet_property->props[132].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[132].data.guint64.def   = (void *) &gnet_property_variable_bw_gnet_out_default;
+    gnet_property->props[132].data.guint64.value = (void *) &gnet_property_variable_bw_gnet_out;
+    gnet_property->props[132].data.guint64.choices = NULL;
+    gnet_property->props[132].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[132].data.guint64.min   = 1024;
 
 
     /*
@@ -3972,12 +3980,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[133].lock);
 
     /* Type specific data: */
-    gnet_property->props[133].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[133].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_lin_default;
-    gnet_property->props[133].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_lin;
-    gnet_property->props[133].data.guint32.choices = NULL;
-    gnet_property->props[133].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[133].data.guint32.min   = 1024;
+    gnet_property->props[133].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[133].data.guint64.def   = (void *) &gnet_property_variable_bw_gnet_lin_default;
+    gnet_property->props[133].data.guint64.value = (void *) &gnet_property_variable_bw_gnet_lin;
+    gnet_property->props[133].data.guint64.choices = NULL;
+    gnet_property->props[133].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[133].data.guint64.min   = 1024;
 
 
     /*
@@ -3994,12 +4002,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[134].lock);
 
     /* Type specific data: */
-    gnet_property->props[134].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[134].data.guint32.def   = (void *) &gnet_property_variable_bw_gnet_lout_default;
-    gnet_property->props[134].data.guint32.value = (void *) &gnet_property_variable_bw_gnet_lout;
-    gnet_property->props[134].data.guint32.choices = NULL;
-    gnet_property->props[134].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[134].data.guint32.min   = 1024;
+    gnet_property->props[134].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[134].data.guint64.def   = (void *) &gnet_property_variable_bw_gnet_lout_default;
+    gnet_property->props[134].data.guint64.value = (void *) &gnet_property_variable_bw_gnet_lout;
+    gnet_property->props[134].data.guint64.choices = NULL;
+    gnet_property->props[134].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[134].data.guint64.min   = 1024;
 
 
     /*
@@ -7857,12 +7865,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[319].lock);
 
     /* Type specific data: */
-    gnet_property->props[319].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[319].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_lookup_out_default;
-    gnet_property->props[319].data.guint32.value = (void *) &gnet_property_variable_bw_dht_lookup_out;
-    gnet_property->props[319].data.guint32.choices = NULL;
-    gnet_property->props[319].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[319].data.guint32.min   = 512;
+    gnet_property->props[319].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[319].data.guint64.def   = (void *) &gnet_property_variable_bw_dht_lookup_out_default;
+    gnet_property->props[319].data.guint64.value = (void *) &gnet_property_variable_bw_dht_lookup_out;
+    gnet_property->props[319].data.guint64.choices = NULL;
+    gnet_property->props[319].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[319].data.guint64.min   = 512;
 
 
     /*
@@ -7879,12 +7887,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[320].lock);
 
     /* Type specific data: */
-    gnet_property->props[320].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[320].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_lookup_in_default;
-    gnet_property->props[320].data.guint32.value = (void *) &gnet_property_variable_bw_dht_lookup_in;
-    gnet_property->props[320].data.guint32.choices = NULL;
-    gnet_property->props[320].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[320].data.guint32.min   = 2048;
+    gnet_property->props[320].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[320].data.guint64.def   = (void *) &gnet_property_variable_bw_dht_lookup_in_default;
+    gnet_property->props[320].data.guint64.value = (void *) &gnet_property_variable_bw_dht_lookup_in;
+    gnet_property->props[320].data.guint64.choices = NULL;
+    gnet_property->props[320].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[320].data.guint64.min   = 2048;
 
 
     /*
@@ -8736,12 +8744,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[360].lock);
 
     /* Type specific data: */
-    gnet_property->props[360].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[360].data.guint32.def   = (void *) &gnet_property_variable_bw_dht_out_default;
-    gnet_property->props[360].data.guint32.value = (void *) &gnet_property_variable_bw_dht_out;
-    gnet_property->props[360].data.guint32.choices = NULL;
-    gnet_property->props[360].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[360].data.guint32.min   = 8192;
+    gnet_property->props[360].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[360].data.guint64.def   = (void *) &gnet_property_variable_bw_dht_out_default;
+    gnet_property->props[360].data.guint64.value = (void *) &gnet_property_variable_bw_dht_out;
+    gnet_property->props[360].data.guint64.choices = NULL;
+    gnet_property->props[360].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[360].data.guint64.min   = 8192;
 
 
     /*
@@ -9827,12 +9835,12 @@ gnet_prop_init(void) {
 	mutex_init(&gnet_property->props[412].lock);
 
     /* Type specific data: */
-    gnet_property->props[412].type               = PROP_TYPE_GUINT32;
-    gnet_property->props[412].data.guint32.def   = (void *) &gnet_property_variable_bw_guess_out_default;
-    gnet_property->props[412].data.guint32.value = (void *) &gnet_property_variable_bw_guess_out;
-    gnet_property->props[412].data.guint32.choices = NULL;
-    gnet_property->props[412].data.guint32.max   = BS_BW_MAX;
-    gnet_property->props[412].data.guint32.min   = 256;
+    gnet_property->props[412].type               = PROP_TYPE_GUINT64;
+    gnet_property->props[412].data.guint64.def   = (void *) &gnet_property_variable_bw_guess_out_default;
+    gnet_property->props[412].data.guint64.value = (void *) &gnet_property_variable_bw_guess_out;
+    gnet_property->props[412].data.guint64.choices = NULL;
+    gnet_property->props[412].data.guint64.max   = BS_BW_MAX;
+    gnet_property->props[412].data.guint64.min   = 256;
 
 
     /*
@@ -11292,6 +11300,82 @@ gnet_prop_init(void) {
     gnet_property->props[482].data.boolean.def   = (void *) &gnet_property_variable_tcp_no_listening_default;
     gnet_property->props[482].data.boolean.value = (void *) &gnet_property_variable_tcp_no_listening;
 
+
+    /*
+     * PROP_QUERY_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[483].name = "query_trace";
+    gnet_property->props[483].desc = _("Defines whether Gnutella queries should be traced.");
+    gnet_property->props[483].ev_changed = event_new("query_trace_changed");
+    gnet_property->props[483].save = TRUE;
+    gnet_property->props[483].internal = FALSE;
+    gnet_property->props[483].vector_size = 1;
+	mutex_init(&gnet_property->props[483].lock);
+
+    /* Type specific data: */
+    gnet_property->props[483].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[483].data.boolean.def   = (void *) &gnet_property_variable_query_trace_default;
+    gnet_property->props[483].data.boolean.value = (void *) &gnet_property_variable_query_trace;
+
+
+    /*
+     * PROP_INPUTEVT_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[484].name = "inputevt_trace";
+    gnet_property->props[484].desc = _("Defines whether I/O event callbacks should be traced.");
+    gnet_property->props[484].ev_changed = event_new("inputevt_trace_changed");
+    gnet_property->props[484].save = TRUE;
+    gnet_property->props[484].internal = FALSE;
+    gnet_property->props[484].vector_size = 1;
+	mutex_init(&gnet_property->props[484].lock);
+
+    /* Type specific data: */
+    gnet_property->props[484].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[484].data.boolean.def   = (void *) &gnet_property_variable_inputevt_trace_default;
+    gnet_property->props[484].data.boolean.value = (void *) &gnet_property_variable_inputevt_trace;
+
+
+    /*
+     * PROP_LOCK_CONTENTION_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[485].name = "lock_contention_trace";
+    gnet_property->props[485].desc = _("Defines whether lock contentions should be traced.");
+    gnet_property->props[485].ev_changed = event_new("lock_contention_trace_changed");
+    gnet_property->props[485].save = TRUE;
+    gnet_property->props[485].internal = FALSE;
+    gnet_property->props[485].vector_size = 1;
+	mutex_init(&gnet_property->props[485].lock);
+
+    /* Type specific data: */
+    gnet_property->props[485].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[485].data.boolean.def   = (void *) &gnet_property_variable_lock_contention_trace_default;
+    gnet_property->props[485].data.boolean.value = (void *) &gnet_property_variable_lock_contention_trace;
+
+
+    /*
+     * PROP_LOCK_SLEEP_TRACE:
+     *
+     * General data:
+     */
+    gnet_property->props[486].name = "lock_sleep_trace";
+    gnet_property->props[486].desc = _("Defines whether lock sleeps should be traced.");
+    gnet_property->props[486].ev_changed = event_new("lock_sleep_trace_changed");
+    gnet_property->props[486].save = TRUE;
+    gnet_property->props[486].internal = FALSE;
+    gnet_property->props[486].vector_size = 1;
+	mutex_init(&gnet_property->props[486].lock);
+
+    /* Type specific data: */
+    gnet_property->props[486].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[486].data.boolean.def   = (void *) &gnet_property_variable_lock_sleep_trace_default;
+    gnet_property->props[486].data.boolean.value = (void *) &gnet_property_variable_lock_sleep_trace;
+
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {
         htable_insert(gnet_property->by_name,
@@ -11352,6 +11436,15 @@ void
 gnet_prop_unlock(property_t p)
 {
     prop_unlock(gnet_property, p);
+}
+
+/**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+gnet_prop_crash_dump(void)
+{
+	prop_crash_dump(gnet_property);
 }
 
 /**
@@ -11478,6 +11571,12 @@ gpointer
 gnet_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gnet_property, p, t, l);
+}
+
+const char *
+gnet_prop_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string(gnet_property, prop);
 }
 
 const char *

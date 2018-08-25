@@ -1346,7 +1346,7 @@ prop = {
 	name = "search_media_type_archive";
 	desc = "Remote nodes supporting media type filtering will apply your "
 		"query specifically on archive / program files such as "
-		"ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.";
+		"ZIP, 7z, tar, bz2, gz, deb, rpm and also exe files.";
 	type = boolean;
 	data = {
 		default = FALSE;
@@ -1399,6 +1399,42 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+    };
+};
+
+prop = {
+    name = "fileinfo_notebook_tab";
+    desc = "Notebook tab number for the fileinfo listing";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "main_notebook_tab";
+    desc = "Notebook tab number for the main page";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "gnet_stats_notebook_tab";
+    desc = "Notebook tab number for the Gnet stats page";
+    type = guint32;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "downloads_info_notebook_tab";
+    desc = "Notebook tab number for download info / tools";
+    type = guint32;
+    data = {
+        default = 0;
     };
 };
 

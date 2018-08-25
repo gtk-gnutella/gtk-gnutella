@@ -43,6 +43,7 @@
 #include "lib/atoms.h"
 #include "lib/buf.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/nv.h"
 #include "lib/once.h"
 #include "lib/parse.h"

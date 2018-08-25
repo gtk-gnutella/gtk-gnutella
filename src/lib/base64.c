@@ -394,4 +394,4 @@ char *base64_decode(const char *buf, uint len, uint *outlen)
 	return decbuf;
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

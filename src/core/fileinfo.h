@@ -76,6 +76,7 @@ void file_info_strip_binary(fileinfo_t *fi);
 void file_info_strip_binary_from_file(fileinfo_t *fi, const char *file);
 bool file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1);
 void file_info_got_tth(fileinfo_t *fi, const struct tth *tth);
+void file_info_recomputed_tth(fileinfo_t *fi, const struct tth *tth);
 void file_info_got_tigertree(fileinfo_t *fi,
 		const struct tth *leaves, size_t num_leaves, bool mark_dirty);
 void file_info_size_known(struct download *d, filesize_t size);
@@ -96,8 +97,7 @@ void file_info_try_to_swarm_with_firewalled(
 void file_info_spot_completed_orphans(void);
 void file_info_add_source(fileinfo_t *fi, struct download *dl);
 void file_info_add_new_source(fileinfo_t *fi, struct download *dl);
-void file_info_remove_source(
-    fileinfo_t *fi, struct download *dl, bool discard);
+void file_info_remove_source(fileinfo_t *fi, struct download *dl);
 void file_info_cloned_source(fileinfo_t *fi,
 	struct download *d, struct download *cd);
 void file_info_timer(void);
@@ -128,6 +128,7 @@ fileinfo_t *file_info_by_sha1(const struct sha1 *sha1);
 void file_info_remove(fileinfo_t *fi);
 void file_info_moved(fileinfo_t *fi, const char *pathname);
 void file_info_mark_stripped(fileinfo_t *fi);
+void file_info_mark_completed(fileinfo_t *fi);
 bool file_info_rename(fileinfo_t *fi, const char *filename);
 void file_info_resize(fileinfo_t *fi, filesize_t size);
 

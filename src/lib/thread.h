@@ -246,7 +246,7 @@ unsigned thread_discovered_count(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_exit_mode(void);
-void thread_crash_mode(void);
+void thread_crash_mode(bool disable_locks);
 bool thread_is_crashing(void);
 bool thread_in_crash_mode(void);
 void thread_lock_disable(bool silent);
@@ -347,6 +347,8 @@ int thread_kill(unsigned id, int signum);
 tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
+bool thread_signal_has_pending(size_t locks);
+bool thread_signal_process(void);
 bool thread_pause(void);
 void thread_halt(void) G_NORETURN;
 bool thread_sigsuspend(const tsigset_t *mask);
@@ -436,12 +438,12 @@ void thread_stats_digest(struct sha1 *digest);
 
 #define THREAD_INVALID_ID	-1U		/**< Invalid ID */
 #define THREAD_UNKNOWN_ID	-2U		/**< Unknown ID */
-#define THREAD_MAIN			0		/**< ID of the main thread */
+#define THREAD_MAIN_ID		0		/**< ID of the main thread */
 
 static inline bool
 thread_is_main(void)
 {
-	return THREAD_MAIN == thread_small_id();
+	return THREAD_MAIN_ID == thread_small_id();
 }
 
 /**

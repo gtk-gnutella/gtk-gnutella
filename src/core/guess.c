@@ -115,6 +115,7 @@
 #include "lib/array_util.h"
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/endian.h"
@@ -424,8 +425,8 @@ static aging_table_t *guess_qk_reqs;	/**< Recent query key requests */
 static aging_table_t *guess_alien;		/**< Recently seen non-GUESS hosts */
 static aging_table_t *guess_old_muids;	/**< Recently expired GUESS MUIDs */
 static ripening_table_t *guess_deferred;/**< Hosts with deferred processing */
-static uint32 guess_out_bw;				/**< Outgoing b/w used per period */
-static uint32 guess_target_bw;			/**< Outgoing b/w target for period */
+static uint64 guess_out_bw;				/**< Outgoing b/w used per period */
+static uint64 guess_target_bw;			/**< Outgoing b/w target for period */
 static int guess_alpha = GUESS_ALPHA;	/**< Concurrency query parameter */
 static time_t guess_qk_threshtime;		/**< Stamp threshold for query keys */
 
@@ -2855,7 +2856,7 @@ guess_request_qk_full(guess_t *gq, const gnet_host_t *host, bool intro, bool g2,
 	}
 
 	if (sent) {
-		aging_insert(guess_qk_reqs, atom_host_get(host), int_to_pointer(1));
+		aging_record(guess_qk_reqs, atom_host_get(host));
 		if (gq != NULL) {
 			guess_check(gq);
 			gq->bw_out_qk += size;	/* Estimated, UDP queue could drop it! */
@@ -3484,7 +3485,7 @@ guess_periodic_sync(void *unused_obj)
 static void
 guess_periodic_target_update(void)
 {
-	uint unused;
+	uint64 unused;
 
 	guess_target_bw = GNET_PROPERTY(bw_guess_out);
 
@@ -3520,8 +3521,10 @@ guess_periodic_bw(void *unused_obj)
 	(void) unused_obj;
 
 	if (GNET_PROPERTY(guess_client_debug) > 2) {
-		g_debug("GUESS outgoing b/w used: %u / %u bytes (alpha=%u, active=%zu)",
-			guess_out_bw, guess_target_bw, guess_alpha, hevset_count(gqueries));
+		g_debug("GUESS outgoing b/w used: %s / %s bytes (alpha=%u, active=%zu)",
+			uint64_to_string(guess_out_bw),
+			uint64_to_string2(guess_target_bw),
+			guess_alpha, hevset_count(gqueries));
 	}
 
 	/*
@@ -4327,7 +4330,7 @@ guess_alien_host(const guess_t *gq, const gnet_host_t *host, bool reached)
 	 * the non-GUESS table to avoid it being re-added soon.
 	 */
 
-	aging_insert(guess_alien, atom_host_get(host), int_to_pointer(1));
+	aging_record(guess_alien, atom_host_get(host));
 	hcache_purge(HCACHE_CLASS_GUESS,
 		gnet_host_get_addr(host), gnet_host_get_port(host));
 	hevset_foreach(gqueries, guess_ignore_alien_host, deconstify_pointer(host));
@@ -5476,7 +5479,7 @@ guess_free(guess_t *gq)
 	 */
 
 	hikset_remove(gmuid, gq->muid);
-	aging_insert(guess_old_muids, atom_guid_get(gq->muid), int_to_pointer(1));
+	aging_record(guess_old_muids, atom_guid_get(gq->muid));
 
 	hset_free_null(&gq->queried);
 	hset_free_null(&gq->deferred);
@@ -5871,7 +5874,8 @@ guess_init(void)
 	guess_cache_init(&guess_02_cache);
 	guess_cache_init(&guess_g2_cache);
 
-	guess_qk_prune_old();
+	if (!crash_was_restarted())
+		guess_qk_prune_old();
 
 	guess_qk_prune_ev = cq_periodic_main_add(
 		GUESS_QK_PRUNE_PERIOD, guess_qk_periodic_prune, NULL);

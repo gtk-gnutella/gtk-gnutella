@@ -49,4 +49,4 @@ pid_t launchle_v(const char *path,
 
 #endif	/* _launch_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

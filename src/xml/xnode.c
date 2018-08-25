@@ -41,6 +41,7 @@
 #include "lib/etree.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
+#include "lib/hstrfn.h"
 #include "lib/nv.h"
 #include "lib/str.h"
 #include "lib/walloc.h"

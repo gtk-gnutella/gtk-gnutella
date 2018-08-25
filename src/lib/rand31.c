@@ -157,8 +157,7 @@ rand31_random_seed(void)
 	size_t nsecs;
 	double cpu;
 	jmp_buf env;
-	unsigned discard;
-	unsigned seed;
+	unsigned discard, seed, n;
 
 #ifndef ALLOW_UNINIT_VALUES
 	ZERO(&garbage);
@@ -204,7 +203,11 @@ rand31_random_seed(void)
 	discard += time(NULL);
 	cpu = tm_cputime(NULL, NULL);
 	discard += binary_hash2(&cpu, sizeof cpu);
-	discard = hashing_fold(discard, 12);
+	tm_precise_time(&now);
+	seed += binary_hash2(&now, sizeof now);
+	nsecs += now.tv_nsec;
+	n = nsecs % 31;
+	discard = UINT32_ROTL(discard, n);
 	tm_precise_time(&now);
 	seed += binary_hash2(&now, sizeof now);
 	nsecs += now.tv_nsec;
@@ -212,16 +215,22 @@ rand31_random_seed(void)
 	tm_precise_time(&now);
 	seed += integer_hash2(now.tv_sec + now.tv_nsec);
 	nsecs += now.tv_nsec;
-	nsecs %= 31;
-	seed = UINT32_ROTL(seed, nsecs);
-	if (rand31_is_zero(seed))
-		seed = now.tv_sec;		/* cannot be zero (modulo RAND31_MOD) */
+	n = nsecs % 31;
+	seed = UINT32_ROTL(seed, n);
+	if (rand31_is_zero(seed)) {
+		tm_precise_time(&now);
+		seed += integer_hash2(now.tv_sec + now.tv_nsec);
+		if (rand31_is_zero(seed))
+			seed += nsecs;
+		if (rand31_is_zero(seed))
+			seed = now.tv_sec;		/* cannot be zero (modulo RAND31_MOD) */
+	}
+	discard = hashing_fold(discard, 12);
 	while (0 != discard--) {
 		seed = rand31_prng_next(seed);
 	}
 
 	g_assert(!rand31_is_zero(seed));
-	g_assert(0 != seed % RAND31_MOD);
 
 	return seed;
 }
@@ -281,38 +290,23 @@ void
 rand31_addrandom(const void *data, size_t len)
 {
 	int rn;
-	const void *p = data;
-	uint32 v;
+	unsigned v;
 
 	rand31_check_seeded();
+	v = binary_hash(data, len);
 
 	RAND31_LOCK;
 
 	rn = rand31_prng();		/* In case we end-up with a zero seed */
-
-	while (len >= 4) {
-		p = peek_be32_advance(p, &v);
-		len -= 4;
-		rand31_seed ^= v;
-	}
-
-	if (len != 0) {
-		g_assert(len < 4);
-
-		v = 0;
-		while (len-- != 0) {
-			v <<= 8;
-			v |= peek_u8(p);
-			p = const_ptr_add_offset(p, 1);
-		}
-		rand31_seed ^= v;
-	}
+	rand31_seed ^= v;
 
 	while (rand31_seed >= RAND31_MOD)
 		rand31_seed -= RAND31_MOD;
 
 	if G_UNLIKELY(rand31_is_zero(rand31_seed))
 		rand31_seed = rn;
+
+	g_assert(!rand31_is_zero(rand31_seed));
 
 	RAND31_UNLOCK;
 }

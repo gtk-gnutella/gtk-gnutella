@@ -42,6 +42,7 @@
 
 #include "if/gui_property.h"
 
+#include "lib/entropy.h"
 #include "lib/htable.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
@@ -59,11 +60,39 @@ static GtkListStore *store_aliases;
 static GtkListStore *store_files;
 static GtkListStore *store_sources;
 
+enum downloads_info_nb_page {
+	DOWNLOADS_INFO_NB_PAGE_DETAILS,
+	DOWNLOADS_INFO_NB_PAGE_ALIASES,
+	DOWNLOADS_INFO_NB_PAGE_SOURCES,
+	DOWNLOADS_INFO_NB_PAGE_TOOLS,
+	DOWNLOADS_INFO_NB_PAGE_SETTINGS,
+
+	NUM_DOWNLOADS_INFO_NB_PAGES
+};
+
+static enum downloads_info_nb_page notebook_downloads_info_current_page;
+
 #if GTK_CHECK_VERSION(2,6,0)
 static GtkSortType files_sort_type;
 static struct sorting_context files_sort;
 static int files_sort_depth;
 #endif	/* Gtk+ => 2.6.0 */
+
+static void
+on_notebook_downloads_info_switch_page(GtkNotebook *unused_notebook,
+	GtkNotebookPage *unused_page, int page_num, void *unused_udata)
+{
+	(void) unused_notebook;
+	(void) unused_page;
+	(void) unused_udata;
+
+	g_return_if_fail(UNSIGNED(page_num) < NUM_DOWNLOADS_INFO_NB_PAGES);
+
+	entropy_harvest_single(VARLEN(page_num));
+
+	notebook_downloads_info_current_page = page_num;
+	gui_prop_set_guint32_val(PROP_DOWNLOADS_INFO_NOTEBOOK_TAB, page_num);
+}
 
 static void
 fi_gui_files_sort_reset(void)
@@ -799,6 +828,23 @@ fi_gui_init(void)
 
 	fi_gui_details_treeview_init();
 	fi_gui_common_init();
+
+	{
+		uint32 page;
+		GtkNotebook *notebook_downloads_info =
+			GTK_NOTEBOOK(gui_main_window_lookup("notebook_downloads_info"));
+
+		gui_prop_get_guint32_val(PROP_DOWNLOADS_INFO_NOTEBOOK_TAB, &page);
+
+		if (page >= NUM_DOWNLOADS_INFO_NB_PAGES)
+			page = DOWNLOADS_INFO_NB_PAGE_DETAILS;
+
+		notebook_downloads_info_current_page = page;
+		gtk_notebook_set_current_page(notebook_downloads_info, page);
+
+		gui_signal_connect(notebook_downloads_info,
+			"switch-page", on_notebook_downloads_info_switch_page, NULL);
+	}
 }
 
 void

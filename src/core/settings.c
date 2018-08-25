@@ -93,6 +93,7 @@
 #include "lib/getphysmemsize.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
 #include "lib/omalloc.h"
@@ -101,7 +102,9 @@
 #include "lib/path.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
+#include "lib/rwlock.h"
 #include "lib/sha1.h"
+#include "lib/spinlock.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/teq.h"
@@ -592,6 +595,16 @@ settings_handle_upgrades(void)
 }
 
 /**
+ * Dump all Gnutella properties to stderr in case of a crash.
+ */
+static void G_COLD
+settings_dump_gnet(void)
+{
+	s_info("dumping internal properties");
+	gnet_prop_crash_dump();
+}
+
+/**
  * Make sure that we are the sole running process.
  *
  * @param is_supervisor		TRUE if dealing with the supervisor process
@@ -644,6 +657,15 @@ settings_init(void)
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
 
 	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
+
+	/*
+	 * In case of a crash, dump all the known Gnutella properties into
+	 * the generated crash log, in order to help identify peculiarities
+	 * in the configuration that could explain why the crash occurs.
+	 * 		--RAM, 2017-09-23
+	 */
+
+	crash_dumper_add(settings_dump_gnet);
 
 	if (NULL == config_dir || '\0' == *config_dir || !is_directory(config_dir))
 		goto no_config_dir;
@@ -715,6 +737,9 @@ settings_init(void)
 
 	if (0 == session_start)
 		session_start = tm_time();
+	else
+		crash_mark_restarted();	/* Record that application was restarted */
+
 	gnet_prop_set_timestamp_val(PROP_SESSION_START_STAMP, session_start);
 
 	/*
@@ -842,7 +867,7 @@ settings_add_randomness(void)
 	 * to the change of the "randomness" property.
 	 */
 
-	teq_safe_post(THREAD_MAIN, settings_gen_randomness, NULL);
+	teq_safe_post(THREAD_MAIN_ID, settings_gen_randomness, NULL);
 }
 
 /**
@@ -1338,6 +1363,16 @@ settings_max_msg_size(void)
 }
 
 /**
+ * Clean-up locks.
+ */
+static void
+settings_remove_locks(void)
+{
+	filelock_free_null(&pidfile_lock);
+	filelock_free_null(&save_file_path_lock);
+}
+
+/**
  * Called at exit time to flush the property files.
  */
 void G_COLD
@@ -1359,6 +1394,8 @@ settings_shutdown(void)
     settings_callbacks_shutdown();
 
     prop_save_to_file(properties, config_dir, config_file);
+
+	settings_remove_locks();
 }
 
 /**
@@ -1376,9 +1413,6 @@ settings_save_if_dirty(void)
 void
 settings_close(void)
 {
-	filelock_free_null(&pidfile_lock);
-	filelock_free_null(&save_file_path_lock);
-
     gnet_prop_shutdown();
 
 	HFREE_NULL(config_dir);
@@ -2468,10 +2502,10 @@ max_ttl_changed(property_t prop)
 static bool
 bw_http_in_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
 	g_assert(PROP_BW_HTTP_IN == prop);
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_IN, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2481,9 +2515,9 @@ bw_http_in_changed(property_t prop)
 static bool
 bw_http_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_OUT, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2493,9 +2527,9 @@ bw_http_out_changed(property_t prop)
 static bool
 bw_gnet_in_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GIN, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GIN_UDP, val / 2);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
@@ -2506,9 +2540,9 @@ bw_gnet_in_changed(property_t prop)
 static bool
 bw_gnet_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GOUT, val / 2);
     bsched_set_bandwidth(BSCHED_BWS_GOUT_UDP, val / 2);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
@@ -2519,9 +2553,9 @@ bw_gnet_out_changed(property_t prop)
 static bool
 bw_gnet_lin_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLIN, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2531,9 +2565,9 @@ bw_gnet_lin_changed(property_t prop)
 static bool
 bw_gnet_lout_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_GLOUT, val);
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
@@ -2543,9 +2577,9 @@ bw_gnet_lout_changed(property_t prop)
 static bool
 bw_dht_out_changed(property_t prop)
 {
-    uint32 val;
+    uint64 val;
 
-    gnet_prop_get_guint32_val(prop, &val);
+    gnet_prop_get_guint64_val(prop, &val);
     bsched_set_bandwidth(BSCHED_BWS_DHT_OUT, val);
 
     return FALSE;
@@ -2639,6 +2673,43 @@ inputevt_debug_changed(property_t prop)
 
 	gnet_prop_get_guint32_val(prop, &val);
 	inputevt_set_debug(val);
+
+    return FALSE;
+}
+
+static bool
+inputevt_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+	inputevt_set_trace(val);
+
+    return FALSE;
+}
+
+static bool
+lock_sleep_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+
+	spinlock_set_sleep_trace(val);
+	rwlock_set_sleep_trace(val);
+
+    return FALSE;
+}
+
+static bool
+lock_contention_trace_changed(property_t prop)
+{
+	bool val;
+
+	gnet_prop_get_boolean_val(prop, &val);
+
+	spinlock_set_contention_trace(val);
+	rwlock_set_contention_trace(val);
 
     return FALSE;
 }
@@ -3236,6 +3307,21 @@ static prop_map_t property_map[] = {
     {
         PROP_INPUTEVT_DEBUG,
         inputevt_debug_changed,
+        TRUE
+    },
+    {
+        PROP_INPUTEVT_TRACE,
+        inputevt_trace_changed,
+        TRUE
+    },
+    {
+        PROP_LOCK_SLEEP_TRACE,
+        lock_sleep_trace_changed,
+        TRUE
+    },
+    {
+        PROP_LOCK_CONTENTION_TRACE,
+        lock_contention_trace_changed,
         TRUE
     },
     {

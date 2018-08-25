@@ -248,7 +248,8 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	rd = find_upload(u->upload_handle);
 	g_assert(NULL != rd);
 
-	rd->last_update  = tm_time();
+	rd->last_update = tm_time();
+	rd->send_date = u->start_date;	/* Updated by "core" when header sent back */
 
 	if (
 		!host_addr_equiv(u->addr, rd->addr) ||
@@ -338,8 +339,6 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 	}
 }
 
-
-
 /**
  * Adds the given upload to the gui.
  */
@@ -354,7 +353,7 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
 
 	ZERO(&titles);
 
-	WALLOC(rd);
+	WALLOC0(rd);
     rd->handle      = u->upload_handle;
     rd->range_start = u->range_start;
     rd->range_end   = u->range_end;

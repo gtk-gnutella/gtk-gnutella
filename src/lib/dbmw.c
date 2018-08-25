@@ -41,6 +41,7 @@
 #include "debug.h"
 #include "hashlist.h"
 #include "map.h"
+#include "misc.h"				/* For english_strerror() */
 #include "pmsg.h"
 #include "pslist.h"
 #include "stacktrace.h"
@@ -140,7 +141,7 @@ dbmw_has_ioerr(const dbmw_t *dw)
 const char *
 dbmw_strerror(const dbmw_t *dw)
 {
-	return g_strerror(dw->error);
+	return english_strerror(dw->error);
 }
 
 /**

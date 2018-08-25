@@ -111,20 +111,20 @@ gui_general_timer(time_t now)
 }
 
 static void
-update_stat(guint32 *max, GtkProgressBar *pg,
-    gnet_bw_stats_t *stats, gboolean avg_mode, gboolean inout)
+update_stat(uint64 *max, GtkProgressBar *pg,
+    gnet_bw_stats_t *stats, gboolean avg_mode, bool inout)
 {
-    gfloat frac = 0;
-    guint32 high_limit;
-    guint32 current;
-	guint32 max_bw = *max;
-	gchar buf[128];
+    float frac = 0;
+    uint64 high_limit;
+    uint64 current;
+	uint64 max_bw = *max;
+	char buf[128];
 
     current = avg_mode ? stats->average : stats->current;
     if (max_bw < current)
         max_bw = *max = current;
 	else {
-		guint32 new_max = stats->average + (stats->average >> 1);	/* 1.5 */
+		uint64 new_max = stats->average + (stats->average >> 1);	/* 1.5 */
 		if (max_bw > new_max)
 			max_bw = *max = new_max;
 	}
@@ -132,7 +132,7 @@ update_stat(guint32 *max, GtkProgressBar *pg,
     high_limit = MAX(
         stats->enabled ? stats->limit : max_bw,
         current);
-    frac = (high_limit == 0) ? 0 : (gfloat) current / high_limit;
+    frac = (high_limit == 0) ? 0 : (float) current / high_limit;
 
 	str_bprintf(buf, sizeof buf, "%s %s %s",
         short_rate(current, show_metric_units()),
@@ -157,14 +157,14 @@ gnet_bw_stats_sum(gnet_bw_stats_t *dest, gnet_bw_stats_t *other)
 void
 gui_update_traffic_stats(void)
 {
-    static guint32 http_in_max = 0;
-    static guint32 http_out_max = 0;
-    static guint32 gnet_in_max = 0;
-    static guint32 gnet_out_max = 0;
-    static guint32 leaf_in_max = 0;
-    static guint32 leaf_out_max = 0;
-    static guint32 dht_in_max = 0;
-    static guint32 dht_out_max = 0;
+    static uint64 http_in_max = 0;
+    static uint64 http_out_max = 0;
+    static uint64 gnet_in_max = 0;
+    static uint64 gnet_out_max = 0;
+    static uint64 leaf_in_max = 0;
+    static uint64 leaf_out_max = 0;
+    static uint64 dht_in_max = 0;
+    static uint64 dht_out_max = 0;
     gnet_bw_stats_t s;
     gnet_bw_stats_t s2;
     static GtkProgressBar *pg_http_in = NULL;

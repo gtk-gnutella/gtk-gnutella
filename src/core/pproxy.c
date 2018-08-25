@@ -72,7 +72,9 @@
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/host_addr.h"
+#include "lib/hstrfn.h"
 #include "lib/log.h"
+#include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/sequence.h"
@@ -164,7 +166,7 @@ send_pproxy_error_v(
 	}
 
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, "%s", reason);
+			hevcnt ? hev : NULL, hevcnt, HTTP_ATOMIC_SEND, "%s", reason);
 
 	pp->error_sent = code;
 }
@@ -849,7 +851,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			gnet_stats_inc_general(GNR_PUSH_PROXY_TCP_RELAYED);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
-					"Push-proxy: message sent to node");
+					HTTP_ATOMIC_SEND, "Push-proxy: message sent to node");
 
 			pp->error_sent = 202;
 			pproxy_remove(pp, "Push sent directly to node GUID %s",
@@ -889,6 +891,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			cnt = pslist_length(nodes);
 
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
+					HTTP_ATOMIC_SEND,
 					"Push-proxy: message sent through Gnutella "
 					"(via %zd node%s)", cnt, plural(cnt));
 
@@ -911,6 +914,7 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			"<from push-proxy>", pp->flags);
 
 		http_send_status(HTTP_PUSH_PROXY, pp->socket, 202, FALSE, NULL, 0,
+			HTTP_ATOMIC_SEND,
 			"Push-proxy: you found the target GUID %s",
 			guid_hex_str(pp->guid));
 
@@ -976,7 +980,8 @@ err_input_buffer_full(void *obj)
 static void
 err_header_read_error(void *obj, int error)
 {
-	pproxy_remove(PPROXY(obj), "Failed (Input error: %s)", g_strerror(error));
+	pproxy_remove(PPROXY(obj),
+		"Failed (Input error: %s)", english_strerror(error));
 }
 
 static void

@@ -46,6 +46,7 @@
 #include "getcpucount.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "log.h"
 #include "misc.h"
 #include "mutex.h"
@@ -2358,7 +2359,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			getprogname(), opt, arg, g_strerror(error));
+			getprogname(), opt, arg, english_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 
@@ -2383,8 +2384,6 @@ main(int argc, char **argv)
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	crash_init(argv[0], getprogname(), 0, NULL);
-
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {

@@ -112,12 +112,14 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
+#include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/hash.h"
 #include "lib/hashlist.h"
 #include "lib/header.h"
 #include "lib/hikset.h"
 #include "lib/hset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iovec.h"
 #include "lib/listener.h"
@@ -195,6 +197,8 @@
 #define TCP_CRAWLER_FREQ		300		/**< once every 5 minutes */
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
+#define NODE_CONN_FAILED_FREQ	900		/**< once every 15 minutes */
+
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
 #define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
 
@@ -213,6 +217,7 @@ static gnutella_node_t *udp6_node;
 static gnutella_node_t *udp_sr_node;
 static gnutella_node_t *udp6_sr_node;
 static gnutella_node_t *udp_g2_node;
+static gnutella_node_t *udp6_g2_node;
 static gnutella_node_t *dht_node;
 static gnutella_node_t *dht6_node;
 static gnutella_node_t *udp_route;
@@ -261,6 +266,8 @@ static pslist_t *unstable_servents = NULL;
 
 static aging_table_t *tcp_crawls;
 static aging_table_t *udp_crawls;
+
+static aging_table_t *node_connect_failures;
 
 typedef struct node_bad_client {
 	const char *vendor;
@@ -892,6 +899,32 @@ node_demote_to_leaf(const char *reason)
 }
 
 /**
+ * Register failure to connect to given IP:port.
+ */
+static void
+node_record_connect_failure(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	aging_record(node_connect_failures, atom_host_get(&host));
+}
+
+/**
+ * Check whether IP:port is that of a host to which we had troubles to
+ * connect to recently.
+ */
+bool
+node_had_recent_connect_failure(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+
+	return NULL != aging_lookup(node_connect_failures, &host);
+}
+
+/**
  * Low frequency node timer.
  */
 void
@@ -1405,6 +1438,7 @@ node_timer(time_t now)
 						(time_delta_t) GNET_PROPERTY(node_connecting_timeout)
 				) {
 					node_send_udp_ping(n);
+					node_record_connect_failure(n->addr, n->port);
 					node_remove(n, _("Timeout"));
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0, "timeout");
 					continue;
@@ -1711,6 +1745,7 @@ node_init(void)
 	udp_sr_node = node_udp_sr_create(NET_TYPE_IPV4);
 	udp6_sr_node = node_udp_sr_create(NET_TYPE_IPV6);
 	udp_g2_node = node_udp_g2_create(NET_TYPE_IPV4);
+	udp6_g2_node = node_udp_g2_create(NET_TYPE_IPV6);
 	dht_node = node_dht_create(NET_TYPE_IPV4);
 	dht6_node = node_dht_create(NET_TYPE_IPV6);
 	browse_node = node_browse_create(FALSE);
@@ -1729,6 +1764,17 @@ node_init(void)
 
 	udp_crawls = aging_make(UDP_CRAWLER_FREQ,
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
+
+	/*
+	 * Records nodes to which an outgoing connection failed.
+	 *
+	 * This helps preventing us re-trying a connection to that node too
+	 * soon and will also avoid having its IP:port collected from pongs.
+	 *		--RAM, 2016-08-29
+	 */
+
+	node_connect_failures = aging_make(NODE_CONN_FAILED_FREQ,
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	/*
 	 * Known patterns for vendor messages and features.
@@ -3033,7 +3079,9 @@ node_bye_v(gnutella_node_t *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (NODE_TALKS_G2(n)) {
-		node_remove_v(n, reason, ap);
+		char *msg = h_strdup(n->error_str);
+		node_remove(n, "%s", msg);			/* Will recreate n->error_str */
+		HFREE_NULL(msg);
 		return;
 	}
 
@@ -4242,8 +4290,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 			GNET_PROPERTY(node_g2_count) != 0 &&
 			!(n->attrs & NODE_A_CAN_INFLATE)
 		) {
-			node_send_error(n, 403,
-				"Compressed connection preferred");
+			if (handshaking)
+				node_send_error(n, 403, "Compressed connection preferred");
 			node_remove(n, _("Connection not compressed"));
 			return FALSE;
 		}
@@ -4301,8 +4349,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 					GNET_PROPERTY(node_leaf_count) - compressed_leaf_cnt &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
+				if (handshaking)
+					node_send_error(n, 403, "Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -4357,8 +4405,8 @@ node_can_accept_connection(gnutella_node_t *n, bool handshaking)
 						(compressed_node_cnt - compressed_leaf_cnt) &&
 				!(n->attrs & NODE_A_CAN_INFLATE)
 			) {
-				node_send_error(n, 403,
-					"Compressed connection preferred");
+				if (handshaking)
+					node_send_error(n, 403, "Compressed connection preferred");
 				node_remove(n, _("Connection not compressed"));
 				return FALSE;
 			}
@@ -4750,15 +4798,6 @@ node_finalize_3way(gnutella_node_t *n)
 	}
 
 	/*
-	 * Make sure we do not exceed our maximum amout of connections.
-	 * In particular, if the remote node did not obey our leaf guidance
-	 * and we still have enough ultra nodes, BYE them.
-	 */
-
-	if (!node_can_accept_connection(n, FALSE))
-		return FALSE;
-
-	/*
 	 * Since this is the third and final acknowledgement, the remote node
 	 * is ready to send Gnutella or G2 data (and so are we, now that we got
 	 * the final ack).  Mark the connection as fully established, which means
@@ -5105,6 +5144,15 @@ node_is_now_connected(gnutella_node_t *n)
 		node_bye(n, 504, "Switched between Leaf/Ultra during handshake");
 		return;
 	}
+
+	/*
+	 * Make sure we do not exceed our maximum amout of connections.
+	 * In particular, if the remote node did not obey our leaf guidance
+	 * and we still have enough ultra nodes, BYE them.
+	 */
+
+	if (!node_can_accept_connection(n, FALSE))
+		return;
 
 	/*
 	 * Initiate QRP sending if we're a leaf node or if we're an ultra node
@@ -6636,8 +6684,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			return;
 		}
 
-		aging_insert(tcp_crawls,
-			wcopy(&n->addr, sizeof n->addr), uint_to_pointer(1));
+		aging_record(tcp_crawls, WCOPY(&n->addr));
 	}
 
 	/*
@@ -7919,6 +7966,9 @@ node_g2_enable_by_net(enum net_type net)
 		s = s_udp_listen;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		s = s_udp_listen6;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8028,6 +8078,8 @@ node_g2_disable_by_net(enum net_type net)
 		n = udp_g2_node;
 		break;
 	case NET_TYPE_IPV6:
+		n = udp6_g2_node;
+		break;
 	case NET_TYPE_LOCAL:
 	case NET_TYPE_NONE:
 		g_assert_not_reached();
@@ -8061,6 +8113,8 @@ node_g2_enable(void)
 {
 	if (s_udp_listen)
 		node_g2_enable_by_net(NET_TYPE_IPV4);
+	if (s_udp_listen6)
+		node_g2_enable_by_net(NET_TYPE_IPV6);
 }
 
 void
@@ -8084,6 +8138,7 @@ node_udp_disable(void)
 	}
 	if (udp6_node && udp6_node->socket) {
 		node_udp_disable_by_net(NET_TYPE_IPV6);
+		node_g2_disable_by_net(NET_TYPE_IPV6);
 		socket_free_null(&s_udp_listen6);
 	}
 
@@ -8360,6 +8415,8 @@ node_udp_g2_get_addr_port(const host_addr_t addr, uint16 port)
 			n = udp_g2_node;
 			break;
 		case NET_TYPE_IPV6:
+			n = udp6_g2_node;
+			break;
 		case NET_TYPE_LOCAL:
 		case NET_TYPE_NONE:
 			g_assert_not_reached();
@@ -8640,6 +8697,8 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 			if (errno == EMFILE || errno == ENFILE)
 				n->flags |= NODE_F_VALID;
+			else
+				node_record_connect_failure(addr, port);
 		}
 	}
 
@@ -8722,7 +8781,11 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 
 	if (
 		!(SOCK_F_FORCE & flags) &&
-		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+		(
+			hostiles_is_bad(addr) ||
+			hcache_node_is_bad(addr) ||
+			node_had_recent_connect_failure(addr, port)
+		)
 	)
 		return;
 
@@ -8740,7 +8803,11 @@ node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 
 	if (
 		!(SOCK_F_FORCE & flags) &&
-		(hostiles_is_bad(addr) || hcache_node_is_bad(addr))
+		(
+			hostiles_is_bad(addr) ||
+			hcache_node_is_bad(addr) ||
+			node_had_recent_connect_failure(addr, port)
+		)
 	)
 		return;
 
@@ -10932,7 +10999,8 @@ node_bye_all(bool all)
 {
 	pslist_t *sl;
 	gnutella_node_t *udp_nodes[] = {
-		udp_node, udp6_node, udp_sr_node, udp6_sr_node, udp_g2_node,
+		udp_node, udp6_node, udp_sr_node, udp6_sr_node,
+		udp_g2_node, udp6_g2_node,
 		dht_node, dht6_node
 	};
 	unsigned i;
@@ -11618,7 +11686,8 @@ node_close(void)
 	{
 		gnutella_node_t *special_nodes[] = {
 			udp_node, udp6_node, dht_node, dht6_node, browse_node, udp_route,
-			udp_sr_node, udp6_sr_node, udp_g2_node, browse_g2_node
+			udp_sr_node, udp6_sr_node, udp_g2_node, udp6_g2_node,
+			browse_g2_node
 		};
 		uint i;
 
@@ -11649,6 +11718,7 @@ node_close(void)
 		udp_sr_node = NULL;
 		udp6_sr_node = NULL;
 		udp_g2_node = NULL;
+		udp6_g2_node = NULL;
 		dht_node = NULL;
 		dht6_node = NULL;
 		browse_node = NULL;
@@ -11673,6 +11743,7 @@ node_close(void)
 
 	aging_destroy(&tcp_crawls);
 	aging_destroy(&udp_crawls);
+	aging_destroy(&node_connect_failures);
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 	node_udp_scheduler_destroy_all();
@@ -12465,6 +12536,18 @@ node_id_infostr2(const struct nid *node_id)
 }
 
 /**
+ * Callback invoked from the socket layer when the connection fialed.
+ */
+static void
+node_connect_failed(gnutella_socket_t *s, void *owner, const char *errmsg)
+{
+	(void) owner;
+
+	node_record_connect_failure(s->addr, s->port);
+	socket_destroy(s, errmsg);	/* Must do that from callback when present */
+}
+
+/**
  * Callback invoked from the socket layer when we are finally connected.
  */
 static void
@@ -12487,7 +12570,7 @@ node_connected_back(struct gnutella_socket *s, void *owner)
  * Socket callbacks for node connect backs.
  */
 static struct socket_ops node_connect_back_socket_ops = {
-	NULL,						/* connect_failed */
+	node_connect_failed,		/* connect_failed */
 	node_connected_back,		/* connected */
 	NULL,						/* destroy */
 };
@@ -13399,8 +13482,7 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		return;
 	}
 
-	aging_insert(udp_crawls,
-		wcopy(&n->addr, sizeof n->addr), GUINT_TO_POINTER(1));
+	aging_record(udp_crawls, WCOPY(&n->addr));
 
 	/*
 	 * Build an array of candidate nodes.

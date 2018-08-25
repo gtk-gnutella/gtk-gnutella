@@ -46,7 +46,7 @@ void vp_gui_shutdown(void);
 /**
  * External function for drawing information in supplied pixmap.
  */
-void vp_draw_fi_progress(gboolean valid, gnet_fi_t fih);
+void vp_draw_fi_progress(bool valid, gnet_fi_t fih);
 
 
 /*
@@ -56,16 +56,18 @@ void
 on_drawingarea_fi_progress_realize     (GtkWidget       *widget,
                                         gpointer         user_data);
 
-gboolean
+bool
 on_drawingarea_fi_progress_configure_event
                                         (GtkWidget       *widget,
                                         GdkEventConfigure *event,
                                         gpointer         user_data);
 
-gboolean
+bool
 on_drawingarea_fi_progress_expose_event
                                         (GtkWidget       *widget,
                                         GdkEventExpose  *event,
                                         gpointer         user_data);
 
 #endif /* _gtk_visual_progress_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

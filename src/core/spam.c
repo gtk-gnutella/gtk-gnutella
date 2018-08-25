@@ -48,7 +48,7 @@
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/halloc.h"
-#include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/pslist.h"

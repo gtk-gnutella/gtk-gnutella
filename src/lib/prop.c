@@ -32,6 +32,7 @@
 #include "file.h"
 #include "getdate.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "misc.h"
 #include "mutex.h"
 #include "parse.h"
@@ -51,7 +52,7 @@
 #define PROP_FILE_ID	"_id"
 
 #define debug track_props
-static guint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
+static uint32 track_props = 0;	/**< XXX need to init lib's props--RAM */
 
 #define PROP_SET_LOCK(s)	spinlock_hidden(&s->lock)
 #define PROP_SET_UNLOCK(s)	spinunlock_hidden(&s->lock)
@@ -87,13 +88,13 @@ prop_parse_guint64(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	int error;
-	guint64 u;
+	uint64 u;
 
 	u = parse_uint64(str, endptr, 10, &error);
 	if (error) {
 		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	} else if (vec) {
-		((guint64 *) vec)[i] = u;
+		((uint64 *) vec)[i] = u;
 	}
 
 	return error;
@@ -105,7 +106,7 @@ prop_parse_timestamp(const char *name,
 {
 	const char *ep;
 	int error = 0;
-	guint64 u;
+	uint64 u;
 	time_t t;
 
 	u = parse_uint64(str, &ep, 10, &error);
@@ -113,7 +114,7 @@ prop_parse_timestamp(const char *name,
 		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	}
 	if (*ep != '-') {
-		t = MIN(u + (time_t) 0, TIME_T_MAX + (guint64) 0);
+		t = MIN(u + (time_t) 0, TIME_T_MAX + (uint64) 0);
 		/* For backwards-compatibility accept raw numeric timestamps */
 	} else {
 		t = date2time(str, tm_time());
@@ -139,13 +140,13 @@ prop_parse_guint32(const char *name,
 	const char *str, const char **endptr, gpointer vec, size_t i)
 {
 	int error;
-	guint32 u;
+	uint32 u;
 
 	u = parse_uint32(str, endptr, 10, &error);
 	if (error) {
 		s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, str);
 	} else if (vec) {
-		((guint32 *) vec)[i] = u;
+		((uint32 *) vec)[i] = u;
 	}
 
 	return error;
@@ -190,16 +191,16 @@ prop_parse_boolean(const char *name,
 {
 	static const struct {
 		const char *s;
-		const gboolean v;
+		const bool v;
 	} tab[] = {
 		{ "0",		FALSE },
 		{ "1",		TRUE },
 		{ "FALSE",	FALSE },
 		{ "TRUE",	TRUE },
 	};
-	gboolean b = FALSE;
+	bool b = FALSE;
 	const char *p = NULL;
-	guint j;
+	uint j;
 	int error = 0;
 
 	g_assert(name);
@@ -221,7 +222,7 @@ prop_parse_boolean(const char *name,
 		s_warning("%s(): (prop=\"%s\") "
 			"str=\"%s\": \"%s\"", G_STRFUNC, name, str, "Not a boolean value");
 	} else if (vec) {
-		((gboolean *) vec)[i] = b;
+		((bool *) vec)[i] = b;
 	}
 
 	if (endptr)
@@ -271,7 +272,7 @@ prop_parse_vector(const char *name, const char *str,
 
 static void
 prop_parse_guint64_vector(const char *name, const char *str,
-	size_t size, guint64 *vec)
+	size_t size, uint64 *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_guint64);
 }
@@ -286,7 +287,7 @@ prop_parse_timestamp_vector(const char *name, const char *str,
 
 static void
 prop_parse_guint32_vector(const char *name, const char *str,
-	size_t size, guint32 *vec)
+	size_t size, uint32 *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_guint32);
 }
@@ -300,7 +301,7 @@ prop_parse_ip_vector(const char *name, const char *str,
 
 static void
 prop_parse_boolean_vector(const char *name, const char *str,
-	size_t size, gboolean *vec)
+	size_t size, bool *vec)
 {
 	prop_parse_vector(name, str, size, vec, prop_parse_boolean);
 }
@@ -311,7 +312,7 @@ prop_parse_boolean_vector(const char *name, const char *str,
  *
  * @return TRUE if the data was fully parsed. FALSE on failure.
  */
-static gboolean
+static bool
 prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 {
 	size_t i;
@@ -421,7 +422,7 @@ prop_get_def(prop_set_t *ps, property_t p)
 			HCOPY_ARRAY(d->data.boolean.value, d->vector_size);
 		break;
 	case PROP_TYPE_MULTICHOICE: {
-		guint n = 0;
+		uint n = 0;
 
 		while (d->data.guint32.choices[n].title != NULL)
 			n++;
@@ -499,7 +500,7 @@ prop_free_def(prop_def_t *d)
 		HFREE_NULL(d->data.boolean.def);
 		break;
 	case PROP_TYPE_MULTICHOICE: {
-		guint n = 0;
+		uint n = 0;
 
 		while (d->data.guint32.choices[n].title != NULL) {
 			HFREE_NULL(d->data.guint32.choices[n].title);
@@ -547,7 +548,7 @@ prop_free_def(prop_def_t *d)
  */
 void
 prop_add_prop_changed_listener(
-	prop_set_t *ps, property_t prop, prop_changed_listener_t l, gboolean init)
+	prop_set_t *ps, property_t prop, prop_changed_listener_t l, bool init)
 {
 	prop_add_prop_changed_listener_full(ps, prop, l, init, FREQ_SECS, 0);
 }
@@ -559,7 +560,7 @@ prop_add_prop_changed_listener(
 void
 prop_add_prop_changed_listener_full(
 	prop_set_t *ps, property_t prop, prop_changed_listener_t l,
-	gboolean init, enum frequency_type freq, guint32 interval)
+	bool init, enum frequency_type freq, uint32 interval)
 {
 	prop_def_t *d;
 
@@ -633,11 +634,11 @@ prop_check_type(const prop_def_t *d, prop_type_t t, bool setting)
 }
 
 void
-prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
+prop_set_boolean(prop_set_t *ps, property_t prop, const bool *src,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	gboolean old, new, differ = FALSE;
+	bool old, new, differ = FALSE;
 	size_t n;
 
 	g_assert(src != NULL);
@@ -687,12 +688,12 @@ prop_set_boolean(prop_set_t *ps, property_t prop, const gboolean *src,
 	PROP_DEF_UNLOCK(d);
 }
 
-gboolean *
-prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
+bool *
+prop_get_boolean(prop_set_t *ps, property_t prop, bool *t,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	gboolean *target;
+	bool *target;
 	size_t n;
 
 	d = &PROP(ps, prop);
@@ -714,11 +715,11 @@ prop_get_boolean(prop_set_t *ps, property_t prop, gboolean *t,
 }
 
 void
-prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
+prop_set_guint64(prop_set_t *ps, property_t prop, const uint64 *src,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 
 	d = &PROP(ps, prop);
 
@@ -750,7 +751,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 			*d->data.guint64.value = *src;
 		} else {
 			char buf[64];
-			guint64 newval = *src;
+			uint64 newval = *src;
 
 			if (newval > d->data.guint64.max)
 				newval = d->data.guint64.max;
@@ -793,12 +794,12 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const guint64 *src,
 	PROP_DEF_UNLOCK(d);
 }
 
-guint64 *
-prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
+uint64 *
+prop_get_guint64(prop_set_t *ps, property_t prop, uint64 *t,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	guint64 *target;
+	uint64 *target;
 	size_t n;
 
 	d = &PROP(ps, prop);
@@ -820,11 +821,11 @@ prop_get_guint64(prop_set_t *ps, property_t prop, guint64 *t,
 }
 
 void
-prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
+prop_set_guint32(prop_set_t *ps, property_t prop, const uint32 *src,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 
 	g_assert(src != NULL);
 
@@ -857,9 +858,9 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 		 */
 
 		if (PROP_TYPE_MULTICHOICE == d->type) {
-			guint n;
-			gboolean invalid = TRUE;
-			guint32 newval = *src;
+			uint n;
+			bool invalid = TRUE;
+			uint32 newval = *src;
 
 			prop_assert(ps, prop, d->data.guint32.choices != NULL);
 
@@ -883,7 +884,7 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 			if (d->data.guint32.min <= *src && d->data.guint32.max >= *src) {
 				*d->data.guint32.value = *src;
 			} else {
-				guint32 newval = *src;
+				uint32 newval = *src;
 
 				if (newval > d->data.guint32.max)
 					newval = d->data.guint32.max;
@@ -923,11 +924,11 @@ prop_set_guint32(prop_set_t *ps, property_t prop, const guint32 *src,
 	PROP_DEF_UNLOCK(d);
 }
 
-guint32 *
-prop_get_guint32(prop_set_t *ps, property_t prop, guint32 *t,
+uint32 *
+prop_get_guint32(prop_set_t *ps, property_t prop, uint32 *t,
 	size_t offset, size_t length)
 {
-	guint32 *target;
+	uint32 *target;
 	size_t n;
 	prop_def_t *d;
 
@@ -954,7 +955,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 	size_t offset, size_t length)
 {
 	prop_def_t *d;
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 
 	g_assert(src != NULL);
 
@@ -1061,7 +1062,7 @@ void
 prop_set_ip(prop_set_t *ps, property_t prop, const host_addr_t *src,
 	size_t offset, size_t length)
 {
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 	prop_def_t *d;
 
 	g_assert(src != NULL);
@@ -1140,7 +1141,7 @@ prop_set_storage(prop_set_t *ps, property_t prop, const char *src,
 	size_t length)
 {
 	prop_def_t *d;
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 
 	g_assert(src != NULL);
 
@@ -1208,7 +1209,7 @@ prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 {
 	prop_def_t *d;
 	char *old;
-	gboolean differ = FALSE;
+	bool differ = FALSE;
 
 	d = &PROP(ps, prop);
 
@@ -1365,20 +1366,60 @@ prop_type_to_string(prop_set_t *ps, property_t prop)
 	return prop_type_str[PROP(ps,prop).type].name;
 }
 
-gboolean
+bool
 prop_is_saved(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).save;
 }
 
-gboolean
+bool
 prop_is_internal(prop_set_t *ps, property_t prop)
 {
 	return PROP(ps,prop).internal;
 }
 
 /**
+ * Pretty formatting of property string, with enclosing type markers.
+ *
+ * @return value from a thread-static buffer.
+ */
+const char *
+prop_to_typed_string(prop_set_t *ps, property_t prop)
+{
+	str_t *s = str_private(G_STRFUNC, 128);
+	const char *before = "", *after = "";
+
+	switch (prop_type(ps, prop)) {
+	case PROP_TYPE_BOOLEAN:
+	case PROP_TYPE_GUINT32:
+	case PROP_TYPE_GUINT64:
+		break;
+	case PROP_TYPE_STORAGE:
+		before = "'"; after = "'";
+		break;
+	case PROP_TYPE_IP:
+		before = "< "; after = " >";
+		break;
+	case PROP_TYPE_TIMESTAMP:
+	case PROP_TYPE_STRING:
+		before = after = "\"";
+		break;
+	case PROP_TYPE_MULTICHOICE:
+		before = "{ "; after = " }";
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	str_printf(s, "%s%s%s", before, prop_to_string(ps, prop), after);
+
+	return str_2c(s);
+}
+
+/**
  * Fetches the value of property as a string.
+ *
+ * @return value from a thread-static buffer.
  */
 const char *
 prop_to_string(prop_set_t *ps, property_t prop)
@@ -1479,7 +1520,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 			str_putc(s, '[');
 
 		for (n = 0; n < d->vector_size; n++) {
-			gboolean val;
+			bool val;
 
 			if (n != 0)
 				STR_CAT(s, ", ");
@@ -1547,7 +1588,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 
 	switch (p->type) {
 	case PROP_TYPE_GUINT32:
-		str_printf(s, "%u", (guint) p->data.guint32.def[0]);
+		str_printf(s, "%u", (uint) p->data.guint32.def[0]);
 		goto done;
 	case PROP_TYPE_GUINT64:
 		{
@@ -1578,7 +1619,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		goto done;
 	case PROP_TYPE_MULTICHOICE:
 		{
-			guint n = 0;
+			uint n = 0;
 
 			while (
 				p->data.guint32.choices[n].title != NULL &&
@@ -1608,7 +1649,7 @@ done:
  * @return "TRUE" or "FALSE" depending on the given boolean value.
  */
 static inline const char *
-config_boolean(gboolean b)
+config_boolean(bool b)
 {
 	static const char b_true[] = "TRUE", b_false[] = "FALSE";
 	return b ? b_true : b_false;
@@ -1728,7 +1769,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	filestat_t sb;
 	char *newfile;
 	char *pathname;
-	guint n;
+	uint n;
 
 	g_assert(filename != NULL);
 	g_assert(ps != NULL);
@@ -1806,11 +1847,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
 		char **vbuf;
-		guint i;
+		uint i;
 		char sbuf[1024];
 		char *val = NULL;
-		gboolean quotes = FALSE;
-		gboolean defaultvalue = TRUE;
+		bool quotes = FALSE;
+		bool defaultvalue = TRUE;
 
 		if (p->save == FALSE)
 			continue;
@@ -1830,7 +1871,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		switch (p->type) {
 		case PROP_TYPE_BOOLEAN:
 			for (i = 0; i < p->vector_size; i++) {
-				gboolean v;
+				bool v;
 
 				v = p->data.boolean.value[i];
 				if (v != p->data.boolean.def[i])
@@ -1844,7 +1885,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 		case PROP_TYPE_MULTICHOICE:
 		case PROP_TYPE_GUINT32:
 			for (i = 0; i < p->vector_size; i++) {
-				guint32 v;
+				uint32 v;
 
 				v = p->data.guint32.value[i];
 				if (v != p->data.guint32.def[i])
@@ -1858,7 +1899,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			break;
 		case PROP_TYPE_GUINT64:
 			for (i = 0; i < p->vector_size; i++) {
-				guint64 v;
+				uint64 v;
 
 				v = p->data.guint64.value[i];
 				if (v != p->data.guint64.def[i])
@@ -1991,18 +2032,112 @@ end:
 }
 
 /**
+ * Check whether property holds the default value.
+ */
+static bool
+prop_is_default(prop_def_t *p)
+{
+	uint i;
+	bool defaultvalue = TRUE;
+
+	PROP_DEF_LOCK(p);
+
+	switch (p->type) {
+	case PROP_TYPE_BOOLEAN:
+		for (i = 0; i < p->vector_size; i++) {
+			if (p->data.boolean.value[i] != p->data.boolean.def[i])
+				defaultvalue = FALSE;
+		}
+		break;
+	case PROP_TYPE_MULTICHOICE:
+	case PROP_TYPE_GUINT32:
+		for (i = 0; i < p->vector_size; i++) {
+			if (p->data.guint32.value[i] != p->data.guint32.def[i])
+				defaultvalue = FALSE;
+		}
+		break;
+	case PROP_TYPE_GUINT64:
+		for (i = 0; i < p->vector_size; i++) {
+			if (p->data.guint64.value[i] != p->data.guint64.def[i])
+				defaultvalue = FALSE;
+		}
+		break;
+	case PROP_TYPE_TIMESTAMP:
+		for (i = 0; i < p->vector_size; i++) {
+			if (p->data.timestamp.value[i] != p->data.timestamp.def[i])
+				defaultvalue = FALSE;
+		}
+		break;
+	case PROP_TYPE_STRING:
+		if (
+			*p->data.string.value != *p->data.string.def &&
+			NULL != *p->data.string.value &&
+			NULL != *p->data.string.def &&
+			0 != strcmp(*p->data.string.value, *p->data.string.def)
+		)
+			defaultvalue = FALSE;
+		if (NULL == *p->data.string.value)
+			defaultvalue = FALSE;
+		break;
+	case PROP_TYPE_IP:
+		defaultvalue = FALSE;
+		break;
+	case PROP_TYPE_STORAGE:
+		/* No default values for storage type properties. */
+		defaultvalue = FALSE;
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	PROP_DEF_UNLOCK(p);
+
+	return defaultvalue;
+}
+
+/**
+ * In case of crash, dump all the properties.
+ *
+ * All the properties, regardless of whether they are normally persisted, are
+ * dumped, one line per property.  If the value of a property is the default
+ * for that property, its line starts with a '#' character.
+ */
+void
+prop_crash_dump(prop_set_t *ps)
+{
+	uint n;
+	str_t *s = str_new(80);
+
+	for (n = 0; n < ps->size; n++) {
+		prop_def_t *p = &ps->props[n];
+
+		str_reset(s);
+		if (prop_is_default(p))
+			str_putc(s, '#');
+
+		str_cat(s, p->name);
+		STR_CAT(s, " = ");
+		str_cat(s, prop_to_typed_string(ps, n + ps->offset));
+
+		s_info("%s", str_2c(s));
+	}
+
+	str_destroy_null(&s);
+}
+
+/**
  * Called by prop_load_from_file to actually set the properties.
  */
 void
 prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
-	gboolean saved_only)
+	bool saved_only)
 {
 	prop_def_t *p;
 	const prop_set_stub_t *stub;
 	static union {
-		gboolean	boolean[100];
-		guint32		uint32[100];
-		guint64		uint64[100];
+		bool	boolean[100];
+		uint32		uint32[100];
+		uint64		uint64[100];
 		time_t		timestamp[100];
 		host_addr_t	addr[100];
 	} vecbuf;
@@ -2027,7 +2162,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	switch (p->type) {
 	case PROP_TYPE_BOOLEAN:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(gboolean) < sizeof(vecbuf.boolean));
+			p->vector_size * sizeof(bool) < sizeof(vecbuf.boolean));
 
 		/* Initialize vector with defaults */
 		stub->boolean.get(prop, vecbuf.boolean, 0, 0);
@@ -2037,7 +2172,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	case PROP_TYPE_MULTICHOICE:
 	case PROP_TYPE_GUINT32:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint32) < sizeof(vecbuf.uint32));
+			p->vector_size * sizeof(uint32) < sizeof(vecbuf.uint32));
 
 		/* Initialize vector with defaults */
 		stub->guint32.get(prop, vecbuf.uint32, 0, 0);
@@ -2046,7 +2181,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 		break;
 	case PROP_TYPE_GUINT64:
 		prop_assert(ps, prop,
-			p->vector_size * sizeof(guint64) < sizeof(vecbuf.uint64));
+			p->vector_size * sizeof(uint64) < sizeof(vecbuf.uint64));
 
 		/* Initialize vector with defaults */
 		stub->guint64.get(prop, vecbuf.uint64, 0, 0);
@@ -2121,17 +2256,17 @@ load_helper(prop_set_t *ps, property_t prop, const char *val)
  * not generated for this instance of gtk-gnutella but copied from another
  * instance, TRUE otherwise.
  */
-gboolean
+bool
 prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 {
 	static const char fmt[] = "bad line %u in config file \"%s\", ignored";
 	static char prop_tmp[4096];
 	FILE *config;
 	char *path;
-	guint n = 1;
+	uint n = 1;
 	filestat_t buf;
-	gboolean truncated = FALSE;
-	gboolean good_id = FALSE;
+	bool truncated = FALSE;
+	bool good_id = FALSE;
 	const char *file_id;
 	static spinlock_t prop_load_slk = SPINLOCK_INIT;
 
@@ -2307,11 +2442,11 @@ prop_get_by_regex(prop_set_t *ps, const char *pattern, int *error)
 		goto done;
 	}
 
-	g_assert(ps->offset + ps->size - 1 < (guint) -1);
+	g_assert(ps->offset + ps->size - 1 < (uint) -1);
 
 	for (i = 0; i < ps->size; i++) {
 		if (0 == regexec(&re, ps->props[i].name, 0, NULL, 0)) {
-			guint n = ps->offset + i;
+			uint n = ps->offset + i;
 			sl = pslist_prepend(sl, uint_to_pointer(n));
 		}
 	}

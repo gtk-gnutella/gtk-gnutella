@@ -101,3 +101,5 @@ void on_popup_tray_preferences_activate(GtkMenuItem *, gpointer user_data);
 void on_popup_tray_quit_activate(GtkMenuItem *, gpointer user_data);
 
 #endif /* _gtk_main_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

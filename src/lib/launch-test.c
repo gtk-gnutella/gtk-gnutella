@@ -42,6 +42,7 @@
 #include "glib-missing.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "launch.h"
 #include "log.h"
@@ -527,8 +528,6 @@ main(int argc, char **argv)
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);
 	log_show_pid(TRUE);
-
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {

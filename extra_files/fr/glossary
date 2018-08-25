@@ -1,0 +1,269 @@
+<html>
+<head>
+<meta content="text/html; charset=windows-1252" http-equiv="content-type">
+<title>Glossaire de gtk-gnutella</title>
+</head>
+<body>
+
+<h1>Glossaire</h1>
+
+<h2>B</h2>
+
+<h3>
+<em>Indice</em> de bande passante pour les requêtes GUESS</h3>
+
+<p>On utilise le terme <em>indication de bande passante</em> car GUESS utilise l'UDP et ne peut fractionner des messages longs pour émettre juste quelques octets. Donc, il ne s'agit que d'un indice car celui-ci peut être dépassé si un ensemble de requêtes doit être émis et si leur taille totale dépasse la bande passante allouée. Des valeurs basses signifient que nous pourrons envoyer moins de requêtes et que par conséquent l'interrogation globale sera ralentie (signifiant que l'interrogation totale prendra plus longtemps) parce que chaque requête est envoyée à <em>un</em> ultrapeer GUESS.</p>
+
+
+<h3>Amorçage (bootstrap)</h3>
+
+<p>Le processus consistant à rejoindre le réseau Gnutella en découvrant d'autre pairs est appelé l'amorçage.</p>
+
+
+<h3>Seau (d'une table de routage)</h3>
+
+<p>Un <em>seau</em> est une portion de l'espace de l'ID de nœuds couverte par la table de routage. Chaque seau peut seulement contenir K nœuds, actuellement huit, avant de devenir « plein ». Quand un seau est rempli de bons nœuds connus, plus aucun nœud ne peut être ajouté sauf si notre propre ID de nœud se trouve dans la gamme du seau. Dans ce cas, le seau est remplacé par deux nouveaux seaux avec chacun la moitié de la portée de l'ancien seau et les nœuds de l'ancien seau sont distribués dans les nouveaux. Cela s'appelle « bucket SPLIT » ou « division de seau ». L'opération inverse impliquant des seaux s'appelle MERGE, c'est-à-dire fusion.<br>Chaque nœud maintient une table de routage des bons nœuds connus. Les nœuds de la table de routage sont utilisés comme points de départ pour les requêtes DHT. Les nœuds de la table de routage sont renvoyés en réponse aux requêtes d'autres nœuds. Il est important que la table de routage de chaque nœud contienne seulement des bons nœuds connus. Un bon nœud est un nœud qui aura répondu à l'une de nos requêtes dans les 15 dernières minutes. Un nœuds est également considéré comme bon s'il a déjà répondu au moins une fois à nos requêtes et s'il nous a envoyé une requête dans les 15 dernières minutes. Au bout de 15 minutes d'inactivité, un nœud devient douteux. Les nœuds deviennent mauvais lorsqu'ils échouent à répondre à plusieurs requêtes à la fois. Les nœuds dont nous savons qu'ils sont bons ont la priorité sur les nœuds qui sont d'un état inconnu.<br></p>
+
+
+<h3>Adieu</h3>
+
+<p>C'est un message optionnel utilisé pour informer l'hôte distant que la connexion est en train d'être interrompue
+	et il fournit également la raison de cette interruption; </p>
+
+
+<h2>D</h2>
+
+<h3>Descripteur</h3>
+
+<p>L'entité dans laquelle l'information est transmise à travers le réseau. Même signification que <em>message</em>.</p>
+
+<h3>DHT</h3>
+
+<p>La table de hachage distribuée (Distributed Hash Table (DHT)) est <em>une table de hachage</em> distribuée parmi les nœuds du réseau Gnutella. gtk-gnutella utilise une implémentation Kademlia pour sa DHT. Kademlia est également utilisé pour d'autres réseau P2P (comme eDonkey) mais en stockant des valeurs et des clefs différentes, empêchant ainsi l’interopérabilité entre les DHT de différents réseaux P2P. Sur Gnutella, la DHT est utilisée pour les recherches exactes, les recherches d'autres emplacements, de push-proxies, etc. mais pas pour des recherches de mots-clefs. Les opérations telles que <em>les recherches, les publications, les stockages, etc.</em> sont généralement effectuées dans une DHT dont les nœuds peuvent être soit actifs soit passifs.</p>
+
+
+<h2>E</h2>
+
+<h3>EAR</h3>
+
+<p><em>EAR</em> signifie « Extra Acknowledgement Request », c'est-à-dire « requête de confirmation supplémentaire ».</p>
+
+
+<h2>F</h2>
+
+<h3>Mode de contrôle de flux (FC)</h3>
+
+<p>Les servents empilent les paquets sortants dans une file d'attente d'où ils sont diffusés selon le mode premier entré, premier sorti (first-in-first-out, FIFO). Si la bande passante sortante est limitée et que de nombreux paquets doivent être diffusés, la file d'attente devient surchargée et le servent entre en mode de <em>contrôle de flux (Flow Control, FC)</em>. En mode FC, toutes les requêtes entrantes sur la connexion sont écartées. Bien entendu, les servents devraient éviter d'entrer en mode FC grâce à plus de bande passante attribuée ou en limitant le nombre de nœuds connectés.</p>
+
+<h3>Flooding</h3>
+
+<p><em>Flooding (inondation)</em> est un algorithme P2P simple mais peu efficace qui envoie les messages à tous les nœuds connectés pour atteindre la destination. L'algorithme de flooding a été remplacé par l'algorithme <em>GUESS</em> plus efficace.</p>
+
+
+<h2>G</h2>
+
+<h3>Hub G2</h3>
+
+<p>Les hubs G2 dans le réseau Gnutella2 sont les équivalents des ultrapeers (ultrapairs) du réseau Gnutella.
+	gtk-gnutella se connecte normalement à deux hubs G2 en se comportant comme un noeud feuille sur le réseau Gnutella2.</p>
+
+<h3>GGEP</h3>
+
+<p>Le protocole d'extension générique de Gnutella (Gnutella Generic Extension Protocol, GGEP) comprend de nouvelles fonctions ajoutés au protocole Gnutella original 0.4.</p>
+
+
+<h3>GIV</h3>
+
+<p><em>GIV</em> est le message envoyé par le servent qui enverra un fichier en réponse à une requête.</p>
+
+<h3>GnutellaNet</h3>
+
+<p>GnutellaNet (ou « Gnutella » pour faire court) est un réseau <em>en surcouche, overlay</em>. Cela signifie qu'il s'agit d'un réseau qui vient par-dessus ke réseau Internet normal.
+	GnutellaNet est <em>non structuré</em>. Cela signifie simplement qu'aucun ordinateur particulier ou groupe d'ordinateurs particulier ne contrôle
+	GnutellaNet ; qui est probablement plus démocratique que la plupart des gouvernements.</p>
+<p>Comme GnutellaNet est un réseau en surcouche, il n'a pas à faire attention
+	à la géographie. Il est probable que vous vous connectiez à des ordinateurs
+	dans d'autres pays. Les choses pourraient aller plus vite si ce n'était pas le cas.
+	Cependant, elles peuvent aussi être plus résilientes dans l'état actuel des choses.</p>
+
+<h3>GUESS (Gnutella UDP Extension for Scalable Searches, Extension Gnutella UDP pour les recherches extensibles)</h3>
+
+<p>Au contraire de l'algorithme de <em>flooding</em>,  avec le routage GUESS les nœuds sont interrogés un à la fois. Chaque nœud doit garder un
+	tampon des pairs connus ainsi que de confiance capables d'accepter les requêtes ; et les noeuds sont choisis au hasard. Cette méthode de routage est
+	considéré plus efficace et plus sûr comparé au flooding.</p>
+
+<h3>GUID (Global Unique IDentifier, identifiant global unique)</h3>
+
+<p>Il s'agit d'une valeur de 16 octets constitués d'octets au hasard, dont le but est d'identifier les servents et les messages. Cette identification n'est pas une signature mais simplement une façon d'identifier les entités du réseau de manière unique.</p>
+
+
+<h2>H</h2>
+
+<h3>HSEP</h3>
+
+<p>Le protocole d'estimation de la taille d'horizon (Horizon Size Estimation Protocol, HSEP) fait référence au nombre de ressources atteignables sur le réseau Gnutella, c'est-à-dire au nombre de nœuds Gnutella, de fichiers partagés et de kibioctets partagés atteignables.</p>
+
+
+<h2>L</h2>
+
+<h3>Leaf node ; nœud feuille</h3>
+
+<p>Un nœud feuille est la connexion de base au réseau Gnutella. Un nœud feuille se connecte typiquement à trois ou quatre ultrapeers.
+	Les ultrapeers routent les recherches et gardent leurs nœuds feuilles connectés au réseau Gnutella.</p>
+
+
+<h2>M</h2>
+
+<h3>Message</h3>
+
+<p>Les <em>messages</em> sont les entités dans lesquelles l'information est transmise sur le réseau. Les synonymes sont le <em>paquet</em> et
+	le <em>descripteur</em>.</p>
+
+<h3>MUID (Messages Unique IDentifier, identifiant unique des messages)</h3>
+
+<p>Un <em>GUID</em> pour les messages du réseau.</p>
+
+
+<h2>P</h2>
+
+<h3>PARQ (Passive/Active Remote Queuing, mise en file d'attente distante active/passive)</h3>
+<p>Lorsqu'un servent demande un fichier hébergé par un autre servent qui n'a pas de créneau d'envoi disponible, la requête est placée
+ 	sur une file d'attente sur le servent qui héberge le fichier. Cette file d'attente distante est gérée par <em>PARQ</em>.</p>
+
+<h3>Ping</h3>
+
+<p>Un <em>ping</em> est un message envoyé par un servent qui tente activement de découvrir des hôtes sur le réseau.
+	Un servent recevant un message ping doit répondre par un ou plusieurs messages pong.</p>
+
+<h3>Pong</h3>
+
+<p>Un <em>pong</em> est le message de réponse à un ping. Il comprend l'adresse d'un servent Gnutella connecté, le port d'écoute de ce
+servent, et des informations sur la quantité de données qu'il offre sur le réseau.</p>
+
+<h3>Push</h3>
+
+<p>Il s'agit d'un mécanisme qui permet à un servent se trouvant derrière un pare-feu de contribuer des données sous forme de fichiers au réseau. Par exemple, un servent peut envoyer
+	un message Push s'il reçoit un query hit depuis un servent qui ne prend pas en charge les connexions entrantes. Cela peut arriver lorsque
+	le servent qui envoie le query hit se trouve derrière un pare-feu.</p>
+
+<h3>Push-proxy</h3>
+
+<p>Un <em>push-proxy</em> est un nœud qui relaie des informations. Si un ultrapeer est connecté à une feuille se trouvant derrière un pare-feu, pour envoyer un <em>push</em>
+	à cette feuille se trouvant derrière un pare-feu, un servent peut envoyer un message UDP à l'ultrapeer qui le relaiera alors à cette feuille. Donc l'ultrapeer
+	agit comme un push-proxy : il est la cible pour atteindre le nœud feuille. </p>
+
+
+<h2>Q</h2>
+
+<h3>QRP</h3>
+
+<p>Le protocole de routage des requêtes (Query Routing Protocol, QRP) est un système pour éviter d'avoir à diffuser les requêtes sur le réseau Gnutella. Dans ce système, l'hôte crée des tables de routage des requêtes en créant le hachage des mots-clefs des fichiers et en les échangeant régulièrement avec ses voisins. Les techniques de compression standard minimisent le poids d'échange des tables. Ce système peut réduire de façon spectaculaire les besoins en bande passante du réseau Gnutella, améliorant ainsi l'évolutivité et laissant plus de bande passante pour l'échange de fichiers.</p>
+
+<h3>Recherche</h3>
+
+<p>L'envoi d'une <em>requête</em> (query) est le mécanisme principal de recherche dans le réseau distribué.
+	Un servent qui reçoit une requête répondra avec un Query Hit si une correspondance est trouvée dans les fichiers qu'il partage.</p>
+
+<h3>Query Hit</h3>
+
+<p>Un <em>Query Hit</em> est une réponse à une requête (query). Ce message fournit assez d'informations à l'expéditeur pour qu'il puisse acquérir les données
+	correspondant à la requête en question.</p>
+
+
+<h2>R</h2>
+
+<h3>RUDP</h3>
+
+<p>Le protocole UDP fiable (Reliable UDP, RUDP) permet des transferts de routeur NAT à routeur NAT, parfois appelés de pare-feu à pare-feu ou « hole punching (perforation) », dans les cas où la redirection de port n'est pas ou ne peut pas être fait par l'utilisateur.</p>
+
+
+<h3>RX</h3>
+
+<p>RX veut dire <em>réception</em>, contraire de la <em>transmission</em>.</p>
+
+
+<h2>S</h2>
+
+<h3>search literals (recherche littérale)</h3>
+
+<p>Les guillemets anglais simples ou doubles peuvent être utilisé pour que la recherche littérale
+	soit prise en compte au lieu des mots individuels. Les guillemets peuvent être
+	nécessaires si vous voulez effectuer une recherche avec des caractères spéciaux
+	tels que les signes plus ou moins (cf. « search requireds »).</p>
+
+<h3>search prefixes (préfixes de recherche)</h3>
+
+<ol>
+<li>browse: Lister les fichiers partagés de l'hôte spécifié. Le format est « browse:<em>adresse_ip:port</em> ».
+	De nombreuses parties de l'interface graphique ont une option de menu disponible avec un clic
+	droit qui permet de parcourir l'ordinateur spécifié.</li>
+<li>http: Télécharger la page web spécifiée. Cela peut être un fichier zip, une vidéo, une grande image JPEG, etc.</li>
+<li>local: Rechercher les résultats depuis l'hôte local, c'est-à-dire votre ordinateur. Une
+expression régulière peut suivre pour filtrer les résultats. Par exemple, 
+« local:manuel » affichera tous les fichiers que vous partagez et qui comprennent manuel dans le nom de fichier.</li>
+<li>magnet: Rechercher et télécharger la cible du magnet.</li>
+<li>push: Le format de cette recherche est « push:<em>guid:adresse_ip:port/chemin_du_fichier</em> ».
+	Le <em>guid</em> est l'identifiant Gnutella de l'ordinateur qui a le fichier que l'on désire.
+	L'<em>ip:port</em> est le push proxy (mandataire push) auquel le <em>guid</em> est connecté.
+	Typiquement cela sera un ultrapeer qui jouera le rôle de mandataire pour permettre le téléchargement.
+	Le <em>guid</em> est constitué de 32 caractères hexadécimaux.</li>
+<li>sha1: Valeur SHA base64 à rechercher. Il n'est pas automatiquement téléchargé.</li>
+<li>urn: Ressemble à une recherche sha1, mais la valeur de hachage est spécifiée, par exemple urn:sha1:<em>valeur de hachage</em>.</li>
+</ol>
+<h3>search requireds</h3>
+
+<p>Des petits filtres peuvent être créés avec les signes « + » et « - ». Le signe plus
+	impose que le mot fasse partie des résultats. Le signe moins n'affiche aucun
+	résultat avec la phrase donnée. Les signes plus et moins peuvent être utilisés
+	pour sélectionner des termes ambigus.</p>
+<p>Supposons que vous voulez trouver des informations sur des pommes. Vous pouvez utiliser une recherche comme <em>apples -ordinateurs</em>.
+	Vous pouvez obtenir des résultats encore plus pertinents en utilisant <em>pommes +fruit</em>.</p>
+
+<h3>Servent</h3>
+
+<p>Le mot « servent » dérive de la fusion de serveur et client. Un nœud sur un réseau P2P est appelé <em>servent</em> en raison de sa double nature, à la fois serveur et client.</p>
+
+
+<h3>SOAP</h3>
+
+<p>Le protocole d'accès simple aux objets (Simple Object Access Protocol, SOAP) est un protocole léger basé sur le XML pour échanger des informations dans des environnements décentralisés et distribués comme les réseaux P2P.</p>
+
+
+<h2>T</h2>
+
+<h3>THEX</h3>
+
+<p>Le format d'échange d'arbres de hachage (Tree Hash EXchange, THEX) est utilisé pour échanger des arbres de hachage Merkle construits à partir des hachages des sous ensembles des fichiers numériques distincts.</p>
+
+
+<h3>Time-To-Live (TTL)</h3>
+
+<p>Le TTL est le nombre de fois qu'un message sera relayé par les servents Gnutella avant qu'il ne soit écarté du réseau.
+	Chaque servent décrémentera la valeur TTL avant de le relayer à un autre servent.
+	Lorsque la valeur TTL atteint 0, le message ne sera plus relayé pour éviter un trafic réseau excessif.</p>
+
+
+<h3>TX</h3>
+
+<p>TX signifie <em>transmission</em>.</p>
+
+
+<h2>U</h2>
+
+<h3>Ultrapeer (UP)</h3>
+
+<p>Un ultrapeer ou pair ultra est bien connecté au réseau Gnutella.
+	Comme les ultrapeers doivent avoir de nombreuses connexions et qu'ils doivent relayer les requêtes de recherche,
+	ils ont besoin de davantage de ressources qu'un nœud feuille. Les ultrapeers
+	seront typiquement connectés à plus de 30 autres ultrapeers et à plus de 70 nœuds feuilles.</p>
+
+
+<h2>V</h2>
+
+<h3>Code vendeur ou logiciel</h3>
+
+<p>Le code vendeur ou logiciel est un code conventionnel de 4 lettres utilisé dans les query hits pour identifier le logiciel
+	qui fait fonctionner le noeud qui a généré la correspondance. Pour gtk-gnutella le code vendeur ou Vendor Code est <em>GTKG</em>.</p>
+
+</body>
+</html>

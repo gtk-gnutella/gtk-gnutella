@@ -48,6 +48,8 @@
 
 #include "column_sort.h"
 
+#include "lib/entropy.h"
+
 /**
  * Manage the tri-state sorting status on the column.
  *
@@ -87,6 +89,10 @@ column_sort_tristate(GtkTreeViewColumn *column, struct sorting_context *ctx)
 		ctx->s_order = SORT_NONE;
 		break;
 	}
+
+	/* Collect entropy from this user-initiated event */
+
+	entropy_harvest_small(PTRLEN(ctx), VARLEN(column), VARLEN(model), NULL);
 
 	/* Enforce sorting order */
 

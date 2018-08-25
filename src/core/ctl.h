@@ -73,3 +73,4 @@ bool ctl_limit(const host_addr_t ha, unsigned flags);
 
 #endif /* _core_ctl_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

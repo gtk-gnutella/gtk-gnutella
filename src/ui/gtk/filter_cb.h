@@ -82,5 +82,6 @@ gboolean on_entry_filter_size_key_press_event(GtkWidget *widget, GdkEventKey *ev
 void on_popup_filter_rule_copy_activate(GtkMenuItem *menuitem, gpointer user_data);
 void on_popup_filter_rule_paste_activate(GtkMenuItem *menuitem, gpointer user_data);
 
-
 #endif /* _gtk_filter_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

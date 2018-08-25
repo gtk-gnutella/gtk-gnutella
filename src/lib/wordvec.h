@@ -54,4 +54,4 @@ void word_vec_free(word_vec_t *wovec, uint n);
 
 #endif	/* _wordvec_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

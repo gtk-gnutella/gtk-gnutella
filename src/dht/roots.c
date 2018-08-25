@@ -72,6 +72,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/hset.h"
@@ -1086,17 +1087,20 @@ roots_init_rootinfo(void)
 	if (0 == count) {
 		contactid = 1;
 		targets_managed = contacts_managed = 0;
-		if (GNET_PROPERTY(dht_roots_debug)) {
-			g_debug("DHT ROOTS clearing database");
-		}
-	} else {
-		if (GNET_PROPERTY(dht_roots_debug)) {
-			g_debug("DHT ROOTS shrinking database files");
-		}
 	}
 
-	dbstore_compact(db_rootdata);
-	dbstore_compact(db_contact);
+
+	if (!crash_was_restarted()) {
+		if (GNET_PROPERTY(dht_roots_debug)) {
+			if (0 == count)
+				g_debug("DHT ROOTS clearing database");
+			else
+				g_debug("DHT ROOTS shrinking database files");
+		}
+
+		dbstore_compact(db_rootdata);
+		dbstore_compact(db_contact);
+	}
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS first allocated contact DB-key will be %s",

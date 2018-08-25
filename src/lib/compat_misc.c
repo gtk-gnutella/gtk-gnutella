@@ -64,7 +64,7 @@ int
 compat_kill_zero(pid_t pid)
 {
 #ifdef MINGW32
-	return mingw_process_access_check(pid);
+	return mingw_process_accessible(pid);
 #else
 	return kill(pid, 0);
 #endif

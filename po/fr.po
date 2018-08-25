@@ -3,14 +3,14 @@
 # This file is distributed under the same license as the PACKAGE package.
 #
 # Translators:
-# mauron, 2014-2015
+# mauron, 2014-2016
 msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 08:49+0100\n"
-"PO-Revision-Date: 2016-02-15 08:28+0000\n"
-"Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"PO-Revision-Date: 2016-08-31 12:04+0000\n"
+"Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/fr/)\n"
 "Language: fr\n"
@@ -264,7 +264,7 @@ msgid "No support for Content-Encoding (%s)"
 msgstr "Pas de support pour l'en-tête Content-Encoding (%s)"
 
 msgid "Incomplete headers during TLS upgrade"
-msgstr ""
+msgstr "En-têtes incomplets pendant la mise à niveau"
 
 msgid "Spammer detected"
 msgstr "Spameur détecté"
@@ -416,6 +416,10 @@ msgstr "Timeout"
 
 msgid "Requeued due to timeout"
 msgstr "Remis dans la file après timeout"
+
+#, fuzzy
+msgid "File info being freed"
+msgstr "Information sur le fichier réinitialisée"
 
 msgid "Partial file removed"
 msgstr "Fichier partiel supprimé"
@@ -591,10 +595,10 @@ msgid "Protocol not acceptable"
 msgstr "Protocole non acceptable"
 
 msgid "Conflict"
-msgstr ""
+msgstr "Conflit"
 
 msgid "Upgrade Header Missing"
-msgstr ""
+msgstr "En-tête de mise à niveau manquant"
 
 msgid "Servent Shutdown"
 msgstr "Arrêt du servent"
@@ -745,10 +749,13 @@ msgstr "Création du répertoire « %s » pour %s"
 #, c-format
 msgid "Another gtk-gnutella supervisor is running as PID %lu"
 msgstr ""
+"Un autre superviseur gtk-gnutella est en cours de fonctionnement en tant que "
+"PID %lu"
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
 msgstr ""
+"Un autre gtk-gnutella est en cours de fonctionnement en tant que PID %lu"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Ne peut continuer sans un répertoire de configuration valide"
@@ -806,13 +813,6 @@ msgstr "Timeout en attente de la suite"
 msgid "Lifetime expired"
 msgstr "Durée de vie expirée"
 
-msgid "Unauthorized"
-msgstr "Non autorisé"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "Limite les Connexions depuis %s"
-
 msgid "No reason given"
 msgstr "Pas de raison"
 
@@ -836,9 +836,6 @@ msgstr "Pas trouvé"
 
 msgid "File was modified"
 msgstr "Le fichier a été modifié"
-
-msgid "Moved Permanently"
-msgstr "Déplacé de manière permanente"
 
 msgid "File index/name mismatch"
 msgstr "L'index/nom de fichier ne correspond pas"
@@ -867,6 +864,13 @@ msgstr "<Requête de fouinage d'hôte>"
 msgid "Browse Host Disabled"
 msgstr "Fouille d'hôte désactivée"
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Limitation du nombre de messages"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "Redirection vers %s:%u"
@@ -876,6 +880,10 @@ msgstr "Non modifié"
 
 msgid "Stalling upload replaced"
 msgstr "Remplacement d'un envoi bloqué"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Impossible d'envoyer l'état HTTP complet"
 
 msgid "Already downloading this file"
 msgstr "Téléchargement de ce fichier en cours"
@@ -906,9 +914,6 @@ msgstr "Délai minimum de reprise"
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Dans la file (créneau %d, ETA : %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Impossible d'envoyer l'état HTTP complet"
-
 msgid "Not Acceptable"
 msgstr "Pas acceptable"
 
@@ -931,6 +936,10 @@ msgstr ", par morceaux"
 msgid "THEX failure"
 msgstr "Échec THEX"
 
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Impossible d'envoyer l'état HTTP complet"
+
 msgid "EOF while sinking"
 msgstr ""
 
@@ -939,7 +948,7 @@ msgid "Read error while sinking: %m"
 msgstr ""
 
 msgid "Content Too Large"
-msgstr ""
+msgstr "Contenu trop grand"
 
 msgid "Unknown/Missing Protocol Tag"
 msgstr "Étiquette de protocole inconnu ou manquant"
@@ -1064,6 +1073,10 @@ msgstr "G2 correspondances sur la base de données locale"
 msgid "G2 hits on local partial files"
 msgstr "G2 correspondances sur les fichiers locaux partiels"
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "Résultats sur une recherche « quoi de neuf ? »"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "Résultats de recherche reçus pour les recherches via proxy OOB"
 
@@ -1131,6 +1144,9 @@ msgstr "Requêtes G2 UTF8"
 
 msgid "SHA1 G2 queries"
 msgstr "Requêtes G2 SHA1"
+
+msgid "Queries with aliased words"
+msgstr ""
 
 msgid "GUESS queries"
 msgstr "GUESS nombre de requêtes"
@@ -3314,6 +3330,8 @@ msgid ""
 "Maximum amount of leaves we can accept.  To be promoted Ultra, you should "
 "reserve 32 bytes/sec of bandwidth per leaf."
 msgstr ""
+"Nombre maximum de feuilles que l'on peut recevoir. Pour être élu ultrapeer, "
+"vous devriez réserver 32 octets/sec de bande passante par feuille."
 
 msgid "What to do with files that will be ignored for downloading."
 msgstr "Que faire avec les fichiers qui seront ignorés pour le téléchargement."
@@ -4948,9 +4966,28 @@ msgid ""
 "unchanged when gtk-gnutella restarts after a crash or an explicit restart "
 "request."
 msgstr ""
+"Horodatage de l'heure à laquelle la session actuelle a démarré. Cet "
+"horodatage reste inchangé lorsque gtk-gnutella redémarre suite à un plantage "
+"ou à une requête de redémarrage explicite."
 
 msgid "No TCP listening socket bound to allow incoming connections."
-msgstr ""
+msgstr "Aucun socket d'écoute TCP lié pour autoriser les connexions entrantes."
+
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr "Définit quels en-têtes Gnutella doivent être tracés."
+
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Définit quels en-têtes Gnutella doivent être tracés."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Définit quels en-têtes Gnutella doivent être tracés."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Définit quels en-têtes Gnutella doivent être tracés."
 
 msgid "disable"
 msgstr "désactiver"
@@ -5470,12 +5507,12 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, "
 "rpm and also exe files."
 msgstr ""
 "Les noeuds distants qui supportent le filtrage par type de média ne vont "
 "appliquer la recherche que sur les fichiers de type archive / programme, "
-"comme les fichiers ZIP, 7z, tar, bz2, gz, dep, rpm et autres exe."
+"comme les fichiers ZIP, 7z, tar, bz2, gz, deb, rpm et autres exe."
 
 msgid ""
 "Discard search results with an alien IP address, not matching the one from "
@@ -5506,6 +5543,19 @@ msgid ""
 msgstr ""
 "Si la ligne de résumé GUESS doit montrer un résumé ou les statistiques pour "
 "la recherche en cours."
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Position du séparateur dans le panneau des stats Gnet."
+
+msgid "Notebook tab number for download info / tools"
+msgstr ""
 
 msgid "Anonymizing proxies"
 msgstr "Proxys anonymes"
@@ -6457,7 +6507,7 @@ msgid "Value missing"
 msgstr "Valeur manquante"
 
 msgid "Property cannot be changed"
-msgstr ""
+msgstr "La propriété ne peut être modifiée"
 
 #, c-format
 msgid "Previous value was %s"
@@ -6514,9 +6564,13 @@ msgstr "Non disponible"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "feuilles : %lu, profondeur : %u, granularité : %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "terminé"
 
 msgid "Tigertree"
 msgstr "Tigertree"
@@ -9047,7 +9101,7 @@ msgid "_Auto-hide leaf traffic stats"
 msgstr "Cacher _automatiquement les stats du trafic de feuille"
 
 msgid "Glossary"
-msgstr ""
+msgstr "Glossaire"
 
 msgid "_Search"
 msgstr "_Recherche"
@@ -9224,14 +9278,14 @@ msgstr "Afficher une _icône de statut"
 msgid "Avg. downtime of this servent"
 msgstr "Downtime moyen de ce servent :"
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Enlever les téléchargements terminés de la liste"
 
 msgid "_Clear completed"
 msgstr "_Effacer les fichiers terminés"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Hôte :"
@@ -9340,6 +9394,8 @@ msgid ""
 "<html><head><title>Glossary</title></head><body><p>The glossary document "
 "could not be loaded.</p></body></html>"
 msgstr ""
+"<html><head><title>Glossaire</title></head><body><p>Le document du glossaire "
+"n'a pu être chargé.</p></body></html>"
 
 #, c-format
 msgid "%lu file shared (%s)"
@@ -9755,7 +9811,7 @@ msgstr ""
 "*** INSUFFISANCE DU TAMPON DU KERNEL -- LIMITATION DES CONNEXIONS TCP ***"
 
 msgid "*** NO LISTENING TCP SOCKET -- NO INBOUND CONNECTIONS ***"
-msgstr ""
+msgstr "*** AUCUN SOCKET TCP D'ÉCOUTE -- AUCUNE CONNEXION ENTRANTE ***"
 
 msgid "*** UPLOADS STALLING, BANDWIDTH SHORTAGE? ***"
 msgstr "*** LES ENVOIS CALENT, BANDE PASSANTE SURCHARGÉE ? ***"
@@ -9812,7 +9868,7 @@ msgid "Queue frozen"
 msgstr "File d'attente figée"
 
 msgid "Internal"
-msgstr ""
+msgstr "Interne"
 
 msgid "Select a property to see its description."
 msgstr "Sélectionnez une propriété pour voir sa description."
@@ -9826,9 +9882,6 @@ msgstr "Rien en sortie actuellement..."
 
 msgid "Got push, connecting back..."
 msgstr "Reçu Push, se connecte..."
-
-msgid "< 1s"
-msgstr "< 1s"
 
 msgid "(quick) "
 msgstr "(rapide) "
@@ -9878,3 +9931,15 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Unauthorized"
+#~ msgstr "Non autorisé"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "Limite les Connexions depuis %s"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Déplacé de manière permanente"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

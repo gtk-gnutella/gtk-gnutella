@@ -54,4 +54,4 @@ void mq_udp_node_putq(mqueue_t *q, pmsg_t *mb, const struct gnutella_node *n);
 
 #endif	/* _core_mq_udp_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

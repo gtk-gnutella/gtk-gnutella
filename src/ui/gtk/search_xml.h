@@ -41,3 +41,5 @@ gboolean search_retrieve_xml(void);
 gnet_search_t search_gui_get_handle(const struct search *);
 
 #endif	/* _gtk_search_xml_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

@@ -77,6 +77,7 @@
 #include "lib/glog.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/iovec.h"
 #include "lib/misc.h"			/* For strchomp() */
@@ -232,7 +233,7 @@ done:
 /**
  * Log message.
  */
-static void
+static void G_PRINTF(2, 0)
 tls_logfmt(GLogLevelFlags level, const char *fmt, ...)
 {
 	va_list args;
@@ -245,7 +246,7 @@ tls_logfmt(GLogLevelFlags level, const char *fmt, ...)
 /**
  * Log TLS certificate.
  */
-static void
+static void G_PRINTF(1, 0)
 tls_cert_log(const char *fmt,
 	gnutls_x509_crt_t cert, gnutls_certificate_print_formats_t format)
 {
@@ -316,6 +317,7 @@ error:
 	return d;
 }
 
+#if HAS_TLS(2, 12)
 /**
  * Generate an X.509 self-signed certificate in PEM format.
  *
@@ -470,6 +472,7 @@ done:
 	str_destroy_null(&cn);
 #undef TRY
 }
+#endif	/* TLS >= 2.12 */
 
 static inline gnutls_session_t
 tls_socket_get_session(struct gnutella_socket *s)
@@ -1101,8 +1104,10 @@ tls_global_init(void)
 	if (!file_exists(key_file))
 		tls_generate_private_key(key_file);
 
+#if HAS_TLS(2, 12)
 	if (!file_exists(cert_file) && file_exists(key_file))
 		tls_generate_self_signed_cert(cert_file, key_file);
+#endif
 
 	if (file_exists(key_file) && file_exists(cert_file)) {
 		e = gnutls_certificate_set_x509_key_file(cert_cred,

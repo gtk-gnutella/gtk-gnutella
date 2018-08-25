@@ -36,10 +36,11 @@
 #include "wordvec.h"
 #include "utf8.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "htable.h"
-#include "misc.h"
 #include "walloc.h"
 #include "zalloc.h"
+
 #include "override.h"		/* Must be the last header included */
 
 #define WOVEC_DFLT	10		/**< Default size of word-vectors */

@@ -357,6 +357,14 @@ gboolean gui_property_variable_search_display_guess_stats     = TRUE;
 static const gboolean gui_property_variable_search_display_guess_stats_default = TRUE;
 gboolean gui_property_variable_guess_stats_show_total     = TRUE;
 static const gboolean gui_property_variable_guess_stats_show_total_default = TRUE;
+guint32  gui_property_variable_fileinfo_notebook_tab     = 0;
+static const guint32  gui_property_variable_fileinfo_notebook_tab_default = 0;
+guint32  gui_property_variable_main_notebook_tab     = 0;
+static const guint32  gui_property_variable_main_notebook_tab_default = 0;
+guint32  gui_property_variable_gnet_stats_notebook_tab     = 0;
+static const guint32  gui_property_variable_gnet_stats_notebook_tab_default = 0;
+guint32  gui_property_variable_downloads_info_notebook_tab     = 0;
+static const guint32  gui_property_variable_downloads_info_notebook_tab_default = 0;
 
 static prop_set_t *gui_property;
 
@@ -2713,7 +2721,7 @@ gui_prop_init(void) {
      * General data:
      */
     gui_property->props[116].name = "search_media_type_archive";
-    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, rpm and also exe files.");
+    gui_property->props[116].desc = _("Remote nodes supporting media type filtering will apply your query specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, rpm and also exe files.");
     gui_property->props[116].ev_changed = event_new("search_media_type_archive_changed");
     gui_property->props[116].save = TRUE;
     gui_property->props[116].internal = FALSE;
@@ -2820,6 +2828,94 @@ gui_prop_init(void) {
     gui_property->props[121].data.boolean.def   = (void *) &gui_property_variable_guess_stats_show_total_default;
     gui_property->props[121].data.boolean.value = (void *) &gui_property_variable_guess_stats_show_total;
 
+
+    /*
+     * PROP_FILEINFO_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[122].name = "fileinfo_notebook_tab";
+    gui_property->props[122].desc = _("Notebook tab number for the fileinfo listing");
+    gui_property->props[122].ev_changed = event_new("fileinfo_notebook_tab_changed");
+    gui_property->props[122].save = TRUE;
+    gui_property->props[122].internal = FALSE;
+    gui_property->props[122].vector_size = 1;
+	mutex_init(&gui_property->props[122].lock);
+
+    /* Type specific data: */
+    gui_property->props[122].type               = PROP_TYPE_GUINT32;
+    gui_property->props[122].data.guint32.def   = (void *) &gui_property_variable_fileinfo_notebook_tab_default;
+    gui_property->props[122].data.guint32.value = (void *) &gui_property_variable_fileinfo_notebook_tab;
+    gui_property->props[122].data.guint32.choices = NULL;
+    gui_property->props[122].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[122].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_MAIN_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[123].name = "main_notebook_tab";
+    gui_property->props[123].desc = _("Notebook tab number for the main page");
+    gui_property->props[123].ev_changed = event_new("main_notebook_tab_changed");
+    gui_property->props[123].save = TRUE;
+    gui_property->props[123].internal = FALSE;
+    gui_property->props[123].vector_size = 1;
+	mutex_init(&gui_property->props[123].lock);
+
+    /* Type specific data: */
+    gui_property->props[123].type               = PROP_TYPE_GUINT32;
+    gui_property->props[123].data.guint32.def   = (void *) &gui_property_variable_main_notebook_tab_default;
+    gui_property->props[123].data.guint32.value = (void *) &gui_property_variable_main_notebook_tab;
+    gui_property->props[123].data.guint32.choices = NULL;
+    gui_property->props[123].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[123].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_GNET_STATS_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[124].name = "gnet_stats_notebook_tab";
+    gui_property->props[124].desc = _("Notebook tab number for the Gnet stats page");
+    gui_property->props[124].ev_changed = event_new("gnet_stats_notebook_tab_changed");
+    gui_property->props[124].save = TRUE;
+    gui_property->props[124].internal = FALSE;
+    gui_property->props[124].vector_size = 1;
+	mutex_init(&gui_property->props[124].lock);
+
+    /* Type specific data: */
+    gui_property->props[124].type               = PROP_TYPE_GUINT32;
+    gui_property->props[124].data.guint32.def   = (void *) &gui_property_variable_gnet_stats_notebook_tab_default;
+    gui_property->props[124].data.guint32.value = (void *) &gui_property_variable_gnet_stats_notebook_tab;
+    gui_property->props[124].data.guint32.choices = NULL;
+    gui_property->props[124].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[124].data.guint32.min   = 0x00000000;
+
+
+    /*
+     * PROP_DOWNLOADS_INFO_NOTEBOOK_TAB:
+     *
+     * General data:
+     */
+    gui_property->props[125].name = "downloads_info_notebook_tab";
+    gui_property->props[125].desc = _("Notebook tab number for download info / tools");
+    gui_property->props[125].ev_changed = event_new("downloads_info_notebook_tab_changed");
+    gui_property->props[125].save = TRUE;
+    gui_property->props[125].internal = FALSE;
+    gui_property->props[125].vector_size = 1;
+	mutex_init(&gui_property->props[125].lock);
+
+    /* Type specific data: */
+    gui_property->props[125].type               = PROP_TYPE_GUINT32;
+    gui_property->props[125].data.guint32.def   = (void *) &gui_property_variable_downloads_info_notebook_tab_default;
+    gui_property->props[125].data.guint32.value = (void *) &gui_property_variable_downloads_info_notebook_tab;
+    gui_property->props[125].data.guint32.choices = NULL;
+    gui_property->props[125].data.guint32.max   = 0xFFFFFFFF;
+    gui_property->props[125].data.guint32.min   = 0x00000000;
+
     gui_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
         htable_insert(gui_property->by_name,
@@ -2880,6 +2976,15 @@ void
 gui_prop_unlock(property_t p)
 {
     prop_unlock(gui_property, p);
+}
+
+/**
+ * Dump properties to specified file descriptor, in case of a crash.
+ */
+void
+gui_prop_crash_dump(void)
+{
+	prop_crash_dump(gui_property);
 }
 
 /**
@@ -3006,6 +3111,12 @@ gpointer
 gui_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gui_property, p, t, l);
+}
+
+const char *
+gui_prop_to_typed_string(property_t prop)
+{
+    return prop_to_typed_string(gui_property, prop);
 }
 
 const char *

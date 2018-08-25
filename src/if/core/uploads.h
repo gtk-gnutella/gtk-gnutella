@@ -76,16 +76,17 @@ typedef struct gnet_upload_info {
 	filesize_t range_start;	/**< First byte to send, inclusive */
 	filesize_t range_end;	/**< Last byte to send, inclusive */
 
-	const char  *name;		/**< Name of requested file (converted to UTF-8) */
-	const char  *user_agent;	/**< Remote user agent (converted to UTF-8) */
+	const char *name;		/**< Name of requested file (converted to UTF-8) */
+	const char *user_agent;	/**< Remote user agent (converted to UTF-8) */
 
-	time_t  start_date;
-	time_t  last_update;
+	time_t start_date;
+	time_t last_update;
 
 	bool push;				/**< Whether we're pushing or not */
 	bool partial;			/**< Whether it's a partial file */
 	bool encrypted; 		/**< Whether the connection is (TLS) encrypted */
 	bool tls_upgraded; 		/**< Whether a TLS upgrade was requested */
+	bool g2;				/**< Whether requested from a G2 host */
 
 	uint16 gnet_port;		/**< Advertised Gnutella listening port */
 	uint16 country;  		/**< Contry of origin */

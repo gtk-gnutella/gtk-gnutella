@@ -33,6 +33,7 @@ void tth_cache_insert(const struct tth *tth, const struct tth *leaves, int n);
 size_t tth_cache_lookup(const struct tth *tth, filesize_t filesize);
 size_t tth_cache_get_tree(const struct tth *tth, filesize_t filesize,
 		const struct tth **tree);
+size_t tth_cache_get_nleaves(const struct tth *tth);
 void tth_cache_remove(const struct tth *tth);
 void tth_cache_close(void);
 

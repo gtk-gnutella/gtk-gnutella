@@ -45,7 +45,7 @@
  * all the bandwidth was not consumed, incoming packets are sent immediately
  * until no more bandwidth is available, at which point we start queuing again.
  *
- * An scheduling queue is maintained by priority to send traffic ahead of any
+ * A scheduling queue is maintained by priority to send traffic ahead of any
  * other less prioritary packets.  This is typically used for acknowledgments,
  * since delaying an ACK will likely cause retransmission on the other end.
  *
@@ -561,7 +561,7 @@ udp_tx_desc_send(void *data, void *udata)
 /**
  * @return b/w per second configured for the attached b/w scheduler.
  */
-static ulong
+static uint64
 udp_sched_bw_per_second(const udp_sched_t *us)
 {
 	uint i;

@@ -113,3 +113,5 @@ dispage(char *pag)
 	}
 }
 #endif
+
+/* vi: set ts=4 sw=4 cindent: */

@@ -439,6 +439,9 @@ parse_numeric_entity(const struct array entity)
 		unsigned base;
 		uint32 v;
 
+		if G_UNLIKELY(0 == hex2int_inline('a'))
+			misc_init();	/* Auto-initialization of hex2int_inline() */
+
 		i++;
 		switch (entity.data[i]) {
 		case 'x':

@@ -575,12 +575,12 @@ file_object_open_from(const char * const pathname, int accmode,
 
 		if G_LIKELY(d >= 0) {
 			fd = file_object_new_descriptor(d, pathname, O_RDWR);
-		} else if (EACCES == errno) {
+		} else if (EACCES == errno || EROFS == errno) {
 			/*
 			 * Could not open the file with read-write access.  Maybe the
 			 * file exists already and therefore cannot be opened as both
-			 * read-and-write...  Try the access mode they want, do not force
-			 * read-write.
+			 * read-and-write, or the filesystem is flagged read-only...
+			 * Try the access mode they want, do not force read-write.
 			 */
 
 			if (O_RDONLY == accmode) {

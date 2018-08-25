@@ -121,3 +121,5 @@ int html_load_file(struct html_output *output, int fd);
 int html_load_memory(struct html_output *output, const struct array data);
 
 #endif	/* _html_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

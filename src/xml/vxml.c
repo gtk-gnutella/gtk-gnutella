@@ -43,6 +43,7 @@
 #include "lib/buf.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/misc.h"
 #include "lib/nv.h"
 #include "lib/ostream.h"
@@ -2472,6 +2473,9 @@ vxml_expand_char_ref(vxml_parser_t *vp)
 	 * Parse the (hexa) digits, constructing the value of the Unicode character
 	 * which will be the final value of the expansion.
 	 */
+
+	if G_UNLIKELY(0 == alnum2int_inline('a'))
+		misc_init();	/* Auto-initialization of alnum2int_inline() */
 
 	while (0 != (uc = vxml_next_char(vp))) {
 		unsigned d;

@@ -37,12 +37,12 @@
         <li><a href="#gnet7">Why doesn't my HTTP proxy work?</a></li>
         <li><a href="#gnet8">How can I increase the timeouts?</a></li>
         <li><a href="#gnet-auto">How does auto mode decide between ultra and leaf?</a></li>
+        <li><a href="#gnet-cache">I am running as ultrapeer, why GTKG keeps struggling to reach the maximum number of connected ultrapeers while the number of connected leaves is steadily close to 100%?</a></li>
     </ul>
     
     <h2>Searches</h2>
     <ul>
         <li><a href="#search0">How can I get more results?</a></li>
-        <li><a href="#search3">How can I ignore files with no SHA1?</a></li>
         <li><a href="#search-entry">Where did the search entry box go?</a></li>
         <li><a href="#search-passive">What are "Passive" searches?</a></li>
         <li><a href="#search-local">How can I copy the magnet link of a file I'm sharing?</a></li>
@@ -62,14 +62,14 @@
         <li><a href="#down9">In the downloads pane, what does it mean if the color of the text is grey instead of black?</a></li>
     </ul>
     
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     <ul>
         <li><a href="#up0">What does "Normalized" mean?</a></li>
+        <li><a href="#up1">Why not all files within the shared folders are being shared?</a></li>
     </ul>
     
     <h2>GTK+ 2.x</h2>
     <ul>
-        <li><a href="#gtk2_slow">Gtk2 is way sloooow.</a></li>
         <li><a href="#gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></li>
     </ul>
     
@@ -295,6 +295,11 @@
         bytes/s per gnet connection available.</li>
     </ol>
     
+    <h3><a name="gnet-cache">I am running as ultrapeer, why GTKG keeps struggling to reach the maximum number of connected ultrapeers while the number of connected leaves is steadily close to 100%?</a></h3>
+    <p>
+        There could be mainly two reasons for such behavior: 1) there is an overall shortage of ultrapeers on Gnutella network, 2) you are experiencing outgoing connection problems. The latter is the more likely explanation. When running as ultrapeer, many leaves try to connect to you. Similarly, a relatively smaller number of ultrapeers is trying to connect to you. Also, you are trying to connect to other ultrapeers but not to leaves. If your outgoing connection is poor (saturated bandwidth, provider having problems, etc) you will be unable to connect to some ultrapeers, so their IP addresses is removed from your local ultrapeer host cache. Probably you also noticed that in the cache page the regular host cache gradually reaches its maximum, while the ultrapeers hosts cache is much emptier and sometimes the number of nodes decreases instead of increasing. Actually there is not much you can do. Try to reduce the number of concurrent connections and/or the number of ultrapeers and leaves connection slots; alternatively run in leaf mode.
+    </p>
+    
     
 <h2>Searches</h2>
 
@@ -302,12 +307,6 @@
     <p>The number of results you get depends heavily on whether people are able
       to connect to you (see <a href="#gnet1">port forwarding</a>) and on the 
       <a href="#gnet0">number of connections</a> to other hosts.</p>
-      
-    <h3><a name="search3">How can I ignore files with no SHA1?</a></h3>
-    <p>Click with right mouse button on a search result without a SHA1 and
-      select "Drop results...-&gt;with the same urn:sha1" from the popup menu.
-      That will drop all results with this SHA1 - in this case none - from your
-      results. You'll miss a lot of spam.</p>
       
     <h3><a name="search-entry">Where did the search entry box go?</a></h3>
     <p>Searches are now entered in the <q><em>Search:</em></q> box in the
@@ -429,20 +428,25 @@
         route</a>.</p>
         
         
-    <h2>Uploads</h2>
+    <h2>Uploads and Sharing</h2>
     
     <h3><a name="up0">What does "Normalized" mean?</a></h3>
     <p>This shows the total amount of bytes uploaded for the file divided by
       the file size.</p>
       
+    <h3><a name="up1">Why not all files within the shared folders are being shared?</a></h3>
+    <p>By default Gtk-Gnutella shares only the files whose extension is included in the <em>Search extensions</em> 
+    below the shared folders list in the Preferences. If your files are not being shared, probably their extension 
+    is not included in that list. There are 2 ways to solve this issue:</p>
+    <ol>
+        <li>include the extensions of the unshared files in the <em>Search extensions</em> list;</li>
+        <li>replace the whole list of extensions with the wildcard "--all--".</li>
+    </ol>
+    <p>Please note that you can check which files are being shared locally on your host by doing a search with the 
+    wildcard "local:".</p>
+      
       
     <h2>GTK+ 2.x</h2>
-    <h3><a name="gtk2_slow">Gtk2 is way sloooow.</a></h3>
-    <p>Set the environment variable <code>GDK_USE_XFT</code> to 0 and see
-      whether this helps. This turns off anti aliasing in Gtk2 which can use a
-      lot of cpu. The Gtk2 frontend is much slower than the Gtk1 frontend. So on
-      a slow machine, you should consider using the Gtk1 frontend.</p>
-      
     <h3><a name="gtk2_ctype">Non-ASCII characters show up as _ (underscore).</a></h3>
     <p>Set the environment variable <code>LC_CTYPE</code> or <code>LC_ALL</code>
       to an appropriate value for the encoding you use. For example, if you use

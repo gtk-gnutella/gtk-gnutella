@@ -56,3 +56,4 @@ ipv6_ready_has_no_ipv4(const uint32 advertised)
 
 #endif /* _core_ipv6_ready_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -524,7 +524,6 @@ void download_request_requeue(struct download *);
 void download_request_start(struct download *);
 void download_request_pause(struct download *);
 bool download_request_remove(struct download *);
-void download_request_abort(struct download *);
 void download_request_resume(struct download *);
 
 void download_freeze_queue(void);

@@ -44,4 +44,4 @@ double chi2_upper_tail(int freedom, double critical);
 
 #endif /* _chi2_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

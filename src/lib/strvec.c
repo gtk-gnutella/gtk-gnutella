@@ -84,6 +84,89 @@ strvec_size(char * const *strv)
 }
 
 /**
+ * Free string vector content (not the array itself) with given free routine.
+ *
+ * The routine stops at the first NULL pointer in the vector and each entry
+ * is NULL-ified after being freed.
+ *
+ * @param fn		the free routine (xfree, hfree, etc...)
+ * @param strv		the string vector whose strings need to be freed
+ *
+ * @return the amount of entries up to the final NULL.
+ */
+size_t
+strvec_free_with(free_fn_t fn, char **strv)
+{
+	size_t i;
+
+	g_assert(fn != NULL);
+	g_assert(strv != NULL);
+
+	for (i = 0; strv[i] != NULL; i++) {
+		(*fn)(strv[i]);
+		strv[i] = NULL;
+	}
+
+	return i;
+}
+
+/**
+ * Expand existing vector array and append items from the other vector into it.
+ *
+ * The strings are NOT duplicated, their pointer is simply copied.
+ *
+ * Upon return, "oldn" is updated to hold the new vector count.
+ *
+ * @param fn		the reallocation routine (xrealloc, hrealloc, etc...)
+ * @param oldv		the string vector we want to expand
+ * @param oldn		contains current known amount of items in oldv, or 0
+ * @param copyv		the string vector we want to copy at the tail of oldv
+ * @param copyn		if not-zero, the current known amount of items in copyv
+ *
+ * @return the address of the (possibly re-allocated) new vector
+ */
+char **
+strvec_append_with(
+	realloc_fn_t fn,
+	char **oldv, size_t *oldn,
+	char * const *copyv, size_t copyn)
+{
+	size_t n, m = copyn, i, j;
+	char **newv;
+
+	g_assert(fn != NULL);
+	g_assert(oldv != NULL);
+	g_assert(copyv != NULL);
+	g_assert(oldn != NULL);
+	g_assert(size_is_non_negative(*oldn));
+	g_assert(size_is_non_negative(copyn));
+
+	n = *oldn;
+	if (0 == n)
+		n = strvec_count(oldv);
+
+	g_assert_log(NULL == oldv[n],
+		"%s(): corrupted vector oldv=%p; given count %zu, %s count n=%zu",
+		G_STRFUNC, oldv, *oldn, 0 == *oldn ? "computed" : "used", n);
+
+	if (0 == m)
+		m = strvec_count(copyv);
+
+	g_assert_log(NULL == copyv[m],
+		"%s(): corrupted vector copyv=%p; given count %zu, %s count m=%zu",
+		G_STRFUNC, copyv, copyn, 0 == copyn ? "computed" : "used", m);
+
+	newv = (*fn)(oldv, (m + n + 1) * sizeof oldv[0]);
+
+	for (i = n, j = 0; j <= m; /* empty */)
+		newv[i++] = copyv[j++];		/* Will copy trailing NULL when j == m */
+
+	*oldn = n + m;
+
+	return newv;
+}
+
+/**
  * Copy string vector array by allocating items from a supplied memory buffer
  * and filling given destination vector with pointers.
  *

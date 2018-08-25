@@ -87,4 +87,4 @@ void sq_set_peermode(node_peer_t mode);
 
 #endif /* _core_sq_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

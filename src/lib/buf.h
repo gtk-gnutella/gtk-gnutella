@@ -149,3 +149,4 @@ size_t buf_vcatf(buf_t *b, const char *fmt, va_list args);
 
 #endif /* _buf_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

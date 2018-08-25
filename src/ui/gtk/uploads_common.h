@@ -43,3 +43,5 @@ upload_row_data_t *uploads_gui_get_row_data(gnet_upload_t uhandle);
 gboolean uploads_gui_update_required(time_t now);
 
 #endif /* _gtk_uploads_common_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

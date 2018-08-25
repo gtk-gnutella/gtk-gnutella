@@ -54,7 +54,14 @@ da39a3ee5e6b4b0d3255bfef95601890afd80709) ;;
 *) SHA1SUM=$TOP/src/bin/sha1sum ;;
 esac
 
-date=`date`
+if
+	date=`date --utc \
+		--date="@${SOURCE_DATE_EPOCH:-$(date +%s)}" 2>/dev/null`
+then
+	: ok
+else
+	date=`date -jr ${SOURCE_DATE_EPOCH:-$(date +%s)}`
+fi
 sha1=`$SHA1SUM $file 2>/dev/null | cut -f1 -d' '`
 case "$sha1" in
 '')	echo "Failed to compute SHA1 of $file" >&2; exit 1;;
@@ -66,7 +73,7 @@ if strip $TMP 2>/dev/null; then
 fi
 rm -f $TMP
 
-NM=${nm-nm}
+NM=${nm:-nm}
 
 cat <<EOH
 NM/1.0

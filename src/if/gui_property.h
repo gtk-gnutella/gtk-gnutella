@@ -158,6 +158,10 @@ typedef enum {
     PROP_SEARCH_DISCARD_BANNED_GUID,
     PROP_SEARCH_DISPLAY_GUESS_STATS,
     PROP_GUESS_STATS_SHOW_TOTAL,
+    PROP_FILEINFO_NOTEBOOK_TAB,
+    PROP_MAIN_NOTEBOOK_TAB,
+    PROP_GNET_STATS_NOTEBOOK_TAB,
+    PROP_DOWNLOADS_INFO_NOTEBOOK_TAB,
     GUI_PROPERTY_END
 } gui_property_t;
 
@@ -175,12 +179,15 @@ pslist_t *gui_prop_get_by_regex(const char *, int *);
 const char *gui_prop_name(property_t);
 const char *gui_prop_type_to_string(property_t);
 const char *gui_prop_to_string(property_t prop);
+const char *gui_prop_to_typed_string(property_t prop);
 const char *gui_prop_default_to_string(property_t);
 const char *gui_prop_description(property_t);
 gboolean gui_prop_is_saved(property_t);
 gboolean gui_prop_is_internal(property_t);
 prop_type_t gui_prop_type(property_t);
 void gui_prop_set_from_string(property_t, const char *);
+
+void gui_prop_crash_dump(void);
 
 void gui_prop_lock(property_t);
 void gui_prop_unlock(property_t);

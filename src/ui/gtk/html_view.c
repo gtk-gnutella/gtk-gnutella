@@ -37,11 +37,14 @@
 #include "lib/concat.h"
 #include "lib/glib-missing.h"
 #include "lib/halloc.h"
+#include "lib/hstrfn.h"
 #include "lib/html.h"
 #include "lib/mempcpy.h"
 #include "lib/str.h"
 #include "lib/utf8.h"
 #include "lib/walloc.h"
+
+#include "lib/override.h"
 
 #define STYLE_TAG(x) static const gchar STYLE_TAG_ ## x [] = #x ;
 STYLE_TAG(ANCHOR)

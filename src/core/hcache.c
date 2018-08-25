@@ -806,6 +806,41 @@ hcache_add_internal(hcache_type_t type, time_t added,
 		return FALSE;
     }
 
+	/*
+	 * Prevent nodes to which we had a recent TCP connection failure from
+	 * being added to the cache.
+	 *		--RAM, 2016-08-29
+	 */
+
+    switch (type) {
+    case HCACHE_GUESS:
+    case HCACHE_GUESS_INTRO:
+    case HCACHE_GUESS6:
+    case HCACHE_GUESS6_INTRO:
+		/* UDP node address may not be TCP-connectible */
+		break;
+	case HCACHE_TIMEOUT:
+	case HCACHE_BUSY:
+	case HCACHE_UNSTABLE:
+	case HCACHE_ALIEN:
+	case HCACHE_NONE:
+		/* We don't care whether host is TCP-connectible! */
+		break;
+	case HCACHE_FRESH_ANY:
+	case HCACHE_VALID_ANY:
+	case HCACHE_FRESH_ULTRA:
+	case HCACHE_VALID_ULTRA:
+	case HCACHE_FRESH_ULTRA6:
+	case HCACHE_VALID_ULTRA6:
+	case HCACHE_FRESH_G2HUB:
+	case HCACHE_VALID_G2HUB:
+		if (node_had_recent_connect_failure(addr, port))
+			return FALSE;
+		break;
+	case HCACHE_MAX:
+		g_assert_not_reached();
+	}
+
 	switch (type) {
 	case HCACHE_FRESH_ANY:
 	case HCACHE_FRESH_ULTRA:
@@ -1018,6 +1053,9 @@ hcache_add_internal(hcache_type_t type, time_t added,
 
 /**
  * Add host to the proper cache.
+ *
+ * @return TRUE when IP/port passed sanity checks, regardless of whether it
+ *         was added to the cache.
  */
 bool
 hcache_add(hcache_type_t type,

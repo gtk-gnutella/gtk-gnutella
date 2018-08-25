@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Greek (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -417,6 +417,9 @@ msgstr "Τέλος χρόνου"
 msgid "Requeued due to timeout"
 msgstr "Ξαναμπήκε στη λίστα αναμονής λόγω λήξης χρόνου"
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -804,13 +807,6 @@ msgstr ""
 msgid "Lifetime expired"
 msgstr "Υπέρβαση χρόνου ζωής"
 
-msgid "Unauthorized"
-msgstr ""
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr ""
-
 msgid "No reason given"
 msgstr ""
 
@@ -833,9 +829,6 @@ msgid "Not Found"
 msgstr ""
 
 msgid "File was modified"
-msgstr ""
-
-msgid "Moved Permanently"
 msgstr ""
 
 msgid "File index/name mismatch"
@@ -865,6 +858,13 @@ msgstr "<Αίτημα Εξερεύνησης Υπολογιστή>"
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Περιορισμός μηνυμάτων"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr ""
@@ -874,6 +874,10 @@ msgstr ""
 
 msgid "Stalling upload replaced"
 msgstr "Η σταματημένη αποστολή αντικαταστάθηκε"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Δεν είναι η αποστολή ολόκληρης της κατάστασης HTTP"
 
 msgid "Already downloading this file"
 msgstr ""
@@ -904,9 +908,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Μπήκε στη λίστα αναμονής (υποδοχή %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Δεν είναι η αποστολή ολόκληρης της κατάστασης HTTP"
-
 msgid "Not Acceptable"
 msgstr ""
 
@@ -928,6 +929,10 @@ msgstr ", κομματιασμένο"
 
 msgid "THEX failure"
 msgstr ""
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Δεν είναι η αποστολή ολόκληρης της κατάστασης HTTP"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -1062,6 +1067,10 @@ msgstr ""
 msgid "G2 hits on local partial files"
 msgstr ""
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "Συμπαγή ερωτήματα"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "Ληφθέντα χτυπήματα ερωτημάτων για ερωτήματα δρομολογημένα μέσω OOB"
 
@@ -1126,6 +1135,9 @@ msgid "UTF8 G2 queries"
 msgstr ""
 
 msgid "SHA1 G2 queries"
+msgstr ""
+
+msgid "Queries with aliased words"
 msgstr ""
 
 msgid "GUESS queries"
@@ -4540,6 +4552,22 @@ msgstr ""
 msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
 
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των ληφθέντων ερωτημάτων."
+
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των ληφθέντων ερωτημάτων."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των ληφθέντων ερωτημάτων."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr "Αν πρέπει να εμφανίζεται οι μέτρηση των ληφθέντων ερωτημάτων."
+
 msgid "disable"
 msgstr "απενεργοποίηση"
 
@@ -5026,7 +5054,7 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, "
 "rpm and also exe files."
 msgstr ""
 
@@ -5049,6 +5077,19 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Θέση του διαχωριστή στο παράθυρο στατιστικών Gnet."
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -6060,7 +6101,10 @@ msgid "Bitprint"
 msgstr ""
 
 #, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
+msgstr ""
+
+msgid " [re-computed]"
 msgstr ""
 
 msgid "Tigertree"
@@ -8733,14 +8777,14 @@ msgstr ""
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Αφαίρεση ολοκληρωμένων λήψεων από τη λίστα"
 
 msgid "_Clear completed"
 msgstr "_Καθαρισμός ολοκληρωμένων"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Κόμβος:"
@@ -9317,9 +9361,6 @@ msgstr "Χωρίς έξοδο ακόμα..."
 msgid "Got push, connecting back..."
 msgstr "Ελήφθη ώθηση, γίνεται σύνδεση πίσω..."
 
-msgid "< 1s"
-msgstr "< 1s"
-
 msgid "(quick) "
 msgstr ""
 
@@ -9368,3 +9409,6 @@ msgstr "Αποστολή ΛΙΣΤΑΣ ΑΝΑΜΟΝΗΣ, σύνδεση πίσω.
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "Εστάλη ΛΙΣΤΑ ΑΝΑΜΟΝΗΣ, αναμονή κεφαλίδων..."
+
+#~ msgid "< 1s"
+#~ msgstr "< 1s"

@@ -62,3 +62,4 @@ void dbus_util_send_message(const char *, const char *);
 
 #endif /* _dbus_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

@@ -146,6 +146,9 @@ void spinlock_release(spinlock_t *s, bool hidden);
  * Public interface.
  */
 
+void spinlock_set_sleep_trace(bool on);
+void spinlock_set_contention_trace(bool on);
+
 void spinlock_grab_from(spinlock_t *s,
 	bool hidden, const char *file, unsigned line);
 bool spinlock_grab_try_from(spinlock_t *s, bool hidden,

@@ -36,6 +36,7 @@
 #include "ftw.h"
 #include "halloc.h"
 #include "hset.h"
+#include "hstrfn.h"
 #include "misc.h"
 #include "progname.h"
 #include "stacktrace.h"
@@ -353,8 +354,6 @@ main(int argc, char **argv)
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
 	stacktrace_init(argv[0], FALSE);
-
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {

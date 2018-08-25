@@ -95,3 +95,5 @@ void on_button_config_remove_dir_clicked(GtkButton *, gpointer unused_udata);
 #endif /* USE_GTK2 */
 
 #endif /* _gtk_settings_cb_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

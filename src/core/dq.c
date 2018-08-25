@@ -1212,7 +1212,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 	 */
 
 	alive_get_roundtrip_ms(dq->alive, &avg, &last);
-	timeout = (avg + last) / 2000;		/* An average, converted to seconds */
+	timeout = (avg + last) / 2;		/* An average, converted to milliseconds */
 	timeout = MAX(timeout, DQ_STATUS_TIMEOUT);
 
 	if (GNET_PROPERTY(dq_debug) > 19)

@@ -603,7 +603,7 @@ vmm_warn_once(const char *format, ...)
 	va_end(args);
 
 	if (!stacktrace_caller_known(2))		/* Caller of our caller */
-		s_stacktrace(TRUE, 2);
+		s_where(2);
 }
 
 /**
@@ -5727,6 +5727,29 @@ vmm_init_once(void)
 	xmalloc_vmm_inited();
 
 	atomic_bool_set(&vmm_fully_inited, TRUE);
+
+	/*
+	 * Need to call stacktrace_unwind() now because this may trigger the
+	 * loading of a shared library, and the dynamic linker can call malloc()
+	 * now.
+	 *
+	 * If we don't do that now, we may run into problems later when the thread
+	 * layer attempts to run thread_backtrace_capture() when it waits for a
+	 * spinlock() for instance: since the VMM page cache is protected by
+	 * a spinlock() and not a mutex(), we could deadlock ourselves if, when
+	 * attempting to lock the page cache, we have to wait and must enter a loop
+	 * to get the spinlock... as soon as thread_backtrace_capture() is called,
+	 * if we need to allocate memory to load a dynamic library, we'll re-enter
+	 * the VMM layer through malloc() or xmalloc().
+	 *
+	 *		--RAM, 2016-11-03
+	 */
+
+	{
+		void *stack;
+
+		stacktrace_unwind(&stack, 1, 0);
+	}
 }
 
 /**

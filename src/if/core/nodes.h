@@ -230,16 +230,16 @@ typedef struct gnet_node_status {
 	uint64 tx_given;			/**< Bytes fed to the TX stack (from top) */
 	uint64 tx_deflated;			/**< Bytes deflated by the TX stack */
 	uint64 tx_written;			/**< Bytes written by the TX stack */
+    uint64 tx_bps;				/**< TX traffic rate */
     bool   tx_compressed;		/**< Is TX traffic compressed */
     float  tx_compression_ratio; /**< TX compression ratio */
-    uint32 tx_bps;				/**< TX traffic rate */
 
 	uint64 rx_given;			/**< Bytes fed to the RX stack (from bottom) */
 	uint64 rx_inflated;			/**< Bytes inflated by the RX stack */
 	uint64 rx_read;				/**< Bytes read from the RX stack */
+    uint64  rx_bps;				/**< RX traffic rate */
     bool   rx_compressed;		/**< Is RX traffic compressed */
     float  rx_compression_ratio;/**< RX compression ratio */
-    float  rx_bps;				/**< RX traffic rate */
 
 	/*
 	 * Gnutella statistics -- RAM, 10/12/2003.

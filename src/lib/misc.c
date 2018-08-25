@@ -39,6 +39,7 @@
 #include "misc.h"
 
 #include "ascii.h"
+#include "atomic.h"
 #include "atoms.h"
 #include "base16.h"
 #include "base32.h"
@@ -48,6 +49,7 @@
 #include "endian.h"
 #include "entropy.h"
 #include "halloc.h"
+#include "hstrfn.h"
 #include "htable.h"
 #include "html_entities.h"
 #include "log.h"				/* For log_file_printable() */
@@ -1047,6 +1049,9 @@ hex2int(uchar c)
 {
 	int ret;
 
+	if G_UNLIKELY(0 == hex2int_inline('a'))
+		misc_init();	/* Auto-initialization of hex2int_inline() */
+
 	ret = hex2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1066,6 +1071,9 @@ dec2int(uchar c)
 {
 	int ret;
 
+	if G_UNLIKELY(0 == dec2int_inline('1'))
+		misc_init();		/* Auto-initialization of dec2int_inline() */
+
 	ret = dec2int_inline(c);
 	g_assert(-1 != ret);
 	return ret;
@@ -1084,6 +1092,9 @@ static int
 alnum2int(uchar c)
 {
 	int ret;
+
+	if G_UNLIKELY(0 == alnum2int_inline('a'))
+		misc_init();		/* Auto-initialization of alnum2int_inline() */
 
 	ret = alnum2int_inline(c);
 	g_assert(-1 != ret);
@@ -1155,7 +1166,7 @@ dec2int_init(void)
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
 
-	/* Check consistency of hex2int_tab */
+	/* Check consistency of dec2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++)
 		switch (i) {
@@ -1191,7 +1202,7 @@ alnum2int_init(void)
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
 
-	/* Check consistency of hex2int_tab */
+	/* Check consistency of alnum2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
 		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
@@ -2375,138 +2386,163 @@ dirlist_parse(const char *dirs)
 	return pslist_reverse(pl_dirs);
 }
 
+enum errno_map {
+	ERRNO_SYM = 0,		/* Maps error number to symbolic value */
+	ERRNO_STR = 1		/* Maps errno number to English message */
+};
+
+/**
+ * Maps errno values to symbolic names or English messages for logging.
+ *
+ * @param errnum		the error number to map
+ * @param which			whether to map for ERRNO_SYM or ERRNO_STR
+ *
+ * @return A const static string, or NULL if errno is unhandled.
+ */
+static const char *
+symbolic_errno_map(int errnum, enum errno_map which)
+{
+#define CASE(x,s) case x: return ERRNO_SYM == which ? #x : s;
+
+	switch (errnum) {
+	case 0: return ERRNO_SYM == which ? "SUCCESS" : "OK";
+	/* The following codes are defined by POSIX */
+	CASE(E2BIG,			"Argument list too long");
+	CASE(EACCES,		"Permission denied");
+	CASE(EADDRINUSE,	"Address already in use");
+	CASE(EADDRNOTAVAIL,	"Address not available");
+	CASE(EAFNOSUPPORT,	"Address family not supported");
+	CASE(EAGAIN,		"Resource  temporarily  unavailable");
+	CASE(EALREADY,		"Connection already in progress");
+	CASE(EBADF,			"Bad file descriptor");
+#ifdef EBADMSG	/* MinGW */
+	CASE(EBADMSG,		"Bad message");
+#endif
+	CASE(EBUSY,			"Device or resource busy");
+	CASE(ECANCELED,		"Operation canceled");
+	CASE(ECHILD,		"No child processes");
+	CASE(ECONNABORTED,	"Connection aborted");
+	CASE(ECONNREFUSED,	"Connection refused");
+	CASE(ECONNRESET,	"Connection reset");
+	CASE(EDEADLK,		"Resource deadlock avoided");
+	CASE(EDESTADDRREQ,	"Destination address required");
+	CASE(EDOM,			"Mathematics argument out of domain of function");
+	CASE(EDQUOT,		"Disk quota exceeded");
+	CASE(EEXIST,		"File exists");
+	CASE(EFAULT,		"Bad address");
+	CASE(EFBIG,			"File too large");
+	CASE(EHOSTUNREACH,	"Host is unreachable");
+	/* EIDRM is faked on MinGW */
+	CASE(EIDRM,			"Identifier removed");
+	CASE(EILSEQ,		"Illegal byte sequence");
+	CASE(EINPROGRESS,	"Operation in progress");
+	CASE(EINTR,			"Interrupted function call");
+	CASE(EINVAL,		"Invalid argument");
+	CASE(EIO,			"Input/output error");
+	CASE(EISCONN,		"Socket is connected");
+	CASE(EISDIR,		"Is a directory");
+	CASE(ELOOP,			"Too many levels of symbolic links");
+	CASE(EMFILE,		"Too many open files");
+	CASE(EMLINK,		"Too many links");
+	CASE(EMSGSIZE,		"Message too long");
+#ifdef EMULTIHOP	/* MinGW */
+	CASE(EMULTIHOP,		"Multihop attempted");
+#endif
+	CASE(ENAMETOOLONG,	"Filename too long");
+	CASE(ENETDOWN,		"Network is down");
+	CASE(ENETRESET,		"Connection aborted by network");
+	CASE(ENETUNREACH,	"Network unreachable");
+	CASE(ENFILE,		"Too many open files in system");
+	CASE(ENOBUFS,		"No buffer space available");
+#ifdef ENODATA	/* MinGW */
+	CASE(ENODATA,		"No message available on the STREAM read queue");
+#endif
+	CASE(ENODEV,		"No such device");
+	CASE(ENOENT,		"No such file or directory");
+	CASE(ENOEXEC,		"Exec format error");
+	CASE(ENOLCK,		"No locks available");
+#ifdef ENOLINK	/* MinGW */
+	CASE(ENOLINK,		"Link has been severed");
+#endif
+	CASE(ENOMEM,		"Not enough memory space");
+#ifdef ENOMSG	/* MinGW */
+	CASE(ENOMSG,		"No message of the desired type");
+#endif
+	CASE(ENOPROTOOPT,	"Protocol not available");
+	CASE(ENOSPC,		"No space left on device");
+#ifdef ENOSR	/* MinGW */
+	CASE(ENOSR,			"No STREAM resources");
+#endif
+#ifdef ENOSTR	/* MinGW */
+	CASE(ENOSTR,		"Not a STREAM");
+#endif
+	CASE(ENOSYS,		"Function not implemented");
+	CASE(ENOTCONN,		"Socket is not connected");
+	CASE(ENOTDIR,		"Not a directory");
+	CASE(ENOTEMPTY,		"Directory not empty");
+	CASE(ENOTSOCK,		"Not a socket");
+	CASE(ENOTSUP,		"Operation not supported");
+	CASE(ENOTTY,		"Inappropriate I/O control operation");
+	CASE(ENXIO,			"No such device or address");
+#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC and MinGW */
+	CASE(EOPNOTSUPP,	"Operation not supported on socket");
+#endif
+#ifdef EOVERFLOW	/* MinGW */
+	CASE(EOVERFLOW,		"Value too large to be stored in data type");
+#endif
+	CASE(EPERM,			"Operation not permitted");
+	CASE(EPIPE,			"Broken pipe");
+#if defined(EPROTO)	/* MinGW */
+	CASE(EPROTO,		"Protocol error");
+#endif
+	CASE(EPROTONOSUPPORT,"Protocol not supported");
+	CASE(EPROTOTYPE,	"Protocol wrong type for socket");
+	CASE(ERANGE,		"Result too large");
+	CASE(EROFS,			"Read-only file system");
+	CASE(ESPIPE,		"Invalid seek");
+	CASE(ESRCH,			"No such process");
+	CASE(ESTALE,		"Stale file handle");
+#ifdef ETIME	/* MinGW */
+	CASE(ETIME,			"Timer expired");
+#endif
+	CASE(ETIMEDOUT,		"Connection timed out");
+#ifdef ETXTBSY	/* MinGW */
+	CASE(ETXTBSY,		"Text file busy");
+#endif
+#if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
+	CASE(EWOULDBLOCK,	"Operation would block");
+#endif
+	CASE(EXDEV,			"Improper link");
+
+	/* The following codes are non-standard extensions */
+#ifdef EHOSTDOWN
+	CASE(EHOSTDOWN,		"Host is down");
+#endif
+#ifdef ENOTBLK
+	CASE(ENOTBLK,		"Block device required");
+#endif
+#ifdef ESHUTDOWN
+	CASE(ESHUTDOWN,		"Cannot send after transport endpoint shutdown");
+#endif
+	}
+#undef CASE
+
+	return NULL;	/* Unknown error */
+}
+
 /**
  * Maps errno values to their symbolic names (e.g., EPERM to "EPERM").
  *
- * @return A const static string. If errno is unhandled its stringified
+ * @return A const static string. If errno is unhandled, its stringified
  * integer value is returned.
  */
 const char *
 symbolic_errno(int errnum)
 {
-#define CASE(x) case x: return #x
+	const char *res = symbolic_errno_map(errnum, ERRNO_SYM);
 
-	switch (errnum) {
-	case 0: return "SUCCESS";
-	/* The following codes are defined by POSIX */
-	CASE(E2BIG);
-	CASE(EACCES);
-	CASE(EADDRINUSE);
-	CASE(EADDRNOTAVAIL);
-	CASE(EAFNOSUPPORT);
-	CASE(EAGAIN);
-	CASE(EALREADY);
-	CASE(EBADF);
-#ifdef EBADMSG	/* MinGW */
-	CASE(EBADMSG);
-#endif
-	CASE(EBUSY);
-	CASE(ECANCELED);
-	CASE(ECHILD);
-	CASE(ECONNABORTED);
-	CASE(ECONNREFUSED);
-	CASE(ECONNRESET);
-	CASE(EDEADLK);
-	CASE(EDESTADDRREQ);
-	CASE(EDOM);
-	CASE(EDQUOT);
-	CASE(EEXIST);
-	CASE(EFAULT);
-	CASE(EFBIG);
-	CASE(EHOSTUNREACH);
-	CASE(EIDRM);				/* Faked on MinGW */
-	CASE(EILSEQ);
-	CASE(EINPROGRESS);
-	CASE(EINTR);
-	CASE(EINVAL);
-	CASE(EIO);
-	CASE(EISCONN);
-	CASE(EISDIR);
-	CASE(ELOOP);
-	CASE(EMFILE);
-	CASE(EMLINK);
-	CASE(EMSGSIZE);
-#ifdef EMULTIHOP	/* MinGW */
-	CASE(EMULTIHOP);
-#endif
-	CASE(ENAMETOOLONG);
-	CASE(ENETDOWN);
-	CASE(ENETRESET);
-	CASE(ENETUNREACH);
-	CASE(ENFILE);
-	CASE(ENOBUFS);
-#ifdef ENODATA	/* MinGW */
-	CASE(ENODATA);
-#endif
-	CASE(ENODEV);
-	CASE(ENOENT);
-	CASE(ENOEXEC);
-	CASE(ENOLCK);
-#ifdef ENOLINK	/* MinGW */
-	CASE(ENOLINK);
-#endif
-	CASE(ENOMEM);
-#ifdef ENOMSG	/* MinGW */
-	CASE(ENOMSG);
-#endif
-	CASE(ENOPROTOOPT);
-	CASE(ENOSPC);
-#ifdef ENOSR	/* MinGW */
-	CASE(ENOSR);
-#endif
-#ifdef ENOSTR	/* MinGW */
-	CASE(ENOSTR);
-#endif
-	CASE(ENOSYS);
-	CASE(ENOTCONN);
-	CASE(ENOTDIR);
-	CASE(ENOTEMPTY);
-	CASE(ENOTSOCK);
-	CASE(ENOTSUP);
-	CASE(ENOTTY);
-	CASE(ENXIO);
-#if defined(EOPNOTSUPP) && EOPNOTSUPP != ENOTSUP /* GLIBC and MinGW */
-	CASE(EOPNOTSUPP);
-#endif
-#ifdef EOVERFLOW	/* MinGW */
-	CASE(EOVERFLOW);
-#endif
-	CASE(EPERM);
-	CASE(EPIPE);
-#if defined(EPROTO)	/* MinGW */
-	CASE(EPROTO);
-#endif
-	CASE(EPROTONOSUPPORT);
-	CASE(EPROTOTYPE);
-	CASE(ERANGE);
-	CASE(EROFS);
-	CASE(ESPIPE);
-	CASE(ESRCH);
-	CASE(ESTALE);
-#ifdef ETIME	/* MinGW */
-	CASE(ETIME);
-#endif
-	CASE(ETIMEDOUT);
-#ifdef ETXTBSY	/* MinGW */
-	CASE(ETXTBSY);
-#endif
-#if defined(EWOULDBLOCK) && EWOULDBLOCK != EAGAIN
-	CASE(EWOULDBLOCK);
-#endif
-	CASE(EXDEV);
-
-	/* The following codes are non-standard extensions */
-#ifdef EHOSTDOWN
-	CASE(EHOSTDOWN);
-#endif
-#ifdef ENOTBLK
-	CASE(ENOTBLK);
-#endif
-#ifdef ESHUTDOWN
-	CASE(ESHUTDOWN);
-#endif
-	}
-#undef CASE
+	if G_LIKELY(res != NULL)
+		return res;
 
 	/*
 	 * Use rotating static buffers to format the actual error value.
@@ -2516,12 +2552,45 @@ symbolic_errno(int errnum)
 	{
 		static char buf[BUFCNT][UINT_DEC_BUFLEN];
 		static unsigned n;
-		char *p = &buf[n++ % BUFCNT][0];
+		char *p = &buf[atomic_uint_inc(&n) % BUFCNT][0];
 
 		uint_to_string_buf(errno, p, sizeof buf[0]);
 		return p; 	/* Unknown errno code */
 	}
 #undef BUFCNT
+}
+
+/**
+ * Give English message from errno value.
+ *
+ * @return A const static string. If errno is unhandled, its stringified
+ * integer value prefixed by "Error #" is returned.
+ */
+const char *
+english_strerror(int errnum)
+{
+	const char *res = symbolic_errno_map(errnum, ERRNO_STR);
+
+	if G_LIKELY(res != NULL)
+		return res;
+
+	/*
+	 * Use rotating static buffers to format the actual error value.
+	 */
+
+#define BUFCNT	8
+#define BUFPRE	CONST_STRLEN("Error #")
+	{
+		static char buf[BUFCNT][UINT_DEC_BUFLEN + BUFPRE];
+		static unsigned n;
+		char *p = &buf[atomic_uint_inc(&n) % BUFCNT][0];
+
+		p = mempcpy(p, "Error #", BUFPRE);
+		uint_to_string_buf(errno, p, sizeof buf[0] - BUFPRE);
+		return p; 	/* Unknown errno code */
+	}
+#undef BUFCNT
+#undef BUFPRE
 }
 
 /**
@@ -2662,6 +2731,36 @@ misc_init_once(void)
 	hex2int_init();
 	dec2int_init();
 	alnum2int_init();
+
+	g_assert(is_ascii_blank(' '));
+	g_assert(is_ascii_blank('\t'));
+	g_assert(!is_ascii_blank('\v'));
+	g_assert(is_ascii_space(' '));
+	g_assert(is_ascii_space('\t'));
+	g_assert(is_ascii_space('\v'));
+	g_assert(!is_ascii_space('-'));
+	g_assert(!is_ascii_space('a'));
+	g_assert(is_ascii_lower('a'));
+	g_assert(!is_ascii_upper('a'));
+	g_assert(is_ascii_upper('A'));
+	g_assert(!is_ascii_lower('A'));
+	g_assert(is_ascii_xdigit('0'));
+	g_assert(is_ascii_xdigit('9'));
+	g_assert(is_ascii_xdigit('A'));
+	g_assert(is_ascii_xdigit('F'));
+	g_assert(is_ascii_xdigit('a'));
+	g_assert(is_ascii_xdigit('f'));
+	g_assert(!is_ascii_xdigit('H'));
+	g_assert(is_ascii_alnum('0'));
+	g_assert(is_ascii_alnum('a'));
+	g_assert(is_ascii_alnum('z'));
+	g_assert(is_ascii_alnum('A'));
+	g_assert(is_ascii_alnum('Z'));
+	g_assert(!is_ascii_alnum(' '));
+	g_assert(!is_ascii_alnum('-'));
+	g_assert(!is_ascii_punct('a'));
+	g_assert(is_ascii_punct('-'));
+	g_assert(is_ascii_graph('-'));
 
 	{
 		static const struct {

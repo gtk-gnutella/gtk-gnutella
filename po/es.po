@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2016-03-06 08:49+0100\n"
+"POT-Creation-Date: 2017-10-22 16:16+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -418,6 +418,9 @@ msgstr "Expirado"
 msgid "Requeued due to timeout"
 msgstr "Reencolado debido a desconexión por tiempo"
 
+msgid "File info being freed"
+msgstr ""
+
 msgid "Partial file removed"
 msgstr ""
 
@@ -806,13 +809,6 @@ msgstr "Tiempo de espera excedido"
 msgid "Lifetime expired"
 msgstr "Tiempo de vida expirado"
 
-msgid "Unauthorized"
-msgstr "No autorizado"
-
-#, c-format
-msgid "Limiting connections from %s"
-msgstr "Limitando conexiones desde %s"
-
 msgid "No reason given"
 msgstr "No se indicó una razón"
 
@@ -836,9 +832,6 @@ msgstr "No encontrado"
 
 msgid "File was modified"
 msgstr "El archivo ha sido modificado"
-
-msgid "Moved Permanently"
-msgstr "Movido permanentemente"
 
 msgid "File index/name mismatch"
 msgstr ""
@@ -867,6 +860,13 @@ msgstr "<Petición de Consultar Nodo>"
 msgid "Browse Host Disabled"
 msgstr ""
 
+msgid "Browsing abuse detected"
+msgstr ""
+
+#, fuzzy
+msgid "Browsing throttled"
+msgstr "Umbral de mensajes"
+
 #, c-format
 msgid "Redirected to %s:%u"
 msgstr "Redirigido a %s:%u"
@@ -876,6 +876,10 @@ msgstr "No modificado"
 
 msgid "Stalling upload replaced"
 msgstr "Subida atascándose reemplazada"
+
+#, fuzzy
+msgid "Could not send whole HTTP status"
+msgstr "Imposible enviar el estado completo HTTP"
 
 msgid "Already downloading this file"
 msgstr "Ya se está descargando este archivo"
@@ -906,9 +910,6 @@ msgstr ""
 msgid "Queued (slot %d, ETA: %s)"
 msgstr "Encolado (ranura %d, ETA: %s)"
 
-msgid "Cannot send whole HTTP status"
-msgstr "Imposible enviar el estado completo HTTP"
-
 msgid "Not Acceptable"
 msgstr "No aceptable"
 
@@ -930,6 +931,10 @@ msgstr ", chunked"
 
 msgid "THEX failure"
 msgstr ""
+
+#, fuzzy
+msgid "Cannot send whole HTTP status after OPTIONS"
+msgstr "Imposible enviar el estado completo HTTP"
 
 msgid "EOF while sinking"
 msgstr ""
@@ -1064,6 +1069,10 @@ msgstr ""
 msgid "G2 hits on local partial files"
 msgstr ""
 
+#, fuzzy
+msgid "Hits on aliased queries"
+msgstr "Peticiones compactadas"
+
 msgid "Query hits received for OOB-proxied queries"
 msgstr "Query hits recibidos para peticiones a través de proxy OOB"
 
@@ -1128,6 +1137,9 @@ msgid "UTF8 G2 queries"
 msgstr ""
 
 msgid "SHA1 G2 queries"
+msgstr ""
+
+msgid "Queries with aliased words"
 msgstr ""
 
 msgid "GUESS queries"
@@ -4741,6 +4753,26 @@ msgstr ""
 msgid "No TCP listening socket bound to allow incoming connections."
 msgstr ""
 
+#, fuzzy
+msgid "Defines whether Gnutella queries should be traced."
+msgstr ""
+"Define cuáles intercambios de encabezados Gnutella  deberán ser trazados."
+
+#, fuzzy
+msgid "Defines whether I/O event callbacks should be traced."
+msgstr ""
+"Define cuáles intercambios de encabezados Gnutella  deberán ser trazados."
+
+#, fuzzy
+msgid "Defines whether lock contentions should be traced."
+msgstr ""
+"Define cuáles intercambios de encabezados Gnutella  deberán ser trazados."
+
+#, fuzzy
+msgid "Defines whether lock sleeps should be traced."
+msgstr ""
+"Define cuáles intercambios de encabezados Gnutella  deberán ser trazados."
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -5239,7 +5271,7 @@ msgstr ""
 
 msgid ""
 "Remote nodes supporting media type filtering will apply your query "
-"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, dep, "
+"specifically on archive / program files such as ZIP, 7z, tar, bz2, gz, deb, "
 "rpm and also exe files."
 msgstr ""
 
@@ -5262,6 +5294,19 @@ msgstr ""
 msgid ""
 "Whether the GUESS summary line should show total statistics or ones "
 "pertaining to the current search only."
+msgstr ""
+
+msgid "Notebook tab number for the fileinfo listing"
+msgstr ""
+
+msgid "Notebook tab number for the main page"
+msgstr ""
+
+#, fuzzy
+msgid "Notebook tab number for the Gnet stats page"
+msgstr "Posición del divisor en el panel de estadísticas Gnet."
+
+msgid "Notebook tab number for download info / tools"
 msgstr ""
 
 msgid "Anonymizing proxies"
@@ -6271,9 +6316,13 @@ msgstr "No disponible"
 msgid "Bitprint"
 msgstr "Bitprint"
 
-#, c-format
-msgid "leaf hashes: %lu, depth: %u, granularity: %s"
+#, fuzzy, c-format
+msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
 msgstr "hashes hoja: %lu, profundidad: %u, granularidad: %s"
+
+#, fuzzy
+msgid " [re-computed]"
+msgstr "completadas"
 
 msgid "Tigertree"
 msgstr "Árbol Tiger"
@@ -8960,14 +9009,14 @@ msgstr "Mostrar _icono de estado"
 msgid "Avg. downtime of this servent"
 msgstr ""
 
+msgid ", "
+msgstr ", "
+
 msgid "Remove completed downloads from list"
 msgstr "Quitar de la lista las descargas completadas"
 
 msgid "_Clear completed"
 msgstr "_Limpiar completadas"
-
-msgid ", "
-msgstr ", "
 
 msgid "Peer:"
 msgstr "Nodo:"
@@ -9557,9 +9606,6 @@ msgstr "Todavía no hay salida..."
 msgid "Got push, connecting back..."
 msgstr "Recibido 'push', conectando..."
 
-msgid "< 1s"
-msgstr "< 1º"
-
 msgid "(quick) "
 msgstr "(rápido) "
 
@@ -9608,3 +9654,15 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "Unauthorized"
+#~ msgstr "No autorizado"
+
+#~ msgid "Limiting connections from %s"
+#~ msgstr "Limitando conexiones desde %s"
+
+#~ msgid "Moved Permanently"
+#~ msgstr "Movido permanentemente"
+
+#~ msgid "< 1s"
+#~ msgstr "< 1º"

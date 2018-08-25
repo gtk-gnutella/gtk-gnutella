@@ -90,3 +90,5 @@ cast_to_hashlist_destroy(func_ptr_t fn)
 }
 
 #endif	/* _hashlist_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

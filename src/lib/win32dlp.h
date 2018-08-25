@@ -48,4 +48,4 @@ void win32dlp_dump_stats_log(struct logagent *la, unsigned options);
 
 #endif	/* _win32dlp_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

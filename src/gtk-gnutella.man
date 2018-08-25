@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "March 2016" Version "1.1.9"
+.TH GTK\\-GNUTELLA 1 "September 2016" Version "1.1.10"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -32,6 +32,12 @@ powerful, efficient and reliable.
 .SH OPTIONS
 All the options can be abbreviated as long as the supplied name is not
 ambiguous.
+.TP
+.B "\-\-cleanup"
+For developers mostly: this requests a final memory cleanup sequence at
+exit time in an attempt to be able to spot memory leaks by looking at all
+the remaining allocated blocks, letting the developpers figuring out, perhaps,
+why they were not cleaned-up properly.
 .TP
 .B "\-\-compile-info"
 Tell

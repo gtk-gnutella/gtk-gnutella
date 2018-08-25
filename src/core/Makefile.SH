@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -70,7 +70,7 @@ GNUTLS_CFLAGS =  $gnutlscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -93,6 +93,7 @@ sub_depend::
 	done
 
 SRC = \
+	alias.c \
 	alive.c \
 	ban.c \
 	bh_download.c \
@@ -197,6 +198,7 @@ SRC = \
 	whitelist.c
 
 OBJ = \
+	alias.o \
 	alive.o \
 	ban.o \
 	bh_download.o \

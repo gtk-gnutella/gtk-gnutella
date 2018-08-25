@@ -31,7 +31,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  * that running config_h.SH again will wipe out any changes you've made.
  * For a more permanent change edit $CONFIG_SH and rerun config_h.SH.
  *
- * \$Id: Config_h.U 167 2013-05-08 17:58:00Z rmanfredi $
+ * \$Id$
  */
 
 /*
@@ -437,7 +437,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_getuid HAS_GETUID
 
 /* HAS_GNULIBC:
- *	This symbol, if defined, indicates to the C program that 
+ *	This symbol, if defined, indicates to the C program that
  *	the GNU C library is being used.  A better check is to use
  *	the __GLIBC__ and __GLIBC_MINOR__ symbols supplied with glibc.
  */
@@ -485,7 +485,7 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
 #$d_ipv6 HAS_IPV6	/**/
 
 /* HAS_ISASCII:
- *	This manifest constant lets the C program know that isascii 
+ *	This manifest constant lets the C program know that isascii
  *	is available.
  */
 #$d_isascii HAS_ISASCII		/**/
@@ -761,8 +761,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_sigprocmask HAS_SIGPROCMASK	/**/
 
-/* Sigjmp_buf:
- *	This is the buffer type to be used with Sigsetjmp and Siglongjmp.
+/* HAS_SIGSETJMP:
+ *	This variable indicates to the C program that the sigsetjmp()
+ *	routine is available to save the calling process's registers
+ *	and stack environment for later use by siglongjmp(), and
+ *	to optionally save the process's signal mask.  See
+ *	Sigjmp_buf, Sigsetjmp, and Siglongjmp.
  */
 /* Sigsetjmp:
  *	This macro is used in the same way as sigsetjmp(), but will invoke

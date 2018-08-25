@@ -38,3 +38,5 @@ column_sort_tristate_register(GtkTreeViewColumn *column,
 	column_tristate_cb_t cb, void *udata);
 
 #endif /* _gtk2_column_sort_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

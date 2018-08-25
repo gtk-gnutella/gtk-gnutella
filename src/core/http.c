@@ -56,6 +56,7 @@
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
 #include "lib/header.h"
+#include "lib/hstrfn.h"
 #include "lib/http_range.h"			/* For http_range_test() */
 #include "lib/log.h"				/* For log_printable() */
 #include "lib/mempcpy.h"
@@ -101,13 +102,29 @@ static pslist_t *sl_outgoing = NULL;	/**< To spot reply timeouts */
  * the generated headers.  We reduce the size of the generated header
  * to about 512 bytes, and remove non-essential things.
  *
- * @returns TRUE if we were able to send everything, FALSE otherwise.
+ * The convenience macro HTTP_ATOMIC_SEND may be used if there is no unsent
+ * callback, to also document visibly that we do not recover from a partial
+ * sending condition.
+ *
+ * @param layer			the layer sending this status, for tracing purposes
+ * @param s				the socket to use to send the HTTP status header
+ * @param keep_alive	whether the connection will be kept alive
+ * @param hev			array of extra information to send out
+ * @param hevcnt		amount of entries in hev[]
+ * @param unsent		if non-NULL, callback to invoke on partial sending
+ * @param unsent_arg	opaque callback argument
+ * @param reason		printf-like format of the reason to send
+ * @param ...			extra printf arguments for the reason
+ *
+ * @return TRUE if we were able to send everything, FALSE otherwise, regardless
+ * of whether we had an "unsent" callback supplied.
  */
 bool
 http_send_status(
 	http_layer_t layer,
 	struct gnutella_socket *s, int code, bool keep_alive,
 	http_extra_desc_t *hev, int hevcnt,
+	http_send_status_cb_t unsent, void *unsent_arg,
 	const char *reason, ...)
 {
 	char header[3072];			/* 3 KiB max */
@@ -332,8 +349,24 @@ retry:
 			"only sent %lu out of %lu bytes of status %d (%s) to %s",
 			(ulong) sent, (ulong) rw, code, status_msg,
 			host_addr_to_string(s->addr));
-		return FALSE;
-	} else {
+
+		/*
+		 * If we do not have an "unsent" callback, fail now.
+		 *
+		 * Otherwise, let the caller know how much we sent so that the unsent
+		 * part can be buffered and asynchronously sent later when there is
+		 * room on the socket.
+		 */
+
+		if (NULL == unsent)
+			return FALSE;
+
+		(*unsent)(header, rw, sent, unsent_arg);	/* Capture unsent part */
+
+		/* FALL THROUGH */
+	}
+
+	{
 		uint32 trace = 0;
 
 		switch (layer) {
@@ -349,13 +382,14 @@ retry:
 		}
 
 		if (trace) {
-			g_debug("----Sent HTTP status to %s (%lu bytes):",
+			g_debug("----%s HTTP status to %s (%lu bytes):",
+				(size_t) sent == rw ? "Sent" : "Sending",
 				host_addr_to_string(s->addr), (ulong) rw);
 			dump_string(stderr, header, rw, "----");
 		}
 	}
 
-	return TRUE;
+	return (size_t) sent == rw;		/* Only TRUE if fully sent */
 }
 
 /**
@@ -979,7 +1013,7 @@ http_url_parse(const char *url, uint16 *port, const char **host,
  * and whose `written' bytes have already been sent out.
  */
 http_buffer_t *
-http_buffer_alloc(char *buf, size_t len, size_t written)
+http_buffer_alloc(const char *buf, size_t len, size_t written)
 {
 	http_buffer_t *b;
 
@@ -1002,7 +1036,7 @@ http_buffer_alloc(char *buf, size_t len, size_t written)
 /**
  * Dispose of HTTP buffer.
  */
-void
+static void
 http_buffer_free(http_buffer_t *b)
 {
 	http_buffer_check(b);
@@ -1010,6 +1044,20 @@ http_buffer_free(http_buffer_t *b)
 	wfree(b->hb_arena, b->hb_len);
 	b->magic = 0;
 	WFREE(b);
+}
+
+/**
+ * Dispose of HTTP buffer and nullify its pointer.
+ */
+void
+http_buffer_free_null(http_buffer_t **b_ptr)
+{
+	http_buffer_t *b = *b_ptr;
+
+	if (b != NULL) {
+		http_buffer_free(b);
+		*b_ptr = NULL;
+	}
 }
 
 /**

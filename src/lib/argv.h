@@ -43,4 +43,4 @@ void argv_free_null(char ***argv_ptr);
 
 #endif	/* _argv_h_ */
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */

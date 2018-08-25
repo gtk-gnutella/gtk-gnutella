@@ -152,6 +152,7 @@ extra_files/favicon.png      GTKG's favorite web icon
 extra_files/fr/FAQ
 extra_files/fr/Jmakefile
 extra_files/fr/Makefile.SH
+extra_files/fr/glossary
 extra_files/geo-ip.txt
 extra_files/geo-ipv6.txt
 extra_files/gtk-gnutella.128.png
@@ -165,6 +166,10 @@ extra_files/gtk-gnutella.png
 extra_files/gtk-gnutella.svg
 extra_files/gwcache.boot
 extra_files/hostiles.txt
+extra_files/it/FAQ
+extra_files/it/Jmakefile
+extra_files/it/Makefile.SH
+extra_files/it/glossary
 extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
@@ -175,6 +180,7 @@ extra_files/spam_sha1.txt
 extra_files/tr/FAQ
 extra_files/tr/Jmakefile
 extra_files/tr/Makefile.SH
+extra_files/tr/glossary
 gtk-gnutella.nsi             Windows packaging
 gtk-gnutella_spec.SH         Produces gtk-gnutella.spec
 install.SH                   BSD-compatible install program
@@ -284,6 +290,8 @@ src/casts.h
 src/common.h
 src/core/Jmakefile
 src/core/Makefile.SH
+src/core/alias.c
+src/core/alias.h
 src/core/alive.c
 src/core/alive.h
 src/core/ban.c
@@ -648,6 +656,8 @@ src/lib/atio.h
 src/lib/atomic.h
 src/lib/atoms.c
 src/lib/atoms.h
+src/lib/balloc.c
+src/lib/balloc.h
 src/lib/barrier.c
 src/lib/barrier.h
 src/lib/base16.c
@@ -826,6 +836,8 @@ src/lib/hikset.c
 src/lib/hikset.h
 src/lib/host_addr.c
 src/lib/host_addr.h
+src/lib/hstrfn.c
+src/lib/hstrfn.h
 src/lib/html.c
 src/lib/html.h
 src/lib/html_entities.h
@@ -907,6 +919,7 @@ src/lib/patricia.c
 src/lib/patricia.h
 src/lib/pattern.c
 src/lib/pattern.h
+src/lib/pcell.h
 src/lib/plist.c
 src/lib/plist.h
 src/lib/pmsg.c

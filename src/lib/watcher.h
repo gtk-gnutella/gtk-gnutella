@@ -57,3 +57,4 @@ void watcher_unregister_path(const file_path_t *fp);
 
 #endif /* _watcher_h_ */
 
+/* vi: set ts=4 sw=4 cindent: */

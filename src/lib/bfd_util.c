@@ -157,11 +157,12 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	if (0 == bc->count)
 		return;
 
-	mutex_lock_fast(&bc->lock);
-
 	g_assert(bc->symbols != NULL);
 
+	mutex_lock_fast(&bc->lock);
 	empty = bfd_make_empty_symbol(bc->handle);
+	mutex_unlock_fast(&bc->lock);
+
 	symbols_lock(st);
 
 	for (
@@ -172,8 +173,10 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 		asymbol *sym;
 		symbol_info syminfo;
 
+		mutex_lock_fast(&bc->lock);
 		sym = bfd_minisymbol_to_symbol(bc->handle, bc->dynamic, p, empty);
 		bfd_get_symbol_info(bc->handle, sym, &syminfo);
+		mutex_unlock_fast(&bc->lock);
 
 		if ('T' == syminfo.type || 't' == syminfo.type) {
 			const char *name = bfd_asymbol_name(sym);
@@ -186,7 +189,6 @@ bfd_util_load_text(bfd_ctx_t *bc, symbols_t *st)
 	}
 
 	symbols_unlock(st);
-	mutex_unlock_fast(&bc->lock);
 }
 
 /**
@@ -235,8 +237,6 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	bfd_ctx_check(bc);
 
-	mutex_lock_fast(&bc->lock);
-
 	ZERO(&sc);
 	lookaddr = const_ptr_add_offset(addr, bc->offset);
 	sc.addr = pointer_to_ulong(lookaddr);
@@ -246,7 +246,6 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 
 	if (sc.location.function != NULL) {
 		*loc = sc.location;		/* Struct copy */
-		mutex_unlock_fast(&bc->lock);
 		return TRUE;
 	}
 
@@ -259,21 +258,25 @@ bfd_util_locate(bfd_ctx_t *bc, const void *addr, struct symbol_loc *loc)
 	 * information but that is better than nothing.
 	 */
 
+	mutex_lock_fast(&bc->lock);
+
 	if (NULL == bc->text_symbols) {
 		bc->text_symbols = symbols_make(bc->count, FALSE);
+		mutex_unlock_fast(&bc->lock);
+
 		bfd_util_load_text(bc, bc->text_symbols);
 		symbols_sort(bc->text_symbols);
+	} else {
+		mutex_unlock_fast(&bc->lock);
 	}
 
 	name = symbols_name_only(bc->text_symbols, lookaddr, FALSE);
 	if (name != NULL) {
 		ZERO(loc);
 		loc->function = name;
-		mutex_unlock_fast(&bc->lock);
 		return TRUE;
 	}
 
-	mutex_unlock_fast(&bc->lock);
 	return FALSE;
 }
 
@@ -600,7 +603,7 @@ bfd_util_init(void)
 }
 
 /**
- * Get a binary file context for the  given program / library path.
+ * Get a binary file context for the given program / library path.
  *
  * @param be		the BFD environment created by bfd_util_init()
  * @param path		pathname of the program / library

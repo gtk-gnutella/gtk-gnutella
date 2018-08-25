@@ -495,7 +495,7 @@ get_number(const char *arg, int opt)
 	val = parse_v32(arg, NULL, &error);
 	if (0 == val && error != 0) {
 		fprintf(stderr, "%s: invalid -%c argument \"%s\": %s\n",
-			getprogname(), opt, arg, g_strerror(error));
+			getprogname(), opt, arg, english_strerror(error));
 		exit(EXIT_FAILURE);
 	}
 
@@ -554,7 +554,7 @@ start_generate_thread(bool verbose)
 		THREAD_F_DETACH | THREAD_F_PANIC, THREAD_STACK_MIN);
 
 	if (verbose)
-		printf("Started entropy generation thread for ARC4 and WELL\n");
+		printf("Started entropy generation thread.\n");
 }
 
 int
@@ -583,7 +583,6 @@ G_STMT_START {			\
 } G_STMT_END
 
 	progstart(argc, argv);
-	misc_init();
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		if ('l' == c) {
@@ -801,3 +800,4 @@ G_STMT_START {			\
 	return 0;
 }
 
+/* vi: set ts=4 sw=4 cindent: */

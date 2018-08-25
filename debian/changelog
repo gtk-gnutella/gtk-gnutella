@@ -1,3 +1,27 @@
+gtk-gnutella (1.1.13-1) unstable; urgency=high
+
+  * Bug-fixing release from upstream.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Sun, 22 Oct 2017 16:09:12 +0000
+
+gtk-gnutella (1.1.12-1) unstable; urgency=high
+
+  * Bug-fixing release from upstream.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Wed, 20 Sep 2017 12:10:43 +0000
+
+gtk-gnutella (1.1.11-1) unstable; urgency=medium
+
+  * Bug-fixing release from upstream.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Fri, 11 Nov 2016 13:39:44 +0000
+
+gtk-gnutella (1.1.10-1) unstable; urgency=medium
+
+  * Bug-fixing release from upstream.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Thu,  1 Sep 2016 08:02:01 +0000
+
 gtk-gnutella (1.1.9-1) unstable; urgency=medium
 
   * Bug-fixing release from upstream.

@@ -18,9 +18,10 @@
 ?S:d_gtk:
 ?S:	This variable is if compiling against Gtk+ works.
 ?S:.
-?T:modver version vint flag missing allok
+?T:modver version vint flag missing allok x l
 : how can we find information about GTK?
 d_gtk="$undef"
+version=
 case "$d_headless" in
 "$define")
 ?X: Since there is no GUI, simply include the GLib flags
@@ -37,14 +38,27 @@ if [ "$gtkversion" = 1 ] && gtk-config --cflags >/dev/null 2>&1; then
 elif pkg-config $gtkpackage --cflags >/dev/null 2>&1; then
 	gtkconfig="pkg-config $gtkpackage"
 	modver=--modversion
+elif pkg-config --cflags $gtkpackage >/dev/null 2>&1; then
+	version=`pkg-config --version`
+	echo "(You have a weird pkg-config, version $version)"
+?X: this weird pkg-config (older than 0.29?) needs --cflags and --libs first
+	gtkcflags=`pkg-config --cflags $gtkpackage`
+	gtkldflags=`pkg-config --libs $gtkpackage`
+	version=`pkg-config --modversion $gtkpackage | head -1`
 else
 	echo "You've got problems!  Do you have GTK+ installed?" >&4
 	gtkconfig='false'
 	modver=''
 fi
-echo "(I'll use '$gtkconfig' to gather that information.)"
+case "$version" in
+'')
+	echo "(I'll use '$gtkconfig' to gather that information.)"
+	gtkcflags=`$gtkconfig --cflags`
+	gtkldflags=`$gtkconfig --libs`
+	version=`$gtkconfig $modver | head -1`
+	;;
+esac
 ?X: check that we've got the version they asked for
-version=`$gtkconfig $modver`
 case "$gtkversion" in
 1)
 	case "$version" in
@@ -81,8 +95,6 @@ case "$gtkversion" in
 	exit 1
 	;;
 esac
-gtkcflags=`$gtkconfig --cflags`
-gtkldflags=`$gtkconfig --libs`
 ?X:
 ?X: Make sure all the GLib C flags are included, append all if any missing.
 ?X:
@@ -117,6 +129,25 @@ if $allok; then
 fi
 ?X: Remember, indentation wrong on purpose
 ;;
+esac
+
+?X: Remove usless libraries (which we use no symbols from in gtk-gnutella...)
+case "$gtkversion" in
+2)
+	x=
+	for l in $gtkldflags; do
+		case "$l" in
+		-lgio-2.0) ;;
+		-lpangoft2-1.0) ;;
+		-lpangocairo-1.0) ;;
+		-lcairo) ;;
+		-lfontconfig) ;;
+		-lfreetype) ;;
+		*) x="$x $l";;
+		esac
+	done
+	gtkldflags=$x
+	;;
 esac
 
 case "$d_headless" in

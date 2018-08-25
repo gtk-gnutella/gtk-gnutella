@@ -1,3 +1,254 @@
+# v 1.1.13  2017-10-22  [stable]
+
+This release primarily addresses issues that were left-over in 1.1.12.
+Do not use that previous release, migrate from 1.1.11 to 1.1.13 directly!
+
+The main issue was that of Partial File Sharing.  Numerous bugs, dating from
+7 years or more, were lurking because my local configuration had switched PFS
+off for testing, and it had never been turned back on!  In particular,
+completed files were not properly shared, it was not possible to upload their
+THEX since it was not recomputed, and the files were not properly indexed in
+the Query Routing Table due to bugs in the background task layer.
+
+In case of a crash, we now dump the value of all the Gnutella properties to
+be able to spot configurations that deviate from the norm.  Too many bugs
+were reported and ignored because they could not be reproduced, often due
+to not having the same setup when attempting to debug!
+
+Another nasty bug was fixed: it was not possible to change the IP support
+configuration without causing an immediate crash.  The reason is due to a
+change that was integrated in 1.1.12 to allow IPv6 UDP traffic from G2 nodes.
+The problem was that this created an extra client stack on top of the
+low-level UDP traffic scheduler and it was not properly cleaned-up when
+switching IP configurations, leading to an assertion failure!
+
+New Features:
+
+Improvements:
+- Append all Gnutella properties to the crashlog file.
+- At startup, do not needlessly request TTH if we have it cached already.
+- Optimized requests for library scan / QRP rebuild, avoiding multiple events.
+- Allow TTH computation for seeded files.
+- Obsolete and stale entries are now removed from the SHA1 cache.
+- [GTK] Added GUI events on more fileinfo changes.
+- [GTK] Show information about recomputed TTH for seeded files.
+- Prune unshared entries from SHA1 cache at startup.
+- Persist information about seeded files in the ASCII fileinfo database.
+- Remove unneeded libraries from the default GTK2 ldflags.
+
+Bug Fixes:
+- Was not able to properly seed completed files; fixed shared_file_path().
+- Was not always updating QRP on the UP side after a library change.
+- Could have background tasks stuck after cancelling a multi-ref'ed one.
+- Dynamic querying timeout was not properly computed (made too small).
+- Changing from "IPv6 & IPv4" to "IPv4 only" mode caused a crash.
+- Restored ability for "shutdown -r" to work.
+
+Under the Hood:
+- Added prop_to_typed_string().
+- Added s_where() to log a stacktrace on stderr only.
+- Added tt_slice_size() to compute slice length per leaf in the TTH.
+- New crash_dumper_add() to register crash dumper callbacks.
+- No panicing when thread cannot block but was actually suspended.
+- Was unduly offsetting stacktrace by one extra level.
+- bg_sched_sleep(): don't reduce runcount on exiting task!
+- bg_sched_timer(): added run count consistency check.
+- bg_sched_timer(): fixed logging of task's run time.
+- bg_task_cancel(): log task address as well, not just the task name.
+- bg_task_wakeup(): must clear user sleeping flag.
+- crash_restart_notify(): use smarter crash_exit().
+- crash_try_reexec(): suspend other threads as a precaution.
+- deflate_flushed(): suppressed soft assertion.
+- dq_results_expired(): fixed improper timeout computation.
+- fi_free(): cut any pending reference by uploads!
+- fi_tigertree_check(): more verbose in case of errors.
+- file_info_moved(): must update fi->modified as well.
+- file_info_remove_source(): removed unused discard parameter.
+- file_info_retrieve(): also validate that DONE is consistent.
+- file_info_shared_sha1(): do not share bad files.
+- get_file_to_upload_from_urn(): factorized code.
+- huge_update_hashes(): enforce one sync of SHA1 cache every minute.
+- huge_verify_callback(): use shared_file_indexed().
+- node_udp_disable(): was not disabling the G2 UDP IPv6 node.
+- parse_and_append_cache_entry(): discard obsolete / stale entries.
+- qrt_compressed(): fixed outdated comments.
+- qrt_diff_1(): was never considering change.
+- request_sha1(): don't request TTH if we have it cached.
+- shared_file_fileinfo_unref(): clear fileinfo pointer.
+- shared_file_from_fileinfo(): copy TTH atom as well, if any.
+- shared_file_is_shareable(): be stricter for partial files.
+- shared_file_path(): must process sf->fi correctly!
+- upload_file_present(): loudly warn when completed file changed on disk.
+- upload_file_present(): loudly warn when file not shareable.
+- verify_update(): loudly warn when "progress" callback stops processing.
+
+# v 1.1.12  2017-09-20  [stable]
+
+This release fixes a very critical bug that was only manifesting when Partial
+File Sharing was turned on, and which caused possible memory corruption (leading
+to a sure crash later) when enqueuing new files for downloading.
+
+New Features:
+- Throttle browsing requests to one per hour from a given IP.
+- Limit uploads to stalling hosts to 1, regardless of user settings.
+- [GTK2] Show proper average data speed on completed uploads.
+
+Improvements:
+- Added "WSHR" vendor code for WireShare.
+- Added "ENVY" vendor code for Envy.
+- Do not attempt costly operations after a crash / auto-restart.
+- Updated FAQ  -Uploads and Sharing-
+- Use 64-bit variables for bandwidth computations.
+- Make sure early stalling is not always reported for the same IP.
+- Use even HTTP outgoing bandwidth as the last measure when stalling.
+
+Bug Fixes:
+- Allow IPv6 UDP traffic from G2 nodes.
+- Be sure to use destructive list iteration with tmalloc_free_magazine().
+- Critical upload HTTP statuses are now fully sent.
+- Must give plain (untranslated) strings to send_upload_error().
+- bg_task_finished(): now calls safer bg_task_dead().
+- file_object_open_from(): also catch EROFS when opening file.
+- node_bye_v(): do not call node_remove_v() for G2 nodes.
+- vendor_code_get_name(): fixed validation of unknown code tokens.
+- verify_next_file(): fixed wrong argument order in log message.
+
+Under the Hood:
+- bfd_util: reworked mutex grabbing in an attempt to avoid deadlocks.
+- binary_hash(): disperse bits in initial hash value.
+- check_for_events(): optimize path if timeout is 0 or we collect events.
+- cq_event_called(): only zero variable holding event when asked!
+- cq_zero(): now always nullify the event, as the name suggests.
+- crash_setmain(): avoid spurious warnings with recent gcc.
+- english_strerror() and symbolic_errno() made thread-safe.
+- inputevt_timer(): factorized common code into new inputevt_handle().
+- socket_udp_flush_queue(): do not process anything if we cannot devote time.
+- stack_sym_trylock(): avoid deadly recursions through stack lock dumping!
+- thread_sig_handle(): use atomic exchange operation to clear pending set.
+- u32_ptr_hash(): discard lower bits of the multiplication as well.
+- upload_timer(): clear the stall flag when it is over.
+- Added aging_record() to simplify code for plain keys.
+- Added cq_event() to acknowledge reception of events we do not track.
+- Added "inputevt_trace" property for tracing dispatched I/O callbacks.
+- Added english_strerror() to guarantee English messages.
+- Added thread_signal_has_pending() and thread_signal_process().
+- Added "lock_sleep_trace" and "lock_contention_trace" properties.
+- AJE: changed pool #0 filling policy and reseeding checks.
+- Ensure misc_init() is called before using lookup tables.
+- Simplify is_ascii_*() by performing table lookup.
+- Thread runtime now allows a signal handler to run within another one.
+- Updated UHC list, fixed obsolete port numbers.
+- Use new cq_event() in thread callout events to avoid possible leaks.
+- Watchdog: revisited logic to do more under lock protection.
+
+# v 1.1.11  2016-11-11  [stable]
+
+This release fixes a portability issue on FreeBSD and introduces a main core
+feature and minor new GUI features.
+
+The main feature is the addition of "equivalence classes" defining word
+aliases, used when sharing files and querying for them.
+
+Currently, the only supported equivalence class deals with naming of series.
+Indeed, there are various conventions that can be used to represent these,
+and it makes searching inefficient: either one will lookup for all the
+possible variations, or one will miss some of the files.
+
+For instance, episode #8 of an hypothetical season #4 can be represented by
+any of these strings:
+
+	{ "s04e08", "4x08", "408", "04x08", "0408" }
+
+Thanks to the equivalence class, a file bearing one of these strings can
+be searched for (and located successfully) by using any of the other strings.
+Of course, since this is a local processing, the more servents out there are
+deployed with this aliasing support, the more efficient the feature becomes!
+
+There are also new GUI features: the "Clear completed" button from the Download
+pane is now doing someething useful, and the current page of different notebooks
+is remembered across sessions.  The only one which is not restored on normal
+resuming is the main notebook tab.  It will be restored if GTKG is restarted
+after a crash, but otherwise the application will always start up within the
+Network tab.
+
+In the Uploads tab, upload requests coming from a G2 servent will now be
+flagged with a "[G2]" tab right after the IP address. This helps seeing how
+the Gnutella and G2 network unification is evolving.
+
+New Features:
+- Flag uploads coming from G2 servents with a "[G2]" tag after IP address.
+- Added alias support in sharing/querying.
+- Made the "Clear completed" button in Downloads/Tools do something useful.
+- Moved "Clear completed" button to the bottom right of the download pane.
+- Remember fileinfo notebook tab number across sessions.
+- Remember main notebook tab number across sessions, only restored after crash.
+- Remember Gnet stats notebook tab number across sessions.
+- Remember download info / tools notebook tab number across sessions.
+
+Improvements:
+- Added --cleanup to explicitly request for final memory cleanup sequence.
+- Updated Italian translation.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Leaf nodes could end-up being connected to more ultrapeers than configured.
+- Fixed monitoring of alien threads, important when GTK file selector is used.
+
+Under the Hood:
+- Debian compatibility level changed from 4 to 5.
+- Make sure we can deal with older pkg-config, which needs leading arguments.
+- Use "embedded" symbols for xmalloc(), xfree() and friends.
+- Added "query_trace" property to trace all queries which were searched.
+- Moved halloc-based string functions like h_strdup() to dedicated hstrfn.c.
+- Expanded search mask to 64 bits to be able to hold all digits and letters.
+- Count aliased queries and hits from aliases.
+- Pre-compute shared file media type at record creation time.
+- Pass query limits to st_search() to avoid needless pattern matching.
+- Added h_strsplit() and h_strsplit_set().
+- Added strvec_append_with() to expand vector by appending another vector.
+- crash_assert_logv(): don't call crash_mode() if assert failure was recorded.
+- entropy_clock_time(): mix the entropy nonce through hashing for more diffusion.
+- node_can_accept_connection(): only send headers back when handshaking.
+- qrp_add_file(): optimized to avoid computing word length if not required.
+- thread_stack_check_overflow(): ignore virtual addresses outside stack range.
+- vmm_init_once(): ensure any shared library for stacktrace unwinding is loaded.
+
+# v 1.1.10  2016-09-01  [stable]
+
+This is mostly a bug-fixing release and should be the last update on the
+1.1.x release tree, before important core changes in the upcoming 1.2.
+
+Improvements:
+- FAQ cleanups.
+- Added the ".ape" file extension to the default list of shared files.
+- Remember hosts to which a TCP connection failed recently to avoid hammering.
+- Updated French and Turkish translations.
+- Updated GeoIP databases.
+
+Bug Fixes:
+- Don't embed build date if SOURCE_DATE_EPOCH is set for reproducibile builds.
+- Missed ":" in variable substitution request, in scripts/nm-list
+- nm-list: fixed date computation on BSD systems.
+
+Under the Hood:
+- Need TLS 2.12 to generate an X.509 self-signed certificate.
+- Added G_PRINTF() hint to tls_logfmt() and tls_cert_log() to avoid warnings.
+- Fixed CPP file inclusion protection symbol for lib/mime_type.h.
+- Added the "ape" MIME type linked to the ".ape" file extension.
+- Ensure we do not suspend threads during an interrupt.
+- Track where context was taken in our setjmp wrappers to ease debugging.
+- Keep track of "once" initializations in case we end-up recursing.
+- Trace which new lock is overflowing the lock stack.
+- once: make sure we can insert routine in our tracking table.
+- once: arbitrarily limit nesting level in one thread to 32.
+- dht_update_size_estimate(): return if our KUID was not initialized yet.
+- keys_reclaim(): we can have values attached to key if we can remove it.
+- symbols_load_from(): must release write lock when falling back to pre-computed.
+- thread_element_block_until(): was not checking for concurrent unblocking.
+- thread_element_block_until(): revisited signal handling.
+- thread_suspend_others(): don't wait for busy threads already marked suspended.
+- walloc: prevent race condition on walloc_stopped being set.
+
 # v 1.1.9   2016-03-06  [stable]
 
 This is mostly a bug-fixing release.

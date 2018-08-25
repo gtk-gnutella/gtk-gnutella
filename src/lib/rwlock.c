@@ -108,6 +108,27 @@ rwlock_check(const struct rwlock * const rw)
 	g_assert(RWLOCK_MAGIC == rw->magic);
 }
 
+static bool rwlock_sleep_trace;
+static bool rwlock_contention_trace;
+
+/**
+ * Set sleep tracing in rwlock_wait().
+ */
+void
+rwlock_set_sleep_trace(bool on)
+{
+	rwlock_sleep_trace = on;
+}
+
+/**
+ * Set contention tracing in rwlock_wait().
+ */
+void
+rwlock_set_contention_trace(bool on)
+{
+	rwlock_contention_trace = on;
+}
+
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 /**
  * Record that the current thread is becoming a reader.
@@ -584,6 +605,11 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 
 	thread_lock_contention(reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK);
 
+	if G_UNLIKELY(rwlock_contention_trace) {
+		s_rawinfo("LOCK contention for %s-lock %p at %s:%u",
+			reading ? "read" : "write", rw, file, line);
+	}
+
 	/*
 	 * When running mono-threaded, having to loop means we're deadlocked
 	 * already, so immediately flag it.
@@ -697,10 +723,19 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 		 * milliseconds before rescheduling.
 		 */
 
-		if (i < RWLOCK_LOOP)
+		if G_LIKELY(i < RWLOCK_LOOP) {
 			thread_yield();
-		else
+		} else {
+			if G_UNLIKELY(rwlock_sleep_trace) {
+				s_rawinfo("LOCK sleeping for %s-lock %p at %s:%u",
+					reading ? "read" : "write", rw, file, line);
+			}
+
 			compat_usleep_nocancel(RWLOCK_DELAY);
+
+			if G_UNLIKELY(rwlock_sleep_trace)
+				s_rawinfo("LOCK sleep done");	/* To timestamp end of sleep */
+		}
 	}
 }
 

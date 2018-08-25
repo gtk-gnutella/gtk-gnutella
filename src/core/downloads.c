@@ -106,6 +106,7 @@
 #include "lib/hashing.h"
 #include "lib/hashlist.h"
 #include "lib/hikset.h"
+#include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"
@@ -577,10 +578,7 @@ download_pipeline_free_null(struct dl_pipeline **dp_ptr)
 	if (dp != NULL) {
 		dl_pipeline_check(dp);
 
-		if (dp->req != NULL) {
-			http_buffer_free(dp->req);
-			dp->req = NULL;
-		}
+		http_buffer_free_null(&dp->req);
 		pmsg_free_null(&dp->extra);
 		dp->magic = 0;
 		WFREE(dp);
@@ -3606,7 +3604,7 @@ download_info_change_all(fileinfo_t *old_fi, fileinfo_t *new_fi)
 			download_stop(d, GTA_DL_TIMEOUT_WAIT, no_reason);
 		}
 		g_assert(old_fi->refcount > 0);
-		file_info_remove_source(old_fi, d, FALSE); /* Keep it around */
+		file_info_remove_source(old_fi, d);
 		file_info_add_source(new_fi, d);
 
 		d->flags &= ~DL_F_SUSPENDED;
@@ -4731,10 +4729,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
 	}
-	if (d->req) {
-		http_buffer_free(d->req);
-		d->req = NULL;
-	}
+	http_buffer_free_null(&d->req);
 	if (d->cproxy) {
 		cproxy_free(d->cproxy);
 		d->cproxy = NULL;
@@ -5304,7 +5299,7 @@ download_info_reget(struct download *d)
 
 	if (d->file_info->sha1 != NULL)
 		download_by_sha1_remove(d);
-	file_info_remove_source(fi, d, FALSE);		/* Keep it around for others */
+	file_info_remove_source(fi, d);
 
 	fi = file_info_get(d->file_name, GNET_PROPERTY(save_file_path),
 			d->file_size, d->sha1, file_size_known);
@@ -5459,11 +5454,7 @@ download_remove(struct download *d)
 		download_by_sha1_remove(d);
 
 	http_rangeset_free_null(&d->ranges);
-
-	if (d->req) {
-		http_buffer_free(d->req);
-		d->req = NULL;
-	}
+	http_buffer_free_null(&d->req);
 
 	/*
 	 * Let parq remove and free its allocated memory
@@ -5477,7 +5468,7 @@ download_remove(struct download *d)
 	atom_str_free_null(&d->file_name);
 	atom_str_free_null(&d->uri);
 
-	file_info_remove_source(d->file_info, d, FALSE); /* Keep fileinfo around */
+	file_info_remove_source(d->file_info, d);
 
 	download_check(d);
 	sl_removed = pslist_prepend(sl_removed, d);
@@ -8185,16 +8176,6 @@ download_abort(struct download *d)
 			download_remove_file(d, FALSE);
 }
 
-void
-download_request_abort(struct download *d)
-{
-	download_check(d);
-	g_return_if_fail(d->file_info);
-	file_info_check(d->file_info);
-
-	download_abort(d);
-}
-
 static void
 download_resume(struct download *d)
 {
@@ -8585,7 +8566,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 {
 	uint16 port;
 	bool success = FALSE;
-	int push_count;
+	size_t push_count;
 	struct dl_server *server;
 
 	download_check(d);
@@ -8611,7 +8592,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 	server = d->server;
 	g_assert(dl_server_valid(server));
 
-	push_count = pointer_to_int(aging_lookup(local_pushes, server->key));
+	push_count = aging_seen_count(local_pushes, server->key);
 
 	if (push_count >= DOWNLOAD_PUSH_MAX) {
 		if (GNET_PROPERTY(download_debug) > 1) {
@@ -8658,7 +8639,7 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 
 done:
 	if (success) {
-		aging_insert(local_pushes, server->key, int_to_pointer(push_count + 1));
+		aging_saw_another_revitalise(local_pushes, server->key, NULL);
 	} else if (GNET_PROPERTY(download_debug)) {
 		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
 			"for %s (index=%lu)",
@@ -11297,6 +11278,9 @@ xalt_detect_tls_support(struct download *d, header_t *header)
 	if (found) {
 		size_t i = 0;
 
+		if G_UNLIKELY(0 == hex2int_inline('a'))
+			misc_init();	/* Auto-initialization of hex2int_inline() */
+
 		/*
 		 * We parse something like "tls_hex=4cbd040533a2" whereas
 		 * each nibble refers to the next 4 hosts in the list.
@@ -13241,11 +13225,10 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 
 	socket_evt_clear(s);
 
-	http_buffer_free(r);
 	if (download_pipelining(d)) {
-		d->pipeline->req = NULL;
+		http_buffer_free_null(&d->pipeline->req);
 	} else {
-		d->req = NULL;
+		http_buffer_free_null(&d->req);
 	}
 
 	download_request_sent(d);
@@ -15334,15 +15317,7 @@ download_move_done(struct download *d, const char *pathname, uint elapsed)
 
 	if (has_good_sha1(d)) {
 		file_info_moved(fi, pathname);
-
-		if (
-			fi->sha1 && GNET_PROPERTY(pfsp_server) &&
-			!(FI_F_TRANSIENT & fi->flags)
-			/* No size consideration here as the file is complete */
-		) {
-			fi->flags |= FI_F_SEEDING;
-		}
-
+		file_info_mark_completed(fi);
 		/* Send a notification */
 		dbus_util_send_message(DBS_EVT_DOWNLOAD_DONE, download_pathname(d));
 	} else {

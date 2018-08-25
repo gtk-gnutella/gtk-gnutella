@@ -76,3 +76,5 @@ void idtable_foreach(idtable_t *tbl, data_fn_t cb, void *data);
 void idtable_foreach_id(idtable_t *tbl, id_data_fn_t cb, void *data);
 
 #endif /* _idtable_h_ */
+
+/* vi: set ts=4 sw=4 cindent: */

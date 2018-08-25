@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-200]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -75,7 +75,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -138,6 +138,7 @@ LSRC = \
 	ascii.c \
 	atio.c \
 	atoms.c \
+	balloc.c \
 	barrier.c \
 	base16.c \
 	base32.c \
@@ -220,6 +221,7 @@ LSRC = \
 	hikset.c \
 	host_addr.c \
 	hset.c \
+	hstrfn.c \
 	htable.c \
 	html.c \
 	http_range.c \
@@ -337,6 +339,7 @@ LOBJ = \
 	ascii.o \
 	atio.o \
 	atoms.o \
+	balloc.o \
 	barrier.o \
 	base16.o \
 	base32.o \
@@ -419,6 +422,7 @@ LOBJ = \
 	hikset.o \
 	host_addr.o \
 	hset.o \
+	hstrfn.o \
 	htable.o \
 	html.o \
 	http_range.o \

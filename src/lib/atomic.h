@@ -132,9 +132,13 @@ atomic_ptr_xchg_if_eq(void **p, void *ov, void *nv)
 #define ATOMIC_INC(p)		__sync_fetch_and_add(p, 1)
 #define ATOMIC_DEC(p)		__sync_fetch_and_sub(p, 1)
 #define ATOMIC_GET(p)		(atomic_mb(), *(p))
-#define ATOMIC_SET(p,v)		(*(p) = (v), atomic_mb())
 #define ATOMIC_ADD(p,v)		__sync_fetch_and_add(p, v)
 #define ATOMIC_SUB(p,v)		__sync_fetch_and_sub(p, v)
+
+#define ATOMIC_SET(p,v) G_STMT_START {	\
+	*(p) = (v);							\
+	atomic_mb();						\
+} G_STMT_END;
 
 #else	/* !HAS_SYNC_ATOMIC */
 
@@ -268,7 +272,7 @@ atomic_uint_set(uint *p, uint v)
  * counter.
  */
 
-#define AU64(x) 	uint x ## _lo; uint x ## _hi
+#define AU64(x) 	uint x ## _lo, x ## _hi
 
 #define AU64_INC(x) G_STMT_START { \
 	if G_UNLIKELY(-1U == atomic_uint_inc(x ## _lo)) \
@@ -278,6 +282,13 @@ atomic_uint_set(uint *p, uint v)
 #define AU64_DEC(x) G_STMT_START { \
 	if G_UNLIKELY(0 == atomic_uint_dec(x ## _lo)) \
 		atomic_uint_dec(x ## _hi); \
+} G_STMT_END
+
+#define AU64_ZERO(x) G_STMT_START { \
+	*x ## _hi = 0;					\
+	*x ## _lo = 0;					\
+	*x ## _hi = 0;					\
+	atomic_mb();					\
 } G_STMT_END
 
 /**
@@ -379,6 +390,11 @@ au64_sub(uint *hi, uint *lo, long value)
 #define AU64_ADD(x,v) 	ATOMIC_ADD(x ## _64, v)
 #define AU64_SUB(x,v) 	ATOMIC_SUB(x ## _64, v)
 #define AU64_VALUE(x) 	(atomic_mb(), *(x ## _64))
+
+#define AU64_ZERO(x) G_STMT_START { \
+	*x ## _64 = 0;					\
+	atomic_mb();					\
+} G_STMT_END;
 
 #else
 #error "unexpected value for LONGSIZE"

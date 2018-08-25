@@ -143,6 +143,7 @@
 
 #include "lib/atoms.h"
 #include "lib/cq.h"
+#include "lib/crash.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/stringify.h"
@@ -532,7 +533,9 @@ stable_init(void)
 		GNET_PROPERTY(dht_storage_in_memory));
 
 	dbmw_set_map_cache(db_lifedata, STABLE_MAP_CACHE_SIZE);
-	stable_prune_old();
+
+	if (!crash_was_restarted())
+		stable_prune_old();
 
 	stable_sync_ev = cq_periodic_main_add(STABLE_SYNC_PERIOD,
 		stable_sync, NULL);

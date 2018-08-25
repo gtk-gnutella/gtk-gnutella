@@ -394,6 +394,7 @@ struct thread_element {
 	const char *entry_name;			/**< Symbolic name of thread entry point */
 	int suspend;					/**< Suspension request(s) */
 	int pending;					/**< Pending messages to emit */
+	int interrupt;					/**< Interrupt depth count */
 	socket_fd_t wfd[2];				/**< For the block/unblock interface */
 	unsigned joining_id;			/**< ID of the joining thread */
 	unsigned unblock_events;		/**< Counts unblock events received */
@@ -403,7 +404,7 @@ struct thread_element {
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
 	int in_signal_handler;			/**< Counts signal handler nesting */
-	bool sig_handling;				/**< Are we in thread_sig_handle()? */
+	bool sig_disabled;				/**< Cheap way of disabling all signals */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
@@ -1206,7 +1207,7 @@ thread_monitor_exit(struct thread_element *te)
 		if (error != 0) {
 			/* Don't use %m, not sure we can set errno properly in thread */
 			s_minierror("%s(): cannot create monitoring key: %s (%s)",
-				G_STRFUNC, symbolic_errno(error), g_strerror(error));
+				G_STRFUNC, symbolic_errno(error), english_strerror(error));
 		}
 	}
 
@@ -1245,6 +1246,39 @@ thread_element_mark_gone_seen(struct thread_element *te)
 }
 
 /**
+ * A discovered thread (outside of "main") was seen running.
+ */
+static void
+thread_element_mark_running(struct thread_element *te)
+{
+	/*
+	 * We are in a discovered thread, and we take this opportunity to
+	 * update the last time we see an activity for that thread.  This
+	 * allows thread tracing code to spot likely inactive discovered
+	 * thread since we cannot know when they enter a blocking state due
+	 * to thread synchronization (waiting for an event, sleeping, etc..).
+	 *		--RAM, 2015-02-23
+	 */
+
+	te->last_seen = tm_time_raw();
+
+	/*
+	 * Loudly warn if the thread element is marked as gone.
+	 * It means that thread_will_exit() was called, we marked the
+	 * discovered thread as being gone and yet the same thread
+	 * is still being active.
+	 */
+
+	if G_UNLIKELY(te->gone) {
+		thread_element_mark_gone_seen(te);
+	} else if G_UNLIKELY(te->add_monitoring) {
+		/* No longer flagged as "gone", re-install monitoring */
+		te->add_monitoring = FALSE;
+		thread_monitor_exit(te);
+	}
+}
+
+/**
  * @return whether thread element is matching the QID.
  */
 static bool
@@ -1268,7 +1302,7 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 	 */
 
 	if G_LIKELY(te->last_qid == qid) {
-		if G_LIKELY(THREAD_MAIN == te->stid || te->created)
+		if G_LIKELY(THREAD_MAIN_ID == te->stid || te->created)
 			goto matched;
 
 		/*
@@ -1279,35 +1313,10 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 		if G_UNLIKELY(!te->valid)
 			goto false_hit;
 
-		/*
-		 * We are in a discovered thread, and we take this opportunity to
-		 * update the last time we see an activity for that thread.  This
-		 * allows thread tracing code to spot likely inactive discovered
-		 * thread since we cannot know when they enter a blocking state due
-		 * to thread synchronization (waiting for an event, sleeping, etc..).
-		 *		--RAM, 2015-02-23
-		 */
-
-		te->last_seen = tm_time_raw();
-
 		THREAD_STATS_INCX(qid_cache_self_check);
 
 		if (thread_eq(te->tid, thread_self())) {
-			/*
-			 * Loudly warn if the thread element is marked as gone.
-			 * It means that thread_will_exit() was called, we marked the
-			 * discovered thread as being gone and yet the same thread
-			 * is still being active.
-			 */
-
-			if G_UNLIKELY(te->gone) {
-				thread_element_mark_gone_seen(te);
-			} else if G_UNLIKELY(te->add_monitoring) {
-				/* No longer flagged as "gone", re-install monitoring */
-				te->add_monitoring = FALSE;
-				thread_monitor_exit(te);
-			}
-
+			thread_element_mark_running(te);
 			goto matched;
 		}
 
@@ -1979,7 +1988,7 @@ thread_gone(struct thread_element *te)
  * Callout queue callback invoked when discovered thread is surely gone.
  */
 static void
-thread_surely_gone(cqueue_t *unused_cq, void *data)
+thread_surely_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 	bool problem;
@@ -1987,14 +1996,17 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
@@ -2023,20 +2035,23 @@ thread_surely_gone(cqueue_t *unused_cq, void *data)
  * Callout queue callback invoked when discovered thread is probably gone.
  */
 static void
-thread_probably_gone(cqueue_t *unused_cq, void *data)
+thread_probably_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	THREAD_LOCK(te);
 
 	if (!te->valid || !te->exit_started || !te->discovered) {
+		bool is_valid = te->valid;
 		THREAD_UNLOCK(te);
-		s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-			G_STRFUNC, te->stid, thread_element_name(te));
+		if (is_valid) {
+			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
+				G_STRFUNC, te->stid, thread_element_name(te));
+		}
 		return;
 	}
 
@@ -2118,14 +2133,14 @@ thread_pjoin(struct thread_element *te)
  * Callout queue callback to reclaim thread element.
  */
 static void
-thread_element_reclaim(cqueue_t *unused_cq, void *data)
+thread_element_reclaim(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 
 	thread_element_check(te);
 	g_assert(te->detached);
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	/*
 	 * Join with the thread, which should be completely terminated by now
@@ -2338,6 +2353,7 @@ thread_element_reset(struct thread_element *te)
 	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
+	te->sig_disabled = FALSE;
 	te->recursive_lockwait = FALSE;
 	te->cancl = THREAD_CANCEL_ENABLE;
 	tsig_emptyset(&te->sig_mask);
@@ -3429,6 +3445,9 @@ thread_find_tid(thread_t t)
 		}
 	}
 
+	if (te != NULL && te->discovered && !te->main_thread)
+		thread_element_mark_running(te);
+
 	return te;
 }
 
@@ -3580,7 +3599,10 @@ thread_find_via_qid(thread_qid_t qid)
 	if G_UNLIKELY(te != NULL && te->discovered && !te->main_thread) {
 		thread_t t = thread_self();
 		if (!thread_eq(te->tid, t)) {
-			te = thread_find_tid(t);		/* Find proper TID instead */
+			te = thread_find_tid(t);	/* Find proper TID instead and... */
+			/* ... will have called thread_element_mark_running() if needed */
+		} else {
+			thread_element_mark_running(te);
 		}
 	}
 
@@ -4029,10 +4051,14 @@ thread_stack_check_overflow(const void *va)
 
 	if (thread_sp_direction < 0) {
 		/* Stack growing down, base is high_qid */
+		if (qva > te->high_qid || qva < te->low_qid - 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva > te->low_qid + redzone)
 			return;		/* Not faulting in the red-zone page */
 	} else {
 		/* Stack growing up, base is low_qid */
+		if (qva < te->low_qid || qva > te->high_qid + 1)
+			return;		/* Address not in the stack range or near top */
 		if (qva < te->high_qid - redzone)
 			return;		/* Not faulting in the red-zone page */
 	}
@@ -4562,6 +4588,40 @@ thread_wait_others(const struct thread_element *te)
 }
 
 /**
+ * Atomically clear signals in the pending set from the thread element.
+ *
+ * @note
+ * This routine does not require the thread element to be locked.
+ *
+ * @param te		the thread element
+ * @param mask		mask with zeroes in bits for each signal to clear
+ */
+static void
+thread_element_clear_mask(struct thread_element *te, tsigset_t mask)
+{
+	STATIC_ASSERT(sizeof(tsigset_t) == sizeof(uint));
+
+	/*
+	 * Because signal delivery is a rare event, we are going to attempt
+	 * to atomically clear the signals into the sig_pending field.  This
+	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_add_pending_sig().
+	 */
+
+	for (;;) {
+		tsigset_t pending, cleared;
+
+		atomic_mb();
+		cleared = pending = te->sig_pending;
+		cleared &= mask;
+
+		if (atomic_uint_xchg_if_eq(&te->sig_pending, pending, cleared))
+			break;
+	}
+}
+
+/**
  * Handle pending signals.
  *
  * @return TRUE if we handled something.
@@ -4578,12 +4638,10 @@ thread_sig_handle(struct thread_element *te)
 	THREAD_STATS_INCX(sig_handled_count);
 
 	/*
-	 * Prevent recusion: since thread_check_suspended() will call
-	 * thread_sig_handle(), we must avoid endless checks when a signal
-	 * is present.
+	 * If we've disabled all signals, don't process now.
 	 */
 
-	if G_UNLIKELY(te->sig_handling)
+	if G_UNLIKELY(te->sig_disabled)
 		return FALSE;
 
 	/*
@@ -4594,8 +4652,6 @@ thread_sig_handle(struct thread_element *te)
 
 	if G_UNLIKELY(te->blocked)
 		return FALSE;
-
-	te->sig_handling = TRUE;
 
 recheck:
 
@@ -4615,15 +4671,10 @@ recheck:
 
 	/*
 	 * Load unblocked signals we have to process and clear the pending set.
-	 *
-	 * We need the lock here because the te->sig_pending field can be
-	 * concurrently updated by other threads when posting signals.
 	 */
 
-	THREAD_LOCK(te);
 	pending = ~te->sig_mask & te->sig_pending;
-	te->sig_pending &= te->sig_mask;		/* Only clears unblocked signals */
-	THREAD_UNLOCK(te);
+	thread_element_clear_mask(te, te->sig_mask);
 
 	if G_UNLIKELY(0 == pending)
 		goto done;
@@ -4681,7 +4732,6 @@ recheck:
 	/* FALL THROUGH */
 
 done:
-	te->sig_handling = FALSE;
 	return handled;
 }
 
@@ -4693,7 +4743,7 @@ done:
  * @return TRUE if we processed any signals.
  */
 static inline bool
-thread_signal_check(struct thread_element *te)
+thread_signal_check_element(struct thread_element *te)
 {
 	bool processed = FALSE;
 
@@ -4709,7 +4759,7 @@ thread_signal_check(struct thread_element *te)
 	 * signals, i.e. those sent by thread_os_kill().
 	 */
 
-	processed |= mingw_signal_check(te->stid);
+	processed |= mingw_signal_check_for(te->stid);
 #endif	/* MINGW32*/
 
 	return processed;
@@ -4801,6 +4851,16 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		return FALSE;
 
 	/*
+	 * If we are in an interrupt, do not suspend the thread: by definition
+	 * the interrupt is critical processing that we want to perform, and it
+	 * can be used during crashing!
+	 *		--RAM, 2016-06-19
+	 */
+
+	if G_UNLIKELY(te->interrupt != 0)
+		return FALSE;
+
+	/*
 	 * Suspension is critical, especially in crash mode, so check this first.
 	 *
 	 * We normally only suspend threads that do not hold any locks, but we
@@ -4822,8 +4882,14 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		}
 	}
 
-	if (sigs)
-		delayed |= thread_signal_check(te);
+	/*
+	 * Prevent recusion through thread_sig_handle(): we must avoid endless
+	 * checks when a signal is present, hence do not handle signals if
+	 * we are already in a signal handler.
+	 */
+
+	if (sigs && 0 == te->in_signal_handler)
+		delayed |= thread_signal_check_element(te);
 
 	return delayed;
 }
@@ -4964,7 +5030,7 @@ thread_suspend_others(bool lockwait)
 	static bool suspending[THREAD_MAX];
 	struct thread_element *te;
 	size_t i, n = 0;
-	unsigned busy = 0;
+	unsigned busy = 0, busy_skipped = 0;
 
 	/*
 	 * Must use thread_find() and not thread_get_element() to avoid taking
@@ -5065,14 +5131,26 @@ thread_suspend_others(bool lockwait)
 			continue;
 		}
 
-		atomic_int_inc(&xte->suspend);
-
 		if (lockwait) {
 			THREAD_LOCK(xte);
-			if (0 != thread_element_lock_count(xte))
-				busy++;
+
+			/*
+			 * An already suspended thread is unlikely to release its locks:
+			 * the thread_suspend_others() call cannot block in that situation
+			 * but we will loudly warn when this happens.
+			 */
+
+			if (0 != thread_element_lock_count(xte)) {
+				if (0 == xte->suspend)
+					busy++;
+				else
+					busy_skipped++;
+			}
+
 			THREAD_UNLOCK(xte);
 		}
+
+		atomic_int_inc(&xte->suspend);
 
 		n++;
 	}
@@ -5085,6 +5163,24 @@ thread_suspend_others(bool lockwait)
 	te->suspend = 0;
 	THREAD_UNLOCK(te);
 	mutex_unlock(&thread_suspend_mtx);
+
+	/*
+	 * If we need to wait for other threads to release their locks but we
+	 * found threads already marked suspended, it means we're dealing with
+	 * concurrent calls to this routine, or that routine is being called
+	 * multiple times from the same thread but the first time it did not ask
+	 * to wait for busy threads.
+	 *
+	 * In any case, this is not a normal situation and we need to warn
+	 * about it because the caller may misbehave and if we get a strange
+	 * behaviour later on, we'll know a weird thing happened already before.
+	 *		--RAM, 2016-08-025
+	 */
+
+	if (lockwait && busy_skipped != 0) {
+		s_carp("%s() found %u busy thread%s already marked suspended!",
+			G_STRFUNC, busy_skipped, plural(busy_skipped));
+	}
 
 	/*
 	 * Now wait for other threads to be suspended, if we identified busy
@@ -6221,7 +6317,7 @@ thread_local_users(thread_key_t key)
 void
 thread_foreach_local(thread_key_t key, uint flags, cdata_fn_t fn, void *data)
 {
-	uint id = THREAD_MAIN;
+	uint id = THREAD_MAIN_ID;
 	uint i;
 
 	if (flags & THREAD_LOCAL_SKIP_SELF)
@@ -6842,8 +6938,10 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 			if G_UNLIKELY(tls->capacity == tls->count) {
 				if (!tls->overflow) {
 					tls->overflow = TRUE;
-					s_rawwarn("%s overflowing its waiting stack at %s:%u",
-						thread_element_name_raw(te), file, line);
+					s_rawwarn("%s overflowing its waiting stack at %s:%u"
+						" whilst adding %s %p",
+						thread_element_name_raw(te), file, line,
+						thread_lock_kind_to_string(kind), lock);
 					thread_lock_dump(te);
 					s_minierror("too many nested lock waiting");
 				}
@@ -6868,7 +6966,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 					s_miniwarn("recursive waiting on %s %p at %s:%u",
 						thread_lock_kind_to_string(kind), lock, file, line);
 					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
-					s_stacktrace(TRUE, 1);
+					s_where(1);
 					break;
 				}
 			}
@@ -7093,20 +7191,21 @@ thread_lock_reacquire(
 	const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
-	bool in_sig_handler = te->sig_handling;
+	bool sig_disabled = te->sig_disabled;
+
 	/*
 	 * During re-acquisition of rwlocks, locks will be taken and we do not
 	 * want any pending signal delivery whilst we grab a lock that we were
 	 * supposed to already have.
 	 *
-	 * Therefore, we artifically set te->sig_handling and clear it before
+	 * Therefore, we artifically set te->sig_disabled and clear it before
 	 * before returning, to cheaply disable all signal delivery given that
 	 * thread_sig_handle() will explicitly avoid processing when that flag
 	 * is set.
 	 */
 
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = TRUE;		/* Prevents any signal delivery */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = TRUE;	/* Prevents any signal delivery */
 
 	switch (kind) {
 	case THREAD_LOCK_ANY:
@@ -7143,8 +7242,8 @@ thread_lock_reacquire(
 	g_assert_not_reached();
 
 done:
-	if G_LIKELY(!in_sig_handler)
-		te->sig_handling = FALSE;		/* Undo forced setting at entry */
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = FALSE;		/* Undo forced setting at entry */
 }
 
 /**
@@ -7229,8 +7328,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_rawwarn("%s overflowing its lock stack at %s:%u",
-			thread_element_name_raw(te), file, line);
+		s_rawwarn("%s overflowing its lock stack at %s:%u whilst adding %s %p",
+			thread_element_name_raw(te), file, line,
+			thread_lock_kind_to_string(kind), lock);
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;				/* Crashing or exiting already */
@@ -7333,7 +7433,10 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
 		tls->overflow = TRUE;
-		s_rawwarn("%s overflowing its lock stack", thread_element_name_raw(te));
+		s_rawwarn("%s overflowing its lock stack at %s:%u whilst adding %s %p"
+			" (swapping with %p)",
+			thread_element_name_raw(te), file, line,
+			thread_lock_kind_to_string(kind), lock, plock);
 		thread_lock_dump(te);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;			/* Crashing or exiting already */
@@ -7798,7 +7901,7 @@ thread_is_crashing(void)
  * Enter thread crashing mode.
  */
 void
-thread_crash_mode(void)
+thread_crash_mode(bool disable_locks)
 {
 	if (0 == atomic_int_inc(&thread_crash_mode_enabled)) {
 		/*
@@ -7822,11 +7925,11 @@ thread_crash_mode(void)
 	/*
 	 * Now that other threads are disabled, check whether any of them have
 	 * any locks held.  If none of them have, there is no need to disable
-	 * locking, unless we have been called already, which means we're crashing
-	 * again during our crash handling.
+	 * locking, unless we are told to, which means we're crashing again
+	 * during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || thread_crash_mode_enabled > 1)
+	if (0 != thread_others_lock_count() || disable_locks)
 		thread_lock_disable(FALSE);
 }
 
@@ -8533,22 +8636,7 @@ thread_element_block_until(struct thread_element *te,
 		THREAD_STATS_INCX(thread_self_block_races);
 		goto done;				/* Was sent an "unblock" event already */
 	}
-
-	/*
-	 * Lock is required for the te->unblocked update, since this can be
-	 * concurrently updated by the unblocking thread.  Whilst we hold the
-	 * lock we also update the te->blocked field, since it lies in the same
-	 * bitfield in memory, and therefore it cannot be written atomically.
-	 */
-
-	te->timed_blocked = booleanize(end != NULL);
-	te->blocked = TRUE;
-	te->unblocked = FALSE;
 	THREAD_UNLOCK(te);
-
-	/*
-	 * If we have a time limit, poll the file descriptor first before reading.
-	 */
 
 	THREAD_STATS_INCX(thread_self_blocks);
 
@@ -8562,16 +8650,30 @@ retry:
 	 */
 
 	while (thread_sig_pending(te) && 0 == te->signalled) {
-		THREAD_LOCK(te);
-		te->blocked = FALSE;
-		THREAD_UNLOCK(te);
-
-		(void) thread_signal_check(te);
-
-		THREAD_LOCK(te);
-		te->blocked = TRUE;
-		THREAD_UNLOCK(te);
+		if (!thread_signal_check_element(te))
+			break;		/* Could not handle signals, no need to loop */
 	}
+
+	/*
+	 * Lock is required for the te->unblocked update, since this can be
+	 * concurrently updated by the unblocking thread.  Whilst we hold the
+	 * lock we also update the te->blocked field, since it lies in the same
+	 * bitfield in memory, and therefore it cannot be written atomically.
+	 */
+
+	THREAD_LOCK(te);
+	te->timed_blocked = booleanize(end != NULL);
+	te->blocked = TRUE;
+	te->unblocked = FALSE;
+	THREAD_UNLOCK(te);
+
+	/*
+	 * If we have a time limit, poll the file descriptor first before reading.
+	 *
+	 * Otherwise we poll in a non-blocking mode only if we have detected
+	 * an event count change, meaning we were unblocked but we cannot know
+	 * whether an unblocking byte was sent over.
+	 */
 
 	if (end != NULL) {
 		long upper, remain = tm_remaining_ms(end);
@@ -8606,6 +8708,18 @@ retry:
 		fds.events = POLLIN;
 
 		/*
+		 * If we were concurrently unblocked, maybe there is a byte to
+		 * read, so poll and see what is there, but do not block.
+		 */
+
+		THREAD_LOCK(te);
+		if (te->unblock_events != events) {
+			te->blocked = FALSE;
+			remain = 0;				/* Was sent an "unblock" event already */
+		}
+		THREAD_UNLOCK(te);
+
+		/*
 		 * Note that compat_poll() is flagging itself as being in a system call
 		 * which will let us know that an interrupting signal runs in a safe
 		 * environment where it can call malloc() freely since we are not
@@ -8617,12 +8731,46 @@ retry:
 		if (-1 == r) {
 			if (EINTR == errno)
 				goto retry;
+			/* No panic if we were told to suspend (crashing, re-execing, ...) */
+			thread_check_suspended_element(te, FALSE);
 			s_error("%s(): %s could not block itself on poll() for fd #%u: %m",
 				G_STRFUNC, thread_element_name(te), te->wfd[0]);
 		}
 
-		if (0 == r)
+		if (0 == r) {
+			if (0 == remain)
+				goto done;			/* We were unblocked, no byte sent */
 			goto timed_out;			/* The poll() timed out */
+		}
+
+		/* FALL THROUGH -- we can now safely read from the file descriptor */
+	} else {
+		bool unblocked = FALSE;
+
+		/*
+		 * If we were concurrently unblocked, maybe there is a byte to
+		 * read, so poll and see what is there, but do not block.
+		 */
+
+		THREAD_LOCK(te);
+		if (te->unblock_events != events) {
+			te->blocked = FALSE;
+			unblocked = TRUE;		/* Was sent an "unblock" event already */
+		}
+		THREAD_UNLOCK(te);
+
+		if (unblocked) {
+			struct pollfd fds;
+			int r;
+
+			fds.fd = te->wfd[0];
+			fds.events = POLLIN;
+
+			r = compat_poll(&fds, 1, 0);	/* Non-blocking */
+
+			if (0 == r)
+				goto done;			/* Nothing to read */
+		}
 
 		/* FALL THROUGH -- we can now safely read from the file descriptor */
 	}
@@ -8630,6 +8778,8 @@ retry:
 	if (-1 == s_read(te->wfd[0], &c, 1)) {
 		if (EINTR == errno)
 			goto retry;
+		/* No panic if we were told to suspend (crashing, re-execing, ...) */
+		thread_check_suspended_element(te, FALSE);
 		s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
@@ -8702,10 +8852,6 @@ retry:
 			THREAD_UNLOCK(te);
 			goto done;				/* Was sent an "unblock" event already */
 		}
-
-		te->timed_blocked = booleanize(end != NULL);
-		te->blocked = TRUE;
-		te->unblocked = FALSE;
 		THREAD_UNLOCK(te);
 		goto retry;
 	}
@@ -9495,11 +9641,11 @@ struct thread_exit_context {
  * Invoked from the main thread to notify that a thread exited.
  */
 static void
-thread_exit_notify(cqueue_t *unused_cq, void *obj)
+thread_exit_notify(cqueue_t *cq, void *obj)
 {
 	struct thread_exit_context *ctx = obj;
 
-	(void) unused_cq;
+	cq_event(cq);
 
 	(*ctx->cb)(ctx->value, ctx->arg);
 	WFREE(ctx);
@@ -10617,7 +10763,7 @@ thread_signal(int signum, tsighandler_t handler)
 	old = te->sigh[signum - 1];
 	te->sigh[signum - 1] = handler;
 
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 
 	return old;
 }
@@ -10640,6 +10786,8 @@ thread_element_add_pending_sig(struct thread_element *te, int signum)
 	 * Because signal delivery is a rare event, we are going to attempt
 	 * to atomically merge the signal into the sig_pending field.  This
 	 * is necessarily going to succeed very quickly.
+	 *
+	 * See companion routine thread_element_clear_mask().
 	 */
 
 	for (;;) {
@@ -10857,6 +11005,44 @@ thread_kill(unsigned id, int signum)
 }
 
 /**
+ * Check whether current thread has pending signals.
+ *
+ * We're passed the amount of locks that the thread current holds and is
+ * able to immediately release if there are signals to process.
+ *
+ * The idea is that the caller would invoke this routine first, and if it
+ * returns TRUE, release whatever locks it holds before attempting to call
+ * thread_signal_process() to process them.
+ *
+ * @param locks		amount of locks the current thread holds and can release
+ *
+ * @return TRUE if the current thread holds signals that could be processed
+ * when the locks are released.
+ */
+bool
+thread_signal_has_pending(size_t locks)
+{
+	struct thread_element *te = thread_get_element();
+
+	return thread_element_lock_count(te) == locks && thread_sig_present(te);
+}
+
+/**
+ * Process pending signals in the current thread.
+ *
+ * This is typically called when thread_signal_has_pending() returned TRUE
+ * and the locks were released, but it is OK to call it at any time: we recheck
+ * that the thread indeed holds no locks before processing pending signals.
+ *
+ * @return TRUE if we processed any signals.
+ */
+bool
+thread_signal_process(void)
+{
+	return thread_signal_check_element(thread_get_element());
+}
+
+/**
  * Manipulate the current thread's signal mask.
  *
  * There are four operations defined, as specified by ``how'':
@@ -10898,7 +11084,7 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 	g_assert_not_reached();
 
 done:
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
@@ -10963,7 +11149,9 @@ thread_sigblock_element(struct thread_element *te,
 	thread_element_in_syscall_set(te, FALSE);
 
 	if (-1 == r) {
-		s_error("%s(): %s could not block itself on read(%u): %m",
+		/* No panic if we were told to suspend (crashing, re-execing, ...) */
+		thread_check_suspended_element(te, FALSE);
+	 	s_error("%s(): %s could not block itself on read(%u): %m",
 			G_STRFUNC, thread_element_name(te), te->wfd[0]);
 	}
 
@@ -11212,7 +11400,7 @@ thread_sleep_interruptible(unsigned int ms,
 		 * present.
 		 */
 
-		if (thread_signal_check(te) && interrupt)
+		if (interrupt && thread_signal_check_element(te))
 			return TRUE;
 	}
 
@@ -11330,7 +11518,7 @@ thread_leave_critical(const thread_sigsets_t *set)
 	te->sig_mask = set->tset;
 
 	signal_thread_leave_critical(te->stid, &set->kset);
-	thread_signal_check(te);
+	thread_signal_check_element(te);
 }
 
 /**
@@ -11407,6 +11595,16 @@ thread_interrupt_handle(int signo)
 	}
 
 	/*
+	 * Signal that the thread is in interrupt mode, so that we do not suspend
+	 * it even whilst we are in crash mode: we use interrupts when crashing
+	 * to be able to trace a thread that is not already suspended and therefore
+	 * cannot be sent a diversion.
+	 *		--RAM, 2016-06-19
+	 */
+
+	atomic_int_inc(&te->interrupt);
+
+	/*
 	 * Detach the interrupt requests in FIFO order.
 	 *
 	 * The lock is necessary because this structure is filled by remote
@@ -11430,7 +11628,7 @@ thread_interrupt_handle(int signo)
 		mutex_unlock_fast(&te->interrupt_lock);
 	
 		if G_UNLIKELY(NULL == ti)
-			return;
+			goto done;
 
 		/*
 		 * Proceed with the requested interruption -- invoke the registered
@@ -11482,6 +11680,19 @@ thread_interrupt_handle(int signo)
 
 		thread_element_signal_deliver(cte, TSIG_INTACK, te->stid, TRUE);
 	}
+
+done:
+	atomic_int_dec(&te->interrupt);
+
+	/*
+	 * Now that we are exiting from the interrupt, check whether this thread
+	 * must suspend itself.  We do not check for thread software signals since
+	 * we do not know exactly where the hard interrupt triggered and the thread
+	 * could hold a lock but not know it yet because it was not accounted for.
+	 *		--RAM, 2016-06-19
+	 */
+
+	thread_check_suspended_element(te, FALSE);
 }
 
 /**
@@ -11949,7 +12160,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%u",  signalled);
 	DUMPF("%u",  sig_generation);
 	DUMPF("%d",  in_signal_handler);
-	DUMPF("%d",  sig_handling);
+	DUMPF("%d",  sig_disabled);
 	DUMPF("%d",  sleep_interruptible);
 	DUMPF("%d",  created);
 	DUMPF("%d",  discovered);

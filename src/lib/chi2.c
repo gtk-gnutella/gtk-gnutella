@@ -139,4 +139,4 @@ chi2_upper_tail(int freedom, double critical)
 	return 1.0 - lower_igf(k, x) / approx_gf(k);
 }
 
-/* vi: set ts=4: */
+/* vi: set ts=4 sw=4 cindent: */
