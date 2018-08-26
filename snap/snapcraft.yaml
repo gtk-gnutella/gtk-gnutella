@@ -11,5 +11,9 @@
 
   parts:
     gtk-gnutella:
-      source: https://github.com/luciomarinelli/gtk-gnutella
+      source: .
       plugin: make
+      override-build: |
+        snapcraftctl build
+        sed -i 's|/usr/bin|$SNAP/usr/bin|g' $SNAPCRAFT_PART_INSTALL/build.sh
+        
