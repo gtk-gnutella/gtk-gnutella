@@ -57,14 +57,15 @@ word_vec_init(void)
 {
 	/*
 	 * We don't expect much word vectors to be created.  They are normally
-	 * created and destroyed in the same routine, without any threading
-	 * taking place.
+	 * created and destroyed in the same routine.
 	 *
 	 * We only allocate word vectors of WOVEC_DFLT entries in the zone.
 	 * If we need to expand that, it will be done through regular malloc().
+	 *
+	 * The zone is not private: concurrent allocation can be done.
 	 */
 
-	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 2, TRUE);
+	wovec_zone = zget(WOVEC_DFLT * sizeof(word_vec_t), 10, FALSE);
 }
 
 /**
