@@ -2465,7 +2465,7 @@ main(int argc, char **argv)
 
 	mem_test();
 	random_init();
-	vsort_init(1);
+	vsort_init(isatty(STDERR_FILENO) ? 0 : 1);
 	htable_test();
 	wq_init();
 	inputevt_init(OPT(use_poll));
