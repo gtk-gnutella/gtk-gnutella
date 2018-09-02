@@ -158,7 +158,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 			ELIST_FOREACH_DATA(&sx->data, dp) {
 				double delta = dp->value - val;
 
-				if (ABS(delta) < 1e-56) {
+				if (fabs(delta) < 1e-56) {
 					elist_remove(&sx->data, dp);
 					WFREE(dp);
 					break;
