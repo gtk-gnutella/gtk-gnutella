@@ -339,6 +339,24 @@
 #define G_FALL_THROUGH
 #endif
 
+/**
+ * G_FAST can be used to tag a function for extreme optimizations.
+ */
+#if HAS_GCC(4, 4)
+#define G_FAST	__attribute__((optimize(3)))
+#else
+#define G_FAST
+#endif
+
+/**
+ * G_NO_OPTIMIZE can be used to turn-off optimizations for a function.
+ */
+#if HAS_GCC(4, 4)
+#define G_NO_OPTIMIZE	__attribute__((optimize(0)))
+#else
+#define G_NO_OPTIMIZE
+#endif
+
 #endif	/* _gcc.h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
