@@ -120,6 +120,20 @@ statx_free(statx_t *sx)
 }
 
 /**
+ * Free stats container and nullify its pointer.
+ */
+void
+statx_free_null(statx_t **sx_ptr)
+{
+	statx_t *sx = *sx_ptr;
+
+	if (sx != NULL) {
+		statx_free(sx);
+		*sx_ptr = NULL;
+	}
+}
+
+/**
  * Clear container.
  */
 void

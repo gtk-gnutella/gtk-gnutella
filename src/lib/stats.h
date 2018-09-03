@@ -47,6 +47,7 @@ typedef struct statx statx_t;
 statx_t *statx_make(void);
 statx_t *statx_make_nodata(void);
 void statx_free(statx_t *);
+void statx_free_null(statx_t **);
 void statx_clear(statx_t *);
 void statx_add(statx_t *, double);
 void statx_remove(statx_t *, double);
