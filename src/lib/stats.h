@@ -58,6 +58,11 @@ double statx_var(const statx_t *);
 double statx_stderr(const statx_t *);
 double *statx_data(const statx_t *);
 
+void statx_foreach(const statx_t *sx, double_data_fn_t cb, void *udata);
+size_t statx_foreach_remove(statx_t *sx, double_data_rm_fn_t cb, void *udata);
+
+size_t statx_remove_outliers(statx_t *sx, double range);
+
 #endif /* _stats_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

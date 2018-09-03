@@ -133,6 +133,11 @@ typedef void (*ckeyval_fn_t)(const void *key, void *value, void *data);
 typedef bool (*keyval_rm_fn_t)(void *key, void *value, void *data);
 typedef bool (*ckeyval_rm_fn_t)(const void *key, void *value, void *data);
 
+/* Iterator callbacks for simple data containers */
+
+typedef void (*double_data_fn_t)(double data, void *udata);
+typedef bool (*double_data_rm_fn_t)(double data, void *udata);
+
 /* Allocator routine signatures, with or without allocating context */
 
 typedef void *(*alloc_fn_t)(size_t n);
