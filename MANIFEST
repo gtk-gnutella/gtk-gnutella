@@ -917,6 +917,7 @@ src/lib/path.c
 src/lib/path.h
 src/lib/patricia.c
 src/lib/patricia.h
+src/lib/pattern-test.c
 src/lib/pattern.c
 src/lib/pattern.h
 src/lib/pcell.h

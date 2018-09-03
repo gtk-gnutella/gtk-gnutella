@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2001-2003, Raphael Manfredi
+ * Copyright (c) 2001-2003, 2018 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,13 +28,23 @@
  * Sunday pattern search data structures.
  *
  * @author Raphael Manfredi
- * @date 2001-2003
+ * @date 2001-2003, 2018
  */
 
 #ifndef _pattern_h_
 #define _pattern_h_
 
 #include "common.h"
+
+/**
+ * Flags for pattern_init() verbosity control.
+ */
+#define PATTERN_INIT_PROGRESS	(1 << 0)	/**< Basic progress traces */
+#define PATTERN_INIT_STATS		(1 << 1)	/**< Basic statistics  traces */
+#define PATTERN_INIT_SELECTED	(1 << 2)	/**< Routines selected */
+#define PATTERN_INIT_BENCH_INFO	(1 << 3)	/**< Benchmarking information */
+#define PATTERN_INIT_BENCH_TIME	(1 << 4)	/**< Benchmarking time stats */
+#define PATTERN_INIT_BENCH_DBG	(1 << 5)	/**< Benchmarking debugging logs */
 
 typedef struct cpattern cpattern_t;
 
@@ -45,16 +55,51 @@ typedef enum {
 	qs_whole				/**< Match whole words (start and end at boundary) */
 } qsearch_mode_t;
 
-void pattern_init(void);
-void pattern_close(void);
-
 cpattern_t *pattern_compile(const char *pattern, bool icase);
 cpattern_t *pattern_compile_fast(const char *pattern, size_t plen, bool icase);
 void pattern_free(cpattern_t *cpat);
 void pattern_free_null(cpattern_t **cpat_ptr);
 const char *pattern_qsearch(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+const char *pattern_qsearch_force(const cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 size_t pattern_len(const cpattern_t *p);
+
+/* For benchmarking, uses the 2-way matching algorithm */
+const char *pattern_match(const cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+
+void *pattern_memchr(const void *s, int c, size_t n);
+char *pattern_strchr(const char *s, int c);
+char *pattern_strstr(const char *haystack, const char *needle);
+char *pattern_strcasestr(const char *haystack, const char *needle);
+char *pattern_strstr_len(const char *haystack, size_t hlen, const char *needle);
+char *pattern_strcasestr_len(const char *hs, size_t hlen, const char *needle);
+
+char *pattern_2way(const char *haystack, const char *needle);
+
+size_t pattern_strlen(const char *s);
+
+void pattern_init(int verbose);
+
+/*
+ * Drop-ins for memchr(), strchr() and strlen() which will attempt to
+ * use the libc version or our own implementation if it ends up being faster.
+ */
+
+typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
+typedef char *(pattern_strchr_t)(const char *s, int c);
+typedef size_t (pattern_strlen_t)(const char *s);
+
+extern pattern_memchr_t *fast_memchr;
+extern pattern_strchr_t *fast_strchr;
+extern pattern_strlen_t *fast_strlen;
+
+#define vmemchr(s,c,n)	fast_memchr(s,c,n)
+#define vstrchr(s,c)	fast_strchr(s,c)
+#define vstrlen(s)		fast_strlen(s)
+
+char *vstrstr(const char *s, const char *n);
 
 #endif /* _pattern_h_ */
 

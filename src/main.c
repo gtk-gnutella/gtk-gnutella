@@ -967,7 +967,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(watcher_close);
 	DO(tsync_close);
 	DO(word_vec_close);
-	DO(pattern_close);
 	DO(pmsg_close);
 	DO(gmsg_close);
 	DO(g2_build_close);
@@ -2205,6 +2204,7 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
+	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -2466,6 +2466,7 @@ main(int argc, char **argv)
 	mem_test();
 	random_init();
 	vsort_init(isatty(STDERR_FILENO) ? 0 : 1);
+	pattern_init(isatty(STDERR_FILENO) ? 0 : dflt_pattern);
 	htable_test();
 	wq_init();
 	inputevt_init(OPT(use_poll));
@@ -2544,7 +2545,6 @@ main(int argc, char **argv)
 	verify_tth_init();
 	move_init();
 	ignore_init();
-	pattern_init();
 	word_vec_init();
 
 	file_info_init();
