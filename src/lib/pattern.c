@@ -241,16 +241,16 @@ pattern_len(const cpattern_t *p)
  */
 
 /**
- * Computes the period of all the prefixes of a word, for its first `wlen - 1'
+ * Computes the period of all the prefixes of a word, for its first `wlen'
  * characters, filling the uperiod[] array.
  *
  * @param w			the input word
  * @param wlen		the word length
  * @param icase		whether case is to be ignored
- * @param uperiod	array of wlen - 1 entries
+ * @param uperiod	array of wlen + 1 entries
  *
- * uperiod[i] (for i = 0 .. wlen - 2) is the period of the word formed
- * by the first i + 1 letters, i.e. made of the letters w[0]..w[i].
+ * uperiod[i] (for i = 0 .. wlen) is the period of the word formed
+ * by the first i letters, i.e. made of the letters w[0]..w[i-1].
  */
 static void
 pattern_prefix_period(const uchar *w, size_t wlen, bool icase, size_t *uperiod)
