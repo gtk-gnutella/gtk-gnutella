@@ -2197,16 +2197,22 @@ retry:
 
 		switch (which) {
 		case PATTERN_BENCH_MEMCHR:
-			while (n--)
+			while (n--) {
+				result[i] = (*ctx->u.mc[i])(ctx->s + 1, ctx->c, ctx->slen - 1);
 				result[i] = (*ctx->u.mc[i])(ctx->s, ctx->c, ctx->slen);
+			}
 			break;
 		case PATTERN_BENCH_STRCHR:
-			while (n--)
+			while (n--) {
+				result[i] = (*ctx->u.sc[i])(ctx->s + 1, ctx->c);
 				result[i] = (*ctx->u.sc[i])(ctx->s, ctx->c);
+			}
 			break;
 		case PATTERN_BENCH_STRLEN:
-			while (n--)
+			while (n--) {
+				result[i] = size_to_pointer((*ctx->u.sl[i])(ctx->s + 1));
 				result[i] = size_to_pointer((*ctx->u.sl[i])(ctx->s));
+			}
 			break;
 		case PATTERN_BENCH_STRSTR:
 			while (n--)
