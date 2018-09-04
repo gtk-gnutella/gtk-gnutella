@@ -452,7 +452,7 @@ x_record(const char *value)
 
 	while ((tok = strtok_next(s, ","))) {
 		char *kv = h_strdup(tok);
-		char *eq = strstr(kv, "=");		/* What follows is the value */
+		char *eq = strchr(kv, '=');		/* What follows is the value */
 
 		if (NULL == eq) {
 			htable_insert(xv, kv, "y");	/* No value, assume "y" (for yes) */

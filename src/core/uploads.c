@@ -3976,7 +3976,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (strchr(tok, '/'))
 			continue;
 
 		/* End at first "pptsl=" indication (remaining are push-proxies) */
