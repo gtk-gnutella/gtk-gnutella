@@ -1782,6 +1782,44 @@ vstrstr(const char *haystack, const char *needle)
 }
 
 /**
+ * A case-insensitive strstr() routine.
+ */
+char *
+vstrcasestr(const char *haystack, const char *needle)
+{
+	const char *h = haystack;
+	const char *n = needle;
+	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
+	cpattern_t p;
+	uint8 delta[ALPHA_SIZE];
+	const char *match;
+
+	/*
+	 * Determine the needle length, and, as a by-product, make sure the
+	 * haystack is longer than the needle!
+	 */
+
+	while (*h && *n)
+		ok &= ascii_tolower(*h++) == ascii_tolower(*n++);
+
+	if (*n)
+		return NULL;	/* Reached end of haystack first! */
+
+	if (ok)
+		return deconstify_char(haystack);	/* Needle is a prefix! */
+
+	/*
+	 * Perform matching.
+	 */
+
+	pattern_compile_static(&p, delta, needle, n - needle, TRUE);
+	match = pattern_qsearch_unknown(&p, haystack, n - needle, qs_any);
+	pattern_free_static(&p);
+
+	return deconstify_char(match);
+}
+
+/**
  * An strstr() clone using the Crochemore-Perrin 2-way algorithm.
  *
  * Made visible for benchmarking purposes.

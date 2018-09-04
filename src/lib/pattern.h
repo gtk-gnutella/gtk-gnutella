@@ -108,7 +108,8 @@ extern pattern_strlen_t *fast_strlen;
 #define vstrchr(s,c)	fast_strchr(s,c)
 #define vstrlen(s)		fast_strlen(s)
 
-char *vstrstr(const char *s, const char *n);
+char *vstrstr(const char *haystack, const char *needle);
+char *vstrcasestr(const char *haystack, const char *needle);
 
 #endif /* _pattern_h_ */
 

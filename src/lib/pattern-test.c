@@ -695,7 +695,7 @@ test_pattern_case(void)
 	for (i = 0; i < N_ITEMS(tests); i++) {
 		cpattern_t *pc, *pi;
 		struct pattern_case_test *t = &tests[i];
-		const char *rc, *ri;
+		const char *rc, *ri, *vri;
 		int oc, oi;
 
 		pc = pattern_compile(t->needle, FALSE);
@@ -724,6 +724,13 @@ test_pattern_case(void)
 		g_assert_log(t->icase_match_offset == oi,
 			"%s(): i=%zu, expected %d, got oi=%d",
 			G_STRFUNC, i, t->icase_match_offset, oi);
+
+		vri = vstrcasestr(t->haystack, t->needle);
+		g_assert_log(vri == ri,
+			"%s(): i=%zu, vri=%p (offset %zd), ri=%p (offset %d)",
+			G_STRFUNC, i,
+			vri, vri ? vri - t->haystack : -1,
+			ri, t->icase_match_offset);
 	}
 
 	s_info("%s(): all OK", G_STRFUNC);

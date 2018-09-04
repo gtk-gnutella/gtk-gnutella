@@ -257,59 +257,6 @@ ascii_strncasecmp(const char *s1, const char *s2, size_t len)
 
 
 /**
- * Same as strstr() but case-insensitive with respect to ASCII characters.
- */
-char *
-ascii_strcasestr(const char *haystack, const char *needle)
-{
-	uint32 delta[256];
-	size_t nlen = strlen(needle);
-	uint32 *pd = delta;
-	size_t i;
-	const char *n;
-	uint32 haylen = strlen(haystack);
-	const char *end = haystack + haylen;
-	char *tp;
-
-	/*
-	 * Initialize Sunday's algorithm, lower-casing the needle.
-	 */
-
-	nlen++;		/* Avoid increasing within the loop */
-
-	for (i = 0; i < 256; i++)
-		*pd++ = nlen;
-
-	nlen--;		/* Restore original pattern length */
-
-	for (n = needle, i = 0; i < nlen; i++) {
-		uchar c = *n++;
-		delta[ascii_tolower(c)] = nlen - i;
-	}
-
-	/*
-	 * Now run Sunday's algorithm.
-	 */
-
-	for (tp = *(char **) &haystack; tp + nlen <= end; /* empty */) {
-		const char *t;
-		uchar c;
-
-		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
-			if (ascii_tolower((uchar) *n) != ascii_tolower((uchar) *t))
-				break;
-
-		if (i == nlen)						/* Got a match! */
-			return tp;
-
-		c = *(tp + nlen);
-		tp += delta[ascii_tolower(c)];	/* Continue search there */
-	}
-
-	return NULL;		/* Not found */
-}
-
-/**
  * ASCII case-insensitive string hashing function.
  */
 uint

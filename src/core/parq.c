@@ -425,7 +425,7 @@ get_header_value(const char *const s,
 		char b;
 		char es;
 
-		header = ascii_strcasestr(header, attribute);
+		header = vstrcasestr(header, attribute);
 
 		if (header == NULL)
 			return NULL;

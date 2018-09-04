@@ -268,7 +268,7 @@ header_get_feature(const char *name, const header_t *header,
 	for (;;) {
 		int pc;			/* Previous char */
 
-		buf = ascii_strcasestr(buf, name);
+		buf = vstrcasestr(buf, name);
 
 		if (buf == NULL)
 			return FALSE;
