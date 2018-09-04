@@ -846,58 +846,6 @@ pattern_qsearch_known(
 	g_assert('\0' == *end);	/* Ensure tlen was correct! */
 
 	/*
-	 * Easy optimization: if pattern is larger than text, cannot match!
-	 */
-
-	if G_UNLIKELY(plen > tlen)
-		return NULL;
-
-	/*
-	 * If pattern is empty, it matches right at the start.
-	 */
-
-	if G_UNLIKELY(0 == plen)
-		return tp;
-
-	/*
-	 * Early optimization for case-sensitive searches in `qs_any' mode.
-	 */
-
-	if (!cpat->icase && qs_any == word) {
-		/*
-		 * If the text starts with the string we are looking for, we're done.
-		 */
-
-		if (0 == strncmp(tp, pat, plen))
-			return tp;
-
-		if G_UNLIKELY(plen == tlen)
-			return NULL;		/* Cannot match, reached end of text */
-
-		/*
-		 * Since the beginning was not a match, compute the
-		 * displacement the regular way.
-		 */
-
-		if (cpat->d8bits)
-			tp += ((uint8 *) cpat->delta)[(uchar) tp[plen]];
-		else
-			tp += ((size_t *) cpat->delta)[(uchar) tp[plen]];
-
-		/*
-		 * Look at the optimal place to start, by quickly scanning for the
-		 * first char of the needle.
-		 */
-
-		tp = vstrchr(tp, pat[0]);
-
-		if (NULL == tp)
-			return NULL;	/* Cannot match, leading char no longer occurs */
-
-		/* FALL THROUGH */
-	}
-
-	/*
 	 * Code is duplicated to avoid tests as much as possible within the
 	 * tight pattern matching loops.
 	 *
