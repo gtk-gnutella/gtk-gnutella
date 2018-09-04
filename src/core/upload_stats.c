@@ -242,7 +242,7 @@ upload_stats_load_history(void)
 		if (file_line_is_skipable(line))
 			continue;
 
-		p = strchr(line, '\t');
+		p = vstrchr(line, '\t');
 		if (NULL == p)
 			goto corrupted;
 

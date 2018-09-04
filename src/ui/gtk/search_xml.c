@@ -1507,7 +1507,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
 
     buf = xnode_prop_get(xn, TAG_RULE_SHA1_HASH);
     if (buf != NULL) {
-		sha1 = strlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
+		sha1 = vstrlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
 		if (!sha1) {
         	g_warning("%s(): improperly encoded SHA1: \"%s\"", G_STRFUNC, buf);
 			goto failure;

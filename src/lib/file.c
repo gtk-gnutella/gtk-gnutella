@@ -123,7 +123,7 @@ file_locate_from_path(const char *argv0)
 		if (!already_done) {
 			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 				argv0,
-				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
+				vstrchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
 		}
 		result = h_strdup(argv0);
 		goto done;

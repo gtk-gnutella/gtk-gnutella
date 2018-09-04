@@ -4532,7 +4532,7 @@ re_comp (s)
   /* Match anchors at newlines.  */
   re_comp_buf.newline_anchor = 1;
 
-  ret = regex_compile (s, strlen (s), re_syntax_options, &re_comp_buf);
+  ret = regex_compile (s, vstrlen (s), re_syntax_options, &re_comp_buf);
 
   /* Yes, we're discarding `const' here.  */
   return (char *) re_error_msg[(int) ret];
@@ -4543,7 +4543,7 @@ int
 re_exec (s)
     const char *s;
 {
-  const int len = strlen (s);
+  const int len = vstrlen (s);
   return
     0 <= re_search (&re_comp_buf, s, len, 0, len, (struct re_registers *) 0);
 }
@@ -4636,7 +4636,7 @@ regcomp (preg, pattern, cflags)
 
   /* POSIX says a null character in the pattern terminates it, so we
      can use strlen here in compiling the pattern.  */
-  ret = regex_compile (pattern, strlen (pattern), syntax, preg);
+  ret = regex_compile (pattern, vstrlen (pattern), syntax, preg);
 
   /* POSIX doesn't distinguish between an unmatched open-group and an
      unmatched close-group: both are REG_EPAREN.  */
@@ -4671,7 +4671,7 @@ regexec (preg, string, nmatch, pmatch, eflags)
   int ret;
   struct re_registers regs;
   regex_t private_preg;
-  int len = strlen (string);
+  int len = vstrlen (string);
   boolean want_reg_info = !preg->no_sub && nmatch > 0;
 
   private_preg = *preg;
@@ -4752,7 +4752,7 @@ regerror (errcode, unused_preg, errbuf, errbuf_size)
   if (! msg)
     msg = "Success";
 
-  msg_size = strlen (msg) + 1; /* Includes the null.  */
+  msg_size = vstrlen (msg) + 1; /* Includes the null.  */
 
   if (errbuf_size != 0)
     {

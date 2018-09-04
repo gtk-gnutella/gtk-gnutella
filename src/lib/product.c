@@ -228,12 +228,12 @@ product_build_full(void)
 		if (p != NULL) {
 			char *tmp;
 			char *q;
-			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
+			size_t len = vstrlen(p) + 2;	/* Leading '-', trailing NUL */
 
 			tmp = halloc(len);
 			cstr_bcpy(tmp + 1, len - 1, p);
 			*tmp = '-';
-			q = strchr(tmp, ' ');
+			q = vstrchr(tmp, ' ');
 			if (q != NULL)
 				*q = '\0';		/* Truncate at first space */
 

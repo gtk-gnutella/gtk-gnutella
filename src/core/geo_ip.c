@@ -134,7 +134,7 @@ gip_parse_ipv4(const char *line, int linenum)
 	 * the IP database.
 	 */
 
-	end = strchr(line, '-');
+	end = vstrchr(line, '-');
 	if (end == NULL) {
 		g_warning("%s, line %d: no IP address separator in \"%s\"",
 			gip_source[GIP_IPV4].file, linenum, line);

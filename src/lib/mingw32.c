@@ -408,7 +408,7 @@ get_native_path(const char *pathname, int *error)
 		is_ascii_alpha(npath[1]) &&
 		(is_dir_separator(npath[2]) || '\0' == npath[2])
 	) {
-		size_t plen = strlen(npath);
+		size_t plen = vstrlen(npath);
 
 		if (pathsz <= plen) {
 			s_rawwarn("%s(): path is %zu-byte long", G_STRFUNC, plen);
@@ -2094,7 +2094,7 @@ mingw_environment_block(char * const envp[], int *flags)
 
 		if (environ[0] != NULL) {
 			char *p = environ[0];
-			char *q = strchr(p, '=');
+			char *q = vstrchr(p, '=');
 
 			/*
 			 * If there is a NUL byte before '=' or the '=' sign is indeed
@@ -3658,7 +3658,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		if (ENOENT == errno) {
 			const char *p;
 		   
-			len = strlen(pathname);
+			len = vstrlen(pathname);
 			p = &pathname[len - 1];
 
 			if (len <= 1)
@@ -5230,7 +5230,7 @@ mingw_fopen(const char *pathname, const char *mode)
 	wchar_t wmode[32];
 	FILE *res;
 
-	if (NULL == strchr(mode, 'b')) {
+	if (NULL == vstrchr(mode, 'b')) {
 		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
@@ -5267,7 +5267,7 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
-	if (NULL == strchr(mode, 'b')) {
+	if (NULL == vstrchr(mode, 'b')) {
 		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';

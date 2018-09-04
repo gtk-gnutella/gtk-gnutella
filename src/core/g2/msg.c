@@ -130,7 +130,7 @@ g2_msg_build_map(void)
 
 	for (i = 0; i < N_ITEMS(g2_msg_symbolic_names); i++) {
 		const char *key = g2_msg_symbolic_names[i];
-		size_t len = strlen(key);
+		size_t len = vstrlen(key);
 
 		patricia_insert_k(g2_msg_pt, key, len * 8, int_to_pointer(i));
 	}
@@ -276,7 +276,7 @@ g2_msg_name_type(const char *name)
 
 	g2_msg_init();
 
-	namelen = strlen(name);
+	namelen = vstrlen(name);
 	known = patricia_lookup_extended_k(g2_msg_pt, name, namelen*8, NULL, &val);
 
 	if (!known)

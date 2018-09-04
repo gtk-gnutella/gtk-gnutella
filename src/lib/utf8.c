@@ -1578,9 +1578,9 @@ get_iconv_charset_alias(const char *cs)
 		const char *end;
 		size_t len;
 
-		end = strchr(start, ' ');
+		end = vstrchr(start, ' ');
 		if (NULL == end)
-			end = strchr(start, '\0');
+			end = vstrchr(start, '\0');
 		if (NULL == first_end)
 			first_end = end;
 
@@ -1749,8 +1749,8 @@ get_filename_charsets(const char *locale)
 		while (',' == *s || is_ascii_blank(*s))
 			++s;
 
-		next = strchr(s, ',');
-		ep = next ? next : strchr(s, '\0');
+		next = vstrchr(s, ',');
+		ep = next ? next : vstrchr(s, '\0');
 
 		/* Skip backwards over trailing blanks */
 		while (ep != s && is_ascii_blank(*(ep - 1)))
@@ -2114,7 +2114,7 @@ complete_iconv(iconv_t cd, char *dst, const size_t dst_size, const char *src,
 		goto error;
 	}
 
-	src_left = (size_t) -1 == src_len ? strlen(src) : src_len;
+	src_left = (size_t) -1 == src_len ? vstrlen(src) : src_len;
 
 	while (size_is_positive(src_left)) {
 		char buf[4096];
@@ -3984,7 +3984,7 @@ utf8_sort_canonical(char *src)
 	 *		in the worst case, that's still the whole string.
 	 */
 
-	size8 = 1 + strlen(src);
+	size8 = 1 + vstrlen(src);
 	size32 = 1 + utf8_to_utf32(src, NULL, 0);
 
 	/* Use an auto buffer for reasonably small strings */
@@ -4728,7 +4728,7 @@ utf8_strlower_copy(const char *src)
 	len = utf8_strlower(dst, size, src);
 
 	g_assert(size == len + 1);
-	g_assert(len == strlen(dst));
+	g_assert(len == vstrlen(dst));
 
 	return dst;
 }
@@ -4755,7 +4755,7 @@ utf8_strupper_copy(const char *src)
 	len = utf8_strupper(dst, size, src);
 
 	g_assert(size == len + 1);
-	g_assert(len == strlen(dst));
+	g_assert(len == vstrlen(dst));
 
 	return dst;
 }
@@ -5375,7 +5375,7 @@ unicode_canonize(const char *in)
 
 	g_assert(use_icu);
 
-	len = strlen(in);
+	len = vstrlen(in);
 	maxlen = (len + 1) * 6; /* Max 6 bytes for one char in utf8 */
 
 	g_assert(utf8_is_valid_data(in, len));
@@ -5981,7 +5981,7 @@ utf8_latinize(char *dst, const size_t dst_size, const char *src)
 		next = utf8_decode_char_fast(&s[retlen], &next_len);
 		r = utf8_latinize_chars(uc, next, &used_next);
 		if (r) {
-			r_len = strlen(r);
+			r_len = vstrlen(r);
 		} else {
 			r = s;
 			r_len = retlen;
@@ -6272,7 +6272,7 @@ regression_bug_1211413(void)
 	uint32 *u;
 
 	s = lazy_locale_to_utf8_normalized(bad, UNI_NORM_NFC);
-	len = strlen(s);
+	len = vstrlen(s);
 	chars = utf8_char_count(s);
 	g_assert(len != 0);
 	g_assert(len >= chars);
@@ -6595,10 +6595,10 @@ regression_utf8_vs_glib2(void)
 			size_t len, maxlen;
 			UChar *qtmp1, *qtmp2;
 
-			maxlen = strlen(s) * 6 + 1;
+			maxlen = vstrlen(s) * 6 + 1;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
-			len = utf8_to_icu_conv(s, strlen(s), qtmp1, maxlen);
+			len = utf8_to_icu_conv(s, vstrlen(s), qtmp1, maxlen);
 			len = unicode_NFC(qtmp1, len, qtmp2, maxlen);
 			s_nfc = g_malloc0((len * 6) + 1);
 			len = icu_to_utf8_conv(qtmp2, len, s_nfc, len * 6);
@@ -6649,7 +6649,7 @@ regression_utf8_vs_glib2(void)
 			maxlen = 1024;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
-			len = utf8_to_icu_conv(utf8_char, strlen(utf8_char), qtmp2, maxlen);
+			len = utf8_to_icu_conv(utf8_char, vstrlen(utf8_char), qtmp2, maxlen);
 			g_assert(i == 0 || len != 0);
 			len = unicode_NFKD(qtmp2, len, qtmp1, maxlen);
 			g_assert(i == 0 || len != 0);
@@ -6811,10 +6811,10 @@ regression_utf8_vs_glib2(void)
 			size_t len, maxlen;
 			UChar *qtmp1, *qtmp2;
 
-			maxlen = strlen(buf) * 6 + 1;
+			maxlen = vstrlen(buf) * 6 + 1;
 			qtmp1 = (UChar *) g_malloc(maxlen * sizeof(UChar));
 			qtmp2 = (UChar *) g_malloc(maxlen * sizeof(UChar));
-			len = utf8_to_icu_conv(buf, strlen(buf), qtmp1, maxlen);
+			len = utf8_to_icu_conv(buf, vstrlen(buf), qtmp1, maxlen);
 			len = unicode_NFKD(qtmp1, len, qtmp2, maxlen);
 			s = g_malloc0((len * 6) + 1);
 			len = icu_to_utf8_conv(qtmp2, len, s, len * 6);
@@ -6843,7 +6843,7 @@ regression_utf8_vs_glib2(void)
 					break;
 
 			uc1 = utf8_decode_char_fast(x, &retlen);
-			uc2 = utf8_decode_char(x, strlen(x), &retlen, TRUE);
+			uc2 = utf8_decode_char(x, vstrlen(x), &retlen, TRUE);
 			g_debug("x=\"%s\"\ny=\"%s\"\n, *x=%x, *y=%x", x, y, uc1, uc2);
 
 #if GLIB_CHECK_VERSION(2, 4, 0) /* Glib >= 2.4.0 */

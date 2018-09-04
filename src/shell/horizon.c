@@ -73,10 +73,10 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	 * Determine maximum width of each column.
 	 */
 
-	maxlen[0] = strlen(hops_str);   /* length of Hops */
-	maxlen[1] = strlen(nodes_str);  /* length of Nodes */
-	maxlen[2] = strlen(files_str);  /* length of Files */
-	maxlen[3] = strlen(size_str);   /* length of Size */
+	maxlen[0] = vstrlen(hops_str);   /* length of Hops */
+	maxlen[1] = vstrlen(nodes_str);  /* length of Nodes */
+	maxlen[2] = vstrlen(files_str);  /* length of Files */
+	maxlen[3] = vstrlen(size_str);   /* length of Size */
 
 	for (i = 0; i < UNSIGNED(triples) * 4; i++) {
 		size_t n;
@@ -84,7 +84,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 
 		switch (m) {
 		case 0:
-			n = strlen(uint64_to_string(i / 4 + 1));
+			n = vstrlen(uint64_to_string(i / 4 + 1));
 			break;
 
 		case 1:
@@ -99,7 +99,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 				case 3: j = HSEP_IDX_KIB; break;
 				}
 
-				n = strlen(uint64_to_string(t[i][j] + non_hsep[j]));
+				n = vstrlen(uint64_to_string(t[i][j] + non_hsep[j]));
 			}
 			break;
 

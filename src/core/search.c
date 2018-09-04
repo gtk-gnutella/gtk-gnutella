@@ -1137,14 +1137,14 @@ search_results_records_log(const gnutella_node_t *n,
 
 		nr++;
 
-		len = 1 + strlen(rc->filename);
+		len = 1 + vstrlen(rc->filename);
 		f = halloc(len);
 		ascii_enforce(f, len, rc->filename);		/* Safe logging */
 
 		if (rc->path != NULL) {
 			char *p;
 
-			len = 1 + strlen(rc->path);
+			len = 1 + vstrlen(rc->path);
 			p = halloc(len);
 			ascii_enforce(p, len, rc->path);
 			str_printf(s, "name=\"%s\", path=\"%s\"", f, p);
@@ -1363,7 +1363,7 @@ search_results_mark_close_filename_spam(
 		char *f;
 		size_t len;
 
-		len = 1 + strlen(rc->filename);
+		len = 1 + vstrlen(rc->filename);
 		f = halloc(len);
 		ascii_enforce(f, len, rc->filename);
 
@@ -1420,12 +1420,12 @@ search_filename_similar(const char *filename, const char *query)
 {
 	char *filename_canonic;
 	bool result;
-	size_t qlen = strlen(query);
+	size_t qlen = vstrlen(query);
 	size_t flen;
 	const char *ext;
 
 	filename_canonic = UNICODE_CANONIZE(filename);
-	flen = strlen(filename_canonic);
+	flen = vstrlen(filename_canonic);
 	ext = strrchr(filename_canonic, ' ');	/* Last word */
 
 	result = NULL != is_strprefix(filename_canonic, query);
@@ -1454,12 +1454,12 @@ search_filename_similar(const char *filename, const char *query)
 		double ratio = 0.85;
 
 		if (ext != NULL)
-			flen -= strlen(ext);		/* Remove extension chars */
+			flen -= vstrlen(ext);		/* Remove extension chars */
 
 		if (0 == flen)
 			flen = 1;
 
-		if (qlen <= 6 || NULL == strchr(query, ' '))
+		if (qlen <= 6 || NULL == vstrchr(query, ' '))
 			ratio = 0.50;
 
 		if (qlen / (double) flen < ratio)
@@ -1552,7 +1552,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 			gnet_stats_inc_general(GNR_SPAM_NAME_HITS);
 		} else if (
 			rc->xml &&
-			is_lime_xml_spam(rc->xml, strlen(rc->xml))
+			is_lime_xml_spam(rc->xml, vstrlen(rc->xml))
 		) {
 			search_log_spam(n, rs, "LIME XML SPAM");
 			logged = TRUE;
@@ -3505,7 +3505,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 		/* Followed by file name, and termination (double NUL) */
 		filename = s;
 
-		s = memchr(s, '\0', endptr - s);
+		s = vmemchr(s, '\0', endptr - s);
 		if (!s) {
 			/* There cannot be two NULs: end of packet! */
 			gnet_stats_count_dropped(n, MSG_DROP_BAD_RESULT);
@@ -3532,7 +3532,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 			 */
 
 			/* Find second NUL */
-			s = memchr(s, '\0', endptr - s);
+			s = vmemchr(s, '\0', endptr - s);
 			if (s) {
 				/* Found second NUL */
 				taglen = s - tag;
@@ -4421,7 +4421,7 @@ build_search_message(const guid_t *muid, const char *query,
 	{
 		size_t len;
 
-		len = strlen(query);
+		len = vstrlen(query);
 		if (len + 1 >= sizeof msg.bytes - msize) {
 			g_warning("dropping too large query \"%s\"", query);
 			goto error;
@@ -6337,7 +6337,7 @@ search_close(gnet_search_t sh)
 	search_ctrl_check(sch);
 
 	entropy_harvest_many(VARLEN(sh),
-		sch->name, strlen(sch->name),
+		sch->name, vstrlen(sch->name),
 		VARLEN(sch->items),
 		VARLEN(sch->kept_results),
 		VARLEN(sch->query_emitted),
@@ -6345,7 +6345,7 @@ search_close(gnet_search_t sh)
 		VARLEN(sch->media_type),
 		VARLEN(sch->time),
 		VARLEN(sch->create_time),
-		sch->query, strlen(sch->query),
+		sch->query, vstrlen(sch->query),
 		NULL);
 
 	/*
@@ -6604,7 +6604,10 @@ search_new(gnet_search_t *ptr, const char *query, unsigned mtype,
 	 */
 
 	if (NULL != (endptr = is_strprefix(query, "urn:sha1:"))) {
-		if (SHA1_BASE32_SIZE != strlen(endptr) || !urn_get_sha1(query, NULL)) {
+		if (
+			SHA1_BASE32_SIZE != vstrlen(endptr) ||
+			!urn_get_sha1(query, NULL)
+		) {
 			g_warning("rejected invalid urn:sha1 search");
 			qdup = NULL;
 			result = SEARCH_NEW_INVALID_URN;
@@ -7509,7 +7512,7 @@ search_handle_magnet(const char *url)
 
 	g_assert(url != NULL);
 
-	entropy_harvest_single(url, strlen(url));
+	entropy_harvest_single(url, vstrlen(url));
 
 	res = magnet_parse(url, NULL);
 	if (res) {
@@ -7849,7 +7852,7 @@ query_utf8_decode(const char *text, uint *retoff)
 size_t
 compact_query(char *search)
 {
-	size_t mangled_search_len, orig_len = strlen(search);
+	size_t mangled_search_len, orig_len = vstrlen(search);
 	uint offset;			/* Query string start offset */
 
 	/*
@@ -9504,7 +9507,7 @@ search_xml_node_is_empty(void *node, void *data)
 	if (xnode_is_comment(xn))
 		return;
 
-	if (xnode_is_text(xn) && strlen(xnode_text(xn)) > 0) {
+	if (xnode_is_text(xn) && vstrlen(xnode_text(xn)) > 0) {
 		*empty = FALSE;
 	} else if (xnode_prop_count(xn) > 0) {
 		*empty = FALSE;

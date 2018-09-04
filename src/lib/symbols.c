@@ -392,7 +392,7 @@ symbols_normalize(const char *name, bool atom)
 	 * gcc sometimes appends '.part' or other suffix to routine names.
 	 */
 
-	dot = strchr(name, '.');
+	dot = vstrchr(name, '.');
 	tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 
 	/*
@@ -409,7 +409,7 @@ symbols_normalize(const char *name, bool atom)
 	 */
 
 	if (is_running_on_mingw() && tmp == name) {
-		dot = strchr(name, '@');
+		dot = vstrchr(name, '@');
 		tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 	}
 
@@ -1192,7 +1192,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 		p = is_strcaseprefix(line, "SHA1");
 
 		if (NULL == p) {
-			if (NULL == strchr(line, ':'))
+			if (NULL == vstrchr(line, ':'))
 				return FALSE;		/* Not an HTTP header */
 			continue;
 		}
@@ -1212,7 +1212,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 
 		if (
 			SHA1_RAW_SIZE !=
-				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, strlen(p))
+				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, vstrlen(p))
 		)
 			return FALSE;
 	}
@@ -1379,7 +1379,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 		 */
 
 		while ((c = *p++)) {
-			if (strchr(meta, c)) {
+			if (vstrchr(meta, c)) {
 				s_warning("found shell meta-character '%c' in path \"%s\", "
 					"not loading symbols", c, exe);
 				goto use_pre_computed;
@@ -1387,7 +1387,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 		}
 
 		rw = str_bprintf(ARYLEN(tmp), "nm -p %s", exe);
-		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
+		if (rw != vstrlen(exe) + CONST_STRLEN("nm -p ")) {
 			s_warning("full path \"%s\" too long, cannot load symbols", exe);
 			goto use_pre_computed;
 		}

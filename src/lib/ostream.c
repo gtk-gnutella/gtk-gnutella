@@ -404,7 +404,7 @@ ostream_puts(ostream_t *os, const char *s)
 {
 	ostream_check(os);
 
-	return ostream_write(os, s, strlen(s));
+	return ostream_write(os, s, vstrlen(s));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

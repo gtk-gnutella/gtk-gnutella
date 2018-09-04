@@ -730,7 +730,7 @@ gwc_host_line(struct gwc_parse_context *ctx, const char *buf, size_t len)
 		}
 		return TRUE;
 	} else if ('U' == c) {
-		char *end = strchr(&buf[2], '|');
+		char *end = vstrchr(&buf[2], '|');
 		char *url;
 
 		if (NULL == end)

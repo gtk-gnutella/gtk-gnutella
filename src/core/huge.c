@@ -351,7 +351,7 @@ parse_and_append_cache_entry(char *line)
 
 	/* p is now supposed to point to the file name */
 
-	if (strchr(p, '\t') != NULL)
+	if (vstrchr(p, '\t') != NULL)
 		goto failure;
 
 	/*

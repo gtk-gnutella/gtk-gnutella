@@ -516,10 +516,10 @@ parse_netmasks(const char *str)
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */
-		if ((p = strchr(masks[i], '/')) && *p) {
+		if ((p = vstrchr(masks[i], '/')) && *p) {
 			*p++ = '\0';
 
-			if (strchr(p, '.')) {
+			if (vstrchr(p, '.')) {
 				/* get the network address from the user */
 				if (!string_to_ip_strict(p, &local_networks[i].mask, NULL))
 					g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, p);

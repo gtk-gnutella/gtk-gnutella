@@ -121,8 +121,8 @@ prop_parse_timestamp(const char *name,
 		if ((time_t)-1 == t) {
 			error = EINVAL;
 		}
-		ep = strchr(str, ',');
-		ep = ep ? ep : strchr(str, '\0');
+		ep = vstrchr(str, ',');
+		ep = ep ? ep : vstrchr(str, '\0');
 	}
 
 	if (!error && vec)
@@ -260,7 +260,7 @@ prop_parse_vector(const char *name, const char *str,
 		if (error)
 			s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, p);
 
-		p = strchr(endptr, ',');
+		p = vstrchr(endptr, ',');
 		if (p)
 			p++;
 	}
@@ -318,10 +318,10 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 	size_t i;
 
 	g_assert(size > 0);
-	if (size * 2 != strlen(str)) {
+	if (size * 2 != vstrlen(str)) {
 		s_warning("%s(): (prop=\"%s\") %s (length=%zu, expected %zu): \"%s\"",
 			G_STRFUNC, name, "storage does not match requested size",
-			strlen(str), size * 2, str);
+			vstrlen(str), size * 2, str);
 		return FALSE;
 	}
 
@@ -1729,7 +1729,7 @@ unique_file_token(const filestat_t *st)
 	SHA1_reset(&ctx);
 	SHA1_INPUT(&ctx, st->st_dev);
 	SHA1_INPUT(&ctx, st->st_ino);
-	SHA1_input(&ctx, hostname, strlen(hostname));
+	SHA1_input(&ctx, hostname, vstrlen(hostname));
 	SHA1_result(&ctx, &digest);
 
 	bin_to_hex_buf(VARLEN(digest), ARYLEN(buf));
@@ -2438,7 +2438,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			v = ++s; /* Skip double-quote '"' */
 
 			/* Scan for terminating double-quote '"' */
-			s = strchr(s, '"');
+			s = vstrchr(s, '"');
 			/* Check for proper quote termination */
 			if (!s) {
 				/* Missing terminating double-quote '"' */

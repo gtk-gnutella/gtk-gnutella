@@ -434,7 +434,7 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
 			char *xml = xml_indent(data);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			fwrite(xml, vstrlen(xml), 1, stderr);
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -684,7 +684,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
 			char *xml = xml_indent(data);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			fwrite(xml, vstrlen(xml), 1, stderr);
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -709,7 +709,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ud->major = 1;
 		ud->minor = 0;
 	} else {
-		const char *p = strstr(buf, "UPnP/");
+		const char *p = vstrstr(buf, "UPnP/");
 		bool ok = FALSE;
 
 		if (p != NULL) {

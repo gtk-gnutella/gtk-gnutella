@@ -240,14 +240,14 @@ version_stamp(const char *str, version_t *ver)
 	 * being used starting 2004-03-02.
 	 */
 
-	p = strchr(str, '(');
+	p = vstrchr(str, '(');
 	if (p) {
 		const char *end;
 
 		p++;
-		end = strchr(p, ';');
+		end = vstrchr(p, ';');
 		if (end == NULL)
-			end = strchr(p, ')');		/* Only date present: short version */
+			end = vstrchr(p, ')');		/* Only date present: short version */
 		if (end) {
 			/*
 			 * Using date2time() will allow us to possibly change the date
@@ -311,10 +311,10 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	 * the next ' ' or the end of the string.
 	 */
 
-	e = strchr(v, ' ');
+	e = vstrchr(v, ' ');
 	if (e != NULL) {
 		const char *d;
-		d = strchr(v, '-');
+		d = vstrchr(v, '-');
 		if (NULL == d || d > e) {
 			commit_len = e - v;		/* '-' before ' ' or no '-' at all */
 		} else {
@@ -322,11 +322,11 @@ version_ext_parse(const char *str, version_ext_t *vext)
 			e = d;
 		}
 	} else {
-		e = strchr(v, '-');
+		e = vstrchr(v, '-');
 		if (e != NULL) {
 			commit_len = e - v;
 		} else {
-			commit_len = strlen(v);
+			commit_len = vstrlen(v);
 		}
 	}
 
@@ -675,7 +675,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 			return FALSE;	/* Can't be correct */
 		}
 
-		error = tok_version_valid(str, token, strlen(token), addr);
+		error = tok_version_valid(str, token, vstrlen(token), addr);
 
 		/*
 		 * Unfortunately, if our token has expired, we can no longer

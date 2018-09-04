@@ -258,7 +258,7 @@ dir_entry_namelen(const struct dirent *dir_entry)
 		return dir_entry->d_namlen;
 #endif	/* HAS_DIRENT_D_NAMLEN */
 
-	return strlen(dir_entry->d_name);
+	return vstrlen(dir_entry->d_name);
 }
 #endif	/* MINGW32 */
 

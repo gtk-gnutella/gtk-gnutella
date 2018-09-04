@@ -182,7 +182,7 @@ ggept_gtkgv_osname_encode(const char *sysname)
 
 	if (is_running_on_mingw())
 		result = 6;
-	else if (strstr(sysname, "BSD"))
+	else if (vstrstr(sysname, "BSD"))
 		result = 2;
 	else
 		result = 1;

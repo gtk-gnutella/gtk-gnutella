@@ -198,7 +198,7 @@ sha1_feed_string(SHA1_context *ctx, const char *s)
 {
 	sha1_feed_pointer(ctx, s);
 	if (s != NULL) {
-		SHA1_input(ctx, s, strlen(s));
+		SHA1_input(ctx, s, vstrlen(s));
 	}
 }
 

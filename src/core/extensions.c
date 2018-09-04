@@ -386,7 +386,7 @@ ext_name_atom(const char *name)
 	 * no escaping, then the name is also the key (same object).
 	 */
 
-	key = wcopy(name, 1 + strlen(name));
+	key = wcopy(name, 1 + vstrlen(name));
 	atom = hex_escape(key, TRUE); /* strict escaping */
 
 	htable_insert(ext_names, key, atom);
@@ -405,7 +405,7 @@ ext_names_kv_free(const void *key, void *value, void *unused_udata)
 	if (key != value)
 		HFREE_NULL(value);
 
-	wfree(deconstify_pointer(key), 1 + strlen(key));
+	wfree(deconstify_pointer(key), 1 + vstrlen(key));
 }
 
 /***
@@ -729,7 +729,7 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		char name_buf[9];	/* Longest name we parse is "bitprint" */
 
 		name_start = p;
-		name_end = memchr(p, ':', end - name_start);
+		name_end = vmemchr(p, ':', end - name_start);
 
 		/*
 		 * Some broken servents don't include the trailing ':', which is a
@@ -738,9 +738,9 @@ ext_huge_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		 */
 
 		if G_UNLIKELY(NULL == name_end) {
-			name_end = memchr(p, HUGE_FS, end - name_start);
+			name_end = vmemchr(p, HUGE_FS, end - name_start);
 			if (NULL == name_end)
-				name_end = memchr(p, GGEP_MAGIC, end - name_start);
+				name_end = vmemchr(p, GGEP_MAGIC, end - name_start);
 		}
 
 		name_len = (name_end != NULL) ? name_end - name_start : 0;

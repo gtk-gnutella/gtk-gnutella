@@ -260,7 +260,7 @@ retry:
 			/* Already handled above */
 			break;
 		case HTTP_EXTRA_LINE:
-			if (size > strlen(he->he_msg)) {
+			if (size > vstrlen(he->he_msg)) {
 				/* Don't emit truncated lines */
 				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
 			}
@@ -279,7 +279,7 @@ retry:
 
 	if (body) {
 		if (0 == body_length)
-			body_length = strlen(body);
+			body_length = vstrlen(body);
 		rw += str_bprintf(&header[rw], header_size - rw,
 						"Content-Length: %zu\r\n", body_length);
 	}

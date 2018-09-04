@@ -184,7 +184,7 @@ compat_memmem(const void *data, size_t data_size,
 		if (0 == memcmp(p, pattern, pattern_size)) {
 			break;
 		}
-		next = memchr(&p[1], pat[0], data_size - 1);
+		next = vmemchr(&p[1], pat[0], data_size - 1);
 		data_size -= next - p;
 	}
 	return deconstify_gchar(p);

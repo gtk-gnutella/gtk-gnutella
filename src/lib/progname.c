@@ -387,7 +387,7 @@ progname_args_copy_environ(void)
 	progname_args_clearenv();
 
 	for (i = 0; env[i] != NULL; i++) {
-		char *eq = strchr(env[i], '=');
+		char *eq = vstrchr(env[i], '=');
 		int r;
 
 		if (eq != NULL) {

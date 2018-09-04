@@ -626,7 +626,7 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 	payload = g2_tree_node_payload(root, &paylen);
 	child = g2_tree_first_child(root);
 	name = g2_tree_name(root);
-	namelen = strlen(name);
+	namelen = vstrlen(name);
 
 	g_assert(size_is_non_negative(namelen));
 	g_assert(namelen != 0);

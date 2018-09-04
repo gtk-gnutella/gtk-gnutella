@@ -237,7 +237,7 @@ read_data_with_readline(struct line_buf *line, struct shell_buf *sb)
 			if (!line->buf && !is_temporary_error(errno)) {
 				sb->eof = 1;
 			}
-			line->length = line->buf ? strlen(line->buf) : 0;
+			line->length = line->buf ? vstrlen(line->buf) : 0;
 			line->pos = 0;
 		}
 		if (line->buf) {
@@ -391,7 +391,7 @@ local_shell_mainloop(int fd)
 		 * Only send the empty INTR command when interactive.
 		 */
 
-		client.fill = strlen(helo);
+		client.fill = vstrlen(helo);
 		memcpy(client_buf, helo, client.fill);
 	}
 
@@ -557,7 +557,7 @@ local_shell(const char *socket_path)
 
 		addr = zero_un;
 		addr.sun_family = AF_LOCAL;
-		if (strlen(socket_path) >= sizeof addr.sun_path) {
+		if (vstrlen(socket_path) >= sizeof addr.sun_path) {
 			fprintf(stderr, "local_shell(): pathname is too long\n");
 			goto failure;
 		}
@@ -603,8 +603,8 @@ path_compose(const char *dir, const char *name)
 	if (!dir || !name) {
 		return NULL;
 	}
-	dir_len = strlen(dir);
-	name_len = strlen(name);
+	dir_len = vstrlen(dir);
+	name_len = vstrlen(name);
 	if (name_len >= ((size_t) -1) - 2 || dir_len >= ((size_t) -1) - name_len) {
 		return NULL;
 	}

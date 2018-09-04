@@ -698,7 +698,7 @@ g2_node_extract_urn(const g2_tree_t *t, search_request_info_t *sri)
 
 	for (i = 0; i < N_ITEMS(g2_q2_urn); i++) {
 		const char *prefix = g2_q2_urn[i];
-		size_t len = strlen(prefix) + 1;	/* Wants trailing NUL as well */
+		size_t len = vstrlen(prefix) + 1;	/* Wants trailing NUL as well */
 
 		if (0 == clamp_memcmp(prefix, len, p, paylen)) {
 			p += len;

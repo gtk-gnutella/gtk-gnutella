@@ -831,7 +831,7 @@ tok_crc(uint32 crc, const struct tokkey *tk)
 	i = tk->count;
 	while (i-- > 0) {
 		const char *k = *keys++;
-		crc = crc32_update(crc, k, strlen(k));
+		crc = crc32_update(crc, k, vstrlen(k));
 	}
 	crc ^= (crc >> 8);
 	crc &= 0x00ff00ffU;
@@ -871,9 +871,9 @@ tok_generate(time_t now, const char *version)
 	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, digest, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &sha1);
 	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
@@ -999,7 +999,7 @@ tok_version_valid(
 	int lvlsize;
 	uint i;
 
-	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
+	end = vstrchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
 
 	/*
@@ -1038,9 +1038,9 @@ tok_version_valid(
 	key = tk->keys[idx];
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, token, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &digest);
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))

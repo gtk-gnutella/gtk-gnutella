@@ -1733,7 +1733,7 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			size_t word_len = strlen(word);
+			size_t word_len = vstrlen(word);
 			size_t n = 1 + word_len;
 
 			htable_insert(words, wcopy(word, n), size_to_pointer(n));
@@ -1764,7 +1764,7 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			size_t word_len = strlen(word);
+			size_t word_len = vstrlen(word);
 			size_t n = 1 + word_len;
 
 			htable_insert(words, wcopy(word, n), size_to_pointer(n));
@@ -1938,7 +1938,7 @@ qrp_context_free(void *p)
 		char *word = sl->data;
 		size_t size;
 
-		size = 1 + strlen(word);
+		size = 1 + vstrlen(word);
 		g_assert(size_is_positive(size));
 		wfree(word, size);
 	}

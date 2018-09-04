@@ -814,7 +814,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1, &checksum);
 
 	PSLIST_FOREACH(fi->alias, sl) {
-		size_t len = strlen(sl->data);		/* Do not store the trailing NUL */
+		size_t len = vstrlen(sl->data);		/* Do not store the trailing NUL */
 		g_assert(len <= INT_MAX);
 		if (len < FI_MAX_FIELD_LEN)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, sl->data, &checksum);
@@ -3025,7 +3025,7 @@ extract_guid(const char *s)
 {
 	struct guid guid;
 
-	if (strlen(s) < GUID_HEX_SIZE)
+	if (vstrlen(s) < GUID_HEX_SIZE)
 		return NULL;
 
 	if (!hex_to_guid(s, &guid))
@@ -3043,7 +3043,7 @@ extract_sha1(const char *s)
 {
 	struct sha1 sha1;
 
-	if (strlen(s) < SHA1_BASE32_SIZE)
+	if (vstrlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
 	if (SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), s, SHA1_BASE32_SIZE))
@@ -3057,7 +3057,7 @@ extract_tth(const char *s)
 {
 	struct tth tth;
 
-	if (strlen(s) < TTH_BASE32_SIZE)
+	if (vstrlen(s) < TTH_BASE32_SIZE)
 		return NULL;
 
 	if (TTH_RAW_SIZE != base32_decode(VARLEN(tth), s, TTH_BASE32_SIZE))
@@ -3596,7 +3596,7 @@ file_info_retrieve(void)
 			old_filename = NULL;
 		}
 
-		value = strchr(line, ' ');
+		value = vstrchr(line, ' ');
 		if (!value) {
 			if (*line)
 				g_warning("ignoring fileinfo line: \"%s\"", line);
@@ -8260,7 +8260,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 dht_status:
 	{
-		size_t w = strlen(buf);
+		size_t w = vstrlen(buf);
 
 		if (status->dht_lookup_running) {
 			w += str_bprintf(ARYPOSLEN(buf, w), "; ");

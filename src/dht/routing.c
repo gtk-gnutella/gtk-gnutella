@@ -5409,12 +5409,12 @@ dht_route_parse(FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');		/* End of tag, normally */
+		sp = vstrchr(line, ' ');		/* End of tag, normally */
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');		/* Tag without a value */
+			value = vstrchr(line, '\0');	/* Tag without a value */
 		}
 		tag_name = line;
 
@@ -5430,14 +5430,14 @@ dht_route_parse(FILE *f)
 		switch (tag) {
 		case DHT_ROUTE_TAG_KUID:
 			if (
-				KUID_RAW_SIZE * 2 != strlen(value) ||
+				KUID_RAW_SIZE * 2 != vstrlen(value) ||
 				KUID_RAW_SIZE != base16_decode(VARLEN(kuid),
 					value, KUID_RAW_SIZE * 2)
 			)
 				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_VNDR:
-			if (4 == strlen(value))
+			if (4 == vstrlen(value))
 				vcode.u32 = peek_be32(value);
 			else
 				goto damaged;

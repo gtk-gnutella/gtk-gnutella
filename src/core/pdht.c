@@ -657,7 +657,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 	) {
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(HNAME),
 			GNET_PROPERTY(server_hostname),
-			strlen(GNET_PROPERTY(server_hostname)), 0);
+			vstrlen(GNET_PROPERTY(server_hostname)), 0);
 	}
 
 	ggep_len = ggep_stream_close(&gs);

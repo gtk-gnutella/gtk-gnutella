@@ -1041,7 +1041,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->good = FALSE;
 		dme->fw_entry = FALSE;
 
-		entropy_harvest_many(name, strlen(name),
+		entropy_harvest_many(name, vstrlen(name),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
 		if (GNET_PROPERTY(dmesh_debug) > 1)
@@ -1567,7 +1567,7 @@ dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 		 */
 
 		if (quoting != NULL)
-			*quoting = NULL != strchr(info->name, ',');
+			*quoting = NULL != vstrchr(info->name, ',');
 	}
 
 	return rw < maxslen ? rw : (size_t) -1;
@@ -2113,7 +2113,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		url_len = dmesh_entry_compact(&ourselves, ARYLEN(url));
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
-		if (!header_fmt_value_fits(fmt, url_len + strlen(tls_hex)))
+		if (!header_fmt_value_fits(fmt, url_len + vstrlen(tls_hex)))
 			goto nomore;
 
 		if (tls_enabled()) {
@@ -3040,7 +3040,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strchr(tok, '/'))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* Skip first "pptls=" indication */
@@ -3406,7 +3406,7 @@ dmesh_retrieve(void)
 			}
 		} else {
 			if (
-				strlen(tmp) < SHA1_BASE32_SIZE ||
+				vstrlen(tmp) < SHA1_BASE32_SIZE ||
 				SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), tmp, SHA1_BASE32_SIZE)
 			) {
 				g_warning("%s: bad base32 SHA1 '%.32s' at line #%d, ignoring",

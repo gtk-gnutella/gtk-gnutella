@@ -86,7 +86,7 @@ free_hash_entry(const void *key, void *value, void *unused_data)
 
 	(void) unused_data;
 
-	wfree(s, 1 + strlen(s));
+	wfree(s, 1 + vstrlen(s));
 	WFREE(val);
 	return TRUE;
 }
@@ -201,7 +201,7 @@ search_stats_notify_whole(query_type_t type, const char *search,
         NULL_PTR);
 
 	wovec.word = buf;
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -217,7 +217,7 @@ search_stats_notify_routed(query_type_t unused_type, const char *unused_search,
 	(void) unused_search;
 
     wovec.word = deconstify_char(host_addr_port_to_string(addr, port));
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -338,7 +338,7 @@ search_stats_tally(const word_vec_t *vec)
 
 		WALLOC0(val);
 		val->period_cnt = vec->amount;
-		key = wcopy(vec->word, 1 + strlen(vec->word));
+		key = wcopy(vec->word, 1 + vstrlen(vec->word));
 		htable_insert(stat_hash, key, val);
 	}
 }

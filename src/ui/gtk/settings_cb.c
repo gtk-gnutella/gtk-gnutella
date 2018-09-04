@@ -361,7 +361,7 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 	g_strstrip(text);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_give_server_hostname"),
-        strlen(text) > 3);		/* Minimum: "x.cx" */
+        vstrlen(text) > 3);		/* Minimum: "x.cx" */
 	G_FREE_NULL(text);
 }
 

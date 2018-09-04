@@ -1035,7 +1035,7 @@ stacktrace_pretty_filepath(const char *filepath)
 	start = filepath;
 
 	if (is_absolute_path(filepath)) {
-		const char *src = strstr(filepath, "/src/");
+		const char *src = vstrstr(filepath, "/src/");
 		start = (NULL == src) ? p : &src[CONST_STRLEN("/src/")];
 	}
 

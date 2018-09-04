@@ -665,7 +665,7 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 	g_assert(XNODE_T_ELEMENT == element->type);
 	g_assert(prefix != NULL);
 	g_assert(uri != NULL);
-	g_assert(NULL == strchr(prefix, ':'));
+	g_assert(NULL == vstrchr(prefix, ':'));
 
 	if (NULL == element->u.e.ns)
 		element->u.e.ns = nv_table_make(TRUE);
@@ -673,7 +673,7 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 	/* Prefix must not be redeclared in the same element */
 	g_assert(NULL == nv_table_lookup(element->u.e.ns, prefix));
 
-	uri_len = strlen(uri);
+	uri_len = vstrlen(uri);
 	nv_table_insert(element->u.e.ns, prefix, uri, uri_len + 1);
 }
 

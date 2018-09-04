@@ -345,7 +345,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	{
 		const char *port_str = uint32_to_string(port);
-		size_t port_len = strlen(port_str);
+		size_t port_len = vstrlen(port_str);
 
 		rw = write(fd, port_str, port_len);
 		if ((ssize_t) -1 == rw)
@@ -358,7 +358,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	{
 		const char *type = sun->stream ? " s " : " d ";
-		size_t type_len = strlen(type);
+		size_t type_len = vstrlen(type);
 
 		rw = write(fd, type, type_len);
 		if ((ssize_t) -1 == rw)

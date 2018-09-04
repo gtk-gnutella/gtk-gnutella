@@ -1228,7 +1228,7 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	if (sh->shutdown)
 		return;
 
-	len = strlen(text);
+	len = vstrlen(text);
 	g_return_if_fail(len < (size_t) -1);
 
 	if (len > 0) {
@@ -1379,7 +1379,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 	cookie = shell_auth_cookie();
 	if (
 		tok_helo && 0 == strcmp("HELO", tok_helo) &&
-		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
+		tok_cookie && SHA1_BASE32_SIZE == vstrlen(tok_cookie) &&
 		0 == memcmp_diff(sha1_base32(cookie), tok_cookie, SHA1_BASE32_SIZE)
 	) {
 		ok = TRUE;

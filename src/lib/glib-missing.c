@@ -88,7 +88,7 @@ strlcat(char *dst, const char *src, size_t dst_size)
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
-	n = strlen(dst);
+	n = vstrlen(dst);
 	if (n < dst_size) {
 		dst_size -= n;
 	} else if (dst_size > 0) {
@@ -251,7 +251,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	if (retval < 0) {
 		/* Old versions of vsnprintf() */
 		dst[size - 1] = '\0';
-		retval = strlen(dst);
+		retval = vstrlen(dst);
 		truncated = (size - 1 == (size_t) retval) ? 1 : 0;
 	} else if ((size_t) retval >= size) {
 		/* New versions (compliant with C99) */

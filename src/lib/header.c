@@ -246,7 +246,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 			char buf[80];
 			const char *p = s;
 			int c;
-			size_t len = strlen(s);
+			size_t len = vstrlen(s);
 			str_bprintf(ARYLEN(buf), "<%u non-printable byte%s>",
 				(unsigned) len, plural(len));
 			fputs(buf, out);
@@ -770,7 +770,7 @@ header_fmt_make(const char *field, const char *separator,
 	hf->frozen = FALSE;
 	hf->max_size = max_size;
 	hf->sep = atom_str_get(separator ? separator : "");
-	hf->seplen = strlen(hf->sep);
+	hf->seplen = vstrlen(hf->sep);
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	str_cat(hf->header, field);
 	STR_CAT(hf->header, ": ");
@@ -894,7 +894,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 		return FALSE;
 
 	gslen = str_len(hf->header);
-	len = strlen(str);
+	len = vstrlen(str);
 	curlen = hf->current_len;
 	g_assert(size_is_non_negative(curlen));
 
@@ -962,7 +962,7 @@ header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 	header_fmt_check(hf);
 	g_assert(!hf->frozen);
 
-	seplen = (separator == NULL) ? 0 : strlen(separator);
+	seplen = (separator == NULL) ? 0 : vstrlen(separator);
 
 	return header_fmt_append_full(hf, str, separator, seplen, (size_t)-1);
 }

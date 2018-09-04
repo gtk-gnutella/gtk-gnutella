@@ -626,7 +626,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 
 	buf = route_log->extra;
 	buflen = sizeof(route_log->extra);
-	len = strlen(route_log->extra);
+	len = vstrlen(route_log->extra);
 
 	/*
 	 * If there was already a message recorded, append "; " before
@@ -1494,7 +1494,7 @@ routing_init(void)
 		struct guid guid;
 		const char *hex = banned_push[i];
 
-		g_assert(strlen(hex) == 2 * sizeof guid);
+		g_assert(vstrlen(hex) == 2 * sizeof guid);
 
 		(void) hex_to_guid(hex, &guid);
 		hset_insert(ht_banned_push, atom_guid_get(&guid));

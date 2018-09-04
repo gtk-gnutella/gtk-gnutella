@@ -1206,7 +1206,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 	if (!safe_chars) {
 		safe_chars = "";
 	}
-	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
+	if (is_ascii_alnum(c) || (c < 0x80 && vstrchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
 

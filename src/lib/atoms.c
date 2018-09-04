@@ -620,7 +620,7 @@ static atom_desc_t atoms[] = {
 static size_t
 str_xlen(const void *v)
 {
-	return strlen((const char *) v) + 1;
+	return vstrlen((const char *) v) + 1;
 }
 
 /**

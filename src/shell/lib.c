@@ -74,7 +74,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 
 		cq_info_check(cqi);
 
-		len = strlen(cqi->name);
+		len = vstrlen(cqi->name);
 		maxlen = MAX(len, maxlen);
 	}
 
@@ -97,7 +97,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 		str_catf(s, "%10zu ", cqi->heartbeat_count);
 		str_catf(s, "%10zu ", cqi->triggered_count);
 		str_catf(s, "\"%s\"%*s", cqi->name,
-			(int) (maxlen - strlen(cqi->name)), "");
+			(int) (maxlen - vstrlen(cqi->name)), "");
 		if (cqi->parent != NULL)
 			str_catf(s, " (%s)", cqi->parent);
 		str_putc(s, '\n');
@@ -175,7 +175,7 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 			 * no need to adjust that amount.
 			 */
 
-			len = strlen(p) + BIT_DEC_BUFLEN(1 + highest_bit_set(foi->line));
+			len = vstrlen(p) + BIT_DEC_BUFLEN(1 + highest_bit_set(foi->line));
 			maxlen = MAX(len, maxlen);
 		}
 

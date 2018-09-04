@@ -285,7 +285,7 @@ str_new_from(const char *string)
 	} else {
 		size_t len;
 
-		len = strlen(string);
+		len = vstrlen(string);
 		s = str_new(len + 1 + (len / 4));
 		str_cat_len(s, string, len);
 	}
@@ -319,7 +319,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 		str_free(str);
 
 	if ((size_t) -1 == len)
-		len = (0 == size) ? strlen(ptr) : clamp_strlen(ptr, size);
+		len = (0 == size) ? vstrlen(ptr) : clamp_strlen(ptr, size);
 
 	if (0 == size)
 		size = len + 1;			/* Must include hidden NUL in foreign string */
@@ -450,7 +450,7 @@ str_make(char *ptr, size_t len)
 	g_assert(size_is_non_negative(len + 1));
 
 	if ((size_t) -1 == len)
-		len = strlen(ptr);					/* Can still be zero, but it's OK */
+		len = vstrlen(ptr);					/* Can still be zero, but it's OK */
 
 	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
@@ -838,7 +838,7 @@ str_cpy(str_t *str, const char *string)
 	str_check(str);
 
 	str->s_len = 0;
-	str_cat_len(str, string, strlen(string));
+	str_cat_len(str, string, vstrlen(string));
 }
 
 /**
@@ -868,7 +868,7 @@ str_cat(str_t *str, const char *string)
 	str_check(str);
 	g_assert(string != NULL);
 
-	str_cat_len(str, string, strlen(string));
+	str_cat_len(str, string, vstrlen(string));
 }
 
 /**
@@ -1049,7 +1049,7 @@ str_istr(str_t *str, ssize_t idx, const char *string)
 	str_check(str);
 	g_assert(string != NULL);
 
-	return str_instr(str, idx, string, strlen(string));
+	return str_instr(str, idx, string, vstrlen(string));
 }
 
 /**
@@ -1145,7 +1145,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	g_assert(size_is_non_negative(amount));
 	g_assert(string != NULL);
 
-	length = strlen(string);
+	length = vstrlen(string);
 	len = str->s_len;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -1701,7 +1701,7 @@ str_has_suffix(const str_t *s, const char *suffix, size_t *idx)
 {
 	g_assert(suffix != NULL);
 
-	return str_has_suffix_len(s, suffix, strlen(suffix), idx);
+	return str_has_suffix_len(s, suffix, vstrlen(suffix), idx);
 }
 
 /**
@@ -2530,7 +2530,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
 
-	fmtlen = strlen(fmt);
+	fmtlen = vstrlen(fmt);
 	origlen = str->s_len;
 
 	/*
@@ -2547,7 +2547,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		size_t len;
 		processed++;
 		s = s ? s : nullstr;
-		len = strlen(s);
+		len = vstrlen(s);
 		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len) || len > maxlen)
 			goto clamped;
 		goto done;
@@ -2745,10 +2745,10 @@ G_STMT_START {									\
 				const char *s = english_strerror(errno);
 				size_t len;
 
-				len = strlen(e);
+				len = vstrlen(e);
 				STR_APPEND(e, len);
 				STR_APPEND(" (", 2);
-				len = strlen(s);
+				len = vstrlen(s);
 				STR_APPEND(s, len);
 				STR_APPEND(")", 1);
 			}
@@ -2763,7 +2763,7 @@ G_STMT_START {									\
 				/* String may not be NUL-terminated */
 				elen = clamp_strlen(eptr, precis);
 			} else {
-				elen = strlen(eptr);
+				elen = vstrlen(eptr);
 			}
 			/* FALL THROUGH */
 
@@ -3910,7 +3910,7 @@ str_test(bool verbose)
 		g_assert_log(vsn_count == our_count,
 			"vsnprintf() returned %zu, str_vncatf() returned %zu",
 			vsn_count, our_count);
-		g_assert(strlen(vsnp) == vsn_count);	/* Consistency check */
+		g_assert(vstrlen(vsnp) == vsn_count);	/* Consistency check */
 		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
 	}
 

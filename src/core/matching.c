@@ -512,7 +512,7 @@ st_insert_item(search_table_t *table,
 	entry->sf = shared_file_ref(sf);
 	entry->mask = mask_hash(entry->string);
 
-	len = strlen(entry->string);
+	len = vstrlen(entry->string);
 	for (i = 0; i < len - 1; i++) {
 		uint key = st_key(set, &entry->string[i]);
 
@@ -705,7 +705,7 @@ st_run_search(
 
 	g_assert(implies(SEARCH_ALIAS == mode, NULL == qhv));
 
-	len = strlen(search);
+	len = vstrlen(search);
 
 	/*
 	 * Find smallest bin

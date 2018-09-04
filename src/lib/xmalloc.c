@@ -4994,7 +4994,7 @@ xcalloc(size_t nmemb, size_t size)
 char *
 xstrdup(const char *str)
 {
-	return str ? xcopy(str, 1 + strlen(str)) : NULL;
+	return str ? xcopy(str, 1 + vstrlen(str)) : NULL;
 }
 
 /**

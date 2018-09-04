@@ -159,7 +159,7 @@ send_pproxy_error_v(
 
 		if ('\0' != ext[extlen]) {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, strlen(ext));
+				G_STRFUNC, vstrlen(ext));
 		} else {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
@@ -430,7 +430,7 @@ get_params(struct pproxy *pp, const char *request,
 	 * Determine how much data we have for the parameter.
 	 */
 
-	datalen = strlen(value);
+	datalen = vstrlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
 		struct guid buf;

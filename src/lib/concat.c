@@ -72,7 +72,7 @@ concat_strings_v(char *dst, size_t size, const char *s, va_list ap)
 	}
 
 	while (NULL != s) {
-		ret = size_saturate_add(ret, strlen(s));
+		ret = size_saturate_add(ret, vstrlen(s));
 		s = va_arg(ap, const char *);
 	}
 

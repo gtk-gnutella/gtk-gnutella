@@ -771,7 +771,7 @@ send_socks4(struct gnutella_socket *s)
 		size_t name_size;
 
 		name = EMPTY_STRING(GNET_PROPERTY(socks_user));
-		name_size = 1 + strlen(name);
+		name_size = 1 + vstrlen(name);
 
 		/* Make sure the request fits into the socket buffer */
 		if (
@@ -885,7 +885,7 @@ connect_http(struct gnutella_socket *s)
 
 				iovec_set_base(&iov[i], deconstify_char(
 									parts[i].s ? parts[i].s : host_port));
-				n = strlen(iovec_base(&iov[i]));
+				n = vstrlen(iovec_base(&iov[i]));
 				iovec_set_len(&iov[i], n);
 				size += n;
 			}
@@ -1095,15 +1095,15 @@ connect_socksv5(struct gnutella_socket *s)
 			return ECONNREFUSED;
 		}
 
-		if (strlen(name) > 255 || strlen(GNET_PROPERTY(socks_pass)) > 255) {
+		if (vstrlen(name) > 255 || vstrlen(GNET_PROPERTY(socks_pass)) > 255) {
 			g_warning("SOCKS username or password exceeds 255 characters");
 			return ECONNREFUSED;
 		}
 
 		size = str_bprintf(s->buf, s->buf_size, "\x01%c%s%c%s",
-					(uchar) strlen(name),
+					(uchar) vstrlen(name),
 					name,
-					(uchar) strlen(GNET_PROPERTY(socks_pass)),
+					(uchar) vstrlen(GNET_PROPERTY(socks_pass)),
 					GNET_PROPERTY(socks_pass));
 
 		/* Send out the authentication */
@@ -2190,7 +2190,7 @@ unknown:
 		if (len > 0)
 			dump_hex(stderr, "First Line", first, MIN(len, 160));
 	}
-	if (strstr(first, "HTTP")) {
+	if (vstrstr(first, "HTTP")) {
 		http_send_status(HTTP_UPLOAD, s, 501, FALSE, NULL, 0,
 			HTTP_ATOMIC_SEND,
 			"Method Not Implemented");

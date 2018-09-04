@@ -147,7 +147,7 @@ static void
 plus_to_space(char *s)
 {
 	while (s) {
-		s = strchr(s, '+');
+		s = vstrchr(s, '+');
 		if (s) {
 			*s++ = ' ';
 		}
@@ -379,9 +379,9 @@ magnet_parse_push_source(const char *uri, const char **error_str)
 	p = is_strprefix(uri, "push://");
 	g_return_val_if_fail(p, NULL);
 
-	endptr = strchr(p, ':');		/* First push-proxy host */
+	endptr = vstrchr(p, ':');		/* First push-proxy host */
 	if (NULL == endptr || GUID_HEX_SIZE != (endptr - p))
-		endptr = strchr(p, '/');	/* No push-proxy host */
+		endptr = vstrchr(p, '/');	/* No push-proxy host */
 
 	if (
 		NULL == endptr ||
@@ -576,7 +576,7 @@ magnet_parse(const char *url, const char **error_str)
 		char name[16]; /* Large enough to hold longest key we know */
 
 		name[0] = '\0';
-		endptr = strchr(p, '=');
+		endptr = vstrchr(p, '=');
 		if (endptr && p != endptr) {
 			size_t name_len;
 
@@ -589,9 +589,9 @@ magnet_parse(const char *url, const char **error_str)
 			p = &endptr[1]; /* Point behind the '=' */
 		}
 
-		endptr = strchr(p, '&');
+		endptr = vstrchr(p, '&');
 		if (!endptr) {
-			endptr = strchr(p, '\0');
+			endptr = vstrchr(p, '\0');
 		}
 
 		key = magnet_key_get(name);
@@ -797,7 +797,7 @@ magnet_set_exact_topic(struct magnet_resource *res, const char *topic)
 	struct sha1 sha1;
 	struct tth tth;
 
-	if (urn_get_bitprint(topic, strlen(topic), &sha1, &tth)) {
+	if (urn_get_bitprint(topic, vstrlen(topic), &sha1, &tth)) {
 		if (!res->sha1) {
 			magnet_set_sha1(res, &sha1);
 		}
@@ -810,7 +810,7 @@ magnet_set_exact_topic(struct magnet_resource *res, const char *topic)
 			magnet_set_sha1(res, &sha1);
 		}
 		return TRUE;
-	} else if (urn_get_tth(topic, strlen(topic), &tth)) {
+	} else if (urn_get_tth(topic, vstrlen(topic), &tth)) {
 		if (!res->tth) {
 			magnet_set_tth(res, &tth);
 		}

@@ -904,7 +904,7 @@ ostrdup(const char *str)
 	if (NULL == str)
 		return NULL;
 
-	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RW, str);
+	return omalloc_allocate(1 + vstrlen(str), 1, OMALLOC_RW, str);
 }
 
 /**
@@ -954,7 +954,7 @@ ostrdup_readonly(const char *str)
 	if (NULL == str)
 		return NULL;
 
-	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RO, str);
+	return omalloc_allocate(1 + vstrlen(str), 1, OMALLOC_RO, str);
 }
 
 /**

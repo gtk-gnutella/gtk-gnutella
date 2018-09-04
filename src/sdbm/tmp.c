@@ -169,7 +169,7 @@ tmp_parse_line(const char *line, char **extension, pid_t *pid)
 	 * Format of the line is: "string <space> PID".
 	 */
 	
-	s = strchr(line, ' ');
+	s = vstrchr(line, ' ');
 	if (NULL == s)
 		return FALSE;
 

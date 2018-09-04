@@ -5066,7 +5066,7 @@ crash_directory_cleanup_cb(
 		if (delta_time(tm_time(), sb->st_mtime) >= CRASH_LOG_MAXAGE)
 			crash_directory_unlink(info->fpath);
 	} else if (
-		NULL != strstr(info->fbase, "core.") ||
+		NULL != vstrstr(info->fbase, "core.") ||
 		is_strsuffix(info->fbase, info->fbase_len, ".core") ||
 		0 == strcmp(info->fbase, "core")
 	) {

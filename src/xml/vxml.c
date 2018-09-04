@@ -864,7 +864,7 @@ vxml_buffer_convert_to_utf8(struct vxml_buffer *vb, const char *charset)
 
 	vxml_buffer_data_free(vb);
 	m->vb_rptr = m->data = converted;
-	m->length = strlen(converted);
+	m->length = vstrlen(converted);
 	m->vb_end = m->data + m->length;
 	m->reader = utf8_decode_char_buffer;
 	m->allocated = TRUE;
@@ -3044,7 +3044,7 @@ vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
 	g_assert(uri != NULL);
 
 	if (0 == uri_len)
-		uri_len = strlen(uri);
+		uri_len = vstrlen(uri);
 
 	if ('\0' != uri[uri_len]) {
 		char *uri_copy = h_strndup(uri, uri_len);
@@ -3070,7 +3070,7 @@ vxml_parser_namespace_global(vxml_parser_t *vp, const char *ns, const char *uri)
 
 	g_assert(vp->namespaces != NULL);
 
-	sym = vxml_namespace_make(ns, uri, strlen(uri));
+	sym = vxml_namespace_make(ns, uri, vstrlen(uri));
 
 	if (!symtab_insert_pair(vp->namespaces, sym, 0)) {
 		g_error("VXML \"%s\" cannot insert global namespace \"%s\" as \"%s\"",
@@ -3221,7 +3221,7 @@ vxml_parser_namespace_decl(vxml_parser_t *vp,
 		return FALSE;
 	}
 
-	if (strchr(name, ':') != NULL) {
+	if (vstrchr(name, ':') != NULL) {
 		vxml_fatal_error(vp, VXML_E_BAD_CHAR_IN_NAMESPACE);
 		return FALSE;
 	}
@@ -3850,7 +3850,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
 
-			local_name = strchr(start, ':');
+			local_name = vstrchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
 
@@ -5209,7 +5209,7 @@ vxml_parser_new_element(vxml_parser_t *vp)
 	if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 		const char *local_name;
 
-		local_name = strchr(start, ':');
+		local_name = vstrchr(start, ':');
 		if (local_name != NULL) {
 			ns = h_strndup(start, local_name - start);
 			start = local_name + 1;

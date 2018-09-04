@@ -108,7 +108,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	n = MIN(iov_cnt, argc);
 	for (i = 0; i < n; i++) {
 		iovec_set_base(&iov[i], argv[i]);
-		iovec_set_len(&iov[i], argv[i] ? (1 + strlen(argv[i])) : 0);
+		iovec_set_len(&iov[i], argv[i] ? (1 + vstrlen(argv[i])) : 0);
 	}
 	return n;
 }
@@ -224,7 +224,7 @@ iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s)
 
 	/* Reserve one byte for the trailing NUL */
 	size = iov_calculate_size(iov, iov_cnt);
-	len = strlen(s);
+	len = vstrlen(s);
 	if (len >= size) {
 		len = size > 0 ? (size - 1) : 0;
 	}

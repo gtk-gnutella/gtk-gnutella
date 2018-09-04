@@ -547,7 +547,7 @@ filter_new_text_rule(const gchar *match, gint type,
 		: utf8_strlower_copy(match);
 
 	r->u.text.match = buf;
-	r->u.text.match_len = strlen(buf);
+	r->u.text.match_len = vstrlen(buf);
 
     buf = h_strdup(r->u.text.match);
 
@@ -2106,7 +2106,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 
 				if (utf8_name == NULL) {
 					ctx->utf8_name = utf8_name = atom_str_get(rec->utf8_name);
-					ctx->utf8_len = strlen(utf8_name);
+					ctx->utf8_len = vstrlen(utf8_name);
 				}
 
 				if (l_name == NULL) {
@@ -2119,7 +2119,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 					 */
 
 					ctx->l_name = atom_str_get(s);
-					ctx->l_len = strlen(ctx->l_name);
+					ctx->l_len = vstrlen(ctx->l_name);
 					l_name = ctx->l_name;
 
 					hfree(s);

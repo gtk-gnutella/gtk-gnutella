@@ -1157,7 +1157,7 @@ pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
 	g_assert(UNSIGNED(pmsg_available(mb)) >= n + 10);	/* Need ule64 length */
 	g_assert_log(size_is_non_negative(n), "%s(): n=%zd", G_STRFUNC, n);
 
-	len = strlen(str);
+	len = vstrlen(str);
 	len = MIN(n, len);
 	pmsg_write_ule64(mb, (uint64) len);
 
@@ -1184,7 +1184,7 @@ pmsg_write_string(pmsg_t *mb, const char *str, size_t length)
 	g_assert_log(size_is_non_negative(length) || (size_t) -1 == length,
 		"%s(): length=%zd", G_STRFUNC, length);
 
-	len = (size_t) -1 == length ? strlen(str) : length;
+	len = (size_t) -1 == length ? vstrlen(str) : length;
 
 	g_assert(UNSIGNED(pmsg_available(mb)) >= len + 10);	/* Need ule64 length */
 

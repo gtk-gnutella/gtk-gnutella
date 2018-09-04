@@ -148,6 +148,9 @@ static idtable_t *upload_handle_map;
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
 static const char ALLOW[]     = "Allow: GET, HEAD\r\n";
 
+static cpattern_t *pat_http;
+static cpattern_t *pat_applewebkit;
+
 static inline struct upload *
 cast_to_upload(void *p)
 {
@@ -2262,7 +2265,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 			upload_http_extra_line_add(u, extra);
 		} else {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, strlen(ext));
+				G_STRFUNC, vstrlen(ext));
 		}
 	}
 
@@ -3557,7 +3560,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3651,7 +3654,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3764,7 +3767,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
 			!error &&
 			'/' == endptr[0] &&
 			'\0' != endptr[1] &&
-			NULL == strchr(&endptr[1], '/')
+			NULL == vstrchr(&endptr[1], '/')
 		) {
 			endptr = deconstify_char(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, endptr, idx);
@@ -3846,9 +3849,13 @@ select_encoding(const header_t *header)
 	if (buf) {
 		if (strtok_has(buf, ",", "deflate")) {
 			const char *ua;
+			size_t ulen;
 
-			ua = header_get(header, "User-Agent");
-			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
+			ua = header_get_extended(header, "User-Agent", &ulen);
+			if (
+				NULL == ua ||
+				NULL == pattern_strstrlen(ua, ulen, pat_applewebkit)
+			)
 				return BH_F_DEFLATE;
 		}
 
@@ -3976,7 +3983,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strchr(tok, '/'))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* End at first "pptsl=" indication (remaining are push-proxies) */
@@ -5051,7 +5058,7 @@ remove_trailing_http_tag(char *request)
 {
 	char *endptr;
 
-	endptr = strstr(request, " HTTP/");
+	endptr = pattern_strstr(request, pat_http);
 	if (endptr) {
 		while (request != endptr && is_ascii_blank(*(endptr - 1))) {
 			endptr--;
@@ -5641,7 +5648,7 @@ upload_request(struct upload *u, header_t *header)
 	 * thereby ruling out the HTTP/0.9 requests.
 	 */
 
-	if (!upload_http_version(u, u->request, strlen(u->request))) {
+	if (!upload_http_version(u, u->request, vstrlen(u->request))) {
 		upload_error_remove(u, 500, N_("Unknown/Missing Protocol Tag"));
 		return;
 	}
@@ -5824,7 +5831,7 @@ upload_request(struct upload *u, header_t *header)
 		}
 	}
 
-	search = strchr(uri, '?');
+	search = vstrchr(uri, '?');
 	if (search) {
 		*search++ = '\0';
 		/*
@@ -6387,6 +6394,9 @@ upload_max_by_addr(host_addr_t addr)
 void G_COLD
 upload_init(void)
 {
+	pat_http        = PATTERN_COMPILE_CONST(" HTTP/");
+	pat_applewebkit = PATTERN_COMPILE_CONST("AppleWebKit");
+
 	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
@@ -6454,6 +6464,8 @@ upload_close(void)
 	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
+	pattern_free_null(&pat_http);
+	pattern_free_null(&pat_applewebkit);
 }
 
 gnet_upload_info_t *

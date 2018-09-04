@@ -282,7 +282,7 @@ header_get_feature(const char *name, const header_t *header,
 		 */
 
 		pc = *(buf - 1);
-		buf += strlen(name);
+		buf += vstrlen(name);
 
 		if (*buf != '/')
 			continue;		/* Matched "barcode" when looking for "bar" */

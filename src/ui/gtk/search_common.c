@@ -349,8 +349,8 @@ search_gui_option_menu_searches_update(void)
 			ui_query = lazy_utf8_to_ui_string(name);
 			title_size = sizeof title - sizeof ellipse;
 			utf8_strcpy_max(title, title_size, ui_query, BITPRINT_BASE32_SIZE);
-			filled = strlen(title);
-			if (filled < strlen(ui_query)) {
+			filled = vstrlen(title);
+			if (filled < vstrlen(ui_query)) {
 				strncat(title, ellipse, sizeof title - filled - 1);
 			}
 
@@ -1255,7 +1255,7 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		 *				--RAM, 09/09/2001
 		 */
 
-		size = 1 + strlen(rc->tag);
+		size = 1 + vstrlen(rc->tag);
 		size = MIN(size, MAX_TAG_SHOWN + 1);
 		size = MIN(size, sizeof info);
 		rw = utf8_strlcpy(info, lazy_unknown_to_ui_string(rc->tag), size);
@@ -2688,11 +2688,11 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 		case '\'':
 		case '"':
 			start = &p[1];
-			endptr = strchr(start, *p);
+			endptr = vstrchr(start, *p);
 			if (endptr) {
 				next = &endptr[1];
 			} else {
-				endptr = strchr(start, '\0');
+				endptr = vstrchr(start, '\0');
 				next = endptr;
 			}
 			break;
@@ -2889,7 +2889,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 	g_return_val_if_fail(text, FALSE);
 
 	if (
-		strlen(text) >= SHA1_BASE16_SIZE &&
+		vstrlen(text) >= SHA1_BASE16_SIZE &&
 		!is_ascii_alnum(text[SHA1_BASE16_SIZE])
 	) {
 		ret = base16_decode(VARLEN(sha1), text, SHA1_BASE16_SIZE);

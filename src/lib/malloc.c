@@ -1094,7 +1094,7 @@ real_strdup(const char *s)
 	if (s == NULL)
 		return NULL;
 
-	len = strlen(s);
+	len = vstrlen(s);
 	p = real_malloc(len + 1);
 	memcpy(p, s, len + 1);		/* Also copy trailing NUL */
 
@@ -1967,7 +1967,7 @@ strdup_track(const char *s, const char *file, int line)
 	if (s == NULL)
 		return NULL;
 
-	len = strlen(s);
+	len = vstrlen(s);
 	o = malloc_track(len + 1, file, line);
 	memcpy(o, s, len + 1);		/* Also copy trailing NUL */
 
@@ -2006,7 +2006,7 @@ strjoinv_track(const char *s, char **vec, const char *file, int line)
 
 	o = g_strjoinv(s, vec);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2019,7 +2019,7 @@ m_strconcatv(const char *s, va_list args)
 	char *add;
 	size_t size;
 
-	size = strlen(s) + 1;
+	size = vstrlen(s) + 1;
 	res = real_malloc(size);
 	if (NULL == res)
 		s_error("out of memory");
@@ -2027,7 +2027,7 @@ m_strconcatv(const char *s, va_list args)
 	memcpy(res, s, size);
 
 	while ((add = va_arg(args, char *))) {
-		size_t len = strlen(add);
+		size_t len = vstrlen(add);
 
 		if (len > 0) {
 			res = real_realloc(res, size + len);
@@ -2069,7 +2069,7 @@ strconcat_track(const char *file, int line, const char *s, ...)
 	 * additional malloc_header in front of the data.
 	 */
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2096,7 +2096,7 @@ strconcat_v_track(const char *file, int line, const char *s, va_list ap)
 	 * additional malloc_header in front of the data.
 	 */
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2109,7 +2109,7 @@ strdup_vprintf_track(const char *file, int line, const char *fmt, va_list ap)
 
 	o = g_strdup_vprintf(fmt, ap);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2124,7 +2124,7 @@ strdup_len_vprintf_track(const char *file, int line,
 	size_t l;
 
 	o = g_strdup_vprintf(fmt, ap);
-	l = strlen(o);
+	l = vstrlen(o);
 
 	if (len != NULL)
 		*len = l;
@@ -2145,7 +2145,7 @@ strdup_printf_track(const char *file, int line, const char *fmt, ...)
 	o = g_strdup_vprintf(fmt, args);
 	va_end(args);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2164,7 +2164,7 @@ strsplit_track(const char *s, const char *d, size_t m,
 
 	iv = v;
 	while ((x = *iv++))
-		malloc_record(x, strlen(x) + 1, FALSE, file, line);
+		malloc_record(x, vstrlen(x) + 1, FALSE, file, line);
 
 	return v;
 }
@@ -2179,7 +2179,7 @@ string_record(const char *s, const char *file, int line)
 	if (s == NULL)
 		return NULL;
 
-	return malloc_record(s, strlen(s) + 1, FALSE, file, line);
+	return malloc_record(s, vstrlen(s) + 1, FALSE, file, line);
 }
 
 /**

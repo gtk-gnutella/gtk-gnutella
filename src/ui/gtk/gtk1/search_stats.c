@@ -144,7 +144,7 @@ search_stats_notify_whole(query_type_t type, const gchar *search,
 		search);
 
 	wovec.word = buf;
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -161,7 +161,7 @@ search_stats_notify_routed(query_type_t unused_type,
 	(void) unused_search;
 
     wovec.word = deconstify_gchar(host_addr_port_to_string(addr, port));
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 	p_wovec = &wovec;
 

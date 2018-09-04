@@ -244,12 +244,12 @@ spam_load(FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');
+		sp = vstrchr(line, ' ');
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');
+			value = vstrchr(line, '\0');
 		}
 		tag_name = line;
 
@@ -276,7 +276,7 @@ spam_load(FILE *f)
 
 		case SPAM_TAG_SHA1:
 			{
-				if (strlen(value) != SHA1_BASE32_SIZE) {
+				if (vstrlen(value) != SHA1_BASE32_SIZE) {
 					item.damaged = TRUE;
 					g_warning("%s(): SHA-1 has wrong length.", G_STRFUNC);
 				} else {

@@ -477,12 +477,12 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');
+		sp = vstrchr(line, ' ');
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');
+			value = vstrchr(line, '\0');
 		}
 		tag_name = line;
 

@@ -455,7 +455,7 @@ g2_build_add_hostname(g2_tree_t *t)
 		g2_tree_t *c;
 		const char *hostname = GNET_PROPERTY(server_hostname);
 
-		c = g2_tree_alloc_copy("HN", hostname, strlen(hostname));
+		c = g2_tree_alloc_copy("HN", hostname, vstrlen(hostname));
 		g2_tree_add_child(t, c);
 	}
 }
@@ -626,7 +626,7 @@ g2_build_q2(const guid_t *muid, const char *query,
 	c = g2_build_add_listening_address(t, "UDP");
 	g2_tree_append_payload(c, query_key, length);
 
-	c = g2_tree_alloc_copy("DN", query, strlen(query));
+	c = g2_tree_alloc_copy("DN", query, vstrlen(query));
 	g2_tree_add_child(t, c);
 
 	/*
@@ -1081,7 +1081,7 @@ g2_build_qh2_add(struct g2_qh2_builder *ctx, const shared_file_t *sf)
 
 		rp = shared_file_relative_path(sf);
 		if (rp != NULL) {
-			g2_tree_add_child(c, g2_tree_alloc_copy("P", rp, strlen(rp)));
+			g2_tree_add_child(c, g2_tree_alloc_copy("P", rp, vstrlen(rp)));
 		}
 	}
 

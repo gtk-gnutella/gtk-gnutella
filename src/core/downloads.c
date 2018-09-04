@@ -166,6 +166,7 @@ static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
 static pslist_t *sl_removed;		/**< Removed downloads only */
 static pslist_t *sl_removed_servers;/**< Removed servers only */
 static aging_table_t *local_pushes;	/**< Throttle push messages to a server */
+static cpattern_t *pat_rm_from_parq;
 
 static const char DL_OK_EXT[]	= ".OK";	/**< Extension to mark OK files */
 static const char DL_BAD_EXT[]	= ".BAD";	/**< "Bad" files (SHA1 mismatch) */
@@ -176,8 +177,7 @@ static const char APP_G2[]       = "application/x-gnutella2";
 static const char APP_GNUTELLA[] = "application/x-gnutella-packets";
 
 static void download_add_to_list(struct download *d, enum dl_list idx);
-static bool download_send_push_request(
-	struct download *d, bool, bool);
+static bool download_send_push_request(struct download *d, bool, bool);
 static bool download_read(struct download *d, pmsg_t *mb);
 static bool download_ignore_data(struct download *d, pmsg_t *mb);
 static void download_reply(struct download *d, header_t *header, bool ok);
@@ -1340,6 +1340,8 @@ download_init(void)
 
 	sl_downloads = hash_list_new(NULL, NULL);
 	sl_unqueued = hash_list_new(NULL, NULL);
+
+	pat_rm_from_parq = PATTERN_COMPILE_CONST("removed from PARQ");
 }
 
 /**
@@ -4933,7 +4935,7 @@ download_queue_update_status(struct download *d)
 
 	/* Append times of event */
 	time_locale_to_string_buf(tm_time(), ARYLEN(event));
-	rw = strlen(d->error_str);
+	rw = vstrlen(d->error_str);
 	rw += str_bprintf(ARYPOSLEN(d->error_str, rw),
 		_(" at %s"), lazy_locale_to_ui_string(event));
 
@@ -7179,7 +7181,7 @@ get_index_from_uri(const char *uri)
 				error ||
 				'/' != endptr[0] ||
 				'\0' == endptr[1] ||
-				NULL != strchr(&endptr[1], '/')
+				NULL != vstrchr(&endptr[1], '/')
 			) {
 				idx = 0;
 			}
@@ -10018,13 +10020,13 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		return;
 	}
 
-	endptr = strchr(uri_start, ';');
+	endptr = vstrchr(uri_start, ';');
 	if (endptr) {
 		const struct tth *tth_ptr;
 		const char *urn;
 
 		urn = skip_ascii_spaces(&endptr[1]);
-		if (strlen(urn) < TTH_BASE32_SIZE) {
+		if (vstrlen(urn) < TTH_BASE32_SIZE) {
 			if (GNET_PROPERTY(tigertree_debug)) {
 				g_debug("TTH X-Thex-URI header has no root hash "
 					"for %s from %s",
@@ -10052,7 +10054,7 @@ download_handle_thex_uri_header(struct download *d, header_t *header)
 		const char *content_urn;
 		struct sha1 sha1;
 
-		uri_length = strlen(uri_start);
+		uri_length = vstrlen(uri_start);
 
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH X-Thex-URI header has no root hash (%s): \"%s\"",
@@ -10638,7 +10640,7 @@ check_fw_node_info(struct dl_server *server, const char *fwinfo)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strchr(tok, '/'))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* Skip first "pptsl=" indication */
@@ -12107,7 +12109,7 @@ http_version_nofix:
 					is_strprefix(vendor, "gtk-gnutella/") ||
 				 	is_strprefix(vendor, "!gtk-gnutella/")
 				) &&
-				NULL != strstr(ack_message, "removed from PARQ")
+				NULL != pattern_strstr(ack_message, pat_rm_from_parq)
 			) {
 				download_queue_hold(d,
 					delay == 0 ?  1200 : delay,
@@ -14932,7 +14934,7 @@ download_retrieve_old(FILE *f)
 			endptr = skip_ascii_blanks(++endptr);
 
 			parse_uint32(endptr, &endptr, 10, &error);
-			if (error || NULL == strchr(":,", *endptr)) {
+			if (error || NULL == vstrchr(":,", *endptr)) {
 				g_warning("%s(): cannot parse index in line #%u: %s",
 					G_STRFUNC, line, dl_tmp);
 				goto out;
@@ -14983,7 +14985,7 @@ download_retrieve_old(FILE *f)
 			if (dl_tmp[0] == '*')
 				goto no_sha1;
 			if (
-				strlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
+				vstrlen(dl_tmp) != (1+SHA1_BASE32_SIZE) ||	/* Final "\n" */
 				SHA1_RAW_SIZE != base32_decode(VARLEN(sha1),
 									dl_tmp, SHA1_BASE32_SIZE)
 			) {
@@ -16074,6 +16076,7 @@ download_close(void)
 	hikset_free_null(&dl_by_id);
 	htable_free_null(&dhl_by_sha1);
 	dualhash_destroy_null(&dl_thex);
+	pattern_free_null(&pat_rm_from_parq);
 }
 
 static char *
@@ -16668,9 +16671,9 @@ download_handle_magnet(const char *url)
 					 * `search' with parameters e.g., "/index.php?yadda=1",
 					 * so we cut the search part off for the filename.
 					 */
-					endptr = strchr(ms->path, '?');
+					endptr = vstrchr(ms->path, '?');
 					if (!endptr) {
-						endptr = strchr(ms->path, '\0');
+						endptr = vstrchr(ms->path, '\0');
 					}
 
 					{
@@ -17318,7 +17321,7 @@ download_is_completed_filename(const char *name)
 
 	g_assert(name != NULL);
 
-	namelen = strlen(name);
+	namelen = vstrlen(name);
 
 	for (i = 0; i < N_ITEMS(ext); i++) {
 		if (is_strsuffix(name, namelen, ext[i]))

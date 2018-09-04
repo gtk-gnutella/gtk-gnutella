@@ -119,7 +119,7 @@ static char *
 insert_value(const char *val, char *start, size_t off,
 	size_t len, size_t maxlen)
 {
-	size_t vlen = strlen(val);
+	size_t vlen = vstrlen(val);
 
 	g_assert(len <= maxlen);
 	g_assert(off <= len);
@@ -218,7 +218,7 @@ eval_subst(const char *str)
 	if (common_dbg > 3)
 		g_debug("%s: on exit: \"%s\"", G_STRFUNC, buf);
 
-	g_assert(len == strlen(buf));
+	g_assert(len == vstrlen(buf));
 
 	return constant_str(buf);
 }

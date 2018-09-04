@@ -412,7 +412,7 @@ get_header_value(const char *const s,
 	g_assert(s != NULL);
 	g_assert(attribute != NULL);
 
-	attrlen = strlen(attribute);
+	attrlen = vstrlen(attribute);
 
 	/*
 	 * When we are looking for "foo", make sure we aren't actually
@@ -516,15 +516,15 @@ get_header_value(const char *const s,
 	if (length != NULL) {
 		*length = 0;
 
-		end = strchr(header, ';');		/* PARQ style */
+		end = vstrchr(header, ';');		/* PARQ style */
 		if (end == NULL)
-			end = strchr(header, ',');	/* Active queuing style */
+			end = vstrchr(header, ',');	/* Active queuing style */
 
 		/*
 		 * If we couldn't find a delimiter, then this value is the last one.
 		 */
 
-		*length = (end == NULL) ? strlen(header) : (size_t) (end - header);
+		*length = (end == NULL) ? vstrlen(header) : (size_t) (end - header);
 	}
 
 	return header;
@@ -1234,7 +1234,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 * Fetch the IP port at the end of the QUEUE string.
 	 */
 
-	ip_str = strchr(id, ' ');
+	ip_str = vstrchr(id, ' ');
 
 	if (
 		ip_str == NULL ||
@@ -1907,7 +1907,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 
 	puq->addr_and_name = str_cmsg("%s %s",
 		host_addr_to_string(u->addr), u->name);
-	puq->name = strchr(puq->addr_and_name, ' ') + 1;
+	puq->name = vstrchr(puq->addr_and_name, ' ') + 1;
 
 	hikset_insert_key(ul_all_parq_by_addr_and_name, &puq->addr_and_name);
 }
@@ -5153,7 +5153,7 @@ parq_upload_load_queue(void)
 		if (resync)
 			continue;
 
-		colon = strchr(line, ':');
+		colon = vstrchr(line, ':');
 		if (!colon) {
 			g_warning("%s(): missing colon in line %u", G_STRFUNC, line_no);
 			break;
@@ -5286,10 +5286,10 @@ parq_upload_load_queue(void)
 
 		case PARQ_TAG_SHA1:
 			{
-				if (strlen(value) != SHA1_BASE32_SIZE) {
+				if (vstrlen(value) != SHA1_BASE32_SIZE) {
 					damaged = TRUE;
 					g_warning("%s(): SHA1 value has wrong length %zu",
-						G_STRFUNC, strlen(value));
+						G_STRFUNC, vstrlen(value));
 				} else {
 					const struct sha1 *raw;
 

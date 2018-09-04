@@ -735,7 +735,7 @@ log_fprint(enum log_file which, const struct tm *ct, long usec,
 
 	if (lf->duplicate) {
 		iovec_t iov[2];
-		iovec_set(&iov[0], msg, strlen(msg));
+		iovec_set(&iov[0], msg, vstrlen(msg));
 		iovec_set(&iov[1], "\n", 1);
 		atio_writev(lf->crash_fd, iov, N_ITEMS(iov));
 	}

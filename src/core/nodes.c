@@ -1812,15 +1812,11 @@ node_init(void)
 	 * leading space as well.
 	 */
 
-#define PAT_COMPILE(x)	pattern_compile_fast((x), CONST_STRLEN(x), FALSE)
-
-	pat_gtkg_23v1	= PAT_COMPILE(" GTKG/23v1");
-	pat_hsep		= PAT_COMPILE(" HSEP/");
-	pat_impp		= PAT_COMPILE(" IMPP/");
-	pat_lmup		= PAT_COMPILE(" LMUP/");
-	pat_f2ft_1		= PAT_COMPILE(" F2FT/1");
-
-#undef PAT_COMPILE
+	pat_gtkg_23v1 = PATTERN_COMPILE_CONST(" GTKG/23v1");
+	pat_hsep      = PATTERN_COMPILE_CONST(" HSEP/");
+	pat_impp      = PATTERN_COMPILE_CONST(" IMPP/");
+	pat_lmup      = PATTERN_COMPILE_CONST(" LMUP/");
+	pat_f2ft_1    = PATTERN_COMPILE_CONST(" F2FT/1");
 
 	/*
 	 * Signal we support flags in the size header via "sflag/0.1"
@@ -2067,7 +2063,7 @@ get_protocol_version(const char *handshake, uint *major, uint *minor)
 		g_warning("%s(): unable to parse version number in HELLO, assuming 0.4",
 			G_STRFUNC);
 	if (GNET_PROPERTY(node_debug) > 2) {
-		size_t len = strlen(handshake);
+		size_t len = vstrlen(handshake);
 		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
 	}
 
@@ -5575,7 +5571,7 @@ feed_host_cache_from_string(const char *s, host_type_t type, const char *name)
     g_assert((uint) type < HOST_MAX);
 	g_assert(s);
 
-	for (n = 0; NULL != s; s = strchr(s, ',')) {
+	for (n = 0; NULL != s; s = vstrchr(s, ',')) {
 		host_addr_t addr;
 		uint16 port;
 
@@ -5597,7 +5593,7 @@ purge_host_cache_from_hub_list(const char *s)
 {
 	g_assert(s);
 
-    for (; NULL != s; s = strchr(s, ',')) {
+    for (; NULL != s; s = vstrchr(s, ',')) {
         host_addr_t addr;
         uint16 port = 0;
 
@@ -10223,7 +10219,7 @@ node_init_outgoing(gnutella_node_t *n)
 	node_fire_node_info_changed(n);
 
 	if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
-		size_t len = strlen(n->hello.ptr);
+		size_t len = vstrlen(n->hello.ptr);
 
 		g_debug("----Sent HELLO request to %s (%u bytes):",
 			host_addr_to_string(n->addr), (unsigned) len);

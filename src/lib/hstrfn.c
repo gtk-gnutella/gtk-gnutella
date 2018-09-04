@@ -60,7 +60,7 @@
 char *
 h_strdup(const char *str)
 {
-	return str ? hcopy(str, 1 + strlen(str)) : NULL;
+	return str ? hcopy(str, 1 + vstrlen(str)) : NULL;
 }
 
 /**
@@ -116,10 +116,10 @@ h_strnjoinv(const char *separator, size_t seplen, char * const *str_array)
 		size_t i, len;
 		char *p;
 
-		len = size_saturate_add(1, strlen(str_array[0]));
+		len = size_saturate_add(1, vstrlen(str_array[0]));
 		for (i = 1; str_array[i] != NULL; i++) {
 			len = size_saturate_add(len, seplen);
-			len = size_saturate_add(len, strlen(str_array[i]));
+			len = size_saturate_add(len, vstrlen(str_array[i]));
 		}
 
 		g_assert(len < SIZE_MAX);
@@ -161,7 +161,7 @@ h_strjoinv(const char *separator, char * const *str_array)
 	if G_UNLIKELY(NULL == separator)
 		return h_strnjoinv(NULL, 0, str_array);
 
-	return h_strnjoinv(separator, strlen(separator), str_array);
+	return h_strnjoinv(separator, vstrlen(separator), str_array);
 }
 
 /**
@@ -228,17 +228,17 @@ h_strsplit(const char *string, const char *delim, size_t max_tokens)
 		max_tokens = MAX_INT_VAL(size_t);
 
 	remainder = string;
-	s = strstr(remainder, delim);
+	s = vstrstr(remainder, delim);
 
 	if (s != NULL) {
-		size_t delim_len = strlen(delim);
+		size_t delim_len = vstrlen(delim);
 
 		while (--max_tokens != 0 && s != NULL) {
 			size_t len = s - remainder;
 			strlist = pslist_prepend(strlist, h_strndup(remainder, len));
 			n++;
 			remainder = s + delim_len;
-			s = strstr(remainder, delim);
+			s = vstrstr(remainder, delim);
 		}
 	}
 

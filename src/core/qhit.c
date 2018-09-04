@@ -517,7 +517,7 @@ flush_match(void)
 
 		ok = ggep_stream_pack(&gs, GGEP_NAME(HNAME),
 				GNET_PROPERTY(server_hostname),
-				strlen(GNET_PROPERTY(server_hostname)),
+				vstrlen(GNET_PROPERTY(server_hostname)),
 				0);
 
 		if (!ok)
@@ -895,7 +895,7 @@ add_file(const shared_file_t *sf)
 		const char *rp = shared_file_relative_path(sf);
 
 		if (rp) {
-			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, strlen(rp), 0);
+			ok = ggep_stream_pack(&gs, GGEP_NAME(PATH), rp, vstrlen(rp), 0);
 			if (!ok)
 				qhit_log_ggep_write_failure("PATH");
 		}

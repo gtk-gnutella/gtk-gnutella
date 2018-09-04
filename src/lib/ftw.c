@@ -216,7 +216,7 @@ ftw_getcwd(void)
 	if (NULL == getcwd(dir, MAX_PATH_LEN)) {
 		HFREE_NULL(dir);
 	} else {
-		dir = hrealloc(dir, 1 + strlen(dir));
+		dir = hrealloc(dir, 1 + vstrlen(dir));
 	}
 
 	return dir;
@@ -1418,7 +1418,7 @@ got_cwd:
 	 */
 
 	{
-		size_t dirlen = strlen(dirpath);
+		size_t dirlen = vstrlen(dirpath);
 
 		str_create(&fx.spath, MAX_PATH_LEN / 4 + 1 + dirlen);
 		str_cpy_len(&fx.spath, dirpath, dirlen);

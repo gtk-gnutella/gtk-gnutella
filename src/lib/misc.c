@@ -152,8 +152,8 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 	g_assert(NULL != str);
 	g_assert(NULL != suffix);
 
-	len = (size_t)-1 == len ? strlen(str) : len;
-	suffix_len = strlen(suffix);
+	len = (size_t)-1 == len ? vstrlen(str) : len;
+	suffix_len = vstrlen(suffix);
 
 	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
@@ -182,8 +182,8 @@ is_strcasesuffix(const char *str, size_t len, const char *suffix)
 	g_assert(NULL != str);
 	g_assert(NULL != suffix);
 
-	len = (size_t)-1 == len ? strlen(str) : len;
-	suffix_len = strlen(suffix);
+	len = (size_t)-1 == len ? vstrlen(str) : len;
+	suffix_len = vstrlen(suffix);
 
 	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
@@ -384,7 +384,7 @@ size_t
 strchomp(char *str, size_t len)
 {
 	if (len == 0) {
-		len = strlen(str);
+		len = vstrlen(str);
 		if (len == 0)
 			return 0;
 	}
@@ -1105,7 +1105,7 @@ hex2int_init(void)
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[0]); i++) {
 		static const char hexa[] = "0123456789abcdef";
-		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(hexa, ascii_tolower(i)): NULL;
 
 		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
@@ -1153,7 +1153,7 @@ dec2int_init(void)
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[1]); i++) {
 		static const char deca[] = "0123456789";
-		const char *p = i ? strchr(deca, i): NULL;
+		const char *p = i ? vstrchr(deca, i): NULL;
 
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
@@ -1189,7 +1189,7 @@ alnum2int_init(void)
 	/* Initialize alnum2int_tab */
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[2]); i++) {
-		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(abc, ascii_tolower(i)): NULL;
 
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
@@ -1197,7 +1197,7 @@ alnum2int_init(void)
 	/* Check consistency of alnum2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
-		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(abc, ascii_tolower(i)): NULL;
 		int v = p ? (p - abc) : -1;
 
 		g_assert(alnum2int_inline(i) == v);

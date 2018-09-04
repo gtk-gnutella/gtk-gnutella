@@ -631,8 +631,8 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 		}
 	}
 
-	sf->name_nfc_len = strlen(sf->name_nfc);
-	sf->name_canonic_len = strlen(sf->name_canonic);
+	sf->name_nfc_len = vstrlen(sf->name_nfc);
+	sf->name_canonic_len = vstrlen(sf->name_canonic);
 
 	/*
 	 * Check for aliases.
@@ -655,7 +655,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 			sf->name_normal_len = 0;
 		} else {
 			sf->name_normal = atom_str_get(normalized);
-			sf->name_normal_len = strlen(sf->name_normal);
+			sf->name_normal_len = vstrlen(sf->name_normal);
 
 			if (GNET_PROPERTY(share_debug) > 5) {
 				if (0 == strcmp(sf->name_normal, sf->name_canonic)) {
@@ -1022,7 +1022,7 @@ parse_extensions(const char *str)
 
 		if (c) {
 
-			for (x = strchr(s, '\0'); x-- != s; /* NOTHING */) {
+			for (x = vstrchr(s, '\0'); x-- != s; /* NOTHING */) {
 				if ((c = *x) == '*' || c == '?' || is_ascii_blank(c))
 					*x = '\0';
 				else

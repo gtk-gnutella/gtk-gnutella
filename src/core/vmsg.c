@@ -1834,7 +1834,7 @@ vmsg_send_node_info_ans(gnutella_node_t *n, const rnode_info_t *ri)
 
 	if (ri->answer_flags & RNODE_RQ_GGEP_UA) {
 		ggep_stream_pack(&gs, GGEP_NAME(UA), ri->ggep_ua,
-			strlen(ri->ggep_ua), GGEP_W_DEFLATE);
+			vstrlen(ri->ggep_ua), GGEP_W_DEFLATE);
 	}
 
 	if (ri->answer_flags & RNODE_RQ_GGEP_GGEP) {
@@ -1901,7 +1901,7 @@ latest_svn_release_changed(property_t prop)
 		return FALSE;
 
 	gnet_prop_get_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex, sizeof hex);
-	hex_length = strlen(hex);
+	hex_length = vstrlen(hex);
 	if (hex_length > 0 && hex_length / 2 < sizeof data) {
 		struct array signature;
 		uint32 revision;
@@ -2582,7 +2582,7 @@ handle_head_ping(gnutella_node_t *n,
 		 * ASCII not binary, so GGEP_MAGIC (0xc3) should not appear
 		 * in it.
 		 */
-		p = memchr(&payload[1], GGEP_MAGIC, size - 1);
+		p = vmemchr(&payload[1], GGEP_MAGIC, size - 1);
 		if (p != NULL) {
 			extvec_t exv[MAX_EXTVEC];
 			int i, exvcnt;
@@ -3427,7 +3427,7 @@ vmsg_features_add(struct vmsg_features *vmf, const char *name, uint16 version)
 	g_assert(vmf->pos <= vmf->size);
 	g_return_if_fail(vmf->size - vmf->pos >= 6);
 	g_return_if_fail(name);
-	g_return_if_fail(4 == strlen(name));
+	g_return_if_fail(4 == vstrlen(name));
 
 	/*
 	 * First 2 bytes is the number of entries in the vector.

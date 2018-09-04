@@ -706,7 +706,7 @@ update_row(const void *key, void *value, void *user_data)
 		size_t size;
 
 		s = nodes_gui_common_status_str(&status);
-		size = 1 + strlen(s);
+		size = 1 + vstrlen(s);
 		if (size > data->info_size) {
 			WFREE_NULL(data->info, data->info_size);
 			data->info = wcopy(s, size);
