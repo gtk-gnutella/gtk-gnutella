@@ -1713,95 +1713,8 @@ pattern_free_static(cpattern_t *p)
 }
 
 /**
- * A drop-in replacement for strstr().
- *
- * Look for a needle in a haystack.
- *
- * @param haystack		where we are searching
- * @param hlen			known length of haystack, 0 if unknown
- * @param needle		the needle we're looking for within the haystack
- * @param icase			if TRUE, ignore case
- *
- * @return NULL if needle was not found, or its address within the haystack.
- */
-static char * G_HOT
-pattern_strstr_internal(const char *haystack, size_t hlen,
-	const char *needle, bool icase)
-{
-	const char *h = haystack;
-	const char *n = needle;
-	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
-	cpattern_t p;
-	uint8 delta[ALPHA_SIZE];
-	const char *match;
-	size_t nlen;
-	size_t min_hlen;	/* Minimal haystack length */
-
-	/*
-	 * Determine the needle length, and, as a by-product, make sure the
-	 * haystack is longer than the needle!
-	 */
-
-	if (icase) {
-		while (*h && *n)
-			ok &= ascii_tolower(*h++) == ascii_tolower(*n++);
-	} else {
-		while (*h && *n)
-			ok &= *h++ == *n++;
-	}
-
-	if (*n)
-		return NULL;	/* Reached end of haystack first! */
-
-	if (ok)
-		return deconstify_char(haystack);	/* Needle is a prefix! */
-
-	nlen = n - needle;
-
-	/*
-	 * Look for the possible needle start.
-	 */
-
-	if (icase) {
-		h = haystack + 1;
-	} else {
-		h = vstrchr(haystack + 1, needle[0]);
-
-		if (NULL == h || G_UNLIKELY(1 == nlen))
-			return deconstify_char(h);
-	}
-
-	min_hlen = (h >= haystack + nlen) ? 1 : nlen - (h - haystack);
-
-	/*
-	 * If needle is short, use specialized alogrithm.
-	 */
-
-	if (2 == nlen && !icase)
-		return pattern_strstr_tiny(h, needle, nlen);
-
-	/*
-	 * Perform matching.
-	 */
-
-	pattern_compile_static(&p, delta, needle, nlen, icase);
-
-	if (0 == hlen)
-		match = pattern_qsearch_unknown(&p, h, min_hlen, qs_any);
-	else
-		match = pattern_qsearch_known(&p, h, hlen - (h - haystack), 0, qs_any);
-
-	pattern_free_static(&p);
-
-	return deconstify_char(match);		/* strstr() returns a non-const */
-}
-
-/**
  * Optimized strstr() which will either use patterns or redirect to strstr(),
  * whichever was deemed to be faster depending on the needle length.
- *
- * There is code duplication with pattern_strstr_internal() to avoid useless
- * tests and be as fast as possible.
  */
 char * G_HOT
 vstrstr(const char *haystack, const char *needle)
@@ -1848,8 +1761,10 @@ vstrstr(const char *haystack, const char *needle)
 	if (NULL == h || G_UNLIKELY(1 == nlen))
 		return deconstify_char(h);
 
-	min_hlen = (h >= haystack + nlen) ? 1 : nlen - (h - haystack);
+	if G_UNLIKELY(2 == nlen)
+		return pattern_strstr_tiny(h, needle, nlen);
 
+	min_hlen = (h >= haystack + nlen) ? 1 : nlen - (h - haystack);
 
 	/*
 	 * Perform matching.
@@ -1911,63 +1826,89 @@ pattern_2way(const char *haystack, const char *needle)
 }
 
 /**
- * A drop-in replacement for strstr().
+ * An strstr() clone using the Quick Search algorithm.
  *
- * Look for a needle in a haystack.
- *
- * @return NULL if needle was not found, or its address within the haystack.
+ * Made visible for benchmarking purposes.
  */
 char *
-pattern_strstr(const char *haystack, const char *needle)
+pattern_qs(const char *haystack, const char *needle)
 {
-	return pattern_strstr_internal(haystack, 0, needle, FALSE);
+	const char *h = haystack;
+	const char *n = needle;
+	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
+	size_t nlen;
+	cpattern_t p;
+	uint8 delta[ALPHA_SIZE];
+	const char *match;
+
+	/*
+	 * Determine the needle length, and, as a by-product, make sure the
+	 * haystack is longer than the needle!
+	 */
+
+	while (*h && *n)
+		ok &= *h++ == *n++;
+
+	if (*n)
+		return NULL;	/* Reached end of haystack first! */
+
+	if (ok)
+		return deconstify_char(haystack);	/* Needle is a prefix! */
+
+	nlen = n - needle;
+
+	/*
+	 * Look for the possible needle start.
+	 */
+
+	h = vstrchr(haystack + 1, needle[0]);
+
+	if (NULL == h || G_UNLIKELY(1 == nlen))
+		return deconstify_char(h);
+
+	/*
+	 * Have to compute the haystack length since we only have a version
+	 * of pattern_match() with a known haystack length.  To be able to
+	 * compare the benchmarked running time, we need to have the same
+	 * condition as pattern_2way().
+	 */
+
+	pattern_compile_static(&p, delta, needle, nlen, FALSE);
+	match = pattern_qsearch_known(&p, (void *) h, vstrlen(h), 0, qs_any);
+	pattern_free_static(&p);
+
+	return deconstify_char(match);
 }
 
 /**
- * A drop-in replacement for strcasestr().
- *
- * Look for a needle in a haystack, using case-insensitive lookups.
+ * A clone of strstr(), only the needle is a pre-compiled pattern.
  *
  * @return NULL if needle was not found, or its address within the haystack.
  */
 char *
-pattern_strcasestr(const char *haystack, const char *needle)
+pattern_strstr(const char *haystack, const cpattern_t *cpat)
 {
-	return pattern_strstr_internal(haystack, 0, needle, TRUE);
+	if (cpat->len < pattern_unknown_cutoff)
+		return strstr(haystack, cpat->pattern);
+
+	return deconstify_char(
+		pattern_qsearch_unknown(cpat, haystack, 0, qs_any));
 }
 
 /**
- * A strstr() clone where the haystack length is already known.
- *
- * Look for a needle in a haystack.
- *
- * @param haystack		where we are searching
- * @param hlen			known length of haystack
- * @param needle		the needle we're looking for within the haystack
+ * A clone of strstr(), only the needle is a pre-compiled pattern and the
+ * length of the haystack is already known.
  *
  * @return NULL if needle was not found, or its address within the haystack.
  */
 char *
-pattern_strstr_len(const char *haystack, size_t hlen, const char *needle)
+pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 {
-	return pattern_strstr_internal(haystack, hlen, needle, FALSE);
-}
+	if (cpat->len < pattern_known_cutoff)
+		return strstr(haystack, cpat->pattern);
 
-/**
- * A strcasestr() clone where the haystack length is already known.
- *
- * Look for a needle in a haystack.
- *
- * @param haystack		where we are searching
- * @param hlen			known length of haystack
- * @param needle		the needle we're looking for within the haystack
- *
- * @return NULL if needle was not found, or its address within the haystack.
- */
-char *
-pattern_strcasestr_len(const char *haystack, size_t hlen, const char *needle)
-{
-	return pattern_strstr_internal(haystack, hlen, needle, TRUE);
+	return deconstify_char(
+		pattern_qsearch_known(cpat, haystack, hlen, 0, qs_any));
 }
 
 #define PATTERN_HAYSTACK_LEN	32768	/* Haystack string length */
@@ -2418,8 +2359,8 @@ pattern_benchmark_qsearch_known(
 }
 
 /**
- * Benchmark the strstr() routine against pattern_strstr() to find the
- * cut-off point where it pays to use pattern_strstr() instead of strstr(),
+ * Benchmark the strstr() routine against pattern_qsearch() to find the
+ * cut-off point where it pays to use pattern_qsearch() instead of strstr(),
  * probably for longer needles.
  */
 static void

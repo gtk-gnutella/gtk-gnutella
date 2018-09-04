@@ -768,6 +768,7 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 #include "lib/fast_assert.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
 #include "lib/glog.h"
+#include "lib/pattern.h"	/* For vstrstr(), vstrchr(), etc... */
 
 #endif /* _common_h_ */
 

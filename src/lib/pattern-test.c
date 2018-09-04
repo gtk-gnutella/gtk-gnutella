@@ -30,6 +30,8 @@
  * SUCH DAMAGE.
  */
 
+#define PATTERN_BENCHMARKING_SOURCE
+
 #include "common.h"
 
 #include "log.h"
@@ -344,7 +346,7 @@ benchmark_strstr(bool low_letters)
 		mi.m = naive_strstr;
 		rn = timeit_strstr(&mi, &elapsed2);
 
-		mi.m = pattern_strstr;
+		mi.m = pattern_qs;
 		rp = timeit_strstr(&mi, &elapsed3);
 
 		mi.m = pattern_2way;
@@ -360,7 +362,7 @@ benchmark_strstr(bool low_letters)
 			G_STRFUNC, asize, nlen, early_match ? " (early match)" : "");
 		s_info("\tstrstr():         %'zu ns", (size_t) (elapsed1 * 1e9));
 		s_info("\tnaive_strstr():   %'zu ns", (size_t) (elapsed2 * 1e9));
-		s_info("\tpattern_strstr(): %'zu ns", (size_t) (elapsed3 * 1e9));
+		s_info("\tpattern_qs():     %'zu ns", (size_t) (elapsed3 * 1e9));
 		s_info("\tpattern_2way():   %'zu ns", (size_t) (elapsed4 * 1e9));
 	}
 
@@ -400,7 +402,7 @@ test_strstr(bool low_letters)
 		fill_random_asize_string(needle, nlen + 1, asize);
 
 		rs = strstr(haystack, needle);
-		rp = pattern_strstr(haystack, needle);
+		rp = pattern_qs(haystack, needle);
 		rn = naive_strstr(haystack, needle);
 
 		g_assert(NULL == rs || ptr_diff(rs, haystack) + nlen <= hlen);

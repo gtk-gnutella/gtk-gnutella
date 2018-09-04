@@ -64,6 +64,9 @@ const char *pattern_qsearch(const cpattern_t *cpat,
 const char *pattern_qsearch_force(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 size_t pattern_len(const cpattern_t *p);
+char *pattern_strstr(const char *haystack, const cpattern_t *p);
+char *pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *p);
+
 
 /* For benchmarking, uses the 2-way matching algorithm */
 const char *pattern_match(const cpattern_t *cpat,
@@ -71,16 +74,22 @@ const char *pattern_match(const cpattern_t *cpat,
 
 void *pattern_memchr(const void *s, int c, size_t n);
 char *pattern_strchr(const char *s, int c);
-char *pattern_strstr(const char *haystack, const char *needle);
-char *pattern_strcasestr(const char *haystack, const char *needle);
-char *pattern_strstr_len(const char *haystack, size_t hlen, const char *needle);
-char *pattern_strcasestr_len(const char *hs, size_t hlen, const char *needle);
 
+#ifdef PATTERN_BENCHMARKING_SOURCE
+/* These routines are for benchmarking only */
+char *pattern_qs(const char *haystack, const char *needle);
 char *pattern_2way(const char *haystack, const char *needle);
+#endif	/* PATTERN_BENCHMARKING */
 
 size_t pattern_strlen(const char *s);
 
 void pattern_init(int verbose);
+
+/**
+ * Compile a static string.
+ */
+#define PATTERN_COMPILE_CONST(x) \
+	pattern_compile_fast((x), CONST_STRLEN(x), FALSE)
 
 /*
  * Drop-ins for memchr(), strchr() and strlen() which will attempt to
