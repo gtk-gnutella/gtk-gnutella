@@ -1841,7 +1841,7 @@ vstrcasestr(const char *haystack, const char *needle)
 	 */
 
 	pattern_compile_static(&p, delta, uperiod, needle, n - needle, TRUE, FALSE);
-	match = pattern_qsearch_unknown(&p, haystack, n - needle, qs_any);
+	match = pattern_qsearch_unknown(&p, haystack + 1, n - needle - 1, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);

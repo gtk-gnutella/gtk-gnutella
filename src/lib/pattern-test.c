@@ -690,6 +690,7 @@ test_pattern_case(void)
 		{ "bxxxxxxxxA",		"xX",		NO,		1 },
 		{ "bxxxxxxxXA",		"xX",		7,		1 },
 		{ "bxxxxxxxXAB",	"xXaB",		NO,		7 },
+		{ "bxxxxxxxXAB",	"BXXX",		NO,		0 },
 	};
 
 	for (i = 0; i < N_ITEMS(tests); i++) {
