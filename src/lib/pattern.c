@@ -75,6 +75,7 @@ struct cpattern {				/**< Compiled pattern */
 	uint icase:1;				/**< If true, use case-insensitive match */
 	uint periodic:1;			/**< Is pattern periodic? (for 2-way matching) */
 	uint aperiodic:1;			/**< Is pattern aperiodic? (for MQS) */
+	uint is_static:1;			/**< Is pattern held in a static variable? */
 	const char *pattern;		/**< The pattern */
 	size_t len;					/**< Pattern length */
 	size_t leftlen;				/**< Length of left pattern for 2-way matching */
@@ -118,8 +119,11 @@ struct cpattern {				/**< Compiled pattern */
 	 * Any mismatch will cause a shift by at least the amount of characters
 	 * we matched so far.  To save space and computation, the uperiod array
 	 * is freed for a-periodic patterns.
+	 *
+	 * If the pattern is smaller than 255 chars, then the uperiod array
+	 * is really an array of uint8, otherwise it is an array of size_t.
 	 */
-	size_t *uperiod;			/**< uperiod[i] = period of first i letters */
+	void *uperiod;			/**< uperiod[i] = period of first i letters */
 };
 
 static inline void
@@ -241,35 +245,39 @@ pattern_len(const cpattern_t *p)
  */
 
 /**
- * Computes the period of all the prefixes of a word, for its first `wlen'
- * characters, filling the uperiod[] array.
+ * Computes the period of all the prefixes of the pattern,
+ * filling the uperiod[] array.
  *
- * @param w			the input word
- * @param wlen		the word length
- * @param icase		whether case is to be ignored
- * @param uperiod	array of wlen + 1 entries
+ * @param cp		the compiled pattern object
  *
- * uperiod[i] (for i = 0 .. wlen) is the period of the word formed
- * by the first i letters, i.e. made of the letters w[0]..w[i-1].
+ * uperiod[i] (for i = 0 .. len) is the period of the pattern word formed
+ * by its first i letters, i.e. made of the letters p[0]..p[i-1].
  */
 static void
-pattern_prefix_period(const uchar *w, size_t wlen, bool icase, size_t *uperiod)
+pattern_prefix_period(cpattern_t *cp)
 {
 	size_t i, j, k, p, last_j;
+	const uchar *w;
 
-	g_assert(w != NULL);
-	g_assert(size_is_positive(wlen));
-	g_assert(uperiod != NULL);
+	pattern_check(cp);
 
 	i = k = 0;
 	j = p = last_j = 1;
+	w = (const uchar *) cp->pattern;
 
-	uperiod[0] = 0;		/* Trivial, zero letters */
-	uperiod[1] = 1;		/* Trivial, one letter */
+	if (cp->d8bits) {
+		uint8 *up = cp->uperiod;
+		up[0] = 0;		/* Trivial, zero letters */
+		up[1] = 1;		/* Trivial, one letter */
+	} else {
+		size_t *up = cp->uperiod;
+		up[0] = 0;		/* Trivial, zero letters */
+		up[1] = 1;		/* Trivial, one letter */
+	}
 
-	while (j < wlen) {
+	while (j < cp->len) {
 		uchar a, b;
-		if (icase) {
+		if (cp->icase) {
 			a = ascii_tolower(w[i]);
 			b = ascii_tolower(w[j]);
 		} else {
@@ -292,7 +300,10 @@ pattern_prefix_period(const uchar *w, size_t wlen, bool icase, size_t *uperiod)
 		j++;
 		/* Since j can go back, only update when we reach a larger j */
 		if (j > last_j) {
-			uperiod[j] = MAX(p, k);
+			if (cp->d8bits)
+				((uint8 *) cp->uperiod)[j] = MAX(p, k);
+			else
+				((size_t *) cp->uperiod)[j] = MAX(p, k);
 			last_j = j;
 		}
 	}
@@ -411,34 +422,41 @@ pattern_2way_factorize(cpattern_t *p)
 	p->periodic = booleanize(
 		p->leftlen < (p->len + 1) / 2 &&
 		0 == memcmp(p->pattern, p->pattern + p->period, p->leftlen));
+}
+
+
+/*
+ * Build the uperiod[] array and determine whether pattern is a-periodic.
+ */
+static void
+pattern_build_period(cpattern_t *p)
+{
+	size_t i;
+
+	pattern_check(p);
+
+	pattern_prefix_period(p);
+
+	/* If uperiod[i] = i for all i, then pattern is a-periodic */
+
+	p->aperiodic = TRUE;
+
+	for (i = 0; i < p->len + 1; i++) {
+		size_t v;
+		v = p->d8bits ? ((uint8 *) p->uperiod)[i] : ((size_t *) p->uperiod)[i];
+		if (v != i) {
+			p->aperiodic = FALSE;
+			break;
+		}
+	}
 
 	/*
-	 * This is for MQS, the Modified Quick Search.
+	 * We don't need the table if pattern is a-periodic: we compute it...
+	 * Only release it if the pattern is not static and not small!
 	 */
 
-	if (p->len != 0) {
-		size_t i;
-
-		XMALLOC_ARRAY(p->uperiod, p->len + 1);
-		pattern_prefix_period(
-			(const uchar *) p->pattern, p->len, p->icase, p->uperiod);
-
-		/* If uperiod[i] = i for all i, then pattern is aperiodic */
-
-		p->aperiodic = TRUE;
-
-		for (i = 0; i < p->len + 1; i++) {
-			if (p->uperiod[i] != i) {
-				p->aperiodic = FALSE;
-				break;
-			}
-		}
-
-		/* We don't need the table if pattern is aperiodic: we compute it */
-
-		if (p->aperiodic)
-			XFREE_NULL(p->uperiod);
-	}
+	if (p->aperiodic && !p->is_static && !p->d8bits)
+		XFREE_NULL(p->uperiod);
 }
 
 /*
@@ -465,10 +483,8 @@ pattern_2way_factorize(cpattern_t *p)
  * Build the shifting deltas small table for the pattern.
  *
  * @param p		the pattern to fill
- *
- * @return its argument
  */
-static cpattern_t *
+static void
 pattern_build_delta_small(cpattern_t *p)
 {
 	size_t plen, i;
@@ -484,18 +500,14 @@ pattern_build_delta_small(cpattern_t *p)
 	memset(pd, plen + 1, ALPHA_SIZE);
 
 	PATTERN_COMPILE
-
-	return p;
 }
 
 /**
  * Build the shifting deltas large table for the pattern.
  *
  * @param p		the pattern to fill
- *
- * @return its argument
  */
-static cpattern_t *
+static void
 pattern_build_delta_large(cpattern_t *p)
 {
 	size_t plen, i, *pd;
@@ -514,59 +526,59 @@ pattern_build_delta_large(cpattern_t *p)
 	pd = p->delta;
 
 	PATTERN_COMPILE
-
-	return p;
 }
 
 /**
  * Build the shifting deltas table for the pattern.
  *
  * @param p		the pattern to fill
- *
- * @return its argument
  */
-static cpattern_t *
+static void
 pattern_build_delta(cpattern_t *p)
 {
 	pattern_check(p);
 
 	if (p->d8bits)
-		return pattern_build_delta_small(p);
+		pattern_build_delta_small(p);
+	else
+		pattern_build_delta_large(p);
 
-	return pattern_build_delta_large(p);
+	pattern_build_period(p);
 }
 
 /**
- * Allocate the delta[ALPAH_SIZE] array.
+ * Allocate the delta[ALPAH_SIZE] and uperiod[] arrays.
  */
 static void
 pattern_delta_alloc(cpattern_t *p)
 {
 	pattern_check(p);
 
+	/*
+	 * Compiled patterns are long-lived, so use xmalloc() instead of walloc().
+	 */
+
 	if (p->len < MAX_INT_VAL(uint8)) {
 		p->d8bits = TRUE;
-		p->delta = walloc(ALPHA_SIZE * sizeof(uint8));
+		p->delta = xmalloc(ALPHA_SIZE * sizeof(uint8));
+		p->uperiod = xmalloc((p->len + 1) * sizeof(uint8));
 	} else {
 		p->d8bits = FALSE;
-		p->delta = walloc(ALPHA_SIZE * sizeof(size_t));
+		p->delta = xmalloc(ALPHA_SIZE * sizeof(size_t));
+		p->uperiod = xmalloc((p->len + 1) * sizeof(size_t));
 	}
 }
 
 /**
- * Free the delta[ALPHA_SIZE] array.
+ * Free the delta[ALPHA_SIZE] and uperiod[] arrays.
  */
 static void
 pattern_delta_free(cpattern_t *p)
 {
 	pattern_check(p);
 
-	if (p->d8bits)
-		wfree(p->delta, ALPHA_SIZE * sizeof(uint8));
-	else
-		wfree(p->delta, ALPHA_SIZE * sizeof(size_t));
-
-	p->delta = NULL;
+	XFREE_NULL(p->delta);
+	XFREE_NULL(p->uperiod);
 }
 
 /**
@@ -591,8 +603,9 @@ pattern_compile(const char *pattern, bool icase)
 	p->duped = TRUE;
 	pattern_delta_alloc(p);
 	pattern_2way_factorize(p);
+	pattern_build_delta(p);
 
-	return pattern_build_delta(p);
+	return p;
 }
 
 /**
@@ -619,8 +632,9 @@ pattern_compile_fast(const char *pattern, size_t plen, bool icase)
 	p->duped = FALSE;
 	pattern_delta_alloc(p);
 	pattern_2way_factorize(p);
+	pattern_build_delta(p);
 
-	return pattern_build_delta(p);
+	return p;
 }
 
 /**
@@ -631,12 +645,29 @@ pattern_free(cpattern_t *p)
 {
 	pattern_check(p);
 
+	/*
+	 * A static pattern structure needs not be freed.
+	 *
+	 * Also, we know that if p->d8bits is set, then the pattern
+	 * has its delta[] and uperiod[] arrays on the stack.
+	 */
+
+	if (p->is_static) {
+		if (!p->d8bits)
+			pattern_delta_free(p);
+		p->magic = 0;
+		return;
+	}
+
+	/*
+	 * Regular pattern object.
+	 */
+
 	if (p->duped) {
 		xfree(deconstify_gchar(p->pattern));
 		p->pattern = NULL; /* Don't use XFREE_NULL b/c of lvalue cast */
 	}
 	pattern_delta_free(p);
-	XFREE_NULL(p->uperiod);
 	p->magic = 0;
 	WFREE(p);
 }
@@ -798,8 +829,12 @@ pattern_qsearch_unknown(
 		/* MQS -- Modified Quick Search to account for period in pattern */
 		m = p - pat;
 		if G_UNLIKELY(m != 0) {
-			if (!cpat->aperiodic)
-				m = cpat->uperiod[m];
+			if (!cpat->aperiodic) {
+				if (cpat->d8bits)
+					m = ((uint8 *) cpat->uperiod)[m];
+				else
+					m = ((size_t *) cpat->uperiod)[m];
+			}
 			d = MAX(d, m);
 		}
 		tp += d;
@@ -867,10 +902,10 @@ pattern_qsearch_known(
 		break;
 
 /* For a-periodic patterns: we shift at least as much as we matched */
-#define PATTERN_PERIOD_NONE	\
-	tp += d;				\
-	t--;					\
-	if G_UNLIKELY(tp < t)	\
+#define PATTERN_PERIOD_NONE(type)	\
+	tp += d;						\
+	t--;							\
+	if G_UNLIKELY(tp < t)			\
 		tp = t;
 
 /*
@@ -880,14 +915,14 @@ pattern_qsearch_known(
  * @note: can be the whole pattern if we skipped match hence
  * `p - pat' can be the whole pattern length.
  */
-#define PATTERN_PERIOD_MAYBE		\
-	{								\
-		size_t m = p - pat;			\
-		if G_UNLIKELY(m != 0) {		\
-			m = cpat->uperiod[m];	\
-			d = MAX(d, m);			\
-		}							\
-	}								\
+#define PATTERN_PERIOD_MAYBE(type)			\
+	{										\
+		size_t m = p - pat;					\
+		if G_UNLIKELY(m != 0) {				\
+			m = ((type *) cpat->uperiod)[m];\
+			d = MAX(d, m);					\
+		}									\
+	}										\
 	tp += d;
 
 #define PATTERN_COMPARE(cmp,period,type)								\
@@ -909,7 +944,7 @@ pattern_qsearch_known(
 		/* the same value in the delta[] array. */						\
 		d = ((type *) cpat->delta)[(uchar) tp[plen]];					\
 		/* MQS: Modified Quick Search to account for pattern period */	\
-		PATTERN_PERIOD_ ## period										\
+		PATTERN_PERIOD_ ## period(type)									\
 	}
 
 	if (cpat->d8bits) {
@@ -1676,44 +1711,35 @@ aligned:
  *
  * @param p			the pattern to fill (stack or static variable)
  * @param delta		pre-allocated 8-bit delta[] array
+ * @param uperiod	pre-allocated 8-bit uperiod[] array
  * @param pattern	the pattern string
  * @param plen		the pattern length
  * @param icase		whether to compile case-insensitively
+ * @param need2way	whether to compile also for 2-way matching
  */
 static void
-pattern_compile_static(cpattern_t *p, uint8 *delta,
-	const char *pattern, size_t plen, bool icase)
+pattern_compile_static(cpattern_t *p, uint8 *delta, uint8 *uperiod,
+	const char *pattern, size_t plen, bool icase, bool need2way)
 {
 	ZERO(p);
 	p->magic = CPATTERN_MAGIC;
 	p->len = plen;
 	p->pattern = pattern;
 	p->icase = booleanize(icase);
+	p->is_static = TRUE;
 
 	if (plen < MAX_INT_VAL(uint8)) {
 		p->d8bits = TRUE;
 		p->delta = delta;
+		p->uperiod = uperiod;
 	} else {
 		pattern_delta_alloc(p);
 	}
 
 	pattern_build_delta(p);
-	pattern_2way_factorize(p);
-}
 
-/**
- * Free delta[] array if necessary, for a pattern compiled with
- * pattern_compile_static() where the delta array can lie on the stack.
- */
-static void
-pattern_free_static(cpattern_t *p)
-{
-	pattern_check(p);
-
-	if (!p->d8bits)
-		pattern_delta_free(p);
-
-	XFREE_NULL(p->uperiod);
+	if (need2way)
+		pattern_2way_factorize(p);
 }
 
 /**
@@ -1729,6 +1755,7 @@ vstrstr(const char *haystack, const char *needle)
 	size_t nlen;
 	cpattern_t p;
 	uint8 delta[ALPHA_SIZE];
+	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
 	size_t min_hlen;	/* Minimal haystack length */
 
@@ -1774,9 +1801,9 @@ vstrstr(const char *haystack, const char *needle)
 	 * Perform matching.
 	 */
 
-	pattern_compile_static(&p, delta, needle, nlen, FALSE);
+	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, FALSE);
 	match = pattern_qsearch_unknown(&p, h, min_hlen, qs_any);
-	pattern_free_static(&p);
+	pattern_free(&p);
 
 	return deconstify_char(match);		/* vstrstr() returns a non-const */
 }
@@ -1792,6 +1819,7 @@ vstrcasestr(const char *haystack, const char *needle)
 	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
 	cpattern_t p;
 	uint8 delta[ALPHA_SIZE];
+	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
 
 	/*
@@ -1812,9 +1840,9 @@ vstrcasestr(const char *haystack, const char *needle)
 	 * Perform matching.
 	 */
 
-	pattern_compile_static(&p, delta, needle, n - needle, TRUE);
+	pattern_compile_static(&p, delta, uperiod, needle, n - needle, TRUE, FALSE);
 	match = pattern_qsearch_unknown(&p, haystack, n - needle, qs_any);
-	pattern_free_static(&p);
+	pattern_free(&p);
 
 	return deconstify_char(match);
 }
@@ -1833,6 +1861,7 @@ pattern_2way(const char *haystack, const char *needle)
 	size_t nlen;
 	cpattern_t p;
 	uint8 delta[ALPHA_SIZE];
+	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
 
 	/*
@@ -1860,9 +1889,9 @@ pattern_2way(const char *haystack, const char *needle)
 	if (NULL == h || G_UNLIKELY(1 == nlen))
 		return deconstify_char(h);
 
-	pattern_compile_static(&p, delta, needle, nlen, FALSE);
+	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, TRUE);
 	match = pattern_match_known(&p, (void *) h, vstrlen(h), qs_any);
-	pattern_free_static(&p);
+	pattern_free(&p);
 
 	return deconstify_char(match);
 }
@@ -1881,6 +1910,7 @@ pattern_qs(const char *haystack, const char *needle)
 	size_t nlen;
 	cpattern_t p;
 	uint8 delta[ALPHA_SIZE];
+	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
 
 	/*
@@ -1915,9 +1945,9 @@ pattern_qs(const char *haystack, const char *needle)
 	 * condition as pattern_2way().
 	 */
 
-	pattern_compile_static(&p, delta, needle, nlen, FALSE);
+	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, FALSE);
 	match = pattern_qsearch_known(&p, (void *) h, vstrlen(h), 0, qs_any);
-	pattern_free_static(&p);
+	pattern_free(&p);
 
 	return deconstify_char(match);
 }
