@@ -4045,14 +4045,14 @@ crash_setccdate(const char *date)
  * Record program's compilation time string.
  */
 void G_COLD
-crash_setcctime(const char *time)
+crash_setcctime(const char *timestr)
 {
 	const char *value;
 
 	g_assert(NULL != vars->mem);
-	g_assert(NULL != time);
+	g_assert(NULL != timestr);
 
-	value = ostrdup_readonly(time);
+	value = ostrdup_readonly(timestr);
 	crash_set_var(cc_time, value);
 
 	g_assert(NULL != vars->cc_time);
