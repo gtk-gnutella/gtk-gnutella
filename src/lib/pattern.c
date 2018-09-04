@@ -119,7 +119,7 @@ struct cpattern {				/**< Compiled pattern */
 	 * we matched so far.  To save space and computation, the uperiod array
 	 * is freed for a-periodic patterns.
 	 */
-	size_t *uperiod;			/**< uperiod[i] = period of pattern up to i */
+	size_t *uperiod;			/**< uperiod[i] = period of first i letters */
 };
 
 static inline void
@@ -143,7 +143,7 @@ pattern_len(const cpattern_t *p)
 /*
  * Pattern matching (substrings, not regular expressions)
  *
- * The "Quick Search" algorithm used below is the one describe in
+ * The "Quick Search" algorithm used below is the one described in
  * Communications of the ACM, volume 33, number 8, August 1990, by
  * Daniel M. Sunday, entitled "A very fast substring search algorithm".
  *
@@ -163,11 +163,11 @@ pattern_len(const cpattern_t *p)
  * know we do not need to re-test because, due to the period of the matched
  * part, no shift smaller than the period would cause a match!
  *
- * Let 'n' be the * text length and 'm' the pattern length.
+ * Let 'n' be the text length and 'm' the pattern length.
  *
  * The "Quick Search" algorithm requires pre-processing in O(m) and
- * performs matching in O(m*n). However, for large alphabets, it is fast
- * and runs mostly in O(n).
+ * performs matching in O(m*n). However, for large alphabets and small patterns
+ * it is fast and runs mostly in O(n).
  *
  * The "Modified Quick Search" algorithm requires pre-processing in O(m) and
  * performs matching in O(n).  This improvement in running time is due to the
@@ -1291,7 +1291,8 @@ pattern_match_known(
 }
 
 /**
- * 2-way matching algorithm.  It looks for the compiled pattern
+ * 2-way matching algorithm.  It looks for the already compiled pattern,
+ * within the text, according to the word-matching directives.
  *
  * This is intended to be used by benchmarking tests, to compare the
  * Quick Search algorithm with the Crochemore-Perrin 2-way matching.
@@ -1345,12 +1346,12 @@ pattern_match(
  * routines, but rather we rely on a specific pattern_zbyte() routine that
  * will return the proper offset of the first zero byte in a word, taking
  * into account the endian-ness: the offset 0 for a little-endian machine
- * is the low-order byte, whereas it will be the high-order byte for a
+ * being the low-order byte, whereas it would be the high-order byte for a
  * big-endian machine.
  *
- * THe pattern_zbyte() routine also takes care of the scanning order: we look
+ * The pattern_zbyte() routine also takes care of the scanning order: we look
  * for the first zero-ed byte from right-to-left or left-to-right because
- * we are interested by the very first match! This menas we need to byte-swap
+ * we are interested by the very first match! This means we need to byte-swap
  * the value on big-endian machines.
  */
 
@@ -1417,8 +1418,8 @@ pattern_zbyter(op_t n)
 static inline int
 pattern_zbyte(op_t n)
 {
-	n = ULONG_SWAP(n);		/* Make it little-endian */
-	return zbyter(n);
+	n = ULONG_SWAP(n);			/* Make it little-endian */
+	return pattern_zbyter(n);
 
 }
 #endif	/* IS_BIG_ENDIAN */
