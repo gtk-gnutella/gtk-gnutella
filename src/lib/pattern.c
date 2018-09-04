@@ -1493,11 +1493,13 @@ aligned:
 				/*
 				 * We need to make sure the NUL byte comes after the
 				 * matching byte (since we can read past the string NUL.
+				 * Note that we can be looking for NUL, so we go up to
+				 * the NUL byte in the string.
 				 */
 
 				if G_UNLIKELY(y >= 0) {
 					/* We had read a NUL byte */
-					if (y > z)
+					if (y >= z)
 						return deconstify_char(p) + z;	/* Was before NUL */
 					return NULL;	/* Reached NUL byte before matching! */
 				} else {
@@ -1516,6 +1518,8 @@ aligned:
 			if (op_aligned(p))
 				goto aligned;
 		}
+		if (x == c)		/* Was looking for NUL */
+			return deconstify_char(p) - 1;
 	}
 	return NULL;
 }

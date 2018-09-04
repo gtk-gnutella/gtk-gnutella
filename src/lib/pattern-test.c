@@ -456,6 +456,12 @@ test_strchr(void)
 {
 	size_t i;
 	size_t try = 0, matches = 0;
+	const char *short_str = "x";
+	const char *long_str = "this is a longer string with long-aligned parts";
+
+	g_assert(NULL != strchr(short_str, '\0'));
+	g_assert(strchr(short_str, '\0') == pattern_strchr(short_str, '\0'));
+	g_assert(strchr(long_str, '\0') == pattern_strchr(long_str, '\0'));
 
 	for (i = 0; i < 100000; i++) {
 		size_t hlen = 1 + random_value(100);
