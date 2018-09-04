@@ -124,7 +124,7 @@ struct matchinfo {
 
 #define ATTEMPTS	10
 #define POINTS		1000
-#define OUTLIERS	1.5
+#define OUTLIERS	3.0
 
 static const char *
 timeit_strstr(const struct matchinfo *mi, double *elapsed)

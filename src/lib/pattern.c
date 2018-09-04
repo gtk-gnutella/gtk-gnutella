@@ -1973,7 +1973,7 @@ pattern_strcasestr_len(const char *haystack, size_t hlen, const char *needle)
 #define PATTERN_HAYSTACK_LEN	32768	/* Haystack string length */
 #define PATTERN_NEEDLE_LEN		128		/* Maximum needle length */
 #define PATTERN_LOOP_MAX		1200000	/* Safe upper bound */
-#define PATTERN_TM_OUTLIERS		1.5		/* Standard deviation radius */
+#define PATTERN_TM_OUTLIERS		3.0		/* Standard deviation radius */
 #define PATTERN_TM_ITEMS		30		/* Amount of items we need at least */
 
 static const char pattern_alphabet[] =
@@ -2029,7 +2029,7 @@ struct pattern_benchmark_context {
 	size_t loops_needed;
 	size_t minimum_time;			/* nanoseconds */
 	const char *name[2], *fastest;
-	double elapsed[2];
+	double elapsed[2], sdev[2];
 	cpattern_t *cp;
 	union {
 		pattern_memchr_t *mc[2], *fmemchr;
@@ -2080,6 +2080,36 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 
 	pattern_free_null(&ctx->cp);
 	ctx->cp = pattern_compile_fast(ctx->needle, ctx->nlen, FALSE);
+}
+
+/**
+ * Is the routine benchmarked as #1 slower (+1) or faster (-1) than the one
+ * benchmarked as #0?
+ */
+static int
+pattern_cutoff_sign(const struct pattern_benchmark_context *ctx)
+{
+	double sdev = (ctx->sdev[0] + ctx->sdev[1]) / 3.0;
+	double delta = fabs(ctx->elapsed[0] - ctx->elapsed[1]);
+
+	/*
+	 * If the distance between the two averages falls within 2/3 of the
+	 * average of their standard deviations, we are in the fuzzy part and
+	 * we call routine #1 (our implementation) faster, arbitrarily.
+	 */
+
+	if (delta <= sdev)
+		return -1;
+
+	/*
+	 * Given the uncertainety of the measurements in a time-shared system,
+	 * where preemption and context-switching cannot be controlled, give
+	 * our implementation the benefits of the doubt by comparing their
+	 * elapsed time plus 2/3 of its standard deviation against the mean
+	 * of the other.
+	 */
+
+	return ctx->elapsed[1] + 2 * ctx->sdev[1] / 3 > ctx->elapsed[0] ? +1 : -1;
 }
 
 static void
@@ -2241,10 +2271,11 @@ done:
 	for (i = 0; i < N_ITEMS(sx); i++) {
 		statx_remove_outliers(sx[i], PATTERN_TM_OUTLIERS);
 		ctx->elapsed[i] = statx_avg(sx[i]);
+		ctx->sdev[i] = statx_sdev(sx[i]);
 		statx_free_null(&sx[i]);
 	}
 
-	faster = ctx->elapsed[0] > ctx->elapsed[1] ? 1 : 0;
+	faster = pattern_cutoff_sign(ctx) < 0 ? 1 : 0;
 
 	if (verbose & PATTERN_INIT_BENCH_TIME) {
 		tm_now_exact(&end);
@@ -2424,7 +2455,7 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 		}
 
 		if G_UNLIKELY(0 == first_sign) {
-			first_sign = ctx->elapsed[1] > ctx->elapsed[0] ? +1 : -1;
+			first_sign = pattern_cutoff_sign(ctx);
 
 			if (first_sign > 0 && i > 2)
 				s_message("good, %s() became faster than %s()"
@@ -2446,7 +2477,7 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 			first_sign = 0;
 		}
 
-		sign = ctx->elapsed[1] > ctx->elapsed[0] ? +1 : -1;
+		sign = pattern_cutoff_sign(ctx);
 
 		if (first_sign != 0 && sign != first_sign) {
 			if (verbose & PATTERN_INIT_BENCH_DBG) {
