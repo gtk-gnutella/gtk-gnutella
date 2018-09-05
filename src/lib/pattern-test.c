@@ -212,7 +212,7 @@ timeit_pattern(const struct patinfo *pi, double *elapsed)
 			break;
 		case PATTERN_INFO_MATCH:
 			for (j = 0; j < ATTEMPTS; j++) {
-				v = pattern_match(pi->pat, pi->haystack,
+				v = pattern_match_force(pi->pat, pi->haystack,
 						pi->haystack_len, 0, qs_any);
 			}
 			break;

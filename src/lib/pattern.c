@@ -55,6 +55,28 @@
 
 #define CPU_CACHELINE	(8 * sizeof(long))	/* Guesstimate of CPU cacheline */
 
+/*
+ * These macros allow to switch benchmarked default routines easily.
+ *
+ * Our benchmarking with "pattern-test -bp -A8" (smaller alphabets are more
+ * stressful on the algorithms) show that the 2-way algorithm is more
+ * efficient -- it performs better than Quick Search in non-pathological
+ * cases, and we know its complexity is bound by O(n), whereas Quick Search
+ * can be O(m*n) in pathological cases.
+ *
+ * To witness algorithmic complexity on pathological cases, run
+ * "pattern-test -bP -L1 -u" and show what happens for larger needles.
+ */
+#if 1
+#define PATTERN_DFLT_UNKNOWN	pattern_match_unknown
+#define PATTERN_DFLT_KNOWN		pattern_match_known
+#define PATTERN_DFLT_2WAY		TRUE
+#else
+#define PATTERN_DFLT_UNKNOWN	pattern_qsearch_unknown
+#define PATTERN_DFLT_KNOWN		pattern_qsearch_known
+#define PATTERN_DFLT_2WAY		FALSE
+#endif
+
 typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
 typedef char *(pattern_strchr_t)(const char *s, int c);
 typedef size_t (pattern_strlen_t)(const char *s);
@@ -1016,7 +1038,11 @@ pattern_qsearch(
 		 * Handle cut-off for qs_any matches and case-sensitive patterns.
 		 */
 
-		if (qs_any == word && !cpat->icase && cpat->len < pattern_unknown_cutoff)
+		if (
+			!PATTERN_DFLT_2WAY &&
+			qs_any == word && !cpat->icase &&
+			cpat->len < pattern_unknown_cutoff
+		)
 			return strstr(text, cpat->pattern);
 
 		return pattern_qsearch_unknown(cpat, text, 0, word);
@@ -1030,7 +1056,11 @@ pattern_qsearch(
 		 * Handle cut-off for qs_any matches and case-sensitive patterns.
 		 */
 
-		if (qs_any == word && !cpat->icase && cpat->len < pattern_known_cutoff)
+		if (
+			!PATTERN_DFLT_2WAY &&
+			qs_any == word && !cpat->icase &&
+			cpat->len < pattern_known_cutoff
+		)
 			return strstr(text + toffset, cpat->pattern);
 
 		return pattern_qsearch_known(cpat, text, tlen, toffset, word);
@@ -1310,19 +1340,27 @@ done:
 /**
  * Crochemore-Perrin 2-way string matching algorithm.
  *
- * This is used for benchmarking against our Modified Quick Search algorithm.
+ * The offset matters for qs_begin or qs_whole match settings in case
+ * we match right at the starting offset: we have to look back one character
+ * to check whether we are at a word delimiter.
+ *
+ * @param p				compiled pattern
+ * @param haystack		text we're scanning
+ * @param hlen			known haystack length
+ * @param offset		offset within text for search start
+ * @param word			which word delimiter we care about on matched text?
  *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
 static const char * G_HOT G_FAST
 pattern_match_known(
-	const cpattern_t *p, const uchar *haystack, size_t hlen,
+	const cpattern_t *p, const uchar *haystack, size_t hlen, size_t hoffset,
 	qsearch_mode_t word)
 {
 	size_t nlen, l;
 	const uchar *needle;
 	register const uchar *h, *n;
-	register const uchar *hp = haystack;	/* Always &haystack[pos] */
+	register const uchar *hp;	/* Always &haystack[pos] */
 	const uchar *endhp;			/* Upper possible value for `hp' */
 
 	pattern_check(p);
@@ -1331,6 +1369,7 @@ pattern_match_known(
 		return NULL;
 
 	needle = (const uchar *) p->pattern;
+	hp = haystack + hoffset;
 	nlen = p->len;
 	l = p->leftlen;
 	endhp = haystack + (hlen - nlen);
@@ -1543,10 +1582,71 @@ pattern_match_known(
  * This is intended to be used by benchmarking tests, to compare the
  * Quick Search algorithm with the Crochemore-Perrin 2-way matching.
  *
+ * This version is subject to benchmarking and can redirect to strstr()
+ * if required.
+ *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
 const char *
 pattern_match(
+	const cpattern_t *cpat,	/**< Compiled pattern */
+	const char *text,		/**< Text we're scanning */
+	size_t tlen,			/**< Text length, 0 = unknown */
+	size_t toffset,			/**< Offset within text for search start */
+	qsearch_mode_t word)	/**< Beginning/whole word matching? */
+{
+	if (0 == tlen) {
+		G_PREFETCH_R(text);
+		g_assert_log(0 == toffset,
+			"%s(): toffset=%'zu, must be 0 when text length is unknown",
+			G_STRFUNC, toffset);
+
+		/*
+		 * Hhandle cut-off for qs_any matches and case-sensitive patterns.
+		 */
+
+		if (
+			PATTERN_DFLT_2WAY &&
+			qs_any == word && !cpat->icase &&
+			cpat->len < pattern_unknown_cutoff
+		)
+			return strstr(text, cpat->pattern);
+
+		return pattern_match_unknown(cpat, (void *) text, 0, word);
+	} else {
+		G_PREFETCH_R(text + toffset);
+		g_assert_log(toffset <= tlen,
+			"%s(): toffset=%'zu, tlen=%'zu",
+			G_STRFUNC, toffset, tlen);
+
+		/*
+		 * Handle cut-off for qs_any matches and case-sensitive patterns.
+		 */
+
+		if (
+			PATTERN_DFLT_2WAY &&
+			qs_any == word && !cpat->icase &&
+			cpat->len < pattern_known_cutoff
+		)
+			return strstr(text + toffset, cpat->pattern);
+
+		return pattern_match_known(cpat, (void *) text, tlen, toffset, word);
+	}
+}
+
+/**
+ * 2-way matching algorithm.  It looks for the already compiled pattern,
+ * within the text, according to the word-matching directives.
+ *
+ * This is intended to be used by benchmarking tests, to compare the
+ * Quick Search algorithm with the Crochemore-Perrin 2-way matching.
+ *
+ * This version is immune to benchmarking!
+ *
+ * @return pointer to beginning of matching substring, NULL if not found.
+ */
+const char *
+pattern_match_force(
 	const cpattern_t *cpat,	/**< Compiled pattern */
 	const char *text,		/**< Text we're scanning */
 	size_t tlen,			/**< Text length, 0 = unknown */
@@ -1564,7 +1664,7 @@ pattern_match(
 		g_assert_log(toffset <= tlen,
 			"%s(): toffset=%'zu, tlen=%'zu",
 			G_STRFUNC, toffset, tlen);
-		return pattern_match_known(cpat, (void *) (text + toffset), tlen, word);
+		return pattern_match_known(cpat, (void *) text, tlen, toffset, word);
 	}
 }
 
@@ -2019,7 +2119,7 @@ pattern_compile_static(cpattern_t *p, uint8 *delta, uint8 *uperiod,
 char * G_HOT
 vstrstr(const char *haystack, const char *needle)
 {
-	const char *h = haystack;
+	const char *h =haystack;
 	const char *n = needle;
 	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
 	size_t nlen;
@@ -2071,8 +2171,9 @@ vstrstr(const char *haystack, const char *needle)
 	 * Perform matching.
 	 */
 
-	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, FALSE);
-	match = pattern_qsearch_unknown(&p, h, min_hlen, qs_any);
+	pattern_compile_static(&p, delta, uperiod,
+		needle, nlen, FALSE, PATTERN_DFLT_2WAY);
+	match = PATTERN_DFLT_UNKNOWN(&p, (void *) h, min_hlen, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);		/* vstrstr() returns a non-const */
@@ -2084,13 +2185,14 @@ vstrstr(const char *haystack, const char *needle)
 char *
 vstrcasestr(const char *haystack, const char *needle)
 {
-	const char *h = haystack;
-	const char *n = needle;
+	const uchar *h = (const uchar *) haystack;
+	const uchar *n = (const uchar *) needle;
 	bool ok = TRUE;		/* Checks whether needle is a prefix of haystack */
 	cpattern_t p;
 	uint8 delta[ALPHA_SIZE];
 	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
+	size_t nlen;
 
 	/*
 	 * Determine the needle length, and, as a by-product, make sure the
@@ -2110,8 +2212,11 @@ vstrcasestr(const char *haystack, const char *needle)
 	 * Perform matching.
 	 */
 
-	pattern_compile_static(&p, delta, uperiod, needle, n - needle, TRUE, FALSE);
-	match = pattern_qsearch_unknown(&p, haystack + 1, n - needle - 1, qs_any);
+	nlen = ptr_diff(n, needle);
+
+	pattern_compile_static(&p, delta, uperiod,
+		needle, nlen, TRUE, PATTERN_DFLT_2WAY);
+	match = PATTERN_DFLT_UNKNOWN(&p, (void *) (haystack + 1), nlen - 1, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);
@@ -2675,11 +2780,12 @@ pattern_benchmark_strstr(
 }
 
 static char *
-pattern_benchmark_qsearch_unknown(
+pattern_benchmark_dflt_unknown(
 	cpattern_t *cp, const char *haystack, const char *needle)
 {
 	(void) needle;
-	return deconstify_char(pattern_qsearch_unknown(cp, haystack, 0, qs_any));
+	return deconstify_char(
+		PATTERN_DFLT_UNKNOWN(cp, (void *) haystack, 0, qs_any));
 }
 
 static char *
@@ -2692,11 +2798,12 @@ pattern_benchmark_strstrlen(
 }
 
 static char *
-pattern_benchmark_qsearch_known(
+pattern_benchmark_dflt_known(
 	cpattern_t *cp, const char *haystack, size_t hlen, const char *needle)
 {
 	(void) needle;
-	return deconstify_char(pattern_qsearch_known(cp, haystack, hlen, 0, qs_any));
+	return deconstify_char(
+		PATTERN_DFLT_KNOWN(cp, (void *) haystack, hlen, 0, qs_any));
 }
 
 /**
@@ -2717,13 +2824,13 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 	if (PATTERN_BENCH_STRSTR == which) {
 		ctx->name[0] = "strstr";
 		ctx->u.ss[0] = pattern_benchmark_strstr;
-		ctx->name[1] = "pattern_qsearch_unknown";
-		ctx->u.ss[1] = pattern_benchmark_qsearch_unknown;
+		ctx->name[1] = STRINGIFY(PATTERN_DFLT_UNKNOWN);
+		ctx->u.ss[1] = pattern_benchmark_dflt_unknown;
 	} else {
 		ctx->name[0]  = "strstrlen";
 		ctx->u.ssl[0] = pattern_benchmark_strstrlen;
-		ctx->name[1]  = "pattern_qsearch_known";
-		ctx->u.ssl[1] = pattern_benchmark_qsearch_known;
+		ctx->name[1]  = STRINGIFY(PATTERN_DFLT_KNOWN);
+		ctx->u.ssl[1] = pattern_benchmark_dflt_known;
 	}
 
 	ctx->needle = needle;

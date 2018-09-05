@@ -59,17 +59,18 @@ cpattern_t *pattern_compile(const char *pattern, bool icase);
 cpattern_t *pattern_compile_fast(const char *pattern, size_t plen, bool icase);
 void pattern_free(cpattern_t *cpat);
 void pattern_free_null(cpattern_t **cpat_ptr);
-const char *pattern_qsearch(const cpattern_t *cpat,
-	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
-const char *pattern_qsearch_force(const cpattern_t *cpat,
-	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 size_t pattern_len(const cpattern_t *p);
 char *pattern_strstr(const char *haystack, const cpattern_t *p);
 char *pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *p);
 
+const char *pattern_qsearch(const cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+const char *pattern_qsearch_force(const cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
-/* For benchmarking, uses the 2-way matching algorithm */
 const char *pattern_match(const cpattern_t *cpat,
+	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+const char *pattern_match_force(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
 void *pattern_memchr(const void *s, int c, size_t n);
