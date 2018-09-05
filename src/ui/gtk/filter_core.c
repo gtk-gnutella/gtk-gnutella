@@ -2168,8 +2168,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
 						ctx->utf8_len : ctx->l_len;
 					size_t n;
                     n = r->u.text.match_len;
-					/* FIXME: > is WRONG, isn't that OBVIOUS?!!?!*/
-                    if (namelen > n
+                    if (namelen >= n
                         && strcmp((r->u.text.case_sensitive
                                ? utf8_name : l_name) + namelen
                               - n, r->u.text.match) == 0)
