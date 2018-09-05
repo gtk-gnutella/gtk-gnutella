@@ -811,7 +811,6 @@ pattern_qsearch_unknown(
 
 	while (AVAILABLE(tp, min_tlen, plen, ahead, end)) {
 		size_t d, m;
-		G_PREFETCH_R(&tp[CPU_CACHELINE]);	/* Prefetch for next loop */
 		if (cpat->icase) {
 			for (p = pat, t = tp; *p; p++) {
 				int a = *p, b = *t++;
@@ -944,7 +943,6 @@ pattern_qsearch_known(
 	while (tp <= endtp) {		/* Enough text left for matching */		\
 		size_t d;														\
 		register int c;													\
-		G_PREFETCH_R(&tp[CPU_CACHELINE]);	/* Prefetch for next loop */\
 		for (p = pat, t = tp, c = *p; c != 0; c = *++p) {				\
 			PATTERN_CMP_ ## cmp											\
 		}																\
