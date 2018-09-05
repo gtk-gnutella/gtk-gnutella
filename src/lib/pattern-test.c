@@ -48,17 +48,25 @@
 
 static const char alphabet[] =
 	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789<>{}[]()+=-_";
+static const char unmatchable_char = '/';
+
+static bool unmatch = FALSE;
+static bool all_identical = FALSE;
 
 static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-			"Usage: %s [-ah] [-b sp] [-i level]\n"
+			"Usage: %s [-ahpuz] [-A size] [-L size] [-b sp] [-i level]\n"
+			"  -A : sets upper limit for alphabet size (absolute max %zu)\n"
+			"  -L : sets lower limit for alphabet size (absolute min 1)\n"
 			"  -a : run all tests\n"
 			"  -b : what to benchmark: s or S = strstr(), p or P = pattern_*()\n"
 			"  -i : verbose level for pattern_init()\n"
 			"  -h : prints this help message\n"
-			, getprogname());
+			"  -u : use un-matchable patterns\n"
+			"  -z : all letters of pattern are 1st alphabet letter\n"
+			, getprogname(), CONST_STRLEN(alphabet));
 	fprintf(stderr,
 			"s/p use large %zu-letter alphabet, S/P use %d-letter alphabet\n"
 			, CONST_STRLEN(alphabet), SMALL_ALPHABET);
@@ -226,34 +234,54 @@ timeit_pattern(const struct patinfo *pi, double *elapsed)
 #define NEEDLE_MAXLEN	50
 
 static void
-benchmark_pattern(bool low_letters)
+mangle_haystack_needle(char *haystack, size_t hlen, char *needle, size_t nsize)
+{
+	/* Unmatchable needle: we have an unmatchable char at the end of haystack */
+
+	if (unmatch)
+		haystack[hlen - 1] = unmatchable_char;
+
+	if (all_identical)
+		memset(needle, alphabet[0], nsize - 1);
+
+	/* Needle is made of the last nlen chars in haystack */
+	memcpy(needle, haystack + hlen - nsize + 1, nsize);	/* trailing NUL */
+}
+
+static void
+benchmark_pattern(size_t asize)
 {
 	size_t hlen = 10000;
 	size_t nlen;
-	char *haystack = xmalloc(hlen + 1);
-	char *needle;
+	char *haystack;
+	char needle[NEEDLE_MAXLEN];
 	struct patinfo pi;
-	size_t asize = low_letters ? SMALL_ALPHABET : CONST_STRLEN(alphabet);
+
+	haystack = xmalloc(hlen + 1);
 
 	fill_random_asize_string(haystack, hlen + 1, asize);
 	pi.haystack = haystack;
 
+	mangle_haystack_needle(haystack, hlen, needle, sizeof needle);
+
+	g_assert(strlen(needle) == NEEDLE_MAXLEN - 1);
+
 	for (nlen = 1; nlen < NEEDLE_MAXLEN; nlen++) {
 		bool early_match;
 		const char *p;
-		double elapsed1, elapsed2, elapsed3, elapsed4, elapsed5;
+		double elapsed1, elapsed2, elapsed3, elapsed4, elapsed5, elapsed6;
 		cpattern_t *pat;
 		char *rs, *rn, *rp, *rm;
+		const char *needle_i = &needle[NEEDLE_MAXLEN - nlen - 1];
 
-		needle = haystack + hlen - nlen;
-		g_assert(strlen(needle) == nlen);
+		g_assert(strlen(needle_i) == nlen);
 
-		pat = pattern_compile_fast(needle, nlen, FALSE);
+		pat = pattern_compile_fast(needle_i, nlen, FALSE);
 
-		p = strstr(haystack, needle);
+		p = strstr(haystack, needle_i);
 		g_assert(p != NULL);
 
-		early_match = p != needle;
+		early_match = p < &haystack[hlen - nlen];
 
 		if (early_match) {
 			s_message(
@@ -262,7 +290,7 @@ benchmark_pattern(bool low_letters)
 		}
 
 		pi.haystack_len = 0;
-		pi.needle = needle;
+		pi.needle = needle_i;
 		pi.m = strstr;
 		pi.pat = pat;
 		pi.type = PATTERN_INFO_ROUTINE;
@@ -275,13 +303,25 @@ benchmark_pattern(bool low_letters)
 		/* pattern_qsearch(), length of text unknown */
 		rp = timeit_pattern(&pi, &elapsed3);
 
+		/* pattern_match(), text length unknown */
+		pi.type = PATTERN_INFO_MATCH;
+		rm = timeit_pattern(&pi, &elapsed4);
+
+		g_assert_log(rs == rp,
+			"%s(): rs=%p, rp=%p, nlen=%zu (unknown length)",
+			G_STRFUNC, rs, rp, nlen);
+		g_assert_log(rs == rm,
+			"%s(): rs=%p, rm=%p, nlen=%zu (unkown length)",
+			G_STRFUNC, rs, rm, nlen);
+
 		/* pattern_qsearch(), text length known */
 		pi.haystack_len = hlen;
-		rp = timeit_pattern(&pi, &elapsed4);
+		pi.type = PATTERN_INFO_QSEARCH;
+		rp = timeit_pattern(&pi, &elapsed5);
 
 		/* pattern_match(), text length known */
 		pi.type = PATTERN_INFO_MATCH;
-		rm = timeit_pattern(&pi, &elapsed5);
+		rm = timeit_pattern(&pi, &elapsed6);
 
 		g_assert(rs == rn);
 		g_assert_log(rs == rp,
@@ -295,9 +335,10 @@ benchmark_pattern(bool low_letters)
 			G_STRFUNC, asize, nlen, early_match ? " (early match)" : "");
 		s_info("\tstrstr():          %'zu ns", (size_t) (elapsed1 * 1e9));
 		s_info("\tnaive_strstr():    %'zu ns", (size_t) (elapsed2 * 1e9));
-		s_info("\tmatch() (known):   %'zu ns", (size_t) (elapsed5 * 1e9));
 		s_info("\tqsearch() (len=?): %'zu ns", (size_t) (elapsed3 * 1e9));
-		s_info("\tqsearch() (known): %'zu ns", (size_t) (elapsed4 * 1e9));
+		s_info("\tqsearch() (known): %'zu ns", (size_t) (elapsed5 * 1e9));
+		s_info("\tmatch() (len=?):   %'zu ns", (size_t) (elapsed4 * 1e9));
+		s_info("\tmatch() (known):   %'zu ns", (size_t) (elapsed6 * 1e9));
 
 		pattern_free(pat);
 	}
@@ -306,32 +347,36 @@ benchmark_pattern(bool low_letters)
 }
 
 static void
-benchmark_strstr(bool low_letters)
+benchmark_strstr(size_t asize)
 {
 	size_t hlen = 10000;
 	size_t nlen;
-	char *haystack = xmalloc(hlen + 1);
-	char *needle;
+	char *haystack;
+	char needle[NEEDLE_MAXLEN + 1];
 	struct matchinfo mi;
-	size_t asize = low_letters ? SMALL_ALPHABET : CONST_STRLEN(alphabet);
+
+	haystack = xmalloc(hlen + 1);
 
 	fill_random_asize_string(haystack, hlen + 1, asize);
 	mi.haystack = haystack;
+
+	mangle_haystack_needle(haystack, hlen, needle, sizeof needle - 1);
+
+	g_assert(strlen(needle) == NEEDLE_MAXLEN - 1);
 
 	for (nlen = 1; nlen < NEEDLE_MAXLEN; nlen++) {
 		bool early_match;
 		const char *p;
 		double elapsed1, elapsed2, elapsed3, elapsed4;
 		const char *rs, *rp, *rn, *r2;
+		const char *needle_i = &needle[NEEDLE_MAXLEN - nlen - 1];
 
-		needle = haystack + hlen - nlen;
-		g_assert(strlen(needle) == nlen);
+		g_assert(strlen(needle_i) == nlen);
 
-		p = strstr(haystack, needle);
+		p = strstr(haystack, needle_i);
 		g_assert(p != NULL);
-		g_assert(ptr_cmp(p, needle) <= 0);
 
-		early_match = p != needle;
+		early_match = p < &haystack[hlen - nlen];
 
 		if (early_match) {
 			s_message(
@@ -339,7 +384,7 @@ benchmark_strstr(bool low_letters)
 				G_STRFUNC, asize, nlen, ptr_diff(p, haystack));
 		}
 
-		mi.needle = needle;
+		mi.needle = needle_i;
 		mi.m = strstr;
 		rs = timeit_strstr(&mi, &elapsed1);
 
@@ -850,17 +895,25 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	int c;
-	const char options[] = "ab:i:h";
+	const char options[] = "A:L:ab:i:huz";
 	const char all_benchmarks[] = "spSP";
 	int default_init_level = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
 	int init_level = default_init_level;
 	const char *benchmarks = "";
 	bool all = FALSE;
+	size_t small_size = SMALL_ALPHABET;
+	size_t alphabet_max = CONST_STRLEN(alphabet), alphabet_min = SMALL_ALPHABET;
 
 	progstart(argc, argv);
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case 'A':			/* Alphabet max size */
+			alphabet_max = atoi(optarg);
+			break;
+		case 'L':			/* Alphabet min size */
+			alphabet_min = atoi(optarg);
+			break;
 		case 'a':			/* run all known tests */
 			all = TRUE;
 			break;
@@ -870,7 +923,14 @@ main(int argc, char **argv)
 		case 'i':			/* pattern_init() level */
 			init_level = atoi(optarg);
 			break;
+		case 'u':			/* unmatchable patterns in benchmarking */
+			unmatch = TRUE;
+			break;
+		case 'z':			/* all identical */
+			all_identical = TRUE;
+			break;
 		case 'h':			/* show help */
+			/* FALL THROUGH */
 		default:
 			usage();
 			break;
@@ -879,6 +939,22 @@ main(int argc, char **argv)
 
 	if (0 != (argc -= optind))
 		usage();
+
+	if (alphabet_max < alphabet_min) {
+		s_warning("alphabet max size (%zu) must be larger than min size (%zu)",
+			alphabet_max, alphabet_min);
+		return 1;
+	}
+
+	if (alphabet_max > CONST_STRLEN(alphabet)) {
+		alphabet_max = CONST_STRLEN(alphabet);
+		s_message("trimmed alphabet max size to %zu", alphabet_max);
+	}
+
+	if (alphabet_min < 1) {
+		alphabet_min = 1;
+		s_message("raised alphabet min size to %zu", alphabet_min);
+	}
 
 	if (all) {
 		benchmarks = all_benchmarks;
@@ -914,16 +990,16 @@ main(int argc, char **argv)
 	while ((c = *benchmarks++)) {
 		switch(c) {
 		case 's':
-			benchmark_strstr(FALSE);
+			benchmark_strstr(MIN(alphabet_max, CONST_STRLEN(alphabet)));
 			break;
 		case 'S':
-			benchmark_strstr(TRUE);
+			benchmark_strstr(MIN(alphabet_min, small_size));
 			break;
 		case 'p':
-			benchmark_pattern(FALSE);
+			benchmark_pattern(MIN(alphabet_max, CONST_STRLEN(alphabet)));
 			break;
 		case 'P':
-			benchmark_pattern(TRUE);
+			benchmark_pattern(MIN(alphabet_min, small_size));
 			break;
 		default:
 			s_warning("skipping unknown benchmark code '%c'", c);
