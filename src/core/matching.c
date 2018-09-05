@@ -585,7 +585,7 @@ entry_match(const char *text, size_t tlen,
 		for (j = 0; j < amount; j++) {
 			const char *pos;
 
-			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
+			pos = pattern_search(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
 				offset = (pos - text) + pattern_len(pw[i]);
 			else

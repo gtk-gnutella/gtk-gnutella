@@ -1256,7 +1256,7 @@ node_supports_dht(gnutella_node_t *n, dht_mode_t mode)
 static bool
 node_str_match(const char *str, size_t len, const cpattern_t *pat)
 {
-	return NULL != pattern_qsearch(pat, str, len, 0, qs_any);
+	return NULL != pattern_search(pat, str, len, 0, qs_any);
 }
 
 /**

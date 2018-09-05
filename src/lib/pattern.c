@@ -1018,60 +1018,6 @@ pattern_qsearch_known(
  * with `text', from left to right.  The `tlen' argument is the length
  * of the text, and can left to 0, in which case it will be computed.
  *
- * @return pointer to beginning of matching substring, NULL if not found.
- */
-const char *
-pattern_qsearch(
-	const cpattern_t *cpat,	/**< Compiled pattern */
-	const char *text,		/**< Text we're scanning */
-	size_t tlen,			/**< Text length, 0 = unknown */
-	size_t toffset,			/**< Offset within text for search start */
-	qsearch_mode_t word)	/**< Beginning/whole word matching? */
-{
-	if (0 == tlen) {
-		G_PREFETCH_R(text);
-		g_assert_log(0 == toffset,
-			"%s(): toffset=%'zu, must be 0 when text length is unknown",
-			G_STRFUNC, toffset);
-
-		/*
-		 * Handle cut-off for qs_any matches and case-sensitive patterns.
-		 */
-
-		if (
-			!PATTERN_DFLT_2WAY &&
-			qs_any == word && !cpat->icase &&
-			cpat->len < pattern_unknown_cutoff
-		)
-			return strstr(text, cpat->pattern);
-
-		return pattern_qsearch_unknown(cpat, text, 0, word);
-	} else {
-		G_PREFETCH_R(text + toffset);
-		g_assert_log(toffset <= tlen,
-			"%s(): toffset=%'zu, tlen=%'zu",
-			G_STRFUNC, toffset, tlen);
-
-		/*
-		 * Handle cut-off for qs_any matches and case-sensitive patterns.
-		 */
-
-		if (
-			!PATTERN_DFLT_2WAY &&
-			qs_any == word && !cpat->icase &&
-			cpat->len < pattern_known_cutoff
-		)
-			return strstr(text + toffset, cpat->pattern);
-
-		return pattern_qsearch_known(cpat, text, tlen, toffset, word);
-	}
-}
-
-/**
- * Quick substring search algorithm.  It looks for the compiled pattern
- * with `text', from left to right.  The `tlen' argument is the length
- * of the text, and can left to 0, in which case it will be computed.
- *
  * This version ignores benchmarked cut-offs.  It is merely intended
  * to be used by benchmarking tests, to force usage of our pattern
  * matching code regardless of the pattern text length, and for correctness
@@ -1113,8 +1059,6 @@ pattern_qsearch_force(
 
 /**
  * Crochemore-Perrin 2-way string matching algorithm.
- *
- * This is used for benchmarking against our Modified Quick Search algorithm.
  *
  * @param p			compiled pattern
  * @param haystack	what we are matching against
@@ -1576,24 +1520,26 @@ pattern_match_known(
 }
 
 /**
- * 2-way matching algorithm.  It looks for the already compiled pattern,
- * within the text, according to the word-matching directives.
- *
- * This is intended to be used by benchmarking tests, to compare the
- * Quick Search algorithm with the Crochemore-Perrin 2-way matching.
+ * Look for the compiled pattern within the supplied text.
  *
  * This version is subject to benchmarking and can redirect to strstr()
  * if required.
  *
+ * The toffset is useful when `word' is not qs_any but qs_whole for instance:
+ * we need to look at the character before the match to determine whether
+ * we are at a word boundary (or at the beginning of the text).
+ *
+ * @param cpat		compiled pattern
+ * @param text		the text we with to scan for the pattern
+ * @param tlen		text length, 0 = unknown
+ * @param toffset	offset within text for search start
+ * @param word		how should we constrain matching on word delimiters
+ *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
 const char *
-pattern_match(
-	const cpattern_t *cpat,	/**< Compiled pattern */
-	const char *text,		/**< Text we're scanning */
-	size_t tlen,			/**< Text length, 0 = unknown */
-	size_t toffset,			/**< Offset within text for search start */
-	qsearch_mode_t word)	/**< Beginning/whole word matching? */
+pattern_search(const cpattern_t *cpat, const char *text,
+	size_t tlen, size_t toffset, qsearch_mode_t word)
 {
 	if (0 == tlen) {
 		G_PREFETCH_R(text);
@@ -1606,13 +1552,20 @@ pattern_match(
 		 */
 
 		if (
-			PATTERN_DFLT_2WAY &&
 			qs_any == word && !cpat->icase &&
 			cpat->len < pattern_unknown_cutoff
 		)
 			return strstr(text, cpat->pattern);
 
-		return pattern_match_unknown(cpat, (void *) text, 0, word);
+		/*
+		 * The (void *) cast is because pattern_match_unknown() takes
+		 * an unsigned pointer whereas pattern_qsearch_unknown() takes
+		 * a (probably) signed pointer.  We don't want to change signatures
+		 * at this stage, so casting away to a generic pointer shuts up
+		 * compiler warnings.
+		 */
+
+		return PATTERN_DFLT_UNKNOWN(cpat, (void *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
@@ -1624,13 +1577,12 @@ pattern_match(
 		 */
 
 		if (
-			PATTERN_DFLT_2WAY &&
 			qs_any == word && !cpat->icase &&
 			cpat->len < pattern_known_cutoff
 		)
 			return strstr(text + toffset, cpat->pattern);
 
-		return pattern_match_known(cpat, (void *) text, tlen, toffset, word);
+		return PATTERN_DFLT_KNOWN(cpat, (void *) text, tlen, toffset, word);
 	}
 }
 

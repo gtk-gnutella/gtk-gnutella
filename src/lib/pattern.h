@@ -63,12 +63,10 @@ size_t pattern_len(const cpattern_t *p);
 char *pattern_strstr(const char *haystack, const cpattern_t *p);
 char *pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *p);
 
-const char *pattern_qsearch(const cpattern_t *cpat,
-	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
-const char *pattern_qsearch_force(const cpattern_t *cpat,
+const char *pattern_search(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
-const char *pattern_match(const cpattern_t *cpat,
+const char *pattern_qsearch_force(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 const char *pattern_match_force(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);

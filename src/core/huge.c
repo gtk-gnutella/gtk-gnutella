@@ -911,7 +911,7 @@ huge_is_pure_xalt(const char *value, size_t len)
 	if (string_to_host_addr(value, NULL, &addr))
 		return TRUE;
 
-	if (pattern_qsearch(has_http_urls, value, len, 0, qs_any))
+	if (pattern_search(has_http_urls, value, len, 0, qs_any))
 		return FALSE;
 
 	return TRUE;

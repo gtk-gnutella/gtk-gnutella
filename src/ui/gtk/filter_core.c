@@ -2152,7 +2152,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                             iter = g_list_next(iter)
                         ) {
                             if (
-								NULL == pattern_qsearch(iter->data,
+								NULL == pattern_search(iter->data,
 									r->u.text.case_sensitive ?
 										ctx->utf8_name : ctx->l_name,
 									0, 0, qs_any)
@@ -2178,7 +2178,7 @@ filter_apply(filter_t *filter, struct filter_context *ctx, filter_result_t *res)
                     break;
                 case RULE_TEXT_SUBSTR:
                     if (
-						NULL != pattern_qsearch(
+						NULL != pattern_search(
 							r->u.text.u.pattern,
 							r->u.text.case_sensitive ?
 								ctx->utf8_name : ctx->l_name,
