@@ -419,7 +419,7 @@ pattern_2way_factorize(cpattern_t *p)
 	/* In the paper, it's "l < n / 2," but here we have integer arithmetics */
 
 	p->periodic = booleanize(
-		p->leftlen < (p->len + 1) / 2 &&
+		p->len >= 2 && p->leftlen < (p->len + 1) / 2 &&
 		0 == memcmp(p->pattern, p->pattern + p->period, p->leftlen));
 }
 
@@ -1073,10 +1073,10 @@ pattern_qsearch_force(
 }
 
 #define PATTERN_MATCHED_UNKNOWN \
-	const char *tp = (const char *) &haystack[pos];		\
+	const char *tp = (const char *) hp;					\
 	const char *text = (const char *) haystack;			\
 	const char *tend = &tp[nlen];						\
-	if (AVAILABLE((const uchar *) tp, min_hlen, nlen + 1, ahead, end))	\
+	if (AVAILABLE(hp, min_hlen, nlen + 1, ahead, end))	\
 		tend++;											\
 	if (pattern_has_matched(p, tp, text, tend, word))	\
 		return tp;
@@ -1098,11 +1098,12 @@ pattern_match_unknown(
 	const cpattern_t *p, const uchar *haystack, size_t min_hlen,
 	qsearch_mode_t word)
 {
-	size_t nlen, pos = 0, l;
+	size_t nlen, l;
 	const uchar *needle;
 	register const uchar *h, *n;
 	const uchar *end = NULL;		/* Known NUL position within haystack */
 	size_t ahead;					/* Additional look-ahead we perform */
+	const uchar *hp = haystack;		/* Always &haystack[pos] */
 
 	pattern_check(p);
 
@@ -1116,7 +1117,7 @@ pattern_match_unknown(
 		size_t s = 0;		/* this is our "memory" of how much was matched */
 		size_t nlen_m1 = nlen - 1;
 
-		while (AVAILABLE(&haystack[pos], min_hlen, nlen, ahead, end)) {
+		while (AVAILABLE(hp, min_hlen, nlen, ahead, end)) {
 			size_t i;
 			size_t d;
 
@@ -1133,9 +1134,9 @@ pattern_match_unknown(
 			 */
 
 			if (p->d8bits)
-				d = ((uint8 *) p->delta)[haystack[pos + nlen_m1]] - 1;
+				d = ((uint8 *) p->delta)[hp[nlen_m1]] - 1;
 			else
-				d = ((size_t *) p->delta)[haystack[pos + nlen_m1]] - 1;
+				d = ((size_t *) p->delta)[hp[nlen_m1]] - 1;
 
 			if (d != 0) {
 				if (s != 0 && d < p->period) {
@@ -1148,12 +1149,13 @@ pattern_match_unknown(
 					d = nlen - p->period;
 				}
 				s = 0;		/* in uncharted territory now */
-				pos += d;
+				hp += d;
+				min_hlen -= d;
 				continue;
 			}
 
 			i = MAX(l, s);	/* +1 in article, in C indices start at 0 */
-			h = &haystack[pos + i];
+			h = &hp[i];		/* &haystack[pos + i] */
 			n = &needle[i];
 
 			/*
@@ -1177,9 +1179,12 @@ pattern_match_unknown(
 				if G_UNLIKELY(s >= p->period) {
 					size_t y = i - l;
 					size_t z = s - p->period + 1;
-					pos += MAX(y, z);
+					z = MAX(y, z);
+					hp += z;
+					min_hlen -= z;
 				} else {
-					pos += i - l;
+					hp += i - l;
+					min_hlen -= i - l;
 				}
 				s = 0;
 			} else {
@@ -1187,7 +1192,7 @@ pattern_match_unknown(
 
 				/* Do a backward matching on the left-side of the needle */
 
-				h = &haystack[pos + j];
+				h = &hp[j];		/* &haystack[pos + j] */
 				n = &needle[j];
 				j++;		/* j = l */
 
@@ -1201,7 +1206,8 @@ pattern_match_unknown(
 				if G_UNLIKELY(j <= s) {		/* OK, we got a pattern match */
 					PATTERN_MATCHED_UNKNOWN
 				}
-				pos += p->period;
+				hp += p->period;
+				min_hlen -= p->period;
 				s = nlen - p->period;
 			}
 		 }
@@ -1210,8 +1216,8 @@ pattern_match_unknown(
 		size_t q = MAX(l, nlen - l) + 1;
 		size_t d;
 
-		h = &haystack[pos + l];	/* Optimization: moved out of loop */
-		while (AVAILABLE(&haystack[pos], min_hlen, nlen, ahead, end)) {
+		h = &hp[l];	/* Optimization: moved &haystack[pos + l] out of loop */
+		while (AVAILABLE(hp, min_hlen, nlen, ahead, end)) {
 			int c;
 			n = &needle[l];
 
@@ -1239,27 +1245,29 @@ pattern_match_unknown(
 				 * what the regular 2-way matching algorithm would use.
 				 */
 
-				if (!AVAILABLE(&haystack[pos], min_hlen, nlen + 1, ahead, end))
+				if (!AVAILABLE(hp, min_hlen, nlen + 1, ahead, end))
 					goto done;
 
 				if (p->d8bits)
-					d = ((uint8 *) p->delta)[haystack[pos + nlen]];
+					d = ((uint8 *) p->delta)[hp[nlen]];
 				else
-					d = ((size_t *) p->delta)[haystack[pos + nlen]];
+					d = ((size_t *) p->delta)[hp[nlen]];
 
 				if (t >= d) {
-					pos += t;
+					hp += t;
+					min_hlen -= t;
 					/* `h' is already correct, do not recompute */
 				} else {
-					pos += d;
-					h = &haystack[pos + l];	/* For next loop */
+					hp += d;
+					min_hlen -= d;
+					h = &hp[l];		/* &haystack[pos + l] for next loop */
 				}
 			} else {
 				register size_t j = l - 1;
 
 				/* Do a backward matching on the left-side of the needle */
 
-				h = &haystack[pos + j];
+				h = &hp[j];		/* &haystack[pos + j] */
 				n = &needle[j];
 				j++;		/* j = l */
 
@@ -1279,16 +1287,18 @@ pattern_match_unknown(
 				 * of the needle against the haystack.
 				 */
 
-				if (!AVAILABLE(&haystack[pos], min_hlen, nlen + 1, ahead, end))
+				if (!AVAILABLE(hp, min_hlen, nlen + 1, ahead, end))
 					goto done;
 
 				if (p->d8bits)
-					d = ((uint8 *) p->delta)[haystack[pos + nlen]];
+					d = ((uint8 *) p->delta)[hp[nlen]];
 				else
-					d = ((size_t *) p->delta)[haystack[pos + nlen]];
+					d = ((size_t *) p->delta)[hp[nlen]];
 
-				pos += MAX(q, d);
-				h = &haystack[pos + l];	/* For next loop */
+				d = MAX(d, q);
+				hp += d;
+				min_hlen -= d;
+				h = &hp[l];		/* &haystack[pos + l] for next loop */
 			}
 		}
 	}
@@ -1309,10 +1319,11 @@ pattern_match_known(
 	const cpattern_t *p, const uchar *haystack, size_t hlen,
 	qsearch_mode_t word)
 {
-	size_t nlen, pos = 0, l;
+	size_t nlen, l;
 	const uchar *needle;
 	register const uchar *h, *n;
-	size_t upper_hlen;
+	register const uchar *hp = haystack;	/* Always &haystack[pos] */
+	const uchar *endhp;			/* Upper possible value for `hp' */
 
 	pattern_check(p);
 
@@ -1322,7 +1333,9 @@ pattern_match_known(
 	needle = (const uchar *) p->pattern;
 	nlen = p->len;
 	l = p->leftlen;
-	upper_hlen = hlen - nlen;
+	endhp = haystack + (hlen - nlen);
+
+	g_assert('\0' == haystack[hlen]);	/* Ensure hlen is correct */
 
 #define PATTERN_RIGHT_MATCH_ICASE(u)									\
 	while (i < (u) && ascii_tolower(*h++) == ascii_tolower(*n++))		\
@@ -1354,7 +1367,7 @@ pattern_match_known(
 	}
 
 #define PATTERN_MATCHED \
-	const char *tp = (const char *) &haystack[pos];		\
+	const char *tp = (const char *) hp;					\
 	const char *text = (const char *) haystack;			\
 	const char *tend = (const char *) &haystack[hlen];	\
 	if (pattern_has_matched(p, tp, text, tend, word))	\
@@ -1365,7 +1378,7 @@ pattern_match_known(
 	size_t s = 0;		/* this is our "memory" of how much was matched */		\
 	size_t nlen_m1 = nlen - 1;													\
 																				\
-	while (pos <= upper_hlen) {													\
+	while (hp <= endhp) {													\
 		size_t i;																\
 		size_t d;																\
 																				\
@@ -1378,7 +1391,7 @@ pattern_match_known(
 		/* in the table (so 0 after substraction), then we are at the last */	\
 		/* character of the pattern.  No other slot in the table can be a 1. */	\
 																				\
-		d = ((type *) p->delta)[haystack[pos + nlen_m1]] - 1;					\
+		d = ((type *) p->delta)[hp[nlen_m1]] - 1;								\
 																				\
 		if (d != 0) {															\
 			if (s != 0) {														\
@@ -1390,12 +1403,12 @@ pattern_match_known(
 				d = MAX(d, y);													\
 			}																	\
 			s = 0;		/* in uncharted territory now */						\
-			pos += d;															\
+			hp += d;															\
 			continue;															\
 		}																		\
 																				\
 		i = MAX(l, s);	/* +1 in article, in C indices start at 0 */			\
-		h = &haystack[pos + i];													\
+		h = &hp[i];																\
 		n = &needle[i];															\
 																				\
 		/* We already probed the last byte of the needle and know there is */	\
@@ -1411,9 +1424,9 @@ pattern_match_known(
 			if G_UNLIKELY(s >= p->period) {										\
 				size_t y = i - l;												\
 				size_t z = s - p->period + 1;									\
-				pos += MAX(y, z);												\
+				hp += MAX(y, z);												\
 			} else {															\
-				pos += i - l;													\
+				hp += i - l;													\
 			}																	\
 			s = 0;																\
 		} else {																\
@@ -1421,7 +1434,7 @@ pattern_match_known(
 																				\
 			/* Do a backward matching on the left-side of the needle */			\
 																				\
-			h = &haystack[pos + j];												\
+			h = &hp[j];															\
 			n = &needle[j];														\
 			j++;		/* j = l */												\
 																				\
@@ -1430,7 +1443,7 @@ pattern_match_known(
 			if G_UNLIKELY(j <= s) {		/* OK, we got a pattern match */		\
 				PATTERN_MATCHED													\
 			}																	\
-			pos += p->period;													\
+			hp += p->period;													\
 			s = nlen - p->period;												\
 		}																		\
 	}
@@ -1440,8 +1453,8 @@ pattern_match_known(
 	size_t q = MAX(l, nlen - l) + 1;											\
 	size_t d;																	\
 																				\
-	h = &haystack[pos + l];	/* Optimization: moved out of loop */				\
-	while (pos <= upper_hlen) {													\
+	h = &hp[l];			/* Optimization: moved out of loop */					\
+	while (hp <= endhp) {														\
 		int c;																	\
 		n = &needle[l];															\
 																				\
@@ -1457,21 +1470,21 @@ pattern_match_known(
 			/* from look-ahead information of the next character) and */		\
 			/* what the regular 2-way matching algorithm would use. */			\
 																				\
-			d = ((type *) p->delta)[haystack[pos + nlen]];						\
+			d = ((type *) p->delta)[hp[nlen]];									\
 																				\
 			if (t >= d) {														\
-				pos += t;														\
+				hp += t;														\
 				/* `h' is already correct, do not recompute */					\
 			} else {															\
-				pos += d;														\
-				h = &haystack[pos + l];	/* For next loop */						\
+				hp += d;														\
+				h = &hp[l];				/* For next loop */						\
 			}																	\
 		} else {																\
 			register size_t j = l - 1;											\
 																				\
 			/* Do a backward matching on the left-side of the needle */			\
 																				\
-			h = &haystack[pos + j];												\
+			h = &hp[j];															\
 			n = &needle[j];														\
 			j++;		/* j = l */												\
 																				\
@@ -1484,9 +1497,9 @@ pattern_match_known(
 			/* Again, look-ahead one character to optimize the shifting */		\
 			/* of the needle against the haystack. */							\
 																				\
-			d = ((type *) p->delta)[haystack[pos + nlen]];						\
-			pos += MAX(q, d);													\
-			h = &haystack[pos + l];	/* For next loop */							\
+			d = ((type *) p->delta)[hp[nlen]];									\
+			hp += MAX(q, d);													\
+			h = &hp[l];				/* For next loop */							\
 		}																		\
 	}
 
