@@ -174,9 +174,8 @@ pattern_len(const cpattern_t *p)
  * it is fast and runs mostly in O(n).
  *
  * The "Modified Quick Search" algorithm requires pre-processing in O(m) and
- * performs matching in O(n).  This improvement in running time is due to the
- * pre-computation of the prefix periods which guarantees we are not going to
- * rescan parts we already matched.
+ * performs matching in O(m*n). For non-pathological patterns (like searching
+ * for a^(m-1)b in a^n), it performs mostly in O(n).
  *
  * The "Two Way" algorithm is linear in time and uses constant space.
  * It requires pre-processing in O(m) and performs matching in O(n).
@@ -542,8 +541,6 @@ pattern_build_delta(cpattern_t *p)
 		pattern_build_delta_small(p);
 	else
 		pattern_build_delta_large(p);
-
-	pattern_build_period(p);
 }
 
 /**
@@ -604,6 +601,7 @@ pattern_compile(const char *pattern, bool icase)
 	pattern_delta_alloc(p);
 	pattern_2way_factorize(p);
 	pattern_build_delta(p);
+	pattern_build_period(p);
 
 	return p;
 }
@@ -633,6 +631,7 @@ pattern_compile_fast(const char *pattern, size_t plen, bool icase)
 	pattern_delta_alloc(p);
 	pattern_2way_factorize(p);
 	pattern_build_delta(p);
+	pattern_build_period(p);
 
 	return p;
 }
@@ -739,6 +738,24 @@ pattern_has_matched(const cpattern_t *p, const char *tp,
 	return FALSE;	/* No match */
 }
 
+#define PATTERN_LOOK_AHEAD	256
+
+/**
+ * Computes look-ahead we want to perform when haystack length is unknown.
+ */
+static size_t
+pattern_look_ahead(const cpattern_t *p)
+{
+	size_t ahead;
+
+	pattern_check(p);
+
+	ahead = MIN(p->len << 5, PATTERN_LOOK_AHEAD);
+	ahead = MAX(ahead, PATTERN_LOOK_AHEAD);
+
+	return MAX(ahead, p->len);
+}
+
 /**
  * Check whether we have at least `w' characters available before the NUL
  * byte closing the string and update the minimum known length `ml', or
@@ -783,8 +800,6 @@ pattern_qsearch_unknown(
 	size_t ahead;				/* Additional look-ahead we want to perform */
 
 	pattern_check(cpat);
-
-#define PATTERN_LOOK_AHEAD	256
 
 	start = text;
 	tp = start;
@@ -1059,40 +1074,51 @@ pattern_qsearch_force(
 	}
 }
 
+#define PATTERN_MATCHED_UNKNOWN \
+	const char *tp = (const char *) &haystack[pos];		\
+	const char *text = (const char *) haystack;			\
+	const char *tend = &tp[nlen];						\
+	if (AVAILABLE((const uchar *) tp, min_hlen, nlen + 1, ahead, end))	\
+		tend++;											\
+	if (pattern_has_matched(p, tp, text, tend, word))	\
+		return tp;
+
 /**
  * Crochemore-Perrin 2-way string matching algorithm.
  *
  * This is used for benchmarking against our Modified Quick Search algorithm.
  *
+ * @param p			compiled pattern
+ * @param haystack	what we are matching against
+ * @param min_hlen	minimum known text length
+ * @param word		beginning / whole / end / any word matching?
+ *
  * @return pointer to beginning of matching substring, NULL if not found.
  */
 static const char * G_HOT G_FAST
-pattern_match_known(
-	const cpattern_t *p, const uchar *haystack, size_t hlen,
+pattern_match_unknown(
+	const cpattern_t *p, const uchar *haystack, size_t min_hlen,
 	qsearch_mode_t word)
 {
 	size_t nlen, pos = 0, l;
 	const uchar *needle;
 	register const uchar *h, *n;
-	size_t upper_hlen;
+	const uchar *end = NULL;		/* Known NUL position within haystack */
+	size_t ahead;					/* Additional look-ahead we perform */
 
 	pattern_check(p);
-
-	if G_UNLIKELY(hlen < p->len)
-		return NULL;
 
 	needle = (const uchar *) p->pattern;
 	nlen = p->len;
 	l = p->leftlen;
-	upper_hlen = hlen - nlen;
+	ahead = pattern_look_ahead(p);
 
-	/* In the paper, it's "l < n / 2," but here we have integer arithmetics */
 	if G_UNLIKELY(p->periodic) {
 		/* POSITIONS in the article, plus "memory" `s' added in MATCH */
 		size_t s = 0;		/* this is our "memory" of how much was matched */
 		size_t nlen_m1 = nlen - 1;
 
-		while (pos <= upper_hlen) {
+		while (AVAILABLE(&haystack[pos], min_hlen, nlen, ahead, end)) {
 			size_t i;
 			size_t d;
 
@@ -1175,11 +1201,7 @@ pattern_match_known(
 						j--;
 				}
 				if G_UNLIKELY(j <= s) {		/* OK, we got a pattern match */
-					const char *tp = (const char *) &haystack[pos];
-					const char *text = (const char *) haystack;
-					const char *end = (const char *) &haystack[hlen];
-					if (pattern_has_matched(p, tp, text, end, word))
-						return tp;
+					PATTERN_MATCHED_UNKNOWN
 				}
 				pos += p->period;
 				s = nlen - p->period;
@@ -1191,7 +1213,7 @@ pattern_match_known(
 		size_t d;
 
 		h = &haystack[pos + l];	/* Optimization: moved out of loop */
-		while (pos <= upper_hlen) {
+		while (AVAILABLE(&haystack[pos], min_hlen, nlen, ahead, end)) {
 			int c;
 			n = &needle[l];
 
@@ -1218,6 +1240,9 @@ pattern_match_known(
 				 * from look-ahead information of the next character) and
 				 * what the regular 2-way matching algorithm would use.
 				 */
+
+				if (!AVAILABLE(&haystack[pos], min_hlen, nlen + 1, ahead, end))
+					goto done;
 
 				if (p->d8bits)
 					d = ((uint8 *) p->delta)[haystack[pos + nlen]];
@@ -1248,17 +1273,16 @@ pattern_match_known(
 						j--;
 				}
 				if G_UNLIKELY(0 == j) {		/* OK, we have a match */
-					const char *tp = (const char *) &haystack[pos];
-					const char *text = (const char *) haystack;
-					const char *end = (const char *) &haystack[hlen];
-					if (pattern_has_matched(p, tp, text, end, word))
-						return tp;
+					PATTERN_MATCHED_UNKNOWN
 				}
 
 				/*
 				 * Again, look-ahead one character to optimize the shifting
 				 * of the needle against the haystack.
 				 */
+
+				if (!AVAILABLE(&haystack[pos], min_hlen, nlen + 1, ahead, end))
+					goto done;
 
 				if (p->d8bits)
 					d = ((uint8 *) p->delta)[haystack[pos + nlen]];
@@ -1270,6 +1294,234 @@ pattern_match_known(
 			}
 		}
 	}
+
+done:
+	return NULL;
+}
+
+/**
+ * Crochemore-Perrin 2-way string matching algorithm.
+ *
+ * This is used for benchmarking against our Modified Quick Search algorithm.
+ *
+ * @return pointer to beginning of matching substring, NULL if not found.
+ */
+static const char * G_HOT G_FAST
+pattern_match_known(
+	const cpattern_t *p, const uchar *haystack, size_t hlen,
+	qsearch_mode_t word)
+{
+	size_t nlen, pos = 0, l;
+	const uchar *needle;
+	register const uchar *h, *n;
+	size_t upper_hlen;
+
+	pattern_check(p);
+
+	if G_UNLIKELY(hlen < p->len)
+		return NULL;
+
+	needle = (const uchar *) p->pattern;
+	nlen = p->len;
+	l = p->leftlen;
+	upper_hlen = hlen - nlen;
+
+#define PATTERN_RIGHT_MATCH_ICASE(u)									\
+	while (i < (u) && ascii_tolower(*h++) == ascii_tolower(*n++))		\
+		i++;
+
+#define PATTERN_RIGHT_MATCH_CASE(u)		\
+	while (i < (u) && *h++ == *n++)		\
+		i++;
+
+#define PATTERN_LEFT_MATCH_ICASE(b)									\
+	while (j > (b) && ascii_tolower(*h--) == ascii_tolower(*n--))	\
+		j--;
+
+#define PATTERN_LEFT_MATCH_CASE(b)		\
+	while (j > (b) && *h-- == *n--)		\
+		j--;
+
+#define PATTERN_RIGHT_MATCH_BIS_ICASE							\
+	for (c = *n; c != 0; c = *++n) {							\
+		int b = *h++;											\
+		if (c != b && ascii_tolower(c) != ascii_tolower(b))		\
+			break;												\
+	}
+
+#define PATTERN_RIGHT_MATCH_BIS_CASE	\
+	for (c = *n; c != 0; c = *++n) {	\
+		if (c != *h++)					\
+			break;						\
+	}
+
+#define PATTERN_MATCHED \
+	const char *tp = (const char *) &haystack[pos];		\
+	const char *text = (const char *) haystack;			\
+	const char *tend = (const char *) &haystack[hlen];	\
+	if (pattern_has_matched(p, tp, text, tend, word))	\
+		return tp;
+
+/* POSITIONS in the article, plus "memory" `s' added in MATCH */
+#define PATTERN_POSITIONS(cmp,type)												\
+	size_t s = 0;		/* this is our "memory" of how much was matched */		\
+	size_t nlen_m1 = nlen - 1;													\
+																				\
+	while (pos <= upper_hlen) {													\
+		size_t i;																\
+		size_t d;																\
+																				\
+		/* We're going to attempt to match the last character of the needle */	\
+		/* first.  The delta[] array has been computed for the Quick Search */	\
+		/* algorithm, which scans the next character.  Since we're scanning */	\
+		/* the last character of the pattern, we need to subtract one from */	\
+		/* the value. */														\
+		/* Due to the way the delta[] array is constructed, if we get a 1 */	\
+		/* in the table (so 0 after substraction), then we are at the last */	\
+		/* character of the pattern.  No other slot in the table can be a 1. */	\
+																				\
+		d = ((type *) p->delta)[haystack[pos + nlen_m1]] - 1;					\
+																				\
+		if (d != 0) {															\
+			if (s != 0) {														\
+				size_t y = nlen - p->period;									\
+				/* Since last byte did not match and the needle is known */		\
+				/* to be periodic, we can do better than the delta[] array */	\
+				/* by moving further out: there can be no successful match */	\
+				/* in between. */												\
+				d = MAX(d, y);													\
+			}																	\
+			s = 0;		/* in uncharted territory now */						\
+			pos += d;															\
+			continue;															\
+		}																		\
+																				\
+		i = MAX(l, s);	/* +1 in article, in C indices start at 0 */			\
+		h = &haystack[pos + i];													\
+		n = &needle[i];															\
+																				\
+		/* We already probed the last byte of the needle and know there is */	\
+		/* a match, thanks to the delta[] array.  No need to rescan the */		\
+		/* last character, hence the upper bound of `nlen_m1', which stands */	\
+		/* for "needle length minus 1". */										\
+		/* Forward matching on the right-side of the needle. */					\
+																				\
+		PATTERN_RIGHT_MATCH_ ## cmp(nlen_m1)									\
+																				\
+		if (i++ < nlen_m1) {													\
+			/* s and period are unsigned, must watch for underflows */			\
+			if G_UNLIKELY(s >= p->period) {										\
+				size_t y = i - l;												\
+				size_t z = s - p->period + 1;									\
+				pos += MAX(y, z);												\
+			} else {															\
+				pos += i - l;													\
+			}																	\
+			s = 0;																\
+		} else {																\
+			size_t j = l - 1;													\
+																				\
+			/* Do a backward matching on the left-side of the needle */			\
+																				\
+			h = &haystack[pos + j];												\
+			n = &needle[j];														\
+			j++;		/* j = l */												\
+																				\
+			PATTERN_LEFT_MATCH_ ## cmp(s)										\
+																				\
+			if G_UNLIKELY(j <= s) {		/* OK, we got a pattern match */		\
+				PATTERN_MATCHED													\
+			}																	\
+			pos += p->period;													\
+			s = nlen - p->period;												\
+		}																		\
+	}
+
+/* POSITIONS-BIS in the article */
+#define PATTERN_POSITIONS_BIS(cmp,type)											\
+	size_t q = MAX(l, nlen - l) + 1;											\
+	size_t d;																	\
+																				\
+	h = &haystack[pos + l];	/* Optimization: moved out of loop */				\
+	while (pos <= upper_hlen) {													\
+		int c;																	\
+		n = &needle[l];															\
+																				\
+		/* Forward matching on the right-side of the needle */					\
+																				\
+		PATTERN_RIGHT_MATCH_BIS_ ## cmp											\
+																				\
+		if (0 != c) {															\
+			size_t t = n - &needle[l] + 1;										\
+																				\
+			/* This is the same processing as the Quick Search algorithm. */	\
+			/* We use the larger shift between the table (which benefits */		\
+			/* from look-ahead information of the next character) and */		\
+			/* what the regular 2-way matching algorithm would use. */			\
+																				\
+			d = ((type *) p->delta)[haystack[pos + nlen]];						\
+																				\
+			if (t >= d) {														\
+				pos += t;														\
+				/* `h' is already correct, do not recompute */					\
+			} else {															\
+				pos += d;														\
+				h = &haystack[pos + l];	/* For next loop */						\
+			}																	\
+		} else {																\
+			register size_t j = l - 1;											\
+																				\
+			/* Do a backward matching on the left-side of the needle */			\
+																				\
+			h = &haystack[pos + j];												\
+			n = &needle[j];														\
+			j++;		/* j = l */												\
+																				\
+			PATTERN_LEFT_MATCH_ ## cmp(0)										\
+																				\
+			if G_UNLIKELY(0 == j) {		/* OK, we have a match */				\
+				PATTERN_MATCHED													\
+			}																	\
+																				\
+			/* Again, look-ahead one character to optimize the shifting */		\
+			/* of the needle against the haystack. */							\
+																				\
+			d = ((type *) p->delta)[haystack[pos + nlen]];						\
+			pos += MAX(q, d);													\
+			h = &haystack[pos + l];	/* For next loop */							\
+		}																		\
+	}
+
+	if G_UNLIKELY(p->periodic) {
+		if (p->icase) {
+			if (p->d8bits) {
+				PATTERN_POSITIONS(ICASE, uint8)
+			} else {
+				PATTERN_POSITIONS(ICASE, size_t)
+			}
+		} else {
+			if (p->d8bits) {
+				PATTERN_POSITIONS(CASE, uint8)
+			} else {
+				PATTERN_POSITIONS(CASE, size_t)
+			}
+		}
+	} else {
+		if (p->icase) {
+			if (p->d8bits) {
+				PATTERN_POSITIONS_BIS(ICASE, uint8)
+			} else {
+				PATTERN_POSITIONS_BIS(ICASE, size_t)
+			}
+		} else {
+			if (p->d8bits) {
+				PATTERN_POSITIONS_BIS(CASE, uint8)
+			} else {
+				PATTERN_POSITIONS_BIS(CASE, size_t)
+			}
+		}
+	}
+
 	return NULL;
 }
 
@@ -1295,7 +1547,7 @@ pattern_match(
 		g_assert_log(0 == toffset,
 			"%s(): toffset=%'zu, must be 0 when text length is unknown",
 			G_STRFUNC, toffset);
-		return pattern_match_known(cpat, (void *) text, vstrlen(text), word);
+		return pattern_match_unknown(cpat, (void *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
@@ -1715,7 +1967,7 @@ aligned:
  * @param pattern	the pattern string
  * @param plen		the pattern length
  * @param icase		whether to compile case-insensitively
- * @param need2way	whether to compile also for 2-way matching
+ * @param need2way	whether to compile for 2-way matching
  */
 static void
 pattern_compile_static(cpattern_t *p, uint8 *delta, uint8 *uperiod,
@@ -1736,10 +1988,17 @@ pattern_compile_static(cpattern_t *p, uint8 *delta, uint8 *uperiod,
 		pattern_delta_alloc(p);
 	}
 
-	pattern_build_delta(p);
+	pattern_build_delta(p);		/* Both MQS and 2-W use this */
+
+	/*
+	 * We don't need the uperiod[] array for 2-way.
+	 */
 
 	if (need2way)
 		pattern_2way_factorize(p);
+	else
+		pattern_build_period(p);
+
 }
 
 /**
@@ -1863,6 +2122,7 @@ pattern_2way(const char *haystack, const char *needle)
 	uint8 delta[ALPHA_SIZE];
 	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
+	size_t min_hlen;	/* Minimal haystack length */
 
 	/*
 	 * Determine the needle length, and, as a by-product, make sure the
@@ -1889,8 +2149,10 @@ pattern_2way(const char *haystack, const char *needle)
 	if (NULL == h || G_UNLIKELY(1 == nlen))
 		return deconstify_char(h);
 
+	min_hlen = (h >= haystack + nlen) ? 1 : nlen - (h - haystack);
+
 	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, TRUE);
-	match = pattern_match_known(&p, (void *) h, vstrlen(h), qs_any);
+	match = pattern_match_unknown(&p, (void *) h, min_hlen, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);
@@ -1912,6 +2174,7 @@ pattern_qs(const char *haystack, const char *needle)
 	uint8 delta[ALPHA_SIZE];
 	uint8 uperiod[ALPHA_SIZE];
 	const char *match;
+	size_t min_hlen;	/* Minimal haystack length */
 
 	/*
 	 * Determine the needle length, and, as a by-product, make sure the
@@ -1938,15 +2201,10 @@ pattern_qs(const char *haystack, const char *needle)
 	if (NULL == h || G_UNLIKELY(1 == nlen))
 		return deconstify_char(h);
 
-	/*
-	 * Have to compute the haystack length since we only have a version
-	 * of pattern_match() with a known haystack length.  To be able to
-	 * compare the benchmarked running time, we need to have the same
-	 * condition as pattern_2way().
-	 */
+	min_hlen = (h >= haystack + nlen) ? 1 : nlen - (h - haystack);
 
 	pattern_compile_static(&p, delta, uperiod, needle, nlen, FALSE, FALSE);
-	match = pattern_qsearch_known(&p, (void *) h, vstrlen(h), 0, qs_any);
+	match = pattern_qsearch_unknown(&p, (void *) h, min_hlen, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);
