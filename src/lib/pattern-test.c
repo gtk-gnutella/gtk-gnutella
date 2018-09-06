@@ -707,8 +707,12 @@ test_strlen(void)
 
 #define NO	-1
 
+typedef const char *(pattern_search_fn_t)(
+		const cpattern_t *cpat,
+		const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
+
 static void
-test_pattern_case(void)
+test_pattern_case(pattern_search_fn_t *fn, const char *name)
 {
 	size_t i;
 	struct pattern_case_test {
@@ -747,39 +751,39 @@ test_pattern_case(void)
 		pc = pattern_compile(t->needle, FALSE);
 		pi = pattern_compile(t->needle, TRUE);
 
-		rc = pattern_search(pc, t->haystack, 0, 0, qs_any);
+		rc = fn(pc, t->haystack, 0, 0, qs_any);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(): i=%zu, expected %d, got oc=%d (length unknown)",
-			G_STRFUNC, i, t->case_match_offset, oc);
+			"%s(%s): i=%zu, expected %d, got oc=%d (length unknown)",
+			G_STRFUNC, name, i, t->case_match_offset, oc);
 
-		rc = pattern_search(pc, t->haystack, strlen(t->haystack), 0, qs_any);
+		rc = fn(pc, t->haystack, strlen(t->haystack), 0, qs_any);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(): i=%zu, expected %d, got oc=%d (length known)",
-			G_STRFUNC, i, t->case_match_offset, oc);
+			"%s(%s): i=%zu, expected %d, got oc=%d (length known)",
+			G_STRFUNC, name, i, t->case_match_offset, oc);
 
-		ri = pattern_search(pi, t->haystack, 0, 0, qs_any);
+		ri = fn(pi, t->haystack, 0, 0, qs_any);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(): i=%zu, expected %d, got oi=%d (length unknown)",
-			G_STRFUNC, i, t->icase_match_offset, oi);
+			"%s(%s): i=%zu, expected %d, got oi=%d (length unknown)",
+			G_STRFUNC, name, i, t->icase_match_offset, oi);
 
-		ri = pattern_search(pi, t->haystack, strlen(t->haystack), 0, qs_any);
+		ri = fn(pi, t->haystack, strlen(t->haystack), 0, qs_any);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(): i=%zu, expected %d, got oi=%d (length known)",
-			G_STRFUNC, i, t->icase_match_offset, oi);
+			"%s(%s): i=%zu, expected %d, got oi=%d (length known)",
+			G_STRFUNC, name, i, t->icase_match_offset, oi);
 
 		vri = vstrcasestr(t->haystack, t->needle);
 		g_assert_log(vri == ri,
-			"%s(): i=%zu, vri=%p (offset %zd), ri=%p (offset %d)",
-			G_STRFUNC, i,
+			"%s(%s): i=%zu, vri=%p (offset %zd), ri=%p (offset %d)",
+			G_STRFUNC, name, i,
 			vri, vri ? vri - t->haystack : -1,
 			ri, t->icase_match_offset);
 	}
 
-	s_info("%s(): all OK", G_STRFUNC);
+	s_info("%s(): all OK for %s()", G_STRFUNC, name);
 }
 
 static const char *
@@ -796,7 +800,7 @@ qs2str(qsearch_mode_t m)
 }
 
 static void
-test_qs_flags(void)
+test_qs_flags(pattern_search_fn_t *fn, const char *name)
 {
 	size_t i;
 	struct pattern_case_test {
@@ -865,32 +869,32 @@ test_qs_flags(void)
 		pc = pattern_compile(t->needle, FALSE);
 		pi = pattern_compile(t->needle, TRUE);
 
-		rc = pattern_search(pc, t->haystack, 0, 0, t->word);
+		rc = fn(pc, t->haystack, 0, 0, t->word);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(): i=%zu, qs_%s, expected %d, got oc=%d",
-			G_STRFUNC, i, qs2str(t->word), t->case_match_offset, oc);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d",
+			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc);
 
-		rc = pattern_search(pc, t->haystack, strlen(t->haystack), 0, t->word);
+		rc = fn(pc, t->haystack, strlen(t->haystack), 0, t->word);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(): i=%zu, qs_%s, expected %d, got oc=%d",
-			G_STRFUNC, i, qs2str(t->word), t->case_match_offset, oc);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d",
+			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc);
 
-		ri = pattern_search(pi, t->haystack, 0, 0, t->word);
+		ri = fn(pi, t->haystack, 0, 0, t->word);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(): i=%zu, qs_%s, expected %d, got oi=%d",
-			G_STRFUNC, i, qs2str(t->word), t->icase_match_offset, oi);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d",
+			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi);
 
-		ri = pattern_search(pi, t->haystack, strlen(t->haystack), 0, t->word);
+		ri = fn(pi, t->haystack, strlen(t->haystack), 0, t->word);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(): i=%zu, qs_%s, expected %d, got oi=%d",
-			G_STRFUNC, i, qs2str(t->word), t->icase_match_offset, oi);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d",
+			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi);
 	}
 
-	s_info("%s(): all OK", G_STRFUNC);
+	s_info("%s(): all OK for %s()", G_STRFUNC, name);
 }
 
 int
@@ -978,12 +982,16 @@ main(int argc, char **argv)
 	/*
 	 * Test correctness of qs_* flags and case-sensitiveness
 	 *
-	 * We do that before pattern_init() to avoid any redirection to strstr()
-	 * in case benchmarking shows it's the fastest routine.
+	 * We have to check both Quick Search and 2-Way for correctness.
 	 */
 
-	test_pattern_case();
-	test_qs_flags();
+#define FN(x)		x, #x
+
+	test_pattern_case(FN(pattern_qsearch_force));
+	test_qs_flags(FN(pattern_qsearch_force));
+
+	test_pattern_case(FN(pattern_match_force));
+	test_qs_flags(FN(pattern_match_force));
 
 	/*
 	 * OK, seems the above are correct, benchmark our routines.
