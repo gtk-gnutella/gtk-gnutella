@@ -717,8 +717,8 @@ pattern_free_null(cpattern_t **cpat_ptr)
  * @param word	the word matching constraint
  */
 static bool G_HOT
-pattern_has_matched(const cpattern_t *p, const char *tp,
-	const char *start, const char *end, qsearch_mode_t word)
+pattern_has_matched(const cpattern_t *p, const uchar *tp,
+	const uchar *start, const uchar *end, qsearch_mode_t word)
 {
 	bool at_start; 		/* At word boundary for the match start? */
 
@@ -808,17 +808,17 @@ pattern_look_ahead(const cpattern_t *p)
 static const char * G_HOT G_FAST
 pattern_qsearch_unknown(
 	const cpattern_t *cpat,	/**< Compiled pattern */
-	const char *text,		/**< Text we're scanning */
+	const uchar *text,		/**< Text we're scanning */
 	size_t min_tlen,		/**< Minimal known text length */
 	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	register const char *p;		/* Pointer within string pattern */
-	register const char *t;		/* Pointer within text */
-	register const char *tp;	/* Initial local search text pointer */
-	const char *start;			/* Start of matching */
-	const char *end = NULL;		/* Known NUL position within text */
+	register const uchar *p;	/* Pointer within string pattern */
+	register const uchar *t;	/* Pointer within text */
+	register const uchar *tp;	/* Initial local search text pointer */
+	const uchar *start;			/* Start of matching */
+	const uchar *end = NULL;	/* Known NUL position within text */
 	register size_t plen;
-	register const char *pat;
+	register const uchar *pat;
 	size_t ahead;				/* Additional look-ahead we want to perform */
 
 	pattern_check(cpat);
@@ -826,7 +826,7 @@ pattern_qsearch_unknown(
 	start = text;
 	tp = start;
 	plen = cpat->len;
-	pat = cpat->pattern;
+	pat = (const uchar *) cpat->pattern;
 	ahead = MIN(plen << 5, PATTERN_LOOK_AHEAD);
 	ahead = MAX(ahead, PATTERN_LOOK_AHEAD);
 	ahead = MAX(ahead, plen);
@@ -846,22 +846,22 @@ pattern_qsearch_unknown(
 			}
 		}
 		if G_UNLIKELY('\0' == *p) {	/* OK, we got a pattern match */
-			const char *tend;
+			const uchar *tend;
 			if (qs_any == word)
-				return tp;
+				return (char *) tp;
 			tend = &tp[plen];
 			if (AVAILABLE(tp, min_tlen, plen + 1, ahead, end))
 				tend++;
 			if (pattern_has_matched(cpat, tp, text, tend, word))
-				return tp;
+				return (char *) tp;
 			/* FALL THROUGH */
 		}
 		if (!AVAILABLE(tp, min_tlen, plen + 1, ahead, end))
 			return NULL;
 		if (cpat->d8bits)
-			d = ((uint8 *) cpat->delta)[(uchar) tp[plen]];
+			d = ((uint8 *) cpat->delta)[tp[plen]];
 		else
-			d = ((size_t *) cpat->delta)[(uchar) tp[plen]];
+			d = ((size_t *) cpat->delta)[tp[plen]];
 		/* MQS -- Modified Quick Search to account for period in pattern */
 		m = p - pat;
 		if G_UNLIKELY(m > d) {
@@ -893,19 +893,19 @@ pattern_qsearch_unknown(
 static const char * G_HOT G_FAST
 pattern_qsearch_known(
 	const cpattern_t *cpat,	/**< Compiled pattern */
-	const char *text,		/**< Text we're scanning */
+	const uchar *text,		/**< Text we're scanning */
 	size_t tlen,			/**< Text length, known */
 	size_t toffset,			/**< Offset within text for search start */
 	qsearch_mode_t word)	/**< Beginning/whole word matching? */
 {
-	register const char *p;		/* Pointer within string pattern */
-	register const char *t;		/* Pointer within text */
-	register const char *tp;	/* Initial local search text pointer */
-	const char *start;		/* Start of matching */
-	const char *end;		/* End of text (first byte after physical end) */
-	const char *endtp;		/* Upper possible value for `tp' */
+	register const uchar *p;	/* Pointer within string pattern */
+	register const uchar *t;	/* Pointer within text */
+	register const uchar *tp;	/* Initial local search text pointer */
+	const uchar *start;		/* Start of matching */
+	const uchar *end;		/* End of text (first byte after physical end) */
+	const uchar *endtp;		/* Upper possible value for `tp' */
 	size_t plen;
-	const char *pat;
+	const uchar *pat;
 
 	pattern_check(cpat);
 
@@ -914,7 +914,7 @@ pattern_qsearch_known(
 	tp = start;
 	plen = cpat->len;
 	endtp = end - plen;
-	pat = cpat->pattern;
+	pat = (const uchar *) cpat->pattern;
 
 	g_assert('\0' == *end);	/* Ensure tlen was correct! */
 
@@ -972,14 +972,14 @@ pattern_qsearch_known(
 		}																\
 		if G_UNLIKELY(0 == c) {	/* OK, we got a pattern match */		\
 			if (pattern_has_matched(cpat, tp, text, end, word))			\
-				return tp;												\
+				return (char *) tp;										\
 			/* FALL THROUGH */											\
 		}																\
 		/* This works regardless of the icase value because a case */	\
 		/* insensitive pattern is compiled with identical deltas for */	\
 		/* each ASCII case.  For instance, 'A' and 'a' will share */	\
 		/* the same value in the delta[] array. */						\
-		d = ((type *) cpat->delta)[(uchar) tp[plen]];					\
+		d = ((type *) cpat->delta)[tp[plen]];							\
 		/* MQS: Modified Quick Search to account for pattern period */	\
 		PATTERN_PERIOD_ ## period(type)									\
 	}
@@ -1040,24 +1040,23 @@ pattern_qsearch_force(
 		g_assert_log(0 == toffset,
 			"%s(): toffset=%'zu, must be 0 when text length is unknown",
 			G_STRFUNC, toffset);
-		return pattern_qsearch_unknown(cpat, text, 0, word);
+		return pattern_qsearch_unknown(cpat, (uchar *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
 			"%s(): toffset=%'zu, tlen=%'zu",
 			G_STRFUNC, toffset, tlen);
-		return pattern_qsearch_known(cpat, text, tlen, toffset, word);
+		return pattern_qsearch_known(cpat, (uchar *) text, tlen, toffset, word);
 	}
 }
 
 #define PATTERN_MATCHED_UNKNOWN \
-	const char *tp = (const char *) hp;					\
-	const char *text = (const char *) haystack;			\
-	const char *tend = &tp[nlen];						\
+	const uchar *text = haystack;						\
+	const uchar *tend = &hp[nlen];						\
 	if (AVAILABLE(hp, min_hlen, nlen + 1, ahead, end))	\
 		tend++;											\
-	if (pattern_has_matched(p, tp, text, tend, word))	\
-		return tp;
+	if (pattern_has_matched(p, hp, text, tend, word))	\
+		return (char *) hp;
 
 /**
  * Crochemore-Perrin 2-way string matching algorithm.
@@ -1352,11 +1351,10 @@ pattern_match_known(
 	}
 
 #define PATTERN_MATCHED \
-	const char *tp = (const char *) hp;					\
-	const char *text = (const char *) haystack;			\
-	const char *tend = (const char *) &haystack[hlen];	\
-	if (pattern_has_matched(p, tp, text, tend, word))	\
-		return tp;
+	const uchar *text = haystack;						\
+	const uchar *tend = &haystack[hlen];				\
+	if (pattern_has_matched(p, hp, text, tend, word))	\
+		return (char *) hp;
 
 /* POSITIONS in the article, plus "memory" `s' added in MATCH */
 #define PATTERN_POSITIONS(cmp,type)												\
@@ -1559,15 +1557,7 @@ pattern_search(const cpattern_t *cpat, const char *text,
 		)
 			return strstr(text, cpat->pattern);
 
-		/*
-		 * The (void *) cast is because pattern_match_unknown() takes
-		 * an unsigned pointer whereas pattern_qsearch_unknown() takes
-		 * a (probably) signed pointer.  We don't want to change signatures
-		 * at this stage, so casting away to a generic pointer shuts up
-		 * compiler warnings.
-		 */
-
-		return PATTERN_DFLT_UNKNOWN(cpat, (void *) text, 0, word);
+		return PATTERN_DFLT_UNKNOWN(cpat, (uchar *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
@@ -1584,7 +1574,7 @@ pattern_search(const cpattern_t *cpat, const char *text,
 		)
 			return strstr(text + toffset, cpat->pattern);
 
-		return PATTERN_DFLT_KNOWN(cpat, (void *) text, tlen, toffset, word);
+		return PATTERN_DFLT_KNOWN(cpat, (uchar *) text, tlen, toffset, word);
 	}
 }
 
@@ -1612,13 +1602,13 @@ pattern_match_force(
 		g_assert_log(0 == toffset,
 			"%s(): toffset=%'zu, must be 0 when text length is unknown",
 			G_STRFUNC, toffset);
-		return pattern_match_unknown(cpat, (void *) text, 0, word);
+		return pattern_match_unknown(cpat, (uchar *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
 			"%s(): toffset=%'zu, tlen=%'zu",
 			G_STRFUNC, toffset, tlen);
-		return pattern_match_known(cpat, (void *) text, tlen, toffset, word);
+		return pattern_match_known(cpat, (uchar *) text, tlen, toffset, word);
 	}
 }
 
