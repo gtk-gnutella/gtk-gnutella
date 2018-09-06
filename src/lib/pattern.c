@@ -2317,9 +2317,8 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 #define PATTERN_TM_OUTLIERS		3.0		/* Standard deviation radius */
 #define PATTERN_TM_ITEMS		30		/* Amount of items we need at least */
 
-static const char pattern_alphabet[] =
-	"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789"
-	" (){}[]!?+-=<>:~.,;/'`@#$%^&*|\\\"";
+static const char pattern_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+static const char pattern_non_alphabet = '!';
 
 /**
  * Fill `buf' with random characters from the pattern_alphabet[].
@@ -2398,26 +2397,29 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 	 * Choose a random needle causing a late match, if possible.
 	 */
 
-#define PATTERN_RANDOM_TRY 1000
+#define PATTERN_RANDOM_TRY 2
 
 	for (i = 0; i < PATTERN_RANDOM_TRY; i++) {
 		char c;
 		char *p;
 
 		pattern_fill_random(ctx->needle, ctx->nlen + 1);
-		c = ctx->needle[2];
-		ctx->needle[2] = '\0';
+		c = ctx->needle[ctx->nlen];
+		ctx->needle[ctx->nlen] = '\0';
 		p = vstrstr(ctx->s, ctx->needle);
-		ctx->needle[2] = c;
+		ctx->needle[ctx->nlen] = c;
 
 		if (NULL == p || ptr_diff(p, ctx->s) >= 3 * ctx->slen / 5)
 			break;
 	}
 
-	if (i >= PATTERN_RANDOM_TRY) {
-		s_warning("%s(): could not find 2-byte needle with a late match",
-			G_STRFUNC);
-	}
+	/*
+	 * Use a non-alphabet last needle character if we could not find
+	 * a random needle that matches late.
+	 */
+
+	if (i >= PATTERN_RANDOM_TRY)
+		ctx->needle[ctx->nlen - 1] = pattern_non_alphabet;
 
 	pattern_free_null(&ctx->cp);
 	ctx->cp = pattern_compile_fast(ctx->needle, ctx->nlen, FALSE);
