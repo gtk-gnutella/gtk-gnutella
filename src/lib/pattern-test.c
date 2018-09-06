@@ -985,13 +985,13 @@ main(int argc, char **argv)
 	 * We have to check both Quick Search and 2-Way for correctness.
 	 */
 
-#define FN(x)		x, #x
+#define FN(x)		x ## _force, #x
 
-	test_pattern_case(FN(pattern_qsearch_force));
-	test_qs_flags(FN(pattern_qsearch_force));
+	test_pattern_case(FN(pattern_qsearch));
+	test_pattern_case(FN(pattern_match));
 
-	test_pattern_case(FN(pattern_match_force));
-	test_qs_flags(FN(pattern_match_force));
+	test_qs_flags(FN(pattern_qsearch));
+	test_qs_flags(FN(pattern_match));
 
 	/*
 	 * OK, seems the above are correct, benchmark our routines.
