@@ -55,6 +55,31 @@
 
 #define CPU_CACHELINE	(8 * sizeof(long))	/* Guesstimate of CPU cacheline */
 
+typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
+typedef char *(pattern_strchr_t)(const char *s, int c);
+typedef size_t (pattern_strlen_t)(const char *s);
+typedef const char *(pattern_dflt_unknown_t)(
+	const cpattern_t *p, const uchar *h, size_t mh, qsearch_mode_t m);
+typedef const char *(pattern_dflt_known_t)(
+	const cpattern_t *p, const uchar *h, size_t hl, size_t ho, qsearch_mode_t m);
+
+pattern_memchr_t *fast_memchr = memchr;
+pattern_strchr_t *fast_strchr = strchr;
+pattern_strlen_t *fast_strlen = strlen;
+
+static size_t pattern_unknown_cutoff;	/* Needle cut-off length */
+static size_t pattern_known_cutoff;
+
+static const char *pattern_match_unknown(
+	const cpattern_t *p, const uchar *h, size_t mh, qsearch_mode_t m);
+static const char *pattern_qsearch_unknown(
+	const cpattern_t *p, const uchar *h, size_t mh, qsearch_mode_t m);
+
+static const char *pattern_match_known(
+	const cpattern_t *p, const uchar *h, size_t hl, size_t ho, qsearch_mode_t m);
+static const char *pattern_qsearch_known(
+	const cpattern_t *p, const uchar *h, size_t hl, size_t ho, qsearch_mode_t m);
+
 /*
  * These macros allow to switch benchmarked default routines easily.
  *
@@ -68,25 +93,18 @@
  * "pattern-test -bP -L1 -u" and show what happens for larger needles.
  */
 #if 1
-#define PATTERN_DFLT_UNKNOWN	pattern_match_unknown
-#define PATTERN_DFLT_KNOWN		pattern_match_known
-#define PATTERN_DFLT_2WAY		TRUE
+static pattern_dflt_unknown_t *pattern_dflt_unknown = pattern_match_unknown;
+static pattern_dflt_known_t   *pattern_dflt_known   = pattern_match_known;
+static bool                    pattern_dflt_u_2way  = TRUE;
+static const char *            pattern_dflt_name_u  = "pattern_match_unknown";
+static const char *            pattern_dflt_name_k  = "pattern_match_known";
 #else
-#define PATTERN_DFLT_UNKNOWN	pattern_qsearch_unknown
-#define PATTERN_DFLT_KNOWN		pattern_qsearch_known
-#define PATTERN_DFLT_2WAY		FALSE
+static pattern_dflt_unknown_t *pattern_dflt_unknown = pattern_qsearch_unknown;
+static pattern_dflt_known_t   *pattern_dflt_known   = pattern_qsearch_known;
+static bool                    pattern_dflt_u_2way  = FALSE;
+static const char *            pattern_dflt_name_u  = "pattern_qsearch_unknown";
+static const char *            pattern_dflt_name_k  = "pattern_qsearch_known";
 #endif
-
-typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
-typedef char *(pattern_strchr_t)(const char *s, int c);
-typedef size_t (pattern_strlen_t)(const char *s);
-
-pattern_memchr_t *fast_memchr = memchr;
-pattern_strchr_t *fast_strchr = strchr;
-pattern_strlen_t *fast_strlen = strlen;
-
-static size_t pattern_unknown_cutoff;	/* Needle cut-off length */
-static size_t pattern_known_cutoff;
 
 enum cpattern_magic { CPATTERN_MAGIC = 0x3e074c43 };
 
@@ -1557,7 +1575,7 @@ pattern_search(const cpattern_t *cpat, const char *text,
 		)
 			return strstr(text, cpat->pattern);
 
-		return PATTERN_DFLT_UNKNOWN(cpat, (uchar *) text, 0, word);
+		return pattern_dflt_unknown(cpat, (uchar *) text, 0, word);
 	} else {
 		G_PREFETCH_R(text + toffset);
 		g_assert_log(toffset <= tlen,
@@ -1574,7 +1592,7 @@ pattern_search(const cpattern_t *cpat, const char *text,
 		)
 			return strstr(text + toffset, cpat->pattern);
 
-		return PATTERN_DFLT_KNOWN(cpat, (uchar *) text, tlen, toffset, word);
+		return pattern_dflt_known(cpat, (uchar *) text, tlen, toffset, word);
 	}
 }
 
@@ -2116,8 +2134,8 @@ vstrstr(const char *haystack, const char *needle)
 	 */
 
 	pattern_compile_static(&p, delta, uperiod,
-		needle, nlen, FALSE, PATTERN_DFLT_2WAY);
-	match = PATTERN_DFLT_UNKNOWN(&p, (void *) h, min_hlen, qs_any);
+		needle, nlen, FALSE, pattern_dflt_u_2way);
+	match = pattern_dflt_unknown(&p, (void *) h, min_hlen, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);		/* vstrstr() returns a non-const */
@@ -2159,8 +2177,8 @@ vstrcasestr(const char *haystack, const char *needle)
 	nlen = ptr_diff(n, needle);
 
 	pattern_compile_static(&p, delta, uperiod,
-		needle, nlen, TRUE, PATTERN_DFLT_2WAY);
-	match = PATTERN_DFLT_UNKNOWN(&p, (void *) (haystack + 1), nlen - 1, qs_any);
+		needle, nlen, TRUE, pattern_dflt_u_2way);
+	match = pattern_dflt_unknown(&p, (void *) (haystack + 1), nlen - 1, qs_any);
 	pattern_free(&p);
 
 	return deconstify_char(match);
@@ -2282,7 +2300,7 @@ pattern_strstr(const char *haystack, const cpattern_t *cpat)
 		return strstr(haystack, cpat->pattern);
 
 	return deconstify_char(
-			PATTERN_DFLT_UNKNOWN(cpat, (void *) haystack, 0, qs_any));
+			pattern_dflt_unknown(cpat, (void *) haystack, 0, qs_any));
 }
 
 /**
@@ -2298,7 +2316,7 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 		return strstr(haystack, cpat->pattern);
 
 	return deconstify_char(
-		PATTERN_DFLT_KNOWN(cpat, (void *) haystack, hlen, 0, qs_any));
+		pattern_dflt_known(cpat, (void *) haystack, hlen, 0, qs_any));
 }
 
 #define PATTERN_HAYSTACK_LEN	32768	/* Haystack string length */
@@ -2307,8 +2325,18 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 #define PATTERN_TM_OUTLIERS		3.0		/* Standard deviation radius */
 #define PATTERN_TM_ITEMS		30		/* Amount of items we need at least */
 
-static const char pattern_alphabet[] = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
+static const char pattern_alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 static const char pattern_non_alphabet = '!';
+static const char *pattern_words[] = {
+	"the", "their", "this",
+	"absolute", "garbage", "random", "why",
+	"http", "and", "share", "your", "do", "done",
+	"enage", "large", "wealth",
+	"these", "come", "out", "calls", "to", "fortune",
+	"cannot-match", "because", "not", "in", "alphabet",
+	".", ",", ":", ",",
+	"we", "have", "enough", "now"
+};
 
 /**
  * Fill `buf' with random characters from the pattern_alphabet[].
@@ -2333,12 +2361,73 @@ pattern_fill_random(char *buf, size_t len)
 	*p = '\0';
 }
 
+/**
+ * Fill `buf' with random words from pattern_words[].
+ *
+ * @param buf	allocated buffer
+ * @param len	buffer length (including trailing NUL)
+ */
+static void
+pattern_fill_text(char *buf, size_t len)
+{
+	char *p = buf;
+	size_t max = N_ITEMS(pattern_words) - 1;
+
+	g_assert(size_is_positive(len));
+
+	while (p < buf + (len - 1)) {
+		const char *w = pattern_words[random_value(max)];
+		size_t n;
+
+		n = clamp_strcpy(p, len - (p - buf), w);
+		p += n;
+
+		if (p < buf + len) {
+			n = clamp_strcpy(p, len - (p - buf), " ");
+			p += n;
+		}
+	}
+
+	g_assert(ptr_diff(p, buf) == len - 1);	/* At end of buffer */
+
+	*p = '\0';
+}
+
+/**
+ * Find most used letter in text.
+ *
+ * @return code of most used letter.
+ */
+static int
+pattern_find_most_used(const char *s)
+{
+	size_t used[MAX_INT_VAL(uint8)];
+	int c;
+	size_t i, max;
+
+	ZERO(&used);
+
+	while ((c = *(const uchar *) s++))
+		used[c]++;
+
+	for (i = max = 0; i < N_ITEMS(used); i++) {
+		if (used[i] > max) {
+			max = used[i];
+			c = (int) i;
+		}
+	}
+
+	return c;
+}
+
 enum pattern_benchmark_type {
 	PATTERN_BENCH_MEMCHR,
 	PATTERN_BENCH_STRCHR,
 	PATTERN_BENCH_STRLEN,
 	PATTERN_BENCH_STRSTR,
-	PATTERN_BENCH_STRSTR_LEN
+	PATTERN_BENCH_STRSTR_LEN,
+	PATTERN_BENCH_DFLT_UNKNOWN,
+	PATTERN_BENCH_DFLT_KNOWN
 };
 
 /* These are for benchmarking only */
@@ -2353,20 +2442,24 @@ struct pattern_benchmark_context {
 	char *s;
 	char *needle;
 	int c;
+	bool use_text;					/* use random text words */
 	size_t slen;
 	size_t nlen;
 	size_t loops_requested;
 	size_t loops_needed;
 	size_t minimum_time;			/* nanoseconds */
-	const char *name[2], *fastest;
+	size_t fastest;					/* index of fastest routine */
+	const char *name[2];
 	double elapsed[2], sdev[2];
 	cpattern_t *cp;
 	union {
-		pattern_memchr_t *mc[2], *fmemchr;
-		pattern_strchr_t *sc[2], *fstrchr;
-		pattern_strlen_t *sl[2], *fstrlen;
-		pattern_strstr_t *ss[2], *fstrstr;
-		pattern_strstr_len_t *ssl[2], *fstrstrlen;
+		pattern_memchr_t *mc[2];
+		pattern_strchr_t *sc[2];
+		pattern_strlen_t *sl[2];
+		pattern_strstr_t *ss[2];
+		pattern_strstr_len_t *ssl[2];
+		pattern_dflt_unknown_t *pu[2];
+		pattern_dflt_known_t *pk[2];
 	} u;
 };
 
@@ -2381,7 +2474,14 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 
 	g_assert(ctx->nlen >= 2);
 
-	pattern_fill_random(ctx->s, ctx->slen + 1);
+	if (ctx->use_text) {
+		pattern_fill_text(ctx->s, ctx->slen + 1);
+		ctx->needle[0] = pattern_alphabet[
+			random_value(CONST_STRLEN(pattern_alphabet) - 1)];
+	} else {
+		pattern_fill_random(ctx->s, ctx->slen + 1);
+		ctx->needle[0] = pattern_find_most_used(ctx->s);
+	}
 
 	/*
 	 * Choose a random needle causing a late match, if possible.
@@ -2393,7 +2493,7 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 		char c;
 		char *p;
 
-		pattern_fill_random(ctx->needle, ctx->nlen + 1);
+		pattern_fill_random(ctx->needle + 1, ctx->nlen);
 		c = ctx->needle[ctx->nlen];
 		ctx->needle[ctx->nlen] = '\0';
 		p = vstrstr(ctx->s, ctx->needle);
@@ -2446,13 +2546,14 @@ pattern_cutoff_sign(const struct pattern_benchmark_context *ctx)
 }
 
 static void
-pattern_benchmark(enum pattern_benchmark_type which, int verbose,
+pattern_benchmark(
+	enum pattern_benchmark_type which,
+	int verbose,
 	struct pattern_benchmark_context *ctx)
 {
 	tm_t start, end;
 	void *result[2];
 	size_t loops_run = 0;
-	size_t faster = 0;				/* By default, first routine is faster */
 	size_t i;
 	double threshold;
 	statx_t *sx[2];
@@ -2467,6 +2568,17 @@ pattern_benchmark(enum pattern_benchmark_type which, int verbose,
 	 */
 
 	switch (which) {
+	case PATTERN_BENCH_STRSTR:
+	case PATTERN_BENCH_STRSTR_LEN:
+	case PATTERN_BENCH_DFLT_UNKNOWN:
+	case PATTERN_BENCH_DFLT_KNOWN:
+		pattern_randomize_haystack_needle(ctx);
+		/* FALL THROUGH */
+	default:
+		break;
+	}
+
+	switch (which) {
 	case PATTERN_BENCH_MEMCHR:
 		(*ctx->u.mc[1])(ctx->s, ctx->c, ctx->slen);
 		break;
@@ -2477,12 +2589,16 @@ pattern_benchmark(enum pattern_benchmark_type which, int verbose,
 		(*ctx->u.sl[1])(ctx->s);
 		break;
 	case PATTERN_BENCH_STRSTR:
-		pattern_randomize_haystack_needle(ctx);
 		(*ctx->u.ss[1])(ctx->cp, ctx->s, ctx->needle);
 		break;
 	case PATTERN_BENCH_STRSTR_LEN:
-		pattern_randomize_haystack_needle(ctx);
 		(*ctx->u.ssl[1])(ctx->cp, ctx->s, ctx->slen, ctx->needle);
+		break;
+	case PATTERN_BENCH_DFLT_UNKNOWN:
+		(*ctx->u.pu[1])(ctx->cp, (uchar *) ctx->s, 0, qs_any);
+		break;
+	case PATTERN_BENCH_DFLT_KNOWN:
+		(*ctx->u.pk[1])(ctx->cp, (uchar *) ctx->s, ctx->slen, 0, qs_any);
 		break;
 	}
 
@@ -2511,6 +2627,8 @@ retry:
 	switch (which) {
 	case PATTERN_BENCH_STRSTR:
 	case PATTERN_BENCH_STRSTR_LEN:
+	case PATTERN_BENCH_DFLT_UNKNOWN:
+	case PATTERN_BENCH_DFLT_KNOWN:
 		if (7 == (iterations & 0x7))
 			pattern_randomize_haystack_needle(ctx);
 		/* FALL THROUGH */
@@ -2555,6 +2673,17 @@ retry:
 			while (n--) {
 				result[i] =
 					(*ctx->u.ssl[i])(ctx->cp, ctx->s, ctx->slen, ctx->needle);
+			}
+			break;
+		case PATTERN_BENCH_DFLT_UNKNOWN:
+			while (n--)
+				result[i] = (char *) (*ctx->u.pu[i])(
+					ctx->cp, (uchar *) ctx->s, 0, qs_any);
+			break;
+		case PATTERN_BENCH_DFLT_KNOWN:
+			while (n--) {
+				result[i] = (char *) (*ctx->u.pk[i])(
+					ctx->cp, (uchar *) ctx->s, ctx->slen, 0, qs_any);
 			}
 			break;
 		}
@@ -2614,7 +2743,7 @@ done:
 		statx_free_null(&sx[i]);
 	}
 
-	faster = pattern_cutoff_sign(ctx) < 0 ? 1 : 0;
+	ctx->fastest = pattern_cutoff_sign(ctx) < 0 ? 1 : 0;
 
 	if (verbose & PATTERN_INIT_BENCH_TIME) {
 		tm_now_exact(&end);
@@ -2631,38 +2760,44 @@ done:
 			ctx->elapsed[0] > ctx->elapsed[1] ? "faster " : "",
 			ctx->name[1], ctx->elapsed[1]);
 	}
+}
 
-	ctx->fastest = ctx->name[faster];
+/**
+ * Benchmark n times, choose winner.
+ *
+ * @return winner index (0 or 1).
+ */
+static int
+pattern_benchmark_n_times(
+	size_t n,
+	enum pattern_benchmark_type which,
+	int verbose,
+	struct pattern_benchmark_context *ctx)
+{
+	size_t i, sum = 0;
+
+	g_assert(n & 0x1);	/* must be odd */
+
+	for (i = 0; i < n; i++) {
+		pattern_benchmark(which, verbose, ctx);
+		sum += ctx->fastest;
+	}
+
+	i = (sum > n / 2) ? 1 : 0;
 
 	if (verbose & PATTERN_INIT_SELECTED) {
 		switch (which) {
 		case PATTERN_BENCH_MEMCHR:
 		case PATTERN_BENCH_STRCHR:
 		case PATTERN_BENCH_STRLEN:
-			s_info("will use %s()", ctx->fastest);
+			s_info("will use %s()", ctx->name[i]);
 			/* FALL THROUGH */
 		default:
 			break;
 		}
 	}
 
-	switch (which) {
-	case PATTERN_BENCH_MEMCHR:
-		ctx->u.fmemchr = ctx->u.mc[faster];
-		break;
-	case PATTERN_BENCH_STRCHR:
-		ctx->u.fstrchr = ctx->u.sc[faster];
-		break;
-	case PATTERN_BENCH_STRLEN:
-		ctx->u.fstrlen = ctx->u.sl[faster];
-		break;
-	case PATTERN_BENCH_STRSTR:
-		ctx->u.fstrstr = ctx->u.ss[faster];
-		break;
-	case PATTERN_BENCH_STRSTR_LEN:
-		ctx->u.fstrstrlen = ctx->u.ssl[faster];
-		break;
-	}
+	return i;
 }
 
 /**
@@ -2671,6 +2806,8 @@ done:
 static void
 pattern_benchmark_memchr(int verbose, struct pattern_benchmark_context *ctx)
 {
+	size_t i;
+
 	ctx->name[0] = "memchr";
 	ctx->u.mc[0] = memchr;
 
@@ -2679,8 +2816,8 @@ pattern_benchmark_memchr(int verbose, struct pattern_benchmark_context *ctx)
 
 	ctx->c = '\0';
 
-	pattern_benchmark(PATTERN_BENCH_MEMCHR, verbose, ctx);
-	fast_memchr = ctx->u.fmemchr;
+	i = pattern_benchmark_n_times(3, PATTERN_BENCH_MEMCHR, verbose, ctx);
+	fast_memchr = ctx->u.mc[i];
 }
 
 /**
@@ -2689,6 +2826,8 @@ pattern_benchmark_memchr(int verbose, struct pattern_benchmark_context *ctx)
 static void
 pattern_benchmark_strchr(int verbose, struct pattern_benchmark_context *ctx)
 {
+	size_t i;
+
 	ctx->name[0] = "strchr";
 	ctx->u.sc[0] = strchr;
 
@@ -2698,8 +2837,8 @@ pattern_benchmark_strchr(int verbose, struct pattern_benchmark_context *ctx)
 	/* Not in the alphabet => will scan the whole string */
 	ctx->c = pattern_non_alphabet;
 
-	pattern_benchmark(PATTERN_BENCH_STRCHR, verbose, ctx);
-	fast_strchr = ctx->u.fstrchr;
+	i = pattern_benchmark_n_times(3, PATTERN_BENCH_STRCHR, verbose, ctx);
+	fast_strchr = ctx->u.sc[i];
 }
 
 /**
@@ -2708,14 +2847,16 @@ pattern_benchmark_strchr(int verbose, struct pattern_benchmark_context *ctx)
 static void
 pattern_benchmark_strlen(int verbose, struct pattern_benchmark_context *ctx)
 {
+	size_t i;
+
 	ctx->name[0] = "strlen";
 	ctx->u.sl[0] = strlen;
 
 	ctx->name[1] = "pattern_strlen";
 	ctx->u.sl[1] = pattern_strlen;
 
-	pattern_benchmark(PATTERN_BENCH_STRLEN, verbose, ctx);
-	fast_strlen = ctx->u.fstrlen;
+	i = pattern_benchmark_n_times(3, PATTERN_BENCH_STRLEN, verbose, ctx);
+	fast_strlen = ctx->u.sl[i];
 }
 
 static char *
@@ -2728,11 +2869,10 @@ pattern_benchmark_strstr(
 
 static char *
 pattern_benchmark_dflt_unknown(
-	cpattern_t *cp, const char *haystack, const char *needle)
+	cpattern_t *cp, const char *h, const char *n)
 {
-	(void) needle;
-	return deconstify_char(
-		PATTERN_DFLT_UNKNOWN(cp, (void *) haystack, 0, qs_any));
+	(void) n;
+	return deconstify_char(pattern_dflt_unknown(cp, (uchar *) h, 0, qs_any));
 }
 
 static char *
@@ -2746,16 +2886,65 @@ pattern_benchmark_strstrlen(
 
 static char *
 pattern_benchmark_dflt_known(
-	cpattern_t *cp, const char *haystack, size_t hlen, const char *needle)
+	cpattern_t *cp, const char *h, size_t hl, const char *n)
 {
-	(void) needle;
-	return deconstify_char(
-		PATTERN_DFLT_KNOWN(cp, (void *) haystack, hlen, 0, qs_any));
+	(void) n;
+	return deconstify_char(pattern_dflt_known(cp, (uchar *) h, hl, 0, qs_any));
+}
+
+/**
+ * Benchmark Quick Search versus 2-Way for matching with known / unknown
+ * text lengths, for typical string searches.
+ *
+ * Indeed, depending on the compiler, Quick Search is sometimes faster,
+ * sometimes slower than 2-Way.
+ */
+static void
+pattern_benchmark_dflt(int verbose, struct pattern_benchmark_context *ctx)
+{
+	size_t n;
+	char needle[PATTERN_NEEDLE_LEN + 1];
+	size_t sum = 0;
+	size_t winner = 0;
+
+#define PATTERN_BENCH_DFLT_NEEDLES	5	/* odd number */
+
+	ctx->needle = needle;
+	ctx->use_text = TRUE;	/* More representative of real text */
+
+	ctx->name[0] = "pattern_qsearch_unknown";
+	ctx->u.pu[0] = pattern_qsearch_unknown;
+
+	ctx->name[1] = "pattern_match_unknown";
+	ctx->u.pu[1] = pattern_match_unknown;
+
+	for (n = 3; n < 3 + PATTERN_BENCH_DFLT_NEEDLES; n++) {
+		ctx->nlen = n;		/* Typical needle length */
+		sum += pattern_benchmark_n_times(3,
+			PATTERN_BENCH_DFLT_UNKNOWN, verbose, ctx);
+	}
+
+	if (sum > PATTERN_BENCH_DFLT_NEEDLES / 2)
+		winner = 1;
+
+	if (verbose & PATTERN_INIT_SELECTED) {
+		s_info("will use %s()", ctx->name[winner]);
+	}
+
+	pattern_dflt_unknown = ctx->u.pu[winner];
+	pattern_dflt_name_u = ctx->name[winner];
+	pattern_dflt_u_2way = (pattern_dflt_unknown == pattern_match_unknown);
+
+	/*
+	 * With known text lengths, always use the 2-Way String Matching
+	 * algorithm since it is guaranteed to be O(n) and is consistently
+	 * faster anyway.
+	 */
 }
 
 /**
  * Benchmark the strstr() routine against our pattern search to find the
- * cut-off point where it pays to use ou pattern search instead of strstr(),
+ * cut-off point where it pays to use our pattern search instead of strstr(),
  * probably for longer needles.
  */
 static void
@@ -2768,15 +2957,17 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 	int first_sign = 0;
 	bool next_reversal_ok = FALSE;
 
+	ctx->use_text = FALSE;
+
 	if (PATTERN_BENCH_STRSTR == which) {
 		ctx->name[0] = "strstr";
 		ctx->u.ss[0] = pattern_benchmark_strstr;
-		ctx->name[1] = STRINGIFY(PATTERN_DFLT_UNKNOWN);
+		ctx->name[1] = pattern_dflt_name_u;
 		ctx->u.ss[1] = pattern_benchmark_dflt_unknown;
 	} else {
 		ctx->name[0]  = "strstrlen";
 		ctx->u.ssl[0] = pattern_benchmark_strstrlen;
-		ctx->name[1]  = STRINGIFY(PATTERN_DFLT_KNOWN);
+		ctx->name[1]  = pattern_dflt_name_k;
 		ctx->u.ssl[1] = pattern_benchmark_dflt_known;
 	}
 
@@ -2918,6 +3109,7 @@ pattern_init(int verbose)
 	pattern_benchmark_memchr(verbose, &ctx);
 	pattern_benchmark_strchr(verbose, &ctx);
 	pattern_benchmark_strlen(verbose, &ctx);
+	pattern_benchmark_dflt(verbose, &ctx);
 	pattern_benchmark_cutoff_strstr_len(verbose, &ctx);
 
 	if (MAX_INT_VAL(size_t) == pattern_known_cutoff) {
