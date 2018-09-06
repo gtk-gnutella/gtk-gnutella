@@ -850,6 +850,10 @@ test_qs_flags(void)
 		{ "bxand-Also",		"and",		qs_begin,	NO,		NO },
 		{ "bxand-Also",		"and",		qs_end,		2,		2 },
 		{ "bxand-Also",		"and",		qs_whole,	NO,		NO },
+		{ "bxAnd-and",		"And",		qs_any,		2,		2 },
+		{ "bxAnd-and",		"And",		qs_begin,	NO,		6 },
+		{ "bxAnd-and",		"And",		qs_end,		2,		2 },
+		{ "bxAnd-and",		"And",		qs_whole,	NO,		6 },
 	};
 
 	for (i = 0; i < N_ITEMS(tests); i++) {
