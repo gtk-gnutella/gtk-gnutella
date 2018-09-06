@@ -90,7 +90,7 @@ static const char *pattern_qsearch_known(
  * can be O(m*n) in pathological cases.
  *
  * To witness algorithmic complexity on pathological cases, run
- * "pattern-test -bP -L1 -u" and show what happens for larger needles.
+ * "pattern-test -bP -L1 -u" and see what happens for larger needles.
  */
 #if 1
 static pattern_dflt_unknown_t *pattern_dflt_unknown = pattern_match_unknown;
@@ -2323,7 +2323,7 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 #define PATTERN_NEEDLE_LEN		128		/* Maximum needle length */
 #define PATTERN_LOOP_MAX		1200000	/* Safe upper bound */
 #define PATTERN_TM_OUTLIERS		3.0		/* Standard deviation radius */
-#define PATTERN_TM_ITEMS		30		/* Amount of items we need at least */
+#define PATTERN_TM_ITEMS		50		/* Amount of items we need at least */
 
 static const char pattern_alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 static const char pattern_non_alphabet = '!';
@@ -2343,15 +2343,18 @@ static const char *pattern_words[] = {
  *
  * @param buf	allocated buffer
  * @param len	buffer length (including trailing NUL)
+ * @param asize	alphabet size
  */
 static void
-pattern_fill_random(char *buf, size_t len)
+pattern_fill_random_size(char *buf, size_t len, size_t asize)
 {
 	char *p = buf;
 	size_t i = len;
-	size_t max = CONST_STRLEN(pattern_alphabet) - 1;
+	size_t max = asize - 1;
 
 	g_assert(size_is_positive(len));
+	g_assert(size_is_positive(asize));
+	g_assert(asize <= CONST_STRLEN(pattern_alphabet));
 
 	while (--i)
 		*p++ = pattern_alphabet[random_value(max)];
@@ -2359,6 +2362,18 @@ pattern_fill_random(char *buf, size_t len)
 	g_assert(ptr_diff(p, buf) == len - 1);	/* At end of buffer */
 
 	*p = '\0';
+}
+
+/**
+ * Fill `buf' with random characters from the pattern_alphabet[].
+ *
+ * @param buf	allocated buffer
+ * @param len	buffer length (including trailing NUL)
+ */
+static void
+pattern_fill_random(char *buf, size_t len)
+{
+	pattern_fill_random_size(buf, len, CONST_STRLEN(pattern_alphabet));
 }
 
 /**
@@ -2445,9 +2460,10 @@ struct pattern_benchmark_context {
 	bool use_text;					/* use random text words */
 	size_t slen;
 	size_t nlen;
+	size_t alphabet_size;
 	size_t loops_requested;
 	size_t loops_needed;
-	size_t minimum_time;			/* nanoseconds */
+	double granularity;				/* clock granularity, in seconds */
 	size_t fastest;					/* index of fastest routine */
 	const char *name[2];
 	double elapsed[2], sdev[2];
@@ -2479,7 +2495,7 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 		ctx->needle[0] = pattern_alphabet[
 			random_value(CONST_STRLEN(pattern_alphabet) - 1)];
 	} else {
-		pattern_fill_random(ctx->s, ctx->slen + 1);
+		pattern_fill_random_size(ctx->s, ctx->slen + 1, ctx->alphabet_size);
 		ctx->needle[0] = pattern_find_most_used(ctx->s);
 	}
 
@@ -2493,7 +2509,7 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 		char c;
 		char *p;
 
-		pattern_fill_random(ctx->needle + 1, ctx->nlen);
+		pattern_fill_random_size(ctx->needle + 1, ctx->nlen, ctx->alphabet_size);
 		c = ctx->needle[ctx->nlen];
 		ctx->needle[ctx->nlen] = '\0';
 		p = vstrstr(ctx->s, ctx->needle);
@@ -2555,7 +2571,6 @@ pattern_benchmark(
 	void *result[2];
 	size_t loops_run = 0;
 	size_t i;
-	double threshold;
 	statx_t *sx[2];
 	size_t iterations = 0;
 
@@ -2603,7 +2618,6 @@ pattern_benchmark(
 	}
 
 	ctx->loops_needed = ctx->loops_requested;
-	threshold = 1e-9 * ctx->minimum_time;
 
 	for (i = 0; i < N_ITEMS(sx); i++)
 		sx[i] = statx_make();
@@ -2702,22 +2716,12 @@ retry:
 		ctx->loops_needed, plural(ctx->loops_needed), ctx->nlen);
 
 	/*
-	 * If there is not enough difference between the two routines,
-	 * double the loop count and restart.
-	 */
-
-	if (fabs(ctx->elapsed[0] - ctx->elapsed[1]) <= threshold) {
-		ctx->loops_needed *= 2;
-		goto retry;
-	}
-
-	/*
-	 * If we do not have at least our time threshold, double the
+	 * If we do not have at least our time granularity, double the
 	 * loop count and restart all the tests.
 	 */
 
 	for (i = 0; i < N_ITEMS(ctx->name); i++) {
-		if (ctx->elapsed[i] <= threshold) {
+		if (ctx->elapsed[i] <= ctx->granularity) {
 			ctx->loops_needed *= 2;
 			goto retry;
 		}
@@ -2942,6 +2946,11 @@ pattern_benchmark_dflt(int verbose, struct pattern_benchmark_context *ctx)
 	 */
 }
 
+#define PATTERN_BENCH_CUTOFF_CLOSE		8	/* When are we closing-in? */
+#define PATTERN_BENCH_CUTOFF_LOW		2	/* Lowest needle length */
+#define PATTERN_BENCH_RETRIES			3
+#define PATTERN_BENCH_SMALL_ALPHABET	8
+
 /**
  * Benchmark the strstr() routine against our pattern search to find the
  * cut-off point where it pays to use our pattern search instead of strstr(),
@@ -2953,9 +2962,9 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 	struct pattern_benchmark_context *ctx)
 {
 	char needle[PATTERN_NEEDLE_LEN + 1];
-	size_t i, cutoff = 0;
-	int first_sign = 0;
-	bool next_reversal_ok = FALSE;
+	size_t cutoff = 0, retry = 0;
+	size_t low = PATTERN_BENCH_CUTOFF_LOW, high = PATTERN_NEEDLE_LEN;
+	size_t asize = ctx->alphabet_size;
 
 	ctx->use_text = FALSE;
 
@@ -2973,76 +2982,86 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 
 	ctx->needle = needle;
 
-	for (i = 2; i <= PATTERN_NEEDLE_LEN; i++) {
-		int sign;
+	/*
+	 * Use a binary search, with more benchmarking attempts when we are
+	 * closing-in, i.e. when the difference between high and low is within
+	 * PATTERN_BENCH_CUTOFF_CLOSE entries and we already had a case of
+	 * us being faster than the libc implementation.
+	 */
+
+retry:
+	while (low <= high) {
+		size_t i = low + (high - low) / 2;
+		size_t n = 3, faster;
 
 		if (verbose & PATTERN_INIT_BENCH_INFO)
 			s_info("benchmarking %s(), needle of %zu bytes", ctx->name[1], i);
 
 		ctx->nlen = i;
-		pattern_benchmark(which, verbose, ctx);
 
-		if (verbose & PATTERN_INIT_BENCH_DBG) {
-			s_info("needle of %zu bytes, &elapsed_delta=%.4g", i,
-				ctx->elapsed[1] - ctx->elapsed[0]);
+		n += 2 * retry;		/* Be more granular on subsequent attempts */
+
+		if (
+			high - low <= PATTERN_BENCH_CUTOFF_CLOSE &&
+			high < PATTERN_NEEDLE_LEN		/* Our routine was faster once */
+		) {
+			n += 2;
+			if (high - low <= 2)
+				n += 2;
 		}
-
-		if G_UNLIKELY(0 == first_sign) {
-			first_sign = pattern_cutoff_sign(ctx);
-
-			if (first_sign > 0 && i > 2)
-				s_message("good, %s() became faster than %s()"
-					" for %zu-byte needles",
-					ctx->name[0], ctx->name[1], i);
-		}
-
-		/*
-		 * We expect strstr() to be initially faster than our pattern search.
-		 */
-
-		if (first_sign <= 0) {
-			if (2 == i) {
-				if (verbose & PATTERN_INIT_BENCH_DBG) {
-					s_warning("%s() already slower than %s() at the beginning",
-						ctx->name[0], ctx->name[1]);
-				}
-			}
-			first_sign = 0;
-		}
-
-		sign = pattern_cutoff_sign(ctx);
-
-		if (first_sign != 0 && sign != first_sign) {
-			if (verbose & PATTERN_INIT_BENCH_DBG) {
-				s_info("needle of %zu bytes, sign reversal in favor of %s()",
-					i, sign >= 0 ? ctx->name[0] : ctx->name[1]);
-			}
-			if (cutoff != 0) {
-				/* We had two consecutive loops with sign reversal, confirmed! */
-				if (verbose & PATTERN_INIT_BENCH_DBG)
-					s_info("reversal confirmed with needle of %zu bytes", i);
-				break;		/* Keep cutoff from previous loop */
-			}
-			cutoff = i;
-			if (next_reversal_ok) {
-				if (verbose & PATTERN_INIT_BENCH_DBG)
-					s_info("another reversal with needle of %zu bytes", i);
-				break;		/* This is our cut-off after 2 reversals */
+		faster = pattern_benchmark_n_times(n, which, verbose, ctx);
+		if (0 == faster) {
+			/* Our routine is slower for `i'.
+			 *
+			 * If we were ever faster than the libc version, check at half
+			 * the needle length if length is large enough,
+			 *
+			 * If it is faster then, assume routine is also faster for `i',
+			 * despite our weird benchmarking results.  This is to counter the
+			 * results on time-shared system where the initial benchmarking in
+			 * the middle of the range is going to be in our defavor whereas
+			 * it shouldn't.
+			 */
+			if (i >= PATTERN_BENCH_CUTOFF_CLOSE) {
+				ctx->nlen = i / 2;
+				if (1 == pattern_benchmark_n_times(n, which, verbose, ctx))
+					high = i - 1;		/* Assume we were faster for `i' */
+				else
+					low = i + 1;		/* We are slower for `'i' */
+			} else {
+				low = i + 1;
 			}
 		} else {
-			if (cutoff != 0) {
-				if (verbose & PATTERN_INIT_BENCH_DBG)
-					s_info("no reversal for %zu bytes, resetting", i);
-				cutoff = 0;
-				next_reversal_ok = TRUE;
-			}
+			high = i - 1;
+		}
+	}
+
+	if (low < PATTERN_NEEDLE_LEN) {
+		cutoff = low - 1;
+
+		/*
+		 * Now that we "quickly" converged to a threshold where we appear to
+		 * be faster, refine the search by reducing the range and redo the
+		 * tests.  Hopefully this will stay at the same level or reduce the
+		 * threshold slightly.
+		 *
+		 * We also reduce the alphabet size to make it more stressful on
+		 * naive alogorithms or those that can degenerate to O(mn).
+		 */
+
+		if (retry < PATTERN_BENCH_RETRIES) {
+			retry++;
+			ctx->alphabet_size = PATTERN_BENCH_SMALL_ALPHABET;
+			low = PATTERN_BENCH_CUTOFF_LOW;
+			high = cutoff;
+			goto retry;
 		}
 	}
 
 	if (cutoff != 0) {
 		if (verbose & PATTERN_INIT_SELECTED) {
-			s_info("%s() cut-over is for needles >= %zu bytes",
-				ctx->name[1], cutoff);
+			s_info("%s() cut-over is for needles >= %zu byte%s",
+				ctx->name[1], cutoff, plural(cutoff));
 		}
 	} else {
 		if (verbose & PATTERN_INIT_SELECTED) {
@@ -3059,6 +3078,8 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 	} else {
 		pattern_known_cutoff = cutoff ? cutoff : MAX_INT_VAL(size_t);
 	}
+
+	ctx->alphabet_size = asize;		/* Restore original size */
 }
 
 static void
@@ -3098,28 +3119,21 @@ pattern_init(int verbose)
 
 	ZERO(&ctx);
 
+	ctx.alphabet_size = CONST_STRLEN(pattern_alphabet);
 	ctx.slen = PATTERN_HAYSTACK_LEN;
 	ctx.s = s = xmalloc(ctx.slen + 1);
 	pattern_fill_random(s, ctx.slen + 1);
 
 	tm_precise_granularity(&tn);
-	ctx.loops_requested = 128;				/* Minimum amout of loops */
-	ctx.minimum_time = 300 * tmn2ns(&tn);	/* 300 times the granularity */
+	ctx.loops_requested = 2;				/* Minimum amout of loops */
+	ctx.granularity = tmn2f(&tn);			/* clock granularity */
 
 	pattern_benchmark_memchr(verbose, &ctx);
 	pattern_benchmark_strchr(verbose, &ctx);
 	pattern_benchmark_strlen(verbose, &ctx);
 	pattern_benchmark_dflt(verbose, &ctx);
 	pattern_benchmark_cutoff_strstr_len(verbose, &ctx);
-
-	if (MAX_INT_VAL(size_t) == pattern_known_cutoff) {
-		/* No cut-over with known text length, which is the fastest! */
-		if (verbose & PATTERN_INIT_SELECTED)
-			s_info("assuming no cut-over either for unknown text lengths");
-		pattern_unknown_cutoff = MAX_INT_VAL(size_t);
-	} else {
-		pattern_benchmark_cutoff_strstr(verbose, &ctx);
-	}
+	pattern_benchmark_cutoff_strstr(verbose, &ctx);
 
 	xfree(s);
 	pattern_free_null(&ctx.cp);
