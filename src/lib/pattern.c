@@ -2695,7 +2695,8 @@ pattern_benchmark_strchr(int verbose, struct pattern_benchmark_context *ctx)
 	ctx->name[1] = "pattern_strchr";
 	ctx->u.sc[1] = pattern_strchr;
 
-	ctx->c = '/';	/* Not in the alphabet => will scan the whole string */
+	/* Not in the alphabet => will scan the whole string */
+	ctx->c = pattern_non_alphabet;
 
 	pattern_benchmark(PATTERN_BENCH_STRCHR, verbose, ctx);
 	fast_strchr = ctx->u.fstrchr;
