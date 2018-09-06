@@ -864,14 +864,16 @@ pattern_qsearch_unknown(
 			d = ((size_t *) cpat->delta)[(uchar) tp[plen]];
 		/* MQS -- Modified Quick Search to account for period in pattern */
 		m = p - pat;
-		if G_UNLIKELY(m != 0) {
+		if G_UNLIKELY(m > d) {
 			if (!cpat->aperiodic) {
 				if (cpat->d8bits)
 					m = ((uint8 *) cpat->uperiod)[m];
 				else
 					m = ((size_t *) cpat->uperiod)[m];
+				d = MAX(d, m);
+			} else {
+				d = m;	/* a-periodic pattern */
 			}
-			d = MAX(d, m);
 		}
 		tp += d;
 		min_tlen -= d;
@@ -954,7 +956,7 @@ pattern_qsearch_known(
 #define PATTERN_PERIOD_MAYBE(type)			\
 	{										\
 		size_t m = p - pat;					\
-		if G_UNLIKELY(m != 0) {				\
+		if G_UNLIKELY(m > d) {				\
 			m = ((type *) cpat->uperiod)[m];\
 			d = MAX(d, m);					\
 		}									\
