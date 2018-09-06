@@ -2292,7 +2292,7 @@ pattern_strstr(const char *haystack, const cpattern_t *cpat)
 		return strstr(haystack, cpat->pattern);
 
 	return deconstify_char(
-		pattern_qsearch_unknown(cpat, haystack, 0, qs_any));
+			PATTERN_DFLT_UNKNOWN(cpat, (void *) haystack, 0, qs_any));
 }
 
 /**
@@ -2308,7 +2308,7 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 		return strstr(haystack, cpat->pattern);
 
 	return deconstify_char(
-		pattern_qsearch_known(cpat, haystack, hlen, 0, qs_any));
+		PATTERN_DFLT_KNOWN(cpat, (void *) haystack, hlen, 0, qs_any));
 }
 
 #define PATTERN_HAYSTACK_LEN	32768	/* Haystack string length */
