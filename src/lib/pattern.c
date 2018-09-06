@@ -2763,8 +2763,8 @@ pattern_benchmark_dflt_known(
 }
 
 /**
- * Benchmark the strstr() routine against pattern_qsearch() to find the
- * cut-off point where it pays to use pattern_qsearch() instead of strstr(),
+ * Benchmark the strstr() routine against our pattern search to find the
+ * cut-off point where it pays to use ou pattern search instead of strstr(),
  * probably for longer needles.
  */
 static void
@@ -2815,7 +2815,7 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 		}
 
 		/*
-		 * We expect strstr() to be initially faster than pattern_qsearch().
+		 * We expect strstr() to be initially faster than our pattern search.
 		 */
 
 		if (first_sign <= 0) {
