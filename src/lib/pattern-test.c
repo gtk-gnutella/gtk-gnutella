@@ -872,26 +872,30 @@ test_qs_flags(pattern_search_fn_t *fn, const char *name)
 		rc = fn(pc, t->haystack, 0, 0, t->word);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d",
-			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d (h=\"%s\", n=\"%s\")",
+			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc,
+			t->haystack, t->needle);
 
 		rc = fn(pc, t->haystack, strlen(t->haystack), 0, t->word);
 		oc = NULL == rc ? NO : rc - t->haystack;
 		g_assert_log(t->case_match_offset == oc,
-			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d",
-			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oc=%d (h=\"%s\", n=\"%s\")",
+			G_STRFUNC, name, i, qs2str(t->word), t->case_match_offset, oc,
+			t->haystack, t->needle);
 
 		ri = fn(pi, t->haystack, 0, 0, t->word);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d",
-			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d (h=\"%s\", n=\"%s\")",
+			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi,
+			t->haystack, t->needle);
 
 		ri = fn(pi, t->haystack, strlen(t->haystack), 0, t->word);
 		oi = NULL == ri ? NO : ri - t->haystack;
 		g_assert_log(t->icase_match_offset == oi,
-			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d",
-			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi);
+			"%s(%s): i=%zu, qs_%s, expected %d, got oi=%d (h=\"%s\", n=\"%s\")",
+			G_STRFUNC, name, i, qs2str(t->word), t->icase_match_offset, oi,
+			t->haystack, t->needle);
 	}
 
 	s_info("%s(): all OK for %s()", G_STRFUNC, name);
