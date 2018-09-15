@@ -685,8 +685,8 @@ mingw_win2posix(int error)
 		return ENOFILE;
 	case ERROR_BAD_UNIT:
 	case ERROR_BAD_DEVICE:
+	case ERROR_NOT_READY:		/* No disk "in" the letter drive */
 		return ENODEV;
-	case ERROR_NOT_READY:
 	case ERROR_BAD_COMMAND:
 	case ERROR_CRC:
 	case ERROR_BAD_LENGTH:
@@ -3604,7 +3604,14 @@ mingw_fix_fstat(HANDLE h, const struct _stati64 *nbuf, filestat_t *buf)
 	return mingw_fix_statbuf(h, nbuf, TRUE, buf);
 }
 
-static bool
+/*
+ * Attempt to fix the stat() buffer by post-processing the returned information
+ * from the MinGW runtime.
+ *
+ * @return 0 if OK, -1 on error with errno set, 1 if we could not fix the
+ * status but otherwise should not report any error to the user.
+ */
+static int
 mingw_fix_stat(const wchar_t *pathname,
 	const struct _stati64 *nbuf, filestat_t *buf)
 {
@@ -3622,13 +3629,32 @@ mingw_fix_stat(const wchar_t *pathname,
 			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
 			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
 
-	if (INVALID_HANDLE_VALUE == h)
-		return FALSE;
+	if (INVALID_HANDLE_VALUE == h) {
+		int error = GetLastError();
+
+		/*
+		 * Trap ERROR_NOT_READY errors, for instance when attempting
+		 * to stat "D:/" and it is a CDROM device holding nothing.
+		 */
+
+		if (ERROR_NOT_READY == error) {
+			errno = ENODEV;
+			return -1;
+		}
+
+		/*
+		 * Let them know the error code before failing, so that we may
+		 * diagnose what to do: ignore, fix, etc...
+		 */
+
+		s_warning("%s(): got Windows error code %d", G_STRFUNC, error);
+		return 1;	/* Don't let the stat() call fail, but complain loudly */
+	}
 
 	ok = mingw_fix_statbuf(h, nbuf, FALSE, buf);
 	CloseHandle(h);
 
-	return ok;
+	return ok ? 0 : 1;
 }
 
 int
@@ -3702,9 +3728,21 @@ nofix:
 	 * 		--RAM, 2018-05-12
 	 */
 
-	if (-1 != res && !mingw_fix_stat(pncs.utf16, &nbuf, buf)) {
-		s_carp("%s(): cannot fix information correctly for \"%s\"",
-			G_STRFUNC, pathname);
+	if (-1 != res) {
+		int fix = mingw_fix_stat(pncs.utf16, &nbuf, buf);
+
+		switch (fix) {
+		case 0:		/* OK */
+		default:
+			break;
+		case 1:		/* Could not fix */
+			s_carp("%s(): cannot fix information correctly for \"%s\"",
+				G_STRFUNC, pathname);
+			break;
+		case -1:	/* Report error, errno was set */
+			res = -1;
+			break;
+		}
 	}
 
 	return res;
