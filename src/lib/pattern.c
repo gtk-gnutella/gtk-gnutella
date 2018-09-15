@@ -3124,6 +3124,26 @@ pattern_init(int verbose)
 	xfree(s);
 	pattern_free_null(&ctx.cp);
 
+	/*
+	 * Ensure the cut-off for known-length haystacks is at most the one
+	 * immediately below that of unknown-length haystacks! Due to the way
+	 * algorithms are constructed, there is a runtime penalty for haystacks
+	 * of unknown lengths that will surely compensate for the smaller needle
+	 * size!
+	 */
+
+	if (
+		pattern_known_cutoff >= pattern_unknown_cutoff &&
+		pattern_unknown_cutoff != MAX_INT_VAL(size_t) &&
+		pattern_unknown_cutoff != 0
+	) {
+		pattern_known_cutoff = pattern_unknown_cutoff - 1;
+		if (verbose & PATTERN_INIT_SELECTED) {
+			s_info("cut-over for known text lengths adjusted down to %zu bytes",
+				pattern_known_cutoff);
+		}
+	}
+
 	tm_now_exact(&end);
 
 	if (verbose & (PATTERN_INIT_PROGRESS | PATTERN_INIT_STATS)) {
