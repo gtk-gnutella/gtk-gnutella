@@ -3149,12 +3149,12 @@ pattern_init(int verbose)
 	if (
 		pattern_known_cutoff >= pattern_unknown_cutoff &&
 		pattern_unknown_cutoff != MAX_INT_VAL(size_t) &&
-		pattern_unknown_cutoff != 0
+		pattern_unknown_cutoff > 1
 	) {
 		pattern_known_cutoff = pattern_unknown_cutoff - 1;
 		if (verbose & PATTERN_INIT_SELECTED) {
-			s_info("cut-over for known text lengths adjusted down to %zu bytes",
-				pattern_known_cutoff);
+			s_info("cut-over for known text lengths adjusted down to %zu byte%s",
+				pattern_known_cutoff, plural(pattern_known_cutoff));
 		}
 	}
 
