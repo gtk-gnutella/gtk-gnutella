@@ -69,6 +69,7 @@ pattern_strlen_t *fast_strlen = strlen;
 
 static size_t pattern_unknown_cutoff;	/* Needle cut-off length */
 static size_t pattern_known_cutoff;
+static size_t pattern_vstrstr_cutoff;
 
 static const char *pattern_match_unknown(
 	const cpattern_t *p, const uchar *h, size_t mh, qsearch_mode_t m);
@@ -2112,7 +2113,7 @@ vstrstr(const char *haystack, const char *needle)
 	 * of the given haystack.
 	 */
 
-	if ((nlen = (n - needle)) < pattern_unknown_cutoff)
+	if ((nlen = (n - needle)) < pattern_vstrstr_cutoff)
 		return strstr(haystack + 1, needle);
 
 	/*
@@ -2440,6 +2441,7 @@ enum pattern_benchmark_type {
 	PATTERN_BENCH_STRCHR,
 	PATTERN_BENCH_STRLEN,
 	PATTERN_BENCH_STRSTR,
+	PATTERN_BENCH_VSTRSTR,
 	PATTERN_BENCH_STRSTR_LEN,
 	PATTERN_BENCH_DFLT_UNKNOWN,
 	PATTERN_BENCH_DFLT_KNOWN
@@ -2583,6 +2585,7 @@ pattern_benchmark(
 	 */
 
 	switch (which) {
+	case PATTERN_BENCH_VSTRSTR:
 	case PATTERN_BENCH_STRSTR:
 	case PATTERN_BENCH_STRSTR_LEN:
 	case PATTERN_BENCH_DFLT_UNKNOWN:
@@ -2604,6 +2607,7 @@ pattern_benchmark(
 		(*ctx->u.sl[1])(ctx->s);
 		break;
 	case PATTERN_BENCH_STRSTR:
+	case PATTERN_BENCH_VSTRSTR:
 		(*ctx->u.ss[1])(ctx->cp, ctx->s, ctx->needle);
 		break;
 	case PATTERN_BENCH_STRSTR_LEN:
@@ -2639,6 +2643,7 @@ retry:
 	 */
 
 	switch (which) {
+	case PATTERN_BENCH_VSTRSTR:
 	case PATTERN_BENCH_STRSTR:
 	case PATTERN_BENCH_STRSTR_LEN:
 	case PATTERN_BENCH_DFLT_UNKNOWN:
@@ -2680,6 +2685,7 @@ retry:
 			}
 			break;
 		case PATTERN_BENCH_STRSTR:
+		case PATTERN_BENCH_VSTRSTR:
 			while (n--)
 				result[i] = (*ctx->u.ss[i])(ctx->cp, ctx->s, ctx->needle);
 			break;
@@ -2872,6 +2878,14 @@ pattern_benchmark_strstr(
 }
 
 static char *
+pattern_benchmark_vstrstr(
+	cpattern_t *cp, const char *haystack, const char *needle)
+{
+	(void) cp;
+	return vstrstr(haystack, needle);
+}
+
+static char *
 pattern_benchmark_dflt_unknown(
 	cpattern_t *cp, const char *h, const char *n)
 {
@@ -2968,16 +2982,27 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 
 	ctx->use_text = FALSE;
 
-	if (PATTERN_BENCH_STRSTR == which) {
+	switch (which) {
+	case PATTERN_BENCH_VSTRSTR:
+		ctx->name[0] = "strstr";
+		ctx->u.ss[0] = pattern_benchmark_strstr;
+		ctx->name[1] = "vstrstr";
+		ctx->u.ss[1] = pattern_benchmark_vstrstr;
+		break;
+	case PATTERN_BENCH_STRSTR:
 		ctx->name[0] = "strstr";
 		ctx->u.ss[0] = pattern_benchmark_strstr;
 		ctx->name[1] = pattern_dflt_name_u;
 		ctx->u.ss[1] = pattern_benchmark_dflt_unknown;
-	} else {
+		break;
+	case PATTERN_BENCH_STRSTR_LEN:
 		ctx->name[0]  = "strstrlen";
 		ctx->u.ssl[0] = pattern_benchmark_strstrlen;
 		ctx->name[1]  = pattern_dflt_name_k;
 		ctx->u.ssl[1] = pattern_benchmark_dflt_known;
+		break;
+	default:
+		g_assert_not_reached();
 	}
 
 	ctx->needle = needle;
@@ -3011,7 +3036,8 @@ retry:
 		}
 		faster = pattern_benchmark_n_times(n, which, verbose, ctx);
 		if (0 == faster) {
-			/* Our routine is slower for `i'.
+			/*
+			 * Our routine is slower for `i'.
 			 *
 			 * If we were ever faster than the libc version, check at half
 			 * the needle length if length is large enough,
@@ -3073,13 +3099,30 @@ retry:
 	 * Install cut-off values.
 	 */
 
-	if (PATTERN_BENCH_STRSTR == which) {
-		pattern_unknown_cutoff = cutoff ? cutoff : MAX_INT_VAL(size_t);
-	} else {
-		pattern_known_cutoff = cutoff ? cutoff : MAX_INT_VAL(size_t);
+	cutoff = cutoff != 0 ? cutoff : MAX_INT_VAL(size_t);
+
+	switch (which) {
+	case PATTERN_BENCH_VSTRSTR:
+		pattern_vstrstr_cutoff = cutoff;
+		break;
+	case PATTERN_BENCH_STRSTR:
+		pattern_unknown_cutoff = cutoff;
+		break;
+	case PATTERN_BENCH_STRSTR_LEN:
+		pattern_known_cutoff = cutoff;
+		break;
+	default:
+		g_assert_not_reached();
 	}
 
 	ctx->alphabet_size = asize;		/* Restore original size */
+}
+
+static void
+pattern_benchmark_cutoff_vstrstr(int verbose,
+	struct pattern_benchmark_context *ctx)
+{
+	pattern_benchmark_cutoff_internal(PATTERN_BENCH_VSTRSTR, verbose, ctx);
 }
 
 static void
@@ -3134,6 +3177,21 @@ pattern_init(int verbose)
 	pattern_benchmark_dflt(verbose, &ctx);
 	pattern_benchmark_cutoff_strstr_len(verbose, &ctx);
 	pattern_benchmark_cutoff_strstr(verbose, &ctx);
+
+	/*
+	 * To estimate the cut-off value for vstrstr(), balancing the cost
+	 * of paying the pattern compilation phase over calling strstr()
+	 * directly, we cannot use a long haystack or the pattern compilation
+	 * overhead will be too easily amortized.
+	 *
+	 * We need a small haystack length, but one longer than the maximum
+	 * needle size we're going to test.
+	 */
+
+	STATIC_ASSERT(PATTERN_HAYSTACK_LEN >= PATTERN_NEEDLE_LEN * 2);
+
+	ctx.slen = PATTERN_NEEDLE_LEN * 2;
+	pattern_benchmark_cutoff_vstrstr(verbose, &ctx);
 
 	xfree(s);
 	pattern_free_null(&ctx.cp);
