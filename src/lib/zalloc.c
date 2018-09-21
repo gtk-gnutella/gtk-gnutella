@@ -747,6 +747,20 @@ zprepare(zone_t *zone, char **blk)
 }
 
 /**
+ * Lock private zone, verifying we are on the proper thread.
+ */
+static void
+zlock_private(zone_t *zone, const char *where, unsigned line)
+{
+	g_assert(zone->private);
+	g_assert_log(thread_small_id() == zone->zn_stid,
+		"%s(): zone %s being used by %s",
+		G_STRFUNC, z2str(zone), thread_name());
+
+	spinlock_direct_full(&zone->lock, where, line);
+}
+
+/**
  * Lock zone.
  *
  * All locking of public zones is done with normal spinlocks, which are
@@ -760,11 +774,11 @@ zprepare(zone_t *zone, char **blk)
  *
  * Don't inline to get proper lock location with SPINLOCK_DEBUG
  */
-#define zlock(zone) G_STMT_START {		\
-	if G_UNLIKELY(zone->private)		\
-		spinlock_direct(&zone->lock);	\
-	else								\
-		spinlock(&zone->lock);			\
+#define zlock(zone) G_STMT_START {				\
+	if G_UNLIKELY(zone->private)				\
+		zlock_private(zone, _WHERE_, __LINE__);	\
+	else										\
+		spinlock(&zone->lock);					\
 } G_STMT_END
 
 /**
