@@ -190,7 +190,7 @@ OWLIST_link_mark_removed(const OWLIST_T *list, OWLINK_T *lk)
 	 *	OWLIST_link_in_list(list, lk);
 	 *
 	 * here because the calling routine may not really know the original
-	 * list whether the pointer was.
+	 * list where the pointer was.
 	 *
 	 * All it needs to supply is the NEW list to which it would like to
 	 * add the link, and of course the link pointer must be identical with
