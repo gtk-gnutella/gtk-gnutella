@@ -80,6 +80,8 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 #define STR_FOREIGN_PTR		(1 << 0)	/**< We don't own the pointer */
 #define STR_OBJECT			(1 << 1)	/**< Object created, not a structure */
 #define STR_THREAD			(1 << 2)	/**< String is thread-private */
+#define STR_TRUNCATED		(1 << 3)	/**< Truncation occurred at tail */
+#define STR_SILENT_TRUNCATE	(1 << 4)	/**< No verbose report on truncation */
 
 /**
  * @return length of string.
@@ -552,6 +554,37 @@ str_destroy_null(str_t **s_ptr)
 }
 
 /**
+ * @return whether string was truncated.
+ */
+bool
+str_is_truncated(const struct str * const s)
+{
+	str_check(s);
+
+	return booleanize(s->s_flags & STR_TRUNCATED);
+}
+
+/**
+ * Configure string "silent truncation" attribute on formatting.
+ *
+ * When turned on, any truncation from a formatting instruction would
+ * still flag the string as being truncated but will not loudly report
+ * that truncation occurred.
+ *
+ * This is useful when code is handling the truncation explicitly through
+ * calls to str_is_truncated() by avoiding the additional noise that will
+ * also report truncation.
+ */
+void
+str_set_silent_truncation(struct str * const s, bool on)
+{
+	if (on)
+		s->s_flags |= STR_SILENT_TRUNCATE;
+	else
+		s->s_flags &= ~STR_SILENT_TRUNCATE;
+}
+
+/**
  * Expand/shrink data space, if possible.
  */
 static void
@@ -837,6 +870,7 @@ str_reset(str_t *str)
 	str_check(str);
 
 	str->s_len = 0;
+	str->s_flags &= ~STR_TRUNCATED;
 }
 
 /**
@@ -848,7 +882,7 @@ str_cpy(str_t *str, const char *string)
 {
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 	str_cat_len(str, string, vstrlen(string));
 }
 
@@ -865,7 +899,7 @@ str_cpy_len(str_t *str, const char *string, size_t len)
 {
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 	str_cat_len(str, string, len);
 }
 
@@ -1007,6 +1041,8 @@ str_shift(str_t *str, size_t n)
 	if G_UNLIKELY(0 == n)
 		return;
 
+	str->s_flags &= ~STR_TRUNCATED;
+
 	if (n >= str->s_len) {
 		str->s_len = 0;
 		return;
@@ -1120,6 +1156,8 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 	if (idx < 0 || (size_t) idx >= len)			/* Off string */
 		return;
 
+	str->s_flags &= ~STR_TRUNCATED;
+
 	if (n >= (len - idx)) {				/* A mere truncation till end */
 		str->s_len = idx;
 		return;
@@ -1227,10 +1265,12 @@ str_chomp(str_t *s)
 
 	if (len >= 2 && s->s_data[len - 2] == '\r' && s->s_data[len - 1] == '\n') {
 		s->s_len -= 2;
+		s->s_flags &= ~STR_TRUNCATED;
 	} else if (
 		len >= 1 && (s->s_data[len - 1] == '\r' || s->s_data[len - 1] == '\n')
 	) {
 		s->s_len--;
+		s->s_flags &= ~STR_TRUNCATED;
 	}
 }
 
@@ -1252,8 +1292,38 @@ str_chop(str_t *s)
 
 	c = s->s_data[len - 1];
 	s->s_len--;
+	s->s_flags &= ~STR_TRUNCATED;
 
 	return c;
+}
+
+/**
+ * Strip trailing NULs in string.
+ *
+ * @return new string length.
+ */
+size_t
+str_strip_trailing_nuls(str_t *s)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	while (len != 0) {
+		if ('\0' != s->s_data[len - 1])
+			break;
+		len--;
+	}
+
+	if (len != s->s_len) {
+		/* We removed some NULs */
+		s->s_len = len;
+		s->s_flags &= ~STR_TRUNCATED;
+	}
+
+	return len;
 }
 
 /**
@@ -3082,7 +3152,9 @@ done:
 	return str->s_len - origlen;
 
 clamped:
-	{
+	str->s_flags |= STR_TRUNCATED;
+
+	if (0 == (str->s_flags & STR_SILENT_TRUNCATE)) {
 #define TKEY	func_to_pointer(str_vncatf)
 
 		bool recursion = thread_private_get(TKEY) != NULL;
@@ -3094,6 +3166,12 @@ clamped:
 		 *
 		 * Hence the use of a thread-private variable to record recursions
 		 * before invoking s_minicarp().
+		 *
+		 * As of today, the logging code sets the silent truncation flag
+		 * when logging, so this protection against recursion would not
+		 * be required any more, but I'm leaving it in as a paranoid
+		 * precaution: robustness of the logging layer is key!
+		 * 		--RAM, 2018-09-25
 		 */
 
 		if (!recursion && tests_completed) {
@@ -3139,7 +3217,7 @@ str_vprintf(str_t *str, const char *fmt, va_list args)
 {
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 	return str_vncatf(str, INT_MAX, fmt, args);
 }
 
@@ -3189,7 +3267,7 @@ str_printf(str_t *str, const char *fmt, ...)
 
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(str, INT_MAX, fmt, args);
@@ -3210,7 +3288,7 @@ str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(str, n, fmt, args);
@@ -3253,7 +3331,7 @@ str_vcmsg(const char *fmt, va_list args)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 
 	return str_dup(str[stid]);
@@ -3273,7 +3351,7 @@ str_cmsg(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
@@ -3298,7 +3376,7 @@ str_smsg(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
@@ -3319,7 +3397,7 @@ str_smsg2(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);

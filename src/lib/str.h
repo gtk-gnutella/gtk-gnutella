@@ -133,6 +133,9 @@ str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
 str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 bool str_has_suffix_len(const str_t *, const char *suf, size_t len, size_t *ix);
 bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
+bool str_is_truncated(const str_t * const s);
+void str_set_silent_truncation(str_t * const s, bool on);
+size_t str_strip_trailing_nuls(str_t *s);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
