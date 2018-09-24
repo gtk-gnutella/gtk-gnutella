@@ -1301,7 +1301,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		print_str(format);			/* 5 */
 		print_str("\" from ");		/* 6 */
 		print_str(caller);			/* 7 */
-		print_str("\n");			/* 8 */
+		print_str("()\n");			/* 8 */
 		log_flush_err_atomic();
 
 		/*
