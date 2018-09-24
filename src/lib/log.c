@@ -85,6 +85,7 @@
 #include "override.h"		/* Must be the last header included */
 
 #define LOG_MSG_MAXLEN		512		/**< Maximum length within signal handler */
+#define LOG_MSG_REGULAR_LEN	3500	/**< Regular message length otherwise */
 #define LOG_MSG_DEFAULT		4080	/**< Default string length for logger */
 #define LOG_IOERR_GRACE		5		/**< Seconds between I/O errors */
 
@@ -267,7 +268,7 @@ log_chunk(void)
 	if G_UNLIKELY(NULL == ck) {
 		spinlock_raw(&chunk_slk);
 		if (NULL == ck)
-			ck = ck_init(LOG_MSG_MAXLEN * 4, LOG_MSG_MAXLEN);
+			ck = ck_init(LOG_MSG_REGULAR_LEN * 4, LOG_MSG_MAXLEN);
 		spinunlock_raw(&chunk_slk);
 	}
 
@@ -532,7 +533,7 @@ log_thread_alloc(void)
 	if (signal_in_unsafe_handler())
 		return NULL;	/* Can't allocate memory right now */
 
-	ck = ck_init_not_leaking(2 * LOG_MSG_MAXLEN, 0);
+	ck = ck_init_not_leaking(LOG_MSG_REGULAR_LEN + sizeof(str_t), 0);
 	lt = ck_alloc(ck, sizeof *lt);
 	lt->magic = LOGTHREAD_MAGIC;
 	lt->ck = ck;
@@ -899,6 +900,45 @@ log_abort(void)
 }
 
 /**
+ * Report no-memory condition to be able to properly format message!
+ *
+ * @param fmt		the formatting string
+ * @param msglen	the max message length
+ * @param stid		the current thread ID
+ * @param caller	the caller routine
+ * @param in_sigh	whether we are in a signal handler
+ */
+static void
+log_no_memory(const char *fmt, size_t msglen, int stid,
+	const char *caller, bool in_sigh)
+{
+	DECLARE_STR(11);
+	char time_buf[LOG_TIME_BUFLEN];
+	char stid_buf[ULONG_DEC_BUFLEN];
+	char len_buf[ULONG_DEC_BUFLEN];
+
+	log_time_careful(ARYLEN(time_buf), in_sigh);
+	print_str(time_buf);		/* 0 */
+	print_str(" (CRITICAL");	/* 1 */
+	if (stid != 0) {
+		const char *stid_str = PRINT_NUMBER(stid_buf, stid);
+		print_str("-");			/* 2 */
+		print_str(stid_str);	/* 3 */
+	}
+	print_str("): no ");		/* 4 */
+	{
+		const char *len_str = PRINT_NUMBER(len_buf, msglen);
+		print_str(len_str);		/* 5 */
+	}
+	print_str(" bytes to format string \""); /* 6 */
+	print_str(fmt);			/* 7 */
+	print_str("\" from ");	/* 8 */
+	print_str(caller);		/* 9 */
+	print_str("()\n");		/* 10 */
+	log_flush_err_atomic();
+}
+
+/**
  * Raw logging service, in case of recursion or other drastic conditions.
  *
  * This routine never allocates memory, by-passes stdio and does NOT save
@@ -1193,6 +1233,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	bool recursing;
 	unsigned stid;
 	thread_sigsets_t set;
+	size_t msglen;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -1288,33 +1329,32 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	if G_UNLIKELY(NULL == lt) {
 		stid = thread_small_id();
 		logging[stid] = TRUE;
-		ck = in_signal_handler ? signal_chunk() : log_chunk();
+		if (in_signal_handler) {
+			ck = signal_chunk();
+			msglen = LOG_MSG_MAXLEN;
+		} else {
+			ck = log_chunk();
+			msglen = LOG_MSG_REGULAR_LEN;
+		}
 	} else {
 		lt->in_log_handler = TRUE;
 		stid = lt->stid;
 		ck = lt->ck;
+		msglen = LOG_MSG_REGULAR_LEN;
 	}
 
 	saved = ck_save(ck);
-	msg = str_new_in_chunk(ck, LOG_MSG_MAXLEN);
+	msg = str_new_in_chunk(ck, msglen);
 
 	if G_UNLIKELY(NULL == msg) {
-		DECLARE_STR(6);
-		char time_buf[LOG_TIME_BUFLEN];
-
-		log_time_careful(ARYLEN(time_buf), in_signal_handler);
-		print_str(time_buf);	/* 0 */
-		print_str(" (CRITICAL): no memory to format string \""); /* 1 */
-		print_str(format);		/* 2 */
-		print_str("\" from ");	/* 3 */
-		print_str(stacktrace_caller_name(2));	/* 4 */
-		print_str("\n");		/* 5 */
-		log_flush_err_atomic();
+		const char *caller = stacktrace_caller_name(2);
+		log_no_memory(format, msglen, stid, caller, in_signal_handler);
 		ck_restore(ck, saved);
+		s_rawlogv(level, TRUE, FALSE, format, args);
 		goto log_done;
 	}
 
-	g_assert(ptr_diff(ck_save(ck), saved) > LOG_MSG_MAXLEN);
+	g_assert(ptr_diff(ck_save(ck), saved) > msglen);
 
 	/*
 	 * The str_vprintf() routine is safe to use in signal handlers.
