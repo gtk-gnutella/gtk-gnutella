@@ -128,6 +128,8 @@ bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
 bool str_is_truncated(const str_t * const s);
 void str_set_silent_truncation(str_t * const s, bool on);
 size_t str_strip_trailing_nuls(str_t *s);
+bool str_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
+bool str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);

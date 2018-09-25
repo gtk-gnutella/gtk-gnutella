@@ -57,6 +57,7 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
+#include "pattern.h"
 #include "stringify.h"		/* For logging */
 #include "thread.h"
 #include "unsigned.h"
@@ -1325,6 +1326,88 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	str_instr(str, idx, string, length);
 
 	return TRUE;
+}
+
+/**
+ * Lookup for needle within the string.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ * @param icase		whether to ignore case when matching
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+static bool
+str_lookup_internal(
+	const str_t *s, ssize_t off, const char *needle, size_t *pos, bool icase)
+{
+	const char *haystack, *p;
+	size_t len;
+	str_t *h = deconstify_pointer(s);	/* Writable version for str_2c() */
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (off < 0)				/* Stands for chars before end */
+		off += len;
+
+	if G_UNLIKELY(off < 0 || (size_t) off >= len)	/* Outside boundaries*/
+		return FALSE;
+
+	haystack = str_2c(h) + off;	/* NUL-terminated string now */
+	p = icase ? vstrcasestr(haystack, needle) : vstrstr(haystack, needle);
+
+	if (NULL == p)
+		return FALSE;
+
+	if (pos != NULL)
+		*pos = p - haystack + off;
+
+	return TRUE;
+}
+
+/**
+ * Lookup for needle within the string.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+bool
+str_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos)
+{
+	return str_lookup_internal(s, off, needle, pos, FALSE);
+}
+
+/**
+ * Perform case-insensitive lookup of needle within the string.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+bool
+str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos)
+{
+	return str_lookup_internal(s, off, needle, pos, TRUE);
 }
 
 /**
