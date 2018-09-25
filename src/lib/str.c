@@ -704,12 +704,15 @@ str_2c(str_t *str)
 
 	len = str->s_len;
 
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		return str->s_data;			/* Already NUL-terminated explicitly */
+
 	if (len == str->s_size) {
 		if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
-			len--;						/* Truncate the string */
+			len--;					/* Truncate the string */
 			str->s_len = len;
 		} else {
-			str_grow(str, len + 1);		/* Allow room for trailing NUL */
+			str_grow(str, len + 1);	/* Allow room for trailing NUL */
 		}
 	}
 
@@ -748,11 +751,14 @@ str_s2c(str_t *str)
 
 	len = str->s_len;
 
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		len--;						/* Already NUL-terminated! */
+
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (len == str->s_size)
-			len--;						/* Truncate the string */
+			len--;					/* Truncate the string */
 	} else {
-		str_resize(str, len + 1);		/* Ensure string fits neatly */
+		str_resize(str, len + 1);	/* Ensure string fits neatly */
 	}
 
 	cstr = str->s_data;
@@ -799,6 +805,10 @@ str_dup(str_t *str)
 	str_check(str);
 
 	len = str->s_len;
+
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		len--;			/* Already NUL-terminated! */
+
 	sdup = halloc(len + 1);
 	p = mempcpy(sdup, str->s_data, len);
 	*p = '\0';
