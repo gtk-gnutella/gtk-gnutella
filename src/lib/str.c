@@ -303,11 +303,11 @@ str_new_from(const char *string)
  *
  * @param str	pointer to existing (and initialized) string object
  * @param ptr	start of fix-sized buffer where string data will be held
- * @param len	length of existing string, computed if (size_t) -1
  * @param size	size of buffer starting at ptr (0 sets it to `len + 1')
+ * @param len	length of existing string, computed if (size_t) -1
  */
 void
-str_foreign(str_t *str, char *ptr, size_t len, size_t size)
+str_foreign(str_t *str, char *ptr, size_t size, size_t len)
 {
 	str_check(str);
 
@@ -339,15 +339,16 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    str_t str;
  *    char data[80];
  *
- *    str_new_buffer(&str, data, 0, sizeof data);
+ *    str_new_buffer(&str, data, sizeof data, 0);	// full
+ *    str_new_buffer(&str, ARYLEN(data), 0);		// convenient
  *
  * @param str	pointer to uninitialized existing string object
  * @param ptr	start of fix-sized buffer where string data will be held
- * @param len	length of existing string, computed if (size_t) -1
  * @param size	size (positive) of buffer starting at ptr
+ * @param len	length of existing string, computed if (size_t) -1
  */
 void
-str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
+str_new_buffer(str_t *str, char *ptr, size_t size, size_t len)
 {
 	g_assert(str != NULL);
 	g_assert(ptr != NULL);
@@ -3327,7 +3328,7 @@ str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	va_list args;
 	size_t formatted;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(&str, size - 1, fmt, args);
@@ -3348,7 +3349,7 @@ str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_t str;
 	size_t formatted;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	formatted = str_vncatf(&str, size - 1, fmt, args);
 	str_putc(&str, '\0');
@@ -3368,7 +3369,7 @@ str_bcatf(char *dst, size_t size, const char *fmt, ...)
 	size_t len, formatted;
 
 	len = clamp_strlen(dst, size);
-	str_new_buffer(&str, dst, len, size);
+	str_new_buffer(&str, dst, size, len);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(&str, size - len - 1, fmt, args);
@@ -3390,7 +3391,7 @@ str_vbcatf(char *dst, size_t size, const char *fmt, va_list args)
 	size_t len, formatted;
 
 	len = clamp_strlen(dst, size);
-	str_new_buffer(&str, dst, len, size);
+	str_new_buffer(&str, dst, size, len);
 
 	formatted = str_vncatf(&str, size - len - 1, fmt, args);
 	str_putc(&str, '\0');
@@ -3411,7 +3412,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
 	str_t str;
 	va_list args;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	va_start(args, fmt);
 	str_vncatf(&str, size - 1, fmt, args);

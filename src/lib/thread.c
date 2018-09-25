@@ -879,7 +879,7 @@ thread_backtrace_dump_type_fd(int fd,
 	elapsed = tm_elapsed_ms(&now, &bt->stamp);
 	compact_time_ms_to_buf(elapsed, ARYLEN(delta));
 
-	str_new_buffer(s, attributes, 0, sizeof attributes);
+	str_new_buffer(s, ARYLEN(attributes), 0);
 	if (te->reusable) {
 		if (te->cancelled) STR_CAT(s, "cancelled");
 		else               STR_CAT(s, "terminated");

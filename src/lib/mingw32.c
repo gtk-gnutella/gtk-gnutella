@@ -8044,7 +8044,7 @@ mingw_crash_record(int code, const void *pc,
 	char data[256];
 	str_t s;
 
-	str_new_buffer(&s, data, 0, sizeof data);
+	str_new_buffer(&s, ARYLEN(data), 0);
 	str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
 
 	if (routine != NULL)

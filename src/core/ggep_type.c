@@ -386,7 +386,7 @@ ggept_gtkgv_build(void *buf, size_t len)
 	 * package invariably accounts for.
 	 */
 
-	str_new_buffer(&s, buf, 0, len);
+	str_new_buffer(&s, buf, len, 0);
 
 	flags = GTKGV_F_GIT | GTKGV_F_OS;
 	if (version_is_dirty())

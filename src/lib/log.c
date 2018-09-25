@@ -2150,7 +2150,7 @@ s_line_writef(int fd, const char *fmt, ...)
 	va_list args;
 	iovec_t iov[2];
 
-	str_new_buffer(&str, buf, 0, sizeof buf);
+	str_new_buffer(&str, ARYLEN(buf), 0);
 
 	va_start(args, fmt);
 	str_vprintf(&str, fmt, args);

@@ -1240,7 +1240,7 @@ sig_exception_format(char *dest, size_t size,
 	str_t s;
 
 	reason = signal_decode(signo, si->si_code);
-	str_new_buffer(&s, dest, 0, size);
+	str_new_buffer(&s, dest, size, 0);
 
 	str_printf(&s, "got %s%s",
 		recursive ? "recursive " : "", signal_name(signo));

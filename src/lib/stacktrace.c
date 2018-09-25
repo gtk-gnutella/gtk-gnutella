@@ -1195,7 +1195,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	if (NULL == be)
 		be = bfd_util_init();
 
-	str_new_buffer(&s, buf, 0, sizeof buf);
+	str_new_buffer(&s, ARYLEN(buf), 0);
 
 	/*
 	 * Compute leading thread ID, shown only when not in the main thread.
