@@ -1933,6 +1933,58 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 }
 
 /**
+ * Check whether string starts with some prefix at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @param s			the string we're checking for prefix
+ * @param off		offset at which prefix is expected (negative from end)
+ * @param prefix	the prefix string to check
+ * @param len		length of prefix string
+ *
+ * @return TRUE if prefix is found.
+ */
+bool
+str_has_prefix_len(const str_t *s, ssize_t off, const char *prefix, size_t len)
+{
+	size_t start;
+
+	str_check(s);
+	g_assert(prefix != NULL);
+	g_assert(size_is_non_negative(len));
+
+	start = str_offset_safe(s, off);
+
+	if (start + len <= s->s_len) {
+		const char *p = &s->s_data[start];
+		return 0 == memcmp(p, prefix, len);
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether string starts with some prefix at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @param s			the string we're checking for prefix
+ * @param off		offset at which prefix is expected (negative from end)
+ * @param prefix	the prefix string to check
+ *
+ * @return TRUE if prefix is found.
+ */
+bool
+str_has_prefix(const str_t *s, ssize_t off, const char *prefix)
+{
+	g_assert(prefix != NULL);
+
+	return str_has_prefix_len(s, off, prefix, vstrlen(prefix));
+}
+
+/**
  * Check whether string has given suffix of known length.
  *
  * If it has the suffix and "idx" is non-NULL, the starting offset of the

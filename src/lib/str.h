@@ -125,6 +125,8 @@ str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
 str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 bool str_has_suffix_len(const str_t *, const char *suf, size_t len, size_t *ix);
 bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
+bool str_has_prefix_len(const str_t *s, ssize_t off, const char *pre, size_t len);
+bool str_has_prefix(const str_t *s, ssize_t off, const char *pre);
 bool str_is_truncated(const str_t * const s);
 void str_set_silent_truncation(str_t * const s, bool on);
 size_t str_strip_trailing_nuls(str_t *s);
@@ -177,6 +179,9 @@ size_t str_test(bool verbose);
 
 #define STR_HAS_SUFFIX(s, p, i)	\
 	str_has_suffix_len((s), (p), STR_CONST_LEN(p), (i))
+
+#define STR_HAS_PREFIX(s, o, p)	\
+	str_has_prefix_len((s), (o), (p), STR_CONST_LEN(p))
 
 #endif /* _str_h_ */
 
