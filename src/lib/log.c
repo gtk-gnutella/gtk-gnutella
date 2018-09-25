@@ -257,6 +257,12 @@ log_crash_mode(void)
 }
 
 /**
+ * The global log chunk is used when we cannot use the per-thread chunk during
+ * fatal errors.  There is little concurrency expected and very seldom use.
+ *
+ * We therefore provision enough space for about 2 messages, that would come
+ * from 2 concurrent threads reporting a fatal error.
+ *
  * @return pre-allocated chunk for allocating memory when no malloc() wanted.
  */
 static ckhunk_t *
@@ -268,7 +274,7 @@ log_chunk(void)
 	if G_UNLIKELY(NULL == ck) {
 		spinlock_raw(&chunk_slk);
 		if (NULL == ck)
-			ck = ck_init(LOG_MSG_REGULAR_LEN * 4, LOG_MSG_MAXLEN);
+			ck = ck_init(LOG_MSG_REGULAR_LEN * 2, LOG_MSG_MAXLEN);
 		spinunlock_raw(&chunk_slk);
 	}
 
@@ -1331,7 +1337,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		logging[stid] = TRUE;
 		if (in_signal_handler) {
 			ck = signal_chunk();
-			msglen = LOG_MSG_MAXLEN;
+			msglen = MAX(LOG_MSG_REGULAR_LEN / 2, LOG_MSG_MAXLEN);
 		} else {
 			ck = log_chunk();
 			msglen = LOG_MSG_REGULAR_LEN;
@@ -1346,11 +1352,18 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	saved = ck_save(ck);
 	msg = str_new_in_chunk(ck, msglen);
 
+	/*
+	 * When there is no room in the chunk to allocate enough space to format
+	 * a message, report the fact and redirect to s_rawlogv() which can always
+	 * log using stack space for the message buffer: the message could be
+	 * truncated, but at least it will not be completely lost.
+	 */
+
 	if G_UNLIKELY(NULL == msg) {
 		const char *caller = stacktrace_caller_name(2);
 		log_no_memory(format, msglen, stid, caller, in_signal_handler);
 		ck_restore(ck, saved);
-		s_rawlogv(level, TRUE, FALSE, format, args);
+		s_rawlogv(level, TRUE, FALSE, format, args);	/* Lower size limit */
 		goto log_done;
 	}
 
