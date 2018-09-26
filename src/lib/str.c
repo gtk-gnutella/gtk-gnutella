@@ -1398,7 +1398,7 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
  * valid string character when dealing with binary strings.
  */
 char
-str_at(str_t *s, ssize_t offset)
+str_at(const str_t *s, ssize_t offset)
 {
 	size_t len;
 
