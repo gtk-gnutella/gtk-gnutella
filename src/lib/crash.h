@@ -124,7 +124,7 @@ G_STMT_START { \
 		print_str_iov_cnt_ = (i); \
 } G_STMT_END
 
-#define getpos_str(i) (print_str_iov_cnt_)
+#define getpos_str() (print_str_iov_cnt_)
 
 /**
  * Print an "unsigned long" as decimal NUL-terminated string into supplied
