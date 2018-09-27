@@ -906,6 +906,54 @@ log_abort(void)
 }
 
 /**
+ * Ensure the logged string was not truncated, and if it was, replace its
+ * last 3 characters by a visual indication.
+ *
+ * @param s		the string holding the log message
+ */
+static void
+log_check_truncated(str_t *s)
+{
+	/*
+	 * If the string was truncated, replace its last 3 chars by "..."
+	 * to give visual indication of the truncation.
+	 *
+	 * The string may have a trailing NUL already appended, or not, so
+	 * we explicitly check for it to be able to skip the NUL character
+	 * from the trailing replacement.
+	 */
+
+	if (str_is_truncated(s)) {
+		static const char more[] = "+++";
+		size_t n = CONST_STRLEN(more);
+		int offset = -n;
+		bool ok;
+
+		if ('\0' == str_at(s, -1))
+			offset--;	/* Go back one more character since we have a NUL */
+
+		ok = str_replace(s, offset, n, more);
+		g_soft_assert(ok);
+	}
+}
+
+/*
+ * A regular vsprintf() into a fix-sized buffer without fear of overflow...
+ * If the log message is truncated, flag it as such visually.
+ */
+static void
+log_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
+{
+	str_t str;
+
+	str_new_buffer(&str, dst, size, 0);
+	str_set_silent_truncation(&str, TRUE);
+	str_vncatf(&str, size - 1, fmt, args);
+	str_putc(&str, '\0');
+	log_check_truncated(&str);
+}
+
+/**
  * Report no-memory condition to be able to properly format message!
  *
  * @param fmt		the formatting string
@@ -1026,7 +1074,7 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	 * to here through it.
 	 */
 
-	str_vbprintf(ARYLEN(data), fmt, args);			/* Uses str_vncatf() */
+	log_vbprintf(ARYLEN(data), fmt, args);			/* Uses str_vncatf() */
 
 	print_str(time_buf);		/* 0 */
 	print_str(" (");			/* 1 */
@@ -1373,7 +1421,9 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	 * The str_vprintf() routine is safe to use in signal handlers.
 	 */
 
+	str_set_silent_truncation(msg, TRUE);
 	str_vprintf(msg, format, args);
+	log_check_truncated(msg);
 	prefix = log_prefix(level);
 
 	/*
@@ -1484,7 +1534,7 @@ log_check_recursive(const char *format, va_list ap)
 	depth = atomic_int_inc(&recursive);
 
 	if (0 == depth) {
-		str_vbprintf(ARYLEN(buf), format, ap);
+		log_vbprintf(ARYLEN(buf), format, ap);
 		stid = thread_safe_small_id();
 		return FALSE;
 	} else if (1 == depth) {
@@ -1840,7 +1890,7 @@ s_minierror(const char *format, ...)
 	recursing = 0 != atomic_int_inc(&recursion);
 
 	va_start(args, format);
-	str_vbprintf(ARYLEN(data), format, args);
+	log_vbprintf(ARYLEN(data), format, args);
 	va_end(args);
 
 	crash_set_error(data);
@@ -2204,10 +2254,13 @@ s_line_writef(int fd, const char *fmt, ...)
 	iovec_t iov[2];
 
 	str_new_buffer(&str, ARYLEN(buf), 0);
+	str_set_silent_truncation(&str, TRUE);
 
 	va_start(args, fmt);
 	str_vprintf(&str, fmt, args);
 	va_end(args);
+
+	log_check_truncated(&str);
 
 	iovec_set(&iov[0], str_2c(&str), str_len(&str));
 	iovec_set(&iov[1], "\n", 1);
@@ -2224,7 +2277,7 @@ log_stdout_logv(const char *format, va_list args)
 	char data[LOG_MSG_MAXLEN];
 	DECLARE_STR(2);
 
-	str_vbprintf(ARYLEN(data), format, args);	/* Uses str_vncatf() */
+	log_vbprintf(ARYLEN(data), format, args);	/* Uses str_vncatf() */
 
 	print_str(data);			/* 0 */
 	print_str("\n");			/* 1 */
