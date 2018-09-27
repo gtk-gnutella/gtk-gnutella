@@ -940,8 +940,10 @@ log_check_truncated(str_t *s)
 /*
  * A regular vsprintf() into a fix-sized buffer without fear of overflow...
  * If the log message is truncated, flag it as such visually.
+ *
+ * @return the length of the generated string.
  */
-static void
+static size_t
 log_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 {
 	str_t str;
@@ -951,6 +953,8 @@ log_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_vncatf(&str, size - 1, fmt, args);
 	str_putc(&str, '\0');
 	log_check_truncated(&str);
+
+	return str_len(&str);
 }
 
 /**
@@ -993,6 +997,84 @@ log_no_memory(const char *fmt, size_t msglen, int stid,
 }
 
 /**
+ * Emit log message.
+ *
+ * @param level		the logging level
+ * @param msg		the message string
+ * @param prefix	the level prefix (NULL for none)
+ * @param stid		the logging thread ID
+ * @param in_sigh	whether we are in a signal handler
+ * @param copy		whether to copy message to stdout as well
+ * @param raw		whether we are in raw mode (avoid locks!)
+ */
+static void
+log_emit(
+	GLogLevelFlags level, str_t *msg, const char *prefix,
+	unsigned stid, bool in_sigh, bool copy, bool raw)
+{
+	/*
+	 * Avoid stdio's fprintf() from within a signal handler since we
+	 * don't know how the string will be formattted, nor whether
+	 * re-entering fprintf() through a signal handler would be safe.
+	 */
+
+	DECLARE_STR(11);
+	char time_buf[LOG_TIME_BUFLEN];
+	char stid_buf[ULONG_DEC_BUFLEN];
+
+	log_time_careful(ARYLEN(time_buf), in_sigh || raw);
+	print_str(time_buf);	/* 0 */
+	print_str(" (");		/* 1 */
+	print_str(prefix);		/* 2 */
+	if (stid != 0) {
+		const char *stid_str = PRINT_NUMBER(stid_buf, stid);
+		print_str("-");			/* 3 */
+		print_str(stid_str);	/* 4 */
+	}
+	print_str(")");			/* 5 */
+	if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
+		print_str(" [RECURSIVE]");	/* 6 */
+	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
+		print_str(" [FATAL]");		/* 7 */
+	print_str(": ");		/* 8 */
+	print_str(str_2c(msg));	/* 9 */
+	print_str("\n");		/* 10 */
+
+	/*
+	 * In "raw" mode, use non-atomic flushes to avoid locks.
+	 */
+
+	if G_UNLIKELY(raw) {
+		log_flush_err();
+		if G_UNLIKELY(copy && log_stdout_is_distinct())
+			log_flush_out();
+	} else {
+		log_flush_err_atomic();
+		if G_UNLIKELY(copy && log_stdout_is_distinct())
+			log_flush_out_atomic();
+	}
+
+	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
+		crash_set_error(str_2c(msg));
+
+	/*
+	 * When duplication is configured, write a copy of the message
+	 * without any timestamp and debug level tagging.
+	 */
+
+	if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
+		int fd = logfile[LOG_STDERR].crash_fd;
+		iovec_t iov[2];
+		iovec_set(&iov[0], str_2c(msg), str_len(msg));
+		iovec_set(&iov[1], "\n", 1);
+		if (raw)
+			IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
+		else
+			atio_writev(fd, iov, N_ITEMS(iov));
+	}
+}
+
+/**
  * Raw logging service, in case of recursion or other drastic conditions.
  *
  * This routine never allocates memory, by-passes stdio and does NOT save
@@ -1019,10 +1101,10 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	const char *fmt, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
-	DECLARE_STR(11);
-	char time_buf[LOG_TIME_BUFLEN];
 	const char *prefix;
 	unsigned stid;
+	size_t len;
+	str_t msg;
 
 	if G_UNLIKELY(logfile[LOG_STDERR].disabled)
 		return;
@@ -1054,19 +1136,12 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	if (signal_in_unsafe_handler_stid(&stid))
 		raw = TRUE;
 
-	/*
-	 * In "raw" mode, use minimalistic routines, which of course may not
-	 * yield correct information all the time.
-	 */
-
 	if G_UNLIKELY(raw) {
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = 0;
-		log_time_raw(ARYLEN(time_buf));				/* Raw, no locks! */
 	} else {
 		if (THREAD_UNKNOWN_ID == stid)
 			stid = thread_small_id();				/* New discovered thread! */
-		log_time(ARYLEN(time_buf));
 	}
 
 	/*
@@ -1074,55 +1149,11 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 	 * to here through it.
 	 */
 
-	log_vbprintf(ARYLEN(data), fmt, args);			/* Uses str_vncatf() */
+	len = log_vbprintf(ARYLEN(data), fmt, args);	/* Uses str_vncatf() */
+	str_new_buffer(&msg, ARYLEN(data), len);
+	str_strip_trailing_nuls(&msg);
 
-	print_str(time_buf);		/* 0 */
-	print_str(" (");			/* 1 */
-	print_str(prefix);			/* 2 */
-	if (stid != 0) {
-		char stid_buf[ULONG_DEC_BUFLEN];
-		const char *stid_str = PRINT_NUMBER(stid_buf, stid);
-		print_str("-");			/* 3 */
-		print_str(stid_str);	/* 4 */
-	}
-	print_str(")");				/* 5 */
-	if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
-		print_str(" [RECURSIVE]");	/* 6 */
-	if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
-		print_str(" [FATAL]");		/* 7 */
-	print_str(": ");			/* 8 */
-	print_str(data);			/* 9 */
-	print_str("\n");			/* 10 */
-
-	/*
-	 * In "raw" mode, use non-atomic flushes to avoid locks.
-	 */
-
-	if G_UNLIKELY(raw) {
-		log_flush_err();
-		if (copy && log_stdout_is_distinct())
-			log_flush_out();
-	} else {
-		log_flush_err_atomic();
-		if (copy && log_stdout_is_distinct())
-			log_flush_out_atomic();
-	}
-
-	/*
-	 * When duplication is configured, write a copy of the message
-	 * without any timestamp and debug level tagging.
-	 */
-
-	if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
-		int fd = logfile[LOG_STDERR].crash_fd;
-		iovec_t iov[2];
-		iovec_set(&iov[0], data, clamp_strlen(ARYLEN(data)));
-		iovec_set(&iov[1], "\n", 1);
-		if (raw)
-			IGNORE_RESULT(writev(fd, iov, N_ITEMS(iov)));
-		else
-			atio_writev(fd, iov, N_ITEMS(iov));
-	}
+	log_emit(level, &msg, prefix, stid, TRUE, copy, raw);
 }
 
 /**
@@ -1288,6 +1319,7 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	unsigned stid;
 	thread_sigsets_t set;
 	size_t msglen;
+	bool copy;
 
 	if (G_UNLIKELY(logfile[LOG_STDERR].disabled))
 		return;
@@ -1326,11 +1358,17 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		recursing = logging[thread_small_id()];
 	}
 
+	copy = booleanize(
+		level & (
+			G_LOG_FLAG_FATAL  |	G_LOG_LEVEL_CRITICAL |
+			G_LOG_LEVEL_ERROR |	LOG_FLAG_COPY
+		)
+	);
+
 	if G_UNLIKELY(recursing) {
 		DECLARE_STR(9);
 		char time_buf[LOG_TIME_BUFLEN];
 		const char *caller;
-		bool copy;
 
 		stid = NULL == lt ? thread_small_id() : lt->stid;
 		caller = stacktrace_caller_name(2);	/* Could log, so pre-compute */
@@ -1363,8 +1401,6 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		 * Use minimal logging.
 		 */
 
-		copy = level &
-			(G_LOG_FLAG_FATAL | G_LOG_LEVEL_CRITICAL | LOG_FLAG_COPY);
 		s_minilogv(level | G_LOG_FLAG_RECURSION, copy, format, args);
 		goto done;
 	}
@@ -1427,60 +1463,10 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 	prefix = log_prefix(level);
 
 	/*
-	 * Avoid stdio's fprintf() from within a signal handler since we
-	 * don't know how the string will be formattted, nor whether
-	 * re-entering fprintf() through a signal handler would be safe.
+	 * Emit the log message.
 	 */
 
-	{
-		DECLARE_STR(11);
-		char time_buf[LOG_TIME_BUFLEN];
-
-		log_time_careful(ARYLEN(time_buf), in_signal_handler);
-		print_str(time_buf);	/* 0 */
-		print_str(" (");		/* 1 */
-		print_str(prefix);		/* 2 */
-		if (stid != 0) {
-			char stid_buf[ULONG_DEC_BUFLEN];
-			const char *stid_str = PRINT_NUMBER(stid_buf, stid);
-			print_str("-");			/* 3 */
-			print_str(stid_str);	/* 4 */
-		}
-		print_str(")");			/* 5 */
-		if G_UNLIKELY(level & G_LOG_FLAG_RECURSION)
-			print_str(" [RECURSIVE]");	/* 6 */
-		if G_UNLIKELY(level & G_LOG_FLAG_FATAL)
-			print_str(" [FATAL]");		/* 7 */
-		print_str(": ");		/* 8 */
-		print_str(str_2c(msg));	/* 9 */
-		print_str("\n");		/* 10 */
-		log_flush_err_atomic();
-
-		if G_UNLIKELY(
-			level & (
-				G_LOG_FLAG_FATAL	|	G_LOG_LEVEL_CRITICAL |
-				G_LOG_LEVEL_ERROR	|	LOG_FLAG_COPY
-			)
-		) {
-			if (log_stdout_is_distinct())
-				log_flush_out_atomic();
-			if (level & G_LOG_FLAG_FATAL)
-				crash_set_error(str_2c(msg));
-		}
-
-		/*
-		 * When duplication is configured, write a copy of the message
-		 * without any timestamp and debug level tagging.
-		 */
-
-		if G_UNLIKELY(logfile[LOG_STDERR].duplicate) {
-			int fd = logfile[LOG_STDERR].crash_fd;
-			iovec_t iov[2];
-			iovec_set(&iov[0], str_2c(msg), str_len(msg));
-			iovec_set(&iov[1], "\n", 1);
-			atio_writev(fd, iov, N_ITEMS(iov));
-		}
-	}
+	log_emit(level, msg, prefix, stid, in_signal_handler, copy, FALSE);
 
 log_done:
 
