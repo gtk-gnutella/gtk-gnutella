@@ -469,7 +469,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		if (!computing[stid]) {
 			computing[stid] = TRUE;
 			tm_current_time(&tv);			/* Get system value, no locks */
-			loc = tm_localtime_raw();
+			loc = tm_localtime_raw(&tv);
 			done = TRUE;
 			computing[stid] = FALSE;
 		} else {
@@ -479,7 +479,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		}
 	} else {
 		tm_now_exact(&tv);
-		loc = tm_localtime();
+		loc = tm_localtime(&tv);
 	}
 
 	if (!off_time(loc, 0, &tm)) {

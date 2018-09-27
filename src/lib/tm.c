@@ -693,10 +693,12 @@ tm_time_exact(void)
 }
 
 /**
- * Get current local time, at the second granularity (cached).
+ * Get current local time, at the second granularity, from system time.
+ *
+ * @param now	current time, usually from tm_now_exact()
  */
 time_t
-tm_localtime(void)
+tm_localtime(const tm_t *now)
 {
 	ONCE_FLAG_RUN(tm_gmt.inited, tm_init_gmt_offset);
 
@@ -704,9 +706,10 @@ tm_localtime(void)
 	G_PREFETCH_HI_R(&tm_gmt.offset);
 
 	if G_UNLIKELY(thread_check_suspended()) {
+		/* Cannot use `now' as it may be well behind due to our interrruption */
 		return tm_localtime_exact();
 	} else {
-		return (time_t) tm_cached_now.tv_sec + tm_gmt.offset;
+		return (time_t) now->tv_sec + tm_gmt.offset;
 	}
 }
 
@@ -725,17 +728,18 @@ tm_localtime_exact(void)
 /*
  * Get current local time, at the second granularity (raw).
  *
+ * @param now	current time, usually from tm_current_time()
+ *
  * @attention
  * This raw version does not check for thread suspension.  It is meant
  * to be used in dire circumstances to limit resource consumption.
  */
 time_t
-tm_localtime_raw(void)
+tm_localtime_raw(const tm_t *now)
 {
 	static time_delta_t gmt_offset;
 	static bool done;
 	time_delta_t offset = tm_gmt.offset;
-	tm_t now;
 
 	/*
 	 * In case this routine is called very early, perform some local
@@ -751,9 +755,7 @@ tm_localtime_raw(void)
 		offset = gmt_offset;
 	}
 
-	tm_current_time(&now);
-
-	return (time_t) now.tv_sec + offset;
+	return (time_t) now->tv_sec + offset;
 }
 
 /**

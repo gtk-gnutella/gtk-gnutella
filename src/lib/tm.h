@@ -281,9 +281,9 @@ tm_time_raw(void)
 	return (time_t) tm_cached_now.tv_sec;
 }
 
-time_t tm_localtime(void);
+time_t tm_localtime(const tm_t *);
 time_t tm_localtime_exact(void);
-time_t tm_localtime_raw(void);
+time_t tm_localtime_raw(const tm_t *);
 
 time_t tm_relative_time(void);
 
