@@ -2305,10 +2305,20 @@ cq_init(cq_invoke_t idle, const uint32 *debug)
 	 * is called: it could have been initialized to run in the main thread
 	 * and that thread may not be the proper one.  It indicates that the
 	 * appplication initialization order is not correct.
-	 *		--RAM. 2015-11-18
+	 *		--RAM, 2015-11-18
+	 *
+	 * Because of the logfilter initialization happening very early, and
+	 * it needs to register a periodic monitoring, we will most probably
+	 * come here with the callout queue already initialized.  Hence we only
+	 * need to loudly complain when the current thread is not the one
+	 * running the callout queue.
+	 * 		--RAM, 2018-09-28
 	 */
 
-	if G_UNLIKELY(callout_queue != NULL) {
+	if G_UNLIKELY(
+		callout_queue != NULL &&
+		callout_queue->cq_stid != thread_small_id()
+	) {
 		s_minicarp("%s(): callout queue already setup and running in %s",
 			G_STRFUNC, thread_id_name(callout_queue->cq_stid));
 	}
