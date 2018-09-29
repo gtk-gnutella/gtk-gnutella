@@ -63,16 +63,6 @@ str_check(const struct str * const s)
 	g_assert(s->s_len <= s->s_size);
 }
 
-/**
- * @return available bytes in current string's buffer.
- */
-static inline size_t
-str_avail(const struct str * const s)
-{
-	str_check(s);
-	return s->s_size - s->s_len;
-}
-
 struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
 
 /*
@@ -80,6 +70,7 @@ struct ckhunk;		/* Avoids dependency on "ckalloc.h" here */
  */
 
 size_t str_len(const str_t *s) G_PURE;
+size_t str_avail(const str_t *s) G_PURE;
 str_t *str_new(size_t szhint);
 str_t *str_new_from(const char *string);
 str_t *str_new_not_leaking(size_t szhint);

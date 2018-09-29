@@ -107,6 +107,32 @@ str_len(const str_t *s)
 }
 
 /**
+ * Check the available room we have in string to add new bytes to it.
+ *
+ * A dynamic string that can be resized has no limits, but a string for
+ * which we do not own the data pointer cannot be resized and is therefore
+ * constrained.
+ *
+ * @return amount of available room in string.
+ */
+size_t
+str_avail(const str_t *s)
+{
+	str_check(s);
+
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
+		size_t avail = s->s_size - s->s_len;
+		if ('\0' == s->s_data[s->s_len - 1])
+			avail++;		/* Already NUL-terminated */
+		if (avail <= 1)
+			return 0;		/* Must leave room for tailing NUL */
+		return avail - 1;	/* Trailing NUL accounted */
+	}
+
+	return MAX_INT_VAL(size_t);		/* No limits but virtual memory */
+}
+
+/**
  * Allocate a new non-leaking string structure.
  *
  * This should only be used with static string objects that are never freed.
