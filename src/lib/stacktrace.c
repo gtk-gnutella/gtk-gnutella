@@ -92,8 +92,9 @@ static const char *program_path;	/**< Absolute program path (ro string) */
 static time_t program_mtime;		/**< Last modification time of executable */
 static bool stacktrace_crashing;	/**< Use simple stack traces if set */
 static bool symbols_loaded;
-static symbols_t *symbols;
+static symbols_t *stacktrace_symbols;
 static bool stacktrace_inited;
+static bfd_env_t *stacktrace_be;	/**< BFD environment for symbolic info */
 
 static mutex_t stacktrace_sym_mtx  = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
@@ -471,7 +472,8 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 enum stacktrace_sym_quality
 stacktrace_quality(void)
 {
-	return NULL == symbols ? STACKTRACE_SYM_GOOD : symbols_quality(symbols);
+	return NULL == stacktrace_symbols ?
+		STACKTRACE_SYM_GOOD : symbols_quality(stacktrace_symbols);
 }
 
 /**
@@ -554,13 +556,13 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 
 	STACKTRACE_SYM_LOCK;
 
-	if (NULL == symbols)
-		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	if (NULL == stacktrace_symbols)
+		stacktrace_symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
-	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
+	symbols_load_from(stacktrace_symbols, path, lpath != NULL ? lpath : path);
 
 	if (stale)
-		symbols_mark_stale(symbols);
+		symbols_mark_stale(stacktrace_symbols);
 
 	STACKTRACE_SYM_UNLOCK;
 }
@@ -587,8 +589,8 @@ stacktrace_init(const char *argv0, bool deferred)
 
 	stacktrace_inited = TRUE;
 	path = file_program_path(argv0);
-	if (NULL == symbols)
-		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	if (NULL == stacktrace_symbols)
+		stacktrace_symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
 	if (NULL == path) {
 		s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
@@ -644,10 +646,11 @@ stacktrace_memory_used(void)
 {
 	size_t res;
 
-	res = NULL == symbols ? 0 : symbols_memory_size(symbols);
-	if (stack_atoms != NULL) {
+	res = NULL == stacktrace_symbols ?
+		0 : symbols_memory_size(stacktrace_symbols);
+
+	if (stack_atoms != NULL)
 		res += hash_table_arena_memory(stack_atoms);
-	}
 
 	return res;
 }
@@ -658,7 +661,7 @@ stacktrace_memory_used(void)
 void G_COLD
 stacktrace_close(void)
 {
-	symbols_free_null(&symbols);
+	symbols_free_null(&stacktrace_symbols);
 	if (stack_atoms != NULL) {
 		hash_table_destroy_real(stack_atoms);	/* Does not free keys/values */
 		stack_atoms = NULL;
@@ -880,7 +883,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	}
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 
 		if (!valid_ptr(stack[i]))
 			break;
@@ -926,7 +929,7 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	}
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 
 		if (!valid_ptr(stack[i]))
 			break;
@@ -968,7 +971,7 @@ stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 		locked = FALSE;
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 		char sbuf[UINT_DEC_BUFLEN];
 		const char *snum;
 		DECLARE_STR(6);
@@ -1149,7 +1152,7 @@ static void
 stack_print_decorated_to(struct sxfile *xf,
 	void * const *stack, size_t count, int flags)
 {
-	static bfd_env_t *be;
+	bfd_env_t *be = stacktrace_be;		/* Local shortcut of global variable */
 	size_t i;
 	static char buf[512];
 	static char name[256];
@@ -1198,7 +1201,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	 */
 
 	if (NULL == be)
-		be = bfd_util_init();
+		be = stacktrace_be = bfd_util_init();
 
 	str_new_buffer(&s, ARYLEN(buf), 0);
 
@@ -1314,8 +1317,9 @@ stack_print_decorated_to(struct sxfile *xf,
 		 * and there are symbols present in the executable that we could load.
 		 */
 
-		if (!located && symbols != NULL) {
-			const char *sym = symbols_name_only(symbols, pc, !gdb_like);
+		if (!located && stacktrace_symbols != NULL) {
+			const char *sym =
+				symbols_name_only(stacktrace_symbols, pc, !gdb_like);
 
 			if (sym != NULL) {
 				loc.function = sym;
@@ -1358,8 +1362,8 @@ stack_print_decorated_to(struct sxfile *xf,
 					str_bprintf(ARYLEN(name), "<%s%+ld>", sym, disp);
 				sym = name;
 			} else {
-				if (symbols != NULL) {
-					sym = symbols_name(symbols, pc, !gdb_like);
+				if (stacktrace_symbols != NULL) {
+					sym = symbols_name(stacktrace_symbols, pc, !gdb_like);
 					if (flags & STACKTRACE_F_MAIN_STOP) {
 						reached_main = 0 == strcmp(sym, "main") ||
 							(!gdb_like && is_strprefix(sym, "main+"));
@@ -1603,10 +1607,10 @@ stacktrace_caller_name(size_t n)
 	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	if (NULL == symbols)
+	if (NULL == stacktrace_symbols)
 		return "??";
 
-	name = symbols_name(symbols, stack[n], FALSE);
+	name = symbols_name(stacktrace_symbols, stack[n], FALSE);
 
 	/*
 	 * Avoid all memory allocation if we are in a signal handler or
@@ -1638,7 +1642,8 @@ stacktrace_routine_name(const void *pc, bool offset)
 	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
+	name = NULL == stacktrace_symbols ?
+		NULL : symbols_name_only(stacktrace_symbols, pc, offset);
 
 	/*
 	 * This routine can be called from a signal handler.  We assume it will
@@ -1690,7 +1695,7 @@ stacktrace_routine_start(const void *pc)
 	if (!signal_in_unsafe_handler())
 		stacktrace_load_symbols();
 
-	return symbols_addr(symbols, pc);
+	return symbols_addr(stacktrace_symbols, pc);
 }
 
 /**
@@ -1713,7 +1718,8 @@ static bool
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return symbols != NULL && 0 != symbols_count(symbols);
+	return stacktrace_symbols != NULL &&
+		0 != symbols_count(stacktrace_symbols);
 }
 
 /**
