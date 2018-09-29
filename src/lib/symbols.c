@@ -707,7 +707,9 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 
 	if (!SYMBOLS_READ_TRYLOCK(st)) {
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
+		goto done;
 	} else if G_UNLIKELY(!st->sorted || 0 == st->count) {
+		SYMBOLS_READ_UNLOCK(st);
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
 	} else {
 		struct symbol *s;
@@ -719,8 +721,9 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 		} else {
 			size_t off = 0;
 			const void *addr = const_ptr_add_offset(pc, st->offset);
+			bool garbage;
 
-			if (st->garbage) {
+			if ((garbage = st->garbage)) {
 				b[0] = '?';
 				off = 1;
 			} else if (st->mismatch) {
@@ -734,13 +737,15 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			symbols_fmt_name(&b[off], sizeof buf[0] - off, s->name,
 				offset ? ptr_diff(addr, s->addr) : 0);
 
+			SYMBOLS_READ_UNLOCK(st);
+
 			/*
 			 * If symbols are garbage, add the hexadecimal pointer to the
 			 * name so that we have a little chance of figuring out what
 			 * the routine was.
 			 */
 
-			if (st->garbage) {
+			if (garbage) {
 				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
 				cstr_lcpy(ARYLEN(ptr), " (");
@@ -751,8 +756,9 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 		}
 	}
 
-	SYMBOLS_READ_UNLOCK(st);
+	/* FALL THROUGH */
 
+done:
 	return b;
 }
 
