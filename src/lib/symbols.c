@@ -717,6 +717,7 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 		s = symbols_lookup(st, pc);
 
 		if (NULL == s || &st->base[st->count - 1] == s) {
+			SYMBOLS_READ_UNLOCK(st);
 			symbols_fmt_pointer(b, sizeof buf[0], pc);
 		} else {
 			size_t off = 0;
