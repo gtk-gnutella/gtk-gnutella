@@ -1035,8 +1035,8 @@ stacktrace_pretty_filepath(const char *filepath)
 	start = filepath;
 
 	if (is_absolute_path(filepath)) {
-		const char *src = vstrstr(filepath, "/src/");
-		start = (NULL == src) ? p : &src[CONST_STRLEN("/src/")];
+		const char *src = vstrstr(filepath, "/" SRC_PREFIX);
+		start = (NULL == src) ? p : &src[CONST_STRLEN("/" SRC_PREFIX)];
 	}
 
 	/*
@@ -1048,13 +1048,13 @@ stacktrace_pretty_filepath(const char *filepath)
 
 	for (q = p - 1; q > start; q--) {
 		if ('/' == *q) {
-			if (is_strprefix(q, "/src/"))
+			if (is_strprefix(q, "/" SRC_PREFIX))
 				return p;
 			p = q + 1;
 		}
 	}
 
-	return is_strprefix(start, "src/") ? p : start;
+	return is_strprefix(start, SRC_PREFIX) ? p : start;
 }
 
 enum sxfiletype {
