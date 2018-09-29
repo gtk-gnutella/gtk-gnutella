@@ -479,7 +479,7 @@ bfd_util_get_bc(struct bfd_list **list, const char *path)
 		return NULL;
 
 	bp = XCOPY(&bc);
-	item = xmalloc(sizeof *item);
+	XMALLOC(item);
 	item->bc = bp;
 	item->path = xstrdup(path);
 
