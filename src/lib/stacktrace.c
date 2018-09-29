@@ -1037,6 +1037,11 @@ stacktrace_pretty_filepath(const char *filepath)
 	if (is_absolute_path(filepath)) {
 		const char *src = vstrstr(filepath, "/" SRC_PREFIX);
 		start = (NULL == src) ? p : &src[CONST_STRLEN("/" SRC_PREFIX)];
+
+		/* Move to the latest "/src/" location in path */
+
+		while (NULL != (src = vstrstr(start, "/" SRC_PREFIX)))
+			start = &src[CONST_STRLEN("/" SRC_PREFIX)];
 	}
 
 	/*
