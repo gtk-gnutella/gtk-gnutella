@@ -657,7 +657,7 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 
 	namelen = cstr_lcpy(buf, buflen, name);
 	if (namelen >= buflen - 2)
-		return;
+		return;		/* No room for adding any offset */
 
 	if (offset != 0) {
 		buf[namelen] = '+';
@@ -820,12 +820,13 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		goto done;
 
-	if (0 == offset) {
-		name = s->name;
-	} else {
+	if (offset) {
+		/* Need to format string into a thread-private buffer */
 		name = b;
 		addr = const_ptr_add_offset(pc, st->offset);
 		symbols_fmt_name(b, sizeof buf[0], s->name, ptr_diff(addr, s->addr));
+	} else {
+		name = s->name;		/* Already a constant string, is thread-safe */
 	}
 
 done:
