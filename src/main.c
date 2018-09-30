@@ -1223,7 +1223,7 @@ option_pretty_print(FILE *f, const struct option *o)
 		break;
 	}
 
-	pad = strlen(name) + strlen(arg);
+	pad = vstrlen(name) + vstrlen(arg);
 	if (pad < 24) {
 		pad = 24 - pad;
 	} else {

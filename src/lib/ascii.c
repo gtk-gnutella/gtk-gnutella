@@ -362,7 +362,7 @@ ascii_chomp_trailing_spaces(char *str, size_t len)
 	g_assert(str != NULL);
 
 	if (0 == len) {
-		len = strlen(str);
+		len = vstrlen(str);
 		if (0 == len)
 			return 0;
 	}

@@ -399,7 +399,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	size_t len;
 
 	s = PRINT_NUMBER(buf, v);
-	len = strlen(s);
+	len = vstrlen(s);
 
 	if (cursor->size < len)
 		return;
@@ -1800,10 +1800,10 @@ retry_child:
 				 * safely quoted as shell command.
 				 */
 
-				max_argv0 = (sizeof cmd) - (strlen(cmd) + strlen(" -se ''"));
+				max_argv0 = (sizeof cmd) - (vstrlen(cmd) + vstrlen(" -se ''"));
 				if (
-					NULL == strchr(vars->argv0, quote_ch) &&
-					strlen(vars->argv0) < max_argv0
+					NULL == vstrchr(vars->argv0, quote_ch) &&
+					vstrlen(vars->argv0) < max_argv0
 				) {
 					clamp_strcat(ARYLEN(cmd), " -se '");
 					clamp_strcat(ARYLEN(cmd), vars->argv0);
@@ -3923,19 +3923,19 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 
 	item = CRASHFILE_ENV;
 	clamp_strcpy(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = pathname;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = G_DIR_SEPARATOR_S;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = filename;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	return size;
 }
@@ -4946,7 +4946,7 @@ crash_set_error(const char * const msg)
 		ck_writable(vars->logck);
 		if (0 != str_len(vars->logstr))
 			str_ncat_safe(vars->logstr, ", ", 2);
-		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		str_ncat_safe(vars->logstr, msg, vstrlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
 		crash_set_var(message, m);
@@ -4971,7 +4971,7 @@ crash_append_error(const char * const msg)
 		 */
 
 		ck_writable(vars->logck);
-		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		str_ncat_safe(vars->logstr, msg, vstrlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
 		crash_set_var(message, m);

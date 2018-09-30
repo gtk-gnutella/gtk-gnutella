@@ -89,7 +89,7 @@ g_strip_context(const char *id, const char *val)
 {
 	const char *s;
 
-	s = id != val ? NULL : strchr(id, '|');
+	s = id != val ? NULL : vstrchr(id, '|');
 	return s ? ++s : val;
 }
 #endif /* GLib < 2.4.0 */
@@ -321,7 +321,7 @@ size_t clamp_strlen(const char *src, size_t src_size);
 static inline size_t
 strsize(const char *src)
 {
-	return strlen(src) + 1;
+	return vstrlen(src) + 1;
 }
 
 /**

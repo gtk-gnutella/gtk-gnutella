@@ -2273,7 +2273,7 @@ normalize_dir_separators(char *pathname)
 
 	if (G_DIR_SEPARATOR != '/') {
 		while (pathname) {
-			pathname = strchr(pathname, G_DIR_SEPARATOR);
+			pathname = vstrchr(pathname, G_DIR_SEPARATOR);
 			if (pathname) {
 				*pathname++ = '/';
 			}
@@ -2294,7 +2294,7 @@ dirlist_cat(str_t *str, const char *dir)
 	if (str_len(str) > 0) {
 		str_putc(str, G_SEARCHPATH_SEPARATOR);
 	}
-	if (strchr(dir, G_SEARCHPATH_SEPARATOR)) {
+	if (vstrchr(dir, G_SEARCHPATH_SEPARATOR)) {
 		const char *p;
 
 		for (p = dir; '\0' != *p; p++) {
@@ -2641,9 +2641,9 @@ xml_indent(const char *text)
 			break;
 
 		/* Find the end of the tag */
-		q = strchr(p, '>');
+		q = vstrchr(p, '>');
 		if (!q)
-			q = strchr(p, '\0');
+			q = vstrchr(p, '\0');
 
 		is_special = '?' == p[1] || '!' == p[1];
 		is_end = '/' == p[1];
@@ -2700,7 +2700,7 @@ xml_indent(const char *text)
 			}
 		}
 		if (is_start && !is_singleton) {
-			const char *next = strchr(q, '<');
+			const char *next = vstrchr(q, '<');
 			has_cdata = next && '/' == next[1];
 			depth++;
 		}
