@@ -1179,12 +1179,17 @@ enum stacktrace_stack_level {
 /**
  * Emit stacktrace to stderr and optionally stdout (if distinct from stderr).
  *
+ * When a file descriptor is given, we only emit to that fd and ignore
+ * the no_stdio and copy arguments: we bypass stdio anyway and only send
+ * data to the specified file descriptor.
+ *
+ * @param fd			if not -1, emit to that fd only, ignoring no_stdio
  * @param no_stdio		whether we must avoid stdio
  * @param copy			whether to copy stacktrace to stdout
  * @param offset		stack offset to apply to remove overhead from stack
  */
 static void NO_INLINE
-s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
+s_emit_stacktrace(int fd, bool no_stdio, bool copy, unsigned offset)
 {
 	static enum stacktrace_stack_level tracing[THREAD_MAX];
 	static bool warned[THREAD_MAX];
@@ -1234,7 +1239,9 @@ s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
 		tracing[stid] = STACKTRACE_NORMAL;
 
 	if (STACKTRACE_NORMAL == tracing[stid]) {
-		if (no_stdio) {
+		if (is_valid_fd(fd)) {
+			stacktrace_where_safe_print_offset(fd, offset + 1);
+		} else if (no_stdio) {
 			stacktrace_where_safe_print_offset(STDERR_FILENO, offset + 1);
 			if (copy && log_stdout_is_distinct())
 				stacktrace_where_safe_print_offset(STDOUT_FILENO, offset + 1);
@@ -1250,9 +1257,13 @@ s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
 			}
 		}
 	} else {
-		stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
-		if (copy && log_stdout_is_distinct())
-			stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
+		if (is_valid_fd(fd)) {
+			stacktrace_where_safe_print_offset(fd, offset + 1);
+		} else {
+			stacktrace_where_plain_print_offset(STDERR_FILENO, offset + 1);
+			if (copy && log_stdout_is_distinct())
+				stacktrace_where_plain_print_offset(STDOUT_FILENO, offset + 1);
+		}
 	}
 
 	if (STACKTRACE_PLAIN == tracing[stid]) {
@@ -1272,7 +1283,7 @@ s_emit_stacktrace(bool no_stdio, bool copy, unsigned offset)
 void
 s_stacktrace(bool no_stdio, unsigned offset)
 {
-	s_emit_stacktrace(no_stdio, TRUE, offset + 1);
+	s_emit_stacktrace(-1, no_stdio, TRUE, offset + 1);
 }
 
 /**
@@ -1283,7 +1294,21 @@ s_stacktrace(bool no_stdio, unsigned offset)
 void
 s_where(unsigned offset)
 {
-	s_emit_stacktrace(TRUE, FALSE, offset + 1);
+	s_emit_stacktrace(-1, TRUE, FALSE, offset + 1);
+}
+
+/**
+ * Emit stacktrace to specified file descriptor.
+ *
+ * @param fd			where to send the stack
+ * @param offset		stack offset to apply to remove overhead from stack
+ */
+void
+s_where_fd(int fd, unsigned offset)
+{
+	g_assert(is_valid_fd(fd));
+
+	s_emit_stacktrace(fd, TRUE /* ignored */, FALSE /* ignored */, offset + 1);
 }
 
 /**
