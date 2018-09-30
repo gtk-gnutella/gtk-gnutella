@@ -1074,6 +1074,11 @@ tmalloc_depot_trash_pslist(tmalloc_t *d, pslist_t *pl)
 
 	last = pslist_last_count(pl, &n);
 
+	if (0 == n)
+		return;
+
+	g_assert(last != NULL);
+
 	TMALLOC_LOCK_HIDDEN(d);
 
 	g_assert(size_is_non_negative(d->tma_obj_trash_count));
