@@ -1256,6 +1256,38 @@ plist_shift_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
 /**
  * Remove head of list.
  *
+ * This is the routine to be used when the list can contain NULL data, to avoid
+ * warnings and simplify user code.
+ *
+ * @param pl_ptr	pointer to the head of the list
+ * @param d_ptr		pointer where data is written
+ * @param ca		cell allocator
+ *
+ * @return TRUE if we fetched data, FALSE if the list was empty.
+ */
+bool
+plist_shift_data_ext(plist_t **pl_ptr, void **d_ptr, const pcell_alloc_t *ca)
+{
+	plist_t *pl = *pl_ptr, *nl;
+
+	if G_UNLIKELY(NULL == pl)
+		return FALSE;
+
+	*d_ptr = pl->data;
+	nl = pl->next;
+	if (nl != NULL)
+		nl->prev = NULL;
+	g_assert(NULL == pl->prev);		/* Was at the head of the list */
+	ca->pcell_free(pl);
+
+	*pl_ptr = nl;
+	return TRUE;
+
+}
+
+/**
+ * Remove head of list.
+ *
  * @param pl_ptr		pointer to the head of the list
  *
  * @return the data item at the head of the list, NULL if the list was empty.
@@ -1264,6 +1296,23 @@ void *
 plist_shift(plist_t **pl_ptr)
 {
 	return plist_shift_ext(pl_ptr, &plist_default_alloc);
+}
+
+/**
+ * Remove head of list.
+ *
+ * This is the routine to be used when the list can contain NULL data, to avoid
+ * warnings and simplify user code.
+ *
+ * @param pl_ptr	pointer to the head of the list
+ * @param d_ptr		pointer where data is written
+ *
+ * @return TRUE if we fetched data, FALSE if the list was empty.
+ */
+bool
+plist_shift_data(plist_t **pl_ptr, void **d_ptr)
+{
+	return plist_shift_data_ext(pl_ptr, d_ptr, &plist_default_alloc);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
