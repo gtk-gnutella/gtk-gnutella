@@ -260,6 +260,7 @@ pslist_last_count(const pslist_t *pl, size_t *count)
 	g_assert(count != NULL);	/* Use pslist_last() if you don't care! */
 
 	if G_LIKELY(l != NULL) {
+		n++;
 		while (l->next != NULL) {
 			l = l->next;
 			n++;
