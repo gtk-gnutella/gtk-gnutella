@@ -132,6 +132,9 @@ void str_set_silent_truncation(str_t * const s, bool on);
 size_t str_strip_trailing_nuls(str_t *s);
 bool str_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
 bool str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
+bool str_ctrl_escape(str_t *s, bool strip_crlf);
+bool str_unprintable_escape(str_t *s, bool strip_crlf);
+bool str_unsafe_escape(str_t *s, bool strip_crlf);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);

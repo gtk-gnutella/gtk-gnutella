@@ -1682,6 +1682,207 @@ str_escape(str_t *str, int c, int e)
 }
 
 /**
+ * Callback for str_inplace_escape() to determine whether a character needs
+ * to be escaped or not.
+ */
+typedef bool (*str_safe_fn_t)(uchar c);
+
+static const char str_hex_alphabet[] = "0123456789ABCDEF";
+
+static bool
+str_char_is_space(uchar c)
+{
+	return ' ' == c || '\t' == c || '\n' == c;
+}
+
+static bool
+str_char_is_printable(uchar c)
+{
+	return isprint(c);
+}
+
+static bool
+str_char_is_safe(uchar c)
+{
+	return isprint(c) || str_char_is_space(c);
+}
+
+static bool
+str_char_is_not_ctrl(uchar c)
+{
+	return !is_ascii_cntrl(c) || str_char_is_space(c);
+}
+
+/**
+ * Perform the in-place escaping.
+ *
+ * All characters for which the `cb' predicate returns FALSE will be escaped
+ * by a "\xhh" sequence.
+ *
+ * @param s			the string to escape
+ * @paral cm		the predicate telling which characters are safe as-is
+ * @param no_crlf	if TRUE, remove the CR in a CR LF sequence
+ *
+ * @return TRUE if we had space to escape characters, FALSE otherwise.
+ */
+static bool
+str_inplace_escape(str_t *s, str_safe_fn_t cb, bool no_crlf)
+{
+	size_t escapes = 0;
+	const uchar *p;
+	uchar *q;
+	size_t i, len, shift;
+	bool had_nul = FALSE, has_crlf = FALSE;
+
+	/*
+	 * To be efficient, the algorithm works in 2 passes:
+	 *
+	 * The first pass computes how much extra space we are going to need.
+	 * Assume we need to perform 3 escapes, which will add 9 chars.
+	 *
+	 * We then determine whether we have enough room to perform the escaping,
+	 * shift the whole string by 9 characters (in our example) and then
+	 * move back all the characters to their position, performing escaping
+	 * on the fly.
+	 */
+
+	/*
+	 * First pass: determine how many escapes we need to do.
+	 *
+	 * We do not account for the stripping of the CR in a CR LF sequence,
+	 * because we want to be able to perform escaping quickly and hence
+	 * we need to figure out the maximum shifting we'll have to do.
+	 */
+
+	len = s->s_len;
+
+	if G_UNLIKELY(0 == len)
+		return FALSE;
+
+	p = (uchar *) s->s_data;
+
+	if G_UNLIKELY('\0' == p[len - 1]) {
+		len--;				/* Already NUL terminated, don't escape that NUL */
+		had_nul = TRUE;
+	}
+
+	if (no_crlf) {
+		for (i = 0; i < len; i++) {
+			if (!has_crlf && '\r' == *p && i < len - 1 && '\n' == p[1])
+				has_crlf = TRUE;
+			if (!(*cb)(*p++))
+				escapes++;
+		}
+	} else {
+		for (i = 0; i < len; i++) {
+			if (!(*cb)(*p++))
+				escapes++;
+		}
+	}
+
+	if (0 == escapes && !(has_crlf && no_crlf))
+		return TRUE;		/* Nothing to escape */
+
+	/*
+	 * Determine whether we have enough space, again not counting any
+	 * CR LF stripping.
+	 */
+
+	shift = size_saturate_mult(3, escapes);
+
+	if (str_avail(s) < size_saturate_add(len, shift))
+		return FALSE;
+
+	str_makeroom(s, shift);
+	g_assert(len + shift <= s->s_size);
+
+	memmove(ptr_add_offset(s->s_data, shift), s->s_data, len);
+
+	/*
+	 * Second pass: perform the escaping as needed.
+	 */
+
+	q = (uchar *) s->s_data;
+	p = q + shift;				/* Where we shifted string to above */
+
+	for (i = 0; i < len; i++) {
+		uchar c = *p++;
+
+		if ('\r' == c && no_crlf && i < len - 1 && '\n' == *p)
+			continue;	/* Spip CR in CR LF sequence */
+
+		if ((*cb)(c)) {
+			*q++ = c;
+		} else {
+			*q++ = '\\';
+			*q++ = 'x';
+			*q++ = str_hex_alphabet[c >> 4];
+			*q++ = str_hex_alphabet[c & 0xf];
+		}
+	}
+
+	if G_UNLIKELY(had_nul)
+		*q++ = '\0';			/* Restore un-escaped trailing NUL */
+
+	/*
+	 * Adjust string length.
+	 */
+
+	s->s_len = ptr_diff(q, s->s_data);
+
+	g_assert(s->s_len <= s->s_size);
+
+	return TRUE;
+}
+
+/**
+ * Escape (in-place) all control characters that are not a "space" (SPACE /
+ * TAB / LF characters) by using the hexadecimal form "\xhh".
+ *
+ * @param s				string to escape
+ * @param strip_crlf	whether to drop the CR character in a CR LF sequence
+ *
+ * @return TRUE if we were able to escape all the characters, FALSE if the
+ * string data buffer is not resizable and is not holding enough room, in
+ * which case no escaping is done at all.
+ */
+bool
+str_ctrl_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_not_ctrl, strip_crlf);
+}
+
+/**
+ * Escape (in-place) all non-printable character.
+ *
+ * @return TRUE if we were able to escape all the characters.
+ */
+bool
+str_unprintable_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_printable, strip_crlf);
+}
+
+/**
+ * Escape (in-place) all unsafe character.
+ *
+ * A character is unsafe if it is non-printable and not a SPACE / TAB / LF.
+ *
+ * @return TRUE if we were able to escape all the characters.
+ */
+bool
+str_unsafe_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_safe, strip_crlf);
+}
+
+/**
  * Translate algebric offset into physical offset, with specific off-limit
  * indication.
  *
@@ -4310,6 +4511,55 @@ str_test(bool verbose)
 			vsn_count, our_count);
 		g_assert(vstrlen(vsnp) == vsn_count);	/* Consistency check */
 		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
+	}
+
+	/*
+	 * Make sure escaping routines work.
+	 */
+
+	{
+		str_t s, l;
+		char smallbuf[4];
+		char largebuf[128];
+		bool ok;
+		const char two[] = "\f\r\n";
+		const char two_escaped_crlf[] = "\\x0C\\x0D\n";
+		const char two_escaped_nocrlf[] = "\\x0C\n";
+		const char strippable[] = "A\r\nAnd\t\a escaped";
+		const char strippable_escaped[] = "A\nAnd\t\\x07 escaped";
+		const char strippable_unsafe[] = "A\\x0D\nAnd\t\\x07 escaped";
+
+		str_new_buffer(&s, ARYLEN(smallbuf), 0);
+		str_new_buffer(&l, ARYLEN(largebuf), 0);
+
+		str_cpy(&s, two);
+		ok = str_ctrl_escape(&s, TRUE);
+		g_assert_log(!ok, "str_ctrl_escape() cannot succeed in small buffer");
+
+#define EXPECT(x)	\
+	g_assert_log(ok, "str_ctrl_escape() must succeed in large buffer"); \
+	g_assert_log(0 == strcmp(str_2c(&l), x), \
+		"expected \"%s\" but got \"%s\" as escaped text", x, str_2c(&l));
+
+		str_cpy(&l, two);
+		ok = str_ctrl_escape(&l, FALSE);
+		EXPECT(two_escaped_crlf);
+
+		str_cpy(&l, two);
+		ok = str_ctrl_escape(&l, TRUE);
+		EXPECT(two_escaped_nocrlf);
+
+		str_cpy(&l, strippable);
+		ok = str_ctrl_escape(&l, TRUE);
+		EXPECT(strippable_escaped);
+		g_assert(str_len(&l) == CONST_STRLEN(strippable_escaped));
+
+		str_cpy(&l, strippable);
+		ok = str_unsafe_escape(&l, FALSE);
+		EXPECT(strippable_unsafe);
+		g_assert(str_len(&l) == CONST_STRLEN(strippable_unsafe));
+
+#undef EXPECT
 	}
 
 	return discrepancies;
