@@ -429,6 +429,9 @@ tmalloc_trash_list_cycles_check(const tmalloc_t *tm)
 	}
 }
 
+#define tmalloc_trash_list_check(x)	\
+	tmalloc_trash_list_check_from((x), _WHERE_, __LINE__)
+
 /**
  * Ensure the trash list is consistent and not corrupted.
  *
@@ -436,7 +439,7 @@ tmalloc_trash_list_cycles_check(const tmalloc_t *tm)
  * crash hook for tmalloc() if any failure is detected.
  */
 static void
-tmalloc_trash_list_check(const tmalloc_t *tm)
+tmalloc_trash_list_check_from(const tmalloc_t *tm, const char *file, uint line)
 {
 	void **l;
 	size_t cnt = 0;
@@ -468,9 +471,9 @@ tmalloc_trash_list_check(const tmalloc_t *tm)
 		tmalloc_trash_list_cycles_check(tm);
 
 	g_assert_log(count_is_valid,
-		"%s(\"%s\"): found %zu%s object%s, expected %zu",
+		"%s(\"%s\"): found %zu%s object%s, expected %zu at %s:%u",
 		G_STRFUNC, tm->tma_name, cnt, aborted ? "+" : "", plural(cnt),
-		tm->tma_obj_trash_count);
+		tm->tma_obj_trash_count, file, line);
 }
 #else	/* !TMALLOC_TRASH_SAFE */
 #define tmalloc_trash_list_check(x)
