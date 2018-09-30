@@ -789,6 +789,33 @@ str_2c(str_t *str)
 }
 
 /**
+ * Like str_2c() but starts at given offset.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s		the string
+ * @param idx	starting index
+ */
+char *
+str_2c_from(str_t *s, ssize_t idx)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (idx < 0)						/* Stands for chars before end */
+		idx += len;
+
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+		return "";		/* Empty string! */
+
+	return str_2c(s) + idx;		/* NUL-terminated string */
+}
+
+/**
  * Destroy the str_t container and keep only its data arena, returning a
  * pointer to it as a `C' string (NUL-terminated).
  *

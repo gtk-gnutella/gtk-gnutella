@@ -86,6 +86,7 @@ void str_discard(str_t *str);
 void str_destroy(str_t *str);
 void str_destroy_null(str_t **s_ptr);
 char *str_2c(str_t *str);
+char *str_2c_from(str_t *str, ssize_t idx);
 char *str_s2c_null(str_t **s_ptr);
 char *str_dup(const str_t *str);
 str_t *str_clone(const str_t *str);
