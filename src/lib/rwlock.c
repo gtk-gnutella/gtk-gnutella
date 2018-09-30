@@ -730,8 +730,9 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 
 			compat_usleep_nocancel(RWLOCK_DELAY);
 
+			/* To timestamp end of sleep */
 			if G_UNLIKELY(rwlock_sleep_trace)
-				s_rawinfo("LOCK sleep done");	/* To timestamp end of sleep */
+				s_rawinfo("LOCK sleep done for %p", rw);
 		}
 	}
 }
@@ -1231,7 +1232,10 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		g_assert(rw->readers != 0 || rwlock_pass_through);
 		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
+	} else if G_UNLIKELY(rwlock_contention_trace) {
+		s_rawinfo("LOCK contention for read-lock %p at %s:%u", rw, file, line);
 	}
+
 
 	return got;
 }
@@ -1318,8 +1322,11 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
-	if (got)
+	if G_LIKELY(got) {
 		rwlock_write_account(rw, file, line);
+	} else if G_UNLIKELY(rwlock_contention_trace) {
+		s_rawinfo("LOCK contention for write-lock %p at %s:%u", rw, file, line);
+	}
 
 	return got;
 }
@@ -1431,8 +1438,13 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
-	if G_UNLIKELY(!got)
+	if G_UNLIKELY(!got) {
+		if G_UNLIKELY(rwlock_contention_trace) {
+			s_rawinfo("LOCK cannot upgrade read-lock %p at %s:%u",
+				rw, file, line);
+		}
 		return FALSE;
+	}
 
 	/*
 	 * We just ended a spinlock, acting as a memory barrier, so we can

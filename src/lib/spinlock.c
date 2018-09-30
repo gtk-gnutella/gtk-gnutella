@@ -368,8 +368,9 @@ spinlock_loop(volatile spinlock_t *s,
 
 		compat_usleep_nocancel(SPINLOCK_DELAY);
 
+		/* To timestamp end of sleep */
 		if G_UNLIKELY(spinlock_sleep_trace)
-			s_rawinfo("LOCK sleep done");		/* To timestamp end of sleep */
+			s_rawinfo("LOCK sleep done for %p", src_object);
 
 		/*
 		 * If pass-through was activated whilst we were sleeping, return
@@ -499,6 +500,9 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
+	if G_UNLIKELY(spinlock_contention_trace)
+		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
+
 	return FALSE;
 }
 
@@ -537,6 +541,9 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		spinlock_account_swap(s, file, line, plock);
 		return TRUE;
 	}
+
+	if G_UNLIKELY(spinlock_contention_trace)
+		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
 
 	return FALSE;
 }

@@ -550,8 +550,9 @@ qlock_loop(qlock_t *q,
 		if (!thread_timed_block_self(events, &tmout) && warned)
 			(*deadlocked)(q, QLOCK_TIMEOUT, file, line);
 
+		/* To timestamp end of sleep */
 		if G_UNLIKELY(qlock_sleep_trace)
-			s_rawinfo("LOCK sleep done");	/* To timestamp end of sleep */
+			s_rawinfo("LOCK sleep done for %p", q);
 
 		events = thread_block_prepare();
 		atomic_mb();		/* "read barrier", before reading q->stid */
@@ -787,6 +788,18 @@ qlock_grab_from(qlock_t *q, bool hidden, const char *file, unsigned line)
 }
 
 /**
+ * Report failed non-blocking grab attempt if needed.
+ */
+static inline void
+qlock_try_contention(const qlock_t *q, const char *file, unsigned line)
+{
+	if G_UNLIKELY(qlock_contention_trace) {
+		s_rawdebug("LOCK already busy for %s qlock %p at %s:%u",
+			qlock_type(q), q, file, line);
+	}
+}
+
+/**
  * Try to grab a plain qlock.
  *
  * @return whether we obtained the lock.
@@ -804,6 +817,7 @@ qlock_grab_plain_try(qlock_t *q, const char *file, unsigned line)
 	if G_UNLIKELY(qlock_pass_through)
 		return TRUE;		/* Crashing! */
 
+	qlock_try_contention(q, file, line);
 	return FALSE;
 }
 
@@ -825,6 +839,7 @@ qlock_grab_recursive_try(qlock_t *q, const char *file, unsigned line)
 		qlock_set_owner(q, file, line);
 		q->depth = 1;
 	} else if G_LIKELY(!qlock_pass_through) {
+		qlock_try_contention(q, file, line);
 		return FALSE;
 	}
 
@@ -899,6 +914,7 @@ qlock_grab_swap_try_from(qlock_t *q, const void *plock,
 	if G_UNLIKELY(qlock_pass_through)
 		return TRUE;		/* Crashing */
 
+	qlock_try_contention(q, file, line);
 	return FALSE;
 }
 

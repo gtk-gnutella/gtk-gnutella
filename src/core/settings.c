@@ -96,11 +96,13 @@
 #include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/pslist.h"
+#include "lib/qlock.h"
 #include "lib/random.h"
 #include "lib/rwlock.h"
 #include "lib/sha1.h"
@@ -2732,6 +2734,7 @@ lock_sleep_trace_changed(property_t prop)
 
 	spinlock_set_sleep_trace(val);
 	rwlock_set_sleep_trace(val);
+	qlock_set_sleep_trace(val);
 
     return FALSE;
 }
@@ -2744,7 +2747,9 @@ lock_contention_trace_changed(property_t prop)
 	gnet_prop_get_boolean_val(prop, &val);
 
 	spinlock_set_contention_trace(val);
+	mutex_set_contention_trace(val);
 	rwlock_set_contention_trace(val);
+	qlock_set_contention_trace(val);
 
     return FALSE;
 }

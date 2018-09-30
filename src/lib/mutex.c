@@ -47,6 +47,16 @@
 #include "override.h"			/* Must be the last header included */
 
 static bool mutex_pass_through;
+static bool mutex_contention_trace;
+
+/**
+ * Set contention tracing for mutexes (here only managing failed try attempts).
+ */
+void
+mutex_set_contention_trace(bool on)
+{
+	mutex_contention_trace = on;
+}
 
 static inline void
 mutex_get_account(const mutex_t *m, const char *file, unsigned line,
@@ -327,6 +337,16 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	}
 }
 
+/**
+ * Report failed non-blocking grab attempt if needed.
+ */
+static inline void
+mutex_try_contention(const mutex_t *m, const char *file, unsigned line)
+{
+	if G_UNLIKELY(mutex_contention_trace)
+		s_rawdebug("LOCK already busy for mutex %p at %s:%u", m, file, line);
+}
+
 #define MUTEX_GRAB												\
 	if (mutex_is_owned_by_fast(m, t)) {							\
 		mutex_recursive_get(m);									\
@@ -346,6 +366,7 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 		thread_set(m->owner, t);							\
 		mutex_set_owner(m, file, line);						\
 	} else {												\
+		mutex_try_contention(m, file, line);				\
 		return FALSE;										\
 	}
 
