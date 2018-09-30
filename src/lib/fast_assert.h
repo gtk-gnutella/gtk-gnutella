@@ -96,13 +96,13 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-#define fast_assert_log(expr, expr_string, fmt, ...) \
+#define fast_assert_log(expr, expr_string, ...) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
 			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
-		assertion_failure_log(&assertion_data_, (fmt), __VA_ARGS__); \
+		assertion_failure_log(&assertion_data_, __VA_ARGS__); \
 	} \
 } G_STMT_END
 
@@ -116,8 +116,8 @@ G_STMT_START { \
 
 #define return_unless(expr) return_unless_intern((expr), #expr)
 
-#define return_unless_log(expr, fmt, ...) \
-	return_unless_intern_log((expr), #expr, (fmt), __VA_ARGS__)
+#define return_unless_log(expr, ...) \
+	return_unless_intern_log((expr), #expr, __VA_ARGS__)
 
 #define return_unless_intern(expr, expr_string) \
 G_STMT_START { \
@@ -130,13 +130,13 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-#define return_unless_intern_log(expr, expr_string, fmt, ...) \
+#define return_unless_intern_log(expr, expr_string, ...) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
 			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
-		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
+		assertion_warning_log(&assertion_data_, __VA_ARGS__); \
 		return; \
 	} \
 } G_STMT_END
@@ -155,13 +155,13 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-#define return_value_unless_intern_log(expr, expr_string, val, fmt, ...) \
+#define return_value_unless_intern_log(expr, expr_string, val, ...) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
 			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
-		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
+		assertion_warning_log(&assertion_data_, __VA_ARGS__); \
 		return (val); \
 	} \
 } G_STMT_END
@@ -176,41 +176,41 @@ G_STMT_START { \
 	} \
 } G_STMT_END
 
-#define warn_unless_log(expr, expr_string, fmt, ...) \
+#define warn_unless_log(expr, expr_string, ...) \
 G_STMT_START { \
 	if (G_UNLIKELY(!(expr))) { \
 		static const struct assertion_data assertion_data_ = { \
 			_WHERE_, expr_string, G_STRFUNC, __LINE__ \
 		}; \
-		assertion_warning_log(&assertion_data_, (fmt), __VA_ARGS__); \
+		assertion_warning_log(&assertion_data_, __VA_ARGS__); \
 	} \
 } G_STMT_END
 
 #define g_soft_assert(expr) warn_unless((expr), #expr)
 
-#define g_soft_assert_log(expr, fmt, ...) \
-	warn_unless_log((expr), #expr, (fmt), __VA_ARGS__)
+#define g_soft_assert_log(expr, ...) \
+	warn_unless_log((expr), #expr, __VA_ARGS__)
 
-#define g_assert_log(expr, fmt, ...) \
-	fast_assert_log((expr), #expr, (fmt), __VA_ARGS__)
+#define g_assert_log(expr, ...) \
+	fast_assert_log((expr), #expr,  __VA_ARGS__)
 
-#define g_return_if_fail_log(expr, fmt, ...) \
-	return_unless_intern_log((expr), #expr, (fmt), __VA_ARGS__)
+#define g_return_if_fail_log(expr, ...) \
+	return_unless_intern_log((expr), #expr, __VA_ARGS__)
 
-#define g_return_val_if_fail_log(expr, val, fmt, ...) \
-	return_value_unless_intern_log((expr), #expr, (val), (fmt), __VA_ARGS__)
+#define g_return_val_if_fail_log(expr, val, ...) \
+	return_value_unless_intern_log((expr), #expr, (val), __VA_ARGS__)
 
 /* Aliases, for convenience */
 
 #define g_return_unless(expr) return_unless_intern((expr), #expr)
-#define g_return_unless_log(expr, fmt, ...) \
-	return_unless_intern_log((expr), #expr, (fmt), __VA_ARGS__)
+#define g_return_unless_log(expr, ...) \
+	return_unless_intern_log((expr), #expr, __VA_ARGS__)
 
 #define g_return_val_unless(expr, val) \
 	return_value_unless_intern((expr), #expr, (val))
 
-#define g_return_val_unless_log(expr, val, fmt, ...) \
-	return_value_unless_intern_log((expr), #expr, (val), (fmt), __VA_ARGS__)
+#define g_return_val_unless_log(expr, val, ...) \
+	return_value_unless_intern_log((expr), #expr, (val), __VA_ARGS__)
 
 #ifdef FAST_ASSERTIONS
 
