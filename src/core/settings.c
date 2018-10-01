@@ -2443,7 +2443,7 @@ save_file_path_changed(property_t prop)
 	path = gnet_prop_get_string(prop, NULL, 0);
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
+		g_debug("save_file_path_change(): path=\"%s\", old_path=\"%s\"",
 			NULL_STRING(path), NULL_STRING(old_path));
 	}
 
