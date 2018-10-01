@@ -1877,6 +1877,23 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
 }
 
 /**
+ * Dump formatted string to specified fd, atomically.
+ */
+void
+dump_writef(int fd, const char *fmt, ...)
+{
+	str_t *s = str_new(0);
+	va_list args;
+
+	va_start(args, fmt);
+	str_vprintf(s, fmt, args);
+	va_end(args);
+
+	IGNORE_RESULT(write(fd, str_2c(s), str_len(s)));
+	str_destroy_null(&s);
+}
+
+/**
  * Is string made-up of printable ISO-8859 characters?
  * If not, consider dump_hex().
  */

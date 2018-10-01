@@ -280,6 +280,8 @@ void dump_hex_vec(FILE *out, const char *title,
 	const iovec_t *iov, size_t iovcnt);
 void dump_string(FILE *out, const char *str, size_t len, const char *trailer);
 void dump_string_fd(int fd, const char *str, size_t len, const char *trailer);
+void dump_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
+
 bool is_printable_iso8859_string(const char *s);
 void locale_strlower(char *, const char *);
 size_t common_leading_bits(
