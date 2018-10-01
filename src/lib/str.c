@@ -1589,6 +1589,7 @@ str_chr_at(const str_t *s, int c, ssize_t offset)
 	size_t len, i;
 	ssize_t pos;
 	const char *p;
+	bool nul;
 
 	str_check(s);
 
@@ -1597,13 +1598,37 @@ str_chr_at(const str_t *s, int c, ssize_t offset)
 	if (pos < 0)
 		i = 0;
 	else if (UNSIGNED(pos) >= len)
-		return -1;
+		goto not_found;
+
+	/*
+	 * If we can NUL-terminate the string without truncating or resizing,
+	 * then we can use vstrchr() which will be more efficient than our
+	 * naive lookup one char at a time.
+	 * 		--RAM, 2018-10-01
+	 */
+
+	nul = FALSE;
+
+	if ('\0' == s->s_data[len - 1])
+		nul = TRUE;
+	else if (len < s->s_size) {
+		s->s_data[len] = '\0';		/* NUL-terminate it */
+		nul = TRUE;
+	}
+
+	if (nul) {
+		const char *r = vstrchr(s->s_data + i, c);
+		if (NULL == r)
+			goto not_found;
+		return ptr_diff(r, s->s_data);
+	}
 
 	for (p = s->s_data + i; i < len; i++) {
 		if G_UNLIKELY(*p++ == c)
 			return i;
 	}
 
+not_found:
 	return -1;
 }
 
