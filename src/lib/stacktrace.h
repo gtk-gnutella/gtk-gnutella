@@ -104,6 +104,7 @@ void stacktrace_get_offset(struct stacktrace *st, size_t offset);
 void stacktrace_print(FILE *f, const struct stacktrace *st);
 void stacktrace_atom_print(FILE *f, const struct stackatom *st);
 void stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags);
+void stacktrace_atom_decorate_fd(int fd, const struct stackatom *st, uint flags);
 void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
@@ -113,6 +114,7 @@ const char *stacktrace_routine_name_light(const void *pc, size_t *offset);
 size_t stacktrace_unwind(void *stack[], size_t count, size_t offset);
 size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 
+void stacktrace_where_print_fd(int fd);
 void stacktrace_where_print(FILE *f);
 void stacktrace_where_sym_print(FILE *f);
 void stacktrace_where_sym_print_offset(FILE *f, size_t offset);

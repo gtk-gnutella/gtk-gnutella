@@ -421,7 +421,7 @@ G_STMT_START {									\
 #else	/* !LOGFILTER_SUPPORTED */
 #define LOG_FOREACH(fd_, code_) \
 G_STMT_START {					\
-	fd_ = STDERR_FILENO;		\
+	int fd_ = STDERR_FILENO;	\
 	code_						\
 } G_STMT_END
 #endif	/* LOGFILTER_SUPPORTED */

@@ -56,6 +56,7 @@
 #include "lib/header.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
+#include "lib/log.h"
 #include "lib/misc.h"
 #include "lib/parse.h"
 #include "lib/pslist.h"
@@ -429,13 +430,17 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 			upnp_service_to_string(usd));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
-			header_dump(stderr, header, "----");
+			LOG_FOREACH(fd,
+				header_dump_fd(fd, header, "----");
+			);
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
 			size_t xlen;
 			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
+			LOG_FOREACH(fd,
+				IGNORE_RESULT(write(fd, xml, xlen));
+			);
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -684,13 +689,17 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 			ud->desc_url, PLURAL(len));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
-			header_dump(stderr, header, "----");
+			LOG_FOREACH(fd,
+				header_dump_fd(fd, header, "----");
+			);
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
 			size_t xlen;
 			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
+			LOG_FOREACH(fd,
+				IGNORE_RESULT(write(fd, xml, xlen));
+			);
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -873,7 +882,9 @@ upnp_msearch_reply(const gnutella_socket_t *s,
 	if (GNET_PROPERTY(http_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got HTTP reply (UDP) from %s (%zu bytes):",
 			host_addr_to_string(s->addr), len);
-		dump_string(stderr, data, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, data, len, "----");
+		);
 	}
 
 	/*
@@ -1035,7 +1046,9 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 		if (GNET_PROPERTY(http_trace) & SOCK_TRACE_OUT) {
 			g_debug("----Sent HTTP request (UDP) to %s (%zu bytes):",
 				host_addr_port_to_string(addr, UPNP_PORT), len);
-			dump_string(stderr, req, len, "----");
+			LOG_FOREACH(fd,
+				dump_string_fd(fd, req, len, "----");
+			);
 		}
 	}
 

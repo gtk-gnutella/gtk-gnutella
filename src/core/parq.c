@@ -985,7 +985,9 @@ parq_download_parse_queue_status(struct download *d,
 				server_host_info(d->server), major, minor);
 			if (GNET_PROPERTY(parq_debug)) {
 				g_warning("[PARQ DL]: header dump:");
-				header_dump(stderr, header, NULL);
+				LOG_FOREACH(fd,
+					header_dump_fd(fd, header, NULL);
+				);
 			}
 			return FALSE;
 		}
@@ -1199,7 +1201,9 @@ parq_download_queue_ack(struct gnutella_socket *s)
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got QUEUE from %s:\n", host_addr_to_string(s->addr));
-		dump_string(stderr, queue, getline_length(s->getline), "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, queue, getline_length(s->getline), "----");
+		);
 	}
 
 	/*
@@ -2162,7 +2166,9 @@ parq_upload_find_id(const struct upload *u, const header_t *header)
 				upload_host_info(u));
 			if (GNET_PROPERTY(parq_debug) > 1) {
 				g_warning("[PARQ UL] header dump:");
-				header_dump(stderr, header, NULL);
+				LOG_FOREACH(fd,
+					header_dump_fd(fd, header, NULL);
+				);
 			}
 		}
 	}

@@ -218,7 +218,9 @@ soap_fault(soap_rpc_t *sr, xnode_t *xn)
 	if (GNET_PROPERTY(soap_debug)) {
 		g_warning("SOAP \"%s\" at \"%s\": got a SOAP fault:",
 			sr->action, sr->url);
-		xfmt_tree_dump(xn, stderr);
+		LOG_FOREACH(fd,
+			xfmt_tree_dump_fd(fd, xn);
+		);
 	}
 
 	if (sr->error_cb != NULL)
@@ -256,10 +258,10 @@ soap_process_reply(soap_rpc_t *sr)
 
 	if (sr->reply_len != 0 && (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN)) {
 		g_debug("----Got SOAP HTTP reply data from %s:", sr->url);
-		if (log_printable(LOG_STDERR)) {
-			fwrite(sr->reply_data, sr->reply_len, 1, stderr);
-			fputs("----End SOAP HTTP reply\n", stderr);
-		}
+		LOG_FOREACH(fd,
+			dump_string_fd(
+				fd, sr->reply_data, sr->reply_len, "----End SOAP HTTP reply");
+		);
 	}
 
 	if (GNET_PROPERTY(soap_debug) > 2) {
@@ -396,8 +398,11 @@ bad_soap:
 	if (GNET_PROPERTY(soap_debug) > 1) {
 		g_debug("SOAP current node is %s", xnode_to_string(xn));
 	}
-	if (GNET_PROPERTY(soap_debug) > 2)
-		xfmt_tree_dump(root, stderr);
+	if (GNET_PROPERTY(soap_debug) > 2) {
+		LOG_FOREACH(fd,
+			xfmt_tree_dump_fd(fd, root);
+		);
+	}
 
 	xnode_tree_free(root);
 	/* FALL THROUGH */
@@ -756,7 +761,9 @@ soap_sent_head(const struct http_async *ha,
 		g_debug("----Sent SOAP HTTP request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
-		dump_string(stderr, req, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, req, len, "----");
+		);
 	}
 }
 
@@ -776,7 +783,9 @@ soap_sent_data(const struct http_async *ha,
 		g_debug("----Sent SOAP HTTP data%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
-		dump_string(stderr, data, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, data, len, "----");
+		);
 	}
 }
 
@@ -794,10 +803,10 @@ soap_got_reply(const http_async_t *ha,
 	if (GNET_PROPERTY(soap_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got SOAP HTTP reply from %s:",
 			host_addr_to_string(s->addr));
-		if (log_printable(LOG_STDERR)) {
-			fprintf(stderr, "%s\n", status);
-			header_dump(stderr, header, "----");
-		}
+		LOG_FOREACH(fd,
+			dump_writef(fd, "%s\n", status);
+			header_dump_fd(fd, header, "----");
+		);
 	}
 }
 
@@ -925,8 +934,11 @@ soap_rpc(const char *url, const char *action, size_t maxlen, uint32 options,
 		failed = TRUE;
 		g_warning("SOAP unable to serialize payload within %d bytes",
 			SOAP_MAX_PAYLOAD);
-		if (GNET_PROPERTY(soap_debug) > 1)
-			xfmt_tree_dump(root, stderr);
+		if (GNET_PROPERTY(soap_debug) > 1) {
+			LOG_FOREACH(fd,
+				xfmt_tree_dump_fd(fd, root);
+			);
+		}
 	}
 
 	/*

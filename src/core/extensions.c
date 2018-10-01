@@ -45,6 +45,7 @@
 #include "lib/htable.h"
 #include "lib/log.h"
 #include "lib/mempcpy.h"
+#include "lib/ostream.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
@@ -2105,10 +2106,10 @@ ext_to_string(const extvec_t *e)
 }
 
 /**
- * Dump an extension to specified stdio stream.
+ * Dump an extension to specified stream.
  */
 static void
-ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
+ext_dump_one(ostream_t *os, const extvec_t *e, const char *prefix,
 	const char *postfix, bool payload)
 {
 	uint16 paylen, phys_paylen;
@@ -2117,49 +2118,75 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 	g_assert(e->opaque != NULL);
 
 	if (prefix)
-		fputs(prefix, f);
+		ostream_puts(os, prefix);
 
-	fputs(extype[e->ext_type], f);
-	fprintf(f, " (token=%d) ", e->ext_token);
+	ostream_puts(os, extype[e->ext_type]);
+	ostream_printf(os, " (token=%d) ", e->ext_token);
 
 	if (e->ext_name)
-		fprintf(f, "\"%s\" ", e->ext_name);
+		ostream_printf(os, "\"%s\" ", e->ext_name);
 
 	paylen = ext_paylen(e);
 	phys_paylen = ext_phys_paylen(e);
 
 	if (paylen == phys_paylen) {
-		fprintf(f, "%u byte%s", PLURAL(paylen));
+		ostream_printf(os, "%u byte%s", PLURAL(paylen));
 	} else {
-		fprintf(f, "%u byte%s <%u byte%s>", PLURAL(paylen), PLURAL(phys_paylen));
+		ostream_printf(os, "%u byte%s <%u byte%s>",
+			PLURAL(paylen), PLURAL(phys_paylen));
 	}
 
 	if (e->ext_type == EXT_GGEP) {
 		extdesc_t *d = e->opaque;
-		fprintf(f, " (ID=\"%s\", COBS: %s, deflate: %s)",
+		ostream_printf(os, " (ID=\"%s\", COBS: %s, deflate: %s)",
 			d->ext_ggep_id,
 			bool_to_string(d->ext_ggep_cobs),
 			bool_to_string(d->ext_ggep_deflate));
 	}
 
 	if (postfix)
-		fputs(postfix, f);
+		ostream_puts(os, postfix);
 
 	if (payload && paylen > 0) {
 		if (ext_is_printable(e)) {
 			if (prefix)
-				fputs(prefix, f);
+				ostream_puts(os, prefix);
 
-			fputs("Payload: ", f);
-			fwrite(ext_payload(e), paylen, 1, f);
+			ostream_puts(os, "Payload: ");
+			ostream_write(os, ext_payload(e), paylen);
 
 			if (postfix)
-				fputs(postfix, f);
+				ostream_puts(os, postfix);
 		} else
-			dump_hex(f, "Payload", ext_payload(e), paylen);
+			dump_hex_ostream(os, "Payload", ext_payload(e), paylen);
 	}
+}
 
-	fflush(f);
+/**
+ * Dump all extensions in vector to specified file descriptor.
+ *
+ * The `prefix' and `postfix' strings, if non-NULL, are emitted before and
+ * after the extension summary.
+ *
+ * If `payload' is true, the payload is dumped in hexadecimal if it contains
+ * non-printable characters, as text otherwise.
+ */
+void
+ext_dump_fd(int fd, const extvec_t *exv, int exvcnt,
+	const char *prefix, const char *postfix, bool payload)
+{
+	ostream_t *os;
+	str_t *s = str_new(256);
+	int i;
+
+	os = ostream_open_str(s);
+
+	for (i = 0; i < exvcnt; i++)
+		ext_dump_one(os, &exv[i], prefix, postfix, payload);
+
+	ostream_close(os);
+	IGNORE_RESULT(write(fd, str_2c(s), str_len(s)));
+	str_destroy_null(&s);
 }
 
 /**
@@ -2175,13 +2202,11 @@ void
 ext_dump(FILE *fd, const extvec_t *exv, int exvcnt,
 	const char *prefix, const char *postfix, bool payload)
 {
-	int i;
-
 	if (!log_file_printable(fd))
 		return;
 
-	for (i = 0; i < exvcnt; i++)
-		ext_dump_one(fd, &exv[i], prefix, postfix, payload);
+	fflush(fd);
+	ext_dump_fd(fileno(fd), exv, exvcnt, prefix, postfix, payload);
 }
 
 /**

@@ -2114,7 +2114,9 @@ get_protocol_version(const char *handshake, uint *major, uint *minor)
 			G_STRFUNC);
 	if (GNET_PROPERTY(node_debug) > 2) {
 		size_t len = vstrlen(handshake);
-		dump_hex(stderr, "First HELLO Line", handshake, MIN(len, 80));
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "First HELLO Line", handshake, MIN(len, 80));
+		);
 	}
 
 	*major = 0;
@@ -3770,7 +3772,9 @@ send_error(
 	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent error %d to node %s (%u bytes):",
 			code, host_addr_to_string(s->addr), (unsigned) rw);
-		dump_string(stderr, gnet_response, rw, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, gnet_response, rw, "----");
+		);
 	}
 }
 
@@ -5456,8 +5460,10 @@ node_got_bye(gnutella_node_t *n)
 		/* XXX parse header */
 		if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_IN) {
 			g_debug("----Bye Message from %s:", node_addr(n));
-			dump_string(stderr, message, clamp_strlen(message, n->size - 2),
-				"----");
+			LOG_FOREACH(fd,
+				dump_string_fd(fd, message, clamp_strlen(message, n->size - 2),
+					"----");
+			);
 		}
 	}
 
@@ -5872,7 +5878,9 @@ extract_my_addr(header_t *header)
 				g_debug("cannot parse Remote-IP header \"%s\"", field);
 				if (extract_addr_debugging(1)) {
 					g_debug("full header dump:");
-					header_dump(stderr, header, "----");
+					LOG_FOREACH(fd,
+						header_dump_fd(fd, header, "----");
+					);
 				}
 			}
 		}
@@ -5977,8 +5985,10 @@ analyse_status(gnutella_node_t *n, int *code)
 			if (incoming || 0 != strcmp(status, "GNUTELLA OK")) {
 				g_warning("weird GNUTELLA %s status line from %s",
 					what, host_addr_to_string(n->addr));
-				dump_hex(stderr, "Status Line", status,
-					MIN(getline_length(s->getline), 80));
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Status Line", status,
+						MIN(getline_length(s->getline), 80));
+				);
 			} else
 				g_warning("node %s gave a 0.4 reply to our 0.6 HELLO, dropping",
 					node_addr(n));
@@ -6133,13 +6143,18 @@ node_process_handshake_ack(gnutella_node_t *n, header_t *head)
 			host_addr_to_string(n->addr));
 		if (log_printable(LOG_STDERR)) {
 			if (is_printable_iso8859_string(status)) {
-				fprintf(stderr, "%s\n", status);
+				LOG_FOREACH(fd,
+					dump_writef(fd, "%s\n", status);
+				);
 			} else {
-				dump_hex(stderr, "Status Line", status,
-					MIN(getline_length(s->getline), 80));
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Status Line", status,
+						MIN(getline_length(s->getline), 80));
+				);
 			}
-			header_dump(stderr, head, "----");
-			fflush(stderr);
+			LOG_FOREACH(fd,
+				header_dump_fd(fd, head, "----");
+			);
 		}
 	}
 
@@ -6376,14 +6391,19 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			if (!incoming) {
 				const char *status = getline_str(n->socket->getline);
 				if (is_printable_iso8859_string(status)) {
-					fprintf(stderr, "%s\n", status);
+					LOG_FOREACH(fd,
+						dump_writef(fd, "%s\n", status);
+					);
 				} else {
-					dump_hex(stderr, "Status Line", status,
-						MIN(getline_length(n->socket->getline), 80));
+					LOG_FOREACH(fd,
+						dump_hex_fd(fd, "Status Line", status,
+							MIN(getline_length(n->socket->getline), 80));
+					);
 				}
 			}
-			header_dump(stderr, head, "----");
-			fflush(stderr);
+			LOG_FOREACH(fd,
+				header_dump_fd(fd, head, "----");
+			);
 		}
 	}
 
@@ -7481,7 +7501,9 @@ check_protocol:
 	} else if (GNET_PROPERTY(gnet_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent OK %s to %s (%u bytes):",
 			what, host_addr_to_string(n->addr), (unsigned) rw);
-		dump_string(stderr, gnet_response, rw, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, gnet_response, rw, "----");
+		);
 	}
 
 	/*
@@ -9038,8 +9060,11 @@ node_check_ggep(gnutella_node_t *n, int maxsize, int regsize)
 	if (n->extcount == MAX_EXTVEC) {
 		g_warning("%s has %d extensions!",
 			gmsg_node_infostr(n), n->extcount);
-		if (GNET_PROPERTY(node_debug))
-			ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+		if (GNET_PROPERTY(node_debug)) {
+			LOG_FOREACH(fd,
+				ext_dump_fd(fd, n->extvec, n->extcount, "> ", "\n", TRUE);
+			);
+		}
 		return FALSE;
 	}
 
@@ -9052,7 +9077,9 @@ node_check_ggep(gnutella_node_t *n, int maxsize, int regsize)
 			if (GNET_PROPERTY(node_debug)) {
 				g_warning("%s has non-GGEP extensions!",
 					gmsg_node_infostr(n));
-				ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+				LOG_FOREACH(fd,
+					ext_dump_fd(fd, n->extvec, n->extcount, "> ", "\n", TRUE);
+				);
 			}
 			return FALSE;
 		}
@@ -9060,7 +9087,9 @@ node_check_ggep(gnutella_node_t *n, int maxsize, int regsize)
 
 	if (GNET_PROPERTY(node_debug) > 3) {
 		g_debug("%s has GGEP extensions:", gmsg_node_infostr(n));
-		ext_dump(stderr, n->extvec, n->extcount, "> ", "\n", TRUE);
+		LOG_FOREACH(fd,
+			ext_dump_fd(fd, n->extvec, n->extcount, "> ", "\n", TRUE);
+		);
 	}
 
 	return TRUE;
@@ -10339,7 +10368,9 @@ node_init_outgoing(gnutella_node_t *n)
 
 		g_debug("----Sent HELLO request to %s (%u bytes):",
 			host_addr_to_string(n->addr), (unsigned) len);
-		dump_string(stderr, n->hello.ptr, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, n->hello.ptr, len, "----");
+		);
 	}
 
 	wfree(n->hello.ptr, n->hello.size);

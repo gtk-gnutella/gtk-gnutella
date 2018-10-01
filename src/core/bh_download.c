@@ -48,6 +48,7 @@
 #include "lib/atoms.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
+#include "lib/log.h"
 #include "lib/pmsg.h"
 #include "lib/stringify.h"	/* For plural */
 #include "lib/walloc.h"
@@ -347,8 +348,11 @@ browse_data_g2_process(struct browse_ctx *bc)
 			g_debug("BROWSE %s(): ignoring unexpected /%s (%u byte%s) from %s",
 				G_STRFUNC, g2_tree_name(t), PLURAL(bc->size),
 				gnet_host_to_string(&bc->host));
-			if (GNET_PROPERTY(log_bad_g2))
-				g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN | G2FMT_O_PAYLOAD);
+			if (GNET_PROPERTY(log_bad_g2)) {
+				LOG_FOREACH(fd,
+					g2_tfmt_tree_dump_fd(fd, t, G2FMT_O_PAYLEN | G2FMT_O_PAYLOAD);
+				);
+			}
 		}
 		goto done;
 	}

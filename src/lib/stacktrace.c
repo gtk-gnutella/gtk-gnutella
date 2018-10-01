@@ -43,6 +43,7 @@
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "dl_util.h"
 #include "eslist.h"
+#include "fd.h"
 #include "file.h"
 #include "halloc.h"
 #include "hashing.h"	/* For binary_hash() */
@@ -854,16 +855,19 @@ stack_sym_trylock(const char *caller)
 /**
  * Print array of PCs, using symbolic names if possible.
  *
- * @param f			where to print the stack
+ * @param fd		where to print the stack
  * @param stack		array of Program Counters making up the stack
  * @param count		number of items in stack[] to print, at most.
  */
 static void
-stack_print(FILE *f, void * const *stack, size_t count)
+stack_print(int fd, void * const *stack, size_t count)
 {
 	size_t i;
 	int stid = -1;
 	bool locked = TRUE;
+	char buf[128];
+
+	g_return_if_fail(is_valid_fd(fd));
 
 	stacktrace_load_symbols();
 
@@ -885,9 +889,11 @@ stack_print(FILE *f, void * const *stack, size_t count)
 			break;
 
 		if (stid >= 0)
-			fprintf(f, "\t[%d] %s\n", stid, where);
+			str_bprintf(ARYLEN(buf), "\t[%d] %s\n", stid, where);
 		else
-			fprintf(f, "\t%s\n", where);
+			str_bprintf(ARYLEN(buf), "\t%s\n", where);
+
+		IGNORE_RESULT(write(fd, buf, vstrlen(buf)));
 
 		if (stack_reached_main(where))
 			break;
@@ -1518,7 +1524,8 @@ stacktrace_print(FILE *f, const struct stacktrace *st)
 {
 	g_assert(st != NULL);
 
-	stack_print(f, st->stack, st->len);
+	fflush(f);
+	stack_print(fileno(f), st->stack, st->len);
 }
 
 /**
@@ -1529,7 +1536,8 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 {
 	g_assert(st != NULL);
 
-	stack_print(f, st->stack, st->len);
+	fflush(f);
+	stack_print(fileno(f), st->stack, st->len);
 }
 
 /**
@@ -1542,6 +1550,18 @@ stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
 	g_assert(st != NULL);
 
 	stack_print_decorated(f, thread_small_id(), st->stack, st->len, flags);
+}
+
+/**
+ * Print decorated stack trace atom to specified fd, using symbolic names
+ * if possible.
+ */
+void
+stacktrace_atom_decorate_fd(int fd, const struct stackatom *st, uint flags)
+{
+	g_assert(st != NULL);
+
+	stack_safe_print_decorated(fd, thread_small_id(), st->stack, st->len, flags);
 }
 
 /**
@@ -1850,13 +1870,27 @@ stacktrace_routine_start(const void *pc)
  * Print current stack trace to specified file.
  */
 void
+stacktrace_where_print_fd(int fd)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
+	stack_print(fd, stack, count);
+}
+
+/**
+ * Print current stack trace to specified file.
+ */
+void
 stacktrace_where_print(FILE *f)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
-	stack_print(f, stack, count);
+	fflush(f);
+	stack_print(fileno(f), stack, count);
 }
 
 /**

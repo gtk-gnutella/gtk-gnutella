@@ -846,8 +846,11 @@ bad:
 		} else {
 			g_warning("%s has bad SHA1 (len=%u)",
 				gmsg_node_infostr(n), (unsigned) len);
-			if (len)
-				dump_hex(stderr, "Base32 SHA1", buf, len);
+			if (len) {
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Base32 SHA1", buf, len);
+				);
+			}
 		}
 	}
 
@@ -877,8 +880,11 @@ bad:
 		} else {
 			g_warning("%s has bad TTH (len=%u",
 				gmsg_node_infostr(n), (unsigned) len);
-			if (len)
-				dump_hex(stderr, "Base32 TTH", buf, len);
+			if (len) {
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Base32 TTH", buf, len);
+				);
+			}
 		}
 	}
 	return FALSE;

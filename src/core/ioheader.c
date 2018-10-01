@@ -188,9 +188,11 @@ nextline:
 		g_warning("%s(): line too long, disconnecting from %s",
 			G_STRFUNC, host_addr_to_string(s->addr));
 		if (log_printable(LOG_STDERR)) {
-			dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
-			fprintf(stderr, "------ Header Dump:\n");
-			header_dump(stderr, header, "-----");
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Leading Data", s->buf, MIN(s->pos, 256));
+				dump_writef(fd, "------ Header Dump:\n");
+				header_dump_fd(fd, header, "-----");
+			);
 		}
 		(*ih->error->line_too_long)(ih->resource, header);
 		return;
@@ -273,10 +275,12 @@ nextline:
 		g_warning("%s(): %s, disconnecting from %s",
 			G_STRFUNC, header_strerror(error), host_addr_to_string(s->addr));
 		if (log_printable(LOG_STDERR)) {
-			fprintf(stderr, "------ Header Dump:\n");
-			header_dump(stderr, header, "-----");
-			dump_hex(stderr, "Header Line", getline_str(ih->getline),
-				MIN(getline_length(ih->getline), 128));
+			LOG_FOREACH(fd,
+				dump_writef(fd, "------ Header Dump:\n");
+				header_dump_fd(fd, header, "-----");
+				dump_hex_fd(fd, "Header Line", getline_str(ih->getline),
+					MIN(getline_length(ih->getline), 128));
+			);
 		}
 		(*ih->error->header_error)(ih->resource, error);
 		return;
@@ -287,10 +291,12 @@ nextline:
 				G_STRFUNC, header_strerror(error),
 				host_addr_to_string(s->addr));
 			if (log_printable(LOG_STDERR)) {
-				dump_hex(stderr, "Header Line",
-					getline_str(ih->getline), getline_length(ih->getline));
-				fprintf(stderr, "------ Header Dump (so far):\n");
-				header_dump(stderr, header, "-----");
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Header Line",
+						getline_str(ih->getline), getline_length(ih->getline));
+					dump_writef(fd, "------ Header Dump (so far):\n");
+					header_dump_fd(fd, header, "-----");
+				);
 			}
 		}
 		getline_reset(ih->getline);
@@ -305,7 +311,9 @@ nextline:
         if (GNET_PROPERTY(dbg)) {
             g_debug("remote %s sent extra bytes after headers",
                 host_addr_to_string(s->addr));
-            dump_hex(stderr, "Extra Data", s->buf, MIN(s->pos, 512));
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Extra Data", s->buf, MIN(s->pos, 512));
+			);
         }
 		(*ih->error->header_extra_data)(ih->resource, ih->header);
 		return;
@@ -390,7 +398,9 @@ io_read_data(void *data, int unused_source, inputevt_cond_t cond)
 	if (count < 1) {
 		g_warning("%s(): incoming buffer full, disconnecting from %s",
 			G_STRFUNC, host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "Leading Data", s->buf, MIN(s->pos, 256));
+		);
 		(*ih->error->input_buffer_full)(ih->resource);
 		return;
 	}

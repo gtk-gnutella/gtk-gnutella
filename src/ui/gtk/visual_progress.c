@@ -51,6 +51,8 @@
 #include "lib/atoms.h"
 #include "lib/htable.h"
 #include "lib/http_range.h"
+#include "lib/log.h"
+#include "lib/misc.h"
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -439,14 +441,14 @@ vp_gui_fi_removed(gnet_fi_t fih)
  * For debugging: print chunk.
  */
 static void
-vp_print_chunk(FILE *file, const gnet_fi_chunks_t *c, bool show_old)
+vp_print_chunk(int fd, const gnet_fi_chunks_t *c, bool show_old)
 {
 	if (show_old)
-		fprintf(file, "%10s - %10s %d [%s]\n",
+		dump_writef(fd, "%10s - %10s %d [%s]\n",
 			uint64_to_string(c->from), uint64_to_string2(c->to),
 			(gint) c->status, c->old ? "O" : "N");
 	else
-		fprintf(file, "%10s - %10s %d\n",
+		dump_writef(fd, "%10s - %10s %d\n",
 			uint64_to_string(c->from), uint64_to_string2(c->to),
 			(gint) c->status);
 }
@@ -455,18 +457,18 @@ vp_print_chunk(FILE *file, const gnet_fi_chunks_t *c, bool show_old)
  * For debugging: print chunk list.
  */
 static void
-vp_print_chunk_list(FILE *file, const GSList *list, const gchar *title)
+vp_print_chunk_list(int fd, const GSList *list, const gchar *title)
 {
 	const GSList *sl;
 
-	fprintf(file, "Chunk list \"%s\":\n", title);
+	dump_writef(fd, "Chunk list \"%s\":\n", title);
 
 	for (sl = list; sl; sl = g_slist_next(sl)) {
 		const gnet_fi_chunks_t *c = sl->data;
-		vp_print_chunk(file, c, FALSE);
+		vp_print_chunk(fd, c, FALSE);
 	}
 
-	fprintf(file, "End of list \"%s\".\n", title);
+	dump_writef(fd, "End of list \"%s\".\n", title);
 }
 
 /**
@@ -490,8 +492,10 @@ vp_create_chunk(filesize_t from, filesize_t to,
 	chunk->old = old;
 
 #ifdef VP_DEBUG
-	printf("VP adding: ");
-	vp_print_chunk(stdout, chunk, TRUE);
+	g_debug("VP adding: ");
+	LOG_FOREACH(fd,
+		vp_print_chunk(fd, chunk, TRUE);
+	);
 #endif /* VP_DEBUG */
 
 	return chunk;
@@ -512,7 +516,9 @@ vp_assert_chunks_list(const GSList *list, const gnet_fi_info_t *fi)
 		if (last != chunk->from) {
 			g_warning("%s(): BAD CHUNK LIST for \"%s\"",
 				G_STRFUNC, fi->filename);
-			vp_print_chunk_list(stderr, list, "Chunks list");
+			LOG_FOREACH(fd,
+				vp_print_chunk_list(fd, list, "Chunks list");
+			);
 			return FALSE;
 		}
 		last = chunk->to;

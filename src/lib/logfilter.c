@@ -6013,8 +6013,6 @@ lf_emit_color(void *data, void *udata)
  *
  * That would need to now be wrriten like this:
  *
- * 		int fd;
- *
  * 		g_debug("here is the data:");
  *		LOG_FOREACH(fd,
  *			data_dump_fd(fd, data, len);	// note signature change

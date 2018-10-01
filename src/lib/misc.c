@@ -54,9 +54,11 @@
 #include "hstrfn.h"
 #include "htable.h"
 #include "html_entities.h"
+#include "iovec.h"
 #include "log.h"				/* For log_file_printable() */
 #include "mempcpy.h"
 #include "once.h"
+#include "ostream.h"
 #include "parse.h"
 #include "path.h"
 #include "pow2.h"
@@ -1681,15 +1683,15 @@ is_printable(const char *buf, int len)
 }
 
 /**
- * Prints a single "dump hex" line which consists of 16 bytes of data.
+ * Emits a single "dump hex" line which consists of 16 bytes of data.
  *
- * @param out		the stream to print the string at.
+ * @param os		the output stream to append data to
  * @param data		a pointer to the first byte of the data to dump.
  * @param length	the length of data in bytes.
  * @param offset	the offset of the data being printed.
  */
 static void
-dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
+dump_hex_line(ostream_t *os, const char *data, size_t length, size_t offset)
 {
 	char char_buf[32], hex_buf[64];
 	char *p = hex_buf, *q = char_buf;
@@ -1720,19 +1722,21 @@ dump_hex_line(FILE *out, const char *data, size_t length, size_t offset)
 	*p = '\0';
 	*q = '\0';
 
-	fprintf(out, "%5u %s  %s\n", (uint) (offset & 0xffff), hex_buf, char_buf);
+	ostream_printf(os, "%5u %s  %s\n",
+		(uint) (offset & 0xffff), hex_buf, char_buf);
 }
 
 #define DUMP_LINE_LENGTH	16		/* Amount of bytes per line */
 
 /**
- * Dump scattered data.
+ * Dump scattered data into stream.
  *
  * Displays hex & ascii lines to the specified file (for debug)
- * Displays the "title" then the characters in "s", # of bytes to print in "b"
+ * Emits the "title" then the characters in iov, ending with # of bytes printed.
  */
 void
-dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
+dump_hex_vec_ostream(ostream_t *os,
+	const char *title, const iovec_t *iov, size_t iovcnt)
 {
 	unsigned i;
 	char buf[DUMP_LINE_LENGTH];
@@ -1740,12 +1744,9 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 	iovec_t *xiov;
 
 	g_assert(iov != NULL);
-	g_assert(iovcnt > 0);
+	g_assert(size_is_positive(iovcnt));
 
-	if (!log_file_printable(out))
-		return;
-
-	fprintf(out, "----------------- %s:\n", title);
+	ostream_printf(os, "----------------- %s:\n", title);
 
 	xiov = WCOPY_ARRAY(iov, iovcnt);	/* Don't modify argument */
 
@@ -1781,21 +1782,125 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 		if (dumping != 0) {
 			if (0 == length % 256) {
 				if (length != 0) {
-					fputc('\n', out);	/* break after 256 byte chunk */
+					ostream_putc(os, '\n');	/* break after 256 byte chunk */
 				}
-				fputs("Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
-					"0123456789abcdef\n", out);
+				ostream_puts(os,
+					"Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
+					"0123456789abcdef\n");
 			}
-
-			dump_hex_line(out, start, dumping, length);
-			length += dumping;
 		}
+
+		dump_hex_line(os, start, dumping, length);
+		length += dumping;
 	}
 
 	WFREE_ARRAY(xiov, iovcnt);
 
-	fprintf(out, "----------------- (%u byte%s).\n", (uint) PLURAL(length));
+	ostream_printf(os, "----------------- (%zu byte%s).\n", PLURAL(length));
+}
+
+/**
+ * Dump scattered data into file.
+ *
+ * Displays hex & ascii lines to the specified file (for debug)
+ * Emits the "title" then the characters in iov, ending with # of bytes printed.
+ */
+void
+dump_hex_vec_fd(int fd, const char *title, const iovec_t *iov, size_t iovcnt)
+{
+	ostream_t *os;
+	str_t *s;
+
+	g_assert(iov != NULL);
+	g_assert(size_is_positive(iovcnt));
+	g_return_if_fail(is_valid_fd(fd));
+
+	/*
+	 * Estimate the size of the output by computing the amount of data
+	 * we have to dump and multiplying the result by 5, which accounts
+	 * for the data in hexadecimal and ASCII, plus the overhead of offsets.
+	 *
+	 * The addition of 148 accounts for the huge overhead we have for
+	 * small amount of data (say a few bytes), for which the multiplcation
+	 * alone would under-estimate the actual size.  Note: 148 = 74*2, where
+	 * 74 is the amount of characters per line.
+	 *
+	 * Then we have two dash-lines of 19 characters plus the title and the
+	 * amount of bytes, which we can roughly estimate to be 2*19 + 26
+	 * (estimated amount of space to format number) + the length of the
+	 * title string.
+	 *
+	 * Overall, the size becomes 5*iovsize + 148 + 64 + len(title).
+	 */
+
+	s = str_new(5 * iov_calculate_size(iov, iovcnt) + 212 + vstrlen(title));
+	os = ostream_open_str(s);
+
+	dump_hex_vec_ostream(os, title, iov, iovcnt);
+
+	ostream_close(os);
+	IGNORE_RESULT(write(fd, str_2c(s), str_len(s)));
+	str_destroy_null(&s);
+}
+
+/**
+ * Dump scattered data into file.
+ *
+ * Displays hex & ascii lines to the specified file (for debug)
+ * Emits the "title" then the characters in iov, ending with # of bytes printed.
+ */
+void
+dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
+{
+	if (!log_file_printable(out))
+		return;
+
 	fflush(out);
+	dump_hex_vec_fd(fileno(out), title, iov, iovcnt);
+}
+
+/**
+ * Dump contiguous data.
+ *
+ * Displays hex & ascii lines to the specified file (for debug)
+ * Displays the "title" then the characters in "s", # of bytes to print in "b"
+ */
+void
+dump_hex_fd(int fd, const char *title, const void *data, int length)
+{
+	iovec_t iov;
+
+	g_return_if_fail(is_valid_fd(fd));
+
+	if (length < 0 || data == NULL) {
+		g_critical("%s(): value out of range [data=%p, length=%d] for %s",
+			G_STRFUNC, data, length, title);
+		return;
+	}
+
+	iovec_set(&iov, data, length);
+	dump_hex_vec_fd(fd, title, &iov, 1);
+}
+
+/**
+ * Dump contiguous data.
+ *
+ * Displays hex & ascii lines to the specified file (for debug)
+ * Displays the "title" then the characters in "s", # of bytes to print in "b"
+ */
+void
+dump_hex_ostream(ostream_t *os, const char *title, const void *data, int length)
+{
+	iovec_t iov;
+
+	if (length < 0 || data == NULL) {
+		g_critical("%s(): value out of range [data=%p, length=%d] for %s",
+			G_STRFUNC, data, length, title);
+		return;
+	}
+
+	iovec_set(&iov, data, length);
+	dump_hex_vec_ostream(os, title, &iov, 1);
 }
 
 /**
@@ -1816,7 +1921,8 @@ dump_hex(FILE *out, const char *title, const void *data, int length)
 	}
 
 	iovec_set(&iov, data, length);
-	dump_hex_vec(out, title, &iov, 1);
+	fflush(out);
+	dump_hex_vec_fd(fileno(out), title, &iov, 1);
 }
 
 /**
@@ -1857,6 +1963,7 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
 	if (!log_file_printable(out))
 		return;
 
+	fflush(out);
 	dump_string_fd(fileno(out), str, len, trailer);
 }
 

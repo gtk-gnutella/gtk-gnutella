@@ -664,7 +664,7 @@ zframe_dump(const void *ptr, const char *msg)
 
 	if (INVALID_FRAME_PTR != *p) {
 		const struct stackatom *a = zframe_get_pointer(*p);
-		stacktrace_atom_decorate(stderr, a,
+		stacktrace_atom_decorate_fd(STDERR_FILENO, a,
 			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 	}
 }

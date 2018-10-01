@@ -239,7 +239,9 @@ thex_download_handle_xml(struct thex_download *ctx,
 	if (VXML_E_OK != e) {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_warning("TTH cannot parse XML record: %s", vxml_strerror(e));
-			dump_hex(stderr, "XML record", data, size);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "XML record", data, size);
+			);
 		}
 		goto finish;
 	}
@@ -439,11 +441,14 @@ thex_dump_dime_records(const pslist_t *records)
 	PSLIST_FOREACH(records, iter) {
 		const struct dime_record *record = iter->data;
 
-		g_assert(record);
-		dump_hex(stderr, "THEX DIME record type",
-			dime_record_type(record), dime_record_type_length(record));
-		dump_hex(stderr, "THEX DIME record ID",
-			dime_record_id(record), dime_record_id_length(record));
+		g_assert(record != NULL);
+
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "THEX DIME record type",
+				dime_record_type(record), dime_record_type_length(record));
+			dump_hex_fd(fd, "THEX DIME record ID",
+				dime_record_id(record), dime_record_id_length(record));
+		);
 	}
 }
 
@@ -519,7 +524,9 @@ thex_download_finished(struct thex_download *ctx)
 		record = dime_find_record(records, "text/xml", NULL);
 		if (NULL == record) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "THEX data", ctx->data, ctx->data_size);
+				);
 			}
 			goto finish;
 		}
@@ -530,7 +537,9 @@ thex_download_finished(struct thex_download *ctx)
 		if (NULL == hashtree_id) {
 			if (GNET_PROPERTY(tigertree_debug)) {
 				g_debug("TTH could not determine hashtree ID");
-				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "THEX data", ctx->data, ctx->data_size);
+				);
 			}
 			/* Bug workaround:
 			 * Try without an ID. GnucDNA 1.1.1.4 sends truncated XML with
@@ -550,7 +559,9 @@ thex_download_finished(struct thex_download *ctx)
 
 		if (NULL == record) {
 			if (GNET_PROPERTY(tigertree_debug)) {
-				dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "THEX data", ctx->data, ctx->data_size);
+				);
 			}
 			goto finish;
 		}
@@ -564,7 +575,9 @@ thex_download_finished(struct thex_download *ctx)
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
 			g_debug("TTH could not parse DIME records");
-			dump_hex(stderr, "THEX data", ctx->data, ctx->data_size);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "THEX data", ctx->data, ctx->data_size);
+			);
 		}
 		goto finish;
 	}

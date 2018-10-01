@@ -38,6 +38,7 @@
 #include "tree.h"
 
 #include "lib/etree.h"
+#include "lib/fd.h"
 #include "lib/log.h"
 #include "lib/ostream.h"
 #include "lib/str.h"
@@ -251,17 +252,40 @@ g2_tfmt_tree(const g2_tree_t *root, ostream_t *os, uint32 options)
  * @return TRUE on success (from the output stream's point of view).
  */
 bool
-g2_tfmt_tree_dump(const g2_tree_t *root, FILE *f, uint32 options)
+g2_tfmt_tree_dump_fd(int fd, const g2_tree_t *root, uint32 options)
 {
 	ostream_t *os;
+	str_t *s = str_new(0);
+	bool ok;
 
+	g_return_val_if_fail(is_valid_fd(fd), FALSE);
+
+	os = ostream_open_str(s);
+	g2_tfmt_tree(root, os, options);
+	ostream_close(os);
+
+	ok = str_len(s) == UNSIGNED(write(fd, str_2c(s), str_len(s)));
+
+	str_destroy_null(&s);
+	return ok;
+}
+
+/**
+ * Convenience routine: dump formatted tree to file.
+ *
+ * @param root		the root of the tree
+ * @param f			the file to which we should dump the tree
+ * @param options	formatting options (see g2_tfmt_tree() comments)
+ *
+ * @return TRUE on success (from the output stream's point of view).
+ */
+bool
+g2_tfmt_tree_dump(const g2_tree_t *root, FILE *f, uint32 options)
+{
 	if (!log_file_printable(f))
 		return FALSE;
 
-	os = ostream_open_file(f);
-	g2_tfmt_tree(root, os, options);
-
-	return ostream_close(os);
+	return g2_tfmt_tree_dump_fd(fileno(f), root, options);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
