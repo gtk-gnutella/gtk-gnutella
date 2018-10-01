@@ -46,6 +46,7 @@
 #include "lib/misc.h"		/* For CONST_STRLEN() */
 #include "lib/nv.h"
 #include "lib/ostream.h"
+#include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/stacktrace.h"
 #include "lib/symtab.h"

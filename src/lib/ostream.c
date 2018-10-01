@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010, Raphael Manfredi
+ * Copyright (c) 2010, 2018 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -34,7 +34,7 @@
  * or even memory.
  *
  * @author Raphael Manfredi
- * @date 2010
+ * @date 2010, 2018
  */
 
 #include "common.h"
@@ -58,6 +58,7 @@ enum ostream_type {
 	OSTREAM_T_PMSG,			/**< PDU message stream */
 	OSTREAM_T_FILE,			/**< FILE stream */
 	OSTREAM_T_FD,			/**< File descriptor stream */
+	OSTREAM_T_STR,			/**< String stream */
 	OSTREAM_T_MAX
 };
 
@@ -74,6 +75,7 @@ struct ostream {
 		pmsg_t *mb;			/**< pmsg_write() */
 		int fd;				/**< write() */
 		FILE *f;			/**< fwrite() */
+		str_t *s;			/**< str_cat() */
 	} u;
 	unsigned ioerr:1;		/**< Set on I/O error */
 };
@@ -115,6 +117,7 @@ ostream_free(ostream_t *os)
 	case OSTREAM_T_PMSG:
 	case OSTREAM_T_FD:
 	case OSTREAM_T_FILE:
+	case OSTREAM_T_STR:
 		break;
 	case OSTREAM_T_MAX:
 		g_assert_not_reached();
@@ -143,7 +146,9 @@ ostream_is_memory(const ostream_t *os)
 {
 	ostream_check(os);
 
-	return OSTREAM_T_MEM == os->type || OSTREAM_T_PMSG == os->type;
+	return
+		OSTREAM_T_MEM == os->type || OSTREAM_T_PMSG == os->type ||
+		OSTREAM_T_STR == os->type;
 }
 
 /**
@@ -201,6 +206,24 @@ ostream_open_pmsg(pmsg_t *mb)
 
 	os = ostream_alloc(OSTREAM_T_PMSG);
 	os->u.mb = mb;
+
+	return os;
+}
+
+/**
+ * Open stream to string.
+ *
+ * Stream must be closed with ostream_close().
+ */
+ostream_t *
+ostream_open_str(str_t *s)
+{
+	ostream_t *os;
+
+	str_check(s);
+
+	os = ostream_alloc(OSTREAM_T_STR);
+	os->u.s = s;
 
 	return os;
 }
@@ -270,6 +293,7 @@ ostream_close_file(ostream_t *os)
 		break;
 	case OSTREAM_T_MEM:
 	case OSTREAM_T_PMSG:
+	case OSTREAM_T_STR:
 	case OSTREAM_T_MAX:
 		g_assert_not_reached();
 	}
@@ -331,6 +355,10 @@ ostream_write(ostream_t *os, const void *data, size_t len)
 		w = pmsg_write(os->u.mb, data, len);
 		w = (len == UNSIGNED(w)) ? w : -1;
 		break;
+	case OSTREAM_T_STR:
+		str_cat_len(os->u.s, data, len);
+		w = len;
+		break;
 	case OSTREAM_T_MAX:
 		g_assert_not_reached();
 	}
@@ -359,6 +387,12 @@ ostream_printf(ostream_t *os, const char *fmt, ...)
 
 	va_start(args, fmt);
 
+	if (OSTREAM_T_STR == os->type) {
+		/* Handled specially since way more efficient here */
+		w = str_vcatf(os->u.s, fmt, args);
+		goto done;
+	}
+
 	VA_COPY(args2, args);
 	len = str_vbprintf(ARYLEN(buf), fmt, args2);
 	va_end(args2);
@@ -368,13 +402,15 @@ ostream_printf(ostream_t *os, const char *fmt, ...)
 	} else {
 		data = buf;
 	}
-	va_end(args);
 
 	w = ostream_write(os, data, len);
 
 	if (data != buf)
 		hfree(data);
 
+	/* FALL THROUGH */
+done:
+	va_end(args);
 	return w;
 }
 
@@ -389,6 +425,12 @@ ostream_putc(ostream_t *os, int c)
 	char buf[1];
 
 	ostream_check(os);
+
+	if (OSTREAM_T_STR == os->type) {
+		/* Handled specially since more efficient here */
+		str_putc(os->u.s, c);
+		return 1;
+	}
 
 	buf[0] = c & 0xff;
 	return ostream_write(os, ARYLEN(buf));
