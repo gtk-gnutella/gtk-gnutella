@@ -2586,24 +2586,61 @@ english_strerror(int errnum)
 }
 
 /**
- * Adds some lexical indendation to XML-like text.
+ * Adds some lexical indendation to XML-like text within buffer.
  *
  * The input text is assumed to be "flat" and well-formed. If these assumptions
  * fail, the output might look worse than the input.
  *
- * @param text		the string to format.
+ * @param buf		the buffer start
+ * @param len		size of buffer in bytes
+ * @param lenp		if non-NULL, where length of returned string is written.
  *
  * @return a newly allocated string which must be freed via hfree().
  */
 char *
-xml_indent(const char *text)
+xml_indent_buf(const void *buf, size_t len, size_t *lenp)
 {
-	const char *p, *q;
+	const char *text = buf, *p, *q, *end;
 	bool quoted, is_special, is_end, is_start, is_singleton, has_cdata;
 	guint i, depth = 0;
 	str_t *s;
 
-	s = str_new(0);
+	end = const_ptr_add_offset(buf, len);	/* Physical end */
+
+	/*
+	 * Ensure text ends-up with a '>', or we cannot have well-formed XML.
+	 */
+
+	if G_UNLIKELY(0 == len) {
+		g_carp("%s(): given empty text", G_STRFUNC);
+		goto duptext;
+	} else {
+		uchar c;
+
+		q = &text[len - 1];
+
+		/* Ignore trailing spaces (includes \r, \n, \t) */
+
+		while (is_ascii_space(*q))
+			q--;
+
+		c = *q;
+		end = q + 1;		/* Won't parse past that point */
+
+		if G_UNLIKELY(c != '>') {
+			g_carp("%s(): %zu-byte text does not end-up with '>' "
+				"but '%c' (%s%d) at offset %zu",
+				G_STRFUNC, len, is_ascii_print(c) ? c : '?',
+				is_ascii_print(c) ? "" : "non-printable ", c, q - text);
+			goto duptext;
+		}
+	}
+
+	/*
+	 * OK, could be well-formed XML...
+	 */
+
+	s = str_new(len + (len >> 2));		/* Add 25% for extra formatting */
 	q = text;
 
 	quoted = FALSE;
@@ -2613,7 +2650,7 @@ xml_indent(const char *text)
 	is_singleton = FALSE;
 	has_cdata = FALSE;
 
-	for (;;) {
+	while (q < end) {
 		bool had_cdata;
 
 		p = q;
@@ -2621,13 +2658,14 @@ xml_indent(const char *text)
 		 * Find the start of the tag and append the text between the
 		 * previous and the current tag.
 		 */
-		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
+		for (/* NOTHING */; '<' != *p && '\0' != *p && p < end; p++) {
 			if (is_ascii_space(*p) && is_ascii_space(p[1]))
 				continue;
 			if (has_cdata && '&' == *p) {
 				const char *endptr;
 				guint32 uc;
 
+				/* FIXME: could read beyond buffer if malformed */
 				uc = html_decode_entity(p, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
 					str_putc(s, uc);
@@ -2641,12 +2679,16 @@ xml_indent(const char *text)
 			break;
 
 		/* Find the end of the tag */
-		q = vstrchr(p, '>');
-		if (!q)
-			q = vstrchr(p, '\0');
+		q = vmemchr(p, '>', end - p);
+		if (NULL == q)
+			q = end;
 
-		is_special = '?' == p[1] || '!' == p[1];
-		is_end = '/' == p[1];
+		if (p + 1 < end) {
+			is_special = '?' == p[1] || '!' == p[1];
+			is_end = '/' == p[1];
+		} else {
+			is_special = is_end = FALSE;
+		}
 		is_start = !(is_special || is_end);
 		is_singleton = is_start && '>' == *q && '/' == q[-1];
 		had_cdata = has_cdata;
@@ -2662,7 +2704,7 @@ xml_indent(const char *text)
 		}
 
 		quoted = FALSE;
-		for (q = p; '\0' != *q; q++) {
+		for (q = p; q < end; q++) {
 
 			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
 				continue;
@@ -2682,6 +2724,7 @@ xml_indent(const char *text)
 				const char *endptr;
 				guint32 uc;
 
+				/* FIXME: could read beyond buffer if malformed */
 				uc = html_decode_entity(q, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
 					str_putc(s, uc);
@@ -2700,8 +2743,8 @@ xml_indent(const char *text)
 			}
 		}
 		if (is_start && !is_singleton) {
-			const char *next = vstrchr(q, '<');
-			has_cdata = next && '/' == next[1];
+			const char *next = vmemchr(q, '<', end - q);
+			has_cdata = next != NULL && next + 1 < end && '/' == next[1];
 			depth++;
 		}
 	}
@@ -2711,7 +2754,37 @@ xml_indent(const char *text)
 	if ('\n' != str_at(s, -1))
 		str_putc(s, '\n');
 
+	g_assert_log('>' == str_at(s, -2),
+		"%s(): antepenultimate char is %d, expected '>' (%d)",
+		G_STRFUNC, str_at(s, -2), '>');
+
+	if (lenp != NULL)
+		*lenp = str_len(s);
+
 	return str_s2c_null(&s);
+
+duptext:
+	if (lenp != NULL)
+		*lenp = end - text;
+
+	return h_strndup(text, end - text);	/* May have no trailing NUL */
+}
+
+/**
+ * Adds some lexical indendation to XML-like text string.
+ *
+ * The input text is assumed to be "flat" and well-formed. If these assumptions
+ * fail, the output might look worse than the input.
+ *
+ * @param text		the string to format.
+ * @param lenp		if non-NULL, where length of returned string is written.
+ *
+ * @return a newly allocated string which must be freed via hfree().
+ */
+char *
+xml_indent(const char *text, size_t *lenp)
+{
+	return xml_indent_buf(text, vstrlen(text), lenp);
 }
 
 /**

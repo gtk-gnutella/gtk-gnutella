@@ -284,7 +284,8 @@ size_t common_leading_bits(
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
-char *xml_indent(const char *text);
+char *xml_indent(const char *text, size_t *lenp);
+char *xml_indent_buf(const void *buf, size_t len, size_t *lenp);
 pslist_t *dirlist_parse(const char *dirs);
 char *dirlist_to_string(const pslist_t *pl_dirs);
 

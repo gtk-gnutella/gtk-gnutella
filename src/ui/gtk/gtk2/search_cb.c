@@ -148,7 +148,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	 */
 	if (xml) {
 		char *s = unknown_to_utf8_normalized(xml, UNI_NORM_GUI, NULL);
-		xml_txt = xml_indent(s);
+		xml_txt = xml_indent(s, NULL);
 		if (xml != s) {
 			G_FREE_NULL(s);
 		}
