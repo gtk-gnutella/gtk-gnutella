@@ -49,6 +49,7 @@
 #include "cstr.h"
 #include "endian.h"
 #include "entropy.h"
+#include "fd.h"
 #include "halloc.h"
 #include "hstrfn.h"
 #include "htable.h"
@@ -1835,6 +1836,30 @@ dump_hex(FILE *out, const char *title, const void *data, int length)
 }
 
 /**
+ * Dump text string to the specified fd, followed by trailer (if non-NULL).
+ * A final "\n" is emitted at the end.
+ */
+void
+dump_string_fd(int fd, const char *str, size_t len, const char *trailer)
+{
+	str_t *s = str_new(len + 128);
+
+	g_return_if_fail(is_valid_fd(fd));
+	g_return_if_fail(str);
+	g_return_if_fail(size_is_non_negative(len));
+
+	if (len != 0)
+		str_cat_len(s, str, len);
+	if (trailer != NULL)
+		str_cat(s, trailer);
+	str_putc(s, '\n');
+
+	IGNORE_RESULT(write(fd, str_2c(s), str_len(s)));
+
+	str_destroy_null(&s);
+}
+
+/**
  * Dump text string to the specified file, followed by trailer (if non-NULL).
  * A final "\n" is emitted at the end.
  */
@@ -1848,11 +1873,7 @@ dump_string(FILE *out, const char *str, size_t len, const char *trailer)
 	if (!log_file_printable(out))
 		return;
 
-	if (len)
-		fwrite(str, len, 1, out);
-	if (trailer)
-		fputs(trailer, out);
-	fputc('\n', out);
+	dump_string_fd(fileno(out), str, len, trailer);
 }
 
 /**
