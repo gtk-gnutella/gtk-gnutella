@@ -103,9 +103,16 @@ pslist_cell_free(void *cell)
 	WFREE(l);
 }
 
+static void
+pslist_free_all(void *pl)
+{
+	wfree_pslist(pl, sizeof(pslist_t));
+}
+
 static pcell_alloc_t pslist_default_alloc = {
 	pslist_cell_alloc,		/* pcell_alloc */
 	pslist_cell_free,		/* pcell_free */
+	pslist_free_all,		/* pcell_listfree */
 };
 
 /**
@@ -151,6 +158,29 @@ pslist_free_1_null(pslist_t **l_ptr)
 }
 
 /**
+ * Free all the cell elements in the list, leaving held data allocated.
+ *
+ * @param pl		the head of the list
+ * @param ca		cell allocator
+ *
+ * @return NULL as a convenience.
+ */
+pslist_t *
+pslist_free_ext(pslist_t *pl, const pcell_alloc_t *ca)
+{
+	if G_UNLIKELY(NULL == pl)
+		return NULL;
+
+	/*
+	 * To be extremely fast, use a specialized freeing routine that will
+	 * limit the amount of overhead to process all the entries in the list.
+	 */
+
+	ca->pcell_listfree(pl);
+	return NULL;
+}
+
+/**
  * Free all the cell elements in the list, but do not touch the held data.
  *
  * To be able to free the items in the list, use pslist_free_full().
@@ -162,16 +192,7 @@ pslist_free_1_null(pslist_t **l_ptr)
 pslist_t *
 pslist_free(pslist_t *pl)
 {
-	if G_UNLIKELY(NULL == pl)
-		return NULL;
-
-	/*
-	 * To be extremely fast, use a specialized freeing routine that will
-	 * limit the amount of overhead to process all the entries in the list.
-	 */
-
-	wfree_pslist(PTRLEN(pl));
-	return NULL;
+	return pslist_free_ext(pl, &pslist_default_alloc);
 }
 
 /**
@@ -184,6 +205,22 @@ pslist_free_null(pslist_t **pl_ptr)
 
 	if (pl != NULL) {
 		pslist_free(pl);
+		*pl_ptr = NULL;
+	}
+}
+
+/**
+ * Free pslist and nullify pointer holding it.
+ *
+ * Use specified cell-allocator to free cell memory.
+ */
+void
+pslist_free_null_ext(pslist_t **pl_ptr, const pcell_alloc_t *ca)
+{
+	pslist_t *pl = *pl_ptr;
+
+	if (pl != NULL) {
+		pslist_free_ext(pl, ca);
 		*pl_ptr = NULL;
 	}
 }

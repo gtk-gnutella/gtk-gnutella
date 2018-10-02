@@ -47,6 +47,7 @@
 typedef struct pcell_allocator {
 	void *(*pcell_alloc)(void);		/**< Return new zeroed cell for the list */
 	void (*pcell_free)(void *);		/**< Dispose of cell */
+	void (*pcell_listfree)(void *);	/**< Dispose all cells starting there */
 } pcell_alloc_t;
 
 #endif	/* _pcell_h_ */

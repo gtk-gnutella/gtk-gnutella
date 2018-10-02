@@ -136,6 +136,8 @@ pslist_t *pslist_foreach_remove_ext(pslist_t *pl,
 void *pslist_shift_ext(pslist_t **pl_ptr, const struct pcell_allocator *ca);
 bool pslist_shift_data_ext(pslist_t **pl_ptr, void **d_ptr,
 		const struct pcell_allocator *ca);
+pslist_t *pslist_free_ext(pslist_t *pl, const struct pcell_allocator *ca);
+void pslist_free_null_ext(pslist_t **pl_ptr, const struct pcell_allocator *ca);
 
 static inline pslist_t * WARN_UNUSED_RESULT
 pslist_prepend_const(pslist_t *pl, const void *data)

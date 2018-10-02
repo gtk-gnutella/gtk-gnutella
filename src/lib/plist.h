@@ -152,6 +152,8 @@ plist_t *plist_foreach_remove_ext(plist_t *pl,
 void *plist_shift_ext(plist_t **pl_ptr, const struct pcell_allocator *ca);
 bool plist_shift_data_ext(plist_t **pl_ptr, void **d_ptr,
 		const struct pcell_allocator *ca);
+plist_t *plist_free_ext(plist_t *pl, const struct pcell_allocator *ca);
+void plist_free_null_ext(plist_t **pl_ptr, const struct pcell_allocator *ca);
 
 static inline plist_t * WARN_UNUSED_RESULT
 plist_prepend_const(plist_t *pl, const void *data)

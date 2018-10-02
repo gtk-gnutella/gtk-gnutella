@@ -103,9 +103,16 @@ plist_cell_free(void *cell)
 	WFREE(l);
 }
 
+static void
+plist_free_all(void *l)
+{
+	wfree_pslist(l, sizeof(plist_t));
+}
+
 static pcell_alloc_t plist_default_alloc = {
 	plist_cell_alloc,		/* pcell_alloc */
 	plist_cell_free,		/* pcell_free */
+	plist_free_all,			/* pcell_listfree */
 };
 
 /**
@@ -153,14 +160,13 @@ plist_free_1_null(plist_t **l_ptr)
 /**
  * Free all the cell elements in the list, but do not touch the held data.
  *
- * To be able to free the items in the list, use plist_free_full().
- *
  * @param pl		the head of the list
+ * @param ca		the cell allocator
  *
  * @return NULL as a convenience.
  */
 plist_t *
-plist_free(plist_t *pl)
+plist_free_ext(plist_t *pl, const pcell_alloc_t *ca)
 {
 	if G_UNLIKELY(NULL == pl)
 		return NULL;
@@ -176,8 +182,23 @@ plist_free(plist_t *pl)
 
 	STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
 
-	wfree_pslist((pslist_t *) PTRLEN(pl));
+	ca->pcell_listfree(pl);
 	return NULL;
+}
+
+/**
+ * Free all the cell elements in the list, but do not touch the held data.
+ *
+ * To be able to free the items in the list, use plist_free_full().
+ *
+ * @param pl		the head of the list
+ *
+ * @return NULL as a convenience.
+ */
+plist_t *
+plist_free(plist_t *pl)
+{
+	return plist_free_ext(pl, &plist_default_alloc);
 }
 
 /**
@@ -190,6 +211,20 @@ plist_free_null(plist_t **pl_ptr)
 
 	if (pl != NULL) {
 		plist_free(pl);
+		*pl_ptr = NULL;
+	}
+}
+
+/**
+ * Free plist and nullify pointer holding it.
+ */
+void
+plist_free_null_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
+{
+	plist_t *pl = *pl_ptr;
+
+	if (pl != NULL) {
+		plist_free_ext(pl, ca);
 		*pl_ptr = NULL;
 	}
 }
