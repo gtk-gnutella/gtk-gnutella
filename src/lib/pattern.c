@@ -2325,6 +2325,7 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 #define PATTERN_LOOP_MAX		1200000	/* Safe upper bound */
 #define PATTERN_TM_OUTLIERS		3.0		/* Standard deviation radius */
 #define PATTERN_TM_ITEMS		50		/* Amount of items we need at least */
+#define PATTERN_TM_MIN			10		/* After pruning outliers, minimum! */
 
 static const char pattern_alphabet[] = "abcdefghijklmnopqrstuvwxyz";
 static const char pattern_non_alphabet = '!';
@@ -2574,7 +2575,7 @@ pattern_benchmark(
 	size_t loops_run = 0;
 	size_t i;
 	statx_t *sx[2];
-	size_t iterations = 0;
+	size_t iterations;
 
 	if (verbose & PATTERN_INIT_BENCH_INFO) {
 		s_info("benchmarking %s() versus %s()...", ctx->name[0], ctx->name[1]);
@@ -2621,18 +2622,21 @@ pattern_benchmark(
 		break;
 	}
 
-	ctx->loops_needed = ctx->loops_requested;
-
 	for (i = 0; i < N_ITEMS(sx); i++)
 		sx[i] = statx_make();
+
+again:
+	iterations = 0;
+	ctx->loops_needed = ctx->loops_requested;
 
 retry:
 	if G_UNLIKELY(loops_run >= PATTERN_LOOP_MAX) {
 		tm_now_exact(&end);
 		s_critical("%s(): "
 			"either CPU is too fast or kernel clock resultion too low: "
-			"elapsed time is %F secs after %'zu loops",
-			G_STRFUNC, tm_elapsed_f(&end, &start), loops_run);
+			"elapsed time is %F secs after %'zu loops whilst timing %s()",
+			G_STRFUNC, tm_elapsed_f(&end, &start), loops_run,
+			ctx->name[0]);
 		goto done;
 	}
 
@@ -2741,13 +2745,33 @@ retry:
 	if (iterations < PATTERN_TM_ITEMS)
 		goto retry;
 
+	/*
+	 * Remove outliers, making sure we still have enough items left.
+	 *
+	 * Otherwise, the results were too dispersed, retry from scratch,
+	 * keeping the datapoints we still have.
+	 */
+
+	for (i = 0; i < N_ITEMS(sx); i++) {
+		int n;
+
+		statx_remove_outliers(sx[i], PATTERN_TM_OUTLIERS);
+		n = statx_n(sx[i]);
+
+		if (n < PATTERN_TM_MIN) {
+			s_warning("%s(): "
+				"has %d item%s left after pruning outliers for %s(), retrying...",
+				G_STRFUNC, n, plural(n), ctx->name[i]);
+			goto again;
+		}
+	}
+
 done:
 	/*
 	 * Which routine ran faster?
 	 */
 
 	for (i = 0; i < N_ITEMS(sx); i++) {
-		statx_remove_outliers(sx[i], PATTERN_TM_OUTLIERS);
 		ctx->elapsed[i] = statx_avg(sx[i]);
 		ctx->sdev[i] = statx_sdev(sx[i]);
 		statx_free_null(&sx[i]);
