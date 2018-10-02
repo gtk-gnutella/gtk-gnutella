@@ -212,6 +212,7 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_stid;		/**< Small thread-ID for private zones */
 	uint embedded:1;		/**< Zone descriptor is head of first arena */
 	uint private:1;			/**< Is thread-private: no locking needed */
+	uint user:1;			/**< Is user-owned: no GC configured */
 };
 
 static inline void
@@ -422,10 +423,12 @@ z2str(const zone_t *zone)
 
 	b = stid < 0 ? emergency : &buf[stid][0];
 
-	str_bprintf(b, sizeof emergency, "{%s%s %p, %s, "
+	str_bprintf(b, sizeof emergency, "{%s%s%s %p, %s, "
 		"refcnt=%u, size=%zu, hint=%u, cnt=%u, blocks=%u, free=%p, "
 		"subzones=%u%s%s}",
-		zone->embedded ? "embedded " : "", zone->private ? "private " : "",
+		zone->embedded ? "embedded " : "",
+		zone->private ? "private " : "",
+		zone->user ? "user " : "",
 		zone, zone->zn_gc != NULL ? "GC mode" : "no GC",
 		zone->zn_refcnt, zone->zn_size, zone->zn_hint, zone->zn_cnt,
 		zone->zn_blocks, zone->zn_free, zone->zn_subzones,
@@ -1617,19 +1620,22 @@ zn_shrink(zone_t *zone)
  *
  * @param size			the (already adjusted) block size
  * @param hint			the expected amount of blocks per chunk.
+ * @param embedded		whether to embed zone_t in first subzone area
+ * @param user			whether to set user-zone mode: prevents GC on zone
  *
  * @return a new zone.
  */
 static zone_t *
-zcreate_internal(size_t size, unsigned hint, bool embedded)
+zcreate_internal(size_t size, unsigned hint, bool embedded, bool user)
 {
 	zone_t *zone;			/* Zone descriptor */
 
 	zone = embedded ? NULL : xmalloc0(sizeof *zone);
 	zone = zn_create(zone, size, 0 == hint ? DEFAULT_HINT : hint);
+	zone->user = booleanize(user);
 
 #ifndef REMAP_ZALLOC
-	if (zgc_always(zone)) {
+	if (!zone->user && zgc_always(zone)) {
 		zlock(zone);
 		if (NULL == zone->zn_gc && vmm_is_long_term())
 			zgc_allocate(zone);
@@ -1648,13 +1654,23 @@ zcreate_internal(size_t size, unsigned hint, bool embedded)
  * that are to be created per zone chunks. That is not the total amount of
  * expected objects of a given type. Leaving it a 0 selects the default hint
  * value.
+ *
+ * Contrary to zget(), this creates a zone that cannot be shared and belongs
+ * solely to the user requesting it.  As such, garbage collection is never
+ * enabled on such zones to keep allocation / freeing lightweight and fast,
+ * and minimize the risk of it causing dynamic core allocation, if the zone
+ * was properly sized at the beginning..
+ *
+ * @param size			the (already adjusted) block size
+ * @param hint			the expected amount of blocks per chunk.
+ * @param embedded		whether to embed zone_t in first subzone area
  */
 zone_t *
 zcreate(size_t size, unsigned hint, bool embedded)
 {
 	size = zalloc_adjust_size(size, &hint, TRUE);
 
-	return zcreate_internal(size, hint, embedded);
+	return zcreate_internal(size, hint, embedded, TRUE);	/* user zone */
 }
 
 /**
@@ -1811,7 +1827,7 @@ zget(size_t size, unsigned hint, bool private)
 	 * No zone of the corresponding size already, create a new one!
 	 */
 
-	zone = zcreate_internal(size, hint, FALSE);
+	zone = zcreate_internal(size, hint, FALSE, FALSE);
 
 	if (private) {
 		zone->private = TRUE;
