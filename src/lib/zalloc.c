@@ -210,6 +210,7 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_subzones;	/**< Amount of subzones */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
 	unsigned zn_stid;		/**< Small thread-ID for private zones */
+	unsigned zn_subzblocks;	/**< Amount of blocks we can cram in subzones */
 	uint embedded:1;		/**< Zone descriptor is head of first arena */
 	uint private:1;			/**< Is thread-private: no locking needed */
 	uint user:1;			/**< Is user-owned: no GC configured */
@@ -425,13 +426,13 @@ z2str(const zone_t *zone)
 
 	str_bprintf(b, sizeof emergency, "{%s%s%s %p, %s, "
 		"refcnt=%u, size=%zu, hint=%u, cnt=%u, blocks=%u, free=%p, "
-		"subzones=%u%s%s}",
+		"blocks/subzone=%u, subzones=%u%s%s}",
 		zone->embedded ? "embedded " : "",
 		zone->private ? "private " : "",
 		zone->user ? "user " : "",
 		zone, zone->zn_gc != NULL ? "GC mode" : "no GC",
 		zone->zn_refcnt, zone->zn_size, zone->zn_hint, zone->zn_cnt,
-		zone->zn_blocks, zone->zn_free, zone->zn_subzones,
+		zone->zn_blocks, zone->zn_free, zone->zn_subzblocks, zone->zn_subzones,
 		zone->private ? " for " : "",
 		zone->private ? thread_safe_id_name(zone->zn_stid) : "");
 
@@ -547,7 +548,7 @@ zgc_subzinfo_valid(const zone_t *zone, const struct subzinfo *szi)
 	n = szi->szi_free_cnt;
 	p = szi->szi_free;
 
-	g_assert(n <= zone->zn_hint);
+	g_assert(n <= zone->zn_subzblocks);
 
 	while (n-- != 0) {
 		g_assert(ptr_cmp(p, szi->szi_base) >= 0 &&
@@ -1302,22 +1303,28 @@ zfree_eslist(zone_t *zone, eslist_t *el)
  * is written in the first bytes of each free block.
  *
  * The first block in the arena will be the first free block.
+ *
+ * @return amount of blocks cramed.
  */
-static void
+static unsigned
 zn_cram(const zone_t *zone, void *arena, size_t len)
 {
 	char **next = arena, *p = arena;
 	size_t size = zone->zn_size;
 	void *last = ptr_add_offset(arena, len - size);
+	unsigned blocks = 1;
 
 	g_assert(len >= size);
 
 	while (ptr_cmp(&p[size], last) <= 0) {
+		blocks++;
 		next = cast_to_void_ptr(p);
 		p = *next = &p[size];
 	}
 	next = cast_to_void_ptr(p);
 	*next = NULL;
+
+	return blocks;
 }
 
 static void
@@ -1551,12 +1558,14 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_refcnt = 1;
 	zone->zn_subzones = 1;					/* One subzone to start with */
-	zone->zn_blocks = zone->zn_hint;
 	zone->zn_gc = NULL;
 	zone->zn_stid = 0;
+	zone->zn_subzblocks = round_pagesize(size * hint) / size;
 	spinlock_init(&zone->lock);
 
-	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+	zone->zn_blocks =
+		zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone;
@@ -1573,6 +1582,7 @@ static char **
 zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
+	unsigned crammed;
 
 	g_assert(spinlock_is_held(&zone->lock));
 
@@ -1588,9 +1598,11 @@ zn_extend(zone_t *zone)
 	zone->zn_arena.sz_next = sz;		/* New subzone at head of list */
 	zone->zn_subzones++;
 	zone->zn_oversized = 0;				/* Just extended, cannot be oversized */
-	zone->zn_blocks += zone->zn_hint;
 
-	zn_cram(zone, sz->sz_base, sz->sz_size);
+	crammed = zn_cram(zone, sz->sz_base, sz->sz_size);
+	zone->zn_blocks += crammed;
+
+	g_assert(crammed == zone->zn_subzblocks);	/* Is an additional zone */
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone->zn_free;
@@ -1613,7 +1625,7 @@ zn_shrink(zone_t *zone)
 			"freeing %u subzone%s of %zuKiB (%u blocks each)",
 			z2str(zone),
 			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
-			zone->zn_arena.sz_size / 1024, zone->zn_hint);
+			zone->zn_arena.sz_size / 1024, zone->zn_subzblocks);
 	}
 
 	old_subzones = zone->zn_subzones;
@@ -1625,12 +1637,14 @@ zn_shrink(zone_t *zone)
 	ZSTATS_UNLOCK;
 
 	zone->zn_subzones = 1;				/* One subzone remains */
-	zone->zn_blocks = zone->zn_hint;
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_oversized = 0;
 
 	/* Recreate free list */
-	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+	zone->zn_blocks =
+		zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+
+	g_assert(zone->zn_blocks <= zone->zn_subzblocks);
 	safety_assert(zbelongs(zone, zone->zn_free));
 }
 #endif	/* !REMAP_ZALLOC */
@@ -2197,7 +2211,7 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	szi = &zg->zg_subzinfo[low];
 	szi->szi_base = sz->sz_base;
 	szi->szi_end = &sz->sz_base[sz->sz_size];
-	szi->szi_free_cnt = zone->zn_hint;
+	szi->szi_free_cnt = zone->zn_subzblocks;
 	szi->szi_free = blk;
 	szi->szi_sz = sz;
 
@@ -2296,7 +2310,7 @@ zgc_subzone_moved(zone_t *zone, struct subzinfo *szi, char *nbase)
 
 	if (zalloc_debugging(4)) {
 		s_debug("ZGC zone %s moved %u blocks in [%p, %p]",
-			z2str(zone), zone->zn_hint, szi->szi_base, szi->szi_end);
+			z2str(zone), zone->zn_subzblocks, szi->szi_base, szi->szi_end);
 	}
 
 	/*
@@ -2333,8 +2347,9 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
+	g_assert(!zone->embedded);	/* Cannot move subzone if zone is embedded */
 	g_assert(implies(1 == zone->zn_subzones, &zone->zn_arena == sz));
-	g_assert(szi->szi_free_cnt == zone->zn_hint);
+	g_assert(szi->szi_free_cnt == zone->zn_subzblocks);
 	g_assert(szi->szi_base == sz->sz_base);
 
 	/*
@@ -2356,7 +2371,7 @@ zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 			&zone->zn_arena == sz ? "first " : "extra ",
 			szi->szi_base, szi->szi_end - 1,
 			ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-			zone->zn_hint, compact_time(life), nbase);
+			zone->zn_subzblocks, compact_time(life), nbase);
 	}
 
 	zg->zg_zone_defragmented++;
@@ -2386,8 +2401,9 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
+	g_assert(!zone->embedded);	/* Cannot free zubzone if it contains zone */
 	g_assert(equiv(NULL == sz, 1 == zone->zn_subzones));
-	g_assert(zone->zn_blocks >= zone->zn_hint);
+	g_assert(zone->zn_blocks >= zone->zn_subzblocks);
 
 	/*
 	 * Do not free the subzone if that would leave us with no more free blocks
@@ -2398,7 +2414,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	 */
 
 	if G_UNLIKELY(1 == zone->zn_subzones) {
-		g_assert(zone->zn_blocks == zone->zn_hint);
+		g_assert(zone->zn_blocks == zone->zn_subzblocks);
 		ZSTATS_INCX(zgc_last_zone_kept);
 		goto defragment;
 	}
@@ -2417,7 +2433,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 				&zone->zn_arena == szi->szi_sz ? "first " : "extra ",
 				szi->szi_base, szi->szi_end - 1,
 				ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-				zone->zn_hint, compact_time(life));
+				zone->zn_subzblocks, compact_time(life));
 		}
 
 		ZSTATS_INCX(zgc_fragments_freed);
@@ -2442,7 +2458,7 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	}
 
 	if (
-		zone->zn_blocks - zone->zn_cnt == zone->zn_hint &&
+		zone->zn_blocks - zone->zn_cnt == zone->zn_subzblocks &&
 		delta_time(tm_time(), szi->szi_sz->sz_ctime) < 5 * ZGC_SUBZONE_MINLIFE
 	) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
@@ -2480,7 +2496,7 @@ release_zone:
 
 		if (zalloc_debugging(1)) {
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
-				zone->zn_hint;
+				zone->zn_subzblocks;
 			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
 			s_debug("ZGC zone %s: freeing first subzone "
 				"[%p, %p] %zuKiB, %u blocks, lifetime %s "
@@ -2488,7 +2504,7 @@ release_zone:
 				z2str(zone),
 				szi->szi_base, szi->szi_end - 1,
 				ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-				zone->zn_hint, compact_time(life),
+				zone->zn_subzblocks, compact_time(life),
 				free_blocks, plural(free_blocks));
 		}
 
@@ -2517,7 +2533,7 @@ release_zone:
 			if (sz->sz_base == szi->szi_base) {
 				if (zalloc_debugging(1)) {
 					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
-						zone->zn_hint;
+						zone->zn_subzblocks;
 					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
 					s_debug("ZGC zone %s: freeing subzone #%u "
 						"[%p, %p] %zuKiB, %u blocks, lifetime %s "
@@ -2525,7 +2541,7 @@ release_zone:
 						z2str(zone), n,
 						szi->szi_base, szi->szi_end - 1,
 						ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-						zone->zn_hint, compact_time(life),
+						zone->zn_subzblocks, compact_time(life),
 						free_blocks, plural(free_blocks));
 				}
 				subzone_free_arena(sz);
@@ -2545,7 +2561,7 @@ release_zone:
 
 found:
 
-	zone->zn_blocks -= zone->zn_hint;
+	zone->zn_blocks -= zone->zn_subzblocks;
 	zone->zn_subzones--;
 	zgc_context.subzone_freed++;
 
@@ -2624,7 +2640,7 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 			zg->zg_free = idx;
 	}
 
-	if (++szi->szi_free_cnt == zone->zn_hint)
+	if (++szi->szi_free_cnt == zone->zn_subzblocks)
 		return !zgc_subzone_free(zone, szi);
 
 	return TRUE;
@@ -2710,8 +2726,8 @@ zgc_allocate(zone_t *zone)
 		zone->zn_free = (char **) *blk;
 		dispatched++;
 		if (!zgc_insert_freelist(zone, blk)) {
-			g_assert(dispatched >= zone->zn_hint);
-			dispatched -= zone->zn_hint;	/* Subzone removed */
+			g_assert(dispatched >= zone->zn_subzblocks);
+			dispatched -= zone->zn_subzblocks;	/* Subzone removed */
 		}
 	}
 
@@ -2758,7 +2774,7 @@ zgc_extend(zone_t *zone)
 
 	if (zalloc_debugging(4)) {
 		s_debug("ZGC zone %s extended by %u blocks in [%p, %p]",
-			z2str(zone), zone->zn_hint, szi->szi_base, szi->szi_end - 1);
+			z2str(zone), zone->zn_subzblocks, szi->szi_base, szi->szi_end - 1);
 	}
 
 	zone->zn_free = NULL;		/* In GC mode, we never use this */
@@ -2797,7 +2813,7 @@ zgc_scan(zone_t *zone)
 		 * need to scan all the zones.
 		 */
 
-		if (zone->zn_blocks - zone->zn_cnt < zone->zn_hint)
+		if (zone->zn_blocks - zone->zn_cnt < zone->zn_subzblocks)
 			goto finished;
 
 		/*
@@ -2813,7 +2829,7 @@ zgc_scan(zone_t *zone)
 			break;
 		}
 
-		if (szi->szi_free_cnt != zone->zn_hint)
+		if (szi->szi_free_cnt != zone->zn_subzblocks)
 			goto next;
 
 		if (zgc_subzone_free(zone, szi)) {
@@ -3035,7 +3051,8 @@ zgc_zmove(zone_t *zone, void *p)
 	g_assert(szi != NULL);
 	g_assert(zgc_within_subzone(szi, p));
 	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
-	g_assert(szi->szi_free_cnt < zone->zn_hint);	/* Has 1+ allocated blocks */
+	/* Has 1+ allocated blocks */
+	g_assert(szi->szi_free_cnt < zone->zn_subzblocks);
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 
@@ -3046,7 +3063,7 @@ zgc_zmove(zone_t *zone, void *p)
 	 * 		--RAM, 2017-11-27
 	 */
 
-	if G_UNLIKELY(zone->zn_hint - 1 == szi->szi_free_cnt) {
+	if G_UNLIKELY(zone->zn_subzblocks - 1 == szi->szi_free_cnt) {
 		char *nbase;
 
 		ZSTATS_INCX(zmove_1_block_in_subzone);
@@ -3162,7 +3179,7 @@ found:
 	memcpy(blk, start, zone->zn_size);		/* Keep original meta info */
 
 	if (zalloc_debugging(1)) {
-		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
+		size_t used = zone->zn_subzblocks - szi->szi_free_cnt - 1;
 		s_debug("ZGC zone %s: moved %p to %p, "
 			"zone has %u blocks, %u used, previous subzone has %zu block%s",
 			z2str(zone), p, np,
