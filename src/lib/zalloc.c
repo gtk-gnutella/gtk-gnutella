@@ -814,6 +814,32 @@ zunlock(zone_t *zone)
 }
 
 /**
+ * Get information about a zone.
+ *
+ * @param zone		the zone queried
+ * @param info		the supplied structure filled with zone information
+ */
+void
+zone_info(const zone_t *zone, zone_info_t *info)
+{
+	zone_t *zw = deconstify_pointer(zone);
+
+	zone_check(zone);
+	g_assert(info != NULL);
+
+	info->blocksize = zone_size(zone);	/* That's the user size */
+	info->chunksize = round_pagesize(zone->zn_size * zone->zn_hint);
+
+	zlock(zw);		/* Parameter is read-only, we only write to lock it */
+
+	info->blocks = zone->zn_blocks;
+	info->used   = zone->zn_cnt;
+	info->chunks = zone->zn_subzones;
+
+	zunlock(zw);
+}
+
+/**
  * Allcate memory with fixed size blocks (zone allocation).
  *
  * @return a pointer to a block containing at least 'size' bytes of

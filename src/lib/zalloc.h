@@ -49,6 +49,17 @@ struct zone;
 typedef struct zone zone_t;
 
 /*
+ * Zone information.
+ */
+typedef struct zoneinfo {
+	size_t blocksize;		/**< Size of blocks in zone (for user allocation) */
+	size_t blocks;			/**< Total amount of blocks in zone */
+	size_t used;			/**< Amount of blocks currently used */
+	size_t chunks;			/**< Amount of memory chunks (# of subzones) */
+	size_t chunksize;		/**< Size of a memory chunk */
+} zone_info_t;
+
+/*
  * Memory allocation routines.
  */
 
@@ -103,6 +114,8 @@ void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
 void zalloc_show_settings(void);
 void zalloc_show_settings_log(struct logagent *la);
+
+void zone_info(const zone_t *, zone_info_t *);
 
 enum zalloc_stack_ctrl {
 	ZALLOC_SA_SET = 0,		/**< Turn stack accounting on/off */
