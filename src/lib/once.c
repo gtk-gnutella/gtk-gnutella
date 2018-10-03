@@ -118,6 +118,7 @@ once_cell_free(void *cell)
 static pcell_alloc_t once_cell_allocator = {
 	once_cell_alloc,	/* pcell_alloc */
 	once_cell_free,		/* pcell_free */
+	NULL,				/* pcell_listfree -- not needed here */
 };
 
 /**
