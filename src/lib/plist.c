@@ -171,18 +171,38 @@ plist_free_ext(plist_t *pl, const pcell_alloc_t *ca)
 	if G_UNLIKELY(NULL == pl)
 		return NULL;
 
-	/*
-	 * To be extremely fast, use a specialized freeing routine that will
-	 * limit the amount of overhead to process all the entries in the list.
-	 *
-	 * Note that we pass a pslist_t because the data field will not be
-	 * used and only the next field will be followed, which is at the same
-	 * place in a pslist_t.
-	 */
+	g_assert(ca != NULL);
 
-	STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
+	if G_UNLIKELY(NULL == ca->pcell_listfree) {
+		plist_t *l = pl;
 
-	ca->pcell_listfree(pl);
+		g_assert(ca->pcell_free != NULL);
+
+		/*
+		 * When they have not configured a dedicated callback for that,
+		 * do it manually, one item at a time.
+		 */
+
+		while (l != NULL) {
+			plist_t *next = l->next;
+			ca->pcell_free(l);
+			l = next;
+		}
+	} else {
+		/*
+		 * To be extremely fast, use a specialized freeing routine that will
+		 * limit the amount of overhead to process all the entries in the list.
+		 *
+		 * Note that we pass a pslist_t because the data field will not be
+		 * used and only the next field will be followed, which is at the same
+		 * place in a pslist_t.
+		 */
+
+		STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
+
+		ca->pcell_listfree(pl);
+	}
+
 	return NULL;
 }
 
@@ -316,8 +336,12 @@ plist_first(const plist_t *pl)
 plist_t *
 plist_append_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl = ca->pcell_alloc();
+	plist_t *nl;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_alloc != NULL);
+
+	nl = ca->pcell_alloc();
 	nl->next = NULL;
 	nl->data = data;
 
@@ -360,8 +384,12 @@ plist_append(plist_t *pl, void *data)
 plist_t *
 plist_prepend_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl = ca->pcell_alloc();
+	plist_t *nl;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_alloc != NULL);
+
+	nl = ca->pcell_alloc();
 	nl->next = pl;
 	nl->data = data;
 
@@ -549,6 +577,9 @@ plist_remove_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	plist_t *l;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
 	for (l = pl; l != NULL; l = l->next) {
 		if G_UNLIKELY(l->data == data) {
 			pl = plist_remove_link_internal(pl, l);
@@ -587,6 +618,9 @@ plist_t *
 plist_remove_all_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	plist_t *l, *next;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	for (l = pl; l != NULL; l = next) {
 		next = l->next;
@@ -643,6 +677,9 @@ plist_t *
 plist_delete_link_ext(plist_t *pl, plist_t *cell, const pcell_alloc_t *ca)
 {
 	plist_t *np;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	np = plist_remove_link_internal(pl, cell);
 	ca->pcell_free(cell);
@@ -931,6 +968,9 @@ plist_foreach_remove_ext(plist_t *pl, data_rm_fn_t cbr, void *data,
 	const pcell_alloc_t *ca)
 {
 	plist_t *l, *next, *prev;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	for (l = pl, prev = NULL; l != NULL; l = next) {
 		next = l->next;
@@ -1265,6 +1305,9 @@ plist_shift_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
 	plist_t *pl = *pl_ptr, *nl;
 	void *data;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
 	if G_UNLIKELY(NULL == pl)
 		return NULL;
 
@@ -1304,6 +1347,9 @@ bool
 plist_shift_data_ext(plist_t **pl_ptr, void **d_ptr, const pcell_alloc_t *ca)
 {
 	plist_t *pl = *pl_ptr, *nl;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	if G_UNLIKELY(NULL == pl)
 		return FALSE;
