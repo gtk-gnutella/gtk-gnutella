@@ -89,6 +89,7 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	color.c \
 	compat_getrusage.c \
 	compat_gettid.c \
 	compat_misc.c \

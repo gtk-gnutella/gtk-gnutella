@@ -691,6 +691,8 @@ src/lib/cmwc.c
 src/lib/cmwc.h
 src/lib/cobs.c
 src/lib/cobs.h
+src/lib/color.c
+src/lib/color.h
 src/lib/compat_getrusage.c
 src/lib/compat_getrusage.h
 src/lib/compat_gettid.c
