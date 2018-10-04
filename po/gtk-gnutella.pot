@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella 1.1.13\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-06-06 14:16+0200\n"
+"POT-Creation-Date: 2018-10-04 20:40+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -1349,6 +1349,78 @@ msgid "Candidates for UDP message compression"
 msgstr ""
 
 msgid "Uncompressed UDP messages due to no gain"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message dropped: port=0"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no socket"
+msgstr ""
+
+msgid "UDP scheduler message dropped: I/O error"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no longer needed"
 msgstr ""
 
 msgid "Ambiguous UDP messages received"
