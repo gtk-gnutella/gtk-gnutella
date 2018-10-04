@@ -1,3 +1,175 @@
+# v 1.1.14  2018-10-04  [stable]
+
+This release mostly improves the core routines and fixes a few important bugs.
+
+Due to a bug in the usage of the RX buffers, we were not correctly parsing
+data returned in "chunked" transfer-encoding by HTTP/1.1 servers.  This
+affected the UPnP logic.
+
+The UPnP port unmapping done when the program shuts down was also not being
+able to complete successfully because we were preventing the HTTP connection
+from going on during the shutdown.  Not critical because there is a lifetime
+attached to all mappings, but always best to properly clean-up when leaving.
+
+The algorithm used to pick random chunks to download was also revisited to
+ensure a uniform selection within the whole file ranges that remain to be
+fetched.
+
+At startup time, the DHT code no longer expires keys when reloading data.
+This could create crashes during the operation, with no other remedy than
+to erase all the DHT database files manually to be able to recover!
+
+The background task layer was also causing crashes (at exit time though)
+because it was not recording whether it was running "user" code as opposed
+to "kernel" code.
+
+The SDBM code was also improved to allow concurrency and, in particular,
+a "loose" iteration scheme which does not need to grab the database lock
+during the whole iteration process.  It is also possible to perform a
+concurrent database rebuilding.
+
+The thread runtime now has an improved deadlock detection engine, based
+on a topological sort, that can definitely tell whether we are deadlocked.
+When the deadlock is detected, we can also have more information about
+the threads participating in that deadlock condition, to assist debugging.
+
+On Windows, a bug in our mingw_dlerror() emulation caused it to always
+fail once an error had been recorded, leading to un-decorated subsequent
+stack traces, which really do not help on that platform!
+
+There was also a concurrency bug in the processing of network queries.
+Every time the library was rescanned, it could trigger a crash due to
+a memory zone being declared private and was in fact shared between
+threads.  The crash occurred only when a query was received on the
+Gnutella network whilst the library was rescanned.
+
+The semi-reliable UDP layer TX side was revisited to maximize chances that
+reliable messages get through completely.
+
+The pattern matching code was revisited thoroughly.  A new algorithm (2-Way
+String Matching) now complements the Quick Search algorithm and an initial
+benchmarking is done to compare our own matching routines with native libc
+versions of strstr(), strlen(), strchr() and memchr().  The fastest routine
+is then selected, to ensure optimal performances.  There is also a unit-test
+program ensuring proper semantics for the pattern search flags.
+
+New Features:
+- Added UDP scheduler message statistics by priority.
+
+Improvements:
+- [GTK2] Catch column resize events to persist widths quickly.
+- Added "shutdown -x" to stop the program and continue session next time.
+- Added --resume-session option to request explicit continuation.
+- Improved pattern matching with new algorithm and runtime benchmarking.
+- Persist current_peermode to restart in same mode after crash.
+- Record compilation date and time for the crashlog.
+- When running with no GUI, relax mem requirements to become ultra.
+- Use minimum download chunk size to align requested download offsets.
+- Added statistics for OOB hit notifications we process.
+- Extensive improvements of the SDBM code to allow concurrency.
+- Semi-reliable UDP TX layer now sends messages more aggressively.
+- Reduce memory footprint of compiled patterns for short patterns.
+
+Bug Fixes:
+- No longer supply -lgthread-2.0 and -lresolv at link time.
+- DHT: do not expire keys when reloading data at startup.
+- Restored alphabetical listing of command options in the man page.
+- The --use-poll argument was not mentioned in the manual page.
+- UPnP: fixed XML logging.
+- UPnP: was not correctly unmapping ports on servent shutdown.
+- crash_time_internal(): protect against recursions in raw mode.
+- file_info_retrieve(): must restore proper mtime for seeded files!
+- filter_apply(): fixed suffix matching to allow whole match.
+- http_data_ind(): could not process chunked data!
+- iov_contiguous_size(): fixed destructive implementation.
+- pslist_last_count(): fixed off-by-one error.
+- recursive_scan_step_build_partial_table(): removed assertion.
+- statx_opx(): use fabs() on double.
+- word_vec_init(): zone cannot be private.
+- zgc_subzone_defragment(): fixed improper assertion.
+
+Under the Hood:
+- Added hidden --no-build-version option.
+- Added cstr_{b,f,l}cpy() routines to supplant g_strlcpy()
+- Added strpcpy() which returns pointer to last copied trailing NUL.
+- Added vmm_move() to move allocated VM regions to better places.
+- Added G_FALL_THROUGH and fixed fall-through in switch cases.
+- Added assertions in embedded lists for insertions / removals.
+- Added new _mark_removed() and _link_mark_removed() for lists.
+- Added is_ascii_ident() to check "\w" (word) in ASCII.
+- Added ULONG_SWAP().
+- Added op_roundup() and op_ptr_roundup() to round to upper aligned boundary.
+- Added stats datapoint iterators and ability to remove outliers.
+- Added G_FAST and G_NO_OPTIMIZE compilation directives.
+- Added support for case-insensitive pattern matching.
+- Added zone_info() to request zone allocation stats.
+- Added p[s]list_shift_data() to remove head when NULL is valid data.
+- Attempt relocation of hash tables arenas once in a while.
+- Always capture and display the routine name in assertions.
+- Disable parallel make execution in src/if.
+- Fixed indentation for "if" and "else" leading to gcc 7.x warnings.
+- Fixed logging fast assertion macros to allow just one string.
+- Declare property choices[] array static and const!
+- Optimize h_strnjoinv() with new strpcpy().
+- Optimize memory for the gnet property init_list[].
+- Optimized ctz64() to make it more obvious.
+- Protect events and subscribers with magic tags.
+- Removed http_buffer_t, completely obsoleted by pmsg_t.
+- Show zalloc settings at startup and in "memory show options".
+- Simplify code for read-lock upgrading and releasing.
+- Strings now hold persistent "truncated" flags, for formatting.
+- The watcher layer now auto-initializes.
+- Use the Mersenne Twister as an additional random source.
+- Use s_carp() instead of s_warning() for reporting "deep" important warnings.
+- Use new vstrstr(), vstrlen(), vmemchr() and vstrchr() for optimized runtime.
+- Windows: added ftruncate() emulation.
+- Windows: fixed stat() and fstat(), with proper st_dev and st_ino fields.
+- enamed hash_table_size() as hash_table_count() for consistency.
+- When log messages are truncated, signal it visually with trailing "+++".
+- VMM: use smarter core allocation under long-term strategy.
+- anti_window_shift_hack(): hide normal output if not debugging.
+- compat_longjmp(): record usage location and trace duplicate use.
+- crash_invoke_inspector(): do not hardwire parent stdout / stderr.
+- crash_restart(): always log the given message.
+- crash_setcctime(): avoid using "time" as parameter name.
+- crash_vmea_usage(): trace calling routine.
+- entropy_seed(): also initialize random "previous entropy".
+- fi_pick_chunk(): fixed selection of first chunk.
+- fi_pick_chunk(): revisited random chunk selection algorithm.
+- file_object_find(): loudly warn on file mismatch.
+- get_iconv_charset_alias(): do not copy trailing ' ' in charset name.
+- halloc_dump_stats_log(): was not logging realloc_via_xprealloc.
+- hrealloc(): use vmm_move() and attempt to optimize VM space.
+- log_handler(): emit stacktrace for glib, GTK or Pango warnings.
+- mingw_dladdr(): use win32 DLP layer to check for new libraries.
+- mingw_dlerror(): fixed to follow POSIX semantics.
+- mingw_fix_stat(): trap ERROR_NOT_READY errors correctly.
+- node_timer(): periodically try to move QRT arenas in VM space.
+- parse.h: remove NON_NULL_PARAM() on function with assertions.
+- rwlock_upgrade_from(): must only count read-locks from current thread.
+- s_logv(): default log message max length raised to 3500 bytes.
+- search_oob_pending_results(): randomly discard hits if too many.
+- search_request_preprocess(): warn if TCP query contains a "QK".
+- sequence_backward_iterator(): fixed case of one-way lists.
+- stacktrace_pretty_filepath(): move to latest /src/.
+- str_chr(): optimized to use vstrchr() if we can NUL-terminate.
+- str_destroy(): ensure we do not call on a thread-private string.
+- str_s2c(), str_2c(), str_dup(): handle already NUL-terminated strings.
+- str_s2c(): ensure we do not call on a thread-private string.
+- thread_suspend_others(): skip threads not marked as "valid".
+- timestamp: be paranoid and protect against invalid time_t inputs.
+- vmea_capacity(): changed semantics to report initial capacity.
+- vmm_mmap_anonymous(): identify foreign regions more quickly.
+- word_vec_make(): simplified code a bit.
+- wrealloc(): if size does not change, attempt a wmove().
+- xallocate(): be more aggressive when forcing VMM allocation.
+- xmalloc: allocate via standalone VMM regions if possible.
+- xmalloc: revisited plain VMM block allocation and freeing.
+- xmalloc: use checksums to validate chunk headers.
+- xreallocate(): ensure VMM space improves when reallocating.
+- zcreate(): flag created zones as "user" ones.
+- zgc(): only run for long-lived processes.
+
 # v 1.1.13  2017-10-22  [stable]
 
 This release primarily addresses issues that were left-over in 1.1.12.
