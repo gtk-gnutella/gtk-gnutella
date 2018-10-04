@@ -1102,6 +1102,8 @@ src/sdbm/sdbm-test
 src/sdbm/sdbm.3
 src/sdbm/sdbm.c
 src/sdbm/sdbm.h
+src/sdbm/tmp.c
+src/sdbm/tmp.h
 src/sdbm/tune.h
 src/sdbm/util.c
 src/shell/Jmakefile
