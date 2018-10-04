@@ -44,9 +44,9 @@
 #include "base16.h"
 #include "bfd_util.h"
 #include "constants.h"
+#include "cstr.h"
 #include "eslist.h"
 #include "file.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
 #include "htable.h"
 #include "log.h"
@@ -157,7 +157,7 @@ symbols_log_loaded(const char *path,
 
 		buf[0] = '\0';
 		if (ago != 0.0)
-			str_bprintf(buf, sizeof buf, " %.3f secs ago", ago);
+			str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
 
 		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
 			count, plural(count), path, method, secs, buf);
@@ -392,7 +392,7 @@ symbols_normalize(const char *name, bool atom)
 	 * gcc sometimes appends '.part' or other suffix to routine names.
 	 */
 
-	dot = strchr(name, '.');
+	dot = vstrchr(name, '.');
 	tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 
 	/*
@@ -409,7 +409,7 @@ symbols_normalize(const char *name, bool atom)
 	 */
 
 	if (is_running_on_mingw() && tmp == name) {
-		dot = strchr(name, '@');
+		dot = vstrchr(name, '@');
 		tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 	}
 
@@ -655,9 +655,9 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 {
 	size_t namelen;
 
-	namelen = g_strlcpy(buf, name, buflen);
+	namelen = cstr_lcpy(buf, buflen, name);
 	if (namelen >= buflen - 2)
-		return;
+		return;		/* No room for adding any offset */
 
 	if (offset != 0) {
 		buf[namelen] = '+';
@@ -707,7 +707,9 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 
 	if (!SYMBOLS_READ_TRYLOCK(st)) {
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
+		goto done;
 	} else if G_UNLIKELY(!st->sorted || 0 == st->count) {
+		SYMBOLS_READ_UNLOCK(st);
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
 	} else {
 		struct symbol *s;
@@ -715,12 +717,14 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 		s = symbols_lookup(st, pc);
 
 		if (NULL == s || &st->base[st->count - 1] == s) {
+			SYMBOLS_READ_UNLOCK(st);
 			symbols_fmt_pointer(b, sizeof buf[0], pc);
 		} else {
 			size_t off = 0;
 			const void *addr = const_ptr_add_offset(pc, st->offset);
+			bool garbage;
 
-			if (st->garbage) {
+			if ((garbage = st->garbage)) {
 				b[0] = '?';
 				off = 1;
 			} else if (st->mismatch) {
@@ -734,25 +738,28 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			symbols_fmt_name(&b[off], sizeof buf[0] - off, s->name,
 				offset ? ptr_diff(addr, s->addr) : 0);
 
+			SYMBOLS_READ_UNLOCK(st);
+
 			/*
 			 * If symbols are garbage, add the hexadecimal pointer to the
 			 * name so that we have a little chance of figuring out what
 			 * the routine was.
 			 */
 
-			if (st->garbage) {
+			if (garbage) {
 				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
-				g_strlcpy(ptr, " (", sizeof ptr);
-				pointer_to_string_buf(pc, &ptr[2], sizeof ptr - 2);
-				clamp_strcat(ptr, sizeof ptr, ")");
+				cstr_lcpy(ARYLEN(ptr), " (");
+				pointer_to_string_buf(pc, ARYPOSLEN(ptr, 2));
+				clamp_strcat(ARYLEN(ptr), ")");
 				clamp_strcat(b, sizeof buf[0], ptr);
 			}
 		}
 	}
 
-	SYMBOLS_READ_UNLOCK(st);
+	/* FALL THROUGH */
 
+done:
 	return b;
 }
 
@@ -820,12 +827,13 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		goto done;
 
-	if (0 == offset) {
-		name = s->name;
-	} else {
+	if (offset) {
+		/* Need to format string into a thread-private buffer */
 		name = b;
 		addr = const_ptr_add_offset(pc, st->offset);
 		symbols_fmt_name(b, sizeof buf[0], s->name, ptr_diff(addr, s->addr));
+	} else {
+		name = s->name;		/* Already a constant string, is thread-safe */
 	}
 
 done:
@@ -1084,7 +1092,7 @@ symbols_sha1(const char *file, struct sha1 *digest)
 		char buf[512];
 		int r;
 
-		r = read(fd, buf, sizeof buf);
+		r = read(fd, ARYLEN(buf));
 
 		if (-1 == r) {
 			close(fd);
@@ -1154,7 +1162,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	char line[512];
 	int i = 0;
 
-	if (!symbols_read_line(f, line, sizeof line))
+	if (!symbols_read_line(f, ARYLEN(line)))
 		return FALSE;
 
 	/*
@@ -1180,7 +1188,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	 *		--RAM, 2013-10-03
 	 */
 
-	while (symbols_read_line(f, line, sizeof line)) {
+	while (symbols_read_line(f, ARYLEN(line))) {
 		char *p;
 
 		if ('\0' == line[0])		/* Reached end of header */
@@ -1192,7 +1200,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 		p = is_strcaseprefix(line, "SHA1");
 
 		if (NULL == p) {
-			if (NULL == strchr(line, ':'))
+			if (NULL == vstrchr(line, ':'))
 				return FALSE;		/* Not an HTTP header */
 			continue;
 		}
@@ -1212,7 +1220,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 
 		if (
 			SHA1_RAW_SIZE !=
-				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, strlen(p))
+				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, vstrlen(p))
 		)
 			return FALSE;
 	}
@@ -1379,15 +1387,15 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 		 */
 
 		while ((c = *p++)) {
-			if (strchr(meta, c)) {
+			if (vstrchr(meta, c)) {
 				s_warning("found shell meta-character '%c' in path \"%s\", "
 					"not loading symbols", c, exe);
 				goto use_pre_computed;
 			}
 		}
 
-		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", exe);
-		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
+		rw = str_bprintf(ARYLEN(tmp), "nm -p %s", exe);
+		if (rw != vstrlen(exe) + CONST_STRLEN("nm -p ")) {
 			s_warning("full path \"%s\" too long, cannot load symbols", exe);
 			goto use_pre_computed;
 		}
@@ -1407,7 +1415,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 #endif	/* MINGW32 */
 
 retry:
-	while (fgets(tmp, sizeof tmp, f)) {
+	while (fgets(ARYLEN(tmp), f)) {
 		symbols_parse_nm(st, tmp);
 	}
 

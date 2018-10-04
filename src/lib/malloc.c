@@ -762,10 +762,8 @@ malloc_periodic(void *unused_obj)
 
 	tm_now_exact(&end);
 
-	short_size_to_string_buf(ctx.tracked_size, FALSE,
-		tracked_size, sizeof tracked_size);
-	short_size_to_string_buf(ctx.real_size, FALSE,
-		real_size, sizeof real_size);
+	short_size_to_string_buf(ctx.tracked_size, FALSE, ARYLEN(tracked_size));
+	short_size_to_string_buf(ctx.real_size, FALSE, ARYLEN(real_size));
 
 	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
 		s_message("malloc periodic check done (%u msecs): "
@@ -1096,7 +1094,7 @@ real_strdup(const char *s)
 	if (s == NULL)
 		return NULL;
 
-	len = strlen(s);
+	len = vstrlen(s);
 	p = real_malloc(len + 1);
 	memcpy(p, s, len + 1);		/* Also copy trailing NUL */
 
@@ -1300,7 +1298,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), b->ttime)));
 #else
 	ago[0] = '\0';
@@ -1393,7 +1391,7 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 		return;		/* Was already logged through malloc_log_block() */
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), rb->atime)));
 #else
 	ago[0] = '\0';
@@ -1969,7 +1967,7 @@ strdup_track(const char *s, const char *file, int line)
 	if (s == NULL)
 		return NULL;
 
-	len = strlen(s);
+	len = vstrlen(s);
 	o = malloc_track(len + 1, file, line);
 	memcpy(o, s, len + 1);		/* Also copy trailing NUL */
 
@@ -2008,7 +2006,7 @@ strjoinv_track(const char *s, char **vec, const char *file, int line)
 
 	o = g_strjoinv(s, vec);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2021,7 +2019,7 @@ m_strconcatv(const char *s, va_list args)
 	char *add;
 	size_t size;
 
-	size = strlen(s) + 1;
+	size = vstrlen(s) + 1;
 	res = real_malloc(size);
 	if (NULL == res)
 		s_error("out of memory");
@@ -2029,7 +2027,7 @@ m_strconcatv(const char *s, va_list args)
 	memcpy(res, s, size);
 
 	while ((add = va_arg(args, char *))) {
-		size_t len = strlen(add);
+		size_t len = vstrlen(add);
 
 		if (len > 0) {
 			res = real_realloc(res, size + len);
@@ -2071,7 +2069,7 @@ strconcat_track(const char *file, int line, const char *s, ...)
 	 * additional malloc_header in front of the data.
 	 */
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2098,7 +2096,7 @@ strconcat_v_track(const char *file, int line, const char *s, va_list ap)
 	 * additional malloc_header in front of the data.
 	 */
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2111,7 +2109,7 @@ strdup_vprintf_track(const char *file, int line, const char *fmt, va_list ap)
 
 	o = g_strdup_vprintf(fmt, ap);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2126,7 +2124,7 @@ strdup_len_vprintf_track(const char *file, int line,
 	size_t l;
 
 	o = g_strdup_vprintf(fmt, ap);
-	l = strlen(o);
+	l = vstrlen(o);
 
 	if (len != NULL)
 		*len = l;
@@ -2147,7 +2145,7 @@ strdup_printf_track(const char *file, int line, const char *fmt, ...)
 	o = g_strdup_vprintf(fmt, args);
 	va_end(args);
 
-	return malloc_record(o, strlen(o) + 1, FALSE, file, line);
+	return malloc_record(o, vstrlen(o) + 1, FALSE, file, line);
 }
 
 /**
@@ -2166,7 +2164,7 @@ strsplit_track(const char *s, const char *d, size_t m,
 
 	iv = v;
 	while ((x = *iv++))
-		malloc_record(x, strlen(x) + 1, FALSE, file, line);
+		malloc_record(x, vstrlen(x) + 1, FALSE, file, line);
 
 	return v;
 }
@@ -2181,7 +2179,7 @@ string_record(const char *s, const char *file, int line)
 	if (s == NULL)
 		return NULL;
 
-	return malloc_record(s, strlen(s) + 1, FALSE, file, line);
+	return malloc_record(s, vstrlen(s) + 1, FALSE, file, line);
 }
 
 /**
@@ -2247,7 +2245,7 @@ gslist_record(const GSList * const list, const char *file, int line)
 	const GSList *iter;
 
 	for (iter = list; NULL != iter; iter = g_slist_next(iter)) {
-		malloc_record(iter, sizeof *iter, FALSE, file, line);
+		malloc_record(PTRLEN(iter), FALSE, file, line);
 	}
 	return deconstify_pointer(list);
 }
@@ -2474,7 +2472,7 @@ glist_record(const GList * const list, const char *file, int line)
 	const GList *iter;
 
 	for (iter = list; NULL != iter; iter = g_list_next(iter)) {
-		malloc_record(iter, sizeof *iter, FALSE, file, line);
+		malloc_record(PTRLEN(iter), FALSE, file, line);
 	}
 	return deconstify_pointer(list);
 }
@@ -2767,11 +2765,11 @@ stats_array_dump(FILE *f, struct afiller *filler)
 
 #ifdef MALLOC_FRAMES
 		alloc_stacks = st->alloc_frames == NULL ?
-			0 : hash_table_size(st->alloc_frames);
+			0 : hash_table_count(st->alloc_frames);
 		free_stacks = st->free_frames == NULL ?
-			0 : hash_table_size(st->free_frames);
+			0 : hash_table_count(st->free_frames);
 		realloc_stacks = st->realloc_frames == NULL ?
-			0 : hash_table_size(st->realloc_frames);
+			0 : hash_table_count(st->realloc_frames);
 #else
 		alloc_stacks = free_stacks = realloc_stacks = 0;
 #endif
@@ -2816,7 +2814,7 @@ alloc_dump(FILE *f, bool total)
 	struct afiller filler;
 	time_t now;
 
-	count = hash_table_size(stats);
+	count = hash_table_count(stats);
 
 	if (count == 0)
 		return;
@@ -2934,7 +2932,7 @@ malloc_glib12_check(void)
 #if !GLIB_CHECK_VERSION(2,0,0)
 	{
 		void *p;
-		size_t old_size = hash_table_size(reals);
+		size_t old_size = hash_table_count(reals);
 
 		/*
 		 * Check whether the remapping is effective. This may not be
@@ -2942,7 +2940,7 @@ malloc_glib12_check(void)
 		 * for example.
 		 */
 		p = g_strdup("");
-		if (hash_table_size(reals) == old_size) {
+		if (hash_table_count(reals) == old_size) {
 			static GMemVTable zero_vtable;
 			s_warning("resetting g_mem_set_vtable()");
 			g_mem_set_vtable(&zero_vtable);

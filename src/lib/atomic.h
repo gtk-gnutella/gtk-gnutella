@@ -310,7 +310,7 @@ au64_value(const uint volatile *hi, const uint volatile *lo)
 	low = *lo; high = *hi;
 
 retry:
-	v = (((uint64) high) << 32) + low;
+	v = UINT64_VALUE(high, low);
 
 	/*
 	 * If `low' is within a zone at risk, where fast increments or decrements

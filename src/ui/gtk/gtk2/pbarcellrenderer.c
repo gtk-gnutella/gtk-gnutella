@@ -384,11 +384,11 @@ gtk_cell_renderer_progress_render(
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
 
 	val = cellprogress->priv->value;
-	str_bprintf(text, sizeof text, "%d", val);
+	str_bprintf(ARYLEN(text), "%d", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	pango_layout_get_pixel_extents(layout, NULL, &logical_rect);
 	g_object_unref(G_OBJECT (layout));
-	str_bprintf(text, sizeof text, "%d %%", val);
+	str_bprintf(ARYLEN(text), "%d %%", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 
 	pos = (w - logical_rect.width) / 2;

@@ -167,6 +167,8 @@ bool mutex_grab_swap_try_from(mutex_t *m, const void *plock,
  * Public interface.
  */
 
+void mutex_set_contention_trace(bool on);
+
 #define mutex_lock(x) \
 	mutex_grab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)
 #define mutex_lock_hidden(x) \

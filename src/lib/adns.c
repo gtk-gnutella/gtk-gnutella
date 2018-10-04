@@ -365,7 +365,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 
 		reply->addr = query->addr;
 		host = host_addr_to_name(query->addr);
-		clamp_strcpy(reply->hostname, sizeof reply->hostname, host ? host : "");
+		clamp_strcpy(ARYLEN(reply->hostname), host ? host : "");
 	} else {
 		const struct adns_query *query = &req->query.by_addr;
 		struct adns_reply *reply = &ans->reply.by_addr;
@@ -375,7 +375,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		if (common_dbg > 1) {
 			s_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
-		clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
+		clamp_strcpy(ARYLEN(reply->hostname), query->hostname);
 
 		sl_addr = name_to_host_addr(query->hostname, query->net);
 		PSLIST_FOREACH(sl_addr, sl) {
@@ -673,8 +673,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	reply->hostname[0] = '\0';
 	reply->addrs[0] = zero_host_addr;
 
-	hostname_len = clamp_strcpy(query->hostname,
-		sizeof query->hostname, hostname);
+	hostname_len = clamp_strcpy(ARYLEN(query->hostname), hostname);
 
 	if ('\0' != hostname[hostname_len]) {
 		/* truncation detected */
@@ -690,7 +689,7 @@ adns_resolve(const char *hostname, enum net_type net,
 	}
 
 	ascii_strlower(query->hostname, hostname);
-	clamp_strcpy(reply->hostname, sizeof reply->hostname, query->hostname);
+	clamp_strcpy(ARYLEN(reply->hostname), query->hostname);
 
 	if (
 		adns_cache_lookup(adns_cache, tm_time(), query->hostname,

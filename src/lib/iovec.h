@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004, Christian Biere
+ * Copyright (c) 2012-2018, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -19,6 +20,18 @@
  *  Foundation, Inc.:
  *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * I/O vector helping routines.
+ *
+ * @author Christian Biere
+ * @date 2004
+ * @author Raphael Manfredi
+ * @date 2012-2018
  */
 
 #ifndef _lib_iovec_h_
@@ -108,7 +121,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	n = MIN(iov_cnt, argc);
 	for (i = 0; i < n; i++) {
 		iovec_set_base(&iov[i], argv[i]);
-		iovec_set_len(&iov[i], argv[i] ? (1 + strlen(argv[i])) : 0);
+		iovec_set_len(&iov[i], argv[i] ? (1 + vstrlen(argv[i])) : 0);
 	}
 	return n;
 }
@@ -137,24 +150,24 @@ iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 static inline size_t
 iov_contiguous_size(const iovec_t *iov, size_t iov_cnt)
 {
-	iovec_t iov0;
+	size_t len;
 	size_t i;
 
 	g_assert(iov);
 
-	iov0 = iov[0];
+	len = iovec_len(&iov[0]);
 
-	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov0, &iov[i]); i++) {
+	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov[i - 1], &iov[i]); i++) {
 		size_t n = iovec_len(&iov[i]);
 
-		if (n >= (size_t) -1 - iovec_len(&iov0)) {
+		if (n >= (size_t) -1 - len) {
 			/* Abort if size would overflow */
-			iovec_set_len(&iov0, (size_t) -1);
+			len = (size_t) -1;
 			break;
 		}
-		iovec_set_len(&iov0, iovec_len(&iov0) + n);
+		len += n;
 	}
-	return iovec_len(&iov0);
+	return len;
 }
 
 /**
@@ -224,7 +237,7 @@ iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s)
 
 	/* Reserve one byte for the trailing NUL */
 	size = iov_calculate_size(iov, iov_cnt);
-	len = strlen(s);
+	len = vstrlen(s);
 	if (len >= size) {
 		len = size > 0 ? (size - 1) : 0;
 	}

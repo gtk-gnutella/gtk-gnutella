@@ -233,3 +233,35 @@ Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
 
 * Made SDBM API locks be queueing locks instead of mutexes.
 * Added sdbm_foreach() and sdbm_foreach_remove() convenience routines.
+
+Sat Sep 19 10:18:22 CEST 2015
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Changed sdbm_value(), sdbm_firstkey() and friends to not copy the datum even
+  in thread-safe mode.  Indeed, iterators cannot run concurrently and therefore
+  it is required to lock the database in thread-safe mode, making copying pure
+  overhead.
+* Added sdbm_ref() and sdbm_unref() to allow sharing of a DBM descriptor
+  among threads and prevent early disappearing of that descriptor.  Prefer
+  use of sdbm_unref() to sdbm_close() when sharing!
+* Added support for "loose iterations", which run over the database without
+  grabbing the lock for the whole duration of the traversal, at the price of
+  some missed keys or duplicate processing.
+* Added sdbm_count(), sdbm_delta() and sdbm_delta_reset() to make it easy
+  for an application to track the actual count of items in the database.
+
+Fri Oct 16 00:13:20 CEST 2015
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Added sdbm_rebuild_async() to asynchronously reconstruct the database
+  from a separate thread whilst other concurrent access to the same database
+  are possible from other threads.
+
+Mon Nov 14 18:39:39 CET 2016
+
+Changes from Raphael Manfredi <Raphael_Manfredi@pobox.com>:
+
+* Added a .tmp file to be able to remove left-over temporary files created
+  during rebuilds, should the old process have been interrupted in the middle.

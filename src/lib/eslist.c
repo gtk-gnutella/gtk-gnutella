@@ -160,6 +160,8 @@ eslist_wfree(eslist_t *list, size_t size)
 
 #define eslist_discard						OWLIST_discard
 #define eslist_clear						OWLIST_clear
+#define eslist_mark_removed					OWLIST_mark_removed
+#define eslist_link_mark_removed			OWLIST_link_mark_removed
 #define eslist_link_append_internal			OWLIST_link_append_internal
 #define eslist_link_append					OWLIST_link_append
 #define eslist_append						OWLIST_append

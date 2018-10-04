@@ -363,7 +363,7 @@ signal_name(int signo)
 
 	if (signal_in_unsafe_handler()) {
 		static char sig_buf[32];	/* Do not allocate memory in handler */
-		b = buf_init(&bs, sig_buf, sizeof sig_buf);
+		b = buf_init(&bs, ARYLEN(sig_buf));
 	} else {
 		b = buf_private(G_STRFUNC, 32);
 	}
@@ -1240,7 +1240,7 @@ sig_exception_format(char *dest, size_t size,
 	str_t s;
 
 	reason = signal_decode(signo, si->si_code);
-	str_new_buffer(&s, dest, 0, size);
+	str_new_buffer(&s, dest, size, 0);
 
 	str_printf(&s, "got %s%s",
 		recursive ? "recursive " : "", signal_name(signo));
@@ -1366,7 +1366,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 
 		if (id >= 0 && extended[id] > 1) {
 			if (2 == extended[id]) {
-				sig_exception_format(data, sizeof data, signo, si, u, TRUE);
+				sig_exception_format(ARYLEN(data), signo, si, u, TRUE);
 				s_rawwarn("%s", data);
 				crash_set_error(data);
 				crash_abort();
@@ -1376,7 +1376,7 @@ signal_trampoline_extended(int signo, siginfo_t *si, void *u)
 				_exit(EXIT_FAILURE);
 			}
 		} else {
-			sig_exception_format(data, sizeof data, signo, si, u, FALSE);
+			sig_exception_format(ARYLEN(data), signo, si, u, FALSE);
 			s_rawwarn("%s", data);
 			crash_set_error(data);
 		}

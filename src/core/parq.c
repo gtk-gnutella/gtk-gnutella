@@ -64,6 +64,7 @@
 #include "lib/bit_array.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/file.h"
 #include "lib/getdate.h"
 #include "lib/getline.h"
@@ -411,7 +412,7 @@ get_header_value(const char *const s,
 	g_assert(s != NULL);
 	g_assert(attribute != NULL);
 
-	attrlen = strlen(attribute);
+	attrlen = vstrlen(attribute);
 
 	/*
 	 * When we are looking for "foo", make sure we aren't actually
@@ -424,7 +425,7 @@ get_header_value(const char *const s,
 		char b;
 		char es;
 
-		header = ascii_strcasestr(header, attribute);
+		header = vstrcasestr(header, attribute);
 
 		if (header == NULL)
 			return NULL;
@@ -515,15 +516,15 @@ get_header_value(const char *const s,
 	if (length != NULL) {
 		*length = 0;
 
-		end = strchr(header, ';');		/* PARQ style */
+		end = vstrchr(header, ';');		/* PARQ style */
 		if (end == NULL)
-			end = strchr(header, ',');	/* Active queuing style */
+			end = vstrchr(header, ',');	/* Active queuing style */
 
 		/*
 		 * If we couldn't find a delimiter, then this value is the last one.
 		 */
 
-		*length = (end == NULL) ? strlen(header) : (size_t) (end - header);
+		*length = (end == NULL) ? vstrlen(header) : (size_t) (end - header);
 	}
 
 	return header;
@@ -1233,7 +1234,7 @@ parq_download_queue_ack(struct gnutella_socket *s)
 	 * Fetch the IP port at the end of the QUEUE string.
 	 */
 
-	ip_str = strchr(id, ' ');
+	ip_str = vstrchr(id, ' ');
 
 	if (
 		ip_str == NULL ||
@@ -1906,7 +1907,7 @@ parq_upload_update_addr_and_name(struct parq_ul_queued *puq,
 
 	puq->addr_and_name = str_cmsg("%s %s",
 		host_addr_to_string(u->addr), u->name);
-	puq->name = strchr(puq->addr_and_name, ' ') + 1;
+	puq->name = vstrchr(puq->addr_and_name, ' ') + 1;
 
 	hikset_insert_key(ul_all_parq_by_addr_and_name, &puq->addr_and_name);
 }
@@ -2263,7 +2264,7 @@ parq_upload_find(const struct upload *u)
 	if (u->parq_ul) {
 		return u->parq_ul;
 	} else if (u->name) {
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			host_addr_to_string(u->addr), " ", u->name,
 			NULL_PTR);
 		return hikset_lookup(ul_all_parq_by_addr_and_name, buf);
@@ -4477,9 +4478,7 @@ parq_upload_add_x_queued_header(char *buf, size_t size,
 			}
 		}
 
-		len = concat_strings(&buf[rw], sizeof "\r\n",
-				"\r\n",
-				NULL_PTR);
+		len = concat_strings(&buf[rw], size, "\r\n", NULL_PTR);
 		rw += len;
 	}
 	return rw;
@@ -4818,7 +4817,7 @@ parq_upload_send_queue_conf(struct upload *u)
 
 	puq->flags &= ~PARQ_UL_QUEUE;
 
-	rw = str_bprintf(queue, sizeof queue, "QUEUE %s %s\r\n",
+	rw = str_bprintf(ARYLEN(queue), "QUEUE %s %s\r\n",
 			guid_hex_str(&puq->id),
 			host_addr_port_to_string(listen_addr(), socket_listen_port()));
 
@@ -4897,8 +4896,8 @@ parq_store(void *data, void *file_ptr)
 			  puq->name);
 	}
 
-	timestamp_to_string_buf(puq->enter, enter_buf, sizeof enter_buf);
-	timestamp_to_string_buf(puq->last_queue_sent, last_buf, sizeof last_buf);
+	timestamp_to_string_buf(puq->enter, ARYLEN(enter_buf));
+	timestamp_to_string_buf(puq->last_queue_sent, ARYLEN(last_buf));
 
 	/*
 	 * Save all needed parq information. The ip and port information gathered
@@ -5123,7 +5122,7 @@ parq_upload_load_queue(void)
 	entry = zero_entry;
 	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *colon;
 		bool damaged;
@@ -5132,7 +5131,7 @@ parq_upload_load_queue(void)
 		line_no++;
 
 		damaged = FALSE;
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
@@ -5154,7 +5153,7 @@ parq_upload_load_queue(void)
 		if (resync)
 			continue;
 
-		colon = strchr(line, ':');
+		colon = vstrchr(line, ':');
 		if (!colon) {
 			g_warning("%s(): missing colon in line %u", G_STRFUNC, line_no);
 			break;
@@ -5287,10 +5286,10 @@ parq_upload_load_queue(void)
 
 		case PARQ_TAG_SHA1:
 			{
-				if (strlen(value) != SHA1_BASE32_SIZE) {
+				if (vstrlen(value) != SHA1_BASE32_SIZE) {
 					damaged = TRUE;
 					g_warning("%s(): SHA1 value has wrong length %zu",
-						G_STRFUNC, strlen(value));
+						G_STRFUNC, vstrlen(value));
 				} else {
 					const struct sha1 *raw;
 
@@ -5318,10 +5317,7 @@ parq_upload_load_queue(void)
 			}
 			break;
 		case PARQ_TAG_NAME:
-			if (
-				g_strlcpy(entry.name, value,
-					sizeof entry.name) >= sizeof entry.name
-			) {
+			if (!cstr_fcpy(ARYLEN(entry.name), value)) {
 				damaged = TRUE;
 			} else {
 				/* Expect next parq entry, this is the final tag */

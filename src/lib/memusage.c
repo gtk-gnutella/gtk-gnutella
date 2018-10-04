@@ -617,10 +617,10 @@ memusage_sort_frames(const memusage_t *mu, bool periodic,
 	 * until we have a stable count.
 	 */
 
-	count = hash_table_size(ht);
+	count = hash_table_count(ht);
 	XMALLOC_ARRAY(fill->array, count);
-	while (hash_table_size(ht) != count) {
-		count = hash_table_size(ht);
+	while (hash_table_count(ht) != count) {
+		count = hash_table_count(ht);
 		XREALLOC_ARRAY(fill->array, count);
 	}
 	fill->capacity = count;
@@ -657,7 +657,7 @@ memusage_sorted_frame_dump_log(logagent_t *la, const memusage_t *mu,
 	log_info(la, "Decreasing list of %zu %s%s for %s (%zu recursion%s):",
 		count, what, plural(count), name, recurses, plural(recurses));
 
-	all_count = hash_table_size(all);
+	all_count = hash_table_count(all);
 
 	log_info(la, "Totaling %zu distinct stackrame%s",
 		all_count, plural(all_count));

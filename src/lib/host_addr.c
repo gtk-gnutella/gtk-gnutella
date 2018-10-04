@@ -51,8 +51,8 @@
 #include "ascii.h"
 #include "buf.h"
 #include "concat.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hset.h"
 #include "parse.h"
@@ -75,7 +75,7 @@ host_addr_hash(host_addr_t ha)
 			host_addr_t ha_ipv4;
 
 			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
-				return binary_hash(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+				return binary_hash(ARYLEN(ha.addr.ipv6));
 			ha = ha_ipv4;
 		}
 		/* FALL THROUGH */
@@ -101,7 +101,7 @@ host_addr_hash2(host_addr_t ha)
 			host_addr_t ha_ipv4;
 
 			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
-				return binary_hash2(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+				return binary_hash2(ARYLEN(ha.addr.ipv6));
 			ha = ha_ipv4;
 		}
 		/* FALL THROUGH */
@@ -127,7 +127,7 @@ host_addr_port_hash(host_addr_t ha, uint16 port)
 			host_addr_t ha_ipv4;
 
 			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
-				return binary_hash(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+				return binary_hash(ARYLEN(ha.addr.ipv6));
 			ha = ha_ipv4;
 		}
 		/* FALL THROUGH */
@@ -154,7 +154,7 @@ host_addr_port_hash2(host_addr_t ha, uint16 port)
 			host_addr_t ha_ipv4;
 
 			if (!host_addr_convert(ha, &ha_ipv4, NET_TYPE_IPV4))
-				return binary_hash2(&ha.addr.ipv6[0], sizeof ha.addr.ipv6);
+				return binary_hash2(ARYLEN(ha.addr.ipv6));
 			ha = ha_ipv4;
 		}
 		/* FALL THROUGH */
@@ -603,9 +603,9 @@ host_addr_to_string_buf(const host_addr_t ha, char *dst, size_t size)
 	case NET_TYPE_IPV6:
 		return ipv6_to_string_buf(host_addr_ipv6(&ha), dst, size);
 	case NET_TYPE_LOCAL:
-		return g_strlcpy(dst, "<local>", size);
+		return cstr_bcpy(dst, size, "<local>");
 	case NET_TYPE_NONE:
-		return g_strlcpy(dst, "<none>", size);
+		return cstr_bcpy(dst, size, "<none>");
 	}
 
 	g_assert_not_reached();
@@ -666,8 +666,8 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 	char port_buf[UINT32_DEC_BUFLEN];
 	size_t n;
 
-	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
-	uint32_to_string_buf(port, port_buf, sizeof port_buf);
+	host_addr_to_string_buf(ha, ARYLEN(host_buf));
+	uint32_to_string_buf(port, ARYLEN(port_buf));
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV6:
@@ -678,7 +678,7 @@ host_addr_port_to_string_buf(const host_addr_t ha, uint16 port,
 		n = concat_strings(dst, size, host_buf, ":", port_buf, NULL_PTR);
 		break;
 	default:
-		n = g_strlcpy(dst, host_buf, size);
+		n = cstr_bcpy(dst, size, host_buf);
 	}
 
 	return n;
@@ -737,8 +737,8 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 	char host_buf[HOST_ADDR_BUFLEN];
 	size_t n;
 
-	uint32_to_string_buf(port, port_buf, sizeof port_buf);
-	host_addr_to_string_buf(ha, host_buf, sizeof host_buf);
+	uint32_to_string_buf(port, ARYLEN(port_buf));
+	host_addr_to_string_buf(ha, ARYLEN(host_buf));
 
 	switch (host_addr_net(ha)) {
 	case NET_TYPE_IPV6:
@@ -748,7 +748,7 @@ host_port_addr_to_string_buf(uint16 port, const host_addr_t ha,
 		n = concat_strings(dst, size, port_buf, ":", host_buf, NULL_PTR);
 		break;
 	default:
-		n = g_strlcpy(dst, host_buf, size);
+		n = cstr_bcpy(dst, size, host_buf);
 	}
 
 	return n;
@@ -784,7 +784,7 @@ host_port_to_string(const char *hostname, host_addr_t addr, uint16 port)
 	if (hostname != NULL) {
 		char port_buf[UINT32_DEC_BUFLEN];
 
-		uint32_to_string_buf(port, port_buf, sizeof port_buf);
+		uint32_to_string_buf(port, ARYLEN(port_buf));
 		concat_strings(p, buf_size(b), hostname, ":", port_buf, NULL_PTR);
 	} else {
 		host_addr_port_to_string_buf(addr, port, p, buf_size(b));
@@ -1215,11 +1215,11 @@ host_addr_to_name(host_addr_t addr)
 		int error;
 
 		error = getnameinfo(socket_addr_get_const_sockaddr(&sa),
-					socket_addr_get_len(&sa), host, sizeof host, NULL, 0, 0);
+					socket_addr_get_len(&sa), ARYLEN(host), NULL, 0, 0);
 		if (error) {
 			char buf[HOST_ADDR_BUFLEN];
 
-			host_addr_to_string_buf(addr, buf, sizeof buf);
+			host_addr_to_string_buf(addr, ARYLEN(buf));
 			g_message("getnameinfo() failed for \"%s\": %s",
 				buf, gai_strerror(error));
 			return NULL;
@@ -1254,7 +1254,7 @@ host_addr_to_name(host_addr_t addr)
 		if (!he) {
 			char buf[HOST_ADDR_BUFLEN];
 
-			host_addr_to_string_buf(addr, buf, sizeof buf);
+			host_addr_to_string_buf(addr, ARYLEN(buf));
 			gethostbyname_error(buf);
 			return NULL;
 		}

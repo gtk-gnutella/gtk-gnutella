@@ -51,7 +51,7 @@ shell_exec_pid(struct gnutella_shell *sh, int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	uint_to_string_buf(getpid(), buf, sizeof buf);
+	uint_to_string_buf(getpid(), ARYLEN(buf));
 
 	shell_write_line(sh, REPLY_READY, buf);
 	return REPLY_READY;

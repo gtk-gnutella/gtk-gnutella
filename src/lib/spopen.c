@@ -44,7 +44,7 @@
  * escaping of possible shell meta-characters.
  *
  * As is traditional for this family of functions in the litterature,
- * the radix "spopen" is supplemented with additional letter which give
+ * the radix "spopen" is supplemented with additional letters which give
  * a hint towards the function signature...
  *
  * The first letter is either 'l' or 'v':

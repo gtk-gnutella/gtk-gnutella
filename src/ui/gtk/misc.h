@@ -65,6 +65,14 @@ void paned_restore_position(GtkPaned *paned, property_t prop);
 typedef GtkMenu *(*widget_popup_menu_cb)(void);
 void widget_add_popup_menu(GtkWidget *, widget_popup_menu_cb);
 
+void gui_parent_widths_saveto(const void *parent, property_t prop);
+void gui_parent_forget(const void *parent);
+void gui_column_map(const void *column, const void *parent);
+void gui_column_resized(void *column);
+
+void misc_gui_early_init(void);
+void misc_gui_shutdown(void);
+
 #endif /* _gtk_misc_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

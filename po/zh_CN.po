@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2018-10-04 20:40+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -544,9 +544,6 @@ msgstr "节点过多(最大值为%d)"
 msgid "Sent shielded indication"
 msgstr "发送防御指示"
 
-msgid "Not an ultra node"
-msgstr "不是一个超级节点"
-
 msgid "Unknown error"
 msgstr ""
 
@@ -756,9 +753,6 @@ msgstr "创建 IPv6 UDP 套接字失败"
 
 msgid "Failed to create local socket"
 msgstr "创建本地套接字失败"
-
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "被 TCP 防火墙阻挡时只能作为叶节点运行"
 
 msgid "Read error"
 msgstr "读取错误"
@@ -1091,10 +1085,46 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+msgid "Claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr ""
+
 msgid "Unclaimed locally-generated OOB hits"
 msgstr ""
 
+msgid "Unclaimed locally-generated reliable OOB hits"
+msgstr ""
+
 msgid "Partially claimed locally-generated OOB hits"
+msgstr ""
+
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
 msgstr ""
 
 msgid "Spurious OOB hit claiming received"
@@ -1319,6 +1349,78 @@ msgstr ""
 msgid "Uncompressed UDP messages due to no gain"
 msgstr ""
 
+msgid "UDP scheduler directly sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message dropped: port=0"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no socket"
+msgstr ""
+
+msgid "UDP scheduler message dropped: I/O error"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no longer needed"
+msgstr ""
+
 msgid "Ambiguous UDP messages received"
 msgstr ""
 
@@ -1346,13 +1448,106 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr ""
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr ""
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent"
@@ -1361,10 +1556,29 @@ msgstr ""
 msgid "Semi-reliable UDP fragments resent"
 msgstr ""
 
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments sent"
+msgstr ""
+
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr ""
+
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr ""
 
 msgid "Semi-reliable UDP total acknowledgments received"
@@ -1374,6 +1588,9 @@ msgid "Semi-reliable UDP cumulative acknowledgments received"
 msgstr ""
 
 msgid "Semi-reliable UDP extended acknowledgments received"
+msgstr ""
+
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
 msgstr ""
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
@@ -1406,6 +1623,9 @@ msgstr ""
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr ""
 
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr ""
 
@@ -1427,6 +1647,9 @@ msgstr ""
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr ""
 
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr ""
 
@@ -1445,6 +1668,78 @@ msgstr ""
 msgid "Semi-reliable UDP empty messages received"
 msgstr ""
 
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
+msgstr ""
+
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr ""
 
@@ -1455,6 +1750,21 @@ msgid "Semi-reliable UDP extended acknowledgments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr ""
+
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
 msgstr ""
 
 msgid "Semi-reliable UDP EARs received"
@@ -4302,6 +4612,9 @@ msgid "Defines whether lock contentions should be traced."
 msgstr ""
 
 msgid "Defines whether lock sleeps should be traced."
+msgstr ""
+
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
 msgid "disable"
@@ -9016,6 +9329,12 @@ msgstr "正发送队列，正向回连接..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "发送队列，正等待头部..."
+
+#~ msgid "Not an ultra node"
+#~ msgstr "不是一个超级节点"
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "被 TCP 防火墙阻挡时只能作为叶节点运行"
 
 #~ msgid "< 1s"
 #~ msgstr "< 1s"

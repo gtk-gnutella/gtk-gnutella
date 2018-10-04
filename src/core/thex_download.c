@@ -457,10 +457,10 @@ dime_find_record(const pslist_t *records, const char *type, const char *id)
 
 	g_return_val_if_fail(type, NULL);
 
-	type_length = type ? strlen(type) : 0;
+	type_length = type ? vstrlen(type) : 0;
 	g_return_val_if_fail(type_length > 0, NULL);
 
-	id_length = id ? strlen(id) : 0;
+	id_length = id ? vstrlen(id) : 0;
 
 	PSLIST_FOREACH(records, iter) {
 		const struct dime_record *record = iter->data;

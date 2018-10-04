@@ -114,6 +114,7 @@
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
+#include "entropy.h"
 #include "evq.h"
 #include "fd.h"
 #include "log.h"
@@ -191,6 +192,9 @@ static int vmm_oom_detected;
 #define VMM_FOREIGN_LIFE	(60 * 60)		/**< 60 minutes */
 #define VMM_FOREIGN_MAXLEN	(512 * 1024)	/**< 512 KiB */
 #define VMM_WARN_THRESH		512	/**< Pages, 2 MiB with 4K pages */
+#define VMM_MOVE_THRESH		16	/**< Pages, user threshold if within region! */
+
+#define PMAP_FOREIGN_TRY	512	/**< Amount of foreign pages we try to allocate */
 
 struct page_info {
 	void *base;		/**< base address */
@@ -275,6 +279,35 @@ static struct vmm_stats {
 	AU64(resizings);				/**< Total amount of vmm_resize() calls */
 	AU64(mmaps);					/**< Total number of mmap() calls */
 	AU64(munmaps);					/**< Total number of munmap() calls */
+	uint64 core_normal_alloc;		/**< Regular core allocations */
+	uint64 core_smart_alloc;		/**< Core allocated via long-term strategy */
+	AU64(core_smart_forced_system);	/**< Core forced via system (should be 0) */
+	uint64 core_from_cache;			/**< Smart core allocated from cache */
+	uint64 core_from_cache_pages;	/**< Pages of core allocated from cache */
+	uint64 core_from_magazine;		/**< Smart core allocated from magazines */
+	uint64 core_from_magazine_pages;/**< Pages of core allocated from magazines */
+	uint64 core_from_system;		/**< Smart core allocated from system */
+	uint64 core_from_system_pages;	/**< Pages of core allocated from system */
+	AU64(move_user_requested);		/**< Number of vmm_move() calls honored */
+	AU64(move_core_requested);		/**< Number of vmm_core_move() calls honored */
+	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
+	AU64(move_magazine_attempted);	/**< Magazine allocation try in vmm_move() */
+	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
+	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
+	AU64(move_user_inner);			/**< Inner region declined for vmm_move() */
+	AU64(move_user_failed);			/**< Move from vmm_move() unsuccessful */
+	AU64(move_core_failed);			/**< Move from vmm_core_move() unsuccessful */
+	uint64 move_user_succeeded;		/**< Move from vmm_move() successful */
+	uint64 move_core_succeeded;		/**< Move from vmm_core_move() successful */
+	uint64 move_user_bytes_copied;	/**< Bytes moved around by vmm_move() */
+	uint64 move_core_bytes_copied;	/**< Bytes moved around by vmm_core_move() */
+	uint64 move_alloc_from_cache;	/**< vmm_move() allocated from cache */
+	uint64 move_alloc_from_system;	/**< vmm_move() allocated from system */
+	uint64 move_alloc_from_magazine;/**< vmm_move() allocated from magazine */
+	AU64(move_system_over_cache);	/**< vmm_move() chose pmap over system */
+	AU64(move_cache_over_system);	/**< vmm_move() chose cache over pmap */
+	AU64(move_cache_only);			/**< vmm_move() relied solely on page cache */
+	AU64(move_magazine_supersede);	/**< vmm_move() magazine offered best object */
 	uint64 magazine_allocations;	/**< Allocations through thread magazine */
 	uint64 magazine_freeings;		/**< Freeings through thread magazine */
 	uint64 magazine_freeings_frag;	/**< Magazine regions that were fragments */
@@ -325,6 +358,7 @@ static spinlock_t vmm_stats_slk = SPINLOCK_INIT;
 
 #define VMM_STATS_LOCK		spinlock_hidden(&vmm_stats_slk)
 #define VMM_STATS_UNLOCK	spinunlock_hidden(&vmm_stats_slk)
+#define VMM_STATS_IS_LOCKED	spinlock_is_held(&vmm_stats_slk)
 
 #define VMM_STATS_INCX(x)	AU64_INC(&vmm_stats.x)
 
@@ -448,11 +482,16 @@ static size_t pmap_insert_region(struct pmap *pm,
 	const void *start, size_t size, vmf_type_t type);
 static void pmap_overrule(struct pmap *pm,
 	const void *p, size_t size, vmf_type_t type);
+static void pmap_identify_foreign(struct pmap *pm,
+	void *hint, void *allocated, size_t len);
 static struct vm_fragment *pmap_lookup(const struct pmap *pm,
 	const void *p, size_t *low_ptr);
 static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
+static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
+static tmalloc_t *vmm_get_magazine(size_t npages, bool alloc);
+static void vmm_free_internal(void *p, size_t size, bool user_mem);
 
 /**
  * @return whether VMM is in crash mode.
@@ -838,18 +877,13 @@ vmm_dump_pmap(void)
 /**
  * Find a hole in the virtual memory map where we could allocate "size" bytes.
  *
- * This routine must be called with the pmap write-locked.
+ * This routine can be called with the pmap read-locked only but then the
+ * result is only a hint, we cannot assume we will be able to allocate that spot.
  */
 static const void *
-vmm_find_hole(size_t size)
+vmm_probe_hole(const struct pmap *pm, size_t size)
 {
-	struct pmap *pm = vmm_pmap();
 	size_t i;
-
-	assert_rwlock_is_owned(&pm->lock);
-
-	if G_UNLIKELY(!vmm_fully_inited)
-		return NULL;
 
 	if G_UNLIKELY(0 == pm->count)
 		return NULL;
@@ -889,6 +923,29 @@ vmm_find_hole(size_t size)
 			}
 		}
 	}
+
+	return NULL;
+}
+
+/**
+ * Find a hole in the virtual memory map where we could allocate "size" bytes.
+ *
+ * This routine must be called with the pmap write-locked.
+ */
+static const void *
+vmm_find_hole(size_t size)
+{
+	struct pmap *pm = vmm_pmap();
+	const void *p;
+
+	assert_rwlock_is_owned(&pm->lock);
+
+	if G_UNLIKELY(!vmm_fully_inited)
+		return NULL;
+
+	p = vmm_probe_hole(pm, size);
+	if (p != NULL)
+		return p;
 
 	if (vmm_debugging(0)) {
 		s_miniwarn("VMM no %'zuKiB hole found in pmap", size / 1024);
@@ -1027,14 +1084,9 @@ retry:
 					/* Upgrade from read to write lock if needed */
 
 					if G_UNLIKELY(!wlock) {
-						if (rwlock_upgrade(&pm->lock)) {
-							wlock = TRUE;
-						} else {
-							rwlock_runlock(&pm->lock);
-							rwlock_wlock(&pm->lock);
-							wlock = TRUE;
+						wlock = TRUE;
+						if (!rwlock_force_upgrade(&pm->lock))
 							goto retry;
-						}
 					}
 
 					pmap_discard_index(pm, i);
@@ -1076,14 +1128,9 @@ retry:
 					/* Upgrade from read to write lock if needed */
 
 					if G_UNLIKELY(!wlock) {
-						if (rwlock_upgrade(&pm->lock)) {
-							wlock = TRUE;
-						} else {
-							rwlock_runlock(&pm->lock);
-							rwlock_wlock(&pm->lock);
-							wlock = TRUE;
+						wlock = TRUE;
+						if (!rwlock_force_upgrade(&pm->lock))
 							goto retry;
-						}
 					}
 
 					pmap_discard_index(pm, i - 1);
@@ -1102,10 +1149,7 @@ retry:
 	}
 
 done:
-	if (wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
+	rwlock_unlock(&pm->lock, wlock);
 
 	/*
 	 * This is just a hint, it's OK if, by the time we fill it in, it's been
@@ -1184,6 +1228,21 @@ vmm_vfree_fragment(void *addr, size_t size)
 }
 #endif	/* MINGW32 */
 
+/**
+ * Free memory fragment, with panic if we get an error back.
+ *
+ * @param caller		the calling routine, in case we have to panic
+ * @param p				start of the memory fragment
+ * @param size			length in byte of fragment to be freed
+ */
+static void
+vmm_free_fragment(const char *caller, void *p, size_t size)
+{
+	if (0 != vmm_vfree_fragment(p, size)) {
+		s_minierror("%s(): release of %'zu bytes at %p failed: %s",
+			caller, size, p, symbolic_errno(errno));
+	}
+}
 #else	/* !HAS_MMAP && !MINGW32 */
 static inline size_t
 vmm_first_hole(const void **unused, bool discard)
@@ -1504,70 +1563,24 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 */
 
 		if (!pm->extending && !is_running_on_mingw()) {
-			if (size <= kernel_pagesize) {
-				pmap_insert_foreign(pm, hint, kernel_pagesize);
-				if (vmm_debugging(0)) {
-					s_minidbg("VMM marked hint %p as foreign", hint);
-				}
-			} else if (
-				ptr_cmp(hint, ptr_add_offset(p, size)) >= 0 ||
-				ptr_cmp(hint, p) < 0
+			if (
+				ptr_cmp(hint, ptr_add_offset(p, size)) < 0 &&
+				ptr_cmp(hint, p) >= 0
 			) {
-				void *try;
-
-				/*
-				 * The hint address is not included in the allocated segment.
-				 *
-				 * Try allocating a single page at the hint location, and
-				 * if we don't succeed, we can mark it as foreign.  If
-				 * we succeed and we were previously trying to allocate
-				 * exactly two pages, then we know the next page is foreign.
-				 */
-
-				try = vmm_valloc(hint, kernel_pagesize);
-
-				if G_LIKELY(try != MAP_FAILED) {
-					if (try != hint) {
-						pmap_insert_foreign(pm, hint, kernel_pagesize);
-						if (vmm_debugging(0)) {
-							s_minidbg("VMM marked hint %p as foreign", hint);
-						}
-					} else if (2 == pagecount_fast(size)) {
-						void *next = ptr_add_offset(hint, kernel_pagesize);
-						if (next != p) {
-							pmap_insert_foreign(pm, next, kernel_pagesize);
-							if (vmm_debugging(0)) {
-								s_minidbg("VMM marked %p (page after %p) "
-									"as foreign", next, hint);
-							}
-						} else {
-							if (vmm_debugging(0)) {
-								s_minidbg("VMM funny kernel ignored hint %p "
-									"and allocated 8 KiB at %p whereas hint "
-									"was free", hint, p);
-							}
-						}
-					} else {
-						if (vmm_debugging(1)) {
-							s_minidbg("VMM hinted %p is not a foreign page",
-								hint);
-						}
-					}
-					if (0 != vmm_vfree(try, kernel_pagesize)) {
-						s_miniwarn("VMM cannot free one page at %p: %m", try);
-					}
-
-				} else {
-					if (vmm_debugging(0)) {
-						s_miniwarn("VMM cannot allocate one page at %p: %m",
-							hint);
-					}
-				}
-			} else {
 				if (vmm_debugging(0)) {
 					s_minidbg("VMM hint %p fell within allocated [%p, %p]",
 						hint, p, ptr_add_offset(p, size - 1));
 				}
+			} else {
+				/*
+				 * If allocation was for more than a single page, we cannot
+				 * easily know which page among the region was foreign and
+				 * caused the hint to be ignored, so do nothing for now.
+				 * 		--RAM, 2017-11-19
+				 */
+
+				if (size <= kernel_pagesize)
+					pmap_identify_foreign(pm, hint, p, size);
 			}
 		}
 		rwlock_wunlock(&pm->lock);		/* End critical section */
@@ -1614,6 +1627,103 @@ done:
 	return p;
 }
 #endif	/* HAS_MMAP */
+
+/**
+ * Identify foreign pages nearby `hint' which could not be allocated.
+ *
+ * @note
+ * The allocated region starting at `allocated' is not yet in the pmap, which
+ * is why we pass it here since we need to escape as soon as we bump into it.
+ *
+ * @param pm		the pmap
+ * @param hint		the hint we had requested
+ * @param allocated	where kernel allocated memory
+ * @param len		size of region allocated
+ */
+static void
+pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
+{
+	const struct vm_fragment *vmf;
+	void *start, *limit;
+	size_t n, inc;
+
+	assert_rwlock_is_owned(&pm->lock);
+	g_assert(len <= kernel_pagesize);
+
+	/*
+	 * The page could not be allocated, so clearly it is a foreign zone.
+	 *
+	 * We must NOT handle foreign zone if we are in a recursive allocation
+	 * pattern (for instance when trying to extend the region where the pmap
+	 * is stored) or when we are not going to update the pmap.
+	 *
+	 * Since our caller vmm_mmap_anonymous() will forcefully grab another
+	 * write-lock when it calls us, and we know the pmap is also write-locked
+	 * when we are going to update it after the allocation, the nominal depth
+	 * here is 2.  Anything smaller and we will not update the pmap, anything
+	 * greater and we are recursing!
+	 */
+
+	if (2 != rwlock_writers(&pm->lock))
+		return;
+
+	if (vmm_debugging(0)) {
+		s_minidbg("VMM page %p is foreign", hint);
+	}
+
+	pmap_insert_foreign(pm, hint, kernel_pagesize);
+
+	vmf = pmap_lookup(pm, hint, NULL);
+	g_assert(vmf != NULL);		/* Just inserted above */
+
+	/*
+	 * We're going to attempt to allocate after the region, until we reach
+	 * another known region or after we have tried to allocated at least
+	 * PMAP_FOREIGN_TRY pages.
+	 *
+	 * The starting point for us is either the end of the region (if kernel
+	 * addresses are allocated from lower to higher values) or the start of
+	 * the region minus one page (when kernel addresses are allocated from
+	 * higher to lower values).
+	 */
+
+	if (kernel_mapaddr_increasing) {
+		inc = kernel_pagesize;
+		start = deconstify_pointer(vmf->end);
+		limit = allocated;
+	} else {
+		inc = -kernel_pagesize;
+		start = ptr_add_offset(deconstify_pointer(vmf->start), inc);
+		limit = ptr_add_offset(allocated, len - kernel_pagesize);
+	}
+
+	for (n = 0; n < PMAP_FOREIGN_TRY; n++, start = ptr_add_offset(start, inc)) {
+		void *p;
+
+		if (start == limit)
+			break;
+
+		if (NULL != pmap_lookup(pm, start, NULL))
+			break;		/* Reached a known region */
+
+		p = vmm_valloc(start, kernel_pagesize);
+
+		if (MAP_FAILED == p)
+			break;
+
+		if (0 != vmm_vfree(p, kernel_pagesize))
+			s_error("%s(): cannot free %p: %m", G_STRFUNC, p);
+
+		if (start == p)
+			break;		/* Hint followed, we are outside the foreign region */
+
+		if (vmm_debugging(0)) {
+			s_minidbg("VMM page %p is also foreign", start);
+		}
+
+		pmap_insert_foreign(pm, start, kernel_pagesize);	/* Still foreign */
+	}
+}
 
 static void
 vmm_validate_pages(void *p, size_t size)
@@ -1678,6 +1788,33 @@ alloc_pages_emergency(size_t size)
 	}
 
 	return p;
+}
+
+/**
+ * Process allocated page.
+ *
+ * @param update_pmap	whether our VMM pmap should be updated
+ */
+static void
+page_allocated(struct pmap *pm, void *p, size_t size, bool update_pmap)
+{
+	g_assert_log(page_start(p) == p,
+		"%s(): aligned memory required: %p (%'zu bytes)", G_STRFUNC, p, size);
+
+	if (vmm_debugging(5)) {
+		s_minidbg("VMM allocated %'zuKiB region at %p", size / 1024, p);
+	}
+
+	vmm_hole_update(p, size, TRUE);
+
+	if (update_pmap) {
+		size_t idx;
+
+		assert_rwlock_is_owned(&pm->lock);
+
+		idx = pmap_insert(pm, p, size);
+		vmm_upper_hole_update(pm, idx);
+	}
 }
 
 /**
@@ -1790,21 +1927,10 @@ alloc_pages(size_t size, bool update_pmap)
 	}
 
 allocated:
-	g_assert_log(page_start(p) == p, "aligned memory required: %p", p);
+	page_allocated(pm, p, size, update_pmap);
 
-	if (vmm_debugging(5)) {
-		s_minidbg("VMM allocated %'zuKiB region at %p", size / 1024, p);
-	}
-
-	vmm_hole_update(p, size, TRUE);
-
-	if (update_pmap) {
-		size_t idx;
-
-		idx = pmap_insert(pm, p, size);
-		vmm_upper_hole_update(pm, idx);
+	if (update_pmap)
 		rwlock_wunlock(&pm->lock);
-	}
 
 	return p;
 }
@@ -1836,16 +1962,7 @@ free_pages_intern(void *p, size_t size, bool update_pmap)
 		goto pmap_update;
 
 #if defined(HAS_MMAP) || defined(MINGW32)
-	{
-		int ret = 0;
-
-		ret = vmm_vfree_fragment(p, size);
-
-		if G_UNLIKELY(ret != 0) {
-			s_minierror("%s(): release of %'zu bytes at %p failed: %s",
-				G_STRFUNC, size, p, symbolic_errno(errno));
-		}
-	}
+	vmm_free_fragment(G_STRFUNC, p, size);
 #elif defined(HAS_POSIX_MEMALIGN) || defined(HAS_MEMALIGN)
 	(void) size;
 	free(p);
@@ -2144,9 +2261,11 @@ pmap_insert_region(struct pmap *pm,
 
 	if G_UNLIKELY(vmf != NULL) {
 		if (vmm_debugging(0)) {
-			s_miniwarn("pmap already contains new %s region [%p, %p]",
-				vmf_type_str(vmf->type),
-				start, const_ptr_add_offset(start, size - 1));
+			s_miniwarn("%s(): wants to insert %s %'zu bytes at [%p, %p], "
+					"but pmap already contains %s region [%p, %p]",
+				G_STRFUNC, vmf_type_str(type), size,
+				start, const_ptr_add_offset(start, size - 1),
+				vmf_type_str(vmf->type), vmf->start, vmf->end);
 			vmm_dump_pmap();
 		}
 		g_assert(VMF_FOREIGN == type);
@@ -2606,6 +2725,352 @@ vmm_is_relocatable(const void *base, size_t size)
 		hole = const_ptr_add_offset(hole, -round_pagesize_fast(size));
 		return ptr_cmp(hole, base) > 0;
 	}
+}
+
+/**
+ * Update allocation statistics.
+ *
+ * @param size		amount allocated, in bytes
+ * @param n			amount of pages
+ * @param user_mem	whether it was user or core memory
+ * @param zero_mem	whether memory was zeroed after allocation
+ *
+ * @note
+ * Must be called with the stats locked.
+ */
+static void
+update_allocation_stats(size_t size, size_t n, bool user_mem, bool zero_mem)
+{
+	g_assert(VMM_STATS_IS_LOCKED);
+
+	vmm_stats.allocations++;
+
+	if G_UNLIKELY(zero_mem)
+		vmm_stats.allocations_zeroed++;
+
+	if (user_mem) {
+		vmm_stats.allocations_user++;
+		vmm_stats.user_memory += size;
+		vmm_stats.user_pages += n;
+		vmm_stats.user_blocks++;
+		memusage_add(vmm_stats.user_mem, size);
+	} else {
+		vmm_stats.allocations_core++;
+		vmm_stats.core_memory += size;
+		vmm_stats.core_pages += n;
+		memusage_add(vmm_stats.core_mem, size);
+	}
+}
+
+/**
+ * Check whether new pointer is at a better position in the VMM space than old.
+ *
+ * @param o		the old pointer
+ * @param n		the new pointer
+ *
+ * @return TRUE if moving the content from the old pointer to the new pointer
+ * makes sense to compact the VM space.
+ */
+bool
+vmm_pointer_is_better(const void *o, const void *n)
+{
+	if (kernel_mapaddr_increasing)
+		return ptr_cmp(o, n) > 0;
+	else
+		return ptr_cmp(o, n) < 0;
+}
+
+/**
+ * Return the `n' pages at `p' to the page cache.
+ */
+static void
+page_cache_return_pages(void *p, size_t n)
+{
+	size_t m = n;
+
+	page_cache_coalesce_pages(&p, &m);
+	page_cache_insert_pages(p, m);
+}
+
+/**
+ * Attempt to move the region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ * @param user_mem	TRUE if moving a user region, as opposed to a core one
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+static void *
+vmm_move_internal(void *base, size_t len, bool user_mem)
+{
+	struct pmap *pm;
+	size_t size;
+	bool wlock;
+	size_t n;
+	void *p, *c, *t;
+
+	g_assert(base != NULL);
+	g_assert(size_is_positive(len));
+
+	/*
+	 * Moving regions is only useful under a long-term allocation strategy.
+	 */
+
+	if (VMM_STRATEGY_SHORT_TERM == vmm_strategy || vmm_crashing || stop_freeing)
+		return base;
+
+	if (user_mem)
+		VMM_STATS_INCX(move_user_requested);
+	else
+		VMM_STATS_INCX(move_core_requested);
+
+	pm = vmm_pmap();
+	wlock = FALSE;
+	size = round_pagesize_fast(len);		/* True VM region length */
+	n = pagecount_fast(size);
+
+	assert_vmm_is_allocated(base, size, VMF_NATIVE, FALSE);
+
+	/*
+	 * If user memory, see whether this at the extremity of a pmap region:
+	 * we do not want to create extra holes in the pmap that we will later
+	 * never be able to efficiently fill.
+	 *
+	 * However, we only perform this check for "small enough" regions.
+	 * Indeed, large regions are things we want to move to a better position
+	 * whenever we can.
+	 *
+	 * 		--RAM, 2017-12-06
+	 */
+
+	if (user_mem && n < VMM_MOVE_THRESH) {
+		bool is_extremity;
+
+		rwlock_rlock(&pm->lock);
+		is_extremity = pmap_is_extremity(pm, base, n);
+		rwlock_runlock(&pm->lock);
+
+		if (!is_extremity) {
+			VMM_STATS_INCX(move_user_inner);
+			goto failed;	/* Moving it would create a small "hole" */
+		}
+	}
+
+	/*
+	 * First try to see which pages are available in the cache.
+	 *
+	 * If non-NULL, we will consider this pointer later with the one we
+	 * can find in the pmap, to choose the best one.
+	 *
+	 * NOTE: it is not an error that we forcefully request "user memory"
+	 * from the page cache here (second argument set to TRUE): we do not
+	 * want the algorithm to limit itself with a pre-computed VMM hole as
+	 * we are going to probe the pmap later.
+	 */
+
+	c = page_cache_find_pages(n, TRUE, FALSE);	/* Can be NULL */
+
+	/*
+	 * The strategy is to read-lock the pmap and see whether we are
+	 * able to find a place that would be better suited.
+	 *
+	 * If not, we are done.
+	 *
+	 * If yes, attempt to upgrade the read-lock to a write-lock and retry the
+	 * process, allocating memory directly.  Note that this by-passes the
+	 * page cache and the thread magazines, but these regions are allocated
+	 * already, as far as the pmap is concerned!.
+	 */
+
+	rwlock_rlock(&pm->lock);
+
+retry:
+	p = deconstify_pointer(vmm_probe_hole(pm, size));
+
+	if G_UNLIKELY(NULL == p)
+		goto no_pmap;
+
+	if (!vmm_pointer_is_better(base, p))
+		goto no_pmap;		/* Did not find better place */
+
+	if (!wlock) {
+		wlock = TRUE;
+		if (!rwlock_force_upgrade(&pm->lock)) {
+			VMM_STATS_INCX(move_lock_not_upgraded);
+			goto retry;
+		}
+		VMM_STATS_INCX(move_lock_upgraded);
+	}
+
+	VMM_STATS_INCX(move_system_attempted);
+
+	p = vmm_mmap_anonymous(size, p);
+
+	if (NULL == p)
+		goto no_pmap;		/* Ouch, could not allocate memory! */
+
+	if (!vmm_pointer_is_better(base, p)) {
+		vmm_free_fragment(G_STRFUNC, p, size);
+		goto no_pmap;		/* Did not find better place */
+	}
+
+	/*
+	 * New address is good, keep block.
+	 */
+
+	page_allocated(pm, p, size, TRUE);
+	rwlock_unlock(&pm->lock, wlock);
+
+	/*
+	 * See whether we have a better pointer with cached pages.
+	 */
+
+	if (c != NULL) {
+		if (vmm_pointer_is_better(p, c)) {
+			free_pages_intern(p, size, TRUE);
+			vmm_validate_pages(c, size);
+			p = c;				/* Use cached pages */
+			VMM_STATS_INCX(move_cache_over_system);
+		} else {
+			page_cache_return_pages(c, n);
+			c = NULL;
+			VMM_STATS_INCX(move_system_over_cache);
+		}
+	}
+
+	/* FALL THROUGH */
+
+success:
+	/*
+	 * We succeeded in finding a new VM region at a better place.
+	 *
+	 * However, if the size of the VM region is such that it is subject to
+	 * allocation through thread magazines, we may have a better object still
+	 * in these magazines...  Worth a try.
+	 */
+
+	t = NULL;
+
+	if G_LIKELY(n <= N_ITEMS(vmm_magazine)) {
+		tmalloc_t *depot = vmm_magazine[n - 1];
+
+		VMM_STATS_INCX(move_magazine_attempted);
+
+		if (depot != NULL) {
+			t = tmalloc_smart(depot, vmm_pointer_is_better, p);
+
+			/*
+			 * We found a better position, have to undo earlier allocations.
+			 */
+
+			if (t != NULL) {
+				VMM_STATS_INCX(move_magazine_supersede);
+				if (p == c) {
+					vmm_invalidate_pages(c, size);
+					page_cache_return_pages(c, n);
+					c = NULL;
+				} else {
+					free_pages_intern(p, size, TRUE);
+				}
+				p = t;		/* Superseded by magazine allocation */
+			}
+		}
+	}
+
+	/*
+	 * We allocated a new user block, we're freeing the old one, so statistics
+	 * must be updated accordingly.
+	 */
+
+	VMM_STATS_LOCK;
+	update_allocation_stats(size, n, user_mem, FALSE);
+	if (user_mem) {
+		vmm_stats.move_user_succeeded++;
+		vmm_stats.move_user_bytes_copied += len;
+	} else {
+		vmm_stats.move_core_succeeded++;
+		vmm_stats.move_core_bytes_copied += len;
+	}
+	if G_UNLIKELY(p == c) {
+		vmm_stats.alloc_from_cache++;
+		vmm_stats.alloc_from_cache_pages += n;
+		vmm_stats.move_alloc_from_cache++;
+	} else if G_UNLIKELY(p == t) {
+		vmm_stats.move_alloc_from_magazine++;
+	} else {
+		vmm_stats.move_alloc_from_system++;
+	}
+	VMM_STATS_UNLOCK;
+
+	memcpy(p, base, len);		/* Not `size': skip possible unused tail */
+
+	/*
+	 * Note that we do NOT call vmm_free() for user regions, to be able to
+	 * completely bypass the magazines when freeing the old region: we do not
+	 * want to make that region re-allocatable by the thread after freeing it!
+	 */
+
+	vmm_free_internal(base, len, user_mem);
+
+	return p;
+
+no_pmap:
+	rwlock_unlock(&pm->lock, wlock);
+
+	/*
+	 * If we have a non-NULL allocation from the page cache at a better
+	 * place, we can used that instead.
+	 */
+
+	if (c != NULL) {
+		if (vmm_pointer_is_better(base, c)) {
+			vmm_validate_pages(c, size);
+			p = c;				/* Use cached pages */
+			VMM_STATS_INCX(move_cache_only);
+			goto success;
+		} else {
+			page_cache_return_pages(c, n);
+		}
+	}
+
+	/* FALL THROUGH */
+
+failed:
+	if (user_mem)
+		VMM_STATS_INCX(move_user_failed);
+	else
+		VMM_STATS_INCX(move_core_failed);
+
+	return base;
+}
+
+/**
+ * Attempt to move the user region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+void *
+vmm_move(void *base, size_t len)
+{
+	return vmm_move_internal(base, len, TRUE);
+}
+
+/**
+ * Attempt to move the core region to a better location in the VM space.
+ *
+ * @param base		start of the region
+ * @param len		length of the region in bytes
+ *
+ * @return new pointer for the region (may be `base' still if not moved).
+ */
+void *
+vmm_core_move(void *base, size_t len)
+{
+	return vmm_move_internal(base, len, FALSE);
 }
 
 /**
@@ -3695,14 +4160,9 @@ retry:
 		 */
 
 		if (!wlock) {
-			if (rwlock_upgrade(&pm->lock)) {
-				wlock = TRUE;
-			} else {
-				rwlock_runlock(&pm->lock);
-				rwlock_wlock(&pm->lock);
-				wlock = TRUE;
+			wlock = TRUE;
+			if (!rwlock_force_upgrade(&pm->lock))
 				goto retry;
-			}
 		}
 
 		/*
@@ -3733,10 +4193,7 @@ retry:
 		return FALSE;
 	}
 
-	if G_UNLIKELY(wlock)
-		rwlock_wunlock(&pm->lock);
-	else
-		rwlock_runlock(&pm->lock);
+	rwlock_unlock(&pm->lock, wlock);
 
 	/* FALL THROUGH */
 
@@ -4170,22 +4627,9 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	/* FALL THROUGH */
 
 update_stats:
-	vmm_stats.allocations++;
-	if G_UNLIKELY(zero_mem)
-		vmm_stats.allocations_zeroed++;
-
-	if (user_mem) {
-		vmm_stats.allocations_user++;
-		vmm_stats.user_memory += size;
-		vmm_stats.user_pages += n;
-		vmm_stats.user_blocks++;
-		memusage_add(vmm_stats.user_mem, size);
-	} else {
-		vmm_stats.allocations_core++;
-		vmm_stats.core_memory += size;
-		vmm_stats.core_pages += n;
-		memusage_add(vmm_stats.core_mem, size);
-	}
+	update_allocation_stats(size, n, user_mem, zero_mem);
+	if (!user_mem)
+		vmm_stats.core_normal_alloc++;
 	VMM_STATS_UNLOCK;
 
 	return p;
@@ -4193,6 +4637,160 @@ update_stats:
 failed:
 	crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
 		G_STRFUNC, size);
+}
+
+/**
+ * Allocate `size' bytes of core under a long-term allocation strategy.
+ */
+static void *
+vmm_alloc_core(size_t size)
+{
+	struct pmap *pm;
+	bool wlock;
+	size_t n;
+	void *p, *c, *t;
+
+	pm = vmm_pmap();
+	wlock = FALSE;
+	size = round_pagesize_fast(size);
+	n = pagecount_fast(size);
+
+	/*
+	 * Explicitly ask for "core" memory, so that we can select the
+	 * best possible cached pointer.
+	 */
+
+	c = page_cache_find_pages(n, FALSE, FALSE);  /* Can be NULL */
+
+	/*
+	 * We are now going to read-lock the pmap and see whether we can find
+	 * a free space that would be better suited than the cached pages
+	 * we possibly reserved above.
+	 */
+
+	rwlock_rlock(&pm->lock);
+
+retry:
+	p = deconstify_pointer(vmm_probe_hole(pm, size));
+
+	if G_UNLIKELY(NULL == p)
+		goto no_pmap;
+
+	if (c != NULL && !vmm_pointer_is_better(c, p))
+		goto no_pmap;	/* Cached pages are optimal */
+
+	/*
+	 * Found better position in pmap, need to write-lock now to be able
+	 * to allocate at that place.
+	 */
+
+	if (!wlock) {
+		wlock = TRUE;
+		if (!rwlock_force_upgrade(&pm->lock))
+			goto retry;
+	}
+
+	p = vmm_mmap_anonymous(size, p);
+
+	if (NULL == p)
+		goto no_pmap;	/* Ouch, no memory allocation possible! */
+
+	if (c != NULL && !vmm_pointer_is_better(c, p)) {
+		vmm_free_fragment(G_STRFUNC, p, size);
+		goto no_pmap;	/* Did not find better place finally */
+	}
+
+	/*
+	 * New address is good, keep block.
+	 */
+
+	page_allocated(pm, p, size, TRUE);
+	rwlock_unlock(&pm->lock, wlock);
+
+	/*
+	 * At this stage, either `c' was NULL or we allocated a better region.
+	 * Hence if `c' is not NULL, we need to return it to the page cache.
+	 */
+
+	if (c != NULL) {
+		page_cache_return_pages(c, n);
+		c = NULL;
+	}
+
+	/* FALL THROUGH */
+
+success:
+	g_assert(p != NULL);
+
+	/*
+	 * Look in the thread magazines whether there would not be a better
+	 * region still.
+	 */
+
+	t = NULL;
+
+	if G_LIKELY(n <= N_ITEMS(vmm_magazine)) {
+		tmalloc_t *depot = vmm_magazine[n - 1];
+
+		if (depot != NULL) {
+			t = tmalloc_smart(depot, vmm_pointer_is_better, p);
+
+			/*
+			 * If we found a better region, we need to undo earlier allocation.
+			 */
+
+			if (t != NULL) {
+				if (p == c) {
+					vmm_invalidate_pages(c, size);
+					page_cache_return_pages(c, n);
+					c = NULL;
+				} else {
+					free_pages(p, size, TRUE);
+				}
+				p = t;	/* Allocated from magazines */
+			}
+		}
+	}
+
+	/*
+	 * We allocated a new core block, update statistics.
+	 */
+
+	VMM_STATS_LOCK;
+	vmm_stats.core_smart_alloc++;
+	update_allocation_stats(size, n, FALSE, FALSE);
+	if G_UNLIKELY(p == c) {
+		vmm_stats.core_from_cache++;
+		vmm_stats.core_from_cache_pages += n;
+	} else if G_UNLIKELY(p == t) {
+		vmm_stats.core_from_magazine++;
+		vmm_stats.core_from_magazine_pages += n;
+	} else {
+		vmm_stats.core_from_system++;
+		vmm_stats.core_from_system_pages += n;
+	}
+	VMM_STATS_UNLOCK;
+
+	return p;
+
+no_pmap:
+	rwlock_unlock(&pm->lock, wlock);
+
+	if (c != NULL) {
+		vmm_validate_pages(c, size);
+		p = c;
+	} else {
+		/* We need to be able to allocate something, even if sub-optimal! */
+		VMM_STATS_INCX(core_smart_forced_system);
+		p = alloc_pages(size, TRUE);
+
+		if G_UNLIKELY(NULL == p) {
+			crash_oom("%s(): cannot allocate %'zu bytes: out of virtual memory",
+				G_STRFUNC, size);
+		}
+	}
+
+	goto success;
 }
 
 /**
@@ -4460,7 +5058,7 @@ vmm_get_magazine(size_t npages, bool alloc)
 			char name[STR_CONST_LEN("vmm-") + SIZE_T_DEC_BUFLEN + 1];
 
 			maginit[idx] = TRUE;
-			str_bprintf(name, sizeof name, "vmm-%zu", nsize_fast(npages));
+			str_bprintf(ARYLEN(name), "vmm-%zu", nsize_fast(npages));
 			depot = vmm_magazine[idx] =
 				tmalloc_create(name, nsize_fast(npages),
 					vmm_alloc_raw, vmm_free_raw);
@@ -4566,7 +5164,22 @@ vmm_alloc0(size_t size)
 void *
 vmm_core_alloc(size_t size)
 {
-	return vmm_alloc_internal(size, FALSE, FALSE);
+	/*
+	 * Under a long-term strategy, core allocation is strategic because the
+	 * chunks we allocate are difficult to move afterwards since they are
+	 * split to allocate several user blocks.
+	 *
+	 * Hence we need to have a slower strategy, similar to the one used in
+	 * vmm_move_internal(), so that we immediately choose the best possible
+	 * place to allocate the core region.
+	 *
+	 * 		--RAM, 2017-12-03
+	 */
+
+	if (VMM_STRATEGY_LONG_TERM == vmm_strategy)
+		return vmm_alloc_core(size);
+	else
+		return vmm_alloc_internal(size, FALSE, FALSE);
 }
 
 /**
@@ -5129,6 +5742,15 @@ vmm_set_strategy(enum vmm_strategy strategy)
 }
 
 /**
+ * @return whether VMM is configured for long-term memory management.
+ */
+bool
+vmm_is_long_term(void)
+{
+	return VMM_STRATEGY_LONG_TERM == vmm_strategy;
+}
+
+/**
  * Called when memory allocator has been initialized and it is possible to
  * call routines that will allocate core memory and perform logging calls.
  */
@@ -5149,12 +5771,14 @@ vmm_malloc_inited(void)
 void
 vmm_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	VMM_STATS_INCX(vmm_stats_digest);
-	SHA1_COMPUTE(vmm_stats, digest);
+	SHA1_COMPUTE_NONCE(vmm_stats, &n, digest);
 }
 
 /**
@@ -5231,6 +5855,35 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(shrinkings_user);
 	DUMP64(mmaps);
 	DUMP64(munmaps);
+	DUMP(core_normal_alloc);
+	DUMP(core_smart_alloc);
+	DUMP64(core_smart_forced_system);
+	DUMP(core_from_cache);
+	DUMP(core_from_cache_pages);
+	DUMP(core_from_magazine);
+	DUMP(core_from_magazine_pages);
+	DUMP(core_from_system);
+	DUMP(core_from_system_pages);
+	DUMP64(move_user_requested);
+	DUMP64(move_user_inner);
+	DUMP64(move_user_failed);
+	DUMP(move_user_succeeded);
+	DUMP(move_user_bytes_copied);
+	DUMP64(move_core_requested);
+	DUMP64(move_core_failed);
+	DUMP(move_core_succeeded);
+	DUMP(move_core_bytes_copied);
+	DUMP64(move_system_attempted);
+	DUMP64(move_magazine_attempted);
+	DUMP(move_alloc_from_cache);
+	DUMP(move_alloc_from_system);
+	DUMP(move_alloc_from_magazine);
+	DUMP64(move_system_over_cache);
+	DUMP64(move_cache_over_system);
+	DUMP64(move_cache_only);
+	DUMP64(move_magazine_supersede);
+	DUMP64(move_lock_upgraded);
+	DUMP64(move_lock_not_upgraded);
 	DUMP(magazine_allocations);
 	DUMP(magazine_freeings);
 	DUMP(magazine_freeings_frag);
@@ -6707,7 +7360,7 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 		return;
 
 #ifdef MALLOC_TIME
-	str_bprintf(ago, sizeof ago, " [%s]",
+	str_bprintf(ARYLEN(ago), " [%s]",
 		short_time_ascii(delta_time(tm_time(), pt->atime)));
 #else
 	ago[0] = '\0';

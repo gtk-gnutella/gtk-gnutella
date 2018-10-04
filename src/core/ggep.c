@@ -73,7 +73,7 @@ ggep_strerror(unsigned errnum)
 {
 	if (errnum >= N_ITEMS(ggep_error_str)) {
 		static char buf[40];
-		str_bprintf(buf, sizeof buf, "Invalid GGEP error code: %u", errnum);
+		str_bprintf(ARYLEN(buf), "Invalid GGEP error code: %u", errnum);
 		return buf;
 	}
 
@@ -231,7 +231,7 @@ ggep_stream_begin(ggep_stream_t *gs, const char *id, uint32 wflags)
 		gs->magic_sent = TRUE;
 	}
 
-	idlen = strlen(id);
+	idlen = vstrlen(id);
 
 	g_assert(idlen > 0);
 	g_assert(idlen < 16);

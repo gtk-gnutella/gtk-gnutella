@@ -136,6 +136,7 @@ struct ut_rmsg {
 	uint8 fragcnt;					/* Amount of fragments in message */
 	uint8 fragrecv;					/* Amount of fragments received */
 	uint8 acks_pending;				/* Amount of delayed ACKs */
+	unsigned resent_acks:9;			/* Resent ACKs after dup fragments */
 	unsigned reliable:1;			/* Whether fragments need ACKs */
 	unsigned deflated:1;			/* Whether PDU is deflated */
 	unsigned improved_acks:1;		/* Whether we can send improved ACKs */
@@ -149,7 +150,15 @@ ut_rmsg_check(const struct ut_rmsg * const um)
 	g_assert(UT_RMSG_MAGIC == um->magic);
 }
 
-static void ut_rmsg_reack(struct ut_rmsg *um);
+static unsigned rx_ut_lingering;	/* Lingering messages */
+
+enum ut_reack_reason {
+	UT_REACK_ALMOST_EXPIRED,		/* Message about to expire */
+	UT_REACK_DUP_FRAGMENT,			/* Received a duplicate fragment */
+	UT_REACK_GOT_EAR,				/* Received an EAR */
+};
+
+static void ut_rmsg_reack(struct ut_rmsg *um, enum ut_reack_reason reason);
 
 /**
  * Primary hashing routine for ut_mid structs.
@@ -254,6 +263,42 @@ ut_rmsg_expired(cqueue_t *cq, void *obj)
 			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
+	/*
+	 * We keep stats about how many fragments each message had.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	g_assert(um->fragcnt > 1);	/* If it expired, it had more than 1 fragment */
+
+	if (um->reliable) {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_3_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_5_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_6_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_7_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_8_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_9_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_RELIABLE_10PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 2;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	} else {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS,
+		};
+		size_t n = um->fragcnt - 2;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
+
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EXPIRED);
 	ut_rmsg_free(um, TRUE);
 }
@@ -299,7 +344,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
 	}
 
-	ut_rmsg_reack(um);
+	ut_rmsg_reack(um, UT_REACK_ALMOST_EXPIRED);
 }
 
 /**
@@ -314,6 +359,10 @@ ut_rmsg_lingered(cqueue_t *cq, void *obj)
 	g_assert(um->expire_ev != NULL);
 
 	cq_zero(cq, &um->expire_ev);	/* Callback has fired */
+
+	rx_ut_lingering--;
+	gnet_stats_set_general(
+		GNR_UDP_SR_RX_MESSAGES_LINGER_COUNT, rx_ut_lingering);
 
 	/*
 	 * We delayed freeing to be able to re-ACK messages and avoid duplicate
@@ -338,6 +387,11 @@ ut_rmsg_linger(struct ut_rmsg *um)
 
 	ut_rmsg_fragments_free(um);		/* No longer need collected message data */
 	um->lingering = TRUE;
+
+	rx_ut_lingering++;
+	gnet_stats_set_general(
+		GNR_UDP_SR_RX_MESSAGES_LINGER_COUNT, rx_ut_lingering);
+
 	cq_replace(um->expire_ev, ut_rmsg_lingered, um);
 }
 
@@ -399,7 +453,7 @@ ut_header_read(pmsg_t *mb, struct ut_header *header)
 
 	g_assert(pmsg_size(mb) >= UDP_RELIABLE_HEADER_SIZE);
 
-	p = pmsg_read_base(mb);
+	p = pmsg_start(mb);
 	header->seqno = udp_reliable_header_get_seqno(p);
 	header->flags = udp_reliable_header_get_flags(p);
 	header->part  = udp_reliable_header_get_part(p) - 1;	/* Zero-based */
@@ -506,13 +560,54 @@ ut_received(const struct attr *attr, pmsg_t *mb, const gnet_host_t *from)
 
 /**
  * Update statistics on messages received.
+ *
+ * @param reliable		whether message was reliable
+ * @param fragcnt		amount of fragments in message
  */
 static void
-ut_update_rx_messages_stats(bool reliable)
+ut_update_rx_messages_stats(bool reliable, uint8 fragcnt)
 {
+	g_assert(fragcnt != 0);
+
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_RECEIVED);
 	if (!reliable)
 		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_UNRELIABLE);
+
+	/*
+	 * We keep stats about how many fragments each message had.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	if (reliable) {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_1_FRAG,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_3_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_4_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_5_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_6_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_7_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_8_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_9_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_RELIABLE_10PLUS_FRAGS,
+		};
+		size_t n = fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	} else {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG,
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_RX_MSG_OK_UNRELIABLE_3PLUS_FRAGS,
+		};
+		size_t n = fragcnt - 1;
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
 }
 
 /**
@@ -538,7 +633,7 @@ ut_assemble_message(struct ut_rmsg *um)
 			um->id.seqno, um->fragcnt, plural(um->fragcnt), len);
 	}
 
-	ut_update_rx_messages_stats(um->reliable);
+	ut_update_rx_messages_stats(um->reliable, um->fragcnt);
 
 	if (um->deflated) {
 		zlib_inflater_t *zi = um->attr->zi;
@@ -560,6 +655,9 @@ ut_assemble_message(struct ut_rmsg *um)
 
 		if (0 != ret)
 			goto drop;
+
+		if (zlib_inflater_outlen(zi) <= 0)
+			goto drop;		/* Empty? But then why deflate? */
 
 		gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATED);
 		mb = pmsg_new(PMSG_P_DATA,
@@ -948,6 +1046,7 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 {
 	struct attr *attr;
 	struct ut_ack ack;
+	bool duplicate;
 
 	ut_rmsg_check(um);
 	g_assert(head->count == um->fragcnt);
@@ -959,6 +1058,8 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 	ZERO(&ack);
 	ack.seqno = head->seqno;
 	ack.fragno = head->part;
+
+	duplicate = bit_array_get(um->fbits, head->part);
 
 	/*
 	 * Improved acknowledgments are only interesting when there are multiple
@@ -977,7 +1078,7 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 		 * its reception if it's not a duplicate.
 		 */
 
-		if (!bit_array_get(um->fbits, head->part))
+		if (!duplicate)
 			fragrecv++;
 
 		/*
@@ -1004,7 +1105,7 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 		 * due to lack of acknowledgment.
 		 */
 
-		if (NULL == um->acks_ev)
+		if (NULL == um->acks_ev && !duplicate)
 			um->acks_ev = cq_main_insert(RX_UT_DELAY_MS, ut_delayed_ack, um);
 
 		/*
@@ -1021,25 +1122,64 @@ ut_acknowledge_fragment(struct ut_rmsg *um, const struct ut_header *head)
 					ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
 			}
 			gnet_stats_inc_general(GNR_UDP_SR_RX_AVOIDED_ACKS);
-			return;
+		} else {
+			bit_array_set(um->facks, head->part);	/* Fragment is pending ACK */
+			um->acks_pending++;
 		}
 
-		bit_array_set(um->facks, head->part);	/* Fragment is pending ACK */
-		um->acks_pending++;
+		/*
+		 * If the message is a duplicate, then do not delay the acknowledgement
+		 * any longer: they are resending the fragment because they did not get
+		 * their ACK yet.
+		 */
 
-		if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
-			g_debug("RX UT[%s]: %s: delaying ACK to %s "
-				"(seq=0x%04x, fragment #%u/%u, pending=%u)",
-				udp_tag_to_string(um->attr->tag), G_STRFUNC,
-				gnet_host_to_string(um->id.from),
-				ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
+		if (duplicate) {
+			if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
+				g_debug("RX UT[%s]: %s: duplicate fragment, sending ACK to %s "
+					"(seq=0x%04x, fragment #%u/%u, pending=%u)",
+					udp_tag_to_string(um->attr->tag), G_STRFUNC,
+					gnet_host_to_string(um->id.from),
+					ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
+			}
+			if (um->acks_ev != NULL) {
+				/* We had pending delayed acks, flush them now */
+				cq_expire(um->acks_ev);
+				g_assert(NULL == um->acks_ev);	/* Cleared by callback event */
+				gnet_stats_inc_general(GNR_UDP_SR_RX_FLUSHED_ACKS);
+			} else {
+				/* No pending acks, looks like ACKs were lost then */
+				ut_rmsg_reack(um, UT_REACK_DUP_FRAGMENT);
+			}
+		} else {
+			if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
+				g_debug("RX UT[%s]: %s: delaying ACK to %s "
+					"(seq=0x%04x, fragment #%u/%u, pending=%u)",
+					udp_tag_to_string(um->attr->tag), G_STRFUNC,
+					gnet_host_to_string(um->id.from),
+					ack.seqno, ack.fragno + 1, um->fragcnt, um->acks_pending);
+			}
 		}
 
 		return;
 	}
 
+	/*
+	 * If the fragment is a duplicate, then we already acknowledged it but the
+	 * acknowledgement was lost in transit and therefore the remote side resent
+	 * the un-acknowledged fragment.
+	 *
+	 * ACKs are getting lost, so re-acknowledge everything we got so far!
+	 */
+
+	if (duplicate) {
+		ut_rmsg_reack(um, UT_REACK_DUP_FRAGMENT);
+		return;
+	}
+
+	/* FALL THROUGH */
+
 send_ack:
-	ut_ack_sendback(um, &ack);
+	ut_ack_sendback(um, &ack);		/* Send single ACK message */
 }
 
 /**
@@ -1048,7 +1188,7 @@ send_ack:
  * @param um		the message being received
  */
 static void
-ut_rmsg_reack(struct ut_rmsg *um)
+ut_rmsg_reack_improved(struct ut_rmsg *um)
 {
 	struct ut_ack rack;
 
@@ -1075,7 +1215,86 @@ ut_rmsg_reack(struct ut_rmsg *um)
 			plural(um->fragcnt), rack.missing);
 	}
 
-	ut_send_ack(um->attr->tx, um->id.from, &rack);	/* Sent by the TX layer */
+	gnet_stats_inc_general(GNR_UDP_SR_RX_RESENT_ACKS);
+	ut_ack_sendback(um, &rack);
+}
+
+/**
+ * Re-acknowledge the message completely, stating everything we got so far.
+ *
+ * @param um		the message being received
+ * @param reason	why we are re-acking everything
+ */
+static void
+ut_rmsg_reack(struct ut_rmsg *um, enum ut_reack_reason reason)
+{
+	const char *msg = NULL;		/* Avoids "uninitialized" compiler warnings */
+
+	ut_rmsg_check(um);
+
+	switch (reason) {
+	case UT_REACK_ALMOST_EXPIRED:
+		msg = "almost expired";
+		gnet_stats_inc_general(GNR_UDP_SR_RX_RESENDING_ACKS_BEFORE_EXPIRE);
+		break;
+	case UT_REACK_DUP_FRAGMENT:
+		msg = "duplicate fragment";
+		gnet_stats_inc_general(GNR_UDP_SR_RX_RESENDING_ACKS_ON_DUP);
+		break;
+	case UT_REACK_GOT_EAR:
+		msg = "got EAR";
+		gnet_stats_inc_general(GNR_UDP_SR_RX_RESENDING_ACKS_ON_EAR);
+		break;
+	}
+
+	if (rx_ut_debugging(RX_UT_DBG_ACK, um->id.from)) {
+		g_debug("RX UT[%s]: %s: re-ACKing received fragments from %s "
+			"(seq=0x%04x, got %u/%u fragment%s) -- %s",
+			udp_tag_to_string(um->attr->tag), G_STRFUNC,
+			gnet_host_to_string(um->id.from), um->id.seqno,
+			um->fragrecv, um->fragcnt, plural(um->fragcnt), msg);
+	}
+
+	/*
+	 * Re-acknowledging everything costs individual ACKs to be sent when
+	 * the semi-reliable UDP layer does not support improved ACKs.
+	 *
+	 * But if the stack does not support improved ACKs, it will most certainly
+	 * not support EARs, so the only time we will be re-acknowledging all the
+	 * fragments is when we get duplicates.
+	 *
+	 * This is why we maintain a count of how many ACKs we send when we re-ACK
+	 * all the fragments and stop doing a full re-ACK if we already sent twice
+	 * the total amount of fragments in the message.  This limits ACK sending
+	 * amplification.
+	 */
+
+	if (um->improved_acks) {
+		ut_rmsg_reack_improved(um);
+	} else if (
+		UT_REACK_ALMOST_EXPIRED == reason ||	/* Always re-ACK in that case */
+		um->resent_acks < 2 * um->fragcnt		/* Avoid amplification */
+	) {
+		size_t i;
+
+		/*
+		 * Send one ACK per fragment we already received.
+		 */
+
+		for (i = 0; i < um->fragcnt; i++) {
+			if (bit_array_get(um->fbits, i)) {		/* Was received */
+				struct ut_ack ack;
+
+				ZERO(&ack);
+				ack.seqno = um->id.seqno;
+				ack.fragno = i;
+
+				gnet_stats_inc_general(GNR_UDP_SR_RX_RESENT_ACKS);
+				um->resent_acks++;			/* Don't care if actually sent */
+				ut_ack_sendback(um, &ack);
+			}
+		}
+	}
 }
 
 /**
@@ -1137,7 +1356,7 @@ ut_handle_ear(const struct attr *attr,
 		if (um->lingering)
 			gnet_stats_inc_general(GNR_UDP_SR_RX_EARS_FOR_LINGERING_MESSAGE);
 
-		ut_rmsg_reack(um);
+		ut_rmsg_reack(um, UT_REACK_GOT_EAR);
 	}
 }
 
@@ -1310,7 +1529,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 
 		/* Special-case non-ACKed single fragment messages */
 		if (1 == head.count && !(head.flags & UDP_RF_ACKME)) {
-			ut_update_rx_messages_stats(FALSE);
+			ut_update_rx_messages_stats(FALSE, 1);
 			ut_received(attr, mb, from);
 			return;		/* Message freed by data indication routine */
 		}

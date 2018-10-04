@@ -383,7 +383,7 @@ dime_record_set_id(struct dime_record *record, const char *id)
 
 	g_return_val_if_fail(record, FALSE);
 
-	length = id ? strlen(id) : 0;
+	length = id ? vstrlen(id) : 0;
 	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->id = id;
@@ -399,7 +399,7 @@ dime_record_set_type(struct dime_record *record,
 
 	g_return_val_if_fail(record, FALSE);
 
-	length = type ? strlen(type) : 0;
+	length = type ? vstrlen(type) : 0;
 	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->type = type;

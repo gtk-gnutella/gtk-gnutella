@@ -73,18 +73,16 @@ print_node_info(struct gnutella_shell *sh, const gnutella_node_t *n)
 
 		vendor = node_vendor(n);
 		escaped = hex_escape(vendor, TRUE);
-		clamp_strcpy(vendor_escaped, sizeof vendor_escaped, escaped);
+		clamp_strcpy(ARYLEN(vendor_escaped), escaped);
 		if (escaped != vendor) {
 			HFREE_NULL(escaped);
 		}
 	}
 
-	clamp_strcpy(uptime_buf, sizeof uptime_buf,
-		up > 0 ? compact_time(up) : "?");
-	clamp_strcpy(contime_buf, sizeof contime_buf,
-		con > 0 ? compact_time(con) : "?");
+	clamp_strcpy(ARYLEN(uptime_buf), up > 0 ? compact_time(up) : "?");
+	clamp_strcpy(ARYLEN(contime_buf), con > 0 ? compact_time(con) : "?");
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%-21.45s %s %2.2s %6.6s %6.6s %.56s",
 		node_gnet_addr(n),
 		node_flags_to_string(&flags),

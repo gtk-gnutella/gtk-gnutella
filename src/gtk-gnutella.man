@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "September 2016" Version "1.1.10"
+.TH GTK\\-GNUTELLA 1 "October 2018" Version "1.1.14"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -90,13 +90,6 @@ Note that none of this can be guaranteed, your window manager has the
 last word on this. This option is a traditional command-line switch
 supported by most X11 applications.
 .TP
-.B "\-\-minimized"
-Launches
-.I gtk\-gnutella
-with a minimized main window. Recommended when starting
-.I gtk\-gnutella in
-the background on login.
-.TP
 .B "\-\-help"
 Show a summary of all supported options.
 .TP
@@ -118,6 +111,13 @@ a SIGHUP signal to create new log files.
 .TP
 .B "\-\-log\-supervise"
 Redirects the logs for the supervisor process.
+.TP
+.B "\-\-minimized"
+Launches
+.I gtk\-gnutella
+with a minimized main window. Recommended when starting
+.I gtk\-gnutella in
+the background on login.
 .TP
 .B "\-\-no\-dbus"
 Disable notifications of
@@ -170,6 +170,12 @@ will always prevent a restart whilst
 will always request one if possible.  It is not allowed to supply both
 options at the same time.
 .TP
+.B "\-\-resume\-session"
+Requests that the previous session be continued.  This means that searches
+launched for the duration of the session only will not expire, that seeded
+files will continue to be seeded, and that all the other aspects persisted
+during the previous session will be restored (current tab for instance).
+.TP
 .B "\-\-shell"
 When this option is used to connect to an already running 
 .I gtk\-gnutella
@@ -190,12 +196,22 @@ network is able to connect to the remote shell. This may not matter
 over the loopback interface or a LAN, but it's a bad idea to use this
 over the Internet.
 .TP
+.B "\-\-topless"
+Starts gtk\-gnutella without the graphical user-interface.
+.TP
+.B "\-\-use\-poll"
+For developers mostly: this requests that I/O polling be done exclusively
+through the
+.B poll()
+interface instead of more modern and efficient
+.B epoll()
+or
+.B kqueue()
+system calls.
+.TP
 .B "\-\-version"
 Show the user-agent string used on the Gnutella network which also
 holds the version information.
-.TP
-.B "\-\-topless"
-Starts gtk\-gnutella without the graphical user-interface.
 .SH GETTING STARTED
 When
 .I gtk\-gnutella

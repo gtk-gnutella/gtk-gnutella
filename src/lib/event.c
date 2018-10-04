@@ -54,6 +54,7 @@ subscriber_new(callback_fn_t cb, enum frequency_type t, uint32 interval)
     g_assert(cb != NULL);
 
     WALLOC0(s);
+	s->magic = SUBSCRIBER_MAGIC;
     s->cb = cb;
     s->f_type = t;
     s->f_interval = interval;
@@ -64,6 +65,8 @@ subscriber_new(callback_fn_t cb, enum frequency_type t, uint32 interval)
 static inline void
 subscriber_destroy(struct subscriber *s)
 {
+	subscriber_check(s);
+
 	WFREE(s);
 }
 
@@ -80,6 +83,7 @@ event_new(const char *name)
     g_assert(name != NULL);
 
 	OMALLOC0(evt);
+	evt->magic = EVENT_MAGIC;
     evt->name = name;
 	mutex_init(&evt->lock);
 
@@ -91,37 +95,38 @@ event_new(const char *name)
  * event will be NULL after this call.
  */
 void
-event_destroy(struct event *evt)
+event_destroy(event_t *evt)
 {
+	event_check(evt);
+
 	mutex_lock(&evt->lock);
 
 	pslist_free_full(evt->subscribers, (free_fn_t) subscriber_destroy);
 	evt->subscribers = NULL;
-	evt->destroyed = TRUE;
+	evt->magic = 0;
 
-	mutex_unlock(&evt->lock);
+	mutex_destroy(&evt->lock);
 
 	/* Event not freed, allocated via omalloc() */
 }
 
 void
-event_add_subscriber(struct event *evt, callback_fn_t cb,
+event_add_subscriber(event_t *evt, callback_fn_t cb,
 	enum frequency_type t, uint32 interval)
 {
     struct subscriber *s;
 	pslist_t *sl;
 
-    g_assert(evt != NULL);
+	event_check(evt);
     g_assert(cb != NULL);
-	g_assert(!evt->destroyed);
 
     s = subscriber_new(cb, t, interval);
 
 	mutex_lock(&evt->lock);
 	PSLIST_FOREACH(evt->subscribers, sl) {
 		struct subscriber *sb = sl->data;
-		g_assert(sb != NULL);
 
+		subscriber_check(sb);
 		g_assert_log(sb->cb != cb,
 			"%s(): attempt to add callback %s() twice",
 			G_STRFUNC, stacktrace_function_name(cb));
@@ -132,28 +137,19 @@ event_add_subscriber(struct event *evt, callback_fn_t cb,
 }
 
 void
-event_remove_subscriber(struct event *evt, callback_fn_t cb)
+event_remove_subscriber(event_t *evt, callback_fn_t cb)
 {
 	pslist_t *sl;
 	struct subscriber *s = NULL;
 
-    g_assert(evt != NULL);
+	event_check(evt);
     g_assert(cb != NULL);
 
 	mutex_lock(&evt->lock);
 
-	if G_UNLIKELY(evt->destroyed) {
-		/*
-		 * Event was destroyed, all subcribers were already removed.
-		 */
-
-		mutex_unlock(&evt->lock);
-		return;
-	}
-
 	PSLIST_FOREACH(evt->subscribers, sl) {
 		s = sl->data;
-		g_assert(s != NULL);
+		subscriber_check(s);
 		if G_UNLIKELY(s->cb == cb)
 			goto found;
 	}
@@ -170,21 +166,25 @@ found:
 	subscriber_destroy(s);
 }
 
-uint
-event_subscriber_count(struct event *evt)
+size_t
+event_subscriber_count(const event_t *evt)
 {
-	uint len;
+	size_t len;
 
-	mutex_lock(&evt->lock);
+	event_check(evt);
+
+	mutex_lock_const(&evt->lock);
 	len = pslist_length(evt->subscribers);
-	mutex_unlock(&evt->lock);
+	mutex_unlock_const(&evt->lock);
 
 	return len;
 }
 
 bool
-event_subscriber_active(struct event *evt)
+event_subscriber_active(const event_t *evt)
 {
+	event_check(evt);
+
 	return NULL != evt->subscribers;
 }
 

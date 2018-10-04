@@ -52,6 +52,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/getline.h"
 #include "lib/gnet_host.h"
 #include "lib/halloc.h"
@@ -146,7 +147,7 @@ http_send_status(
 	bool retried = FALSE;
 
 	va_start(args, reason);
-	str_vbprintf(status_msg, sizeof status_msg - 1, reason, args);
+	str_vbprintf(ARYLEN(status_msg) - 1, reason, args);
 	va_end(args);
 
 	/*
@@ -259,7 +260,7 @@ retry:
 			/* Already handled above */
 			break;
 		case HTTP_EXTRA_LINE:
-			if (size > strlen(he->he_msg)) {
+			if (size > vstrlen(he->he_msg)) {
 				/* Don't emit truncated lines */
 				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
 			}
@@ -278,7 +279,7 @@ retry:
 
 	if (body) {
 		if (0 == body_length)
-			body_length = strlen(body);
+			body_length = vstrlen(body);
 		rw += str_bprintf(&header[rw], header_size - rw,
 						"Content-Length: %zu\r\n", body_length);
 	}
@@ -887,7 +888,7 @@ http_parameter_get(const char *field, const char *name)
 
 		/* Found parameter, collect value in static buffer */
 
-		if (!http_value_collect(eq + 1, value, sizeof value))
+		if (!http_value_collect(eq + 1, ARYLEN(value)))
 			break;
 
 		return value;
@@ -951,7 +952,7 @@ http_url_parse(const char *url, uint16 *port, const char **host,
 	}
 
 	if (is_host_addr(addr)) {
-		host_addr_to_string_buf(addr, hostname, sizeof hostname);
+		host_addr_to_string_buf(addr, ARYLEN(hostname));
 	} else {
 		size_t len;
 		char *end;
@@ -1002,62 +1003,6 @@ http_url_parse(const char *url, uint16 *port, const char **host,
 	http_url_errno = HTTP_URL_OK;
 
 	return TRUE;
-}
-
-/***
- *** HTTP buffer management.
- ***/
-
-/**
- * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
- * and whose `written' bytes have already been sent out.
- */
-http_buffer_t *
-http_buffer_alloc(const char *buf, size_t len, size_t written)
-{
-	http_buffer_t *b;
-
-	g_assert(buf);
-	g_assert(size_is_positive(len));
-	g_assert(written < len);
-
-	WALLOC(b);
-	b->magic = HTTP_BUFFER_MAGIC;
-	b->hb_arena = walloc(len);		/* Should be small enough for walloc */
-	b->hb_len = len;
-	b->hb_end = b->hb_arena + len;
-	b->hb_rptr = b->hb_arena + written;
-
-	memcpy(b->hb_arena, buf, len);
-
-	return b;
-}
-
-/**
- * Dispose of HTTP buffer.
- */
-static void
-http_buffer_free(http_buffer_t *b)
-{
-	http_buffer_check(b);
-
-	wfree(b->hb_arena, b->hb_len);
-	b->magic = 0;
-	WFREE(b);
-}
-
-/**
- * Dispose of HTTP buffer and nullify its pointer.
- */
-void
-http_buffer_free_null(http_buffer_t **b_ptr)
-{
-	http_buffer_t *b = *b_ptr;
-
-	if (b != NULL) {
-		http_buffer_free(b);
-		*b_ptr = NULL;
-	}
 }
 
 /**
@@ -1170,7 +1115,7 @@ struct http_async {
 	void *user_opaque;				/**< User opaque data */
 	http_user_free_t user_free;		/**< Free routine for opaque data */
 	struct http_async *parent;		/**< Parent request, for redirections */
-	pslist_t *delayed;				/**< Delayed data (list of http_buffer_t) */
+	pslist_t *delayed;				/**< Delayed data (list of pmsg_t) */
 	pslist_t *children;				/**< Child requests */
 	unsigned header_sent:1;			/**< Whether HTTP request header was sent */
 
@@ -1411,6 +1356,42 @@ http_async_option_ctl(http_async_t *ha, uint32 mask, http_ctl_op_t what)
 }
 
 /**
+ * Internal logging routine for debugging.
+ */
+static void
+http_async_logv(const http_async_t *ha,
+		GLogLevelFlags flags, const char *fmt, va_list args)
+{
+	const char *url;
+	const char *req;
+	host_addr_t addr;
+	uint16 port;
+	str_t *s = str_new(160);
+
+	http_async_check(ha);
+
+	url = http_async_info(ha, &req, NULL, &addr, &port);
+	str_vprintf(s, fmt, args);
+	gl_log(G_LOG_DOMAIN, flags, "HTTP \"%s %s\" at %s: %s",
+		req, url, host_addr_port_to_string(addr, port), str_2c(s));
+
+	str_destroy_null(&s);
+}
+
+/**
+ * Log debugging message about async request.
+ */
+static void
+http_async_logdbg(const http_async_t *ha, const char *format, ...)
+{
+	va_list args;
+
+	va_start(args, format);
+	http_async_logv(ha, G_LOG_LEVEL_MESSAGE, format, args);
+	va_end(args);
+}
+
+/**
  * Free this HTTP asynchronous request handler, disposing of all its
  * attached resources, recursively.
  */
@@ -1447,7 +1428,7 @@ http_async_free_recursive(http_async_t *ha)
 		pslist_t *sl;
 
 		PSLIST_FOREACH(ha->delayed, sl) {
-			http_buffer_free(sl->data);
+			pmsg_free(sl->data);
 		}
 		pslist_free_null(&ha->delayed);
 	}
@@ -1584,7 +1565,22 @@ void
 http_async_error(http_async_t *handle, int code)
 {
 	http_async_check(handle);
-	http_async_remove(handle, HTTP_ASYNC_ERROR, GINT_TO_POINTER(code));
+
+	/*
+	 * When debugging, be verbose about the I/O errors we encounter.
+	 */
+
+	if (GNET_PROPERTY(http_debug) && HTTP_ASYNC_IO_ERROR == code) {
+		const char *req;
+		host_addr_t addr;
+		uint16 port;
+		const char *url = http_async_info(handle, &req, NULL, &addr, &port);
+
+		g_carp("%s(): I/O error reported for \"%s %s\" at %s",
+			G_STRFUNC, req, url, host_addr_port_to_string(addr, port));
+	}
+
+	http_async_remove(handle, HTTP_ASYNC_ERROR, int_to_pointer(code));
 }
 
 /**
@@ -1644,14 +1640,14 @@ http_async_remote_host_port(const http_async_t *ha)
 
 	if (ha->host) {
 		if (s->port != HTTP_PORT)
-			str_bprintf(buf, sizeof buf, "%s:%u", ha->host, (uint) s->port);
+			str_bprintf(ARYLEN(buf), "%s:%u", ha->host, (uint) s->port);
 		else
-			g_strlcpy(buf, ha->host, sizeof buf);
+			cstr_bcpy(ARYLEN(buf), ha->host);
 	} else {
 		if (s->port != HTTP_PORT)
-			host_addr_port_to_string_buf(s->addr, s->port, buf, sizeof buf);
+			host_addr_port_to_string_buf(s->addr, s->port, ARYLEN(buf));
 		else
-			host_addr_to_string_buf(s->addr, buf, sizeof buf);
+			host_addr_to_string_buf(s->addr, ARYLEN(buf));
 	}
 
 	return buf;
@@ -1969,7 +1965,7 @@ http_async_host(const http_async_t *ha)
 	if (ha->host != NULL)
 		return ha->host;
 
-	host_addr_to_string_buf(ha->socket->addr, buf, sizeof buf);
+	host_addr_to_string_buf(ha->socket->addr, ARYLEN(buf));
 	return buf;
 }
 
@@ -2167,7 +2163,7 @@ http_subreq_header_ind(http_async_t *ha, struct header *header,
  * Reroute to parent request.
  */
 static void
-http_subreq_data_ind(http_async_t *ha, char *data, int len)
+http_subreq_data_ind(http_async_t *ha, const char *data, int len)
 {
 	http_async_check(ha);
 	g_assert(ha->parent != NULL);
@@ -2329,7 +2325,7 @@ http_async_rx_error(void *o, const char *reason, ...)
 		char buf[128];
 
 		va_start(args, reason);
-		str_vbprintf(buf, sizeof buf, reason, args);
+		str_vbprintf(ARYLEN(buf), reason, args);
 		va_end(args);
 		g_warning("HTTP RX error from %s for \"%s\": %s",
 			http_async_host(ha), ha->url, buf);
@@ -2374,7 +2370,7 @@ static const struct rx_inflate_cb http_async_rx_inflate_cb = {
  * @return TRUE if we can continue reading data.
  */
 static bool
-http_got_data(http_async_t *ha, char *data, size_t len)
+http_got_data(http_async_t *ha, const char *data, size_t len)
 {
 	http_async_check(ha);
 	/* If not EOF, there must be data */
@@ -2430,6 +2426,9 @@ http_got_header(http_async_t *ha, header_t *header)
 	uint http_major = 0, http_minor = 0;
 
 	http_async_check(ha);
+
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s()", G_STRFUNC);
 
 	s = ha->socket;
 	status = getline_str(s->getline);
@@ -2573,8 +2572,10 @@ http_got_header(http_async_t *ha, header_t *header)
 		struct rx_chunk_args args;
 
 		args.cb = &http_async_rx_chunk_cb;
-
 		ha->rx = rx_make_above(ha->rx, rx_chunk_get_ops(), &args);
+
+		if (GNET_PROPERTY(http_debug) > 1)
+			http_async_logdbg(ha, "installing chunked layer");
 	}
 
 	/*
@@ -2588,8 +2589,10 @@ http_got_header(http_async_t *ha, header_t *header)
 		struct rx_inflate_args args;
 
 		args.cb = &http_async_rx_inflate_cb;
-
 		ha->rx = rx_make_above(ha->rx, rx_inflate_get_ops(), &args);
+
+		if (GNET_PROPERTY(http_debug) > 1)
+			http_async_logdbg(ha, "installing inflate layer");
 	}
 
 	/*
@@ -2723,10 +2726,10 @@ http_async_write_request(void *data, int unused_source,
 {
 	http_async_t *ha = data;
 	struct gnutella_socket *s;
-	http_buffer_t *r;
+	pmsg_t *r;
 	ssize_t sent;
-	size_t rw;
-	char *base;
+	size_t rw, length = 0;
+	const char *base;
 
 	(void) unused_source;
 
@@ -2739,8 +2742,9 @@ http_async_write_request(void *data, int unused_source,
 next_buffer:
 
 	r = ha->delayed->data;
+	length += pmsg_phys_len(r);
 
-	http_buffer_check(r);
+	pmsg_check(r);
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
@@ -2748,8 +2752,8 @@ next_buffer:
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
@@ -2758,19 +2762,18 @@ next_buffer:
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Data has been read back and sent */
 		return;
 	} else {
 		if (!ha->header_sent) {
 			ha->header_sent = TRUE;
 
 			/* Log HTTP request header sent so far */
-			(*ha->op_headsent)(ha, s,
-				http_buffer_base(r), http_buffer_length(r), TRUE);
+			(*ha->op_headsent)(ha, s, pmsg_phys_base(r), pmsg_phys_len(r), TRUE);
 		} else {
 			/* Log HTTP data sent so far */
 			(*ha->op_datasent)(ha, s,
-				http_buffer_base(r), http_buffer_length(r), TRUE);
+				pmsg_phys_base(r), pmsg_phys_len(r), TRUE);
 		}
 
 		g_assert(ha->header_sent);
@@ -2782,28 +2785,44 @@ next_buffer:
 		 * holds the data.
 		 */
 
-		ha->delayed = pslist_next(ha->delayed);
-		if (ha->delayed != NULL) {
-			http_buffer_free(r);
+		pmsg_free_null(&r);
+		(void) pslist_shift(&ha->delayed);
+
+		if (ha->delayed != NULL)
 			goto next_buffer;
-		}
 	}
 
 	/*
 	 * HTTP request was completely sent (header + data for POST).
 	 */
 
-	if (GNET_PROPERTY(http_debug))
-		g_warning("flushed partially written HTTP request to %s (%d bytes)",
-			host_addr_port_to_string(s->addr, s->port),
-			http_buffer_length(r));
+	if (GNET_PROPERTY(http_debug)) {
+		g_warning("flushed partially written HTTP request to %s (%zu bytes)",
+			host_addr_port_to_string(s->addr, s->port), length);
+	}
 
 	socket_evt_clear(s);
 
-	http_buffer_free(r);
-	ha->delayed = NULL;
+	g_assert(NULL == ha->delayed);
 
 	http_async_request_sent(ha);
+}
+
+/**
+ * Allocate HTTP buffer, capable of holding data at `buf', of `len' bytes,
+ * and whose `written' bytes have already been sent out.
+ *
+ * @returm message with read-pointer positionned to the first unsent byte.
+ */
+pmsg_t *
+http_pmsg_alloc(const char *buf, size_t len, size_t written)
+{
+	pmsg_t *mb;
+
+	mb = pmsg_new(PMSG_P_DATA, buf, len);	/* The whole data we had to send */
+	pmsg_discard(mb, written);				/* Discard the part we already sent */
+
+	return mb;
 }
 
 /**
@@ -2820,6 +2839,9 @@ http_async_connected(http_async_t *ha)
 
 	http_async_check(ha);
 
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s()", G_STRFUNC);
+
 	s = ha->socket;
 	socket_check(s);
 
@@ -2828,11 +2850,11 @@ http_async_connected(http_async_t *ha)
 	 */
 
 	if (HTTP_POST == ha->type) {
-		rw = (*ha->op_post_request)(ha, req, sizeof(req),
+		rw = (*ha->op_post_request)(ha, ARYLEN(req),
 			(char *) http_verb[ha->type], ha->path,
 			ha->content_type, ha->datalen);
 	} else {
-		rw = (*ha->op_get_request)(ha, req, sizeof(req),
+		rw = (*ha->op_get_request)(ha, ARYLEN(req),
 			(char *) http_verb[ha->type], ha->path);
 	}
 
@@ -2855,14 +2877,14 @@ http_async_connected(http_async_t *ha)
 		http_async_syserr(ha, errno);
 		return;
 	} else if ((size_t) sent < rw) {
-		http_buffer_t *r;
+		pmsg_t *r;
 
 		g_warning("partial HTTP request write to %s: only %d of %d bytes sent",
 			host_addr_port_to_string(s->addr, s->port), (int) sent, (int) rw);
 
 		g_assert(ha->delayed == NULL);
 
-		r = http_buffer_alloc(req, rw, sent);
+		r = http_pmsg_alloc(req, rw, sent);
 		ha->delayed = pslist_append(ha->delayed, r);
 
 		/*
@@ -2870,7 +2892,7 @@ http_async_connected(http_async_t *ha)
 		 */
 
 		if (HTTP_POST == ha->type && ha->datalen != 0) {
-			r = http_buffer_alloc(ha->data, ha->datalen, 0);
+			r = http_pmsg_alloc(ha->data, ha->datalen, 0);
 			ha->delayed = pslist_append(ha->delayed, r);
 		}
 
@@ -2900,7 +2922,7 @@ http_async_connected(http_async_t *ha)
 			http_async_syserr(ha, errno);
 			return;
 		} else if ((size_t) sent < ha->datalen) {
-			http_buffer_t *r;
+			pmsg_t *r;
 
 			g_warning("partial HTTP data write to %s: "
 				"only %zu of %zu bytes sent",
@@ -2909,7 +2931,7 @@ http_async_connected(http_async_t *ha)
 
 			g_assert(ha->delayed == NULL);
 
-			r = http_buffer_alloc(ha->data, ha->datalen, sent);
+			r = http_pmsg_alloc(ha->data, ha->datalen, sent);
 			ha->delayed = pslist_append(ha->delayed, r);
 
 			/*
@@ -2957,56 +2979,53 @@ http_async_log_error_dbg(http_async_t *handle,
 	host_addr_t addr;
 	uint16 port;
 	const char *what = prefix != NULL ? prefix : "HTTP";
+	const char *endpoint;
 
 	http_async_check(handle);
 
 	url = http_async_info(handle, &req, NULL, &addr, &port);
+	endpoint = host_addr_port_to_string(addr, port);
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
 		errno = error;
-		g_message("%s: aborting \"%s %s\" at %s on system error: %m",
-			what, req, url, host_addr_port_to_string(addr, port));
+		g_message("%s aborting \"%s %s\" at %s on system error: %m",
+			what, req, url, endpoint);
 		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (all) {
-				g_message("%s: explicitly cancelled \"%s %s\" at %s",
-					what, req, url, host_addr_port_to_string(addr, port));
+				g_message("%s explicitly cancelled \"%s %s\" at %s",
+					what, req, url, endpoint);
 				return TRUE;
 			}
 		} else if (error == HTTP_ASYNC_CLOSED) {
 			if (all) {
-				g_message("%s: connection closed for \"%s %s\" at %s",
-					what, req, url, host_addr_port_to_string(addr, port));
+				g_message("%s connection closed for \"%s %s\" at %s",
+					what, req, url, endpoint);
 				return TRUE;
 			}
 		} else {
-			g_message("%s: aborting \"%s %s\" at %s on error: %s",
-				what, req, url,
-				host_addr_port_to_string(addr, port),
-				http_async_strerror(error));
+			g_message("%s aborting \"%s %s\" at %s on error: %s",
+				what, req, url, endpoint, http_async_strerror(error));
 			return TRUE;
 		}
 		return FALSE;
 	case HTTP_ASYNC_HEADER:
-		g_message("%s: aborting \"%s %s\" at %s on header parsing error: %s",
-			what, req, url, host_addr_port_to_string(addr, port),
-			header_strerror(error));
+		g_message("%s aborting \"%s %s\" at %s on header parsing error: %s",
+			what, req, url, endpoint, header_strerror(error));
 		return TRUE;
 	case HTTP_ASYNC_HTTP:
-		g_message("%s: stopping \"%s %s\" at %s: HTTP %d %s",
-			what, req, url,
-			host_addr_port_to_string(addr, port),
-			herror->code, herror->message);
+		g_message("%s stopping \"%s %s\" at %s: HTTP %d %s",
+			what, req, url, endpoint, herror->code, herror->message);
 		return TRUE;
 	/* No default clause, let the compiler warn us about missing cases. */
 	}
 
 	/* In case the error was not trapped at compile time... */
-	g_error("unhandled HTTP request error type %d", type);
-	/* NOTREACHED */
-	return FALSE;	/* Avoid compiler warnings about missing returned value */
+	g_warning("%s(): unhandled HTTP request error type %d for \"%s %s\" at %s",
+		G_STRFUNC, type, req, url, endpoint);
+	return FALSE;
 }
 
 /**
@@ -3086,6 +3105,9 @@ wget_header_ind(http_async_t *ha, struct header *header,
 	http_wget_check(wg);
 	(void) unused_message;
 
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s(code=%d)", G_STRFUNC, code);
+
 	/*
 	 * Save HTTP status code and headers so that they can be given to
 	 * the completion callback.
@@ -3145,12 +3167,15 @@ wget_header_ind(http_async_t *ha, struct header *header,
  * When data is NULL, it indicates an EOF condition.
  */
 static void
-wget_data_ind(http_async_t *ha, char *data, int len)
+wget_data_ind(http_async_t *ha, const char *data, int len)
 {
 	http_wget_t *wg = http_async_get_opaque(ha);
 	size_t new_length;
 
 	http_wget_check(wg);
+
+	if (GNET_PROPERTY(http_debug) > 5)
+		http_async_logdbg(ha, "in %s(data=%p, len=%d)", G_STRFUNC, data, len);
 
 	if (NULL == data) {
 		char *result;

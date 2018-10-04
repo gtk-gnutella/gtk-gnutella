@@ -766,18 +766,18 @@ log_status(publish_t *pb)
 static uint8
 values_held(pmsg_t *mb)
 {
-	const void *header = pmsg_start(mb);
+	const void *header = pmsg_phys_base(mb);
 	uint8 toklen;
 	const void *p;
 	uint8 result;
 
 	g_assert(KDA_MSG_STORE_REQUEST == kademlia_header_get_function(header));
-	g_assert(pmsg_size(mb) > KDA_HEADER_SIZE + 1);
+	g_assert(pmsg_written_size(mb) > KDA_HEADER_SIZE + 1);
 
 	p = kademlia_header_end(header);
 	toklen = peek_u8(p);
 
-	g_assert(pmsg_size(mb) > KDA_HEADER_SIZE + 1 + toklen);
+	g_assert(pmsg_written_size(mb) > KDA_HEADER_SIZE + 1 + toklen);
 
 	p = const_ptr_add_offset(p, toklen + 1);	/* Skip token */
 	result = peek_u8(p);
@@ -794,7 +794,7 @@ values_held(pmsg_t *mb)
 static const void *
 first_creator_kuid(pmsg_t *mb)
 {
-	const void *header = pmsg_start(mb);
+	const void *header = pmsg_phys_base(mb);
 	uint8 toklen;
 	const void *p;
 
@@ -1012,8 +1012,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 		} else {
 			if (GNET_PROPERTY(dht_publish_debug)) {
 				char msg[80];
-				clamp_strncpy(msg, sizeof msg,
-					status.description, status.length);
+				clamp_strncpy(ARYLEN(msg), status.description, status.length);
 				g_debug("DHT PUBLISH[%s] cannot STORE "
 					"pk=%s sk=%s at %s: %s (%s)",
 					nid_to_string(&pb->pid),
@@ -1952,7 +1951,7 @@ publish_value_iterate(publish_t *pb)
 
 	if (GNET_PROPERTY(dht_publish_debug) > 4) {
 		char buf[80];
-		bin_to_hex_buf(rc->token, rc->token_len, buf, sizeof buf);
+		bin_to_hex_buf(rc->token, rc->token_len, ARYLEN(buf));
 		g_debug("DHT PUBLISH[%s] at root %u/%u, "
 			"using %u-byte token \"%s\" for %s",
 			nid_to_string(&pb->pid),

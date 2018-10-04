@@ -678,7 +678,7 @@ natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj)
 		goto finished;
 
 	ret = urpc_send("NAT-PMP", rd->gateway, NATPMP_SRV_PORT,
-			pmsg_start(rd->mb), pmsg_size(rd->mb), rd->timeout,
+			pmsg_phys_base(rd->mb), pmsg_written_size(rd->mb), rd->timeout,
 			natpmp_rpc_reply, rd);
 
 	if (0 != ret) {

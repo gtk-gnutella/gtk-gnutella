@@ -322,7 +322,7 @@ dechunk_data(rxdrv_t *rx, pmsg_t *mb)
 	 */
 
 	size = pmsg_size(mb);
-	src = pmsg_read_base(mb);
+	src = pmsg_start(mb);
 
 	while (size > 0) {
 		size_t ret;

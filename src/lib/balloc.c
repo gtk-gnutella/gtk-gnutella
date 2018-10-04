@@ -90,7 +90,7 @@ balloc_check(const balloc_t * const b)
 static void
 balloc_cram(balloc_t *b, size_t size, size_t buflen)
 {
-	void *start = ulong_to_pointer(balloc_round(ptr_add_offset(b, sizeof *b)));
+	void *start = ulong_to_pointer(balloc_round(ptr_add_offset(PTRLEN(b))));
 	void *end = ptr_add_offset(b, buflen);
 	void *next = NULL;
 

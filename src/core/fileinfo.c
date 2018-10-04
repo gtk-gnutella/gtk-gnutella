@@ -71,6 +71,7 @@
 #include "lib/base32.h"
 #include "lib/concat.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -89,6 +90,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/rbtree.h"
@@ -126,6 +128,8 @@
  */
 #define FI_OFFSET_BOUNDARY		((filesize_t) 128 * 1024)
 #define FI_OFFSET_ALIGNMASK		(FI_OFFSET_BOUNDARY - 1)
+
+static uint32 file_info_align_mask = FI_OFFSET_ALIGNMASK;
 
 enum dl_file_chunk_magic { DL_FILE_CHUNK_MAGIC = 0x563b483d };
 
@@ -237,6 +241,31 @@ enum dl_file_info_field {
 
 #define FI_STORE_DELAY		60	/**< Max delay (secs) for flushing fileinfo */
 #define FI_TRAILER_INT		6	/**< Amount of uint32 in the trailer */
+
+/**
+ * Update the minimum download chunksize.
+ *
+ * We use this information to try to force the start of downloaded chunks on
+ * a natural boundary, compatible with that minimum chunk size.
+ */
+void
+file_info_set_minchunksize(uint32 val)
+{
+	if (is_pow2(val)) {
+		if (val <= FI_OFFSET_BOUNDARY)
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		else
+			file_info_align_mask = val - 1;
+	} else {
+		uint32 p2 = next_pow2(val);
+
+		if (p2 <= 2 * FI_OFFSET_BOUNDARY) {
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		} else {
+			file_info_align_mask = p2 / 2 - 1;
+		}
+	}
+}
 
 /**
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -407,6 +436,7 @@ static void
 TBUF_PUT_UINT32(uint32 x)
 {
 	TBUF_CHECK(sizeof x);
+	/* Can't use VARLEN(x) in case mempcpy() is a macro with 3 args declared */
 	tbuf.wptr = mempcpy(tbuf.wptr, &x, sizeof x);
 }
 
@@ -433,7 +463,7 @@ static void
 WRITE_CHAR(uint8 val, uint32 *checksum)
 {
 	TBUF_PUT_CHAR(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -441,7 +471,7 @@ WRITE_UINT32(uint32 val, uint32 *checksum)
 {
 	val = htonl(val);
 	TBUF_PUT_UINT32(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -459,7 +489,7 @@ static WARN_UNUSED_RESULT bool
 READ_CHAR(uint8 *val, uint32 *checksum)
 {
 	if (TBUF_GETCHAR(val)) {
-		file_info_checksum(checksum, val, sizeof *val);
+		file_info_checksum(checksum, PTRLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -473,7 +503,7 @@ READ_UINT32(uint32 *val_ptr, uint32 *checksum)
 
 	if (TBUF_GET_UINT32(&val)) {
 		*val_ptr = ntohl(val);
-		file_info_checksum(checksum, &val, sizeof val);
+		file_info_checksum(checksum, VARLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -784,7 +814,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1, &checksum);
 
 	PSLIST_FOREACH(fi->alias, sl) {
-		size_t len = strlen(sl->data);		/* Do not store the trailing NUL */
+		size_t len = vstrlen(sl->data);		/* Do not store the trailing NUL */
 		g_assert(len <= INT_MAX);
 		if (len < FI_MAX_FIELD_LEN)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, sl->data, &checksum);
@@ -1078,7 +1108,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 	if (dfi->size != fi->size || dfi->done != fi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(dfi->done), "/",
 			filesize_to_string2(dfi->size), NULL_PTR);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
@@ -1419,7 +1449,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 	}
 
-	r = read(fd, tr, sizeof tr);
+	r = read(fd, ARYLEN(tr));
 	if ((ssize_t) -1 == r) {
 		g_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
@@ -2018,13 +2048,13 @@ G_STMT_START {				\
 			goto eof;
 
 		if (0 == tmpuint) {
-			str_bprintf(tmp, sizeof tmp, "field #%d has zero size", field);
+			str_bprintf(ARYLEN(tmp), "field #%d has zero size", field);
 			BAILOUT(tmp);
 			/* NOT REACHED */
 		}
 
 		if (tmpuint > FI_MAX_FIELD_LEN) {
-			str_bprintf(tmp, sizeof tmp,
+			str_bprintf(ARYLEN(tmp),
 				"field #%d is too large (%u bytes) ", field, (uint) tmpuint);
 			BAILOUT(tmp);
 			/* NOT REACHED */
@@ -2131,10 +2161,10 @@ G_STMT_START {				\
 					g_assert(version >= 6);
 					hi = ntohl(tmpchunk[0]);
 					lo = ntohl(tmpchunk[1]);
-					fc->from = (hi << 32) | lo;
+					fc->from = UINT64_VALUE(hi, lo);
 					hi = ntohl(tmpchunk[2]);
 					lo = ntohl(tmpchunk[3]);
-					fc->to = (hi << 32) | lo;
+					fc->to = UINT64_VALUE(hi, lo);
 					fc->status = ntohl(tmpchunk[4]);
 				}
 
@@ -2948,7 +2978,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (GNET_PROPERTY(fileinfo_debug) > 3) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
@@ -2960,7 +2990,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (fi->done && xfi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
@@ -2995,7 +3025,7 @@ extract_guid(const char *s)
 {
 	struct guid guid;
 
-	if (strlen(s) < GUID_HEX_SIZE)
+	if (vstrlen(s) < GUID_HEX_SIZE)
 		return NULL;
 
 	if (!hex_to_guid(s, &guid))
@@ -3013,10 +3043,10 @@ extract_sha1(const char *s)
 {
 	struct sha1 sha1;
 
-	if (strlen(s) < SHA1_BASE32_SIZE)
+	if (vstrlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1, s, SHA1_BASE32_SIZE))
+	if (SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), s, SHA1_BASE32_SIZE))
 		return NULL;
 
 	return atom_sha1_get(&sha1);
@@ -3027,10 +3057,10 @@ extract_tth(const char *s)
 {
 	struct tth tth;
 
-	if (strlen(s) < TTH_BASE32_SIZE)
+	if (vstrlen(s) < TTH_BASE32_SIZE)
 		return NULL;
 
-	if (TTH_RAW_SIZE != base32_decode(&tth, sizeof tth, s, TTH_BASE32_SIZE))
+	if (TTH_RAW_SIZE != base32_decode(VARLEN(tth), s, TTH_BASE32_SIZE))
 		return NULL;
 
 	return atom_tth_get(&tth);
@@ -3178,7 +3208,7 @@ file_info_retrieve(void)
 	if (!f)
 		return;
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		int error;
 		bool truncated = FALSE, damaged;
 		const char *ep;
@@ -3195,7 +3225,7 @@ file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		truncated = !file_line_chomp_tail(line, sizeof line, NULL);
+		truncated = !file_line_chomp_tail(ARYLEN(line), NULL);
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
@@ -3261,6 +3291,8 @@ file_info_retrieve(void)
 
 			if (FI_F_SEEDING & fi->flags) {
 				if (crash_was_restarted()) {
+					filestat_t sb;
+
 					if (NULL == fi->sha1) {
 						g_warning("%s(): missing SHA1 for seeded file %s",
 							G_STRFUNC, fi->pathname);
@@ -3271,6 +3303,38 @@ file_info_retrieve(void)
 						g_warning("%s(): missing previously seeded file %s",
 							G_STRFUNC, fi->pathname);
 						goto reset;		/* User probably removed the file */
+					}
+
+					if (-1 == stat(fi->pathname, &sb)) {
+						g_warning("%s(): cannot stat seeded file %s: %m",
+							G_STRFUNC, fi->pathname);
+						goto reset;
+					}
+
+					/*
+					 * FIXME:
+					 * Would need to check that the file is still accurate if
+					 * the timestamp was changed since last modification.
+					 * For now just warn.
+					 * 		--RAM, 2017-10-23
+					 */
+
+					if (sb.st_mtime != fi->modified) {
+						bool accepted = huge_cached_is_uptodate(
+								fi->pathname, sb.st_size, sb.st_mtime);
+
+						g_warning("%s(): modified seeded file %s: "
+							"last modified=%lu, file mtime=%lu; %s",
+							G_STRFUNC, fi->pathname,
+							(ulong) fi->modified, (ulong) sb.st_mtime,
+							accepted ? "resetting!" : "discarding!");
+
+						if (!accepted)
+							goto reset;
+
+						/* This stamp is necessary to be able to upload! */
+						fi->modified = sb.st_mtime;
+						fi->stamp = fi->modified;	/* Persist new value */
 					}
 
 					if (fi->tth != NULL)
@@ -3532,7 +3596,7 @@ file_info_retrieve(void)
 			old_filename = NULL;
 		}
 
-		value = strchr(line, ' ');
+		value = vstrchr(line, ' ');
 		if (!value) {
 			if (*line)
 				g_warning("ignoring fileinfo line: \"%s\"", line);
@@ -3653,6 +3717,7 @@ file_info_retrieve(void)
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep;
 			fi->stamp = v;
+			fi->modified = v;		/* Until we know better */
 			break;
 		case FI_TAG_CTIM:
 			v = parse_uint64(value, &ep, 10, &error);
@@ -4071,7 +4136,8 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 
 		shared_file_set_modification_time(fi->sf, mtime);	/* Sets sf->mtime */
 		fi->modified = mtime;
-	}
+		fi->stamp = mtime;		/* Persisted as "TIME" in fileinfo ASCII DB */
+ 	}
 
 	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
@@ -5224,7 +5290,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 			length = end - start;
 			length -= size;
 			offset = start + get_random_file_offset(length);
-			offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
+			offset &= ~file_info_align_mask;	/* Align on natural boundary */
 			offset = MAX(offset, start);
 
 			g_assert(offset >= candidate->from && offset <= candidate->to);
@@ -5296,12 +5362,15 @@ done:
  * We also strive to get the latest "pfsp_last_chunk" bytes of the file as
  * well, since some file formats store important information at the tail of
  * the file as well, so we can select some of the latest chunks.
+ *
+ * @return the selected chunk (which may not be necessarily EMPTY)
  */
 static const struct dl_file_chunk *
 fi_pick_chunk(fileinfo_t *fi)
 {
-	filesize_t offset = 0;
+	filesize_t offset = 0, empty = 0;
 	slink_t *sl;
+	const struct dl_file_chunk *candidate = NULL;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -5310,18 +5379,19 @@ fi_pick_chunk(fileinfo_t *fi)
 		const struct dl_file_chunk *fc;
 
 		/*
-		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
+		 * Check whether first chunks cover at least "pfsp_first_chunk" bytes
 		 * long.  If not, return that first chunk.
 		 */
 
-		fc = eslist_head(&fi->chunklist);		/* First chunk */
-		dl_file_chunk_check(fc);
+		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
+			dl_file_chunk_check(fc);
 
-		if (
-			DL_CHUNK_DONE != fc->status ||
-			fc->to < GNET_PROPERTY(pfsp_first_chunk)
-		)
-			return fc;
+			if (fc->from >= GNET_PROPERTY(pfsp_first_chunk))
+				break;		/* Already past the first "pfsp_first_chunk" bytes */
+
+			if (DL_CHUNK_EMPTY == fc->status)
+				return fc;
+		}
 	}
 
 	if (GNET_PROPERTY(pfsp_last_chunk) > 0) {
@@ -5341,31 +5411,26 @@ fi_pick_chunk(fileinfo_t *fi)
 		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 			dl_file_chunk_check(fc);
 
-			if (DL_CHUNK_DONE == fc->status)
+			if (DL_CHUNK_EMPTY != fc->status)
 				continue;
 
-			if (fc->from < last_chunk_offset && fc->to <= last_chunk_offset)
+			if (fc->to <= last_chunk_offset)
 				continue;
 
 			offset = fc->from < last_chunk_offset
 				? last_chunk_offset
 				: fc->from;
-			break;
+			candidate = fc;
+			goto selected;
 		}
 	}
 
 	/*
-	 * Only choose a random offset if the default value of "0" was not
-	 * forced to something else above.
-	 */
-
-	if (0 == offset) {
-		offset = get_random_file_offset(fi->size);
-		offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
-	}
-
-	/*
-	 * Pick the first chunk whose start is after the offset.
+	 * Pick a random empty chunk.
+	 *
+	 * To avoid any bias, we compute the amount of data belonging to empty
+	 * chunks, pick a random number in that range and then select the chunk
+	 * where this random number falls into.
 	 */
 
 	ESLIST_FOREACH(&fi->chunklist, sl) {
@@ -5373,58 +5438,121 @@ fi_pick_chunk(fileinfo_t *fi)
 
 		dl_file_chunk_check(fc);
 
-		if (fc->from >= offset)
-			return fc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-		/*
-		 * If offset lies within a free chunk, it will get split below.
-		 * So exit without selecting anything yet.
-		 */
-
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset)
-			break;
+		empty += fc->to - fc->from;		/* Sums "empty" data */
 	}
 
 	/*
-	 * If we have not picked anything, it means we have encountered a big chunk
-	 * and the selected offset lies within that chunk.
-	 * Be smarter and break-up any free chunk into two at the selected offset.
+	 * If there are no empty chunks, then return the head of the list.
+	 *
+	 * It does not matter that the chunk be not empty, our caller only uses
+	 * our returned value as a starting point to iterate (in a circular manner)
+	 * over the list of chunks.
 	 */
 
+	if G_UNLIKELY(0 == empty)
+		return eslist_head(&fi->chunklist);
+
+	/*
+	 * The random offset chosen among the amount of empty data is going to
+	 * become the point within that set of data we miss where we would want
+	 * to start downloading.
+	 *
+	 * To find the chunk to which that point belong, we need to iterate
+	 * again over the list of chunks, decreasing the offset until we reach
+	 * an offset whose value falls within the length of the current chunk.
+	 */
+
+	offset = get_random_file_offset(empty);
+
 	ESLIST_FOREACH(&fi->chunklist, sl) {
-		struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		filesize_t len;
 
 		dl_file_chunk_check(fc);
 
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset) {
-			struct dl_file_chunk *nfc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-			g_assert(fc->from < offset);	/* Or we'd have cloned above */
-			g_assert(fc->download == NULL);	/* Chunk is empty */
+		len = fc->to - fc->from;
+
+		if (offset < len) {
+			filesize_t aligned;
 
 			/*
-			 * fc was [from, to[.  It becomes [from, offset[.
-			 * nfc is [offset, to[ and is inserted after fc.
+			 * Found our chunk.
 			 */
 
-			nfc = dl_file_chunk_alloc();
-			nfc->from = offset;
-			nfc->to = fc->to;
-			nfc->status = DL_CHUNK_EMPTY;
-			fc->to = nfc->from;
+			offset += fc->from;			/* Absolute file offset */
 
-			eslist_insert_after(&fi->chunklist, fc, nfc);
-			return nfc;
+			/*
+			 * Try to align the starting offset to a natural boundary.
+			 *
+	 		 * The aim of the alignment is to avoid having too many small empty
+	 		 * chunks in the list (chunks of a few bytes), which would necessarily
+	 		 * happen after a while if we kept the random offsets as-is.
+			 *
+			 * If we cannot align (alignment falls before the beginning of
+			 * the chunk) then start at the beginning of the chunk to avoid
+			 * creating a small gap between the start of the chunk and the place
+			 * where we will start downloading (gap which is necessarily smaller
+			 * than our alignment requirement).
+			 */
+
+			aligned = offset & ~file_info_align_mask;
+			offset = MAX(aligned, fc->from);
+
+			candidate = fc;
+			goto selected;
 		}
+
+		offset -= len;		/* Skipping over this empty chunk */
+	}
+
+	g_assert_not_reached();	/* Must have found the randomly selected chunk */
+
+selected:
+	/*
+	 * We come here with "candidate" set to the selected chunk and "offset"
+	 * set to the value where we need to start requesting within that chunk.
+	 */
+
+	dl_file_chunk_check(candidate);
+	g_assert(DL_CHUNK_EMPTY == candidate->status);
+	g_assert(offset >= candidate->from && offset < candidate->to);
+	g_assert(NULL == candidate->download);	/* Chunk is empty */
+
+	/*
+	 * If the offset is not at the start of the chunk, split the chunk at
+	 * the specified offset.
+	 */
+
+	if (offset != candidate->from) {
+		struct dl_file_chunk *fc, *nfc;
+
+		/*
+		 * candidate was [from, to[.  It becomes [from, offset[.
+		 * nfc is [offset, to[ and is inserted after candidate, then
+		 * becomes the candidate.
+		 */
+
+		fc = deconstify_pointer(candidate);
+
+		nfc = dl_file_chunk_alloc();
+		nfc->from = offset;
+		nfc->to = fc->to;
+		nfc->status = DL_CHUNK_EMPTY;
+		fc->to = nfc->from;
+
+		eslist_insert_after(&fi->chunklist, fc, nfc);
+		candidate = nfc;
 	}
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	/*
-	 * If still no luck, never mind.  Use first chunk.
-	 */
-
-	return eslist_head(&fi->chunklist);
+	return candidate;
 }
 
 /**
@@ -7236,7 +7364,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -7323,7 +7451,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		dl_file_chunk_check(fc);
 		g_assert(DL_CHUNK_DONE == fc->status);
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -8067,15 +8195,14 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-        str_bprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
+        str_bprintf(ARYLEN(buf), _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
 		goto dht_status;
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
 		if (status->vrfy_hashed > 0) {
-			str_bprintf(buf, sizeof buf,
-					"%s %s (%.1f%%)",
+			str_bprintf(ARYLEN(buf), "%s %s (%.1f%%)",
 					status->tth_check ?
 						_("Computing TTH") : _("Computing SHA1"),
 					short_size(status->vrfy_hashed,
@@ -8091,7 +8218,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			str_bprintf(msg_sha1, sizeof msg_sha1, "%s %s",
+			str_bprintf(ARYLEN(msg_sha1), "%s %s",
 				_("SHA1"),
 				status->sha1_matched ? _("OK") :
 				status->sha1_failed ? _("failed") : _("not computed yet"));
@@ -8100,63 +8227,60 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		msg_copy[0] = '\0';
 		if (status->moving) {
 			if (0 == status->copied) {
-				str_bprintf(msg_copy, sizeof msg_copy, "%s",
-					_("Waiting for moving..."));
+				str_bprintf(ARYLEN(msg_copy), "%s", _("Waiting for moving..."));
 			} else if (status->copied > 0 && status->copied < status->size) {
-				str_bprintf(msg_copy, sizeof msg_copy,
-					"%s %s (%.1f%%)", _("Moving"),
+				str_bprintf(ARYLEN(msg_copy), "%s %s (%.1f%%)",
+					_("Moving"),
 					short_size(status->copied,
-						GNET_PROPERTY(display_metric_units)),
+					   	GNET_PROPERTY(display_metric_units)),
 					(1.0 * status->copied / status->size) * 100.0);
 			}
 		}
 
-		concat_strings(buf, sizeof buf, _("Finished"),
+		concat_strings(ARYLEN(buf), _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
 			NULL_PTR);
 
 		return buf;
     } else if (0 == status->lifecount) {
-		g_strlcpy(buf, _("No sources"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("No sources"));
 		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
-        str_bprintf(buf, sizeof buf,
+        str_bprintf(ARYLEN(buf),
             _("Queued (%u active, %u passive)"),
             status->active_queued, status->passive_queued);
 		goto dht_status;
     } else if (status->paused) {
         return _("Paused");
     } else {
-		g_strlcpy(buf, _("Waiting"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("Waiting"));
 		/* FALL THROUGH */
     }
 
 dht_status:
 	{
-		size_t w = strlen(buf);
+		size_t w = vstrlen(buf);
 
 		if (status->dht_lookup_running) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Querying DHT"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Querying DHT"));
 		} else if (status->dht_lookup_pending) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Pending DHT query"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Pending DHT query"));
 		}
 
 		if (status->dht_lookups != 0) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
 			if (status->dht_values != 0) {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_(
 						"%u/%u successful DHT lookup",
 						"%u/%u successful DHT lookups",
 						status->dht_lookups),
 					status->dht_values, status->dht_lookups);
 			} else {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_("%u DHT lookup", "%u DHT lookups", status->dht_lookups),
 					status->dht_lookups);
 			}

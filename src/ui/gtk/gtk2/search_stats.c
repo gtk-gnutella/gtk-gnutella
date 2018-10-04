@@ -86,7 +86,7 @@ free_hash_entry(const void *key, void *value, void *unused_data)
 
 	(void) unused_data;
 
-	wfree(s, 1 + strlen(s));
+	wfree(s, 1 + vstrlen(s));
 	WFREE(val);
 	return TRUE;
 }
@@ -164,18 +164,18 @@ static void
 search_stats_notify_word(query_type_t type, const char *search,
 	 const host_addr_t unused_addr, guint16 unused_port)
 {
-    word_vec_t *wovec;
-    unsigned wocnt;
+	word_vec_t *wovec;
+	unsigned wocnt;
 
 	(void) unused_addr;
 	(void) unused_port;
 
-    if (type == QUERY_SHA1)
-        return;
+	if (type == QUERY_SHA1)
+		return;
 
-   	wocnt = word_vec_make(search, &wovec);
+	wocnt = word_vec_make(search, &wovec);
 	if (wocnt != 0) {
-    	unsigned i;
+		unsigned i;
 
 		for (i = 0; i < wocnt; i++) {
 			search_stats_tally(&wovec[i]);
@@ -194,14 +194,14 @@ search_stats_notify_whole(query_type_t type, const char *search,
 	(void) unused_addr;
 	(void) unused_port;
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		type == QUERY_SHA1 ? "urn:sha1:" : "[",
 		search,
 		type == QUERY_SHA1 ? "" : "]",
         NULL_PTR);
 
 	wovec.word = buf;
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -217,7 +217,7 @@ search_stats_notify_routed(query_type_t unused_type, const char *unused_search,
 	(void) unused_search;
 
     wovec.word = deconstify_char(host_addr_port_to_string(addr, port));
-    wovec.len = strlen(wovec.word);
+    wovec.len = vstrlen(wovec.word);
     wovec.amount = 1;
 
     search_stats_tally(&wovec);
@@ -338,7 +338,7 @@ search_stats_tally(const word_vec_t *vec)
 
 		WALLOC0(val);
 		val->period_cnt = vec->amount;
-		key = wcopy(vec->word, 1 + strlen(vec->word));
+		key = wcopy(vec->word, 1 + vstrlen(vec->word));
 		htable_insert(stat_hash, key, val);
 	}
 }
@@ -364,29 +364,29 @@ search_stats_gui_reset(void)
 void
 search_stats_gui_set_type(int type)
 {
-    if (type == selected_type)
-        return;
+	if (type == selected_type)
+		return;
 
 	search_stats_gui_reset();
-    search_stats_gui_disable();
-    selected_type = type;
+	search_stats_gui_disable();
+	selected_type = type;
 
-    switch (type) {
-    case NO_SEARCH_STATS:
-        /* already disabled */
-        break;
-    case WORD_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_word);
-        break;
-    case WHOLE_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_whole);
-        break;
-    case ROUTED_SEARCH_STATS:
-        search_stats_gui_enable(search_stats_notify_routed);
-        break;
-    default:
-        g_assert_not_reached();
-    }
+	switch (type) {
+	case NO_SEARCH_STATS:
+		/* already disabled */
+		break;
+	case WORD_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_word);
+		break;
+	case WHOLE_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_whole);
+		break;
+	case ROUTED_SEARCH_STATS:
+		search_stats_gui_enable(search_stats_notify_routed);
+		break;
+	default:
+		g_assert_not_reached();
+	}
 }
 
 /* FIXME: merge all `add_column' functions into one */
@@ -419,6 +419,8 @@ add_column(GtkTreeView *treeview, int id, float xalign,
 
     gtk_tree_view_append_column(treeview, column);
 	gtk_tree_view_column_set_sort_column_id(column, id);
+
+	gui_column_map(column, treeview);	/* Capture resize events */
 }
 
 /**
@@ -531,6 +533,8 @@ search_stats_gui_init(void)
     store_search_stats = GTK_LIST_STORE(model);
 	g_object_unref(model);
 
+	gui_parent_widths_saveto(treeview, PROP_SEARCH_STATS_COL_WIDTHS);
+
 	for (i = 0; i < N_ITEMS(cols); i++) {
 		add_column(treeview, cols[i].id, cols[i].align, _(cols[i].title));
 	}
@@ -544,7 +548,6 @@ search_stats_gui_init(void)
 void
 search_stats_gui_shutdown(void)
 {
-	tree_view_save_widths(treeview_search_stats, PROP_SEARCH_STATS_COL_WIDTHS);
     search_stats_gui_set_type(NO_SEARCH_STATS);
 	empty_hash_table();
     htable_free_null(&stat_hash);

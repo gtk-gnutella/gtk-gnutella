@@ -168,7 +168,7 @@ nv_pair_make_static_str(const char *name, const void *value)
 {
 	size_t len;
 
-	len = (NULL == value) ? 0 : strlen(value);
+	len = (NULL == value) ? 0 : vstrlen(value);
 
 	return nv_pair_make_full(name, 0 == len ? NULL : value, len, FALSE, FALSE);
 }
@@ -535,7 +535,7 @@ nv_table_insert_str(const nv_table_t *nvt, const char *name, const char *value)
 	nv_table_check(nvt);
 	g_assert(value != NULL);
 
-	value_len = strlen(value);
+	value_len = vstrlen(value);
 	nvp = nv_pair_make_full(name, value, value_len + 1, TRUE, TRUE);
 	nv_table_insert_pair(nvt, nvp);
 }

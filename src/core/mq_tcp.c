@@ -150,7 +150,7 @@ again:
 		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			/* send the message */
 			l = plist_prev(l);
 			iovsize--;
@@ -355,7 +355,7 @@ again:
 
 	q->putq_entered++;
 
-	mbs = pmsg_start(mb);
+	mbs = pmsg_phys_base(mb);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	if (q->uops->msg_queued != NULL)
@@ -368,7 +368,7 @@ again:
 	if (q->qhead == NULL) {
 		ssize_t written;
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			if (prioritary)
 				node_flushq(q->node);
 

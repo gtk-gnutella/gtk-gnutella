@@ -60,7 +60,7 @@ shutdown_mode_string(enum shutdown_mode mode)
 enum shell_reply
 shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *opt_a, *opt_c, *opt_e, *opt_f, *opt_m, *opt_r, *opt_s;
+	const char *opt_a, *opt_c, *opt_e, *opt_f, *opt_m, *opt_r, *opt_s, *opt_x;
 	const option_t options[] = {
 		{ "a", &opt_a },
 		{ "c", &opt_c },
@@ -69,6 +69,7 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 		{ "m", &opt_m },
 		{ "r", &opt_r },
 		{ "s", &opt_s },
+		{ "x", &opt_x },
 	};
 	int parsed;
 	enum shutdown_mode mode;
@@ -100,6 +101,15 @@ shell_exec_shutdown(struct gnutella_shell *sh, int argc, const char *argv[])
 		flags |= GTKG_SHUTDOWN_OFAST;
 	if (opt_r != NULL)
 		flags |= GTKG_SHUTDOWN_ORESTART;
+
+	if (opt_x != NULL) {
+		if (NULL == opt_r) {
+			flags |= GTKG_SHUTDOWN_OEXTEND;
+			shell_write_linef(sh, REPLY_READY,
+				"Current session will be continued at next launch.");
+		} else
+			shell_write_linef(sh, REPLY_READY, "Ignoring -x when -r is given.");
+	}
 
 	if ((flags & GTKG_SHUTDOWN_ORESTART) && mode != GTKG_SHUTDOWN_NORMAL) {
 		shell_set_msg(sh,
@@ -137,11 +147,13 @@ shell_help_shutdown(int argc, const char *argv[])
 {
 	(void) argc;
 	(void) argv;
-	return str_smsg("shutdown [-fr] [-acems]\n"
+	return str_smsg("shutdown [-frx] [-acems]\n"
 		"Initiates a shutdown/restart of %s.\n"
 		"As a side effect the shell connection is closed as well.\n"
 		"-f: request fast shutdown, sending BYE only to nodes supporting it\n"
 		"-r: request immediate restart after shutdown\n"
+		"-x: request extension of current session at next launch\n"
+		"Note that -x is ignored when -r is supplied (-r continues session).\n"
 		"The following help trigger a crash after shutdown has completed\n"
 		"to exercise the crash handler and make sure everything works:\n"
 		"-a: finish with assertion failure\n"

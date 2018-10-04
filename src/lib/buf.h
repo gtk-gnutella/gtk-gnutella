@@ -135,6 +135,7 @@ buf_t *buf_new_embedded(size_t size);
 buf_t *buf_private(const void *key, size_t size);
 void buf_free_null(buf_t **b_ptr);
 
+buf_t *buf_grow(buf_t *b, size_t total);
 buf_t *buf_resize(buf_t *b, size_t size);
 buf_t *buf_private_resize(const void *key, size_t size);
 

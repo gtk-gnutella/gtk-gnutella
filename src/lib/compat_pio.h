@@ -33,14 +33,16 @@
 
 /**
  * @note NOTE:
- * The replacement functions do NOT restore the original file offset and they
- * are NOT thread-safe. As gtk-gnutella is mono-threaded this should never be a
- * problem.
+ * The replacement functions do NOT restore the original file offset.
  */
 
 ssize_t compat_pwrite(int, const void *, size_t, filesize_t);
 ssize_t compat_pread(int, void *, size_t, const filesize_t);
 ssize_t compat_pwritev(int, const iovec_t *, int, filesize_t);
 ssize_t compat_preadv(int, iovec_t *, int, filesize_t);
+
+void compat_pio_lock(int fd);
+void compat_pio_unlock(int fd);
+
 
 /* vi: set ts=4 sw=4 cindent: */

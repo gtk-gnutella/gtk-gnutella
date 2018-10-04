@@ -180,7 +180,7 @@ spinlock_exit_mode(void)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Invoked on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -188,23 +188,8 @@ static NO_INLINE void G_COLD
 spinlock_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
-	const volatile spinlock_t *s = obj;
-
-	spinlock_check(s);
-
-#ifdef SPINLOCK_DEBUG
-#ifdef SPINLOCK_OWNER_DEBUG
-	s_miniwarn("spinlock %p already %s by %s:%u (thread #%u)",
-		obj, s->lock ? "held" : "freed", s->file, s->line, s->stid);
-#else
-	s_miniwarn("spinlock %p already %s by %s:%u",
-		obj, s->lock ? "held" : "freed", s->file, s->line);
-#endif
-#endif
-
-	atomic_mb();
-	s_minicarp("%s spinlock deadlock #%u on %p at %s:%u",
-		s->lock ? "possible" : "improbable", count, obj, file, line);
+	(void) count;
+	thread_deadlock_check(obj, file, line);
 }
 
 /**
@@ -383,8 +368,9 @@ spinlock_loop(volatile spinlock_t *s,
 
 		compat_usleep_nocancel(SPINLOCK_DELAY);
 
+		/* To timestamp end of sleep */
 		if G_UNLIKELY(spinlock_sleep_trace)
-			s_rawinfo("LOCK sleep done");		/* To timestamp end of sleep */
+			s_rawinfo("LOCK sleep done for %p", src_object);
 
 		/*
 		 * If pass-through was activated whilst we were sleeping, return
@@ -514,6 +500,9 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
+	if G_UNLIKELY(spinlock_contention_trace)
+		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
+
 	return FALSE;
 }
 
@@ -552,6 +541,9 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		spinlock_account_swap(s, file, line, plock);
 		return TRUE;
 	}
+
+	if G_UNLIKELY(spinlock_contention_trace)
+		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
 
 	return FALSE;
 }

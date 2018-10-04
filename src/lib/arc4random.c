@@ -150,8 +150,8 @@ arc4_stir(struct arc4_stream *as)
 	for (n = 0; n < 4; n++) {
 		unsigned char buf[ARC4_BOXES];
 
-		entropy_fill(buf, sizeof buf);
-		arc4_addrandom(as, buf, sizeof buf);
+		entropy_fill(ARYLEN(buf));
+		arc4_addrandom(as, ARYLEN(buf));
 	}
 
 	/*
@@ -276,7 +276,7 @@ arc4random64(void)
 	lo = arc4_getword(&rs);
 	ARC4_UNLOCK;
 
-	return ((uint64) hi << 32) | (uint64) lo;
+	return UINT64_VALUE(hi, lo);
 }
 #else
 /**
@@ -285,7 +285,7 @@ arc4random64(void)
 uint64
 arc4random64(void)
 {
-	return ((uint64) arc4random() << 32) | (uint64) arc4random();
+	return UINT64_VALUE(arc4random(), arc4random());
 }
 #endif	/* !HAS_ARC4RANDOM */
 
@@ -367,7 +367,7 @@ arc4_thread_rand64(void)
 	hi = arc4_getword(as);
 	lo = arc4_getword(as);
 
-	return ((uint64) hi << 32) | (uint64) lo;
+	return UINT64_VALUE(hi, lo);
 }
 
 /**

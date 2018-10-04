@@ -121,7 +121,7 @@ tsig_fillset(tsigset_t *set)
 {
 	g_assert(set != NULL);
 
-	memset(set, 0xff, sizeof *set);
+	MEMSET(set, 0xff);
 }
 
 /**

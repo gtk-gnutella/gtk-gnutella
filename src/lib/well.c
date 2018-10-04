@@ -298,7 +298,7 @@ well_seed_with(random_fn_t rf, well_state_t *ws)
 	if (NULL == rf)
 		rf = entropy_random;
 
-	random_bytes_with(rf, &ws->state, sizeof ws->state);
+	random_bytes_with(rf, VARLEN(ws->state));
 	well_state_discard(ws);
 	spinlock_init(&ws->lock);
 }
@@ -407,7 +407,7 @@ well_state_merge_random(well_state_t *ws, const void *data, size_t len)
 			buf[i] = ((char *) data)[i];
 		}
 
-		well_state_patch(ws, buf, sizeof buf);
+		well_state_patch(ws, ARYLEN(buf));
 	}
 
 	/*
@@ -426,7 +426,7 @@ well_state_merge_random(well_state_t *ws, const void *data, size_t len)
 static uint64
 well_rand64_internal(well_state_t *ws)
 {
-	return ((uint64) well_rand_internal(ws) << 32) | well_rand_internal(ws);
+	return UINT64_VALUE(well_rand_internal(ws), well_rand_internal(ws));
 }
 
 /**

@@ -101,6 +101,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	cstr.c \
 	dam.c \
 	dbmap.c \
 	dbmw.c \
@@ -198,6 +199,7 @@ LSRC = \
 	progname.c \
 	prop.c \
 	pslist.c \
+	qlock.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
@@ -220,6 +222,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	stringify.c \
+	strpcpy.c \
 	strtok.c \
 	strvec.c \
 	symbols.c \
@@ -347,9 +350,11 @@ NormalTestTarget(filelock)
 NormalTestTarget(float)
 NormalTestTarget(ftw)
 NormalTestTarget(launch)
+NormalTestTarget(pattern)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(spopen)
+NormalTestTarget(stat)
 NormalTestTarget(thread)
 
 #define LinkGenInterface(file)	@!\

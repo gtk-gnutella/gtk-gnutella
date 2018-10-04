@@ -121,8 +121,8 @@ prop_parse_timestamp(const char *name,
 		if ((time_t)-1 == t) {
 			error = EINVAL;
 		}
-		ep = strchr(str, ',');
-		ep = ep ? ep : strchr(str, '\0');
+		ep = vstrchr(str, ',');
+		ep = ep ? ep : vstrchr(str, '\0');
 	}
 
 	if (!error && vec)
@@ -260,7 +260,7 @@ prop_parse_vector(const char *name, const char *str,
 		if (error)
 			s_warning("%s(): (prop=\"%s\") str=\"%s\": %m", G_STRFUNC, name, p);
 
-		p = strchr(endptr, ',');
+		p = vstrchr(endptr, ',');
 		if (p)
 			p++;
 	}
@@ -318,10 +318,10 @@ prop_parse_storage(const char *name, const char *str, size_t size, char *t)
 	size_t i;
 
 	g_assert(size > 0);
-	if (size * 2 != strlen(str)) {
+	if (size * 2 != vstrlen(str)) {
 		s_warning("%s(): (prop=\"%s\") %s (length=%zu, expected %zu): \"%s\"",
 			G_STRFUNC, name, "storage does not match requested size",
-			strlen(str), size * 2, str);
+			vstrlen(str), size * 2, str);
 		return FALSE;
 	}
 
@@ -440,8 +440,8 @@ prop_get_def(prop_set_t *ps, property_t p)
 				h_strdup(d->data.guint32.choices[n].title);
 			n++;
 		}
-		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
+	/* FALL THROUGH -- continue to PROP_TYPE_GUINT32 */
 	case PROP_TYPE_GUINT32:
 		buf->data.guint32.def =
 			HCOPY_ARRAY(d->data.guint32.def, d->vector_size);
@@ -508,8 +508,8 @@ prop_free_def(prop_def_t *d)
 		}
 
 		HFREE_NULL(d->data.guint32.choices);
-		/* no break -> continue to PROP_TYPE_GUINT32 */
 	}
+	/* FALL THROUGH -> continue to PROP_TYPE_GUINT32 */
 	case PROP_TYPE_GUINT32:
 		HFREE_NULL(d->data.guint32.value);
 		HFREE_NULL(d->data.guint32.def);
@@ -758,7 +758,7 @@ prop_set_guint64(prop_set_t *ps, property_t prop, const uint64 *src,
 			if (newval < d->data.guint64.min)
 				newval = d->data.guint64.min;
 
-			concat_strings(buf, sizeof buf,
+			concat_strings(ARYLEN(buf),
 				uint64_to_string(d->data.guint64.min), "/",
 				uint64_to_string2(d->data.guint64.max),
 				NULL_PTR);
@@ -996,7 +996,7 @@ prop_set_timestamp(prop_set_t *ps, property_t prop, const time_t *src,
 			if (newval < d->data.timestamp.min)
 				newval = d->data.timestamp.min;
 
-			concat_strings(buf, sizeof buf,
+			concat_strings(ARYLEN(buf),
 				timestamp_to_string(d->data.timestamp.min), "/",
 				timestamp_to_string2(d->data.timestamp.max),
 				NULL_PTR);
@@ -1444,7 +1444,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_guint32(ps, prop, &val, n, 1);
-			uint32_to_string_buf(val, buf, sizeof buf);
+			uint32_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1464,7 +1464,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_guint64(ps, prop, &val, n, 1);
-			uint64_to_string_buf(val, buf, sizeof buf);
+			uint64_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1484,7 +1484,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_timestamp(ps, prop, &val, n, 1);
-			timestamp_to_string_buf(val, buf, sizeof buf);
+			timestamp_to_string_buf(val, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1507,7 +1507,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_ip(ps, prop, &addr, n, 1);
-			host_addr_to_string_buf(addr, buf, sizeof buf);
+			host_addr_to_string_buf(addr, ARYLEN(buf));
 			str_cat(s, buf);
 		}
 
@@ -1593,14 +1593,14 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 	case PROP_TYPE_GUINT64:
 		{
 			char buf[UINT64_DEC_BUFLEN];
-			uint64_to_string_buf(p->data.guint64.def[0], buf, sizeof buf);
+			uint64_to_string_buf(p->data.guint64.def[0], ARYLEN(buf));
 			str_cpy(s, buf);
 		}
 		goto done;
 	case PROP_TYPE_TIMESTAMP:
 		{
 			char buf[UINT64_DEC_BUFLEN];
-			uint64_to_string_buf(p->data.timestamp.def[0], buf, sizeof buf);
+			uint64_to_string_buf(p->data.timestamp.def[0], ARYLEN(buf));
 			str_cpy(s, buf);
 		}
 		goto done;
@@ -1729,10 +1729,10 @@ unique_file_token(const filestat_t *st)
 	SHA1_reset(&ctx);
 	SHA1_INPUT(&ctx, st->st_dev);
 	SHA1_INPUT(&ctx, st->st_ino);
-	SHA1_input(&ctx, hostname, strlen(hostname));
+	SHA1_input(&ctx, hostname, vstrlen(hostname));
 	SHA1_result(&ctx, &digest);
 
-	bin_to_hex_buf(digest.data, sizeof digest.data, buf, sizeof buf);
+	bin_to_hex_buf(VARLEN(digest), ARYLEN(buf));
 	buf[SHA1_BASE16_SIZE] = '\0';
 
 	str_cpy(s, buf);
@@ -1890,7 +1890,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				v = p->data.guint32.value[i];
 				if (v != p->data.guint32.def[i])
 					defaultvalue = FALSE;
-				str_bprintf(sbuf, sizeof(sbuf), "%u", v);
+				str_bprintf(ARYLEN(sbuf), "%u", v);
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1905,7 +1905,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				if (v != p->data.guint64.def[i])
 					defaultvalue = FALSE;
 
-				uint64_to_string_buf(v, sbuf, sizeof sbuf);
+				uint64_to_string_buf(v, ARYLEN(sbuf));
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -1920,7 +1920,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 				if (t != p->data.timestamp.def[i])
 					defaultvalue = FALSE;
 
-				timestamp_utc_to_string_buf(t, sbuf, sizeof sbuf);
+				timestamp_utc_to_string_buf(t, ARYLEN(sbuf));
 				vbuf[i] = h_strdup(sbuf);
 			}
 			vbuf[p->vector_size] = NULL;
@@ -2096,6 +2096,67 @@ prop_is_default(prop_def_t *p)
 }
 
 /**
+ * Reset property to its default value.
+ */
+void
+prop_reset(prop_set_t *ps, property_t prop)
+{
+	prop_def_t *d;
+	size_t i;
+
+	d = &PROP(ps, prop);
+
+	PROP_DEF_LOCK(d);
+
+	if (prop_is_default(d))
+		goto no_change;
+
+	switch (d->type) {
+	case PROP_TYPE_BOOLEAN:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.boolean.value[i] = d->data.boolean.def[i];
+		}
+		break;
+	case PROP_TYPE_MULTICHOICE:
+	case PROP_TYPE_GUINT32:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.guint32.value[i] = d->data.guint32.def[i];
+		}
+		break;
+	case PROP_TYPE_GUINT64:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.guint64.value[i] = d->data.guint64.def[i];
+		}
+		break;
+	case PROP_TYPE_TIMESTAMP:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.timestamp.value[i] = d->data.timestamp.def[i];
+		}
+		break;
+	case PROP_TYPE_STRING:
+		for (i = 0; i < d->vector_size; i++) {
+			d->data.string.value[i] = d->data.string.def[i];
+		}
+		break;
+	case PROP_TYPE_IP:
+	case PROP_TYPE_STORAGE:
+		/* No default, warn */
+		s_carp("%s(): no default for %s property \"%s\"",
+			G_STRFUNC, prop_type_str[d->type].name, d->name);
+		break;
+	case NUM_PROP_TYPES:
+		g_assert_not_reached();
+	}
+
+	prop_emit_prop_changed(d, ps, prop);
+
+	/* FALL THROUGH */
+
+no_change:
+	PROP_DEF_UNLOCK(d);
+}
+
+/**
  * In case of crash, dump all the properties.
  *
  * All the properties, regardless of whether they are normally persisted, are
@@ -2106,7 +2167,14 @@ void
 prop_crash_dump(prop_set_t *ps)
 {
 	uint n;
-	str_t *s = str_new(80);
+	str_t *s;
+
+	if G_UNLIKELY(NULL == ps) {
+		s_warning("%s(): _prop_shutdown() was already called", G_STRFUNC);
+		return;		/* Already called the _prop_shutdown() routine */
+	}
+   
+	s = str_new(80);
 
 	for (n = 0; n < ps->size; n++) {
 		prop_def_t *p = &ps->props[n];
@@ -2315,12 +2383,12 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
 	 *
 	 */
-	while (fgets(prop_tmp, sizeof prop_tmp, config)) {
+	while (fgets(ARYLEN(prop_tmp), config)) {
 		char *s, *k, *v;
 		int c;
 		property_t prop;
 
-		if (!file_line_chomp_tail(prop_tmp, sizeof prop_tmp, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(prop_tmp), NULL)) {
 			s_warning("%s(): config file \"%s\", line %u: "
 				"too long a line, ignored", G_STRFUNC, filename, n);
 			truncated = TRUE;
@@ -2370,7 +2438,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 			v = ++s; /* Skip double-quote '"' */
 
 			/* Scan for terminating double-quote '"' */
-			s = strchr(s, '"');
+			s = vstrchr(s, '"');
 			/* Check for proper quote termination */
 			if (!s) {
 				/* Missing terminating double-quote '"' */

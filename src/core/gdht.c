@@ -205,7 +205,7 @@ value_infostr(const lookup_val_rc_t *rc)
 {
 	static char info[64];
 
-	str_bprintf(info, sizeof info, "DHT %s v%u.%u (%lu byte%s) [%s]",
+	str_bprintf(ARYLEN(info), "DHT %s v%u.%u (%lu byte%s) [%s]",
 		dht_value_type_to_string(rc->type), rc->major, rc->minor,
 		(ulong) rc->length, plural(rc->length), vendor_to_string(rc->vcode));
 
@@ -344,7 +344,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 			{
 				ggept_status_t ret;
 
-				ret = ggept_hname_extract(e, host, sizeof host);
+				ret = ggept_hname_extract(e, ARYLEN(host));
 				if (GGEP_OK == ret)
 					hostname = host;
 			}
@@ -475,7 +475,7 @@ gdht_handle_aloc(const lookup_val_rc_t *rc, const fileinfo_t *fi)
 		if (GNET_PROPERTY(download_debug)) {
 			char buf[TTH_BASE32_SIZE + 1];
 
-			base32_encode(buf, sizeof buf, tth.data, sizeof tth.data);
+			base32_encode(ARYLEN(buf), ARYLEN(tth.data));
 
 			g_warning("discarding %s from %s for %s%s: "
 				"we have TTH root %s, ALOC says %s",

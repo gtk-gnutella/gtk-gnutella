@@ -88,8 +88,8 @@ str_t *str_new_in_buffer(void *buf, size_t len);
 str_t *str_private(const void *key, size_t szhint);
 str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(char *ptr, size_t len);
-void str_foreign(str_t *str, char *buffer, size_t len, size_t size);
-void str_new_buffer(str_t *str, char *ptr, size_t len, size_t size);
+void str_foreign(str_t *str, char *buffer, size_t size, size_t len);
+void str_new_buffer(str_t *str, char *ptr, size_t size, size_t len);
 void str_free(str_t *str);
 void str_discard(str_t *str);
 void str_destroy(str_t *str);
@@ -124,13 +124,18 @@ size_t str_copyout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
 size_t str_reverse_copyout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
-char str_at(str_t *s, ssize_t offset);
+char str_at(const str_t *s, ssize_t offset);
 ssize_t str_chr(const str_t *s, int c);
 ssize_t str_chr_at(const str_t *s, int c, ssize_t offset);
 ssize_t str_rchr(const str_t *s, int c);
 ssize_t str_rchr_at(const str_t *s, int c, ssize_t offset);
 str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
 str_t *str_substr(const str_t *s, ssize_t from, size_t length);
+bool str_has_suffix_len(const str_t *, const char *suf, size_t len, size_t *ix);
+bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
+bool str_is_truncated(const str_t * const s);
+void str_set_silent_truncation(str_t * const s, bool on);
+size_t str_strip_trailing_nuls(str_t *s);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
@@ -175,6 +180,9 @@ size_t str_test(bool verbose);
 #define STR_CONST_LEN(p)	(sizeof(p "") - 1)
 #define STR_CPY(s, p)		str_cpy_len((s), (p), STR_CONST_LEN(p))
 #define STR_CAT(s, p)		str_cat_len((s), (p), STR_CONST_LEN(p))
+
+#define STR_HAS_SUFFIX(s, p, i)	\
+	str_has_suffix_len((s), (p), STR_CONST_LEN(p), (i))
 
 #endif /* _str_h_ */
 

@@ -626,7 +626,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 
 	buf = route_log->extra;
 	buflen = sizeof(route_log->extra);
-	len = strlen(route_log->extra);
+	len = vstrlen(route_log->extra);
 
 	/*
 	 * If there was already a message recorded, append "; " before
@@ -664,29 +664,29 @@ route_string(struct route_dest *dest,
 
 	switch (dest->type) {
 	case ROUTE_NONE:
-		str_bprintf(msg, sizeof msg, routed ? "stops here" : "registered");
+		str_bprintf(ARYLEN(msg), routed ? "stops here" : "registered");
 		break;
 	case ROUTE_LEAVES:
-		str_bprintf(msg, sizeof msg, "all leaves");
+		str_bprintf(ARYLEN(msg), "all leaves");
 		break;
 	case ROUTE_ONE:
-		str_bprintf(msg, sizeof msg, "%s %s",
+		str_bprintf(ARYLEN(msg), "%s %s",
 			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		str_bprintf(msg, sizeof msg, "all %sbut %s",
+		str_bprintf(ARYLEN(msg), "all %sbut %s",
 			dest->duplicate ? "ultras " : "",	/* Won't be sent to leaves */
 			host_addr_to_string(origin_addr));
 		break;
 	case ROUTE_MULTI:
 		{
 			int count = pslist_length(dest->ur.u_nodes);
-			str_bprintf(msg, sizeof msg, "selected %u node%s",
+			str_bprintf(ARYLEN(msg), "selected %u node%s",
 				count, plural(count));
 		}
 		break;
 	default:
-		str_bprintf(msg, sizeof msg, "** BUG ** UNKNOWN ROUTE");
+		str_bprintf(ARYLEN(msg), "** BUG ** UNKNOWN ROUTE");
 		break;
 	}
 
@@ -1464,7 +1464,7 @@ message_hash_func2(const void *key)
 void
 gnet_reset_guid(void)
 {
-	gnet_prop_set_storage(PROP_SERVENT_GUID, &blank_guid, sizeof blank_guid);
+	gnet_prop_set_storage(PROP_SERVENT_GUID, VARLEN(blank_guid));
 }
 
 /**
@@ -1494,7 +1494,7 @@ routing_init(void)
 		struct guid guid;
 		const char *hex = banned_push[i];
 
-		g_assert(strlen(hex) == 2 * sizeof guid);
+		g_assert(vstrlen(hex) == 2 * sizeof guid);
 
 		(void) hex_to_guid(hex, &guid);
 		hset_insert(ht_banned_push, atom_guid_get(&guid));
@@ -1509,7 +1509,7 @@ routing_init(void)
 	 * of the previously interrupted run.
 	 */
 
-	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid_buf, sizeof guid_buf);
+	gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(guid_buf));
 
 	if (
 		guid_is_blank(&guid_buf) ||
@@ -1522,7 +1522,7 @@ routing_init(void)
 			 */
 		} while (is_banned_push(&guid_buf));
 
-		gnet_prop_set_storage(PROP_SERVENT_GUID, &guid_buf, sizeof guid_buf);
+		gnet_prop_set_storage(PROP_SERVENT_GUID, VARLEN(guid_buf));
 		g_assert(guid_is_gtkg(&guid_buf, NULL, NULL, NULL));
 	}
 

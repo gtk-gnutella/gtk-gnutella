@@ -133,6 +133,7 @@ plist_t *plist_shuffle(plist_t *pl) WARN_UNUSED_RESULT;
 plist_t *plist_shuffle_with(random_fn_t rf, plist_t *pl) WARN_UNUSED_RESULT;
 plist_t *plist_random(const plist_t *pl);
 void *plist_shift(plist_t **pl) NON_NULL_PARAM((1));
+bool plist_shift_data(plist_t **pl_ptr, void **d_ptr) NON_NULL_PARAM((1));
 
 struct pcell_allocator;
 
@@ -149,6 +150,10 @@ plist_t *plist_delete_link_ext(plist_t *pl,
 plist_t *plist_foreach_remove_ext(plist_t *pl,
 	data_rm_fn_t cbr, void *data, const struct pcell_allocator *ca);
 void *plist_shift_ext(plist_t **pl_ptr, const struct pcell_allocator *ca);
+bool plist_shift_data_ext(plist_t **pl_ptr, void **d_ptr,
+		const struct pcell_allocator *ca);
+plist_t *plist_free_ext(plist_t *pl, const struct pcell_allocator *ca);
+void plist_free_null_ext(plist_t **pl_ptr, const struct pcell_allocator *ca);
 
 static inline plist_t * WARN_UNUSED_RESULT
 plist_prepend_const(plist_t *pl, const void *data)

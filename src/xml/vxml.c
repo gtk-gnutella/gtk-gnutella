@@ -41,6 +41,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/buf.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/halloc.h"
 #include "lib/hstrfn.h"
@@ -515,7 +516,7 @@ vxml_parser_warn(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	str_vbprintf(buf, sizeof buf, format, args);
+	str_vbprintf(ARYLEN(buf), format, args);
 	va_end(args);
 
 	g_warning("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -535,7 +536,7 @@ vxml_parser_debug(const vxml_parser_t *vp, const char *format, ...)
 	char buf[1024];
 
 	va_start(args, format);
-	str_vbprintf(buf, sizeof buf, format, args);
+	str_vbprintf(ARYLEN(buf), format, args);
 	va_end(args);
 
 	g_debug("VXML \"%s\" %soffset %zu, line %zu, at %s: %s",
@@ -863,7 +864,7 @@ vxml_buffer_convert_to_utf8(struct vxml_buffer *vb, const char *charset)
 
 	vxml_buffer_data_free(vb);
 	m->vb_rptr = m->data = converted;
-	m->length = strlen(converted);
+	m->length = vstrlen(converted);
 	m->vb_end = m->data + m->length;
 	m->reader = utf8_decode_char_buffer;
 	m->allocated = TRUE;
@@ -1268,7 +1269,7 @@ vxml_fill_tokens(const nv_table_t *tokens, struct vxml_token *tvec, size_t tlen)
 	struct vxml_token *t;
 
 	for (i = 0, t = tvec; i < tlen; i++, t++) {
-		nv_table_insert_nocopy(tokens, t->name, t, sizeof *t);
+		nv_table_insert_nocopy(tokens, t->name, PTRLEN(t));
 	}
 }
 
@@ -1415,7 +1416,7 @@ vxml_document_where(vxml_parser_t *vp)
 
 	vxml_parser_check(vp);
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%sparsing \"%s\" (%s %u.%u), %soffset %zu, line %zu, at %s",
 		vp->glob.depth != vp->loc.depth ? "sub-" : "", vp->name,
 		vxml_versionsrc_to_string(vp->versource), vp->major, vp->minor,
@@ -1504,8 +1505,8 @@ vxml_fatal_error_uc(vxml_parser_t *vp, vxml_error_t error, uint32 uc)
 		s32[0] = uc;
 		s32[1] = 0;
 
-		if (utf32_to_utf8(s32, s8, sizeof s8) >= sizeof s8)
-			g_strlcpy(s8, "????", sizeof s8);
+		if (utf32_to_utf8(s32, ARYLEN(s8)) >= sizeof s8)
+			cstr_bcpy(ARYLEN(s8), "????");
 
 		g_warning("VXML %s near '%s' (U+%X): FATAL error: %s",
 			vxml_document_where(vp), s8, uc, vxml_strerror(error));
@@ -3043,7 +3044,7 @@ vxml_namespace_make(const char *ns, const char *uri, size_t uri_len)
 	g_assert(uri != NULL);
 
 	if (0 == uri_len)
-		uri_len = strlen(uri);
+		uri_len = vstrlen(uri);
 
 	if ('\0' != uri[uri_len]) {
 		char *uri_copy = h_strndup(uri, uri_len);
@@ -3069,7 +3070,7 @@ vxml_parser_namespace_global(vxml_parser_t *vp, const char *ns, const char *uri)
 
 	g_assert(vp->namespaces != NULL);
 
-	sym = vxml_namespace_make(ns, uri, strlen(uri));
+	sym = vxml_namespace_make(ns, uri, vstrlen(uri));
 
 	if (!symtab_insert_pair(vp->namespaces, sym, 0)) {
 		g_error("VXML \"%s\" cannot insert global namespace \"%s\" as \"%s\"",
@@ -3220,7 +3221,7 @@ vxml_parser_namespace_decl(vxml_parser_t *vp,
 		return FALSE;
 	}
 
-	if (strchr(name, ':') != NULL) {
+	if (vstrchr(name, ':') != NULL) {
 		vxml_fatal_error(vp, VXML_E_BAD_CHAR_IN_NAMESPACE);
 		return FALSE;
 	}
@@ -3849,7 +3850,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 			const char *local_name;
 
-			local_name = strchr(start, ':');
+			local_name = vstrchr(start, ':');
 			if (local_name != NULL) {
 				unsigned retlen;
 
@@ -5208,7 +5209,7 @@ vxml_parser_new_element(vxml_parser_t *vp)
 	if (!(vp->options & VXML_O_NO_NAMESPACES)) {
 		const char *local_name;
 
-		local_name = strchr(start, ':');
+		local_name = vstrchr(start, ':');
 		if (local_name != NULL) {
 			ns = h_strndup(start, local_name - start);
 			start = local_name + 1;
@@ -6384,11 +6385,11 @@ vxml_run_ns_simple_test(int num, const char *name,
 	g_assert(!(flags & VXML_O_NO_NAMESPACES));
 	g_assert('\0' == data[len]);	/* Given length is correct */
 
-	str_bprintf(buf, sizeof buf, "%s (no NS)", name);
+	str_bprintf(ARYLEN(buf), "%s (no NS)", name);
 	vxml_run_simple_test(num, buf, data, len,
 		flags | VXML_O_NO_NAMESPACES, error_no_ns);
 
-	str_bprintf(buf, sizeof buf, "%s (with NS)", name);
+	str_bprintf(ARYLEN(buf), "%s (with NS)", name);
 	vxml_run_simple_test(num, buf, data, len, flags, error_with_ns);
 }
 

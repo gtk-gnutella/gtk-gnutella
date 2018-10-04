@@ -46,7 +46,7 @@
 
 #include "atomic.h"
 #include "dump_options.h"
-#include "glib-missing.h"
+#include "entropy.h"
 #include "hashtable.h"
 #include "malloc.h"
 #include "once.h"
@@ -88,8 +88,11 @@ static struct hstats {
 	uint64 realloc_via_xprealloc;		/**< Reallocs handled by xprealloc() */
 	AU64(realloc_via_copy);				/**< Reallocs handled by copy */
 	uint64 realloc_via_vmm_shrink;		/**< Shrunk VMM region */
+	uint64 realloc_via_vmm_move_shrink;	/**< Shrunk VMM region after moving it */
 	AU64(realloc_noop_same_vmm);		/**< Same VMM size */
-	AU64(realloc_relocatable);			/**< Forced relocation for VMM */
+	AU64(realloc_vmm_moved);			/**< Same VMM size, was able to move it */
+	AU64(realloc_vmm_try_post_move);	/**< Try post-optimization of VM address */
+	AU64(realloc_vmm_post_moved);		/**< Post-optimization successful */
 	uint64 wasted_cumulative;			/**< Cumulated allocation waste */
 	uint64 wasted_cumulative_walloc;	/**< Cumulated waste for walloc */
 	uint64 wasted_cumulative_xpmalloc;	/**< Cumulated waste for xpmalloc */
@@ -402,6 +405,25 @@ hfree(void *p)
 }
 
 /**
+ * Attempt to move VMM region to a better VM position.
+ */
+static void *
+hrealloc_vmm_move(void *old, size_t size)
+{
+	void *p;
+	size_t rounded = round_pagesize(size);
+
+	page_remove(old);				/* Could be invalidated by vmm_move() */
+	p = vmm_move(old, size);
+	page_insert(p, rounded);
+
+	if G_UNLIKELY(p != old)
+		HSTATS_INCX(realloc_vmm_moved);
+
+	return p;
+}
+
+/**
  * Reallocate a block allocated via halloc().
  *
  * @return new block address.
@@ -434,31 +456,45 @@ hrealloc(void *old, size_t new_size)
 	HSTATS_INCX(reallocs);
 
 	if (HALLOC_VMM == type) {
-		size_t rounded_new_size = round_pagesize(new_size);
+		size_t rounded_new_size;
 
 		old_size = allocated;
 
-		if (vmm_is_relocatable(old, rounded_new_size)) {
-			HSTATS_INCX(realloc_relocatable);
-			goto relocate;
-		}
+		if (new_size < walloc_threshold)
+			goto relocate;		/* Will change allocation type */
 
-		if (new_size >= walloc_threshold) {
-			if (rounded_new_size == old_size) {
+		/*
+		 * Allocation type will stay VMM.
+		 */
+
+		rounded_new_size = round_pagesize(new_size);
+
+		if (rounded_new_size == old_size) {
+			p = hrealloc_vmm_move(old, new_size);
+			if (old == p) {
 				HSTATS_INCX(realloc_noop);
 				HSTATS_INCX(realloc_noop_same_vmm);
-				return old;
 			}
-			if (old_size > rounded_new_size) {
-				vmm_shrink(old, old_size, rounded_new_size);
-				page_replace(old, rounded_new_size);
-				HSTATS_LOCK;
-				hstats.memory += rounded_new_size - old_size;
-				hstats.realloc_via_vmm_shrink++;
-				HSTATS_UNLOCK;
+			return p;
+		}
 
-				return old;
-			}
+		/*
+		 * Attempt in-place shrinking of VMM region, after possible move.
+		 */
+
+		if (old_size > rounded_new_size) {
+			p = hrealloc_vmm_move(old, old_size);
+			vmm_shrink(p, old_size, rounded_new_size);
+			page_replace(p, rounded_new_size);
+			HSTATS_LOCK;
+			hstats.memory += rounded_new_size - old_size;
+			if (p != old)
+				hstats.realloc_via_vmm_move_shrink++;
+			else
+				hstats.realloc_via_vmm_shrink++;
+			HSTATS_UNLOCK;
+
+			return p;
 		}
 	} else if (HALLOC_XPMALLOC == type) {
 		size_t new_allocated;
@@ -505,13 +541,36 @@ hrealloc(void *old, size_t new_size)
 		return old;
 	}
 
+	/* FALL THROUGH */
+
 relocate:
 	p = halloc(new_size);
 	g_assert(NULL != p);
-
 	memcpy(p, old, MIN(new_size, old_size));
 	hfree(old);
 	HSTATS_INCX(realloc_via_copy);
+
+	/*
+	 * If handling a VM region, try to move it now that we freed the old region,
+	 * when the old pointer was better than the new one we got.
+	 */
+
+	if G_UNLIKELY(
+		HALLOC_VMM == type &&
+		new_size >= walloc_threshold &&	/* Still allocated as a VMM region */
+		vmm_pointer_is_better(p, old)	/* Old was better */
+	) {
+		void *q;
+
+		HSTATS_INCX(realloc_vmm_try_post_move);
+		q = hrealloc_vmm_move(p, new_size);
+		if (p != q) {
+			HSTATS_INCX(realloc_vmm_post_moved);
+			p = q;
+		}
+		/* FALL THROUGH */
+	}
+
 	return p;
 }
 
@@ -808,12 +867,14 @@ halloc_chunks_allocated(void)
 void
 halloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	HSTATS_INCX(halloc_stats_digest);
-	SHA1_COMPUTE(hstats, digest);
+	SHA1_COMPUTE_NONCE(hstats, &n, digest);
 }
 
 /**
@@ -864,10 +925,14 @@ halloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(reallocs);
 	DUMP64(realloc_noop);
 	DUMP64(realloc_noop_same_vmm);
+	DUMP64(realloc_vmm_moved);
 	DUMP(realloc_via_wrealloc);
+	DUMP(realloc_via_xprealloc);
 	DUMP64(realloc_via_copy);
 	DUMP(realloc_via_vmm_shrink);
-	DUMP64(realloc_relocatable);
+	DUMP(realloc_via_vmm_move_shrink);
+	DUMP64(realloc_vmm_try_post_move);
+	DUMP64(realloc_vmm_post_moved);
 	DUMP(wasted_cumulative);
 	DUMP(wasted_cumulative_walloc);
 	DUMP(wasted_cumulative_xpmalloc);

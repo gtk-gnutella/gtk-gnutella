@@ -322,6 +322,8 @@ struct pslist *prop_get_by_regex(prop_set_t *ps,
 void prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	bool saved_only);
 
+void prop_reset(prop_set_t *ps, property_t prop);
+
 /*
  * Checks if a property is part of a property set.
  */

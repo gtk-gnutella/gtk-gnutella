@@ -314,6 +314,8 @@ elist_contains(const elist_t *list, const void *p)
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);
+void elist_mark_removed(const elist_t *list, void *data);
+void elist_link_mark_removed(const elist_t *list, link_t *lk);
 void elist_wfree(elist_t *list, size_t size);
 
 void elist_foreach(const elist_t *list, data_fn_t cb, void *data);

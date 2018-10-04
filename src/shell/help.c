@@ -116,11 +116,11 @@ shell_exec_help(struct gnutella_shell *sh, int argc, const char *argv[])
 			shell_write(sh, name);
 
 			{
-				size_t len = strlen(name);
+				size_t len = vstrlen(name);
 				char pad[10];
 
 				if (len < sizeof pad) {
-					memset(pad, ' ', sizeof pad);
+					MEMSET(&pad, ' ');
 					pad[sizeof pad - len] = '\0';
 					shell_write(sh, pad);
 				}

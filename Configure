@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat Oct 21 18:55:01 CEST 2017 [metaconfig 3.5-226]
+# Generated on Mon Oct 23 17:13:58 CEST 2017 [metaconfig 3.5-226]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -742,7 +742,7 @@ usesocks=''
 defvoidused=15
 
 : private initializations
-libswanted="bfd iberty sendfile z resolv iconv m intl dl"
+libswanted="bfd iberty sendfile z iconv m intl dl"
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -9491,6 +9491,20 @@ case "$version" in
 	version=`$glibconfig $modver | head -1`
 	;;
 esac
+
+case "$glibversion" in
+2)
+	x=
+	for l in $glibldflags; do
+		case "$l" in
+		-lgthread-2.0) ;;
+		*) x="$x $l";;
+		esac
+	done
+	glibldflags=$x
+	;;
+esac
+
 echo " "
 echo "Checking whether glib.h can be compiled against..." >&4
 $cat >try.c <<EOC

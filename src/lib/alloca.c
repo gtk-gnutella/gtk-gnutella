@@ -374,7 +374,7 @@ alloca_emulate(size_t len)
 	ah->header.prev = as->last;
 	as->last = ah;
 
-	return ptr_add_offset(ah, sizeof *ah);
+	return ptr_add_offset(PTRLEN(ah));
 }
 
 #endif	/* EMULATE_ALLOCA */

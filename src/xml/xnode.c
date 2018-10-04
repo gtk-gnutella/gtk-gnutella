@@ -38,6 +38,7 @@
 
 #include "lib/atoms.h"
 #include "lib/buf.h"
+#include "lib/cstr.h"
 #include "lib/etree.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
@@ -117,7 +118,7 @@ size_t
 xnode_to_string_buf(const xnode_t *xn, char *buf, size_t len)
 {
 	if (NULL == xn)
-		return g_strlcpy(buf, "{null XML node pointer}", len);
+		return cstr_bcpy(buf, len, "{null XML node pointer}");
 
 	xnode_check(xn);
 
@@ -664,7 +665,7 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 	g_assert(XNODE_T_ELEMENT == element->type);
 	g_assert(prefix != NULL);
 	g_assert(uri != NULL);
-	g_assert(NULL == strchr(prefix, ':'));
+	g_assert(NULL == vstrchr(prefix, ':'));
 
 	if (NULL == element->u.e.ns)
 		element->u.e.ns = nv_table_make(TRUE);
@@ -672,7 +673,7 @@ xnode_add_namespace(xnode_t *element, const char *prefix, const char *uri)
 	/* Prefix must not be redeclared in the same element */
 	g_assert(NULL == nv_table_lookup(element->u.e.ns, prefix));
 
-	uri_len = strlen(uri);
+	uri_len = vstrlen(uri);
 	nv_table_insert(element->u.e.ns, prefix, uri, uri_len + 1);
 }
 
@@ -857,7 +858,7 @@ xnode_prop_ns_vprintf(xnode_t *element,
 	bool result;
 
 	VA_COPY(args2, args);
-	if (str_vbprintf(buf, sizeof buf, fmt, args2) >= sizeof buf - 1) {
+	if (str_vbprintf(ARYLEN(buf), fmt, args2) >= sizeof buf - 1) {
 		value = h_strdup_vprintf(fmt, args);
 	} else {
 		value = buf;

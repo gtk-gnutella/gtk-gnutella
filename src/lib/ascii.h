@@ -49,6 +49,7 @@
 #define A_GRAPH		(1 << 7)
 #define A_PRINT		(1 << 8)
 #define A_PUNCT		(1 << 9)
+#define A_IDENT		(1 << 10)	/* Identifier: alphanumeric + "_" */
 
 extern const uint16 ascii_ctype[];
 
@@ -151,6 +152,13 @@ is_ascii_alnum(int c)
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
+is_ascii_ident(int c)
+{
+	/* Part of an identifier, i,e, one of [A-Za-z0-9_] */
+	return !(c & ~0x7f) && 0 != (A_IDENT & ascii_ctype[c]);
+}
+
+static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_space(int c)
 {
 	return !(c & ~0x7f) && 0 != (A_SPACE & ascii_ctype[c]);
@@ -247,7 +255,6 @@ skip_ascii_blanks(const char *s)
 void ascii_strlower(char *dst, const char *src);
 int ascii_strcasecmp_delimit(const char *a, const char *b,
 		const char *delimit);
-char *ascii_strcasestr(const char *haystack, const char *needle);
 int ascii_strcmp_delimit(const char *a, const char *b, const char *delimit);
 size_t ascii_chomp_trailing_spaces(char *str, size_t len);
 

@@ -129,6 +129,7 @@ static struct random_stats {
 	uint arc4_ignored_threads;			/* Threads using ARC4 with no TEQ */
 	uint cmwc_ignored_threads;			/* Threads using CMWC with no TEQ */
 	uint well_ignored_threads;			/* Threads using WELL with no TEQ */
+	AU64(concurrent_random_add);		/* Thread collisions adding randomness */
 	AU64(input_random_add);				/* Bytes input to random_add() */
 	AU64(input_random_add_pool);		/* Bytes input to random_add_pool() */
 	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
@@ -759,6 +760,7 @@ random_add_pool(void *buf, size_t len)
 	 */
 
 	if (!spinlock_try(&pool_slk)) {
+		RANDOM_STATS_INC(concurrent_random_add);
 		random_add(buf, len);
 		return FALSE;
 	}
@@ -774,7 +776,7 @@ random_add_pool(void *buf, size_t len)
 		 */
 
 		if G_UNLIKELY(idx >= N_ITEMS(data)) {
-			random_add(data, sizeof data);
+			random_add(ARYLEN(data));
 			ZERO(&data);		/* Hide them now */
 			idx = 0;
 			flushed = TRUE;
@@ -858,7 +860,7 @@ random_collect(void)
 
 	spinunlock(&collect_slk);
 
-	random_pool_append(&rbyte, sizeof rbyte);
+	random_pool_append(VARLEN(rbyte));
 }
 
 /**
@@ -1251,9 +1253,10 @@ random_init(void)
 void
 random_stats_digest(sha1_t *digest)
 {
-	RANDOM_STATS_INC(random_stats_digest);
+	uint32 n = entropy_nonce();
 
-	SHA1_COMPUTE(random_stats, digest);
+	RANDOM_STATS_INC(random_stats_digest);
+	SHA1_COMPUTE_NONCE(random_stats, &n, digest);
 }
 
 /**
@@ -1277,6 +1280,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 		uint64_to_string_grp(v, groupped));					\
 } G_STMT_END
 
+	DUMP64(concurrent_random_add);
 	DUMP64(input_random_add);
 	DUMP64(input_random_add_pool);
 	DUMP64(output_random_bytes);

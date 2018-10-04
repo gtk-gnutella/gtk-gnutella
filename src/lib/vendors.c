@@ -37,8 +37,8 @@
 
 #include "ascii.h"
 #include "buf.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"	/* For g_strlcpy() */
 #include "misc.h"
 #include "override.h"	/* Must be the last header included */
 
@@ -168,8 +168,8 @@ find_vendor(uint32 code)
 bool
 is_vendor_known(vendor_code_t code)
 {
-    if (code.u32 == T_0000)
-        return FALSE;
+	if (code.u32 == T_0000)
+		return FALSE;
 
 	return find_vendor(code.u32) != NULL;
 }
@@ -203,7 +203,7 @@ size_t
 vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 {
     if (code == 0) {
-		return g_strlcpy(buf, "null", size);
+		return cstr_bcpy(buf, size, "null");
 	} else {
 		char temp[5];
 		size_t i;
@@ -215,7 +215,7 @@ vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 				temp[i] = '.';
 		}
 		temp[4] = '\0';
-		return g_strlcpy(buf, temp, size);
+		return cstr_bcpy(buf, size, temp);
 	}
 }
 

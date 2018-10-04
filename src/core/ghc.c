@@ -351,7 +351,7 @@ ghc_host_eof(struct parse_context *ctx)
 	 * Provide GUI feedback.
 	 */
 
-	str_bprintf(msg, sizeof(msg),
+	str_bprintf(ARYLEN(msg),
 		NG_("Got %d host from %s", "Got %d hosts from %s", ctx->processed),
 		ctx->processed, http_async_url(ghc_ctx.ha));
 
@@ -369,7 +369,7 @@ ghc_host_eof(struct parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-ghc_data_ind(struct http_async *handle, char *data, int len)
+ghc_data_ind(struct http_async *handle, const char *data, int len)
 {
 	parse_dispatch_lines(handle, data, len, ghc_host_line, ghc_host_eof);
 }
@@ -413,7 +413,7 @@ ghc_pick(void)
 	{
 		char msg[256];
 
-		str_bprintf(msg, sizeof msg, _("Bootstrapping from %s"), url);
+		str_bprintf(ARYLEN(msg), _("Bootstrapping from %s"), url);
 		gcu_statusbar_message(msg);
 	}
 

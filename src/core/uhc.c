@@ -109,7 +109,6 @@ static const struct {
 	/* Peers */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "2.uhc.gtk-gnutella.nl:4876" },
-	{ "uhc.gtk-gnutella.nl:15749" },
 	{ "useast.gnutella.dyslexicfish.net:15321" },
 	{ "uswest.gnutella.dyslexicfish.net:18037" },
 	{ "uk.gnutella.dyslexicfish.net:41481" },
@@ -315,7 +314,7 @@ uhc_pick(void)
 	{
 		char msg[256];
 
-		str_bprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
+		str_bprintf(ARYLEN(msg), _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
 	}
 	success = TRUE;
@@ -399,7 +398,7 @@ uhc_send_ping(void)
 		{
 			char msg[256];
 
-			str_bprintf(msg, sizeof msg,
+			str_bprintf(ARYLEN(msg),
 				_("Sent ping to UDP host cache %s:%u"),
 				uhc_ctx.host, uhc_ctx.port);
 			gcu_statusbar_message(msg);
@@ -617,7 +616,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 		cq_cancel(&uhc_ctx.timeout_ev);
 		uhc_connecting = FALSE;
 
-		str_bprintf(msg, sizeof(msg),
+		str_bprintf(ARYLEN(msg),
 			NG_("Got %d host from UDP host cache %s",
 				"Got %d hosts from UDP host cache %s",
 				cnt),

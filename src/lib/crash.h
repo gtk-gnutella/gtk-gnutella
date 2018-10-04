@@ -124,7 +124,7 @@ G_STMT_START { \
 		print_str_iov_cnt_ = (i); \
 } G_STMT_END
 
-#define getpos_str(i) (print_str_iov_cnt_)
+#define getpos_str() (print_str_iov_cnt_)
 
 /**
  * Print an "unsigned long" as decimal NUL-terminated string into supplied
@@ -228,6 +228,8 @@ void crash_handler(int signo);
 void crash_abort(void) G_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
+void crash_setccdate(const char *date);
+void crash_setcctime(const char *time);
 void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(void);

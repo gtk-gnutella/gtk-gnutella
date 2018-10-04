@@ -68,6 +68,7 @@
 #include "cq.h"
 #include "dump_options.h"
 #include "elist.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "hashlist.h"
@@ -560,6 +561,7 @@ pfree(pool_t *p, void *obj)
 		p->dealloc(obj, p->size, TRUE);
 		POOL_STATS_INCX(p, free_fragments);
 	} else {
+		*(void **) obj = NULL;		/* Clear "slink_t" for eslist_prepend() */
 		eslist_prepend(&p->buffers, obj);
 		if G_UNLIKELY(p->allocated < eslist_count(&p->buffers))
 			p->allocated = eslist_count(&p->buffers);
@@ -873,9 +875,10 @@ void
 palloc_stats_digest(sha1_t *digest)
 {
 	pool_info_t stats;
+	uint32 n = entropy_nonce();
 
 	palloc_all_stats(&stats);
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE_NONCE(stats, &n, digest);
 }
 
 /**

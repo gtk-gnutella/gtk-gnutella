@@ -974,7 +974,7 @@ dht_rpc_store(knode_t *kn, pmsg_t *mb,
 	 * We therefore need to patch the MUID before cloning the message.
 	 */
 
-	kademlia_header_set_muid((void *) pmsg_start(mb), muid);
+	kademlia_header_set_muid((void *) pmsg_phys_base(mb), muid);
 
 	smb = mfree != NULL ? pmsg_clone_extend(mb, mfree, marg) : pmsg_clone(mb);
 	kmsg_send_mb(kn, smb);

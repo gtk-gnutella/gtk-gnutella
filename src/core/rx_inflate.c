@@ -77,7 +77,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = deconstify_pointer(pmsg_read_base(mb));
+	inz->next_in = deconstify_pointer(pmsg_start(mb));
 	inz->avail_in = old_size = pmsg_size(mb);
 
 	if (old_size == 0)
@@ -117,7 +117,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 			size_t n = MIN(UNSIGNED(old_size), (sizeof data - 1) / 2);
 			size_t m;
 
-			m = base16_encode(data, sizeof data - 1, pmsg_read_base(mb), n);
+			m = base16_encode(data, sizeof data - 1, pmsg_start(mb), n);
 			g_assert(m < sizeof data);
 			data[m] = '\0';
 

@@ -206,9 +206,7 @@ header_features_generate(xfeature_t xf, char *dst, size_t len, size_t *rw)
 		if (item->guardfn && !(*item->guardfn)())
 			continue;
 
-		str_bprintf(buf, sizeof buf, "%s/%d.%d",
-			item->name, item->major, item->minor);
-
+		str_bprintf(ARYLEN(buf), "%s/%d.%d", item->name, item->major, item->minor);
 		header_fmt_append_value(fmt, buf);
 	}
 
@@ -270,7 +268,7 @@ header_get_feature(const char *name, const header_t *header,
 	for (;;) {
 		int pc;			/* Previous char */
 
-		buf = ascii_strcasestr(buf, name);
+		buf = vstrcasestr(buf, name);
 
 		if (buf == NULL)
 			return FALSE;
@@ -284,7 +282,7 @@ header_get_feature(const char *name, const header_t *header,
 		 */
 
 		pc = *(buf - 1);
-		buf += strlen(name);
+		buf += vstrlen(name);
 
 		if (*buf != '/')
 			continue;		/* Matched "barcode" when looking for "bar" */

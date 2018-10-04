@@ -452,7 +452,7 @@ rudp_send_syn(struct rudp_con *con)
 			 mb = con->out.buffers[con->out.rd];
 			 g_return_if_fail(mb);
 
-			 rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
+			 rudp_send_packet(con, pmsg_start(mb), pmsg_size(mb));
 		}
 		break;
 	case RUDP_ST_ESTABLISHED:
@@ -684,7 +684,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 				const struct rudp_header *header;
 				uint16 s;
 
-				header = cast_to_constpointer(pmsg_read_base(mb));
+				header = cast_to_constpointer(pmsg_start(mb));
 				s = peek_be16(header->seq_no);
 				if (s == seq_no || s < start) {
 					pmsg_free(mb);
@@ -1137,7 +1137,7 @@ rudp_foreach_pending(void *data, void *unused_udata)
 		tm_now(&now);
 
 		if (tm_elapsed_ms(&now, &con->out.last_event) > 1000) {
-			rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
+			rudp_send_packet(con, pmsg_start(mb), pmsg_size(mb));
 		}
 	}
 }

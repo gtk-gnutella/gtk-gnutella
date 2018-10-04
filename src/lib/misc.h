@@ -89,7 +89,7 @@ g_strip_context(const char *id, const char *val)
 {
 	const char *s;
 
-	s = id != val ? NULL : strchr(id, '|');
+	s = id != val ? NULL : vstrchr(id, '|');
 	return s ? ++s : val;
 }
 #endif /* GLib < 2.4.0 */
@@ -258,7 +258,7 @@ dir_entry_namelen(const struct dirent *dir_entry)
 		return dir_entry->d_namlen;
 #endif	/* HAS_DIRENT_D_NAMLEN */
 
-	return strlen(dir_entry->d_name);
+	return vstrlen(dir_entry->d_name);
 }
 #endif	/* MINGW32 */
 
@@ -284,7 +284,8 @@ size_t common_leading_bits(
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
-char *xml_indent(const char *text);
+char *xml_indent(const char *text, size_t *lenp);
+char *xml_indent_buf(const void *buf, size_t len, size_t *lenp);
 pslist_t *dirlist_parse(const char *dirs);
 char *dirlist_to_string(const pslist_t *pl_dirs);
 
@@ -321,30 +322,7 @@ size_t clamp_strlen(const char *src, size_t src_size);
 static inline size_t
 strsize(const char *src)
 {
-	return strlen(src) + 1;
-}
-
-/**
- * An strcpy() that returns the length of the copied string.
- */
-static inline size_t
-strcpy_len(char *dest, const char *src)
-{
-	const char *p = src;
-	char *q = dest;
-	int c;
-
-	g_assert(dest != NULL);
-
-	if (NULL == src)
-		return 0;
-
-	while ((c = *p++))
-		*q++ = c;
-
-	*q = '\0';
-
-	return q - dest;
+	return vstrlen(src) + 1;
 }
 
 /**

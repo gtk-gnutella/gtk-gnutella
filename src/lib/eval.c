@@ -40,6 +40,7 @@
 
 #include "ascii.h"
 #include "constants.h"
+#include "cstr.h"
 #include "debug.h"
 #include "gethomedir.h"
 #include "glib-missing.h"
@@ -118,7 +119,7 @@ static char *
 insert_value(const char *val, char *start, size_t off,
 	size_t len, size_t maxlen)
 {
-	size_t vlen = strlen(val);
+	size_t vlen = vstrlen(val);
 
 	g_assert(len <= maxlen);
 	g_assert(off <= len);
@@ -159,7 +160,7 @@ eval_subst(const char *str)
 	if (str == NULL)
 		return NULL;
 
-	len = g_strlcpy(buf, str, sizeof buf);
+	len = cstr_lcpy(ARYLEN(buf), str);
 	if (len >= sizeof buf) {
 		g_warning("%s(): string too large for substitution (%zu bytes)",
 			G_STRFUNC, len);
@@ -217,7 +218,7 @@ eval_subst(const char *str)
 	if (common_dbg > 3)
 		g_debug("%s: on exit: \"%s\"", G_STRFUNC, buf);
 
-	g_assert(len == strlen(buf));
+	g_assert(len == vstrlen(buf));
 
 	return constant_str(buf);
 }

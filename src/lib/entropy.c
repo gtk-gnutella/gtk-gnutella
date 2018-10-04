@@ -150,7 +150,7 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
  */
 #define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
 
-#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" after that many uses */
+#define ENTROPY_NONCE_MAX	1023	/* Change "nonce" base after that many uses */
 
 /**
  * Context for the entropy_minirand() routine.
@@ -198,7 +198,7 @@ sha1_feed_string(SHA1_context *ctx, const char *s)
 {
 	sha1_feed_pointer(ctx, s);
 	if (s != NULL) {
-		SHA1_input(ctx, s, strlen(s));
+		SHA1_input(ctx, s, vstrlen(s));
 	}
 }
 
@@ -281,8 +281,8 @@ entropy_merge(sha1_t *digest)
 
 	ENTROPY_PREV_LOCK;
 
-	bigint_use(&older, &entropy_previous, SHA1_RAW_SIZE);
-	bigint_use(&newer, digest, SHA1_RAW_SIZE);
+	bigint_use(&older, VARLEN(entropy_previous));
+	bigint_use(&newer, PTRLEN(digest));
 	bigint_add(&newer, &older);
 	bigint_copy(&older, &newer);
 
@@ -632,8 +632,8 @@ entropy_collect_user(SHA1_context *ctx)
 		char user[UINT32_DEC_BUFLEN];
 		char real[UINT32_DEC_BUFLEN];
 
-		uint32_to_string_buf(entropy_minirand(), user, sizeof user);
-		uint32_to_string_buf(entropy_minirand(), real, sizeof real);
+		uint32_to_string_buf(entropy_minirand(), ARYLEN(user));
+		uint32_to_string_buf(entropy_minirand(), ARYLEN(real));
 		str[1] = user;
 		str[2] = real;
 		entropy_array_string_collect(ctx, str, N_ITEMS(str));
@@ -1285,6 +1285,9 @@ entropy_self_feed_maybe(SHA1_context *ctx)
  *
  * We're collecting changing and contextual data, to be able to compute an
  * initial 160-bit value, which is better than the default zero value.
+ *
+ * @note
+ * As a side effect, this routine seeds a random value into "entropy_previous".
  */
 static void G_COLD
 entropy_seed(struct entropy_minictx *c)
@@ -1454,6 +1457,35 @@ entropy_seed(struct entropy_minictx *c)
 	tm_precise_time(&now);
 	SHA1_INPUT(&ctx, now);
 
+	/*
+	 * Before initializing the KISS PRNG, initialize a random number
+	 * as previous entropy.
+	 *
+	 * This variable is used to perturb the entropy we are generating by
+	 * summing all the entropy we generated so far.  Better seed it with a
+	 * random value that will remain unknown and unpredictable.
+	 *
+	 * We know that this routine will be called once, the first time we need
+	 * a random number during entropy computations, when we call
+	 * entropy_minirand().  At that time, entropy_previous must be zero.
+	 */
+
+	{
+		bigint_t v;
+		bigint_use(&v, VARLEN(entropy_previous));
+		g_assert(bigint_is_zero(&v));
+	}
+
+	SHA1_intermediate(&ctx, &entropy_previous);		/* No need for lock */
+
+	entropy_delay();
+	tm_precise_time(&now);
+	SHA1_INPUT(&ctx, now);		/* Hide value in "entropy_previous" */
+
+	/*
+	 * Now seed the KISS PRNG.
+	 */
+
 	{
 		sha1_t hash;
 		const void *p = &hash;
@@ -1494,8 +1526,8 @@ entropy_fold(sha1_t *digest, size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n < SHA1_RAW_SIZE);
 
-	bigint_use(&v, &result, SHA1_RAW_SIZE);
-	bigint_use(&h, digest, SHA1_RAW_SIZE);
+	bigint_use(&v, VARLEN(result));
+	bigint_use(&h, PTRLEN(digest));
 
 	bigint_zero(&v);
 
@@ -1516,6 +1548,7 @@ struct entropy_ops {
 	void (*ent_collect)(sha1_t *digest);
 	void (*ent_mini_collect)(sha1_t *digest);
 	uint32 (*ent_random)(void);
+	uint32 (*ent_random_safe)(void);
 	void (*ent_fill)(void *buffer, size_t len);
 };
 
@@ -1540,6 +1573,7 @@ entropy_aje_inited(void)
 	entropy_ops.ent_collect      = entropy_aje_collect;
 	entropy_ops.ent_mini_collect = entropy_aje_collect;
 	entropy_ops.ent_random       = aje_rand_strong;
+	entropy_ops.ent_random_safe  = aje_rand_strong;
 	entropy_ops.ent_fill         = aje_random_bytes;
 	atomic_mb();
 }
@@ -1629,6 +1663,17 @@ entropy_do_random(void)
 }
 
 /**
+ * Early fallback for entropy_random_safe() until AJE is up.
+ *
+ * @return 32-bit random number.
+ */
+static uint32
+entropy_do_random_safe(void)
+{
+	return rand31_u32();
+}
+
+/**
  * Fill supplied buffer with random entropy bytes.
  *
  * Memory allocation may happen during this call.
@@ -1710,7 +1755,7 @@ entropy_minimal_collect(sha1_t *digest)
  * allocation).
  *
  * This is a strong random number generator, but it is very slow and should
- * be reserved to low-level initializations, before the ARC4 random number
+ * be reserved to low-level initializations, before the AJE random number
  * has been properly seeded.
  *
  * @note
@@ -1723,6 +1768,25 @@ uint32
 entropy_random(void)
 {
 	return entropy_ops.ent_random();
+}
+
+/**
+ * Random number generation based on entropy collection (without any memory
+ * allocation).
+ *
+ * When AJE has been initialized, this is a strong random number generator.
+ * Otherwise it is a weak one.
+ *
+ * The above means this call is intended to avoid deadly recursions during
+ * early initializations.  This is why this is an internal call and is
+ * not exported.
+ *
+ * @return 32-bit random number.
+ */
+static uint32
+entropy_random_safe(void)
+{
+	return entropy_ops.ent_random_safe();
 }
 
 /**
@@ -1746,6 +1810,7 @@ static struct entropy_ops entropy_ops = {
 	entropy_do_collect,			/* ent_collect */
 	entropy_do_minimal_collect,	/* ent_mini_collect */
 	entropy_do_random,			/* ent_random */
+	entropy_do_random_safe,		/* ent_random_safe */
 	entropy_do_fill,			/* ent_fill */
 };
 
@@ -1753,9 +1818,9 @@ static struct entropy_ops entropy_ops = {
  * Get the entropy nonce, a number used to alter time-based entropy collection
  * in a way that cannot be guessed by an outsider.
  *
- * @return the nonce to use for the session
+ * @return the nonce to use for the session / computation.
  */
-static uint32
+uint32
 entropy_nonce(void)
 {
 	static uint32 base;
@@ -1777,7 +1842,7 @@ entropy_nonce(void)
 		uint32 newbase;
 
 		do {
-			newbase = entropy_random();
+			newbase = entropy_random_safe();
 		} while (0 == newbase);
 
 		spinlock_hidden(&base_slk);

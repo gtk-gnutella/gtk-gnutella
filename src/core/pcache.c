@@ -220,7 +220,7 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 		spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
 		spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
-		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), VARLEN(spp), 0);
 		g_assert(ok);
 
 		/*
@@ -233,8 +233,8 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 
 			ok = ok &&
 				ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
-				ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
-				ggep_stream_write(&gs, &meta->version_ua, 1) &&
+				ggep_stream_write(&gs, ARYLEN(meta->vendor)) &&
+				ggep_stream_write(&gs, VARLEN(meta->version_ua)) &&
 				ggep_stream_end(&gs);
 			g_assert(ok);
 		}
@@ -323,7 +323,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 			spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
 			spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
-			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), VARLEN(spp), 0);
 			g_assert(ok);
 		} else if (!intro || !settings_is_ultra()) {
 			/*
@@ -353,7 +353,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 		char buf[3];
 		poke_u8(&buf[0], (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR);
 		poke_le16(&buf[1], socket_listen_port());
-		ggep_stream_pack(&gs, GGEP_NAME(GUE), buf, sizeof buf, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(GUE), ARYLEN(buf), 0);
 	}
 
 	sz += ggep_stream_close(&gs);
@@ -458,8 +458,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	 */
 
 	if (ipv6_ready_has_no_ipv4(ipv4) && host_addr_is_ipv6(info->addr)) {
-		ggep_stream_pack(&gs, GGEP_NAME(6),
-			info->addr.addr.ipv6, sizeof info->addr.addr.ipv6, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(6), ARYLEN(info->addr.addr.ipv6), 0);
 		ipv6_included = TRUE;
 	}
 
@@ -470,8 +469,8 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	if (meta != NULL) {
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
 			(void) (ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
-			ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
-			ggep_stream_write(&gs, &meta->version_ua, 1) &&
+			ggep_stream_write(&gs, ARYLEN(meta->vendor)) &&
+			ggep_stream_write(&gs, VARLEN(meta->version_ua)) &&
 			ggep_stream_end(&gs));
 		}
 
@@ -506,7 +505,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			uint32 value = MIN(meta->daily_uptime, 86400);
 			uint len;
 
-			len = ggept_du_encode(value, uptime, sizeof uptime);
+			len = ggept_du_encode(value, ARYLEN(uptime));
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
@@ -648,7 +647,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		sectoken_t tok;
 
 		search_query_key_generate(&tok, sender_addr, sender_port);
-		ggep_stream_pack(&gs, GGEP_NAME(QK), tok.v, sizeof tok.v, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(QK), ARYLEN(tok.v), 0);
 	}
 
 	sz += ggep_stream_close(&gs);

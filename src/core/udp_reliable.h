@@ -57,7 +57,7 @@ static inline void
 udp_tag_set(udp_tag_t *tag, const char *str)
 {
 	g_assert(str != NULL);
-	g_assert(3 == strlen(str));
+	g_assert(3 == vstrlen(str));
 
 	memcpy(tag->value, str, 3);
 }

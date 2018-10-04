@@ -465,7 +465,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 	}
 
 	if (kd->values != ki->values) {
-		str_bprintf(buf, sizeof buf, "expected %u value%s, has %u in keydata",
+		str_bprintf(ARYLEN(buf), "expected %u value%s, has %u in keydata",
 			ki->values, plural(ki->values), kd->values);
 		reason = buf;
 		goto discard_key;
@@ -529,12 +529,16 @@ discard_key:
 
 /**
  * Get key status (full and loaded boolean attributes).
+ *
+ * @param id			the key
+ * @param full			where we write whether key is full
+ * @param loaded		where we write whether key is loaded (too many requests)
+ * @param can_expire	where we can expire values from key
  */
 void
-keys_get_status(const kuid_t *id, bool *full, bool *loaded)
+keys_get_status(const kuid_t *id, bool *full, bool *loaded, bool can_expire)
 {
 	struct keyinfo *ki;
-	time_t now;
 
 	g_assert(id);
 	g_assert(full);
@@ -584,11 +588,13 @@ keys_get_status(const kuid_t *id, bool *full, bool *loaded)
 	 * to avoid disabling a `ki' within a call chain using it.
 	 */
 
-	now = tm_time();
+	if (can_expire) {
+		time_t now = tm_time();
 
-	if (now >= ki->next_expire) {
-		if (!keys_expire_values(ki, now))
-			return;		/* Key info reclaimed */
+		if (now >= ki->next_expire) {
+			if (!keys_expire_values(ki, now))
+				return;		/* Key info reclaimed */
+		}
 	}
 
 	if (ki->values >= MAX_VALUES)
@@ -702,7 +708,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 		ki->next_expire = MIN(ki->next_expire, kd->expire[idx]);
 	}
 
-	dbmw_write(db_keydata, id, kd, sizeof *kd);
+	dbmw_write(db_keydata, id, PTRLEN(kd));
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2) {
 		g_debug("DHT STORE key %s now holds only %d/%d value%s, expire in %s",
@@ -754,7 +760,7 @@ keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 		}
 
 		if (found) {
-			dbmw_write(db_keydata, id, kd, sizeof *kd);
+			dbmw_write(db_keydata, id, PTRLEN(kd));
 		} else if (GNET_PROPERTY(dht_keys_debug)) {
 			g_warning("DHT KEYS %s(): creator %s not found under %s",
 				G_STRFUNC, kuid_to_hex_string(cid), kuid_to_hex_string2(id));
@@ -906,7 +912,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 	kd->values++;
 	ki->values++;
 
-	dbmw_write(db_keydata, id, kd, sizeof *kd);
+	dbmw_write(db_keydata, id, PTRLEN(kd));
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE %s key %s now holds %d/%d value%s",
@@ -1122,8 +1128,8 @@ serialize_keydata(pmsg_t *mb, const void *data)
 	pmsg_write_u8(mb, kd->values);
 
 	for (i = 0; i < kd->values; i++) {
-		pmsg_write(mb, &kd->creators[i], sizeof(kd->creators[i]));
-		pmsg_write(mb, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
+		pmsg_write(mb, VARLEN(kd->creators[i]));
+		pmsg_write(mb, VARLEN(kd->dbkeys[i]));
 		pmsg_write_time(mb, kd->expire[i]);
 	}
 }
@@ -1158,8 +1164,8 @@ deserialize_keydata(bstr_t *bs, void *valptr, size_t len)
 	STATIC_ASSERT(N_ITEMS(kd->creators) == N_ITEMS(kd->expire));
 
 	for (i = 0; i < kd->values; i++) {
-		bstr_read(bs, &kd->creators[i], sizeof(kd->creators[i]));
-		bstr_read(bs, &kd->dbkeys[i], sizeof(kd->dbkeys[i]));
+		bstr_read(bs, VARLEN(kd->creators[i]));
+		bstr_read(bs, VARLEN(kd->dbkeys[i]));
 		bstr_read_time(bs, &kd->expire[i]);
 	}
 }
@@ -1518,7 +1524,7 @@ keys_reset_keydata(void *key, void *u_data)
 	(void) u_data;
 
 	ZERO(&kd);
-	dbmw_write(db_keydata, ki->kuid, &kd, sizeof kd);
+	dbmw_write(db_keydata, ki->kuid, VARLEN(kd));
 }
 
 /**

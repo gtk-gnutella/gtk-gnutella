@@ -44,6 +44,8 @@ void entropy_fill(void *buffer, size_t len);
 void entropy_delay(void);
 void entropy_aje_inited();
 
+uint32 entropy_nonce(void);
+
 void entropy_harvest_time(void);
 void entropy_harvest_single(const void *p, size_t len);
 void entropy_harvest_small(

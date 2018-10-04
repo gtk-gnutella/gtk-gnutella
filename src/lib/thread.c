@@ -92,6 +92,7 @@
 #include "constants.h"			/* For constant_str() */
 #include "cq.h"
 #include "crash.h"				/* For crash_hook_add(), print_str() et al. */
+#include "cstr.h"
 #include "dam.h"
 #include "dump_options.h"
 #include "entropy.h"
@@ -99,7 +100,6 @@
 #include "evq.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "log.h"
@@ -110,6 +110,7 @@
 #include "once.h"
 #include "pow2.h"
 #include "pslist.h"
+#include "qlock.h"
 #include "rwlock.h"
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
 #include "sha1.h"
@@ -162,7 +163,6 @@
 #define THREAD_SUSPEND_LOOP			100
 #define THREAD_SUSPEND_DELAY		2000	/* us */
 #define THREAD_SUSPEND_PAUSING		1000000	/* us, 1 sec */
-#define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
 
 /**
  * Amount of stack frames we keep when we capture a backtrace on blocking
@@ -195,8 +195,11 @@ struct thread_backtrace {
 /**
  * This is the maximum amount of time we allow the main thread to block, even
  * if it is configured as non-blocking.
+ *
+ * We need to have a large-enough delay to allow qlocks to block the main
+ * thread if they need to wait for a lock.
  */
-#define THREAD_MAIN_DELAY_MS		5000	/* ms */
+#define THREAD_MAIN_DELAY_MS		20000	/* ms */
 
 /**
  * A recorded lock.
@@ -490,15 +493,19 @@ static struct thread_stats {
 	AU64(locks_mutex_tracked);		/* Amount of tacked mutexes */
 	AU64(locks_rlock_tracked);		/* Amount of tracked read-locks */
 	AU64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	AU64(locks_qlock_tracked);		/* Amount of tracked queuing locks */
 	AU64(locks_spinlock_contention);/* Amount of contentions on spinlocks */
 	AU64(locks_mutex_contention);	/* Amount of contentions on mutex */
 	AU64(locks_rlock_contention);	/* Amount of contentions on read-locks */
 	AU64(locks_wlock_contention);	/* Amount of contentions on write-locks */
+	AU64(locks_qlock_contention);	/* Amount of contentions on queuing locks */
 	AU64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
 	AU64(locks_mutex_sleep);		/* Amount of sleeps done on mutexes */
 	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
+	AU64(locks_qlock_sleep);		/* Amount of sleeps done on queuing locks */
 	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
+	AU64(locks_deadlock_checks);	/* Amount of deadlock checks performed */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
@@ -870,9 +877,9 @@ thread_backtrace_dump_type_fd(int fd,
 
 	tm_now_exact_raw(&now);
 	elapsed = tm_elapsed_ms(&now, &bt->stamp);
-	compact_time_ms_to_buf(elapsed, delta, sizeof delta);
+	compact_time_ms_to_buf(elapsed, ARYLEN(delta));
 
-	str_new_buffer(s, attributes, 0, sizeof attributes);
+	str_new_buffer(s, ARYLEN(attributes), 0);
 	if (te->reusable) {
 		if (te->cancelled) STR_CAT(s, "cancelled");
 		else               STR_CAT(s, "terminated");
@@ -1414,7 +1421,7 @@ thread_element_name_to_buf(const struct thread_element *te,
 			symbolic = te->entry_name;
 
 		if (NULL == symbolic) {
-			pointer_to_string_buf(te->entry, name, sizeof name);
+			pointer_to_string_buf(te->entry, ARYLEN(name));
 			symbolic = name;
 		}
 
@@ -4561,6 +4568,9 @@ thread_wait_others(const struct thread_element *te)
 			if G_UNLIKELY(xte == te)
 				continue;
 
+			if (!xte->valid)
+				continue;
+
 			if (xte->suspended || 0 == thread_element_lock_count(xte))
 				continue;
 
@@ -5004,6 +5014,7 @@ thread_lock_disable(bool silent)
 			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
 		mutex_crash_mode();			/* Allow release of all mutexes */
 		rwlock_crash_mode();
+		qlock_crash_mode();
 	}
 }
 
@@ -5087,6 +5098,9 @@ thread_suspend_others(bool lockwait)
 				continue;
 			}
 
+			if (!xte->valid)
+				continue;
+
 			/* Note: done without a lock on "xte" using an atomic operation */
 			atomic_int_inc(&xte->suspend);
 			n++;
@@ -5130,6 +5144,9 @@ thread_suspend_others(bool lockwait)
 			s_rawwarn("%s(): corrupted thread element #%zu", G_STRFUNC, i);
 			continue;
 		}
+
+		if (!xte->valid)
+			continue;
 
 		if (lockwait) {
 			THREAD_LOCK(xte);
@@ -6429,6 +6446,7 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 	case THREAD_LOCK_SPINLOCK:	return "spinlock";
 	case THREAD_LOCK_RLOCK:		return "rwlock (R)";
 	case THREAD_LOCK_WLOCK:		return "rwlock (W)";
+	case THREAD_LOCK_QLOCK:		return "qlock";
 	case THREAD_LOCK_MUTEX:		return "mutex";
 	}
 
@@ -6501,7 +6519,7 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 		print_str(thread_element_name_raw(te));	/* 0 */
 		print_str(" waiting for ");				/* 1 */
 
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 		type = thread_lock_kind_to_string(l->kind);
 
 		print_str(type);					/* 2 */
@@ -6617,7 +6635,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		bool waited_for;
 
 		type = thread_lock_kind_to_string(l->kind);
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 
 		rewind_str(0);
 
@@ -6651,7 +6669,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
-				if (!mem_is_valid_range(s, sizeof *s)) {
+				if (!mem_is_valid_range(PTRLEN(s))) {
 					print_str(" FREED");			/* 7 */
 				} else if (SPINLOCK_MAGIC != s->magic) {
 					if (SPINLOCK_DESTROYED == s->magic)
@@ -6676,7 +6694,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				char qwbuf[UINT_DEC_BUFLEN];
 				const char *r, *w, *qr, *qw;
 
-				if (!mem_is_valid_range(rw, sizeof *rw)) {
+				if (!mem_is_valid_range(PTRLEN(rw))) {
 					print_str(" FREED");			/* 7 */
 				} else if (RWLOCK_MAGIC != rw->magic) {
 					if (RWLOCK_DESTROYED == rw->magic)
@@ -6708,10 +6726,55 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				const qlock_t *q = l->lock;
+
+				if (!mem_is_valid_range(q, sizeof *q)) {
+					print_str(" FREED");			/* 7 */
+				} else if (!qlock_magic_is_good(q)) {
+					if (QLOCK_DESTROYED == q->magic)
+						print_str(" DESTROYED");	/* 7 */
+					else
+						print_str(" BAD_MAGIC");	/* 7 */
+				} else {
+					if (QLOCK_RECURSIVE_MAGIC == q->magic)
+						print_str(" recursive");	/* 7 */
+					else
+						print_str(" plain");	/* 7 */
+					if (0 == q->held)
+						print_str(" UNLOCKED");	/* 8 */
+					else if (q->held != 1)
+						print_str(" BAD_LOCK");	/* 8 */
+					if (q->stid != te->stid)
+						print_str(" BAD_STID");	/* 9 */
+
+					print_str(" from ");		/* 10 */
+					lnum = PRINT_NUMBER(line, l->line);
+					print_str(l->file);			/* 11 */
+					print_str(":");				/* 12 */
+					print_str(lnum);			/* 13 */
+
+					if (QLOCK_RECURSIVE_MAGIC == q->magic) {
+						if (0 == q->depth) {
+							print_str(" BAD_DEPTH");	/* 14 */
+						} else {
+							char depth[ULONG_DEC_BUFLEN];
+							const char *dnum;
+
+							dnum = PRINT_NUMBER(depth, q->depth);
+							print_str(" (depth=");		/* 15 */
+							print_str(dnum);			/* 16 */
+							print_str(")");				/* 17 */
+						}
+					}
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
-				if (!mem_is_valid_range(m, sizeof *m)) {
+				if (!mem_is_valid_range(PTRLEN(m))) {
 					print_str(" FREED");			/* 7 */
 				} else if (MUTEX_MAGIC != m->magic) {
 					if (MUTEX_DESTROYED == m->magic)
@@ -6870,6 +6933,12 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 			rwlock_wungrab(w);
 		}
 		return TRUE;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			return qlock_ungrab(q);
+		}
+		g_assert_not_reached();
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7000,6 +7069,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		case THREAD_LOCK_WLOCK:
 			THREAD_STATS_INCX(locks_wlock_sleep);
 			break;
+		case THREAD_LOCK_QLOCK:
+			THREAD_STATS_INCX(locks_qlock_sleep);
+			break;
 		}
 	}
 
@@ -7027,6 +7099,9 @@ thread_lock_contention(enum thread_lock_kind kind)
 		break;
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_contention);
+		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_contention);
 		break;
 	}
 }
@@ -7229,6 +7304,13 @@ thread_lock_reacquire(
 			rwlock_wgrab(w, file, line, FALSE);
 		}
 		goto done;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			qlock_grab(q, file, line);
+			g_assert(QLOCK_PLAIN_MAGIC == q->magic || 1 == q->depth);
+		}
+		goto done;
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7287,6 +7369,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		break;
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_tracked);
+		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_tracked);
 		break;
 	}
 
@@ -7734,6 +7819,23 @@ thread_lock_holds(const volatile void *lock)
 size_t
 thread_lock_held_count(const void *lock)
 {
+	return thread_lock_held_count_as(lock, THREAD_LOCK_ANY);
+}
+
+/**
+ * Counts how many times current thread holds lock of a given kind.
+ *
+ * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
+ * kind: we simply look whether the lock address is registered.
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param kind		kind of lock (useful for multiform locks like rwlocks)
+ *
+ * @return amount of times a lock is held by the current thread.
+ */
+size_t
+thread_lock_held_count_as(const void *lock, enum thread_lock_kind kind)
+{
 	struct thread_element *te = thread_get_element();
 	struct thread_lock_stack *tls;
 	unsigned i;
@@ -7747,8 +7849,10 @@ thread_lock_held_count(const void *lock)
 	for (i = 0; i < tls->count; i++) {
 		const struct thread_lock *l = &tls->arena[i];
 
-		if G_UNLIKELY(l->lock == lock)
-			count++;
+		if G_UNLIKELY(l->lock == lock) {
+			if (THREAD_LOCK_ANY == kind || l->kind == kind)
+				count++;
+		}
 	}
 
 	return count;
@@ -7846,7 +7950,7 @@ thread_assert_no_locks(const char *routine)
  * Find who owns a lock, and what kind of lock it is.
  *
  * @param lock		the lock address
- * @param kind		where type of lock is written, if owner found
+ * @param kind		where type of lock is written, if owner found and non-NULL
  *
  * @return thread owning a lock, NULL if we can't find it.
  */
@@ -7870,7 +7974,8 @@ thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 			const struct thread_lock *l = &tls->arena[j];
 
 			if (l->lock == lock) {
-				*kind = l->kind;
+				if (kind != NULL)
+					*kind = l->kind;
 				return te;
 			}
 		}
@@ -8015,7 +8120,7 @@ thread_lock_deadlock(const volatile void *lock)
 		char buf[128];
 		const char *name = thread_element_name_raw(towner);
 
-		g_strlcpy(buf, name, sizeof buf);
+		cstr_lcpy(ARYLEN(buf), name);
 
 		s_rawwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name_raw(te),
@@ -8073,7 +8178,7 @@ thread_element_clear_locks(struct thread_element *te)
 				spinlock_t *s = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(s, sizeof *s) &&
+					mem_is_valid_range(PTRLEN(s)) &&
 					SPINLOCK_MAGIC == s->magic &&
 					1 == s->lock
 				) {
@@ -8088,7 +8193,7 @@ thread_element_clear_locks(struct thread_element *te)
 				rwlock_t *rw = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(rw, sizeof *rw) &&
+					mem_is_valid_range(PTRLEN(rw)) &&
 					RWLOCK_MAGIC == rw->magic &&
 					(0 != rw->readers || 0 != rw->writers || 0 != rw->waiters)
 				) {
@@ -8097,12 +8202,26 @@ thread_element_clear_locks(struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				qlock_t *q = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(q, sizeof *q) &&
+					qlock_magic_is_good(q) &&
+					1 == q->held
+				) {
+					unlocked = TRUE;
+					qlock_reset(q);
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				mutex_t *m = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(m, sizeof *m) &&
+					mem_is_valid_range(PTRLEN(m)) &&
 					MUTEX_MAGIC == m->magic &&
 					1 == m->lock.lock
 				) {
@@ -8118,9 +8237,9 @@ thread_element_clear_locks(struct thread_element *te)
 			char buf[POINTER_BUFLEN];
 			DECLARE_STR(10);
 
-			pointer_to_string_buf(l->lock, buf, sizeof buf);
+			pointer_to_string_buf(l->lock, ARYLEN(buf));
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);				/* 0 */
 			print_str(" WARNING: unlocked ");	/* 1 */
 			print_str(type);					/* 2 */
@@ -8229,7 +8348,7 @@ thread_forked(void)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		print_str(" WARNING: ");							/* 1 */
 		print_str(G_STRFUNC);								/* 2 */
@@ -8550,7 +8669,7 @@ thread_was_in_syscall(int *stid)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
+ * The thread should not be holding any locks since it could cause deadlocks.
  * The main thread cannot block itself either since it runs the callout queue.
  *
  * When this routine returns, the thread has been either successfully unblocked
@@ -8800,9 +8919,21 @@ retry:
 		bool limited_blocking = FALSE;
 
 		atomic_uint_dec(&te->signalled);	/* Consumed one signaling byte */
+
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
+
+		/*
+		 * For qlock support, which can request blocking even though the
+		 * thread already holds some locks, we need to check that we do
+		 * not have any locks.  If we do, this implicitly blocks all signals.
+		 *		--RAM, 2016-06-19
+		 */
+
+		if (0 != thread_element_lock_count(te))
+			goto check_unblocked;
+
 		THREAD_UNLOCK(te);
 
 		/*
@@ -8838,6 +8969,8 @@ retry:
 		}
 
 		THREAD_LOCK(te);
+
+	check_unblocked:
 		/*
 		 * Since we reset te->blocked to FALSE earlier before dispatching
 		 * the signals, we need to recheck for the event count now to see
@@ -8943,8 +9076,13 @@ thread_block_self(unsigned events)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
- * The main thread cannot block itself either since it runs the callout queue.
+ * When no timeout is specified, the thread must not be holding any locks
+ * since it could cause deadlocks.  If a timeout is specified, it must be
+ * strictly less than THREAD_SUSPEND_TIMEOUT seconds when locks are already
+ * held.
+ *
+ * The main thread cannot block itself either for too long since it runs the
+ * callout queue, but that is up to thread_element_block_until() to check.
  *
  * When this routine returns, the thread has either been successfully unblocked
  * and is resuming its execution normally or the timeout expired.
@@ -8963,7 +9101,8 @@ thread_timed_block_self(unsigned events, const tm_t *tmout)
 	struct thread_element *te = thread_get_element();
 	tm_t end;
 
-	thread_assert_no_locks(G_STRFUNC);
+	if (NULL == tmout || tmout->tv_sec > THREAD_SUSPEND_TIMEOUT)
+		thread_assert_no_locks(G_STRFUNC);
 
 	if (tmout != NULL) {
 		tm_now_exact(&end);
@@ -11817,6 +11956,199 @@ thread_interrupt(uint id, process_fn_t cb, void *arg,
 }
 
 /**
+ * Perform deadlock detection for registered locks (i.e. those not hidden).
+ *
+ * Formal detection is costly and is run in one thread with all the others
+ * being asked to suspend (so that we can get a frozen picture of the locks
+ * being held and waited for).
+ *
+ * The idea is to perform a topological sort of an oriented graph Ti -> Tj,
+ * where the edge between Ti and Tj means that thread #j is waiting for a
+ * lock currently owned by thread #i.  It follows that Ti must run before
+ * Tj can, so the arrow direction represents a partial ordering of threads,
+ * with a -> b meaning that a is "greater" than b and must therefore run first.
+ *
+ * If we cannot achieve a proper topological sort of the resulting graph, it
+ * means there is a deadlock and then we can dump all the lock information for
+ * the threads involved with the deadlock, which will be part of at least one
+ * cycle.
+ *
+ * Because the deadlock detection code can run in the presence of a deadlock,
+ * its code must rely on as little layers as possible, given that low-level
+ * layers such as memory allocators are using locks and could be already part
+ * of a deadlock situation.
+ *
+ * When a deadlock condition is detected, we abort execution after dumping
+ * some relevant information.
+ *
+ * @param lock		the lock being waited for by the current thread
+ * @param file		file where lock is being grabbed from
+ * @param line		line within the file
+ */
+void
+thread_deadlock_check(const volatile void *lock, const char *file, uint line)
+{
+	static spinlock_t thread_deadlock_slk = SPINLOCK_INIT;
+	struct {
+		uint value[THREAD_MAX];			/* item is the small ID of thread */
+		uint count;						/* amount of outsiders stored */
+	} outsiders;
+	uint64 precursors[THREAD_MAX];		/* value is a bitmask of threads */
+	int i;
+	bool deadlock = FALSE;
+
+	STATIC_ASSERT(THREAD_MAX <= 8 * sizeof(uint64));
+
+	THREAD_STATS_INCX(locks_deadlock_checks);
+
+	/*
+	 * Request that other threads be suspended and then grab the spinlock.
+	 *
+	 * This ensures that other threads will stop their processing and that
+	 * no two threads which would detect a possible deadlock at the same time
+	 * can perform the check.
+	 */
+
+	thread_suspend_others(FALSE);		/* Advisory, don't wait for them */
+
+	ZERO(&outsiders);
+	ZERO(&precursors);
+
+	spinlock_raw(&thread_deadlock_slk);
+
+	/*
+	 * Build the precursors and the outsiders.
+	 *
+	 * If there exists a Ti -> Tj relationship, then pred(Tj) = Ti.
+	 *
+	 * Outsiders are Ti elements which have no precursors and are stored
+	 * in the outsiders structure.
+	 *
+	 * Precursors of a thread are stored as a bit in precursors[]. For
+	 * instance, if thread #4 is a predecessor of the current item, then
+	 * its bit #4 is set to 1.  If precursors[i] is 0, then Ti has no
+	 * precursors and is therefore an outsider.
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		struct thread_element *te = threads[i];
+		struct thread_lock_stack *tlocks =  &te->locks;
+		struct thread_lock_stack *twaits =  &te->waits;
+		uint64 mask;
+		size_t j;
+
+		if (NULL == te)
+			continue;
+
+		/*
+		 * Threads waiting for no locks are necessarily outsiders: they
+		 * have no precursor and can run without constraint.
+		 *
+		 * An outsider with no locks held is not influencing the cycle
+		 * detection and is therefore irrelevant for our computation: we
+		 * simply skip it.
+		 */
+
+		if (0 == twaits->count) {
+			if (0 != tlocks->count) {
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+			continue;
+		}
+
+		/*
+		 * This thread is waiting for some locks.  Usually it will wait for
+		 * just one, but because it can invoke code whilst it is waiting and
+		 * that code can also require locks, it can create a stack of waited
+		 * locks.
+		 *
+		 * Calling thread_lock_owner(), which performs a linear probe of all
+		 * the locks registered by all the threads is sub-optimal.
+		 *
+		 * However, since the deadlock detection code is only invoked when we
+		 * are stuck waiting on a low-level lock such as a spinlock or a mutex,
+		 * we are probably alreay stuck waiting and having "slow" code check
+		 * whether we are indeed deadlocked is not a problem.
+		 */
+
+		mask = 0;
+
+		for (j = 0; j < twaits->count; j++) {
+			struct thread_element *towner;
+
+			towner = thread_lock_owner(twaits->arena[j].lock, NULL);
+			if (towner != NULL)
+				mask |= (uint64) 1U << towner->stid;
+		}
+
+		precursors[i] = mask;		/* Set of precursors for thread #i */
+
+		if (0 == mask) {
+			g_assert(outsiders.count < N_ITEMS(outsiders.value));
+			outsiders.value[outsiders.count++] = i;
+		}
+	}
+
+	/*
+	 * Now remove all the outsiders, updating the precursors as we remove
+	 * them by clearing their corresponding bit in each entry.
+	 */
+
+	while (outsiders.count != 0) {
+		uint removed = outsiders.value[--outsiders.count];
+		uint64 mask = ~((uint64) 1U << removed);
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			if (0 == precursors[i])
+				continue;			/* Already an outsider */
+			precursors[i] &= mask;
+			if (0 == precursors[i]) {
+				/* Becomes a new outsider */
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+		}
+	}
+
+	/*
+	 * The topological sort is completed.  If there are entries in
+	 * precursors[] with a non-zero value, it means there are cycles
+	 * and therefore we have a deadlock situation!
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i]) {
+			deadlock = TRUE;
+			break;
+		}
+	}
+
+	if (!deadlock) {
+		spinunlock_raw(&thread_deadlock_slk);
+		thread_unsuspend_others();
+		return;
+	}
+
+	/*
+	 * Deadlock found!
+	 */
+
+	s_rawwarn("deadlock found whilst waiting on %p at %s:%u", lock, file, line);
+	s_miniinfo("dumping lock stack of involved threads:");
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i])
+			thread_lock_dump(threads[i]);
+	}
+
+	s_miniinfo("end of involved threads.");
+
+	thread_lock_deadlock(lock);
+	s_error("deadlocked at %s:%u", file, line);
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
@@ -11843,7 +12175,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
 	info->locks = thread_element_lock_count(te);
-	info->private_vars = NULL == te->pht ? 0 : hash_table_size(te->pht);
+	info->private_vars = NULL == te->pht ? 0 : hash_table_count(te->pht);
 	info->local_vars = thread_local_count(te);
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
@@ -11926,9 +12258,9 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 	} else {
 		char entry[128];
 		if (info->main_thread) {
-			str_bprintf(entry, sizeof entry, " main()");
+			str_bprintf(ARYLEN(entry), " main()");
 		} else if (info->entry != NULL) {
-			str_bprintf(entry, sizeof entry, " %s()",
+			str_bprintf(ARYLEN(entry), " %s()",
 				stacktrace_function_name(info->entry));
 		} else {
 			entry[0] = '\0';
@@ -11958,13 +12290,14 @@ void
 thread_stats_digest(sha1_t *digest)
 {
 	struct thread_stats t;
+	uint32 n = entropy_nonce();
 
 	THREAD_STATS_INCX(thread_stats_digest);
 
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
-	SHA1_COMPUTE(t, digest);
+	SHA1_COMPUTE_NONCE(t, &n, digest);
 }
 
 /**
@@ -12018,15 +12351,19 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_mutex_tracked);
 	DUMP64(locks_rlock_tracked);
 	DUMP64(locks_wlock_tracked);
+	DUMP64(locks_qlock_tracked);
 	DUMP64(locks_spinlock_contention);
 	DUMP64(locks_mutex_contention);
 	DUMP64(locks_rlock_contention);
 	DUMP64(locks_wlock_contention);
+	DUMP64(locks_qlock_contention);
 	DUMP64(locks_spinlock_sleep);
 	DUMP64(locks_mutex_sleep);
 	DUMP64(locks_rlock_sleep);
 	DUMP64(locks_wlock_sleep);
+	DUMP64(locks_qlock_sleep);
 	DUMP64(locks_nested_sleeps);
+	DUMP64(locks_deadlock_checks);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);
@@ -12189,7 +12526,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		const struct thread_lock *l = &te->locks.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "lock[%03u]", i);
+		str_bprintf(ARYLEN(buf), "lock[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12198,7 +12535,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		const struct thread_lock *l = &te->waits.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "wait[%03u]", i);
+		str_bprintf(ARYLEN(buf), "wait[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12223,7 +12560,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		if (NULL != te->sigh[i]) {
 			char buf[10];
 
-			str_bprintf(buf, sizeof buf, "sigh[%02u]", i);
+			str_bprintf(ARYLEN(buf), "sigh[%02u]", i);
 			if (TSIG_IGN == te->sigh[i]) {
 				DUMPL("%s", buf, "IGN");
 			} else {

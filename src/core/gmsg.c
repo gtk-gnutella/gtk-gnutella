@@ -343,7 +343,7 @@ gmsg_split_to_deflated_pmsg(const void *head, const void *data, uint32 size)
 	{
 		void *header;
 
-		header = pmsg_start(mb);
+		header = pmsg_phys_base(mb);
 		gnutella_header_set_ttl(header,
 			gnutella_header_get_ttl(header) | GTA_UDP_DEFLATED);
 		gnutella_header_set_size(header, deflated_length);
@@ -479,10 +479,10 @@ gmsg_split_to_pmsg_extend(const void *head, const void *data,
 void
 gmsg_mb_sendto_all(const pslist_t *sl, pmsg_t *mb)
 {
-	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(pmsg_phys_base(mb), pmsg_written_size(mb));
 
-	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
-		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_phys_base(mb)) == 0)
+		gmsg_dump(stdout, pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *dn = sl->data;
@@ -504,13 +504,13 @@ gmsg_mb_routeto_one(const gnutella_node_t *from,
 {
 	g_assert(!NODE_TALKS_G2(to));
 	g_assert(!pmsg_was_sent(mb));
-	gmsg_header_check(cast_to_constpointer(pmsg_start(mb)), pmsg_size(mb));
+	gmsg_header_check(pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	if (!NODE_IS_WRITABLE(to))
 		return;
 
-	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_start(mb)) == 0)
-		gmsg_dump(stdout, pmsg_start(mb), pmsg_size(mb));
+	if (GNET_PROPERTY(gmsg_debug) > 5 && gmsg_hops(pmsg_phys_base(mb)) == 0)
+		gmsg_dump(stdout, pmsg_phys_base(mb), pmsg_written_size(mb));
 
 	if (NODE_IS_UDP(to)) {
 		gnet_host_t host;
@@ -893,7 +893,7 @@ static bool
 gmsg_query_can_send(const pmsg_t *mb, const void *q)
 {
 	gnutella_node_t *n = mq_node(q);
-	const void *msg = pmsg_start(mb);
+	const void *msg = pmsg_phys_base(mb);
 
 	g_assert(GTA_MSG_SEARCH == gnutella_header_get_function(msg));
 
@@ -923,10 +923,10 @@ gmsg_query_can_send(const pmsg_t *mb, const void *q)
 void
 gmsg_install_presend(pmsg_t *mb)
 {
-	const void *msg = pmsg_start(mb);
+	const void *msg = pmsg_phys_base(mb);
 
 	if (GTA_MSG_SEARCH == gnutella_header_get_function(msg)) {
-		pmsg_set_check(mb, gmsg_query_can_send);
+		pmsg_set_send_callback(mb, gmsg_query_can_send);
 	}
 }
 
@@ -1121,7 +1121,7 @@ gmsg_mq_queries(void)
 	gnutella_header_set_hops(header, 1);
 	gnutella_header_set_ttl(header, GNET_PROPERTY(max_ttl));
 
-	iovec_set(t->vec, header, sizeof *header);
+	iovec_set(t->vec, PTRLEN(header));
 
 	/*
 	 * Whether or not this header template will let the queue make enough
@@ -1371,7 +1371,7 @@ gmsg_infostr_full_split(const void *head, const void *data, size_t data_len)
 {
 	static char buf[180];
 
-	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
+	gmsg_infostr_full_split_to_buf(head, data, data_len, ARYLEN(buf));
 	return buf;
 }
 
@@ -1386,7 +1386,7 @@ const char *
 gmsg_infostr(const void *msg)
 {
 	static char buf[96];
-	gmsg_infostr_to_buf(msg, buf, sizeof buf);
+	gmsg_infostr_to_buf(msg, ARYLEN(buf));
 	return buf;
 }
 
@@ -1417,15 +1417,15 @@ gmsg_node_infostr(const gnutella_node_t *n)
 	size_t w;
 
 	if (NODE_TALKS_G2(n)) {
-		w = g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		w = g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 		hops = 1;
 	} else {
-		w = gmsg_infostr_to_buf(&n->header, buf, sizeof buf);
+		w = gmsg_infostr_to_buf(&n->header, ARYLEN(buf));
 		hops = gnutella_header_get_hops(n->header);
 	}
 
 	if (hops <= 1)
-		str_bprintf(&buf[w], sizeof buf - w, " //%s//", node_infostr(n));
+		str_bprintf(ARYPOSLEN(buf, w), " //%s//", node_infostr(n));
 
 	return buf;
 }
@@ -1441,14 +1441,14 @@ gmsg_log_split_dropped(
 	char rbuf[256];
 	char buf[128];
 
-	gmsg_infostr_full_split_to_buf(head, data, data_len, buf, sizeof buf);
+	gmsg_infostr_full_split_to_buf(head, data, data_len, ARYLEN(buf));
 
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1467,10 +1467,9 @@ gmsg_log_dropped(const gnutella_node_t *n, const char *reason, ...)
 	char buf[128];
 
 	if (NODE_TALKS_G2(n)) {
-		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 	} else {
-		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size,
-			buf, sizeof buf);
+		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size, ARYLEN(buf));
 	}
 
 	if (reason) {
@@ -1478,7 +1477,7 @@ gmsg_log_dropped(const gnutella_node_t *n, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1497,10 +1496,9 @@ gmsg_log_duplicate(const gnutella_node_t *n, const char *reason, ...)
 	char buf[160];
 
 	if (NODE_TALKS_G2(n)) {
-		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 	} else {
-		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size,
-			buf, sizeof buf);
+		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size, ARYLEN(buf));
 	}
 
 	if (reason) {
@@ -1508,7 +1506,7 @@ gmsg_log_duplicate(const gnutella_node_t *n, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1526,15 +1524,15 @@ gmsg_log_dropped_pmsg(const pmsg_t *mb, const char *reason, ...)
 	char rbuf[256];
 	char buf[128];
 
-	gmsg_infostr_full_to_buf(pmsg_start(mb), pmsg_written_size(mb),
-		buf, sizeof buf);
+	gmsg_infostr_full_to_buf(pmsg_phys_base(mb), pmsg_written_size(mb),
+		ARYLEN(buf));
 
 	if (reason) {
 		va_list args;
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -1553,10 +1551,9 @@ gmsg_log_bad(const gnutella_node_t *n, const char *reason, ...)
 	char buf[128];
 
 	if (NODE_TALKS_G2(n)) {
-		g2_msg_infostr_to_buf(n->data, n->size, buf, sizeof buf);
+		g2_msg_infostr_to_buf(n->data, n->size, ARYLEN(buf));
 	} else {
-		gmsg_infostr_full_split_to_buf(
-			&n->header, n->data, n->size, buf, sizeof buf);
+		gmsg_infostr_full_split_to_buf(&n->header, n->data, n->size, ARYLEN(buf));
 	}
 
 	if (reason) {
@@ -1564,7 +1561,7 @@ gmsg_log_bad(const gnutella_node_t *n, const char *reason, ...)
 		va_start(args, reason);
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, reason, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), reason, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';

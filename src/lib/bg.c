@@ -271,6 +271,7 @@ bg_task_is_daemon(const bgtask_t * const bt)
  * Operating flags.
  */
 enum {
+	TASK_F_USERMODE		= 1 << 8,	/**< Task is in "user" mode, running code */
 	TASK_F_CANCELLING	= 1 << 7,	/**< Task handling cancel request */
 	TASK_F_DAEMON		= 1 << 6,	/**< Task is a daemon */
 	TASK_F_RUNNABLE		= 1 << 5,	/**< Task is runnable */
@@ -572,13 +573,13 @@ bgstatus_to_string(bgstatus_t status)
 }
 
 /**
- * Assert that a background task is currently running.
+ * Assert that a background task is currently running in "user" mode.
  */
 static void
 bg_task_is_running(bgtask_t *bt, const char *routine)
 {
-	g_assert_log(bt->flags & TASK_F_RUNNING,
-		"%s(): task %p \"%s\" must be running to call %s(), flags=0x%x",
+	g_assert_log(bt->flags & (TASK_F_RUNNING | TASK_F_USERMODE),
+		"%s(): task %p \"%s\" must be in user mode to call %s(), flags=0x%x",
 		G_STRFUNC, bt, bt->name, routine, bt->flags);
 }
 
@@ -1474,11 +1475,11 @@ bg_task_terminate(bgtask_t *bt)
 	BG_SCHED_LOCK(bs);
 
 	/*
-	 * If the task is running, we can't proceed now,
+	 * If the task is running in user mode, we can't proceed now,
 	 * Go back to the scheduler, which will call us back.
 	 */
 
-	if (bt->flags & TASK_F_RUNNING) {
+	if (bt->flags & TASK_F_USERMODE) {
 		BG_SCHED_UNLOCK(bs);
 		longjmp(bt->env, BG_JUMP_END);
 		g_assert_not_reached();
@@ -1494,13 +1495,15 @@ bg_task_terminate(bgtask_t *bt)
 			bt->wtime, short_time_ascii(bt->wtime / 1000));
 	}
 
-	g_assert(!(bt->flags & TASK_F_RUNNING));
+	g_assert(!(bt->flags & TASK_F_USERMODE));
 
 	if (bt->flags & TASK_F_SLEEPING)
 		bg_sched_wakeup(bt);
 
 	bt->flags |= TASK_F_EXITED;		/* Task has now exited */
-	bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
+
+	if (bt->flags & TASK_F_RUNNABLE)	/* In runq */
+		bg_sched_remove(bt);			/* Ensure it's no longer scheduled */
 
 	g_assert_log(bs->runcount != 0,
 		"%s(): terminating unaccounted %stask %p \"%s\" in %s scheduler, "
@@ -2099,7 +2102,7 @@ void
 bg_task_cancel_test(bgtask_t *bt)
 {
 	bg_task_check(bt);
-	g_assert(bt->flags & TASK_F_RUNNING);
+	g_assert(bt->flags & (TASK_F_RUNNING | TASK_F_USERMODE));
 
 	if G_UNLIKELY(bt->uflags & TASK_UF_CANCELLED) {
 		/*
@@ -2265,17 +2268,27 @@ bg_sched_timer(void *arg)
 				G_STRFUNC, bt->name, thread_name(),
 				thread_id_name(bt->sched->stid));
 
+			/*
+			 * Clear user mode: we are back from longjmp() and are therefore
+			 * running in "kernel" mode, since we no longer run user code.
+			 */
+
+			BG_TASK_LOCK(bt);
+			bt->flags &= ~TASK_F_USERMODE;
+			bt->uflags |= TASK_UF_NOTICK;	/* No longer needed: killing it */
+			BG_TASK_UNLOCK(bt);
+
+			/*
+			 * Suspend current task.
+			 */
+
+			bg_task_switch(bs, NULL, target);
+
 			if (BG_JUMP_CANCEL == status) {
 				g_assert(bt->uflags & TASK_UF_CANCELLED);
 				bg_task_cancel(bt);
 				continue;
 			}
-
-			BG_TASK_LOCK(bt);
-			bt->uflags |= TASK_UF_NOTICK;
-			BG_TASK_UNLOCK(bt);
-
-			bg_task_switch(bs, NULL, target);
 
 			if (bg_debug > 0 && remain < bt->elapsed) {
 				s_debug("%s: scheduler \"%s\" remain=%'d us, bt->elapsed=%'d us",
@@ -2285,6 +2298,20 @@ bg_sched_timer(void *arg)
 			bg_task_terminate(bt);
 			continue;
 		}
+
+		/*
+		 * Flag task as being now in "user" mode.
+		 *
+		 * We are running under the setjmp() protection and we can therefore
+		 * call bg_task_exit() and other routines from "user" mode.
+		 *
+		 * In other words, we are now mostly supposed to run the user code
+		 * that makes up the background task.
+		 */
+
+		BG_TASK_LOCK(bt);
+		bt->flags |= TASK_F_USERMODE;
+		BG_TASK_UNLOCK(bt);
 
 		/*
 		 * Run the next step.
@@ -2330,6 +2357,14 @@ bg_sched_timer(void *arg)
 		g_assert(bt->step < bt->stepcnt);
 
 		ret = (*bt->stepvec[bt->step])(bt, bt->ucontext, ticks);
+
+		/*
+		 * We stopped running the task, we're now in "kernel" mode.
+		 */
+
+		BG_TASK_LOCK(bt);
+		bt->flags &= ~TASK_F_USERMODE;
+		BG_TASK_UNLOCK(bt);
 
 		/* Stop current task, update stats */
 		bg_task_switch(bs, NULL, target);

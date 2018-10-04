@@ -111,7 +111,7 @@ selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 	} else {
 		size_t len;
 
-		len = text ? strlen(text) : 0;
+		len = text ? vstrlen(text) : 0;
 		len = len < INT_MAX ? len : 0;
 		gtk_selection_data_set_text(data, text, len);
 	}
@@ -129,7 +129,7 @@ selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 
 	(void) uri_list;
 	/* FIXME: Figure out how to support text/uri-list with Gtk+ 1.2 */
-	len = text ? strlen(text) : 0;
+	len = text ? vstrlen(text) : 0;
 	len = len < INT_MAX ? len : 0;
    	gtk_selection_data_set(data, GDK_SELECTION_TYPE_STRING, 8 /* CHAR_BIT */,
 		cast_to_gconstpointer(text), len);

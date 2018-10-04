@@ -157,6 +157,8 @@ void [=(. func-prefix)=]_set_guint32(
 guint32 *[=(. func-prefix)=]_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
+void [=(. func-prefix)=]_reset(property_t);
+
 static inline void
 [=(. func-prefix)=]_set_guint32_val(property_t p, guint32 value)
 {
@@ -388,7 +390,7 @@ static const [=  (. vtype)=][=(. item)=]_default[[=vector_size=]] = [=(. vdef)=]
 static const [=  (. vtype)=][=(. item)=]_default = [=(. vdef)=];[=
         ENDIF=][=
     IF (= (get "type") "multichoice")=]
-prop_def_choice_t [=(. item)=]_choices[] = {[=
+static const prop_def_choice_t [=(. item)=]_choices[] = {[=
             FOR choice =]
     {N_("[=name=]"), [=value=]},[=
             ENDFOR choice =]
@@ -585,15 +587,15 @@ void G_COLD
 
     htable_free_null(&[=(. prop-set)=]->by_name);
 
-    for (n = 0; n < [=(. prop-num)=]; n ++) {
-        if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
+	for (n = 0; n < [=(. prop-num)=]; n ++) {
+		if ([=(. prop-set)=]->props[n].type == PROP_TYPE_STRING) {
 			char **p = [=(. prop-array)=][n].data.string.value;
-            struct event *e = [=(. prop-array)=][n].ev_changed;
-	    G_FREE_NULL(*p);
-            if (e)
-                event_destroy(e);
-        }
-    }
+			struct event *e = [=(. prop-array)=][n].ev_changed;
+		G_FREE_NULL(*p);
+		if (e)
+			event_destroy(e);
+		}
+	}
 
 	/*
 	 * We don't free [=(. prop-array)=] and [=(. prop-set)=].
@@ -762,6 +764,12 @@ gpointer
 [=(. func-prefix)=]_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage([=(. prop-set)=], p, t, l);
+}
+
+void
+[=(. func-prefix)=]_reset(property_t prop)
+{
+    prop_reset([=(. prop-set)=], prop);
 }
 
 const char *

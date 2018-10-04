@@ -360,7 +360,7 @@ ostream_printf(ostream_t *os, const char *fmt, ...)
 	va_start(args, fmt);
 
 	VA_COPY(args2, args);
-	len = str_vbprintf(buf, sizeof buf, fmt, args2);
+	len = str_vbprintf(ARYLEN(buf), fmt, args2);
 	va_end(args2);
 
 	if (len >= sizeof buf - 1) {
@@ -391,7 +391,7 @@ ostream_putc(ostream_t *os, int c)
 	ostream_check(os);
 
 	buf[0] = c & 0xff;
-	return ostream_write(os, buf, sizeof buf);
+	return ostream_write(os, ARYLEN(buf));
 }
 
 /**
@@ -404,7 +404,7 @@ ostream_puts(ostream_t *os, const char *s)
 {
 	ostream_check(os);
 
-	return ostream_write(os, s, strlen(s));
+	return ostream_write(os, s, vstrlen(s));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

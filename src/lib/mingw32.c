@@ -68,10 +68,12 @@
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
 #include "buf.h"
+#include "compat_pio.h"			/* For compat_pio_lock() */
 #include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
+#include "cstr.h"
 #include "debug.h"
 #include "dl_util.h"
 #include "dualhash.h"
@@ -203,7 +205,22 @@ typedef struct processor_power_information {
 extern bool vmm_is_debugging(uint32 level);
 
 typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
-WSAPoll_func_t WSAPoll = NULL;
+static WSAPoll_func_t WSAPoll;
+
+/*
+ * Support for GetFileInformationByHandleEx() only comes with VISTA.
+ */
+
+static once_flag_t mingw_gfibhe_inited;
+typedef BOOL (WINAPI *GetFileInformationByHandleEx_t)(HANDLE, int, LPVOID, DWORD);
+static GetFileInformationByHandleEx_t GetFileInformationByHandleEx;
+
+#define FileNameInfo 2
+
+typedef struct _FILE_NAME_INFO {
+	DWORD FileNameLength;
+	WCHAR FileName[1];
+} FILE_NAME_INFO;
 
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *mingw_debug_lf;
@@ -224,11 +241,11 @@ getlog(bool initial)
 	 * necessary.
 	 */
 
-	str_bprintf(buf, sizeof buf, "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
+	str_bprintf(ARYLEN(buf), "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
 	exe = is_strcasesuffix(buf, (size_t) -1, ".exe");
 	if (exe != NULL)
 		*exe = '\0';
-	clamp_strcat(buf, sizeof buf, "-log.txt");
+	clamp_strcat(ARYLEN(buf), "-log.txt");
 
 	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
@@ -351,7 +368,7 @@ get_native_path(const char *pathname, int *error)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN);
 	}
@@ -391,7 +408,7 @@ get_native_path(const char *pathname, int *error)
 		is_ascii_alpha(npath[1]) &&
 		(is_dir_separator(npath[2]) || '\0' == npath[2])
 	) {
-		size_t plen = strlen(npath);
+		size_t plen = vstrlen(npath);
 
 		if (pathsz <= plen) {
 			s_rawwarn("%s(): path is %zu-byte long", G_STRFUNC, plen);
@@ -476,7 +493,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN * sizeof(wchar_t));
 	}
@@ -606,7 +623,6 @@ mingw_win2posix(int error)
 	case ERROR_INVALID_FUNCTION:
 		return ENOSYS;
 	case ERROR_FILE_NOT_FOUND:
-		return ENOFILE;
 	case ERROR_PATH_NOT_FOUND:
 		return ENOENT;
 	case ERROR_TOO_MANY_OPEN_FILES:
@@ -641,6 +657,7 @@ mingw_win2posix(int error)
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
+	case ERROR_BAD_PATHNAME:		/* Invalid pathname */
 		return EINVAL;
 	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
 		return ENOTDIR;				/* Seems the closest mapping */
@@ -668,14 +685,18 @@ mingw_win2posix(int error)
 		return ENOFILE;
 	case ERROR_BAD_UNIT:
 	case ERROR_BAD_DEVICE:
+	case ERROR_NOT_READY:		/* No disk "in" the letter drive */
 		return ENODEV;
-	case ERROR_NOT_READY:
 	case ERROR_BAD_COMMAND:
 	case ERROR_CRC:
 	case ERROR_BAD_LENGTH:
 	case ERROR_SEEK:
 	case ERROR_NOT_DOS_DISK:
 	case ERROR_SECTOR_NOT_FOUND:
+	case ERROR_GEN_FAILURE:
+	case ERROR_WRONG_DISK:
+	case ERROR_SHARING_BUFFER_EXCEEDED:
+	case ERROR_DEVICE_REMOVED:
 		return EIO;
 	case ERROR_OUT_OF_PAPER:
 		return ENOSPC;
@@ -683,10 +704,6 @@ mingw_win2posix(int error)
 	case ERROR_READ_FAULT:
 	case ERROR_NOACCESS:		/* Invalid access to memory location */
 		return EFAULT;
-	case ERROR_GEN_FAILURE:
-	case ERROR_WRONG_DISK:
-	case ERROR_SHARING_BUFFER_EXCEEDED:
-		return EIO;
 	case ERROR_HANDLE_EOF:
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
@@ -1901,7 +1918,7 @@ mingw_launch_init_once(void)
 }
 
 /*
- * Create escpaed command-line string from argv[].
+ * Create escaped command-line string from argv[].
  *
  * Just like mingw_execve(), we need to properly enclose in double-quotes
  * all the arguments with embedded spaces or the constructed argv[] array
@@ -2077,7 +2094,7 @@ mingw_environment_block(char * const envp[], int *flags)
 
 		if (environ[0] != NULL) {
 			char *p = environ[0];
-			char *q = strstr(p, "=");
+			char *q = vstrchr(p, '=');
 
 			/*
 			 * If there is a NUL byte before '=' or the '=' sign is indeed
@@ -2908,7 +2925,7 @@ get_special(int which, char *what)
 	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
 	if (E_INVALIDARG != ret) {
-		size_t conv = utf16_to_utf8(pathname, utf8_path, sizeof utf8_path);
+		size_t conv = utf16_to_utf8(pathname, ARYLEN(utf8_path));
 		if (conv > sizeof utf8_path) {
 			s_warning("cannot convert %s path from UTF-16 to UTF-8", what);
 			ret = E_INVALIDARG;
@@ -2918,7 +2935,7 @@ get_special(int which, char *what)
 	if (E_INVALIDARG == ret) {
 		s_carp("%s: could not get the %s directory", G_STRFUNC, what);
 		/* ASCII is valid UTF-8 */
-		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
+		cstr_bcpy(ARYLEN(utf8_path), G_DIR_SEPARATOR_S);
 	}
 
 	result = constant_str(utf8_path);
@@ -3101,7 +3118,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 
 	personal = mingw_get_personal_path();
 
-	g_strlcpy(dest, personal, size);
+	cstr_bcpy(dest, size, personal);
 
 	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
 
@@ -3127,7 +3144,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	return dest;
 
 fallback:
-	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
+	cstr_bcpy(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
 	STARTUP_DEBUG("%s(): returning fallback dest=%s", G_STRFUNC, dest);
 	return dest;
@@ -3143,9 +3160,9 @@ mingw_getstdout_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stdout", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stdout", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3158,9 +3175,9 @@ mingw_getstderr_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stderr", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3173,9 +3190,9 @@ mingw_get_supervisor_log_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.super", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.super", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3378,16 +3395,281 @@ mingw_pipe(int fd[2])
 	return res;
 }
 
+static void
+mingw_copy_stat_struct(const struct _stati64 *nbuf, filestat_t *buf)
+{
+#define C(x)	buf->st_ ## x = nbuf->st_ ## x
+
+	C(dev);
+	C(ino);
+	C(mode);
+	C(nlink);
+	C(uid);
+	C(gid);
+	C(rdev);
+	C(size);
+	C(atime);
+	C(mtime);
+	C(ctime);
+
+	/*
+	 * Fake these on Windows.
+	 *
+	 * These are not even present in the _stati64 structure, but some C code
+	 * may depend on these fields being set properly, so compute some meaningful
+	 * values.
+	 */
+
+	buf->st_blksize = 131072;				/* magic "random" number */
+	buf->st_blocks = nbuf->st_size >> 9;	/* # of 512B blocks allocated */
+	if (nbuf->st_size & ((1 << 9) - 1))		/* partial trailing block? */
+		buf->st_blocks++;
+
+#undef C
+}
+
+/**
+ * Initialize the GetFileInformationByHandleEx pointer, once, by probing
+ * the kernel libraray.
+ *
+ * Indeed, the GetFileInformationByHandleEx() routine is only available
+ * starting with VISTA, which comes between XP and WIN7.
+ */
+static void
+mingw_gfibhe_init(void)
+{
+	HMODULE kernel32 = LoadLibrary("kernel32.dll");
+
+	if (kernel32 != NULL) {
+		GetFileInformationByHandleEx = (GetFileInformationByHandleEx_t)
+			GetProcAddress(kernel32, "GetFileInformationByHandleEx");
+	}
+}
+
+static bool
+mingw_fix_statbuf(HANDLE h,
+	const struct _stati64 *nbuf, bool is_fstat,
+	filestat_t *buf)
+{
+	BY_HANDLE_FILE_INFORMATION fi;
+	bool ok;
+	DWORD type = GetFileType(h);
+
+	mingw_copy_stat_struct(nbuf, buf);
+
+	/*
+	 * We only know how to fix the buffer for disk files and pipes.
+	 */
+
+	if G_UNLIKELY(FILE_TYPE_PIPE == type) {
+		DWORD pending;
+
+		if (PeekNamedPipe(h, NULL, 0, NULL, &pending, NULL))
+			buf->st_size = pending;
+
+		/* Silenetly ignore errors on PeekNamedPipe() */
+
+		return TRUE;
+	}
+
+	if (FILE_TYPE_DISK != type)
+		return TRUE;
+
+	ok = 0 != GetFileInformationByHandle(h, &fi);
+
+	if (ok) {
+		buf->st_dev = (uint) fi.dwVolumeSerialNumber;
+		buf->st_ino = UINT64_VALUE(fi.nFileIndexHigh, fi.nFileIndexLow);
+
+		/*
+		 * This computation sometimes yields the wrong results: for a file
+		 * on a remote SMB share with 2 links, it sometimes gives back 2,
+		 * but sometimes it returns 1.
+		 *
+		 * Hence disabling it, as we disabled the code further below that
+		 * attempts to correct it for fstat() calls.
+		 * 		--RAM, 2018-05-13
+		 */
+
+#if 0
+		buf->st_nlink = MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+#endif
+	}
+
+	/*
+	 * Always clear the trailing bits in mode that cannot be set on Windows
+	 * (the 6 trailing bits corresponding to "other" permissions) and that we
+	 * cannot check for.
+	 *
+	 * Our runtime remaps S_IxGRP to S_IxUSR and S_IxOTH tests are meaningless.
+	 * Hence it does not make sense to keep these trailing bits.
+	 */
+
+	buf->st_mode &= ~0x3f;
+
+	/*
+	 * If coming from fstat(), then we need to query for the underlying
+	 * file name to check whether it is an executable, in order to restore
+	 * the executable bits in the mode.
+	 *
+	 * Unfortunately, GetFileInformationByHandleEx() is not available on XP:
+	 * it starts with VISTA, hence the contorsions below since we are compiling
+	 * on Windows XP and therefore do not have the right compile-time support.
+	 */
+
+	if (is_fstat && S_ISREG(buf->st_mode)) {
+		ONCE_FLAG_RUN(mingw_gfibhe_inited, mingw_gfibhe_init);
+
+		if (GetFileInformationByHandleEx != NULL) {
+			size_t len = MAX_PATH_LEN * sizeof(wchar_t) + sizeof(FILE_NAME_INFO);
+			void *b = walloc0(len);
+			FILE_NAME_INFO *fni = NULL;
+
+			if (GetFileInformationByHandleEx(h, FileNameInfo, b, len))
+				fni = b;
+
+			/*
+			 * Look for an "executable" extension in the file name.
+			 */
+
+			if (fni != NULL) {
+				size_t len8;		/* UTF-8 length */
+				char *n8;			/* UTF-8 file name */
+
+				/* Convert back the UTF-16 into UTF-8 */
+
+				len8 = 1 + utf16_to_utf8(fni->FileName, NULL, 0);
+				n8 = walloc(len8);
+				(void) utf16_to_utf8(fni->FileName, n8, len8);
+
+				/* Assume case-independance for extensions */
+
+				if (
+					is_strcasesuffix(n8, len8 - 1, ".exe") ||
+					is_strcasesuffix(n8, len8 - 1, ".bat") ||
+					is_strcasesuffix(n8, len8 - 1, ".com") ||
+					is_strcasesuffix(n8, len8 - 1, ".cmd")
+				)
+					buf->st_mode |= S_IXUSR;
+
+				wfree(n8, len8);
+			}
+
+			/*
+			 * Compute the proper number of links by stat()-ing the file.
+			 *
+			 * FIXME:
+			 * Unfortunately, this is unreliable and can return a
+			 * different value from time to time when dealing with
+			 * files on a remote volume shared by SMB.
+			 * This is disturbing...
+			 *
+			 * On Windows, regardless of NTFS supporting links, it seems
+			 * that the st_nlink value is unreliable.
+			 *
+			 * Therefore, disabling this code for now.
+			 * 		--RAM, 2018-05-13
+			 */
+
+#if 0	/* Disabled because results are unreliable */
+			if (fni != NULL) {
+				HANDLE dh;
+
+				dh = CreateFileW(fni->FileName, FILE_READ_ATTRIBUTES,
+						FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+						NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+				if (
+					INVALID_HANDLE_VALUE != dh &&
+					GetFileInformationByHandle(dh, &fi)
+				) {
+					buf->st_nlink =
+						MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+				}
+
+				CloseHandle(dh);
+			}
+#endif	/* Disabled because results are unreliable */
+
+			wfree(b, len);
+		}
+	}
+
+	return ok;
+}
+
+static bool
+mingw_fix_fstat(HANDLE h, const struct _stati64 *nbuf, filestat_t *buf)
+{
+	return mingw_fix_statbuf(h, nbuf, TRUE, buf);
+}
+
+/*
+ * Attempt to fix the stat() buffer by post-processing the returned information
+ * from the MinGW runtime.
+ *
+ * @return 0 if OK, -1 on error with errno set, 1 if we could not fix the
+ * status but otherwise should not report any error to the user.
+ */
+static int
+mingw_fix_stat(const wchar_t *pathname,
+	const struct _stati64 *nbuf, filestat_t *buf)
+{
+	HANDLE h;
+	bool ok;
+
+	/*
+	 * The given pathname is expected to already be UTF-16.
+	 *
+	 * We need FILE_FLAG_BACKUP_SEMANTICS to be able to obtain a handle
+	 * on a directory.
+	 */
+
+	h = CreateFileW(pathname, FILE_READ_ATTRIBUTES,
+			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+	if (INVALID_HANDLE_VALUE == h) {
+		int error = GetLastError();
+
+		/*
+		 * Trap ERROR_NOT_READY errors, for instance when attempting
+		 * to stat "D:/" and it is a CDROM device holding nothing.
+		 */
+
+		if (ERROR_NOT_READY == error) {
+			errno = ENODEV;
+			return -1;
+		}
+
+		/*
+		 * Let them know the error code before failing, so that we may
+		 * diagnose what to do: ignore, fix, etc...
+		 */
+
+		s_warning("%s(): got Windows error code %d", G_STRFUNC, error);
+		return 1;	/* Don't let the stat() call fail, but complain loudly */
+	}
+
+	ok = mingw_fix_statbuf(h, nbuf, FALSE, buf);
+	CloseHandle(h);
+
+	return ok ? 0 : 1;
+}
+
 int
 mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
+	size_t len;
+	const char exe[] = ".exe";
+	struct _stati64 nbuf;
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
-	res = _wstati64(pncs.utf16, buf);
+	res = _wstati64(pncs.utf16, &nbuf);
 	if (-1 == res) {
 		errno = mingw_last_error();
 
@@ -3400,8 +3682,10 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		 */
 
 		if (ENOENT == errno) {
-			size_t len = strlen(pathname);
-			const char *p = &pathname[len - 1];
+			const char *p;
+		   
+			len = vstrlen(pathname);
+			p = &pathname[len - 1];
 
 			if (len <= 1)
 				goto nofix;		/* A simple "/" would have worked */
@@ -3411,7 +3695,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			else if ('.' == *p && '/' == p[-1])
 				len -= 2;
 			else
-				goto nofix;
+				goto exefix;	/* See whether we try to stat() an executable */
 
 			/*
 			 * In a signal handler, don't allocate memory.
@@ -3420,32 +3704,105 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			if (signal_in_unsafe_handler()) {
 				static char path[MAX_PATH_LEN];
 
-				clamp_strncpy(path, sizeof path, pathname, len);
+				clamp_strncpy(ARYLEN(path), pathname, len);
 				if (0 == pncs_convert(&pncs, path))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 			} else {
 				char *fixed;
 
 				fixed = h_strndup(pathname, len);
 				if (0 == pncs_convert(&pncs, fixed))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 				hfree(fixed);
 			}
 		}
 	}
 
+	/* FALL THROUGH */
+
 nofix:
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res) {
+		int fix = mingw_fix_stat(pncs.utf16, &nbuf, buf);
+
+		switch (fix) {
+		case 0:		/* OK */
+		default:
+			break;
+		case 1:		/* Could not fix */
+			s_carp("%s(): cannot fix information correctly for \"%s\"",
+				G_STRFUNC, pathname);
+			break;
+		case -1:	/* Report error, errno was set */
+			res = -1;
+			break;
+		}
+	}
+
 	return res;
+
+exefix:
+	/*
+	 * Maybe the are stat()ing "foo" but "foo.exe" exists?
+	 *
+	 * In which case we want to transparently succeed by stat()ing the
+	 * executable instead!
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (is_strsuffix(pathname, len, exe))
+		goto nofix;		/* Already had the trailing .exe in path */
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_unsafe_handler()) {
+		static char path[MAX_PATH_LEN];
+
+		clamp_strncpy(ARYLEN(path), pathname, len);
+		clamp_strcat(ARYLEN(path), exe);
+		if (0 == pncs_convert(&pncs, path))
+			res = _wstati64(pncs.utf16, &nbuf);
+	} else {
+		char *fixed;
+
+		fixed = h_strconcat(pathname, exe, NULL);
+		if (0 == pncs_convert(&pncs, fixed))
+			res = _wstati64(pncs.utf16, &nbuf);
+		hfree(fixed);
+	}
+
+	goto nofix;
 }
 
 int
 mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
+	struct _stati64 nbuf;
 
-	res = _fstati64(fd, buf);
+	res = _fstati64(fd, &nbuf);
 	if (-1 == res)
 		errno = mingw_last_error();
+
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res && !mingw_fix_fstat((HANDLE) _get_osfhandle(fd), &nbuf, buf)) {
+		s_carp("%s(): cannot fix information correctly for fd #%d",
+			G_STRFUNC, fd);
+	}
 
 	return res;
 }
@@ -3753,27 +4110,90 @@ int
 mingw_truncate(const char *pathname, fileoffset_t len)
 {
 	int fd;
-	fileoffset_t offset;
 
 	fd = mingw_open(pathname, O_RDWR);
 	if (-1 == fd)
 		return -1;
 
-	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((fileoffset_t)-1 == offset || offset != len) {
+	if (-1 == mingw_ftruncate(fd, len)) {
 		int saved_errno = errno;
 		fd_close(&fd);
 		errno = saved_errno;
 		return -1;
 	}
-	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		int saved_errno = mingw_last_error();
-		fd_close(&fd);
-		errno = saved_errno;
-		return -1;
-	}
+
 	fd_close(&fd);
 	return 0;
+}
+
+int
+mingw_ftruncate(int fd, fileoffset_t len)
+{
+	fileoffset_t offset, current;
+
+	if (-1 == fd) {
+		errno = EBADF;
+		return -1;
+	}
+
+	/*
+	 * This emulation is NOT atomic and any concurrent thread trying to
+	 * pread() or pwrite() on that file could get an inconsistent result
+	 * due to the file offset changing underneath.
+	 *
+	 * Because we know that no call below can enter the compat_pio.c logic,
+	 * we use the same locks as the compatibility routines to ensure we
+	 * are at least consistent with our own emulations.
+	 *
+	 * Of course, concurrent threads accessing the file being ftruncate()-ed
+	 * without using compat_pread(), compat_pwrite() or their vectorized
+	 * friends to perform their I/Os would face a multi-threaded design bug!
+	 */
+
+	compat_pio_lock(fd);
+
+	current = mingw_lseek(fd, 0, SEEK_CUR);
+	if ((fileoffset_t) -1 == current)
+		goto failed;
+
+	if (current != len) {
+		offset = mingw_lseek(fd, len, SEEK_SET);
+		if ((fileoffset_t) -1 == offset || offset != len)
+			goto failed;
+	} else {
+		offset = len;
+	}
+
+	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
+		int saved_errno = mingw_last_error();
+		if (offset != current)
+			(void) mingw_lseek(fd, current, SEEK_SET);
+		errno = saved_errno;
+		goto failed;
+	}
+
+	if (offset != current)
+		(void) mingw_lseek(fd, current, SEEK_SET);
+
+	compat_pio_unlock(fd);
+
+	/*
+	 * It would be weird to have the current offset larger than the truncation
+	 * offset.  Since we are in an emulation layer, warn for that loudly because
+	 * it is certainly pinpointing an application bug.
+	 */
+
+	if G_UNLIKELY(current > len) {
+		s_carp_once("%s(): current offset %s on fd #%d was beyond new end at %s",
+			G_STRFUNC, fileoffset_t_to_string(current), fd,
+			filesize_to_string(len));
+	}
+
+	return 0;
+
+failed:
+	compat_pio_unlock(fd);
+	return -1;
 }
 
 /***
@@ -3984,7 +4404,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 
 	thread_in_syscall_set(TRUE);
 
-	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
+	r = bind(ls, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 	r = listen(ls, 1);
@@ -4009,7 +4429,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	 * of 1 and the connection will happen "immediately".
 	 */
 
-	r = connect(cs, (struct sockaddr *) &laddr, sizeof laddr);
+	r = connect(cs, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 
@@ -4284,7 +4704,7 @@ mingw_mem_committed(void)
 {
 	PROCESS_MEMORY_COUNTERS c;
 
-	if (GetProcessMemoryInfo(GetCurrentProcess(), &c, sizeof c))
+	if (GetProcessMemoryInfo(GetCurrentProcess(), VARLEN(c)))
 		return c.PagefileUsage;
 
 	errno = mingw_last_error();
@@ -4695,7 +5115,7 @@ mingw_log_meminfo(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("VirtualQuery() failed for %p: %m", p);
@@ -4724,7 +5144,7 @@ mingw_memstart(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("%s(): VirtualQuery() failed for %p: %m", G_STRFUNC, p);
@@ -4848,8 +5268,8 @@ mingw_fopen(const char *pathname, const char *mode)
 	wchar_t wmode[32];
 	FILE *res;
 
-	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+	if (NULL == vstrchr(mode, 'b')) {
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -4885,8 +5305,8 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
-	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+	if (NULL == vstrchr(mode, 'b')) {
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -5065,7 +5485,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
+	v = UINT64_VALUE(ft->dwHighDateTime, ft->dwLowDateTime) / 10;
 	v -= offset;
 	tv->tv_usec = v % TM_MILLION;
 	v /= TM_MILLION;
@@ -5432,7 +5852,7 @@ mingw_uname(struct utsname *buf)
 
 	ZERO(buf);
 
-	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
+	cstr_bcpy(ARYLEN(buf->sysname), "Windows");
 
 	switch (mingw_proc_arch()) {
 	case PROCESSOR_ARCHITECTURE_AMD64:	cpu = "x64"; break;
@@ -5440,13 +5860,13 @@ mingw_uname(struct utsname *buf)
 	case PROCESSOR_ARCHITECTURE_INTEL:	cpu = "x86"; break;
 	default:							cpu = "unknown"; break;
 	}
-	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
+	cstr_bcpy(ARYLEN(buf->machine), cpu);
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
-		str_bprintf(buf->release, sizeof buf->release, "%u.%u",
+		str_bprintf(ARYLEN(buf->release), "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		str_bprintf(buf->version, sizeof buf->version, "%u %s",
+		str_bprintf(ARYLEN(buf->version), "%u %s",
 			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
@@ -5742,7 +6162,7 @@ mingw_filename_nearby(const char *filename)
 		bool error = FALSE;
 		size_t pathsz = buf_size(b);
 
-		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
+		if (0 == GetModuleFileNameW(NULL, ARYLEN(wpathname))) {
 			error = TRUE;
 			errno = mingw_last_error();
 			s_warning("cannot locate my executable: %m");
@@ -5755,7 +6175,7 @@ mingw_filename_nearby(const char *filename)
 		}
 
 		if (error)
-			g_strlcpy(pathname, G_DIR_SEPARATOR_S, buf_size(b));
+			cstr_bcpy(pathname, buf_size(b), G_DIR_SEPARATOR_S);
 
 		offset = filepath_basename(pathname) - pathname;
 	}
@@ -5797,57 +6217,6 @@ bool
 mingw_stdin_pending(bool fifo)
 {
 	return fifo ? mingw_fifo_pending(STDIN_FILENO) : booleanize(_kbhit());
-}
-
-/**
- * Get file ID.
- *
- * @return TRUE on success.
- */
-static bool
-mingw_get_file_id(const char *pathname, uint64 *id)
-{
-	HANDLE h;
-	BY_HANDLE_FILE_INFORMATION fi;
-	bool ok;
-	pncs_t pncs;
-
-	if (pncs_convert(&pncs, pathname))
-		return FALSE;
-
-	h = CreateFileW(pncs.utf16, 0,
-			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-			NULL, OPEN_EXISTING, 0, NULL);
-
-	if (INVALID_HANDLE_VALUE == h)
-		return FALSE;
-
-	ok = 0 != GetFileInformationByHandle(h, &fi);
-	CloseHandle(h);
-
-	if (!ok)
-		return FALSE;
-
-	*id = (uint64) fi.nFileIndexHigh << 32 | (uint64) fi.nFileIndexLow;
-
-	return TRUE;
-}
-
-/**
- * Are the two files sharing the same file ID?
- */
-bool
-mingw_same_file_id(const char *pathname_a, const char *pathname_b)
-{
-	uint64 ia, ib;
-
-	if (!mingw_get_file_id(pathname_a, &ia))
-		return FALSE;
-
-	if (!mingw_get_file_id(pathname_b, &ib))
-		return FALSE;
-
-	return ia == ib;
 }
 
 /**
@@ -7457,11 +7826,21 @@ static int mingw_dl_error;
 /**
  * Return a human readable string describing the most recent error
  * that occurred.
+ *
+ * It returns NULL if no errors have occurred since initialization
+ * or since it was last called.
  */
 const char *
 mingw_dlerror(void)
 {
-	return g_strerror(mingw_dl_error);
+	int e = mingw_dl_error;
+
+	if (0 == e)
+		return NULL;
+
+	mingw_dl_error = 0;
+
+	return g_strerror(e);
 }
 
 /**
@@ -7480,7 +7859,9 @@ mingw_dlerror(void)
 int
 mingw_dladdr(void *addr, Dl_info *info)
 {
-	static time_t last_init;
+	static uint64 loaded_library_count;
+	static bool initialized;
+	static bool reload_symbols;
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
 	static mutex_t dladdr_lk = MUTEX_INIT;
@@ -7489,30 +7870,35 @@ mingw_dladdr(void *addr, Dl_info *info)
 	char *path = buf_data(b);
 	size_t pathsz = buf_size(b);
 	buf_t *name = buf_private("mingw_dladdr:name", 255);
-	time_t now;
+	uint64 current_loaded_library_count;
+	int error = 0;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
 	DWORD disp = 0;
 
 	/*
-	 * Do not issue a SymInitialize() too often, yet let us do one from time
-	 * to time in case we loaded a new DLL since last time.
-	 *
-	 * Unfortunately, MinGW does not provide SymRefreshModuleList() to
-	 * refresh the module list, so we have to SymCleanup() and SymInitialize()
-	 * periodically.
-	 *
-	 * When called during a crash, do not attempt to refresh the symbols via
-	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 * When we detect we have a changed loaded_library_count, we need to
+	 * reload the symbols.
 	 */
 
-	now = tm_time();
+	current_loaded_library_count = win32dlp_loaded_library_count();
 
-	if (
-		0 == last_init ||
-		(delta_time(now, last_init) > 60 && !signal_in_exception())
-	) {
-		static bool initialized;
+	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
+	if (current_loaded_library_count != loaded_library_count) {
+		loaded_library_count = current_loaded_library_count;
+		reload_symbols = TRUE;
+	}
+	spinunlock_hidden(&dladdr_slk);
+
+	/*
+	 * When called during a crash, do not attempt to refresh the symbols via
+	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 *
+	 * However, if we never initialized them, then do so regardless of whether
+	 * we are crashing.
+	 */
+
+	if (!initialized || (reload_symbols && !signal_in_exception())) {
 		static bool first_init;
 		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
 		bool is_first = FALSE;
@@ -7537,22 +7923,23 @@ mingw_dladdr(void *addr, Dl_info *info)
 			SymCleanup(process);
 
 		if (!SymInitialize(process, NULL, TRUE)) {
-			mingw_dl_error = GetLastError();
-			s_warning("SymInitialize() failed: error = %d (%s)",
-				mingw_dl_error, mingw_dlerror());
+			error = mingw_dl_error = GetLastError();
+			s_warning("%s(): SymInitialize() failed: error = %d (%s)",
+				G_STRFUNC, mingw_dl_error, g_strerror(error));
 		} else {
+			spinlock_hidden(&dladdr_slk);
 			initialized = TRUE;
-			mingw_dl_error = 0;
+			reload_symbols = FALSE;
+			spinunlock_hidden(&dladdr_slk);
 		}
 
-		last_init = now;
 		mutex_unlock_fast(&dladdr_lk);
 	}
 
 skip_init:
 	ZERO(info);
 
-	if (0 != mingw_dl_error)
+	if (0 != error)
 		return 0;		/* Signals error */
 
 	if (NULL == addr)
@@ -7582,7 +7969,7 @@ skip_init:
 
 	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
 
-	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
+	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, ARYLEN(wpath))) {
 		size_t conv = utf16_to_utf8(wpath, path, pathsz);
 		if (conv <= pathsz)
 			info->dli_fname = path;		/* Thread-private buffer */
@@ -7597,7 +7984,7 @@ skip_init:
 	 */
 
 	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
-		g_strlcpy(buf_data(name), symbol->Name, buf_size(name));
+		cstr_bcpy(buf_data(name), buf_size(name), symbol->Name);
 		info->dli_sname = buf_data(name);	/* Thread-private buffer */
 		info->dli_saddr = ptr_add_offset(addr, -disp);
 	}
@@ -7657,7 +8044,7 @@ mingw_crash_record(int code, const void *pc,
 	char data[256];
 	str_t s;
 
-	str_new_buffer(&s, data, 0, sizeof data);
+	str_new_buffer(&s, ARYLEN(data), 0);
 	str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
 
 	if (routine != NULL)
@@ -7680,7 +8067,7 @@ mingw_exception_log(int stid, uint code, const void *pc)
 	char buf[ULONG_DEC_BUFLEN];
 	const char *s, *name, *file = NULL;
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
@@ -7741,7 +8128,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 		va = ulong_to_pointer(er->ExceptionInformation[1]);
 	}
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 
 	print_str(time_buf);				/* 0 */
 	print_str(" (CRITICAL-");			/* 1 */
@@ -7764,7 +8151,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	{
 		char data[80];
 
-		str_bprintf(data, sizeof data, "; %s fault at VA=%p", prot, va);
+		str_bprintf(ARYLEN(data), "; %s fault at VA=%p", prot, va);
 		crash_append_error(data);
 	}
 }
@@ -8096,20 +8483,20 @@ mingw_file_rotate(const char *pathname, int keep)
 	int i;
 
 	if (keep > 0) {
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, keep - 1);
 		if (-1 != mingw_unlink(npath))
 			STARTUP_DEBUG("removed file \"%s\"", npath);
 	}
 
 	for (i = keep - 1; i > 0; i--) {
 		static char opath[MAX_PATH_LEN];
-		str_bprintf(opath, sizeof opath, "%s.%d", pathname, i - 1);
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, i);
+		str_bprintf(ARYLEN(opath), "%s.%d", pathname, i - 1);
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, i);
 		if (-1 != mingw_rename(opath, npath))
 			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
 	}
 
-	str_bprintf(npath, sizeof npath, "%s.0", pathname);
+	str_bprintf(ARYLEN(npath), "%s.0", pathname);
 
 	if (-1 != mingw_rename(pathname, npath))
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);

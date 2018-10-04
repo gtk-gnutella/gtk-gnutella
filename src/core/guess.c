@@ -1139,7 +1139,7 @@ guess_host_set_flags(const gnet_host_t *h, uint32 flags)
 	if (qk != NULL) {
 		if ((qk->flags & flags) != flags) {
 			qk->flags |= flags;
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 		}
 	}
 }
@@ -1157,7 +1157,7 @@ guess_host_clear_flags(const gnet_host_t *h, uint32 flags)
 	if (qk != NULL) {
 		if (qk->flags & flags) {
 			qk->flags &= ~flags;
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 		}
 	}
 }
@@ -1177,7 +1177,7 @@ guess_host_set_v2(const gnet_host_t *h)
 			qk->flags |= GUESS_F_PONG_IPP;
 			guess_02_hosts++;
 			gnet_stats_inc_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 			guess_cache_add(&guess_02_cache, h);
 		}
 	}
@@ -1198,7 +1198,7 @@ guess_host_clear_v2(const gnet_host_t *h)
 			qk->flags &= ~GUESS_F_PONG_IPP;
 			guess_02_hosts--;
 			gnet_stats_dec_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 			guess_cache_remove(&guess_02_cache, h);
 		}
 	}
@@ -1268,7 +1268,7 @@ guess_traffic_from(const gnet_host_t *h, uint32 flags)
 
 	qk->last_seen = tm_time();
 	qk->timeouts = 0;
-	dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	dbmw_write(db_qkdata, h, PTRLEN(qk));
 }
 
 /**
@@ -1296,7 +1296,7 @@ guess_timeout_from(const gnet_host_t *h)
 	if (qk != NULL) {
 		qk->last_timeout = tm_time();
 		qk->timeouts++;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1325,7 +1325,7 @@ guess_timeout_reset(const gnet_host_t *h, struct qkdata *qk)
 			g_debug("GUESS resetting timeouts for %s", gnet_host_to_string(h));
 		}
 		qk->timeouts = 0;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1353,10 +1353,10 @@ guess_record_g2(const gnet_host_t *h)
 		guess_g2_hosts++;
 		gnet_stats_inc_general(GNR_GUESS_CACHED_G2_HOSTS_HELD);
 
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	} else if (!(qk->flags & GUESS_F_G2)) {
 		qk->flags |= GUESS_F_G2;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1894,7 +1894,7 @@ guess_record_qk(const gnet_host_t *h, const void *buf, size_t len, bool g2)
 	 * data in the DBMW cache through free_qkdata().
 	 */
 
-	dbmw_write(db_qkdata, h, &new_qk, sizeof new_qk);
+	dbmw_write(db_qkdata, h, VARLEN(new_qk));
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS got %u-byte query key from %s%s",
@@ -4208,7 +4208,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 			gnet_stats_inc_general(GNR_GUESS_ULTRA_QUERIED);
 			if (GNET_PROPERTY(guess_client_debug) > 4) {
 				g_debug("GUESS QUERY[%s] sent %s to %s",
-					nid_to_string(&gq->gid), gmsg_infostr(pmsg_start(mb)),
+					nid_to_string(&gq->gid), gmsg_infostr(pmsg_phys_base(mb)),
 					gnet_host_to_string(pmi->host));
 			}
 		}
@@ -4716,7 +4716,7 @@ guess_query_dump(const guess_t *gq, const gnutella_node_t *n, const pmsg_t *mb)
 	str_t *s = str_private(G_STRFUNC, 80);
 
 	str_printf(s, "GUESS query \"%s\" to %s", gq->query, node_infostr(n));
-	dump_hex(stderr, str_2c(s), pmsg_start(mb), pmsg_written_size(mb));
+	dump_hex(stderr, str_2c(s), pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 /**

@@ -523,6 +523,7 @@ typedef enum {
     PROP_INPUTEVT_TRACE,
     PROP_LOCK_CONTENTION_TRACE,
     PROP_LOCK_SLEEP_TRACE,
+    PROP_RUNNING_TOPLESS,
     GNET_PROPERTY_END
 } gnet_property_t;
 
@@ -591,6 +592,8 @@ void gnet_prop_set_guint32(
     property_t, const guint32 *, size_t, size_t);
 guint32 *gnet_prop_get_guint32(
     property_t, guint32 *, size_t, size_t);
+
+void gnet_prop_reset(property_t);
 
 static inline void
 gnet_prop_set_guint32_val(property_t p, guint32 value)

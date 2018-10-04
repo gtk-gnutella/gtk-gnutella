@@ -94,6 +94,17 @@
 #endif
 
 /**
+ * ULONG_SWAP() byte-swaps an unsigned long.
+ */
+#if PTRSIZE == 8
+#define ULONG_SWAP(w)	UINT64_SWAP(w)
+#elif PTRSIZE == 4
+#define ULONG_SWAP(w)	UINT32_SWAP(w)
+#else
+#error "unexpected pointer size"
+#endif
+
+/**
  * Functions for writing and reading fixed-size integers in big-endian
  * or little-endian.
  */

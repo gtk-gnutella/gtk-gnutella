@@ -25,6 +25,7 @@ script:
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./build.sh; fi
   - src/lib/random-test
   - src/lib/sort-test
+  - src/lib/pattern-test
   - src/lib/filelock-test -ce foo
   - src/lib/filelock-test -cep foo
   - src/lib/launch-test

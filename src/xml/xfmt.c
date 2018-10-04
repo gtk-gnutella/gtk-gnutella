@@ -925,7 +925,7 @@ xfmt_handle_pass2_enter(const void *node, void *data)
 			ostream_write(xp2->os, text, len);
 		} else if (
 			overhead >= XFMT_CDATA_OVERHEAD &&
-			NULL == strstr(text, XFMT_CDATA_END)
+			NULL == vstrstr(text, XFMT_CDATA_END)
 		) {
 			ostream_write(xp2->os,
 				XFMT_CDATA_START, CONST_STRLEN(XFMT_CDATA_START));

@@ -64,7 +64,7 @@ warning(const char *msg, ...)
 	char buf[128];
 
 	va_start(args, msg);
-	str_vbprintf(buf, sizeof buf, msg, args);
+	str_vbprintf(ARYLEN(buf), msg, args);
 	va_end(args);
 
 	fprintf(stderr, "%s: WARNING: %s\n", getprogname(), buf);
@@ -539,7 +539,7 @@ add_entropy(void *p)
 			v[i] = rand31_u32();
 		}
 
-		random_add(v, sizeof v);
+		random_add(ARYLEN(v));
 	}
 
 	return NULL;

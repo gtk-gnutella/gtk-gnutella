@@ -308,7 +308,7 @@ stable_record_activity(const knode_t *kn)
 		ld->last_seen = kn->last_seen;
 	}
 
-	dbmw_write(db_lifedata, kn->id->v, ld, sizeof *ld);
+	dbmw_write(db_lifedata, kn->id->v, PTRLEN(ld));
 }
 
 /**

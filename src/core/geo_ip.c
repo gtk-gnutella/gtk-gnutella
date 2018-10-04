@@ -134,7 +134,7 @@ gip_parse_ipv4(const char *line, int linenum)
 	 * the IP database.
 	 */
 
-	end = strchr(line, '-');
+	end = vstrchr(line, '-');
 	if (end == NULL) {
 		g_warning("%s, line %d: no IP address separator in \"%s\"",
 			gip_source[GIP_IPV4].file, linenum, line);
@@ -232,6 +232,11 @@ gip_parse_ipv6(const char *line, int linenum)
 	 *
 	 * The leading part up to the space is the IPv6 network in CIDR format.
 	 * The trailing word is the 2-letter ISO country code.
+	 *
+	 * If the whole 128 bits are meant to be used, the /128 may be missing,
+	 * for instance:
+	 *
+	 * 		2402:3f40::1 cn
 	 */
 
 	if (!parse_ipv6_addr(line, ip, &end)) {
@@ -241,9 +246,8 @@ gip_parse_ipv6(const char *line, int linenum)
 	}
 
 	if ('/' != *end) {
-		g_warning("%s, line %d: missing network separator in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
+		bits = 128;
+		goto no_bits;
 	}
 
 	bits = parse_uint(end + 1, &end, 10, &error);
@@ -260,6 +264,7 @@ gip_parse_ipv6(const char *line, int linenum)
 		return;
 	}
 
+no_bits:
 	if (!is_ascii_space(*end)) {
 		g_warning("%s, line %d: missing spaces after network in \"%s\"",
 			gip_source[GIP_IPV6].file, linenum, line);
@@ -324,7 +329,7 @@ gip_load(FILE *f, unsigned idx)
 		gip_source[idx].mtime = buf.st_mtime;
 	}
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		linenum++;
 
 		/*
@@ -332,7 +337,7 @@ gip_load(FILE *f, unsigned idx)
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s: line %d too long, aborting",
 				gip_source[idx].file, linenum);
 			break;
@@ -384,7 +389,7 @@ gip_changed(const char *filename, void *idx_ptr)
 	count = gip_load(f, idx);
 	fclose(f);
 
-	str_bprintf(buf, sizeof buf, "Reloaded %u geographic IPv%c ranges.",
+	str_bprintf(ARYLEN(buf), "Reloaded %u geographic IPv%c ranges.",
 		count, GIP_IPV4 == idx ? '4' : '6');
 
 	gcu_statusbar_message(buf);

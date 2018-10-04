@@ -73,10 +73,10 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 	 * Determine maximum width of each column.
 	 */
 
-	maxlen[0] = strlen(hops_str);   /* length of Hops */
-	maxlen[1] = strlen(nodes_str);  /* length of Nodes */
-	maxlen[2] = strlen(files_str);  /* length of Files */
-	maxlen[3] = strlen(size_str);   /* length of Size */
+	maxlen[0] = vstrlen(hops_str);   /* length of Hops */
+	maxlen[1] = vstrlen(nodes_str);  /* length of Nodes */
+	maxlen[2] = vstrlen(files_str);  /* length of Files */
+	maxlen[3] = vstrlen(size_str);   /* length of Size */
 
 	for (i = 0; i < UNSIGNED(triples) * 4; i++) {
 		size_t n;
@@ -84,7 +84,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 
 		switch (m) {
 		case 0:
-			n = strlen(uint64_to_string(i / 4 + 1));
+			n = vstrlen(uint64_to_string(i / 4 + 1));
 			break;
 
 		case 1:
@@ -99,7 +99,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 				case 3: j = HSEP_IDX_KIB; break;
 				}
 
-				n = strlen(uint64_to_string(t[i][j] + non_hsep[j]));
+				n = vstrlen(uint64_to_string(t[i][j] + non_hsep[j]));
 			}
 			break;
 
@@ -112,7 +112,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 			maxlen[m] = n;
 	}
 
-	str_bprintf(buf, sizeof buf, "%*s  %*s  %*s  %*s\n",
+	str_bprintf(ARYLEN(buf), "%*s  %*s  %*s  %*s\n",
 		(int) maxlen[0], hops_str,
 		(int) maxlen[1], nodes_str,
 		(int) maxlen[2], files_str,
@@ -135,7 +135,7 @@ print_hsep_table(struct gnutella_shell *sh, hsep_triple *table,
 		s3 = short_kb_size(t[i][HSEP_IDX_KIB] + non_hsep[HSEP_IDX_KIB],
 				GNET_PROPERTY(display_metric_units));
 
-		str_bprintf(buf, sizeof buf, "%*u  %*s  %*s  %*s\n",
+		str_bprintf(ARYLEN(buf), "%*u  %*s  %*s  %*s\n",
 			(int) maxlen[0], (unsigned) (i + 1),
 			(int) maxlen[1], s1,
 			(int) maxlen[2], s2,
@@ -177,7 +177,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	num_hsep = globaltable[1][HSEP_IDX_NODES];
 	num_total = globaltable[1][HSEP_IDX_NODES] + non_hsep[0][HSEP_IDX_NODES];
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		_("Total horizon size (%u/%u nodes support HSEP):"),
 		num_hsep, num_total);
 
@@ -198,7 +198,7 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 
 			shell_write(sh, "\n");
 
-			str_bprintf(buf, sizeof buf,
+			str_bprintf(ARYLEN(buf),
 				_("Horizon size via HSEP node %s (%s):"),
 				node_addr(n),
 				node_peermode_to_string(n->peermode));

@@ -47,6 +47,7 @@ typedef struct statx statx_t;
 statx_t *statx_make(void);
 statx_t *statx_make_nodata(void);
 void statx_free(statx_t *);
+void statx_free_null(statx_t **);
 void statx_clear(statx_t *);
 void statx_add(statx_t *, double);
 void statx_remove(statx_t *, double);
@@ -57,6 +58,11 @@ double statx_sdev(const statx_t *);
 double statx_var(const statx_t *);
 double statx_stderr(const statx_t *);
 double *statx_data(const statx_t *);
+
+void statx_foreach(const statx_t *sx, double_data_fn_t cb, void *udata);
+size_t statx_foreach_remove(statx_t *sx, double_data_rm_fn_t cb, void *udata);
+
+size_t statx_remove_outliers(statx_t *sx, double range);
 
 #endif /* _stats_h_ */
 

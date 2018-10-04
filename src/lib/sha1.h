@@ -96,11 +96,26 @@ int SHA1_intermediate(const SHA1_context *, struct sha1 *digest);
  * ``x'' is the data structure, and ``sizeof(x)'' gives the size to hash.
  * ``d'' is the address of the output digest (sha1_t *).
  */
-#define SHA1_COMPUTE(x,d) G_STMT_START {	\
-	SHA1_context c_;						\
-	SHA1_reset(&c_);						\
-	SHA1_input(&c_, &(x), sizeof(x));		\
-	SHA1_result(&c_, (d));					\
+#define SHA1_COMPUTE(x,d) G_STMT_START {\
+	SHA1_context c_;					\
+	SHA1_reset(&c_);					\
+	SHA1_input(&c_, &(x), sizeof(x));	\
+	SHA1_result(&c_, (d));				\
+} G_STMT_END
+
+/**
+ * Compute the SHA1 digest of (structure) ``x'' into ``d'' with added nonce ``n''.
+ *
+ * ``x'' is the data structure, and ``sizeof(x)'' gives the size to hash.
+ * ``n'' is the address of the nonce to use, and sizeof(*n) gives its size.
+ * ``d'' is the address of the output digest (sha1_t *).
+ */
+#define SHA1_COMPUTE_NONCE(x,n,d) G_STMT_START {\
+	SHA1_context c_;							\
+	SHA1_reset(&c_);							\
+	SHA1_input(&c_, (n),  sizeof(*(n)));		\
+	SHA1_input(&c_, &(x), sizeof(x));			\
+	SHA1_result(&c_, (d));						\
 } G_STMT_END
 
 #endif /* _sha1_h_ */

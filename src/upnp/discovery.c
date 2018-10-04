@@ -432,9 +432,10 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 			header_dump(stderr, header, "----");
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
-			char *xml = xml_indent(data);
+			size_t xlen;
+			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -682,9 +683,10 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 			header_dump(stderr, header, "----");
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
-			char *xml = xml_indent(data);
+			size_t xlen;
+			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -709,7 +711,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ud->major = 1;
 		ud->minor = 0;
 	} else {
-		const char *p = strstr(buf, "UPnP/");
+		const char *p = vstrstr(buf, "UPnP/");
 		bool ok = FALSE;
 
 		if (p != NULL) {
@@ -1000,7 +1002,7 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 	 * it's best to adhere to the examples to maximize the success rate.
 	 */
 
-	len = str_bprintf(req, sizeof req,
+	len = str_bprintf(ARYLEN(req),
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: " UPNP_MCAST_ADDR ":" STRINGIFY(UPNP_PORT) "\r\n"
 		"USER-AGENT: %s\r\n"

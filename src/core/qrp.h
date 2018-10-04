@@ -97,6 +97,7 @@ struct routing_table *qrt_get_table(void);
 struct routing_table *qrt_ref(struct routing_table *);
 void qrt_unref(struct routing_table *);
 void qrt_get_info(const struct routing_table *, qrt_info_t *qi);
+void qrt_arena_relocate(struct routing_table *rt);
 
 struct query_hashvec *qhvec_alloc(uint size);
 void qhvec_free(struct query_hashvec *qhvec);

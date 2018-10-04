@@ -60,8 +60,8 @@
 #include "lib/base16.h"
 #include "lib/base32.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/file.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashing.h"
 #include "lib/hset.h"
@@ -70,7 +70,7 @@
 #include "lib/iso3166.h"
 #include "lib/magnet.h"
 #include "lib/mime_type.h"
-#include "lib/misc.h"			/* For xml_indent() */
+#include "lib/misc.h"			/* For xml_indent() and clamp_strcpy() */
 #include "lib/parse.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -106,6 +106,7 @@ static GList *list_searches;	/**< List of search structs */
 static htable_t *ht_searches;	/**< Maps a gnet_search_t to a search_t */
 
 static search_t *current_search; /**< The search currently displayed */
+static GtkWidget *dflt_search_widget;
 
 static const gchar search_file[] = "searches"; /**< "old" file to searches */
 
@@ -348,8 +349,8 @@ search_gui_option_menu_searches_update(void)
 			ui_query = lazy_utf8_to_ui_string(name);
 			title_size = sizeof title - sizeof ellipse;
 			utf8_strcpy_max(title, title_size, ui_query, BITPRINT_BASE32_SIZE);
-			filled = strlen(title);
-			if (filled < strlen(ui_query)) {
+			filled = vstrlen(title);
+			if (filled < vstrlen(ui_query)) {
 				strncat(title, ellipse, sizeof title - filled - 1);
 			}
 
@@ -406,8 +407,8 @@ search_gui_update_tab_label(const struct search *search)
 	if (NULL == search)
 		return;
 
-    uint32_to_string_buf(search->items, items, sizeof items);
-	concat_strings(label, sizeof label,
+    uint32_to_string_buf(search->items, ARYLEN(items));
+	concat_strings(ARYLEN(label),
 		lazy_utf8_to_ui_string(search_gui_query(search)),
 		"\n(", items,
 		search->unseen_items > 0 ? ", " : "",
@@ -447,16 +448,15 @@ search_gui_update_status_label(const struct search *search)
 		unsigned queued = search_gui_queue_length(search);
 
 		if (queued > 0) {
-       		str_bprintf(expire, sizeof expire,
+       		str_bprintf(ARYLEN(expire),
 				_("Flushing queue (%u results pending)"), queued);
 		} else {
-			str_bprintf(expire, sizeof expire, "%s",
-				_("The search has been stopped"));
+			str_bprintf(ARYLEN(expire), "%s", _("The search has been stopped"));
 		}
 	} else if (search_gui_is_passive(search)) {
-		str_bprintf(expire, sizeof expire, "%s", _("Passive search"));
+		str_bprintf(ARYLEN(expire), "%s", _("Passive search"));
 	} else if (search_gui_is_expired(search)) {
-		str_bprintf(expire, sizeof expire, "%s", _("Expired"));
+		str_bprintf(ARYLEN(expire), "%s", _("Expired"));
 	} else {
 		unsigned time_left;
 
@@ -470,16 +470,14 @@ search_gui_update_status_label(const struct search *search)
 			d = delta_time(tm_time(), created);
 			d = MAX(0, d);
 			d = UNSIGNED(d) < time_left ? time_left - UNSIGNED(d) : 0;
-			str_bprintf(expire, sizeof expire,
-				_("Expires in %s"), short_time(d));
+			str_bprintf(ARYLEN(expire), _("Expires in %s"), short_time(d));
 		} else {
-   			str_bprintf(expire, sizeof expire, "%s",
-				_("Expires with this session"));
+   			str_bprintf(ARYLEN(expire), "%s", _("Expires with this session"));
 		}
 	}
 
 	if (dlcount != 0) {
-		str_bprintf(downloads, sizeof downloads,
+		str_bprintf(ARYLEN(downloads),
 			NG_(" [%u download]", " [%u downloads]", dlcount), dlcount);
 	}
 
@@ -540,7 +538,7 @@ search_gui_update_guess_stats(const struct search *search)
 		return;
 
 	if (0 == search->guess_queries) {
-		g_strlcpy(buf, _("No GUESS queries run yet"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("No GUESS queries run yet"));
 	} else if (
 		GUI_PROPERTY(guess_stats_show_total) ||
 		0 == search->guess_cur_start
@@ -552,7 +550,7 @@ search_gui_update_guess_stats(const struct search *search)
 		char prev[128];
 		uint64 hits = search->guess_results + search->guess_cur_results;
 		if (search->guess_elapsed != 0) {
-			str_bprintf(prev, sizeof prev,
+			str_bprintf(ARYLEN(prev),
 				_(" previous took %s querying %zu %s with %zu %s kept"),
 				compact_time(search->guess_elapsed),
 				search->guess_hosts,
@@ -562,7 +560,7 @@ search_gui_update_guess_stats(const struct search *search)
 		} else {
 			prev[0] = '\0';
 		}
-		str_bprintf(buf, sizeof buf, _("GUESS %s [Total: %zu %s "
+		str_bprintf(ARYLEN(buf), _("GUESS %s [Total: %zu %s "
 			"(%s %s, %s kept, %s queries, %s keys)%s]"),
 			0 == search->guess_cur_start ? _("idle") :
 				compact_time(delta_time(tm_time(), search->guess_cur_start)),
@@ -580,7 +578,7 @@ search_gui_update_guess_stats(const struct search *search)
 		/*
 		 * A GUESS search is active AND they don't want only summary stats.
 		 */
-		str_bprintf(buf, sizeof buf, _("GUESS %s [%s "
+		str_bprintf(ARYLEN(buf), _("GUESS %s [%s "
 			"(%zu %s, %zu kept, %s queries, %s keys)] "
 			"[Pool: %zu %s, (%zu+%zu)/%zu queried, %zu %s (%.2f%%), "
 			"%zu reached, %zu pending, %zu %s%s%s]"),
@@ -726,6 +724,7 @@ static void
 search_gui_close_search(search_t *search)
 {
 	GList *next;
+	int n;
 
 	g_return_if_fail(search);
 
@@ -754,9 +753,17 @@ search_gui_close_search(search_t *search)
 	search_gui_clear_search(search);
     search_gui_remove_search(search);
 
-	gtk_notebook_remove_page(notebook_search_results,
-		gtk_notebook_page_num(notebook_search_results,
-			search->scrolled_window));
+	/*
+	 * Removeing the scrolled window which contains the search tree from
+	 * the notebook will remove references on theses ojects and free them!
+	 * Therefore, we need to forget the tree.
+	 */
+
+	gui_parent_forget(search->tree);	/* About to destroy tree */
+
+	n = gtk_notebook_page_num(notebook_search_results, search->scrolled_window);
+	g_assert(n >= 0);	/* Must be found! */
+	gtk_notebook_remove_page(notebook_search_results, n);
 
 	hset_free_null(&search->dups);
 	htable_free_null(&search->parents);
@@ -999,7 +1006,7 @@ search_gui_extract_ext(const gchar *filename)
 		p++;
 	}
 
-	rw = g_strlcpy(ext, p ? p : "", sizeof ext);
+	rw = cstr_lcpy(ARYLEN(ext), p != NULL ? p : "");
 	if (rw >= sizeof ext) {
 		/* If the guessed extension is really this long, assume the
 		 * part after the dot isn't an extension at all. */
@@ -1207,13 +1214,13 @@ search_gui_find(gnet_search_t sh)
  * @return NULL if there's no filename extension, otherwise a pointer
  *         to a static string holding the lowercased extension.
  */
-const gchar *
+const char *
 search_gui_get_filename_extension(const gchar *filename_utf8)
 {
-	const gchar *p = strrchr(filename_utf8, '.');
-	static gchar ext[32];
+	const char *p = strrchr(filename_utf8, '.');
+	static char ext[32];
 
-	if (!p || utf8_strlower(ext, &p[1], sizeof ext) >= sizeof ext) {
+	if (NULL == p || utf8_strlower(ARYLEN(ext), &p[1]) >= sizeof ext) {
 		/* If the guessed extension is really this long, assume the
 		 * part after the dot isn't an extension at all. */
 		return NULL;
@@ -1248,30 +1255,30 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 		 *				--RAM, 09/09/2001
 		 */
 
-		size = 1 + strlen(rc->tag);
+		size = 1 + vstrlen(rc->tag);
 		size = MIN(size, MAX_TAG_SHOWN + 1);
 		size = MIN(size, sizeof info);
 		rw = utf8_strlcpy(info, lazy_unknown_to_ui_string(rc->tag), size);
 	}
 	if (vinfo) {
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%s%s",
 				info[0] != '\0' ? "; " : "", vinfo);
 	}
 
 	if (rc->flags & SR_PARTIAL_HIT) {
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%s%s",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%s%s",
 			info[0] != '\0' ? ", " : "", _("partial"));
 	}
 
 	if (rc->alt_locs != NULL) {
 		guint count = gnet_host_vec_count(rc->alt_locs);
 		g_assert(rw < sizeof info);
-		rw += str_bprintf(&info[rw], sizeof info - rw, "%salt",
+		rw += str_bprintf(ARYPOSLEN(info, rw), "%salt",
 			info[0] != '\0' ? ", " : "");
 		if (count > 1)
-			rw += str_bprintf(&info[rw], sizeof info - rw, "(%u)", count);
+			rw += str_bprintf(ARYPOSLEN(info, rw), "(%u)", count);
 	}
 
 	return info[0] != '\0' ? atom_str_get(info) : NULL;
@@ -1955,7 +1962,7 @@ search_gui_get_route(const struct results_set *rs)
 	if (ST_LOCAL & rs->status)
 		return NULL;
 
-	n = host_addr_to_string_buf(rs->last_hop, addr_buf, sizeof addr_buf);
+	n = host_addr_to_string_buf(rs->last_hop, ARYLEN(addr_buf));
 
 	/*
 	 * For successful OOBv3 results, append a "+" to the route address.
@@ -1963,11 +1970,11 @@ search_gui_get_route(const struct results_set *rs)
 	 */
 
 	if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
-		g_strlcpy(&addr_buf[n], "+", sizeof addr_buf - n);
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "+");
 		n++;
 	}
 	if ((ST_GUESS & rs->status) && n < sizeof addr_buf) {
-		g_strlcpy(&addr_buf[n], "~", sizeof addr_buf - n);
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "~");
 	}
 	return addr_buf;
 }
@@ -2372,17 +2379,21 @@ search_gui_switch_search(struct search *search)
 			gtk_notebook_page_num(notebook_search_results,
 				search->scrolled_window));
 	} else {
-		GtkWidget *sw, *tree;
-		char text[256];
+		if G_UNLIKELY(NULL == dflt_search_widget) {
+			GtkWidget *sw, *tree;
+			char text[256];
 
-		sw = search_gui_create_scrolled_window();
-		tree = search_gui_create_tree();
-		gtk_widget_set_sensitive(tree, FALSE);
-		gtk_container_add(GTK_CONTAINER(sw), tree);
-		gtk_notebook_append_page(notebook_search_results, sw, NULL);
-		str_bprintf(text, sizeof text, "(%s)", _("No search"));
-		gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
-		gtk_widget_show_all(sw);
+			sw = search_gui_create_scrolled_window();
+			tree = search_gui_create_tree();
+			gtk_widget_set_sensitive(tree, FALSE);
+			g_object_ref(sw);	/* Never free this until shutdown */
+			gtk_container_add(GTK_CONTAINER(sw), tree);
+			gtk_notebook_append_page(notebook_search_results, sw, NULL);
+			str_bprintf(ARYLEN(text), "(%s)", _("No search"));
+			gtk_notebook_set_tab_label_text(notebook_search_results, sw, text);
+			dflt_search_widget = sw;
+		}
+		gtk_widget_show_all(dflt_search_widget);
 	}
 	search_gui_update_status(search);
 }
@@ -2677,11 +2688,11 @@ search_gui_parse_text_query(const gchar *text, struct query *query)
 		case '\'':
 		case '"':
 			start = &p[1];
-			endptr = strchr(start, *p);
+			endptr = vstrchr(start, *p);
 			if (endptr) {
 				next = &endptr[1];
 			} else {
-				endptr = strchr(start, '\0');
+				endptr = vstrchr(start, '\0');
 				next = endptr;
 			}
 			break;
@@ -2759,9 +2770,9 @@ search_gui_handle_magnet(const gchar *url, const gchar **error_str)
 		if (n_downloads > 0 || n_searches > 0) {
 			gchar msg_search[128], msg_download[128];
 
-			str_bprintf(msg_download, sizeof msg_download,
+			str_bprintf(ARYLEN(msg_download),
 				NG_("%u download", "%u downloads", n_downloads), n_downloads);
-			str_bprintf(msg_search, sizeof msg_search,
+			str_bprintf(ARYLEN(msg_search),
 				NG_("%u search", "%u searches", n_searches), n_searches);
 			statusbar_gui_message(15, _("Handled magnet link (%s, %s)."),
 				msg_download, msg_search);
@@ -2878,11 +2889,10 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 	g_return_val_if_fail(text, FALSE);
 
 	if (
-		strlen(text) >= SHA1_BASE16_SIZE &&
+		vstrlen(text) >= SHA1_BASE16_SIZE &&
 		!is_ascii_alnum(text[SHA1_BASE16_SIZE])
 	) {
-		ret = base16_decode(sha1.data, sizeof sha1.data,
-				text, SHA1_BASE16_SIZE);
+		ret = base16_decode(VARLEN(sha1), text, SHA1_BASE16_SIZE);
 	} else {
 		ret = (size_t) -1;
 	}
@@ -2894,7 +2904,7 @@ search_gui_handle_sha1(const gchar *text, const gchar **error_str)
 		static const gchar prefix[] = "urn:sha1:";
 		gchar urn[SHA1_BASE32_SIZE + sizeof prefix];
 
-		concat_strings(urn, sizeof urn, prefix, sha1_base32(&sha1), NULL_PTR);
+		concat_strings(ARYLEN(urn), prefix, sha1_base32(&sha1), NULL_PTR);
 		return search_gui_handle_urn(urn, error_str);
 	}
 }
@@ -3018,11 +3028,7 @@ search_gui_handle_browse(const gchar *s, const gchar **error_str)
 		char hostname[MAX_HOSTLEN + 1];
 
 		if (!is_host_addr(addr)) {
-			size_t size;
-
-			size = (endptr - s) + 1;
-			size = MIN(size, sizeof hostname);
-			g_strlcpy(hostname, s, size);
+			clamp_strncpy(ARYLEN(hostname), s, endptr - s);
 		}
 		if (':' == endptr[0]) {
 			int error;
@@ -3906,7 +3912,7 @@ search_gui_get_vendor(const struct results_set *rs)
 		if (rs->version) {
 			static gchar buf[128];
 
-			concat_strings(buf, sizeof buf, vendor, "/", rs->version, NULL_PTR);
+			concat_strings(ARYLEN(buf), vendor, "/", rs->version, NULL_PTR);
 			vendor = buf;
 		}
 	} else {
@@ -4041,7 +4047,7 @@ search_gui_set_details(const record_t *rc)
 		if (rc->size != 0) {
 			char buf[80];
 			double pct = 100.0 * prc->available / (double) rc->size;
-			str_bprintf(buf, sizeof buf, _("%s [%.2f%%]"),
+			str_bprintf(ARYLEN(buf), _("%s [%.2f%%]"),
 				nice_size(prc->available, show_metric_units()), pct);
 			search_gui_append_detail(_("Available"), buf);
 		}
@@ -4090,7 +4096,7 @@ search_gui_set_details(const record_t *rc)
 		if (rs->status & ST_BANNED_GUID) {
 			char buf[80];
 
-			str_bprintf(buf, sizeof buf, "%s [%s]",
+			str_bprintf(ARYLEN(buf), "%s [%s]",
 				guid_to_string(rs->guid), _("banned"));
 
 			search_gui_append_detail(_("Servent ID"), buf);
@@ -4739,6 +4745,10 @@ search_gui_common_shutdown(void)
 	slist_free_all(&accumulated_rs, accum_rs_free_full);
 
 	search_gui_set_details(NULL);
+	if (dflt_search_widget != NULL) {
+		g_object_unref(dflt_search_widget);
+		dflt_search_widget = NULL;
+	}
 
     gm_list_free_null(&list_search_history);
 	htable_free_null(&ht_searches);

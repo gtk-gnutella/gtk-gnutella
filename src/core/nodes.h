@@ -185,6 +185,7 @@ typedef struct gnutella_node {
 	time_t shutdown_date;		/**< When we entered in shutdown mode */
 	time_t up_date;				/**< When remote server started (0 if unknown) */
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
+	time_t last_qrt_move;		/**< Time when we last attempted a QRT move */
 	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
 	const char *remove_msg;		/**< Reason of removing */
@@ -201,7 +202,7 @@ typedef struct gnutella_node {
 
 	struct route_data *routing_data;		/**< for gnet message routing */
 	struct routing_table *sent_query_table;	/**< query table sent to node */
-	struct routing_table *recv_query_table;	/**< query table recved from node */
+	struct routing_table *recv_query_table;	/**< query table received from node */
 	struct qrt_update *qrt_update;			/**< query routing update handle */
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */

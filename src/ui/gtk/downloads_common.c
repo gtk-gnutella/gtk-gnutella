@@ -42,8 +42,8 @@
 
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/entropy.h"
-#include "lib/glib-missing.h"
 #include "lib/halloc.h"
 #include "lib/hashlist.h"
 #include "lib/hset.h"
@@ -184,7 +184,7 @@ source_progress_to_string(const struct download *d)
 	switch (d->status) {
 	case GTA_DL_RECEIVING:
 	case GTA_DL_IGNORING:
-		str_bprintf(buf, sizeof buf, "%5.2f%%",
+		str_bprintf(ARYLEN(buf), "%5.2f%%",
 			100.0 * guc_download_source_progress(d));
 		break;
 	default:
@@ -224,7 +224,7 @@ fi_gui_set_details(const struct fileinfo_data *file)
 	if (info->tth_num_leaves > 0) {
 		char buf[1024];
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			_("leaf hashes: %lu, depth: %u, granularity: %s%s"),
 			(unsigned long) info->tth_num_leaves,
 			info->tth_depth,
@@ -257,13 +257,12 @@ downloads_gui_pipeline_range_string(const struct download *d)
 
 	metric = show_metric_units();
 	if (dp->chunk.start) {
-		g_strlcpy(range_start, compact_size(dp->chunk.start, metric),
-			sizeof range_start);
+		cstr_bcpy(ARYLEN(range_start), compact_size(dp->chunk.start, metric));
 	} else {
 		range_start[0] = '\0';
 	}
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		compact_size(length, metric),
 		range_start[0] ? " @ " : "", range_start,
 		NULL_PTR);
@@ -297,7 +296,7 @@ download_gui_rescheduling(char *buf, size_t buflen, const struct download *d)
 	rescheduled = d->last_update + d->timeout_delay;
 	rescheduled = MAX(rescheduled, d->retry_after);
 
-	time_locale_to_string_buf(rescheduled, resched, sizeof resched);
+	time_locale_to_string_buf(rescheduled, ARYLEN(resched));
 
 	if (NULL == d->remove_msg) {
 		str_bprintf(buf, buflen, "%s %s #%u",
@@ -338,33 +337,32 @@ downloads_gui_status_string(const struct download *d)
 			elapsed = MAX(0, elapsed);
 			elapsed = MIN(elapsed, INT_MAX);
 
-			rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s", _("Queued"));
+			rw = str_bprintf(ARYLEN(tmpstr), "%s", _("Queued"));
 
 			if (guc_get_parq_dl_position(d) > 0) {
 
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_(" (slot %u"),		/* ) */
 					guc_get_parq_dl_position(d));
 
 				if (guc_get_parq_dl_queue_length(d) > 0) {
-					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 						"/%u", (unsigned) guc_get_parq_dl_queue_length(d));
 				}
 
 				if (guc_get_parq_dl_eta(d)  > 0) {
-					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 						_(", ETA: %s"),
-						short_time((guc_get_parq_dl_eta(d)
-							- elapsed)));
+						short_time((guc_get_parq_dl_eta(d) - elapsed)));
 				}
 
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw, /* ( */ ")");
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw), /* ( */ ")");
 			}
 
 			delay = guc_get_parq_dl_retry_delay(d) - elapsed;
 			delay = MAX(0, delay);
 
-			rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+			rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_(" retry in %us"), (unsigned) delay);
 		}
 
@@ -373,7 +371,7 @@ downloads_gui_status_string(const struct download *d)
 		 */
 
 		if (download_is_partial(d)) {
-			rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+			rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 				" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 		}
 
@@ -385,13 +383,13 @@ downloads_gui_status_string(const struct download *d)
 		if (FILE_INFO_COMPLETE(d->file_info)) {
 			if (d->remove_msg != NULL) {
 				/* Show message if present */
-				status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
+				status = download_gui_rescheduling(ARYLEN(tmpstr), d);
 			} else {
-				str_bprintf(tmpstr, sizeof tmpstr, _("Complete"));
+				str_bprintf(ARYLEN(tmpstr), _("Complete"));
 				status = tmpstr;
 			}
 		} else {
-			status = download_gui_rescheduling(tmpstr, sizeof tmpstr, d);
+			status = download_gui_rescheduling(ARYLEN(tmpstr), d);
 		}
 		break;
 
@@ -411,18 +409,16 @@ downloads_gui_status_string(const struct download *d)
 
 				if (cp->done) {
 					if (cp->sent)
-						rw = str_bprintf(tmpstr, sizeof(tmpstr),
+						rw = str_bprintf(ARYLEN(tmpstr),
 								cp->directly
 									? _("Push sent directly")
 									: _("Push sent"));
 					else
-						rw = str_bprintf(tmpstr, sizeof(tmpstr),
-								_("Failed to send push"));
+						rw = str_bprintf(ARYLEN(tmpstr), _("Failed to send push"));
 				} else
-					rw = str_bprintf(tmpstr, sizeof(tmpstr),
-							_("Sending push"));
+					rw = str_bprintf(ARYLEN(tmpstr), _("Sending push"));
 
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw, _(" via %s"),
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw), _(" via %s"),
 						host_addr_port_to_string(cproxy_addr(cp),
 							cproxy_port(cp)));
 
@@ -445,8 +441,7 @@ downloads_gui_status_string(const struct download *d)
 						break;
 					}
 
-					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-							": %s", status);
+					rw += str_bprintf(ARYPOSLEN(tmpstr, rw), ": %s", status);
 				}
 
 				status = tmpstr;
@@ -469,7 +464,7 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_REQ_SENDING:
 		if (d->req != NULL) {
-			rw = str_bprintf(tmpstr, sizeof(tmpstr),
+			rw = str_bprintf(ARYLEN(tmpstr),
 					_("Sending request (%u%%)"),
 					(unsigned) guc_download_get_http_req_percent(d));
 			status = tmpstr;
@@ -496,14 +491,14 @@ downloads_gui_status_string(const struct download *d)
 			if (d->last_update != d->start_date) {
 				time_delta_t t = delta_time(d->last_update, d->start_date);
 
-				rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s (%s) %s",
+				rw = str_bprintf(ARYLEN(tmpstr), "%s (%s) %s",
 					FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"),
 					short_rate(
 						(d->chunk.end - d->chunk.start + d->chunk.overlap) / t,
 						show_metric_units()),
 					short_time(t));
 			} else {
-			rw = str_bprintf(tmpstr, sizeof(tmpstr), "%s (< 1s)",
+			rw = str_bprintf(ARYLEN(tmpstr), "%s (< 1s)",
 				FILE_INFO_COMPLETE(fi) ? _("Completed") : _("Chunk done"));
 			}
 			status = tmpstr;
@@ -512,17 +507,16 @@ downloads_gui_status_string(const struct download *d)
 
 	case GTA_DL_VERIFY_WAIT:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		g_strlcpy(tmpstr,
+		cstr_bcpy(ARYLEN(tmpstr),
 			fi->tth_check ?
 				_("Waiting for TTH checking...") :
-				_("Waiting for SHA1 checking..."),
-			sizeof(tmpstr));
+				_("Waiting for SHA1 checking..."));
 		status = tmpstr;
 		break;
 
 	case GTA_DL_VERIFYING:
 		g_assert(FILE_INFO_COMPLETE(fi));
-		str_bprintf(tmpstr, sizeof(tmpstr),
+		str_bprintf(ARYLEN(tmpstr),
 			_("Computing %s (%.02f%%)"),
 			fi->tth_check ? "TTH" : "SHA1",
 			fi->vrfy_hashed * 100.0 / fi->size);
@@ -549,12 +543,12 @@ downloads_gui_status_string(const struct download *d)
 			} else {
 				sha1_status = _("SHA-1 VERIFICATION FAILED");
 			}
-			rw = str_bprintf(tmpstr, sizeof tmpstr, "%s", sha1_status);
+			rw = str_bprintf(ARYLEN(tmpstr), "%s", sha1_status);
 
 			if (fi->cha1 && fi->vrfy_hashed) {
 				unsigned elapsed = fi->vrfy_elapsed;
 
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					" (%s) %s",
 					short_rate(fi->vrfy_hashed / (elapsed ? elapsed : 1),
 						show_metric_units()),
@@ -563,17 +557,17 @@ downloads_gui_status_string(const struct download *d)
 
 			switch (d->status) {
 			case GTA_DL_MOVE_WAIT:
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 						"%s", _("; Waiting for moving..."));
 				break;
 			case GTA_DL_MOVING:
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_("; Moving (%.02f%%)"),
 					((gdouble) fi->copied / fi->size) * 100.0);
 				break;
 			case GTA_DL_DONE:
 				if (fi->copy_elapsed) {
-					rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+					rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 						_("; Moved (%s) %s"),
 						short_rate(fi->copied / fi->copy_elapsed,
 							show_metric_units()),
@@ -624,12 +618,12 @@ downloads_gui_status_string(const struct download *d)
 					remain = 0;
 				}
                 s = remain / bps;
-				rw += str_bprintf(&tmpstr[rw], sizeof tmpstr - rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 						"(%s) TR: %s",
 						short_rate(bps, show_metric_units()),
 						short_time(s));
 			} else {
-				rw += str_bprintf(tmpstr, sizeof tmpstr - rw, "%s",
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw), "%s",
 						stalled	? _("(stalled)") : _("Receiving data"));
 			}
 
@@ -638,7 +632,7 @@ downloads_gui_status_string(const struct download *d)
 			 */
 
 			if (download_is_partial(d)) {
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					" <PFS %4.02f%%>", d->ranges_size * 100.0 / fi->size);
 			}
 
@@ -648,12 +642,11 @@ downloads_gui_status_string(const struct download *d)
 			 */
 
 			if (d->served_reqs)
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					" #%u", d->served_reqs + 1);
 
 			if (GTA_DL_IGNORING == d->status)
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
-					" (%s)", _("ignoring"));
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw), " (%s)", _("ignoring"));
 
 			status = tmpstr;
 
@@ -673,7 +666,7 @@ downloads_gui_status_string(const struct download *d)
 				case GTA_DL_PIPE_SENT:		state = _("requested next"); break;
 				}
 
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					" {%s: %s}", state, downloads_gui_pipeline_range_string(d));
 			}
 		} else {
@@ -697,7 +690,7 @@ downloads_gui_status_string(const struct download *d)
 			} else {
 				when = 0;
 			}
-			rw = str_bprintf(tmpstr, sizeof tmpstr, _("Retry in %us"), when);
+			rw = str_bprintf(ARYLEN(tmpstr), _("Retry in %us"), when);
 		}
 		status = tmpstr;
 		break;
@@ -705,9 +698,8 @@ downloads_gui_status_string(const struct download *d)
 		{
 			char buf[UINT64_DEC_BUFLEN];
 
-			uint64_to_string_buf(d->sinkleft, buf, sizeof buf);
-			rw = str_bprintf(tmpstr, sizeof tmpstr,
-				_("Sinking (%s bytes left)"), buf);
+			uint64_to_string_buf(d->sinkleft, ARYLEN(buf));
+			rw = str_bprintf(ARYLEN(tmpstr), _("Sinking (%s bytes left)"), buf);
 		}
 		status = tmpstr;
 		break;
@@ -745,13 +737,12 @@ downloads_gui_range_string(const struct download *d)
 
 	metric = show_metric_units();
 	if (d->chunk.start) {
-		g_strlcpy(range_start, compact_size(d->chunk.start, metric),
-			sizeof range_start);
+		cstr_bcpy(ARYLEN(range_start), compact_size(d->chunk.start, metric));
 	} else {
 		range_start[0] = '\0';
 	}
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		compact_size(length, metric), and_more,
 		range_start[0] ? " @ " : "", range_start,
 		NULL_PTR);
@@ -1997,7 +1988,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		{
 			static char buf[256];
 
-			str_bprintf(buf, sizeof buf, "%u/%u/%u",
+			str_bprintf(ARYLEN(buf), "%u/%u/%u",
 				file->recv_count,
 				file->actively_queued + file->passively_queued,
 				file->life_count);
@@ -2021,7 +2012,7 @@ fi_gui_file_column_text(const struct fileinfo_data *file, int column)
 		if (file->done && file->size) {
 			static char buf[16];
 
-			str_bprintf(buf, sizeof buf, "%u.%02u%%",
+			str_bprintf(ARYLEN(buf), "%u.%02u%%",
 				file->progress / 100, file->progress % 100);
 			text = buf;
 		}
@@ -2246,7 +2237,7 @@ fi_gui_regex_error(regex_t *expr, int error)
 
 	g_return_if_fail(expr);
 
-	regerror(error, expr, buf, sizeof buf);
+	regerror(error, expr, ARYLEN(buf));
    	statusbar_gui_warning(15, _("regex error: %s"),
 		lazy_locale_to_ui_string(buf));
 }

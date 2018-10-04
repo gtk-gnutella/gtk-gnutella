@@ -40,8 +40,8 @@
 
 #include "ascii.h"
 #include "buf.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -125,7 +125,7 @@ ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 	*p = '\0';
 
 	if (p0 != dst) {
-		g_strlcpy(dst, p0, size);
+		cstr_bcpy(dst, size, p0);
 	}
 	return p - p0;
 }
@@ -1206,7 +1206,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 	if (!safe_chars) {
 		safe_chars = "";
 	}
-	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
+	if (is_ascii_alnum(c) || (c < 0x80 && vstrchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
 
@@ -1272,7 +1272,7 @@ lazy_string_to_printf_escape(const char *src)
 	}
 	*p = '\0';
 
-	memcpy(bd, &prev, sizeof prev);
+	memcpy(bd, &prev, sizeof prev);		/* No VARLEN(): memcpy() may be a macro */
 	return NOT_LEAKING(prev);
 }
 

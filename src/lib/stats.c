@@ -120,6 +120,20 @@ statx_free(statx_t *sx)
 }
 
 /**
+ * Free stats container and nullify its pointer.
+ */
+void
+statx_free_null(statx_t **sx_ptr)
+{
+	statx_t *sx = *sx_ptr;
+
+	if (sx != NULL) {
+		statx_free(sx);
+		*sx_ptr = NULL;
+	}
+}
+
+/**
  * Clear container.
  */
 void
@@ -158,7 +172,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 			ELIST_FOREACH_DATA(&sx->data, dp) {
 				double delta = dp->value - val;
 
-				if (ABS(delta) < 1e-56) {
+				if (fabs(delta) < 1e-56) {
 					elist_remove(&sx->data, dp);
 					WFREE(dp);
 					break;
@@ -167,7 +181,7 @@ statx_opx(statx_t *sx, double val, stats_op_t op)
 
 			g_assert(dp != NULL);		/* Found it */
 		} else {
-			WALLOC(dp);
+			WALLOC0(dp);
 			dp->value = val;
 			elist_prepend(&sx->data, dp);
 		}
@@ -309,6 +323,141 @@ statx_data(const statx_t *sx)
 	}
 
 	return array;
+}
+
+struct statx_foreach_trampoline_ctx {
+	double_data_fn_t cb;
+	void *udata;
+};
+
+static void
+statx_foreach_trampoline(void *data, void *udata)
+{
+	struct stat_datapoint *dp = data;
+	struct statx_foreach_trampoline_ctx *ctx = udata;
+
+	(*ctx->cb)(dp->value, ctx->udata);
+}
+
+/**
+ * Iterate over the datapoints.
+ *
+ * @param sx	the stats data container
+ * @param cb	function to invoke on all items
+ * @param data	opaque user-data to pass to callback
+ */
+void
+statx_foreach(const statx_t *sx, double_data_fn_t cb, void *udata)
+{
+	struct statx_foreach_trampoline_ctx ctx;
+
+	statx_check(sx);
+	g_assert(!sx->no_data);
+
+	ctx.cb = cb;
+	ctx.udata = udata;
+
+	elist_foreach(&sx->data, statx_foreach_trampoline, &ctx);
+}
+
+struct statx_foreach_remove_trampoline_ctx {
+	double_data_rm_fn_t cb;
+	void *udata;
+};
+
+static bool
+statx_foreach_remove_trampoline(void *data, void *udata)
+{
+	struct stat_datapoint *dp = data;
+	struct statx_foreach_remove_trampoline_ctx *ctx = udata;
+
+	return (*ctx->cb)(dp->value, ctx->udata);
+}
+
+/**
+ * Iterate over the datapoints, involing the callback for each of them and
+ * removing them when the callback returns TRUE.
+ *
+ * @param sx	the stats data container
+ * @param cb	function to invoke on all items
+ * @param data	opaque user-data to pass to callback
+ *
+ * @return amount of removed items from the stats container.
+ */
+size_t
+statx_foreach_remove(statx_t *sx, double_data_rm_fn_t cb, void *udata)
+{
+	struct statx_foreach_remove_trampoline_ctx ctx;
+
+	statx_check(sx);
+	g_assert(!sx->no_data);
+
+	ctx.cb = cb;
+	ctx.udata = udata;
+
+	return elist_foreach_remove(&sx->data,
+		statx_foreach_remove_trampoline, &ctx);
+}
+
+struct statx_remove_outliers_ctx {
+	double mean;			/* Initial average of the data set */
+	double limit;			/* Limit distance from the mean */
+	statx_t *sx;			/* The stats container we're iterating over */
+};
+
+/**
+ * Iterator callbacl to remove outlier data points.
+ *
+ * @return TRUE if datapoint is further from the mean than the set limit.
+ */
+static bool
+stats_remove_outlier_data(void *data, void *udata)
+{
+	const struct stat_datapoint *dp = data;
+	struct statx_remove_outliers_ctx *ctx = udata;
+	statx_t *sx;
+	double d;
+
+	d = fabs(dp->value - ctx->mean);
+	if (d <= ctx->limit)
+		return FALSE;		/* Within range */
+
+	/* Remove the datapoint, update internal data structures */
+
+	sx = ctx->sx;
+	statx_check(sx);
+
+	sx->n--;
+	sx->sx -= dp->value;
+	sx->sx2 -= dp->value * dp->value;
+
+	return TRUE;	/* Outlier, remove from set */
+}
+
+/**
+ * Remove outliers: datapoints further from the mean than the specified amount
+ * of standard deviations.
+ *
+ * @param sx	the stats data container
+ * @param range	how many standard deviations is considered within range
+ *
+ * @return amount of removed items from the stats container.
+ */
+size_t
+statx_remove_outliers(statx_t *sx, double range)
+{
+	struct statx_remove_outliers_ctx ctx;
+
+	statx_check(sx);
+	g_assert(!sx->no_data);
+	g_assert(sx->n > 1);
+	g_assert(range >= 0);
+
+	ctx.mean = statx_avg(sx);
+	ctx.limit = statx_sdev(sx) * range;
+	ctx.sx = sx;
+
+	return elist_foreach_remove(&sx->data, stats_remove_outlier_data, &ctx);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -105,6 +105,46 @@ PIO_UNLOCK(int fd)
 #endif	/* PIO_EMULATION */
 
 /**
+ * Lock file descriptor to prevent concurrent PIO access if we have to change
+ * the file offset.
+ *
+ * This has no effect when there is no PIO emulation at all.
+ *
+ * @note
+ * This was initially created for the mingw_ftruncate() call, since we know
+ * Windows requires PIO emulation.
+ *
+ * @attention
+ * Because the locks are spinlocks and not recursive, foreign routines performing
+ * this call MUST ensure there will be no recursion to the PIO emulation layer
+ * whilst the lock is held.
+ */
+void
+compat_pio_lock(int fd)
+{
+	(void) fd;
+#ifdef PIO_EMULATION
+	PIO_LOCK(fd);
+#endif	/* PIO_EMULATION */
+}
+
+void
+compat_pio_unlock(int fd)
+{
+	(void) fd;
+#ifdef PIO_EMULATION
+	/*
+	 * These are not part of PIO_UNLOCK() since it is meant to be called normally
+	 * in the same routine as the one doing PIO_LOCK().
+	 */
+	g_assert(fd >= 0);
+	g_assert(UNSIGNED(fd) < pio_capacity);
+
+	PIO_UNLOCK(fd);
+#endif	/* PIO_EMULATION */
+}
+
+/**
  * Write the given data to a file descriptor at the given offset.
  *
  * @attention This is not exactly always emulating a pwrite() call because

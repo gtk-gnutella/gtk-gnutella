@@ -85,6 +85,7 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
 #include "lib/file.h"
@@ -146,6 +147,9 @@ static idtable_t *upload_handle_map;
 
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
 static const char ALLOW[]     = "Allow: GET, HEAD\r\n";
+
+static cpattern_t *pat_http;
+static cpattern_t *pat_applewebkit;
 
 static inline struct upload *
 cast_to_upload(void *p)
@@ -484,8 +488,8 @@ upload_host_info(const struct upload *u)
 
 	upload_check(u);
 
-	host_addr_to_string_buf(u->addr, host, sizeof host);
-	concat_strings(info, sizeof info,
+	host_addr_to_string_buf(u->addr, ARYLEN(host));
+	concat_strings(ARYLEN(info),
 		"<", host, " \'", upload_vendor_str(u), "\'>",
 		NULL_PTR);
 	return info;
@@ -1424,7 +1428,7 @@ upload_free_resources(struct upload *u)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	HFREE_NULL(u->request);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
 	HFREE_NULL(u->sending_error);
 
     upload_free_handle(u->upload_handle);
@@ -1693,7 +1697,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 	)
 		return 0;
 
-	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+	gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(guid));
 
 	rw = concat_strings(buf, size,
 			"X-GUID: ", guid_hex_str(&guid), "\r\n",
@@ -1913,7 +1917,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		 */
 
 		mesh_len = dmesh_alternate_location(sha1,
-					alt_locs, sizeof alt_locs, u->addr,
+					ARYLEN(alt_locs), u->addr,
 					last_sent, u->user_agent, NULL, FALSE,
 					u->fwalt ? u->guid : NULL, u->net);
 
@@ -1988,7 +1992,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 	(void) unused_flags;
 	upload_check(u);
 
-	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
+	uint64_to_string_buf(u->file_size, ARYLEN(fsize));
 	len = concat_strings(buf, size,
 			"Content-Range: bytes */", fsize, NULL_PTR);
 
@@ -2217,7 +2221,6 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 {
 	char reason[1024];
 	char extra[1024];
-	size_t slen = 0;
 
 	upload_check(u);
 
@@ -2240,7 +2243,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	if (msg && no_reason != msg) {
-		str_vbprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(ARYLEN(reason), msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -2258,13 +2261,11 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 */
 
 	if (ext) {
-		slen = g_strlcpy(extra, ext, sizeof(extra));
-
-		if (slen < sizeof(extra)) {
+		if (cstr_fcpy(ARYLEN(extra), ext)) {
 			upload_http_extra_line_add(u, extra);
 		} else {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, slen);
+				G_STRFUNC, vstrlen(ext));
 		}
 	}
 
@@ -2311,7 +2312,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				char *uri;
 
 				uri = url_escape(u->name);
-				if (html_escape(uri, href, sizeof href) >= sizeof href) {
+				if (html_escape(uri, ARYLEN(href)) >= sizeof href) {
 					/* If the escaped href is too long, leave it out. They
 				 	 * might get an ugly filename but at least the URI
 				 	 * works. */
@@ -2321,9 +2322,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					HFREE_NULL(uri);
 			}
 
-			str_bprintf(index_href, sizeof index_href,
+			str_bprintf(ARYLEN(index_href),
 				"/get/%lu/", (ulong) u->file_index);
-			str_bprintf(buf, sizeof buf,
+			str_bprintf(ARYLEN(buf),
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
@@ -2505,11 +2506,11 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	VA_COPY(apcopy, ap);
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, reason, ap);
+		str_vbprintf(ARYLEN(errbuf), reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			str_bprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			str_bprintf(ARYLEN(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -2585,7 +2586,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	 */
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		str_vbprintf(ARYLEN(errbuf), _(reason), apcopy);
 		logreason = errbuf;
 	} else {
 		logreason = NULL;
@@ -2813,7 +2814,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		if (faked) {
 			char name[1024];
 
-			concat_strings(name, sizeof name, "!", user_agent, NULL_PTR);
+			concat_strings(ARYLEN(name), "!", user_agent, NULL_PTR);
 			u->user_agent = atom_str_get(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);
@@ -3044,10 +3045,9 @@ upload_connect_conf(struct upload *u)
 	guid = cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid));
 
 	if (u->g2) {
-		rw = str_bprintf(giv, sizeof giv, "PUSH guid:%s\r\n\r\n",
-				guid_hex_str(guid));
+		rw = str_bprintf(ARYLEN(giv), "PUSH guid:%s\r\n\r\n", guid_hex_str(guid));
 	} else {
-		rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+		rw = str_bprintf(ARYLEN(giv), "GIV %lu:%s/file\n\n",
 				(ulong) u->file_index, guid_hex_str(guid));
 	}
 
@@ -3412,7 +3412,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
-			str_bprintf(location, sizeof(location),
+			str_bprintf(ARYLEN(location),
 				"Location: /get/%lu/%s\r\n",
 				(ulong) shared_file_index(sfn), escaped);
 
@@ -3560,7 +3560,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3654,7 +3654,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3755,8 +3755,8 @@ get_file_to_upload(struct upload *u, const header_t *header,
 	upload_check(u);
 	g_assert(NULL == u->sf);
 
-    if (u->name == NULL)
-        u->name = atom_str_get(uri);
+	if (u->name == NULL)
+		u->name = atom_str_get(uri);
 
 	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
 		uint32 idx;
@@ -3767,7 +3767,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
 			!error &&
 			'/' == endptr[0] &&
 			'\0' != endptr[1] &&
-			NULL == strchr(&endptr[1], '/')
+			NULL == vstrchr(&endptr[1], '/')
 		) {
 			endptr = deconstify_char(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, endptr, idx);
@@ -3849,9 +3849,13 @@ select_encoding(const header_t *header)
 	if (buf) {
 		if (strtok_has(buf, ",", "deflate")) {
 			const char *ua;
+			size_t ulen;
 
-			ua = header_get(header, "User-Agent");
-			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
+			ua = header_get_extended(header, "User-Agent", &ulen);
+			if (
+				NULL == ua ||
+				NULL == pattern_strstrlen(ua, ulen, pat_applewebkit)
+			)
 				return BH_F_DEFLATE;
 		}
 
@@ -3979,7 +3983,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* End at first "pptsl=" indication (remaining are push-proxies) */
@@ -4124,7 +4128,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		static const char fmt[] = "Location: http://%s:%u/\r\n";
 		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		str_bprintf(location, sizeof location, fmt,
+		str_bprintf(ARYLEN(location), fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, HTTP_ATOMIC_SEND, "Redirecting");
@@ -4156,7 +4160,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	{
 		static char lm_buf[64];
 
-		str_bprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
+		str_bprintf(ARYLEN(lm_buf), "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
 		upload_http_extra_line_add(u, lm_buf);
 	}
@@ -4370,7 +4374,7 @@ static void
 upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct upload *u = data;
-	http_buffer_t *r;
+	pmsg_t *r;
 	gnutella_socket_t *s;
 	int rw;
 	const char *base;
@@ -4384,7 +4388,7 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 	r = u->reply;
 
 	g_assert(s->gdk_tag);		/* I/O callback is still registered */
-	http_buffer_check(r);
+	pmsg_check(r);
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
@@ -4392,23 +4396,22 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		upload_remove(u, "%s: %s", msg, g_strerror(errno));
 		return;
 	} else if (sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Move start past the data we sent */
 		u->last_update = tm_time();
 		return;
 	} else {
 		if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
-			g_debug("----Sent HTTP status completely to %s (%u bytes):",
-				host_addr_to_string(s->addr), http_buffer_length(r));
-			dump_string(stderr,
-				http_buffer_base(r), http_buffer_length(r), "----");
+			g_debug("----Sent HTTP status completely to %s (%zu bytes):",
+				host_addr_to_string(s->addr), pmsg_phys_len(r));
+			dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
 		}
 	}
 
@@ -4418,14 +4421,14 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 
 	if (GNET_PROPERTY(upload_debug)) {
 		int code =
-			http_status_parse(http_buffer_base(r), "HTTP", NULL, NULL, NULL);
+			http_status_parse(pmsg_phys_base(r), "HTTP", NULL, NULL, NULL);
 
-		g_debug("flushed partially written HTTP %d status to %s (%u bytes)",
-			code, host_addr_to_string(s->addr), http_buffer_length(r));
+		g_debug("flushed partially written HTTP %d status to %s (%zu bytes)",
+			code, host_addr_to_string(s->addr), pmsg_phys_len(r));
 	}
 
 	socket_evt_clear(s);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
 
 	upload_http_status_sent(u);
 }
@@ -4447,7 +4450,7 @@ upload_http_status_partially_sent(
 	upload_check(u);
 	g_assert(NULL == u->reply);
 
-	u->reply = http_buffer_alloc(data, len, sent);
+	u->reply = http_pmsg_alloc(data, len, sent);
 	u->last_update = tm_time();
 
 	/*
@@ -4501,7 +4504,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 *		--RAM, 31/12/2001
 	 */
 
-	if (u->push && idx != u->file_index && GNET_PROPERTY(upload_debug)) {
+	if (
+		u->push && idx != u->file_index &&
+		GNET_PROPERTY(upload_debug) &&
+		0 != strcmp(u->name, shared_file_name_nfc(u->sf))
+	) {
 		g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->file_index, u->name, idx,
 				shared_file_name_nfc(u->sf));
@@ -4728,7 +4735,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 				delay = 60;		/* Let them retry in a minute, only */
 
 
-			str_bprintf(retry_after, sizeof(retry_after),
+			str_bprintf(ARYLEN(retry_after),
 				"Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
@@ -4880,8 +4887,8 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		size_t len, size = sizeof cd_buf;
 		char *p = cd_buf;
 
-		len = g_strlcpy(p,
-				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
+		len = cstr_lcpy(p, size,
+				"Content-Disposition: inline; filename*=\"utf-8'en'");
 		g_assert(len < sizeof cd_buf);
 
 		p += len;
@@ -4894,7 +4901,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			p += len;
 			size -= len;
 			if (size > CONST_STRLEN(term)) {
-				(void) g_strlcpy(p, term, size);
+				cstr_bcpy(p, size, term);
 				upload_http_extra_line_add(u, cd_buf);
 			}
 		}
@@ -4997,8 +5004,7 @@ upload_set_tos(struct upload *u)
 }
 
 static char *
-upload_parse_uri(header_t *header, const char *uri,
-	char *host, size_t host_size)
+upload_parse_uri(header_t *header, const char *uri, char *host, size_t host_size)
 {
 	const char *ep;
 
@@ -5023,7 +5029,7 @@ upload_parse_uri(header_t *header, const char *uri,
 			return NULL;
 		}
 
-		g_strlcpy(host, h, 1 + len);
+		clamp_strncpy(host, host_size, h, len + 1);
 		if (':' == *ep) {
 			uint32 v;
 			int error;
@@ -5041,7 +5047,7 @@ upload_parse_uri(header_t *header, const char *uri,
 		const char *value;
 
 		if (header && NULL != (value = header_get(header, "Host"))) {
-			g_strlcpy(host, value, host_size);
+			cstr_bcpy(host, host_size, value);
 		}
 	}
 	return deconstify_char(uri);
@@ -5052,7 +5058,7 @@ remove_trailing_http_tag(char *request)
 {
 	char *endptr;
 
-	endptr = strstr(request, " HTTP/");
+	endptr = pattern_strstr(request, pat_http);
 	if (endptr) {
 		while (request != endptr && is_ascii_blank(*(endptr - 1))) {
 			endptr--;
@@ -5194,7 +5200,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			upload_http_extra_line_add(u, content_encoding);
 		}
 
-		str_bprintf(name, sizeof name,
+		str_bprintf(ARYLEN(name),
 				_("<Browse Host %sRequest> [%s%s%s]"),
 				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
@@ -5273,7 +5279,7 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 	 * upgrading the socket on its side.
 	 */
 
-	str_bprintf(buf, sizeof buf, "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
+	str_bprintf(ARYLEN(buf), "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
 		u->http_major, u->http_minor);
 
 	upload_http_extra_line_add(u, buf);
@@ -5642,7 +5648,7 @@ upload_request(struct upload *u, header_t *header)
 	 * thereby ruling out the HTTP/0.9 requests.
 	 */
 
-	if (!upload_http_version(u, u->request, strlen(u->request))) {
+	if (!upload_http_version(u, u->request, vstrlen(u->request))) {
 		upload_error_remove(u, 500, N_("Unknown/Missing Protocol Tag"));
 		return;
 	}
@@ -5759,7 +5765,7 @@ upload_request(struct upload *u, header_t *header)
 
 	/* Extract the host and path from an absolute URI */
 
-	uri = upload_parse_uri(header, uri, host, sizeof host);
+	uri = upload_parse_uri(header, uri, ARYLEN(host));
 	if (NULL == uri) {
 		upload_send_error(u, 400, N_("Bad URI"));
 		return;
@@ -5825,7 +5831,7 @@ upload_request(struct upload *u, header_t *header)
 		}
 	}
 
-	search = strchr(uri, '?');
+	search = vstrchr(uri, '?');
 	if (search) {
 		*search++ = '\0';
 		/*
@@ -6388,6 +6394,9 @@ upload_max_by_addr(host_addr_t addr)
 void G_COLD
 upload_init(void)
 {
+	pat_http        = PATTERN_COMPILE_CONST(" HTTP/");
+	pat_applewebkit = PATTERN_COMPILE_CONST("AppleWebKit");
+
 	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
@@ -6455,6 +6464,8 @@ upload_close(void)
 	aging_destroy(&push_conn_failed);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
+	pattern_free_null(&pat_http);
+	pattern_free_null(&pat_applewebkit);
 }
 
 gnet_upload_info_t *
@@ -6538,9 +6549,11 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 		si->avg_bps = bio_avg_bps(u->bio);
 	}
 
-    if (u->last_update != u->start_date)
-        si->avg_bps = (u->pos - u->skip) /
+	if (u->last_update != u->start_date) {
+		si->avg_bps = (u->pos - u->skip) /
 			delta_time(u->last_update, u->start_date);
+	}
+
 	if (0 == si->avg_bps)
         si->avg_bps++;
 }

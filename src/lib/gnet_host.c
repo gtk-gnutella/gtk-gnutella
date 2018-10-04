@@ -385,7 +385,7 @@ gnet_host_vec_to_string(const gnet_host_vec_t *hvec)
 		}
 		host = gnet_host_vec_get(hvec, i);
 		host_addr_port_to_string_buf(gnet_host_get_addr(&host),
-			gnet_host_get_port(&host), buf, sizeof buf);
+			gnet_host_get_port(&host), ARYLEN(buf));
 		str_cat(s, buf);
 	}
 	return str_s2c_null(&s);

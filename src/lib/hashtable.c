@@ -457,14 +457,14 @@ hash_table_new(void)
 }
 
 /**
- * Checks how many items are currently stored in the hash_table.
+ * Get how many items are currently stored in the hash_table.
  *
  * @param ht the hash_table to check.
  *
  * @return the number of items in the hash_table.
  */
 size_t
-hash_table_size(const hash_table_t *ht)
+hash_table_count(const hash_table_t *ht)
 {
 	hash_table_check(ht);
 
@@ -1317,7 +1317,7 @@ hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
 	hash_table_check(ht);
 	ht_synchronize(ht);
 
-	htl.count = hash_table_size(ht);
+	htl.count = hash_table_count(ht);
 	htl.i = 0;
 	htl.keys = keys;
 
@@ -1333,14 +1333,14 @@ again:
 
 	XMALLOC_ARRAY(htl.array, htl.count);
 
-	while (hash_table_size(ht) > htl.count) {
-		htl.count = hash_table_size(ht);
+	while (hash_table_count(ht) > htl.count) {
+		htl.count = hash_table_count(ht);
 		XREALLOC_ARRAY(htl.array, htl.count);
 	}
 
 	ht_synchronize(ht);
 
-	if (hash_table_size(ht) > htl.count)
+	if (hash_table_count(ht) > htl.count)
 		goto again;
 
 	hash_table_foreach(ht, hash_table_linearize_item, &htl);

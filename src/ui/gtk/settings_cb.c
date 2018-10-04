@@ -47,7 +47,7 @@
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"	/* For g_strlcpy() */
+#include "lib/cstr.h"
 #include "lib/halloc.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
@@ -361,7 +361,7 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 	g_strstrip(text);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_give_server_hostname"),
-        strlen(text) > 3);		/* Minimum: "x.cx" */
+        vstrlen(text) > 3);		/* Minimum: "x.cx" */
 	G_FREE_NULL(text);
 }
 
@@ -965,7 +965,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	if (0 != strcmp(text, old_pattern)) {
 		pslist_t *props;
 
-		g_strlcpy(old_pattern, text, sizeof old_pattern);
+		cstr_bcpy(ARYLEN(old_pattern), text);
 		props = gnet_prop_get_by_regex(text, NULL);
 		if (!props)
 			statusbar_gui_warning(10,

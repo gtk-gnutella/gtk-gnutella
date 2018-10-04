@@ -50,6 +50,8 @@ struct guid;
  * Public interface.
  */
 
+void file_info_set_minchunksize(uint32 val);
+
 void file_info_init(void);
 void file_info_init_post(void);
 void file_info_scandir(const char *dir);

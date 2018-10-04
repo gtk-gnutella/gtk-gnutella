@@ -66,6 +66,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
@@ -135,7 +136,7 @@ send_pproxy_error_v(
 	int hevcnt = 0;
 
 	if (msg) {
-		str_vbprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(ARYLEN(reason), msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -154,11 +155,11 @@ send_pproxy_error_v(
 	 */
 
 	if (ext) {
-		size_t extlen = clamp_strcpy(extra, sizeof extra, ext);
+		size_t extlen = clamp_strcpy(ARYLEN(extra), ext);
 
 		if ('\0' != ext[extlen]) {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, strlen(ext));
+				G_STRFUNC, vstrlen(ext));
 		} else {
 			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
 			hev[hevcnt++].he_msg = extra;
@@ -197,11 +198,11 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	pproxy_check(pp);
 
 	if (reason) {
-		str_vbprintf(errbuf, sizeof errbuf , reason, ap);
+		str_vbprintf(ARYLEN(errbuf), reason, ap);
 		logreason = errbuf;
 	} else {
 		if (pp->error_sent) {
-			str_bprintf(errbuf, sizeof errbuf, "HTTP %d", pp->error_sent);
+			str_bprintf(ARYLEN(errbuf), "HTTP %d", pp->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -429,7 +430,7 @@ get_params(struct pproxy *pp, const char *request,
 	 * Determine how much data we have for the parameter.
 	 */
 
-	datalen = strlen(value);
+	datalen = vstrlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
 		struct guid buf;
@@ -653,7 +654,7 @@ validate_vendor(char *vendor, char *token, const host_addr_t addr)
 			char name[1024];
 
 			name[0] = '!';
-			g_strlcpy(&name[1], vendor, sizeof name - 1);
+			cstr_bcpy(ARYPOSLEN(name, 1), vendor);
 			result = atom_str_get(name);
 		} else
 			result = atom_str_get(vendor);
@@ -1258,7 +1259,7 @@ cproxy_build_request(const struct http_async *ha,
 	addr_v4_buf[0] = '\0';
 	if (is_host_addr(addr)) {
 		has_ipv4 = TRUE;
-		concat_strings(addr_v4_buf, sizeof addr_v4_buf,
+		concat_strings(ARYLEN(addr_v4_buf),
 			"X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1272,7 +1273,7 @@ cproxy_build_request(const struct http_async *ha,
 		 * address, use the X-Node header instead. If they don't support
 		 * IPv6 we lose anyway.
 		 */
-		concat_strings(addr_v6_buf, sizeof addr_v6_buf,
+		concat_strings(ARYLEN(addr_v6_buf),
 			has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1448,7 +1449,7 @@ cproxy_http_request(struct cproxy *cp)
 	cproxy_check(cp);
 	g_assert(NULL == cp->udp_ev);
 
-	concat_strings(path, sizeof path,
+	concat_strings(ARYLEN(path),
 		"/gnutella/push-proxy?ServerId=", guid_base32_str(cp->guid),
 		tls_enabled() ? "&tls=true" : "",
 		NULL_PTR);

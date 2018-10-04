@@ -140,6 +140,7 @@
 #include "lib/mem.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
+#include "lib/mtwist.h"
 #include "lib/offtime.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -254,6 +255,7 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_log_supervise,
 	main_arg_minimized,
+	main_arg_no_build_version,
 	main_arg_no_dbus,
 	main_arg_no_halloc,
 	main_arg_no_restart,
@@ -262,6 +264,7 @@ enum main_arg {
 	main_arg_pause_on_crash,
 	main_arg_ping,
 	main_arg_restart_on_crash,
+	main_arg_resume_session,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -318,6 +321,7 @@ static struct option {
 #else
 	OPTION(minimized,		NONE, "Start with minimized main window."),
 #endif	/* USE_TOPLESS */
+	OPTION(no_build_version,NONE, NULL),	/* hidden option */
 	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
@@ -330,6 +334,7 @@ static struct option {
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
+	OPTION(resume_session,	NONE, "Request resuming of previous session."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -459,14 +464,14 @@ gtk_version_string(void)
 	static char buf[80];
 
 	if ('\0' == buf[0]) {
-		str_bprintf(buf, sizeof buf, "Gtk+ %u.%u.%u",
+		str_bprintf(ARYLEN(buf), "Gtk+ %u.%u.%u",
 				gtk_major_version, gtk_minor_version, gtk_micro_version);
 		if (
 				GTK_MAJOR_VERSION != gtk_major_version ||
 				GTK_MINOR_VERSION != gtk_minor_version ||
 				GTK_MICRO_VERSION != gtk_micro_version
 		   ) {
-			str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+			str_bcatf(ARYLEN(buf), " (compiled against %u.%u.%u)",
 					GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
 		}
 	}
@@ -807,9 +812,19 @@ gtk_gnutella_exit(int exit_code)
 	/*
 	 * If auto-restart was requested, flag that in the properties so that
 	 * we'll know about that request when we restart.
+	 *
+	 * A session extension (OEXTEND) works similarily to a restart (ORESTART),
+	 * excepted that we do not re-launch immediately: the session will be
+	 * continued the next time GTKG is launched.
+	 *
+	 * Continuing a session lets one resume seeding of files, for instance.
+	 * In effect, crash_was_restarted() will return TRUE in the new process.
 	 */
 
-	if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+	if (
+		shutdown_user_flags &
+			(GTKG_SHUTDOWN_ORESTART | GTKG_SHUTDOWN_OEXTEND)
+	) {
 		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
 	}
 
@@ -952,7 +967,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(watcher_close);
 	DO(tsync_close);
 	DO(word_vec_close);
-	DO(pattern_close);
 	DO(pmsg_close);
 	DO(gmsg_close);
 	DO(g2_build_close);
@@ -1040,7 +1054,12 @@ gtk_gnutella_exit(int exit_code)
 			g_info("suspending other %u thread%s", n, plural(n));
 	}
 
-	thread_suspend_others(FALSE);
+	{
+		size_t n = thread_suspend_others(FALSE);
+
+		if (debugging(0))
+			g_info("suspended %zu thread%s", n, plural(n));
+	}
 
 	/*
 	 * Now we won't be dispatching any more TEQ events, which happen mostly
@@ -1080,6 +1099,8 @@ quick_restart:
 			g_info("gtk-gnutella will now restart itself...");
 			crash_restarting_done();
 			crash_reexec();
+		} else if (shutdown_user_flags & GTKG_SHUTDOWN_OEXTEND) {
+			g_info("gtk-gnutella will resume current session next time.");
 		}
 	}
 
@@ -1202,7 +1223,7 @@ option_pretty_print(FILE *f, const struct option *o)
 		break;
 	}
 
-	pad = strlen(name) + strlen(arg);
+	pad = vstrlen(name) + vstrlen(arg);
 	if (pad < 24) {
 		pad = 24 - pad;
 	} else {
@@ -1769,9 +1790,16 @@ main_timer(void *unused_data)
 	return TRUE;
 }
 
+static void
+mtwist_randomness(sha1_t *digest)
+{
+	random_bytes_with(mt_thread_rand, PTRLEN(digest));
+}
+
 typedef void (*digest_collector_cb_t)(sha1_t *digest);
 
 static digest_collector_cb_t random_source[] = {
+	mtwist_randomness,
 	random_stats_digest,
 	halloc_stats_digest,
 	palloc_stats_digest,
@@ -2176,6 +2204,7 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
+	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -2386,10 +2415,13 @@ main(int argc, char **argv)
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
 	zalloc_memusage_init();
-	version_init();
+	version_init(OPT(no_build_version));
 	xmalloc_show_settings();
 	malloc_show_settings();
-	crash_setver(version_get_string());
+	zalloc_show_settings();
+	crash_setver(version_build_string());	/* Wants true full version */
+	crash_setccdate(__DATE__);
+	crash_setcctime(__TIME__);
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */
@@ -2423,9 +2455,18 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	STATIC_ASSERT(MAX_UINT_VALUE(uint64) == MAX_INT_VAL(uint64));
+	STATIC_ASSERT(MAX_INT_VALUE(int64) == MAX_INT_VAL(int64));
+	STATIC_ASSERT(MIN_INT_VALUE(int64) == MIN_INT_VAL(int64));
+
+	STATIC_ASSERT(MAX_UINT_VALUE(uint32) == MAX_INT_VAL(uint32));
+	STATIC_ASSERT(MAX_INT_VALUE(int32) == MAX_INT_VAL(int32));
+	STATIC_ASSERT(MIN_INT_VALUE(int32) == MIN_INT_VAL(int32));
+
 	mem_test();
 	random_init();
-	vsort_init(1);
+	vsort_init(isatty(STDERR_FILENO) ? 0 : 1);
+	pattern_init(isatty(STDERR_FILENO) ? 0 : dflt_pattern);
 	htable_test();
 	wq_init();
 	inputevt_init(OPT(use_poll));
@@ -2447,10 +2488,6 @@ main(int argc, char **argv)
 	vendor_init();
 	mime_type_init();
 
-	if (!running_topless) {
-		main_gui_early_init(argc, argv, OPT(no_xshm));
-	}
-
 	bg_init();
 	upnp_init();
 	udp_init();
@@ -2458,12 +2495,11 @@ main(int argc, char **argv)
 	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
-	watcher_init();
 	ctl_init();
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
-	settings_init();
+	settings_init(OPT(resume_session));
 
 	/*
 	 * From now on, settings_init() was called so properties have been loaded.
@@ -2482,6 +2518,17 @@ main(int argc, char **argv)
 		str_test(TRUE);
 	}
 
+	/*
+	 * Unfortunately we need to early-init the GUI, if any requested,
+	 * before loading back the upload statistics.
+	 */
+
+	if (!running_topless) {
+		main_gui_early_init(argc, argv, OPT(no_xshm));
+	}
+
+	upload_stats_load_history();	/* Loads the upload statistics */
+
 	map_test();
 	ipp_cache_load_all();
 	tls_global_init();
@@ -2498,7 +2545,6 @@ main(int argc, char **argv)
 	verify_tth_init();
 	move_init();
 	ignore_init();
-	pattern_init();
 	word_vec_init();
 
 	file_info_init();
@@ -2573,6 +2619,9 @@ main(int argc, char **argv)
 	http_test();
 	vxml_test();
 	g2_tree_test();
+
+	if (OPT(topless))
+		gnet_prop_set_boolean_val(PROP_RUNNING_TOPLESS, TRUE);
 
 	if (running_topless) {
 		topless_main_run();

@@ -563,6 +563,38 @@ static const char *keys_101_13[] = {
 	"8b47 06db fb68 bd69 e6aa bf2a 3b08 53f8",
 };
 
+static const char *keys_101_14[] = {
+	"a829 6896 2486 73d2 9a49 3164 7ab1 1602",
+	"24ba cfd2 e760 cd2c 33da fd58 4ee1 db19",
+	"5c0c 0e50 880c c875 0645 783f 79d5 b95c",
+	"f7f3 2e97 4564 cb83 eea3 882d 10b2 96a4",
+	"5169 a7a3 2fef 6c53 81d1 f178 d3bf b85c",
+	"2276 cb69 b0d8 1aa3 b3a5 47e5 bc16 24d0",
+	"19a9 1c7c 6d38 918e 754f 7915 53dc d724",
+	"49cb ac41 73c4 3a46 e70f 5699 db70 f716",
+	"e984 cece 3f1d 772c eb11 de11 7451 8ab5",
+	"f0b3 2394 fc86 e998 eab4 39e0 2810 1f79",
+	"b0ac 20ed cce1 407b c5f3 86f5 2c15 592c",
+	"5bbd 6363 88dc 4bf2 94ac 33fb 275d ae5b",
+	"2cb9 a1f2 b660 3eb9 be0e d6e0 dfe3 fc4d",
+	"164e 1d7c c6cb fa5f a071 3d38 e0f2 3bbe",
+	"662b fe05 6a30 d7c9 168a 32c9 040c 8819",
+	"2614 0b11 d5c1 e4e8 8ffd 7f60 7e56 bffc",
+	"a756 1fd6 dae3 4747 25c3 ae27 1bea 935c",
+	"5b7e 8012 5db3 f6e1 4a88 c1b0 781e 30e2",
+	"b235 f537 88b1 10d2 555f ec00 f206 ba47",
+	"6b5a 5b01 cf75 df2d 9df4 9e3c 5cf5 2ebe",
+	"3ec0 4323 e4b2 c412 b3af 7da9 bdf1 5331",
+	"e8ac c21c 27da 405f 025c 666a ffaf 65f4",
+	"f6d9 b8bf efa7 bbb6 b5e8 e308 662e 6f30",
+	"c751 4375 9679 0efd 8774 e99a 8ceb 0e89",
+	"832d 480e 2c26 8806 f225 84e0 3542 6080",
+	"5218 ba99 dcdd 8554 c965 6a66 6503 71bd",
+	"152d b4d6 3f2b ae0c 109e e16f adfc 3aa1",
+	"d99e 7ef6 58c7 8c3c b534 8a48 0ecc 3c9a",
+	"0daa e186 62c1 7904 c035 4283 da1d c5f8",
+};
+
 #define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
@@ -590,6 +622,7 @@ struct tokkey {
 	{ { 1, 1, 11, '\0', 0, 0, 1478818800 }, KEYS(101_11) },	/* 2016-11-11 */
 	{ { 1, 1, 12, '\0', 0, 0, 1505858400 }, KEYS(101_12) },	/* 2017-09-20 */
 	{ { 1, 1, 13, '\0', 0, 0, 1508623200 }, KEYS(101_13) },	/* 2017-10-22 */
+	{ { 1, 1, 14, '\0', 0, 0, 1538604000 }, KEYS(101_14) },	/* 2018-10-04 */
 };
 
 #undef KEYS
@@ -831,7 +864,7 @@ tok_crc(uint32 crc, const struct tokkey *tk)
 	i = tk->count;
 	while (i-- > 0) {
 		const char *k = *keys++;
-		crc = crc32_update(crc, k, strlen(k));
+		crc = crc32_update(crc, k, vstrlen(k));
 	}
 	crc ^= (crc >> 8);
 	crc &= 0x00ff00ffU;
@@ -871,9 +904,9 @@ tok_generate(time_t now, const char *version)
 	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, digest, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &sha1);
 	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
@@ -999,7 +1032,7 @@ tok_version_valid(
 	int lvlsize;
 	uint i;
 
-	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
+	end = vstrchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
 
 	/*
@@ -1038,9 +1071,9 @@ tok_version_valid(
 	key = tk->keys[idx];
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, token, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &digest);
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
@@ -1081,7 +1114,7 @@ tok_version_valid(
 	if (lvllen & 0x3)
 		return TOK_BAD_LEVEL_LENGTH;
 
-	lvllen = base64_decode_into(end, lvllen, lvldigest, sizeof(lvldigest));
+	lvllen = base64_decode_into(end, lvllen, ARYLEN(lvldigest));
 
 	if (lvllen == 0 || (lvllen & 0x1))
 		return TOK_BAD_LEVEL_ENCODING;

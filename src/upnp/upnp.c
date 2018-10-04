@@ -223,7 +223,7 @@ upnp_mapping_description(void)
 	static char buf[32];
 
 	if ('\0' == buf[0])
-		str_bprintf(buf, sizeof buf, "gtk-gnutella/r%u", product_build());
+		str_bprintf(ARYLEN(buf), "gtk-gnutella/r%u", product_build());
 
 	return buf;
 }

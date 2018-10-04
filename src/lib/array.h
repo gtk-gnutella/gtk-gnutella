@@ -57,7 +57,7 @@ array_init(const void *data, size_t size)
 static inline struct array
 array_from_string(const char *str)
 {
-	return array_init(str, strlen(str));
+	return array_init(str, vstrlen(str));
 }
 
 #endif /* _array_h_ */

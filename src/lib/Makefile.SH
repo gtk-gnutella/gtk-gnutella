@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-241]
 : $X-Id$
 
 case $CONFIG in
@@ -58,8 +58,8 @@ YACC = $yacc
 
 USRINC = $usrinc
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
@@ -170,6 +170,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	cstr.c \
 	dam.c \
 	dbmap.c \
 	dbmw.c \
@@ -267,6 +268,7 @@ LSRC = \
 	progname.c \
 	prop.c \
 	pslist.c \
+	qlock.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
@@ -289,6 +291,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	stringify.c \
+	strpcpy.c \
 	strtok.c \
 	strvec.c \
 	symbols.c \
@@ -371,6 +374,7 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	cstr.o \
 	dam.o \
 	dbmap.o \
 	dbmw.o \
@@ -468,6 +472,7 @@ LOBJ = \
 	progname.o \
 	prop.o \
 	pslist.o \
+	qlock.o \
 	rand31.o \
 	random.o \
 	rbtree.o \
@@ -490,6 +495,7 @@ LOBJ = \
 	stats.o \
 	str.o \
 	stringify.o \
+	strpcpy.o \
 	strtok.o \
 	strvec.o \
 	symbols.o \
@@ -658,6 +664,17 @@ launch-test:  launch-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  launch-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: pattern-test
+
+local_realclean::
+	$(RM) pattern-test$(_EXE)
+
+pattern-test:  pattern-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  pattern-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: random-test
 
 local_realclean::
@@ -690,6 +707,17 @@ spopen-test:  spopen-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  spopen-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: stat-test
+
+local_realclean::
+	$(RM) stat-test$(_EXE)
+
+stat-test:  stat-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  stat-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 

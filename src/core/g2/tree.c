@@ -690,9 +690,9 @@ g2_tree_test(void)
 
 	large = halloc(LARGE_PAYLOAD);
 
-	root = g2_tree_alloc_copy("root", root_payload, strlen(root_payload));
+	root = g2_tree_alloc_copy("root", root_payload, vstrlen(root_payload));
 	g2_tree_add_child(root,
-		g2_tree_alloc_copy("schild", second, strlen(second)));
+		g2_tree_alloc_copy("schild", second, vstrlen(second)));
 	first = g2_tree_alloc_empty("rchild");
 	g2_tree_add_child(root, first);
 	g2_tree_add_child(first, (c2 = g2_tree_alloc_empty("c2")));

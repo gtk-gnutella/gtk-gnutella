@@ -160,14 +160,12 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 	 */
 
 	if (!attr->first)
-		hlen = str_bprintf(attr->head, sizeof attr->head, "\r\n");
+		hlen = str_bprintf(ARYLEN(attr->head), "\r\n");
 
 	if (final)
-		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
-			"0\r\n\r\n");
+		hlen += str_bprintf(ARYPOSLEN(attr->head, hlen), "0\r\n\r\n");
 	else
-		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
-			"%lx\r\n", (ulong) len);
+		hlen += str_bprintf(ARYPOSLEN(attr->head, hlen), "%lx\r\n", (ulong) len);
 
 	attr->head_len = attr->head_remain = hlen;
 	attr->data_remain = len;

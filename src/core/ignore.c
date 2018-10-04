@@ -165,10 +165,10 @@ sha1_parse(FILE *f, const char *file)
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof ign_tmp, f)) {
+	while (fgets(ARYLEN(ign_tmp), f)) {
 		line++;
 
-		if (!file_line_chomp_tail(ign_tmp, sizeof ign_tmp, &len)) {
+		if (!file_line_chomp_tail(ARYLEN(ign_tmp), &len)) {
 			g_warning("%s: line %d too long, aborting", G_STRFUNC, line);
 			break;
 		}
@@ -182,8 +182,7 @@ sha1_parse(FILE *f, const char *file)
 
 		if (
 			len < SHA1_BASE32_SIZE ||
-			SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
-								ign_tmp, SHA1_BASE32_SIZE)
+			SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), ign_tmp, SHA1_BASE32_SIZE)
 		) {
 			g_warning("invalid SHA1 at \"%s\" line %d: %s",
 				file, line, ign_tmp);
@@ -242,10 +241,10 @@ namesize_parse(FILE *f, const char *file)
 
 	g_assert(f);
 
-	while (fgets(ign_tmp, sizeof ign_tmp, f)) {
+	while (fgets(ARYLEN(ign_tmp), f)) {
 		line++;
 
-		if (!file_line_chomp_tail(ign_tmp, sizeof ign_tmp, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(ign_tmp), NULL)) {
 			g_warning("%s: line %d too long, aborting", G_STRFUNC, line);
 			break;
 		}

@@ -51,6 +51,8 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_STACK_DFLT	(65536 * PTRSIZE)	/**< Default stack requested */
 #define THREAD_LOCAL_MAX	1024	/**< Max amount of thread-local keys */
 
+#define THREAD_SUSPEND_TIMEOUT	90	/**< secs: thread max suspension time */
+
 /**
  * Minimum thread stack requested: 24K on 32-bit systems, 32K on 64-bit ones.
  */
@@ -117,6 +119,7 @@ enum thread_lock_kind {
 	THREAD_LOCK_SPINLOCK,
 	THREAD_LOCK_RLOCK,
 	THREAD_LOCK_WLOCK,
+	THREAD_LOCK_QLOCK,
 	THREAD_LOCK_MUTEX
 };
 
@@ -293,6 +296,7 @@ size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
 bool thread_lock_holds_as(const volatile void *, enum thread_lock_kind);
 size_t thread_lock_held_count(const void *lock);
+size_t thread_lock_held_count_as(const void *lock, enum thread_lock_kind kind);
 bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
@@ -302,6 +306,7 @@ void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
 void thread_lock_waiting_done(const void *element, const void *lock);
+void thread_deadlock_check(const volatile void *lock, const char *f, uint l);
 
 const void *thread_cond_waiting_element(struct cond **c);
 void thread_cond_waiting_done(const void *element);

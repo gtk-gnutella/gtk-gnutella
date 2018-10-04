@@ -40,9 +40,9 @@
 
 #include "ascii.h"
 #include "concat.h"
-#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
 #include "hstrfn.h"
+#include "misc.h"			/* For clamp_strcat() */
 #include "path.h"
 #include "random.h"
 #include "str.h"
@@ -71,7 +71,7 @@ filename_shrink(const char *filename, char *buf, size_t size)
 	/* Try to preserve the filename extension */
 	ext = strrchr(filename, '.');
 	if (ext) {
-		ext_size = strlen(ext) + 1;	/* Include NUL */
+		ext_size = vstrlen(ext) + 1;	/* Include NUL */
 		if (ext_size >= size) {
 			/*
 			 * If it's too long, assume it's not extension at all.
@@ -88,10 +88,10 @@ filename_shrink(const char *filename, char *buf, size_t size)
 
 	/* Append the filename extension */
 	if (ext) {
-		g_strlcat(buf, ext, size);
+		clamp_strcat(buf, size, ext);
 	}
 
-	ret = strlen(buf);
+	ret = vstrlen(buf);
 	g_assert(ret < size);
 	return ret;
 }
@@ -175,7 +175,7 @@ filename_is_reserved(const char *filename)
 		return TRUE;
 	case '.':
 		/* con.txt is reserved con.blah.txt isn't */
-		return NULL == strchr(&endptr[1], '.');
+		return NULL == vstrchr(&endptr[1], '.');
 	case '1': case '2': case '3': case '4': case '5': case '6': case '7':
 	case '8': case '9':
 		/* lpt0, com0 are not reserved */
@@ -185,7 +185,7 @@ filename_is_reserved(const char *filename)
 			return TRUE;
 		case '.':
 			/* com1.txt is reserved com1.blah.txt isn't */
-			return NULL == strchr(&endptr[1], '.');
+			return NULL == vstrchr(&endptr[1], '.');
 		}
 		break;
 	}
@@ -222,7 +222,7 @@ filename_sanitize(const char *filename, bool no_spaces, bool no_evil)
 	p = skip_ascii_spaces(filename);
 
 	/* Make sure the filename isn't too long */
-	if (strlen(p) >= FILENAME_MAXBYTES) {
+	if (vstrlen(p) >= FILENAME_MAXBYTES) {
 		q = halloc(FILENAME_MAXBYTES);
 		filename_shrink(p, q, FILENAME_MAXBYTES);
 		s = q;
@@ -321,7 +321,7 @@ filename_beautify(const char *filename)
 	g_assert(filename);
 
 	s = filename;
-	len = strlen(filename);
+	len = vstrlen(filename);
 	q = halloc(len + 1);		/* Trailing NUL */
 
 	while ((c = *s++)) {
@@ -329,7 +329,7 @@ filename_beautify(const char *filename)
 
 		/* Beautified filename cannot start with stripped characters */
 		if (j == 0) {
-			if (NULL == strchr(strip, c))
+			if (NULL == vstrchr(strip, c))
 				q[j++] = c;
 			continue;
 		}
@@ -339,13 +339,13 @@ filename_beautify(const char *filename)
 		d = q[j - 1];		/* Last char we've kept in beautified name */
 
 		/* A "_" followed by a punctuation character, strip the "_" */
-		if (d == '_' && NULL != strchr(punct, c)) {
+		if (d == '_' && NULL != vstrchr(punct, c)) {
 			q[j - 1] = c;
 			continue;
 		}
 
 		/* A punctuation character followed by "_", ignore that "_" */
-		if (NULL != strchr(&punct[1], d) && c == '_')
+		if (NULL != vstrchr(&punct[1], d) && c == '_')
 			continue;
 
 		q[j++] = c;
@@ -367,7 +367,7 @@ filename_beautify(const char *filename)
 	 * string "{empty}." to it.
 	 */
 
-	if (NULL == strchr(q, '.') && j < len && '.' == filename[len - j]) {
+	if (NULL == vstrchr(q, '.') && j < len && '.' == filename[len - j]) {
 		char *r = h_strconcat(empty, ".", q, NULL_PTR);
 		HFREE_NULL(q);
 
@@ -394,7 +394,7 @@ utf8_truncate(const char *src, char *dst, size_t size)
 
 	if (size > 0) {
 		utf8_strlcpy(dst, src, size);
-		return strlen(dst);
+		return vstrlen(dst);
 	} else {
 		return 0;
 	}
@@ -447,13 +447,13 @@ filename_unique(const char *path, const char *name, const char *ext,
 	 * one that indicates the filetype, try to preserve the next "extension"
 	 * as well, if there's any. */
 	mid = strrchr(name, '.');
-	if (NULL == mid || mid == name || strlen(mid) >= sizeof mid_buf) {
-		mid = strchr(name, '\0');
+	if (NULL == mid || mid == name || vstrlen(mid) >= sizeof mid_buf) {
+		mid = vstrchr(name, '\0');
 	}
 
-	ext_len = strlen(ext);
-	mid_len = strlen(mid);
-	name_len = strlen(name) - mid_len;
+	ext_len = vstrlen(ext);
+	mid_len = vstrlen(mid);
+	name_len = vstrlen(name) - mid_len;
 
 	ext_len = MIN(ext_len, sizeof ext_buf - 1);
 	mid_len = MIN(mid_len, sizeof mid_buf - 1);
@@ -469,8 +469,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	mid_len = utf8_truncate(mid, mid_buf, mid_len + 1);
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
-	str_bprintf(filename_buf, sizeof filename_buf, "%s%s%s",
-		name_buf, mid_buf, ext_buf);
+	str_bprintf(ARYLEN(filename_buf), "%s%s%s", name_buf, mid_buf, ext_buf);
 
 	pathname = unique_pathname(path, filename_buf, name_is_uniq);
 	if (pathname)
@@ -491,7 +490,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%02u%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%02u%s%s",
 			name_buf, i, mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
@@ -510,7 +509,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	name_len = utf8_truncate(name, name_buf, name_len + 1);
 
 	for (i = 0; i < 100; i++) {
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%x%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%x%s%s",
 			name_buf, (unsigned) random_u32(), mid_buf, ext_buf);
 
 		pathname = unique_pathname(path, filename_buf, name_is_uniq);
@@ -534,7 +533,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 		struct guid guid;
 
 		guid_random_fill(&guid);
-		str_bprintf(filename_buf, sizeof filename_buf, "%s.%s%s%s",
+		str_bprintf(ARYLEN(filename_buf), "%s.%s%s%s",
 			name_buf, guid_hex_str(&guid), mid_buf, ext_buf);
 	}
 

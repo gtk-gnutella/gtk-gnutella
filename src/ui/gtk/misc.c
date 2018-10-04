@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2001-2003, Raphael Manfredi & Richard Eckart
+ * Copyright (c) 2017 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,6 +29,9 @@
  * General GUI functions and stuff which doesn't fit in anywhere else.
  *
  * @author Raphael Manfredi
+ * @date 2017
+ *
+ * @author Raphael Manfredi
  * @author Richard Eckart
  * @date 2001-2003
  */
@@ -48,11 +52,29 @@
 #include "if/bridge/ui2c.h"
 
 #include "lib/ascii.h"
+#include "lib/htable.h"
+#include "lib/hset.h"
 #include "lib/parse.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+/**
+ * Associates the objects whose column widths we need to persist with the
+ * property holding these column widths.
+ */
+static htable_t *parent_to_property;
+
+/**
+ * Records the mapping between a column and its parent object.
+ */
+static htable_t *column_to_parent;
+
+/**
+ * Records the parent objects whose column widths need to be persisted.
+ */
+static hset_t *columns_resized;
 
 /*
  * Implementation
@@ -78,6 +100,190 @@ gui_allow_rescan_dir(gboolean flag)
 {
 	gtk_widget_set_sensitive
         (gui_dlg_prefs_lookup("button_config_rescan_dir"), flag);
+}
+
+/**
+ * Record the property holding the column widths of the parent object.
+ *
+ * @param parent		the object containing columns whose widths we preserve
+ * @param prop			the GUI property used to persist column widths
+ */
+void
+gui_parent_widths_saveto(const void *parent, property_t prop)
+{
+	g_assert(parent != NULL);
+	g_assert(gui_prop_get_def(prop));	/* Validates GUI properry */
+
+	/*
+	 * Assertion in disguise, to be able to display more context on failures
+	 * and loudly warn if we attempt to re-map parent to the same property.
+	 */
+
+	if G_UNLIKELY(htable_contains(parent_to_property, parent)) {
+		property_t old_prop =
+			pointer_to_property(htable_lookup(parent_to_property, parent));
+
+		if (old_prop == prop) {
+			s_carp_once("%s(): attempting to re-register parent %p with prop %s",
+				G_STRFUNC, parent, gui_prop_name(prop));
+			return;
+		}
+
+		g_error("%s(): parent=%p, prop=%s, parent already saving to %s",
+			G_STRFUNC, parent, gui_prop_name(prop), gui_prop_name(old_prop));
+	}
+
+	htable_insert(parent_to_property, parent, property_to_pointer(prop));
+}
+
+/**
+ * Hash iterator to remove columns whose parent matches the one supplied.
+ */
+static bool
+strip_parent(const void *unused_column, void *parent, void *data)
+{
+	(void) unused_column;
+
+	if G_LIKELY(parent != data)
+		return FALSE;		/* Keep */
+
+	return TRUE;	/* Parent matches, drop from table */
+}
+
+/**
+ * Forget about parent object (widget being destroyed).
+ */
+void
+gui_parent_forget(const void *parent)
+{
+	g_assert(parent != NULL);
+	g_return_if_fail(htable_contains(parent_to_property, parent));
+
+	htable_remove(parent_to_property, parent);
+	hset_remove(columns_resized, parent);
+	htable_foreach_remove(
+		column_to_parent, strip_parent, deconstify_pointer(parent));
+}
+
+/**
+ * Map a resizable column to a parent object.
+ *
+ * The parent object is required to persist the column widths, and only the
+ * parent is associated to the property that will capture the widths.
+ *
+ * This installs a GTK notification that will monitor changes made to the
+ * column widths and will trigger persistence of the new widths.
+ *
+ * @attention
+ * It is recommended to call gui_parent_widths_saveto() prior to calling this
+ * routine.  This makes sure we are not simply catching these events: we will
+ * be able to request a property change to capture the new widths.
+ * Failure to do this will result in a loud warning at the time this routine
+ * is called!
+ *
+ * @param column		the column object we want to capture resizing events for
+ * @param parent		the parent object containing that column
+ */
+void
+gui_column_map(const void *column, const void *parent)
+{
+	g_assert(column != NULL);
+	g_assert(parent != NULL);
+
+	/*
+	 * Assertion in disguise, to be able to display more context on failures.
+	 */
+
+	if G_UNLIKELY(htable_contains(column_to_parent, column)) {
+		const void *known_parent = htable_lookup(column_to_parent, column);
+		property_t parent_prop =
+			pointer_to_property(htable_lookup(parent_to_property, parent));
+		property_t known_parent_prop =
+			pointer_to_property(htable_lookup(parent_to_property, known_parent));
+
+		g_error("%s(): column=%p, parent=%p [%s], already known parent=%p [%s]",
+			G_STRFUNC, column, parent,
+			parent_prop != NO_PROP ? gui_prop_name(parent_prop) : "?",
+			known_parent,
+			known_parent_prop != NO_PROP ?
+				gui_prop_name(known_parent_prop) : "?"
+		);
+	}
+
+	/*
+	 * Make sure they have already called gui_parent_widths_saveto().
+	 * Otherwise, we're going to collect resuzing events for nothing!
+	 *
+	 * We do not enforce that (it would be OK to do the recording afterwards)
+	 * but we loudly warn them since it's likely to be a mistake.
+	 */
+
+	if (!htable_contains(parent_to_property, parent)) {
+		g_carp_once("%s(): no call to gui_parent_widths_saveto() made yet!",
+			G_STRFUNC);
+		/* Continue nonetheless, they may do it later */
+	}
+
+	htable_insert(column_to_parent, column, deconstify_pointer(parent));
+
+	/*
+	 * Ensure gui_column_resized() will be called each time the column
+	 * is resized.
+	 */
+
+	gui_signal_connect_after(
+		deconstify_pointer(column), "notify::width", gui_column_resized, NULL);
+}
+
+/**
+ * GUI signal callback.
+ *
+ * Record that a column was changed and that we will need to capture its
+ * new width, so as to persist the changes.
+ */
+void
+gui_column_resized(void *column)
+{
+	void *parent;
+
+	g_return_if_fail(column != NULL);
+
+	parent = htable_lookup(column_to_parent, column);
+	g_return_if_fail(parent != NULL);
+
+	hset_insert(columns_resized, parent);
+}
+
+/**
+ * Hashset iterator to capture new column widths after a change was recorded.
+ */
+static bool
+update_column_widths(const void *parent, void *data)
+{
+	property_t prop;
+
+	g_return_val_if_fail(parent != NULL, TRUE);
+
+	(void) data;
+
+	prop = pointer_to_property(htable_lookup(parent_to_property, parent));
+	g_return_val_if_fail(prop != NO_PROP, TRUE);
+
+	if (GUI_PROPERTY(gui_debug) > 2) {
+		g_debug("%s(): updating %s", G_STRFUNC, gui_prop_name(prop));
+		g_debug("%s(): before: %s", G_STRFUNC, gui_prop_to_string(prop));
+	}
+
+#ifdef USE_GTK2
+	tree_view_save_widths(deconstify_pointer(parent), prop);
+#else
+	clist_save_widths(deconstify_pointer(parent), prop);
+#endif
+
+	if (GUI_PROPERTY(gui_debug) > 2)
+		g_debug("%s(): after: %s", G_STRFUNC, gui_prop_to_string(prop));
+
+	return TRUE;	/* Remove key from the hash table */
 }
 
 /**
@@ -108,6 +314,8 @@ gui_general_timer(time_t now)
 
 	gtk_label_set_text(label, uptime);
 #endif /* USE_GTK2 */
+
+	hset_foreach_remove(columns_resized, update_column_widths, NULL);
 }
 
 static void
@@ -543,16 +751,17 @@ anti_window_shift_hack(GtkWidget *widget, int x, int y, int width, int height)
 	if (abs(dx) > 64 || abs(dy) > 64)
 		return;
 
-	g_debug("anti_window_shift_hack: "
-		"x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
-			x, y, ax, ay, dx, dy);
+	if (GUI_PROPERTY(gui_debug)) {
+		g_debug("%s(): x=%d, y=%d, ax=%d, ay=%d , dx=%d, dy=%d",
+				G_STRFUNC, x, y, ax, ay, dx, dy);
+	}
 
 	gtk_window_move(GTK_WINDOW(widget), x - dx, y - dy);
 	gtk_window_get_position(GTK_WINDOW(widget), &ax, &ay);
 	if (ax == x && ay == y)
 		return;
 
-	g_debug("anti_window_shift_hack failed: ax=%d, ay=%d", ax, ay);
+	g_warning("%s() failed: ax=%d, ay=%d", G_STRFUNC, ax, ay);
 }
 
 void
@@ -1005,6 +1214,22 @@ widget_add_popup_menu(GtkWidget *widget, widget_popup_menu_cb handler)
 	gui_signal_connect(widget, "key-press-event", on_key_press_event, data);
 	gui_signal_connect(widget, "button-press-event", on_button_press_event,
 		data);
+}
+
+void
+misc_gui_early_init(void)
+{
+	parent_to_property = htable_create(HASH_KEY_SELF, 0);;
+	column_to_parent = htable_create(HASH_KEY_SELF, 0);
+	columns_resized = hset_create(HASH_KEY_SELF, 0);
+}
+
+void
+misc_gui_shutdown(void)
+{
+	htable_free_null(&parent_to_property);
+	htable_free_null(&column_to_parent);
+	hset_free_null(&columns_resized);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

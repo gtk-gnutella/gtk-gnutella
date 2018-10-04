@@ -540,6 +540,9 @@ add_column(GtkTreeView *tv, int column_id, const char *title, gfloat xalign,
 	configure_column(column);
 	gtk_tree_view_column_set_sort_column_id(column, column_id);
     gtk_tree_view_append_column(tv, column);
+
+	gui_column_map(column, tv);	/* Capture resize events */
+
 	return column;
 }
 
@@ -681,6 +684,8 @@ treeview_download_files_init(void)
 	tv = GTK_TREE_VIEW(gtk_tree_view_new());
 	treeview_download_files = tv;
 
+	gui_parent_widths_saveto(tv, PROP_FILE_INFO_COL_WIDTHS);
+
 	for (i = 0; i < c_fi_num; i++) {
 		GtkTreeViewColumn *column;
 
@@ -748,10 +753,9 @@ void
 fi_gui_files_widget_destroy(void)
 {
 	if (treeview_download_files) {
+		gui_parent_forget(treeview_download_files);
 		tree_view_save_visibility(treeview_download_files,
 			PROP_FILE_INFO_COL_VISIBLE);
-		tree_view_save_widths(treeview_download_files,
-			PROP_FILE_INFO_COL_WIDTHS);
 		gtk_widget_destroy(GTK_WIDGET(treeview_download_files));
 		treeview_download_files = NULL;
 	}
@@ -807,6 +811,8 @@ fi_gui_init(void)
 		store_sources = gtk_list_store_new(1, G_TYPE_POINTER);
 		gtk_tree_view_set_model(tv, GTK_TREE_MODEL(store_sources));
 
+		gui_parent_widths_saveto(tv, PROP_SOURCES_COL_WIDTHS);
+
 		for (i = 0; i < N_ITEMS(tab); i++) {
 			GtkCellRenderer *renderer;
 
@@ -852,10 +858,6 @@ fi_gui_shutdown(void)
 {
 	tree_view_save_visibility(treeview_download_files,
 		PROP_FILE_INFO_COL_VISIBLE);
-	tree_view_save_widths(treeview_download_files,
-		PROP_FILE_INFO_COL_WIDTHS);
-	tree_view_save_widths(treeview_download_sources,
-		PROP_SOURCES_COL_WIDTHS);
 
 	fi_gui_common_shutdown();
 

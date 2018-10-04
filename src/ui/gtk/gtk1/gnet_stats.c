@@ -79,10 +79,10 @@ pkt_stat_str(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
     if (GUI_PROPERTY(gnet_stats_perc))
-        str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
+        str_bprintf(ARYLEN(strbuf), "%.2f%%",
+            (float) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     else
-        uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
+        uint64_to_string_buf(val_tbl[type], ARYLEN(strbuf));
 
     return strbuf;
 }
@@ -104,8 +104,7 @@ byte_stat_str(const guint64 *val_tbl, const guint64 *nb_packets, gint type)
 		guint64 total_size = val_tbl[MSG_TOTAL];
 		if (!GUI_PROPERTY(gnet_stats_with_headers))
 			size -= nb_packets[MSG_TOTAL] * GTA_HEADER_SIZE;
-        str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) size / total_size * 100.0);
+        str_bprintf(ARYLEN(strbuf), "%.2f%%", (float) size / total_size * 100.0);
         return strbuf;
     } else
         return compact_size(size, show_metric_units());
@@ -119,8 +118,7 @@ drop_stat_str(const gnet_stats_t *stats, gint reason, gint selected_type)
     if (stats->drop_reason[reason][selected_type] == 0)
         return "-";
 
-	uint64_to_string_buf(stats->drop_reason[reason][selected_type],
-		strbuf, sizeof strbuf);
+	uint64_to_string_buf(stats->drop_reason[reason][selected_type], ARYLEN(strbuf));
 
     return strbuf;
 }
@@ -130,7 +128,7 @@ general_stat_str(const gnet_stats_t *stats, gint type)
 {
 	static gchar strbuf[UINT64_DEC_BUFLEN];
 
-	gnet_stats_gui_general_to_string_buf(strbuf, sizeof strbuf, stats, type);
+	gnet_stats_gui_general_to_string_buf(ARYLEN(strbuf), stats, type);
 	return strbuf;
 }
 
@@ -143,10 +141,10 @@ flowc_stat_str_pkg(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
 	if (GUI_PROPERTY(gnet_stats_perc)) {
-		str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
+		str_bprintf(ARYLEN(strbuf), "%.2f%%",
+            (float) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
-       	uint64_to_string_buf(val_tbl[type], strbuf, sizeof strbuf);
+       	uint64_to_string_buf(val_tbl[type], ARYLEN(strbuf));
     }
 
     return strbuf;
@@ -161,8 +159,8 @@ flowc_stat_str_byte(const guint64 *val_tbl, gint type)
         return GUI_PROPERTY(gnet_stats_perc) ? "-  " : "-";
 
 	if (GUI_PROPERTY(gnet_stats_perc)) {
-		str_bprintf(strbuf, sizeof strbuf, "%.2f%%",
-            (gfloat) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
+		str_bprintf(ARYLEN(strbuf), "%.2f%%",
+            (float) val_tbl[type] / val_tbl[MSG_TOTAL] * 100.0);
     } else {
        	return compact_size(val_tbl[type], show_metric_units());
     }
@@ -328,7 +326,7 @@ gnet_stats_update_general(const gnet_stats_t *stats)
 	if G_UNLIKELY(NULL == clist_general) {
 		clist_general =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_general"));
-		memset(general, 255, sizeof general);
+		MEMSET(&general, 255);
 	}
 
     gtk_clist_freeze(clist_general);
@@ -354,7 +352,7 @@ gnet_stats_update_drop_reasons(const gnet_stats_t *stats)
 	if G_UNLIKELY(NULL == clist_reason) {
 		clist_reason =
 			GTK_CLIST(gui_main_window_lookup("clist_gnet_stats_drop_reasons"));
-		memset(drop_reason, 255, sizeof drop_reason);
+		MEMSET(&drop_reason, 255);
 	}
 
     gtk_clist_freeze(clist_reason);

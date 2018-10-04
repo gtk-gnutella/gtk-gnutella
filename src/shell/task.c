@@ -83,7 +83,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			size_t len;
 
 			bgtask_info_check(bi);
-			len = strlen(bi->tname);
+			len = vstrlen(bi->tname);
 			maxlen = MAX(len, maxlen);
 		}
 
@@ -142,7 +142,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			str_catf(s, "%2d:%-5d ", bi->step, bi->seqno);
 			str_catf(s, "%9s ", compact_time_ms(bi->wtime));
 			str_catf(s, "\"%s\"%*s(%s)", bi->tname,
-				(int) (maxlen - strlen(bi->tname)), "", bi->sname);
+				(int) (maxlen - vstrlen(bi->tname)), "", bi->sname);
 		}
 		str_putc(s, '\n');
 		shell_write(sh, str_2c(s));

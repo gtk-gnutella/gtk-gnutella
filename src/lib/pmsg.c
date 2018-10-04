@@ -36,7 +36,10 @@
 #include "pmsg.h"
 
 #include "halloc.h"
+#include "log.h"				/* For s_carp_once() */
 #include "mempcpy.h"
+#include "stacktrace.h"
+#include "stringify.h"			/* For plural() */
 #include "unsigned.h"			/* For size_is_non_negative() */
 #include "walloc.h"
 
@@ -110,7 +113,7 @@ pmsg_close(void)
 void
 pmsg_reset(pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	mb->m_rptr = mb->m_wptr = mb->m_data->d_arena;	/* Empty buffer */
 	mb->m_flags = PMSG_EXT_MAGIC == mb->magic ? PMSG_PF_EXT : 0;
@@ -142,7 +145,7 @@ pmsg_fill(pmsg_t *mb, pdata_t *db, int prio, bool ext, const void *buf, int len)
 
 	g_assert(implies(buf, len == pmsg_size(mb)));
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	return mb;
 }
 
@@ -227,7 +230,7 @@ pmsg_clone_extend(const pmsg_t *mb, pmsg_free_t free_cb, void *arg)
 {
 	pmsg_ext_t *nmb;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	WALLOC(nmb);
 	nmb->pmsg = *mb;		/* Struct copy */
@@ -285,6 +288,29 @@ pmsg_get_metadata(const pmsg_t *mb)
 	return cast_to_pmsg_ext(mb)->m_arg;
 }
 
+/*
+ * Ensure we do not have a check/hook installed already, otherwise loudly
+ * warn them once, as this is probably not intended!
+ */
+static void
+pmsg_no_presend_check(const pmsg_t * const mb, const char *caller)
+{
+	/*
+	 * Because m_check and m_hook are in the same union and have the same
+	 * memory size, it is sufficient to check for one field being non-NULL.
+	 */
+
+	if G_LIKELY(NULL == mb->m_u.m_check)
+		return;
+
+	s_carp_once("%s(): mb=%p (%d byte%s, prio=%u, refcnt=%u, flags=0x%x)"
+		" already has %s %s()",
+		caller, mb, pmsg_size(mb), plural(pmsg_size(mb)),
+		mb->m_prio, mb->m_refcnt, mb->m_flags,
+		(mb->m_flags & PMSG_PF_HOOK) ? "transmit hook" : "can-send callback",
+		stacktrace_function_name(mb->m_u.m_check));
+}
+
 /**
  * Set the pre-send checking routine for the buffer.
  *
@@ -296,16 +322,23 @@ pmsg_get_metadata(const pmsg_t *mb)
  * be shared among multiple messages, unless its refcount is 1.
  */
 void
-pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
+pmsg_set_send_callback(pmsg_t *mb, pmsg_check_t check)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
+
+	/*
+	 * If there is already something installed (a hook or a callback),
+	 * then warn them as it is probably a mistake.
+	 */
+
+	pmsg_no_presend_check(mb, G_STRFUNC);
 
 	mb->m_u.m_check = check;
 	mb->m_flags &= ~PMSG_PF_HOOK;	/* Is not a hook */
 }
 
 /**
- * Set the pre-send hook routine for the buffer.
+ * Set the pre-transmit hook routine for the buffer.
  *
  * This routine, if it exists (non-NULL) is called just before sending
  * the message at the lowest level.  If it returns FALSE, the message is
@@ -313,15 +346,22 @@ pmsg_set_check(pmsg_t *mb, pmsg_check_t check)
  *
  * The callback routine must not modify the message.
  *
- * The difference with a "check callback" is that a hook is only invoked
+ * The difference with a "can-send callback" is that a hook is only invoked
  * on the standalone buffer, the layer perusing this information being
  * able to gather all its context from the message, using its protocol header
  * relevant to the layer.
  */
 void
-pmsg_set_hook(pmsg_t *mb, pmsg_hook_t hook)
+pmsg_set_transmit_hook(pmsg_t *mb, pmsg_hook_t hook)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
+
+	/*
+	 * If there is already something installed (a hook or a callback),
+	 * then warn them as it is probably a mistake.
+	 */
+
+	pmsg_no_presend_check(mb, G_STRFUNC);
 
 	mb->m_u.m_hook = hook;
 	mb->m_flags |= PMSG_PF_HOOK;	/* Is a hook */
@@ -359,7 +399,7 @@ pmsg_clone(const pmsg_t *mb)
 	} else {
 		pmsg_t *nmb;
 
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 		WALLOC(nmb);
 		*nmb = *mb;					/* Struct copy */
 		nmb->m_refcnt = 1;
@@ -378,7 +418,7 @@ pmsg_clone_plain(const pmsg_t *mb)
 {
 	pmsg_t *nmb;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	WALLOC(nmb);
 	memcpy(nmb, mb, sizeof *nmb);
@@ -406,7 +446,7 @@ pmsg_clone_plain(const pmsg_t *mb)
 pmsg_t *
 pmsg_ref(pmsg_t *mb)
 {
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(mb->m_refcnt != 0);
 
 	mb->m_refcnt++;
@@ -428,7 +468,7 @@ pmsg_free(pmsg_t *mb)
 {
 	pdata_t *db = mb->m_data;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(mb->m_refcnt != 0);
 
 	/*
@@ -485,7 +525,7 @@ pmsg_writable_length(const pmsg_t *mb)
 	pdata_t *arena;
 	int available;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	/*
 	 * If buffer is not writable (shared among several readers), it is
@@ -509,7 +549,7 @@ pmsg_write(pmsg_t *mb, const void *data, int len)
 	pdata_t *arena;
 	int available, written;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(mb));	/* Not shared, or would corrupt data */
 
@@ -532,7 +572,7 @@ pmsg_read(pmsg_t *mb, void *data, int len)
 {
 	int available, readable;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -554,7 +594,7 @@ pmsg_discard(pmsg_t *mb, int len)
 {
 	int available, n;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -578,7 +618,7 @@ pmsg_discard_trailing(pmsg_t *mb, int len)
 {
 	int available, n;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 
 	available = mb->m_wptr - mb->m_rptr;
@@ -606,8 +646,8 @@ pmsg_copy(pmsg_t *dest, pmsg_t *src, int len)
 {
 	int copied, available;
 
-	pmsg_check_consistency(dest);
-	pmsg_check_consistency(src);
+	pmsg_check(dest);
+	pmsg_check(src);
 	g_assert_log(len >= 0, "%s(): len=%d", G_STRFUNC, len);
 	g_assert(pmsg_is_writable(dest));	/* Not shared, or would corrupt data */
 
@@ -632,7 +672,7 @@ pmsg_compact(pmsg_t *mb)
 {
 	int shifting;
 
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
 	g_assert(mb->m_rptr <= mb->m_wptr);
 
@@ -656,7 +696,7 @@ pmsg_fractional_compact(pmsg_t *mb, int n)
 	int shifting;
 
 	g_assert(n > 0);
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 	g_assert(pmsg_is_writable(mb));		/* Not shared, or would corrupt data */
 	g_assert(mb->m_rptr <= mb->m_wptr);
 
@@ -689,7 +729,7 @@ pmsg_split(pmsg_t *mb, int offset)
 
 	g_assert(offset >= 0);
 	g_assert(offset < pmsg_size(mb));
-	pmsg_check_consistency(mb);
+	pmsg_check(mb);
 
 	start = mb->m_rptr + offset;
 	slen = mb->m_wptr - start;
@@ -875,13 +915,13 @@ pmsg_slist_to_iovec(slist_t *slist, int *iovcnt_ptr, size_t *size_ptr)
 			size_t size;
 
 			mb = slist_iter_next(iter);
-			pmsg_check_consistency(mb);
+			pmsg_check(mb);
 
 			size = pmsg_size(mb);
 			g_assert(size > 0);
 			held += size;
 
-			iovec_set(&iov[i], deconstify_pointer(pmsg_read_base(mb)), size);
+			iovec_set(&iov[i], deconstify_pointer(pmsg_start(mb)), size);
 		}
 		slist_iter_free(&iter);
 	} else {
@@ -914,7 +954,7 @@ pmsg_slist_discard(slist_t *slist, size_t n_bytes)
 
 		g_assert(slist_iter_has_item(iter));
 		mb = slist_iter_current(iter);
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 
 		size = pmsg_size(mb);
 		if (size > n_bytes) {
@@ -981,7 +1021,7 @@ pmsg_slist_size(const slist_t *slist)
 		const pmsg_t *mb;
 
 		mb = slist_iter_next(iter);
-		pmsg_check_consistency(mb);
+		pmsg_check(mb);
 
 		size += pmsg_size(mb);
 	}
@@ -1117,7 +1157,7 @@ pmsg_write_fixed_string(pmsg_t *mb, const char *str, size_t n)
 	g_assert(UNSIGNED(pmsg_available(mb)) >= n + 10);	/* Need ule64 length */
 	g_assert_log(size_is_non_negative(n), "%s(): n=%zd", G_STRFUNC, n);
 
-	len = strlen(str);
+	len = vstrlen(str);
 	len = MIN(n, len);
 	pmsg_write_ule64(mb, (uint64) len);
 
@@ -1144,7 +1184,7 @@ pmsg_write_string(pmsg_t *mb, const char *str, size_t length)
 	g_assert_log(size_is_non_negative(length) || (size_t) -1 == length,
 		"%s(): length=%zd", G_STRFUNC, length);
 
-	len = (size_t) -1 == length ? strlen(str) : length;
+	len = (size_t) -1 == length ? vstrlen(str) : length;
 
 	g_assert(UNSIGNED(pmsg_available(mb)) >= len + 10);	/* Need ule64 length */
 

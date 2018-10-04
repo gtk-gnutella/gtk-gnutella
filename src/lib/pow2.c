@@ -170,10 +170,10 @@ highest_bit_set64(uint64 n)
 int
 ctz64(uint64 n)
 {
-	if G_LIKELY(n <= 0xffffffffU)
+	if G_LIKELY(n == (uint32) n)
 		return ctz(n);
 	else {
-		int v = ctz(n & 0xffffffffU);
+		int v = ctz((uint32) n);
 		return (-1 == v) ? 32 + ctz(n >> 32) : v;
 	}
 }

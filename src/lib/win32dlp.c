@@ -31,7 +31,9 @@
  * is dynamically patched to redirect the calls to xmalloc().
  *
  * We also supersede the LoadLibrary() calls to make sure each new DLL that
- * is brought in the process gets properly patched.
+ * is brought in the process gets properly patched.  As a useful side effect,
+ * this allows us to count how many LoadLibrary() calls were made, and as such
+ * helps mingw_dladdr() to monitor whether new libraries were loaded.
  *
  * The logic here was heavily inspired by the winpatcher code from nedmalloc()
  * which can be found at:
@@ -201,6 +203,17 @@ static const struct win32dlp_with *win32dlp_with_compute(
 #endif	/* WIN32DLP_DEBUG */
 
 /**
+ * @return amount of libraries loaded so far.
+ */
+uint64
+win32dlp_loaded_library_count(void)
+{
+	return
+		AU64_VALUE(&win32dlp_stats.trapped_LoadLibraryA) +
+		AU64_VALUE(&win32dlp_stats.trapped_LoadLibraryW);
+}
+
+/**
  * Compute the module base address given a pointer within that module.
  *
  * The important assumption made here is that the whole DLL is going to
@@ -334,7 +347,7 @@ win32dlp_scan_modules(void)
 	win32dlp_ignore(GetModuleHandle(NULL));
 	win32dlp_ignore(win32dlp_module_base(pthread_self));
 
-	ok = EnumProcessModules(proc, modules, sizeof modules, &needed);
+	ok = EnumProcessModules(proc, ARYLEN(modules), &needed);
 
 	if (!ok) {
 		s_error("%s(): EnumProcessModules() failed: %lu",
@@ -357,8 +370,8 @@ win32dlp_scan_modules(void)
 			wchar_t wname[MAX_PATH + 1];
 			char utf8_name[MAX_PATH];
 
-			GetModuleBaseNameW(proc, *p, wname, sizeof wname - 2);
-			(void) utf16_to_utf8(wname, utf8_name, sizeof utf8_name);
+			GetModuleBaseNameW(proc, *p, ARYLEN(wname) - 2);
+			(void) utf16_to_utf8(wname, ARYLEN(utf8_name));
 			utf8_name[MAX_PATH - 1] = '\0';
 			name = ostrdup_readonly(utf8_name);
 		}
@@ -373,8 +386,8 @@ win32dlp_scan_modules(void)
 	}
 
 	win32dlp_debugf("registered %zu initially loaded module%s",
-		hash_table_size(win32dlp_loaded),
-		plural(hash_table_size(win32dlp_loaded)));
+		hash_table_count(win32dlp_loaded),
+		plural(hash_table_count(win32dlp_loaded)));
 }
 
 /**
@@ -437,7 +450,7 @@ win32dlp_iat_change(PROC *fn, PROC addr)
 
 	ZERO(&mbi);
 
-	if (0 == VirtualQuery(fn, &mbi, sizeof mbi)) {
+	if (0 == VirtualQuery(fn, VARLEN(mbi))) {
 		errno = mingw_last_error();
 		s_warning("%s(): cannot probe targeted address %p: %m", G_STRFUNC, fn);
 		return FALSE;
@@ -867,7 +880,7 @@ win32dlp_LoadLibraryW(const uint16 *file)
 		char path[MAX_PATH];
 		size_t conv;
 
-		conv = utf16_to_utf8(file, path, sizeof path);
+		conv = utf16_to_utf8(file, ARYLEN(path));
 		if (conv > sizeof path) {
 			s_warning("%s(): cannot convert path from UTF-16 to UTF-8",
 				G_STRFUNC);
@@ -1296,7 +1309,7 @@ win32dlp_init(void *reserved, size_t size)
 	win32dlp_debug("scanning and patching loaded modules...");
 
 	win32dlp_scan_modules();
-	WIN32DLP_STATS_ADDX(modules_initial, hash_table_size(win32dlp_loaded));
+	WIN32DLP_STATS_ADDX(modules_initial, hash_table_count(win32dlp_loaded));
 	win32dlp_patch_loaded_modules();
 
 	win32dlp_debug("enabling foreign malloc() blocks...");

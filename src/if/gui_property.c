@@ -184,7 +184,7 @@ gboolean gui_property_variable_search_jump_to_created     = TRUE;
 static const gboolean gui_property_variable_search_jump_to_created_default = TRUE;
 guint32  gui_property_variable_search_stats_mode     = 0;
 static const guint32  gui_property_variable_search_stats_mode_default = 0;
-prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = {
+static const prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = {
     {N_("disable"), 0},
     {N_("by words"), 1},
     {N_("by whole query"), 2},
@@ -209,7 +209,7 @@ gboolean gui_property_variable_gnet_stats_hops     = FALSE;
 static const gboolean gui_property_variable_gnet_stats_hops_default = FALSE;
 guint32  gui_property_variable_gnet_stats_source     = 0;
 static const guint32  gui_property_variable_gnet_stats_source_default = 0;
-prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
+static const prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
     {N_("TCP & UDP"), GNET_STATS_FULL},
     {N_("TCP only"), GNET_STATS_TCP_ONLY},
     {N_("UDP only"), GNET_STATS_UDP_ONLY},
@@ -217,7 +217,7 @@ prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
 };
 guint32  gui_property_variable_gnet_stats_drop_reasons_type     = MSG_TOTAL;
 static const guint32  gui_property_variable_gnet_stats_drop_reasons_type_default = MSG_TOTAL;
-prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] = {
+static const prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_type_choices[] = {
     {N_("Unknown"), MSG_UNKNOWN},
     {N_("Ping"), MSG_INIT},
     {N_("Pong"), MSG_INIT_RESPONSE},
@@ -306,7 +306,7 @@ guint32  gui_property_variable_gnet_stats_byte_col_widths[6]     = { 60, 20, 20,
 static const guint32  gui_property_variable_gnet_stats_byte_col_widths_default[6] = { 60, 20, 20, 20, 20, 20 };
 guint32  gui_property_variable_config_toolbar_style     = 4;
 static const guint32  gui_property_variable_config_toolbar_style_default = 4;
-prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = {
+static const prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = {
     {N_("Icons"), 1},
     {N_("Text"), 2},
     {N_("Both (vertical)"), 3},
@@ -315,7 +315,7 @@ prop_def_choice_t gui_property_variable_config_toolbar_style_choices[] = {
 };
 guint32  gui_property_variable_search_lifetime     = 0;
 static const guint32  gui_property_variable_search_lifetime_default = 0;
-prop_def_choice_t gui_property_variable_search_lifetime_choices[] = {
+static const prop_def_choice_t gui_property_variable_search_lifetime_choices[] = {
     {N_("This session"), 0},
     {N_("1 hour"), 1},
     {N_("4 hours"), 4},
@@ -2934,15 +2934,15 @@ gui_prop_shutdown(void) {
 
     htable_free_null(&gui_property->by_name);
 
-    for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
-        if (gui_property->props[n].type == PROP_TYPE_STRING) {
+	for (n = 0; n < GUI_PROPERTY_NUM; n ++) {
+		if (gui_property->props[n].type == PROP_TYPE_STRING) {
 			char **p = gui_property->props[n].data.string.value;
-            struct event *e = gui_property->props[n].ev_changed;
-	    G_FREE_NULL(*p);
-            if (e)
-                event_destroy(e);
-        }
-    }
+			struct event *e = gui_property->props[n].ev_changed;
+		G_FREE_NULL(*p);
+		if (e)
+			event_destroy(e);
+		}
+	}
 
 	/*
 	 * We don't free gui_property->props and gui_property.
@@ -3111,6 +3111,12 @@ gpointer
 gui_prop_get_storage(property_t p, gpointer t, size_t l)
 {
     return prop_get_storage(gui_property, p, t, l);
+}
+
+void
+gui_prop_reset(property_t prop)
+{
+    prop_reset(gui_property, prop);
 }
 
 const char *

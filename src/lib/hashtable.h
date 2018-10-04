@@ -77,7 +77,7 @@ hash_table_t *hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq);
 void hash_table_destroy_real(hash_table_t *ht);
 #endif /* MALLOC_SOURCE || VMM_SOURCE || THREAD_SOURCE */
 
-size_t hash_table_size(const hash_table_t *ht);
+size_t hash_table_count(const hash_table_t *ht);
 size_t hash_table_capacity(const hash_table_t *ht);
 size_t hash_table_buckets(const hash_table_t *ht);
 size_t hash_table_memory(const hash_table_t *ht);

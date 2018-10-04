@@ -391,7 +391,7 @@ hash_list_append(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);
@@ -414,7 +414,7 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);
@@ -453,7 +453,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 	} else {
 		struct hash_list_item *item;
 
-		WALLOC(item);
+		WALLOC0(item);
 		item->key = key;
 
 		/* Inserting ``item'' before ``lk'' */
@@ -655,7 +655,7 @@ hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
 	hash_list_position_check(pt);
 	g_assert(pt->hl == hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);

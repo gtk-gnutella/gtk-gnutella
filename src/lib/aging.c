@@ -443,7 +443,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 		aval->last_insert = now;
 		elist_moveto_tail(&ag->list, aval);
 	} else {
-		WALLOC(aval);
+		WALLOC0(aval);
 		aval->value = value;
 		aval->key = deconstify_pointer(key);
 		aval->last_insert = now;

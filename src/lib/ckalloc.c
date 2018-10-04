@@ -422,7 +422,7 @@ ck_strdup(ckhunk_t *ck, const char *str)
 {
 	ckhunk_check(ck);
 
-	return str ? ck_copy(ck, str, 1 + strlen(str)) : NULL;
+	return str ? ck_copy(ck, str, 1 + vstrlen(str)) : NULL;
 }
 
 /**
@@ -563,7 +563,7 @@ ck_strdup_readonly(ckhunk_t *ck, const char *str)
 {
 	ckhunk_check(ck);
 
-	return str ? ck_copy_readonly(ck, str, 1 + strlen(str)) : NULL;
+	return str ? ck_copy_readonly(ck, str, 1 + vstrlen(str)) : NULL;
 }
 
 /**

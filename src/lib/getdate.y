@@ -756,9 +756,9 @@ static int LookupWord(char *buff)
     }
 
     /* See if we have an abbreviation for a month. */
-    if (strlen(buff) == 3)
+    if (vstrlen(buff) == 3)
 	abbrev = 1;
-    else if (strlen(buff) == 4 && buff[3] == '.') {
+    else if (vstrlen(buff) == 4 && buff[3] == '.') {
 	abbrev = 1;
 	buff[3] = '\0';
     } else
@@ -792,7 +792,7 @@ static int LookupWord(char *buff)
 	}
 
     /* Strip off any plural and try the units table again. */
-    i = strlen(buff) - 1;
+    i = vstrlen(buff) - 1;
     if (buff[i] == 's') {
 	buff[i] = '\0';
 	for (tp = UnitsTable; tp->name; tp++)

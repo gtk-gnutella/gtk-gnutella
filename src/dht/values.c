@@ -82,6 +82,7 @@
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/hashing.h"
@@ -611,7 +612,7 @@ size_t
 dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 {
 	if (type == DHT_VT_BINARY) {
-		return g_strlcpy(buf, "BIN.", size);
+		return cstr_bcpy(buf, size, "BIN.");
 	} else {
 		char tmp[5];
 		size_t i;
@@ -623,7 +624,7 @@ dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 				tmp[i] = '.';
 		}
 		tmp[4] = '\0';
-		return g_strlcpy(buf, tmp, size);
+		return cstr_bcpy(buf, size, tmp);
 	}
 }
 
@@ -637,7 +638,7 @@ dht_value_type_to_string(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -651,7 +652,7 @@ dht_value_type_to_string2(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -668,11 +669,11 @@ dht_value_to_string(const dht_value_t *v)
 	char kuid[KUID_RAW_SIZE * 2 + 1];
 	char type[5];
 
-	bin_to_hex_buf(v->id, KUID_RAW_SIZE, kuid, sizeof kuid);
-	knode_to_string_buf(v->creator, knode, sizeof knode);
-	dht_value_type_to_string_buf(v->type, type, sizeof type);
+	bin_to_hex_buf(v->id, KUID_RAW_SIZE, ARYLEN(kuid));
+	knode_to_string_buf(v->creator, ARYLEN(knode));
+	dht_value_type_to_string_buf(v->type, ARYLEN(type));
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
 		kuid, type, v->major, v->minor, v->length, plural(v->length),
 		knode);
@@ -876,7 +877,7 @@ kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return FALSE;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	return dbmw_exists(db_expired, buf);
 }
 
@@ -907,7 +908,7 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 	if (!keys_within_kball(key))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_write(db_expired, buf, NULL, 0);
 }
 
@@ -929,7 +930,7 @@ kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_delete(db_expired, buf);
 }
 
@@ -1209,7 +1210,7 @@ validate_load(const dht_value_t *v)
 	bool full;
 	bool loaded;
 
-	keys_get_status(v->id, &full, &loaded);
+	keys_get_status(v->id, &full, &loaded, TRUE);
 
 	if (full && loaded)
 		return STORE_SC_FULL_LOADED;
@@ -1741,7 +1742,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		dbmw_write(db_rawdata, &dbkey, deconstify_pointer(v->data), v->length);
 	}
 
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	return STORE_SC_OK;
 
@@ -1911,7 +1912,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
 	 */
 
 	vd->n_requests++;
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	if (vd->length) {
 		size_t length;
@@ -2000,9 +2001,15 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 	/*
 	 * Ensure key is not full.  If the database is corrupted, then we may
 	 * attempt to load more values than the key can hold.
+	 *
+	 * NOTE: we do not allow key expiration to kick-in whilst we reload
+	 * values from the database.  That could create re-entrant queries on
+	 * the databases we are iterating over currently, and create assertion
+	 * failures.
+	 * 		--RAM, 2018-04-08
 	 */
 
-	keys_get_status(&vd->id, &full, &loaded);
+	keys_get_status(&vd->id, &full, &loaded, FALSE);
 
 	if (full) {
 		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: full key!",

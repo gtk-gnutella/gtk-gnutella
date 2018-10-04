@@ -324,7 +324,7 @@ retry:
 	line = 0;
 	added = 0;
 
-	while (fgets(tmp, sizeof(tmp), in)) {
+	while (fgets(ARYLEN(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')		/* Skip comments */
@@ -454,7 +454,7 @@ gwc_forget_url(const char *url)
 	 * filled from 0 and upwards.
 	 */
 
-	memset(url_tmp, 0, sizeof(url_tmp));
+	ZERO(&url_tmp);
 
 	if (count == MAX_GWC_URLS) {		/* Buffer was full */
 		for (i = gwc_url_slot;;) {
@@ -730,7 +730,7 @@ gwc_host_line(struct gwc_parse_context *ctx, const char *buf, size_t len)
 		}
 		return TRUE;
 	} else if ('U' == c) {
-		char *end = strchr(&buf[2], '|');
+		char *end = vstrchr(&buf[2], '|');
 		char *url;
 
 		if (NULL == end)
@@ -806,7 +806,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-gwc_host_data_ind(http_async_t *ha, char *data, int len)
+gwc_host_data_ind(http_async_t *ha, const char *data, int len)
 {
 	gwc_parse_dispatch_lines(ha, data, len, gwc_host_line, gwc_host_eof);
 }

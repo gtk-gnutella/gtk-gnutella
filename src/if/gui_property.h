@@ -231,6 +231,8 @@ void gui_prop_set_guint32(
 guint32 *gui_prop_get_guint32(
     property_t, guint32 *, size_t, size_t);
 
+void gui_prop_reset(property_t);
+
 static inline void
 gui_prop_set_guint32_val(property_t p, guint32 value)
 {

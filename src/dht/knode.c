@@ -250,8 +250,8 @@ knode_change_vendor(knode_t *kn, vendor_code_t vcode)
 		char vc_old[VENDOR_CODE_BUFLEN];
 		char vc_new[VENDOR_CODE_BUFLEN];
 
-		vendor_code_to_string_buf(kn->vcode.u32, vc_old, sizeof vc_old);
-		vendor_code_to_string_buf(vcode.u32, vc_new, sizeof vc_new);
+		vendor_code_to_string_buf(kn->vcode.u32, ARYLEN(vc_old));
+		vendor_code_to_string_buf(vcode.u32, ARYLEN(vc_new));
 
 		g_warning("DHT node %s at %s changed vendor from %s to %s",
 			kuid_to_hex_string(kn->id),
@@ -339,9 +339,9 @@ knode_to_string_buf(const knode_t *kn, char buf[], size_t len)
 
 	knode_check(kn);
 
-	bin_to_hex_buf(kn->id, KUID_RAW_SIZE, kuid_buf, sizeof kuid_buf);
-	host_addr_port_to_string_buf(kn->addr, kn->port, host_buf, sizeof host_buf);
-	vendor_code_to_string_buf(kn->vcode.u32, vc_buf, sizeof vc_buf);
+	bin_to_hex_buf(kn->id, KUID_RAW_SIZE, ARYLEN(kuid_buf));
+	host_addr_port_to_string_buf(kn->addr, kn->port, ARYLEN(host_buf));
+	vendor_code_to_string_buf(kn->vcode.u32, ARYLEN(vc_buf));
 	str_bprintf(buf, len,
 		"%s%s%s (%s v%u.%u) [%s] \"%s\", ref=%d%s%s%s%s [%s]",
 		host_buf,
@@ -368,7 +368,7 @@ knode_to_string(const knode_t *kn)
 {
 	static char buf[120];
 
-	return knode_to_string_buf(kn, buf, sizeof buf);
+	return knode_to_string_buf(kn, ARYLEN(buf));
 }
 
 /**
@@ -380,7 +380,7 @@ knode_to_string2(const knode_t *kn)
 {
 	static char buf[120];
 
-	return knode_to_string_buf(kn, buf, sizeof buf);
+	return knode_to_string_buf(kn, ARYLEN(buf));
 }
 
 /**

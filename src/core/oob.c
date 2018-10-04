@@ -56,6 +56,7 @@
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
+#include "lib/str.h"		/* For str_bprintf() */
 #include "lib/stringify.h"
 #include "lib/walloc.h"
 
@@ -204,6 +205,19 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 }
 
 /**
+ * Cancel global expiration event.
+ */
+static void
+results_expire_cancel(struct oob_results *r)
+{
+	if (r->ev_expire) {
+		cq_cancel(&r->ev_expire);
+		g_assert(r->refcount > 0);
+		r->refcount--;
+	}
+}
+
+/**
  * Dispose of results.
  */
 static void
@@ -211,11 +225,8 @@ results_free_remove(struct oob_results *r)
 {
 	oob_results_check(r);
 
-	if (r->ev_expire) {
-		cq_cancel(&r->ev_expire);
-		g_assert(r->refcount > 0);
-		r->refcount--;
-	}
+	results_expire_cancel(r);
+
 	if (r->ev_timeout) {
 		cq_cancel(&r->ev_timeout);
 		g_assert(r->refcount > 0);
@@ -241,6 +252,37 @@ results_free_remove(struct oob_results *r)
 	}
 }
 
+#define OOB_GTKG_FMTLEN	32	/* Typical size required for oob_gtkg_logstr_fmt() */
+
+/**
+ * Format into specified buffer the possible GTKG query logstring in the
+ * form " (GTKG X.Xu) requery" or "" if the query MUID is not one that we
+ * can tie back to a GTKG query.
+ *
+ * @param dest		destination buffer
+ * @param len		length of buffer in bytes
+ * @param r			OOB results descriptor
+ *
+ * @return the dest parameter, as a convenience
+ */
+static const char *
+oob_gtkg_logstr_fmt(char *dest, size_t len, const struct oob_results *r)
+{
+	uint8 maj, min;
+	bool release;
+
+	if (guid_query_muid_is_gtkg(r->muid, TRUE, &maj, &min, &release)) {
+		str_bprintf(dest, len, " (GTKG %u.%u%s)%s",
+			maj, min, release ? "" : "u",
+			guid_is_requery(r->muid) ? " requery" : "");
+	} else {
+		dest[0] = '\0';
+	}
+
+	return dest;
+}
+
+
 /**
  * Callout queue callback to free the results when the time allocated for the
  * querying party to claim all the results has expired.
@@ -252,15 +294,20 @@ results_destroy(cqueue_t *cq, void *obj)
 
 	oob_results_check(r);
 
-	if (GNET_PROPERTY(query_debug))
-		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s",
-			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, plural(r->count));
-
-	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
-
 	cq_zero(cq, &r->ev_expire);		/* The timer which just triggered */
 	r->refcount--;
+
+	if (GNET_PROPERTY(query_debug)) {
+		char buf[OOB_GTKG_FMTLEN];
+
+		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s%s",
+			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
+			r->count, plural(r->count),
+			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+	}
+
+	gnet_stats_inc_general(r->reliable ?
+		GNR_EXPIRED_RELIABLE_OOB_HITS : GNR_EXPIRED_OOB_HITS);
 
 	results_free_remove(r);
 }
@@ -278,15 +325,22 @@ results_timeout(cqueue_t *cq, void *obj)
 	oob_results_check(r);
 
 	cq_zero(cq, &r->ev_timeout);
+	r->refcount--;
+
 	addr = gnet_host_get_addr(&r->dest);
 
 	if (GNET_PROPERTY(query_debug)) {
-		g_debug("OOB query #%s, no ACK from %s to claim %d hit%s",
+		char buf[OOB_GTKG_FMTLEN];
+
+		g_debug("OOB query #%s, no ACK from %s to %sclaim %d hit%s%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, plural(r->count));
+			r->reliable ? "reliably " : "",
+			r->count, plural(r->count),
+			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
-	gnet_stats_inc_general(GNR_UNCLAIMED_OOB_HITS);
+	gnet_stats_inc_general(r->reliable ?
+		GNR_UNCLAIMED_RELIABLE_OOB_HITS : GNR_UNCLAIMED_OOB_HITS);
 
 	/*
 	 * Record an "event" that the OOB results went unclaimed.
@@ -302,9 +356,6 @@ results_timeout(cqueue_t *cq, void *obj)
 				host_addr_to_string(addr), delay, plural(delay));
 		}
 	}
-
-	r->ev_timeout = NULL;		/* The timer which just triggered */
-	r->refcount--;
 
 	results_free_remove(r);
 }
@@ -365,9 +416,9 @@ servent_service(struct gservent *s, cqueue_t *cq)
 
 	if (GNET_PROPERTY(udp_debug) > 19)
 		g_debug("UDP queuing OOB %s to %s for #%s",
-			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)),
+			gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)),
 			gnet_host_to_string(s->host),
-			guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))));
+			guid_hex_str(cast_to_guid_ptr_const(pmsg_phys_base(mb))));
 
 	/*
 	 * Count enqueued deflated payloads, only when server was marked as
@@ -375,7 +426,7 @@ servent_service(struct gservent *s, cqueue_t *cq)
 	 */
 
 	if (s->can_deflate) {
-		if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+		if (gnutella_header_get_ttl(pmsg_phys_base(mb)) & GTA_UDP_DEFLATED)
 			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	}
 
@@ -581,9 +632,12 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 	deliver_count = (wanted == 255) ? r->count : MIN(wanted, r->count);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
-		g_debug("OOB query #%s: host %s wants %d hit%s, delivering %d",
+		char buf[OOB_GTKG_FMTLEN];
+
+		g_debug("OOB query #%s: host %s wants %d hit%s, %sdelivering %d%s",
 			guid_hex_str(r->muid), node_addr(n), wanted, plural(wanted),
-			deliver_count);
+			r->reliable ? "reliably " : "", deliver_count,
+			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
 	if (deliver_count) {
@@ -594,8 +648,15 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 			oob_record_hit, s, r->muid, r->flags, token);
 	}
 
-	if (wanted < r->count)
-		gnet_stats_inc_general(GNR_PARTIALLY_CLAIMED_OOB_HITS);
+	if (wanted < r->count) {
+		gnet_stats_inc_general(r->reliable ?
+			GNR_PARTIALLY_CLAIMED_RELIABLE_OOB_HITS :
+			GNR_PARTIALLY_CLAIMED_OOB_HITS);
+	} else {
+		gnet_stats_inc_general(r->reliable ?
+			GNR_CLAIMED_RELIABLE_OOB_HITS :
+			GNR_CLAIMED_OOB_HITS);
+	}
 
 	/*
 	 * We're now done with the "oob_results" structure, since all the
@@ -639,13 +700,42 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		 * set already.
 		 */
 		if (r->ev_timeout) {
-			results_free_remove(r);
+			return;		/* Nothing to do, we're set since the first sending */
 		} else {
 
-			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug))
-				g_debug("OOB query #%s, notified %s about %d hit%s",
-					guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-					r->count, plural(r->count));
+			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
+				char buf[OOB_GTKG_FMTLEN];
+
+				g_debug("OOB query #%s, %snotified %s about %d hit%s%s",
+					guid_hex_str(r->muid),
+					r->reliable ? "reliably " : "",
+					gnet_host_to_string(&r->dest),
+					r->count, plural(r->count),
+					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+			}
+
+			/*
+			 * Count how many notifications we sent about pending OOB hits.
+			 */
+
+			gnet_stats_inc_general(r->reliable ?
+					GNR_RELIABLY_NOTIFIED_OOB_HITS : GNR_NOTIFIED_OOB_HITS);
+
+			/*
+			 * Now that we know for sure we were able to notify the remote
+			 * party about the existence of hits, we do not care about the
+			 * general expiration timer: what matters is the time we give
+			 * the remote party to claim the enqueued local hits.
+			 *
+			 * Indeed, it could have taken some time to get the indication
+			 * through, especially when sending it back reliably, and we need
+			 * to make sure we're not going to have the expiration timer trigger
+			 * before the timeout we're setting here.
+			 *
+			 * 		--RAM, 2018-05-06
+			 */
+
+			results_expire_cancel(r);		/* We managed to notify them */
 
 			/*
 			 * If we don't get any ACK back, we'll discard the results.
@@ -662,9 +752,12 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		 */
 
 		if (GNET_PROPERTY(query_debug)) {
-			g_debug("OOB query #%s, previous LIME12/v2 #%d was %s",
+			char buf[OOB_GTKG_FMTLEN];
+
+			g_debug("OOB query #%s, previous LIME12/v2 #%d was %s%s",
 				guid_hex_str(r->muid), r->notify_requeued,
-				r->reliable ? "unsent" : "dropped");
+				r->reliable ? "unsent" : "dropped",
+				oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 		}
 
 		if (
@@ -672,8 +765,24 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			++r->notify_requeued >= OOB_MAX_RETRY ||
 			!oob_send_reply_ind(r)
 		)
-			results_free_remove(r);
+			goto drop_results;
 	}
+
+	return;
+
+drop_results:
+	if (GNET_PROPERTY(query_debug)) {
+		char buf[OOB_GTKG_FMTLEN];
+
+		g_debug("OOB query #%s, freeing %s %d hit%s for %s%s",
+			guid_hex_str(r->muid),
+			r->ev_timeout ? "timed-out" : r->reliable ? "unsent" : "dropped",
+			r->count, plural(r->count),
+			gnet_host_to_string(&r->dest),
+			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+	}
+
+	results_free_remove(r);
 }
 
 /**
@@ -704,10 +813,13 @@ oob_send_reply_ind(struct oob_results *r)
 	pmsg_free(mb);
 
 	if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
-		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d",
+		char buf[OOB_GTKG_FMTLEN];
+
+		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d%s",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
-			r->count, plural(r->count), r->notify_requeued);
+			r->count, plural(r->count), r->notify_requeued,
+			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
 	mq_udp_putq(q, emb, &r->dest);

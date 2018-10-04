@@ -89,7 +89,7 @@ search_update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 	} else {
 		gchar text[4096];
 
-		str_bprintf(text, sizeof text,
+		str_bprintf(ARYLEN(text),
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %.64s\n"
@@ -148,7 +148,7 @@ search_set_xml(GtkWidget *widget, const char *xml)
 	 */
 	if (xml) {
 		char *s = unknown_to_utf8_normalized(xml, UNI_NORM_GUI, NULL);
-		xml_txt = xml_indent(s);
+		xml_txt = xml_indent(s, NULL);
 		if (xml != s) {
 			G_FREE_NULL(s);
 		}

@@ -116,7 +116,7 @@ statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
             gdk_beep();
 			/* FALL THRU */
         case SB_MESSAGE:
-            str_vbprintf(buf, sizeof(buf), format, args);
+            str_vbprintf(ARYLEN(buf), format, args);
             break;
         }
     } else {
@@ -204,7 +204,7 @@ statusbar_gui_set_default(const char *format, ...)
     HFREE_NULL(statbar_botstr_new);
 
     if (format != NULL) {
-        str_vbprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(ARYLEN(buf), format, args);
         statbar_botstr_new = h_strdup(buf);
     } else {
         statbar_botstr_new = h_strdup(product_website());

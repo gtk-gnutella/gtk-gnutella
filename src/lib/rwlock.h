@@ -162,6 +162,9 @@ void rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line);
 
 bool rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line);
 void rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line);
+bool rwlock_force_upgrade_from(rwlock_t *rw, const char *file, unsigned line);
+
+void rwlock_ungrab_from(rwlock_t *rw, bool w, const char *file, unsigned line);
 
 /*
  * Public interface.
@@ -186,10 +189,17 @@ void rwlock_crash_mode(void);
 #define rwlock_upgrade(x)	rwlock_upgrade_from((x), _WHERE_, __LINE__)
 #define rwlock_downgrade(x)	rwlock_downgrade_from((x), _WHERE_, __LINE__)
 
+#define rwlock_unlock(x,w)	rwlock_ungrab_from((x), (w), _WHERE_, __LINE__)
+
+#define rwlock_force_upgrade(x) \
+	rwlock_force_upgrade_from((x), _WHERE_, __LINE__)
+
 bool rwlock_is_owned(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
+
+unsigned rwlock_writers(const rwlock_t *rw);
 
 NON_NULL_PARAM((1, 2))
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);

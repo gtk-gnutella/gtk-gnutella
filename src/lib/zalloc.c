@@ -97,6 +97,7 @@
 #include "array_util.h"
 #include "atomic.h"
 #include "dump_options.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "hashing.h"		/* For integer_hash() and friends */
@@ -209,8 +210,10 @@ struct zone {				/* Zone descriptor */
 	unsigned zn_subzones;	/**< Amount of subzones */
 	unsigned zn_oversized;	/**< For GC: amount of times we see oversizing */
 	unsigned zn_stid;		/**< Small thread-ID for private zones */
+	unsigned zn_subzblocks;	/**< Amount of blocks we can cram in subzones */
 	uint embedded:1;		/**< Zone descriptor is head of first arena */
 	uint private:1;			/**< Is thread-private: no locking needed */
+	uint user:1;			/**< Is user-owned: no GC configured */
 };
 
 static inline void
@@ -348,7 +351,10 @@ static struct zstats {
 	uint64 subzones_freed_pages;	/**< Total pages freed in subzones */
 	AU64(zmove_attempts);			/**< Total attempts to move blocks */
 	AU64(zmove_attempts_gc);		/**< Subset of moves attempted in GC mode */
+	AU64(zmove_1_block_in_subzone);	/**< Moving 1 single block in its subzone */
 	AU64(zmove_successful_gc);		/**< Subset of successful moves */
+	AU64(zmove_successful_smart);	/**< Subset of successful moves */
+	AU64(zmove_successful_subzone);	/**< Subset of successful moves */
 	AU64(zgc_zones_freed);			/**< Total amount of zones freed by GC */
 	AU64(zgc_zones_defragmented);	/**< Total amount of zones defragmented */
 	AU64(zgc_fragments_freed);		/**< Total fragment zones freed */
@@ -400,6 +406,37 @@ size_t
 zalloc_overhead(void)
 {
 	return OVH_LENGTH;
+}
+
+/**
+ * @return static thread-private verbose description of zone, for debugging clues.
+ */
+static const char *
+z2str(const zone_t *zone)
+{
+	/* Can't use str_private() since it can recurse in this layer! */
+	static char buf[THREAD_MAX][256];
+	static char emergency[256];
+	int stid = thread_safe_small_id();
+	char *b;
+
+	STATIC_ASSERT(sizeof emergency == sizeof buf[0]);
+
+	b = stid < 0 ? emergency : &buf[stid][0];
+
+	str_bprintf(b, sizeof emergency, "{%s%s%s %p, %s, "
+		"refcnt=%u, size=%zu, hint=%u, cnt=%u, blocks=%u, free=%p, "
+		"blocks/subzone=%u, subzones=%u%s%s}",
+		zone->embedded ? "embedded " : "",
+		zone->private ? "private " : "",
+		zone->user ? "user " : "",
+		zone, zone->zn_gc != NULL ? "GC mode" : "no GC",
+		zone->zn_refcnt, zone->zn_size, zone->zn_hint, zone->zn_cnt,
+		zone->zn_blocks, zone->zn_free, zone->zn_subzblocks, zone->zn_subzones,
+		zone->private ? " for " : "",
+		zone->private ? thread_safe_id_name(zone->zn_stid) : "");
+
+	return b;
 }
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
@@ -490,8 +527,8 @@ zvalid(const zone_t *zone, const zrange_t *range, const void *blk)
 	size_t boff = ptr_diff(blk, range->start);
 
 	g_assert_log(0 == boff % zone->zn_size,
-		"%zu-byte zone: %zuK subzone %p, block %p, offset %zu (off by %zu)",
-		zone->zn_size, zone->zn_arena.sz_size / 1024, range->start, blk,
+		"zone %s: %zuK subzone %p, block %p, offset %zu (off by %zu)",
+		z2str(zone), zone->zn_arena.sz_size / 1024, range->start, blk,
 		boff, boff % zone->zn_size);
 
 	return TRUE;
@@ -511,7 +548,7 @@ zgc_subzinfo_valid(const zone_t *zone, const struct subzinfo *szi)
 	n = szi->szi_free_cnt;
 	p = szi->szi_free;
 
-	g_assert(n <= zone->zn_hint);
+	g_assert(n <= zone->zn_subzblocks);
 
 	while (n-- != 0) {
 		g_assert(ptr_cmp(p, szi->szi_base) >= 0 &&
@@ -548,8 +585,9 @@ zbelongs(const zone_t *zone, const void *blk)
 	BINARY_SEARCH(const zrange_t *, blk, zone->zn_subzones,
 		zrange_falls_in, GET_ITEM, FOUND);
 
-	s_rawwarn("%s(): block %p (%zu user bytes) not belonging to %zu-byte zone",
-		G_STRFUNC, blk, zone->zn_size - OVH_LENGTH, zone->zn_size);
+	s_rawcrit("%s(): block %p (%zu user bytes) not belonging to zone %s",
+		G_STRFUNC,
+		blk, zone->zn_size - OVH_LENGTH, z2str(zone));
 
 	return FALSE;
 }
@@ -713,6 +751,20 @@ zprepare(zone_t *zone, char **blk)
 }
 
 /**
+ * Lock private zone, verifying we are on the proper thread.
+ */
+static void
+zlock_private(zone_t *zone, const char *where, unsigned line)
+{
+	g_assert(zone->private);
+	g_assert_log(thread_small_id() == zone->zn_stid,
+		"%s(): zone %s being used by %s",
+		G_STRFUNC, z2str(zone), thread_name());
+
+	spinlock_direct_full(&zone->lock, where, line);
+}
+
+/**
  * Lock zone.
  *
  * All locking of public zones is done with normal spinlocks, which are
@@ -726,11 +778,11 @@ zprepare(zone_t *zone, char **blk)
  *
  * Don't inline to get proper lock location with SPINLOCK_DEBUG
  */
-#define zlock(zone) G_STMT_START {		\
-	if G_UNLIKELY(zone->private)		\
-		spinlock_direct(&zone->lock);	\
-	else								\
-		spinlock(&zone->lock);			\
+#define zlock(zone) G_STMT_START {				\
+	if G_UNLIKELY(zone->private)				\
+		zlock_private(zone, _WHERE_, __LINE__);	\
+	else										\
+		spinlock(&zone->lock);					\
 } G_STMT_END
 
 /**
@@ -760,6 +812,32 @@ zunlock(zone_t *zone)
 		spinunlock_direct(&zone->lock);
 	else
 		spinunlock(&zone->lock);
+}
+
+/**
+ * Get information about a zone.
+ *
+ * @param zone		the zone queried
+ * @param info		the supplied structure filled with zone information
+ */
+void
+zone_info(const zone_t *zone, zone_info_t *info)
+{
+	zone_t *zw = deconstify_pointer(zone);
+
+	zone_check(zone);
+	g_assert(info != NULL);
+
+	info->blocksize = zone_size(zone);	/* That's the user size */
+	info->chunksize = round_pagesize(zone->zn_size * zone->zn_hint);
+
+	zlock(zw);		/* Parameter is read-only, we only write to lock it */
+
+	info->blocks = zone->zn_blocks;
+	info->used   = zone->zn_cnt;
+	info->chunks = zone->zn_subzones;
+
+	zunlock(zw);
 }
 
 /**
@@ -882,7 +960,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 #ifdef MALLOC_TIME
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
-		str_bprintf(ago, sizeof ago, " [%s]",
+		str_bprintf(ARYLEN(ago), " [%s]",
 			short_time_ascii(delta_time(tm_time(), *t)));
 	}
 #else
@@ -1010,6 +1088,44 @@ zalloc_shift_pointer(const void *allocated, const void *used)
 #endif	/* TRACK_ZALLOC || MALLOC_FRAMES */
 
 /**
+ * Check that we are not attempting to perform an operation for a block in
+ * the wrong zone and that the block is indeed still allocated.
+ *
+ * @param zone		the zone to which the pointer must belong
+ * @param ptr		address of block
+ * @param what		what we are trying to do ("free block", "move block", ...)
+ */
+#ifdef ZONE_SAFE
+static inline void
+zcheck(zone_t *zone, void *ptr, const char *what)
+{
+	char **tmp;
+
+	/* Go back at leading magic, also the start of the block */
+	tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
+
+	if G_UNLIKELY(tmp[0] != BLOCK_USED) {
+		const zone_t *ozone = (zone_t *) tmp[1];
+		zframe_dump(ptr, "block already freed");
+		s_error("trying to %s %p twice (in %s %zu-byte zone)",
+			what, ptr, ozone == zone ? "proper" :
+				ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
+			ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
+	}
+	if G_UNLIKELY(tmp[1] != (char *) zone) {
+		const zone_t *ozone = (zone_t *) tmp[1];
+		zframe_dump(ptr, "block allocated");
+		s_error("trying to %s %p to wrong %zu-byte zone %p, "
+			"allocated in %zu-byte zone %p",
+			what, ptr, zone_size(zone), zone,
+			ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
+	}
+}
+#else	/* !ZONE_SAFE */
+#define zcheck(z,p,w)
+#endif	/* ZONE_SAFE */
+
+/**
  * Return user pointer to (already locked) zone.
  */
 static inline void
@@ -1017,31 +1133,8 @@ zreturn(zone_t *zone, void *ptr)
 {
 	char **head;
 
-#ifdef ZONE_SAFE
-	{
-		char **tmp;
+	zcheck(zone, ptr, "free block");
 
-		/* Go back at leading magic, also the start of the block */
-		tmp = ptr_add_offset(ptr, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
-
-		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(ptr, "block already freed");
-			s_error("trying to free block %p twice (in %s %zu-byte zone)",
-				ptr, ozone == zone ? "proper" :
-					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
-		}
-		if G_UNLIKELY(tmp[1] != (char *) zone) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(ptr, "block allocated");
-			s_error("trying to free block %p to wrong %zu-byte zone %p, "
-				"allocated in %zu-byte zone %p",
-				ptr, zone_size(zone), zone,
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
-		}
-	}
-#endif	/* ZONE_SAFE */
 #ifdef MALLOC_FRAMES
 	{
 		struct frame **p = ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
@@ -1083,12 +1176,16 @@ zreturn(zone_t *zone, void *ptr)
 
 	safety_assert(zbelongs_uptr(zone, ptr));
 
+	G_PREFETCH_W(&zone->zn_cnt);
+	G_PREFETCH_W(&zone->zn_free);
+
 	ptr = ptr_add_offset(ptr, -OVH_LENGTH);
 	G_PREFETCH_W(ptr);
-	G_PREFETCH_W(&zone->zn_free);
-	G_PREFETCH_W(&zone->zn_cnt);
 
-	g_assert(uint_is_positive(zone->zn_cnt)); 	/* Has something to free! */
+	if G_UNLIKELY(!uint_is_positive(zone->zn_cnt)) {
+		s_error("%s(): zone %s has no outstanding blocks to be freed",
+			G_STRFUNC, z2str(zone));
+	}
 
 	head = zone->zn_free;
 	safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
@@ -1206,22 +1303,28 @@ zfree_eslist(zone_t *zone, eslist_t *el)
  * is written in the first bytes of each free block.
  *
  * The first block in the arena will be the first free block.
+ *
+ * @return amount of blocks cramed.
  */
-static void
+static unsigned
 zn_cram(const zone_t *zone, void *arena, size_t len)
 {
 	char **next = arena, *p = arena;
 	size_t size = zone->zn_size;
 	void *last = ptr_add_offset(arena, len - size);
+	unsigned blocks = 1;
 
 	g_assert(len >= size);
 
 	while (ptr_cmp(&p[size], last) <= 0) {
+		blocks++;
 		next = cast_to_void_ptr(p);
 		p = *next = &p[size];
 	}
 	next = cast_to_void_ptr(p);
 	*next = NULL;
+
+	return blocks;
 }
 
 static void
@@ -1455,12 +1558,14 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_refcnt = 1;
 	zone->zn_subzones = 1;					/* One subzone to start with */
-	zone->zn_blocks = zone->zn_hint;
 	zone->zn_gc = NULL;
 	zone->zn_stid = 0;
+	zone->zn_subzblocks = round_pagesize(size * hint) / size;
 	spinlock_init(&zone->lock);
 
-	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+	zone->zn_blocks =
+		zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone;
@@ -1477,6 +1582,7 @@ static char **
 zn_extend(zone_t *zone)
 {
 	struct subzone *sz;		/* New sub-zone */
+	unsigned crammed;
 
 	g_assert(spinlock_is_held(&zone->lock));
 
@@ -1492,9 +1598,11 @@ zn_extend(zone_t *zone)
 	zone->zn_arena.sz_next = sz;		/* New subzone at head of list */
 	zone->zn_subzones++;
 	zone->zn_oversized = 0;				/* Just extended, cannot be oversized */
-	zone->zn_blocks += zone->zn_hint;
 
-	zn_cram(zone, sz->sz_base, sz->sz_size);
+	crammed = zn_cram(zone, sz->sz_base, sz->sz_size);
+	zone->zn_blocks += crammed;
+
+	g_assert(crammed == zone->zn_subzblocks);	/* Is an additional zone */
 	safety_assert(zbelongs(zone, zone->zn_free));
 
 	return zone->zn_free;
@@ -1513,11 +1621,11 @@ zn_shrink(zone_t *zone)
 	g_assert(0 == zone->zn_cnt);		/* No blocks used */
 
 	if (zalloc_debugging(1)) {
-		s_debug("ZGC %zu-byte zone %p shrunk: "
+		s_debug("ZGC zone %s shrunk: "
 			"freeing %u subzone%s of %zuKiB (%u blocks each)",
-			zone->zn_size, (void *) zone,
+			z2str(zone),
 			zone->zn_subzones - 1, 2 == zone->zn_subzones ? "" : "s",
-			zone->zn_arena.sz_size / 1024, zone->zn_hint);
+			zone->zn_arena.sz_size / 1024, zone->zn_subzblocks);
 	}
 
 	old_subzones = zone->zn_subzones;
@@ -1529,12 +1637,14 @@ zn_shrink(zone_t *zone)
 	ZSTATS_UNLOCK;
 
 	zone->zn_subzones = 1;				/* One subzone remains */
-	zone->zn_blocks = zone->zn_hint;
 	zone->zn_free = cast_to_void_ptr(zone->zn_arena.sz_base);
 	zone->zn_oversized = 0;
 
 	/* Recreate free list */
-	zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+	zone->zn_blocks =
+		zn_cram(zone, zone->zn_arena.sz_base, zone->zn_arena.sz_size);
+
+	g_assert(zone->zn_blocks <= zone->zn_subzblocks);
 	safety_assert(zbelongs(zone, zone->zn_free));
 }
 #endif	/* !REMAP_ZALLOC */
@@ -1550,21 +1660,24 @@ zn_shrink(zone_t *zone)
  *
  * @param size			the (already adjusted) block size
  * @param hint			the expected amount of blocks per chunk.
+ * @param embedded		whether to embed zone_t in first subzone area
+ * @param user			whether to set user-zone mode: prevents GC on zone
  *
  * @return a new zone.
  */
 static zone_t *
-zcreate_internal(size_t size, unsigned hint, bool embedded)
+zcreate_internal(size_t size, unsigned hint, bool embedded, bool user)
 {
 	zone_t *zone;			/* Zone descriptor */
 
 	zone = embedded ? NULL : xmalloc0(sizeof *zone);
 	zone = zn_create(zone, size, 0 == hint ? DEFAULT_HINT : hint);
+	zone->user = booleanize(user);
 
 #ifndef REMAP_ZALLOC
-	if (zgc_always(zone)) {
+	if (!zone->user && zgc_always(zone)) {
 		zlock(zone);
-		if (NULL == zone->zn_gc)
+		if (NULL == zone->zn_gc && vmm_is_long_term())
 			zgc_allocate(zone);
 		zunlock(zone);
 	}
@@ -1581,13 +1694,23 @@ zcreate_internal(size_t size, unsigned hint, bool embedded)
  * that are to be created per zone chunks. That is not the total amount of
  * expected objects of a given type. Leaving it a 0 selects the default hint
  * value.
+ *
+ * Contrary to zget(), this creates a zone that cannot be shared and belongs
+ * solely to the user requesting it.  As such, garbage collection is never
+ * enabled on such zones to keep allocation / freeing lightweight and fast,
+ * and minimize the risk of it causing dynamic core allocation, if the zone
+ * was properly sized at the beginning..
+ *
+ * @param size			the (already adjusted) block size
+ * @param hint			the expected amount of blocks per chunk.
+ * @param embedded		whether to embed zone_t in first subzone area
  */
 zone_t *
 zcreate(size_t size, unsigned hint, bool embedded)
 {
 	size = zalloc_adjust_size(size, &hint, TRUE);
 
-	return zcreate_internal(size, hint, embedded);
+	return zcreate_internal(size, hint, embedded, TRUE);	/* user zone */
 }
 
 /**
@@ -1744,7 +1867,7 @@ zget(size_t size, unsigned hint, bool private)
 	 * No zone of the corresponding size already, create a new one!
 	 */
 
-	zone = zcreate_internal(size, hint, FALSE);
+	zone = zcreate_internal(size, hint, FALSE, FALSE);
 
 	if (private) {
 		zone->private = TRUE;
@@ -1764,7 +1887,7 @@ found:
 	spinunlock(&zget_slk);
 
 	if (zalloc_debugging(1)) {
-		size_t count = hash_table_size(zt);
+		size_t count = hash_table_count(zt);
 		size_t buckets = hash_table_buckets(zt);
 		double clustering = hash_table_clustering(zt);
 		s_info("clustering in zalloc()'s zone table is %F for %zu/%zu items "
@@ -1772,6 +1895,8 @@ found:
 			clustering, count, hash_table_capacity(zt), buckets,
 			(double) count / buckets);
 	}
+
+	zone_check(zone);
 
 	return zone;
 }
@@ -1783,37 +1908,15 @@ found:
 void *
 zmove(zone_t *zone, void *p)
 {
+	zone_check(zone);
+
 	/*
 	 * If there is no garbage collection turned on for the zone, keep it as-is.
 	 */
 
 	ZSTATS_INCX(zmove_attempts);
 
-#ifdef ZONE_SAFE
-	{
-		char **tmp;
-
-		/* Go back at leading magic, also the start of the block */
-		tmp = ptr_add_offset(p, -OVH_LENGTH + OVH_ZONE_SAFE_OFFSET);
-
-		if G_UNLIKELY(tmp[0] != BLOCK_USED) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(p, "block already freed");
-			s_error("trying to move freed block %p twice (to %s %zu-byte zone)",
-				p, ozone == zone ? "proper" :
-					ZONE_MAGIC == ozone->zn_magic ? "wrong" : "invalid",
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0);
-		}
-		if G_UNLIKELY(tmp[1] != (char *) zone) {
-			const zone_t *ozone = (zone_t *) tmp[1];
-			zframe_dump(p, "block allocated");
-			s_error("trying to move block %p to wrong %zu-byte zone %p, "
-				"allocated in %zu-byte zone %p",
-				p, zone_size(zone), zone,
-				ZONE_MAGIC == ozone->zn_magic ? zone_size(ozone) : 0, ozone);
-		}
-	}
-#endif	/* ZONE_SAFE */
+	zcheck(zone, p, "move block");
 
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
@@ -1825,6 +1928,46 @@ zmove(zone_t *zone, void *p)
 #endif
 }
 
+/**
+ * Move data from old block to new block and free old block.
+ * Both blocks must be used and belong to the same zone.
+ *
+ * @param zone		the zone to which blocks belong
+ * @param o			the old block
+ * @param n			the new block
+ *
+ * @return location of new block for convenience.
+ */
+void *
+zmoveto(zone_t *zone, void *o, void *n)
+{
+	void *ostart, *nstart;
+
+	zone_check(zone);
+	zcheck(zone, o, "move data from block");
+	zcheck(zone, n, "move data to block");
+
+	ZSTATS_INCX(zmove_successful_smart);
+
+	/*
+	 * Also copy possible overhead (already included in zone's block size),
+	 * in order to keep original meta info attached to the old block.
+	 */
+
+	ostart = ptr_add_offset(o, -OVH_LENGTH);
+	nstart = ptr_add_offset(n, -OVH_LENGTH);
+	memcpy(nstart, ostart, zone->zn_size);
+
+	/*
+	 * Do not call zfree() as we do not want to account for freeing a block!
+	 */
+
+	zlock(zone);
+	zreturn(zone, o);
+	zunlock(zone);
+
+	return n;
+}
 
 /**
  * Iterator callback on hash table.
@@ -1870,7 +2013,7 @@ zclose(void)
 #ifdef MALLOC_FRAMES
 	if (zalloc_frames != NULL) {
 		extern void hash_table_destroy_real(hash_table_t *ht);
-		size_t frames = hash_table_size(zalloc_frames);
+		size_t frames = hash_table_count(zalloc_frames);
 		s_message("zalloc() tracked %zu distinct stack frame%s",
 			frames, plural(frames));
 		hash_table_destroy_real(zalloc_frames);
@@ -1879,18 +2022,18 @@ zclose(void)
 #endif
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
 	if (not_leaking != NULL) {
-		size_t blocks = hash_table_size(not_leaking);
+		size_t blocks = hash_table_count(not_leaking);
 		s_message("zalloc() had %zu block%s registered as not-leaking",
 			blocks, plural(blocks));
 		hash_table_destroy(not_leaking);
 		not_leaking = NULL;
 	}
 	if (alloc_used_to_real != NULL) {
-		size_t blocks = hash_table_size(alloc_used_to_real);
+		size_t blocks = hash_table_count(alloc_used_to_real);
 		s_message("zalloc() had %zu block%s registered for address shifting",
 			blocks, plural(blocks));
 		hash_table_destroy(alloc_used_to_real);
-		if (hash_table_size(alloc_real_to_used) != blocks) {
+		if (hash_table_count(alloc_real_to_used) != blocks) {
 			s_warning("zalloc() had count mismatch in address shifting tables");
 		}
 		hash_table_destroy(alloc_real_to_used);
@@ -2068,7 +2211,7 @@ zgc_insert_subzone(const zone_t *zone, struct subzone *sz, char **blk)
 	szi = &zg->zg_subzinfo[low];
 	szi->szi_base = sz->sz_base;
 	szi->szi_end = &sz->sz_base[sz->sz_size];
-	szi->szi_free_cnt = zone->zn_hint;
+	szi->szi_free_cnt = zone->zn_subzblocks;
 	szi->szi_free = blk;
 	szi->szi_sz = sz;
 
@@ -2125,75 +2268,124 @@ zgc_remove_subzone(const zone_t *zone, struct subzinfo *szi)
 }
 
 /**
- * Allocate a new subzone arena in the specified subzone and cram a free list
- * inside the new arena.
+ * Update subzone information when arena was moved.
  *
- * @return the address of the first free block
+ * @note
+ * The free blocks are already chained and szi->szi_free already points to the
+ * first available block in the new arena.
+ *
+ * @attention
+ * Upon return, the `szi' value MUST NOT be used again.
+ *
+ * @param zone		the zone to which subzone belongs to
+ * @param szi		subzone whose arena was moved
+ * @param nbase		new arena base
  */
-static void *
-zgc_subzone_new_arena(const zone_t *zone, struct subzone *sz)
+static void
+zgc_subzone_moved(zone_t *zone, struct subzinfo *szi, char *nbase)
 {
-	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
-	zrange_clear(zone);
+	struct zone_gc *zg = zone->zn_gc;
+	struct subzone *sz = szi->szi_sz;
 
-	if G_UNLIKELY(NULL == sz->sz_base) {
-		s_error("cannot recreate %zu-byte zone arena", zone->zn_size);
+	g_assert(szi != NULL);
+	g_assert(zg != NULL);
+	g_assert(szi->szi_base == sz->sz_base);
+	g_assert(szi->szi_base != nbase);		/* Arena was moved but not updated */
+	g_assert(!zgc_within_subzone(szi, szi->szi_free));	/* Not yet! */
+
+	/*
+	 * Update memory addresses in relevant subzone structures.
+	 */
+
+	zrange_clear(zone);
+	sz->sz_base = szi->szi_base = nbase;
+	szi->szi_end = &sz->sz_base[sz->sz_size];
+
+	/*
+	 * Make sure the contract is fullfilled: the first free block must belong
+	 * to the arena!
+	 */
+
+	g_assert(zgc_within_subzone(szi, szi->szi_free));
+
+	if (zalloc_debugging(4)) {
+		s_debug("ZGC zone %s moved %u blocks in [%p, %p]",
+			z2str(zone), zone->zn_subzblocks, szi->szi_base, szi->szi_end);
 	}
 
-	zn_cram(zone, sz->sz_base, sz->sz_size);
-	return cast_to_void_ptr(sz->sz_base);
+	/*
+	 * Re-sort the subzone array now that the base of the current
+	 * subzone has changed.
+	 *
+	 * NOTE: this changes `szi', since it moves around structures in the
+	 * array, so we must no longer use the old `szi' upon return from this
+	 * routine.
+	 */
+
+	xqsort(zg->zg_subzinfo, zg->zg_zones, sizeof *szi, subzinfo_cmp);
+
+	/*
+	 * We remember the index of the first subzinfo with free blocks to
+	 * accelerate zgc_zalloc().  Since we just moved a zone and we do not
+	 * want to re-scan the whole set of zones, simply reset the index
+	 * to the initial default value.
+	 */
+
+	zg->zg_free = addr_grows_upwards ? 0 : zg->zg_zones - 1;
 }
 
 /**
- * Defragment a subzone in the VM space: if the subzone's arena happens to
- * be a VM fragment, free it and reallocate a new one.
+ * Defragment a subzone in the VM space by attempting to move it to a better
+ * location.
  */
 static void
 zgc_subzone_defragment(zone_t *zone, struct subzinfo *szi)
 {
 	struct zone_gc *zg = zone->zn_gc;
 	struct subzone *sz = szi->szi_sz;
-	char **blk;
-	struct subzinfo *nszi;
+	char *nbase;
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
-	g_assert(equiv(&zone->zn_arena == sz, 1 == zone->zn_subzones));
-	g_assert(szi->szi_free_cnt == zone->zn_hint);
+	g_assert(!zone->embedded);	/* Cannot move subzone if zone is embedded */
+	g_assert(implies(1 == zone->zn_subzones, &zone->zn_arena == sz));
+	g_assert(szi->szi_free_cnt == zone->zn_subzblocks);
+	g_assert(szi->szi_base == sz->sz_base);
 
-	if (!subzone_is_fragment(sz))
+	/*
+	 * Instead of testing whether subzone is a fragment by calling
+	 * subzone_is_fragment(), we attempt to see whether we can move
+	 * the arena around in the VM space.
+	 * 		--RAM, 2017-11-26
+	 */
+
+	nbase = vmm_core_move(sz->sz_base, sz->sz_size);
+	if (nbase == sz->sz_base)
 		return;
 
 	if (zalloc_debugging(1)) {
 		time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-		s_debug("ZGC %zu-byte zone %p: %ssubzone "
-			"[%p, %p] %zuKiB, %u blocks, lifetime %s is a fragment",
-			zone->zn_size, (void *) zone,
+		s_debug("ZGC zone %s: %ssubzone "
+			"[%p, %p] %zuKiB, %u blocks, lifetime %s, moved to %p",
+			z2str(zone),
 			&zone->zn_arena == sz ? "first " : "extra ",
 			szi->szi_base, szi->szi_end - 1,
 			ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-			zone->zn_hint, compact_time(life));
+			zone->zn_subzblocks, compact_time(life), nbase);
 	}
 
-	/*
-	 * Fragment will be freed by the VMM layer, not cached.
-	 */
-
-	subzone_free_arena(sz);
-	zrange_clear(zone);
 	zg->zg_zone_defragmented++;
 
 	ZSTATS_INCX(zgc_zones_defragmented);
 
-	zgc_remove_subzone(zone, szi);
-	blk = zgc_subzone_new_arena(zone, sz);
-	nszi = zgc_insert_subzone(zone, sz, blk);
+	/*
+	 * Rebuild free list for the new arena address.
+	 */
 
-	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p recreated %u blocks in [%p, %p]",
-			zone->zn_size, (void *) zone,
-			zone->zn_hint, nszi->szi_base, nszi->szi_end);
-	}
+	zn_cram(zone, nbase, sz->sz_size);	/* First free block is first block */
+	szi->szi_free = (char **) nbase;	/* First block */
+
+	zgc_subzone_moved(zone, szi, nbase);
 }
 
 /**
@@ -2209,23 +2401,22 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 	g_assert(szi != NULL);
 	g_assert(zg != NULL);
+	g_assert(!zone->embedded);	/* Cannot free zubzone if it contains zone */
 	g_assert(equiv(NULL == sz, 1 == zone->zn_subzones));
-	g_assert(zone->zn_blocks >= zone->zn_hint);
+	g_assert(zone->zn_blocks >= zone->zn_subzblocks);
 
 	/*
 	 * Do not free the subzone if that would leave us with no more free blocks
 	 * in the whole zone.
 	 *
 	 * To help defragmenting the VM space, if the subzone is actually a
-	 * fragment, deallocate it and reallocate a new one.
+	 * fragment, attempt to move it around.
 	 */
 
 	if G_UNLIKELY(1 == zone->zn_subzones) {
-		g_assert(zone->zn_blocks == zone->zn_hint);
-		zgc_subzone_defragment(zone, szi);
-
+		g_assert(zone->zn_blocks == zone->zn_subzblocks);
 		ZSTATS_INCX(zgc_last_zone_kept);
-		return FALSE;
+		goto defragment;
 	}
 
 	/*
@@ -2235,14 +2426,14 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 	if (subzone_is_fragment(szi->szi_sz)) {
 		if (zalloc_debugging(1)) {
 			time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-			s_debug("ZGC %zu-byte zone %p: %ssubzone "
+			s_debug("ZGC zone %s: %ssubzone "
 				"[%p, %p] %zuKiB, %u blocks, lifetime %s is a fragment, "
 				"attempting release",
-				zone->zn_size, (void *) zone,
+				z2str(zone),
 				&zone->zn_arena == szi->szi_sz ? "first " : "extra ",
 				szi->szi_base, szi->szi_end - 1,
 				ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-				zone->zn_hint, compact_time(life));
+				zone->zn_subzblocks, compact_time(life));
 		}
 
 		ZSTATS_INCX(zgc_fragments_freed);
@@ -2263,16 +2454,18 @@ zgc_subzone_free(zone_t *zone, struct subzinfo *szi)
 
 	if (delta_time(tm_time(), szi->szi_sz->sz_ctime) < ZGC_SUBZONE_MINLIFE) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
-		return FALSE;
+		goto defragment;
 	}
 
 	if (
-		zone->zn_blocks - zone->zn_cnt == zone->zn_hint &&
+		zone->zn_blocks - zone->zn_cnt == zone->zn_subzblocks &&
 		delta_time(tm_time(), szi->szi_sz->sz_ctime) < 5 * ZGC_SUBZONE_MINLIFE
 	) {
 		zg->zg_flags |= ZGC_SCAN_ALL;
-		return FALSE;
+		goto defragment;
 	}
+
+	/* FALL THROUGH */
 
 release_zone:
 
@@ -2286,8 +2479,7 @@ release_zone:
 		zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX
 	) {
 		if (zalloc_debugging(3)) {
-			s_debug("ZGC %zu-byte zone %p: hit subzone free limit",
-				zone->zn_size, (void *) zone);
+			s_debug("ZGC zone %s: hit subzone free limit", z2str(zone));
 		}
 		zg->zg_flags |= ZGC_SCAN_ALL;
 
@@ -2304,15 +2496,15 @@ release_zone:
 
 		if (zalloc_debugging(1)) {
 			unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
-				zone->zn_hint;
+				zone->zn_subzblocks;
 			time_delta_t life = delta_time(tm_time(), zone->zn_arena.sz_ctime);
-			s_debug("ZGC %zu-byte zone %p: freeing first subzone "
+			s_debug("ZGC zone %s: freeing first subzone "
 				"[%p, %p] %zuKiB, %u blocks, lifetime %s "
 				"(still has %u free block%s)",
-				zone->zn_size, (void *) zone,
+				z2str(zone),
 				szi->szi_base, szi->szi_end - 1,
 				ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-				zone->zn_hint, compact_time(life),
+				zone->zn_subzblocks, compact_time(life),
 				free_blocks, plural(free_blocks));
 		}
 
@@ -2341,15 +2533,15 @@ release_zone:
 			if (sz->sz_base == szi->szi_base) {
 				if (zalloc_debugging(1)) {
 					unsigned free_blocks = zone->zn_blocks - zone->zn_cnt -
-						zone->zn_hint;
+						zone->zn_subzblocks;
 					time_delta_t life = delta_time(tm_time(), sz->sz_ctime);
-					s_debug("ZGC %zu-byte zone %p: freeing subzone #%u "
+					s_debug("ZGC zone %s: freeing subzone #%u "
 						"[%p, %p] %zuKiB, %u blocks, lifetime %s "
 						"(still has %u free block%s)",
-						zone->zn_size, (void *) zone, n,
+						z2str(zone), n,
 						szi->szi_base, szi->szi_end - 1,
 						ptr_diff(szi->szi_end, szi->szi_base) / 1024,
-						zone->zn_hint, compact_time(life),
+						zone->zn_subzblocks, compact_time(life),
 						free_blocks, plural(free_blocks));
 				}
 				subzone_free_arena(sz);
@@ -2369,7 +2561,7 @@ release_zone:
 
 found:
 
-	zone->zn_blocks -= zone->zn_hint;
+	zone->zn_blocks -= zone->zn_subzblocks;
 	zone->zn_subzones--;
 	zgc_context.subzone_freed++;
 
@@ -2383,6 +2575,10 @@ found:
 	zgc_remove_subzone(zone, szi);
 
 	return TRUE;
+
+defragment:
+	zgc_subzone_defragment(zone, szi);
+	return FALSE;
 }
 
 /**
@@ -2444,7 +2640,7 @@ zgc_insert_freelist(zone_t *zone, char **blk)
 			zg->zg_free = idx;
 	}
 
-	if (++szi->szi_free_cnt == zone->zn_hint)
+	if (++szi->szi_free_cnt == zone->zn_subzblocks)
 		return !zgc_subzone_free(zone, szi);
 
 	return TRUE;
@@ -2469,9 +2665,9 @@ zgc_allocate(zone_t *zone)
 
 	if (zalloc_debugging(1)) {
 		unsigned free_blocks = zone->zn_blocks - zone->zn_cnt;
-		s_debug("ZGC %zu-byte zone %p: "
+		s_debug("ZGC zone %s: "
 			"setting up garbage collection for %u subzone%s, %u free block%s",
-			zone->zn_size, (void *) zone,
+			z2str(zone),
 			zone->zn_subzones, plural(zone->zn_subzones),
 			free_blocks, plural(free_blocks));
 	}
@@ -2530,8 +2726,8 @@ zgc_allocate(zone_t *zone)
 		zone->zn_free = (char **) *blk;
 		dispatched++;
 		if (!zgc_insert_freelist(zone, blk)) {
-			g_assert(dispatched >= zone->zn_hint);
-			dispatched -= zone->zn_hint;	/* Subzone removed */
+			g_assert(dispatched >= zone->zn_subzblocks);
+			dispatched -= zone->zn_subzblocks;	/* Subzone removed */
 		}
 	}
 
@@ -2577,9 +2773,8 @@ zgc_extend(zone_t *zone)
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p extended by %u blocks in [%p, %p]",
-			zone->zn_size, (void *) zone,
-			zone->zn_hint, szi->szi_base, szi->szi_end - 1);
+		s_debug("ZGC zone %s extended by %u blocks in [%p, %p]",
+			z2str(zone), zone->zn_subzblocks, szi->szi_base, szi->szi_end - 1);
 	}
 
 	zone->zn_free = NULL;		/* In GC mode, we never use this */
@@ -2603,11 +2798,8 @@ zgc_scan(zone_t *zone)
 	g_assert(spinlock_is_held(&zone->lock));
 
 	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p scanned for free subzones: "
-			"%u blocks, %u free (hint=%u, %u subzones)",
-			zone->zn_size, (void *) zone,
-			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
-			zone->zn_subzones);
+		s_debug("ZGC zone %s scanned for free subzones: %u blocks, %u free",
+			z2str(zone), zone->zn_blocks, zone->zn_blocks - zone->zn_cnt);
 	}
 
 	i = zg->zg_free;
@@ -2621,7 +2813,7 @@ zgc_scan(zone_t *zone)
 		 * need to scan all the zones.
 		 */
 
-		if (zone->zn_blocks - zone->zn_cnt < zone->zn_hint)
+		if (zone->zn_blocks - zone->zn_cnt < zone->zn_subzblocks)
 			goto finished;
 
 		/*
@@ -2630,15 +2822,14 @@ zgc_scan(zone_t *zone)
 
 		if (zgc_context.subzone_freed >= ZGC_SUBZONE_FREEMAX) {
 			if (zalloc_debugging(3)) {
-				s_debug("ZGC %zu-byte zone %p: hit subzone free limit, "
-					"will resume scanning at next run",
-					zone->zn_size, (void *) zone);
+				s_debug("ZGC zone %s: hit subzone free limit, "
+					"will resume scanning at next run", z2str(zone));
 			}
 			must_continue = TRUE;
 			break;
 		}
 
-		if (szi->szi_free_cnt != zone->zn_hint)
+		if (szi->szi_free_cnt != zone->zn_subzblocks)
 			goto next;
 
 		if (zgc_subzone_free(zone, szi)) {
@@ -2663,11 +2854,8 @@ finished:
 	zg->zg_flags &= ~ZGC_SCAN_ALL;
 
 	if (zalloc_debugging(4)) {
-		s_debug("ZGC %zu-byte zone %p turned scan-all off: "
-			"%u blocks, %u free (hint=%u, %u subzones)",
-			zone->zn_size, (void *) zone,
-			zone->zn_blocks, zone->zn_blocks - zone->zn_cnt, zone->zn_hint,
-			zone->zn_subzones);
+		s_debug("ZGC zone %s turned scan-all off: %u blocks, %u free",
+			z2str(zone), zone->zn_blocks, zone->zn_blocks - zone->zn_cnt);
 	}
 }
 
@@ -2690,10 +2878,10 @@ zgc_dispose(zone_t *zone)
 
 	if (zalloc_debugging(1)) {
 		time_delta_t elapsed = delta_time(tm_time(), zg->zg_start);
-		s_debug("ZGC %zu-byte zone %p ending garbage collection "
+		s_debug("ZGC zone %s ending garbage collection "
 			"(%u free block%s, %u subzone%s, freed %u and defragmented %u "
 			"in %s)",
-			zone->zn_size, (void *) zone,
+			z2str(zone),
 			free_blocks, plural(free_blocks),
 			zone->zn_subzones, plural(zone->zn_subzones),
 			zg->zg_zone_freed, zg->zg_zone_defragmented,
@@ -2856,18 +3044,80 @@ zgc_zmove(zone_t *zone, void *p)
 
 	zg = zone->zn_gc;
 
-	if (NULL == zg || zone->zn_blocks == zone->zn_cnt) {
-		zunlock(zone);
-		return p;		/* No free blocks */
-	}
+	g_assert(zg != NULL);
 
 	szi = zgc_find_subzone(zg, p, NULL);
+
 	g_assert(szi != NULL);
 	g_assert(zgc_within_subzone(szi, p));
 	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	/* Has 1+ allocated blocks */
+	g_assert(szi->szi_free_cnt < zone->zn_subzblocks);
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
-	if (zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
+
+	/*
+	 * If block is the only one allocated in its subzone, then we have an
+	 * opportunity to "defragment" by moving the whole zone and then move the
+	 * data to the first block.
+	 * 		--RAM, 2017-11-27
+	 */
+
+	if G_UNLIKELY(zone->zn_subzblocks - 1 == szi->szi_free_cnt) {
+		char *nbase;
+
+		ZSTATS_INCX(zmove_1_block_in_subzone);
+
+		nbase = vmm_core_move(szi->szi_base, szi->szi_sz->sz_size);
+
+		if (nbase != szi->szi_base) {
+			size_t offset;
+			void *second_blk;
+
+			/*
+			 * Let's move the data to the first block in the new arena,
+			 * if not already the first block, and then let's rebuild
+			 * a free list with the remaining block, and update the
+			 * subzone information.
+			 */
+
+			start = ptr_add_offset(p, -OVH_LENGTH);		/* Real block start */
+			offset = ptr_diff(start, szi->szi_base);	/* In old arena */
+
+			g_assert(offset < szi->szi_sz->sz_size);
+			g_assert(size_is_non_negative(offset));
+
+			np = ptr_add_offset(nbase, OVH_LENGTH);		/* Skip block overhead */
+
+			if G_LIKELY(offset != 0) {
+				/* Keep original meta info */
+				memcpy(nbase, nbase + offset, zone->zn_size);
+			}
+
+			/*
+			 * Rebuild free list for new arena address, skipping the first
+			 * block of the new arena where we moved the data.
+			 */
+
+			second_blk = nbase + zone->zn_size;
+			zn_cram(zone, second_blk, szi->szi_sz->sz_size - zone->zn_size);
+
+			g_assert(szi->szi_free != NULL);			/* Old value */
+
+			szi->szi_free = (char **) second_blk;
+			zgc_subzone_moved(zone, szi, nbase);		/* Update subzone info */
+
+			ZSTATS_INCX(zmove_successful_subzone);
+			goto done;
+		}
+
+		/* FALL THROUGH */
+	}
+
+	if G_UNLIKELY(zone->zn_blocks == zone->zn_cnt)
+		goto no_change;		/* No free blocks at all */
+
+	if G_UNLIKELY(zone->zn_blocks - zone->zn_cnt == szi->szi_free_cnt)
 		goto no_change;		/* No free blocks in any other subzone */
 
 	/*
@@ -2925,18 +3175,15 @@ found:
 	 */
 
 	start = ptr_add_offset(p, -OVH_LENGTH);
-	np = zprepare(zone, blk);				/* Allow for block overhead */
+	np = ptr_add_offset(blk, OVH_LENGTH);	/* Allow for block overhead */
 	memcpy(blk, start, zone->zn_size);		/* Keep original meta info */
 
 	if (zalloc_debugging(1)) {
-		size_t used = zone->zn_hint - szi->szi_free_cnt - 1;
-		s_debug("ZGC %zu-byte zone %p: moved %p to %p, "
-			"zone has %u blocks, %u used (hint=%u, %u subzone%s), previous "
-			"subzone has %zu block%s",
-			zone->zn_size, (void *) zone, p, np,
-			zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-			zone->zn_subzones, plural(zone->zn_subzones),
-			used, plural(used));
+		size_t used = zone->zn_subzblocks - szi->szi_free_cnt - 1;
+		s_debug("ZGC zone %s: moved %p to %p, "
+			"zone has %u blocks, %u used, previous subzone has %zu block%s",
+			z2str(zone), p, np,
+			zone->zn_blocks, zone->zn_cnt, used, plural(used));
 	}
 
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
@@ -2982,13 +3229,12 @@ found:
 
 	zgc_insert_freelist(zone, start);
 
+done:
 	zunlock(zone);
-
 	return np;
 
 no_change:
 	zunlock(zone);
-
 	return p;
 }
 
@@ -3068,12 +3314,10 @@ spot_oversized_zone(zone_t *zone)
 			zone->zn_blocks - zone->zn_cnt >= (4 * zone->zn_hint)
 		) {
 			if (zalloc_debugging(4)) {
-				s_debug("ZGC %zu-byte zone %p %s: "
-					"%u blocks, %u used (hint=%u, %u subzones)",
-					zone->zn_size, (void *) zone,
+				s_debug("ZGC zone %s %s: %u blocks, %u used",
+					z2str(zone),
 					zgc_always(zone) ? "forced in GC mode" : "oversized",
-					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-					zone->zn_subzones);
+					zone->zn_blocks, zone->zn_cnt);
 			}
 
 			/*
@@ -3090,22 +3334,18 @@ spot_oversized_zone(zone_t *zone)
 			}
 
 			if (zalloc_debugging(4)) {
-				s_debug("ZGC %zu-byte zone %p %s: "
-					"%u blocks, %u used (hint=%u, %u subzone%s)",
-					zone->zn_size, (void *) zone,
+				s_debug("ZGC zone %s %s: "
+					"%u blocks, %u used",
+					z2str(zone),
 					NULL == zone->zn_gc ? "after shrinking" : "has GC on",
-					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-					zone->zn_subzones, plural(zone->zn_subzones));
+					zone->zn_blocks, zone->zn_cnt);
 			}
 		}
 	} else if (zgc_always(zone)) {
 		if (NULL == zone->zn_gc) {
 			if (zalloc_debugging(4)) {
-				s_debug("ZGC %zu-byte zone %p forced in GC mode: "
-					"%u blocks, %u used (hint=%u, %u subzones)",
-					zone->zn_size, (void *) zone,
-					zone->zn_blocks, zone->zn_cnt, zone->zn_hint,
-					zone->zn_subzones);
+				s_debug("ZGC zone %s forced in GC mode: %u blocks, %u used",
+					z2str(zone), zone->zn_blocks, zone->zn_cnt);
 			}
 			zgc_allocate(zone);
 		} else if (zone->zn_gc->zg_flags & ZGC_SCAN_ALL) {
@@ -3135,7 +3375,12 @@ zgc(bool overloaded)
 	size_t i, count;
 	zone_t **zones;
 
-	if (NULL == zt)
+	/*
+	 * Garbage collecting only makes sense if we're going to be a long-running
+	 * process -- for short-lived processes, it is an overkill.
+	 */
+
+	if (NULL == zt || !vmm_is_long_term())
 		return;
 
 	ZSTATS_INCX(zgc_runs);
@@ -3145,7 +3390,7 @@ zgc(bool overloaded)
 
 	if (zalloc_debugging(3)) {
 		s_debug("ZGC iterating over %u zones (%u in GC mode)",
-			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt));
+			(unsigned) hash_table_count(zt), atomic_uint_get(&zgc_zone_cnt));
 	}
 
 	zgc_context.subzone_freed = overloaded ? ZGC_SUBZONE_OVERBASE : 0;
@@ -3171,7 +3416,7 @@ zgc(bool overloaded)
 		tm_t end;
 		tm_now_exact(&end);
 		s_debug("ZGC iterated over %u zones (%u in GC mode) in %u usecs",
-			(unsigned) hash_table_size(zt), atomic_uint_get(&zgc_zone_cnt),
+			(unsigned) hash_table_count(zt), atomic_uint_get(&zgc_zone_cnt),
 			(unsigned) tm_elapsed_us(&end, &start));
 	}
 }
@@ -3447,10 +3692,10 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 	 */
 
 	hash_table_lock(zt);
-	zcount = hash_table_size(zt);
+	zcount = hash_table_count(zt);
 	XMALLOC_ARRAY(fill->array, zcount);
-	while (hash_table_size(zt) != zcount) {
-		zcount = hash_table_size(zt);
+	while (hash_table_count(zt) != zcount) {
+		zcount = hash_table_count(zt);
 		XREALLOC_ARRAY(fill->array, zcount);
 	}
 	fill->capacity = zcount;
@@ -3477,12 +3722,14 @@ zalloc_sort_zones(struct zonesize_filler *fill)
 void
 zalloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	ZSTATS_INCX(zalloc_stats_digest);
-	SHA1_COMPUTE(zstats, digest);
+	SHA1_COMPUTE_NONCE(zstats, &n, digest);
 }
 
 /**
@@ -3597,7 +3844,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 	/* Will be always less than a thousand, ignore pretty-priting */
 	log_info(la, "ZALLOC zone_count = %s",
-		size_t_to_string(NULL == zt ? 0 : hash_table_size(zt)));
+		size_t_to_string(NULL == zt ? 0 : hash_table_count(zt)));
 
 	ZSTATS_LOCK;
 	stats = zstats;			/* struct copy under lock protection */
@@ -3624,7 +3871,10 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(subzones_freed_pages);
 	DUMP64(zmove_attempts);
 	DUMP64(zmove_attempts_gc);
+	DUMP64(zmove_1_block_in_subzone);
 	DUMP64(zmove_successful_gc);
+	DUMP64(zmove_successful_smart);
+	DUMP64(zmove_successful_subzone);
 	DUMP64(zgc_zones_freed);
 	DUMP64(zgc_zones_defragmented);
 	DUMP64(zgc_fragments_freed);
@@ -3663,6 +3913,51 @@ zalloc_dump_stats(void)
 	zalloc_dump_stats_log(log_agent_stderr_get(), 0);
 	s_info("ZALLOC zones status:");
 	zalloc_dump_zones_log(log_agent_stderr_get());
+}
+
+/**
+ * Called from main() to log settings at startup.
+ */
+void G_COLD
+zalloc_show_settings_log(logagent_t *la)
+{
+	bool has_setting = FALSE;
+	struct zalloc_settings {
+		uint8 safety_assert;
+		uint8 zone_safe;
+		uint8 zone_frames;
+	} settings;
+
+	ZERO(&settings);
+
+#ifdef ZALLOC_SAFETY_ASSERT
+	settings.safety_assert = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef ZONE_SAFE
+	settings.zone_safe = TRUE;
+	has_setting = TRUE;
+#endif
+#ifdef ZONE_FRAMES
+	settings.zone_frames = TRUE;
+	has_setting = TRUE;
+#endif
+
+	if (has_setting) {
+		log_message(la, "zalloc settings: %s%s%s",
+			settings.safety_assert ? "ZALLOC_SAFETY_ASSERT " : "",
+			settings.zone_safe ? "ZONE_SAFE " : "",
+			settings.zone_frames ? "ZONE_FRAMES " : "");
+	}
+}
+
+/**
+ * Called from main() to log settings at startup.
+ */
+void G_COLD
+zalloc_show_settings(void)
+{
+	zalloc_show_settings_log(log_agent_stderr_get());
 }
 
 /* vi: set ts=4 sw=4 cindent: */

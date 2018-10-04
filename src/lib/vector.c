@@ -73,7 +73,7 @@ vector_iter_release(vector_iter_t **iter_ptr)
 }
 
 vector_t *
-vector_alloc(void *base, size_t element_size, size_t n)
+vector_alloc(const void *base, size_t element_size, size_t n)
 {
 	vector_t *vec;
 
@@ -98,7 +98,7 @@ vector_free(vector_t **vec_ptr)
  * Apply ``func'' to all the items in the vector.
  */
 void
-vector_foreach(const vector_t *v, GFunc func, void *data)
+vector_foreach(const vector_t *v, data_fn_t func, void *data)
 {
 	size_t i;
 

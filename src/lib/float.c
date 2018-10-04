@@ -556,7 +556,7 @@ float_decompose(double v, int *sign, int *ep)
 	dc.value = v;
 	*sign = dc.d.s;
 	e = dc.d.e;
-	f = ((uint64) dc.d.mh << 32) | (uint32) dc.d.ml;
+	f = UINT64_VALUE(dc.d.mh, dc.d.ml);
 
 	if (e != 0) {
 		*ep = e - bias - bitstoright;

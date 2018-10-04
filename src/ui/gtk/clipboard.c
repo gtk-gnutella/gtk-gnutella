@@ -50,7 +50,7 @@ clipboard_set_text(GtkWidget *unused_owner, const char *text)
 	if (text) {
 		size_t length;
 
-		length = strlen(text);
+		length = vstrlen(text);
 		if (length < UNSIGNED(INT_MAX)) {
 			gtk_clipboard_set_text(gtk_clipboard_get(GDK_SELECTION_PRIMARY),
 				text, length);
@@ -110,7 +110,7 @@ on_clipboard_selection_get(GtkWidget *unused_widget,
 
 	text = clipboard_text_get();
 	if (NULL != text) {
-		length = strlen(text);
+		length = vstrlen(text);
 		if (length >= UNSIGNED(INT_MAX)) {
 			text = NULL;
 			length = 0;

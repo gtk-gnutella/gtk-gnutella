@@ -179,6 +179,7 @@ struct routing_table {
 	int refcnt;				/**< Amount of references */
 	int generation;			/**< Generation number */
 	uint8 *arena;			/**< Where table starts */
+	uint len;				/**< Allocated arena length, in bytes */
 	int slots;				/**< Amount of slots in table */
 	int infinity;			/**< Value for "infinity" */
 	uint32 client_slots;	/**< Only for received tables, for shrinking ctrl */
@@ -268,7 +269,7 @@ qrp_patch_to_string(const struct routing_patch * const rp)
 
 	if (rp->compressed) {
 		int theoretical = rp->size * rp->entry_bits / 8;
-		str_bprintf(buf, sizeof buf, ", %.2f%%", rp->len * 100.0 / theoretical);
+		str_bprintf(ARYLEN(buf), ", %.2f%%", rp->len * 100.0 / theoretical);
 	} else {
 		buf[0] = '\0';
 	}
@@ -557,6 +558,7 @@ qrt_compact(struct routing_table *rt)
 
 	HFREE_NULL(rt->arena);
 	rt->arena = (uchar *) narena;
+	rt->len = nsize;
 	rt->compacted = TRUE;
 
 	if (qrp_debugging(4)) {
@@ -688,7 +690,7 @@ qrt_diff_4(struct routing_table *old, struct routing_table *new)
 	g_assert(new->compacted);
 	g_assert(old == NULL || new->slots == old->slots);
 
-	WALLOC(rp);
+	WALLOC0(rp);
 	rp->magic = ROUTING_PATCH_MAGIC;
 	rp->refcnt = 1;
 	rp->size = new->slots;
@@ -1185,6 +1187,17 @@ struct routing_table *
 qrt_get_table(void)
 {
 	return routing_table;
+}
+
+/**
+ * Attempt to relocate the table arena to a better VM position.
+ */
+void
+qrt_arena_relocate(struct routing_table *rt)
+{
+	qrt_check(rt);
+
+	rt->arena = hrealloc(rt->arena, rt->len);
 }
 
 /**
@@ -1686,7 +1699,11 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 				shared_file_name_canonic_len(sf)));
 
 	if (qrp_debugging(1)) {
-		g_debug("QRP adding file \"%s\"%s", shared_file_name_canonic(sf),
+		bool completed = shared_file_is_finished(sf);
+		g_debug("QRP adding %sfile \"%s\"%s",
+			shared_file_is_partial(sf) ?
+				(completed ? "seeded " : "partial ") : "",
+			shared_file_name_canonic(sf),
 			shared_file_needs_aliasing(sf) ?  " (with aliases)" : "");
 	}
 
@@ -1716,7 +1733,7 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			size_t word_len = strlen(word);
+			size_t word_len = vstrlen(word);
 			size_t n = 1 + word_len;
 
 			htable_insert(words, wcopy(word, n), size_to_pointer(n));
@@ -1747,7 +1764,7 @@ qrp_add_file(const shared_file_t *sf, htable_t *words)
 		if (htable_contains(words, word)) {
 			continue;
 		} else {
-			size_t word_len = strlen(word);
+			size_t word_len = vstrlen(word);
 			size_t n = 1 + word_len;
 
 			htable_insert(words, wcopy(word, n), size_to_pointer(n));
@@ -1921,7 +1938,7 @@ qrp_context_free(void *p)
 		char *word = sl->data;
 		size_t size;
 
-		size = 1 + strlen(word);
+		size = 1 + vstrlen(word);
 		g_assert(size_is_positive(size));
 		wfree(word, size);
 	}
@@ -3041,7 +3058,7 @@ qrp_send_reset(gnutella_node_t *n, int slots, int inf_val)
 		gnutella_msg_qrp_reset_set_table_length(&msg, slots);
 		gnutella_msg_qrp_reset_set_infinity(&msg, inf_val);
 
-		gmsg_sendto_one(n, &msg, sizeof msg);
+		gmsg_sendto_one(n, VARLEN(msg));
 	}
 
 	if (qrp_debugging(2)) {
@@ -4585,7 +4602,7 @@ qrt_handle_reset(
 	if (qrcv->expansion)
 		wfree(qrcv->expansion, qrcv->shrink_factor);
 
-	WALLOC(rt);
+	WALLOC0(rt);
 	rt->magic = QRP_ROUTE_MAGIC;
 	rt->name = str_cmsg("QRT %s", node_infostr(n));
 	rt->refcnt = 1;
@@ -4634,6 +4651,7 @@ qrt_handle_reset(
 
 	slots = rt->slots / 8;			/* 8 bits per byte, table is compacted */
 	rt->arena = halloc0(slots);
+	rt->len = slots;
 
 	gnet_prop_set_guint32_val(PROP_QRP_MEMORY,
 		GNET_PROPERTY(qrp_memory) + slots);
@@ -4781,17 +4799,10 @@ qrt_handle_patch(
 	qrcv->seqno++;
 
 	/*
-	 * Attempt to relocate the table if it is a standalone memory fragment.
+	 * Attempt to relocate the table if interesting for the VM space.
 	 */
 
-	{
-		struct routing_table *rt = qrcv->table;
-
-		qrt_check(rt);
-		g_assert(rt->compacted);	/* 8 bits per byte, table is compacted */
-
-		rt->arena = hrealloc(rt->arena, rt->slots / 8);
-	}
+	qrt_arena_relocate(qrcv->table);
 
 	/*
 	 * Process the patch data.
@@ -5246,7 +5257,7 @@ qhvec_clone(const query_hashvec_t *qsrc)
 
 	g_assert(qsrc != NULL);
 
-	WALLOC(qhvec);
+	WALLOC0(qhvec);
 	qhvec->count = qsrc->count;
 	qhvec->size = qsrc->size;
 	qhvec->has_urn = qsrc->has_urn;

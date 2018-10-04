@@ -130,7 +130,7 @@ g2_msg_build_map(void)
 
 	for (i = 0; i < N_ITEMS(g2_msg_symbolic_names); i++) {
 		const char *key = g2_msg_symbolic_names[i];
-		size_t len = strlen(key);
+		size_t len = vstrlen(key);
 
 		patricia_insert_k(g2_msg_pt, key, len * 8, int_to_pointer(i));
 	}
@@ -199,7 +199,7 @@ g2_msg_raw_name(const void *start, size_t len)
 	if (NULL == name)
 		return "";
 
-	clamp_strncpy(buf, sizeof buf, name, namelen);
+	clamp_strncpy(ARYLEN(buf), name, namelen);
 	return constant_str(buf);
 }
 
@@ -276,7 +276,7 @@ g2_msg_name_type(const char *name)
 
 	g2_msg_init();
 
-	namelen = strlen(name);
+	namelen = vstrlen(name);
 	known = patricia_lookup_extended_k(g2_msg_pt, name, namelen*8, NULL, &val);
 
 	if (!known)
@@ -354,7 +354,7 @@ g2_msg_search_get_text(const pmsg_t *mb)
 	const g2_tree_t *t;
 
 	t = g2_frame_deserialize(
-			pmsg_start(mb), pmsg_written_size(mb), NULL, FALSE);
+			pmsg_phys_base(mb), pmsg_written_size(mb), NULL, FALSE);
 
 	if (NULL == t) {
 		return NULL;
@@ -453,7 +453,7 @@ g2_msg_log_dropped(const void *data, size_t len, const char *fmt, va_list args)
 	if (fmt != NULL) {
 		rbuf[0] = ':';
 		rbuf[1] = ' ';
-		str_vbprintf(&rbuf[2], sizeof rbuf - 2, fmt, args);
+		str_vbprintf(ARYPOSLEN(rbuf, 2), fmt, args);
 		va_end(args);
 	} else {
 		rbuf[0] = '\0';
@@ -470,7 +470,7 @@ g2_msg_log_dropped_pmsg(const pmsg_t *mb, const char *fmt, ...)
 {
 	va_list args;
 	va_start(args, fmt);
-	g2_msg_log_dropped(pmsg_start(mb), pmsg_size(mb), fmt, args);
+	g2_msg_log_dropped(pmsg_phys_base(mb), pmsg_written_size(mb), fmt, args);
 	va_end(args);
 }
 

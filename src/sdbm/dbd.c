@@ -52,7 +52,7 @@ sdump(int pagf)
 	char pag[DBM_PBLKSIZ];
 
 	while ((r = read(pagf, pag, DBM_PBLKSIZ)) > 0) {
-		if (!sdbm_internal_chkpage(pag))
+		if (!sdbm_chkpage(pag))
 			fprintf(stderr, "%d: bad page.\n", n);
 		else if (empty(pag))
 			o++;

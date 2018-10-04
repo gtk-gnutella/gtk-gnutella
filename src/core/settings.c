@@ -45,6 +45,7 @@
 #include "ctl.h"
 #include "downloads.h"
 #include "dump.h"
+#include "fileinfo.h"			/* For file_info_set_minchunksize() */
 #include "guess.h"
 #include "hcache.h"
 #include "hosts.h"
@@ -58,7 +59,6 @@
 #include "sockets.h"
 #include "tx.h"					/* For tx_debug_set_addrs() */
 #include "udp.h"				/* For udp_received() */
-#include "upload_stats.h"
 
 #include "upnp/upnp.h"
 
@@ -96,11 +96,13 @@
 #include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/pslist.h"
+#include "lib/qlock.h"
 #include "lib/random.h"
 #include "lib/rwlock.h"
 #include "lib/sha1.h"
@@ -462,8 +464,8 @@ settings_init_session_id(void)
 	 * sufficiently random to be used as-is.
 	 */
 
-	random_bytes(&id, sizeof id);
-	gnet_prop_set_storage(PROP_SESSION_ID, &id, sizeof id);
+	random_bytes(VARLEN(id));
+	gnet_prop_set_storage(PROP_SESSION_ID, VARLEN(id));
 }
 
 /**
@@ -624,8 +626,35 @@ settings_unique_instance(bool is_supervisor)
 	}
 }
 
+/**
+ * Cleanup properties upon start-up before initializing the callbacks.
+ */
+static void G_COLD
+settings_cleanup(void)
+{
+	/*
+	 * We now persist "current_peermode" to be able to restart in the
+	 * same mode after a crash.  However if we are not resuming the
+	 * session, or if the configured peermode is not "automatic", then
+	 * reset "current_peermode" to its default value, discarding the
+	 * persisted value.
+	 * 		--RAM, 2017-10-28
+	 */
+
+	if (
+			!crash_was_restarted() ||
+			GNET_PROPERTY(configured_peermode) != NODE_P_AUTO
+	)
+		gnet_prop_reset(PROP_CURRENT_PEERMODE);
+}
+
+/*
+ * Initialize program settings, restoring the ones previsously set.
+ *
+ * @param resume	if TRUE, request that previous session be resumed
+ */
 void G_COLD
-settings_init(void)
+settings_init(bool resume)
 {
 	uint64 memory = getphysmemsize();
 	uint64 amount = memory / 1024;
@@ -655,6 +684,8 @@ settings_init(void)
 
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
+
+	gnet_prop_set_timestamp_val(PROP_START_STAMP, tm_time());
 
 	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
@@ -699,7 +730,20 @@ settings_init(void)
 	 * we're being auto-restarted / manually relaunched after a crash.
 	 */
 
-	if (GNET_PROPERTY(clean_shutdown)) {
+	if (!GNET_PROPERTY(clean_shutdown)) {
+		uint32 pid = GNET_PROPERTY(pid);
+		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		if (resume)
+			g_info("implicitly resuming the previous session anyway");
+		crash_exited(pid);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else if (resume) {
+		g_info("honoring user request to resume previous session");
+		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else {
 		bool auto_restart = GNET_PROPERTY(user_auto_restart);
 		/*
 		 * An (explicit) auto-restart is an implicit continuation of the
@@ -713,12 +757,6 @@ settings_init(void)
 			g_info("restarting session as requested");
 			session_start = GNET_PROPERTY(session_start_stamp);
 		}
-	} else {
-		uint32 pid = GNET_PROPERTY(pid);
-		g_warning("restarting after abnormal termination (pid was %u)", pid);
-		crash_exited(pid);
-		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
-		session_start = GNET_PROPERTY(session_start_stamp);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
@@ -791,8 +829,6 @@ settings_init(void)
 		}
 	}
 
-	upload_stats_load_history();	/* Loads the upload statistics */
-
 	/* watch for filter_file defaults */
 
 	if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
@@ -816,13 +852,14 @@ settings_init(void)
 	{
 		sha1_t buf;		/* 160 bits */
 
-		gnet_prop_get_storage(PROP_RANDOMNESS, &buf, sizeof buf);
-		random_add(&buf, sizeof buf);
+		gnet_prop_get_storage(PROP_RANDOMNESS, VARLEN(buf));
+		random_add(VARLEN(buf));
 	}
 
 	settings_init_session_id();
 	settings_update_downtime();
 	settings_update_firewalled();
+	settings_cleanup();
 	settings_callbacks_init();
 	settings_handle_upgrades();
 	settings_init_running = FALSE;
@@ -848,7 +885,7 @@ settings_gen_randomness(void *unused)
 	g_assert(thread_is_main());
 
 	aje_random_bytes(&buf, SHA1_RAW_SIZE);
-	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+	gnet_prop_set_storage(PROP_RANDOMNESS, VARLEN(buf));
 }
 
 /**
@@ -2221,10 +2258,10 @@ bw_switch(property_t prop, bsched_bws_t bs)
     bool val;
 
     gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bs);
-    else
-        bsched_disable(bs);
+	if (val)
+		bsched_enable(bs);
+	else
+		bsched_disable(bs);
 	return FALSE;
 }
 
@@ -2406,7 +2443,7 @@ save_file_path_changed(property_t prop)
 	path = gnet_prop_get_string(prop, NULL, 0);
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
+		g_debug("save_file_path_change(): path=\"%s\", old_path=\"%s\"",
 			NULL_STRING(path), NULL_STRING(old_path));
 	}
 
@@ -2697,6 +2734,7 @@ lock_sleep_trace_changed(property_t prop)
 
 	spinlock_set_sleep_trace(val);
 	rwlock_set_sleep_trace(val);
+	qlock_set_sleep_trace(val);
 
     return FALSE;
 }
@@ -2709,7 +2747,9 @@ lock_contention_trace_changed(property_t prop)
 	gnet_prop_get_boolean_val(prop, &val);
 
 	spinlock_set_contention_trace(val);
+	mutex_set_contention_trace(val);
 	rwlock_set_contention_trace(val);
+	qlock_set_contention_trace(val);
 
     return FALSE;
 }
@@ -2891,52 +2931,17 @@ static bool
 configured_peermode_changed(property_t prop)
 {
     uint32 val;
-	bool forced = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
 
-	/* XXX: The following is disabled because it is too restrictive and
-	 *		annoying in LAN. If a user doesn't use the default "auto"
-	 *		mode, it can be assumed that he knows what he's doing. Also,
-	 *		while it's sub-optimal it's not absolutely required for an
-	 *		ultrapeer to accept incoming connections (from external hosts).
-	 *
-	 *		--cbiere, 2005-05-14
-	 */
-#if 0
 	/*
-	 * We don't allow them to be anything but a leaf node if they are
-	 * firewalled.  We even restrict the "normal" mode, which is to be
-	 * avoided anyway, and will be removed in a future release.
-	 *		--RAM, 2004-09-19
+	 * Keep current peer mode if the configured peermode is NODE_P_AUTO.
 	 */
 
-	switch (val) {
-	case NODE_P_NORMAL:
-	case NODE_P_ULTRA:
-		if (GNET_PROPERTY(is_firewalled)) {
-			val = NODE_P_AUTO;
-			forced = TRUE;
-			g_warning("must run as a leaf when TCP-firewalled");
-			gcu_statusbar_warning(
-				_("Can only run as a leaf when TCP-firewalled"));
-		}
-		break;
-	default:
-		break;
-	}
-#endif
+	if (val != NODE_P_AUTO)
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
 
-	if (val == NODE_P_AUTO) {
-		if (connected_nodes() > 0)		/* Already connected */
-			return forced;				/* Keep our current operating mode */
-		val = NODE_P_LEAF;				/* Force leaf mode */
-		/* FALL THROUGH */
-	}
-
-	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
-
-    return forced;
+    return FALSE;
 }
 
 static bool
@@ -2957,6 +2962,17 @@ configured_dht_mode_changed(property_t prop)
 
     gnet_prop_get_guint32_val(prop, &val);
 	dht_configured_mode_changed(val);
+
+	return FALSE;
+}
+
+static bool
+dl_minchunksize_changed(property_t prop)
+{
+    uint32 val;
+
+    gnet_prop_get_guint32_val(prop, &val);
+	file_info_set_minchunksize(val);
 
 	return FALSE;
 }
@@ -3410,6 +3426,11 @@ static prop_map_t property_map[] = {
 		TRUE,
 	},
 	{
+		PROP_DL_MINCHUNKSIZE,
+		dl_minchunksize_changed,
+		TRUE,
+	},
+	{
 		PROP_DOWNLOAD_RX_SIZE,
 		download_rx_size_changed,
 		TRUE,
@@ -3522,7 +3543,7 @@ static prop_map_t property_map[] = {
 
 #define PROPERTY_MAP_SIZE N_ITEMS(property_map)
 
-static bool init_list[GNET_PROPERTY_NUM];
+static uint8 init_list[GNET_PROPERTY_NUM];
 
 static void G_COLD
 settings_callbacks_init(void)

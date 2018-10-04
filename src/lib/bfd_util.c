@@ -338,13 +338,11 @@ bfd_util_open(bfd_ctx_t *bc, const char *path)
 		static char debugpath[MAX_PATH_LEN];
 		const char *base = filepath_basename(path);
 
-		concat_strings(debugpath, sizeof debugpath,
-			"/usr/lib/debug/", base, NULL_PTR);
+		concat_strings(ARYLEN(debugpath), "/usr/lib/debug/", base, NULL_PTR);
 
 		fd = open(debugpath, O_RDONLY);
 		if (-1 == fd) {
-			concat_strings(debugpath, sizeof debugpath,
-				"/usr/lib/debug", path, NULL_PTR);
+			concat_strings(ARYLEN(debugpath), "/usr/lib/debug", path, NULL_PTR);
 			fd = open(debugpath, O_RDONLY);
 		}
 		if (-1 != fd)
@@ -481,7 +479,7 @@ bfd_util_get_bc(struct bfd_list **list, const char *path)
 		return NULL;
 
 	bp = XCOPY(&bc);
-	item = xmalloc(sizeof *item);
+	XMALLOC(item);
 	item->bc = bp;
 	item->path = xstrdup(path);
 
