@@ -2242,8 +2242,18 @@ socket_connected(void *data, int source, inputevt_cond_t cond)
 	g_assert((socket_fd_t) source == s->file_desc);
 
 	if G_UNLIKELY(socket_shutdowned) {
-		socket_destroy(s, "Servent shutdown");
-		return;
+		/*
+		 * We let outgoing connections continue when the socket bears the
+		 * SOCK_F_FORCE flag.  This is a hack to let the UPnP port unmapping
+		 * proceed during shutdown.
+		 * 		--RAM, 2018-10-04.
+		 */
+
+		if (!(s->flags & SOCK_F_FORCE)) {
+			socket_destroy(s, "Servent shutdown");
+			return;
+		}
+		/* FALL THROUGH */
 	}
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {	/* Error while connecting */
