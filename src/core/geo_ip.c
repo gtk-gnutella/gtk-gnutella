@@ -232,6 +232,11 @@ gip_parse_ipv6(const char *line, int linenum)
 	 *
 	 * The leading part up to the space is the IPv6 network in CIDR format.
 	 * The trailing word is the 2-letter ISO country code.
+	 *
+	 * If the whole 128 bits are meant to be used, the /128 may be missing,
+	 * for instance:
+	 *
+	 * 		2402:3f40::1 cn
 	 */
 
 	if (!parse_ipv6_addr(line, ip, &end)) {
@@ -241,9 +246,8 @@ gip_parse_ipv6(const char *line, int linenum)
 	}
 
 	if ('/' != *end) {
-		g_warning("%s, line %d: missing network separator in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
+		bits = 128;
+		goto no_bits;
 	}
 
 	bits = parse_uint(end + 1, &end, 10, &error);
@@ -260,6 +264,7 @@ gip_parse_ipv6(const char *line, int linenum)
 		return;
 	}
 
+no_bits:
 	if (!is_ascii_space(*end)) {
 		g_warning("%s, line %d: missing spaces after network in \"%s\"",
 			gip_source[GIP_IPV6].file, linenum, line);
