@@ -2964,55 +2964,52 @@ http_async_log_error_dbg(http_async_t *handle,
 	host_addr_t addr;
 	uint16 port;
 	const char *what = prefix != NULL ? prefix : "HTTP";
+	const char *endpoint;
 
 	http_async_check(handle);
 
 	url = http_async_info(handle, &req, NULL, &addr, &port);
+	endpoint = host_addr_port_to_string(addr, port);
 
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
 		errno = error;
 		g_message("%s aborting \"%s %s\" at %s on system error: %m",
-			what, req, url, host_addr_port_to_string(addr, port));
+			what, req, url, endpoint);
 		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (all) {
 				g_message("%s explicitly cancelled \"%s %s\" at %s",
-					what, req, url, host_addr_port_to_string(addr, port));
+					what, req, url, endpoint);
 				return TRUE;
 			}
 		} else if (error == HTTP_ASYNC_CLOSED) {
 			if (all) {
 				g_message("%s connection closed for \"%s %s\" at %s",
-					what, req, url, host_addr_port_to_string(addr, port));
+					what, req, url, endpoint);
 				return TRUE;
 			}
 		} else {
 			g_message("%s aborting \"%s %s\" at %s on error: %s",
-				what, req, url,
-				host_addr_port_to_string(addr, port),
-				http_async_strerror(error));
+				what, req, url, endpoint, http_async_strerror(error));
 			return TRUE;
 		}
 		return FALSE;
 	case HTTP_ASYNC_HEADER:
 		g_message("%s aborting \"%s %s\" at %s on header parsing error: %s",
-			what, req, url, host_addr_port_to_string(addr, port),
-			header_strerror(error));
+			what, req, url, endpoint, header_strerror(error));
 		return TRUE;
 	case HTTP_ASYNC_HTTP:
 		g_message("%s stopping \"%s %s\" at %s: HTTP %d %s",
-			what, req, url,
-			host_addr_port_to_string(addr, port),
-			herror->code, herror->message);
+			what, req, url, endpoint, herror->code, herror->message);
 		return TRUE;
 	/* No default clause, let the compiler warn us about missing cases. */
 	}
 
 	/* In case the error was not trapped at compile time... */
 	g_warning("%s(): unhandled HTTP request error type %d for \"%s %s\" at %s",
-		G_STRFUNC, type, req, url, host_addr_port_to_string(addr, port));
+		G_STRFUNC, type, req, url, endpoint);
 	return FALSE;
 }
 
