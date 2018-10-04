@@ -56,6 +56,7 @@ src/lib/spopen-test
 
 # Miscellaneous tests
 src/lib/stat-test
+src/lib/pattern-test
 
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
