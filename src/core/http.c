@@ -1565,7 +1565,22 @@ void
 http_async_error(http_async_t *handle, int code)
 {
 	http_async_check(handle);
-	http_async_remove(handle, HTTP_ASYNC_ERROR, GINT_TO_POINTER(code));
+
+	/*
+	 * When debugging, be verbose about the I/O errors we encounter.
+	 */
+
+	if (GNET_PROPERTY(http_debug) && HTTP_ASYNC_IO_ERROR == code) {
+		const char *req;
+		host_addr_t addr;
+		uint16 port;
+		const char *url = http_async_info(handle, &req, NULL, &addr, &port);
+
+		g_carp("%s(): I/O error reported for \"%s %s\" at %s",
+			G_STRFUNC, req, url, host_addr_port_to_string(addr, port));
+	}
+
+	http_async_remove(handle, HTTP_ASYNC_ERROR, int_to_pointer(code));
 }
 
 /**
