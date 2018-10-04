@@ -2972,24 +2972,24 @@ http_async_log_error_dbg(http_async_t *handle,
 	switch (type) {
 	case HTTP_ASYNC_SYSERR:
 		errno = error;
-		g_message("%s: aborting \"%s %s\" at %s on system error: %m",
+		g_message("%s aborting \"%s %s\" at %s on system error: %m",
 			what, req, url, host_addr_port_to_string(addr, port));
 		return TRUE;
 	case HTTP_ASYNC_ERROR:
 		if (error == HTTP_ASYNC_CANCELLED) {
 			if (all) {
-				g_message("%s: explicitly cancelled \"%s %s\" at %s",
+				g_message("%s explicitly cancelled \"%s %s\" at %s",
 					what, req, url, host_addr_port_to_string(addr, port));
 				return TRUE;
 			}
 		} else if (error == HTTP_ASYNC_CLOSED) {
 			if (all) {
-				g_message("%s: connection closed for \"%s %s\" at %s",
+				g_message("%s connection closed for \"%s %s\" at %s",
 					what, req, url, host_addr_port_to_string(addr, port));
 				return TRUE;
 			}
 		} else {
-			g_message("%s: aborting \"%s %s\" at %s on error: %s",
+			g_message("%s aborting \"%s %s\" at %s on error: %s",
 				what, req, url,
 				host_addr_port_to_string(addr, port),
 				http_async_strerror(error));
@@ -2997,12 +2997,12 @@ http_async_log_error_dbg(http_async_t *handle,
 		}
 		return FALSE;
 	case HTTP_ASYNC_HEADER:
-		g_message("%s: aborting \"%s %s\" at %s on header parsing error: %s",
+		g_message("%s aborting \"%s %s\" at %s on header parsing error: %s",
 			what, req, url, host_addr_port_to_string(addr, port),
 			header_strerror(error));
 		return TRUE;
 	case HTTP_ASYNC_HTTP:
-		g_message("%s: stopping \"%s %s\" at %s: HTTP %d %s",
+		g_message("%s stopping \"%s %s\" at %s: HTTP %d %s",
 			what, req, url,
 			host_addr_port_to_string(addr, port),
 			herror->code, herror->message);
@@ -3011,9 +3011,9 @@ http_async_log_error_dbg(http_async_t *handle,
 	}
 
 	/* In case the error was not trapped at compile time... */
-	g_error("unhandled HTTP request error type %d", type);
-	/* NOTREACHED */
-	return FALSE;	/* Avoid compiler warnings about missing returned value */
+	g_warning("%s(): unhandled HTTP request error type %d for \"%s %s\" at %s",
+		G_STRFUNC, type, req, url, host_addr_port_to_string(addr, port));
+	return FALSE;
 }
 
 /**
