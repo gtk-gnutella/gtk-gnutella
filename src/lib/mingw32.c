@@ -8165,27 +8165,38 @@ static uint8 mingw_excpt[THREAD_MAX];
 static LONG WINAPI G_COLD
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
-	EXCEPTION_RECORD *er;
+	EXCEPTION_RECORD *er, *en;
 	int stid, signo = 0;
-	const void *sp;
+	const void *sp, *pc;
 
 	signal_crashing();
 
 	er = ei->ExceptionRecord;
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
+	pc = ulong_to_pointer(ei->ContextRecord->Eip);
 
 	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
 	if (stid >= 0 && stid < THREAD_MAX)
 		mingw_excpt[stid]++;
 
-	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p "
+	s_rawwarn("%s in thread #%d at PC=%p, saved pc=%p, sp=%p, current sp=%p "
 		"[depth=%u, count=%d]",
 		mingw_exception_to_string(er->ExceptionCode),
-		stid, er->ExceptionAddress, sp, thread_sp(),
+		stid, er->ExceptionAddress, pc, sp, thread_sp(),
 		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
 		signal_in_exception());
 
-	mingw_exception_log(stid, er->ExceptionCode, er->ExceptionAddress);
+	/*
+	 * Dump nested exception records, if any.
+	 */
+
+	for (en = er->ExceptionRecord; en; en = en->ExceptionRecord) {
+		s_rawwarn("caused by %s at PC=%p",
+			mingw_exception_to_string(en->ExceptionCode),
+			en->ExceptionAddress);
+	}
+
+	mingw_exception_log(stid, er->ExceptionCode, pc);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
