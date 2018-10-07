@@ -1267,30 +1267,15 @@ option_name_prefix(const void *key, const void *item)
 }
 
 static void G_NORETURN
-option_ambiguous(const char *name, struct option *item)
+option_ambiguous(const char *name, pslist_t *list)
 {
-	struct option *min = item, *max = item, *o;
-	struct option *end = &options[N_ITEMS(options)];
+	pslist_t *sl;
 
 	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
 	fprintf(stderr, "Could mean either of:\n");
 
-	for (o = item - 1; ptr_cmp(o, options) >= 0; o--) {
-		if (option_strprefix(o->name, name))
-			min = o;
-		else
-			break;
-	}
-
-	for (o = item + 1; ptr_cmp(o, end) < 0; o++) {
-		if (option_strprefix(o->name, name))
-			max = o;
-		else
-			break;
-	}
-
-	for (o = min; ptr_cmp(o, max) <= 0; o++) {
-		option_pretty_print(stderr, o);
+	PSLIST_FOREACH(list, sl) {
+		option_pretty_print(stderr, sl->data);
 	}
 
 	exit(EXIT_FAILURE);
@@ -1312,31 +1297,30 @@ option_ambiguous(const char *name, struct option *item)
 static struct option *
 option_find(const char *name, bool fatal)
 {
-	struct option *item;
+	void *item;
+	bsearch_status_t status;
+	pslist_t *matching;
 
-	item = bsearch(name,
-		options, N_ITEMS(options), sizeof options[0], option_name_prefix);
+	status = BSEARCH_PREFIX(name, options, option_name_prefix, &item);
 
-	if (NULL == item)
+	switch (status) {
+	case BSEARCH_NONE:
 		return NULL;
-
-	if (ptr_cmp(item, options) > 0) {
-		if (option_strprefix((item - 1)->name, name))
-			goto ambiguous;
+	case BSEARCH_SINGLE:
+		return item;
+	case BSEARCH_MULTI:
+		goto ambiguous;
 	}
 
-	if (ptr_cmp(item, options + N_ITEMS(options) - 1) < 0) {
-		if (option_strprefix((item + 1)->name, name))
-			goto ambiguous;
-	}
-
-	return item;		/* Must be unique match since array is sorted */
+	g_assert_not_reached();
 
 ambiguous:
 	if (!fatal)
 		return NULL;
 
-	option_ambiguous(name, item);
+	matching = BSEARCH_MATCHING(name, options, option_name_prefix, item);
+	option_ambiguous(name, matching);
+	g_assert_not_reached();
 }
 
 static void G_NORETURN

@@ -146,6 +146,7 @@ LSRC = \
 	bfd_util.c \
 	bg.c \
 	bigint.c \
+	bsearch.c \
 	bstr.c \
 	buf.c \
 	chi2.c \
@@ -350,6 +351,7 @@ LOBJ = \
 	bfd_util.o \
 	bg.o \
 	bigint.o \
+	bsearch.o \
 	bstr.o \
 	buf.o \
 	chi2.o \
