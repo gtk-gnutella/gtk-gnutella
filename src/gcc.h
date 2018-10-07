@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016 Raphael Manfredi
+ * Copyright (c) 2010-2018 Raphael Manfredi
  * Copyright (c) 2003-2009 Chrisian Biere
  * Copyright (c) 2001-2003 Richard Eckart
  *
@@ -34,7 +34,7 @@
  * @author Christian Biere
  * @date 2003-2009
  * @author Raphael Manfredi
- * @date 2010-2016
+ * @date 2010-2018
  */
 
 #ifndef _gcc_h_

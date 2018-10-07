@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Raphael Manfredi
+ * Copyright (c) 2009-2018 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -27,7 +27,7 @@
  * Gtk-gnutella version and other configuration parameters.
  *
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2018
  */
 
 #ifndef _gtk_gnutella_h_

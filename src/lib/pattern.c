@@ -2320,6 +2320,10 @@ pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *cpat)
 		pattern_dflt_known(cpat, (void *) haystack, hlen, 0, qs_any));
 }
 
+/***
+ *** From here on, this is just benchmarking code.
+ ***/
+
 #define PATTERN_HAYSTACK_LEN	32768	/* Haystack string length */
 #define PATTERN_NEEDLE_LEN		128		/* Maximum needle length */
 #define PATTERN_LOOP_MAX		1200000	/* Safe upper bound */

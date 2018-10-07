@@ -44,7 +44,7 @@
  * by the comparison routine.
  *
  * If more than one item in the array is identical to the key, the actual
- * item returned is undefined, but one of the matching entries of course.
+ * item returned is undefined, but is one of the matching entries of course.
  *
  * @note
  * The comparison function is invoked as cmp(key, item), to compare the
