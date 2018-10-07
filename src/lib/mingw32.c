@@ -1133,7 +1133,7 @@ mingw_thread_sig_deliver(struct mingw_thread *mt)
 	ZERO(&mt->c);
 	mt->c.ContextFlags = CONTEXT_FULL;
 
-	if (!GetThreadContext(mt->h ,&mt->c)) {
+	if (!GetThreadContext(mt->h, &mt->c)) {
 		what = "GetThreadContext";
 		errno = mingw_last_error();
 		goto failed;

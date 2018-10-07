@@ -61,10 +61,10 @@ void tokenizer_check_sorted(const char *name,
 void tokenizer_check_sorted_with(const char *name,
 	const tokenizer_t *tvec, size_t tcnt, strcmp_fn_t cmp);
 
-#define TOKENIZE(s, vec)	tokenizer_lookup((s), (vec), N_ITEMS((vec)))
+#define TOKENIZE(s, vec)	tokenizer_lookup((s), (vec), N_ITEMS(vec))
 
 #define TOKENIZE_WITH(s, c, vec) \
-	tokenizer_lookup_with((s), (c), (vec), N_ITEMS((vec)))
+	tokenizer_lookup_with((s), (c), (vec), N_ITEMS(vec))
 
 #define TOKENIZE_CHECK_SORTED(vec) \
 	tokenizer_check_sorted(STRINGIFY(vec), (vec), N_ITEMS((vec)))
