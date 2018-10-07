@@ -2393,13 +2393,17 @@ test_interrupts(void)
 
 		/* Signalled thread needs to have seen interrupt #2 before continuing */
 		if (i > 2 && !interrupt_seen_2) {
+			size_t j;
 			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
-			while (!interrupt_seen_2) {
+			for (j = 0; !interrupt_seen_2 && j < 50; j++) {
 				thread_sleep_ms(100);
 			}
+			if (!interrupt_seen_2)
+				s_error("%s(): timeout waiting for interrupt #2", G_STRFUNC);
 		}
 
-		s_message("%s(): sending interrupt #%d", G_STRFUNC, i);
+		s_message("%s(): sending interrupt #%d to %s",
+			G_STRFUNC, i, thread_id_name(t));
 
 		/* Interrupt #1 will be acknowledged */
 		if (1 == i) {
