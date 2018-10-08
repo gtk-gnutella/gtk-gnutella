@@ -1739,6 +1739,98 @@ stacktrace_routine_name(const void *pc, bool offset)
 }
 
 /**
+ * Figure out symbolic information from the PC.
+ */
+void
+stacktrace_pc_info(const void *pc, stackinfo_t *info)
+{
+	bfd_env_t *be = stacktrace_be;
+	const void *base;		/* Mapping base for shared object */
+	bfd_ctx_t *bc = NULL;
+	const char *pathname = NULL;
+
+	/*
+	 * The logic here mimics that of stack_print_decorated_to().
+	 */
+
+	if (NULL == be)
+		be = bfd_util_init();
+
+	base = dl_util_get_base(pc);
+
+	if (base != NULL) {
+		struct symbol_loc loc;
+
+		pathname = dl_util_get_path(pc);
+
+		if (pathname != NULL) {
+			if (!is_absolute_path(pathname) && stack_is_our_text(pc)) {
+				if (!file_exists(pathname))
+					pathname = program_path;
+			}
+		}
+
+		if (pathname != NULL) {
+			bc = bfd_util_get_context(be, pathname);
+			bfd_util_compute_offset(bc, pointer_to_ulong(base));
+		}
+
+		ZERO(&loc);
+
+		if (bc != NULL && bfd_util_has_symbols(bc)) {
+			const void *call = const_ptr_add_offset(pc, -2);
+			bool located = bfd_util_locate(bc, call, &loc);
+
+			if (!located) {
+				call = const_ptr_add_offset(pc, -(PTRSIZE + 1));
+				located = bfd_util_locate(bc, call, &loc);
+			}
+
+			if (located) {
+				info->routine = loc.function;
+				info->line    = loc.line;
+				info->file    = NULL == loc.file ?
+					NULL : stacktrace_pretty_filepath(loc.file);
+				return;
+			}
+		}
+	}
+
+	/*
+	 * Will have to get the routine name via another way, and use
+	 * the shared object (library) or executable as the source file,
+	 * with a line number staying at 0.
+	 */
+
+	if (stacktrace_symbols != NULL) {
+		const char *sym = symbols_name_only(stacktrace_symbols, pc, FALSE);
+
+		if (NULL == sym)
+			sym = dl_util_get_name(pc);
+
+		if (NULL == sym)
+			sym = symbols_name(stacktrace_symbols, pc, FALSE);
+
+		info->routine = sym;
+	} else {
+		/* This will be simply the hexadecimal value */
+		info->routine = symbols_name(NULL, pc, FALSE);
+	}
+
+	/* Fake the shared object file or executable filename as source file */
+
+	if (NULL == pathname)
+		pathname = program_path;
+
+	if (pathname != NULL)
+		info->file = filepath_basename(pathname);
+	else
+		info->file = NULL;
+
+	info->line = 0;
+}
+
+/**
  * Return start of routine.
  *
  * @param pc		the PC within the routine

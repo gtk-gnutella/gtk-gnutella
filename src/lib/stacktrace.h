@@ -69,6 +69,15 @@ struct stackatom {
 	size_t len;					/**< Number of valid entries in stack */
 };
 
+/**
+ * Description of a source location from a PC.
+ */
+typedef struct stackinfo {
+	const char *routine;	/**< Routine name, or hexadecimal if no symbols */
+	const char *file;		/**< Source file name or library name, or NULL */
+	unsigned line;			/**< Line number, 0 if no source file name */
+} stackinfo_t;
+
 /*
  * Decoration flags for stack traces.
  */
@@ -98,6 +107,7 @@ void stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags);
 void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
+void stacktrace_pc_info(const void *pc, stackinfo_t *info);
 const char *stacktrace_routine_name(const void *pc, bool offset);
 const char *stacktrace_routine_name_light(const void *pc, size_t *offset);
 size_t stacktrace_unwind(void *stack[], size_t count, size_t offset);
