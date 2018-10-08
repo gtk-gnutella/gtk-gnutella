@@ -4172,22 +4172,21 @@ mingw_ftruncate(int fd, fileoffset_t len)
 		goto failed;
 	}
 
+	/*
+	 * Note that this can reset the offset beyond the truncation point.
+	 * But ftruncate() must not change the file offset to preserve the
+	 * POSIX semantics.
+	 *
+	 * We used to warn when current > len but we no longer do because
+	 * this does not indicate an application bug.  No harm will come if
+	 * one issues a write() after truncation, if that is what they want.
+	 * 		--RAM, 2018-10-08
+	 */
+
 	if (offset != current)
 		(void) mingw_lseek(fd, current, SEEK_SET);
 
 	compat_pio_unlock(fd);
-
-	/*
-	 * It would be weird to have the current offset larger than the truncation
-	 * offset.  Since we are in an emulation layer, warn for that loudly because
-	 * it is certainly pinpointing an application bug.
-	 */
-
-	if G_UNLIKELY(current > len) {
-		s_carp_once("%s(): current offset %s on fd #%d was beyond new end at %s",
-			G_STRFUNC, fileoffset_t_to_string(current), fd,
-			filesize_to_string(len));
-	}
 
 	return 0;
 
