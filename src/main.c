@@ -2189,6 +2189,7 @@ main(int argc, char **argv)
 {
 	size_t str_discrepancies;
 	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
+	bool supervisor = FALSE;
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -2218,6 +2219,7 @@ main(int argc, char **argv)
 	/* Disable walloc() and halloc() if we're going to supervise */
 
 	if (!OPT(no_supervise) && !OPT(child)) {
+		supervisor = TRUE;
 		(void) walloc_active_limit();
 		(void) halloc_disable();
 	}
@@ -2322,12 +2324,16 @@ main(int argc, char **argv)
 		 * Regardless of the core dumping condition, saying --no-restart will
 		 * prevent restarts and saying --restart-on-crash will enable them,
 		 * given that supplying both is forbidden.
+		 *
+		 * The supervisor process does not get to auto-restart when it crashes!
 		 */
 
-		if (crash_coredumps_disabled()) {
-			flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
-		} else {
-			flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+		if (!supervisor) {
+			if (crash_coredumps_disabled()) {
+				flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
+			} else {
+				flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+			}
 		}
 
 		/*
@@ -2373,7 +2379,7 @@ main(int argc, char **argv)
 	 * If we are the supervisor process, go supervise and never return here.
 	 */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
+	if (supervisor) {
 		main_supervise();
 		g_assert_not_reached();
 	}
