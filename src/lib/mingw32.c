@@ -8060,12 +8060,15 @@ mingw_crash_record(int code, const void *pc,
  * Log reported exception.
  */
 static void G_COLD
-mingw_exception_log(int stid, uint code, const void *pc)
+mingw_exception_log(int stid, uint code,
+	const void *pc, const void *sp, const struct stackframe *sf)
 {
-	DECLARE_STR(13);
+	DECLARE_STR(15);
 	char time_buf[CRASH_TIME_BUFLEN];
 	char buf[ULONG_DEC_BUFLEN];
+	char pc_buf[POINTER_BUFLEN];
 	const char *s, *name, *file = NULL;
+	const void *caller_pc = NULL;
 
 	crash_time(ARYLEN(time_buf));
 	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
@@ -8075,6 +8078,56 @@ mingw_exception_log(int stid, uint code, const void *pc)
 	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
 
+	/*
+	 * If we did not get a valid name and file, then the PC is garbage.
+	 * Try to intuit our caller from the stackframe pointer given.
+	 */
+
+	if (
+		EXCEPTION_STACK_OVERFLOW != code &&
+		NULL == name && NULL == file
+	) {
+		if (valid_stack_ptr(sf, sf) && valid_ptr(sf->ret)) {
+			caller_pc = sf->ret;
+
+			/*
+			 * Look at the stackframe return address.
+			 */
+
+			if (stacktrace_pc_within_our_text(caller_pc)) {
+				name = stacktrace_routine_name(caller_pc, TRUE);
+				if (is_strprefix(name, "0x"))
+					name = NULL;
+			} else {
+				file = dl_util_get_path(caller_pc);
+			}
+
+			if (NULL == name && NULL == file)
+				caller_pc = NULL;
+		}
+
+		/*
+		 * Perhaps the caller PC is just on the stack, in case they
+		 * de-referenced an invalid function pointer?
+		 */
+
+		if (NULL == caller_pc && valid_stack_ptr(sp, sp)) {
+			/* Grab the pushed return address at the top of the stack */
+			caller_pc = ulong_to_pointer(peek_le32(sp));
+
+			if (stacktrace_pc_within_our_text(caller_pc)) {
+				name = stacktrace_routine_name(caller_pc, TRUE);
+				if (is_strprefix(name, "0x"))
+					name = NULL;
+			} else {
+				file = dl_util_get_path(caller_pc);
+			}
+
+			if (NULL == name && NULL == file)
+				caller_pc = NULL;
+		}
+	}
+
 	print_str(time_buf);								/* 0 */
 	print_str(" (CRITICAL-");							/* 1 */
 	if (stid < 0)
@@ -8083,18 +8136,23 @@ mingw_exception_log(int stid, uint code, const void *pc)
 	print_str(s);										/* 2 */
 	print_str("): received exception at PC=");			/* 3 */
 	print_str(pointer_to_string(pc));					/* 4 */
+	if (caller_pc != NULL) {
+		pointer_to_string_buf(caller_pc, ARYLEN(pc_buf));
+		print_str(" probably called from PC=");			/* 5 */
+		print_str(pc_buf);								/* 6 */
+	}
 	if (name != NULL) {
-		print_str(" (");								/* 5 */
-		print_str(name);								/* 6 */
-		print_str(")");									/* 7 */
+		print_str(" (");								/* 7 */
+		print_str(name);								/* 8 */
+		print_str(")");									/* 9 */
 	}
 	if (file != NULL) {
-		print_str(" from ");							/* 8 */
-		print_str(file);								/* 9 */
+		print_str(" from ");							/* 10 */
+		print_str(file);								/* 11 */
 	}
-	print_str(": ");									/* 10 */
-	print_str(mingw_exception_to_string(code));			/* 11 */
-	print_str("\n");									/* 12 */
+	print_str(": ");									/* 12 */
+	print_str(mingw_exception_to_string(code));			/* 13 */
+	print_str("\n");									/* 14 */
 
 	FLUSH_ERR_STR();
 
@@ -8168,12 +8226,14 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	EXCEPTION_RECORD *er, *en;
 	int stid, signo = 0;
 	const void *sp, *pc;
+	const struct stackframe *sf;
 
 	signal_crashing();
 
 	er = ei->ExceptionRecord;
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
 	pc = ulong_to_pointer(ei->ContextRecord->Eip);
+	sf = ulong_to_pointer(ei->ContextRecord->Ebp);
 
 	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
 	if (stid >= 0 && stid < THREAD_MAX)
@@ -8196,7 +8256,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 			en->ExceptionAddress);
 	}
 
-	mingw_exception_log(stid, er->ExceptionCode, pc);
+	mingw_exception_log(stid, er->ExceptionCode, pc, sp, sf);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
