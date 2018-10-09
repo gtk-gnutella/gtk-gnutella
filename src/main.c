@@ -2191,6 +2191,12 @@ main(int argc, char **argv)
 	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
 	bool supervisor = FALSE;
 
+	/*
+	 * On Windows, the code path used for a GUI-launched application requires
+	 * that the product information be filled, to be able to derive proper
+	 * destination for log paths, since there is no console attached.
+	 */
+
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
 		GTA_RELEASE, GTA_VERSION_NUMBER, GTA_REVISION, GTA_BUILD);
@@ -2198,13 +2204,24 @@ main(int argc, char **argv)
 	product_set_website(GTA_WEBSITE);
 
 	/*
-	 * On Windows, the code path used for a GUI-launched application requires
-	 * that the product information be filled, to be able to derive proper
-	 * destination for log paths, since there is no console attached.
+	 * We pre-handle arguments to spot whether we're going to be running
+	 * aa supervisor.  If we do, then set a different nickname so that
+	 * the stderr/stdout logs do not clash with those of the child process
+	 * on Windows.
+	 */
+
+	prehandle_arguments(argv);
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		supervisor = TRUE;
+		product_set_nickname(GTA_SUPERVISOR_NICK);
+	}
+
+	/*
+	 * Here we go, progstart() kicks memory allocation in.
 	 */
 
 	progstart(argc, argv);
-	prehandle_arguments(argv);
 	product_set_interface(OPT(topless) ? "Topless" : GTA_INTERFACE);
 
 	if (compat_is_superuser()) {
@@ -2218,8 +2235,7 @@ main(int argc, char **argv)
 
 	/* Disable walloc() and halloc() if we're going to supervise */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
-		supervisor = TRUE;
+	if (supervisor) {
 		(void) walloc_active_limit();
 		(void) halloc_disable();
 	}

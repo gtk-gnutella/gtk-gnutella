@@ -47,6 +47,7 @@
 #define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
 #define GTA_VENDOR_CODE		"GTKG"
 #define GTA_PRODUCT_NICK	"gtkg"
+#define GTA_SUPERVISOR_NICK	"gtkg-supervisor"
 
 #if defined(USE_GTK1)
 #define GTA_INTERFACE		"GTK1"
