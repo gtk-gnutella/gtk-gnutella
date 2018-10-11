@@ -183,6 +183,12 @@ void log_message(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
 void log_info(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
 void log_debug(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
 
+/*
+ * Utilities.
+ */
+
+size_t log_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
+
 #endif /* _log_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

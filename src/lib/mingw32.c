@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
- * Copyright (c) 2012, 2013-2015 Raphael Manfredi
+ * Copyright (c) 2012, 2013-2018 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Jeroen Asselman
  * @date 2010
  * @author Raphael Manfredi
- * @date 2010-2015
+ * @date 2010-2018
  */
 
 #include "common.h"
@@ -190,6 +190,7 @@
 static HINSTANCE libws2_32;
 static once_flag_t mingw_socket_inited;
 static bool mingw_vmm_inited;
+static bool mingw_early_inited;
 
 static void mingw_stdio_reset(bool console);
 
@@ -6840,13 +6841,35 @@ mingw_init(void)
 
 #ifdef MINGW_BACKTRACE_DEBUG
 #define BACKTRACE_DEBUG(lvl, ...)	\
-	if ((lvl) & MINGW_BACKTRACE_FLAGS) s_minidbg(__VA_ARGS__)
+	if ((lvl) & MINGW_BACKTRACE_FLAGS) mingw_debug_log(__VA_ARGS__)
+#define BACKTRACE_ENTRY		mingw_debug_entering(G_STRFUNC)
+#define BACKTRACE_RETURN_VOID								\
+G_STMT_START {												\
+	mingw_debug_leaving(G_STRFUNC, G_STRLOC, "%s", "");		\
+	return;													\
+} G_STMT_END
+#define BACKTRACE_RETURN(fmt, val)							\
+G_STMT_START {												\
+	mingw_debug_leaving(G_STRFUNC, G_STRLOC, (fmt), (val));	\
+	return val;												\
+} G_STMT_END
+#define BACKTRACE_LOG_LOCK		mutex_lock(&mingw_debuglog.lock)
+#define BACKTRACE_LOG_UNLOCK	mutex_unlock(&mingw_debuglog.lock)
 #define mingw_backtrace_debug()	1
-#else
+#define mingw_debug_file		mingw_debuglog.lf
+#else	/* !MINGW_BACKTRACE_DEBUG */
 #define BACKTRACE_DEBUG(...)
+#define BACKTRACE_ENTRY
+#define BACKTRACE_RETURN_VOID		return
+#define BACKTRACE_RETURN(fmt, val)	return val
+#define BACKTRACE_LOG_LOCK
+#define BACKTRACE_LOG_UNLOCK
 #define mingw_backtrace_debug()	0
+#define mingw_debug_log(...)
+#define mingw_debug_file		stderr
 #endif	/* MINGW_BACKTRACE_DEBUG */
 
+#define MINGW_SP_INSPECT			3
 #define MINGW_MAX_ROUTINE_LENGTH	0x2000
 #define MINGW_FORWARD_SCAN			32
 #define MINGW_SP_ALIGN				4
@@ -6861,12 +6884,18 @@ mingw_init(void)
 #define BACK_F_OTHER		(1 << 4)
 #define BACK_F_DUMP			(1 << 5)
 #define BACK_F_RESULT		(1 << 6)
+#define BACK_F_PC			(1 << 7)
 
 #define BACK_F_ALL \
 	(BACK_F_NAME | BACK_F_PROLOGUE | BACK_F_RA | BACK_F_DRIVER | \
-		BACK_F_OTHER | BACK_F_DUMP | BACK_F_RESULT)
+		BACK_F_OTHER | BACK_F_DUMP | BACK_F_RESULT | BACK_F_PC)
 
+/* Now that we have a separate logfile for backtracing, be more verbose */
+#if 0
 #define MINGW_BACKTRACE_FLAGS	(BACK_F_DRIVER | BACK_F_RESULT | BACK_F_NAME)
+#else
+#define MINGW_BACKTRACE_FLAGS	BACK_F_ALL
+#endif
 
 static inline bool
 valid_ptr(const void * const p)
@@ -6891,7 +6920,9 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_RET_NEAR_POP	0xc2	/* Plus pop immediate 16-bit amount */
 #define OPCODE_RET_FAR_POP	0xca	/* Plus pop immediate 16-bit amount */
 #define OPCODE_NOP			0x90
-#define OPCODE_CALL			0xe8
+#define OPCODE_CALL_NEAR	0xe8	/* Call near, relative 16 or 32 bits */
+#define OPCODE_CALL_FAR		0x9a	/* Call far, absolute 16 or 32 bits */
+#define OPCODE_CALL_IND		0xff	/* Call indirect near/far */
 #define OPCODE_PUSH_EAX		0x50
 #define OPCODE_PUSH_ECX		0x51
 #define OPCODE_PUSH_EDX		0x52
@@ -6933,6 +6964,7 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPMODE_OPCODE		0x38	/* Mask to extract extra opcode info */
 #define OPMODE_REG_SRC_MASK	0x38	/* Mask to extract source register */
 #define OPMODE_REG_DST_MASK	0x07	/* Mask to extract destination register */
+#define OPMODE_RM_MASK		0x07	/* Mask to extract R/M part */
 #define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
 #define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
 #define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOVL to move ESP to EBP */
@@ -6948,6 +6980,26 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPREG_EBP			5
 #define OPREG_ESI			6
 #define OPREG_EDI			7
+
+/*
+ * The MOD-REG-R/M byte specifies instruction operands and their
+ * addressing mode.  It is architected as:
+ *
+ *      7 6  5 4 3  2 1 0
+ *    +----+------+------+
+ *    |MOD |  REG |  R/M |
+ *    +----+------+------+
+ *
+ * MOD:
+ * 00   register indirect mode with no displacement (R/M = 100b) or
+ *      displacement only (R/M = 101b)
+ * 01   1-byte signed displacement follows
+ * 10   4-byte signed displacement follows
+ * 11   register addressing mode
+ *
+ * REG  encodes the register (0-7) as listed above (0=EAX, 7=EDI)
+ *      for 2-operand instructions.
+ */
 
 static inline uint8
 mingw_op_mod_code(uint8 mbyte)
@@ -6967,6 +7019,18 @@ mingw_op_dst_register(uint8 mbyte)
 	return mbyte & OPMODE_REG_DST_MASK;
 }
 
+static inline uint8
+mingw_op_extra(uint8 mbyte)
+{
+	return (mbyte & OPMODE_OPCODE) >> 3;
+}
+
+static inline uint8
+mingw_op_rm_code(uint8 mbyte)
+{
+	return mbyte & OPMODE_RM_MASK;
+}
+
 #define MINGW_TEXT_OFFSET	0x1000	/* Text offset after mapping base */
 
 #define MINGW_ROUTINE_ALIGN	4
@@ -6977,6 +7041,10 @@ mingw_op_dst_register(uint8 mbyte)
 
 /**
  * Expected unwinding stack frame, if present and maintained by routines.
+ *
+ * As the stack grows down on Windows, this structure reflects the initial
+ * PUSH of EIP on the stack by the CALL instruction, followed by the PUSH
+ * of the EBP register upon routine entry.
  */
 struct stackframe {
 	struct stackframe *next;
@@ -6984,6 +7052,145 @@ struct stackframe {
 };
 
 #ifdef MINGW_BACKTRACE_DEBUG
+static struct mingw_debuglog {
+	int level[THREAD_MAX];	/* Indent level, per thread */
+	FILE *lf;				/* Logfile */
+	bool rotated;			/* Did we rotate the old debug logfiles? */
+	mutex_t lock;			/* Protect concurrent writes */
+} mingw_debuglog = {
+	.lock = MUTEX_INIT,
+};
+
+/**
+ * Return default logfile for backtracing debug.
+ */
+static const char *
+mingw_getbacktrace_path(void)
+{
+	static char pathname[MAX_PATH];
+	char buf[128];
+
+	str_bprintf(ARYLEN(buf), "%s.backtrace.log", product_nickname());
+
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
+}
+
+/**
+ * Emit log to debuglog.
+ */
+static void
+mingw_debug_logv(const char *fmt, va_list args)
+{
+	FILE *lf;
+	char time_buf[CRASH_TIME_BUFLEN];
+	char logstr[512];
+	int i;
+	uint stid = thread_small_id();
+
+	/*
+	 * Until mingw_early_init() has completed, minimal service!
+	 * Indeed, we are still in the early initializations, and we
+	 * do not want to recurse into that path by allocating
+	 * memory via halloc() for instance.
+	 */
+
+	if (!mingw_debuglog.rotated && mingw_early_inited) {
+		BACKTRACE_LOG_LOCK;
+		if (!mingw_debuglog.rotated) {
+			const char *path = mingw_getbacktrace_path();
+			if (mingw_debuglog.lf != NULL) {
+				fclose(mingw_debuglog.lf);
+				mingw_debuglog.lf = NULL;
+			}
+			mingw_debuglog.rotated = TRUE;
+			mingw_file_rotate(path, MINGW_TRACEFILE_KEEP);
+		}
+		BACKTRACE_LOG_UNLOCK;
+	}
+
+	/*
+	 * Open logfile the first time.
+	 */
+
+	if G_UNLIKELY(NULL == mingw_debuglog.lf) {
+		BACKTRACE_LOG_LOCK;
+		if (NULL == mingw_debuglog.lf) {
+			const char *path = mingw_getbacktrace_path();
+			mingw_debuglog.lf = fopen(path, "ab");
+			if (NULL == mingw_debuglog.lf && mingw_early_inited)
+				s_warning("%s(): cannot open %s", G_STRFUNC, path);
+		}
+		BACKTRACE_LOG_UNLOCK;
+	}
+
+	crash_time_raw(ARYLEN(time_buf));
+	log_vbprintf(ARYLEN(logstr), fmt, args);
+
+	BACKTRACE_LOG_LOCK;
+
+	lf = mingw_debuglog.lf;
+	if G_UNLIKELY(NULL == lf)
+		goto done;
+
+	fprintf(lf, "%s: [%d] ", time_buf, stid);
+
+	for (i = 0; i < mingw_debuglog.level[stid]; i++) {
+		fputs("| ", lf);
+	}
+
+	fputs(logstr, lf);
+	fputc('\n', lf);
+	fflush(lf);
+
+done:
+	BACKTRACE_LOG_UNLOCK;
+}
+
+static void G_PRINTF(1, 2)
+mingw_debug_log(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	mingw_debug_logv(fmt, args);
+	va_end(args);
+}
+
+/**
+ * Log routine entry.
+ */
+static void
+mingw_debug_entering(const char *routine)
+{
+	uint stid = thread_small_id();
+
+	mingw_debug_log("+> %s()", routine);
+	mingw_debuglog.level[stid]++;
+}
+
+static void G_PRINTF(3, 4)
+mingw_debug_leaving(const char *routine, const char *loc, const char *fmt, ...)
+{
+	char result[128];
+	va_list args;
+	uint stid = thread_small_id();
+
+	if (mingw_debuglog.level[stid] > 0) {
+		mingw_debuglog.level[stid]--;
+	} else {
+		mingw_debug_log(
+			"WARNING: indent level was 0 when leaving %s()", routine);
+	}
+
+	va_start(args, fmt);
+	log_vbprintf(ARYLEN(result), fmt, args);
+	if (result[0] != '\0')
+		mingw_debug_log("+< %s() = %s at %s", routine, result, loc);
+	else
+		mingw_debug_log("+< %s() at %s", routine, loc);
+	va_end(args);
+}
+
 /**
  * @return opcode leading mnemonic string.
  */
@@ -6998,7 +7205,9 @@ mingw_opcode_name(uint8 opcode)
 		return "RET";
 	case OPCODE_NOP:
 		return "NOP";
-	case OPCODE_CALL:
+	case OPCODE_CALL_NEAR:
+	case OPCODE_CALL_FAR:
+	case OPCODE_CALL_IND:
 		return "CALL";
 	case OPCODE_PUSH_EAX:
 	case OPCODE_PUSH_EBX:
@@ -7040,6 +7249,22 @@ mingw_opcode_name(uint8 opcode)
 	}
 }
 #endif /* MINGW_BACKTRACE_DEBUG */
+
+/**
+ * Wraps stacktrace_routine_name() to fake it until we performed the early init.
+ */
+static const char *
+mingw_routine_name(const void *pc)
+{
+	static char buf[POINTER_BUFLEN];
+
+	if G_UNLIKELY(!mingw_early_inited) {
+		str_bprintf(ARYLEN(buf), "%p", pc);
+		return buf;
+	}
+
+	return stacktrace_routine_name(pc, TRUE);
+}
 
 /**
  * Computes the length taken by the versatile LEA instruction.
@@ -7120,20 +7345,23 @@ mingw_opcode_is_sub_esp(const uint8 *op)
 	const uint8 *p = op;
 	uint8 mbyte = p[1];
 
+	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_OTHER,
 		"%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
 
 	switch (*op) {
 	case OPCODE_SUB_1:
-		return OPREG_ESP == mingw_op_dst_register(mbyte);
+		BACKTRACE_RETURN("%d", OPREG_ESP == mingw_op_dst_register(mbyte));
 	case OPCODE_SUB_2:
 	case OPCODE_SUB_3:
 		{
 			uint8 code = mingw_op_src_register(mbyte);
 			uint8 mode = mingw_op_mod_code(mbyte);
-			if (code != OPMODE_SUB || mode != 3)
-				return FALSE;	/* Not a SUB opcode targeting a register */
-			return OPREG_ESP == mingw_op_dst_register(mbyte);
+			if (code != OPMODE_SUB || mode != 3) {
+				/* Not a SUB opcode targeting a register */
+				BACKTRACE_RETURN("%d", FALSE);
+			}
+			BACKTRACE_RETURN("%d", OPREG_ESP == mingw_op_dst_register(mbyte));
 		}
 	}
 
@@ -7151,7 +7379,7 @@ mingw_opcode_is_sub_esp(const uint8 *op)
  *
  * @param start		initial program counter
  * @param max		absolute maximum PC value
- * @param at_start		known to be at the starting point of the routine
+ * @param at_start	known to be at the starting point of the routine
  * @param has_frame	set to TRUE if we saw a frame linking at the beginning
  * @param savings	indicates leading register savings done by the routine
  *
@@ -7169,15 +7397,19 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 	bool saved_ebp = FALSE, mov_immediate_eax = FALSE;
 	size_t pushes = 0, calls = 0;
 
+	BACKTRACE_ENTRY;
+
 	maxscan = const_ptr_add_offset(start, MINGW_FORWARD_SCAN);
 	if (ptr_cmp(maxscan, max) > 0)
 		maxscan = max;
 
 	if (mingw_backtrace_debug() && (BACK_F_DUMP & MINGW_BACKTRACE_FLAGS)) {
-		s_minidbg("%s: next %zu bytes after pc=%p%s",
+		BACKTRACE_LOG_LOCK;
+		mingw_debug_log("%s: next %zu bytes after pc=%p%s",
 			G_STRFUNC, 1 + ptr_diff(maxscan, p),
 			p, at_start ? " (known start)" : "");
-		dump_hex(stderr, "", p, 1 + ptr_diff(maxscan, p));
+		dump_hex(mingw_debug_file, "", p, 1 + ptr_diff(maxscan, p));
+		BACKTRACE_LOG_UNLOCK;
 	}
 
 	for (p = start; ptr_cmp(p, maxscan) <= 0; p++) {
@@ -7186,7 +7418,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		unsigned fill = 0;
 
 		if (!valid_ptr(p))
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 
 		switch ((op = *p)) {
 		case OPCODE_NONE_1:
@@ -7220,7 +7452,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 * When using the Windows call API, the EBP register is saved
 			 * immediately at entry, but more registers can be saved as well
 			 * before the ESP is altered (so the EBP value immediately follows
-			 * the return PC pushed on the stack by the CALL instruction).
+			 * the return PC pushed on the stack by the CALL instruction,
+			 * establishing the "stackframe" structure).
 			 */
 			first_opcode = p + 1;	/* Expects the MOV operation to follow */
 			if (0 == pushes)
@@ -7252,7 +7485,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 				saved_ebp = saved_ebp || p == first_opcode;
 			p += 1;				/* Skip mode byte */
 			break;
-		case OPCODE_CALL:
+		case OPCODE_CALL_NEAR:
 			/*
 			 * Stackframe link created, no stack adjustment
 			 *
@@ -7271,7 +7504,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 */
 			calls++;
 			if (saved_ebp && !(1 == calls && mov_immediate_eax))
-				return MINGW_EMPTY_STACKFRAME;
+				BACKTRACE_RETURN("%p", MINGW_EMPTY_STACKFRAME);
 			p += 4;				/* Skip offset */
 			break;
 		case OPCODE_XOR_1:
@@ -7286,14 +7519,14 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 				}
 			}
 			/* XOR REG, REG is the only instruction we allow in the prologue */
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 		case OPCODE_SUB_1:
 		case OPCODE_SUB_2:
 		case OPCODE_SUB_3:
 			if (mingw_opcode_is_sub_esp(p)) {
 				*has_frame = saved_ebp;
 				*savings = pushes;
-				return p;
+				BACKTRACE_RETURN("%p", p);
 			}
 			switch (*p) {
 			case OPCODE_SUB_1:
@@ -7317,7 +7550,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 				fill = 1;
 				goto filler;
 			}
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 		}
 
 		continue;
@@ -7340,7 +7573,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			maxscan = window;
 	}
 
-	return NULL;
+	BACKTRACE_RETURN("%p", NULL);
 }
 
 /**
@@ -7362,8 +7595,14 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 {
 	const uint8 *sub;
 
+	BACKTRACE_ENTRY;
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"starting at PC=%p, max=%p%s, at_start=%s",
+		pc, max, ptr_cmp(pc, max) >= 0 ? " (already over!)" : "",
+		at_start ? "TRUE" : "FALSE");
+
 	if (ptr_cmp(pc, max) >= 0)
-		return FALSE;
+		BACKTRACE_RETURN("%d", FALSE);
 
 	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
 
@@ -7372,7 +7611,7 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			"%s: no SUB operation at pc=%p, %s frame",
 			G_STRFUNC, pc, *has_frame ? "with" : "no");
 		*offset = 0;
-		return TRUE;
+		BACKTRACE_RETURN("%d", TRUE);
 	} else if (sub != NULL) {
 		uint8 op;
 
@@ -7400,7 +7639,7 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 
 			op = *(sub - 10);
 			if (op != OPCODE_MOV_IMM_EAX)
-				return FALSE;
+				BACKTRACE_RETURN("%d", FALSE);
 
 			*offset = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
 			goto check_offset;
@@ -7418,7 +7657,7 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 		g_assert_not_reached();
 	}
 
-	return FALSE;
+	BACKTRACE_RETURN("%d", FALSE);
 
 check_offset:
 	/*
@@ -7428,14 +7667,223 @@ check_offset:
 	 */
 
 	if (0 == (*offset & 3))
-		return TRUE;
+		BACKTRACE_RETURN("%d", TRUE);
 
 	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
 		"%s: offset was %u, not a multiple of 4 bytes, "
 		"pc=%p, opcode=0x%x, mod=0x%x",
 		G_STRFUNC, *offset, sub, sub[0], sub[1]);
 
-	return FALSE;
+	BACKTRACE_RETURN("%d", FALSE);
+}
+
+/**
+ * Check whether there is a call instruction before the given PC address.
+ *
+ * @param pc		supposed returned address
+ * @param target	call target, if we can determine it (otherwise set to NULL)
+ *
+ * @return TRUE if we found a call instruction, with `target' set if possible.
+ */
+static bool
+mingw_has_call_before(const void *pc, void **target)
+{
+	const uint8 *p;
+
+	BACKTRACE_ENTRY;
+
+	*target = NULL;		/* Assume we can't determine target */
+
+	if (!valid_ptr(pc))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	/*
+	 * The only possible call at this offset is an indirect register
+	 * call, like "call *%eax", which would be coded "FF D0" or
+	 * "call *(%edx)" which would be coded "FF 12"..
+	 */
+
+	p = const_ptr_add_offset(pc, -2);
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+
+		/*
+		 * Since FF is a versatile prefix, we need to look at the REG
+		 * in the MOD-REG-R/M byte that follows and see a 2 there
+		 * (the CALL instruction is FF/2).  Since we are only at -2
+		 * this cannot be a far call (FF/3): we would need more bytes
+		 * between FF and the supposed return address!
+		 */
+
+		if (2 == mingw_op_extra(nb) && (0 == mod || 3 == mod)) {
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect near call found at -2");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Here the only possible call is an indirect register call with an
+	 * offset, such as "call *0x28(%eax)" which would be coded "FF 50 28".
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+
+		/*
+		 * Same logic as above, we need to validate this is an FF/2
+		 * instruction.
+		 */
+		if (2 == mingw_op_extra(nb) && 1 == mod) {
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect near call found at -3");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Move back 1 byte for a register indirect FF/3 call, followed by
+	 * 2 bytes.
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+
+		if (3 == mingw_op_extra(nb)) {
+			/* Don't know how to disassemble those, really, accept as-is */
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect far call found at -4");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+	}
+
+	/*
+	 * Move back 1 byte for a near-call with immediate 32-bit signed
+	 * offset, such as "E8 28 43 FD FF"
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_NEAR == peek_u8(p)) {
+		int offset = peek_le32(p + 1);
+		*target = deconstify_pointer(const_ptr_add_offset(pc, offset));
+		BACKTRACE_DEBUG(BACK_F_PC,
+			"immediate near call found at -5, offset %d relative to PC=%p"
+			" -> %p (%s)",
+			offset, pc, *target, mingw_routine_name(*target));
+		BACKTRACE_RETURN("%d", TRUE);
+	}
+
+	/*
+	 * Move back 1 byte for a far FF/2 call.
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+		uint8 rm = mingw_op_rm_code(nb);
+		uint32 *loc = ulong_to_pointer(peek_le32(p + 2));
+
+		if (2 == mingw_op_extra(nb) && 0 == mod && 5 == rm) {
+			BACKTRACE_DEBUG(BACK_F_PC,
+				"indirect far call found at -6 in %p", loc);
+			if (0 == (pointer_to_ulong(loc) & 0x3) && valid_ptr(loc)) {
+				/* Only dereference if aligned and readable */
+				*target = ulong_to_pointer(*loc);
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"call destination stored in %p is %p (%s)",
+					loc, *target, mingw_routine_name(*target));
+			}
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	BACKTRACE_DEBUG(BACK_F_PC,
+		"no CALL found in previous 6 bytes %02x %02x %02x %02x %02x %02x from %p",
+		peek_u8(p), peek_u8(p + 1), peek_u8(p+2),
+		peek_u8(p + 3), peek_u8(p + 4), peek_u8(p + 5), pc);
+
+	BACKTRACE_RETURN("%d", FALSE);
+}
+
+/**
+ * Inspect `words' 32-bit words before and after the given stack pointer.
+ *
+ * @param sp		the stack pointer
+ * @param words		how many words to scan around sp
+ * @param start		known routine start
+ *
+ * @return the best offset that yields a call, INT_MAX if no call found.
+ */
+static int
+mingw_inspect_stack(const void *sp, int words, const void *start)
+{
+	int i;
+	int match = INT_MAX;
+
+	BACKTRACE_ENTRY;
+
+	BACKTRACE_DEBUG(BACK_F_PC, "inspecting %d word%s around SP=%p",
+		words, plural(words), sp);
+
+	for (i = 0; i < 2 * words + 1; i++) {
+		int off;
+		const void *p;
+
+		if (0 == i)
+			off = 0;			/* First attempt: at the supplied SP */
+		else if (i <= words)	/* -1, -2, ... -words */
+			off = -i;
+		else
+			off = i - words;	/* 1, 2, ... words */
+
+		p = const_ptr_add_offset(sp, off * sizeof(int32));
+
+		if (valid_ptr(p)) {
+			void *target;
+			const void *v = ulong_to_pointer(peek_le32(p));
+			bool has_call = mingw_has_call_before(v, &target);
+			if (has_call && target != NULL) {
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"SP[%d] = %p (%s) has CALL to %p (our %sstart is %p)",
+					off, v, mingw_routine_name(v), target,
+					target == start ? "*matching* " : "", start);
+				if (target == start)
+					match = off;		/* Always record perfect match! */
+			} else {
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"SP[%d] = %p (%s)%s",
+					off, v, mingw_routine_name(v),
+					has_call ? " has CALL" : "");
+				if (has_call && INT_MAX == match)
+					match = off;		/* Record first match */
+			}
+		} else {
+			BACKTRACE_DEBUG(BACK_F_PC,
+				"SP[%d] is an invalid pointer (%p)?", off, p);
+		}
+	}
+
+	BACKTRACE_RETURN("%d", match);
 }
 
 /**
@@ -7464,11 +7912,13 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 {
 	const void *pc = *next_pc;
 	const void *sp = *next_sp;
+	const void *start = NULL;
 	const uint8 *p;
 	unsigned offset = 0;
 	bool has_frame = FALSE;
 	size_t savings = 0;
 
+	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
 
 	/*
@@ -7485,10 +7935,12 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	if (p != NULL && valid_ptr(p)) {
 		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
 			"%s: known routine start for pc=%p is %p (%s)",
-			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
+			G_STRFUNC, pc, p, mingw_routine_name(p));
 
-		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset))
+		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset)) {
+			start = p;
 			goto found_offset;
+		}
 
 		BACKTRACE_DEBUG(BACK_F_RA,
 			"%s: %p does not seem to be a valid prologue, scanning",
@@ -7496,7 +7948,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	} else {
 		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
 			"%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
-			stacktrace_routine_name(pc, TRUE), dl_util_get_path(pc));
+			mingw_routine_name(pc), dl_util_get_path(pc));
 	}
 
 	/*
@@ -7505,11 +7957,10 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
 		uint8 op, pop;
-
 		const uint8 *next;
 
 		if (!valid_ptr(p) || !valid_ptr(p - 1))
-			return FALSE;
+			BACKTRACE_RETURN("%d", FALSE);
 
 		/*
 		 * Because this is a CISC processor, single-byte opcodes could actually
@@ -7563,14 +8014,16 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		if (
 			mingw_analyze_prologue(next, pc, FALSE,
 				&has_frame, &savings, &offset)
-		)
+		) {
+			start = next;
 			goto found_offset;
+		}
 
 	next:
 		p--;
 	}
 
-	return FALSE;
+	BACKTRACE_RETURN("%d", FALSE);
 
 found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
@@ -7603,6 +8056,30 @@ found_offset:
 	offset += 4 * savings;
 	sp = const_ptr_add_offset(sp, offset);
 
+	/*
+	 * Look around SP to find a next PC that makes sense, i.e. a place which
+	 * was preceded by a call.
+	 *
+	 * If we don't find any, calloff will be INT_MAX.  If all went well and
+	 * we figured the initial SP displacement at the beginning of the routine,
+	 * we should get a calloff of 0, meaning: the current SP pointer holds
+	 * a return address that is indeed preceded by a CALL, making it a valid
+	 * return address.
+	 * 		--RAM, 2018-10-11
+	 */
+
+	{
+		int calloff = mingw_inspect_stack(sp, MINGW_SP_INSPECT, start);
+
+		if (INT_MAX != calloff && 0 != calloff) {
+			int off = calloff * sizeof(int32);
+			BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+				"adjusting SP by %+d bytes to get a probable return address",
+				off);
+			sp = const_ptr_add_offset(sp, off);
+		}
+	}
+
 	if (has_frame) {
 		const void *sf, *fp;
 		g_assert(savings >= 1);
@@ -7624,10 +8101,18 @@ found_offset:
 
 	*next_pc = ulong_to_pointer(peek_le32(sp));	/* Pushed return address */
 
-	if (!valid_ptr(*next_pc))
-		return FALSE;
+	if (!valid_ptr(*next_pc)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid PC %p on stack (not a valid pointer)",
+			G_STRFUNC, *next_pc);
+		BACKTRACE_RETURN("%d", FALSE);
+	}
 
 	*next_sp = const_ptr_add_offset(sp, 4);	/* After popping return address */
+
+	BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+		"%s: next PC=%p (%s), next SP=%p (after popping PC)",
+		G_STRFUNC, *next_pc, mingw_routine_name(*next_pc), *next_sp);
 
 	if (
 		mingw_backtrace_debug() &&
@@ -7635,12 +8120,13 @@ found_offset:
 		has_frame
 	) {
 		const struct stackframe *sf = *next_sf;
-		s_minidbg("%s: next frame at %p "
+		(void) sf;		/* Suppress warning if not debugging */
+		mingw_debug_log("%s: next frame at %p "
 			"(contains next=%p, ra=%p), computed ra=%p",
 			G_STRFUNC, sf, sf->next, sf->ret, *next_pc);
 	}
 
-	return TRUE;
+	BACKTRACE_RETURN("%d", TRUE);
 }
 
 /**
@@ -7658,6 +8144,8 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	int i = 0;
 	const struct stackframe *sf;
 	const void *sp, *pc, *top;
+
+	BACKTRACE_ENTRY;
 
 	/*
 	 * We used to rely on StackWalk() here, but we no longer do because
@@ -7710,14 +8198,20 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 
 	if (0 == skip--) {
 		BACKTRACE_DEBUG(BACK_F_RESULT,
-			"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
+			"%s: pushing %p (%s) at i=%d upon entry",
+			G_STRFUNC, pc, mingw_routine_name(pc), i);
 		buffer[i++] = deconstify_pointer(pc);
+	} else {
+		BACKTRACE_DEBUG(BACK_F_RESULT,
+			"%s: skipping %p (%s); %d more to skip upon entry",
+			G_STRFUNC, pc, mingw_routine_name(pc), skip);
 	}
 
 	if (!valid_stack_ptr(sp, sp))
-		goto done;
+		BACKTRACE_RETURN("%d", i);
 
 	top = sp;
+	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: stack top is %p", G_STRFUNC, top);
 
 	while (i < size) {
 		const void *next = NULL;
@@ -7725,11 +8219,25 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		BACKTRACE_DEBUG(BACK_F_DRIVER,
 			"%s: i=%d, sp=%p, sf=%p, pc=%p", G_STRFUNC, i, sp, sf, pc);
 
-		if (!valid_ptr(pc) || !valid_stack_ptr(sp, top))
+		if (!valid_ptr(pc)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: invalid PC, stop!", G_STRFUNC);
 			break;
+		}
 
-		if (!valid_stack_ptr(sf, top) || ptr_cmp(sf, sp) <= 0)
+		if (!valid_stack_ptr(sp, top)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: invalid SP, stop!", G_STRFUNC);
+			break;
+		}
+
+		if (sf != NULL && !valid_stack_ptr(sf, top)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER,
+				"%s: clearing sf=%p (top of stack is %p)", G_STRFUNC, sf, top);
 			sf = NULL;
+		} else if (sf != NULL && ptr_cmp(sf, sp) <= 0) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER,
+				"%s: clearing sf=%p (\"above\" sp=%p)", G_STRFUNC, sf, sp);
+			sf = NULL;
+		}
 
 		if (!mingw_get_return_address(&pc, &sp, &next)) {
 			if (sf != NULL) {
@@ -7737,18 +8245,50 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 					"%s: trying to follow sf=%p", G_STRFUNC, sf);
 
 				next = sf->next;
-				if (!valid_ptr(sf->ret))
+				if (!valid_ptr(sf->ret)) {
+					BACKTRACE_DEBUG(BACK_F_DRIVER,
+						"%s: invalid PC=%p in frame", G_STRFUNC, sf->ret);
 					break;
+				}
 
 				pc = sf->ret;
 				sp = &sf[1];	/* After popping returned value */
+
+				/*
+				 * When debugging, spot PC in frames that are definitely
+				 * invalid due to lack of CALL instruction preceding them!
+				 */
+
+				if (mingw_backtrace_debug()) {
+					void *target;
+
+					BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+						"%s: candidate PC=%p", G_STRFUNC, pc);
+
+					if (!mingw_has_call_before(pc, &target)) {
+						BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+							"%s: WARNING: no CALL found before PC=%p",
+							G_STRFUNC, pc);
+					} else {
+						BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+							"%s: has CALL before PC=%p, target=%p (%s)",
+							G_STRFUNC, pc, target, NULL == target ?
+								"unknown target" : mingw_routine_name(target));
+					}
+				}
 
 				BACKTRACE_DEBUG(BACK_F_DRIVER,
 					"%s: following frame: next sf=%p, pc=%p, rebuilt sp=%p",
 					G_STRFUNC, next, pc, sp);
 
-				if (!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
+				if (
+						next != NULL &&
+						(!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
+				) {
+					BACKTRACE_DEBUG(BACK_F_DRIVER,
+						"%s: clearing inconsistent next sf=%p", G_STRFUNC, next);
 					next = NULL;
+				}
 			} else {
 				BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: out of frames", G_STRFUNC);
 				break;
@@ -7787,17 +8327,31 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 
 		if (skip-- <= 0) {
 			BACKTRACE_DEBUG(BACK_F_RESULT,
-				"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
+				"%s: pushing %p (%s) at i=%d",
+				G_STRFUNC, pc, mingw_routine_name(pc), i);
 			buffer[i++] = deconstify_pointer(pc);
+		} else {
+			BACKTRACE_DEBUG(BACK_F_RESULT,
+				"%s: skipping %p (%s); %d more to skip",
+				G_STRFUNC, pc, mingw_routine_name(pc), skip);
 		}
 
 		sf = next;
 	}
 
-done:
-	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: returning %d", G_STRFUNC, i);
+	if (mingw_backtrace_debug()) {
+		int j;
 
-	return i;
+		BACKTRACE_DEBUG(BACK_F_RESULT,
+			"stack returned has %d element%s:", i, plural(i));
+
+		for (j = 0; j < i; j++) {
+			BACKTRACE_DEBUG(BACK_F_RESULT,
+				"#%d: %p (%s)", j, buffer[j], mingw_routine_name(buffer[j]));
+		}
+	}
+
+	BACKTRACE_RETURN("%d", i);
 }
 
 /**
@@ -8084,7 +8638,7 @@ mingw_exception_log(int stid, uint code,
 	const void *caller_pc = NULL;
 
 	crash_time(ARYLEN(time_buf));
-	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
+	name = mingw_routine_name(pc);
 	if (is_strprefix(name, "0x"))
 		name = NULL;
 
@@ -8108,7 +8662,7 @@ mingw_exception_log(int stid, uint code,
 			 */
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = stacktrace_routine_name(caller_pc, TRUE);
+				name = mingw_routine_name(caller_pc);
 				if (is_strprefix(name, "0x"))
 					name = NULL;
 			} else {
@@ -8129,7 +8683,7 @@ mingw_exception_log(int stid, uint code,
 			caller_pc = ulong_to_pointer(peek_le32(sp));
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = stacktrace_routine_name(caller_pc, TRUE);
+				name = mingw_routine_name(caller_pc);
 				if (is_strprefix(name, "0x"))
 					name = NULL;
 			} else {
@@ -8692,6 +9246,7 @@ mingw_early_init(void)
 	win32dlp_init(mingw_vmm.reserved, mingw_vmm.size);
 
 	closelog();
+	mingw_early_inited = TRUE;
 }
 
 void
