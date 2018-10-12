@@ -59,6 +59,7 @@ static struct product_info {
 	uint8 p_major;
 	uint8 p_minor;
 	uint8 p_patchlevel;
+	uint8 p_forced_name:1;
 } product_info;
 
 /**
@@ -68,6 +69,15 @@ const char *
 product_name(void)
 {
 	return product_info.p_name;
+}
+
+/**
+ * Was the product's name forced?
+ */
+bool
+product_has_forced_name(void)
+{
+	return product_info.p_forced_name;
 }
 
 /**
@@ -82,6 +92,16 @@ product_nickname(void)
 		return product_info.p_nickname;
 
 	return product_info.p_name;
+}
+
+/**
+ * Set the product's name, forcefully.
+ */
+void
+product_set_forced_name(const char *name)
+{
+	product_info.p_name = name;
+	product_info.p_forced_name = TRUE;
 }
 
 /**

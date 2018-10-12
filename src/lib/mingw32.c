@@ -3116,8 +3116,19 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
 	const char *personal;
 
-	personal = mingw_get_personal_path();
+	/*
+	 * If we have a forced name, we're not a "registered" product
+	 * that is meant to leave traces on the system, but we're a test
+	 * program most probably.  Use the current directory for logging.
+	 * 		--RAM, 2018-10-11
+	 */
 
+	if (product_has_forced_name()) {
+		cstr_bcpy(dest, size, ".");
+		goto local_dir;
+	}
+
+	personal = mingw_get_personal_path();
 	cstr_bcpy(dest, size, personal);
 
 	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
@@ -3133,6 +3144,9 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	if (path_does_not_exist(dest))
 		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
 
+	/* FALL THROUGH */
+
+local_dir:
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
 

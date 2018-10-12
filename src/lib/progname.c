@@ -48,6 +48,7 @@
 #include "mutex.h"
 #include "once.h"
 #include "path.h"
+#include "product.h"
 #include "strvec.h"
 #include "tm.h"
 #include "vmm.h"
@@ -93,6 +94,21 @@ progstart(int argc, char * const *argv)
 
 	progname_info.name = filepath_basename(argv[0]);
 	tm_current_time(&progname_info.start);
+
+	/*
+	 * Ensure we have a valid product name configured, otherwise use
+	 * the executable basename.  A valid product name is required on
+	 * Windows to initialize the path where we are going to store
+	 * the logs.
+	 *
+	 * However, if we have to do this here (meaning there is not product
+	 * registration done before calling progstart), force the usage of
+	 * the current directory for the logs by flagging that the name
+	 * was forced.
+	 */
+
+	if (NULL == product_name())
+		product_set_forced_name(progname_info.name);
 
 #ifdef MINGW32
 	mingw_early_init();

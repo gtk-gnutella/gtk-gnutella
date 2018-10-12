@@ -44,6 +44,7 @@ void product_init(const char *name,
 	const char *build);
 
 const char *product_name(void) G_PURE;
+bool product_has_forced_name(void) G_PURE;
 const char *product_nickname(void) G_PURE;
 const char *product_date(void) G_PURE;
 const char *product_version(void) G_PURE;
@@ -57,6 +58,7 @@ const char *product_interface(void);
 const char *product_website(void);
 uint32 product_build(void);
 
+void product_set_forced_name(const char *name);
 void product_set_nickname(const char *nickname);
 void product_set_interface(const char *iface);
 void product_set_website(const char *web);
