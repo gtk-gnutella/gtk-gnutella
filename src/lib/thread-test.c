@@ -2312,7 +2312,7 @@ test_evq(unsigned repeat)
 
 static int interrupt_count;
 static int interrupt_acks;
-static volatile bool interrupt_seen_2;
+static volatile bool interrupt_seen_2, interrupt_processed_2;
 
 static void *
 intr_process(void *arg)
@@ -2332,8 +2332,9 @@ intr_process(void *arg)
 			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
 		break;
 	case 2:
-		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
 		interrupt_seen_2 = TRUE;
+		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
+		interrupt_processed_2 = TRUE;
 		atomic_mb();
 		break;
 	case 4:
@@ -2395,11 +2396,23 @@ test_interrupts(void)
 		if (i > 2 && !interrupt_seen_2) {
 			size_t j;
 			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
-			for (j = 0; !interrupt_seen_2 && j < 50; j++) {
+			/* Wait about 10 seconds */
+			for (j = 0; !interrupt_seen_2 && j < 100; j++) {
 				thread_sleep_ms(100);
 			}
 			if (!interrupt_seen_2)
 				s_error("%s(): timeout waiting for interrupt #2", G_STRFUNC);
+		}
+		if (i > 2 && !interrupt_processed_2) {
+			size_t j;
+			s_message("%s(): waiting for interrupt #2 processing", G_STRFUNC);
+			/* Wait about 30 seconds for the stack unwinding and formatting */
+			for (j = 0; !interrupt_processed_2 && j < 300; j++) {
+				thread_sleep_ms(100);
+			}
+			if (!interrupt_processed_2)
+				s_error("%s(): timeout for interrupt #2 processing", G_STRFUNC);
+			s_message("%s(): all done for interrupt #2", G_STRFUNC);
 		}
 
 		s_message("%s(): sending interrupt #%d to %s",
