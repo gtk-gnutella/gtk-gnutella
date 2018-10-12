@@ -122,7 +122,39 @@
 #define MINGW_STARTUP_LOGDIR	"C:/cygwin/tmp"
 #endif
 #if 0
-#define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
+#define MINGW_BACKTRACE_DEBUG	/**< Always trace our own backtracing */
+#endif
+
+/*
+ * We leave on this by default.
+ *
+ * It will compile the backtrace debugging code but it will be de-activated
+ * until there is a crash happening (a Windows exception, not an assertion
+ * failure).
+ *
+ * This is important until we can perfectly produce execution stacks on
+ * exceptions.  Currently, assertion failres are OK, because this is
+ * triggering mostly gcc-compiled code, which we more or less manage to
+ * backtrace properly.  But Windows exception involve standard DLL that
+ * were compiled using Windows calling conventions, and were produced
+ * by a different compiler.  Our prologue analysis may not be working
+ * correctly on those calls.
+ *
+ * So, for now, leave a trace of what happened during crashes so that we
+ * can debug / improve the ability to properly backtrace routines.
+ *
+ * Note that the debugging logs we are leaving behind are rotated, so
+ * they will eventually be deleted when no crashes occur.
+ *
+ * 		--RAM, 2018-10-12
+ */
+#if 1
+#define MINGW_BACKTRACE_DEBUG_ON_CRASH
+#endif
+
+#if defined(MINGW_BACKTRACE_DEBUG_ON_CRASH) && !defined(MINGW_BACKTRACE_DEBUG)
+/* MINGW_BACKTRACE_DEBUG_ON_CRASH depends on MINGW_BACKTRACE_DEBUG code! */
+#define MINGW_BACKTRACE_DEBUG
 #endif
 
 #undef signal
@@ -6841,21 +6873,27 @@ mingw_init(void)
 
 #ifdef MINGW_BACKTRACE_DEBUG
 #define BACKTRACE_DEBUG(lvl, ...)	\
-	if ((lvl) & MINGW_BACKTRACE_FLAGS) mingw_debug_log(__VA_ARGS__)
-#define BACKTRACE_ENTRY		mingw_debug_entering(G_STRFUNC)
+	if ((lvl) & mingw_backtrace_flags) mingw_debug_log(__VA_ARGS__)
+#define BACKTRACE_ENTRY 									\
+G_STMT_START {												\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_entering(G_STRFUNC);					\
+} G_STMT_END
 #define BACKTRACE_RETURN_VOID								\
 G_STMT_START {												\
-	mingw_debug_leaving(G_STRFUNC, G_STRLOC, "%s", "");		\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_leaving(G_STRFUNC, G_STRLOC, "%s", "");	\
 	return;													\
 } G_STMT_END
 #define BACKTRACE_RETURN(fmt, val)							\
 G_STMT_START {												\
-	mingw_debug_leaving(G_STRFUNC, G_STRLOC, (fmt), (val));	\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_leaving(G_STRFUNC, G_STRLOC, (fmt), (val));	\
 	return val;												\
 } G_STMT_END
 #define BACKTRACE_LOG_LOCK		mutex_lock(&mingw_debuglog.lock)
 #define BACKTRACE_LOG_UNLOCK	mutex_unlock(&mingw_debuglog.lock)
-#define mingw_backtrace_debug()	1
+#define mingw_backtrace_debug()	(mingw_backtrace_flags != 0)
 #define mingw_debug_file		mingw_debuglog.lf
 #else	/* !MINGW_BACKTRACE_DEBUG */
 #define BACKTRACE_DEBUG(...)
@@ -6896,6 +6934,25 @@ G_STMT_START {												\
 #else
 #define MINGW_BACKTRACE_FLAGS	BACK_F_ALL
 #endif
+
+/*
+ * When MINGW_BACKTRACE_DEBUG_ON_CRASH is set, we turn off the debugging
+ * initially, and only turn it on when an exception is raised.
+ */
+#ifdef MINGW_BACKTRACE_DEBUG_ON_CRASH
+#define MINGW_BACKTRACE_FLAGS_INIT	0	/* No debug initially */
+#else
+#define MINGW_BACKTRACE_FLAGS_INIT	MINGW_BACKTRACE_FLAGS
+#endif
+
+static uint32 mingw_backtrace_flags = MINGW_BACKTRACE_FLAGS_INIT;
+
+static inline void
+mingw_activate_backtrace_debug(void)
+{
+	/* This has no effect if not compiled with MINGW_BACKTRACE_DEBUG */
+	mingw_backtrace_flags = MINGW_BACKTRACE_FLAGS;
+}
 
 static inline bool
 valid_ptr(const void * const p)
@@ -8796,6 +8853,7 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	const struct stackframe *sf;
 
 	signal_crashing();
+	mingw_activate_backtrace_debug();
 
 	er = ei->ExceptionRecord;
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
