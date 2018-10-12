@@ -6976,6 +6976,7 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_RET_FAR		0xcb
 #define OPCODE_RET_NEAR_POP	0xc2	/* Plus pop immediate 16-bit amount */
 #define OPCODE_RET_FAR_POP	0xca	/* Plus pop immediate 16-bit amount */
+#define OPCODE_LEAVE		0xc9	/* Set ESP to EBP, then pop EBP */
 #define OPCODE_NOP			0x90
 #define OPCODE_CALL_NEAR	0xe8	/* Call near, relative 16 or 32 bits */
 #define OPCODE_CALL_FAR		0x9a	/* Call far, absolute 16 or 32 bits */
@@ -6991,7 +6992,8 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_SUB_1		0x29	/* Substraction between registers */
 #define OPCODE_SUB_2		0x81	/* Need further probing for real opcode */
 #define OPCODE_SUB_3		0x83	/* Need further probing for real opcode */
-#define OPCODE_MOV_REG		0x89	/* Move one register to another */
+#define OPCODE_MOV_REG		0x89	/* Move one register to R/M word */
+#define OPCODE_MOV_REGI		0x8b	/* Move R/M word to register */
 #define OPCODE_MOV_IMM_EAX	0xb8	/* Move immediate value to register EAX */
 #define OPCODE_MOV_IMM_ECX	0xb9
 #define OPCODE_MOV_IMM_EDX	0xba
@@ -7024,7 +7026,8 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPMODE_RM_MASK		0x07	/* Mask to extract R/M part */
 #define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
 #define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
-#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOVL to move ESP to EBP */
+#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOV_REG to move ESP to EBP */
+#define OPMODE_REG_EBP_ESP	0xec	/* Byte after MOV_REGI to move ESP to EBP */
 
 /*
  * x86 register numbers, as encoded in instructions.
@@ -7255,6 +7258,8 @@ static const char *
 mingw_opcode_name(uint8 opcode)
 {
 	switch (opcode) {
+	case OPCODE_LEAVE:
+		return "LEAVE";
 	case OPCODE_RET_NEAR:
 	case OPCODE_RET_FAR:
 	case OPCODE_RET_NEAR_POP:
@@ -7275,7 +7280,8 @@ mingw_opcode_name(uint8 opcode)
 	case OPCODE_PUSH_ESI:
 	case OPCODE_PUSH_EDI:
 		return "PUSH";
-	case OPCODE_MOV_REG:
+	case OPCODE_MOV_REG:		/* Used by gcc in "mov %esp,%ebp" */
+	case OPCODE_MOV_REGI:		/* Used by MS compiler in "mov %esp,%ebp" */
 	case OPCODE_MOV_IMM_EAX:
 	case OPCODE_MOV_IMM_EBX:
 	case OPCODE_MOV_IMM_ECX:
@@ -7538,9 +7544,34 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			p += 4;				/* Skip immediate value */
 			break;
 		case OPCODE_MOV_REG:
+			/*
+			 * This is the MOV variant used by gcc.
+			 *
+			 *            REG ESP EBP
+			 * MOD byte is 11 100 101
+			 *
+			 * This performs a "mov %esp,%ebp" i.e. it sets ESP with the
+			 * value of EBP.
+			 */
 			if (OPMODE_REG_ESP_EBP == p[1])
 				saved_ebp = saved_ebp || p == first_opcode;
-			p += 1;				/* Skip mode byte */
+			p += 1;				/* Skip mod byte */
+			break;
+		case OPCODE_MOV_REGI:
+			/*
+			 * This is the MOV variant used by Microsoft compilers.
+			 *
+			 *            REG EBP ESP
+			 * MOD byte is 11 101 100
+			 *
+			 * Encoding is inverted in mod byte, hence "REGI" for inverted.
+			 * However since the semantics of this opcode is inverted,
+			 * this performs a "mov %esp,%ebp", i.e. it sets ESP with the
+			 * value of EBP.
+			 */
+			if (OPMODE_REG_EBP_ESP == p[1])
+				saved_ebp = saved_ebp || p == first_opcode;
+			p += 1;				/* Skip mod byte */
 			break;
 		case OPCODE_CALL_NEAR:
 			/*
@@ -8027,7 +8058,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		 */
 
 		pop = *(p - 1);
-		if (OPCODE_MOV_REG == pop) {
+		if (OPCODE_MOV_REG == pop || OPCODE_MOV_REGI == pop) {
 			BACKTRACE_DEBUG(BACK_F_RA,
 				"%s: skipping %s operation at pc=%p, opcode=0x%x (after a MOV)",
 				G_STRFUNC, mingw_opcode_name(*p), p, *p);
