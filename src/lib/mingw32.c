@@ -7669,12 +7669,15 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 	BACKTRACE_RETURN("%p", NULL);
 }
 
+static int mingw_inspect_stack(const void *sp, int words, const void *start);
+
 /**
  * Parse beginning of routine to know how many registers are saved, whether
  * there is a leading frame being formed, and how large the stack is.
  *
  * @param pc			starting point
  * @param max			maximum PC we accept to scan forward
+ * @param sp			known stack pointer
  * @param at_start		known to be at the starting point of the routine
  * @param has_frame		set to TRUE if we saw a frame linking at the beginning
  * @param savings		indicates leading register savings done by the routine
@@ -7683,8 +7686,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
  * @return TRUE if ``pc'' pointed to a recognized function prologue.
  */
 static bool
-mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
-	bool *has_frame, size_t *savings, unsigned *offset)
+mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
+	bool at_start, bool *has_frame, size_t *savings, unsigned *offset)
 {
 	const uint8 *sub;
 
@@ -7748,6 +7751,39 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			goto check_offset;
 		}
 		g_assert_not_reached();
+	}
+
+	/*
+	 * Maybe this routine does not need to adjust the stack pointer if
+	 * it has no local variables.  Inspect the stack to see if there is
+	 * a return address that fits and use the computed offset.
+	 *
+	 * We are only retaining positive offsets for now: since the stack
+	 * grows down, a negative offset would mean the stack pointer is
+	 * not right.
+	 */
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: no SUB found, analyzing stack (%s frame)",
+		G_STRFUNC, *has_frame ? "has" : "no");
+
+	{
+		int calloff = mingw_inspect_stack(sp, MINGW_SP_INSPECT, pc);
+
+		if (calloff == INT_MAX) {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: no valid PC candidate on the stack", G_STRFUNC);
+		} else if (calloff < 0) {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: ignoring negative offset %d", G_STRFUNC, calloff);
+		} else {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: using offset %d", G_STRFUNC, calloff);
+			*offset = calloff * sizeof(int32);
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+
+		/* FALL THROUGH */
 	}
 
 	BACKTRACE_RETURN("%d", FALSE);
@@ -8030,7 +8066,9 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			"%s: known routine start for pc=%p is %p (%s)",
 			G_STRFUNC, pc, p, mingw_routine_name(p));
 
-		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset)) {
+		if (
+			mingw_analyze_prologue(p, pc, sp, TRUE, &has_frame, &savings, &offset)
+		) {
 			start = p;
 			goto found_offset;
 		}
@@ -8162,7 +8200,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		 */
 
 		if (
-			mingw_analyze_prologue(next, pc, FALSE,
+			mingw_analyze_prologue(next, pc, sp, FALSE,
 				&has_frame, &savings, &offset)
 		) {
 			start = next;
