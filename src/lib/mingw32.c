@@ -8277,6 +8277,14 @@ found_offset:
 		const void *sf, *fp;
 		g_assert(savings >= 1);
 		sf = const_ptr_add_offset(sp, -4);
+
+		if (!valid_ptr(sf)) {
+			BACKTRACE_DEBUG(BACK_F_RA,
+				"%s: invalid stack frame location %p", G_STRFUNC, sf);
+			*next_sf = NULL;
+			goto next_pc;
+		}
+
 		fp = ulong_to_pointer(peek_le32(sf));
 		if (ptr_cmp(fp, sp) <= 0) {
 			BACKTRACE_DEBUG(BACK_F_RA,
@@ -8290,6 +8298,16 @@ found_offset:
 		*next_sf = has_frame ? fp : NULL;
 	} else {
 		*next_sf = NULL;
+	}
+
+next_pc:
+	if (NULL == *next_sf)
+		has_frame = FALSE;
+
+	if (!valid_ptr(sp)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid SP %p (bad pointer)", G_STRFUNC, sp);
+		BACKTRACE_RETURN("%d", FALSE);
 	}
 
 	*next_pc = ulong_to_pointer(peek_le32(sp));	/* Pushed return address */
