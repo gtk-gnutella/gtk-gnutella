@@ -7410,7 +7410,7 @@ mingw_opcode_is_sub_esp(const uint8 *op)
 
 	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_OTHER,
-		"%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
+		"%s: op=0x%x, next=0x%x at %p", G_STRFUNC, *op, mbyte, p);
 
 	switch (*op) {
 	case OPCODE_SUB_1:
@@ -8039,13 +8039,21 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			mingw_routine_name(pc), dl_util_get_path(pc));
 	}
 
+	BACKTRACE_DEBUG(BACK_F_RA,
+		"%s: scanning backwards from %p to find prologue",
+		G_STRFUNC, pc);
+
 	/*
-	 * Scan backwards to find a previous RET / JMP / NOP / LEA instruction.
+	 * Scan backwards to find a previous RET / JMP / NOP / LEA instruction,
+	 * that could mark the end of a previous routine.
+	 *
+	 * We also look for a "push %ebp; mov %esp,%ebp" sequence that would
+	 * definitely indicate the start of a routine.
 	 */
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
 		uint8 op, pop;
-		const uint8 *next;
+		const uint8 *next = p;
 
 		if (!valid_ptr(p) || !valid_ptr(p - 1))
 			BACKTRACE_RETURN("%d", FALSE);
@@ -8066,6 +8074,54 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		}
 
 		switch ((op = *p)) {
+		case OPCODE_PUSH_EBP:
+			/*
+			 * To maximize chances of this being a valid routine start,
+			 * we look for at least 3 bytes (including the PUSH we just
+			 * scanned).
+			 */
+			switch (p[1]) {
+			case OPCODE_MOV_REG:
+				if (OPMODE_REG_ESP_EBP == p[2]) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; MOV EBP,ESP sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				break;
+			case OPCODE_MOV_REGI:
+				if (OPMODE_REG_EBP_ESP == p[2]) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; MOV EBP,ESP sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				break;
+			/* Only look for callee-saved registers */
+			case OPCODE_PUSH_EBX:
+			case OPCODE_PUSH_ESI:
+			case OPCODE_PUSH_EDI:
+				/* Only look for callee-saved registers */
+				if (p[2] >= OPCODE_PUSH_EBX && p[2] <= OPCODE_PUSH_EDI) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; PUSH; PUSH sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				switch (p[2]) {
+				case OPCODE_SUB_1:
+				case OPCODE_SUB_2:
+				case OPCODE_SUB_3:
+					if (mingw_opcode_is_sub_esp(&p[2])) {
+						BACKTRACE_DEBUG(BACK_F_RA,
+							"%s: found PUSH EBP; PUSH; SUB ESP sequence at pc=%p",
+							G_STRFUNC, p);
+						goto analyze;
+					}
+				}
+				break;
+			}
+			goto next;
 		case OPCODE_LEA:
 			next = p + mingw_opcode_lea_length(p);
 			break;
@@ -8092,6 +8148,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			"%s: found %s operation at pc=%p, opcode=0x%x",
 			G_STRFUNC, mingw_opcode_name(op), p, op);
 
+	analyze:
 		/*
 		 * Could have found a byte that is part of a longer opcode, since
 		 * the x86 has variable-length instructions.
