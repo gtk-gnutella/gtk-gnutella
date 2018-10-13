@@ -7821,7 +7821,8 @@ mingw_has_call_before(const void *pc, void **target)
 
 	BACKTRACE_ENTRY;
 
-	*target = NULL;		/* Assume we can't determine target */
+	if (target != NULL)
+		*target = NULL;		/* Assume we can't determine target */
 
 	if (!valid_ptr(pc))
 		BACKTRACE_RETURN("%d", FALSE);
@@ -7909,11 +7910,13 @@ mingw_has_call_before(const void *pc, void **target)
 
 	if (OPCODE_CALL_NEAR == peek_u8(p)) {
 		int offset = peek_le32(p + 1);
-		*target = deconstify_pointer(const_ptr_add_offset(pc, offset));
+		void *dest = deconstify_pointer(const_ptr_add_offset(pc, offset));
+		if (target != NULL)
+			*target = dest;
 		BACKTRACE_DEBUG(BACK_F_PC,
 			"immediate near call found at -5, offset %d relative to PC=%p"
 			" -> %p (%s)",
-			offset, pc, *target, mingw_routine_name(*target));
+			offset, pc, dest, mingw_routine_name(dest));
 		BACKTRACE_RETURN("%d", TRUE);
 	}
 
@@ -7934,12 +7937,14 @@ mingw_has_call_before(const void *pc, void **target)
 		if (2 == mingw_op_extra(nb) && 0 == mod && 5 == rm) {
 			BACKTRACE_DEBUG(BACK_F_PC,
 				"indirect far call found at -6 in %p", loc);
+			/* Only dereference if aligned and readable */
 			if (0 == (pointer_to_ulong(loc) & 0x3) && valid_ptr(loc)) {
-				/* Only dereference if aligned and readable */
-				*target = ulong_to_pointer(*loc);
+				void *dest = ulong_to_pointer(*loc);
+				if (target != NULL)
+					*target = dest;
 				BACKTRACE_DEBUG(BACK_F_PC,
 					"call destination stored in %p is %p (%s)",
-					loc, *target, mingw_routine_name(*target));
+					loc, dest, mingw_routine_name(dest));
 			}
 			BACKTRACE_RETURN("%d", TRUE);
 		}
@@ -8293,6 +8298,13 @@ found_offset:
 		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
 			"%s: invalid PC %p on stack (not a valid pointer)",
 			G_STRFUNC, *next_pc);
+		BACKTRACE_RETURN("%d", FALSE);
+	}
+
+	if (!mingw_has_call_before(*next_pc, NULL)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid SP %p: no CALL before SP[0] = %p",
+			G_STRFUNC, sp, *next_pc);
 		BACKTRACE_RETURN("%d", FALSE);
 	}
 
