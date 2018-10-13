@@ -8895,10 +8895,11 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	if (stid >= 0 && stid < THREAD_MAX)
 		mingw_excpt[stid]++;
 
-	s_rawwarn("%s in thread #%d at PC=%p, saved pc=%p, sp=%p, current sp=%p "
+	s_rawwarn("%s in thread #%d (%s) at PC=%p, saved pc=%p, sp=%p, current sp=%p "
 		"[depth=%u, count=%d]",
 		mingw_exception_to_string(er->ExceptionCode),
-		stid, er->ExceptionAddress, pc, sp, thread_sp(),
+		stid, thread_safe_id_name(stid), er->ExceptionAddress,
+		pc, sp, thread_sp(),
 		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
 		signal_in_exception());
 
