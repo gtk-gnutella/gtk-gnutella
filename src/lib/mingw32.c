@@ -7401,18 +7401,23 @@ mingw_opcode_lea_length(const uint8 *op)
 
 /**
  * Is the SUB opcode pointed at by ``op'' targetting ESP?
+ *
+ * FIXME: !!HACK ALERT!!
+ * 	Instead of just passing "op", we're passing *op as `ov' to the routine.
+ * 	why? because when, at the caller level, *op=0x81, it sometimes reads as 0x0
+ * 	here, causing the fall to the "code not reached" section. incredible!
+ *		--RAM, 2018-10-13
  */
 static bool
-mingw_opcode_is_sub_esp(const uint8 *op)
+mingw_opcode_is_sub_esp(const uint8 *op, uint8 ov)
 {
-	const uint8 *p = op;
-	uint8 mbyte = p[1];
+	uint8 mbyte = op[1];
 
 	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_OTHER,
-		"%s: op=0x%x, next=0x%x at %p", G_STRFUNC, *op, mbyte, p);
+		"%s: at %p, op=0x%x, ov=%x, next=0x%x", G_STRFUNC, op, op[0], ov, mbyte);
 
-	switch (*op) {
+	switch (ov) {			/* See !!HACK ALERT!! above */
 	case OPCODE_SUB_1:
 		BACKTRACE_RETURN("%d", OPREG_ESP == mingw_op_dst_register(mbyte));
 	case OPCODE_SUB_2:
@@ -7611,7 +7616,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		case OPCODE_SUB_1:
 		case OPCODE_SUB_2:
 		case OPCODE_SUB_3:
-			if (mingw_opcode_is_sub_esp(p)) {
+			if (mingw_opcode_is_sub_esp(p, op)) {
 				*has_frame = saved_ebp;
 				*savings = pushes;
 				BACKTRACE_RETURN("%p", p);
@@ -8112,7 +8117,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 				case OPCODE_SUB_1:
 				case OPCODE_SUB_2:
 				case OPCODE_SUB_3:
-					if (mingw_opcode_is_sub_esp(&p[2])) {
+					if (mingw_opcode_is_sub_esp(&p[2], p[2])) {
 						BACKTRACE_DEBUG(BACK_F_RA,
 							"%s: found PUSH EBP; PUSH; SUB ESP sequence at pc=%p",
 							G_STRFUNC, p);
