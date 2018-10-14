@@ -9048,6 +9048,19 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 	if (stid >= 0 && stid < THREAD_MAX)
 		mingw_excpt[stid]++;
 
+	/*
+	 * Immediately disable interrupt procesing for the faulty thread if we
+	 * are facing a stack overflow: handling them would require more stack
+	 * space.
+	 *
+	 * The only operating-system signal we allow is for abort purposes.
+	 */
+
+	if (EXCEPTION_STACK_OVERFLOW == er->ExceptionCode) {
+		if (stid >= 0 && stid < THREAD_MAX)
+			mingw_threads[stid].sig_mask = ~tsig_mask(SIGABRT);
+	}
+
 	s_rawwarn("%s in thread #%d (%s) at PC=%p, saved pc=%p, sp=%p, current sp=%p "
 		"[depth=%u, count=%d]",
 		mingw_exception_to_string(er->ExceptionCode),
