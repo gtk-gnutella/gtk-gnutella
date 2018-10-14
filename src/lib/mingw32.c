@@ -1139,6 +1139,20 @@ mingw_thread_sig_deliver(struct mingw_thread *mt)
 	 * We have signals to deliver.
 	 */
 
+	if (thread_small_id() == mt->stid) {
+		/*
+		 * Must not go through the trampoline if signals are for the current
+		 * thread: suspending ourselves would not do us much good!
+		 * Handle them synchronously.
+		 */
+		mingw_sig_handle(mt);
+		return 0;
+	}
+
+	/*
+	 * Get lock protecting the mt->c thread context.
+	 */
+
 	if (!atomic_acquire(&mt->lock))
 		return 0;		/* Busy with another signal dispatch */
 
