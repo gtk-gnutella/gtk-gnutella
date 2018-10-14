@@ -9346,27 +9346,60 @@ mingw_stdio_reset(bool console)
 void G_COLD
 mingw_file_rotate(const char *pathname, int keep)
 {
-	static char npath[MAX_PATH_LEN];
-	int i;
+	static char npath[MAX_PATH_LEN];	/* Avoid using too much stack space */
+	int i, len;
+	const char *dot;
+
+	/*
+	 * Figure out the extension of the pathname, so that we can progate
+	 * it during renaming.
+	 *
+	 * For instance, "x.stdout" will become "x.0.stdout".
+	 *
+	 * This allows Windows to properly open the ".stdout" files once we
+	 * have registered how such an extension should be opened.
+	 */
+
+	dot = strrchr(pathname, '.');
+	len = NULL == dot ? (int) vstrlen(pathname) : dot - pathname;
+	g_assert(len >= 0);
+
+	if (NULL == dot)
+		dot = &pathname[len];	/* Points to trailing NUL -> empty string */
 
 	if (keep > 0) {
-		str_bprintf(ARYLEN(npath), "%s.%d", pathname, keep - 1);
+		str_bprintf(ARYLEN(npath), "%.*s.%d%s", len, pathname, keep - 1, dot);
 		if (-1 != mingw_unlink(npath))
 			STARTUP_DEBUG("removed file \"%s\"", npath);
 	}
 
 	for (i = keep - 1; i > 0; i--) {
 		static char opath[MAX_PATH_LEN];
-		str_bprintf(ARYLEN(opath), "%s.%d", pathname, i - 1);
-		str_bprintf(ARYLEN(npath), "%s.%d", pathname, i);
+		str_bprintf(ARYLEN(opath), "%.*s.%d%s", len, pathname, i - 1, dot);
+		str_bprintf(ARYLEN(npath), "%.*s.%d%s", len, pathname, i, dot);
 		if (-1 != mingw_rename(opath, npath))
 			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
 	}
 
-	str_bprintf(ARYLEN(npath), "%s.0", pathname);
+	str_bprintf(ARYLEN(npath), "%.*s.0%s", len, pathname, dot);
 
 	if (-1 != mingw_rename(pathname, npath))
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
+
+	/*
+	 * Temporary: up to 1.1.14, we were renaming file without processing
+	 * the extension, by simply appending a ".digit" to the file names.
+	 * Clean those up if they exist!
+	 *
+	 * FIXME:
+	 * This code will be safe to delete after 1.1.15 is released.
+	 */
+
+	for (i = 0; i < keep; i++) {
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, keep);
+		if (-1 != mingw_unlink(npath))
+			STARTUP_DEBUG("removed obsolete file \"%s\"", npath);
+	}
 }
 
 void G_COLD
