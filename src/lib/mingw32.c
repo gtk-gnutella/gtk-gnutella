@@ -983,9 +983,6 @@ mingw_thread_add_sig(uint32 *dest, int signum)
 		merged = current = *dest;
 		merged |= tsig_mask(signum);
 
-		if (merged == current)
-			break;
-
 		if (atomic_uint_xchg_if_eq(dest, current, merged))
 			break;
 	}
@@ -1008,9 +1005,6 @@ mingw_thread_del_sig(uint32 *dest, int signum)
 		atomic_mb();
 		cleared = current = *dest;
 		cleared &= ~tsig_mask(signum);
-
-		if (cleared == current)
-			break;
 
 		if (atomic_uint_xchg_if_eq(dest, current, cleared))
 			break;
