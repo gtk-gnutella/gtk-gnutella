@@ -7032,7 +7032,9 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPMODE_REG_SRC_MASK	0x38	/* Mask to extract source register */
 #define OPMODE_REG_DST_MASK	0x07	/* Mask to extract destination register */
 #define OPMODE_RM_MASK		0x07	/* Mask to extract R/M part */
-#define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
+#define OPMODE_ADD			0		/* Extra opcode indicating an ADD after 0x83 */
+#define OPMODE_SUB			5		/* Extra opcode indicating a SUB after 0x83 */
+#define OPMODE_ADD_ESP		0xc4	/* Byte after leading opcode for ADD ESP */
 #define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
 #define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOV_REG to move ESP to EBP */
 #define OPMODE_REG_EBP_ESP	0xec	/* Byte after MOV_REGI to move ESP to EBP */
@@ -7433,11 +7435,42 @@ mingw_opcode_is_sub_esp(const uint8 *op, uint8 ov)
 		{
 			uint8 code = mingw_op_src_register(mbyte);
 			uint8 mode = mingw_op_mod_code(mbyte);
-			if (code != OPMODE_SUB || mode != 3) {
-				/* Not a SUB opcode targeting a register */
-				BACKTRACE_RETURN("%d", FALSE);
+			int32 value;
+
+			if (mode != 3)
+				BACKTRACE_RETURN("%d", FALSE);	/* Not targetting a register */
+			if (OPREG_ESP != mingw_op_dst_register(mbyte))
+				BACKTRACE_RETURN("%d", FALSE);	/* Not targetting ESP */
+
+			/*
+			 * The immediate value that follows is a 32-bit for SUB_2 and
+			 * 8-bit for SUB_3.  These are signed.
+			 */
+
+			if (OPCODE_SUB_3 == ov) {
+				int8 v = op[2];
+				value = v;
+				BACKTRACE_DEBUG(BACK_F_OTHER,
+					"%s: read byte at %p = 0x%x as %d -> %d",
+					G_STRFUNC, &op[2], op[2], v, value);
+			} else {
+				value = peek_le32(&op[2]);
 			}
-			BACKTRACE_RETURN("%d", OPREG_ESP == mingw_op_dst_register(mbyte));
+
+			BACKTRACE_DEBUG(BACK_F_OTHER,
+				"%s: at %p, subvalue=%d for op=0x%x (code=%u %s)",
+				G_STRFUNC, op, value, op[0], code,
+				OPMODE_SUB == code ? "SUB" :
+				OPMODE_ADD == code ? "ADD" :
+				"???");
+
+			if (OPMODE_SUB == code)
+				BACKTRACE_RETURN("%d", value >= 0);
+
+			if (OPMODE_ADD == code)
+				BACKTRACE_RETURN("%d", value < 0);
+
+			BACKTRACE_RETURN("%d", FALSE);
 		}
 	}
 
@@ -7749,13 +7782,25 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 			goto check_offset;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
-			g_assert(OPMODE_SUB_ESP == sub[1]);
-			*offset = peek_le32(sub + 2);
+			if (OPMODE_SUB_ESP == sub[1])
+				*offset = peek_le32(sub + 2);
+			else if (OPMODE_ADD_ESP == sub[1])
+				*offset = -peek_le32(sub + 2);
+			else
+				g_assert_not_reached();
 			goto check_offset;
 		case OPCODE_SUB_3:
 			/* subl    $28, %esp */
-			g_assert(OPMODE_SUB_ESP == sub[1]);
-			*offset = peek_u8(sub + 2);
+			{
+				int8 val = peek_u8(&sub[2]);
+
+				if (OPMODE_SUB_ESP == sub[1])
+					*offset = val;
+				else if (OPMODE_ADD_ESP == sub[1])
+					*offset = -val;
+				else
+					g_assert_not_reached();
+			}
 			goto check_offset;
 		}
 		g_assert_not_reached();
