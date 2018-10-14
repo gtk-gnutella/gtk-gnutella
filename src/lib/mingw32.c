@@ -155,6 +155,9 @@
 #if defined(MINGW_BACKTRACE_DEBUG_ON_CRASH) && !defined(MINGW_BACKTRACE_DEBUG)
 /* MINGW_BACKTRACE_DEBUG_ON_CRASH depends on MINGW_BACKTRACE_DEBUG code! */
 #define MINGW_BACKTRACE_DEBUG
+#elif defined(MINGW_BACKTRACE_DEBUG_ON_CRASH) && defined(MINGW_BACKTRACE_DEBUG)
+/* If they set MINGW_BACKTRACE_DEBUG earlier, always trace! */
+#undef MINGW_BACKTRACE_DEBUG_ON_CRASH
 #endif
 
 #undef signal
