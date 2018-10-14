@@ -8355,7 +8355,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 {
 	int i = 0;
 	const struct stackframe *sf;
-	const void *sp, *pc, *top;
+	const void *sp, *pc, *top, *prev_sp;
 
 	BACKTRACE_ENTRY;
 
@@ -8422,7 +8422,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 	if (!valid_stack_ptr(sp, sp))
 		BACKTRACE_RETURN("%d", i);
 
-	top = sp;
+	prev_sp = top = sp;
 	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: stack top is %p", G_STRFUNC, top);
 
 	while (i < size) {
@@ -8538,6 +8538,20 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		}
 
 		if (skip-- <= 0) {
+			/*
+			 * Detect loops, since we can now adjust the SP negatively.
+			 */
+
+			if (
+				i > 0 && deconstify_pointer(pc) == buffer[i-1] &&
+				ptr_cmp(prev_sp, sp) >= 0
+			) {
+				BACKTRACE_DEBUG(BACK_F_RESULT,
+					"%s: stuck at %p (%s) at i=%d: previous SP=%p, current SP=%p",
+					G_STRFUNC, pc, mingw_routine_name(pc), i, prev_sp, sp);
+				break;
+			}
+
 			BACKTRACE_DEBUG(BACK_F_RESULT,
 				"%s: pushing %p (%s) at i=%d",
 				G_STRFUNC, pc, mingw_routine_name(pc), i);
@@ -8549,6 +8563,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		}
 
 		sf = next;
+		prev_sp = sp;
 	}
 
 	if (mingw_backtrace_debug()) {
