@@ -7734,6 +7734,7 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 	bool at_start, bool *has_frame, size_t *savings, unsigned *offset)
 {
 	const uint8 *sub;
+	int32 subvalue;
 
 	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
@@ -7781,14 +7782,14 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 			if (op != OPCODE_MOV_IMM_EAX)
 				BACKTRACE_RETURN("%d", FALSE);
 
-			*offset = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
+			subvalue = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
 			goto check_offset;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
 			if (OPMODE_SUB_ESP == sub[1])
-				*offset = peek_le32(sub + 2);
+				subvalue = peek_le32(sub + 2);
 			else if (OPMODE_ADD_ESP == sub[1])
-				*offset = -peek_le32(sub + 2);
+				subvalue = -peek_le32(sub + 2);
 			else
 				g_assert_not_reached();
 			goto check_offset;
@@ -7798,9 +7799,9 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 				int8 val = peek_u8(&sub[2]);
 
 				if (OPMODE_SUB_ESP == sub[1])
-					*offset = val;
+					subvalue = val;
 				else if (OPMODE_ADD_ESP == sub[1])
-					*offset = -val;
+					subvalue = -val;
 				else
 					g_assert_not_reached();
 			}
@@ -7845,6 +7846,13 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 	BACKTRACE_RETURN("%d", FALSE);
 
 check_offset:
+
+	*offset = subvalue;
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: offset is %u at pc=%p, opcode=0x%x, mod=0x%x, subvalue=%d",
+		G_STRFUNC, *offset, sub, sub[0], sub[1], subvalue);
+
 	/*
 	 * Offsets must be a multiple of 4.  Otherwise, we're not parsing
 	 * the opcodes correctly, or rather they are not what we think
