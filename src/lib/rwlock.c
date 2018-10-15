@@ -603,8 +603,11 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	thread_lock_contention(reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK);
 
 	if G_UNLIKELY(rwlock_contention_trace) {
-		s_rawinfo("LOCK contention for %s-lock %p at %s:%u",
-			reading ? "read" : "write", rw, file, line);
+		s_rawinfo("LOCK contention for %s-lock %p (r:%u w:%u q:%u+%u)at %s:%u",
+			reading ? "read" : "write", rw,
+			rw->readers, rw->writers,
+			rw->waiters - rw->write_waiters, rw->write_waiters,
+			file, line);
 	}
 
 	/*
@@ -724,8 +727,12 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 			thread_yield();
 		} else {
 			if G_UNLIKELY(rwlock_sleep_trace) {
-				s_rawinfo("LOCK sleeping for %s-lock %p at %s:%u",
-					reading ? "read" : "write", rw, file, line);
+				s_rawinfo(
+					"LOCK sleeping for %s-lock %p (r:%u w:%u q:%u+%u) at %s:%u",
+					reading ? "read" : "write", rw,
+					rw->readers, rw->writers,
+					rw->waiters - rw->write_waiters, rw->write_waiters,
+					file, line);
 			}
 
 			compat_usleep_nocancel(RWLOCK_DELAY);
