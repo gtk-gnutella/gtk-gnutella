@@ -500,7 +500,7 @@ spinlock_grab_try_from(spinlock_t *s,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_contention_trace)
+	if G_UNLIKELY(spinlock_contention_trace && 0 == spinlock_pass_through)
 		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
 
 	return FALSE;
@@ -542,7 +542,7 @@ spinlock_grab_swap_try_from(spinlock_t *s, const void *plock,
 		return TRUE;
 	}
 
-	if G_UNLIKELY(spinlock_contention_trace)
+	if G_UNLIKELY(spinlock_contention_trace && 0 == spinlock_pass_through)
 		s_rawinfo("LOCK already busy for spinlock %p at %s:%u", s, file, line);
 
 	return FALSE;

@@ -343,7 +343,7 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 static inline void
 mutex_try_contention(const mutex_t *m, const char *file, unsigned line)
 {
-	if G_UNLIKELY(mutex_contention_trace)
+	if G_UNLIKELY(mutex_contention_trace && !mutex_pass_through)
 		s_rawdebug("LOCK already busy for mutex %p at %s:%u", m, file, line);
 }
 
