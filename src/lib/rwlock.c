@@ -481,10 +481,19 @@ rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 static void
 rwlock_wait_queue_dump(const rwlock_t *rw)
 {
-	const struct rwlock_waiting *wc = rw->wait_head;
+	rwlock_t *rww = deconstify_pointer(rw);
+	const struct rwlock_waiting *wc;
+
+	RWLOCK_LOCK(rww);
+
+	wc = rw->wait_head;
 
 	/*
 	 * This routine can be called during crashes, use raw logging.
+	 *
+	 * Also since we are locking the lock, and this lock is a spinlock,
+	 * we must make sure there will be minimal locking done by the
+	 * logging routines to avoid a deadlock.
 	 */
 
 	if (wc != NULL) {
@@ -536,6 +545,8 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 			wc->reading ? "read" : "write", rw);
 		wc = wc->next;
 	}
+
+	RWLOCK_UNLOCK(rww);
 }
 
 /**
@@ -733,6 +744,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 					rw->readers, rw->writers,
 					rw->waiters - rw->write_waiters, rw->write_waiters,
 					file, line);
+				rwlock_wait_queue_dump(rw);
 			}
 
 			compat_usleep_nocancel(RWLOCK_DELAY);
