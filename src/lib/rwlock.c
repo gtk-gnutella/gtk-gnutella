@@ -1387,6 +1387,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	bool got;
 	unsigned stid = thread_small_id();
 	size_t count;
+	bool need_wait;
 
 	rwlock_check(rw);
 	g_assert_log(rw->readers != 0,
@@ -1399,7 +1400,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 		"attempting to upgrade non-held read-lock %p at %s:%u",
 		rw, file, line);
 
-	g_assert(count <= rw->readers);
+	g_assert(count <= rw->readers || rwlock_pass_through);
 
 	/*
 	 * When nobody is owning the write lock we can wait for all the readers
@@ -1436,6 +1437,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 			got = FALSE;
 		}
 	}
+	need_wait = got && count != rw->readers;
 	RWLOCK_UNLOCK(rw);
 
 	if G_UNLIKELY(!got) {
@@ -1451,7 +1453,7 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	 * immediately check for readers.
 	 */
 
-	if G_UNLIKELY(count != rw->readers)
+	if G_UNLIKELY(need_wait && !rwlock_pass_through)
 		rwlock_wait_readers(rw, count, file, line);
 
 	/*
