@@ -142,6 +142,7 @@ LSRC = \
 	fs_free_space.c \
 	ftw.c \
 	gen-iprange.c \
+	gen-re.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -216,6 +217,7 @@ LSRC = \
 	rand31.c \
 	random.c \
 	rbtree.c \
+	re.c \
 	regex.c \
 	ripening.c \
 	rwlock.c \
@@ -367,6 +369,7 @@ NormalTestTarget(ftw)
 NormalTestTarget(launch)
 NormalTestTarget(pattern)
 NormalTestTarget(random)
+NormalTestTarget(re)
 NormalTestTarget(sort)
 NormalTestTarget(spopen)
 NormalTestTarget(stack)
@@ -378,4 +381,5 @@ NormalTestTarget(trie)
 LinkSourceFileAlias(file, $(IF)/gen, gen-file)
 
 LinkGenInterface(iprange.c)
+LinkGenInterface(re.c)
 

@@ -58,11 +58,11 @@ YACC = $yacc
 
 USRINC = $usrinc
 DBUS_CFLAGS =  $dbuscflags
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
+GLIB_CFLAGS =  $glibcflags
 GLIB_LDFLAGS =  $glibldflags
 COMMON_LIBS =  $libs
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
-GLIB_CFLAGS =  $glibcflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -214,6 +214,7 @@ LSRC = \
 	fs_free_space.c \
 	ftw.c \
 	gen-iprange.c \
+	gen-re.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -288,6 +289,7 @@ LSRC = \
 	rand31.c \
 	random.c \
 	rbtree.c \
+	re.c \
 	regex.c \
 	ripening.c \
 	rwlock.c \
@@ -430,6 +432,7 @@ LOBJ = \
 	fs_free_space.o \
 	ftw.o \
 	gen-iprange.o \
+	gen-re.o \
 	gentime.o \
 	getcpucount.o \
 	getdate.o \
@@ -504,6 +507,7 @@ LOBJ = \
 	rand31.o \
 	random.o \
 	rbtree.o \
+	re.o \
 	regex.o \
 	ripening.o \
 	rwlock.o \
@@ -716,6 +720,17 @@ random-test:  random-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: re-test
+
+local_realclean::
+	$(RM) re-test$(_EXE)
+
+re-test:  re-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  re-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: sort-test
 
 local_realclean::
@@ -790,6 +805,15 @@ local_depend::  gen-iprange.c
 
 local_realclean::
 	$(RM) -f  gen-iprange.c
+
+gen-re.c:   $(IF)/gen/re.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-re.c
+
+local_realclean::
+	$(RM) -f  gen-re.c
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

@@ -612,6 +612,9 @@ src/if/gen/msg.h
 src/if/gen/msg.lst
 src/if/gen/msg_drop.c
 src/if/gen/msg_drop.h
+src/if/gen/re.c
+src/if/gen/re.h
+src/if/gen/re.lst
 src/if/gen/stats.lst
 src/if/gen/vxml.c
 src/if/gen/vxml.h
@@ -960,6 +963,9 @@ src/lib/random.h
 src/lib/random-test.c
 src/lib/rbtree.c
 src/lib/rbtree.h
+src/lib/re-test.c
+src/lib/re.c
+src/lib/re.h
 src/lib/regex.c
 src/lib/regex.h
 src/lib/registers.h

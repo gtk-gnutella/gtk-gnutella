@@ -84,6 +84,26 @@ regenerate::
 	$(RM) -f  msg_drop.c  msg_drop.h
 	$(MAKE)  msg_drop.c  msg_drop.h
 
+http_async.c  http_async.h: http_async.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_async.lst
+	touch  http_async.c  http_async.h
+
+all::  http_async.c  http_async.h
+
+regenerate::
+	$(RM) -f  http_async.c  http_async.h
+	$(MAKE)  http_async.c  http_async.h
+
+http_url.c  http_url.h: http_url.lst
+	-perl $(TOP)/scripts/enum-msg.pl http_url.lst
+	touch  http_url.c  http_url.h
+
+all::  http_url.c  http_url.h
+
+regenerate::
+	$(RM) -f  http_url.c  http_url.h
+	$(MAKE)  http_url.c  http_url.h
+
 ignore.c  ignore.h: ignore.lst
 	-perl $(TOP)/scripts/enum-msg.pl ignore.lst
 	touch  ignore.c  ignore.h
@@ -104,16 +124,6 @@ regenerate::
 	$(RM) -f  iprange.c  iprange.h
 	$(MAKE)  iprange.c  iprange.h
 
-gnr_stats.c  gnr_stats.h: stats.lst
-	-perl $(TOP)/scripts/enum-msg.pl stats.lst
-	touch  gnr_stats.c  gnr_stats.h
-
-all::  gnr_stats.c  gnr_stats.h
-
-regenerate::
-	$(RM) -f  gnr_stats.c  gnr_stats.h
-	$(MAKE)  gnr_stats.c  gnr_stats.h
-
 msg.c  msg.h: msg.lst
 	-perl $(TOP)/scripts/enum-msg.pl msg.lst
 	touch  msg.c  msg.h
@@ -124,25 +134,25 @@ regenerate::
 	$(RM) -f  msg.c  msg.h
 	$(MAKE)  msg.c  msg.h
 
-http_async.c  http_async.h: http_async.lst
-	-perl $(TOP)/scripts/enum-msg.pl http_async.lst
-	touch  http_async.c  http_async.h
+re.c  re.h: re.lst
+	-perl $(TOP)/scripts/enum-msg.pl re.lst
+	touch  re.c  re.h
 
-all::  http_async.c  http_async.h
-
-regenerate::
-	$(RM) -f  http_async.c  http_async.h
-	$(MAKE)  http_async.c  http_async.h
-
-http_url.c  http_url.h: http_url.lst
-	-perl $(TOP)/scripts/enum-msg.pl http_url.lst
-	touch  http_url.c  http_url.h
-
-all::  http_url.c  http_url.h
+all::  re.c  re.h
 
 regenerate::
-	$(RM) -f  http_url.c  http_url.h
-	$(MAKE)  http_url.c  http_url.h
+	$(RM) -f  re.c  re.h
+	$(MAKE)  re.c  re.h
+
+gnr_stats.c  gnr_stats.h: stats.lst
+	-perl $(TOP)/scripts/enum-msg.pl stats.lst
+	touch  gnr_stats.c  gnr_stats.h
+
+all::  gnr_stats.c  gnr_stats.h
+
+regenerate::
+	$(RM) -f  gnr_stats.c  gnr_stats.h
+	$(MAKE)  gnr_stats.c  gnr_stats.h
 
 vxml.c  vxml.h: vxml.lst
 	-perl $(TOP)/scripts/enum-msg.pl vxml.lst
