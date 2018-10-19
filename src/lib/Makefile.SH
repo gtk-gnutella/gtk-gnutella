@@ -278,6 +278,7 @@ LSRC = \
 	plist.c \
 	pmsg.c \
 	pow2.c \
+	privlog.c \
 	product.c \
 	progname.c \
 	prop.c \
@@ -490,6 +491,7 @@ LOBJ = \
 	plist.o \
 	pmsg.o \
 	pow2.o \
+	privlog.o \
 	product.o \
 	progname.o \
 	prop.o \

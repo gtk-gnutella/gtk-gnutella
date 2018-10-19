@@ -206,6 +206,7 @@ LSRC = \
 	plist.c \
 	pmsg.c \
 	pow2.c \
+	privlog.c \
 	product.c \
 	progname.c \
 	prop.c \
