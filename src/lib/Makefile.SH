@@ -58,11 +58,11 @@ YACC = $yacc
 
 USRINC = $usrinc
 SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
 COMMON_LIBS =  $libs
 DBUS_CFLAGS =  $dbuscflags
-GLIB_LDFLAGS =  $glibldflags
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
 GLIB_CFLAGS =  $glibcflags
+GLIB_LDFLAGS =  $glibldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -206,6 +206,7 @@ LSRC = \
 	filelock.c \
 	filename.c \
 	file_object.c \
+	file_rotate.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
@@ -417,6 +418,7 @@ LOBJ = \
 	filelock.o \
 	filename.o \
 	file_object.o \
+	file_rotate.o \
 	float.o \
 	fragcheck.o \
 	frand.o \

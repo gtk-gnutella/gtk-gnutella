@@ -134,6 +134,7 @@ LSRC = \
 	filelock.c \
 	filename.c \
 	file_object.c \
+	file_rotate.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
