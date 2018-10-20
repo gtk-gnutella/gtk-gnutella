@@ -467,7 +467,7 @@ str_make(char *ptr, size_t len)
  * Creates a clone of the str_t object.
  */
 str_t *
-str_clone(str_t *str)
+str_clone(const str_t *str)
 {
 	size_t len;
 	str_t *n;
@@ -830,7 +830,7 @@ str_s2c_null(str_t **s_ptr)
  * use str_s2c() to dispose of it whilst retaining its arena.
  */
 char *
-str_dup(str_t *str)
+str_dup(const str_t *str)
 {
 	size_t len;
 	char *sdup, *p;
