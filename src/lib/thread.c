@@ -3991,9 +3991,12 @@ thread_id_stack_used(uint stid,  const void *sp)
 	if (NULL == te || !te->valid)
 		return 0;
 
-	base = ulong_to_pointer(te->low_qid << thread_pageshift);
-	if (thread_sp_direction < 0)
+	if (thread_sp_direction < 0) {
+		base = ulong_to_pointer(te->high_qid << thread_pageshift);
 		base = ptr_add_offset(base, (1 << thread_pageshift));
+	} else {
+		base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	}
 
 	return thread_stack_ptr_offset(base, sp);
 }
