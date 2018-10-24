@@ -4013,6 +4013,28 @@ thread_stack_used(void)
 }
 
 /**
+ * How much more stack did we use or release since `sp'?
+ *
+ * If the returned value is positive, we consumed more stack, else
+ * we released some.
+ *
+ * There is no verfication that `sp' belongs to the current execution
+ * stack, for execution speed.
+ *
+ * @param sp	starting point
+ *
+ * @return thread stack consumed / released since starting point.
+ */
+ssize_t
+thread_stack_diff(const void *sp)
+{
+	if (thread_sp_direction < 0)
+		return ptr_diff(sp, &sp);
+	else
+		return ptr_diff(&sp, sp);
+}
+
+/**
  * Invoke signal handler for a specified signal.
  *
  * @param te		the thread element of the current thread
