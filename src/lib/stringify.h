@@ -228,6 +228,23 @@ plural_f(const unsigned long v)
 	return 1 == v ? "f" : "ves";
 }
 
+/*
+ * Convenience macros to supply both the quantity argument and
+ * the correct plural, in formatting arguments.
+ *
+ * For instance: str_catf(s, "%zu byte%s", PLURAL(n));
+ *
+ * These macro cause their argument to be evaluated twice, so
+ * beware of side effects and costly computations.  Usually, this is
+ * used when logging, and the duplicate evaluation is not an issue.
+ */
+
+#define PLURAL(n)		(n), plural(n)
+#define PLURAL_Y(n)		(n), plural_y(n)
+#define PLURAL_ES(n)	(n), plural_es(n)
+#define PLURAL_F(n)		(n), plural_f(n)
+
 #endif /* _stringify_h_ */
+
 
 /* vi: set ts=4 sw=4 cindent: */
