@@ -100,7 +100,7 @@ bit_generic_init(bit_generic_t *base, size_t n)
 static inline ALWAYS_INLINE void
 bit_generic_set(bit_generic_t *base, size_t i)
 {
-	BIT_GENERIC_WORD(base, i) |= BIT_GENERIC_BIT(base, i);
+	BIT_GENERIC_WORD(base, i) |= BIT_GENERIC_BIT(i);
 }
 
 /**
@@ -112,7 +112,7 @@ bit_generic_set(bit_generic_t *base, size_t i)
 static inline ALWAYS_INLINE void 
 bit_generic_clear(bit_generic_t *base, size_t i)
 {
-	BIT_GENERIC_WORD(base, i) &= ~BIT_GENERIC_BIT(base, i);
+	BIT_GENERIC_WORD(base, i) &= ~BIT_GENERIC_BIT(i);
 }
 
 /**
@@ -126,7 +126,7 @@ bit_generic_clear(bit_generic_t *base, size_t i)
 static inline ALWAYS_INLINE bool
 bit_generic_flip(bit_generic_t *base, size_t i)
 {
-	return BIT_GENERIC_WORD(base, i) ^= BIT_GENERIC_BIT(base, i);
+	return BIT_GENERIC_WORD(base, i) ^= BIT_GENERIC_BIT(i);
 }
 
 /**
@@ -139,7 +139,7 @@ bit_generic_flip(bit_generic_t *base, size_t i)
 static inline ALWAYS_INLINE bool
 bit_generic_get(const bit_generic_t *base, size_t i)
 {
-	return 0 != (BIT_GENERIC_WORD(base, i) & BIT_GENERIC_BIT(base, i));
+	return 0 != (BIT_GENERIC_WORD(base, i) & BIT_GENERIC_BIT(i));
 }
 
 /**

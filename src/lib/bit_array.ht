@@ -67,8 +67,8 @@ typedef unsigned long bit_array_t;
 #endif	/* CHAR_BIT */
 #endif	/* LONG_MAX */
 
-#define BIT_ARRAY_BITSIZE (CHAR_BIT * sizeof(bit_array_t))
-#define BIT_ARRAY_BITMASK (BIT_ARRAY_BITSIZE - 1)
-#define BIT_ARRAY_WORD(base, i) base[(i) >> BIT_ARRAY_BITSHIFT]
-#define BIT_ARRAY_BIT(base, i) (1UL << ((i) & BIT_ARRAY_BITMASK)) 
+#define BIT_ARRAY_BITSIZE		(CHAR_BIT * sizeof(bit_array_t))
+#define BIT_ARRAY_BITMASK		(BIT_ARRAY_BITSIZE - 1)
+#define BIT_ARRAY_WORD(base, i)	base[(i) >> BIT_ARRAY_BITSHIFT]
+#define BIT_ARRAY_BIT(i)		(1UL << ((i) & BIT_ARRAY_BITMASK))
 
