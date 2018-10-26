@@ -249,6 +249,8 @@ LSRC = \
 	tm.c \
 	tokenizer.c \
 	tqsort.c \
+	trie.c \
+	trie_fmt.c \
 	tsig.c \
 	url.c \
 	urn.c \
@@ -369,6 +371,7 @@ NormalTestTarget(spopen)
 NormalTestTarget(stack)
 NormalTestTarget(stat)
 NormalTestTarget(thread)
+NormalTestTarget(trie)
 
 #define LinkGenInterface(file)	@!\
 LinkSourceFileAlias(file, $(IF)/gen, gen-file)

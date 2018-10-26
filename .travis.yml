@@ -29,6 +29,7 @@ script:
   - src/lib/stack-test
   - src/lib/sort-test
   - src/lib/pattern-test
+  - src/lib/trie-test
   - src/lib/filelock-test -ce foo
   - src/lib/filelock-test -cep foo
   - src/lib/launch-test

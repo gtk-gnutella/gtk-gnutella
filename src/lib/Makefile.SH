@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
-COMMON_LIBS =  $libs
 DBUS_CFLAGS =  $dbuscflags
 GLIB_CFLAGS =  $glibcflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 GLIB_LDFLAGS =  $glibldflags
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
+COMMON_LIBS =  $libs
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -321,6 +321,8 @@ LSRC = \
 	tm.c \
 	tokenizer.c \
 	tqsort.c \
+	trie.c \
+	trie_fmt.c \
 	tsig.c \
 	url.c \
 	urn.c \
@@ -534,6 +536,8 @@ LOBJ = \
 	tm.o \
 	tokenizer.o \
 	tqsort.o \
+	trie.o \
+	trie_fmt.o \
 	tsig.o \
 	url.o \
 	urn.o \
@@ -764,6 +768,17 @@ thread-test:  thread-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  thread-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: trie-test
+
+local_realclean::
+	$(RM) trie-test$(_EXE)
+
+trie-test:  trie-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  trie-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 gen-iprange.c:   $(IF)/gen/iprange.c
 	$(RM) -f $@

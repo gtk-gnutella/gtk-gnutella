@@ -1034,6 +1034,11 @@ src/lib/tokenizer.c
 src/lib/tokenizer.h
 src/lib/tqsort.c
 src/lib/tqsort.h
+src/lib/trie-test.c
+src/lib/trie.c
+src/lib/trie.h
+src/lib/trie_fmt.c
+src/lib/trie_fmt.h
 src/lib/tsig.c
 src/lib/tsig.h
 src/lib/unsigned.h
