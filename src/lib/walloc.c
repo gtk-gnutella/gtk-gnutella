@@ -223,8 +223,10 @@ walloc_get_zone(size_t rounded, bool allocate)
 		WALLOC_LOCK;
 
 		if (NULL == (zone = wzone[idx])) {
-			if (walloc_stopped)
+			if (walloc_stopped) {
+				WALLOC_UNLOCK;
 				return NULL;
+			}
 
 			if (!allocate)
 				s_error("missing %zu-byte zone", rounded);
