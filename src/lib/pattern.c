@@ -1947,7 +1947,7 @@ pattern_strstr_tiny(const char *haystack, const char *needle, size_t nlen)
 	end = haystack + hlen;	/* The trailing NUL byte of haystack */
 
 aligned:
-	if G_LIKELY(op_aligned(p)) {
+	if G_LIKELY(op_aligned(p) && ptr_diff(p, haystack) >= sizeof(op_t)) {
 		op_t w, looking, m;
 		uint8 carry = 0;
 		const char *enda = op_ptr_roundup(end);
