@@ -614,7 +614,7 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	thread_lock_contention(reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK);
 
 	if G_UNLIKELY(rwlock_contention_trace) {
-		s_rawinfo("LOCK contention for %s-lock %p (r:%u w:%u q:%u+%u)at %s:%u",
+		s_rawinfo("LOCK contention for %s-lock %p (r:%u w:%u q:%u+%u) at %s:%u",
 			reading ? "read" : "write", rw,
 			rw->readers, rw->writers,
 			rw->waiters - rw->write_waiters, rw->write_waiters,
