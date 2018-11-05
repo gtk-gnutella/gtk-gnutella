@@ -1071,23 +1071,17 @@ const int8 *alnum2int_tab = char2int_tabs[2];
 /**
  * Converts a hexadecimal char (0-9, A-F, a-f) to an integer.
  *
- * Passing a character which is not a hexadecimal ASCII character
- * causes an assertion failure.
- *
  * @param c the hexadecimal ASCII character to convert.
- * @return "0..15" for valid hexadecimal ASCII characters.
+ * @return "0..15" for valid hexadecimal ASCII characters, -1 if
+ * the character is out of range.
  */
 int
 hex2int(uchar c)
 {
-	int ret;
-
 	if G_UNLIKELY(0 == hex2int_inline('a'))
 		misc_init();	/* Auto-initialization of hex2int_inline() */
 
-	ret = hex2int_inline(c);
-	g_assert(-1 != ret);
-	return ret;
+	return hex2int_inline(c);
 }
 
 /**
@@ -1097,41 +1091,31 @@ hex2int(uchar c)
  * an assertion failure.
  *
  * @param c the decimal ASCII character to convert.
- * @return "0..9" for valid decimal ASCII characters.
+ * @return "0..9" for valid decimal ASCII characters, -1 if the
+ * character is out of range..
  */
-static int
+int
 dec2int(uchar c)
 {
-	int ret;
-
 	if G_UNLIKELY(0 == dec2int_inline('1'))
 		misc_init();		/* Auto-initialization of dec2int_inline() */
 
-	ret = dec2int_inline(c);
-	g_assert(-1 != ret);
-	return ret;
+	return dec2int_inline(c);
 }
 
 /**
  * Converts an alphanumeric char (0-9, A-Z, a-z) to an integer.
  *
- * Passing a character which is not an alphanumeric ASCII character
- * causes an assertion failure.
- *
  * @param c the decimal ASCII character to convert.
- * @return "0..36" for valid decimal ASCII characters.
+ * @return "0..36" for valid decimal ASCII characters, -1 if out of range.
  */
-static int
+int
 alnum2int(uchar c)
 {
-	int ret;
-
 	if G_UNLIKELY(0 == alnum2int_inline('a'))
 		misc_init();		/* Auto-initialization of alnum2int_inline() */
 
-	ret = alnum2int_inline(c);
-	g_assert(-1 != ret);
-	return ret;
+	return alnum2int_inline(c);
 }
 
 /**

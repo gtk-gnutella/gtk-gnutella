@@ -274,6 +274,8 @@ void misc_close(void);
 
 size_t strchomp(char *str, size_t len);
 int hex2int(uchar c);
+int alnum2int(uchar c);
+int dec2int(uchar c);
 bool is_printable(const char *buf, int len);
 void dump_hex(FILE *, const char *, const void *, int);
 void dump_hex_vec(FILE *out, const char *title,
