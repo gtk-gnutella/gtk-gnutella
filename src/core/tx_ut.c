@@ -1330,9 +1330,30 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 					uf->fragno + 1, um->fragcnt, um->seqno, uf->txcnt,
 					gnet_host_to_string(um->to), ut_frag_delay(uf));
 			}
-			g_assert(NULL == uf->resend_ev);
-			uf->resend_ev = cq_main_insert(ut_frag_delay(uf),
-				ut_frag_resend, uf);
+
+			/*
+			 * We now explicitly cancel any pending uf->resend_ev event
+			 * instead of simply asserting there is no such event registered.
+			 *
+			 * With the introduction of explicit flush before the message
+			 * times out for transmission, it could be possible that a single
+			 * fragment is enqueued several times for transmission, and
+			 * that would cause an assertion failure here when both instances
+			 * get sent and try to install the ut_frag_resend() callout
+			 * when this callback fires on them.
+			 *
+			 * Aim for robustness by not asserting something that is only
+			 * an internal property at some given time and could become false
+			 * due to the TX logic being refactored, without damaging our
+			 * operations  The only thing we want is avoid duplicate processing
+			 * if a previous uf->resend_ev was scheduled.  So simply cancel any
+			 * previous event we find.
+			 * 		--RAM, 2018-11-08
+			 */
+
+			cq_cancel(&uf->resend_ev);
+			uf->resend_ev =
+				cq_main_insert(ut_frag_delay(uf), ut_frag_resend, uf);
 
 			/*
 			 * If this is the first fragment being sent, reschedule the
@@ -1365,8 +1386,9 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		 *		--RAM, 2015-10-02
 		 */
 
-		g_assert(NULL == uf->resend_ev);
-		uf->resend_ev = cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
+		cq_cancel(&uf->resend_ev);		/* Same rationale as above */
+		uf->resend_ev =
+			cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
 	}
 
 	/* FALL THROUGH */
