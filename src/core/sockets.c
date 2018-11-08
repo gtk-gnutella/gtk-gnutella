@@ -3091,6 +3091,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 	struct udpctx *uctx;
 
 	(void) unused_source;
+	socket_check(s);
 	g_assert(s->flags & SOCK_F_UDP);
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
