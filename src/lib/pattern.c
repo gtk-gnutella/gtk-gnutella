@@ -633,7 +633,7 @@ pattern_compile(const char *pattern, bool icase)
 {
 	cpattern_t *p;
 
-	WALLOC(p);
+	WALLOC0(p);
 	p->magic = CPATTERN_MAGIC;
 	p->icase = booleanize(icase);
 	p->pattern = xstrdup(pattern);
@@ -663,7 +663,7 @@ pattern_compile_fast(const char *pattern, size_t plen, bool icase)
 {
 	cpattern_t *p;
 
-	WALLOC(p);
+	WALLOC0(p);
 	p->magic = CPATTERN_MAGIC;
 	p->icase = booleanize(icase);
 	p->pattern = pattern;
