@@ -935,8 +935,6 @@ pattern_qsearch_known(
 	endtp = end - plen;
 	pat = (const uchar *) cpat->pattern;
 
-	g_assert('\0' == *end);	/* Ensure tlen was correct! */
-
 	/*
 	 * Code is duplicated to avoid tests as much as possible within the
 	 * tight pattern matching loops.
@@ -1337,8 +1335,6 @@ pattern_match_known(
 	nlen = p->len;
 	l = p->leftlen;
 	endhp = haystack + (hlen - nlen);
-
-	g_assert('\0' == haystack[hlen]);	/* Ensure hlen is correct */
 
 #define PATTERN_RIGHT_MATCH_ICASE(u)									\
 	while (i < (u) && ascii_tolower(*h++) == ascii_tolower(*n++))		\
