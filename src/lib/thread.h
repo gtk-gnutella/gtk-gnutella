@@ -370,6 +370,7 @@ int thread_kill(unsigned id, int signum);
 tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
+size_t thread_stack_size(void);
 bool thread_signal_has_pending(size_t locks);
 bool thread_signal_process(void);
 bool thread_pause(void);

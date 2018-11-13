@@ -4963,7 +4963,7 @@ thread_signal_check_element(struct thread_element *te)
 int
 thread_sighandler_level(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->in_signal_handler;
 }
@@ -4984,9 +4984,22 @@ thread_sighandler_level(void)
 unsigned
 thread_sig_generation(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->sig_generation;
+}
+
+/**
+ * Get the known stack size for the thread.
+ *
+ * @return the stack size for created threads, 0 for discovered ones.
+ */
+size_t
+thread_stack_size(void)
+{
+	const struct thread_element *te = thread_get_element();
+
+	return te->stack_size;
 }
 
 /**
@@ -10190,7 +10203,7 @@ thread_exit(void *value)
 bool
 thread_is_exiting(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->exit_started;
 }
