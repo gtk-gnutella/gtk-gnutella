@@ -180,14 +180,14 @@ balloc_is_initialized(const void *base)
 }
 
 /**
- * Allocate a new block from an initialized buffer.
+ * Allocate a new blovk from an initialized buffer.
  *
  * @param base		buffer base
  *
- * @return newly allocated block address.
+ * @return newly allocated block address or NULL if there are no more blocks.
  */
 void *
-balloc_alloc(void *base)
+balloc_try_alloc(void *base)
 {
 	balloc_t *b = base;
 	void *blk;
@@ -203,6 +203,21 @@ balloc_alloc(void *base)
 		b->avail = *(void **) blk;
 
 	balloc_unlock(b);
+
+	return blk;
+}
+
+/**
+ * Allocate a new block from an initialized buffer.
+ *
+ * @param base		buffer base
+ *
+ * @return newly allocated block address.
+ */
+void *
+balloc_alloc(void *base)
+{
+	void *blk = balloc_try_alloc(base);
 
 	if G_UNLIKELY(NULL == blk)
 		s_error("%s(): no more free blocks in buffer %p", G_STRFUNC, base);
