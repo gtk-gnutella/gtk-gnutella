@@ -233,4 +233,31 @@ balloc_free(void *base, void *p)
 	balloc_unlock(b);
 }
 
+/**
+ * Free blocks that are part of a one-way linked list.
+ *
+ * @param base		buffer base
+ * @param pl		head of linked list
+ */
+void
+balloc_free_pslist(void *base, pslist_t *pl)
+{
+	balloc_t *b = base;
+	pslist_t *l, *next;
+
+	balloc_check(b);
+
+	balloc_lock(b);
+
+	for (l = pl; l != NULL; l = next) {
+		next = l->next;
+		/* Put back cell block at head of free list */
+		*(void **) l = b->avail;
+		b->avail = l;
+
+	}
+
+	balloc_unlock(b);
+}
+
 /* vi: set ts=4 sw=4 cindent: */

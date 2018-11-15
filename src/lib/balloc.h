@@ -43,6 +43,7 @@ bool balloc_is_initialized(const void *base);
 
 void *balloc_alloc(void *base) G_MALLOC;
 void balloc_free(void *base, void *p);
+void balloc_free_pslist(void *base, pslist_t *pl);
 
 #endif /* _balloc_h_ */
 
