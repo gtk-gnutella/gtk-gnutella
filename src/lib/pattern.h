@@ -72,7 +72,9 @@ const char *pattern_match_force(const cpattern_t *cpat,
 	const char *text, size_t tlen, size_t toffset, qsearch_mode_t word);
 
 void *pattern_memchr(const void *s, int c, size_t n);
+void *pattern_memrchr(const void *s, int c, size_t n);
 char *pattern_strchr(const char *s, int c);
+char *pattern_strrchr(const char *s, int c);
 
 #ifdef PATTERN_BENCHMARKING_SOURCE
 /* These routines are for benchmarking only */
@@ -95,16 +97,24 @@ void pattern_init(int verbose);
  * use the libc version or our own implementation if it ends up being faster.
  */
 
+#ifndef HAS_MEMRCHR
+#define memrchr(s,c,n)	pattern_memrchr((s),(c),(n))
+#endif
+
 typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
 typedef char *(pattern_strchr_t)(const char *s, int c);
 typedef size_t (pattern_strlen_t)(const char *s);
 
 extern pattern_memchr_t *fast_memchr;
+extern pattern_memchr_t *fast_memrchr;
 extern pattern_strchr_t *fast_strchr;
+extern pattern_strchr_t *fast_strrchr;
 extern pattern_strlen_t *fast_strlen;
 
 #define vmemchr(s,c,n)	fast_memchr(s,c,n)
+#define vmemrchr(s,c,n)	fast_memrchr(s,c,n)
 #define vstrchr(s,c)	fast_strchr(s,c)
+#define vstrrchr(s,c)	fast_strrchr(s,c)
 #define vstrlen(s)		fast_strlen(s)
 
 char *vstrstr(const char *haystack, const char *needle);

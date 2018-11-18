@@ -544,6 +544,19 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_mempcpy HAS_MEMPCPY	/**/
 
+/* HAS_MEMRCHR:
+ *	This symbol, if defined, indicates that the memrchr routine is available
+ *	to scan a block of memory backwards for a character.
+ *	If undefined, roll your own.
+ */
+#$d_memrchr HAS_MEMRCHR		/**/
+
+/* HAS_MEMSET:
+ *	This symbol, if defined, indicates that the memset routine is available
+ *	to set blocks of memory.
+ */
+#$d_memset HAS_MEMSET	/**/
+
 /* HAS_MMAP:
  *	This symbol, if defined, indicates that the mmap system call is
  *	available to map a file into memory.

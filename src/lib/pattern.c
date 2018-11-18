@@ -63,8 +63,15 @@ typedef const char *(pattern_dflt_unknown_t)(
 typedef const char *(pattern_dflt_known_t)(
 	const cpattern_t *p, const uchar *h, size_t hl, size_t ho, qsearch_mode_t m);
 
+#ifndef HAS_MEMRCHR
+#undef memrchr
+#define memrchr pattern_memrchr
+#endif
+
 pattern_memchr_t *fast_memchr = memchr;
+pattern_memchr_t *fast_memrchr = memrchr;
 pattern_strchr_t *fast_strchr = strchr;
+pattern_strchr_t *fast_strrchr = strrchr;
 pattern_strlen_t *fast_strlen = strlen;
 
 static size_t pattern_unknown_cutoff;	/* Needle cut-off length */
@@ -1656,29 +1663,34 @@ pattern_match_force(
  *
  * The pattern_zbyte() routine also takes care of the scanning order: we look
  * for the first zero-ed byte from right-to-left or left-to-right because
- * we are interested by the very first match! This means we need to byte-swap
- * the value on big-endian machines.
+ * we are interested by the very first match when searching forward.
+ *
+ * For backward searching routines like pattern_memrchr(), we use the
+ * pattern_zbyte_rev() routine which find the first zero-ed byte from the
+ * opposite direction compared to pattern_zbyte().
  */
 
-#define ONEMASK		((op_t) (-1) / 0xff)	/* 0x01010101 on 32-bit machine */
-#define ONEMASK2	((op_t) (-1) / 0xffff)	/* 0x00010001 on 32-bit machine */
+#define ONEMASK		((op_t) -1 / 0xff)		/* 0x01010101 on 32-bit machine */
+#define ONEMASK2	((op_t) -1 / 0xffff)	/* 0x00010001 on 32-bit machine */
+
+#define ZEROMASK 	((op_t) -1 & ~(ONEMASK << 7))	/* 0x7F7F7F7F on 32- bit */
 
 #define HAS_NUL_BYTE(x)	 (((x) - ONEMASK)  & (~(x)) & (ONEMASK * 0x80))
 #define HAS_ZERO16(x)	 (((x) - ONEMASK2) & (~(x)) & (ONEMASK2 * 0x8000))
 
-/*
- * How do we count trailing zeros in op_t?
+/**
+ * Computes value containing 0x80 at the place of zero bytes in `n'
+ * and 0x00 for all the other bytes.
  */
-#if LONGSIZE == 8
-#define CTZ(x)	ctz64(x)
-#elif LONGSIZE == 4
-#define CTZ(x)	ctz(x)
-#else
-#error "unexpected long size"
-#endif
+static inline op_t
+pattern_zeroes(op_t n)
+{
+	op_t v = (n & ZEROMASK) + ZEROMASK;
+	return ~(v | n | ZEROMASK);
+}
 
 /**
- * Computes which byte is zero in the size_t value, from the right.
+ * Computes which byte is zero in the op_t value, from the right.
  *
  * Byte 0 is the low-order byte.
  *
@@ -1692,41 +1704,60 @@ pattern_zbyter(op_t n)
 	int i;
 
 	/*
-	 * The HAS_NUL_BYTE macro returned value is a word where the 7th bit
-	 * of a byte is set if that byte was NUL (zero). All the other bits
-	 * are zero.
+	 * The pattern_zeroes() call returns a value where the 7th bit
+	 * of a byte is set if that byte was NUL (zero). All the other
+	 * bits are zero.
 	 *
-	 * If there are no NUL bytes, this means the value is 0, and CTZ()
+	 * If there are no NUL bytes, this means the value is 0, and OP_CTZ()
 	 * (count trailing zeroes) is undefined, but we chose to return -1
 	 * in that case.
 	 */
 
-	i = CTZ(HAS_NUL_BYTE(n));
+	i = OP_CTZ(pattern_zeroes(n));
 
 	return ((i + 1) >> 3) - 1;	/* -1 if i was 0, 0 if i was 7, etc... */
 }
 
-#if IS_LITTLE_ENDIAN
-#define pattern_zbyte pattern_zbyter
-#endif	/* IS_LITTLE_ENDIAN */
-
-#if IS_BIG_ENDIAN
 /**
- * Computes which byte is zero in the size_t value, from the left.
+ * Computes which byte is zero in the op_t value, from the left.
  *
- * Byte 0 is the high-order byte.
+ * Byte 0 is the low-order byte.
  *
- * @param n		the value to probe (big-endian word)
+ * @param n		the value to probe
  *
  * @return index of the zero byte, -1 indicating no zero byte found.
  */
 static inline int
-pattern_zbyte(op_t n)
+pattern_zbytel(op_t n)
 {
-	n = ULONG_SWAP(n);			/* Make it little-endian */
-	return pattern_zbyter(n);
+	int i;
 
+	/*
+	 * The pattern_zeroes() call returns a value where the 7th bit
+	 * of a byte is set if that byte was NUL (zero). All the other
+	 * bits are zero.
+	 *
+	 * If there are no NUL bytes, this means the value is 0, and OP_CLZ()
+	 * (count leading zeroes) is undefined, but we chose to return the
+	 * size of the quantity in bits (32 or 64, depending) in that case.
+	 */
+
+	i = OP_CLZ(pattern_zeroes(n));
+
+	if (OPSIZ * CHAR_BIT == i)
+		return -1;					/* No '1' bit found */
+
+	return i >> 3;					/* 0 for i=0, 1 for i=8, 7 for i=56 */
 }
+
+#if IS_LITTLE_ENDIAN
+#define pattern_zbyte 		pattern_zbyter
+#define pattern_zbyte_rev	pattern_zbytel
+#endif	/* IS_LITTLE_ENDIAN */
+
+#if IS_BIG_ENDIAN
+#define pattern_zbyte 		pattern_zbytel
+#define pattern_zbyte_rev	pattern_zbyter
 #endif	/* IS_BIG_ENDIAN */
 
 /*
@@ -1767,7 +1798,7 @@ aligned:
 
 		y = op_roundup(y);
 
-		for (; y != 0; p += sizeof looking, y -= sizeof looking) {
+		for (; y != 0; p += OPSIZ, y -= OPSIZ) {
 			op_t m, w;
 			int z;
 			G_PREFETCH_R(&p[CPU_CACHELINE]);	/* Prefetch for next loop */
@@ -1786,6 +1817,8 @@ aligned:
 				/*
 				 * The index of the zero byte within `m' is going to give
 				 * the matching pointer.  But we need to see whether we are
+				 * considering a byte that would be past the end of the range
+				 * we are searching.
 				 *
 				 * Make sure the zero byte is within the lookup range.
 				 */
@@ -1800,7 +1833,7 @@ aligned:
 		}
 	} else {
 		while (y--) {
-			if G_UNLIKELY(*p++ == c)
+			if G_UNLIKELY(*(uchar *) p++ == c)
 				return deconstify_char(p) - 1;
 			if (op_aligned(p))
 				goto aligned;
@@ -1827,10 +1860,10 @@ pattern_strchr(const char *haystack, int c)
 aligned:
 	if G_LIKELY(op_aligned(p)) {
 		op_t looking = ONEMASK * c;		/* Fills all bytes with `c' */
-		for (;; p += sizeof looking) {
+		for (;; p += OPSIZ) {
 			op_t m, w;
 			int z;
-			G_PREFETCH_R(&p[sizeof looking]);	/* Prefetch for next loop */
+			G_PREFETCH_R(&p[OPSIZ]);	/* Prefetch for next loop */
 			w = *(op_t *) p;
 			/*
 			 * Sets a zero byte if the char we're looking for is present.
@@ -1869,7 +1902,7 @@ aligned:
 				return NULL;
 		}
 	} else {
-		while ((x = *p++)) {
+		while ((x = *(uchar *) p++)) {
 			if G_UNLIKELY(x == c)
 				return deconstify_char(p) - 1;
 			if (op_aligned(p))
@@ -1921,6 +1954,98 @@ aligned:
 }
 
 /**
+ * Fast memrchr() implementation, mimicing pattern_memchr().
+ *
+ * It searches `c' backwards from the first `n' bytes of `s'.
+ *
+ * @return the first matching location, NULL if `c' was not found within the
+ * specified range.
+ */
+void * G_HOT G_FAST
+pattern_memrchr(const void *haystack, int c, size_t n)
+{
+	const char *end = const_ptr_add_offset(haystack, -1);
+	const char *start = const_ptr_add_offset(end, n);
+	const char *p = start;
+	size_t y = n;
+
+	G_PREFETCH_R(p);
+
+aligned:
+	if G_LIKELY(op_aligned(p) && ptr_diff(start, p) >= OPSIZ) {
+		op_t looking = ONEMASK * c;		/* Fills all bytes with `c' */
+
+		/*
+		 * Round amount of chars up to the next multiple of the size
+		 * of a memory word.
+		 */
+
+		y = op_roundup(y);
+
+		for (; y != 0; p -= OPSIZ, y -= OPSIZ) {
+			op_t m, w;
+			int z;
+			G_PREFETCH_R(&p[CPU_CACHELINE]);	/* Prefetch for next loop */
+			w = *(op_t *) p;
+			/*
+			 * Sets a zero byte if the char we're looking for is present.
+			 */
+			m = w ^ looking;
+			z = pattern_zbyte_rev(m);
+			if G_UNLIKELY(z >= 0) {
+				const char *r;
+
+				/*
+				 * The index of the zero byte within `m' is going to give
+				 * the matching pointer.  But we need to see whether we are
+				 * considering a byte that would be past the end of the range
+				 * we are searching.
+				 *
+				 * Make sure the zero byte is within the lookup range.
+				 */
+
+				r = const_ptr_add_offset(p, OPSIZ - 1 - z);
+
+				if (r > end)
+					return deconstify_pointer(r);
+
+				return NULL;	/* Match occurred after the range */
+			}
+		}
+	} else {
+		while (y--) {
+			if G_UNLIKELY(*(uchar *) p-- == c)
+				return deconstify_char(p) + 1;
+			if (op_aligned(p) && ptr_diff(start, p) >= OPSIZ)
+				goto aligned;
+		}
+	}
+	return NULL;
+}
+
+/**
+ * Fast strrchr() implementation, based on the same principles as
+ * pattern_strchr().
+ *
+ * It locates the first `c' moving backwards from the end of the haystack.
+ * The NUL terminator of the haystack is considered, so if c is NUL, the
+ * location of that NUL is returned.
+ *
+ * @return the last matching location in the sequential string (the first one
+ * when moving backwards), or NULL if the character is not part of the string.
+ */
+char * G_HOT G_FAST
+pattern_strrchr(const char *haystack, int c)
+{
+	size_t len = vstrlen(haystack);
+
+	if G_UNLIKELY('\0' == c)
+		return (char *) haystack + len;
+
+	return pattern_memrchr(haystack, c, len);
+}
+
+/**
  * Specialized version for tiny needles of 2 characters.
  */
 static char * G_HOT G_FAST
@@ -1956,11 +2081,11 @@ aligned:
 #if LONGSIZE > 4
 		looking |= (looking << 32);
 #endif
-		for (; p <= enda; p += sizeof w) {
+		for (; p <= enda; p += OPSIZ) {
 			int y, z;
 			uint off = 0;
 			G_PREFETCH_R(&p[CPU_CACHELINE]);	/* Prefetch for next loop */
-			w = *(op_t *) &p[-sizeof w];	/* p always at end of what we read */
+			w = *(op_t *) &p[-OPSIZ];	/* p always at end of what we read */
 #if IS_BIG_ENDIAN
 			w = ULONG_SWAP(w);
 #endif	/* IS_BIG_ENDIAN */
@@ -1987,7 +2112,7 @@ aligned:
 			 * not match, no need to check for 0 explicitly.
 			 */
 			if ((uint8) hash == carry && (hash >> 8) == (uint8) w)
-				return deconstify_char(p) - sizeof w - 1;
+				return deconstify_char(p) - OPSIZ - 1;
 			/*
 			 * If we read a NUL byte, look where it lies.
 			 *
@@ -1996,10 +2121,10 @@ aligned:
 			 */
 			z = pattern_zbyter(w);	/* Find first zero byte from right */
 			if (z < 0)
-				z = sizeof w;		/* No NUL byte, parse the whole word */
+				z = OPSIZ;			/* No NUL byte, parse the whole word */
 			for (y = z; y >= 2; y--) {
 				if G_UNLIKELY(hash == (uint16) w)
-					return deconstify_char(p) + off - sizeof w;
+					return deconstify_char(p) + off - OPSIZ;
 				off++;
 				w >>= 8;
 			}
@@ -2448,6 +2573,11 @@ enum pattern_benchmark_type {
 	PATTERN_BENCH_DFLT_KNOWN
 };
 
+enum pattern_direction {
+	PATTERN_FORWARD,
+	PATTERN_BACKWARD
+};
+
 /* These are for benchmarking only */
 typedef char *(pattern_strstr_t)(cpattern_t *, const char *, const char *);
 typedef char *(pattern_strstr_len_t)(
@@ -2471,6 +2601,7 @@ struct pattern_benchmark_context {
 	const char *name[2];
 	double elapsed[2], sdev[2];
 	cpattern_t *cp;
+	enum pattern_direction direction;
 	union {
 		pattern_memchr_t *mc[2];
 		pattern_strchr_t *sc[2];
@@ -2518,8 +2649,16 @@ pattern_randomize_haystack_needle(struct pattern_benchmark_context *ctx)
 		p = vstrstr(ctx->s, ctx->needle);
 		ctx->needle[ctx->nlen] = c;
 
-		if (NULL == p || ptr_diff(p, ctx->s) >= 3 * ctx->slen / 5)
-			break;
+		if (NULL == p)
+			break;			/* Not found, will scan whole haystack */
+
+		if (PATTERN_FORWARD == ctx->direction) {
+			if (ptr_diff(p, ctx->s) >= 3 * ctx->slen / 5)
+				break;
+		} else {
+			if (ptr_diff(p, ctx->s) <= 2 * ctx->slen / 5)
+				break;
+		}
 	}
 
 	/*
@@ -2834,6 +2973,10 @@ pattern_benchmark_n_times(
 	return i;
 }
 
+#define PATTERN_BENCHMARK(idx, fn, function)	\
+	ctx->name[idx] = # function;				\
+	ctx->u.fn[idx] = function;
+
 /**
  * Benchmark the memchr() routine against pattern_memchr().
  */
@@ -2842,16 +2985,39 @@ pattern_benchmark_memchr(int verbose, struct pattern_benchmark_context *ctx)
 {
 	size_t i;
 
-	ctx->name[0] = "memchr";
-	ctx->u.mc[0] = memchr;
-
-	ctx->name[1] = "pattern_memchr";
-	ctx->u.mc[1] = pattern_memchr;
+	PATTERN_BENCHMARK(0, mc, memchr);
+	PATTERN_BENCHMARK(1, mc, pattern_memchr);
 
 	ctx->c = '\0';
+	ctx->direction = PATTERN_FORWARD;
 
 	i = pattern_benchmark_n_times(3, PATTERN_BENCH_MEMCHR, verbose, ctx);
 	fast_memchr = ctx->u.mc[i];
+}
+
+/**
+ * Benchmark the memrchr() routine against pattern_memrchr().
+ */
+static void
+pattern_benchmark_memrchr(int verbose, struct pattern_benchmark_context *ctx)
+{
+#ifdef HAS_MEMRCHR
+	size_t i;
+
+	PATTERN_BENCHMARK(0, mc, memrchr);
+	PATTERN_BENCHMARK(1, mc, pattern_memrchr);
+
+	ctx->c = '\0';
+	ctx->direction = PATTERN_BACKWARD;
+
+	i = pattern_benchmark_n_times(3, PATTERN_BENCH_MEMCHR, verbose, ctx);
+	fast_memrchr = ctx->u.mc[i];
+#else
+	(void) ctx;
+	if (verbose & PATTERN_INIT_SELECTED) {
+		s_info("will use pattern_memrchr() since no memrchr()");
+	}
+#endif	/* HAS_MEMRCHR */
 }
 
 /**
@@ -2862,17 +3028,36 @@ pattern_benchmark_strchr(int verbose, struct pattern_benchmark_context *ctx)
 {
 	size_t i;
 
-	ctx->name[0] = "strchr";
-	ctx->u.sc[0] = strchr;
+	PATTERN_BENCHMARK(0, sc, strchr);
+	PATTERN_BENCHMARK(1, sc, pattern_strchr);
 
-	ctx->name[1] = "pattern_strchr";
-	ctx->u.sc[1] = pattern_strchr;
+	ctx->direction = PATTERN_FORWARD;
 
 	/* Not in the alphabet => will scan the whole string */
 	ctx->c = pattern_non_alphabet;
 
 	i = pattern_benchmark_n_times(3, PATTERN_BENCH_STRCHR, verbose, ctx);
 	fast_strchr = ctx->u.sc[i];
+}
+
+/**
+ * Benchmark the strrchr() routine against pattern_strrchr().
+ */
+static void
+pattern_benchmark_strrchr(int verbose, struct pattern_benchmark_context *ctx)
+{
+	size_t i;
+
+	PATTERN_BENCHMARK(0, sc, strrchr);
+	PATTERN_BENCHMARK(1, sc, pattern_strrchr);
+
+	ctx->direction = PATTERN_BACKWARD;
+
+	/* Not in the alphabet => will scan the whole string */
+	ctx->c = pattern_non_alphabet;
+
+	i = pattern_benchmark_n_times(3, PATTERN_BENCH_STRCHR, verbose, ctx);
+	fast_strrchr = ctx->u.sc[i];
 }
 
 /**
@@ -2883,11 +3068,10 @@ pattern_benchmark_strlen(int verbose, struct pattern_benchmark_context *ctx)
 {
 	size_t i;
 
-	ctx->name[0] = "strlen";
-	ctx->u.sl[0] = strlen;
+	PATTERN_BENCHMARK(0, sl, strlen);
+	PATTERN_BENCHMARK(1, sl, pattern_strlen);
 
-	ctx->name[1] = "pattern_strlen";
-	ctx->u.sl[1] = pattern_strlen;
+	ctx->direction = PATTERN_FORWARD;
 
 	i = pattern_benchmark_n_times(3, PATTERN_BENCH_STRLEN, verbose, ctx);
 	fast_strlen = ctx->u.sl[i];
@@ -2954,11 +3138,10 @@ pattern_benchmark_dflt(int verbose, struct pattern_benchmark_context *ctx)
 	ctx->needle = needle;
 	ctx->use_text = TRUE;	/* More representative of real text */
 
-	ctx->name[0] = "pattern_qsearch_unknown";
-	ctx->u.pu[0] = pattern_qsearch_unknown;
+	PATTERN_BENCHMARK(0, pu, pattern_qsearch_unknown);
+	PATTERN_BENCHMARK(1, pu, pattern_match_unknown);
 
-	ctx->name[1] = "pattern_match_unknown";
-	ctx->u.pu[1] = pattern_match_unknown;
+	ctx->direction = PATTERN_FORWARD;
 
 	for (n = 3; n < 3 + PATTERN_BENCH_DFLT_NEEDLES; n++) {
 		ctx->nlen = n;		/* Typical needle length */
@@ -3029,7 +3212,8 @@ pattern_benchmark_cutoff_internal(enum pattern_benchmark_type which,
 		g_assert_not_reached();
 	}
 
-	ctx->needle = needle;
+	ctx->needle    = needle;
+	ctx->direction = PATTERN_FORWARD;
 
 	/*
 	 * Use a binary search, with more benchmarking attempts when we are
@@ -3196,7 +3380,9 @@ pattern_init(int verbose)
 	ctx.granularity = tmn2f(&tn);			/* clock granularity */
 
 	pattern_benchmark_memchr(verbose, &ctx);
+	pattern_benchmark_memrchr(verbose, &ctx);
 	pattern_benchmark_strchr(verbose, &ctx);
+	pattern_benchmark_strrchr(verbose, &ctx);
 	pattern_benchmark_strlen(verbose, &ctx);
 	pattern_benchmark_dflt(verbose, &ctx);
 	pattern_benchmark_cutoff_strstr_len(verbose, &ctx);

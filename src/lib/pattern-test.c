@@ -554,7 +554,14 @@ test_strchr(void)
 			rp = pattern_strchr(haystack + j, haystack[hlen]);
 
 			g_assert_log(rs == rp,
-				"%s(): rs=%p, rp=%p, p=%p, hlen=%'zu",
+				"%s(): strchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+			rs = strrchr(haystack + j, haystack[0]);
+			rp = pattern_strrchr(haystack + j, haystack[0]);
+
+			g_assert_log(rs == rp,
+				"%s(): strrchr rs=%p, rp=%p, p=%p, hlen=%'zu",
 				G_STRFUNC, rs, rp, haystack + j, hlen - j);
 
 			if (j < i) {
@@ -562,8 +569,15 @@ test_strchr(void)
 				rp = pattern_strchr(haystack + j, haystack[j + 1]);
 
 				g_assert_log(rs == rp,
-					"%s(): rs=%p, rp=%p, p=%p, hlen=%'zu",
+					"%s(): strchr rs=%p, rp=%p, p=%p, hlen=%'zu",
 					G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+				rs = strrchr(haystack, haystack[j]);
+				rp = pattern_strrchr(haystack, haystack[j]);
+
+				g_assert_log(rs == rp,
+					"%s(): strrchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rs, rp, haystack, hlen - j);
 			}
 		}
 
@@ -657,8 +671,16 @@ test_memchr(void)
 			rp = pattern_memchr(haystack + j, haystack[hlen], hlen + 1 - j);
 
 			g_assert_log(rm == rp,
-				"%s(): rm=%p, rp=%p, p=%p, hlen=%'zu",
+				"%s(): memchr rm=%p, rp=%p, p=%p, hlen=%'zu",
 				G_STRFUNC, rm, rp, &haystack[j], hlen - j);
+
+			rm = memrchr(haystack, haystack[0], hlen + 1 - j);
+			rp = pattern_memrchr(haystack, haystack[0], hlen + 1 - j);
+
+			g_assert_log(rm == rp,
+				"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rm, rp, &haystack[j], hlen + 1 - j);
+
 
 			if (j < i) {
 				rm = memchr(haystack + j, haystack[j + 1], hlen + 1 - j);
@@ -666,8 +688,15 @@ test_memchr(void)
 						haystack + j, haystack[j + 1], hlen + 1 - j);
 
 				g_assert_log(rm == rp,
-					"%s(): rm=%p, rp=%p, p=%p, hlen=%'zu",
+					"%s(): memchr rm=%p, rp=%p, p=%p, hlen=%'zu",
 					G_STRFUNC, rm, rp, haystack + j, hlen - j);
+
+				rm = memrchr(haystack, haystack[j], hlen + 1 - j);
+				rp = pattern_memrchr(haystack, haystack[j], hlen + 1 - j);
+
+				g_assert_log(rm == rp,
+					"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rm, rp, haystack, hlen + 1 - j);
 			}
 		}
 
@@ -686,11 +715,18 @@ test_memchr(void)
 		fill_random_string(haystack, hlen + 1);
 		fill_random_string(needle, sizeof needle);
 
+		rm = memrchr(haystack, needle[0], hlen + 1);
+		rp = pattern_memrchr(haystack, needle[0], hlen + 1);
+
+		g_assert_log(rm == rp,
+			"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+			G_STRFUNC, rm, rp, haystack, hlen);
+
 		rm = memchr(haystack, needle[0], hlen + 1);
 		rp = pattern_memchr(haystack, needle[0], hlen + 1);
 
 		g_assert_log(rm == rp,
-			"%s(): rm=%p, rp=%p, p=%p, hlen=%'zu",
+			"%s(): mrmchr rm=%p, rp=%p, p=%p, hlen=%'zu",
 			G_STRFUNC, rm, rp, haystack, hlen);
 
 		try++;
@@ -715,6 +751,9 @@ test_memchr(void)
 		/* Force non-match by using a non-alphabet needle  */
 
 		rp = pattern_memchr(haystack, '?', hlen + 1);
+		g_assert(NULL == rp);
+
+		rp = pattern_memrchr(haystack, '?', hlen + 1);
 		g_assert(NULL == rp);
 
 		/*
