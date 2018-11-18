@@ -41,6 +41,7 @@ uint64 next_pow2_64(uint64 n) G_CONST;
 int highest_bit_set(uint32 n) G_PURE;
 int highest_bit_set64(uint64 n) G_PURE;
 int ctz64(uint64 n) G_CONST;
+int clz64(uint64 n) G_CONST;
 uint8 reverse_byte(uint8 b) G_CONST;
 
 /**

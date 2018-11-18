@@ -179,6 +179,19 @@ ctz64(uint64 n)
 }
 
 /**
+ * Count leading zeroes in a 64-bit number, 64 for zero.
+ */
+int
+clz64(uint64 n)
+{
+	if G_LIKELY(n == (uint32) n)
+		return 32 + clz((uint32) n);
+	else {
+		return clz((uint32) (n >> 32));
+	}
+}
+
+/**
  * Reverse the bits in a byte, i.e. 0b00100001 becomes 0b100000100.
  */
 uint8
