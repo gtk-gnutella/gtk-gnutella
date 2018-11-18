@@ -1001,7 +1001,7 @@ search_gui_extract_ext(const gchar *filename)
     g_assert(NULL != filename);
 
     ext[0] = '\0';
-    p = strrchr(filename, '.');
+    p = vstrrchr(filename, '.');
 	if (p) {
 		p++;
 	}
@@ -1217,7 +1217,7 @@ search_gui_find(gnet_search_t sh)
 const char *
 search_gui_get_filename_extension(const gchar *filename_utf8)
 {
-	const char *p = strrchr(filename_utf8, '.');
+	const char *p = vstrrchr(filename_utf8, '.');
 	static char ext[32];
 
 	if (NULL == p || utf8_strlower(ARYLEN(ext), &p[1]) >= sizeof ext) {

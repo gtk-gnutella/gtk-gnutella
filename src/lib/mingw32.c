@@ -9443,7 +9443,7 @@ mingw_file_rotate(const char *pathname, int keep)
 	 * have registered how such an extension should be opened.
 	 */
 
-	dot = strrchr(pathname, '.');
+	dot = vstrrchr(pathname, '.');
 	len = NULL == dot ? (int) vstrlen(pathname) : dot - pathname;
 	g_assert(len >= 0);
 

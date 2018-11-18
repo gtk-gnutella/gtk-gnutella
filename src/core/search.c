@@ -1426,7 +1426,7 @@ search_filename_similar(const char *filename, const char *query)
 
 	filename_canonic = UNICODE_CANONIZE(filename);
 	flen = vstrlen(filename_canonic);
-	ext = strrchr(filename_canonic, ' ');	/* Last word */
+	ext = vstrrchr(filename_canonic, ' ');	/* Last word */
 
 	result = NULL != is_strprefix(filename_canonic, query);
 
@@ -1610,7 +1610,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 				(0 == rs->hops && (ST_UDP & rs->status))	/* OOB hit */
 			)
 		) {
-			const char *ext = strrchr(rc->filename, '.');
+			const char *ext = vstrrchr(rc->filename, '.');
 
 			if (
 				ext++ != NULL &&			/* Skip '.' */

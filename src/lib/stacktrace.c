@@ -1018,7 +1018,7 @@ stacktrace_pretty_filepath(const char *filepath)
 	const char *q;
 	const char *start;
 
-	p = strrchr(filepath, G_DIR_SEPARATOR);
+	p = vstrrchr(filepath, G_DIR_SEPARATOR);
 	if (p != NULL)
 		p++;
 	else

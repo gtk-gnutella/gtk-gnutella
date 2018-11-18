@@ -380,7 +380,7 @@ get_params(struct pproxy *pp, const char *request,
 	 * but we accept it.
 	 */
 
-	p = strrchr(uri, ' ');
+	p = vstrrchr(uri, ' ');
 	if (p && is_strprefix(&p[1], "HTTP/"))
 		*p = '\0';
 

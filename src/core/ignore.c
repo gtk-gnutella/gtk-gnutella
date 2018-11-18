@@ -265,7 +265,7 @@ namesize_parse(FILE *f, const char *file)
 		 * Go past the last directory separator if filename, if any.
 		 */
 
-		q = strrchr(p, G_DIR_SEPARATOR);
+		q = vstrrchr(p, G_DIR_SEPARATOR);
 		if (q == NULL)
 			q = p;
 		else

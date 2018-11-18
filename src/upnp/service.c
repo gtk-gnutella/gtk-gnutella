@@ -320,7 +320,7 @@ upnp_service_parse_type(const char *text,
 	 * Before the trailing ':' we must find a valid version number.
 	 */
 
-	p = strrchr(text, ':');
+	p = vstrrchr(text, ':');
 	if (p != NULL) {
 		uint32 v;
 		int error;

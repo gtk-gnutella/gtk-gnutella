@@ -209,7 +209,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		 * We're only handling "Client" errors.
 		 */
 
-		name = strrchr(value, ':');
+		name = vstrrchr(value, ':');
 		if (NULL == name) {
 			parse_error = "no ':' in fault code name";
 			goto error;

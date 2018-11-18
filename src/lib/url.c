@@ -867,7 +867,7 @@ url_absolute_within(const char *base, const char *relative)
 		 */
 
 		dbase = h_strdup(base);
-		p = strrchr(dbase, '/');
+		p = vstrrchr(dbase, '/');
 		g_assert(p != NULL);		/* base was absolute */
 		*(++p) = '\0';				/* truncate string after last '/' */
 

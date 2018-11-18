@@ -1261,7 +1261,7 @@ shared_file_valid_extension(const char *filename)
 		return TRUE;
 	}
 
-	filename_ext = strrchr(filename, '.');
+	filename_ext = vstrrchr(filename, '.');
 	if (filename_ext) {
 		/*
 		 * Filenames without any extension are not shared, unless
