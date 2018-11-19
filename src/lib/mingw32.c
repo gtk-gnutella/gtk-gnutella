@@ -240,7 +240,7 @@ typedef struct processor_power_information {
 
 extern bool vmm_is_debugging(uint32 level);
 
-typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
+typedef int (WINAPI *WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
 static WSAPoll_func_t WSAPoll;
 
 /*

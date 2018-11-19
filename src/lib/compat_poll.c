@@ -166,29 +166,12 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	 *
 	 * There are rumors that WSAPoll() has a bug with sockets connecting
 	 * to non-responsive hosts -- they never trigger even when TCP times
-	 * out its connection sequence.
-	 *
-	 * Moreover, I tried to enable WSAPoll on Windows 7 and got crashes
-	 * due to stack corruption upon return from mingw_poll().
-	 *
-	 * Therefore, it seems wiser to always emulate poll on Windows, until
-	 * further notice!
-	 * 		--RAM, 2018-10-08.
+	 * out its connection sequence.  To be confirmed by testing at large.
 	 */
-#if 0	/* DOES NOT WORK */
 	if (mingw_has_wsapoll())
 		r = mingw_poll(fds, n, timeout);
 	else
 		r = emulate_poll_with_select(fds, n, timeout);
-#endif
-	/*
-	 * Since HAS_POLL is not defined, USE_SELECT_FOR_POLL is also
-	 * set on Windows.  However I'm keeping the CPP branches distinct
-	 * for the day where we can successfully test that WSAPoll() works
-	 * fine and that calling it does not trash the stack!
-	 * 		--RAM, 2018-10-08.
-	 */
-	r = emulate_poll_with_select(fds, n, timeout);
 #elif defined(USE_SELECT_FOR_POLL)
 	r = emulate_poll_with_select(fds, n, timeout);
 #else	/* !USE_SELECT_FOR_POLL */
