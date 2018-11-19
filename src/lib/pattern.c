@@ -2232,9 +2232,14 @@ vstrstr(const char *haystack, const char *needle)
 	 * benchmarking, then redirect to strstr().  We can skip the first
 	 * character since we already determined the needle was not a prefix
 	 * of the given haystack.
+	 *
+	 * Contrary to the other cutoff values, we use <= here in the comparison
+	 * because the overhead of compiling the pattern to use another searching
+	 * algorithm may very well be a larger price to pay than calling an
+	 * under-optimized strstr() implementation.
 	 */
 
-	if ((nlen = (n - needle)) < pattern_vstrstr_cutoff)
+	if ((nlen = (n - needle)) <= pattern_vstrstr_cutoff)
 		return strstr(haystack + 1, needle);
 
 	/*
@@ -2862,7 +2867,7 @@ retry:
 		"%s(): whilst timing, %s() returned %p and %s() returned %p"
 		" (%'zu loop%s) with needle of %zu bytes",
 		G_STRFUNC, ctx->name[0], result[0], ctx->name[1], result[1],
-		ctx->loops_needed, plural(ctx->loops_needed), ctx->nlen);
+		PLURAL(ctx->loops_needed), ctx->nlen);
 
 	/*
 	 * If we do not have at least our time granularity, double the
@@ -2900,7 +2905,7 @@ retry:
 		if (n < PATTERN_TM_MIN) {
 			s_warning("%s(): "
 				"has %d item%s left after pruning outliers for %s(), retrying...",
-				G_STRFUNC, n, plural(n), ctx->name[i]);
+				G_STRFUNC, PLURAL(n), ctx->name[i]);
 			goto again;
 		}
 	}
@@ -3295,7 +3300,7 @@ retry:
 	if (cutoff != 0) {
 		if (verbose & PATTERN_INIT_SELECTED) {
 			s_info("%s() cut-over is for needles >= %zu byte%s",
-				ctx->name[1], cutoff, plural(cutoff));
+				ctx->name[1], PLURAL(cutoff));
 		}
 	} else {
 		if (verbose & PATTERN_INIT_SELECTED) {
@@ -3422,7 +3427,25 @@ pattern_init(int verbose)
 		pattern_known_cutoff = pattern_unknown_cutoff - 1;
 		if (verbose & PATTERN_INIT_SELECTED) {
 			s_info("cut-over for known text lengths adjusted down to %zu byte%s",
-				pattern_known_cutoff, plural(pattern_known_cutoff));
+				PLURAL(pattern_known_cutoff));
+		}
+	}
+
+	/*
+	 * Make sure we don't call an under-optimized strstr() if we did not
+	 * find a suitable cut-over between plain strstr() and vstrstr(): use
+	 * the pattern_unknown_cutoff value if necessary.
+	 *
+	 * Since vstrstr() will mostly be slower than calling strstr() even
+	 * with a bad algorithm (due to the additional cost of compiling the
+	 * pattern on the fly), we add one to the cut-off.
+	 */
+
+	if (pattern_unknown_cutoff < pattern_vstrstr_cutoff - 1) {
+		pattern_vstrstr_cutoff = pattern_unknown_cutoff + 1;
+		if (verbose & PATTERN_INIT_SELECTED) {
+			s_info("cut-over for vstrstr() adjusted down to %zu byte%s",
+				PLURAL(pattern_vstrstr_cutoff));
 		}
 	}
 
