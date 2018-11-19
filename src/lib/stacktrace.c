@@ -1584,7 +1584,7 @@ stacktrace_caller(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
 
 	return n < count ? stack[n] : NULL;
 }
@@ -1609,7 +1609,7 @@ stacktrace_caller_name(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
 	if (n >= count)
 		return "";
 
