@@ -2,25 +2,38 @@
 ?RCS:
 ?RCS: @COPYRIGHT@
 ?RCS:
-?MAKE:Framepointer: gccversion +cc +ccflags +ldflags +optimize cat sed
+?MAKE:Framepointer: gccversion +cc +ccflags +ldflags +optimize cat sed rm \
+	d_backtrace
 ?MAKE:	-pick add $@ %<
+?T:needframe
 ?F:!try !try.c
 ?LINT: change ccflags
 : see whether we can omit the frame pointer
 ?X: When gcc is used, see whether we can use -momit-leaf-frame-pointer
 ?X: This is useful for tail routines containing assertions if they use
 ?X: "fast assertions", given that the code is not calling any routine.
+needframe=
 case "$gccversion" in
 '') ;;
 *)
 	echo " "
+	needframe=y
+	case "$d_backtrace" in
+	"$define") needframe=n;;
+	esac
 	$cat >try.c <<'EOC'
 int main()
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	;;
+esac
+case "$needframe" in
+n)
+	if
+		$cc $ccflags -momit-leaf-frame-pointer $ldflags \
+			-o try try.c >/dev/null 2>&1
 	then
 		case "$ccflags $optimize" in
 		*-momit-leaf-frame-pointer*) ;;
@@ -39,5 +52,27 @@ EOC
 		esac
 	fi
 	;;
+y)
+	if
+		$cc $ccflags -fno-omit-frame-pointer $ldflags \
+			-o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags" in
+		*-fno-omit-frame-pointer*) ;;
+		*)
+			ccflags="-fno-omit-frame-pointer $ccflags"
+			echo "Added -fno-omit-frame-pointer to the cc flags." >&4
+			;;
+		esac
+	else
+		case "$ccflags" in
+		*-fno-omit-frame-pointer*)
+			echo "Stripping -fno-omit-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-fno-omit-frame-pointer//'`
+		;;
+		esac
+	fi
+	;;
 esac
+$rm -f try try.c
 
