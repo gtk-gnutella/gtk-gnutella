@@ -129,10 +129,8 @@ static hash_table_t *stack_atoms;
  */
 static size_t stack_auto_offset;
 
-#ifndef MINGW32
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
-#endif
 
 /**
  * Limit stacktraces to simple stacks, avoiding the BFD library or the
@@ -190,7 +188,6 @@ stack_is_our_text(const void *pc)
 #endif
 }
 
-#ifndef MINGW32
 /**
  * Unwind current stack into supplied stacktrace array.
  *
@@ -210,12 +207,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
-
-	/*
-	 * Adjust the offset according to the auto-tunings.
-	 */
-
-	offset = size_saturate_add(offset, stack_auto_offset);
 
 	/*
 	 * Go carefully to stack frame "offset", in case the stack is
@@ -249,7 +240,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 
 	return i - offset;
 }
-#endif	/* !MINGW32 */
 
 /**
  * Unwind current stack into supplied stacktrace array.
@@ -267,13 +257,29 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
  */
 NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
+{
+	size_t idx;
+
+	/*
+	 * Apply the auto-configured extra offset, computed initially
+	 * by stacktrace_auto_tune() for this stacktrace_unwind() routine.
+	 *
+	 * We do this here so that all the mis-indented code blocks below
+	 * can share the value and do not need to do the adjustment (or
+	 * worse, forget to do it).
+	 */
+
+	idx = size_saturate_add(offset, stack_auto_offset);
+	g_assert(size_is_non_negative(idx));
+
+/* Indentation wrong on the remaining, on purpose */
 #ifdef HAS_BACKTRACE
 {
 	static uint8 in_unwind[THREAD_MAX];
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
-	size_t i, idx;
+	size_t i;
 	int id = thread_safe_small_id();
 	static bool called;
 
@@ -309,7 +315,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 		 * address it reaches, there is no need to post-process the result.
 		 */
 
-		i = stacktrace_gcc_unwind(stack, count, offset + 1);
+		i = stacktrace_gcc_unwind(stack, count, idx + 1);
 		goto done;
 	}
 
@@ -345,10 +351,6 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	if (id >= 0)
 		in_unwind[id] = FALSE;
 
-	idx = size_saturate_add(offset, stack_auto_offset);
-
-	g_assert(size_is_non_negative(idx));
-
 	if (UNSIGNED(depth) <= idx)
 		return 0;
 
@@ -368,7 +370,7 @@ done:
 }
 #elif defined(MINGW32)
 {
-	return mingw_backtrace(stack, count, offset + stack_auto_offset);
+	return mingw_backtrace(stack, count, idx);
 }
 #else	/* !HAS_BACKTRACE */
 {
@@ -376,9 +378,11 @@ done:
 	 * Don't increase offset, this is tail recursion and it can be optimized
 	 * away.  At worst we'll see this call in the stack.
 	 */
-	return stacktrace_gcc_unwind(stack, count, offset);
+	return stacktrace_gcc_unwind(stack, count, idx);
 }
 #endif	/* HAS_BACKTRACE */
+/* End of wrong indentation */
+}
 
 static sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 
@@ -1590,6 +1594,55 @@ stacktrace_caller(size_t n)
 }
 
 /**
+ * Faster version of the n-th caller in the stack.
+ *
+ * This attemps to use internal GCC unwinding (following frame pointers)
+ * and if we cannot determine that information, we go back to regular
+ * unwinding (which may be more CPU-intensive, especially on Windows).
+ */
+const void *
+stacktrace_caller_fast(size_t n)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	g_assert(size_is_non_negative(n));
+	g_assert(n <= STACKTRACE_DEPTH_MAX);
+
+	/*
+	 * Quick version following stack frames.
+	 *
+	 * If the first entry is not for this current call, then the output
+	 * is probably wrong (frame pointers not available) so move to the
+	 * "full version" which hopefully can decompile stacks without
+	 * frame pointers.
+	 */
+
+	count = stacktrace_gcc_unwind(stack, MIN(n+2, N_ITEMS(stack)), 0);
+
+	if (0 == count)
+		goto full;
+
+	if (ptr_cmp(stack[0], stacktrace_caller_fast) < 0)
+		goto full;		/* Falls before this routine */
+
+	/* 100 is an arbitrary magic distance (about 25 RISC instructions) */
+
+	if (ptr_diff(stack[0], stacktrace_caller_fast) > 100)
+		goto full;		/* Too far ahead from this routine start */
+
+	if (n + 1 < count)
+		return stack[n+1];
+
+full:
+	/* Full version -- output identical to above if no backtrace() support */
+
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
+
+	return n < count ? stack[n] : NULL;
+}
+
+/**
  * Return symbolic name of the n-th caller in the stack, if possible.
  *
  * With n = 0, this should be the current routine name.
@@ -1603,8 +1656,6 @@ stacktrace_caller_name(size_t n)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
-	bool in_sigh = signal_in_unsafe_handler();
-	const char *name;
 
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
@@ -1613,23 +1664,7 @@ stacktrace_caller_name(size_t n)
 	if (n >= count)
 		return "";
 
-	if (!in_sigh)
-		stacktrace_load_symbols();
-
-	if (NULL == stacktrace_symbols)
-		return "??";
-
-	name = symbols_name(stacktrace_symbols, stack[n], FALSE);
-
-	/*
-	 * Avoid all memory allocation if we are in a signal handler or
-	 * crashing (where normally we are supposed to be running mono-threaded).
-	 */
-
-	if (!in_sigh && !thread_in_crash_mode())
-		name = constant_str(name);
-
-	return name;
+	return stacktrace_routine_name(stack[n], FALSE);
 }
 
 /**
@@ -1706,8 +1741,16 @@ stacktrace_routine_name(const void *pc, bool offset)
 	if (NULL == name) {
 		static char buf[POINTER_BUFLEN];
 		str_bprintf(ARYLEN(buf), "%p", pc);
-		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
+		name = buf;
 	}
+
+	/*
+	 * Avoid all memory allocation if we are in a signal handler or
+	 * crashing (where normally we are supposed to be running mono-threaded).
+	 */
+
+	if (!in_sigh && !thread_in_crash_mode())
+		name = constant_str(name);
 
 	return name;
 }
@@ -2533,8 +2576,6 @@ stacktrace_caller_known(size_t offset)
  * at run-time.  See stacktrace_auto_tune().
  */
 
-#ifndef MINGW32
-
 #if HAS_GCC(3, 0)
 
 /*
@@ -2847,7 +2888,5 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
-
-#endif	/* !MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent:  */

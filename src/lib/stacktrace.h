@@ -119,6 +119,7 @@ void stacktrace_cautious_print(int fd, int stid, void *stack[], size_t offset);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
+const void *stacktrace_caller_fast(size_t n);
 bool stacktrace_caller_known(size_t offset);
 const void *stacktrace_routine_start(const void *pc);
 bool stacktrace_pc_within_our_text(const void *pc);

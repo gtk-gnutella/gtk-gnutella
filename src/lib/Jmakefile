@@ -361,6 +361,7 @@ NormalTestTarget(pattern)
 NormalTestTarget(random)
 NormalTestTarget(sort)
 NormalTestTarget(spopen)
+NormalTestTarget(stack)
 NormalTestTarget(stat)
 NormalTestTarget(thread)
 
