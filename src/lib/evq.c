@@ -344,7 +344,11 @@ evq_close(void)
 
 		tmout.tv_sec = 2;
 		tmout.tv_usec = 0;
-		thread_timed_wait(evq_thread_id, &tmout, NULL);
+
+		if (!thread_timed_wait(evq_thread_id, &tmout, NULL)) {
+			s_warning("%s(): signalled %s but it did not end yet",
+				G_STRFUNC, thread_id_name(evq_thread_id));
+		}
 	} else {
 		s_warning("%s(): could not signal evq thread: %m", G_STRFUNC);
 	}
