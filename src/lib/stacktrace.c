@@ -2487,6 +2487,10 @@ stacktrace_caller_known(size_t offset)
 #ifndef MINGW32
 
 #if HAS_GCC(3, 0)
+
+/* __builtin_xxx_address() with non-zero argument is unsafe */
+G_IGNORE_PUSH(-Wframe-address);
+
 static void *
 getreturnaddr(size_t level)
 {
@@ -2768,6 +2772,9 @@ getframeaddr(size_t level)
     default:	return NULL;
     }
 }
+
+G_IGNORE_POP;
+
 #else	/* !GCC >= 3.0 */
 static void *
 getreturnaddr(size_t level)
