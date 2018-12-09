@@ -2488,8 +2488,14 @@ stacktrace_caller_known(size_t offset)
 
 #if HAS_GCC(3, 0)
 
-/* __builtin_xxx_address() with non-zero argument is unsafe */
+/*
+ * __builtin_xxx_address() with non-zero argument is unsafe.
+ *
+ * Warnings are emitted starting with GCC 6.1.
+ */
+#if HAS_GCC(6, 1)
 G_IGNORE_PUSH(-Wframe-address);
+#endif
 
 static void *
 getreturnaddr(size_t level)
@@ -2773,7 +2779,9 @@ getframeaddr(size_t level)
     }
 }
 
+#if HAS_GCC(6, 1)
 G_IGNORE_POP;
+#endif
 
 #else	/* !GCC >= 3.0 */
 static void *
