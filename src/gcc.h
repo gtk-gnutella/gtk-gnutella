@@ -359,8 +359,14 @@
 
 /**
  * G_NON_NULL can be used to specify that a function returns a non-NULL pointer.
+ *
+ * FIXME
+ * This is not working currently (2018-12-09) with gcc-6.3, probably because
+ * G_NON_NULL is not correctly tagging all the routines that cannot return NULL.
+ * The symptom is that these routines start to return NULL pointers, precisely,
+ * causing a crash!  To be investigated, but for now disabling this tagging.
  */
-#if HAS_GCC(5, 1)
+#if 0 && HAS_GCC(5, 1)
 #define G_NON_NULL	__attribute__((returns_nonnull))
 #else
 #define G_NON_NULL
