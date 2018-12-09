@@ -2519,7 +2519,7 @@ xfl_process_deferred(struct xfreelist *fl)
  * Defer insertion of the block in the specified freelist.
  *
  * This is called when we were unable to lock the freelist bucket prior to
- * calling xlf_insert() and we need to put the block in a temporary list
+ * calling xfl_insert() and we need to put the block in a temporary list
  * which will be processed when it is safe to do so.
  *
  * @param fl		the freelist bucket
