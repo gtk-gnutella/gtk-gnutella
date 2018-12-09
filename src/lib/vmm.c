@@ -4504,9 +4504,9 @@ vmm_madvise_willneed(void *p, size_t size)
  * @param size			the size of the region we want to allocate
  * @param zero_mem		whether to zero the allocated memory
  *
- * @return the allocated region, NULL on error
+ * @return the allocated region.
  */
-static void *
+static void * G_NON_NULL
 vmm_crashing_alloc(size_t size, bool zero_mem)
 {
 	void *p;
@@ -4525,7 +4525,7 @@ vmm_crashing_alloc(size_t size, bool zero_mem)
 		if (NULL == p)
 			p = vmea_alloc(size);
 		if (NULL == p)
-			return NULL;
+			s_error("%s(): cannot allocate %zu bytes", G_STRFUNC, size);
 
 		if G_UNLIKELY(zero_mem)
 			memset(p, 0, size);
@@ -4549,7 +4549,7 @@ vmm_crashing_alloc(size_t size, bool zero_mem)
  *
  * @return pointer to allocated memory region
  */
-static void *
+static void * G_NON_NULL
 vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 {
 	size_t n;
