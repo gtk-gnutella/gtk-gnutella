@@ -103,21 +103,21 @@ void xmalloc_stats_digest(struct sha1 *digest);
 void xgc(void);
 void xmalloc_long_term(void);
 
-void *xmalloc(size_t size) G_MALLOC;
-void *xmalloc0(size_t size) G_MALLOC;
-void *xhmalloc(size_t size) G_MALLOC;
-void *xpmalloc(size_t size) G_MALLOC;
-void *xcalloc(size_t nmemb, size_t size) G_MALLOC;
-void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
-void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT;
+void *xmalloc(size_t size) G_MALLOC G_NON_NULL;
+void *xmalloc0(size_t size) G_MALLOC G_NON_NULL;
+void *xhmalloc(size_t size) G_MALLOC G_NON_NULL;
+void *xpmalloc(size_t size) G_MALLOC G_NON_NULL;
+void *xcalloc(size_t nmemb, size_t size) G_MALLOC G_NON_NULL;
+void *xrealloc(void *ptr, size_t size) WARN_UNUSED_RESULT G_NON_NULL;
+void *xprealloc(void *ptr, size_t size) WARN_UNUSED_RESULT G_NON_NULL;
 void xfree(void *ptr);
-char *xstrdup(const char *str) G_MALLOC;
-char *xstrndup(const char *str, size_t n) G_MALLOC;
+char *xstrdup(const char *str);
+char *xstrndup(const char *str, size_t n);
 void xstrfreev(char **str);
 size_t xallocated(const void *p);
 size_t xpallocated(const void *p);
 
-static inline void * G_MALLOC
+static inline void * G_MALLOC G_NON_NULL
 xcopy(const void *p, size_t size)
 {
 	void *cp = xmalloc(size);

@@ -119,10 +119,10 @@ size_t tmalloc_size(const tmalloc_t *tma);
 struct pslist;
 struct eslist;
 
-void *tmalloc(tmalloc_t *tma) G_MALLOC;
-void *tmalloc0(tmalloc_t *tma) G_MALLOC;
+void *tmalloc(tmalloc_t *tma) G_MALLOC G_NON_NULL;
+void *tmalloc0(tmalloc_t *tma) G_MALLOC G_NON_NULL;
 void *tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
-	G_MALLOC;
+	G_MALLOC G_NON_NULL;
 void tmfree(tmalloc_t *tma, void *p);
 void tmfree_pslist(tmalloc_t *tma, struct pslist *pl);
 void tmfree_eslist(tmalloc_t *tma, struct eslist *el);

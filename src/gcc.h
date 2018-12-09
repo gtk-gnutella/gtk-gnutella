@@ -357,6 +357,15 @@
 #define G_NO_OPTIMIZE
 #endif
 
+/**
+ * G_NON_NULL can be used to specify that a function returns a non-NULL pointer.
+ */
+#if HAS_GCC(5, 1)
+#define G_NON_NULL	__attribute__((returns_nonnull))
+#else
+#define G_NON_NULL
+#endif
+
 #endif	/* _gcc.h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
