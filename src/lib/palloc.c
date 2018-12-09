@@ -496,6 +496,7 @@ palloc(pool_t *p)
 		obj = eslist_shift(&p->buffers);
 		POOL_UNLOCK(p);
 		POOL_STATS_INCX(p, alloc_pool);
+		g_assert(obj != NULL);
 	} else {
 		/*
 		 * No such luck, allocate a new buffer.
@@ -505,6 +506,7 @@ palloc(pool_t *p)
 		POOL_UNLOCK(p);
 		POOL_STATS_INCX(p, alloc_core);
 		obj = p->alloc(p->size);
+		g_assert(obj != NULL);
 	}
 
 	return obj;

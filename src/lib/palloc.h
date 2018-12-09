@@ -81,7 +81,7 @@ void pool_free(pool_t *pool);
 size_t pool_count(const pool_t *p);
 size_t pool_capacity(const pool_t *p);
 
-void *palloc(pool_t *pool);
+void *palloc(pool_t *pool) G_NON_NULL;
 void pfree(pool_t *pool, void *obj);
 void pgc(void);
 
