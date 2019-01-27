@@ -50,7 +50,7 @@ enum statx_magic { STATX_MAGIC = 0x560044e5 };
 /**
  * A one-dimension container (x).
  */
-struct statx {
+struct statistics {
 	enum statx_magic magic;	/**< Magic number */
 	elist_t data;			/**< Data points */
 	long n;					/**< Amount of data points */
@@ -60,7 +60,7 @@ struct statx {
 };
 
 static inline void
-statx_check(const struct statx * const sx)
+statx_check(const struct statistics * const sx)
 {
 	g_assert(sx != NULL);
 	g_assert(STATX_MAGIC == sx->magic);
