@@ -49,6 +49,8 @@
 
 #include "if/gnet_property_priv.h"
 
+#include "if/core/main.h"	/* For debugging() */
+
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
@@ -175,6 +177,27 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 
 	if (hikset_contains(results_by_muid, muid))
 		return NULL;
+
+	/*
+	 * To compare whether sending OOB reply indication via the semi-reliable
+	 * UDP layer alters the claiming ratio of results (which could indicate
+	 * a bug in the reliable layer), allow them to explicitly disable sending
+	 * the notification reliably via the "send_oob_ind_reliably" property,
+	 * by changing its value to FALSE (it is TRUE by default).
+	 * 		--RAM, 2019-03-04
+	 */
+
+	if (!GNET_PROPERTY(send_oob_ind_reliably) && reliable) {
+		reliable = FALSE;		/* Force un-reliable sending */
+
+		/* Be verbose when debugging, this is for experiments only! */
+
+		if (debugging(0)) {
+			g_message("%s(): "
+				"query #%s: OOB indication sent un-reliably to %s, as told",
+				G_STRFUNC, guid_hex_str(muid), gnet_host_to_string(to));
+		}
+	}
 
 	/*
 	 * First time we're seeing this query (normal case).

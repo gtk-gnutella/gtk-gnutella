@@ -538,6 +538,7 @@ extern const gboolean gnet_property_variable_inputevt_trace;
 extern const gboolean gnet_property_variable_lock_contention_trace;
 extern const gboolean gnet_property_variable_lock_sleep_trace;
 extern const gboolean gnet_property_variable_running_topless;
+extern const gboolean gnet_property_variable_send_oob_ind_reliably;
 
 
 prop_set_t *gnet_prop_init(void);
