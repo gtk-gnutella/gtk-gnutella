@@ -64,8 +64,9 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
-#define OOB_TIMEOUT_MS		(45*1000)		/**< 45 secs for them to reply */
+#define OOB_EXPIRE_LARGE_MS	(2*60*1000)		/**< 2 minutes at most for large hits */
+#define OOB_EXPIRE_SMALL_MS	(3*60*1000)		/**< 3 minutes at most for small hits */
+#define OOB_TIMEOUT_MS		(80*1000)		/**< 80 secs for them to reply */
 #define OOB_DELIVER_BASE_MS	2500			/**< 1 msg queued every 2.5 secs */
 #define OOB_DELIVER_RAND_MS	5000			/**< ... + up to 5 random secs */
 
@@ -128,11 +129,17 @@ struct gservent {
  * High-level description of what's happening here.
  *
  * When we get notified by share.c about a set of hits, we create the
- * struct oob_results, set the global expire to OOB_EXPIRE_MS and
+ * struct oob_results, set the global expire to OOB_EXPIRE_XXX_MS and
  * send a LIME/12v2 to the querying, arming OOB_TIMEOUT_MS only AFTER
  * we get notified by the MQ that we sent the message.  If message was
  * dropped, requeue.  Do that OOB_MAX_RETRY times at most, then discard
  * the results.
+ *
+ * The timeout is increasing: the smaller the amount of hits, the longer we
+ * will wait to deliver them: less hits means probably rare files or specific
+ * querying -- that must be rewarded!
+ * For 255 hits, the maximum, it will be OOB_EXPIRE_LARGE_MS and for
+ * the smallest hits (1 hit) it will be OOB_EXPIRE_SMALL_MS.
  *
  * On reception of LIME/11v2, prepare all hits, put them in the FIFO
  * for this servent, then free the list.
@@ -167,6 +174,7 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
+	int timeout;
 
 	/*
 	 * Check for duplicate queries bearing the same MUID.
@@ -214,7 +222,14 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 	r->reliable = booleanize(reliable);
 	r->flags = flags;
 
-	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
+	/*
+	 * Compute suitable timeout: the less hits there are, the longer the timeout.
+	 */
+
+	timeout = OOB_EXPIRE_SMALL_MS - MIN(count, 256) / 4;
+	timeout = MAX(timeout, OOB_EXPIRE_LARGE_MS);
+
+	r->ev_expire = cq_main_insert(timeout, results_destroy, r);
 	r->refcount++;
 
 	hikset_insert_key(results_by_muid, &r->muid);
