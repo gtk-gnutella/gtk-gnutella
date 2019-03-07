@@ -744,12 +744,13 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 				char buf[OOB_GTKG_FMTLEN];
 
-				g_debug("OOB query #%s, %snotified %s about %d hit%s%s",
+				g_debug("OOB query #%s, %snotified %s about %d hit%s%s, try #%d",
 					guid_hex_str(r->muid),
 					r->reliable ? "reliably " : "",
 					gnet_host_to_string(&r->dest),
 					r->count, plural(r->count),
-					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+					oob_gtkg_logstr_fmt(ARYLEN(buf), r),
+					r->notify_requeued);
 			}
 
 			/*
@@ -786,7 +787,8 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		/*
 		 * If we were not able to send the message: when we use plain UDP,
 		 * we retry, but with semi-reliable UDP we trust the network layer to
-		 * do the appropriate amount of retrying and a failure is definitive.
+		 * do the appropriate amount of retrying and a failure turns off
+		 * reliable delivery.
 		 */
 
 		if (GNET_PROPERTY(query_debug)) {
@@ -798,11 +800,19 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 				oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 		}
 
-		if (
-			r->reliable ||
-			++r->notify_requeued >= OOB_MAX_RETRY ||
-			!oob_send_reply_ind(r)
-		)
+		if (r->reliable) {
+			r->reliable = FALSE;
+
+			if (GNET_PROPERTY(query_debug)) {
+				char buf[OOB_GTKG_FMTLEN];
+
+				g_debug("OOB query #%s, turning off reliable notification%s",
+					guid_hex_str(r->muid),
+					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+			}
+		}
+
+		if (++r->notify_requeued >= OOB_MAX_RETRY || !oob_send_reply_ind(r))
 			goto drop_results;
 	}
 
