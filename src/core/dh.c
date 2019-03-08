@@ -383,7 +383,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 	if (
 		dh->hits_sent < DH_MAX_HITS &&
 		dh->hits_queued > (DH_MIN_HITS / 2) &&
-		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
+		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS
+	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
 			g_debug("DH %senough queued, nearing max, throttling", teststr);
 		return DH_DROP_THROTTLE;
