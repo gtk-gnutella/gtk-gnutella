@@ -370,7 +370,7 @@ oob_proxy_pending_results(
 	 * need to claim them at all.
 	 */
 
-	if (!dh_would_route(opr->leaf_muid, leaf)) {
+	if (!dh_would_route(opr->leaf_muid, leaf, hits)) {
 		msg = "would not route hits to leaf";
 		goto ignore;
 	}
