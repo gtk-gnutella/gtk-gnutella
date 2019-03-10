@@ -385,6 +385,19 @@ results_timeout(cqueue_t *cq, void *obj)
 	 *
 	 * After too many unclaimed results, the IP address will be banned
 	 * for OOB query processing.
+	 *
+	 * Note that it is totally normal for a peer requesting OOB hit delivery
+	 * to not claim the hits: that's the purpose of dynamic querying, and
+	 * adjusting the querying rate with the hits that are coming back (or would
+	 * be if we claimed them).  It is more economical to be notified about 100
+	 * hits (say) from a host and not claim them than have the 100 results
+	 * delivered and ignore them!
+	 *
+	 * However, if too many queries for a host remain unanswered, then we may
+	 * be facing an attack from a host, and this code here protects us from
+	 * that, but the thresholds are set high enough to not trigger under
+	 * "normal" cicrumstances.  Still, the tweaking of constants is arbitrary.
+	 * 		--RAM, 2019-03-10
 	 */
 
 	if (BAN_OK != ban_allow(BAN_CAT_OOB_CLAIM, addr)) {
