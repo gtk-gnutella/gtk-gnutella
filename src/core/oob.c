@@ -401,6 +401,7 @@ results_timeout(cqueue_t *cq, void *obj)
 	 */
 
 	if (BAN_OK != ban_allow(BAN_CAT_OOB_CLAIM, addr)) {
+		gnet_stats_inc_general(GNR_BANNED_OOB_QUERYING_HOST);
 		if (GNET_PROPERTY(query_debug)) {
 			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
 			g_debug("OOB host %s will be banned for the next %d second%s",

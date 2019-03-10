@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Aug  8 14:55:47 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Mar 10 21:55:45 2019 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_gnr_stats_h_
 
 /*
- * Enum count: 414
+ * Enum count: 415
  */
 typedef enum {
 	GNR_ROUTING_ERRORS = 0,
@@ -58,6 +58,7 @@ typedef enum {
 	GNR_EXPIRED_RELIABLE_OOB_HITS,
 	GNR_SPURIOUS_OOB_HIT_CLAIM,
 	GNR_UNREQUESTED_OOB_HITS,
+	GNR_BANNED_OOB_QUERYING_HOST,
 	GNR_QUERY_HIT_FOR_UNTRACKED_QUERY,
 	GNR_QUERY_TRACKED_MUIDS,
 	GNR_QUERY_COMPACT_COUNT,
