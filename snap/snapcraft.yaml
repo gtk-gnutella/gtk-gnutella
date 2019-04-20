@@ -11,10 +11,9 @@ confinement: devmode # use 'strict' once you have the right plugs and slots
 parts:
   gtk-gnutella:
     plugin: autotools
-    override-build: ./build.sh
-    source-type: git
-    source: https://github.com/gtk-gnutella/gtk-gnutella.git
-
+    override-build: |
+        ./build.sh --prefix=/
+        make install INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL
     build-packages:
       - g++
       - make
@@ -24,3 +23,5 @@ parts:
       - libsdl-sound1.2-dev
       - libasound2-dev
       - libgtk2.0-dev
+    source-type: git
+    source: https://github.com/gtk-gnutella/gtk-gnutella.git
