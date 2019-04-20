@@ -1,19 +1,26 @@
-
-  name: gtk-gnutella
-  version: '1.1.13'
-  summary: The Most Efficient Gnutella Client
-  description: |
+name: gtk-gnutella
+version: '1.1.14'
+summary: The Most Efficient Gnutella Client
+description: |
     gtk-gnutella is a server/client for the Gnutella peer-to-peer network.
     It runs on Microsoft Windows, MacOS and every Unix-like system which supports GTK+ (1.2 or above)
 
-  grade: devel # must be 'stable' to release into candidate/stable channels
-  confinement: devmode # use 'strict' once you have the right plugs and slots
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+    
+parts:
+  gtk-gnutella:
+    plugin: autotools
+    override-build: ./build.sh
+    source-type: git
+    source: https://github.com/gtk-gnutella/gtk-gnutella.git
 
-  parts:
-    gtk-gnutella:
-      source: .
-      plugin: make
-      override-build: |
-        snapcraftctl build
-        sed -i 's|/usr/bin|$SNAP/usr/bin|g' $SNAPCRAFT_PART_INSTALL/build.sh
-        
+    build-packages:
+      - g++
+      - make
+      - libsdl1.2-dev
+      - libpng12-dev
+      - libsdl-net1.2-dev
+      - libsdl-sound1.2-dev
+      - libasound2-dev
+      - libgtk2.0-dev
