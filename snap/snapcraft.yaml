@@ -26,6 +26,7 @@ parts:
       - gettext
     source-type: git
     source: https://github.com/gtk-gnutella/gtk-gnutella.git
+
 parts:
   desktop-gtk2:
 
