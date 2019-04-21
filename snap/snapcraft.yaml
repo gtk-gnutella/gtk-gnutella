@@ -1,4 +1,4 @@
--gnutella
+name: gtk-gnutella
 version: '1.1.14'
 summary: The Most Efficient Gnutella Client
 description: |
@@ -31,3 +31,4 @@ parts:
 apps:
   gtk-gnutella:
     command: bin/gtk-gnutella
+
