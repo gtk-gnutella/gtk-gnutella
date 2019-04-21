@@ -27,8 +27,8 @@ parts:
     source-type: git
     source: https://github.com/gtk-gnutella/gtk-gnutella.git
 
-parts:
-  desktop-gtk2:
+#parts:
+#  desktop-gtk2:
 
 apps:
   gtk-gnutella:
