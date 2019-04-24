@@ -24,6 +24,17 @@ parts:
       - libasound2-dev
       - libgtk2.0-dev
       - gettext
+      - libxpm-dev #attempt to correct "couldn't find pixmap file"
+      - libxpm4 #attempt to correct "couldn't find pixmap file"
+      - libcanberra-gtk-module #attempt to correct Failed to load module "canberra-gtk-module"
+      - libatk-bridge2.0-0 #attempt to correct Failed to load module "atk-bridge"
+      - libgail-common #attempt to correct Failed to load module "gail"
+      - libgail-3-0 #attempt to correct Failed to load module "gail"
+      - libgail18 #attempt to correct Failed to load module "gail"
+      - appmenu-gtk-module-common #attempting to correct Failed to load module "appmenu-gtk-module"
+      - appmenu-gtk2-module #attempting to correct Failed to load module "appmenu-gtk-module"
+      - libappmenu-gtk2-parser0 #attempting to correct Failed to load module "appmenu-gtk-module"
+      
     source-type: git
     source: https://github.com/gtk-gnutella/gtk-gnutella.git
 
