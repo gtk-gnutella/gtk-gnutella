@@ -31,7 +31,7 @@ parts:
       - libgail-common #attempt to correct Failed to load module "gail"
       - libgail-3-0 #attempt to correct Failed to load module "gail"
       - libgail18 #attempt to correct Failed to load module "gail"
-      - appmenu-gtk-module-common #attempting to correct Failed to load module "appmenu-gtk-module"
+      #NOT FOUND - appmenu-gtk-module-common #attempting to correct Failed to load module "appmenu-gtk-module"
       #NOT FOUND - appmenu-gtk2-module #attempting to correct Failed to load module "appmenu-gtk-module"
       #NOT FOUND - libappmenu-gtk2-parser0 #attempting to correct Failed to load module "appmenu-gtk-module"
       
