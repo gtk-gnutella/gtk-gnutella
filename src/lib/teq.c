@@ -82,6 +82,7 @@
 #include "pow2.h"
 #include "spinlock.h"
 #include "stacktrace.h"
+#include "str.h"
 #include "stringify.h"			/* For plural() */
 #include "thread.h"
 #include "tm.h"
@@ -1478,6 +1479,103 @@ teq_reclaim(void *value, void *ctx)
 }
 
 /**
+ * Return log string for logging given event type.
+ */
+static const char *
+teq_type_logname(const struct tevent *ev)
+{
+	tevent_check(ev);
+
+	switch(ev->magic) {
+	case THREAD_EVENT_MAGIC:		return "EV  ";
+	case THREAD_EVENT_ACK_MAGIC:	return "ACK ";
+	case THREAD_EVENT_RPC_MAGIC:	return "RPC ";
+	case THREAD_EVENT_ARPC_MAGIC:	return "ARPC";
+	case THREAD_EVENT_IO_MAGIC:		return "IO  ";
+	case THREAD_EVENT_IRPC_MAGIC:	return "IRPC";
+	}
+
+	return "UNKN";
+}
+
+/**
+ * Log specific event into string.
+ *
+ * @param ev	the TEQ event we wish to trace
+ * @param logs	the string where formatted events are appended
+ */
+static void
+teq_monitor_event(const struct tevent *ev, str_t *logs)
+{
+	tevent_check(ev);
+
+	str_putc(logs, '\n');
+	str_putc(logs, '\t');
+
+	str_catf(logs, "%s ", teq_type_logname(ev));
+
+	switch(ev->magic) {
+	case THREAD_EVENT_MAGIC:
+	case THREAD_EVENT_IO_MAGIC:
+		{
+			const struct tevent_plain *evp = (void *) ev;
+			str_catf(logs, "%s(%lx)",
+				stacktrace_function_name(evp->event), (ulong) evp->data);
+		}
+		break;
+	case THREAD_EVENT_ACK_MAGIC:
+		{
+			const struct tevent_acked *eva = (void *) ev;
+			str_catf(logs, "%s(%lx)",
+				stacktrace_function_name(eva->event), (ulong) eva->event_data);
+		}
+		break;
+	case THREAD_EVENT_RPC_MAGIC:
+	case THREAD_EVENT_ARPC_MAGIC:
+	case THREAD_EVENT_IRPC_MAGIC:
+		{
+			const struct tevent_rpc *evr = (void *) ev;
+			str_catf(logs, "%s(%lx)",
+				stacktrace_function_name(evr->routine), (ulong) evr->data);
+		}
+		break;
+	}
+}
+
+/**
+ * Trace pending events in the TEQ queue by formatting events to supplied string.
+ *
+ * @param teq	the TEQ queue we want to trace events from
+ * @param logs	the string where formatted events are appended
+ */
+static void
+teq_monitor_trace(struct teq *teq, str_t *logs)
+{
+	struct tevent *ev;
+
+	teq_check(teq);
+	str_check(logs);
+
+	TEQ_LOCK(teq);
+
+	ESLIST_FOREACH_DATA(&teq->queue, ev) {
+		teq_monitor_event(ev, logs);
+	}
+
+	if (teq_is_io(teq)) {
+		struct teq_io *teq_io = TEQ_IO(teq);
+
+		ESLIST_FOREACH_DATA(&teq_io->ioq, ev) {
+			teq_monitor_event(ev, logs);
+		}
+	}
+
+	TEQ_UNLOCK(teq);
+
+	str_putc(logs, '\n');
+}
+
+/**
  * Callout queue periodic event to make sure thread event queues are handled
  * in a timely manner when they have pending events.
  */
@@ -1492,11 +1590,14 @@ teq_monitor(void *unused_obj)
 		uint throttled:1;
 		uint io_throttled:1;
 	} mon[THREAD_MAX];
+	str_t *logs;
 
 	(void) unused_obj;
 	STATIC_ASSERT(N_ITEMS(mon) == N_ITEMS(event_queue));
 
 	ZERO(&mon);
+
+	logs = str_new(1024);	/* Arbitrarily large */
 
 	EVENT_QUEUE_LOCK;
 
@@ -1548,30 +1649,46 @@ teq_monitor(void *unused_obj)
 		}
 	}
 
+	/*
+	 * If we found stuck threads, trace their pending events.
+	 */
+
+	for (i = 0; i < N_ITEMS(mon); i++) {
+		if G_UNLIKELY(mon[i].stuck != 0) {
+			static const char THROTTLED[] = "throttled ";
+			struct teq *teq = event_queue[i];
+
+			if (0 == mon[i].ioq) {
+				str_catf(logs,
+					"%s(): found %zu pending event%s "
+					"in %sevent queue for %s",
+					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					mon[i].throttled ? THROTTLED : "",
+					thread_id_name(i));
+			} else {
+				str_catf(logs,
+					"%s(): found %zu pending event%s (with %zu %sI/O) "
+					"in %sevent queue for %s",
+					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					mon[i].ioq, mon[i].io_throttled ? THROTTLED : "",
+					mon[i].throttled ? THROTTLED : "", thread_id_name(i));
+			}
+			teq_monitor_trace(teq, logs);
+		}
+	}
+
 	EVENT_QUEUE_UNLOCK;
 
 	/*
 	 * Log outside of the critical section if we found stuck threads.
 	 */
 
-	for (i = 0; i < N_ITEMS(mon); i++) {
-		if G_UNLIKELY(mon[i].stuck != 0) {
-			static const char THROTTLED[] = "throttled ";
-			if (0 == mon[i].ioq) {
-				s_warning("%s(): found %zu pending event%s "
-					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
-					mon[i].throttled ? THROTTLED : "",
-					thread_id_name(i));
-			} else {
-				s_warning("%s(): found %zu pending event%s (with %zu %sI/O) "
-					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
-					mon[i].ioq, mon[i].io_throttled ? THROTTLED : "",
-					mon[i].throttled ? THROTTLED : "", thread_id_name(i));
-			}
-		}
+	if (str_len(logs) != 0) {
+		str_chomp(logs);
+		s_warning("%s", str_2c(logs));
 	}
+
+	str_destroy_null(&logs);
 
 	return TRUE;		/* Keep calling */
 }
