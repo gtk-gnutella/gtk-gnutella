@@ -8482,6 +8482,8 @@ download_g2_send_push(struct download *d, const pmsg_t *mb,
 		PSLIST_FOREACH(node_all_g2_nodes(), sl) {
 			const gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
 			g2_node_send(n, pmsg_clone(mb));
 			success = TRUE;
 		}

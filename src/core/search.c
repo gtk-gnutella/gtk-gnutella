@@ -5011,6 +5011,8 @@ gnet_done:
 			PSLIST_FOREACH(node_all_g2_nodes(), sl) {
 				const gnutella_node_t *n2 = sl->data;
 
+				node_check(n2);
+
 				if (NULL == n2->searchq)
 					continue;		/* Skip non-writable node */
 
