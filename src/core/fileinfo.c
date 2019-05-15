@@ -7510,6 +7510,22 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
+	/*
+	 * When file is seeded, the chunklist has been disposed of but we can
+	 * satisfy any request that falls within the file boundaries!
+	 */
+
+	if (FI_F_SEEDING && fi->flags) {
+		if (*end >= fi->size)
+			*end = fi->size - 1;	/* Cannot go beyond end of file! */
+		return TRUE;				/* Completed file being seeded */
+	}
+
+	/*
+	 * Look for a suitable chunk, relying on the fact that completed chunks
+	 * have been coalesced together.
+	 */
+
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 		dl_file_chunk_check(fc);
 
