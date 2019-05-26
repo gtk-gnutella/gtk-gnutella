@@ -4109,13 +4109,26 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 		if (-1 == stat(fi->pathname, &sb)) {
 			g_warning("%s(): cannot stat() shared file \"%s\": %m",
 				G_STRFUNC, fi->pathname);
-		} else if (fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0) {
-			g_warning("%s(): wrong size for shared file \"%s\": "
-				"expected %s, got %s",
-				G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
-				filesize_to_string2(sb.st_size));
 		} else {
 			mtime = sb.st_mtime;
+
+			/*
+			 * This routine can also be called when a partial file is being
+			 * renamed through the GUI, hence we must not warn if the partial
+			 * file size on the disk does not match the internal file
+			 * information: the fileinfo trailer is still present on the disk!
+			 * 		--RAM, 2019-05-26
+			 */
+
+			if (
+					(FI_F_STRIPPED & fi->flags) &&
+					fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0
+			) {
+				g_warning("%s(): wrong size for shared file \"%s\": "
+					"expected %s, got %s",
+					G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
+					filesize_to_string2(sb.st_size));
+			}
 		}
 
 		/*
