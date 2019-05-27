@@ -1,20 +1,25 @@
 #!/bin/sh
 bold=$(tput bold)
 normal=$(tput sgr0)
+export PATH="/Users/travis/.new_local/bin:/usr/local/opt/python/libexec/bin:$PATH"
 
 case "$1" in
 'before_install')
-	brew remove --force $(brew list) --ignore-dependencies
+	brew remove --force $(brew list | grep -v "openssl\|python\|pyenv") --ignore-dependencies
+	pip3 install virtualenv
+	virtualenv -p python3 /Users/travis/.new_local
+	source /Users/travis/.new_local/bin/activate
+	pip install pipenv
 
 	[ -n "${OBJECTSTORE_URL}" ] && mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.gz | tar -zx  -C ~/gtk-gnutella || echo "Nothing prebuild"
-	curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-build-setup.sh | sh
+	curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh | sh
 	cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella && cp -v osx/gtk-gnutella.modules ~/gtk-gnutella.modules
 	git clone https://github.com/jralls/gtk-mac-bundler.git
 	;;
 	
 'install')
 	export JHB=gtk-gnutella
-	export PATH=$PATH:~/.local/bin/
+	export PATH=$PATH:~/.new_local/bin/
 
 	jhb_actions_all=("bootstrap" "meta-gtk-osx-bootstrap" "meta-gtk-osx-core" "build")
 	jhb_actions=("${jhb_actions_all[@]}")
