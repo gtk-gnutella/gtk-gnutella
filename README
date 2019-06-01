@@ -89,7 +89,7 @@ documentation.
 To compile gtk-gnutella:  
 
     ./build.sh
-    make install
+    gmake install
 
 The build.sh shell script is a wrapper for Configure. There should almost never
 be a need to invoke Configure manually.  The `Configure' shell script attempts
