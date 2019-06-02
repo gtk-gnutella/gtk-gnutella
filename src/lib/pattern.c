@@ -38,6 +38,7 @@
 #include "pattern.h"
 
 #include "ascii.h"
+#include "endian.h"
 #include "misc.h"
 #include "op.h"
 #include "pow2.h"
