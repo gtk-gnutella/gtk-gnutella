@@ -55,9 +55,6 @@
 
 #define CPU_CACHELINE	(8 * sizeof(long))	/* Guesstimate of CPU cacheline */
 
-typedef void *(pattern_memchr_t)(const void *s, int c, size_t n);
-typedef char *(pattern_strchr_t)(const char *s, int c);
-typedef size_t (pattern_strlen_t)(const char *s);
 typedef const char *(pattern_dflt_unknown_t)(
 	const cpattern_t *p, const uchar *h, size_t mh, qsearch_mode_t m);
 typedef const char *(pattern_dflt_known_t)(
