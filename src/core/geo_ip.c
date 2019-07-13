@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2019 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Support for geographic (country-level) IP mapping.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2019
  */
 
 #include "common.h"
@@ -55,8 +55,12 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define GIP_IPV4	0
-#define GIP_IPV6	1
+enum gip_type {
+	GIP_IPV4 = 0,				/* Index in gip_source[] and gip_version[] */
+	GIP_IPV6 = 1
+};
+
+static int gip_version[] = { 4, 6 };
 
 struct gip_source {
 	const char *file;		/**< Source file */
@@ -114,10 +118,151 @@ gip_add_cidr(uint32 ip, uint bits, void *udata)
 }
 
 /**
- * Parse an IPv4 Geo IP line and record the range in the database.
+ * Parse an IPv4 or IPv6 Geo IP line and record the range in the database.
+ *
+ * IP addresses are expected on a line in CIDR format, followed by the country
+ * code, i.e. either:
+ *
+ * 		2a03:be00::/32 nl
+ *
+ * or
+ *
+ * 		5.39.115.0/24 fr
+ *
+ * as disciminated by the the tag parameter.
+ *
+ * @param line		the string to parse
+ * @param linenum	the source line number in the file
+ * @param tag		either GIP_IPV4 or GIP_IPV6 depending on file parsed
  */
 static void
-gip_parse_ipv4(const char *line, int linenum)
+gip_parse_ip(const char *line, int linenum, enum gip_type tag)
+{
+	const char *end;
+	uint16 code;
+	int error;
+	uint8 ipv6[16];
+	uint32 ipv4;
+	unsigned bits;
+
+	/*
+	 * Each line looks like:
+	 *
+	 *    <IP> nl
+	 *
+	 * The leading part up to the space is the IP network in CIDR format.
+	 * The trailing word is the 2-letter ISO country code.
+	 *
+	 * If the whole bits are meant to be used, the /128 or /32 may be missing,
+	 * for instance:
+	 *
+	 * 		2402:3f40::1 cn
+	 *
+	 * in which case we suply the appropriate amount of bits.
+	 */
+
+	switch (tag) {
+	case GIP_IPV4:
+		if (!string_to_ip_strict(line, &ipv4, &end))
+			goto bad;
+		break;
+	case GIP_IPV6:
+		if (!parse_ipv6_addr(line, ipv6, &end))
+			goto bad;
+		break;
+	}
+
+
+	if ('/' != *end) {
+		bits = GIP_IPV4 == tag ? 32 : 128;
+		goto no_bits;
+	}
+
+	bits = parse_uint(end + 1, &end, 10, &error);
+
+	if (error) {
+		g_warning("%s, line %d: cannot parse network bit amount in \"%s\"",
+			gip_source[tag].file, linenum, line);
+		return;
+	}
+
+	if (bits > (GIP_IPV4 == tag ? 32 : 128)) {
+		g_warning("%s, line %d: invalid bit amount %u in \"%s\"",
+			gip_source[tag].file, linenum, bits, line);
+		return;
+	}
+
+	/* FALL THROUGH */
+
+no_bits:
+	if (!is_ascii_space(*end)) {
+		g_warning("%s, line %d: missing spaces after network in \"%s\"",
+			gip_source[tag].file, linenum, line);
+		return;
+	}
+
+	while (is_ascii_space(*end))
+		end++;
+
+	if ('\0' == *end) {
+		g_warning("%s, line %d: missing country code in \"%s\"",
+			gip_source[tag].file, linenum, line);
+		return;
+	}
+
+	code = iso3166_encode_cc(end);
+	if (ISO3166_INVALID == code) {
+		g_warning("%s, line %d: bad country code in \"%s\"",
+			gip_source[tag].file, linenum, line);
+		return;
+	}
+
+	/*
+	 * Parsing done allright, now insert the CIDR range and associate
+	 * it with the country code.
+	 *
+	 * @attention
+	 * code must not be zero and the LSB must be zero due to using it as
+	 * as key for ipranges, hence the arithmetic below.
+	 */
+
+	switch (tag) {
+	case GIP_IPV4:
+		error = iprange_add_cidr (geo_db, ipv4, bits, (code + 1) << 1);
+		break;
+	case GIP_IPV6:
+		error = iprange_add_cidr6(geo_db, ipv6, bits, (code + 1) << 1);
+		break;
+
+	}
+
+	if (IPR_ERR_OK != error) {
+		g_warning("%s, line %d: cannot insert %s/%u: %s",
+			gip_source[tag].file, linenum,
+			GIP_IPV4 == tag ? ip_to_string(ipv4) : ipv6_to_string(ipv6),
+			bits, iprange_strerror(error));
+	}
+
+	return;
+
+bad:
+	g_warning("%s, line %d: bad IPv%d network address \"%s\"",
+		gip_source[tag].file, linenum, gip_version[tag], line);
+}
+
+/**
+ * Parse an IPv4 Geo IP line and record the range in the database.
+ *
+ * This is the legacy format of Geo IP database, where each line looks
+ * like this:
+ *
+ *		15.0.0.0 - 15.130.191.255 fr
+ *
+ * This forces us to compute all the CIDR ranges that encompass the range
+ * delimited by the two IP addresses.
+ */
+static void
+gip_parse_ipv4_legacy(const char *line, int linenum)
 {
 	const char *end;
 	uint16 code;
@@ -214,86 +359,47 @@ gip_parse_ipv4(const char *line, int linenum)
 }
 
 /**
+ * Parse an IPv4 Geo IP line and record the range in the database.
+ *
+ * This is the new format of Geo IP database, where each line looks
+ * like this:
+ *
+ *		5.39.115.0/24 fr
+ *
+ * This is easier to process than the legacy format because we get one CIDR
+ * entry per line.
+ */
+static void
+gip_parse_ipv4_new(const char *line, int linenum)
+{
+	gip_parse_ip(line, linenum, GIP_IPV4);
+}
+
+/**
+ * Parse an IPv4 Geo IP line and record the range in the database.
+ */
+static void
+gip_parse_ipv4(const char *line, int linenum)
+{
+	/*
+	 * We discriminate between the legacy and new format based on the
+	 * presence of '/' in the line.
+	 */
+
+	if (NULL == vstrchr(line, '/'))
+		gip_parse_ipv4_legacy(line, linenum);
+	else
+		gip_parse_ipv4_new(line, linenum);
+
+}
+
+/**
  * Parse an IPv6 Geo IP line and record the range in the database.
  */
 static void
 gip_parse_ipv6(const char *line, int linenum)
 {
-	const char *end;
-	uint16 code;
-	int error;
-	uint8 ip[16];
-	unsigned bits;
-
-	/*
-	 * Each line looks like:
-	 *
-	 *    2a03:be00::/32 nl
-	 *
-	 * The leading part up to the space is the IPv6 network in CIDR format.
-	 * The trailing word is the 2-letter ISO country code.
-	 *
-	 * If the whole 128 bits are meant to be used, the /128 may be missing,
-	 * for instance:
-	 *
-	 * 		2402:3f40::1 cn
-	 */
-
-	if (!parse_ipv6_addr(line, ip, &end)) {
-		g_warning("%s, line %d: bad IPv6 network address \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
-	}
-
-	if ('/' != *end) {
-		bits = 128;
-		goto no_bits;
-	}
-
-	bits = parse_uint(end + 1, &end, 10, &error);
-
-	if (error) {
-		g_warning("%s, line %d: cannot parse network bit amount in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
-	}
-
-	if (bits > 128) {
-		g_warning("%s, line %d: invalid bit amount %u in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, bits, line);
-		return;
-	}
-
-no_bits:
-	if (!is_ascii_space(*end)) {
-		g_warning("%s, line %d: missing spaces after network in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
-	}
-
-	while (is_ascii_space(*end))
-		end++;
-
-	if ('\0' == *end) {
-		g_warning("%s, line %d: missing country code in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
-	}
-
-	code = iso3166_encode_cc(end);
-	if (ISO3166_INVALID == code) {
-		g_warning("%s, line %d: bad country code in \"%s\"",
-			gip_source[GIP_IPV6].file, linenum, line);
-		return;
-	}
-
-	error = iprange_add_cidr6(geo_db, ip, bits, (code + 1) << 1);
-
-	if (IPR_ERR_OK != error) {
-		g_warning("%s, line %d: cannot insert %s/%u: %s",
-			gip_source[GIP_IPV6].file, linenum, ipv6_to_string(ip),
-			bits, iprange_strerror(error));
-	}
+	gip_parse_ip(line, linenum, GIP_IPV6);
 }
 
 /**
