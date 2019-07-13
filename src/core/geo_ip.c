@@ -408,7 +408,7 @@ gip_parse_ipv6(const char *line, int linenum)
  * @return The amount of entries loaded.
  */
 static uint G_COLD
-gip_load(FILE *f, unsigned idx)
+gip_load(FILE *f, unsigned idx, const char *filename, bool initial)
 {
 	char line[1024];
 	int linenum = 0;
@@ -430,7 +430,7 @@ gip_load(FILE *f, unsigned idx)
 	}
 
 	if (-1 == fstat(fileno(f), &buf)) {
-		g_warning("cannot stat %s: %m", gip_source[idx].file);
+		g_warning("cannot stat %s: %m (at %s)", gip_source[idx].file, filename);
 	} else {
 		gip_source[idx].mtime = buf.st_mtime;
 	}
@@ -461,14 +461,14 @@ gip_load(FILE *f, unsigned idx)
 
 	iprange_sync(geo_db);
 
-	if (GNET_PROPERTY(reload_debug)) {
+	if (GNET_PROPERTY(reload_debug) || initial) {
 		if (GIP_IPV4 == idx) {
-			g_debug("loaded %u geographical IPv4 ranges (%u hosts)",
+			g_debug("loaded %u geographical IPv4 ranges (%u hosts) from \"%s\"",
 				iprange_get_item_count4(geo_db),
-				iprange_get_host_count4(geo_db));
+				iprange_get_host_count4(geo_db), filename);
 		} else {
-			g_debug("loaded %u geographical IPv6 ranges",
-				iprange_get_item_count6(geo_db));
+			g_debug("loaded %u geographical IPv6 ranges from \"%s\"",
+				iprange_get_item_count6(geo_db), filename);
 		}
 	}
 
@@ -492,7 +492,7 @@ gip_changed(const char *filename, void *idx_ptr)
 	if (f == NULL)
 		return;
 
-	count = gip_load(f, idx);
+	count = gip_load(f, idx, filename, FALSE);
 	fclose(f);
 
 	str_bprintf(ARYLEN(buf), "Reloaded %u geographic IPv%c ranges.",
@@ -535,10 +535,10 @@ gip_retrieve(unsigned n)
 
 	filename = make_pathname(fp[idx].dir, fp[idx].name);
 	watcher_register(filename, gip_changed, uint_to_pointer(n));
-	HFREE_NULL(filename);
 
-	gip_load(f, n);
+	gip_load(f, n, filename, TRUE);
 	fclose(f);
+	HFREE_NULL(filename);
 }
 
 /**
