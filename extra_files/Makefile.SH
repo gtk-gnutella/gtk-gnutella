@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-224]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-245]
 : $X-Id$
 
 case $CONFIG in
@@ -165,26 +165,43 @@ local_deinstall::
 # Update the bogons and GeoIp databases
 #
 
-update: update_bogons update_geoip update_geoipv6
+update: update_bogons update_geoip
 
 update_bogons:
 # Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
 	: wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
 
-update_geoip:
-	rm -f GeoIPCountryCSV.zip
-	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
-	rm -f GeoIPCountryWhois.csv
-	unzip GeoIPCountryCSV.zip
-	$(TOP)/scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+GEODB = GeoLite2-Country-CSV.zip
+URL = https://geolite.maxmind.com/download/geoip/database/$(GEODB)
+TMP = tmp
 
-update_geoipv6:
-	rm -f GeoIPv6.csv.gz
-	wget http://geolite.maxmind.com/download/geoip/database/GeoIPv6.csv.gz
-	rm -f GeoIPv6.csv
-	gunzip GeoIPv6.csv.gz
-	$(TOP)/scripts/geo6-to-db.pl -g GeoIPv6.csv >geo-ipv6.txt
+#
+# The fetched GEODB zip file unzips itself into a sub-directory.
+#
+# Hence the strategy is to create a tempory directory where we unzip it,
+# and then descend in the single created directory below it to find the
+# CSV files containing the CIDR mappings to country codes.
+#
+# We therefore issue "cd tmp/*" to be at the location of the extracted files.
+#
+
+update_geoip:
+	rm -f $(GEODB)
+	rm -rf $(TMP)
+	wget $(URL)
+	mkdir $(TMP)
+	(cd $(TMP); unzip ../$(GEODB))
+	(cd $(TMP)/*; \
+		../../$(TOP)/scripts/geolite-to-db.pl \
+		../../geo-ip.txt GeoLite2-Country-Blocks-IPv4.csv)
+	(cd $(TMP)/*; \
+		../../$(TOP)/scripts/geolite-to-db.pl \
+		../../geo-ipv6.txt GeoLite2-Country-Blocks-IPv6.csv)
+
+local_clean::
+	rm -rf $(TMP)
+	rm -f $(GEODB)
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
