@@ -1,3 +1,88 @@
+# v 1.1.15  2019-07-14  [stable]
+
+This release is a maintenance one fixing several minor bugs and two annoying
+ones:
+
+- The semi-reliable UDP layer could crash due to an assertion that started
+  to trigger with the introduction of an explicit flush before the message
+  times out for transmission.
+
+- Due to an overseen condition, we were not able to serve seeded files when
+  Partial File Sharing is enabled.  A seeded file is a completed file that
+  still lies in the downloaded directory but is not part of the library
+  directories.
+
+The OOB banning code for hosts that never claim their OOB hits was also
+revisited to prevent problems with hosts that query a popular file and then
+get submerged by hits and thus refrain to claim the additional hits.  We are
+now much more tolerant to avoid accidentally banning innocent hosts.
+
+On Windows, the disassembling of machine instructions was enhanced to further
+improve the ability to correctly issue symbolic stack traces when encountering
+assertion failures or during crashes.
+
+Finally, the Geo IP databases were refreshed.
+
+Improvements:
+- OOB: increased timeout for OOB hit delivery.
+- OOB: switch to unreliable notification if semi-reliable UDP fails.
+- OOB: raise the bar for banning after unclaimed OOB hits.
+- Dynamic Hits: let us forward hits that bear a small amount of results.
+- Count amount of banning we have to do for OOB querying hosts.
+
+Bug Fixes:
+- Rename statx struct to statistics to avoid name collision.
+- browse_host_read_html(): fixed English typo.
+- dl_util_query(): forgot to restore old signal handler.
+- file_info_restrict_range(): was not serving seeded files!
+- main(): do not let the supervisor process restart on crash!
+
+Under the Hood:
+- Added thread_stack_diff() to compare stack pointers.
+- Added PLURAL() macros.
+- Added clz64() to count leading zeroes on a 64-bit quantity.
+- Added OP_CTZ() and OP_CLZ() to work on op_t quantities.
+- Added pattern_memrchr() and pattern_strrchr() implementations.
+- Jumbo patch to use vstrrchr() instead of strrchr().
+- BIT_GENERIC_BIT() does not need the base argument.
+- Factorized prefix-matching from sorted array.
+- pattern.c: fix compiling with old gcc (version 4.4)
+- pattern.c: forgot to include "endian.h".
+- str: avoid "char" as parameter or return type, use "int".
+- Windows: if not a "registered product", leave logs in current dir.
+- Windows: enhanced stack unwinding.
+- Windows: added option to debug backtraces "on crash" only.
+- Windows: when backtracing, also parse another MOV instruction.
+- Windows backtrace: also parse "add xx,%esp".
+- compat_poll(): can now use poll() on Windows.
+- evq_close(): warn when EVQ is not terminated after 2 seconds.
+- file_info_moved(): no warning on file size if file still partial.
+- main(): set a different product nickname for supervisor.
+- mingw_analyze_prologue(): handle cases where no SP adjustment done.
+- mingw_exception(): also log symbolic thread name if available.
+- mingw_exception(): disable signals on stack overflow.
+- mingw_exception(): interpret exception information differently.
+- mingw_exception_log(): if PC looks invalid, try to intuit caller.
+- mingw_file_rotate(): preserve extension during renaming.
+- mingw_ftruncate(): it is OK if current offset is beyond truncation.
+- mingw_get_return_address(): enhanced scanning for prologue.
+- mingw_get_return_address(): validate next PC by checking CALL before.
+- mingw_get_return_address(): validate stack pointer before access.
+- mingw_thread_sig_deliver(): special-case signals for current thread.
+- pattern_compile(): must use WALLOC0() for allocating!
+- pattern_strstr_tiny(): fixed starting condition for aligned processing.
+- rwlock_upgrade_from(): don't wait for readers in pass-through mode.
+- rwlock_wait(): dump lock waiting queue when tracing sleeps.
+- rwlock_wait(): trace summary when logging contention / sleeping.
+- str_private(): declare non-leaking parts for TRACK_ZALLOC.
+- teq_monitor(): trace pending events as well.
+- thread-test: for interrupt tests, timeout if no interrupt received.
+- thread_backtrace_capture(): avoid recursion and disable signals.
+- thread_id_stack_used(): fixed for decreasing stacks.
+- ut_frag_pmsg_free(): be more robust, avoid internal assertion.
+- vmm_crashing_alloc(): better abort explicitly if no memory.
+- wmove(): make sure it's a no-op with TRACK_ZALLOC.
+
 # v 1.1.14  2018-10-04  [stable]
 
 This release mostly improves the core routines and fixes a few important bugs.
