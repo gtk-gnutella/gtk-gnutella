@@ -35,6 +35,8 @@
 #ifndef _op_h_
 #define _op_h_
 
+#include "pow2.h"
+
 #define op_t	unsigned long int
 #define OPSIZ	(sizeof(op_t))
 
@@ -42,6 +44,28 @@
 #define op_roundup(x)	(((x) + OPSIZ - 1) & ~(OPSIZ - 1))
 
 #define op_ptr_roundup(x)	(void *) (((size_t) (x) + OPSIZ - 1) & ~(OPSIZ - 1))
+
+/*
+ * How do we count trailing zeros in op_t?
+ */
+#if LONGSIZE == 8
+#define OP_CTZ(x)	ctz64(x)
+#elif LONGSIZE == 4
+#define OP_CTZ(x)	ctz(x)
+#else
+#error "unexpected long size"
+#endif
+
+/*
+ * How do we count leading zeros in op_t?
+ */
+#if LONGSIZE == 8
+#define OP_CLZ(x)	clz64(x)
+#elif LONGSIZE == 4
+#define OP_CLZ(x)	clz(x)
+#else
+#error "unexpected long size"
+#endif
 
 #endif /* _op_h_ */
 

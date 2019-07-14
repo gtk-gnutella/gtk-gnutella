@@ -1132,6 +1132,8 @@ gboolean gnet_property_variable_lock_sleep_trace     = FALSE;
 static const gboolean gnet_property_variable_lock_sleep_trace_default = FALSE;
 gboolean gnet_property_variable_running_topless     = FALSE;
 static const gboolean gnet_property_variable_running_topless_default = FALSE;
+gboolean gnet_property_variable_send_oob_ind_reliably     = TRUE;
+static const gboolean gnet_property_variable_send_oob_ind_reliably_default = TRUE;
 
 static prop_set_t *gnet_property;
 
@@ -11396,6 +11398,25 @@ gnet_prop_init(void) {
     gnet_property->props[487].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[487].data.boolean.def   = (void *) &gnet_property_variable_running_topless_default;
     gnet_property->props[487].data.boolean.value = (void *) &gnet_property_variable_running_topless;
+
+
+    /*
+     * PROP_SEND_OOB_IND_RELIABLY:
+     *
+     * General data:
+     */
+    gnet_property->props[488].name = "send_oob_ind_reliably";
+    gnet_property->props[488].desc = _("Whether OOB hit indications should be sent reliably over UDP when remote querying end has indicated support for semi-reliable UDP");
+    gnet_property->props[488].ev_changed = event_new("send_oob_ind_reliably_changed");
+    gnet_property->props[488].save = TRUE;
+    gnet_property->props[488].internal = FALSE;
+    gnet_property->props[488].vector_size = 1;
+	mutex_init(&gnet_property->props[488].lock);
+
+    /* Type specific data: */
+    gnet_property->props[488].type               = PROP_TYPE_BOOLEAN;
+    gnet_property->props[488].data.boolean.def   = (void *) &gnet_property_variable_send_oob_ind_reliably_default;
+    gnet_property->props[488].data.boolean.value = (void *) &gnet_property_variable_send_oob_ind_reliably;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

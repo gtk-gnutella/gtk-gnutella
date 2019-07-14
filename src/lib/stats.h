@@ -40,9 +40,9 @@
  * One dimension statistics.
  */
 
-struct statx;
+struct statistics;
 
-typedef struct statx statx_t;
+typedef struct statistics statx_t;
 
 statx_t *statx_make(void);
 statx_t *statx_make_nodata(void);

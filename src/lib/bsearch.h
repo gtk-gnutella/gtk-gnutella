@@ -35,6 +35,16 @@
 #define _bsearch_h_
 
 #include "unsigned.h"
+#include "pslist.h"
+
+/**
+ * Qualification of results for bsearch_prefix().
+ */
+typedef enum bsearch_status {
+	BSEARCH_NONE = 0,			/* No match */
+	BSEARCH_SINGLE = 1,			/* One single match */
+	BSEARCH_MULTI = 2,			/* Multiple matches (ambiguous key) */
+} bsearch_status_t;
 
 #ifndef HAS_BSEARCH
 /**
@@ -44,7 +54,7 @@
  * by the comparison routine.
  *
  * If more than one item in the array is identical to the key, the actual
- * item returned is undefined, but one of the matching entries of course.
+ * item returned is undefined, but is one of the matching entries of course.
  *
  * @note
  * The comparison function is invoked as cmp(key, item), to compare the
@@ -145,6 +155,28 @@ blookup(const void *key,
 
 	return NULL;
 }
+
+bsearch_status_t
+bsearch_prefix(const void *key,
+	const void *base, size_t count, size_t size, cmp_fn_t cmp,
+	void **result);
+
+pslist_t *
+bsearch_matching(const void *key,
+	const void *base, size_t count, size_t size, cmp_fn_t cmp,
+	const void *result);
+
+#define BSEARCH(key, vec, cmp) \
+	bsearch((key), (vec), N_ITEMS(vec), sizeof((vec)[0]), (cmp))
+
+#define BLOOKUP(key, vec, cmp, gkey) \
+	blookup((key), (vec), N_ITEMS(vec), sizeof((vec)[0]), (cmp), (gkey))
+
+#define BSEARCH_PREFIX(key, vec, cmp, res) \
+	bsearch_prefix((key), (vec), N_ITEMS(vec), sizeof((vec)[0]), (cmp), (res))
+
+#define BSEARCH_MATCHING(key, vec, cmp, res) \
+	bsearch_matching((key), (vec), N_ITEMS(vec), sizeof((vec)[0]), (cmp), (res))
 
 #endif /* _bsearch_h_ */
 

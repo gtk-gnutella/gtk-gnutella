@@ -1261,7 +1261,7 @@ shared_file_valid_extension(const char *filename)
 		return TRUE;
 	}
 
-	filename_ext = strrchr(filename, '.');
+	filename_ext = vstrrchr(filename, '.');
 	if (filename_ext) {
 		/*
 		 * Filenames without any extension are not shared, unless
@@ -4123,8 +4123,11 @@ share_add_partial(const shared_file_t *sf)
 
 	share_qrp_rebuild_if_needed();
 
-	if (GNET_PROPERTY(share_debug) > 1)
-		g_debug("SHARE added partial file \"%s\"", shared_file_path(sf));
+	if (GNET_PROPERTY(share_debug) > 1) {
+		g_debug("SHARE added %s file \"%s\"",
+			shared_file_is_finished(sf) ? "seeded" : "partial",
+			shared_file_path(sf));
+	}
 }
 
 /**

@@ -1719,6 +1719,8 @@ zcreate(size_t size, unsigned hint, bool embedded)
 static void
 zdestroy_physical(zone_t *zone)
 {
+	zone_check(zone);
+
 	if (zone->zn_cnt) {
 		s_warning("destroyed zone (%zu-byte blocks) still holds %u entr%s",
 			zone->zn_size, zone->zn_cnt, plural_y(zone->zn_cnt));
@@ -1752,7 +1754,7 @@ zdestroy_physical(zone_t *zone)
 	/*
 	 * If the zone is private, unlock it to avoid spinlock_destroy()
 	 * complaining about the lock being not registered (since a private
-	 * zone is not really locked).
+	 * zone is not really locked)
 	 */
 
 	if (zone->private)

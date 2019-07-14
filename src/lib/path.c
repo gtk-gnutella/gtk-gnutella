@@ -174,14 +174,14 @@ filepath_basename(const char *pathname)
 
 	g_assert(pathname);
 
-	p = strrchr(pathname, '/');
+	p = vstrrchr(pathname, '/');
 	if (p) {
 		p++;
 	} else {
 		p = pathname;
 	}
 	if (G_DIR_SEPARATOR != '/') {
-		const char *q = strrchr(p, G_DIR_SEPARATOR);
+		const char *q = vstrrchr(p, G_DIR_SEPARATOR);
 		if (q)
 			p = &q[1];
 	}
@@ -193,7 +193,7 @@ filepath_directory_end(const char *pathname, char separator)
 {
 	const char *p;
 
-	p = strrchr(pathname, separator);
+	p = vstrrchr(pathname, separator);
 	if (p) {
 		while (p != pathname && is_dir_separator(p[-1])) {
 			p--;

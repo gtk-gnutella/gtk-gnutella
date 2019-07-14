@@ -5710,4 +5710,14 @@ prop = {
     };
 };
 
+prop = {
+    name = "send_oob_ind_reliably";
+    desc = "Whether OOB hit indications should be sent reliably over UDP when "
+		"remote querying end has indicated support for semi-reliable UDP";
+    type = boolean;
+    data = {
+        default = TRUE;
+    };
+};
+
 /* vi: set ts=4: */

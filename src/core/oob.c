@@ -49,6 +49,8 @@
 
 #include "if/gnet_property_priv.h"
 
+#include "if/core/main.h"	/* For debugging() */
+
 #include "lib/atoms.h"
 #include "lib/cq.h"
 #include "lib/fifo.h"
@@ -62,8 +64,9 @@
 
 #include "lib/override.h"		/* Must be the last header included */
 
-#define OOB_EXPIRE_MS		(2*60*1000)		/**< 2 minutes at most */
-#define OOB_TIMEOUT_MS		(45*1000)		/**< 45 secs for them to reply */
+#define OOB_EXPIRE_LARGE_MS	(2*60*1000)		/**< 2 minutes at most for large hits */
+#define OOB_EXPIRE_SMALL_MS	(3*60*1000)		/**< 3 minutes at most for small hits */
+#define OOB_TIMEOUT_MS		(80*1000)		/**< 80 secs for them to reply */
 #define OOB_DELIVER_BASE_MS	2500			/**< 1 msg queued every 2.5 secs */
 #define OOB_DELIVER_RAND_MS	5000			/**< ... + up to 5 random secs */
 
@@ -126,11 +129,17 @@ struct gservent {
  * High-level description of what's happening here.
  *
  * When we get notified by share.c about a set of hits, we create the
- * struct oob_results, set the global expire to OOB_EXPIRE_MS and
+ * struct oob_results, set the global expire to OOB_EXPIRE_XXX_MS and
  * send a LIME/12v2 to the querying, arming OOB_TIMEOUT_MS only AFTER
  * we get notified by the MQ that we sent the message.  If message was
  * dropped, requeue.  Do that OOB_MAX_RETRY times at most, then discard
  * the results.
+ *
+ * The timeout is increasing: the smaller the amount of hits, the longer we
+ * will wait to deliver them: less hits means probably rare files or specific
+ * querying -- that must be rewarded!
+ * For 255 hits, the maximum, it will be OOB_EXPIRE_LARGE_MS and for
+ * the smallest hits (1 hit) it will be OOB_EXPIRE_SMALL_MS.
  *
  * On reception of LIME/11v2, prepare all hits, put them in the FIFO
  * for this servent, then free the list.
@@ -165,6 +174,7 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 {
 	static const struct oob_results zero_results;
 	struct oob_results *r;
+	int timeout;
 
 	/*
 	 * Check for duplicate queries bearing the same MUID.
@@ -175,6 +185,27 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 
 	if (hikset_contains(results_by_muid, muid))
 		return NULL;
+
+	/*
+	 * To compare whether sending OOB reply indication via the semi-reliable
+	 * UDP layer alters the claiming ratio of results (which could indicate
+	 * a bug in the reliable layer), allow them to explicitly disable sending
+	 * the notification reliably via the "send_oob_ind_reliably" property,
+	 * by changing its value to FALSE (it is TRUE by default).
+	 * 		--RAM, 2019-03-04
+	 */
+
+	if (!GNET_PROPERTY(send_oob_ind_reliably) && reliable) {
+		reliable = FALSE;		/* Force un-reliable sending */
+
+		/* Be verbose when debugging, this is for experiments only! */
+
+		if (debugging(0)) {
+			g_message("%s(): "
+				"query #%s: OOB indication sent un-reliably to %s, as told",
+				G_STRFUNC, guid_hex_str(muid), gnet_host_to_string(to));
+		}
+	}
 
 	/*
 	 * First time we're seeing this query (normal case).
@@ -191,7 +222,14 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 	r->reliable = booleanize(reliable);
 	r->flags = flags;
 
-	r->ev_expire = cq_main_insert(OOB_EXPIRE_MS, results_destroy, r);
+	/*
+	 * Compute suitable timeout: the less hits there are, the longer the timeout.
+	 */
+
+	timeout = OOB_EXPIRE_SMALL_MS - MIN(count, 256) / 4;
+	timeout = MAX(timeout, OOB_EXPIRE_LARGE_MS);
+
+	r->ev_expire = cq_main_insert(timeout, results_destroy, r);
 	r->refcount++;
 
 	hikset_insert_key(results_by_muid, &r->muid);
@@ -347,9 +385,23 @@ results_timeout(cqueue_t *cq, void *obj)
 	 *
 	 * After too many unclaimed results, the IP address will be banned
 	 * for OOB query processing.
+	 *
+	 * Note that it is totally normal for a peer requesting OOB hit delivery
+	 * to not claim the hits: that's the purpose of dynamic querying, and
+	 * adjusting the querying rate with the hits that are coming back (or would
+	 * be if we claimed them).  It is more economical to be notified about 100
+	 * hits (say) from a host and not claim them than have the 100 results
+	 * delivered and ignore them!
+	 *
+	 * However, if too many queries for a host remain unanswered, then we may
+	 * be facing an attack from a host, and this code here protects us from
+	 * that, but the thresholds are set high enough to not trigger under
+	 * "normal" cicrumstances.  Still, the tweaking of constants is arbitrary.
+	 * 		--RAM, 2019-03-10
 	 */
 
 	if (BAN_OK != ban_allow(BAN_CAT_OOB_CLAIM, addr)) {
+		gnet_stats_inc_general(GNR_BANNED_OOB_QUERYING_HOST);
 		if (GNET_PROPERTY(query_debug)) {
 			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
 			g_debug("OOB host %s will be banned for the next %d second%s",
@@ -706,12 +758,13 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 			if (GNET_PROPERTY(query_debug) || GNET_PROPERTY(udp_debug)) {
 				char buf[OOB_GTKG_FMTLEN];
 
-				g_debug("OOB query #%s, %snotified %s about %d hit%s%s",
+				g_debug("OOB query #%s, %snotified %s about %d hit%s%s, try #%d",
 					guid_hex_str(r->muid),
 					r->reliable ? "reliably " : "",
 					gnet_host_to_string(&r->dest),
 					r->count, plural(r->count),
-					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+					oob_gtkg_logstr_fmt(ARYLEN(buf), r),
+					r->notify_requeued);
 			}
 
 			/*
@@ -748,7 +801,8 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 		/*
 		 * If we were not able to send the message: when we use plain UDP,
 		 * we retry, but with semi-reliable UDP we trust the network layer to
-		 * do the appropriate amount of retrying and a failure is definitive.
+		 * do the appropriate amount of retrying and a failure turns off
+		 * reliable delivery.
 		 */
 
 		if (GNET_PROPERTY(query_debug)) {
@@ -760,11 +814,19 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 				oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 		}
 
-		if (
-			r->reliable ||
-			++r->notify_requeued >= OOB_MAX_RETRY ||
-			!oob_send_reply_ind(r)
-		)
+		if (r->reliable) {
+			r->reliable = FALSE;
+
+			if (GNET_PROPERTY(query_debug)) {
+				char buf[OOB_GTKG_FMTLEN];
+
+				g_debug("OOB query #%s, turning off reliable notification%s",
+					guid_hex_str(r->muid),
+					oob_gtkg_logstr_fmt(ARYLEN(buf), r));
+			}
+		}
+
+		if (++r->notify_requeued >= OOB_MAX_RETRY || !oob_send_reply_ind(r))
 			goto drop_results;
 	}
 

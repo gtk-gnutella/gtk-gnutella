@@ -272,6 +272,7 @@ scripts/generic-cat
 scripts/generic-pp
 scripts/geo-to-db.pl
 scripts/geo6-to-db.pl
+scripts/geolite-to-db.pl
 scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py
@@ -675,6 +676,7 @@ src/lib/bigint.h
 src/lib/bit_array.ht
 src/lib/bit_field.ht
 src/lib/bit_generic.t
+src/lib/bsearch.c
 src/lib/bsearch.h
 src/lib/bstr.c
 src/lib/bstr.h

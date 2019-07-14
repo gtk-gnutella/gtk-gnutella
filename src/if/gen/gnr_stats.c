@@ -1,5 +1,5 @@
 /*
- * Generated on Wed Aug  8 14:55:47 2018 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Mar 10 21:55:45 2019 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl stats.lst
  */
@@ -62,6 +62,7 @@ static const char *stats_symbols[] = {
 	"expired_reliable_oob_hits",
 	"spurious_oob_hit_claim",
 	"unrequested_oob_hits",
+	"banned_oob_querying_host",
 	"query_hit_for_untracked_query",
 	"query_tracked_muids",
 	"query_compact_count",
@@ -497,6 +498,7 @@ static const char *stats_text[] = {
 	N_("Expired delivery for local reliable OOB hits"),
 	N_("Spurious OOB hit claiming received"),
 	N_("Unrequested OOB hits received"),
+	N_("OOB querying hosts banned for some time"),
 	N_("Received query hits for untracked queries"),
 	N_("Tracked query MUIDs"),
 	N_("Compacted queries"),

@@ -274,7 +274,7 @@ mime_type_from_filename(const char *filename)
 	const char *extension;
 
 	g_return_val_if_fail(filename, MIME_TYPE_APPLICATION_OCTET_STREAM);
-	extension = strrchr(filename, '.');
+	extension = vstrrchr(filename, '.');
 	return mime_type_from_extension(extension ? &extension[1] : NULL);
 }
 

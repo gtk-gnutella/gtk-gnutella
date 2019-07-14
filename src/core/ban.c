@@ -94,9 +94,9 @@
 #define MAX_SOCK_BAN		10800	/**< 3 hours */
 #define BAN_SOCK_REMIND		5		/**< Every so many attempts, remind them */
 
-#define MAX_OOB_REQUEST		5		/**< Maximum of 5 unanswered claims... */
+#define MAX_OOB_REQUEST		25		/**< Maximum of 25 unanswered claims... */
 #define MAX_OOB_PERIOD		60		/**< ...per minute */
-#define MAX_OOB_BAN			3600	/**< 1 hour */
+#define MAX_OOB_BAN			600		/**< 10 minutes */
 
 #define ban_reason(p)	((p)->ban_msg ? (p)->ban_msg : "N/A")
 

@@ -406,8 +406,8 @@ struct thread_element {
 	tsigset_t sig_pending;			/**< Signals pending delivery */
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
-	int in_signal_handler;			/**< Counts signal handler nesting */
 	bool sig_disabled;				/**< Cheap way of disabling all signals */
+	int in_signal_handler;			/**< Counts signal handler nesting */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
@@ -436,6 +436,7 @@ struct thread_element {
 	uint stack_overflow:1;			/**< Stack overflow was detected */
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
 	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
+	uint in_backtrace:1;			/**< Records thread backtracing */
 	bool add_monitoring;			/**< Must reinstall thread monitoring */
 	bool gone_seen;					/**< Flagged activity from gone thread */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
@@ -506,6 +507,7 @@ static struct thread_stats {
 	AU64(locks_qlock_sleep);		/* Amount of sleeps done on queuing locks */
 	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
 	AU64(locks_deadlock_checks);	/* Amount of deadlock checks performed */
+	AU64(locks_recursive_backtrace);/* Did we recursively attempt backtrace? */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
@@ -812,12 +814,41 @@ thread_backtrace_capture(
 	struct thread_element *te, enum thread_backtrace_type type)
 {
 	struct thread_backtrace *bt = &te->btrace;
+	bool sig_disabled;
 
 	g_assert(type != THREAD_BT_ANY);
+
+	/*
+	 * If we already called stacktrace_unwind() and recurse here,
+	 * then avoid another level of recursion.  We have room for
+	 * one backtrace anyway.
+	 */
+
+	if G_UNLIKELY(te->in_backtrace) {
+		THREAD_STATS_INCX(locks_recursive_backtrace);
+		return;
+	}
+
+	te->in_backtrace = TRUE;
+
+	/*
+	 * During this stack capture, let's avoid being disrupted by a
+	 * thread signal because this could increase the chance of
+	 * recursing, in case the signal handling causes us to request
+	 * locks that are already busy .
+	 */
+
+	sig_disabled = te->sig_disabled;
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = TRUE;	/* Prevents any signal delivery */
 
 	tm_now_exact(&bt->stamp);
 	bt->type = type;
 	bt->count = stacktrace_unwind(bt->frames, N_ITEMS(bt->frames), 2);
+
+	te->in_backtrace = FALSE;
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = FALSE;	/* Restore signal delivery */
 }
 
 /**
@@ -3960,9 +3991,12 @@ thread_id_stack_used(uint stid,  const void *sp)
 	if (NULL == te || !te->valid)
 		return 0;
 
-	base = ulong_to_pointer(te->low_qid << thread_pageshift);
-	if (thread_sp_direction < 0)
+	if (thread_sp_direction < 0) {
+		base = ulong_to_pointer(te->high_qid << thread_pageshift);
 		base = ptr_add_offset(base, (1 << thread_pageshift));
+	} else {
+		base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	}
 
 	return thread_stack_ptr_offset(base, sp);
 }
@@ -3976,6 +4010,28 @@ thread_stack_used(void)
 	struct thread_element *te = thread_get_element();
 
 	return thread_id_stack_used(te->stid, &te);
+}
+
+/**
+ * How much more stack did we use or release since `sp'?
+ *
+ * If the returned value is positive, we consumed more stack, else
+ * we released some.
+ *
+ * There is no verfication that `sp' belongs to the current execution
+ * stack, for execution speed.
+ *
+ * @param sp	starting point
+ *
+ * @return thread stack consumed / released since starting point.
+ */
+ssize_t
+thread_stack_diff(const void *sp)
+{
+	if (thread_sp_direction < 0)
+		return ptr_diff(sp, &sp);
+	else
+		return ptr_diff(&sp, sp);
 }
 
 /**
@@ -12364,6 +12420,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_qlock_sleep);
 	DUMP64(locks_nested_sleeps);
 	DUMP64(locks_deadlock_checks);
+	DUMP64(locks_recursive_backtrace);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);

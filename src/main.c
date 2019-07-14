@@ -1267,30 +1267,15 @@ option_name_prefix(const void *key, const void *item)
 }
 
 static void G_NORETURN
-option_ambiguous(const char *name, struct option *item)
+option_ambiguous(const char *name, pslist_t *list)
 {
-	struct option *min = item, *max = item, *o;
-	struct option *end = &options[N_ITEMS(options)];
+	pslist_t *sl;
 
 	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
 	fprintf(stderr, "Could mean either of:\n");
 
-	for (o = item - 1; ptr_cmp(o, options) >= 0; o--) {
-		if (option_strprefix(o->name, name))
-			min = o;
-		else
-			break;
-	}
-
-	for (o = item + 1; ptr_cmp(o, end) < 0; o++) {
-		if (option_strprefix(o->name, name))
-			max = o;
-		else
-			break;
-	}
-
-	for (o = min; ptr_cmp(o, max) <= 0; o++) {
-		option_pretty_print(stderr, o);
+	PSLIST_FOREACH(list, sl) {
+		option_pretty_print(stderr, sl->data);
 	}
 
 	exit(EXIT_FAILURE);
@@ -1312,31 +1297,30 @@ option_ambiguous(const char *name, struct option *item)
 static struct option *
 option_find(const char *name, bool fatal)
 {
-	struct option *item;
+	void *item;
+	bsearch_status_t status;
+	pslist_t *matching;
 
-	item = bsearch(name,
-		options, N_ITEMS(options), sizeof options[0], option_name_prefix);
+	status = BSEARCH_PREFIX(name, options, option_name_prefix, &item);
 
-	if (NULL == item)
+	switch (status) {
+	case BSEARCH_NONE:
 		return NULL;
-
-	if (ptr_cmp(item, options) > 0) {
-		if (option_strprefix((item - 1)->name, name))
-			goto ambiguous;
+	case BSEARCH_SINGLE:
+		return item;
+	case BSEARCH_MULTI:
+		goto ambiguous;
 	}
 
-	if (ptr_cmp(item, options + N_ITEMS(options) - 1) < 0) {
-		if (option_strprefix((item + 1)->name, name))
-			goto ambiguous;
-	}
-
-	return item;		/* Must be unique match since array is sorted */
+	g_assert_not_reached();
 
 ambiguous:
 	if (!fatal)
 		return NULL;
 
-	option_ambiguous(name, item);
+	matching = BSEARCH_MATCHING(name, options, option_name_prefix, item);
+	option_ambiguous(name, matching);
+	g_assert_not_reached();
 }
 
 static void G_NORETURN
@@ -2205,6 +2189,13 @@ main(int argc, char **argv)
 {
 	size_t str_discrepancies;
 	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
+	bool supervisor = FALSE;
+
+	/*
+	 * On Windows, the code path used for a GUI-launched application requires
+	 * that the product information be filled, to be able to derive proper
+	 * destination for log paths, since there is no console attached.
+	 */
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -2213,13 +2204,24 @@ main(int argc, char **argv)
 	product_set_website(GTA_WEBSITE);
 
 	/*
-	 * On Windows, the code path used for a GUI-launched application requires
-	 * that the product information be filled, to be able to derive proper
-	 * destination for log paths, since there is no console attached.
+	 * We pre-handle arguments to spot whether we're going to be running
+	 * aa supervisor.  If we do, then set a different nickname so that
+	 * the stderr/stdout logs do not clash with those of the child process
+	 * on Windows.
+	 */
+
+	prehandle_arguments(argv);
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		supervisor = TRUE;
+		product_set_nickname(GTA_SUPERVISOR_NICK);
+	}
+
+	/*
+	 * Here we go, progstart() kicks memory allocation in.
 	 */
 
 	progstart(argc, argv);
-	prehandle_arguments(argv);
 	product_set_interface(OPT(topless) ? "Topless" : GTA_INTERFACE);
 
 	if (compat_is_superuser()) {
@@ -2233,7 +2235,7 @@ main(int argc, char **argv)
 
 	/* Disable walloc() and halloc() if we're going to supervise */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
+	if (supervisor) {
 		(void) walloc_active_limit();
 		(void) halloc_disable();
 	}
@@ -2338,12 +2340,16 @@ main(int argc, char **argv)
 		 * Regardless of the core dumping condition, saying --no-restart will
 		 * prevent restarts and saying --restart-on-crash will enable them,
 		 * given that supplying both is forbidden.
+		 *
+		 * The supervisor process does not get to auto-restart when it crashes!
 		 */
 
-		if (crash_coredumps_disabled()) {
-			flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
-		} else {
-			flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+		if (!supervisor) {
+			if (crash_coredumps_disabled()) {
+				flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
+			} else {
+				flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+			}
 		}
 
 		/*
@@ -2389,7 +2395,7 @@ main(int argc, char **argv)
 	 * If we are the supervisor process, go supervise and never return here.
 	 */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
+	if (supervisor) {
 		main_supervise();
 		g_assert_not_reached();
 	}

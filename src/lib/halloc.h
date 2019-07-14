@@ -46,13 +46,13 @@
 #define halloc0(_s)	halloc0_track(_s, _WHERE_, __LINE__)
 
 void *halloc_track(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *halloc0_track(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 #else
 #ifndef TRACK_MALLOC
-void *halloc(size_t size) G_MALLOC;
-void *halloc0(size_t size) G_MALLOC;
+void *halloc(size_t size) G_MALLOC G_NON_NULL;
+void *halloc0(size_t size) G_MALLOC G_NON_NULL;
 #endif
 #endif	/* TRACK_ZALLOC */
 
@@ -62,9 +62,9 @@ void *halloc0(size_t size) G_MALLOC;
 
 #ifndef TRACK_MALLOC
 void hfree(void *ptr);
-void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT;
+void *hrealloc(void *old, size_t size) G_NON_NULL WARN_UNUSED_RESULT;
 
-static inline void * G_MALLOC
+static inline void * G_MALLOC G_NON_NULL
 hcopy(const void *p, size_t size)
 {
 	void *cp = halloc(size);

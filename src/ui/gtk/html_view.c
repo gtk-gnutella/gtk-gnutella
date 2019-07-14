@@ -176,6 +176,7 @@ utf8_char(guint32 codepoint)
 	unsigned len;
 
 	STATIC_ASSERT(sizeof buf.str > 4);
+
 	len = utf8_encode(codepoint, buf.str);
 	buf.str[len] = '\0';
 	return buf;
@@ -196,6 +197,9 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	gboolean closing;
 	GtkTextBuffer *buffer;
 
+	/* Since we don't ZERO the whole short_string_t in utf8_char() */
+	G_IGNORE_PUSH(-Wmaybe-uninitialized);
+
 	if (!special.initialized) {
 
 		special.initialized = TRUE;
@@ -207,6 +211,8 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		concat_strings(ARYLEN(special.list_item_prefix.str),
 			" ", special.bullet.str, " ", NULL_PTR);
 	}
+
+	G_IGNORE_POP;
 
 	style = NULL;
 	text = NULL;

@@ -69,7 +69,7 @@ filename_shrink(const char *filename, char *buf, size_t size)
 	g_assert(buf);
 
 	/* Try to preserve the filename extension */
-	ext = strrchr(filename, '.');
+	ext = vstrrchr(filename, '.');
 	if (ext) {
 		ext_size = vstrlen(ext) + 1;	/* Include NUL */
 		if (ext_size >= size) {
@@ -446,7 +446,7 @@ filename_unique(const char *path, const char *name, const char *ext,
 	/* Because "ext" can be an additional extension like .BAD rather than
 	 * one that indicates the filetype, try to preserve the next "extension"
 	 * as well, if there's any. */
-	mid = strrchr(name, '.');
+	mid = vstrrchr(name, '.');
 	if (NULL == mid || mid == name || vstrlen(mid) >= sizeof mid_buf) {
 		mid = vstrchr(name, '\0');
 	}

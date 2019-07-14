@@ -146,13 +146,15 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 			old_sigsegv = signal_catch(SIGSEGV, dl_util_got_signal);
 
 			if (Sigsetjmp(dl_util_env[stid], TRUE)) {
-				last_addr = NULL;
-				return NULL;
+				ret = 0;		/* Signal failure */
+				goto skip;		/* Skip call that triggered SIGSEGV */
 			}
 
 			ret = dladdr(deconstify_pointer(addr), &info);
-			signal_set(SIGSEGV, old_sigsegv);
+			/* FALL THROUGH */
 
+		skip:
+			signal_set(SIGSEGV, old_sigsegv);
 			if (0 == ret) {
 				last_addr = NULL;
 				return NULL;

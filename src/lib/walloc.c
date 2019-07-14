@@ -223,8 +223,10 @@ walloc_get_zone(size_t rounded, bool allocate)
 		WALLOC_LOCK;
 
 		if (NULL == (zone = wzone[idx])) {
-			if (walloc_stopped)
+			if (walloc_stopped) {
+				WALLOC_UNLOCK;
 				return NULL;
+			}
 
 			if (!allocate)
 				s_error("missing %zu-byte zone", rounded);
@@ -297,6 +299,7 @@ wfree_raw(void *ptr, size_t size)
 	zfree(zone, ptr);
 }
 
+#ifndef TRACK_ZALLOC
 /**
  * Get magazine depot for given rounded allocation size.
  *
@@ -419,6 +422,7 @@ walloc_get_magazine(size_t rounded)
 
 	return depot;
 }
+#endif	/* !TRACK_ZALLOC */
 
 /**
  * Allocate memory from a magazine depot suitable for the given size, or
@@ -429,7 +433,6 @@ walloc_get_magazine(size_t rounded)
 void * G_HOT
 walloc(size_t size)
 {
-	tmalloc_t *depot;
 	size_t rounded = zalloc_round(size);
 
 	g_assert(size_is_positive(size));
@@ -439,12 +442,18 @@ walloc(size_t size)
 		return xmalloc(size);
 	}
 
-	depot = walloc_get_magazine(rounded);
+#ifdef TRACK_ZALLOC
+	return walloc_raw(size);
+#else
+	{
+		tmalloc_t *depot = walloc_get_magazine(rounded);
 
-	if G_UNLIKELY(NULL == depot)
-		return walloc_raw(size);
+		if G_UNLIKELY(NULL == depot)
+			return walloc_raw(size);
 
-	return tmalloc(depot);
+		return tmalloc(depot);
+	}
+#endif	/* TRACK_ZALLOC */
 }
 
 /**
@@ -610,6 +619,7 @@ wfree_eslist(eslist_t *el, size_t size)
 	}
 }
 
+#ifndef TRACK_ZALLOC
 /*
  * Check whether new pointer is at a better position in the VMM space than old.
  *
@@ -633,6 +643,7 @@ walloc_ptr_is_better(const void *o, const void *n)
 
 	return vmm_page_start(o) != vmm_page_start(n);
 }
+#endif	/* !TRACK_ZALLOC */
 
 /**
  * Move block around if that can serve memory compaction.
@@ -648,6 +659,13 @@ wmove(void *ptr, size_t size)
 
 	if G_UNLIKELY(NULL == zone)
 		return ptr;
+
+#ifdef TRACK_ZALLOC
+	(void) q;
+	(void) r;
+	(void) depot;
+	return ptr;
+#else	/* !TRACK_ZALLOC */
 
 	q = zmove(zone, ptr);
 
@@ -676,6 +694,7 @@ wmove(void *ptr, size_t size)
 		return q;
 
 	return zmoveto(zone, q, r);
+#endif	/* TRACK_ZALLOC */
 }
 
 /**

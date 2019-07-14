@@ -4,8 +4,6 @@ os:
   - osx
   - linux
 
-osx_image: xcode8.2
-
 addons:
   apt:
     packages:
@@ -20,7 +18,7 @@ install:
   - ./scripts/travis.$TRAVIS_OS_NAME.sh install
 
 script:
-  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export PATH=$PATH:~/.local/bin; JHB=gtk-gnutella ~/.local/bin/jhbuild run ./build.sh --target=osxbundle 2>&1 | tee build.log ;fi
+  - if [ "$TRAVIS_OS_NAME" == "osx" ]; then export PATH=$PATH:~/.new_local/bin; JHB=gtk-gnutella ~/.new_local/bin/jhbuild run ./build.sh --target=osxbundle 2>&1 | tee build.log ;fi
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL}build.log -T build.log ;fi
   - if [ "$TRAVIS_OS_NAME" == "linux" ]; then ./build.sh; fi
   - src/lib/random-test

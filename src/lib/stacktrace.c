@@ -1018,7 +1018,7 @@ stacktrace_pretty_filepath(const char *filepath)
 	const char *q;
 	const char *start;
 
-	p = strrchr(filepath, G_DIR_SEPARATOR);
+	p = vstrrchr(filepath, G_DIR_SEPARATOR);
 	if (p != NULL)
 		p++;
 	else
@@ -2487,6 +2487,16 @@ stacktrace_caller_known(size_t offset)
 #ifndef MINGW32
 
 #if HAS_GCC(3, 0)
+
+/*
+ * __builtin_xxx_address() with non-zero argument is unsafe.
+ *
+ * Warnings are emitted starting with GCC 6.1.
+ */
+#if HAS_GCC(6, 1)
+G_IGNORE_PUSH(-Wframe-address);
+#endif
+
 static void *
 getreturnaddr(size_t level)
 {
@@ -2768,6 +2778,11 @@ getframeaddr(size_t level)
     default:	return NULL;
     }
 }
+
+#if HAS_GCC(6, 1)
+G_IGNORE_POP;
+#endif
+
 #else	/* !GCC >= 3.0 */
 static void *
 getreturnaddr(size_t level)

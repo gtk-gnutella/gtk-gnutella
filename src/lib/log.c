@@ -943,7 +943,7 @@ log_check_truncated(str_t *s)
  *
  * @return the length of the generated string.
  */
-static size_t
+size_t
 log_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 {
 	str_t str;

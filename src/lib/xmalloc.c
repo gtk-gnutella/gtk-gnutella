@@ -2519,7 +2519,7 @@ xfl_process_deferred(struct xfreelist *fl)
  * Defer insertion of the block in the specified freelist.
  *
  * This is called when we were unable to lock the freelist bucket prior to
- * calling xlf_insert() and we need to put the block in a temporary list
+ * calling xfl_insert() and we need to put the block in a temporary list
  * which will be processed when it is safe to do so.
  *
  * @param fl		the freelist bucket
@@ -8767,13 +8767,23 @@ xmalloc_crash_hook(void)
 void *
 e_xmalloc(size_t size)
 {
-	return malloc(size);
+	void *p = malloc(size);
+
+	if G_UNLIKELY(NULL == p)
+		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
+
+	return p;
 }
 
 void *
 e_xcalloc(size_t nmemb, size_t size)
 {
-	return calloc(nmemb, size);
+	void *p = calloc(nmemb, size);
+
+	if G_UNLIKELY(NULL == p)
+		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
+
+	return p;
 }
 
 void
@@ -8785,7 +8795,12 @@ e_xfree(void *p)
 void *
 e_xrealloc(void *p, size_t size)
 {
-	return realloc(p, size);
+	void *q = realloc(p, size);
+
+	if G_UNLIKELY(NULL == q)
+		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
+
+	return q;
 }
 
 /*

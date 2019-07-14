@@ -423,6 +423,39 @@ test_strstr(bool low_letters)
 	bool had_zero_length_needle = FALSE;
 	size_t asize = low_letters ? SMALL_ALPHABET : CONST_STRLEN(alphabet);
 
+	/* First run tests with 2-bytes needles for pattern_strstr_tiny() */
+
+	for (i = 1; i < sizeof(ulong) * 2; i++) {
+		size_t hlen = i;
+		char *haystack = xmalloc(hlen + 1);
+		char *rs, *rp;
+		size_t j;
+
+		fill_random_string(haystack, hlen + 1);
+
+		for (j = 1; j <= i; j++) {
+			rs = strstr(haystack + j, &haystack[hlen - 1]);
+			rp = vstrstr(haystack + j, &haystack[hlen - 1]);
+
+			g_assert_log(rs == rp,
+				"%s(): rs=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+			if (j < i - 1) {
+				char needle[3];
+				clamp_strncpy(ARYLEN(needle), &haystack[j + 1], 2);
+				rs = strstr(haystack + j, needle);
+				rp = vstrstr(haystack + j, needle);
+
+				g_assert_log(rs == rp,
+					"%s(): rs=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rs, rp, haystack + j, hlen - j);
+			}
+		}
+
+		xfree(haystack);
+	}
+
 	for (i = 0; i < 10000; i++) {
 		size_t hlen = 1 + random_value(1000);
 		size_t nlen = random_value(10);
@@ -508,6 +541,49 @@ test_strchr(void)
 	g_assert(strchr(short_str, '\0') == pattern_strchr(short_str, '\0'));
 	g_assert(strchr(long_str, '\0') == pattern_strchr(long_str, '\0'));
 
+	for (i = 0; i < sizeof(ulong) * 2; i++) {
+		size_t hlen = i;
+		char *haystack = xmalloc(hlen + 1);
+		char *rs, *rp;
+		size_t j;
+
+		fill_random_string(haystack, hlen + 1);
+
+		for (j = 0; j <= i; j++) {
+			rs = strchr(haystack + j, haystack[hlen]);
+			rp = pattern_strchr(haystack + j, haystack[hlen]);
+
+			g_assert_log(rs == rp,
+				"%s(): strchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+			rs = strrchr(haystack + j, haystack[0]);
+			rp = pattern_strrchr(haystack + j, haystack[0]);
+
+			g_assert_log(rs == rp,
+				"%s(): strrchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+			if (j < i) {
+				rs = strchr(haystack + j, haystack[j + 1]);
+				rp = pattern_strchr(haystack + j, haystack[j + 1]);
+
+				g_assert_log(rs == rp,
+					"%s(): strchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rs, rp, haystack + j, hlen - j);
+
+				rs = strrchr(haystack, haystack[j]);
+				rp = pattern_strrchr(haystack, haystack[j]);
+
+				g_assert_log(rs == rp,
+					"%s(): strrchr rs=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rs, rp, haystack, hlen - j);
+			}
+		}
+
+		xfree(haystack);
+	}
+
 	for (i = 0; i < 100000; i++) {
 		size_t hlen = 1 + random_value(100);
 		char *haystack = xmalloc(hlen + 1);
@@ -582,6 +658,51 @@ test_memchr(void)
 	size_t i;
 	size_t try = 0, matches = 0;
 
+	for (i = 0; i < sizeof(ulong) * 2; i++) {
+		size_t hlen = i;
+		char *haystack = xmalloc(hlen + 1);
+		char *rm, *rp;
+		size_t j;
+
+		fill_random_string(haystack, hlen + 1);
+
+		for (j = 0; j <= i; j++) {
+			rm = memchr(haystack + j, haystack[hlen], hlen + 1 - j);
+			rp = pattern_memchr(haystack + j, haystack[hlen], hlen + 1 - j);
+
+			g_assert_log(rm == rp,
+				"%s(): memchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rm, rp, &haystack[j], hlen - j);
+
+			rm = memrchr(haystack, haystack[0], hlen + 1 - j);
+			rp = pattern_memrchr(haystack, haystack[0], hlen + 1 - j);
+
+			g_assert_log(rm == rp,
+				"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+				G_STRFUNC, rm, rp, &haystack[j], hlen + 1 - j);
+
+
+			if (j < i) {
+				rm = memchr(haystack + j, haystack[j + 1], hlen + 1 - j);
+				rp = pattern_memchr(
+						haystack + j, haystack[j + 1], hlen + 1 - j);
+
+				g_assert_log(rm == rp,
+					"%s(): memchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rm, rp, haystack + j, hlen - j);
+
+				rm = memrchr(haystack, haystack[j], hlen + 1 - j);
+				rp = pattern_memrchr(haystack, haystack[j], hlen + 1 - j);
+
+				g_assert_log(rm == rp,
+					"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+					G_STRFUNC, rm, rp, haystack, hlen + 1 - j);
+			}
+		}
+
+		xfree(haystack);
+	}
+
 	for (i = 0; i < 100000; i++) {
 		size_t hlen = 1 + random_value(100);
 		char *haystack = xmalloc(hlen + 1);
@@ -594,11 +715,18 @@ test_memchr(void)
 		fill_random_string(haystack, hlen + 1);
 		fill_random_string(needle, sizeof needle);
 
+		rm = memrchr(haystack, needle[0], hlen + 1);
+		rp = pattern_memrchr(haystack, needle[0], hlen + 1);
+
+		g_assert_log(rm == rp,
+			"%s(): memrchr rm=%p, rp=%p, p=%p, hlen=%'zu",
+			G_STRFUNC, rm, rp, haystack, hlen);
+
 		rm = memchr(haystack, needle[0], hlen + 1);
 		rp = pattern_memchr(haystack, needle[0], hlen + 1);
 
 		g_assert_log(rm == rp,
-			"%s(): rm=%p, rp=%p, p=%p, hlen=%'zu",
+			"%s(): mrmchr rm=%p, rp=%p, p=%p, hlen=%'zu",
 			G_STRFUNC, rm, rp, haystack, hlen);
 
 		try++;
@@ -623,6 +751,9 @@ test_memchr(void)
 		/* Force non-match by using a non-alphabet needle  */
 
 		rp = pattern_memchr(haystack, '?', hlen + 1);
+		g_assert(NULL == rp);
+
+		rp = pattern_memrchr(haystack, '?', hlen + 1);
 		g_assert(NULL == rp);
 
 		/*

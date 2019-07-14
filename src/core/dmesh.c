@@ -2848,7 +2848,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 				 *		--RAM, 2015-03-07
 				 */
 
-				if (NULL != (d = strrchr(date, ' ')))
+				if (NULL != (d = vstrrchr(date, ' ')))
 					stamp = date2time(++d, now);	/* Skip the space */
 
 				if ((time_t) -1 == stamp) {

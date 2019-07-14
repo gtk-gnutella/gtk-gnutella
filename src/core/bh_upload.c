@@ -343,7 +343,7 @@ browse_host_read_html(struct special_upload *ctx,
 				static const char msg[] =
 					"<li>"
 						"<b>"
-							"The library is currently being rebuild. Please, "
+							"The library is currently being rebuilt. Please, "
 							"try again in a moment."
 						"</b>"
 					"</li>";

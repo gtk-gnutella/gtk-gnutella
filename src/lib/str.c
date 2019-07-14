@@ -435,6 +435,14 @@ str_private(const void *key, size_t szhint)
 	s = str_new(szhint);
 	s->s_flags |= STR_THREAD;	/* Prevents plain str_free() on that string */
 
+	/*
+	 * A private string can be reclaimed when its thread exits, hence we
+	 * cannot use str_new_non_leaking() to allocate it.
+	 */
+
+	(void) NOT_LEAKING(s);
+	(void) NOT_LEAKING(s->s_data);
+
 	thread_private_add_extended(key, s, str_private_reclaim, NULL);
 
 	return s;
@@ -467,7 +475,7 @@ str_make(char *ptr, size_t len)
  * Creates a clone of the str_t object.
  */
 str_t *
-str_clone(str_t *str)
+str_clone(const str_t *str)
 {
 	size_t len;
 	str_t *n;
@@ -830,7 +838,7 @@ str_s2c_null(str_t **s_ptr)
  * use str_s2c() to dispose of it whilst retaining its arena.
  */
 char *
-str_dup(str_t *str)
+str_dup(const str_t *str)
 {
 	size_t len;
 	char *sdup, *p;
@@ -853,12 +861,12 @@ str_dup(str_t *str)
  * Append a character to the string (NUL allowed).
  */
 void
-str_putc(str_t *str, char c)
+str_putc(str_t *str, int c)
 {
 	str_check(str);
 
  	str_makeroom(str, 1);
-	str->s_data[str->s_len++] = c;
+	str->s_data[str->s_len++] = (uchar) c;
 }
 
 /**
@@ -1061,7 +1069,7 @@ str_shift(str_t *str, size_t n)
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
-str_ichar(str_t *str, ssize_t idx, char c)
+str_ichar(str_t *str, ssize_t idx, int c)
 {
 	size_t len;
 
@@ -1077,7 +1085,7 @@ str_ichar(str_t *str, ssize_t idx, char c)
 
 	str_makeroom(str, 1);
 	memmove(str->s_data + idx + 1, str->s_data + idx, len - idx);
-	str->s_data[idx] = c;
+	str->s_data[idx] = (uchar) c;
 	str->s_len++;
 
 	return TRUE;
@@ -1277,11 +1285,11 @@ str_chomp(str_t *s)
 /**
  * Remove penultimate character of string and return it.
  */
-char
+int
 str_chop(str_t *s)
 {
 	size_t len;
-	char c;
+	int c;
 
 	str_check(s);
 
@@ -1290,7 +1298,7 @@ str_chop(str_t *s)
 	if G_UNLIKELY(0 == len)
 		return '\0';
 
-	c = s->s_data[len - 1];
+	c = (uchar) s->s_data[len - 1];
 	s->s_len--;
 	s->s_flags &= ~STR_TRUNCATED;
 
@@ -1478,7 +1486,7 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
  * @return NUL if offset is not within the string range, but NUL may be a
  * valid string character when dealing with binary strings.
  */
-char
+int
 str_at(const str_t *s, ssize_t offset)
 {
 	size_t len;
@@ -1488,10 +1496,10 @@ str_at(const str_t *s, ssize_t offset)
 	len = s->s_len;
 
 	if (offset >= 0) {
-		return UNSIGNED(offset) >= len ? '\0' : s->s_data[offset];
+		return UNSIGNED(offset) >= len ? '\0' : (uchar) s->s_data[offset];
 	} else {
 		size_t pos = len + offset;
-		return pos >= len ? '\0' : s->s_data[pos];
+		return pos >= len ? '\0' : (uchar) s->s_data[pos];
 	}
 }
 
@@ -1500,7 +1508,7 @@ str_at(const str_t *s, ssize_t offset)
  * char in front of them.
  */
 void
-str_escape(str_t *str, char c, char e)
+str_escape(str_t *str, int c, int e)
 {
 	size_t len;
 	size_t idx;
@@ -1513,7 +1521,7 @@ str_escape(str_t *str, char c, char e)
 		return;
 
 	for (idx = 0; idx < len; idx++) {
-		if (str->s_data[idx] != c)
+		if ((uchar) str->s_data[idx] != c)
 			continue;
 		str_ichar(str, idx, e);			/* Insert escape char in front */
 		idx++;							/* Skip escaped char */
