@@ -305,6 +305,7 @@ static const struct {
 	{ "vu", N_("Vanuatu") },
 	{ "wf", N_("Wallis and Futuna") },
 	{ "ws", N_("Samoa") },
+	{ "xk", N_("Kosovo") },			/* Temporary, not ISO 3166 yet */
 	{ "ye", N_("Yemen") },
 	{ "yt", N_("Mayotte") },
 	{ "za", N_("South Africa") },
