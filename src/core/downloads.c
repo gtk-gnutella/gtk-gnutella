@@ -5139,8 +5139,11 @@ download_queue_delay_switch(struct download *d, const header_t *header,
 
 	download_check(d);
 
-	if (download_switchable(d, header))
+	if (download_switchable(d, header)) {
+		download_actively_queued(d, FALSE);
+		download_passively_queued(d, FALSE);
 		cd = download_clone(d);
+	}
 
 	va_start(args, fmt);
 	download_queue_hold_delay_v(d, (time_t) delay, 0, fmt, args);
