@@ -4864,6 +4864,7 @@ download_stop_switch(struct download *d, const header_t *header,
 
 	if (download_switchable(d, header)) {
 		download_actively_queued(d, FALSE);
+		download_passively_queued(d, FALSE);
 		cd = download_clone(d);
 	}
 
