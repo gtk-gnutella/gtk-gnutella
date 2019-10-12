@@ -5007,7 +5007,13 @@ download_queue_v(struct download *d, const char *fmt, va_list ap)
 	d->flags &= ~(DL_F_MUST_IGNORE | DL_F_SWITCHED |
 		DL_F_FROM_PLAIN | DL_F_FROM_ERROR);
 	d->remove_msg = fmt ? d->error_str: NULL;
-	download_set_status(d, d->parq_dl ? GTA_DL_PASSIVE_QUEUED : GTA_DL_QUEUED);
+	if (d->parq_dl != NULL) {
+		download_passively_queued(d, TRUE);
+		download_set_status(d, GTA_DL_PASSIVE_QUEUED);
+	} else {
+		download_passively_queued(d, FALSE);
+		download_set_status(d, GTA_DL_QUEUED);
+	}
 	fi_src_status_changed(d);
 
 	g_assert(d->socket == NULL);
