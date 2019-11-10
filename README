@@ -86,10 +86,13 @@ Installation
 To install one of the precompiled packages, consult your distribution's 
 documentation.  
 
-To compile gtk-gnutella:  
+To compile gtk-gnutella, run:
 
     ./build.sh
-    make install
+
+At the end, build.sh will output the command to run to install gtk-gnutella.
+Usually it will be "make install" but it could be "gmake install" on some
+systems where "make" is not the default.
 
 The build.sh shell script is a wrapper for Configure. There should almost never
 be a need to invoke Configure manually.  The `Configure' shell script attempts
