@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013, Raphael Manfredi
+ * Copyright (c) 2011-2019, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -8801,6 +8801,24 @@ e_xrealloc(void *p, size_t size)
 		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
 
 	return q;
+}
+
+/**
+ * This is a GNU extension.
+ *
+ * This function is not used by gtk-gnutella but needs to be provided when
+ * we remap malloc() because some libc routines may rely on it.  When malloc()
+ * is redefined, it is critical that this usage be trapped here since our block
+ * architecture is specific.
+ * 		--RAM, 2019-11-10
+ *
+ * @return the number of usable bytes in the block of allocated memory
+ * pointed to by `p'.  If `p' is NULL, 0 is returned.
+ */
+size_t
+malloc_usable_size(void *p)
+{
+	return xallocated(p);
 }
 
 /*
