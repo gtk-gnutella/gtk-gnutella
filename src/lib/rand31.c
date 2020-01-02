@@ -240,7 +240,7 @@ rand31_random_seed(void)
  *
  * Using a seed of 0 computes a new random seed.
  *
- * This routine can safely be called without any thread lock.
+ * This routine must be called without any rand31 lock.
  */
 static void
 rand31_do_seed(unsigned seed)
@@ -248,11 +248,14 @@ rand31_do_seed(unsigned seed)
 	while (seed >= RAND31_MOD)
 		seed -= RAND31_MOD;
 
-	rand31_first_seed = rand31_seed =
-		rand31_is_zero(seed) ? rand31_random_seed() : seed;
+	RAND31_LOCK;
 
-	atomic_mb();
-	atomic_int_inc(&rand31_seeded);
+	if (0 == atomic_int_inc(&rand31_seeded)) {
+		rand31_first_seed = rand31_seed =
+			rand31_is_zero(seed) ? rand31_random_seed() : seed;
+	}
+
+	RAND31_UNLOCK;
 }
 
 /**
@@ -341,10 +344,7 @@ rand31_set_seed(unsigned seed)
 	unsigned s;
 
 	s = rand31_is_zero(seed) ? rand31_random_seed() : seed;
-
-	RAND31_LOCK;
 	rand31_do_seed(s);
-	RAND31_UNLOCK;
 }
 
 /**
