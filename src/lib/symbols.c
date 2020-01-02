@@ -322,7 +322,7 @@ symbols_make(size_t capacity, bool once)
 
 	g_assert(size_is_non_negative(capacity));
 
-	s = xmalloc0(sizeof *s);
+	XMALLOC0(s);
 	s->magic = SYMBOLS_MAGIC;
 	s->once = booleanize(once);
 	s->size = capacity;
