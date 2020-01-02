@@ -1939,6 +1939,12 @@ handle_compile_info_argument(void)
 	printf("ipv6=disabled\n");
 #endif	/* HAS_IPV6 */
 
+#ifdef USE_MY_MALLOC
+	printf("use_my_malloc=yes\n");
+#else
+	printf("use_my_malloc=no\n");
+#endif	/* HAS_IPV6 */
+
 	printf("largefile-support=%s\n",
 		MAX_INT_VAL(fileoffset_t) > MAX_INT_VAL(guint32) ?
 			"enabled" : "disabled");
