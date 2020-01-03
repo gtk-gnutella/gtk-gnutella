@@ -147,7 +147,6 @@ bool vmm_is_extending(void);
 void vmm_init(void);
 bool vmm_is_inited(void);
 void vmm_memusage_init(void);
-void vmm_malloc_inited(void);
 void vmm_post_init(void);
 void vmm_pre_close(void);
 void vmm_stop_freeing(void);

@@ -2294,7 +2294,6 @@ main(int argc, char **argv)
 	signal_init();
 	halloc_init(!OPT(no_halloc));
 	malloc_init_vtable();
-	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 

@@ -5754,7 +5754,7 @@ vmm_is_long_term(void)
  * Called when memory allocator has been initialized and it is possible to
  * call routines that will allocate core memory and perform logging calls.
  */
-void
+static void
 vmm_malloc_inited(void)
 {
 	safe_to_log = TRUE;
@@ -6378,6 +6378,7 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
+	vmm_malloc_inited();
 
 	atomic_bool_set(&vmm_fully_inited, TRUE);
 

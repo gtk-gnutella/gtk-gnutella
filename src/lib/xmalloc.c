@@ -779,10 +779,6 @@ xmalloc_vmm_inited(void)
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
 	xmalloc_vmm_setup();
-
-#ifdef XMALLOC_IS_MALLOC
-	vmm_malloc_inited();
-#endif
 }
 
 /**
