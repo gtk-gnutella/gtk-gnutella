@@ -8767,21 +8767,17 @@ xmalloc_crash_hook(void)
 void *
 e_xmalloc(size_t size)
 {
-	void *p = malloc(size);
-
-	if G_UNLIKELY(NULL == p)
-		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
-
-	return p;
+	return xallocate(size, TRUE, TRUE);
 }
 
 void *
 e_xcalloc(size_t nmemb, size_t size)
 {
-	void *p = calloc(nmemb, size);
+	void *p;
+	size_t len = size_saturate_mult(nmemb, size);
 
-	if G_UNLIKELY(NULL == p)
-		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
+	p = xallocate(len, TRUE, TRUE);
+	memset(p, 0, len);
 
 	return p;
 }
@@ -8795,12 +8791,7 @@ e_xfree(void *p)
 void *
 e_xrealloc(void *p, size_t size)
 {
-	void *q = realloc(p, size);
-
-	if G_UNLIKELY(NULL == q)
-		s_error("%s(): failed to allocate %zu byte%s", G_STRFUNC, PLURAL(size));
-
-	return q;
+	return xreallocate(p, size, TRUE);
 }
 
 /**
