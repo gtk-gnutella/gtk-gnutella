@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-241]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-245]
 : $X-Id$
 
 case $CONFIG in
@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
 OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
+COMMON_LIBS =  $libs
 GLIB_CFLAGS =  $glibcflags
 DBUS_CFLAGS =  $dbuscflags
-COMMON_LIBS =  $libs
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
+GLIB_LDFLAGS =  $glibldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -108,7 +108,7 @@ local_realclean::
 htable.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
 
-htable.c: hgeneric.ht
+htable.c: hgeneric.ct
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
 
 all:: htable.h htable.c
@@ -119,7 +119,7 @@ local_realclean::
 hset.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
 
-hset.c: hgeneric.ht
+hset.c: hgeneric.ct
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
 
 all:: hset.h hset.c

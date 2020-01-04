@@ -47,7 +47,7 @@ BitGenericCat(field)
 h/**/type.h: hgeneric.ht						@@\
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht type sig TYPE >$@	@!\
 												@!\
-h/**/type.c: hgeneric.ht						@@\
+h/**/type.c: hgeneric.ct						@@\
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct type sig TYPE >$@	@!\
 												@!\
 all:: h/**/type.h h/**/type.c					@!\
