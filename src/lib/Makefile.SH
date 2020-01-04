@@ -58,11 +58,11 @@ YACC = $yacc
 
 USRINC = $usrinc
 OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
+DBUS_CFLAGS =  $dbuscflags
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
 COMMON_LIBS =  $libs
 GLIB_CFLAGS =  $glibcflags
-DBUS_CFLAGS =  $dbuscflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
-GLIB_LDFLAGS =  $glibldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -89,21 +89,27 @@ all:: .FORCE_DEPEND
 
 # $X-Id$
 
-bit_array.h: bit_array.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
+bit_array.h: bit_array.ht bit_generic.ht
+	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.ht array >$@
 
-all:: bit_array.h
-depend:: bit_array.h
+bit_array.c: bit_generic.ct
+	$(TOP)/scripts/generic-cat /dev/null bit_generic.ct array >$@
+
+all:: bit_array.h bit_array.c
+depend:: bit_array.h bit_array.c
 local_realclean::
-	$(RM) bit_array.h
+	$(RM) bit_array.h bit_array.c
 
-bit_field.h: bit_field.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+bit_field.h: bit_field.ht bit_generic.ht
+	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.ht field >$@
 
-all:: bit_field.h
-depend:: bit_field.h
+bit_field.c: bit_generic.ct
+	$(TOP)/scripts/generic-cat /dev/null bit_generic.ct field >$@
+
+all:: bit_field.h bit_field.c
+depend:: bit_field.h bit_field.c
 local_realclean::
-	$(RM) bit_field.h
+	$(RM) bit_field.h bit_field.c
 
 htable.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
@@ -146,6 +152,8 @@ LSRC = \
 	bfd_util.c \
 	bg.c \
 	bigint.c \
+	bit_array.c \
+	bit_field.c \
 	bsearch.c \
 	bstr.c \
 	buf.c \
@@ -351,6 +359,8 @@ LOBJ = \
 	bfd_util.o \
 	bg.o \
 	bigint.o \
+	bit_array.o \
+	bit_field.o \
 	bsearch.o \
 	bstr.o \
 	buf.o \

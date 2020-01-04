@@ -675,7 +675,8 @@ src/lib/bigint.c
 src/lib/bigint.h
 src/lib/bit_array.ht
 src/lib/bit_field.ht
-src/lib/bit_generic.t
+src/lib/bit_generic.ht
+src/lib/bit_generic.ct
 src/lib/bsearch.c
 src/lib/bsearch.h
 src/lib/bstr.c
