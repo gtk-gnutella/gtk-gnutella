@@ -307,6 +307,8 @@ bfd_util_check_format(bfd *b, bfd_format fmt, const char *path)
 		i++;
 	}
 
+	MEMTRACK(matching, 1);	/* So we can use free() when TRACK_MALLOC is on */
+
 	free(matching);		/* Not xfree(), was allocated by bfd */
 	return FALSE;
 }
@@ -411,7 +413,7 @@ done:
 
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
-	bc->symbols = symbols;		/* Allocated by the bfd library */
+	bc->symbols = MEMTRACK(symbols, 1);		/* Allocated by the bfd library */
 	bc->count = count;
 	bc->symsize = size;
 	mutex_init(&bc->lock);
