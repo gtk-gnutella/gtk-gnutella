@@ -428,7 +428,10 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 	bfd_ctx_t *bc = *bc_ptr;
 
 	if (bc != NULL) {
+		bfd_ctx_check(bc);
+
 		mutex_lock(&bc->lock);	/* Not a fast mutex since we'll destroy it */
+
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
@@ -444,7 +447,9 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 
 		if (bc->handle != NULL)
 			bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
+
 		symbols_free_null(&bc->text_symbols);
+
 		bc->magic = 0;
 		mutex_destroy(&bc->lock);
 		xfree(bc);
