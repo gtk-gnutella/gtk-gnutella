@@ -387,6 +387,10 @@ G_STMT_START {			\
 } G_STMT_END
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
 
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+void malloc_init_tracking(void);
+#endif
+
 #endif /* _malloc_h_ */
 
 /* vi: set ts=4 sw=4 cindent:  */

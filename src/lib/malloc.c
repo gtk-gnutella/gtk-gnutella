@@ -49,6 +49,7 @@
 #include "leak.h"
 #include "log.h"
 #include "omalloc.h"
+#include "once.h"
 #include "parse.h"		/* For parse_pointer() */
 #include "path.h"		/* For filepath_basename() */
 #include "spinlock.h"
@@ -2981,6 +2982,32 @@ malloc_sanity_checks(void)
 	G_FREE_NULL(p);
 }
 
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+static once_flag_t malloc_tracking_inited;
+
+/**
+ * Setup tracking tables, once.
+ */
+static void G_COLD
+malloc_init_tracking_once(void)
+{
+	reals = hash_table_new_real();
+	unknowns = hash_table_new_real();
+
+	hash_table_thread_safe(reals);
+	hash_table_thread_safe(unknowns);
+}
+
+/**
+ * Initialize tracking tables.
+ */
+void G_COLD
+malloc_init_tracking(void)
+{
+	once_flag_run(&malloc_tracking_inited, malloc_init_tracking_once);
+}
+#endif /* TRACK MALLOC || MALLOC_VTABLE */
+
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
  * when TRACK_MALLOC and MALLOC_VTABLE are defined.
@@ -2994,11 +3021,7 @@ void G_COLD
 malloc_init_vtable(void)
 {
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
-	reals = hash_table_new_real();
-	unknowns = hash_table_new_real();
-
-	hash_table_thread_safe(reals);
-	hash_table_thread_safe(unknowns);
+	malloc_init_tracking();
 #endif
 
 	G_IGNORE_PUSH(-Wdeprecated-declarations);	/* For g_mem_set_vtable() */

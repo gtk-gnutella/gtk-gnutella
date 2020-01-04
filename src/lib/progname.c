@@ -95,6 +95,15 @@ progstart(int argc, char * const *argv)
 	progname_info.name = filepath_basename(argv[0]);
 	tm_current_time(&progname_info.start);
 
+#ifdef TRACK_MALLOC
+	/*
+	 * When using TRACK_MALLOC, this needs to be done early to configure
+	 * the tracking hash tables.
+	 */
+
+	malloc_init_tracking();
+#endif
+
 	/*
 	 * Ensure we have a valid product name configured, otherwise use
 	 * the executable basename.  A valid product name is required on
