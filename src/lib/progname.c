@@ -42,7 +42,6 @@
 #include "progname.h"
 
 #include "iovec.h"
-#include "malloc.h"				/* For real_malloc() */
 #include "mem.h"
 #include "misc.h"				/* For is_strcasesuffix() */
 #include "mutex.h"

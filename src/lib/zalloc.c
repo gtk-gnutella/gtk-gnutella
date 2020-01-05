@@ -104,7 +104,6 @@
 #include "hashtable.h"
 #include "leak.h"
 #include "log.h"			/* For statistics logging */
-#include "malloc.h"			/* For MALLOC_FRAMES */
 #include "memusage.h"
 #include "misc.h"			/* For short_filename() */
 #include "once.h"

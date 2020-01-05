@@ -37,7 +37,6 @@
 #include "common.h"
 
 #include "eslist.h"
-#include "malloc.h"
 #include "pslist.h"
 
 /**

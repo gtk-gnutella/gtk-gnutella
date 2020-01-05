@@ -48,7 +48,6 @@
 #include "dump_options.h"
 #include "entropy.h"
 #include "hashtable.h"
-#include "malloc.h"
 #include "once.h"
 #include "pagetable.h"
 #include "spinlock.h"
