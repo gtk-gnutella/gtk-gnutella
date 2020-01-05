@@ -94,6 +94,38 @@
 #define h_strjoinv(s,v)	strjoinv_track(s, (v), _WHERE_, __LINE__)
 #define h_strfreev(v)	strfreev_track((v), _WHERE_, __LINE__)
 
+#ifndef XMALLOC_SOURCE
+
+#undef xmalloc
+#undef xrealloc
+#undef xfree
+#undef xcalloc
+
+#define xmalloc(s)		malloc_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
+#define xmalloc0(s)		malloc0_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
+#define xfree(p)		malloc_free_track(e_xfree, (p), _WHERE_, __LINE__)
+#define xstrdup(s)		malloc_strdup_track(e_xmalloc, (s), _WHERE_, __LINE__)
+#define xstrndup(s,n)	malloc_strndup_track(e_xmalloc, (s), (n), _WHERE_, __LINE__)
+#define xpmalloc(s)		malloc_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
+#define xhmalloc(s)		malloc_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
+
+#define xrealloc(p,s)	\
+	malloc_realloc_track(e_xrealloc, e_xmalloc, e_xfree,	\
+		(p), (s), _WHERE_, __LINE__)
+
+#define xprealloc(p,s)	\
+	malloc_realloc_track(e_xrealloc, e_xmalloc, e_xfree,	\
+		(p), (s), _WHERE_, __LINE__)
+
+#define xcalloc(n,s) \
+	malloc_alloc_track(e_xmalloc, (n) * (s), _WHERE_, __LINE__)
+
+#endif	/* !XMALLOC_SOURCE */
+
+#undef XCOPY
+#define XCOPY(p)	malloc_copy_track(e_xmalloc, p, sizeof *p, _WHERE_, __LINE__)
+#define xcopy(p,s)	malloc_copy_track(e_xmalloc, (p), (s), _WHERE_, __LINE__)
+
 /* FIXME: This is only correct if xmlFree() is equivalent to free(). */
 #define xmlFree(o)		free_track(o, _WHERE_, __LINE__)
 
@@ -244,10 +276,20 @@ void *zalloc_not_leaking(const void *o);
 #endif	/* TRACK_MALLOC && !MALLOC_SOURCE */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_SOURCE)
+void *malloc_alloc_track(alloc_fn_t, size_t, const char *, int);
+void *malloc0_alloc_track(alloc_fn_t, size_t, const char *, int);
+void *malloc_realloc_track(realloc_fn_t, alloc_fn_t, free_fn_t,
+	void *, size_t, const char *, int);
+void malloc_free_track(free_fn_t, void *, const char *, int);
+void *malloc_copy_track(alloc_fn_t, const void *, size_t, const char *, int);
+char *malloc_strdup_track(alloc_fn_t, const char *s, const char *, int);
+char *malloc_strndup_track(alloc_fn_t, const char *s, size_t n, const char *, int);
 
 char *string_record(const char *s, const char *file, int line);
 void *malloc_record(const void *o, size_t size, bool owned,
 	const char *file, int line);
+void *realloc_record(void *o, void *n, size_t size, const char *file, int line);
+bool free_record(const void *o, const char *file, int line);
 GSList *gslist_record(const GSList *, const char *file, int line);
 GList *glist_record(const GList *, const char *file, int line);
 void *malloc_not_leaking(const void *o);

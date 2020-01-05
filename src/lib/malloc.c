@@ -263,8 +263,6 @@ struct realblock {
 #ifdef TRACK_MALLOC
 static time_t init_time = 0;
 static time_t reset_time = 0;
-
-static bool free_record(const void *o, const char *file, int line);
 #endif
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
@@ -970,9 +968,10 @@ real_check_free(void *p)
 static void
 real_free(void *p)
 {
-#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+#ifdef TRACK_MALLOC
 	bool owned = FALSE;
-	bool real = FALSE;
+#endif
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	void *start = p;
 #endif
 #ifdef TRACK_MALLOC
@@ -1033,7 +1032,6 @@ real_free(void *p)
 			block_erase(start, rb->size);
 			block_mark_dead(start, rb->size);
 			free(rb);
-			real = TRUE;		/* Was allocated via real_malloc() */
 		} else {
 			if (block_is_dead(start, sizeof(uint))) {
 				s_warning("MALLOC probable duplicate free of %p", p);
@@ -1078,6 +1076,9 @@ real_free(void *p)
 	{
 		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
+#ifdef TRACK_MALLOC
+	(void) owned;		/* Avoid compiler warning */
+#endif
 }
 #endif	/* TRACK_MALLOC || TRACK_VMM */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
@@ -1086,7 +1087,7 @@ real_free(void *p)
 /**
  * Wraps strdup() call so that real_free() can be used on the result.
  */
-static char *
+static inline char *
 real_strdup(const char *s)
 {
 	void *p;
@@ -1548,10 +1549,15 @@ malloc_record(const void *o, size_t sz, bool owned,
 }
 
 /**
- * Allocate `s' bytes.
+ * Allocate `s' bytes using specified allocation routine.
+ *
+ * @param afn		the allocation routine
+ * @param size		user-size to allocate
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
  */
 void *
-malloc_track(size_t size, const char *file, int line)
+malloc_alloc_track(alloc_fn_t afn, size_t size, const char *file,  int line)
 {
 	void *o;
 
@@ -1561,7 +1567,7 @@ malloc_track(size_t size, const char *file, int line)
 #ifdef MALLOC_SAFE_HEAD
 		struct malloc_header *mh;
 
-		mh = real_malloc(len);
+		mh = (*afn)(len);
 
 		if (mh == NULL)
 			s_error("unable to allocate %zu bytes", size);
@@ -1569,12 +1575,12 @@ malloc_track(size_t size, const char *file, int line)
 		mh->start = MALLOC_START_MARK;
 		o = mh->arena;
 #else  /* !MALLOC_SAFE_HEAD */
-		o = real_malloc(len);
+		o = (*afn)(len);
 #endif /* MALLOC_SAFE_HEAD */
 		block_write_trailer(o, size);
 	}
 #else  /* !MALLOC_SAFE */
-	o = real_malloc(size);
+	o = (*afn)(size);
 #endif /* MALLOC_SAFE */
 
 	if (o == NULL)
@@ -1586,24 +1592,47 @@ malloc_track(size_t size, const char *file, int line)
 }
 
 /**
- * Allocate `s' bytes, zero the allocated zone.
+ * Allocate `s' bytes using specified allocation routine, zeroing allocated zone.
+ *
+ * @param afn		the allocation routine
+ * @param size		user-size to allocate
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
  */
 void *
-malloc0_track(size_t size, const char *file, int line)
+malloc0_alloc_track(alloc_fn_t afn, size_t size, const char *file,  int line)
 {
 	void *o;
 
-	o = malloc_track(size, file, line);
+	o = malloc_alloc_track(afn, size, file, line);
 	memset(o, 0, size);
 
 	return o;
 }
 
 /**
+ * Allocate `s' bytes using real_malloc().
+ */
+void *
+malloc_track(size_t size, const char *file, int line)
+{
+	return malloc_alloc_track(real_malloc, size, file, line);
+}
+
+/**
+ * Allocate `s' bytes using real_malloc(), zero the allocated zone.
+ */
+void *
+malloc0_track(size_t size, const char *file, int line)
+{
+	return malloc0_alloc_track(real_malloc, size, file, line);
+}
+
+/**
  * Record freeing of allocated block.
  * @return TRUE if the block was owned
  */
-static bool
+bool
 free_record(const void *o, const char *file, int line)
 {
 	struct block *b;
@@ -1622,12 +1651,12 @@ free_record(const void *o, const char *file, int line)
 		if (hash_table_lookup(reals, o))
 			return FALSE;
 
-		if (block_is_dead(o, 4)) {
+		if (block_is_dead(o, 4))
 			s_error("MALLOC (%s:%d) duplicate free of %p", file, line, o);
-		}
 
 		s_warning("MALLOC (%s:%d) attempt to free block at %p twice?",
 			file, line, o);
+
 		stacktrace_where_print(stderr);
 		s_error("MALLOC free() of unknown address %p", o);
 		return FALSE;
@@ -1714,10 +1743,15 @@ free_record(const void *o, const char *file, int line)
 }
 
 /**
- * Free allocated block.
+ * Free allocated block `o'.
+ *
+ * @param ffn		the free routine
+ * @param o			the object to free
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
  */
 void
-free_track(void *o, const char *file, int line)
+malloc_free_track(free_fn_t ffn, void *o, const char *file,  int line)
 {
 	struct block *b;
 
@@ -1725,13 +1759,18 @@ free_track(void *o, const char *file, int line)
 		if (free_record(o, file, line)) {
 #ifdef MALLOC_SAFE_HEAD
 			struct malloc_header *mh = malloc_header_from_arena(o);
-			real_free(mh);
+			(*ffn)(mh);
 #else
-			real_free(o);
+			(*ffn)(o);
 #endif /* MALLOC_SAFE_HEAD */
 		} else if (hash_table_lookup(reals, o)) {
-			real_free(o);
+			(*ffn)(o);
 		} else {
+			if (ffn != real_free) {
+				s_error("MALLOC (%s:%d) attempt to free unknown %zu-byte block "
+					"%p allocated from %s:%d",
+					file, line, b->size, o, b->file, b->line);
+			}
 			/*
 			 * Will go to real_free() if MALLOC_VTABLE and could cause a
 			 * warning "freeing unknown block" because the block was not
@@ -1746,7 +1785,7 @@ free_track(void *o, const char *file, int line)
 			 */
 #ifdef MALLOC_VTABLE
 			hash_table_insert(unknowns, o, GUINT_TO_POINTER(1));
-			g_free(o);
+			real_free(o);
 			hash_table_remove(unknowns, o);
 #else
 			g_free(o);
@@ -1754,12 +1793,25 @@ free_track(void *o, const char *file, int line)
 		}
 	} else {
 		free_record(o, file, line);
+		if (ffn != real_free) {
+			s_error("MALLOC (%s:%d) attempt to free foreign block %p",
+				file, line, o);
+		}
 		if (hash_table_lookup(reals, o)) {
 			real_free(o);
 		} else {
 			g_free(o);		/* Will go to real_free() if MALLOC_VTABLE */
 		}
 	}
+}
+
+/**
+ * Free allocated block.
+ */
+void
+free_track(void *o, const char *file, int line)
+{
+	malloc_free_track(real_free, o, file, line);
 }
 
 /**
@@ -1781,7 +1833,7 @@ strfreev_track(char **v, const char *file, int line)
  * Update data structures to record that block `o' was re-alloced into
  * a block of `s' bytes at `n'.
  */
-static void *
+void *
 realloc_record(void *o, void *n, size_t size, const char *file, int line)
 {
 	bool blocks_updated = FALSE;
@@ -1885,16 +1937,28 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 }
 
 /**
- * Realloc object `o' to `size' bytes.
+ * Realloc object `o' to `s' bytes.
+ *
+ * If `o' is NULL, allocate new object.
+ * If `s' is 0, free the object and return NULL.
+ *
+ * @param rfn		the re-allocation routine
+ * @param afn		the allocation routine
+ * @param ffn		the free routine
+ * @param o			the object to reallocate
+ * @param size		user-size to allocate
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
  */
 void *
-realloc_track(void *o, size_t size, const char *file, int line)
+malloc_realloc_track(realloc_fn_t rfn, alloc_fn_t afn, free_fn_t ffn,
+	void *o, size_t size, const char *file,  int line)
 {
 	if (o == NULL)
-		return malloc_track(size, file, line);
+		return malloc_alloc_track(afn, size, file, line);
 
 	if (0 == size) {
-		free_track(o, file, line);
+		malloc_free_track(ffn, o, file, line);
 		return NULL;
 	} else {
 		void *n;
@@ -1909,34 +1973,82 @@ realloc_track(void *o, size_t size, const char *file, int line)
 				struct malloc_header *mh = malloc_header_from_arena(o);
 
 				block_check_marks(o, b, file, line);
-				mh = real_realloc(mh, total);
+				mh = (*rfn)(mh, total);
 
-				if (mh == NULL) {
-					s_error("cannot realloc block into a %zu-byte one", size);
-				}
+				if (mh == NULL)
+					goto failed;
 
 				mh->start = MALLOC_START_MARK;
 				n = mh->arena;
 #else  /* !MALLOC_SAFE_HEAD */
-				n = real_realloc(o, total);
+				n = (*rfn)(o, total);
 #endif /* MALLOC_SAFE_HEAD */
 				block_write_trailer(n, size);
 				/* ``o'' was removed from ``blocks'' by real_realloc() */
 			} else {
+				if (rfn != real_realloc) {
+					s_error(
+						"MALLOC (%s:%d) trying to realloc foreign block %p to "
+						"%zu byte%s, originally %zu byte%s allocated from %s:%d",
+						file, line, o, PLURAL(size), PLURAL(b->size),
+						b->file, b->line);
+				}
 				n = realloc(o, size);
 			}
 		} else {
-			n = real_realloc(o, size);
+			n = (*rfn)(o, size);
 		}
 #else  /* !MALLOC_SAFE */
-		n = real_realloc(o, size);
+		n = (*rfn)(o, size);
 #endif /* MALLOC_SAFE */
 
 		if (n == NULL)
-			s_error("cannot realloc block into a %zu-byte one", size);
+			goto failed;
 
 		return realloc_record(o, n, size, file, line);
 	}
+
+failed:
+	s_error("MALLOC (%s:%d) cannot realloc block into a %zu-byte one",
+		file, line, size);
+}
+
+/**
+ * Realloc object `o' to `size' bytes.
+ */
+void *
+realloc_track(void *o, size_t size, const char *file, int line)
+{
+	return
+		malloc_realloc_track(
+			real_realloc, real_malloc, real_free,
+			o, size, file, line);
+}
+
+/**
+ * Duplicate buffer `p' of `s' bytes.
+ *
+ * If `p' is NULL, return NULL regardless of `s'.
+ *
+ * @param afn		the allocation routine
+ * @param p			start of buffer
+ * @param s			size of buffer
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
+ */
+void *
+malloc_copy_track(alloc_fn_t afn,
+	const void *p, size_t s, const char *file, int line)
+{
+	void *o;
+
+	if (p == NULL)
+		return NULL;
+
+	o = malloc_alloc_track(afn, s, file, line);
+	memcpy(o, p, s);
+
+	return o;
 }
 
 /**
@@ -1945,13 +2057,29 @@ realloc_track(void *o, size_t size, const char *file, int line)
 void *
 memdup_track(const void *p, size_t size, const char *file, int line)
 {
-	void *o;
+	return malloc_copy_track(real_malloc, p, size, file, line);
+}
 
-	if (p == NULL)
+/**
+ * Duplicate string `s'.
+ *
+ * @param afn		the allocation routine
+ * @param s			string pointer
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
+ */
+char *
+malloc_strdup_track(alloc_fn_t afn, const char *s, const char *file, int line)
+{
+	void *o;
+	size_t len;
+
+	if (s == NULL)
 		return NULL;
 
-	o = malloc_track(size, file, line);
-	memcpy(o, p, size);
+	len = vstrlen(s);
+	o = malloc_alloc_track(afn, len + 1, file, line);
+	memcpy(o, s, len + 1);		/* Also copy trailing NUL */
 
 	return o;
 }
@@ -1962,15 +2090,34 @@ memdup_track(const void *p, size_t size, const char *file, int line)
 char *
 strdup_track(const char *s, const char *file, int line)
 {
+	return malloc_strdup_track(real_malloc, s, file, line);
+}
+
+/**
+ * Duplicate string `s', on at most `n' chars.
+ *
+ * @param afn		the allocation routine
+ * @param s			string pointer
+ * @param n			the maximum amount of characters to duplicate
+ * @param file		where allocation comes from
+ * @param line		line in file where allocation comes from
+ */
+char *
+malloc_strndup_track(alloc_fn_t afn, const char *s, size_t n,
+	const char *file, int line)
+{
 	void *o;
-	size_t len;
+	char *q;
 
 	if (s == NULL)
 		return NULL;
 
-	len = vstrlen(s);
-	o = malloc_track(len + 1, file, line);
-	memcpy(o, s, len + 1);		/* Also copy trailing NUL */
+	o = malloc_alloc_track(afn, n + 1, file, line);
+	q = o;
+	while (n-- > 0 && '\0' != (*q = *s++)) {
+		q++;
+	}
+	*q = '\0';
 
 	return o;
 }
@@ -1981,20 +2128,7 @@ strdup_track(const char *s, const char *file, int line)
 char *
 strndup_track(const char *s, size_t n, const char *file, int line)
 {
-	void *o;
-	char *q;
-
-	if (s == NULL)
-		return NULL;
-
-	o = malloc_track(n + 1, file, line);
-	q = o;
-	while (n-- > 0 && '\0' != (*q = *s++)) {
-		q++;
-	}
-	*q = '\0';
-
-	return o;
+	return malloc_strndup_track(real_malloc, s, n, file, line);
 }
 
 /**
@@ -3006,7 +3140,7 @@ malloc_init_tracking(void)
 {
 	once_flag_run(&malloc_tracking_inited, malloc_init_tracking_once);
 }
-#endif /* TRACK MALLOC || MALLOC_VTABLE */
+#endif /* TRACK MALLOC */
 
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
@@ -3240,7 +3374,7 @@ void G_COLD
 malloc_close(void)
 {
 #ifdef TRACK_MALLOC
-	void *leaksort;
+	leak_set_t *leaksort;
 #ifdef MALLOC_LEAK_ALL
 	hash_table_t *saved_reals;
 #endif	/* MALLOC_LEAK_ALL */
