@@ -129,6 +129,7 @@ size_t compat_pagesize(void) G_PURE;
 const void *vmm_page_start(const void *p) G_PURE;
 const void *vmm_page_next(const void *p) G_PURE;
 const void *vmm_trap_page(void);
+const char *vmm_type_pointer(const void *p);
 size_t vmm_page_count(size_t size) G_PURE;
 bool vmm_is_fragment(const void *base, size_t size);
 bool vmm_is_relocatable(const void *base, size_t size);

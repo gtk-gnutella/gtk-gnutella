@@ -2593,6 +2593,26 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 }
 
 /**
+ * @return type of region to which `p' belongs, for logging messages.
+ */
+const char *
+vmm_type_pointer(const void *p)
+{
+	struct vm_fragment *vmf;
+	struct pmap *pm = vmm_pmap();
+	const char *type = "invalid";
+
+	rwlock_rlock(&pm->lock);
+
+	vmf = pmap_lookup(pm, page_start(p), NULL);
+	if (vmf != NULL)
+		type = vmf_type_str(vmf->type);
+
+	rwlock_runlock(&pm->lock);
+	return type;
+}
+
+/**
  * Is pointer within the stack?
  *
  * If the ``top'' parameter is NULL, then the current stack pointer will be
