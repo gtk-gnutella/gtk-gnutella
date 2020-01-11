@@ -772,7 +772,7 @@ vmf_type_str(const vmf_type_t type)
 	case VMF_FOREIGN:	return "foreign";
 	}
 
-	g_error("corrupted VM fragment type: %d", type);
+	s_error("corrupted VM fragment type: %d", type);
 	return NULL;
 }
 
