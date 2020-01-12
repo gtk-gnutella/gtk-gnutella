@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2011, 2013-2015, Raphael Manfredi
+ * Copyright (c) 2006, 2011, 2013-2015, 2018-2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -99,7 +99,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009, 2011, 2013-2015
+ * @date 2006, 2009, 2011, 2013-2015, 2018-2020
  */
 
 #include "common.h"
@@ -490,7 +490,6 @@ static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
-static tmalloc_t *vmm_get_magazine(size_t npages, bool alloc);
 static void vmm_free_internal(void *p, size_t size, bool user_mem);
 
 /**
@@ -4987,6 +4986,18 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	}
 }
 
+/*
+ * Avoid VMM magazine allocation under TRACK_MALLOC.
+ *
+ * This can cause infinite recursions through tmalloc() when attempting to
+ * record the allocated region into the tracking hash tables, which use VMM.
+ * 		--RAM, 2020-01-12
+ */
+
+#ifdef TRACK_MALLOC
+#define vmm_get_magazine(n,a)	NULL
+#define vmm_magazine_alloc(n,z)	NULL
+#else	/* !TRACK_MALLOC */
 /**
  * Internal general-purpose memory allocator given to the thread magazine
  * depot in order to either allocate objects or the magazines themselves.
@@ -5132,6 +5143,7 @@ vmm_magazine_alloc(size_t npages, bool zero)
 
 	return zero ? tmalloc0(depot) : tmalloc(depot);
 }
+#endif	/* TRACK_MALLOC */
 
 /**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
