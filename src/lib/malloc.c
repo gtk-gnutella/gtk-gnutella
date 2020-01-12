@@ -60,6 +60,7 @@
 #include "unsigned.h"	/* For size_is_non_negative() */
 #include "vsort.h"
 #include "xmalloc.h"
+#include "zalloc.h"		/* For zalloc_zone_info() */
 
 /*
  * The following setups are more or less independent from each other.
@@ -93,14 +94,26 @@
 #if 0
 #define MALLOC_LEAK_ALL		/* Report all leaked "real" blocks as well */
 #endif
+#if 1
+#define MALLOC_CATCH_MALLOC	/* Catch all malloc(), realloc() and free() calls */
+#endif
+#if 0
+#define MALLOC_CATCH_VERBOSE	/* Whether to be verbose about allocations */
+#endif
 
 /*
  * Enable MALLOC_VTABLE to avoid missing free() events from GTK if they
  * turn on TRACK_MALLOC.
  */
-
 #if defined(TRACK_MALLOC) && !defined(MALLOC_VTABLE)
 #define MALLOC_VTABLE		/* Or would miss some free(), report false leaks */
+#endif
+
+/*
+ * MALLOC_CATCH_MALLOC makes sense only when TRACK_MALLOC is on.
+ */
+#if defined(MALLOC_CATCH_MALLOC) && !defined(TRACK_MALLOC)
+#undef MALLOC_CATCH_MALLOC
 #endif
 
 /**
@@ -203,6 +216,11 @@ struct real_malloc_header {
 #include "glib-missing.h"
 #include "override.h"
 
+#define ONCE_FLAG_RUN_SAFE(f, r) G_STMT_START {		\
+	if G_UNLIKELY(!ONCE_DONE((f)))					\
+		once_flag_run_safe_trace(&(f),(r),# r);		\
+} G_STMT_END
+
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 static hash_table_t *reals;
 static hash_table_t *unknowns;
@@ -221,6 +239,28 @@ static bool vtable_works;	/* Whether we can trap glib memory calls */
 #ifdef realloc
 #error "realloc() should not be a macro here."
 #endif
+
+/*
+ * When not catching malloc(), we'll initialize libc_xxx routines with xxx()
+ * calls.  We make sure real_malloc() calls libc_malloc() instead of malloc()
+ * directly to avoid endless recursions when catching malloc(), which will
+ * redirect to real_malloc()!
+ */
+#ifdef MALLOC_CATCH_MALLOC
+#define MALLOC_INIT(x)		= call_libc_ ## x
+static void malloc_trap_init(void);
+static void *call_libc_malloc(size_t);
+static void *call_libc_realloc(void *, size_t);
+static void *call_libc_calloc(size_t, size_t);
+static void call_libc_free(void *);
+#else
+#define MALLOC_INIT(x)		= x
+#endif
+
+static void *(*libc_malloc)(size_t)          MALLOC_INIT(malloc);
+static void *(*libc_realloc)(void *, size_t) MALLOC_INIT(realloc);
+static void *(*libc_calloc)(size_t, size_t)  MALLOC_INIT(calloc);
+static void (*libc_free)(void *)             MALLOC_INIT(free);
 
 /**
  * Structure keeping track of allocated blocks. (visible for convenience)
@@ -244,7 +284,8 @@ struct block {
 };
 
 /**
- * Structure keeping information for blocks allocated through real_malloc().
+ * Structure keeping information for blocks allocated through real_malloc()
+ * or from other allocators (in which case `is_real' will be set to FALSE).
  */
 struct realblock {
 #ifdef MALLOC_FRAMES
@@ -255,9 +296,10 @@ struct realblock {
 	time_t atime;			/**< Allocation time */
 #endif
 #if defined(MALLOC_SAFE) || defined(MALLOC_PERIODIC)
-	unsigned corrupted:1;		/**< Whether block was marked as corrupted */
-	unsigned header_corrupted:1;/**< Whether header corruption was reported */
+	uint corrupted:1;		/**< Whether block was marked as corrupted */
+	uint header_corrupted:1;/**< Whether header corruption was reported */
 #endif
+	uint is_real:1;			/**< Allocated from real_malloc() */
 };
 
 #ifdef TRACK_MALLOC
@@ -269,6 +311,66 @@ static time_t reset_time = 0;
 static hash_table_t *blocks = NULL;
 static hash_table_t *not_leaking = NULL;
 #endif
+
+/**
+ * Trapping points that are called once to invoke malloc_trap_init().
+ *
+ * These must not be invoked directly, they are rather invoked indirectly
+ * through the idiom libc_malloc(s) or libc_free(p).
+ */
+#ifdef MALLOC_CATCH_MALLOC
+static void *
+call_libc_malloc(size_t s)
+{
+	malloc_trap_init();		/* Changes libc_malloc */
+	return libc_malloc(s);
+}
+static void *
+call_libc_realloc(void *p, size_t s)
+{
+	malloc_trap_init();		/* Changes libc_realloc */
+	return libc_realloc(p, s);
+}
+static void *
+call_libc_calloc(size_t nmemb, size_t size)
+{
+	malloc_trap_init();		/* Changes libc_calloc */
+	return libc_calloc(nmemb, size);
+}
+static void
+call_libc_free(void *p)
+{
+	malloc_trap_init();		/* Changes libc_free */
+	libc_free(p);
+}
+#endif	/* MALLOC_CATCH_MALLOC */
+
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+static once_flag_t malloc_tracking_inited;
+
+/**
+ * Setup tracking tables, once.
+ */
+static void G_COLD
+malloc_init_tracking_once(void)
+{
+	reals = hash_table_new_real();
+	unknowns = hash_table_new_real();
+
+	hash_table_thread_safe(reals);
+	hash_table_thread_safe(unknowns);
+}
+
+/**
+ * Initialize tracking tables.
+ */
+void G_COLD
+malloc_init_tracking(void)
+{
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+}
+#endif /* TRACK MALLOC */
+
 
 /*
  * When MALLOC_FRAMES is supplied, we collect allocation stack frames.
@@ -827,6 +929,7 @@ static void
 real_check_missed_free(void *p)
 {
 	struct realblock *rb;
+	bool warning = FALSE;
 
 	rb = hash_table_lookup(reals, p);
 	if (rb != NULL) {
@@ -845,7 +948,8 @@ real_check_missed_free(void *p)
 				 * reuse the address and need to track it.
 				 */
 
-				s_warning("MALLOC reusing %s block %p (%zu byte%s) "
+				warning = TRUE;
+				s_rawwarn("MALLOC reusing %s block %p (%zu byte%s) "
 					"from %s:%d, missed its freeing",
 					b->owned ? "owned" : "foreign",
 					p, rb->size, plural(rb->size), b->file, b->line);
@@ -854,67 +958,50 @@ real_check_missed_free(void *p)
 			}
 		}
 #else	/* !TRACK_MALLOC */
-		s_warning("MALLOC reusing real block %p (%zu byte%s), "
+		warning = TRUE;
+		s_rawwarn("MALLOC reusing %s block %p (%zu byte%s), "
 			"missed its freeing",
-			p, rb->size, plural(rb->size));
+			rb->is_real ? "real" : "trapped", p, rb->size, plural(rb->size));
 #endif	/* TRACK_MALLOC */
-		s_warning("current_frame:");
-		stacktrace_where_print(stderr);
+		if (warning) {
+			s_rawwarn("current frame:");
+			stacktrace_where_print(stderr);
 #ifdef MALLOC_FRAMES
-		s_warning("allocation frame:");
-		stacktrace_atom_print(stderr, rb->alloc->ast);
+			s_rawwarn("allocation frame:");
+			stacktrace_atom_print(stderr, rb->alloc->ast);
 #endif
+		}
 		hash_table_remove(reals, p);
-		free(rb);
+		libc_free(rb);
 	}
 }
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 /**
- * Calls real malloc(), no tracking.
+ * Perform bookkeeping on allocated block.
+ *
+ * @param o			the allocated block
+ * @param size		the size of the allocated block
+ * @param is_real	TRUE if comming from real_malloc()
+ *
+ * @return the allocated block `o' as a convenience.
  */
-void *
-real_malloc(size_t size)
+static void *
+malloc_bookkeeping(void *o, size_t size, bool is_real)
 {
-	void *o;
-
-#ifdef MALLOC_PERIODIC
-	if (need_periodic)
-		install_malloc_periodic();
-#endif
-
-#ifdef MALLOC_SAFE
-	{
-		size_t len = real_malloc_safe_size(size);
-		struct real_malloc_header *rmh;
-
-		rmh = malloc(len);
-
-		if (rmh == NULL)
-			s_error("unable to allocate %zu bytes", size);
-
-		rmh->magic = REAL_MALLOC_MAGIC;
-		rmh->size = size;
-		o = rmh->arena;
-		block_write_trailer(o, size);
-	}
-#else  /* !MALLOC_SAFE */
-
-	o = malloc(size);
-
-#endif /* MALLOC_SAFE */
-
-	if (o == NULL)
-		s_error("unable to allocate %zu bytes", size);
-
 	block_clear_dead(o, size);
+
+#ifdef MALLOC_CATCH_MALLOC
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+#endif
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	{
 		struct realblock *rb;
 
-		rb = calloc(1, sizeof *rb);
+		rb = libc_calloc(1, sizeof *rb);
 		rb->size = size;
+		rb->is_real = booleanize(is_real);
 		real_check_missed_free(o);
 		if (!hash_table_insert(reals, o, rb)) {
 			s_error("MALLOC cannot record real block %p", o);
@@ -941,6 +1028,50 @@ real_malloc(size_t size)
 	return o;
 }
 
+/**
+ * Calls real malloc(), no tracking.
+ */
+void *
+real_malloc(size_t size)
+{
+	void *o;
+
+#ifdef MALLOC_CATCH_MALLOC
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+#endif
+
+#ifdef MALLOC_PERIODIC
+	if (need_periodic)
+		install_malloc_periodic();
+#endif
+
+#ifdef MALLOC_SAFE
+	{
+		size_t len = real_malloc_safe_size(size);
+		struct real_malloc_header *rmh;
+
+		rmh = libc_malloc(len);
+
+		if (rmh == NULL)
+			s_error("unable to allocate %zu bytes", size);
+
+		rmh->magic = REAL_MALLOC_MAGIC;
+		rmh->size = size;
+		o = rmh->arena;
+		block_write_trailer(o, size);
+	}
+#else  /* !MALLOC_SAFE */
+
+	o = libc_malloc(size);
+
+#endif /* MALLOC_SAFE */
+
+	if (o == NULL)
+		s_error("unable to allocate %zu bytes", size);
+
+	return malloc_bookkeeping(o, size, TRUE);
+}
+
 #if defined(TRACK_MALLOC) || defined(TRACK_ZALLOC) || \
 	defined(TRACK_VMM) || defined(MALLOC_VTABLE)
 
@@ -956,11 +1087,41 @@ real_check_free(void *p)
 	if (REAL_MALLOC_MAGIC != rmh->magic)
 		s_warning("MALLOC free(): corrupted real block magic at %p", p);
 
-	free(rmh);
+	libc_free(rmh);
 }
 #endif	/* MALLOC_SAFE */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_VMM)
+/**
+ * Log information about address that we can gather by probing the various
+ * layers which can allocate memory.  This could give insight about the problem.
+ */
+static void
+malloc_address_log_info(const void *p)
+{
+	size_t size;
+	uint tid;
+
+	s_rawinfo("MALLOC %p in %s VMM region", p, vmm_type_pointer(p));
+	if (vmm_page_start(p) == p)
+		s_rawinfo("MALLOC %p is page-aligned", p);
+
+	if (zalloc_zone_info(p, &size))
+		s_rawinfo("MALLOC %p in %zu-byte zalloc() zone", p, size);
+
+	if (thread_is_stack_pointer(p, p, &tid))
+		s_rawinfo("MALLOC %p in stack of %s", p, thread_id_name(tid));
+
+	if (xmalloc_block_info(p, &tid, &size)) {
+		if (tid != -1U) {
+			s_rawinfo("MALLOC %p is thread-private %zu-byte xmalloc() from %s",
+				p, size, thread_id_name(tid));
+		} else {
+			s_rawinfo("MALLOC %p is a probable %zu-byte xmalloc() block", p, size);
+		}
+	}
+}
+
 /**
  * Calls real free(), no tracking.
  * Block must have been allocated via real_malloc().
@@ -973,9 +1134,15 @@ real_free(void *p)
 #endif
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
 	void *start = p;
+	const char *file = "?";
+	int line = 0;
 #endif
 #ifdef TRACK_MALLOC
 	struct block *b = NULL;
+#endif
+
+#ifdef MALLOC_CATCH_MALLOC
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
 #endif
 
 #ifdef MALLOC_PERIODIC
@@ -1018,6 +1185,8 @@ real_free(void *p)
 			hash_table_remove(not_leaking, p);
 	} else {
 		owned = b->owned;
+		file = b->file;
+		line = b->line;
 		free_record(p, _WHERE_, __LINE__);	/* p is an "user" address */
 	}
 #endif
@@ -1026,12 +1195,20 @@ real_free(void *p)
 		struct realblock *rb = hash_table_lookup(reals, start);
 
 		if (rb != NULL) {
+			if (!rb->is_real) {
+				s_rawwarn(
+					"MALLOC freeing trapped %zu-byte block %p from %s:%d with %s()",
+					rb->size, p, file, line, G_STRFUNC);
+				malloc_address_log_info(p);
+				stacktrace_where_print(stderr);
+				s_error("%s(): attempt to free invalid pointer %p", G_STRFUNC, p);
+			}
 			hash_table_remove(reals, start);
 			block_check_trailer(start, rb->size,
 				"FAKED", 0, _WHERE_, __LINE__, TRUE);
 			block_erase(start, rb->size);
 			block_mark_dead(start, rb->size);
-			free(rb);
+			libc_free(rb);
 		} else {
 			if (block_is_dead(start, sizeof(uint))) {
 				s_warning("MALLOC probable duplicate free of %p", p);
@@ -1044,8 +1221,13 @@ real_free(void *p)
 				ok = hash_table_lookup(unknowns, p) != NULL;
 #endif
 				if (!ok) {
-					s_warning("MALLOC freeing unknown block %p", p);
+					s_rawwarn("MALLOC freeing unknown block %p", p);
+					malloc_address_log_info(p);
 					stacktrace_where_print(stderr);
+#ifdef MALLOC_CATCH_MALLOC
+					s_error("%s(): attempt to free invalid pointer %p",
+						G_STRFUNC, p);
+#endif
 				}
 			}
 		}
@@ -1074,7 +1256,7 @@ real_free(void *p)
 	} else
 #endif	/* MALLOC_SAFE */
 	{
-		free(p);		/* NOT g_free(): would recurse if MALLOC_VTABLE */
+		libc_free(p);	/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
 #ifdef TRACK_MALLOC
 	(void) owned;		/* Avoid compiler warning */
@@ -1116,6 +1298,11 @@ real_realloc(void *ptr, size_t size)
 #if defined(TRACK_MALLOC) || defined(MALLOC_SAFE_HEAD)
 	struct block *b = NULL;
 #endif
+
+#ifdef MALLOC_CATCH_MALLOC
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+#endif
+
 #ifdef MALLOC_PERIODIC
 	if (need_periodic)
 		install_malloc_periodic();
@@ -1184,7 +1371,7 @@ real_realloc(void *ptr, size_t size)
 			}
 		}
 #else	/* !MALLOC_SAFE */
-		result = n = realloc(p, size);
+		result = n = libc_realloc(p, size);
 #endif	/* MALLOC_SAFE */
 
 		if (n == NULL)
@@ -1238,28 +1425,6 @@ real_realloc(void *ptr, size_t size)
 #ifdef MALLOC_FRAMES
 static hash_table_t *alloc_points; /**< Maps a block to its allocation frame */
 #endif
-
-#if 0	/* UNUSED */
-/**
- * Wrapper to real malloc().
- */
-static void *
-real_calloc(size_t nmemb, size_t size)
-{
-	void *p;
-
-	if (nmemb > 0 && size > 0 && size < ((size_t) -1) / nmemb) {
-		size_t len = nmemb * size;
-
-		p = real_malloc(len);
-		memset(p, 0, len);
-	} else {
-		p = NULL;
-	}
-
-	return p;
-}
-#endif	/* UNUSED */
 
 /**
  * Called at first allocation to initialize tracking structures,.
@@ -1477,7 +1642,7 @@ malloc_record(const void *o, size_t sz, bool owned,
 	if (blocks == NULL)
 		track_init();
 
-	b = calloc(1, sizeof(*b));
+	b = libc_calloc(1, sizeof(*b));
 	if (b == NULL)
 		s_error("unable to allocate %u bytes", (unsigned) sizeof(*b));
 
@@ -1517,7 +1682,7 @@ malloc_record(const void *o, size_t sz, bool owned,
 		st = hash_table_lookup(stats, &s);
 
 		if (st == NULL) {
-			st = calloc(1, sizeof(*st));
+			st = libc_calloc(1, sizeof(*st));
 			st->file = b->file;
 			st->line = line;
 			hash_table_insert(stats, st, st);
@@ -1586,7 +1751,16 @@ malloc_alloc_track(alloc_fn_t afn, size_t size, const char *file,  int line)
 	if (o == NULL)
 		s_error("unable to allocate %zu bytes", size);
 
-	block_clear_dead(o, size);
+	/*
+	 * If afn is real_malloc(), then bookkeeping was already done.
+	 *
+	 * Otherwise we need to do it here and flag the block as not being
+	 * allocated through real_malloc(), so that any attempt to real_free()
+	 * it will cause an error.
+	 */
+
+	if (afn != real_malloc)
+		malloc_bookkeeping(o, size, FALSE);
 
 	return malloc_record(o, size, TRUE, file, line);
 }
@@ -1734,10 +1908,10 @@ free_record(const void *o, const char *file, int line)
 	for (l = b->reallocations; l; l = g_slist_next(l)) {
 		struct block *r = l->data;
 		g_assert(r->reallocations == NULL);
-		free(r);
+		libc_free(r);
 	}
 	g_slist_free(b->reallocations);
-	free(b);
+	libc_free(b);
 
 	return owned;
 }
@@ -1756,6 +1930,8 @@ malloc_free_track(free_fn_t ffn, void *o, const char *file,  int line)
 	struct block *b;
 
 	if (blocks != NULL && (b = hash_table_lookup(blocks, o))) {
+		struct realblock *rb;
+
 		if (free_record(o, file, line)) {
 #ifdef MALLOC_SAFE_HEAD
 			struct malloc_header *mh = malloc_header_from_arena(o);
@@ -1763,7 +1939,14 @@ malloc_free_track(free_fn_t ffn, void *o, const char *file,  int line)
 #else
 			(*ffn)(o);
 #endif /* MALLOC_SAFE_HEAD */
-		} else if (hash_table_lookup(reals, o)) {
+		} else if ((rb = hash_table_lookup(reals, o))) {
+			if (rb->is_real != (real_free == ffn)) {
+				s_error("MALLOC (%s:%d) attempt to free %s %zu-byte block "
+					"%p allocated from %s:%d with %s()",
+					file, line, rb->is_real ? "real" : "trapped",
+					rb->size, o, b->file, b->line,
+					stacktrace_function_name(ffn));
+			}
 			(*ffn)(o);
 		} else {
 			if (ffn != real_free) {
@@ -1792,12 +1975,20 @@ malloc_free_track(free_fn_t ffn, void *o, const char *file,  int line)
 #endif	/* MALLOC_VTABLE */
 		}
 	} else {
+		struct realblock *rb;
+
 		free_record(o, file, line);
 		if (ffn != real_free) {
 			s_error("MALLOC (%s:%d) attempt to free foreign block %p",
 				file, line, o);
 		}
-		if (hash_table_lookup(reals, o)) {
+		if ((rb = hash_table_lookup(reals, o))) {
+			if (rb->is_real != (real_free == ffn)) {
+				s_error("MALLOC (%s:%d) attempt to free %s %zu-byte block "
+					"%p with %s()",
+					file, line, rb->is_real ? "real" : "trapped",
+					rb->size, o, stacktrace_function_name(ffn));
+			}
 			real_free(o);
 		} else {
 			g_free(o);		/* Will go to real_free() if MALLOC_VTABLE */
@@ -1863,7 +2054,7 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 		}
 	}
 
-	r = calloc(sizeof(*r), 1);
+	r = libc_calloc(1, sizeof(*r));
 	if (r == NULL)
 		s_error("unable to allocate %u bytes", (unsigned) sizeof(*r));
 
@@ -3116,32 +3307,6 @@ malloc_sanity_checks(void)
 	G_FREE_NULL(p);
 }
 
-#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
-static once_flag_t malloc_tracking_inited;
-
-/**
- * Setup tracking tables, once.
- */
-static void G_COLD
-malloc_init_tracking_once(void)
-{
-	reals = hash_table_new_real();
-	unknowns = hash_table_new_real();
-
-	hash_table_thread_safe(reals);
-	hash_table_thread_safe(unknowns);
-}
-
-/**
- * Initialize tracking tables.
- */
-void G_COLD
-malloc_init_tracking(void)
-{
-	once_flag_run(&malloc_tracking_inited, malloc_init_tracking_once);
-}
-#endif /* TRACK MALLOC */
-
 /**
  * Attempt to trap all raw g_malloc(), g_free(), g_realloc() calls
  * when TRACK_MALLOC and MALLOC_VTABLE are defined.
@@ -3420,5 +3585,287 @@ malloc_close(void)
 
 #endif	/* TRACK_MALLOC */
 }
+
+/**
+ * When MALLOC_CATCH_MALLOC is defined, we trap malloc() entry points and
+ * friends from the C library by redefining the routines, yet we want the
+ * ability to call the C library versions underneath.
+ *
+ * This is the job of malloc_trap_init() to capture, through the dynamic
+ * linker, the next entry points in the linking chain.
+ *
+ * The purpose of trapping the entry points is to be able to redirect allocation
+ * to real_malloc() and friends, so that we can track which block is allocated
+ * and freed, when allocation is done outside of the program (i.e. in library
+ * routines such as the C library itself).
+ *
+ * In order to allow for some bootstrapping period, we actually make sure we
+ * do not redirect until the malloc_tracking_init() routine has been completed,
+ * so that we are sure our tracking data structures are present.
+ *
+ * Also real_malloc() can allocate memory through calloc() and we need to be
+ * careful to not call the calloc() routine blindly so as to avoid endless
+ * recursions. That's why we make sure to invoke libc_calloc() and libc_free()
+ * directly: when MALLOC_CATCH_MALLOC is not defined, these point to the real
+ * calloc() and free() routines in the libc.
+ */
+#ifdef MALLOC_CATCH_MALLOC
+
+#ifdef I_DLFCN
+#define _GNU_SOURCE
+#include <dlfcn.h>
+#endif
+
+/*
+ * These are not used by this layer and therefore do not need a trapping
+ * function call_libc_xxx(), nor do they need to be visible when the
+ * MALLOC_CATCH_MALLOC symbol is not defined.
+ */
+static int (*libc_posix_memalign)(void **, size_t, size_t);
+static void *(*libc_memalign)(size_t, size_t);
+static int (*libc_valloc)(size_t);
+
+/**
+ * Wrap dlsym() calls so that we can trace failure.
+ */
+static void *
+find_symbol(void *handle, const char *sym, bool mandatory)
+{
+	void *p = dlsym(handle, sym);
+
+	if (NULL == p && mandatory)
+		s_error("%s(): cannot find %s(): %s\n", G_STRFUNC, sym, dlerror());
+
+	return p;
+}
+
+static once_flag_t malloc_trap_inited;
+static void *malloc_booted[20];
+static uint malloc_booted_idx;
+static uint malloc_booted_cnt;
+
+/**
+ * Low-level allocation using sbrk().
+ *
+ * This is done during bootstrapping, if we do not know the libc call to
+ * invoke to get the memory, yet need to allocate some memory.
+ *
+ * This would happen when dlsym() needs to allocate memory to perform its
+ * operation.
+ *
+ * Blocks are tracked in a limited chunk, so that should free() be called
+ * on such a block address later on, we are able to "free" it.
+ */
+static void *
+malloc_boot_alloc(size_t size)
+{
+	if (malloc_booted_idx >= N_ITEMS(malloc_booted))
+		s_error("%s(): too many bootstrapping allocations", G_STRFUNC);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fputc('#', stderr);		/* Flags bootstrapping allocation */
+#endif
+
+	malloc_booted_cnt++;
+	return malloc_booted[malloc_booted_idx++] = sbrk(size);
+}
+
+/**
+ * Checks whether block address is known to be one of the bootstrapping blocks.
+ *
+ * If it happens to be a bootstrapping block, mark it "freed" but do not actually
+ * reclaim the allocated memory.
+ *
+ * @return whether block address was that of a bootstrapping block.
+ */
+static bool
+malloc_boot_free(void *p)
+{
+	uint i;
+
+	for (i = 0; i < malloc_booted_idx; i++) {
+		if (malloc_booted[i] == p) {
+			malloc_booted[i] = NULL;
+			malloc_booted_cnt--;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+#define FIND_SYMBOL(x)	libc_ ## x = find_symbol(RTLD_NEXT, # x, TRUE)
+#define LOOK_SYMBOL(x)	libc_ ## x = find_symbol(RTLD_NEXT, # x, FALSE)
+
+/**
+ * Initialize trapping of malloc functions
+ */
+static void
+malloc_trap_init(void)
+{
+	FIND_SYMBOL(calloc);
+	FIND_SYMBOL(malloc);
+	FIND_SYMBOL(realloc);
+	FIND_SYMBOL(free);
+	FIND_SYMBOL(posix_memalign);
+	LOOK_SYMBOL(memalign);			/* Deprecated, could be missing */
+	LOOK_SYMBOL(valloc);			/* Deprecated, could be missing */
+	atomic_mb();
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "malloc_trap_init() called\n");
+#endif
+}
+
+/**
+ * Wrapper to real malloc().
+ */
+static void *
+real_calloc(size_t nmemb, size_t size)
+{
+	void *p;
+
+	if (nmemb > 0 && size > 0 && size < ((size_t) -1) / nmemb) {
+		size_t len = nmemb * size;
+
+		p = real_malloc(len);
+		memset(p, 0, len);
+	} else {
+		p = NULL;
+	}
+
+	return p;
+}
+
+/**
+  * Hook to trap malloc().
+  */
+void *
+malloc(size_t size)
+{
+	void *p;
+
+	ONCE_FLAG_RUN_SAFE(malloc_trap_inited, malloc_trap_init);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "malloc(%lu) = ", (unsigned long) size);
+#endif
+
+	if (ONCE_DONE(malloc_tracking_inited)) {
+		p = real_malloc(size);
+	} else if (libc_malloc == call_libc_malloc) {
+		/* Allocation before we know how to find malloc() in the libc */
+		p = malloc_boot_alloc(size);
+	} else {
+		p = libc_malloc(size);
+	}
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "%p%c\n", p, ONCE_DONE(malloc_tracking_inited) ? '+' : '!');
+#endif
+
+	return p;
+}
+
+void *
+realloc(void *p, size_t size)
+{
+	void *q;
+
+	ONCE_FLAG_RUN_SAFE(malloc_trap_inited, malloc_trap_init);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "realloc(%p,%zu) = ", p, (unsigned long) size);
+#endif
+
+	if (ONCE_DONE(malloc_tracking_inited))
+		q = real_realloc(p, size);
+	else
+		q = libc_realloc(p, size);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "%p%c\n", q, ONCE_DONE(malloc_tracking_inited) ? '+' : '!');
+#endif
+
+	return q;
+}
+
+void *
+calloc(size_t nmemb, size_t size)
+{
+	void *p;
+
+	ONCE_FLAG_RUN_SAFE(malloc_trap_inited, malloc_trap_init);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "calloc(%zu, %zu) = ", nmemb, size);
+#endif
+
+	if (ONCE_DONE(malloc_tracking_inited)) {
+		p = real_calloc(nmemb, size);
+	} else if (libc_calloc == call_libc_calloc) {
+		/* Allocation before we know how to find calloc() in the libc */
+		p = malloc_boot_alloc(nmemb * size);
+	} else {
+		p = libc_calloc(nmemb, size);
+	}
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "%p%c\n", p, ONCE_DONE(malloc_tracking_inited) ? '+' : '!');
+#endif
+
+	return p;
+}
+
+void
+free(void *p)
+{
+	ONCE_FLAG_RUN_SAFE(malloc_trap_inited, malloc_trap_init);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "free(%p)%c\n",
+		p, ONCE_DONE(malloc_tracking_inited) ? '+' : '!');
+#endif
+
+	if (NULL == p)
+		return;			/* Silently ignore */
+
+	if (malloc_booted_cnt != 0) {
+		if (malloc_boot_free(p))
+			return;
+	}
+
+	if (ONCE_DONE(malloc_tracking_inited))
+		real_free(p);
+	else
+		libc_free(p);
+}
+
+int
+posix_memalign(void **memptr, size_t alignment, size_t size)
+{
+	int r;
+
+	ONCE_FLAG_RUN_SAFE(malloc_trap_inited, malloc_trap_init);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "posix_memalign(%zu, %zu) = ", alignment, size);
+#endif
+
+	if (NULL == libc_posix_memalign)
+		s_error("%s(): no libc counterpart!", G_STRFUNC);
+
+	r = libc_posix_memalign(memptr, alignment, size);
+
+#ifdef MALLOC_CATCH_VERBOSE
+	fprintf(stderr, "%p (%d)\n", *memptr, r);
+#endif
+
+	malloc_bookkeeping(*memptr, size, TRUE);
+
+	return r;
+}
+
+#endif /* MALLOC_CATCH_MALLOC */
 
 /* vi: set ts=4 sw=4 cindent:  */

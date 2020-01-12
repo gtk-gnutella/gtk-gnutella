@@ -1648,6 +1648,124 @@ zn_shrink(zone_t *zone)
 }
 #endif	/* !REMAP_ZALLOC */
 
+#if defined(TRACK_MALLOC) && !defined(REMAP_ZALLOC)
+/**
+ * When TRACK_MALLOC is defined and we're not remapping zalloc to malloc,
+ * we keep track of all the allocated zones in a hash table indexed by
+ * the zone address (the table is used as a set).
+ *
+ * This lets us determine whether an unknown block we are freeing has not
+ * been actually allocated through zalloc(), indicating a harmful mixup
+ * of allocators!
+ */
+static hash_table_t *all_zones;	/**< Set tracking all the allocated zones */
+static once_flag_t all_zones_created;
+
+/**
+ * Create the table recording the zones.
+ */
+static void
+zalloc_all_zones_create(void)
+{
+	all_zones = hash_table_new_not_leaking();
+}
+
+/**
+ * Record that a new zone has been created.
+ *
+ * @return argument as convenience.
+ */
+static zone_t *
+zalloc_zone_record(zone_t *z)
+{
+	zone_check(z);
+
+	ONCE_FLAG_RUN(all_zones_created, zalloc_all_zones_create);
+
+	g_assert(!hash_table_contains(all_zones, z));
+	hash_table_insert(all_zones, z, z);
+
+	return z;
+}
+
+/**
+ * Record that a zone is being destroyed.
+ */
+static void
+zalloc_zone_remove(zone_t *z)
+{
+	zone_check(z);
+	g_assert(all_zones != NULL);	/* Since zone must be listed! */
+	g_assert(hash_table_contains(all_zones, z));
+
+	hash_table_remove(all_zones, z);
+}
+
+struct zalloc_zone_find_ctx {
+	const void *p;			/* The address we're checking */
+	const zone_t *zone;		/* When found, the zone where `p' belongs */
+};
+
+static void
+zalloc_zone_lookup(const void *key, void *value, void *data)
+{
+	const zone_t *zone = key;
+	const struct subzone *sz;
+	struct zalloc_zone_find_ctx *ctx = data;
+
+	(void) value;
+
+	zone_check(zone);
+
+	if (ctx->zone != NULL)
+		return;		/* Already found */
+
+	for (sz = &zone->zn_arena; sz != NULL; sz = sz->sz_next) {
+		if (ptr_cmp(ctx->p, sz->sz_base) < 0)
+			continue;
+		if (ptr_cmp(ctx->p, ptr_add_offset(sz->sz_base, sz->sz_size)) >= 0)
+			continue;
+		/* Found matching zone! */
+		ctx->zone = zone;
+	}
+}
+
+/**
+ * Check whether pointer belongs to a zone.
+ *
+ * @param p		the address we wish to check
+ * @param size	where zone size is written if pointer within a zone
+ *
+ * @return TRUE if pointer was in a zone, with `size' filled to block size.
+ */
+bool
+zalloc_zone_info(const void *p, size_t *size)
+{
+	struct zalloc_zone_find_ctx ctx;
+
+	if (NULL == all_zones)
+		return FALSE;
+
+	ZERO(&ctx);
+	ctx.p = p;
+	hash_table_foreach(all_zones, zalloc_zone_lookup, &ctx);
+
+	if (NULL == ctx.zone)
+		return FALSE;
+
+	zone_check(ctx.zone);
+
+	if (size != NULL)
+		*size = ctx.zone->zn_size;
+
+	return TRUE;
+}
+
+#else	/* !TRACK_MALLOC || REMAP_ZALLOC */
+#define zalloc_zone_record(z)	(z)
+#define zalloc_zone_remove(z)
+#endif	/* TRACK_MALLOC && !REMAP_ZALLOC */
+
 /**
  * Create a new zone able to hold items of 'size' bytes. Returns
  * NULL if no new zone can be created.
@@ -1682,7 +1800,7 @@ zcreate_internal(size_t size, unsigned hint, bool embedded, bool user)
 	}
 #endif
 
-	return zone;
+	return zalloc_zone_record(zone);
 }
 
 /**
@@ -1727,6 +1845,8 @@ zdestroy_physical(zone_t *zone)
 		zdump_used(zone, z_leakset);
 #endif
 	}
+
+	zalloc_zone_remove(zone);
 
 #ifndef REMAP_ZALLOC
 	if (zone->zn_gc)

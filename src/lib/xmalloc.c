@@ -7177,6 +7177,72 @@ xmalloc_dump_stats(void)
 	xmalloc_dump_freelist_log(log_agent_stderr_get());
 }
 
+#ifdef TRACK_MALLOC
+/*
+ * Identify whether address is that of an xmalloc() block.
+ *
+ * When tracking mallocs, there are a set of #define that remap all the xmalloc
+ * routines to the tracking malloc layer.
+ *
+ * However, whenever we encounter an unknown block, we need to absolutely make
+ * sure this is not from an accidental xmalloc(), which would indicate that we
+ * missed a #define somewhere...
+ *
+ * @param p		the address we're probing
+ * @param tid	if non-NULL, written with ID of thread, -1 if not a thread block
+ * @param len	if non-NULL, written with probable size of the block
+ *
+ * @return TRUE if block is surely an xmalloc() one, FALSE otherwise.
+ */
+bool
+xmalloc_block_info(const void *p, uint *tid, size_t *len)
+{
+	const struct xchunk *xck;
+	const struct xheader *xh;
+
+	/* No xmalloc block can be aligned to a page */
+
+	if (vmm_page_start(p) == p)
+		return FALSE;
+
+	/* Then, rule-out thread-private blocks */
+
+	xck = deconstify_pointer(vmm_page_start(p));
+	if (xmalloc_chunk_is_valid(xck)) {
+		if (tid != NULL)
+			*tid = xck->xc_stid;
+		if (len != NULL)
+			*len = xck->xc_size;
+		return TRUE;
+	}
+
+	/* Probe for a reasonable block size */
+
+	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
+	if (xmalloc_is_valid_length(xh, xh->length))
+		goto probable_xmalloc;
+
+	/* Probe for a possible VMM allocation */
+
+	if (
+		vmm_page_start(xh) == xh &&
+		round_pagesize(xh->length) == xh->length &&
+		!xmalloc_isheap(xh, xh->length)
+	)
+		goto probable_xmalloc;
+
+	return FALSE;
+
+probable_xmalloc:
+	if (tid != NULL)
+		*tid = -1;
+	if (len != NULL)
+		*len = xh->length;
+
+	return TRUE;		/* Have to assume it's possible! */
+}
+#endif	/* TRACK_MALLOC */
+
 #ifdef XMALLOC_IS_MALLOC
 /***
  *** The following routines are only defined when xmalloc() replaces malloc()

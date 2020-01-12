@@ -117,6 +117,10 @@ void xstrfreev(char **str);
 size_t xallocated(const void *p);
 size_t xpallocated(const void *p);
 
+#ifdef TRACK_MALLOC
+bool xmalloc_block_info(const void *p, uint *tid, size_t *len);
+#endif
+
 static inline void * G_MALLOC G_NON_NULL
 xcopy(const void *p, size_t size)
 {
