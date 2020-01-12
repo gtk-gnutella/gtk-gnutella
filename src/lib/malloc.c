@@ -258,9 +258,12 @@ static void call_libc_free(void *);
 #endif
 
 static void *(*libc_malloc)(size_t)          MALLOC_INIT(malloc);
+
+#ifdef TRACK_MALLOC
 static void *(*libc_realloc)(void *, size_t) MALLOC_INIT(realloc);
 static void *(*libc_calloc)(size_t, size_t)  MALLOC_INIT(calloc);
 static void (*libc_free)(void *)             MALLOC_INIT(free);
+#endif	/* TRACK_MALLOC */
 
 /**
  * Structure keeping track of allocated blocks. (visible for convenience)
@@ -990,6 +993,9 @@ static void *
 malloc_bookkeeping(void *o, size_t size, bool is_real)
 {
 	block_clear_dead(o, size);
+
+	(void) size;
+	(void) is_real;
 
 #ifdef MALLOC_CATCH_MALLOC
 	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);

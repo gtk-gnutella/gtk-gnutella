@@ -307,7 +307,8 @@ bfd_util_check_format(bfd *b, bfd_format fmt, const char *path)
 		i++;
 	}
 
-	MEMTRACK(matching, 1);	/* So we can use free() when TRACK_MALLOC is on */
+	/* So we can use free() when TRACK_MALLOC is on */
+	(void) MEMTRACK(matching, 1);
 
 	free(matching);		/* Not xfree(), was allocated by bfd */
 	return FALSE;
