@@ -3809,8 +3809,11 @@ calloc(size_t nmemb, size_t size)
 	if (ONCE_DONE(malloc_tracking_inited)) {
 		p = real_calloc(nmemb, size);
 	} else if (libc_calloc == call_libc_calloc) {
+		size_t len = size_saturate_mult(nmemb, size);
 		/* Allocation before we know how to find calloc() in the libc */
-		p = malloc_boot_alloc(nmemb * size);
+		p = malloc_boot_alloc(len);
+		if (p != NULL)
+			memset(p, 0, len);
 	} else {
 		p = libc_calloc(nmemb, size);
 	}
