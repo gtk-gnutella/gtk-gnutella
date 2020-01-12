@@ -437,18 +437,8 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
-		/*
-		 * We use bfd_close_all_done() and not bfd_close() because the latter
-		 * causes a SIGSEGV now that we are using bfd_fdopenr(). The fault
-		 * occurs in some part trying to write changes to the file...
-		 *
-		 * Since the file is opened as read-only and we don't expect any
-		 * write operation, using bfd_close_all_done() is a viable workaround
-		 * for this BFD library bug.
-		 */
-
 		if (bc->handle != NULL)
-			bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
+			bfd_close(bc->handle);
 
 		symbols_free_null(&bc->text_symbols);
 
