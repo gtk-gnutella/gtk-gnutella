@@ -67,12 +67,21 @@ void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
  * one day...  Remap them to "internal" names so that we do not have to change
  * the existing code.
  *		--RAM, 2016-10-28
+ *
+ * Likewise for xstrdup() (and probably xstrndup()) which is called by the BFD
+ * library, and would cause free() errors when not compiled with xmalloc()
+ * really being malloc(): our xstrdup() routine would be called, but the BFD
+ * library probably expects to be able to free() such pointers!
+ * 		--RAM, 2020-01-12
  */
 
 #define xmalloc 	e_xmalloc
 #define xcalloc		e_xcalloc
 #define xrealloc	e_xrealloc
 #define xfree		e_xfree
+
+#define xstrdup		e_xstrdup
+#define xstrndup	e_xstrndup
 
 /*
  * Public interface.

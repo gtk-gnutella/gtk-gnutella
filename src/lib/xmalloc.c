@@ -4988,7 +4988,7 @@ xcalloc(size_t nmemb, size_t size)
  * @return a pointer to the new string.
  */
 char *
-xstrdup(const char *str)
+e_xstrdup(const char *str)
 {
 	return str ? xcopy(str, 1 + vstrlen(str)) : NULL;
 }
@@ -5003,7 +5003,7 @@ xstrdup(const char *str)
  * @return a pointer to the new string.
  */
 char *
-xstrndup(const char *str, size_t n)
+e_xstrndup(const char *str, size_t n)
 {
 	size_t len;
 	char *res, *p;
@@ -8892,7 +8892,7 @@ malloc_usable_size(void *p)
 char *
 strdup(const char *s)
 {
-	return xstrdup(s);
+	return e_xstrdup(s);
 }
 #endif	/* MINGW32 */
 

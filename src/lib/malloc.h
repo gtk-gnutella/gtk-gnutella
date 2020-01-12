@@ -100,6 +100,8 @@
 #undef xrealloc
 #undef xfree
 #undef xcalloc
+#undef xstrdup
+#undef xstrndup
 
 #define xmalloc(s)		malloc_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
 #define xmalloc0(s)		malloc0_alloc_track(e_xmalloc, (s), _WHERE_, __LINE__)
