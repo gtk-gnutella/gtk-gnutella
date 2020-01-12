@@ -3631,20 +3631,6 @@ static int (*libc_posix_memalign)(void **, size_t, size_t);
 static void *(*libc_memalign)(size_t, size_t);
 static int (*libc_valloc)(size_t);
 
-/**
- * Wrap dlsym() calls so that we can trace failure.
- */
-static void *
-find_symbol(void *handle, const char *sym, bool mandatory)
-{
-	void *p = dlsym(handle, sym);
-
-	if (NULL == p && mandatory)
-		s_error("%s(): cannot find %s(): %s\n", G_STRFUNC, sym, dlerror());
-
-	return p;
-}
-
 static once_flag_t malloc_trap_inited;
 static void *malloc_booted[20];
 static uint malloc_booted_idx;
@@ -3700,8 +3686,22 @@ malloc_boot_free(void *p)
 	return FALSE;
 }
 
-#define FIND_SYMBOL(x)	libc_ ## x = find_symbol(RTLD_NEXT, # x, TRUE)
-#define LOOK_SYMBOL(x)	libc_ ## x = find_symbol(RTLD_NEXT, # x, FALSE)
+/**
+ * Wrap dlsym() calls so that we can trace failure.
+ */
+static void *
+find_symbol(const char *sym, bool mandatory)
+{
+	void *p = dlsym(RTLD_NEXT, sym);
+
+	if (NULL == p && mandatory)
+		s_error("%s(): cannot find %s(): %s\n", G_STRFUNC, sym, dlerror());
+
+	return p;
+}
+
+#define FIND_SYMBOL(x)	libc_ ## x = find_symbol(# x, TRUE); atomic_mb()
+#define LOOK_SYMBOL(x)	libc_ ## x = find_symbol(# x, FALSE); atomic_mb()
 
 /**
  * Initialize trapping of malloc functions
@@ -3716,7 +3716,6 @@ malloc_trap_init(void)
 	FIND_SYMBOL(posix_memalign);
 	LOOK_SYMBOL(memalign);			/* Deprecated, could be missing */
 	LOOK_SYMBOL(valloc);			/* Deprecated, could be missing */
-	atomic_mb();
 
 #ifdef MALLOC_CATCH_VERBOSE
 	fprintf(stderr, "malloc_trap_init() called\n");
