@@ -90,18 +90,6 @@ struct sha1;
 void halloc_dump_stats_log(struct logagent *la, unsigned options);
 void halloc_stats_digest(struct sha1 *digest);
 
-#ifdef TRACK_MALLOC
-
-#define HFREE_NULL(p)	\
-G_STMT_START {			\
-	if (p) {			\
-		free_track((p), _WHERE_, __LINE__); \
-		p = NULL;		\
-	}					\
-} G_STMT_END
-
-#else	/* !TRACK_MALLOC */
-
 #define HFREE_NULL(p)	\
 G_STMT_START {			\
 	if (p) {			\
@@ -109,8 +97,6 @@ G_STMT_START {			\
 		p = NULL;		\
 	}					\
 } G_STMT_END
-
-#endif	/* TRACK_MALLOC */
 
 #define HALLOC_ARRAY(p,n)			\
 G_STMT_START {						\
