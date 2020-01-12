@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004, Raphael Manfredi
+ * Copyright (c) 2004, 2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -29,7 +29,7 @@
  * leak detection.
  *
  * @author Raphael Manfredi
- * @date 2004
+ * @date 2004, 2020
  */
 
 #ifndef _malloc_h_

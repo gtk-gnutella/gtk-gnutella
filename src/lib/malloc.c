@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2004-2010, Raphael Manfredi
+ * Copyright (c) 2004-2010, 2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,7 +28,7 @@
  * Debugging malloc, to supplant dmalloc which is not satisfactory.
  *
  * @author Raphael Manfredi
- * @date 2004-2010
+ * @date 2004-2010, 2020
  */
 
 #include "common.h"		/* For RCSID */
