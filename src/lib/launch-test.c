@@ -55,6 +55,8 @@
 #include "thread.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool verbose, reparenting;
 

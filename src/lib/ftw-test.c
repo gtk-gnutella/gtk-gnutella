@@ -45,6 +45,8 @@
 #include "strtok.h"
 #include "walloc.h"
 
+#include "override.h"
+
 static void G_NORETURN
 usage(void)
 {

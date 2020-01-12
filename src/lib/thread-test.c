@@ -75,6 +75,8 @@
 #include "xmalloc.h"
 #include "zalloc.h"
 
+#include "override.h"
+
 #define STACK_SIZE		16384
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
