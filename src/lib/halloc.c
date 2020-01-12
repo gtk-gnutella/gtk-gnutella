@@ -65,11 +65,9 @@
  * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
-#if defined(USE_HALLOC)
 #if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
-#endif	/* USE_HALLOC */
 
 /**
  * Internal statistics collected.
@@ -744,6 +742,14 @@ halloc_init_vtable(void)
 	halloc_glib12_check();
 }
 
+#else	/* !USE_HALLOC */
+
+static inline void
+halloc_init_vtable(void)
+{
+}
+#endif	/* USE_HALLOC */
+
 /**
  * Is halloc() possible given current walloc() limits?
  */
@@ -752,21 +758,6 @@ halloc_is_possible(void)
 {
 	return walloc_maxsize() > sizeof(union halign);
 }
-
-#else	/* !USE_HALLOC */
-
-static inline void
-halloc_init_vtable(void)
-{
-}
-
-bool
-halloc_is_possible(void)
-{
-	return FALSE;
-}
-
-#endif	/* USE_HALLOC */
 
 #if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 static bool replacing_malloc;
