@@ -457,7 +457,18 @@ crash_time_internal(char *buf, size_t size, bool raw)
 
 	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level || !done) {
 		static uint8 computing[THREAD_MAX];
-		uint stid = thread_small_id();
+		int stid;
+
+		/*
+		 * In raw mode or when we're crashing, we cannot call thread_small_id()
+		 * to compute the thread ID because it calls thread_get_element()
+		 * which can take locks, and therefore there is a risk of recursing
+		 * indefinitely if logging is enabled in the locking code and we cannot
+		 * take the locks for some reason.
+		 *		--RAM, 2020-01-19
+		 */
+
+		stid = thread_safe_small_id();
 
 		/*
 		 * Avoid deadly recursions if logging from a memory layer,
@@ -466,11 +477,11 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		 * 		--RAM, 2017-11-19
 		 */
 
-		if (!computing[stid]) {
+		if (stid >= 0 && !computing[stid]) {
 			computing[stid] = TRUE;
 			tm_current_time(&tv);			/* Get system value, no locks */
 			loc = tm_localtime_raw(&tv);
-			done = TRUE;
+			done = TRUE;					/* Can now use the other path */
 			computing[stid] = FALSE;
 		} else {
 			ZERO(&tm);
