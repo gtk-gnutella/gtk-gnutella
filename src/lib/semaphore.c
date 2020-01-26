@@ -381,7 +381,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 			 * The "surplus" indicates how many tokens were released in excess
 			 * compared to the desired total.  Even if there are threads for
 			 * which we reserved tokens (by awakening them) we need to attempt
-			 * grabbing the semaphore if there enough surplus.  Otherwise we
+			 * grabbing the semaphore if there is enough surplus.  Otherwise we
 			 * could hang in there, waiting for a release that may no longer
 			 * come.
 			 */
@@ -405,7 +405,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 		 * semaphore was locked and we determined whether we had enough
 		 * tokens to proceed.
 		 *
-		 * Since time has elapsed since we made that decision, it is possible
+		 * Given time has elapsed since we made that decision, it is possible
 		 * that we could have been context-switched whilst another thread
 		 * released semaphore tokens and saw we were listed as waiting for
 		 * more tokens, thereby attempting to unblock us.

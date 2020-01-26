@@ -8726,7 +8726,16 @@ thread_was_in_syscall(int *stid)
  * or until the timeout expires.
  *
  * The thread should not be holding any locks since it could cause deadlocks.
- * The main thread cannot block itself either since it runs the callout queue.
+ *
+ * The main thread cannot block itself either when it runs the callout queue,
+ * and this is determined by the thread_main_is_blockable() call, whith blocking
+ * state for the main thread determined very early with a call to the
+ * thread_set_main() routine (before the callout queue could be setup): by
+ * default, the main thread is assumed to not be "blockable".
+ *
+ * This constraint on the main thread is not as strict as it seems, because
+ * we can still allow some amount of blocking, as long as it is limited in
+ * time, otherwise qlocks would not be usable by the main thread!
  *
  * When this routine returns, the thread has been either successfully unblocked
  * and is resuming its execution normally or the timeout expired.
@@ -9033,7 +9042,7 @@ retry:
 		 * whether we've been unblocked already, since a concurrent unblock
 		 * would not have sent any byte on the pipe / socketpair.
 		 *
-		 * This time we do not count blocking race, as there was none: we
+		 * This time we do not count a blocking race, as there was none: we
 		 * were blocked earlier and got awoken by a signal.
 		 */
 
