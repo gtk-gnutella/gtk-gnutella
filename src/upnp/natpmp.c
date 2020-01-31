@@ -412,7 +412,7 @@ natpmp_handle_discovery_reply(
 	}
 
 	if (version != NATPMP_VERSION || code != NATPMP_REPLY_OFF + rd->op)
-		goto error;
+		goto inconsistent;
 
 	if (NATPMP_E_OK != result)
 		goto failed;
@@ -460,15 +460,23 @@ failed:
 
 error:
 	if (GNET_PROPERTY(natpmp_debug)) {
-		if (bstr_has_error(bs)) {
-			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%zu byte%s): %s",
-				len, plural(len), bstr_error(bs));
-		} else {
-			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, plural(len));
-		}
+		g_warning("NATPMP parsing error while processing discovery reply "
+			"(%zu byte%s): %s",
+			PLURAL(len), bstr_error(bs));
 	}
+	goto cleanup;
+
+inconsistent:
+	if (GNET_PROPERTY(natpmp_debug)) {
+		g_warning("NATPMP inconsistent discovery reply (%zu byte%s) from %s: "
+			"version=%u != %u, code=%u != %u, result_code=%u (%s)",
+			PLURAL(len), host_addr_to_string(rd->gateway),
+			version, NATPMP_VERSION, code, NATPMP_REPLY_OFF + rd->op,
+			result, natpmp_strerror(result));
+	}
+	/* FALL THROUGH */
+
+cleanup:
 	bstr_free(&bs);
 	return FALSE;
 }
@@ -580,10 +588,10 @@ error:
 		if (bstr_has_error(bs)) {
 			g_warning("NATPMP parsing error while processing discovery reply "
 				"(%zu byte%s): %s",
-				len, plural(len), bstr_error(bs));
+				PLURAL(len), bstr_error(bs));
 		} else {
 			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, plural(len));
+				PLURAL(len));
 		}
 	}
 	bstr_free(&bs);
@@ -606,7 +614,7 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 			URPC_TIMEOUT == type ? "timeout" :
 			URPC_ABORT == type ? "aborted" : "got reply",
 			natpmp_op_to_string(rd->op), rd->count,
-			(unsigned long) len, plural(len),
+			(unsigned long) PLURAL(len),
 			host_addr_port_to_string(addr, port));
 	}
 
