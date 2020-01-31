@@ -3364,9 +3364,15 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * if we, for instance, access a hash table being resized by an
 			 * earlier call on the stack.
 			 *		--RAM, 2014-01-02
+			 *
+			 * Since SHA1 are atomic, we can also optimize by not duplicating
+			 * the event for a file.  Unlikely, but does not hurt to specify
+			 * the intent: only one such event is required to be processed if
+			 * another is currently pending.
+			 * 		--RAM, 2020-01-31
 			 */
 
-			teq_safe_post(THREAD_MAIN_ID, publisher_add_event,
+			teq_safe_post_unique(THREAD_MAIN_ID, publisher_add_event,
 				deconstify_pointer(sf->sha1));
 		}
 	}
