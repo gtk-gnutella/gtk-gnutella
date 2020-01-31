@@ -372,8 +372,11 @@ natpmp_handle_discovery_reply(
 	uint32 ip;
 	host_addr_t wan_ip;
 	natpmp_t *np;
+	uint8 expected_code;
 
 	natpmp_rpc_check(rd);
+
+	expected_code = NATPMP_REPLY_OFF + rd->op;
 
 	/**
 	 * A NAT gateway will reply with the following message:
@@ -411,7 +414,7 @@ natpmp_handle_discovery_reply(
 			version, code, result, natpmp_strerror(result));
 	}
 
-	if (version != NATPMP_VERSION || code != NATPMP_REPLY_OFF + rd->op)
+	if (version != NATPMP_VERSION || code != expected_code)
 		goto inconsistent;
 
 	if (NATPMP_E_OK != result)
@@ -469,9 +472,10 @@ error:
 inconsistent:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		g_warning("NATPMP inconsistent discovery reply (%zu byte%s) from %s: "
-			"version=%u != %u, code=%u != %u, result_code=%u (%s)",
+			"version=%u %c= %u, code=%u %c= %u, result_code=%u (%s)",
 			PLURAL(len), host_addr_to_string(rd->gateway),
-			version, NATPMP_VERSION, code, NATPMP_REPLY_OFF + rd->op,
+			version, NATPMP_VERSION == version ? '=' : '!', NATPMP_VERSION,
+			code, code == expected_code ? '=' : '!', expected_code,
 			result, natpmp_strerror(result));
 	}
 	/* FALL THROUGH */
@@ -502,8 +506,11 @@ natpmp_handle_mapping_reply(
 	uint16 result = 0;
 	uint16 port;
 	uint32 lifetime;
+	uint8 expected_code;
 
 	natpmp_rpc_check(rd);
+
+	expected_code = NATPMP_REPLY_OFF + rd->op;
 
 	/*
 	 * We expect the following reply to a mapping request:
@@ -540,8 +547,8 @@ natpmp_handle_mapping_reply(
 			version, code, result, natpmp_strerror(result));
 	}
 
-	if (version != NATPMP_VERSION || code != NATPMP_REPLY_OFF + rd->op)
-		goto error;
+	if (version != NATPMP_VERSION || code != expected_code)
+		goto inconsistent;
 
 	if (NATPMP_E_OK != result)
 		goto failed;
@@ -586,14 +593,25 @@ failed:
 error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
-			g_warning("NATPMP parsing error while processing discovery reply "
+			g_warning("NATPMP parsing error while processing mapping reply "
 				"(%zu byte%s): %s",
 				PLURAL(len), bstr_error(bs));
-		} else {
-			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				PLURAL(len));
 		}
 	}
+	goto cleanup;
+
+inconsistent:
+	if (GNET_PROPERTY(natpmp_debug)) {
+		g_warning("NATPMP inconsistent mapping reply (%zu byte%s) from %s: "
+			"version=%u %c= %u, code=%u %c= %u, result_code=%u (%s)",
+			PLURAL(len), host_addr_to_string(rd->gateway),
+			version, NATPMP_VERSION == version ? '=' : '!', NATPMP_VERSION,
+			code, code == expected_code ? '=' : '!', expected_code,
+			result, natpmp_strerror(result));
+	}
+	/* FALL THROUGH */
+
+cleanup:
 	bstr_free(&bs);
 	return FALSE;
 }
