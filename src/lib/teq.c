@@ -961,6 +961,30 @@ teq_safe_post(unsigned id, notify_fn_t routine, void *data)
 }
 
 /**
+ * Same as teq_safe_post() but avoids enqueuing another event if a similar
+ * event (same routine and data) is already pending.
+ *
+ * The targeted thread must have a valid I/O event queue.
+ *
+ * @param id		ID of the thread to which we want to post the event
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ *
+ * @return TRUE if the event was posted, FALSE if skipped.
+ */
+bool
+teq_safe_post_unique(unsigned id, notify_fn_t routine, void *data)
+{
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
+
+	g_assert_log(teq_is_io(teq),
+		"%s(): attempt to post safe event to %s requires an I/O TEQ there",
+		G_STRFUNC, thread_id_name(id));
+
+	return teq_post_event(teq, routine, data, TRUE, THREAD_EVENT_IO_MAGIC);
+}
+
+/**
  * Insert item in the thread event queue of the targeted thread.
  *
  * The caller wants an acknowledgement after the targeted thread is done

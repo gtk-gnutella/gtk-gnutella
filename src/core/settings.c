@@ -902,9 +902,14 @@ settings_add_randomness(void)
 	 * to the global random pool, we need to funnel back the generation to
 	 * the main thread, using a "safe" event in case some callbacks are attached
 	 * to the change of the "randomness" property.
+	 *
+	 * To avoid overwhelming the queue with such events, we do not repost
+	 * if there is already such an event present.  We're just generating
+	 * randmoness, hence some events may be "lost".
+	 * 		--RAM, 2020-01-31
 	 */
 
-	teq_safe_post(THREAD_MAIN_ID, settings_gen_randomness, NULL);
+	teq_safe_post_unique(THREAD_MAIN_ID, settings_gen_randomness, NULL);
 }
 
 /**
