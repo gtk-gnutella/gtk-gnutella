@@ -2222,24 +2222,70 @@ static void
 pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 {
 	publish_t *pb = arg;
-	lookup_rc_t *rc;
+	lookup_rc_t *rc = NULL;
+	size_t i;
 
 	publish_check(pb);
+	lookup_result_check(rs);
 	g_assert(PUBLISH_OFFLOAD == pb->type);
 	g_assert(kuid_eq(pb->target.o.kn->id, kuid));
-	g_assert(1 == rs->path_len);
 
-	rc = rs->path;
+	/*
+	 * We expect the results to only hold one entry, since we're asking for
+	 * the security token of a particular node.
+	 *
+	 * If we receive a reply from several nodes, something is wrong.  It
+	 * could be buggy nodes that forwarded the message, hostile takeover,
+	 * you name it :-)
+	 *
+	 * Be prepared and don't assume rs->path_len == 1.  And check that the
+	 * KUID of the responder matches that of the node we requested the
+	 * security token from!
+	 * 		--RAM, 2020-01-31
+	 */
+
+	for (i = 0; i < rs->path_len; i++) {
+		lookup_rc_t *rce = &rs->path[i];
+
+		if (kuid_eq(kuid, rce->kn->id)) {
+			rc = rce;
+			break;		/* Found the entry for the node we wanted */
+		}
+	}
+
+	/*
+	 * If we could not find the security token we wanted, abort publishing.
+	 */
+
+	if (NULL == rc) {
+		if (GNET_PROPERTY(dht_publish_debug)) {
+			tm_t now;
+			tm_now_exact(&now);
+			g_warning("DHT PUBLISH[%s] %g secs, "
+				"unable to find security token in any of the %zu slot%s for %s",
+				nid_to_string(&pb->pid),
+				tm_elapsed_f(&now, &pb->start),
+				PLURAL(rs->path_len),
+				knode_to_string(pb->target.o.kn));
+		}
+		publish_cancel(pb, FALSE);
+		return;
+	}
+
+	/*
+	 * We're good to go.
+	 */
+
 	publish_offload_set_token(pb, rc->token_len, rc->token);
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		tm_t now;
 		tm_now_exact(&now);
 		g_debug("DHT PUBLISH[%s] %g secs, "
-			"offloading got security token (%d byte%s) for %s",
+			"offloading got security token (%d byte%s) in slot #%zu for %s",
 			nid_to_string(&pb->pid),
 			tm_elapsed_f(&now, &pb->start),
-			rc->token_len, plural(rc->token_len),
+			rc->token_len, plural(rc->token_len), i,
 			knode_to_string(pb->target.o.kn));
 	}
 
@@ -2259,8 +2305,12 @@ pb_token_error(const kuid_t *kuid, lookup_error_t error, void *arg)
 	g_assert(kuid_eq(pb->target.o.kn->id, kuid));
 
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
-		g_debug("DHT PUBLISH[%s] unable to get security token for %s: %s",
+		tm_t now;
+		tm_now_exact(&now);
+		g_debug("DHT PUBLISH[%s] %g secs, "
+			"unable to get security token for %s: %s",
 			nid_to_string(&pb->pid),
+			tm_elapsed_f(&now, &pb->start),
 			knode_to_string(pb->target.o.kn),
 			lookup_strerror(error));
 	}
