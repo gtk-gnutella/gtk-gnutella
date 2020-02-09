@@ -1552,7 +1552,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 		ret = sigaction(signo, &sa, &osa) ? SIG_ERR :
 #ifdef SA_SIGINFO
 			(osa.sa_flags & SA_SIGINFO) ?
-				(signal_handler_t) osa.sa_sigaction : osa.sa_handler
+				func_cast(signal_handler_t, osa.sa_sigaction) : osa.sa_handler
 #else
 			osa.sa_handler
 #endif

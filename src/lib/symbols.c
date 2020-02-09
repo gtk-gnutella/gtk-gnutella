@@ -868,7 +868,7 @@ symbols_by_name(const symbols_t *st)
 }
 
 #define FN(x) \
-	{ (func_ptr_t) x, STRINGIFY(x) }
+	{ func_cast(func_ptr_t, x), STRINGIFY(x) }
 
 /**
  * Known symbols that we want to check.

@@ -634,7 +634,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hvpr:z:X:";
 	int c;
 

@@ -147,7 +147,9 @@
 #endif
 
 #ifdef I_STRING
+#define _GNU_SOURCE			/* For memrchr() if it exists */
 #include <string.h>
+#undef _GNU_SOURCE
 #else
 #include <strings.h>
 #endif

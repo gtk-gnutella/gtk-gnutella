@@ -238,11 +238,19 @@ cast_to_free_fn(const func_ptr_t fn)
 }
 
 /**
+ * Re-casting a function is also cumbersome when one wants to avoid
+ * compiler warnings.  Factorize this in a macro to flag all such casts
+ * and have a common processing for them.
+ */
+#define func_cast(type, fn)	((type) (void *) (fn))
+
+/**
  * Casting of a random function pointer to "void *" is cumbersome if
  * you want to spell it out in a pedantic-safe way.  That's where the
  * func_to_pointer() macro is handy.
  */
-#define func_to_pointer(x)	cast_func_to_pointer((func_ptr_t) (x))
+#define func_to_pointer(x)	cast_func_to_pointer(func_cast(func_ptr_t, (x)))
+
 
 static inline size_t G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_diff(const void *a, const void *b)

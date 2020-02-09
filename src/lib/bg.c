@@ -2525,7 +2525,7 @@ bg_task_terminate_all(eslist_t *l)
 	uint n;
 
 	n = eslist_count(l);
-	eslist_foreach(l, (data_fn_t) bg_task_terminate, NULL);
+	eslist_foreach(l, func_cast(data_fn_t, bg_task_terminate), NULL);
 	eslist_clear(l);
 
 	return n;

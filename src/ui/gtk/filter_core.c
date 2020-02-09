@@ -1396,7 +1396,8 @@ filter_free_rule(rule_t *r)
 
         switch (r->u.text.type) {
         case RULE_TEXT_WORDS:
-            g_list_foreach(r->u.text.u.words, (GFunc)pattern_free, NULL);
+            g_list_foreach(
+				r->u.text.u.words, func_cast(GFunc, pattern_free), NULL);
             gm_list_free_null(&r->u.text.u.words);
             break;
         case RULE_TEXT_SUBSTR:

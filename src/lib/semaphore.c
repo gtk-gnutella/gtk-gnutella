@@ -54,7 +54,9 @@
 #include <sys/ipc.h>
 #endif
 #ifdef I_SYS_SEM
+#define _GNU_SOURCE		/* For semtimedop() */
 #include <sys/sem.h>
+#undef _GNU_SOURCE
 #endif
 
 #include "semaphore.h"

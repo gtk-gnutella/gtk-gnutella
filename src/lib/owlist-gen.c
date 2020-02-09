@@ -888,7 +888,7 @@ OWLIST_sort_with_data(OWLIST_T *list, cmp_data_fn_t cmp, void *data)
 void
 OWLIST_sort(OWLIST_T *list, cmp_fn_t cmp)
 {
-	OWLIST_sort_internal(list, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_sort_internal(list, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -972,7 +972,8 @@ OWLIST_insert_sorted_with_data(OWLIST_T *list, void *item,
 void
 OWLIST_insert_sorted(OWLIST_T *list, void *item, cmp_fn_t cmp)
 {
-	OWLIST_insert_sorted_internal(list, item, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_insert_sorted_internal(
+		list, item, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

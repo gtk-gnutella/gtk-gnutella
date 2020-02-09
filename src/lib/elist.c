@@ -968,7 +968,7 @@ elist_sort_with_data(elist_t *list, cmp_data_fn_t cmp, void *data)
 void
 elist_sort(elist_t *list, cmp_fn_t cmp)
 {
-	elist_sort_internal(list, (cmp_data_fn_t) cmp, NULL);
+	elist_sort_internal(list, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1039,7 +1039,8 @@ elist_insert_sorted_with_data(elist_t *list, void *item,
 void
 elist_insert_sorted(elist_t *list, void *item, cmp_fn_t cmp)
 {
-	elist_insert_sorted_internal(list, item, (cmp_data_fn_t) cmp, NULL);
+	elist_insert_sorted_internal(
+		list, item, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

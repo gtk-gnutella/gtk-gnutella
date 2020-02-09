@@ -155,7 +155,7 @@ alive_free(alive_t *a)
 {
 	alive_check(a);
 
-	eslist_foreach(&a->pings, (data_fn_t) ap_clear, NULL);
+	eslist_foreach(&a->pings, func_cast(data_fn_t, ap_clear), NULL);
 	eslist_wfree(&a->pings, sizeof(struct alive_ping));
 	eslist_discard(&a->pings);
 	a->magic = 0;

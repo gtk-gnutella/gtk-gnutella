@@ -1147,7 +1147,7 @@ show_popup_menu(widget_popup_menu_cb handler)
 static inline widget_popup_menu_cb
 cast_to_widget_popup_menu_cb(const void *p)
 {
-	return (widget_popup_menu_cb) cast_pointer_to_func(p);
+	return func_cast(widget_popup_menu_cb, cast_pointer_to_func(p));
 }
 
 #if GTK_CHECK_VERSION(2,0,0)

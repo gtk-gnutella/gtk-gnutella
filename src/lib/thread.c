@@ -9558,7 +9558,7 @@ thread_launch(struct thread_element *te,
 	te->creating = TRUE;			/* Still in the process of being created */
 	te->stack_size = stacksize;
 	te->argument = arg;
-	te->entry = (func_ptr_t) routine;
+	te->entry = func_cast(func_ptr_t, routine);
 	te->suspend = 0;				/* New thread cannot be suspended already */
 
 	/*

@@ -1028,7 +1028,8 @@ pslist_insert_sorted_internal(pslist_t *pl, void *data,
 pslist_t *
 pslist_insert_sorted(pslist_t *pl, void *data, cmp_fn_t cmp)
 {
-	return pslist_insert_sorted_internal(pl, data, (cmp_data_fn_t) cmp, NULL);
+	return pslist_insert_sorted_internal(
+		pl, data, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1153,7 +1154,7 @@ pslist_sort_with_data(pslist_t *pl, cmp_data_fn_t cmp, void *data)
 pslist_t *
 pslist_sort(pslist_t *pl, cmp_fn_t cmp)
 {
-	return pslist_sort_internal(pl, (cmp_data_fn_t) cmp, NULL);
+	return pslist_sort_internal(pl, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

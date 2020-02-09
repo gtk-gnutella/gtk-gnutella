@@ -468,7 +468,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 static int
 sort_wrapper(const void *a, const void *b, void *data)
 {
-	cmp_fn_t func = (cmp_fn_t) cast_pointer_to_func(data);
+	cmp_fn_t func = func_cast(cmp_fn_t, cast_pointer_to_func(data));
 	const struct hash_list_item *ha = a;
 	const struct hash_list_item *hb = b;
 

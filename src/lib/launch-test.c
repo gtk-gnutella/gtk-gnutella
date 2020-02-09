@@ -518,7 +518,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hivz:X:";
 	int c;
 

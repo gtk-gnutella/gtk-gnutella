@@ -1074,7 +1074,8 @@ plist_insert_sorted_internal(plist_t *pl, void *data,
 plist_t *
 plist_insert_sorted(plist_t *pl, void *data, cmp_fn_t cmp)
 {
-	return plist_insert_sorted_internal(pl, data, (cmp_data_fn_t) cmp, NULL);
+	return plist_insert_sorted_internal(
+		pl, data, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1202,7 +1203,7 @@ plist_sort_with_data(plist_t *pl, cmp_data_fn_t cmp, void *data)
 plist_t *
 plist_sort(plist_t *pl, cmp_fn_t cmp)
 {
-	return plist_sort_internal(pl, (cmp_data_fn_t) cmp, NULL);
+	return plist_sort_internal(pl, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
