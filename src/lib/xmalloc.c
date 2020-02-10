@@ -935,9 +935,13 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 {
 	void *p;
 	bool locked;
+	static bool sbrk_failing;
 
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round(len) == len);
+
+	if G_UNLIKELY(sbrk_failing)
+		goto emergency;
 
 	/*
 	 * Initialize the heap break point if not done so already.
@@ -1029,7 +1033,17 @@ bypass:
 	if ((void *) -1 == p) {
 		if (locked)
 			spinunlock_hidden(&xmalloc_sbrk_slk);
-		crash_oom("cannot allocate more core (%zu bytes): %m", len);
+
+		/*
+		 * The only time I've seen sbrk() failing is when running within
+		 * a Docker container.  Let's use some emergency setup to attempt
+		 * to initialize the VMM layer earlier than usual and pray it works.
+		 * 		--RAM, 2020-02-10
+		 */
+
+		sbrk_failing = TRUE;
+		s_rawwarn("sbrk() failed to allocate %zu bytes: %m", len);
+		goto emergency;
 	}
 
 	/*
@@ -1063,6 +1077,25 @@ bypass:
 	}
 
 	return p;
+
+emergency:
+	/*
+	 * We come here when sbrk() failed to allocate memory.
+	 */
+
+	if G_UNLIKELY(!ONCE_DONE(xmalloc_early_inited)) {
+		s_rawwarn("initializing VMM layer earlier than usual...");
+		once_flag_run(&xmalloc_early_inited, xmalloc_early_init);
+	}
+	{
+		int error = posix_memalign(&p, MEM_ALIGNBYTES, len);
+
+		if G_LIKELY(0 == error)
+			return p;
+
+		errno = error;
+		crash_oom("cannot allocate more core (%zu bytes): %m", len);
+	}
 }
 
 /**

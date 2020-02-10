@@ -232,7 +232,24 @@ mutex_is_owned(const mutex_t *m)
 	 * something goes wrong in the thread-checking code.
 	 */
 
-	return thread_eq(m->owner, thread_self());
+	if (thread_eq(m->owner, thread_self()))
+		return TRUE;
+
+	/*
+	 * HACK ALERT:
+	 *
+	 * If however it's not the value of thread_self() that is stored as the
+	 * mutex owner, ensure it is thread_current(), signaling we do own it.
+	 *
+	 * This can only happen when sbrk() is failing (for instance within
+	 * a Docker container) and we have to use the VMM layer very early.
+	 * Very weird though, this is not supposed to happen that thread_current()
+	 * and thread_self() diverge, but sbrk() is not supposed to fail either,
+	 * so it may be due to some weirdness from running in a Docker container?
+	 * 		--RAM, 2020-02-10
+	 */
+
+	return thread_eq(m->owner, thread_current());
 }
 
 /**
