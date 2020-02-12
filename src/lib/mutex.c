@@ -230,26 +230,24 @@ mutex_is_owned(const mutex_t *m)
 	 * This is mostly used during assertions, so we do not need to call
 	 * thread_current().  Use thread_self() for speed and safety, in case
 	 * something goes wrong in the thread-checking code.
+	 *
+	 * Furthermore, as we have discovered when investigating sbrk() failures
+	 * when running in a Docker container, we must not call thread_current()
+	 * since we have no assurance we're running in the main thread yet!  We
+	 * could very possibly run in an alternative thread from the dynamic loader.
+	 *
+	 * To that end, thread_current(), as used by mutex_thread(), has been fixed
+	 * so that it will always return thread_self() until we have started the
+	 * main thread and know for suce that its thread_self() will no longer change.
+	 *
+	 * Hence this code only needs to rely on the thread_self() value, regardless
+	 * of whether it was computed dynamically by mutex_thread() or through a
+	 * call to thread_current().
+	 *
+	 * 		--RAM, 2020-02-12
 	 */
 
-	if (thread_eq(m->owner, thread_self()))
-		return TRUE;
-
-	/*
-	 * HACK ALERT:
-	 *
-	 * If however it's not the value of thread_self() that is stored as the
-	 * mutex owner, ensure it is thread_current(), signaling we do own it.
-	 *
-	 * This can only happen when sbrk() is failing (for instance within
-	 * a Docker container) and we have to use the VMM layer very early.
-	 * Very weird though, this is not supposed to happen that thread_current()
-	 * and thread_self() diverge, but sbrk() is not supposed to fail either,
-	 * so it may be due to some weirdness from running in a Docker container?
-	 * 		--RAM, 2020-02-10
-	 */
-
-	return thread_eq(m->owner, thread_current());
+	return thread_eq(m->owner, thread_self());
 }
 
 /**

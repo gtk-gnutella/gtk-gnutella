@@ -88,6 +88,8 @@ progstart(int argc, char * const *argv)
 
 	g_return_unless(NULL == progname_argv);	/* Should be called once only! */
 
+	thread_main_starting();		/* We are now certain we're the main thread */
+
 	progname_argc = argc;
 	progname_argv = deconstify_pointer(argv);
 

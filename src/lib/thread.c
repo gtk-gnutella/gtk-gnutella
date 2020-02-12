@@ -650,6 +650,7 @@ static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 static int thread_locks_disabled;		/* Whether locks were disabled */
 static uint thread_suspend_depth;		/* Maintains suspension depth */
+static bool thread_main_started;		/* Has user's main thread started? */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -3939,6 +3940,41 @@ found:
 }
 
 /**
+ * Called when we are certain we are running in the main thread.
+ */
+void
+thread_main_starting(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	g_assert(0 == te->stid);	/* Running in the main thread */
+
+	/*
+	 * This signals thread_element_set() that it can now start to return
+	 * the internal te->tid from elements, including for what we think is
+	 * the main thread, because thread_self() for the main thread is stable
+	 * and is known.
+	 */
+
+	thread_main_started = TRUE;
+
+	/*
+	 * Force update of the thread_self() component, since we may have
+	 * initialized a wrong value earlier, when called possibly in other
+	 * foreign threads, for instance from the dynamic loader.
+	 *
+	 * We also need to reset the last known QID of the thread to invalidate
+	 * any previous indication that we would be running from the main thread.
+	 *
+	 * 		--RAM, 2020-02-12
+	 */
+
+	thread_set(te->tid, thread_self());
+	te->last_qid = thread_quasi_id_fast(&te);
+	thread_stack_init_shape(te, &te);
+}
+
+/**
  * Signal handler for TSIG_DIVERT.
  */
 static void
@@ -5601,7 +5637,19 @@ thread_element_set(struct thread_element *te, const void **element)
 	if (element != NULL)
 		*element = te;
 
-	return te->tid;
+	/*
+	 * If the main thread has not started yet, we may very well be running
+	 * in alternative threads without knowing it, and think that we are
+	 * in the main thread just because this is the first one we discovered.
+	 *
+	 * Use thread_self() instead of any cached TID until we know better.
+	 * This is important for the mutex locks, especially those which we assert
+	 * as being held and which rely on a stable TID to perform this check.
+	 *
+	 * 		--RAM, 2020-02-12
+	 */
+
+	return G_LIKELY(thread_main_started) ? te->tid : thread_self();
 }
 
 /**
