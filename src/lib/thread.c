@@ -3947,7 +3947,7 @@ thread_main_starting(void)
 {
 	struct thread_element *te = thread_get_element();
 
-	g_assert(0 == te->stid);	/* Running in the main thread */
+	g_assert(THREAD_MAIN_ID == te->stid);	/* Running in the main thread */
 
 	/*
 	 * This signals thread_element_set() that it can now start to return
@@ -3963,14 +3963,10 @@ thread_main_starting(void)
 	 * initialized a wrong value earlier, when called possibly in other
 	 * foreign threads, for instance from the dynamic loader.
 	 *
-	 * We also need to reset the last known QID of the thread to invalidate
-	 * any previous indication that we would be running from the main thread.
-	 *
 	 * 		--RAM, 2020-02-12
 	 */
 
 	thread_set(te->tid, thread_self());
-	te->last_qid = thread_quasi_id_fast(&te);
 	thread_stack_init_shape(te, &te);
 }
 
