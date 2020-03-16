@@ -89,6 +89,30 @@
 
 #ifdef HAS_BFD_LIBRARY
 
+/*
+ * Deal with backward portability issue.
+ *
+ * The 'b' argument in bfd_get_section_vma() was ignored, so the
+ * BFD library folks changed their macro definition to drop that
+ * unused argument, causing a portability issue.
+ *
+ * Actually, the bfd_get_section_xxx() accessors are removed now
+ * and only bfd_section_xxx() accessors exist, using only the section
+ * as their sole parameter.
+ * 		--RAM, 2020-03-16
+ */
+#ifdef HAS_BFD_SECTION_1ARG
+/* New API, starting with BFD 2.34 */
+#define BFD_UTIL_SECTION_FLAGS(b,s)	bfd_section_flags(s)
+#define BFD_UTIL_SECTION_SIZE(s)	bfd_section_size(s)
+#define BFD_UTIL_SECTION_VMA(b,s)	bfd_section_vma(s)
+#else	/* !HAS_BFD_SECTION_1ARG */
+/* Safe defaults, using the old API */
+#define BFD_UTIL_SECTION_FLAGS(b,s)	bfd_get_section_flags((b),(s))
+#define BFD_UTIL_SECTION_SIZE(s)	bfd_get_section_size(s)
+#define BFD_UTIL_SECTION_VMA(b,s)	bfd_get_section_vma((b),(s))
+#endif	/* HAS_BFD_SECTION_1ARG */
+
 enum bfd_ctx_magic { BFD_CTX_MAGIC = 0x3bb7920e };
 
 struct bfd_ctx {
@@ -203,11 +227,12 @@ bfd_util_lookup_section(bfd *b, asection *sec, void *data)
 	if (sc->location.function != NULL)
 		return;		/* Already found */
 
-	if (0 == (bfd_get_section_flags(b, sec) & SEC_ALLOC))
+	if (0 == (BFD_UTIL_SECTION_FLAGS(b, sec) & SEC_ALLOC))
 		return;
 
-	vma = bfd_get_section_vma(b, sec);
-	if (sc->addr < vma || sc->addr >= bfd_get_section_size(sec) + vma)
+	vma = BFD_UTIL_SECTION_VMA(b, sec);
+
+	if (sc->addr < vma || sc->addr >= BFD_UTIL_SECTION_SIZE(sec) + vma)
 		return;
 
 	bfd_find_nearest_line(b, sec, sc->symbols, sc->addr - vma,
@@ -550,7 +575,7 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	 */
 
 	if (sec != NULL) {
-		bfd_vma addr = bfd_section_vma(b, sec);
+		bfd_vma addr = BFD_UTIL_SECTION_VMA(b, sec);
 
 		bc->offset = ptr_diff(vmm_page_start(ulong_to_pointer(addr)),
 			vmm_page_start(ulong_to_pointer(base)));

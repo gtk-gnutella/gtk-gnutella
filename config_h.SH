@@ -162,6 +162,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bfd_lib HAS_BFD_LIBRARY		/**/
 
+/* HAS_BFD_SECTION_1ARG:
+ *	This symbol, if defined, indicates that the bfd_section_xxx() accessors
+ *	from the BFD library takes only one argument, which is the new behaviour
+ *	starting from BFD 2.34.
+ */
+#$d_bfd_section HAS_BFD_SECTION_1ARG		/**/
+
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.
