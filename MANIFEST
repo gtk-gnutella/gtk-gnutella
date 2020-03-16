@@ -27,6 +27,7 @@ U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
+U/specific/Framepointer.U
 build.sh
 config_h.SH                  Produces config.h
 cygwin/dirs

@@ -303,13 +303,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_etext_symbol HAS_ETEXT_SYMBOL	/**/
 
-/* FAST_ASSERTIONS:
- *	This symbol, when defined, indicates that the program should make
- *	use of its own asserting and failure reporting code, instead of
- *	the one from GLib.
- */
-#$d_fast_assert FAST_ASSERTIONS	/**/
-
 /* HAS_FCHDIR:
  *	This symbol, if defined, indicates that the fchdir routine is
  *	available to change the working directory to that of the opened

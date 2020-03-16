@@ -11,13 +11,13 @@
 ?X: To force any unit to be included, copy this unit to your private U directory
 ?X: and add the name of the unit desired to the ?MAKE: dependency line.
 ?X: 
-?MAKE:End: $W cat gtkversion d_remotectrl \
+?MAKE:End: $W Framepointer cat gtkversion d_remotectrl \
 	d_deflate d_inflate i_zlib gtkgversion glibversion d_enablenls \
-	Sendfile64 d_dbus d_gnutls d_fast_assert d_headless \
+	Sendfile64 d_dbus d_gnutls d_headless \
 	d_iconv d_glib d_gtk Alpha_mieee GCC_pipe
 ?MAKE:	-pick add $@ %<
 ?LINT:use $W
-?T:glib_used frontend remote nls fastassert zlib iconv
+?T:glib_used frontend remote nls zlib iconv
 ?T:gnutls dbus bailout aptget yum
 : end of configuration questions
 echo " "
@@ -58,11 +58,6 @@ case "$d_enablenls" in
 "$define") nls=yes;;
 esac
 
-fastassert=no
-case "$d_fast_assert" in
-"$define") fastassert=yes;;
-esac
-
 iconv=no
 case "$d_iconv" in
 "$define") iconv=yes;;
@@ -79,7 +74,6 @@ GLib version                       : $glib_used
 GUI front-end                      : $frontend
 GnuTLS support                     : $gnutls
 NLS (Native Language Support)      : $nls
-Fast assertions                    : $fastassert
 DBus support (experimental)        : $dbus
 Remote Shell Interface (deprecated): $remote
 -------------------------------------------------

@@ -342,7 +342,6 @@ d_dladdr=''
 d_end_symbol=''
 d_epoll=''
 d_etext_symbol=''
-d_fast_assert=''
 d_fchdir=''
 d_fdatasync=''
 d_fdopendir=''
@@ -5480,62 +5479,6 @@ EOC
 cyn="whether your linker defines the etext symbol"
 set d_etext_symbol
 eval $trylink
-
-: determine whether to enable fast assertions
-echo " "
-case "$d_fast_assert" in
-"$undef")
-	dflt=n;;
-*)
-	dflt=y;;
-esac
-$cat <<EOM
-$spackage contains code called "fast assertions" which are lightweight
-assertions in terms of code space used.  They use much less code than
-their GLib counterpart, and therefore should be more efficient.
-
-EOM
-rp='Shall I enable "fast assertions"'
-. ./myread
-case "$ans" in
-y) val="$define";;
-*) val="$undef";;
-esac
-set d_fast_assert
-eval $setvar
-case "$gccversion" in
-'') ;;
-*)
-	case "$d_fast_assert" in
-	"$define")
-		$cat >try.c <<'EOC'
-int main()
-{
-	return 0;
-}
-EOC
-	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
-	then
-		case "$ccflags $optimize" in
-		*-momit-leaf-frame-pointer*) ;;
-		*-O0*) ;;
-		*-O*)
-			ccflags="-momit-leaf-frame-pointer $ccflags"
-			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
-			;;
-		esac
-	else
-		case "$ccflags" in
-		*-momit-leaf-frame-pointer*)
-			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
-			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
-		;;
-		esac
-	fi
-	;;
-	esac
-;;
-esac
 
 : see if fchdir exists
 $cat >try.c <<EOC
@@ -11114,6 +11057,38 @@ eval $inhdr
 set iconv.h i_iconv
 eval $inhdr
 
+: see whether we can omit the frame pointer
+case "$gccversion" in
+'') ;;
+*)
+	echo " "
+	$cat >try.c <<'EOC'
+int main()
+{
+	return 0;
+}
+EOC
+	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags $optimize" in
+		*-momit-leaf-frame-pointer*) ;;
+		*-O0*) ;;
+		*-O*)
+			ccflags="-momit-leaf-frame-pointer $ccflags"
+			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
+			;;
+		esac
+	else
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*)
+			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
+		;;
+		esac
+	fi
+	;;
+esac
+
 : see if deflate exists
 $cat >try.c <<EOC
 #include <zlib.h>
@@ -11315,11 +11290,6 @@ case "$d_enablenls" in
 "$define") nls=yes;;
 esac
 
-fastassert=no
-case "$d_fast_assert" in
-"$define") fastassert=yes;;
-esac
-
 iconv=no
 case "$d_iconv" in
 "$define") iconv=yes;;
@@ -11336,7 +11306,6 @@ GLib version                       : $glib_used
 GUI front-end                      : $frontend
 GnuTLS support                     : $gnutls
 NLS (Native Language Support)      : $nls
-Fast assertions                    : $fastassert
 DBus support (experimental)        : $dbus
 Remote Shell Interface (deprecated): $remote
 -------------------------------------------------
@@ -11562,7 +11531,6 @@ d_eofnblk='$d_eofnblk'
 d_epoll='$d_epoll'
 d_etext_symbol='$d_etext_symbol'
 d_eunice='$d_eunice'
-d_fast_assert='$d_fast_assert'
 d_fchdir='$d_fchdir'
 d_fdatasync='$d_fdatasync'
 d_fdopendir='$d_fdopendir'

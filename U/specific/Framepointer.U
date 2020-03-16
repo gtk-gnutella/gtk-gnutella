@@ -1,0 +1,43 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:Framepointer: gccversion +cc +ccflags +ldflags +optimize cat sed
+?MAKE:	-pick add $@ %<
+?F:!try !try.c
+?LINT: change ccflags
+: see whether we can omit the frame pointer
+?X: When gcc is used, see whether we can use -momit-leaf-frame-pointer
+?X: This is useful for tail routines containing assertions if they use
+?X: "fast assertions", given that the code is not calling any routine.
+case "$gccversion" in
+'') ;;
+*)
+	echo " "
+	$cat >try.c <<'EOC'
+int main()
+{
+	return 0;
+}
+EOC
+	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags $optimize" in
+		*-momit-leaf-frame-pointer*) ;;
+		*-O0*) ;;
+		*-O*)
+			ccflags="-momit-leaf-frame-pointer $ccflags"
+			echo "Added -momit-leaf-frame-pointer to the cc flags." >&4
+			;;
+		esac
+	else
+		case "$ccflags" in
+		*-momit-leaf-frame-pointer*)
+			echo "Stripping -momit-leaf-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-momit-leaf-frame-pointer//'`
+		;;
+		esac
+	fi
+	;;
+esac
+
