@@ -111,6 +111,7 @@
 #include "array_util.h"
 #include "ascii.h"
 #include "atomic.h"
+#include "buf.h"
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
@@ -119,6 +120,7 @@
 #include "fd.h"
 #include "log.h"
 #include "memusage.h"
+#include "misc.h"
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
@@ -798,7 +800,7 @@ void G_COLD
 vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
-	size_t i, count, size, length;
+	size_t i, count, size, length, native, mapped, foreign;
 	time_t now = tm_time();
 	struct vm_fragment *array;
 
@@ -828,6 +830,29 @@ vmm_dump_pmap_log(logagent_t *la)
 	/*
 	 * Remaining code running without any lock, using the data we just copied.
 	 */
+
+	for (i = native = mapped = foreign = 0; i < count; i++) {
+		struct vm_fragment *vmf = &array[i];
+		size_t vsize = vmf_size(vmf);
+
+		if (vmf_is_native(vmf))
+			native += vsize;
+		else if (vmf_is_mapped(vmf))
+			mapped += vsize;
+		else
+			foreign += vsize;
+	}
+
+	{
+		buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+		char *p = buf_data(b);
+		size_t sz = buf_size(b);
+
+		(void) short_size_to_string_buf(foreign, FALSE, p, sz);
+
+		log_debug(la, "VMM pmap sizes: %s native, %s mapped, %s foreign",
+			short_size(native, FALSE), short_size2(mapped, FALSE), p);
+	}
 
 	log_debug(la, "VMM local pmap (%'zu/%'zu region%s):",
 		count, size, plural(count));
