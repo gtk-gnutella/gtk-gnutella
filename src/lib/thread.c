@@ -12244,6 +12244,13 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 	 */
 
 	s_rawwarn("deadlock found whilst waiting on %p at %s:%u", lock, file, line);
+
+	/*
+	 * Before dumping important information, make sure we're disabling locks
+	 * since we're about to crash and we're already deadlocked.
+	 */
+
+	thread_crash_mode(TRUE);
 	s_miniinfo("dumping lock stack of involved threads:");
 
 	for (i = 0; i < THREAD_MAX; i++) {
