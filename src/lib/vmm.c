@@ -111,7 +111,6 @@
 #include "array_util.h"
 #include "ascii.h"
 #include "atomic.h"
-#include "buf.h"
 #include "cq.h"
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
@@ -844,14 +843,12 @@ vmm_dump_pmap_log(logagent_t *la)
 	}
 
 	{
-		buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
-		char *p = buf_data(b);
-		size_t sz = buf_size(b);
+		char buf[SIZE_FIELD_MAX];
 
-		(void) short_size_to_string_buf(foreign, FALSE, p, sz);
+		(void) short_size_to_string_buf(foreign, FALSE, ARYLEN(buf));
 
 		log_debug(la, "VMM pmap sizes: %s native, %s mapped, %s foreign",
-			short_size(native, FALSE), short_size2(mapped, FALSE), p);
+			short_size(native, FALSE), short_size2(mapped, FALSE), buf);
 	}
 
 	log_debug(la, "VMM local pmap (%'zu/%'zu region%s):",
