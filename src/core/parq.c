@@ -3222,10 +3222,10 @@ parq_ul_dump_earlier(struct parq_ul_queued *item)
 		g_debug("[PARQ UL] Q#%d pos=%u, rel=%u, slot<has=%s had=%s> updated=%s"
 			" active=%s, quick=%s, alive=%s, flags=0x%x, ID=%s, expire=%s ",
 			q->num, puq->position, puq->relative_position,
-			puq->has_slot ? "y" : "n", puq->had_slot ? "y" : "n",
+			bool_to_string(puq->has_slot), bool_to_string(puq->had_slot),
 			compact_time(delta_time(tm_time(), puq->updated)),
-			puq->active_queued ? "y" : "n", puq->quick ? "y" : "n",
-			puq->is_alive ? "y" : "n", puq->flags, guid_hex_str(&puq->id),
+			bool_to_string(puq->active_queued), bool_to_string(puq->quick),
+			bool_to_string(puq->is_alive), puq->flags, guid_hex_str(&puq->id),
 			timestamp_utc_to_string(puq->expire));
 	}
 
@@ -3804,8 +3804,8 @@ parq_upload_request(struct upload *u)
 			(unsigned long) now,
 			(unsigned long) puq->retry,
 			(unsigned long) puq->expire,
-			puq->quick ? "y" : "n",
-			puq->has_slot ? "y" : "n",
+			bool_to_string(puq->quick),
+			bool_to_string(puq->has_slot),
 			filesize_to_string(puq->uploaded_size),
 			guid_hex_str(&puq->id));
 
@@ -3951,8 +3951,8 @@ parq_upload_request(struct upload *u)
 					"switching from active to passive for %s (%s)",
 					puq->queue->num, guid_hex_str(&puq->id),
 					fd_avail_status_string(fds),
-					puq->relative_position, u->push ? "y" : "n",
-					(puq->flags & PARQ_UL_FROZEN) ? "y" : "n",
+					puq->relative_position, bool_to_string(u->push),
+					bool_to_string(0 != (puq->flags & PARQ_UL_FROZEN)),
 					host_addr_port_to_string(u->socket->addr, u->socket->port),
 					upload_vendor_str(u));
 		}
@@ -4029,8 +4029,8 @@ parq_upload_request(struct upload *u)
 						"fds=%s, push=%s, frozen=%s => "
 						"denying active queueing for %s (%s)",
 						puq->queue->num, guid_hex_str(&puq->id),
-						fd_avail_status_string(fds), u->push ? "y" : "n",
-						(puq->flags & PARQ_UL_FROZEN) ? "y" : "n",
+						fd_avail_status_string(fds), bool_to_string(u->push),
+						bool_to_string(0 != (puq->flags & PARQ_UL_FROZEN)),
 						host_addr_port_to_string(
 							u->socket->addr, u->socket->port),
 						upload_vendor_str(u));

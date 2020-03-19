@@ -1007,7 +1007,7 @@ test_fork(bool safe)
 
 	TESTING(G_STRFUNC);
 
-	emit("--- testing thread_fork(%s)", safe ? "TRUE" : "FALSE");
+	emit("--- testing thread_fork(%s)", bool_to_string(safe));
 
 	running = thread_count();
 	emit("starting with %u running thread%s", running, plural(running));
@@ -1029,7 +1029,7 @@ test_fork(bool safe)
 	running = thread_count();
 	emit("ending with %u running thread%s", running, plural(running));
 
-	emit("--- test of thread_fork(%s) done!", safe ? "TRUE" : "FALSE");
+	emit("--- test of thread_fork(%s) done!", bool_to_string(safe));
 }
 
 static int

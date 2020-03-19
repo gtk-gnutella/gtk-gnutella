@@ -2141,8 +2141,8 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 		extdesc_t *d = e->opaque;
 		fprintf(f, " (ID=\"%s\", COBS: %s, deflate: %s)",
 			d->ext_ggep_id,
-			d->ext_ggep_cobs ? "yes" : "no",
-			d->ext_ggep_deflate ? "yes" : "no");
+			bool_to_string(d->ext_ggep_cobs),
+			bool_to_string(d->ext_ggep_deflate));
 	}
 
 	if (postfix)

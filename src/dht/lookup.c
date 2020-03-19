@@ -953,7 +953,7 @@ lookup_value_terminate(nlookup_t *nl,
 				"not caching %d \"%s\" value%s for %s: local=%s, path size=%zu",
 				nid_to_string(&nl->lid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype), plural(vcnt),
-				kuid_to_hex_string(nl->kuid), local ? "y" : "n", count);
+				kuid_to_hex_string(nl->kuid), bool_to_string(local), count);
 		}
 	}
 

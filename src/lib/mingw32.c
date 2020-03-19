@@ -7740,7 +7740,7 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
 		"starting at PC=%p, max=%p%s, at_start=%s",
 		pc, max, ptr_cmp(pc, max) >= 0 ? " (already over!)" : "",
-		at_start ? "TRUE" : "FALSE");
+		bool_to_string(at_start));
 
 	if (ptr_cmp(pc, max) >= 0)
 		BACKTRACE_RETURN("%d", FALSE);

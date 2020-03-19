@@ -6883,7 +6883,7 @@ download_push(struct download *d, bool on_timeout)
 
 	if (GNET_PROPERTY(download_debug) > 2)
 		g_debug("%s(): timeout=%s for \"%s\" at %s",
-			G_STRFUNC, on_timeout ? "y" : "n",
+			G_STRFUNC, bool_to_string(on_timeout),
 			download_basename(d), download_host_info(d));
 
 	if (
@@ -7088,7 +7088,7 @@ download_fallback_to_push(struct download *d,
 
 	if (GNET_PROPERTY(download_debug) > 2)
 		g_debug("%s(): timeout=%s, user=%s for \"%s\" at %s",
-			G_STRFUNC, on_timeout ? "y" : "n", user_request ? "y" : "n",
+			G_STRFUNC, bool_to_string(on_timeout), bool_to_string(user_request),
 			download_basename(d), download_host_info(d));
 
 	/*
@@ -8612,8 +8612,8 @@ download_send_push_request(struct download *d, bool udp, bool broadcast)
 			g_debug("throttling %sPUSH (udp=%s, %s=%s) "
 				"for %s",
 				download_is_g2(d) ? "G2 " : "",
-				udp ? "y" : "n",
-				download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
+				bool_to_string(udp),
+				download_is_g2(d) ? "g2" : "gnet", bool_to_string(broadcast),
 				server_host_info(server));
 		}
 		gnet_stats_inc_general(GNR_LOCAL_PUSH_THROTTLED);
@@ -8657,8 +8657,8 @@ done:
 		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
 			"for %s (index=%lu)",
 			download_is_g2(d) ? "G2 " : "",
-			udp ? "y" : "n",
-			download_is_g2(d) ? "g2" : "gnet", broadcast ? "y" : "n",
+			bool_to_string(udp),
+			download_is_g2(d) ? "g2" : "gnet", bool_to_string(broadcast),
 			server_host_info(d->server), (ulong) d->record_index);
 	}
 
