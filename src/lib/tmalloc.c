@@ -1178,7 +1178,7 @@ tmalloc_thread_free_magazines(void *data)
  * registering an event in the event queue.
  */
 static void
-tmalloc_thread_exiting(void *unused_value, void *ctx)
+tmalloc_thread_exiting(const void *unused_value, void *ctx)
 {
 	tmalloc_t *tma = ctx;
 	(void) unused_value;

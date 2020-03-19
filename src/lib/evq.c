@@ -525,7 +525,7 @@ evq_release(struct evq *q)
  * This is invoked as a thread exit callback.
  */
 static void
-evq_free(void *value, void *arg)
+evq_free(const void *value, void *arg)
 {
 	struct evq *q = arg;
 

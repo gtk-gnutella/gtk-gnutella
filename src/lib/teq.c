@@ -1460,7 +1460,7 @@ teq_io_allocate(unsigned id)
  * Thread exit callback invoked when the current thread exits.
  */
 static void
-teq_reclaim(void *value, void *ctx)
+teq_reclaim(const void *value, void *ctx)
 {
 	struct teq_exited *ex = ctx;
 	struct teq *teq;
