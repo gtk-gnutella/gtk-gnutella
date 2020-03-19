@@ -3117,13 +3117,23 @@ zgc_zalloc(zone_t *zone)
 	goto extended;
 
 found:
-	g_assert(zgc_within_subzone(szi, blk));
+	g_assert_log(zgc_within_subzone(szi, blk),
+		"%s(): blk=%p, szi=[%p, %p] (szi_free_cnt=%u)",
+		G_STRFUNC, blk, szi->szi_base, szi->szi_end - 1, szi->szi_free_cnt);
 
 	szi->szi_free = (char **) *blk;
 	szi->szi_free_cnt--;
 
-	g_assert(0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free));
-	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	g_assert_log((0 == szi->szi_free_cnt) == (NULL == szi->szi_free),
+		"%s(): szi_free_cnt=%u, szi_free=%p",
+		G_STRFUNC, szi->szi_free_cnt, szi->szi_free);
+
+	g_assert_log(
+		0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free),
+		"%s(): szi_free_cnt=%u, szi_free=%p, szi=[%p, %p]",
+		G_STRFUNC, szi->szi_free_cnt, szi->szi_free,
+		szi->szi_base, szi->szi_end - 1);
+
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	/* FALL THROUGH */
