@@ -58,6 +58,7 @@
 #include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/inputevt.h"
+#include "lib/iovec.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -911,44 +912,42 @@ shell_write_data(struct gnutella_shell *sh)
 	s = sh->socket;
 	socket_check(s);
 
-	sh->last_update = tm_time();
+	while (shell_has_pending_output(sh)) {
+		sh->last_update = tm_time();
 
-	slist_lock(sh->output);
-	iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
-	slist_unlock(sh->output);
-
-	g_assert(iov != NULL);
-
-	written = s->wio.writev(&s->wio, iov, iov_cnt);
-
-	if (GNET_PROPERTY(shell_debug) > 2) {
-		s_debug("%s(%p): wrote %zd byte%s",
-			G_STRFUNC, sh, written, plural(written));
-	}
-
-	switch (written) {
-	case (ssize_t) -1:
-		if (is_temporary_error(errno))
-			goto done;
-
-		s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
-		shell_shutdown(sh);
-		break;
-
-	case 0:
-		shell_discard_output(sh);
-		shell_shutdown(sh);
-		break;
-
-	default:
 		slist_lock(sh->output);
-		pmsg_slist_discard(sh->output, written);
+		iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
 		slist_unlock(sh->output);
-	}
 
-done:
-	HFREE_NULL(iov);
-	return;
+		g_assert(iov != NULL);
+
+		written = s->wio.writev(&s->wio, iov, iov_cnt);
+
+		if (GNET_PROPERTY(shell_debug) > 2) {
+			s_debug("%s(%p): wrote %zd byte%s (out of %zu)",
+				G_STRFUNC, sh, written, plural(written),
+				iov_calculate_size(iov, iov_cnt));
+		}
+
+		HFREE_NULL(iov);
+
+		switch (written) {
+		case (ssize_t) -1:
+			if (is_temporary_error(errno))
+				return;
+			s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
+			/* FALL THROUGH */
+		case 0:
+			shell_discard_output(sh);
+			shell_shutdown(sh);
+			return;
+		default:
+			slist_lock(sh->output);
+			pmsg_slist_discard(sh->output, written);
+			slist_unlock(sh->output);
+			break;
+		}
+	}
 }
 
 /**
