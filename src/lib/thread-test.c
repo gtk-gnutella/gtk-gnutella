@@ -210,7 +210,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 static char *names[] = { "one", "two", "three", "four", "five" };
 
 static void
-exit_callback(void *result, void *arg)
+exit_callback(const void *result, void *arg)
 {
 	char *name = arg;
 	long length = pointer_to_long(result);
