@@ -1592,7 +1592,17 @@ bool_to_string(bool v)
 		char *p = buf_data(b);
 		size_t sz = buf_size(b);
 
-		str_bprintf(p, sz, "TRUE=%d", v);
+		/*
+		 * We carp to help find the source of the culprit, knowing that
+		 * if several booleans are logged in a single formatting call,
+		 * only the last value will actually be printed if several have
+		 * non TRUE or FALSE values (they all use the same private buffer
+		 * to hold the value).
+		 */
+
+		s_carp_once("%s(): actual boolean value is %d", G_STRFUNC, v);
+
+		str_bprintf(p, sz, "TRUE=%d", v);	/* Visual indication of weirdness */
 		return p;
 	}
 }
