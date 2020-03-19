@@ -189,16 +189,11 @@ const char *short_uptime(time_delta_t s);
 size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
 const char *time_t_to_string(time_t);
+const char *bool_to_string(bool);
 
 /*
  * Miscellaneous stringifications.
  */
-
-static inline const char *
-bool_to_string(const bool v)
-{
-	return v ? "TRUE" : "FALSE";
-}
 
 /* Plural of most words */
 static inline const char *

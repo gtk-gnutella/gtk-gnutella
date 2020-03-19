@@ -1571,4 +1571,30 @@ time_locale_to_string_buf(time_t t, char *dst, size_t size)
 	return len;
 }
 
+/**
+ * Convert boolean to string.
+ *
+ * When the value given is not simply TRUE or FALSE, show the actual value,
+ * which is of course TRUE.
+ *
+ * @param b		the boolean value
+ */
+const char *
+bool_to_string(bool v)
+{
+	if (0 == v)
+		return "FALSE";
+	else if (1 == v)
+		return "TRUE";
+	else {
+		/* Catch any boolean which is not simply 0 or 1 */
+		buf_t *b = buf_private(G_STRFUNC, INT_DEC_BUFLEN + sizeof("TRUE="));
+		char *p = buf_data(b);
+		size_t sz = buf_size(b);
+
+		str_bprintf(p, sz, "TRUE=%d", v);
+		return p;
+	}
+}
+
 /* vi: set ts=4 sw=4 cindent: */
