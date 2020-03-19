@@ -1178,10 +1178,12 @@ tmalloc_thread_free_magazines(void *data)
  * registering an event in the event queue.
  */
 static void
-tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
+tmalloc_thread_exiting(void *unused_value, void *ctx)
 {
+	tmalloc_t *tma = ctx;
 	(void) unused_value;
-	(void) unused_ctx;
+
+	tmalloc_check(tma);
 
 	/*
 	 * Setting the local variable to NULL will invoke the free routine
@@ -1189,6 +1191,13 @@ tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
 	 */
 
 	thread_local_set(tmalloc_periodic_key, NULL);
+
+	/*
+	 * Setting the local variable to NULL will invoked the free routine
+	 * registered on the key, which is tmalloc_thread_layer_free().
+	 */
+
+	thread_local_set(tma->tma_key, NULL);
 
 	/*
 	 * Setting the local variable to NULL will invoke the free routine
@@ -1840,6 +1849,11 @@ tmalloc_list_init(struct tma_list *tl)
 /**
  * Allocate a new thread magazine depot.
  *
+ * These objects are NEVER FREED and should therefore be considered GLOBAL
+ * objects.  They are usable by any thread to request allocation of objects
+ * of a given size, using the specified memory allocators (and deallocators)
+ * to manage creation (and release) of objects within the depot.
+ *
  * @param name			the name of the thread magazine allocator (copied)
  * @param size			size in bytes of objects created
  * @param allocate		memory allocator
@@ -2245,7 +2259,7 @@ tmalloc_thread_create(tmalloc_t *tma)
 		 * the event queue (execution order is LIFO).
 		 */
 
-		thread_atexit(tmalloc_thread_exiting, NULL);
+		thread_atexit(tmalloc_thread_exiting, tma);
 	}
 
 	eslist_append(tmagazines, tmt);
