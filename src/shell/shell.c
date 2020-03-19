@@ -195,9 +195,8 @@ shell_destroy(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 
-	if (GNET_PROPERTY(shell_debug)) {
-		s_debug("%s(%p)", G_STRFUNC, sh);
-	}
+	if (GNET_PROPERTY(shell_debug))
+		s_debug("%s(%p) async=%s", G_STRFUNC, sh, bool_to_string(sh->async));
 
 	elist_remove(&shells, sh);
 	socket_evt_clear(sh->socket);
@@ -272,6 +271,9 @@ static void
 shell_shutdown(struct gnutella_shell *sh)
 {
 	shell_check(sh);
+
+	if (GNET_PROPERTY(shell_debug) > 1)
+		s_debug("%s(%p) async=%s", G_STRFUNC, sh, bool_to_string(sh->async));
 
 	sh->shutdown = TRUE;
 	atomic_mb();
