@@ -104,7 +104,8 @@ static once_flag_t stacktrace_atom_inited;
 static struct {
 	struct stacktrace circular[STACKTRACE_CIRCULAR_LEN];
 	unsigned idx;
-	bool dirty;
+	bool dirty:1;			/**< Have unflushed entries */
+	bool superseded:1;		/**< Have superseded unflushed entries */
 } stacktrace_atom_buffer;
 
 static hash_table_t *stack_atoms;
@@ -2188,14 +2189,30 @@ insert:
 	i %= STACKTRACE_CIRCULAR_LEN;
 
 	stacktrace_atom_buffer.dirty = TRUE;
+	atomic_mb();
+
+	if (
+		stacktrace_atom_buffer.circular[i].len != 0 &&
+		!stacktrace_atom_buffer.superseded
+	) {
+		/* Warn only once until we are able to flush the circular buffer */
+		stacktrace_atom_buffer.superseded = TRUE;
+		s_rawwarn("%s(): circular buffer full, superseding entries", G_STRFUNC);
+	}
+
 	stacktrace_atom_buffer.circular[i].len = 0;		/* Invalid */
 	atomic_mb();
 
 	memcpy(&stacktrace_atom_buffer.circular[i].stack,
 		&st->stack, len * sizeof st->stack[0]);
-
-	stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
 	atomic_mb();
+
+	if G_UNLIKELY(stacktrace_atom_buffer.circular[i].len != 0) {
+		s_rawwarn("%s(): concurrent update on slot #%u", G_STRFUNC, i);
+	} else {
+		stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
+		atomic_mb();
+	}
 
 	return FALSE;
 }
@@ -2368,8 +2385,11 @@ stacktrace_atom_circular_flush(void)
 		stacktrace_atom_insert(&cst, cst.len);
 	}
 
-	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx)
-		stacktrace_atom_buffer.dirty = FALSE;	/* Flushed everything */
+	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx) {
+		/* Flushed everything */
+		stacktrace_atom_buffer.dirty = FALSE;
+		stacktrace_atom_buffer.superseded = FALSE;
+	}
 }
 
 /**
