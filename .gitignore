@@ -67,8 +67,8 @@ src/lib/pattern-test
 
 src/bin/sha1sum
 
-/src/lib/bit_array.h
-/src/lib/bit_field.h
+/src/lib/bit_array.[ch]
+/src/lib/bit_field.[ch]
 /src/lib/htable.[ch]
 /src/lib/hset.[ch]
 
