@@ -1145,7 +1145,7 @@ tmalloc_thread_layer_free(void *data)
 	 * The embedded list descriptor itself is held in a thread-local variable
 	 * and will be cleared by tmalloc_thread_free_magazines().
 	 *
-	 * Al the "struct tmalloc_thread" objects pertaining to the dying thread
+	 * All the "struct tmalloc_thread" objects pertaining to the dying thread
 	 * are therefore reclaimed not because they are part of the "tmagazines"
 	 * list, but because they are indexed via a specific thread-local variable:
 	 * the tma_key in the tmalloc_t object (the magazine depot).
@@ -1189,6 +1189,13 @@ tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
 	 */
 
 	thread_local_set(tmalloc_periodic_key, NULL);
+
+	/*
+	 * Setting the local variable to NULL will invoke the free routine
+	 * registered on the key, which is tmalloc_thread_free_magazines().
+	 */
+
+	thread_local_set(tmalloc_magazines_key, NULL);
 }
 
 /**
