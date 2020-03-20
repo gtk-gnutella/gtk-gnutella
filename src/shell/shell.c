@@ -545,6 +545,17 @@ shell_parse_command(struct gnutella_shell *sh,
 
 	g_assert(NULL == argv || NULL == argv[argc]);
 
+	if (GNET_PROPERTY(shell_debug)) {
+		if (NULL == argv) {
+			s_debug("%s(%p): empty command", G_STRFUNC, sh);
+		} else {
+			char *cmd = h_strjoinv(" ", (char **) argv);
+			s_debug("%s(%p): got \"%s\"", G_STRFUNC, sh, cmd);
+			HFREE_NULL(cmd);
+		}
+	}
+
+
 	*argv_ptr = argv;
 	*argc_ptr = argc;
 	return ok;
