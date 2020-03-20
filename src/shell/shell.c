@@ -92,6 +92,7 @@ struct gnutella_shell {
 	enum shell_magic magic;
 	struct shell_pending pending;
 	struct gnutella_socket *socket;
+	inputevt_cond_t cond;	/** Current I/O event condition */
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
@@ -144,6 +145,7 @@ shell_new(struct gnutella_socket *s)
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
+	sh->cond = INPUT_EVENT_NONE;
 	slist_thread_safe(sh->output);
 	spinlock_init(&sh->lock);
 
@@ -177,7 +179,39 @@ static void
 shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 {
 	(void) unused_source;
+
 	(void) shell_handle_event(data, cond);
+}
+
+/**
+ * Change I/O event condition on shell, if needed.
+ */
+static void
+shell_evt_set(struct gnutella_shell *sh, inputevt_cond_t cond)
+{
+	shell_check(sh);
+
+	if (G_LIKELY(sh->cond == cond))
+		return;
+
+	SHELL_LOCK(sh);
+
+	if (G_LIKELY(sh->cond == cond)) {
+		SHELL_UNLOCK(sh);
+		return;
+	}
+
+	socket_evt_clear(sh->socket);
+
+	if (INPUT_EVENT_NONE != cond)
+		socket_evt_set(sh->socket, cond, shell_handle_data, sh);
+
+	sh->cond = cond;
+
+	SHELL_UNLOCK(sh);
+
+	if (GNET_PROPERTY(shell_debug) > 1)
+		s_debug("%s(%p): %s", G_STRFUNC, sh, inputevt_cond_to_string(cond));
 }
 
 static void
@@ -277,34 +311,23 @@ shell_shutdown(struct gnutella_shell *sh)
 
 	sh->shutdown = TRUE;
 	atomic_mb();
-	socket_evt_clear(sh->socket);
+	shell_evt_set(sh, INPUT_EVENT_NONE);
 }
 
 static void
 shell_eof(struct gnutella_shell *sh)
 {
+	inputevt_cond_t ev = INPUT_EVENT_NONE;
+
 	shell_check(sh);
 
 	sh->eof = TRUE;
 	atomic_mb();
 
-	SHELL_LOCK(sh);
+	if (shell_has_pending_output(sh))
+		ev = INPUT_EVENT_WX;
 
-	socket_evt_clear(sh->socket);
-
-	if (shell_has_pending_output(sh)) {
-		if (GNET_PROPERTY(shell_debug) > 1) {
-			s_debug("%s(%p): keeping INPUT_EVENT_WX", G_STRFUNC, sh);
-		}
-
-		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
-	} else {
-		if (GNET_PROPERTY(shell_debug) > 1) {
-			s_debug("%s(%p): cleared all events", G_STRFUNC, sh);
-		}
-	}
-
-	SHELL_UNLOCK(sh);
+	shell_evt_set(sh, ev);
 }
 
 /**
@@ -866,7 +889,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 				 */
 
 				sh->async = TRUE;
-				socket_evt_clear(sh->socket);
+				shell_evt_set(sh, INPUT_EVENT_NONE);
 
 				if (
 					-1 == thread_create(shell_async_handler, args,
@@ -1071,7 +1094,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 
 done:
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): finished normally (setting INPUT_EVENT_RW)",
+		s_debug("%s(%p): finished normally (setting INPUT_EVENT_RWX)",
 			G_STRFUNC, sh);
 	}
 
@@ -1080,8 +1103,7 @@ done:
 	 * shell in a single thread at this point, with no concurrent shell thread.
 	 */
 
-	socket_evt_clear(sh->socket);
-	socket_evt_set(sh->socket, INPUT_EVENT_RW, shell_handle_data, sh);
+	shell_evt_set(sh, INPUT_EVENT_RWX);
 }
 
 /**
@@ -1143,6 +1165,8 @@ shell_read_data(struct gnutella_shell *sh)
 static bool
 shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
+	inputevt_cond_t ev = INPUT_EVENT_NONE;
+
 	shell_check(sh);
 
 	if (GNET_PROPERTY(shell_debug) > 3) {
@@ -1168,32 +1192,18 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 		shell_read_data(sh);
 	}
 
-	SHELL_LOCK(sh);
-
 	if (!shell_has_pending_output(sh)) {
-		if (sh->shutdown || sh->exiting) {
-			SHELL_UNLOCK(sh);
+		if (sh->shutdown || sh->exiting)
 			goto destroy;
-		}
-
-		if (GNET_PROPERTY(shell_debug) > 1)
-			s_debug("%s(%p): clearing INPUT_EVENT_WX", G_STRFUNC, sh);
-
-		socket_evt_clear(sh->socket);
 
 		if (!sh->async) {
-			if (sh->eof) {
-				SHELL_UNLOCK(sh);
+			if (sh->eof)
 				goto destroy;
-			}
-			if (GNET_PROPERTY(shell_debug) > 1)
-				s_debug("%s(%p): setting INPUT_EVENT_RX", G_STRFUNC, sh);
-
-			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+			ev = INPUT_EVENT_RX;
 		}
-	}
 
-	SHELL_UNLOCK(sh);
+		shell_evt_set(sh, ev);
+	}
 
 	if (!sh->shutdown)
 		return TRUE;
@@ -1217,16 +1227,8 @@ shell_evt_writable(struct gnutella_shell *sh)
 	if G_UNLIKELY(sh->shutdown)
 		return;
 
-	SHELL_LOCK(sh);
 
-	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): setting INPUT_EVENT_WX", G_STRFUNC, sh);
-	}
-
-	socket_evt_clear(sh->socket);
-	socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
-
-	SHELL_UNLOCK(sh);
+	shell_evt_set(sh, INPUT_EVENT_WX);
 }
 
 void
