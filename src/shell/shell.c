@@ -933,8 +933,11 @@ shell_write_data(struct gnutella_shell *sh)
 
 		switch (written) {
 		case (ssize_t) -1:
-			if (is_temporary_error(errno))
+			if (is_temporary_error(errno)) {
+				if (GNET_PROPERTY(shell_debug) > 2)
+					s_debug("%s(%p): temporary write error: %m", G_STRFUNC, sh);
 				return;
+			}
 			s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
 			/* FALL THROUGH */
 		case 0:
