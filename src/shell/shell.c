@@ -1146,6 +1146,16 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
 	shell_check(sh);
 
+	if (GNET_PROPERTY(shell_debug) > 3) {
+		s_debug("%s(%p): got %c%c%c events, shutdown=%s, eof=%s",
+			G_STRFUNC, sh,
+			(cond & INPUT_EVENT_R) ? 'r' : '-',
+			(cond & INPUT_EVENT_W) ? 'w' : '-',
+			(cond & INPUT_EVENT_EXCEPTION) ? 'x' : '-',
+			bool_to_string(sh->shutdown),
+			bool_to_string(sh->eof));
+	}
+
 	if (cond & INPUT_EVENT_EXCEPTION) {
 		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
 		goto destroy;
@@ -1171,9 +1181,8 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 			goto destroy;
 		}
 
-		if (GNET_PROPERTY(shell_debug) > 1) {
+		if (GNET_PROPERTY(shell_debug) > 1)
 			s_debug("%s(%p): clearing INPUT_EVENT_WX", G_STRFUNC, sh);
-		}
 
 		socket_evt_clear(sh->socket);
 
@@ -1182,9 +1191,9 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 				SHELL_UNLOCK(sh);
 				goto destroy;
 			}
-			if (GNET_PROPERTY(shell_debug) > 1) {
+			if (GNET_PROPERTY(shell_debug) > 1)
 				s_debug("%s(%p): setting INPUT_EVENT_RX", G_STRFUNC, sh);
-			}
+
 			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
 		}
 	}
