@@ -200,7 +200,6 @@ shell_destroy(struct gnutella_shell *sh)
 		s_debug("%s(%p) async=%s", G_STRFUNC, sh, bool_to_string(sh->async));
 
 	elist_remove(&shells, sh);
-	socket_evt_clear(sh->socket);
 	shell_discard_output(sh);
 	socket_free_null(&sh->socket);
 	shell_free(sh);
