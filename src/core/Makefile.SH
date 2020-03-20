@@ -53,9 +53,9 @@ SED = $sed
 
 SUBDIRS = g2
 USRINC = $usrinc
-GNUTLS_CFLAGS =  $gnutlscflags
-SOURCES =   \$(SRC)
 SOCKER_CFLAGS =  $sockercflags
+SOURCES =   \$(SRC)
+GNUTLS_CFLAGS =  $gnutlscflags
 GLIB_CFLAGS =  $glibcflags
 OBJECTS =   \$(OBJ)
 
@@ -409,6 +409,10 @@ local_depend::
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
 
+!NO!SUBS!
+case "$d_windows" in
+undef)
+	$spitshell >>Makefile <<'!NO!SUBS!'
 all:: gtkg-shell
 
 gtkg-shell: local_shell.c
@@ -416,6 +420,10 @@ gtkg-shell: local_shell.c
 
 local_clean::
 	$(RM) gtkg-shell
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

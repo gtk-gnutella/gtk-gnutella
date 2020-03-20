@@ -171,8 +171,13 @@ DependTarget()
 
 /*
  * Ensure we can always compile the local shell as a standalone binary.
+ *
+ * We skip compilation on Windows platforms because the binary requires
+ * more than the simple libc and we just compile the local shell to catch
+ * mistakes through the Travis CI or local UNIX compilations.
  */
 
+|case d_windows in undef
 all:: gtkg-shell
 
 gtkg-shell: local_shell.c
@@ -180,3 +185,4 @@ gtkg-shell: local_shell.c
 
 local_clean::
 	$(RM) gtkg-shell
+-case
