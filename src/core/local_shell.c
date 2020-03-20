@@ -498,11 +498,11 @@ local_shell_mainloop(int fd)
 			if (ret < 0) {
 				return -1;
 			}
-			client.readable = 0 != (fds[0].revents & (POLLIN | POLLHUP));
-			client.writable = 0 != (fds[2].revents & POLLOUT);
+			client.readable = 0 != (fds[0].revents & (POLLIN  | POLLHUP));
+			client.writable = 0 != (fds[2].revents & (POLLOUT | POLLHUP));
 
-			server.readable = 0 != (fds[2].revents & (POLLIN | POLLHUP));
-			server.writable = 0 != (fds[1].revents & POLLOUT);
+			server.readable = 0 != (fds[2].revents & (POLLIN  | POLLHUP));
+			server.writable = 0 != (fds[1].revents & (POLLOUT | POLLHUP));
 
 #ifdef MINGW32
 			/*
