@@ -168,3 +168,15 @@ LinkGenInterface(msg_drop.c)
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))
 DependTarget()
+
+/*
+ * Ensure we can always compile the local shell as a standalone binary.
+ */
+
+all:: gtkg-shell
+
+gtkg-shell: local_shell.c
+	$(CC) -o $@ -DLOCAL_SHELL_STANDALONE $<
+
+local_clean::
+	$(RM) gtkg-shell

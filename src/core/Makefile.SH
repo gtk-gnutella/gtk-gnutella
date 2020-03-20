@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-254]
 : $X-Id$
 
 case $CONFIG in
@@ -53,11 +53,11 @@ SED = $sed
 
 SUBDIRS = g2
 USRINC = $usrinc
+GNUTLS_CFLAGS =  $gnutlscflags
 SOURCES =   \$(SRC)
-OBJECTS =   \$(OBJ)
 SOCKER_CFLAGS =  $sockercflags
 GLIB_CFLAGS =  $glibcflags
-GNUTLS_CFLAGS =  $gnutlscflags
+OBJECTS =   \$(OBJ)
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -408,6 +408,14 @@ local_depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
+
+all:: gtkg-shell
+
+gtkg-shell: local_shell.c
+	$(CC) -o $@ -DLOCAL_SHELL_STANDALONE $<
+
+local_clean::
+	$(RM) gtkg-shell
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit
