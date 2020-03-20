@@ -41,13 +41,17 @@
  * Thread exiting callback.
  *
  * When the thread was created with the THREAD_F_ASYNC_EXIT flag, the exit
- * callback will NOT be called in the thread exiting but in the main thread.
+ * callback supplied to thread_create_full() will NOT be called within the
+ * thread exiting but from the main thread.
  *
  * Otherwise (by default), the exit callback is invoked synchronously, in
  * the context of the exiting thread.  The thread result (the value of
  * thread_exit() or the return of the main entry point of the thread) is
  * to be considered informative only and should not be modified as a side
  * effect of the exiting callback!
+ *
+ * Likewise, all exit callbacks registered via thread_atexit() will be
+ * invoked synchronously.
  *
  * @param result		the thread exit value (read-only)
  * @param earg			the extra argument registered via thread_atexit()

@@ -425,7 +425,6 @@ struct thread_element {
 	uint join_requested:1;			/**< Whether thread_join() was requested */
 	uint join_pending:1;			/**< Whether thread exited, pending join */
 	uint reusable:1;				/**< Whether element is reusable */
-	uint async_exit:1;				/**< Whether exit callback done in main */
 	uint main_thread:1;				/**< Whether this is the main thread */
 	uint cancelled:1;				/**< Whether thread has been cancelled */
 	uint cancelable:1;				/**< Whether thread is cancelable */
@@ -447,6 +446,7 @@ struct thread_element {
 	dam_t *termination;				/**< Waiters on thread termination */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
+	eslist_t async_exit_list;		/**< Async exit callbacks (from main) */
 	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
 	eslist_t interrupt_list;		/**< List of interrupts to invoke */
 	eslist_t interrupt_ack_list;	/**< List of interrupts to invoke */
@@ -2401,6 +2401,7 @@ thread_element_reset(struct thread_element *te)
 	te->div = NULL;
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
+	eslist_clear(&te->async_exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
 	ZERO(&te->btrace);
@@ -2825,6 +2826,7 @@ thread_init_element(struct thread_element *te)
 
 	spinlock_init(&te->lock);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
+	eslist_init(&te->async_exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 	eslist_init(&te->interrupt_list, interrupt_offset);
 	eslist_init(&te->interrupt_ack_list, interrupt_offset);
@@ -9595,7 +9597,6 @@ thread_launch(struct thread_element *te,
 	stacksize = round_pagesize(stacksize);	/* In case they supply odd values */
 
 	te->detached = booleanize(flags & THREAD_F_DETACH);
-	te->async_exit = booleanize(flags & THREAD_F_ASYNC_EXIT);
 	te->cancelable = !booleanize(flags & THREAD_F_NO_CANCEL);
 
 	te->created = TRUE;				/* This is a thread we created */
@@ -9850,14 +9851,36 @@ thread_create_full(process_fn_t routine, void *arg, uint flags, size_t stack,
 
 	if (exited != NULL) {
 		struct thread_exit_cb *e;
+		eslist_t *es;
 
 		XMALLOC0(e);
 		e->exit_cb = exited;
 		e->exit_arg = earg;
 
-		g_assert(0 == eslist_count(&te->exit_list));
+		/*
+		 * Whether the exit callback will be invoked from within the
+		 * context of the exiting thread (i.e. synchronously) or within
+		 * the main thread, once the thread is gone, is determined by
+		 * the presence of the THREAD_F_ASYNC_EXIT flag.
+		 *
+		 * Despite the fact that there is one callback given here from
+		 * the interface, we nonetheless manage the asynchronous exit
+		 * callback in a list just like the other synchronous exit callbacks.
+		 * Indeed, maybe there will be the need for a thread_async_atexit()
+		 * routine to register callbacks in the main thread AFTER the thread
+		 * was created, at which time we will need this list.
+		 * 		--RAM, 2020-03-20
+		 */
 
-		eslist_prepend(&te->exit_list, e);
+		es = (flags & THREAD_F_ASYNC_EXIT) ?
+			&te->async_exit_list : &te->exit_list;
+
+		g_assert_log(0 == eslist_count(es),
+			"%s(): count in %s list is %zu",
+			G_STRFUNC, (flags & THREAD_F_ASYNC_EXIT) ? "async" : "sync",
+			eslist_count(es));
+
+		eslist_prepend(es, e);
 	}
 
 	ret = thread_launch(te, routine, arg, flags, stack);
@@ -10069,8 +10092,8 @@ thread_exit_internal(void *value, const void *sp)
 	 * variables are cleared (since callbacks may use still want to use them).
 	 */
 
-	eslist_foreach_remove(&te->exit_list,
-		te->async_exit ? thread_exit_async_cb : thread_exit_sync_cb, value);
+	eslist_foreach_remove(&te->exit_list, thread_exit_sync_cb, value);
+	eslist_foreach_remove(&te->async_exit_list, thread_exit_async_cb, value);
 
 	/*
 	 * When a thread exits, all its thread-private and thread-local variables
@@ -12627,7 +12650,6 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%d",  timed_blocked);
 	DUMPF("%d",  unblocked);
 	DUMPF("%d",  detached);
-	DUMPF("%d",  async_exit);
 	DUMPF("%d",  main_thread);
 	DUMPF("%d",  cancelled);
 	DUMPF("%d",  cancelable);
@@ -12661,6 +12683,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		te->cond_stack,
 		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
 	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
+	DUMPL("%zu", "async_exit_list count", eslist_count(&te->async_exit_list));
 	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
 	DUMPL("%s",  "btrace.type",
 		thread_backtrace_type_to_string(te->btrace.type));
