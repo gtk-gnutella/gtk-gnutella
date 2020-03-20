@@ -12577,6 +12577,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	struct thread_element *te = threads[stid];
 	uint i;
 	bool locked;
+	slink_t *sl;
 
 	if (NULL == te) {
 		log_warning(la, "THREAD NULL element #%u", stid);
@@ -12682,9 +12683,38 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPL("%p, count=%u",  "cond_stack",
 		te->cond_stack,
 		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
-	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
-	DUMPL("%zu", "async_exit_list count", eslist_count(&te->async_exit_list));
-	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
+	DUMPL("%zu item%s", "exit_list", PLURAL(eslist_count(&te->exit_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->exit_list, sl) {
+		struct thread_exit_cb *ecb = eslist_data(&te->exit_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("exit[]")];
+
+		str_bprintf(ARYLEN(buf), "exit[%02u]", i++);
+		DUMPL("%s(%p)", buf,
+			stacktrace_function_name(ecb->exit_cb), ecb->exit_arg);
+	}
+	DUMPL("%zu item%s", "async_exit_list",
+		PLURAL(eslist_count(&te->async_exit_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->async_exit_list, sl) {
+		struct thread_exit_cb *ecb = eslist_data(&te->async_exit_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("async_exit[]")];
+
+		str_bprintf(ARYLEN(buf), "async_exit[%02u]", i++);
+		DUMPL("%s(%p)", buf,
+			stacktrace_function_name(ecb->exit_cb), ecb->exit_arg);
+	}
+	DUMPL("%zu item%s", "cleanup_list", PLURAL(eslist_count(&te->cleanup_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->cleanup_list, sl) {
+		struct thread_cleanup_cb *ccb = eslist_data(&te->cleanup_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("cleanup[]")];
+
+		str_bprintf(ARYLEN(buf), "cleanup[%02u]", i++);
+		DUMPL("%s(%p)\n%24sfrom %s() at \"%s\":%u", buf,
+			stacktrace_function_name(ccb->cleanup_cb), ccb->data,
+			"", ccb->routine, ccb->file, ccb->line);
+	}
 	DUMPL("%s",  "btrace.type",
 		thread_backtrace_type_to_string(te->btrace.type));
 	DUMPF("%zu",  btrace.count);
