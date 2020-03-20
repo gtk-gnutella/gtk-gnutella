@@ -1161,12 +1161,8 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 		goto destroy;
 	}
 
-	if (
-		(cond & INPUT_EVENT_W) &&
-		!sh->shutdown && shell_has_pending_output(sh)
-	) {
+	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh))
 		shell_write_data(sh);
-	}
 
 	if ((cond & INPUT_EVENT_R) && !(sh->shutdown || sh->eof)) {
 		g_assert(!sh->async);
