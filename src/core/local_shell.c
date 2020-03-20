@@ -56,15 +56,7 @@
 #define compat_socket socket
 #define unix_read read
 #define unix_write write
-
-static inline void
-fd_close(int *fd_ptr)
-{
-	if (*fd_ptr >= 0) {
-		close(*fd_ptr);
-		*fd_ptr = -1;
-	}
-}
+#define vstrlen strlen
 
 typedef struct sockaddr_un sockaddr_unix_t;
 
@@ -80,6 +72,15 @@ typedef struct sockaddr_un sockaddr_unix_t;
 #include <fcntl.h>
 #include <poll.h>
 #include <pwd.h>
+
+static inline void
+fd_close(int *fd_ptr)
+{
+	if (*fd_ptr >= 0) {
+		close(*fd_ptr);
+		*fd_ptr = -1;
+	}
+}
 
 static inline int
 is_temporary_error(int e)
