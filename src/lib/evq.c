@@ -722,8 +722,6 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 */
 
 	if G_UNLIKELY(NULL == q) {
-		const char *tname = thread_id_name(eve->stid);
-
 		/*
 		 * Since thread_id_name() uses stacktrace_function_name() which
 		 * returns a pointer to static data, we need to call the former
@@ -737,26 +735,10 @@ evq_trampoline(cqueue_t *cq, void *obj)
 		 */
 
 		s_warning("%s(): queue gone in %s, cannot dispatch %s(%p)",
-			G_STRFUNC, tname, stacktrace_function_name(eve->cb), eve->arg);
+			G_STRFUNC, thread_id_name(id),
+			stacktrace_function_name(eve->cb), eve->arg);
 
-		evq_event_check(eve);	/* Since no queue locked, ensure still valid */
-
-		/*
-		 * Since this is probably a "foreign" event, we must acknoledge it
-		 * or the callout queue will think we do not own a reference to the
-		 * event and will forcefully free it.  However, the freeing call will
-		 * issue a cq_cancel(), so this is where the event will get freed.
-		 *
-		 * Not calling this would cause a double free on the callout queue
-		 * event, catastrophic since we cannot detect those in walloc()!
-		 */
-
-		cq_acknowledge(cq, eve->ev);
-
-		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
-			evq_event_free(eve);
-
-		return;
+		goto drop;
 	}
 
 	/*
@@ -769,9 +751,7 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	if G_UNLIKELY(eve->qid != q->qid) {
 		s_warning("%s(): ignoring obsolete %s(%p) event",
 			G_STRFUNC, stacktrace_function_name(eve->cb), eve->arg);
-		cq_acknowledge(cq, eve->ev);
-		evq_event_free(eve);
-		return;
+		goto drop;
 	}
 
 	/*
@@ -821,20 +801,47 @@ evq_trampoline(cqueue_t *cq, void *obj)
 			stacktrace_function_name(eve->cb), thread_id_name(id));
 	}
 
-	mutex_unlock(&q->lock);
-
 	/*
 	 * Signal the target thread that it has triggered events to dispatch.
+	 *
+	 * We're still under the queue mutex protection so that we can remove
+	 * the event from the list if we cannot signal.
 	 */
 
 	if (-1 == thread_kill(id, TSIG_EVQ)) {
 		s_critical_once_per(LOG_PERIOD_SECOND,
-			"%s(): cannot send TSIG_EVQ to %s: %m",
-			G_STRFUNC, thread_id_name(id));
+			"%s(): cannot send TSIG_EVQ to %s: %m -- will not launch %s(%p)",
+			G_STRFUNC, thread_id_name(id),
+			stacktrace_function_name(eve->cb), eve->arg);
+
+		elist_remove(&q->triggered, eve);
+		mutex_unlock(&q->lock);
+		goto drop;
 	}
+
+	mutex_unlock(&q->lock);
 
 done:
 	evq_release(q);
+	return;
+
+drop:
+	evq_event_check(eve);	/* Since no queue locked, ensure still valid */
+
+	/*
+	 * Since this is probably a "foreign" event, we must acknoledge it
+	 * or the callout queue will think we do not own a reference to the
+	 * event and will forcefully free it.  However, the freeing call will
+	 * issue a cq_cancel(), so this is where the event will get freed.
+	 *
+	 * Not calling this would cause a double free on the callout queue
+	 * event, catastrophic since we cannot detect those in walloc()!
+	 */
+
+	cq_acknowledge(cq, eve->ev);
+
+	if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+		evq_event_free(eve);
 }
 
 /**
