@@ -571,8 +571,8 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		d->ext_phys_payload = p;
 		d->ext_phys_paylen = data_length;
 		d->ext_phys_len = (p - lastp) + data_length;
-		d->ext_ggep_cobs = flags & GGEP_F_COBS;
-		d->ext_ggep_deflate = flags & GGEP_F_DEFLATE;
+		d->ext_ggep_cobs = booleanize(flags & GGEP_F_COBS);
+		d->ext_ggep_deflate = booleanize(flags & GGEP_F_DEFLATE);
 
 		if (0 == (flags & (GGEP_F_COBS|GGEP_F_DEFLATE))) {
 			d->ext_payload = d->ext_phys_payload;
