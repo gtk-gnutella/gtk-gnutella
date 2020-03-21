@@ -1180,8 +1180,13 @@ shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 	}
 
 	if (cond & INPUT_EVENT_EXCEPTION) {
-		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
-		goto destroy;
+		s_warning ("%s(%p): got %c%c exception", G_STRFUNC, sh,
+			(cond & INPUT_EVENT_R) ? 'r' : '-',
+			(cond & INPUT_EVENT_W) ? 'w' : '-');
+		if (cond & INPUT_EVENT_R)
+			shell_eof(sh);
+		if (cond & INPUT_EVENT_W)
+			shell_shutdown(sh);
 	}
 
 	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh))
@@ -1226,7 +1231,6 @@ shell_evt_writable(struct gnutella_shell *sh)
 
 	if G_UNLIKELY(sh->shutdown)
 		return;
-
 
 	shell_evt_set(sh, INPUT_EVENT_WX);
 }
