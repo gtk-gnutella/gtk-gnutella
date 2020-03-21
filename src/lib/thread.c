@@ -2031,7 +2031,6 @@ thread_surely_gone(cqueue_t *cq, void *data)
 {
 	struct thread_element *te = data;
 	bool problem;
-	size_t locks;
 
 	thread_element_check(te);
 
@@ -2050,17 +2049,13 @@ thread_surely_gone(cqueue_t *cq, void *data)
 	}
 
 	problem = te->gone_seen;
-	locks = thread_element_lock_count(te);
-	if (problem || locks != 0) {
+	if (problem) {
 		te->gone = FALSE;			/* Will not reuse it after all */
 		te->exit_started = FALSE;	/* And definitely not exiting */
 	}
 	THREAD_UNLOCK(te);
 
-	if (locks != 0) {
-		s_warning("%s(): %s still holding %zu lock%s, not reusing its ID",
-			G_STRFUNC, thread_element_name(te), locks, plural(locks));
-	} else if (problem) {
+	if (problem) {
 		s_warning("%s(): seen some activity for %s, not reusing its ID",
 			G_STRFUNC, thread_element_name(te));
 	} else {
@@ -2704,6 +2699,227 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 }
 
 /**
+ * Warn about remaining cleanup callback.
+ */
+static bool
+thread_cleanup_warn(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	struct thread_element *te = value;
+
+	thread_element_check(te);
+
+	s_warning("%s exiting with pending cleanup callback %s(%p) "
+		"registered by %s() at %s:%u",
+		thread_element_name(te), stacktrace_function_name(c->cleanup_cb),
+		c->data, c->routine, c->file, c->line);
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+/**
+ * Execute cleanup callback.
+ */
+static bool
+thread_cleanup_handle(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	const void *sp = value;
+
+	if (thread_stack_ptr_cmp(sp, c->sp) < 0) {
+		s_critical("ignoring obsolete cleanup callback %s(%p) for %s, "
+			"registered by %s() at %s:%u: "
+			"registration SP=%p, exit SP=%p, current SP=%p",
+			stacktrace_function_name(c->cleanup_cb), c->data, thread_name(),
+			c->routine, c->file, c->line, c->sp, sp, &sp);
+	} else {
+		(*c->cleanup_cb)(c->data);
+	}
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+struct thread_exit_context {
+	thread_exit_t cb;
+	void *arg;
+	void *value;
+};
+
+/**
+ * Invoked from the main thread to notify that a thread exited.
+ */
+static void
+thread_exit_notify(cqueue_t *cq, void *obj)
+{
+	struct thread_exit_context *ctx = obj;
+
+	cq_event(cq);
+
+	(*ctx->cb)(ctx->value, ctx->arg);
+	WFREE(ctx);
+}
+
+/**
+ * Asynchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_async_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+	struct thread_exit_context *ctx;
+
+	WALLOC(ctx);
+	ctx->value = value;
+	ctx->cb = e->exit_cb;
+	ctx->arg = e->exit_arg;
+	xfree(e);
+	cq_main_insert(1, thread_exit_notify, ctx);
+
+	return TRUE;
+}
+
+/**
+ * Synchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_sync_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+
+	(*e->exit_cb)(value, e->exit_arg);
+	xfree(e);
+
+	return TRUE;
+}
+
+/**
+ * Free a thread exit callback, not running it.
+ */
+static bool
+thread_exit_free_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+	struct thread_element *te = value;
+
+	s_critical("%s(): not running exit callback %s(%p) for %s",
+		G_STRFUNC, stacktrace_function_name(e->exit_cb), e->exit_arg,
+		thread_element_name(te));
+
+	xfree(e);
+
+	return TRUE;
+}
+
+/**
+ * Common exit cleanup when a created or discovered thread exits.
+ *
+ * @param te		the exiting thread
+ * @param sp		exiting stack pointer: when NULL, this is an implicit exit
+ * @param result	the exit value, NULL for discovered threads
+ */
+static void
+thread_common_exit(struct thread_element *te, const void *sp, void *result)
+{
+	size_t lock_count;
+
+	thread_element_check(te);
+	g_assert(te->exit_started);
+
+	/*
+	 * When exiting explicitly, via thread_exit() or through a cancellation
+	 * request, we run the registered cleanup callbacks, otherwise they
+	 * are discarded with a warning (it is an error to return from the main
+	 * entry point with pending cleanup callbacks).
+	 *
+	 * Running of the cleanup routine must be done before clearing all
+	 * the thread-private and thread-local variables registered by the thread
+	 * since the callbacks may use such values.
+	 */
+
+	lock_count = thread_element_lock_count(te);	/* Can be non-zero here */
+
+	if (NULL == sp) {
+		/* Implicit exit, returning from main entry point */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_warn, te);
+	} else {
+		/* Explicit exit or cancellation */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_handle,
+			deconstify_pointer(sp));
+	}
+
+	/*
+	 * Now that all the cleanup handlers have been run, there must not
+	 * be any lock remaining.
+	 */
+
+	if (0 != thread_element_lock_count(te)) {
+		size_t cnt = thread_element_lock_count(te);
+		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
+			G_STRFUNC, thread_element_name(te), cnt, plural(cnt), lock_count);
+		thread_lock_dump(te);
+		s_error("thread exiting without clearing its locks");
+	}
+
+	/*
+	 * Are we still running in the exiting thread?
+	 *
+	 * If yes and it has synchronous exit routines, we need to dispatch
+	 * them now to perform cleanup.
+	 *
+	 * Otherwise, we'll have to drop the synchronous exit callbacks, loudly
+	 * warning about that condition and each of them.  Indeed, they may expect
+	 * to be run from the dying thread, to be able to cleanup local/private
+	 * variables for instance.
+	 */
+
+	if (te->created || thread_small_id() == te->stid) {
+		/*
+		 * Invoke any registered exit notification callback, before
+		 * thread variables are cleared (since callbacks may use still
+		 * want to use them).
+		 */
+
+		eslist_foreach_remove(&te->exit_list,
+			thread_exit_sync_cb, result);
+
+		eslist_foreach_remove(&te->async_exit_list,
+			thread_exit_async_cb, result);
+	} else {
+		g_assert(te->discovered);
+
+		if (0 != eslist_count(&te->exit_list)) {
+			s_critical("%s(): had %zu synchronous exit callback%s in %s",
+				G_STRFUNC, PLURAL(eslist_count(&te->exit_list)),
+				thread_element_name(te));
+
+			eslist_foreach_remove(&te->exit_list, thread_exit_free_cb, te);
+		}
+
+		/*
+		 * The asynchronous exit callbacks we can run, since they do not
+		 * expect to be run from within the exiting thread!
+		 * However we cannot supply the thread exit value, so we give NULL.
+		 */
+
+		eslist_foreach_remove(&te->async_exit_list, thread_exit_async_cb, NULL);
+	}
+
+	/*
+	 * When a thread exits, all its thread-private and thread-local variables
+	 * are reclaimed.
+	 *
+	 * The keys are constants (static strings, pointers to static objects for
+	 * thread-private, opaque constants for thread-local) but values are
+	 * dynamically allocated and can have a free routine attached.
+	 */
+
+	thread_private_clear(te);
+	thread_local_clear(te);
+}
+
+/**
  * Callback invoked when the special monitoring key we set in each discovered
  * thread is reclaimed by the pthread runtime, which will happen when the thread
  * is exiting.
@@ -2719,6 +2935,8 @@ thread_will_exit(void *arg)
 		G_STRFUNC, te->stid, te->created ? "was" : "neither");
 
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+
+	thread_common_exit(te, NULL, NULL);
 
 	/*
 	 * Since the thread was discovered, we wait a little bit to reuse its
@@ -9902,102 +10120,6 @@ error:
 	return -1;
 }
 
-struct thread_exit_context {
-	thread_exit_t cb;
-	void *arg;
-	void *value;
-};
-
-/**
- * Invoked from the main thread to notify that a thread exited.
- */
-static void
-thread_exit_notify(cqueue_t *cq, void *obj)
-{
-	struct thread_exit_context *ctx = obj;
-
-	cq_event(cq);
-
-	(*ctx->cb)(ctx->value, ctx->arg);
-	WFREE(ctx);
-}
-
-/**
- * Asynchronously invoke thread exit callback.
- */
-static bool
-thread_exit_async_cb(void *data, void *value)
-{
-	struct thread_exit_cb *e = data;
-	struct thread_exit_context *ctx;
-
-	WALLOC(ctx);
-	ctx->value = value;
-	ctx->cb = e->exit_cb;
-	ctx->arg = e->exit_arg;
-	xfree(e);
-	cq_main_insert(1, thread_exit_notify, ctx);
-
-	return TRUE;
-}
-
-/**
- * Synchronously invoke thread exit callback.
- */
-static bool
-thread_exit_sync_cb(void *data, void *value)
-{
-	struct thread_exit_cb *e = data;
-
-	(*e->exit_cb)(value, e->exit_arg);
-	xfree(e);
-
-	return TRUE;
-}
-
-/**
- * Warn about remaining cleanup callback.
- */
-static bool
-thread_cleanup_warn(void *data, void *value)
-{
-	struct thread_cleanup_cb *c = data;
-	struct thread_element *te = value;
-
-	thread_element_check(te);
-
-	s_warning("%s exiting with pending cleanup callback %s(%p) "
-		"registered by %s() at %s:%u",
-		thread_element_name(te), stacktrace_function_name(c->cleanup_cb),
-		c->data, c->routine, c->file, c->line);
-
-	xfree(c);
-	return TRUE;		/* Remove it from list */
-}
-
-/**
- * Execute cleanup callback.
- */
-static bool
-thread_cleanup_handle(void *data, void *value)
-{
-	struct thread_cleanup_cb *c = data;
-	const void *sp = value;
-
-	if (thread_stack_ptr_cmp(sp, c->sp) < 0) {
-		s_critical("ignoring obsolete cleanup callback %s(%p) for %s, "
-			"registered by %s() at %s:%u: "
-			"registration SP=%p, exit SP=%p, current SP=%p",
-			stacktrace_function_name(c->cleanup_cb), c->data, thread_name(),
-			c->routine, c->file, c->line, c->sp, sp, &sp);
-	} else {
-		(*c->cleanup_cb)(c->data);
-	}
-
-	xfree(c);
-	return TRUE;		/* Remove it from list */
-}
-
 /**
  * Exit from current thread.
  *
@@ -10017,7 +10139,6 @@ thread_exit_internal(void *value, const void *sp)
 {
 	struct thread_element *te = thread_get_element();
 	tsigset_t set;
-	size_t lock_count;
 
 	g_assert(pthread_equal(te->ptid, pthread_self()));
 	g_assert(thread_eq(te->tid, thread_self()));
@@ -10052,60 +10173,7 @@ thread_exit_internal(void *value, const void *sp)
 			G_STRFUNC, thread_element_name(te));
 	}
 
-	/*
-	 * When exiting explicitly, via thread_exit() or through a cancellation
-	 * request, we run the registered cleanup callbacks, otherwise they
-	 * are discarded with a warning (it is an error to return from the main
-	 * entry point with pending cleanup callbacks).
-	 *
-	 * Running of the cleanup routine must be done before clearing all
-	 * the thread-private and thread-local variables registered by the thread
-	 * since the callbacks may use such values.
-	 */
-
-	lock_count = thread_element_lock_count(te);	/* Can be non-zero here */
-
-	if (NULL == sp) {
-		/* Implicit exit, returning from main entry point */
-		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_warn, te);
-	} else {
-		/* Explicit exit or cancellation */
-		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_handle,
-			deconstify_pointer(sp));
-	}
-
-	/*
-	 * Now that all the cleanup handlers have been run, there must not
-	 * be any lock remaining.
-	 */
-
-	if (0 != thread_element_lock_count(te)) {
-		size_t cnt = thread_element_lock_count(te);
-		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
-			G_STRFUNC, thread_element_name(te), cnt, plural(cnt), lock_count);
-		thread_lock_dump(te);
-		s_error("thread exiting without clearing its locks");
-	}
-
-	/*
-	 * Invoke any registered exit notification callback, before thread
-	 * variables are cleared (since callbacks may use still want to use them).
-	 */
-
-	eslist_foreach_remove(&te->exit_list, thread_exit_sync_cb, value);
-	eslist_foreach_remove(&te->async_exit_list, thread_exit_async_cb, value);
-
-	/*
-	 * When a thread exits, all its thread-private and thread-local variables
-	 * are reclaimed.
-	 *
-	 * The keys are constants (static strings, pointers to static objects for
-	 * thread-private, opaque constants for thread-local) but values are
-	 * dynamically allocated and can have a free routine attached.
-	 */
-
-	thread_private_clear(te);
-	thread_local_clear(te);
+	thread_common_exit(te, sp, value);
 
 	/*
 	 * If there are waiters (via thread_wait() and friends) looking after

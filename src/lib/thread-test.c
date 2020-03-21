@@ -414,11 +414,26 @@ posix_threads(void *unused_arg)
 	return posix_worker(NULL);
 }
 
+static void
+pexit_callback(const void *result, void *earg)
+{
+	unsigned stid = pointer_to_uint(earg);
+
+	(void) result;
+	emit("POSIX thread #%u exiting", stid);
+}
+
 static void *
 posix_exiting_thread(void *unused_arg)
 {
+	unsigned stid = thread_small_id();
 	void *p;
+
 	(void) unused_arg;
+
+	emit("POSIX thread #%u starting", stid);
+
+	thread_atexit(pexit_callback, uint_to_pointer(stid));
 
 	p = xmalloc(100);
 	compat_sleep_ms(100);
