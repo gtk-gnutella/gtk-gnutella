@@ -463,8 +463,22 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
-		if (bc->handle != NULL)
+		/*
+		 * On Windows, we apparently still need to avoid calling bfd_close()
+		 * as this creates a SIGSEGV in the BFD library code.  Diagnosing
+		 * such crashes on Windows is not easy, therefore using the fastpath
+		 * of reverting to a known working solution, even though the root cause
+		 * is still lurking and can cause instability (read: "random crashes").
+		 * 		--RAM, 2020-03-22
+		 */
+
+		if (bc->handle != NULL) {
+#ifdef MINGW32
+			bfd_close_all_done(bc->handle);
+#else
 			bfd_close(bc->handle);
+#endif
+		}
 
 		symbols_free_null(&bc->text_symbols);
 
