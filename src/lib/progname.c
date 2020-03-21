@@ -88,6 +88,10 @@ progstart(int argc, char * const *argv)
 
 	g_return_unless(NULL == progname_argv);	/* Should be called once only! */
 
+#ifdef MINGW32
+	mingw_early_init();			/* Must be done as early as possible! */
+#endif	/* MINGW32 */
+
 	thread_main_starting();		/* We are now certain we're the main thread */
 
 	progname_argc = argc;
@@ -119,10 +123,6 @@ progstart(int argc, char * const *argv)
 
 	if (NULL == product_name())
 		product_set_forced_name(progname_info.name);
-
-#ifdef MINGW32
-	mingw_early_init();
-#endif	/* MINGW32 */
 
 	/*
 	 * Because fd_preserve() can allocate memory and we are going to call
