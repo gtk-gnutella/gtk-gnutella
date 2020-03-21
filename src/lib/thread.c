@@ -430,14 +430,11 @@ struct thread_element {
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
-	uint gone:1;					/**< Discovered thread is gone */
 	uint atomic_name:1;				/**< Whether name is an atomic string */
 	uint stack_overflow:1;			/**< Stack overflow was detected */
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
 	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
 	uint in_backtrace:1;			/**< Records thread backtracing */
-	bool add_monitoring;			/**< Must reinstall thread monitoring */
-	bool gone_seen;					/**< Flagged activity from gone thread */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock_stack waits;	/**< Locks on which thread is waiting */
@@ -1259,32 +1256,6 @@ thread_monitor_exit(struct thread_element *te)
 }
 
 /**
- * A discovered thread was marked as "gone" and yet we are seeing some
- * activity for it.
- */
-static void
-thread_element_mark_gone_seen(struct thread_element *te)
-{
-	/*
-	 * We cannot lock the thread element because we are on the
-	 * thread_small_id() execution path, which cannot take locks since
-	 * we could be interrupted by an operating system signal and the
-	 * first thing the signal handler will do is call thread_small_id()!
-	 *
-	 * On this execution path, speed is important so we cannot create a
-	 * critical section to block signals.  Hence we use atomic operations,
-	 * which means the "gone_seen" and "add_monitoring" fields must be
-	 * individual fields and not part of a bit field!
-	 */
-
-	if G_UNLIKELY(te->gone && !te->gone_seen) {
-		te->gone_seen = TRUE;
-		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
-		atomic_mb();
-	}
-}
-
-/**
  * A discovered thread (outside of "main") was seen running.
  */
 static void
@@ -1300,21 +1271,6 @@ thread_element_mark_running(struct thread_element *te)
 	 */
 
 	te->last_seen = tm_time_raw();
-
-	/*
-	 * Loudly warn if the thread element is marked as gone.
-	 * It means that thread_will_exit() was called, we marked the
-	 * discovered thread as being gone and yet the same thread
-	 * is still being active.
-	 */
-
-	if G_UNLIKELY(te->gone) {
-		thread_element_mark_gone_seen(te);
-	} else if G_UNLIKELY(te->add_monitoring) {
-		/* No longer flagged as "gone", re-install monitoring */
-		te->add_monitoring = FALSE;
-		thread_monitor_exit(te);
-	}
 }
 
 /**
@@ -1652,9 +1608,6 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 			G_STRFUNC, thread_element_name(te),
 			bad_lo, bad_hi, qid, te->low_qid, te->high_qid);
 	}
-
-	if G_UNLIKELY(te->gone)
-		thread_element_mark_gone_seen(te);
 
 	thread_stack_update(te);
 
@@ -2024,90 +1977,6 @@ thread_gone(struct thread_element *te)
 }
 
 /**
- * Callout queue callback invoked when discovered thread is surely gone.
- */
-static void
-thread_surely_gone(cqueue_t *cq, void *data)
-{
-	struct thread_element *te = data;
-	bool problem;
-
-	thread_element_check(te);
-
-	cq_event(cq);
-
-	THREAD_LOCK(te);
-
-	if (!te->valid || !te->exit_started || !te->discovered) {
-		bool is_valid = te->valid;
-		THREAD_UNLOCK(te);
-		if (is_valid) {
-			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-				G_STRFUNC, te->stid, thread_element_name(te));
-		}
-		return;
-	}
-
-	problem = te->gone_seen;
-	if (problem) {
-		te->gone = FALSE;			/* Will not reuse it after all */
-		te->exit_started = FALSE;	/* And definitely not exiting */
-	}
-	THREAD_UNLOCK(te);
-
-	if (problem) {
-		s_warning("%s(): seen some activity for %s, not reusing its ID",
-			G_STRFUNC, thread_element_name(te));
-	} else {
-		thread_gone(te);
-		te->discovered = FALSE;
-		atomic_uint_dec(&thread_discovered);
-	}
-}
-
-/**
- * Callout queue callback invoked when discovered thread is probably gone.
- */
-static void
-thread_probably_gone(cqueue_t *cq, void *data)
-{
-	struct thread_element *te = data;
-
-	thread_element_check(te);
-
-	cq_event(cq);
-
-	THREAD_LOCK(te);
-
-	if (!te->valid || !te->exit_started || !te->discovered) {
-		bool is_valid = te->valid;
-		THREAD_UNLOCK(te);
-		if (is_valid) {
-			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-				G_STRFUNC, te->stid, thread_element_name(te));
-		}
-		return;
-	}
-
-	/*
-	 * We flag the discovered thread as gone, which will give us a loud
-	 * warning if we see a QID cache hit for that thread again.
-	 */
-
-	te->gone = TRUE;
-	te->gone_seen = FALSE;
-
-	THREAD_UNLOCK(te);
-
-	/*
-	 * Now after some safety period has elapsed, mark the element as
-	 * being truly gone.
-	 */
-
-	evq_raw_insert(THREAD_GRACE_TIME, thread_surely_gone, te);
-}
-
-/**
  * A created thread has definitively ended and we can reuse its thread element.
  */
 static void
@@ -2382,9 +2251,6 @@ thread_element_reset(struct thread_element *te)
 	te->cancelled = FALSE;
 	te->cancelable = TRUE;
 	te->exit_started = FALSE;
-	te->gone = FALSE;
-	te->gone_seen = FALSE;
-	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
 	te->sig_disabled = FALSE;
@@ -2937,22 +2803,7 @@ thread_will_exit(void *arg)
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
 
 	thread_common_exit(te, NULL, NULL);
-
-	/*
-	 * Since the thread was discovered, we wait a little bit to reuse its
-	 * thread element: we cannot know for sure that this is the last activity
-	 * we will see for that dying thread (other cleanup could involve freeing
-	 * allocated objects).
-	 *
-	 * We have to pray for the holding time to be large enough or we will mark
-	 * the thread reusable too soon!  The consequence is that we could
-	 * re-discover the same thread on its exit path, but this time there will
-	 * be no usable hook to let us know the thread has died, possibly leading
-	 * to a thread element leak if we cannot determine for sure that the thread
-	 * is dead.
-	 */
-
-	evq_raw_insert(THREAD_HOLD_TIME, thread_probably_gone, te);
+	thread_gone(te);
 }
 
 /**
@@ -12728,9 +12579,6 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPB(sleeping);
 	DUMPB(exit_started);
 	DUMPB(in_syscall);
-	DUMPB(gone);
-	DUMPB(gone_seen);
-	DUMPB(add_monitoring);
 	DUMPL("%sABLE",  "cancl", THREAD_CANCEL_ENABLE == te->cancl ? "EN" : "DIS");
 	DUMPF("%zu", locks.count);
 	for (i = te->locks.count; i != 0; i--) {
