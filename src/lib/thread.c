@@ -12597,6 +12597,9 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	log_info(la, "THREAD --- begin element #%u%s ---",
 		stid, locked ? "" : " (UNLOCKED)");
 
+#define DUMPB(field) \
+	log_info(la, "THREAD %19s = %s", #field, bool_to_string(te->field))
+
 #define DUMPF(fmt, field) \
 	log_info(la, "THREAD %19s = " fmt, #field, te->field)
 
@@ -12606,8 +12609,8 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 #define DUMPL(fmt, name, ...) \
 	log_info(la, "THREAD %19s = " fmt, name, __VA_ARGS__)
 
-	DUMPF("%d",  valid);
-	DUMPF("%d",  reusable);
+	DUMPB(valid);
+	DUMPB(reusable);
 	DUMPF("%lu", tid);
 	DUMPF("%zu", last_qid);
 	DUMPF("%zu", low_qid);
@@ -12625,11 +12628,11 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPV("%s",  entry, stacktrace_function_name(te->entry));
 	DUMPF("%p",  argument);
 	DUMPF("%s",  entry_name);
-	DUMPF("%d",  suspend);
-	DUMPF("%d",  pending);
+	DUMPB(suspend);
+	DUMPB(pending);
 	DUMPL("{ %d, %d }", "wfd[]", te->wfd[0], te->wfd[1]);
-	DUMPF("%d",  join_requested);
-	DUMPF("%d",  join_pending);
+	DUMPB(join_requested);
+	DUMPB(join_pending);
 	DUMPF("%u",  joining_id);
 	DUMPF("%u",  unblock_events);
 	DUMPF("%p",  exit_value);
@@ -12638,29 +12641,29 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%u",  signalled);
 	DUMPF("%u",  sig_generation);
 	DUMPF("%d",  in_signal_handler);
-	DUMPF("%d",  sig_disabled);
+	DUMPB(sig_disabled);
 	DUMPF("%d",  sleep_interruptible);
-	DUMPF("%d",  created);
-	DUMPF("%d",  discovered);
-	DUMPF("%d",  running);
-	DUMPF("%d",  deadlocked);
-	DUMPF("%d",  creating);
-	DUMPF("%d",  exiting);
-	DUMPF("%d",  suspended);
-	DUMPF("%d",  blocked);
-	DUMPF("%d",  timed_blocked);
-	DUMPF("%d",  unblocked);
-	DUMPF("%d",  detached);
-	DUMPF("%d",  main_thread);
-	DUMPF("%d",  cancelled);
-	DUMPF("%d",  cancelable);
-	DUMPF("%d",  sleeping);
-	DUMPF("%d",  exit_started);
-	DUMPF("%d",  in_syscall);
-	DUMPF("%d",  gone);
-	DUMPF("%d",  gone_seen);
-	DUMPF("%d",  add_monitoring);
-	DUMPF("%d",  cancl);
+	DUMPB(created);
+	DUMPB(discovered);
+	DUMPB(running);
+	DUMPB(deadlocked);
+	DUMPB(creating);
+	DUMPB(exiting);
+	DUMPB(suspended);
+	DUMPB(blocked);
+	DUMPB(timed_blocked);
+	DUMPB(unblocked);
+	DUMPB(detached);
+	DUMPB(main_thread);
+	DUMPB(cancelled);
+	DUMPB(cancelable);
+	DUMPB(sleeping);
+	DUMPB(exit_started);
+	DUMPB(in_syscall);
+	DUMPB(gone);
+	DUMPB(gone_seen);
+	DUMPB(add_monitoring);
+	DUMPL("%sABLE",  "cancl", THREAD_CANCEL_ENABLE == te->cancl ? "EN" : "DIS");
 	DUMPF("%zu", locks.count);
 	for (i = te->locks.count; i != 0; i--) {
 		const struct thread_lock *l = &te->locks.arena[i - 1];
@@ -12730,7 +12733,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		if (NULL != te->sigh[i]) {
 			char buf[10];
 
-			str_bprintf(ARYLEN(buf), "sigh[%02u]", i);
+			str_bprintf(ARYLEN(buf), "sigh[%02u]", i+1); /* Show sig number */
 			if (TSIG_IGN == te->sigh[i]) {
 				DUMPL("%s", buf, "IGN");
 			} else {
@@ -12739,6 +12742,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		}
 	}
 
+#undef DUMPB
 #undef DUMPL
 #undef DUMPV
 #undef DUMPF
