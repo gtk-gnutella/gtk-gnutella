@@ -198,6 +198,7 @@ bool rwlock_is_owned(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
+bool rwlock_is_busy(const rwlock_t *rw) NON_NULL_PARAM((1));
 
 unsigned rwlock_writers(const rwlock_t *rw);
 

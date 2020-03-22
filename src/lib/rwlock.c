@@ -971,6 +971,7 @@ rwlock_is_used(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	if (0 != rw->readers || 0 != rw->writers)
 		return TRUE;
 
@@ -983,6 +984,18 @@ rwlock_is_used(const rwlock_t *rw)
 }
 
 /**
+ * Check whether write lock is used.
+ */
+bool
+rwlock_is_busy(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	atomic_mb();
+	return 0 != rw->writers;
+}
+
+/**
  * Check whether lock is free.
  */
 bool
@@ -990,6 +1003,7 @@ rwlock_is_free(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	return 0 == rw->readers && 0 == rw->writers;
 }
 
