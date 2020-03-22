@@ -79,6 +79,11 @@
 	unsigned print_str_iov_cnt_ = 0; \
 	iovec_t print_str_iov_[(num_iov)]
 
+/* When stack space is a dire resource, use static declarations */
+#define STATIC_DECLARE_STR(num_iov) \
+	static unsigned print_str_iov_cnt_ = 0; \
+	static iovec_t print_str_iov_[(num_iov)]
+
 #define TRUNCATION_STR	"TRUNCATION AT " _WHERE_ ":" STRINGIFY(__LINE__) "\n"
 
 #define print_str(text) \

@@ -8927,17 +8927,16 @@ static void G_COLD
 mingw_exception_log(int stid, uint code,
 	const void *pc, const void *sp, const struct stackframe *sf)
 {
-	DECLARE_STR(15);
-	char time_buf[CRASH_TIME_BUFLEN];
-	char buf[ULONG_DEC_BUFLEN];
-	char pc_buf[POINTER_BUFLEN];
-	const char *s, *name, *file = NULL;
-	const void *caller_pc = NULL;
+	/* All variables declared static to avoid taking up stack space */
+	STATIC_DECLARE_STR(15);
+	static char time_buf[CRASH_TIME_BUFLEN];
+	static char buf[ULONG_DEC_BUFLEN];
+	static char pc_buf[POINTER_BUFLEN];
+	static const char *s, *name, *file = NULL;
+	static const void *caller_pc = NULL;
 
 	crash_time(ARYLEN(time_buf));
-	name = mingw_routine_name(pc);
-	if (is_strprefix(name, "0x"))
-		name = NULL;
+	name = stacktrace_routine_name_light(pc, NULL);
 
 	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
