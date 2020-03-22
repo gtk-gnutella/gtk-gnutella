@@ -8932,10 +8932,11 @@ mingw_exception_log(int stid, uint code,
 	static char time_buf[CRASH_TIME_BUFLEN];
 	static char buf[ULONG_DEC_BUFLEN];
 	static char pc_buf[POINTER_BUFLEN];
+	static char caller_buf[POINTER_BUFLEN];
 	static const char *s, *name, *file = NULL;
 	static const void *caller_pc = NULL;
 
-	crash_time(ARYLEN(time_buf));
+	crash_time_raw(ARYLEN(time_buf));
 	name = stacktrace_routine_name_light(pc, NULL);
 
 	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
@@ -8946,10 +8947,7 @@ mingw_exception_log(int stid, uint code,
 	 * Try to intuit our caller from the stackframe pointer given.
 	 */
 
-	if (
-		EXCEPTION_STACK_OVERFLOW != code &&
-		NULL == name && NULL == file
-	) {
+	if (NULL == name && NULL == file) {
 		if (valid_stack_ptr(sf, sf) && valid_ptr(sf->ret)) {
 			caller_pc = sf->ret;
 
@@ -8958,10 +8956,8 @@ mingw_exception_log(int stid, uint code,
 			 */
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = mingw_routine_name(caller_pc);
-				if (is_strprefix(name, "0x"))
-					name = NULL;
-			} else {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
 				file = dl_util_get_path(caller_pc);
 			}
 
@@ -8979,10 +8975,8 @@ mingw_exception_log(int stid, uint code,
 			caller_pc = ulong_to_pointer(peek_le32(sp));
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = mingw_routine_name(caller_pc);
-				if (is_strprefix(name, "0x"))
-					name = NULL;
-			} else {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
 				file = dl_util_get_path(caller_pc);
 			}
 
@@ -8998,11 +8992,12 @@ mingw_exception_log(int stid, uint code,
 	s = PRINT_NUMBER(buf, stid);
 	print_str(s);										/* 2 */
 	print_str("): received exception at PC=");			/* 3 */
-	print_str(pointer_to_string(pc));					/* 4 */
+	pointer_to_string_buf(pc, ARYLEN(pc_buf));
+	print_str(pc_buf);									/* 4 */
 	if (caller_pc != NULL) {
-		pointer_to_string_buf(caller_pc, ARYLEN(pc_buf));
+		pointer_to_string_buf(caller_pc, ARYLEN(caller_buf));
 		print_str(" probably called from PC=");			/* 5 */
-		print_str(pc_buf);								/* 6 */
+		print_str(caller_buf);							/* 6 */
 	}
 	if (name != NULL) {
 		print_str(" (");								/* 7 */
@@ -9123,6 +9118,9 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		pc, sp, thread_sp(),
 		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
 		signal_in_exception());
+
+	if (EXCEPTION_STACK_OVERFLOW == er->ExceptionCode)
+		s_rawwarn("stack used: %'zu bytes", thread_id_stack_used(stid, sp));
 
 	/*
 	 * Dump nested exception records, if any.
