@@ -103,6 +103,7 @@ symbols_check(const struct symbols * const s)
 
 #define SYMBOLS_WRITE_LOCK(x)	rwlock_wlock(&(x)->lock)
 #define SYMBOLS_WRITE_UNLOCK(x)	rwlock_wunlock(&(x)->lock)
+#define SYMBOLS_WRITE_LOCKED(x)	rwlock_is_busy(&(x)->lock)
 
 enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
 
@@ -791,6 +792,45 @@ symbols_addr(const symbols_t *st, const void *pc)
 	SYMBOLS_READ_UNLOCK(st);
 
 	return p;
+}
+
+/**
+ * Light version of the symbols_name_only() routine which attempts to minimize
+ * the resources required to compute the information.
+ *
+ * This is light in that there is no need to format, and that we do not
+ * attempt to lock the symbols, only bailing out when the symbols are
+ * already write-locked.
+ *
+ * This can cause races and this routine should only be used during crashing,
+ * to help translate information about PC and stack traces into digestable
+ * names.
+ *
+ * @param st		the symbol table
+ * @param pc		the PC to translate into symbolic form
+ * @param offset	where offset is written, if non-NULL
+ *
+ * @return symbolic name for given pc offset, if found, NULL otherwise.
+ */
+const char *
+symbols_name_light(const symbols_t *st, const void *pc, size_t *offset)
+{
+	struct symbol *s;
+
+	symbols_check(st);
+
+	if (SYMBOLS_WRITE_LOCKED(st))
+		return NULL;		/* Already locked, symbols being loaded */
+
+	s = symbols_find(st, pc);
+
+	if (NULL == s)
+		return NULL;
+
+	if (offset != NULL)
+		*offset = ptr_diff(const_ptr_add_offset(pc, st->offset), s->addr);
+
+	return s->name;
 }
 
 /*
