@@ -98,6 +98,7 @@ void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
 const char *stacktrace_routine_name(const void *pc, bool offset);
+const char *stacktrace_routine_name_light(const void *pc, size_t *offset);
 size_t stacktrace_unwind(void *stack[], size_t count, size_t offset);
 size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 

@@ -1625,6 +1625,27 @@ stacktrace_caller_name(size_t n)
 }
 
 /**
+ * Return symbolic name of the routine to which a PC belongs, in a light way.
+ *
+ * This routine should be used when crashing and it is critical to gather
+ * information in a light way, for fear that more correct and accurate ways
+ * would lead to a subsequent crash.
+ *
+ * @param pc		the PC we're looking for
+ * @param offset	if non-NULL, written with offset within routine
+ *
+ * @return pointer to static data, NULL if symbols were not loaded.
+ */
+const char *
+stacktrace_routine_name_light(const void *pc, size_t *offset)
+{
+	if (NULL == stacktrace_symbols)
+		return NULL;
+
+	return symbols_name_light(stacktrace_symbols, pc, offset);
+}
+
+/**
  * Return symbolic name of the routine to which a PC belongs.
  *
  * @param pc		the PC we're looking for
