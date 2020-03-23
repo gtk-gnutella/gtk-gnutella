@@ -4831,9 +4831,13 @@ crash_dump_stacks(int fd)
 
 /**
  * Record that we are deadlocked.
+ *
+ * @param dump_stacks	whether to dump stacks to stderr
+ * @param file			source file name where lock was being taken
+ * @param line			line within file where lock was being taken
  */
 void G_COLD
-crash_deadlocked(const char *file, unsigned line)
+crash_deadlocked(bool dump_stacks, const char *file, unsigned line)
 {
 	crash_last_deadlock_file = file;
 
@@ -4849,7 +4853,8 @@ crash_deadlocked(const char *file, unsigned line)
 			crash_set_var(lock_line, line);
 		}
 
-		crash_dump_stacks(STDERR_FILENO);
+		if (dump_stacks)
+			crash_dump_stacks(STDERR_FILENO);
 	}
 }
 

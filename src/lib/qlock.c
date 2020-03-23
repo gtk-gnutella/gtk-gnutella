@@ -281,7 +281,7 @@ qlock_deadlocked(const void *obj, unsigned elapsed,
 	if (q->stid != (uint8) THREAD_INVALID_ID)
 		s_rawinfo("thread #%u is %s", q->stid, thread_id_name(q->stid));
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 
 	s_error("deadlocked on %s%s %p (after %u secs) at %s:%u",

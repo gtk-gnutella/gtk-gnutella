@@ -221,7 +221,7 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 #endif
 #endif
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
 		s->lock ? "" : "free ", obj, elapsed, file, line);

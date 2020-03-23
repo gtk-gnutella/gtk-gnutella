@@ -567,7 +567,7 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	atomic_mb();
 	rwlock_check(rw);
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	rwlock_wait_queue_dump(rw);
 	thread_lock_deadlock(rw);
 

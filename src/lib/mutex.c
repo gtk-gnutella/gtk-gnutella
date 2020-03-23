@@ -155,7 +155,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,
