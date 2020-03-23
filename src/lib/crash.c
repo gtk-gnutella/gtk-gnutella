@@ -146,8 +146,8 @@ enum crash_level {
 	CRASH_LVL_NONE = 0,				/**< No crash yet */
 	CRASH_LVL_BASIC,				/**< Basic crash level */
 	CRASH_LVL_OOM,					/**< Out of memory */
-	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_FAILURE,				/**< Assertion failure */
+	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
 	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
 };
@@ -663,8 +663,8 @@ crash_level_to_string(const enum crash_level level)
 	case CRASH_LVL_NONE:		return "none";
 	case CRASH_LVL_BASIC:		return "basic";
 	case CRASH_LVL_OOM:			return "OOM";
-	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_FAILURE:		return "failure";
+	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_EXCEPTION:	return "exception";
 	case CRASH_LVL_RECURSIVE:	return "recursive";
 	}
@@ -2696,8 +2696,8 @@ crash_mode(enum crash_level level, bool external)
 
 		/* FALL THROUGH */
 
-	case CRASH_LVL_FAILURE:
 	case CRASH_LVL_DEADLOCKED:
+	case CRASH_LVL_FAILURE:
 		/*
 		 * Put our main allocators in crash mode, which will limit risks if we
 		 * are crashing due to a data structure corruption or an assertion
@@ -2755,14 +2755,6 @@ done:
 
 	if (CRASH_LVL_OOM == level)
 		crash_oom_condition();
-
-	/*
-	 * Specifically for deadlock conditions, disable all locks, if not
-	 * already done above by the thread_crash_mode() call.
-	 */
-
-	if (CRASH_LVL_DEADLOCKED == level)
-		thread_lock_disable(FALSE);
 
 	/*
 	 * Activate crash mode.
