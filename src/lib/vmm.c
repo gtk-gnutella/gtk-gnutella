@@ -804,27 +804,58 @@ vmm_dump_pmap_log(logagent_t *la)
 	struct vm_fragment *array;
 
 	/*
-	 * We use a write-lock and not a read-lock here, which can seem surprising
-	 * at first since we're in essence reading the pmap.  However, we are
-	 * allocating memory and re-enter the VMM layer, attempting to then grab
-	 * the write-lock.  It is not allowed to request a write-lock when the
-	 * read-lock is already owned (one needs to upgrade it or release the read
-	 * lock and request the write lock).
+	 * We cannot write-lock the pmap before calling vmm_alloc() because this
+	 * can create a deadlock when probing the page cache (which takes
+	 * a spinlock for the page cache and can then read-lock the pmap). Another
+	 * thread could therefore grab the page cache lock and then stall waiting
+	 * for the read-lock whilst we hold the write lock, and our vmm_alloc()
+	 * call is probably going to inspect the page cache for a fit, deadlocking
+	 * as it attempts to get the page cache spinlock.
 	 *
-	 * Therefore we need to take the write-lock to be fully protected, since
-	 * we can then take it again or request read-locks whilst we own the
-	 * write-lock.
+	 * The above scenario was evidenced clearly by thread_deadlock_check()
+	 * today.
+	 *
+	 * Therefore we need to iterate, attempting to allocate the proper length
+	 * and make sure that length hasn't changed when we come back from
+	 * the vmm_alloc().
+	 *
+	 * 		--RAM, 2020-03-20
 	 */
 
-	rwlock_wlock(&pm->lock);
+	for (i = 0; /* empty */; i++) {
+		rwlock_rlock(&pm->lock);
+		count = pm->count;
+		rwlock_runlock(&pm->lock);
 
-	count = pm->count;
-	size = pm->size;
-	length = count * sizeof array[0];
-	array = vmm_alloc(length);			/* Why we need a write-lock on pmap */
-	memcpy(array, pm->array, length);
+		length = count * sizeof array[0];
+		array = vmm_alloc(length);		/* Call without any lock on pmap */
 
-	rwlock_wunlock(&pm->lock);
+		rwlock_rlock(&pm->lock);
+		size = pm->size;
+
+		if (count >= pm->count) {
+			/* OK if the count decreased, our array is large enough */
+			count = pm->count;			/* Refresh in case it decreased */
+			memcpy(array, pm->array, count * sizeof array[0]);
+			rwlock_runlock(&pm->lock);
+			break;		/* Got the copy of pmap in correctly-sized array */
+		} else {
+			/* Bad luck, amount of entries in pmap increased! */
+			rwlock_runlock(&pm->lock);
+			vmm_free(array, length);
+		}
+
+		if (i > 10) {
+			/* Bail out */
+			s_warning("%s(): cannot copy pmap, its length keeps changing!",
+				G_STRFUNC);
+			log_debug(la, "VMM local pmap (%'zu/%'zu region%s) keeps changing!",
+				count, size, plural(count));
+			return;
+		}
+
+		thread_yield();
+	}
 
 	/*
 	 * Remaining code running without any lock, using the data we just copied.
