@@ -12007,6 +12007,36 @@ thread_interrupt(uint id, process_fn_t cb, void *arg,
 }
 
 /**
+ * Intuit lock type based on lock object, for logging purposes.
+ *
+ * This relies on the presence of a known magic number at the beginning
+ * of each lock structure.
+ *
+ * @param lock		the lock object
+ *
+ * @return string with textual description of the lock.
+ */
+static const char *
+thread_intuited_lock_type(const volatile void *lock)
+{
+	const volatile struct { int value; } *magic = lock;
+
+	switch (magic->value) {
+	case MUTEX_MAGIC:			return "mutex";
+	case SPINLOCK_MAGIC:		return "spinlock";
+	case RWLOCK_MAGIC:			return "rwlock";
+	case QLOCK_PLAIN_MAGIC:		return "plain qlock";
+	case QLOCK_RECURSIVE_MAGIC:	return "recursive qlock";
+	case MUTEX_DESTROYED:		return "destroyed mutex";
+	case SPINLOCK_DESTROYED:	return "destroyed spinlock";
+	case RWLOCK_DESTROYED:		return "destroyed rwlock";
+	case QLOCK_DESTROYED:		return "destroyed qlock";
+	}
+
+	return "UNKNOWN";
+}
+
+/**
  * Perform deadlock detection for registered locks (i.e. those not hidden).
  *
  * Formal detection is costly and is run in one thread with all the others
@@ -12045,9 +12075,11 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 		uint count;						/* amount of outsiders stored */
 	} outsiders;
 	uint64 precursors[THREAD_MAX];		/* value is a bitmask of threads */
+	uint involved = 0;					/* threads involved in deadlock */
 	int i;
 	bool deadlock = FALSE;
 
+	/* Need room in an uint64 to have one bit per possible thread */
 	STATIC_ASSERT(THREAD_MAX <= 8 * sizeof(uint64));
 
 	THREAD_STATS_INCX(locks_deadlock_checks);
@@ -12185,25 +12217,47 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 	 * Deadlock found!
 	 */
 
-	s_rawwarn("deadlock found whilst waiting on %p at %s:%u", lock, file, line);
+	s_rawwarn("deadlock found whilst waiting on %s %p at %s:%u",
+		thread_intuited_lock_type(lock), lock, file, line);
 
 	/*
 	 * Before dumping important information, make sure we're disabling locks
 	 * since we're about to crash and we're already deadlocked.
+	 *
+	 * Calling crash_deadlocked() will indirectly cause all locks to be
+	 * disabled, but we do not request thread stack dumping at this stage
+	 * since we'll only dump the stacks of the threads involved in the
+	 * deadlock later on.
 	 */
 
-	thread_crash_mode(TRUE);
+	crash_deadlocked(FALSE, file, line);
+
 	s_miniinfo("dumping lock stack of involved threads:");
 
 	for (i = 0; i < THREAD_MAX; i++) {
-		if (0 != precursors[i])
+		if (0 != precursors[i]) {
+			const struct thread_element *te = threads[i];
+
+			/*
+			 * Thread may be present here because it is waiting also on
+			 * the same lock as the one we're dead-locking on, but if
+			 * it holds no locks currently, it is not part of the
+			 * deadlock condition.  Skip it.
+			 */
+
+			if (0 == te->locks.count)
+				continue;		/* Hold no locks, not part of deadlock */
+
+			involved++;
 			thread_lock_dump(threads[i]);
+		}
 	}
 
-	s_miniinfo("end of involved threads.");
+	s_miniinfo("end of involved %u thread%s.", PLURAL(involved));
 
 	thread_lock_deadlock(lock);
-	s_error("deadlocked at %s:%u", file, line);
+	s_error("found %u thread%s deadlocked on %s %p at %s:%u",
+		PLURAL(involved), thread_intuited_lock_type(lock), lock, file, line);
 }
 
 /**
