@@ -4271,12 +4271,15 @@ thread_stack_check_overflow(const void *va)
 	 */
 
 	if (extra_stack) {
-		s_rawcrit("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name_raw(te));
+		/* This will cause stack unwinding by the logging layer */
+		s_rawcrit("stack (%zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_element_name_raw(te),
+			thread_id_stack_used(te->stid, va));
 	} else {
 		/* Don't attempt to unwind the stack, that costs stack space! */
-		s_rawwarn("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name_raw(te));
+		s_rawwarn("stack (%zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_element_name_raw(te),
+			thread_id_stack_used(te->stid, va));
 	}
 
 	thread_stack_overflow(te);
