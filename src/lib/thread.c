@@ -12078,7 +12078,8 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 		uint count;						/* amount of outsiders stored */
 	} outsiders;
 	uint64 precursors[THREAD_MAX];		/* value is a bitmask of threads */
-	uint involved = 0;					/* threads involved in deadlock */
+	uint64 involved_mask;				/* mask of involved threads */
+	uint involved;						/* threads involved in deadlock */
 	int i;
 	bool deadlock = FALSE;
 
@@ -12234,6 +12235,8 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 	 */
 
 	crash_deadlocked(FALSE, file, line);
+	involved = 0;
+	involved_mask = 0;
 
 	s_miniinfo("dumping lock stack of involved threads:");
 
@@ -12252,9 +12255,12 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 				continue;		/* Hold no locks, not part of deadlock */
 
 			involved++;
+			involved_mask |= (uint64) 1U << i;
 			thread_lock_dump(threads[i]);
 		}
 	}
+
+	crash_deadlocked_set_thread_mask(involved_mask);
 
 	s_miniinfo("end of involved %u thread%s.", PLURAL(involved));
 

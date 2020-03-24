@@ -172,6 +172,7 @@ struct crash_vars {
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
 	const char *fail_name;	/**< Name of thread triggering assertion failure */
+	uint64 deadlock_mask;	/**< Has 1 bit set for each deadlocked thread */
 	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
 	pid_t ppid;				/**< Parent PID, when supervising */
@@ -1359,6 +1360,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char nbuf[ULONG_DEC_BUFLEN];
 	char lbuf[ULONG_DEC_BUFLEN];
 	char pbuf[ULONG_DEC_BUFLEN];
+	char u64buf[UINT64_HEX_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1494,6 +1496,9 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str(":");						/* 5 */
 		print_str(PRINT_NUMBER(lbuf, vars->lock_line));	/* 6 */
 		print_str("\n");					/* 7 */
+		print_str("Deadlock-Thread-Mask: 0x");						/* 8 */
+		print_str(print_hex(ARYLEN(u64buf), vars->deadlock_mask));	/* 9 */
+		print_str("\n");					/* 10 */
 	}
 	flush_str(clf);
 
@@ -4847,6 +4852,28 @@ crash_deadlocked(bool dump_stacks, const char *file, unsigned line)
 
 		if (dump_stacks)
 			crash_dump_stacks(STDERR_FILENO);
+	}
+}
+
+/**
+ * Record deadlock thread mask, with 1 bit set for each involved thread.
+ *
+ * When a crash occurs due to a detected deadlock from the thread layer, we
+ * compute this mask and emit it in the crashlog to make it easier to determine
+ * afterwards the set of involved threads in that deadlock.
+ *
+ * Indeed, the crashlog will contain (hopefully) the whole set of threads
+ * that had locks or where waiting for a lock, and some may not be part of
+ * the deadlock -- it may not always be obvious which of them where, especially
+ * when some threads hold many locks.
+ */
+void G_COLD
+crash_deadlocked_set_thread_mask(uint64 mask)
+{
+	if (vars != NULL) {
+		uint8 t = TRUE;
+		crash_set_var(deadlocked, t);
+		crash_set_var(deadlock_mask, mask);
 	}
 }
 
