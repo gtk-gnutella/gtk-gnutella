@@ -22,6 +22,11 @@ else
 	echo "Can't find the $DIR directory."; exit 1
 fi
 
+# Use -d to dump defined variables to stdout
+case "$1" in
+-d) dump=true;;
+esac
+
 # Build reasonable default
 file=$TOP/src/gtk-gnutella.h
 
@@ -45,12 +50,12 @@ if test -d $TOP/.git && git describe >/dev/null 2>&1 &&
 		VN="$VN-dirty" ;;
 	esac
 then
-	VN="$VN"
 	case "$revchar" in
-	'') BRANCH=master;;
-	*) BRANCH=devel;;
+	'') DATE=;;
+	*)
+		DATE=`git show --format="%ai" HEAD 2>/dev/null | head -1 | cut -f1 -d ' '`
+		;;
 	esac
-	DATE=`git show --format="%ai" $BRANCH 2>/dev/null | head -1 | cut -f1 -d ' '`
 elif test -s $TOP/version; then
 	VN=`cat $TOP/version`
 else
@@ -58,8 +63,6 @@ else
 fi
 
 VN=`echo $VN | sed -e s/^v//`
-
-echo $VN
 V=$VN
 
 VMajor=`echo $V | sed -e 's/^\([0-9]*\).*/\1/'`
@@ -82,3 +85,27 @@ case "$V" in
 esac
 
 VRev=`echo $VRev | sed -e s/^-//`
+
+# Dump defined variables when -d given
+case "$dump" in
+'') ;;
+*)
+	cat <<EOD
+DEF_VER=$DEF_VER
+LAST=$LAST
+DATE=$DATE
+VN=$VN
+VMajor=$VMajor
+VMinor=$VMinor
+VPatch=$VPatch
+VRev=$VRev
+version=$version
+subversion=$subversion
+patchlevel=$patchlevel
+revchar=$revchar
+EOD
+	;;
+esac
+
+# Output version number
+echo $VN
