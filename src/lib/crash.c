@@ -3381,8 +3381,18 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crash_count))
+	if (1 == ATOMIC_GET(&crash_count)) {
+		/*
+		 * Cleanup will take locks, and removing system resources, such as
+		 * semaphores, could create panics in other threads that would lead
+		 * to a recursive crash.  Better enter thread crashing mode now,
+		 * which will suspend the other threads and disable locks if needed.
+		 * 		--RAM, 2020-04-03
+		 */
+
+		thread_crash_mode(FALSE);
 		signal_perform_cleanup();
+	}
 
 	/*
 	 * If we are in the child process, prevent any exec() or pausing.
