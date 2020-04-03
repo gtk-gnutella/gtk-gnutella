@@ -3345,10 +3345,12 @@ crash_handler(int signo)
 	struct crash_handler_ctx v;
 	unsigned i;
 
+	i = ATOMIC_INC(&crash_count);		/* Previous value */
+
 	ZERO(&v);
 	v.cwd = "";
-	v.recursive = ATOMIC_GET(&crash_count) > 0;
 	v.signo = signo;
+	v.recursive = i != 0;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -3360,15 +3362,16 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (ATOMIC_INC(&crash_count) > 1) {
-		if (2 == ATOMIC_GET(&crash_count)) {
+	if (i > 1) {
+		/* This is at least the second recursive crash! */
+		if (2 == i) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == ATOMIC_GET(&crash_count)) {
+		} else if (3 == i) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -3381,7 +3384,7 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crash_count)) {
+	if (0 == i) {
 		/*
 		 * Cleanup will take locks, and removing system resources, such as
 		 * semaphores, could create panics in other threads that would lead
