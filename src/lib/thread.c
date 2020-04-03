@@ -8178,6 +8178,11 @@ thread_is_crashing(void)
 
 /**
  * Enter thread crashing mode.
+ *
+ * If any of the other threads is known to hold a lock, then all locks are
+ * disabled, regardless of disable_locks.
+ *
+ * @param disable_locks		if TRUE, disable all locks
  */
 void
 thread_crash_mode(bool disable_locks)
@@ -8208,7 +8213,7 @@ thread_crash_mode(bool disable_locks)
 	 * during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || disable_locks)
+	if (disable_locks || 0 != thread_others_lock_count())
 		thread_lock_disable(FALSE);
 }
 
