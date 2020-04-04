@@ -86,7 +86,20 @@ Installation
 To install one of the precompiled packages, consult your distribution's 
 documentation.  
 
-To compile gtk-gnutella, run:
+To compile gtk-gnutella, first make sure the following packages are installed:
+
+    make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+so if you never compiled a C++ source code or if you have freshly installed your GNU/Linux OS you should run:
+
+    $ sudo apt install make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+or log as super user and run:
+
+    $ su -
+    # apt install make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+When all required packages are installed, run:
 
     ./build.sh
 
