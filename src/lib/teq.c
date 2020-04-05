@@ -523,16 +523,21 @@ teq_ack(const struct tevent_acked *eva)
 static int
 teq_ev_cmp(const void *a, const void *b)
 {
-	const struct tevent *ea = a, *eb = b;
-	const struct tevent_plain *epa = a, *epb = b;
+	const struct tevent_plain *ea = a, *eb = b;
+
+	/*
+	 * We can compare magic number even if both events are not plain
+	 * because of structural equivalence of all the tevent_* structures:
+	 * they all start with a magic number.
+	 */
 
 	if (ea->magic != eb->magic)
 		return 1;		/* Different */
 
-	g_assert(tevent_is_plain(ea));
-	g_assert(tevent_is_plain(eb));
+	g_assert(tevent_is_plain((struct tevent *) ea));
+	g_assert(tevent_is_plain((struct tevent *) eb));
 
-	return epa->event == epb->event && epa->data == epb->data ? 0 : 1;
+	return ea->event == eb->event && ea->data == eb->data ? 0 : 1;
 }
 
 /**
