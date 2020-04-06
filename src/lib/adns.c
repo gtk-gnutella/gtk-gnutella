@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2004, Christian Biere
- * Copyright (c) 2013, Raphael Manfredi
+ * Copyright (c) 2013, 2015, 2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -31,7 +31,7 @@
  * @author Christian Biere
  * @date 2004
  * @author Raphael Manfredi
- * @date 2013
+ * @date 2013, 2015, 2020
  */
 
 #include "common.h"
@@ -47,8 +47,10 @@
 #include "hikset.h"
 #include "host_addr.h"
 #include "inputevt.h"
+#include "mutex.h"
 #include "once.h"
 #include "pslist.h"
+#include "shuffle.h"
 #include "signal.h"
 #include "thread.h"
 #include "tm.h"
@@ -149,9 +151,13 @@ typedef struct adns_cache_struct {
 	unsigned pos;
 	int timeout;
 	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
+	mutex_t lock;
 } adns_cache_t;
 
 static adns_cache_t *adns_cache = NULL;
+
+#define ADNS_CACHE_LOCK(ac)		mutex_lock(&(ac)->lock)
+#define ADNS_CACHE_UNLOCK(ac)	mutex_unlock(&(ac)->lock)
 
 /* private variables */
 
@@ -178,6 +184,7 @@ adns_cache_init(void)
 	for (i = 0; i < N_ITEMS(cache->entries); i++) {
 		cache->entries[i] = NULL;
 	}
+	mutex_init(&cache->lock);
 	return cache;
 }
 
@@ -238,10 +245,13 @@ adns_cache_free(adns_cache_t **cache_ptr)
 	g_assert(cache);
 	g_assert(cache->ht);
 
+	ADNS_CACHE_LOCK(cache);
+
 	for (i = 0; i < N_ITEMS(cache->entries); i++) {
 		adns_cache_free_entry(cache, i);
 	}
 	hikset_free_null(&cache->ht);
+	mutex_destroy(&cache->lock);
 	XFREE_NULL(cache);
 }
 
@@ -265,6 +275,8 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	g_assert(!hikset_contains(cache->ht, hostname));
 	g_assert(cache->pos < N_ITEMS(cache->entries));
 
+	ADNS_CACHE_LOCK(cache);
+
 	entry = adns_cache_get_entry(cache, cache->pos);
 	if (entry) {
 		g_assert(entry->hostname);
@@ -286,6 +298,8 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	hikset_insert_key(cache->ht, &entry->hostname);
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= N_ITEMS(cache->entries);
+
+	ADNS_CACHE_UNLOCK(cache);
 }
 
 /**
@@ -305,13 +319,17 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	const char *hostname, host_addr_t *addrs, size_t n)
 {
 	adns_cache_entry_t *entry;
+	size_t n_entry = 0;
 
 	g_assert(NULL != cache);
 	g_assert(NULL != hostname);
 	g_assert(0 == n || NULL != addrs);
 
+	ADNS_CACHE_LOCK(cache);
+
 	entry = hikset_lookup(cache->ht, hostname);
-	if (entry) {
+
+	if (entry != NULL) {
 		if (delta_time(now, entry->timestamp) < cache->timeout) {
 			size_t i;
 
@@ -325,6 +343,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 					addrs[i] = zero_host_addr;
 				}
 			}
+			n_entry = MIN(entry->n, n);		/* Amount of addresses copied */
 		} else {
 			if (common_dbg > 0) {
 				g_debug("%s: removing \"%s\" from cache",
@@ -333,11 +352,27 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 
 			hikset_remove(cache->ht, hostname);
 			adns_cache_free_entry(cache, entry->id);
-			entry = NULL;
 		}
 	}
 
-	return entry ? entry->n : 0;
+	ADNS_CACHE_UNLOCK(cache);
+
+	/*
+	 * If there are more than one address associated with the host, a
+	 * real DNS would rotate the answer so that we do not hit the same
+	 * IP address, ever.
+	 *
+	 * Here, we simply shuffle the results to ensure we do not hit the
+	 * same IP address in the unlikely event a name resolves to a
+	 * server pool and not to a load balancer or a single server.
+	 *
+	 * 		--RAM, 2020-04-06
+	 */
+
+	if (n_entry > 1)
+		SHUFFLE_ARRAY_N(addrs, n_entry);
+
+	return n_entry;
 }
 
 /**
@@ -511,10 +546,13 @@ adns_reply_ready(const struct adns_response *ans)
 			}
 		}
 
+		ADNS_CACHE_LOCK(adns_cache);
 
 		if (!adns_cache_lookup(adns_cache, now, reply->hostname, NULL, 0)) {
 			adns_cache_add(adns_cache, now, reply->hostname, reply->addrs, num);
 		}
+
+		ADNS_CACHE_UNLOCK(adns_cache);
 	}
 
 	g_assert(ans->common.user_callback);
