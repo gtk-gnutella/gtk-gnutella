@@ -2627,247 +2627,70 @@ bw_dht_out_changed(property_t prop)
     return FALSE;
 }
 
-static bool
-bw_allow_stealing_changed(property_t prop)
+static void
+bw_allow_stealing_set(bool val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
 	if (val)
 		bsched_config_steal_http_gnet();
 	else
 		bsched_config_steal_gnet();
-
-	return FALSE;
 }
 
-static bool
-node_online_mode_changed(property_t prop)
+static void
+lock_sleep_trace_set(bool val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	node_set_online_mode(val);
-
-    return FALSE;
-}
-
-static bool
-zalloc_always_gc_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	set_zalloc_always_gc(val);
-
-    return FALSE;
-}
-
-static bool
-zalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_zalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-bg_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	bg_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-dbstore_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	dbstore_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-evq_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	evq_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-inputevt_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	inputevt_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-inputevt_trace_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	inputevt_set_trace(val);
-
-    return FALSE;
-}
-
-static bool
-lock_sleep_trace_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
 	spinlock_set_sleep_trace(val);
 	rwlock_set_sleep_trace(val);
 	qlock_set_sleep_trace(val);
-
-    return FALSE;
 }
 
-static bool
-lock_contention_trace_changed(property_t prop)
+static void
+lock_contention_trace_set(bool val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
 	spinlock_set_contention_trace(val);
 	mutex_set_contention_trace(val);
 	rwlock_set_contention_trace(val);
 	qlock_set_contention_trace(val);
-
-    return FALSE;
 }
 
-static bool
-http_range_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_http_range_debug(val);
-
-    return FALSE;
+/**
+ * Generates callback routine to be invoked when property changes.
+ *
+ * @param x		the property name that changed
+ * @param type	the property type
+ * @param cb	the callback to invoke with the new property value
+ */
+#define SETTINGS_CB(x, type, cb) \
+static bool x ## _changed(property_t prop) {	\
+	type val;									\
+	gnet_prop_get_ ## type ## _val(prop, &val);	\
+	cb(val);									\
+	return FALSE;								\
 }
 
-static bool
-omalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_omalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-palloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_palloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-tm_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_tm_debug(val);
-
-    return FALSE;
-}
-
-static bool
-vmm_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_vmm_debug(val);
-
-    return FALSE;
-}
-
-static bool
-vxml_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_vxml_debug(val);
-
-    return FALSE;
-}
-
-static bool
-xmalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_xmalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-tmalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_tmalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-lib_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_library_debug(val);
-
-    return FALSE;
-}
-
-static bool
-lib_stats_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_library_stats(val);
-
-    return FALSE;
-}
+SETTINGS_CB(bg_debug,				uint32,	bg_set_debug)
+SETTINGS_CB(bw_allow_stealing,		bool,	bw_allow_stealing_set)
+SETTINGS_CB(configured_dht_mode,	uint32,	dht_configured_mode_changed)
+SETTINGS_CB(dbstore_debug,			uint32,	dbstore_set_debug)
+SETTINGS_CB(dl_minchunksize,		uint32,	file_info_set_minchunksize)
+SETTINGS_CB(evq_debug,				uint32,	evq_set_debug)
+SETTINGS_CB(http_range_debug,		uint32,	set_http_range_debug)
+SETTINGS_CB(inputevt_debug,			uint32,	inputevt_set_debug)
+SETTINGS_CB(inputevt_trace,			bool,	inputevt_set_trace)
+SETTINGS_CB(lib_debug,				uint32,	set_library_debug)
+SETTINGS_CB(lib_stats,				uint32,	set_library_stats)
+SETTINGS_CB(lock_contention_trace,	bool,	lock_contention_trace_set)
+SETTINGS_CB(lock_sleep_trace,		bool,	lock_sleep_trace_set)
+SETTINGS_CB(node_online_mode,		bool, 	node_set_online_mode)
+SETTINGS_CB(omalloc_debug,			uint32,	set_omalloc_debug)
+SETTINGS_CB(palloc_debug,			uint32,	set_palloc_debug)
+SETTINGS_CB(tm_debug,				uint32,	set_tm_debug)
+SETTINGS_CB(tmalloc_debug,			uint32,	set_tmalloc_debug)
+SETTINGS_CB(vmm_debug,				uint32,	set_vmm_debug)
+SETTINGS_CB(vxml_debug,				uint32,	set_vxml_debug)
+SETTINGS_CB(xmalloc_debug,			uint32,	set_xmalloc_debug)
+SETTINGS_CB(zalloc_always_gc,		bool, 	set_zalloc_always_gc)
+SETTINGS_CB(zalloc_debug,			uint32,	set_zalloc_debug)
 
 static bool
 forced_local_ip_changed(property_t prop)
@@ -2961,28 +2784,6 @@ current_peermode_changed(property_t prop)
 }
 
 static bool
-configured_dht_mode_changed(property_t prop)
-{
-    uint32 val;
-
-    gnet_prop_get_guint32_val(prop, &val);
-	dht_configured_mode_changed(val);
-
-	return FALSE;
-}
-
-static bool
-dl_minchunksize_changed(property_t prop)
-{
-    uint32 val;
-
-    gnet_prop_get_guint32_val(prop, &val);
-	file_info_set_minchunksize(val);
-
-	return FALSE;
-}
-
-static bool
 download_rx_size_changed(property_t prop)
 {
     uint32 val;
@@ -3071,7 +2872,7 @@ file_descriptor_x_changed(property_t prop)
 
 	if (*ev == NULL) {
 		*ev = cq_main_insert(RESET_PROP_TM,
-			reset_property_cb, GUINT_TO_POINTER(prop));
+			reset_property_cb, uint_to_pointer(prop));
 	} else {
 		cq_resched(*ev, RESET_PROP_TM);
 	}

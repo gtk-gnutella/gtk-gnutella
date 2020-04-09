@@ -148,6 +148,7 @@ static inline void
 	[=(. func-prefix)=]_get_boolean(p, value_ptr, 0, 1);
 }
 
+#define [=(. func-prefix)=]_get_bool_val [=(. func-prefix)=]_get_boolean_val
 
 void [=(. func-prefix)=]_set_string(property_t, const char *);
 char *[=(. func-prefix)=]_get_string(property_t, char *, size_t);
@@ -170,6 +171,8 @@ static inline void
 {
 	[=(. func-prefix)=]_get_guint32(p, value_ptr, 0, 1);
 }
+
+#define [=(. func-prefix)=]_get_uint32_val [=(. func-prefix)=]_get_guint32_val
 
 static inline void
 [=(. func-prefix)=]_incr_guint32(property_t p)

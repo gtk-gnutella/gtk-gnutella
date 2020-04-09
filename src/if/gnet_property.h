@@ -585,6 +585,7 @@ gnet_prop_get_boolean_val(property_t p, gboolean *value_ptr)
 	gnet_prop_get_boolean(p, value_ptr, 0, 1);
 }
 
+#define gnet_prop_get_bool_val gnet_prop_get_boolean_val
 
 void gnet_prop_set_string(property_t, const char *);
 char *gnet_prop_get_string(property_t, char *, size_t);
@@ -607,6 +608,8 @@ gnet_prop_get_guint32_val(property_t p, guint32 *value_ptr)
 {
 	gnet_prop_get_guint32(p, value_ptr, 0, 1);
 }
+
+#define gnet_prop_get_uint32_val gnet_prop_get_guint32_val
 
 static inline void
 gnet_prop_incr_guint32(property_t p)
