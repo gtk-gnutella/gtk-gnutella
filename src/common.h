@@ -568,13 +568,16 @@ typedef int socket_fd_t;
  * However, this can only be used for static conditions which can be verified
  * at compile-time.
  *
+ * As of today, we switched to a more compact version for the macro, its main
+ * advantage being the less verbose error message it triggers at compile-time
+ * when 'x' is FALSE.  I saw this in the source of the rlang R package, and it
+ * seems to be derived from a similar macro in the linux kernel.
+ * 		--RAM, 2020-04-09
+ *
  * @attention
- * N.B.: The trick is using a switch case, if the term is false
- *	 there are two cases for zero - which is invalid C. This cannot be
- *	 used outside a function.
+ * This cannot be used outside of a function.
  */
-#define STATIC_ASSERT(x) \
-	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
+#define STATIC_ASSERT(x)	((void) sizeof(char[1 - 2*!(x)]))
 
 #define MAX_HOSTLEN			256		/**< Max length for FQDN host */
 
