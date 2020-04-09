@@ -72,6 +72,7 @@
 
 #include "xml/vxml.h"
 
+#include "lib/adns.h"
 #include "lib/aje.h"
 #include "lib/bg.h"
 #include "lib/bit_array.h"
@@ -2668,6 +2669,7 @@ static bool x ## _changed(property_t prop) {	\
 	return FALSE;								\
 }
 
+SETTINGS_CB(adns_debug,				uint32,	set_adns_debug)
 SETTINGS_CB(bg_debug,				uint32,	bg_set_debug)
 SETTINGS_CB(bw_allow_stealing,		bool,	bw_allow_stealing_set)
 SETTINGS_CB(configured_dht_mode,	uint32,	dht_configured_mode_changed)
@@ -3136,6 +3138,11 @@ static prop_map_t property_map[] = {
         inputevt_trace_changed,
         TRUE
     },
+    {
+        PROP_ADNS_DEBUG,
+        adns_debug_changed,
+        TRUE
+	},
     {
         PROP_LOCK_SLEEP_TRACE,
         lock_sleep_trace_changed,

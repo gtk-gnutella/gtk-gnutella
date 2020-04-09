@@ -52,6 +52,7 @@
 #include "pslist.h"
 #include "shuffle.h"
 #include "signal.h"
+#include "stringify.h"
 #include "thread.h"
 #include "tm.h"
 #include "waiter.h"
@@ -166,6 +167,19 @@ static aqueue_t *adns_req;
 static aqueue_t *adns_ans;
 static int adns_id = -1;
 
+static uint32 adns_debug;	/**< Debug level */
+
+#define adns_debugging(lvl)   G_UNLIKELY(adns_debug > (lvl))
+
+/**
+ * Set debug level.
+ */
+void
+set_adns_debug(uint32 level)
+{
+	adns_debug = level;
+}
+
 /**
  * Private functions.
  */
@@ -275,12 +289,22 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	g_assert(!hikset_contains(cache->ht, hostname));
 	g_assert(cache->pos < N_ITEMS(cache->entries));
 
+	if (adns_debugging(0)) {
+		s_debug("%s: caching %zu entr%s for \"%s\"",
+			G_STRFUNC, PLURAL_Y(n), hostname);
+	}
+
 	ADNS_CACHE_LOCK(cache);
 
 	entry = adns_cache_get_entry(cache, cache->pos);
 	if (entry) {
 		g_assert(entry->hostname);
 		g_assert(entry == hikset_lookup(cache->ht, entry->hostname));
+
+		if (adns_debugging(2)) {
+			s_debug("%s: removing old cached \"%s\" (%zu entr%s)",
+				G_STRFUNC, hostname, PLURAL_Y(entry->n));
+		}
 
 		hikset_remove(cache->ht, entry->hostname);
 		adns_cache_free_entry(cache, cache->pos);
@@ -294,8 +318,19 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	entry->id = cache->pos;
 	for (i = 0; i < entry->n; i++) {
 		entry->addrs[i] = addrs[i];
+
+		if (adns_debugging(1)) {
+			s_debug("%s: caching \"%s\" for \"%s\" (#%zu/%zu)",
+				G_STRFUNC, host_addr_to_string(addrs[i]), hostname, i + 1, n);
+		}
 	}
 	hikset_insert_key(cache->ht, &entry->hostname);
+
+	if (adns_debugging(3)) {
+		s_debug("%s: cached \"%s\" at slot #%u/%zu",
+			G_STRFUNC, hostname, cache->pos, N_ITEMS(cache->entries));
+	}
+
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= N_ITEMS(cache->entries);
 
@@ -309,9 +344,10 @@ adns_cache_add(adns_cache_t *cache, time_t now,
  * be NULL, otherwise the cached IP will be stored into the variable
  * ``addr'' points to.
  *
- * @param addrs An array of host_addr_t items. If not NULL, up to
- *              ``n'' items will be copied from the cache.
- * @param n The number of items "addrs" can hold.
+ * @param addrs		An array of host_addr_t items. If not NULL, up to
+ *              	``n'' items will be copied from the cache.
+ * @param n			The number of items "addrs" can hold.
+ *
  * @return The number of cached addresses for the given hostname.
  */
 static size_t
@@ -333,21 +369,30 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 		if (delta_time(now, entry->timestamp) < cache->timeout) {
 			size_t i;
 
+			if (adns_debugging(0)) {
+				s_debug("%s: \"%s\" is cached with %zu entr%s",
+					G_STRFUNC, entry->hostname, PLURAL_Y(entry->n));
+			}
+
 			for (i = 0; i < n; i++) {
 				if (i < entry->n) {
 					addrs[i] = entry->addrs[i];
-					if (common_dbg > 0)
-						g_debug("%s: \"%s\" cached (addr=%s)", G_STRFUNC,
-							entry->hostname, host_addr_to_string(addrs[i]));
+
+					if (adns_debugging(1)) {
+						s_debug("%s: \"%s\" returning cached addr=%s (#%zu/%zu)",
+							G_STRFUNC, entry->hostname,
+							host_addr_to_string(addrs[i]),
+							i + 1, entry->n);
+					}
 				} else {
 					addrs[i] = zero_host_addr;
 				}
 			}
 			n_entry = MIN(entry->n, n);		/* Amount of addresses copied */
 		} else {
-			if (common_dbg > 0) {
-				g_debug("%s: removing \"%s\" from cache",
-					G_STRFUNC, entry->hostname);
+			if (adns_debugging(0)) {
+				s_debug("%s: removing \"%s\" from cache (%zu entr%s)",
+					G_STRFUNC, entry->hostname, PLURAL_Y(entry->n));
 			}
 
 			hikset_remove(cache->ht, hostname);
@@ -393,7 +438,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		struct adns_reverse_reply *reply = &ans->reply.reverse;
 		const char *host;
 
-		if (common_dbg > 1) {
+		if (adns_debugging(1)) {
 			s_debug("%s: reverse-resolving \"%s\" ...",
 					G_STRFUNC, host_addr_to_string(query->addr));
 		}
@@ -407,7 +452,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		pslist_t *sl_addr, *sl;
 		size_t i = 0;
 
-		if (common_dbg > 1) {
+		if (adns_debugging(1)) {
 			s_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(ARYLEN(reply->hostname), query->hostname);
@@ -471,7 +516,8 @@ adns_helper(void *p)
 		aq_put(aq, ans);
 	}
 
-	s_debug("ADNS thread exiting");
+	if (adns_debugging(0))
+		s_debug("ADNS thread exiting");
 
 	aq_refcnt_dec(rq);
 	aq_refcnt_dec(aq);
@@ -524,10 +570,10 @@ adns_reply_ready(const struct adns_response *ans)
 	g_assert(ans != NULL);
 
 	if (ans->common.reverse) {
-		if (common_dbg > 1) {
+		if (adns_debugging(1)) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
 
-			g_debug("%s: resolved \"%s\" to \"%s\".",
+			s_debug("%s: resolved \"%s\" to \"%s\".",
 				G_STRFUNC, host_addr_to_string(reply->addr), reply->hostname);
 		}
 	} else {
@@ -537,11 +583,11 @@ adns_reply_ready(const struct adns_response *ans)
 		num = count_addrs(reply->addrs, N_ITEMS(reply->addrs));
 		num = MAX(1, num); /* For negative caching */
 
-		if (common_dbg > 1) {
+		if (adns_debugging(1)) {
 			size_t i;
 
 			for (i = 0; i < num; i++) {
-				g_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
+				s_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}
@@ -740,8 +786,8 @@ adns_resolve(const char *hostname, enum net_type net,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	if (common_dbg) {
-		g_warning("%s(): using synchronous resolution for \"%s\"",
+	if (adns_debugging(0)) {
+		s_warning("%s(): falling back to synchronous resolution for \"%s\"",
 			G_STRFUNC, query->hostname);
 	}
 	adns_fallback(&req);
@@ -780,7 +826,7 @@ adns_reverse_lookup(const host_addr_t addr,
 	if (adns_send_request(&req))
 		return TRUE; /* asynchronous */
 
-	g_warning("%s(): using synchronous resolution for \"%s\"",
+	s_warning("%s(): using synchronous resolution for \"%s\"",
 		G_STRFUNC, host_addr_to_string(query->addr));
 
 	adns_fallback(&req);
@@ -810,7 +856,7 @@ adns_close(void)
 
 	if (-1 != adns_id) {
 		if (-1 == thread_join(adns_id, NULL))
-			g_warning("%s(): cannot join with ADNS thread: %m", G_STRFUNC);
+			s_warning("%s(): cannot join with ADNS thread: %m", G_STRFUNC);
 		adns_id = -1;
 	}
 }

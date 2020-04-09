@@ -525,6 +525,7 @@ typedef enum {
     PROP_LOCK_SLEEP_TRACE,
     PROP_RUNNING_TOPLESS,
     PROP_SEND_OOB_IND_RELIABLY,
+    PROP_ADNS_DEBUG,
     GNET_PROPERTY_END
 } gnet_property_t;
 
