@@ -699,7 +699,7 @@ adns_init(void)
 }
 
 /**
- * @return TRUE on success, FALSE on failure.
+ * @return TRUE on success, FALSE if the ADNS queue is gone.
  */
 static bool
 adns_send_request(const struct adns_request *req)
@@ -708,8 +708,8 @@ adns_send_request(const struct adns_request *req)
 
 	g_assert(req != NULL);
 
-	if (0 == adns_reply_event_id)
-		return FALSE;
+	if (NULL == adns_req)
+		return FALSE;			/* ADNS thread was shutdown */
 
 	r = WCOPY(req);
 	aq_put(adns_req, r);
@@ -840,6 +840,9 @@ adns_reverse_lookup(const host_addr_t addr,
 void
 adns_close(void)
 {
+	if (adns_debugging(0))
+		s_debug("%s(): terminating ADNS, thread #%d", G_STRFUNC, adns_id);
+
 	aq_put(adns_req, NULL);		/* Signals: end of processing */
 	aq_destroy_null(&adns_req);
 	aq_destroy_null(&adns_ans);
@@ -855,8 +858,12 @@ adns_close(void)
 	 */
 
 	if (-1 != adns_id) {
-		if (-1 == thread_join(adns_id, NULL))
+		if (-1 == thread_join(adns_id, NULL)) {
 			s_warning("%s(): cannot join with ADNS thread: %m", G_STRFUNC);
+		} else {
+			if (adns_debugging(0))
+				s_debug("%s(): ADNS thread #%d terminated", G_STRFUNC, adns_id);
+		}
 		adns_id = -1;
 	}
 }
