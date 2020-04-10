@@ -262,6 +262,7 @@ unsigned thread_by_name(const char *name);
 unsigned thread_count();
 unsigned thread_discovered_count(void);
 void thread_main_starting(void);
+bool thread_main_has_started(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_exit_mode(void);

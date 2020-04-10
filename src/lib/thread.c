@@ -4042,6 +4042,18 @@ thread_main_starting(void)
 }
 
 /**
+ * Has main thread started?
+ *
+ * If this routine returns FALSE, then we're still in the early C runtime
+ * bootsrapping (dynamic library loader, for instance).
+ */
+bool
+thread_main_has_started(void)
+{
+	return thread_main_started;
+}
+
+/**
  * Signal handler for TSIG_DIVERT.
  */
 static void

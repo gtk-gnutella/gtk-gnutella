@@ -679,6 +679,14 @@ stacktrace_load_symbols(void)
 	bool stale = FALSE;
 
 	/*
+	 * If we are called before the main thread has started, then bail out
+	 * as dl_util_get_path() will probably not be able to work correctly.
+	 */
+
+	if (!thread_main_has_started())
+		return;
+
+	/*
 	 * Don't use the once_flag_run() mechanism here since this can be used
 	 * on the assertion failure path, and maybe called recursively.
 	 */
