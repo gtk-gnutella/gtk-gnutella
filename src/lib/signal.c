@@ -881,6 +881,40 @@ signal_uncaught(int signo)
 	)
 		mutex_unlock(&signal_lock);
 
+	/*
+	 * If the signal is harmful, dump a stack trace because the crash handler
+	 * will not be doing it and this is our last chance before raise() kills us!
+	 *
+	 * Of course, depending on the reason that led us into here, we may not be
+	 * able to do much, but the data we collect is precious.  We do that in
+	 * incremental steps, leaving riskier operations for later.
+	 *
+	 * 		--RAM, 2020-04-10
+	 */
+
+	if (signal_is_fatal(signo)) {
+		static void *stack[STACKTRACE_DEPTH_MAX];
+		size_t count;
+
+		s_rawcrit("%s(): used default handler for %s, dumping stack:",
+			G_STRFUNC, signal_name(signo));
+
+		s_rawinfo("%s(): attempting dump of decorated stack:", G_STRFUNC);
+
+		/*
+		 * Last chance, this will allocate memory so, as we are about to crash,
+		 * avoid any verbose warning about allocation from a signal handler!
+		 */
+
+		ZERO(&in_signal_handler);		/* Silence warnings */
+
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
+		stacktrace_stack_print_decorated(STDERR_FILENO, 0, stack, count,
+			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_MAIN_STOP);
+
+		s_rawinfo("%s(): end of line.", G_STRFUNC);	/* Last message emitted */
+	}
+
 	raise(signo);
 }
 
