@@ -1612,15 +1612,29 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	atomic_mb();	/* In case locks have been disabled and are pass-through */
 
 	/*
+	 * If we are in the middle of a signal handling (e.g. SIGSEGV), the
+	 * kernel will have reset the handler to SIG_DFL before dispatching
+	 * the signal handling routine.
+	 *
+	 * Therefore, whenver the kernel returns a different handler from
+	 * the one we had configured and know about, force our handler!
+	 *
+	 * 		--RAM, 2020-04-11
+	 */
+
+	if G_UNLIKELY(ret != old_handler)
+		ret = old_handler;
+
+	/*
 	 * Hide our internal signal_uncaught() handler which is only installed
 	 * to be able to trap otherwise harmful signals when we have cleanup
 	 * to perform.
 	 */
 
 	if (signal_uncaught == old_handler)
-		old_handler = SIG_DFL;
+		ret = SIG_DFL;
 
-	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
+	return ret;
 }
 
 /**
