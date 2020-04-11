@@ -41,6 +41,7 @@
 #include "aq.h"
 #include "ascii.h"
 #include "atoms.h"
+#include "cq.h"
 #include "debug.h"
 #include "fd.h"
 #include "glib-missing.h"
@@ -152,6 +153,7 @@ typedef struct adns_cache_struct {
 	unsigned pos;
 	int timeout;
 	adns_cache_entry_t *entries[ADNS_CACHE_MAX_SIZE];
+	cperiodic_t *ev;
 	mutex_t lock;
 } adns_cache_t;
 
@@ -184,6 +186,8 @@ set_adns_debug(uint32 level)
  * Private functions.
  */
 
+static bool adns_cache_periodic(void *o);
+
 static adns_cache_t *
 adns_cache_init(void)
 {
@@ -199,6 +203,9 @@ adns_cache_init(void)
 		cache->entries[i] = NULL;
 	}
 	mutex_init(&cache->lock);
+	cache->ev = cq_periodic_main_add(
+		1000 * ADNS_CACHE_TIMEOUT,		/* in ms for debug */
+		adns_cache_periodic, cache);
 	return cache;
 }
 
@@ -224,6 +231,17 @@ adns_cache_get_entry(adns_cache_t *cache, unsigned i)
 }
 
 static void
+adns_cache_free_item(adns_cache_entry_t *entry)
+{
+	g_assert(entry != NULL);
+	g_assert(entry->hostname != NULL);
+	g_assert(entry->n > 0);
+
+	atom_str_free_null(&entry->hostname);
+	wfree(entry, adns_cache_entry_size(entry->n));
+}
+
+static void
 adns_cache_free_entry(adns_cache_t *cache, unsigned i)
 {
 	adns_cache_entry_t *entry;
@@ -232,15 +250,62 @@ adns_cache_free_entry(adns_cache_t *cache, unsigned i)
 	g_assert(i < N_ITEMS(cache->entries));
 
 	entry = cache->entries[i];
-	if (entry) {
+	if (entry != NULL) {
 		g_assert(i == entry->id);
-		g_assert(entry->hostname);
-		g_assert(entry->n > 0);
-
-		atom_str_free_null(&entry->hostname);
-		wfree(entry, adns_cache_entry_size(entry->n));
+		adns_cache_free_item(entry);
 		cache->entries[i] = NULL;
 	}
+}
+
+/**
+ * Has cache entry expired?
+ */
+static inline bool
+adns_cache_expired_item(
+	const adns_cache_t *cache, const adns_cache_entry_t *entry, time_t now)
+{
+	return delta_time(now, entry->timestamp) >= cache->timeout;
+}
+
+/**
+ * Callout queue periodic event to prune expired cache entries.
+ */
+static bool
+adns_cache_periodic(void *o)
+{
+	adns_cache_t *cache = o;
+	time_t now = tm_time();
+	pslist_t *to_free = NULL;
+	size_t i;
+
+	ADNS_CACHE_LOCK(cache);
+
+	for (i = 0; i < N_ITEMS(cache->entries); i++) {
+		const adns_cache_entry_t *entry = cache->entries[i];
+
+		if (NULL == entry)
+			continue;
+
+		if (adns_cache_expired_item(cache, entry, now)) {
+			to_free = pslist_prepend_const(to_free, entry);
+			hikset_remove(cache->ht, entry->hostname);
+			cache->entries[i] = NULL;
+
+			if (adns_debugging(3)) {
+				s_debug("%s: expiring %zu entr%s for \"%s\" at slot #%zu",
+					G_STRFUNC, PLURAL_Y(entry->n), entry->hostname, i);
+			}
+		}
+	}
+
+	ADNS_CACHE_UNLOCK(cache);
+
+	/* Free items once the cache is no longer locked */
+
+	PSLIST_FOREACH_CALL(to_free, adns_cache_free_item);
+	pslist_free_null(&to_free);
+
+	return TRUE;		/* Keep calling */
 }
 
 /**
@@ -265,6 +330,7 @@ adns_cache_free(adns_cache_t **cache_ptr)
 		adns_cache_free_entry(cache, i);
 	}
 	hikset_free_null(&cache->ht);
+	cq_periodic_remove(&cache->ev);
 	mutex_destroy(&cache->lock);
 	XFREE_NULL(cache);
 }
@@ -338,8 +404,9 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 }
 
 /**
- * Looks for ``hostname'' in ``cache'' wrt to cache->timeout. If
- * ``hostname'' is not found or the entry is expired, FALSE will be
+ * Looks for ``hostname'' in ``cache'' .
+ *
+ * If ``hostname'' is not found or the entry is expired, FALSE will be
  * returned. Expired entries will be removed! ``addr'' is allowed to
  * be NULL, otherwise the cached IP will be stored into the variable
  * ``addr'' points to.
@@ -366,7 +433,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 	entry = hikset_lookup(cache->ht, hostname);
 
 	if (entry != NULL) {
-		if (delta_time(now, entry->timestamp) < cache->timeout) {
+		if (!adns_cache_expired_item(cache, entry, now)) {
 			size_t i;
 
 			if (adns_debugging(0)) {
