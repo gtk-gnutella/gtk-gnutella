@@ -414,9 +414,9 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 {
 	volatile size_t n;
 	int stid;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -1993,9 +1993,9 @@ void G_COLD
 stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 {
 	static volatile sig_atomic_t printing[THREAD_MAX];
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	if (printing[stid]) {

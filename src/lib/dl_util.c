@@ -131,7 +131,7 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 		 */
 
 		if (addr != last_addr) {
-			signal_handler_t old_sigsegv;
+			volatile signal_handler_t old_sigsegv;
 			int ret;
 
 			ZERO(&info);

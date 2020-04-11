@@ -1112,9 +1112,9 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
 	volatile bool success = TRUE;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -1286,7 +1286,7 @@ crash_fork(void)
 {
 #ifdef HAS_FORK
 	pid_t pid;
-	signal_handler_t old_sigalrm;
+	volatile signal_handler_t old_sigalrm;
 #ifdef HAS_ALARM
 	unsigned remain;
 #endif

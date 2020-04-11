@@ -197,7 +197,10 @@ static signal_cleanup_t sig_cleanup[SIGNAL_CLEANUP];
 static unsigned sig_cleanup_count;
 static spinlock_t sig_cleanup_slk = SPINLOCK_INIT;
 
-static mutex_t signal_lock = MUTEX_INIT;
+static mutex_t signal_mtx = MUTEX_INIT;
+
+#define SIGNAL_LOCK		mutex_lock(&signal_mtx);
+#define SIGNAL_UNLOCK	mutex_unlock(&signal_mtx);
 
 /**
  * Various "undefined" values for the PC register number.
@@ -422,14 +425,14 @@ signal_cleanup_add(signal_cleanup_t cleanup)
 
 		/* Skip SIGZERO, this is not a real signal */
 
-		mutex_lock(&signal_lock);
+		SIGNAL_LOCK;
 
 		for (i = 1; i < SIGNAL_COUNT; i++) {
 			if (SIG_DFL == signal_handler[i] && signal_is_fatal(i))
 				signal_set(i, signal_uncaught);
 		}
 
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
 	}
 }
 
@@ -452,9 +455,9 @@ signal_perform_cleanup(void)
 {
 	static spinlock_t cleanup_slk = SPINLOCK_INIT;
 	bool locked;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -866,7 +869,7 @@ signal_uncaught(int signo)
 		|| SIGBUS == signo
 #endif
 	) {
-		mutex_lock(&signal_lock);
+		SIGNAL_LOCK;
 		signal_catch_segv = FALSE;
 	}
 
@@ -879,7 +882,7 @@ signal_uncaught(int signo)
 		|| SIGBUS == signo
 #endif
 	)
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
 
 	/*
 	 * If the signal is harmful, dump a stack trace because the crash handler
@@ -928,7 +931,7 @@ signal_uncaught(int signo)
 static void
 signal_thread_init(void)
 {
-	mutex_lock(&signal_lock);
+	SIGNAL_LOCK;
 
 	/*
 	 * Going through signal_set() ensures we'll properly use sigaction()
@@ -950,7 +953,7 @@ signal_thread_init(void)
 #endif
 
 	signal_catch_segv = TRUE;
-	mutex_unlock(&signal_lock);
+	SIGNAL_UNLOCK;
 }
 #endif	/* HAS_SIGALTSTACK */
 
@@ -1064,6 +1067,7 @@ signal_trampoline(int signo)
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
 	in_syscall = thread_was_in_syscall(&id);
+	atomic_mb();		/* In case locks were disabled */
 	handler = signal_handler[signo];
 
 	g_soft_assert_log(handler != SIG_DFL && handler != SIG_IGN,
@@ -1456,7 +1460,8 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
 
-	mutex_lock(&signal_lock);
+	SIGNAL_LOCK;
+	atomic_mb();	/* In case locks have been disabled and are pass-through */
 	old_handler = signal_handler[signo];
 
 	g_assert(old_handler != SIG_ERR);
@@ -1598,12 +1603,13 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif	/* HAS_SIGACTION */
 
 	if (SIG_ERR == ret) {
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
 		return ret;
 	}
 
 	signal_handler[signo] = handler;
-	mutex_unlock(&signal_lock);
+	SIGNAL_UNLOCK;
+	atomic_mb();	/* In case locks have been disabled and are pass-through */
 
 	/*
 	 * Hide our internal signal_uncaught() handler which is only installed
