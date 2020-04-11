@@ -679,7 +679,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  * @param cq		the callout queue that dispatched the event
  * @param ev_ptr	reference to the event
  * @param zero		TRUE if cq_zero() was called
- * @param locked	TRUE if we must warn when the call this unlocked
+ * @param locked	TRUE if we must warn when they call this unlocked
  * @param caller	name of our caller for logging
  */
 static void
