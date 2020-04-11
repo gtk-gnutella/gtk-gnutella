@@ -159,8 +159,9 @@ typedef struct adns_cache_struct {
 
 static adns_cache_t *adns_cache = NULL;
 
-#define ADNS_CACHE_LOCK(ac)		mutex_lock(&(ac)->lock)
-#define ADNS_CACHE_UNLOCK(ac)	mutex_unlock(&(ac)->lock)
+#define ADNS_CACHE_LOCK(ac)			mutex_lock(&(ac)->lock)
+#define ADNS_CACHE_UNLOCK(ac)		mutex_unlock(&(ac)->lock)
+#define ADNS_CACHE_IS_LOCKED(ac)	mutex_is_owned(&(ac)->lock)
 
 /* private variables */
 
@@ -214,9 +215,9 @@ adns_cache_init(void)
 #undef ADNS_CACHE_TIMEOUT
 
 static inline adns_cache_entry_t *
-adns_cache_get_entry(adns_cache_t *cache, unsigned i)
+adns_cache_get_entry(const adns_cache_t *cache, unsigned i)
 {
-	adns_cache_entry_t *entry;
+	const adns_cache_entry_t *entry;
 
 	g_assert(cache);
 	g_assert(i < N_ITEMS(cache->entries));
@@ -227,7 +228,7 @@ adns_cache_get_entry(adns_cache_t *cache, unsigned i)
 		g_assert(entry->hostname);
 		g_assert(entry->n > 0);
 	}
-	return entry;
+	return deconstify_pointer(entry);
 }
 
 static void
@@ -248,6 +249,7 @@ adns_cache_free_entry(adns_cache_t *cache, unsigned i)
 
 	g_assert(cache);
 	g_assert(i < N_ITEMS(cache->entries));
+	g_assert(ADNS_CACHE_IS_LOCKED(cache));
 
 	entry = cache->entries[i];
 	if (entry != NULL) {
@@ -255,6 +257,44 @@ adns_cache_free_entry(adns_cache_t *cache, unsigned i)
 		adns_cache_free_item(entry);
 		cache->entries[i] = NULL;
 	}
+}
+
+/**
+ * Drop entry from cache.
+ *
+ * The entry is freed and its cache slot cleared.
+ */
+static void
+adns_cache_drop_entry(
+	adns_cache_t *cache, adns_cache_entry_t *entry, const char *caller)
+{
+	g_assert(cache != NULL);
+	g_assert(entry != NULL);
+	g_assert(ADNS_CACHE_IS_LOCKED(cache));
+
+	if (adns_debugging(1)) {
+		s_debug("%s(): removing \"%s\" from cache (%zu entr%s) at slot #%u",
+			caller, entry->hostname, PLURAL_Y(entry->n), entry->id);
+	}
+
+	hikset_remove(cache->ht, entry->hostname);
+	adns_cache_free_entry(cache, entry->id);
+}
+
+/**
+ * Clear entry from cache.
+ *
+ * The slot is cleared and the entry de-indexed but it is not freed.
+ */
+static void
+adns_cache_clear_entry(adns_cache_t *cache, const adns_cache_entry_t *entry)
+{
+	g_assert(cache != NULL);
+	g_assert(entry != NULL);
+	g_assert(ADNS_CACHE_IS_LOCKED(cache));
+
+	hikset_remove(cache->ht, entry->hostname);
+	cache->entries[entry->id] = NULL;
 }
 
 /**
@@ -276,7 +316,7 @@ adns_cache_periodic(void *o)
 	adns_cache_t *cache = o;
 	time_t now = tm_time();
 	pslist_t *to_free = NULL;
-	size_t i;
+	size_t i, held = 0, expired = 0;
 
 	ADNS_CACHE_LOCK(cache);
 
@@ -286,15 +326,22 @@ adns_cache_periodic(void *o)
 		if (NULL == entry)
 			continue;
 
+		g_assert(entry->id == i);
+
 		if (adns_cache_expired_item(cache, entry, now)) {
 			to_free = pslist_prepend_const(to_free, entry);
-			hikset_remove(cache->ht, entry->hostname);
-			cache->entries[i] = NULL;
+			expired++;
 
-			if (adns_debugging(3)) {
-				s_debug("%s: expiring %zu entr%s for \"%s\" at slot #%zu",
-					G_STRFUNC, PLURAL_Y(entry->n), entry->hostname, i);
+			if (adns_debugging(4)) {
+				s_debug(
+					"%s(): expiring \"%s\" from cache (%zu entr%s) at slot #%u",
+					G_STRFUNC, entry->hostname, PLURAL_Y(entry->n), entry->id);
 			}
+
+			/* Not adns_cache_drop_entry(), we'll free entry later */
+			adns_cache_clear_entry(cache, entry);
+		} else {
+			held++;
 		}
 	}
 
@@ -304,6 +351,11 @@ adns_cache_periodic(void *o)
 
 	PSLIST_FOREACH_CALL(to_free, adns_cache_free_item);
 	pslist_free_null(&to_free);
+
+	if (adns_debugging(3)) {
+		s_debug("%s(): cache holds %zu entr%s (expired %zu this cycle)",
+			G_STRFUNC, PLURAL_Y(held), expired);
+	}
 
 	return TRUE;		/* Keep calling */
 }
@@ -356,25 +408,19 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 	g_assert(cache->pos < N_ITEMS(cache->entries));
 
 	if (adns_debugging(0)) {
-		s_debug("%s: caching %zu entr%s for \"%s\"",
-			G_STRFUNC, PLURAL_Y(n), hostname);
+		s_debug("%s(): caching %zu entr%s for \"%s\" at slot #%u",
+			G_STRFUNC, PLURAL_Y(n), hostname, cache->pos);
 	}
 
 	ADNS_CACHE_LOCK(cache);
 
 	entry = adns_cache_get_entry(cache, cache->pos);
-	if (entry) {
+
+	if (entry != NULL) {
 		g_assert(entry->hostname);
 		g_assert(entry == hikset_lookup(cache->ht, entry->hostname));
 
-		if (adns_debugging(2)) {
-			s_debug("%s: removing old cached \"%s\" (%zu entr%s)",
-				G_STRFUNC, hostname, PLURAL_Y(entry->n));
-		}
-
-		hikset_remove(cache->ht, entry->hostname);
-		adns_cache_free_entry(cache, cache->pos);
-		entry = NULL;
+		adns_cache_drop_entry(cache, entry, G_STRFUNC);
 	}
 
 	entry = walloc(adns_cache_entry_size(n));
@@ -386,17 +432,17 @@ adns_cache_add(adns_cache_t *cache, time_t now,
 		entry->addrs[i] = addrs[i];
 
 		if (adns_debugging(1)) {
-			s_debug("%s: caching \"%s\" for \"%s\" (#%zu/%zu)",
+			s_debug("%s(): caching \"%s\" for \"%s\" (#%zu/%zu)",
 				G_STRFUNC, host_addr_to_string(addrs[i]), hostname, i + 1, n);
 		}
 	}
-	hikset_insert_key(cache->ht, &entry->hostname);
 
 	if (adns_debugging(3)) {
-		s_debug("%s: cached \"%s\" at slot #%u/%zu",
+		s_debug("%s(): caching \"%s\" at slot #%u/%zu",
 			G_STRFUNC, hostname, cache->pos, N_ITEMS(cache->entries));
 	}
 
+	hikset_insert_key(cache->ht, &entry->hostname);
 	cache->entries[cache->pos++] = entry;
 	cache->pos %= N_ITEMS(cache->entries);
 
@@ -437,7 +483,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 			size_t i;
 
 			if (adns_debugging(0)) {
-				s_debug("%s: \"%s\" is cached with %zu entr%s",
+				s_debug("%s(): \"%s\" is cached with %zu entr%s",
 					G_STRFUNC, entry->hostname, PLURAL_Y(entry->n));
 			}
 
@@ -446,7 +492,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 					addrs[i] = entry->addrs[i];
 
 					if (adns_debugging(1)) {
-						s_debug("%s: \"%s\" returning cached addr=%s (#%zu/%zu)",
+						s_debug("%s(): \"%s\" returning cached addr=%s (#%zu/%zu)",
 							G_STRFUNC, entry->hostname,
 							host_addr_to_string(addrs[i]),
 							i + 1, entry->n);
@@ -457,13 +503,7 @@ adns_cache_lookup(adns_cache_t *cache, time_t now,
 			}
 			n_entry = MIN(entry->n, n);		/* Amount of addresses copied */
 		} else {
-			if (adns_debugging(0)) {
-				s_debug("%s: removing \"%s\" from cache (%zu entr%s)",
-					G_STRFUNC, entry->hostname, PLURAL_Y(entry->n));
-			}
-
-			hikset_remove(cache->ht, hostname);
-			adns_cache_free_entry(cache, entry->id);
+			adns_cache_drop_entry(cache, entry, G_STRFUNC);
 		}
 	}
 
@@ -506,7 +546,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		const char *host;
 
 		if (adns_debugging(1)) {
-			s_debug("%s: reverse-resolving \"%s\" ...",
+			s_debug("%s(): reverse-resolving \"%s\" ...",
 					G_STRFUNC, host_addr_to_string(query->addr));
 		}
 
@@ -520,7 +560,7 @@ adns_gethostbyname(const struct adns_request *req, struct adns_response *ans)
 		size_t i = 0;
 
 		if (adns_debugging(1)) {
-			s_debug("%s: resolving \"%s\" ...", G_STRFUNC, query->hostname);
+			s_debug("%s(): resolving \"%s\" ...", G_STRFUNC, query->hostname);
 		}
 		clamp_strcpy(ARYLEN(reply->hostname), query->hostname);
 
@@ -640,7 +680,7 @@ adns_reply_ready(const struct adns_response *ans)
 		if (adns_debugging(1)) {
 			const struct adns_reverse_reply *reply = &ans->reply.reverse;
 
-			s_debug("%s: resolved \"%s\" to \"%s\".",
+			s_debug("%s(): resolved \"%s\" to \"%s\".",
 				G_STRFUNC, host_addr_to_string(reply->addr), reply->hostname);
 		}
 	} else {
@@ -654,7 +694,7 @@ adns_reply_ready(const struct adns_response *ans)
 			size_t i;
 
 			for (i = 0; i < num; i++) {
-				s_debug("%s: resolved \"%s\" to \"%s\".", G_STRFUNC,
+				s_debug("%s(): resolved \"%s\" to \"%s\".", G_STRFUNC,
 					reply->hostname, host_addr_to_string(reply->addrs[i]));
 			}
 		}
