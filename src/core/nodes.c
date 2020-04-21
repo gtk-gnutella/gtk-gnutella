@@ -10806,10 +10806,8 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 					break;
 				if (0 == r)
 					return FALSE;	/* Reached end of buffer */
-				if (n->pos >= NODE_G2_MINLEN) {
-					node_bye(n, 400, "Garbled input stream");
-					return FALSE;
-				}
+				if (n->pos >= NODE_G2_MINLEN)
+					goto garbage;
 			}
 		}
 
@@ -10817,10 +10815,23 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 
 		/*
 		 * Since we have correctly determined the frame length above,
-		 * we cannot have read more bytes than the frame holds!
+		 * we cannot have read (probed, as indicated by the value of `n->pos')
+		 * more bytes than the whole frame is supposed to hold (including the
+		 * header, which was computed in `len')!
+		 *
+		 * We used to assert:
+		 *
+		 *		g_assert(len >= n->pos);
+		 *
+		 * at this point but that was clearly a mistake: if the assumption
+		 * does not hold, it means we are just parsing garbage since the
+		 * computed value does not make any physical sense.
+		 *
+		 * 		--RAM, 2020-04-21
 		 */
 
-		g_assert(len >= n->pos);
+		if G_UNLIKELY(len < n->pos)
+			goto garbage;
 
 		/*
 		 * If the length is 1, we reached an "end of stream" byte.
@@ -10884,6 +10895,16 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 	n->pos = 0;
 
 	return TRUE;		/* There may be more data */
+
+garbage:
+	if (GNET_PROPERTY(node_debug)) {
+		g_debug("NODE got garbage from %s [TX=%u, RX=%u, %s]",
+			node_infostr(n), n->sent, n->received,
+			compact_time(delta_time(tm_time(), n->connect_date)));
+	}
+
+	node_bye(n, 400, "Garbled input stream");
+	return FALSE;
 }
 
 /**
