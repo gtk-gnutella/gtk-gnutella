@@ -1714,8 +1714,11 @@ parq_upload_free(struct parq_ul_queued *puq)
 	g_assert(puq->by_addr->total > 0);
 	g_assert(puq->by_addr->uploading <= puq->by_addr->total);
 
-	if (puq->u != NULL)
+	if (puq->u != NULL) {
+		upload_check(puq->u);
+		g_assert(puq->u->parq_ul == puq);
 		puq->u->parq_ul = NULL;
+	}
 
 	parq_upload_decrease_all_after(puq);
 
@@ -2293,6 +2296,7 @@ parq_upload_find(const struct upload *u)
 
 	if (u->parq_ul) {
 		parq_ul_queued_check(u->parq_ul);
+		g_assert(u->parq_ul->u == u);
 		return u->parq_ul;
 	} else if (u->name) {
 		struct parq_ul_queued *puq;
@@ -2378,7 +2382,13 @@ parq_upload_send_queue(struct parq_ul_queued *puq)
 	/* Verify created upload entry */
 	g_assert(parq_upload_find(u) == puq);
 
+	/* Tie u and puq together */
 	u->parq_ul = puq;
+	if (puq->u != NULL) {
+		upload_check(puq->u);
+		puq->u->parq_ul = NULL;		/* Dissociates from former upload */
+	}
+	puq->u = u;
 
 	/* Prevent too frequent QUEUE sending to the same host */
 	aging_record(ul_queue_sent, WCOPY(&puq->by_addr->addr));
@@ -3429,12 +3439,11 @@ parq_upload_upload_got_cloned(struct upload *u, struct upload *cu)
 
 	puq = parq_upload_find(u);
 
-	if (puq != NULL)
-		puq->u = cu;
+	g_assert(puq != NULL);			/* Since u->parq_ul != NULL */
+	g_assert(cu->parq_ul == puq);	/* Since cloned */
 
-	u->parq_ul = NULL;
-
-	parq_ul_queued_check(cu->parq_ul);
+	puq->u = cu;					/* Reparent puq */
+	u->parq_ul = NULL;				/* Now belongs to clone */
 }
 
 /**
