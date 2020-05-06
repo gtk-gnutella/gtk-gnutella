@@ -724,7 +724,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
 	DO(pproxy_close);
-	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
 	DO(gwc_close);
@@ -932,6 +931,7 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(socket_closedown);
 	DO(upnp_close);
+	DO(http_close);			/* UPnP layer uses HTTP, close UPnP before */
 	DO(ntp_close);
 	DO(gdht_close);
 	DO(sq_close);
