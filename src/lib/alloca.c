@@ -184,6 +184,29 @@ alloca_new_stack(void)
 }
 
 /**
+ * Cleaning callback for thread-private value.
+ *
+ * This is automatically invoked by the thread runtime when the thread
+ * is terminated.
+ */
+static void
+alloca_free_stack(void *data, void *unused_user_data)
+{
+	struct alloca_stack *as = data;
+
+	alloca_stack_check(as);
+	(void) unused_user_data;
+
+	/*
+	 * Do NOT use ck_destroy_null() below because the structure was allocated
+	 * within the chunk itself -- see alloca_new_stack().
+	 */
+
+	as->magic = 0;
+	ck_destroy(as->stack);	/* Can no longer access `as' after this */
+}
+
+/**
  * Get the thread-private alloca() stack.
  */
 static struct alloca_stack *
@@ -207,7 +230,9 @@ alloca_get_stack(void)
 
 	if G_UNLIKELY(NULL == as) {
 		as = alloca_new_stack();
-		thread_private_add(func_to_pointer(alloca_get_stack), as);
+		thread_private_add_extended(
+			func_to_pointer(alloca_get_stack), as,
+			alloca_free_stack, NULL);
 	}
 
 	return as;

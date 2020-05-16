@@ -44,6 +44,7 @@ typedef struct ckhunk ckhunk_t;
 
 ckhunk_t *ck_init(size_t size, size_t reserved);
 ckhunk_t *ck_init_not_leaking(size_t size, size_t reserved);
+void ck_destroy(ckhunk_t *ck);
 void ck_destroy_null(ckhunk_t **ck_ptr);
 void *ck_alloc(ckhunk_t *ck, size_t len);
 void *ck_alloc_critical(ckhunk_t *ck, size_t len);
