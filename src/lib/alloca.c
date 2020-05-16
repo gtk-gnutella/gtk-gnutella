@@ -53,7 +53,7 @@
  *
  * @return +1 if stack is growing in the virtual address space, -1 otherwise.
  */
-static int
+static int NO_INLINE
 alloca_stack_direction_compute(void)
 {
 	static void *old_sp;
