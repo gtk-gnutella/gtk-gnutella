@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Thu Apr  9 14:10:51 CEST 2020 [metaconfig 3.5-255]
+# Generated on Sat May 16 10:27:46 CEST 2020 [metaconfig 3.5-255]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -3376,7 +3376,7 @@ else
 fi
 $rm -f try try.*
 case "$gccversion" in
-1*) cpp=`./loc gcc-cpp $cpp $pth` ;;
+1) cpp=`./loc gcc-cpp $cpp $pth` ;;
 esac
 case "$gccversion" in
 '') gccosandvers='' ;;
@@ -3417,7 +3417,7 @@ esac
 : gcc 3.1 complains about adding -Idirectories that it already knows about,
 : so we will take those off from locincpth.
 case "$gccversion" in
-3*)
+3)
     echo "main(){}">try.c
     for incdir in `$cc -v -c try.c 2>&1 | \
        sed '1,/^#include <\.\.\.>/d;/^End of search list/,$d;s/^ //'` ; do
@@ -3747,10 +3747,10 @@ dflt=''
 case "$hint" in
 default|recommended)
 	case "$gccversion" in
-	1*) dflt='-fpcc-struct-return' ;;
+	1) dflt='-fpcc-struct-return' ;;
 	esac
 	case "$gccversion" in
-	2*) if test -d /etc/conf/kconfig.d &&
+	2) if test -d /etc/conf/kconfig.d &&
 			$contains _POSIX_VERSION $usrinc/sys/unistd.h >/dev/null 2>&1
 		then
 			dflt="$dflt -posix"
@@ -3758,7 +3758,7 @@ default|recommended)
 		;;
 	esac
 	case "$gccversion" in
-	1*|2*) dflt="$dflt -Wall";;
+	1|2) dflt="$dflt -Wall";;
 	*) dflt="$dflt -W -Wall -Wformat=2 -Wshadow";;
 	esac
 	;;
@@ -3829,7 +3829,7 @@ esac
 : the following weeds options from ccflags that are of no interest to cpp
 cppflags="$ccflags"
 case "$gccversion" in
-1*) cppflags="$cppflags -D__GNUC__"
+1) cppflags="$cppflags -D__GNUC__"
 esac
 case "$mips_type" in
 '');;
