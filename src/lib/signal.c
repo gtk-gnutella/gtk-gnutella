@@ -528,9 +528,13 @@ sig_compute_pc_index(void)
 	 * The instruction causing the SIGSEGV should be near the top of the
 	 * routine to make sure we can identify which register was holding
 	 * the faulting PC.
+	 *
+	 * The volatile cast is to make sure no compiler will ever attempt to
+	 * optimize away this memory assignment, which would lead to a crash
+	 * here by falling into g_assert_not_reached().
 	 */
 
-	*p = 1;						/* We expect this to raise a SIGSEGV */
+	*(int volatile *) p = 1;	/* We expect this to raise a SIGSEGV */
 	g_assert_not_reached();
 }
 
