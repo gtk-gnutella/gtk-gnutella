@@ -3284,7 +3284,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 
 		arg = zero_arg;
 		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
-		strncpy(arg.af_name, name, sizeof arg.af_name);
+		cstr_bcpy(ARYLEN(arg.af_name), name);
 
 		if (setsockopt(s->file_desc, SOL_SOCKET, SO_ACCEPTFILTER, VARLEN(arg))) {
 			/* This is usually not supported for IPv6. Thus suppress

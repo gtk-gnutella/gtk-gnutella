@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "ascii.h"
+#include "cstr.h"
 #include "atoms.h"
 #include "iso3166.h"
 #include "parse.h"
@@ -388,8 +389,11 @@ iso3166_init(void)
 		iso3166_entry_t *entry;
 
 		entry = &iso3166_entries[i];
-		strncpy(entry->cc, iso3166_tab[i].cc, sizeof entry->cc);
-		entry->cc[sizeof entry->cc - 1] = '\0';		/* Paranoid */
+		if (!cstr_fcpy(ARYLEN(entry->cc), iso3166_tab[i].cc)) {
+			s_warning(
+				"%s(): entry #%zu long country code \"%s\" truncated to \"%s\"",
+				G_STRFUNC, i, iso3166_tab[i].cc, entry->cc);
+		}
 		entry->country = atom_str_get(_(iso3166_tab[i].country));
 
 		{

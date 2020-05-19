@@ -73,6 +73,8 @@ typedef struct sockaddr_un sockaddr_unix_t;
 #include <poll.h>
 #include <pwd.h>
 
+#define ARYLEN(x)		(x), sizeof(x)
+
 static inline void
 fd_close(int *fd_ptr)
 {
@@ -99,12 +101,22 @@ fd_set_nonblocking(int fd)
 		(void) fcntl(fd, F_SETFL, flags);
 }
 
+size_t
+cstr_bcpy(char *dst, size_t len, const char *src)
+{
+	if (len != 0)
+		strncpy(dst, src, len - 1);
+	return strlen(src);
+}
+
+
 #else	/* !LOCAL_SHELL_STANDALONE */
 
 #include "common.h"
 
 #include "core/local_shell.h"
 
+#include "lib/cstr.h"
 #include "lib/misc.h"
 #include "lib/fd.h"
 #include "lib/log.h"
@@ -562,7 +574,7 @@ local_shell(const char *socket_path)
 			fprintf(stderr, "local_shell(): pathname is too long\n");
 			goto failure;
 		}
-		strncpy(addr.sun_path, socket_path, sizeof addr.sun_path);
+		cstr_bcpy(ARYLEN(addr.sun_path), socket_path);
 	}
 
 	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);
