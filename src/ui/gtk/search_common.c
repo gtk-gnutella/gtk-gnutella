@@ -716,6 +716,10 @@ search_gui_clear_results(void)
 	search_gui_update_status(search);
 }
 
+
+static void
+search_gui_switch_search(struct search *search);
+
 /**
  * Remove the search from the list of searches and free all
  * associated resources (including filter and gui stuff).
@@ -763,7 +767,12 @@ search_gui_close_search(search_t *search)
 
 	n = gtk_notebook_page_num(notebook_search_results, search->scrolled_window);
 	g_assert(n >= 0);	/* Must be found! */
-	gtk_notebook_remove_page(notebook_search_results, n);
+	if (gtk_notebook_get_n_pages(notebook_search_results) != 1)
+		gtk_notebook_remove_page(notebook_search_results, n);
+	else {
+		gtk_widget_set_sensitive(search->tree, FALSE);
+		search_gui_switch_search(NULL);
+	}
 
 	hset_free_null(&search->dups);
 	htable_free_null(&search->parents);
