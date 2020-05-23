@@ -333,6 +333,7 @@ signal_name(int signo)
 {
 	buf_t *b, bs;
 	unsigned i;
+	const char *data;		/* Necessary to avoid gcc-10 warnings */
 
 	/*
 	 * Look in the cache first.
@@ -367,8 +368,10 @@ signal_name(int signo)
 	if (signal_in_unsafe_handler()) {
 		static char sig_buf[32];	/* Do not allocate memory in handler */
 		b = buf_init(&bs, ARYLEN(sig_buf));
+		data = sig_buf;
 	} else {
 		b = buf_private(G_STRFUNC, 32);
+		data = buf_data(b);
 	}
 
 	if (signo < SIG_COUNT && !is_strprefix(signal_names[signo], "NUM")) {
@@ -377,7 +380,7 @@ signal_name(int signo)
 		buf_printf(b, "signal #%d", signo);
 	}
 
-	return buf_data(b);
+	return data;
 }
 
 /**
