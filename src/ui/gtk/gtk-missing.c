@@ -730,7 +730,7 @@ tree_view_motion_clear_callback(tree_view_motion_t **ptr)
 		g_source_remove(tvm->timeout_id);
 		g_object_unref(tvm->tv);
 		tvm->tv = NULL;
-		WFREE_NULL(tvm, sizeof *tvm);
+		WFREE_TYPE_NULL(tvm);
 		*ptr = NULL;
 	}
 }

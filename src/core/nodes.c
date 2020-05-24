@@ -2295,10 +2295,10 @@ node_remove_v(gnutella_node_t *n, const char *reason, va_list ap)
 		n->sent_query_table = NULL;
 	}
 	if (n->qrt_info) {
-		WFREE_NULL(n->qrt_info, sizeof *n->qrt_info);
+		WFREE_TYPE_NULL(n->qrt_info);
 	}
 	if (n->rxfc) {
-		WFREE_NULL(n->rxfc, sizeof *n->rxfc);
+		WFREE_TYPE_NULL(n->rxfc);
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN) {

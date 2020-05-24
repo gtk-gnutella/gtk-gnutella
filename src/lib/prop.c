@@ -539,7 +539,7 @@ prop_free_def(prop_def_t *d)
 	}
 	HFREE_NULL(d->name);
 	HFREE_NULL(d->desc);
-	WFREE_NULL(d, sizeof *d);
+	WFREE_TYPE_NULL(d);
 }
 
 /**

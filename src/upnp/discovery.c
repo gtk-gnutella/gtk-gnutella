@@ -663,7 +663,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	mcb = dctx->mcb;
 	ud = dctx->ud;
-	WFREE_NULL(dctx, sizeof *dctx);
+	WFREE_TYPE_NULL(dctx);
 
 	upnp_mcb_check(mcb);
 	upnp_dscv_check(ud);

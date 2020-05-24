@@ -158,7 +158,7 @@ fi_gui_file_invalidate(struct fileinfo_data *file)
 	GtkTreeIter *iter = fileinfo_data_get_iter(file);
 	if (iter) {
 		fileinfo_data_set_iter(file, NULL);
-		WFREE_NULL(iter, sizeof *iter);
+		WFREE_TYPE_NULL(iter);
 	}
 }
 
