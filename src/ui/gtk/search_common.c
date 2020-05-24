@@ -716,9 +716,7 @@ search_gui_clear_results(void)
 	search_gui_update_status(search);
 }
 
-
-static void
-search_gui_switch_search(struct search *search);
+static void search_gui_switch_search(struct search *search);
 
 /**
  * Remove the search from the list of searches and free all
