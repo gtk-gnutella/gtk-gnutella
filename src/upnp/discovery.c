@@ -591,6 +591,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	} else {
 		if (upnp_dscv_next_ctrl(ucd_ctx))
 			return;
+		WFREE(ucd_ctx);
 	}
 
 done:
@@ -600,6 +601,10 @@ done:
 /**
  * Launch next argumentless control probe on discovered device, as listed
  * in the upnp_dscv_probes[] array.
+ *
+ * Upon success, the `ucd_ctx' paramater is busy (it will be perused when the
+ * RPC reply comes back or times out.  If no RPC was launched or we could not
+ * initiate it, FALSE will be returned and the `ucd_ctx' parameter can be freed.
  *
  * @return TRUE if we can launch the action, FALSE otherwise.
  */
@@ -634,7 +639,6 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 		if (GNET_PROPERTY(upnp_debug))
 			g_warning("UPNP cannot control \"%s\", discarding",
 				ucd_ctx->ud->desc_url);
-		WFREE(ucd_ctx);
 		return FALSE;		/* Cannot interact with it */
 	}
 
@@ -809,8 +813,10 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ucd_ctx->usd = usd;
 		ucd_ctx->probe_idx = 0;
 
-		if (!upnp_dscv_next_ctrl(ucd_ctx))
+		if (!upnp_dscv_next_ctrl(ucd_ctx)) {
+			WFREE(ucd_ctx);
 			goto remove_device;
+		}
 	}
 
 done:
