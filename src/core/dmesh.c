@@ -1704,7 +1704,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 		if (rw + 2 >= size)		/* Not enough room for 2 quotes */
 			return (size_t) -1;
 
-		g_memmove(buf + 1, buf, rw);
+		memmove(buf + 1, buf, rw);
 		buf[0] = '"';
 		buf[++rw] = '"';
 		buf[++rw] = '\0';

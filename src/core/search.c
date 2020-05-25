@@ -9641,7 +9641,7 @@ search_compact(gnutella_node_t *n)
 			 * size of the packet.
 			 */
 
-			g_memmove(
+			memmove(
 				&str[offset + mangled_search_len], /* new end of query string */
 				&str[search_len],                  /* old end of query string */
 				n->size - (search - n->data) - search_len); /* trailer len */
