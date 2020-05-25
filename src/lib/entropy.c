@@ -857,7 +857,7 @@ static void
 entropy_collect_cpu(SHA1_context *ctx)
 {
 	jmp_buf env;
-	ulong r[sizeof(env) / sizeof(ulong)];
+	ulong r[sizeof(env) / (sizeof(ulong))];		/* extra () to silence clang */
 
 	/*
 	 * Add local CPU state noise.
