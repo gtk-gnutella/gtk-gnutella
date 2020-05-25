@@ -2374,23 +2374,23 @@ filter_record(struct search *search, const struct record *rec)
 	ctx.l_name = ctx.utf8_name = NULL;
 	ctx.l_len = ctx.utf8_len = 0;
 
-    /*
-     * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
-     * the props_set count with 0;
-     */
+	/*
+	 * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
+	 * the props_set count with 0;
+	 */
 
-    WALLOC0(result);
-    filter_apply(filter_global_pre, &ctx, result);
+	WALLOC0(result);
+	filter_apply(filter_global_pre, &ctx, result);
 
-    /*
-     * If not decided check if the filters for this search apply.
-     */
-    if (result->props_set < MAX_FILTER_PROP)
-        filter_apply(search_gui_get_filter(search), &ctx, result);
+	/*
+	 * If not decided check if the filters for this search apply.
+	 */
+	if (result->props_set < MAX_FILTER_PROP)
+		filter_apply(search_gui_get_filter(search), &ctx, result);
 
-    /*
-     * If it has not yet been decided, try the global filter
-     */
+	/*
+	 * If it has not yet been decided, try the global filter
+	 */
 	if (result->props_set < MAX_FILTER_PROP)
 		filter_apply(filter_global_post, &ctx, result);
 
