@@ -6497,7 +6497,7 @@ file_info_scandir(const char *dir)
 }
 
 /**
- * Callback for hash table iterator. Used by file_info_completed_orphans().
+ * Callback for hash table iterator. Used by file_info_spot_completed_orphans().
  */
 static void
 fi_spot_completed_kv(void *val, void *unused_x)
