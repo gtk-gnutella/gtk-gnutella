@@ -510,7 +510,15 @@ on_button_dbg_property_refresh_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
+	g_assert(GTK_IS_TREE_VIEW(tv));
+
 	model = gtk_tree_view_get_model(tv);
+	if (!model) {
+		on_entry_dbg_property_pattern_activate(NULL, NULL);
+		return;
+	}
+	g_assert(GTK_IS_TREE_MODEL(model));
+
 	gtk_tree_model_foreach(GTK_TREE_MODEL(model), refresh_property, NULL);
 }
 
@@ -951,7 +959,7 @@ void
 on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	gpointer unused_udata)
 {
-	static gchar old_pattern[1024];
+	static gchar old_pattern[1024] = { '\0' };
    	gchar *text;
 
 	(void) unused_editable;
@@ -962,7 +970,7 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
         0, -1));
 	g_strstrip(text);
 
-	if (0 != strcmp(text, old_pattern)) {
+	if (0 != strcmp(text, old_pattern) || '\0' == text[0]) {
 		pslist_t *props;
 
 		cstr_bcpy(ARYLEN(old_pattern), text);
