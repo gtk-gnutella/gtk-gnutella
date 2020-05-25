@@ -6510,7 +6510,7 @@ fi_spot_completed_kv(void *val, void *unused_x)
 	if (fi->refcount)
 		return;				/* Attached to a download */
 
-	if (FI_F_SEEDING && fi->flags)
+	if (FI_F_SEEDING & fi->flags)
 		return;				/* Completed file being seeded */
 
 	/*
@@ -7528,7 +7528,7 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 	 * satisfy any request that falls within the file boundaries!
 	 */
 
-	if (FI_F_SEEDING && fi->flags) {
+	if (FI_F_SEEDING & fi->flags) {
 		if (*end >= fi->size)
 			*end = fi->size - 1;	/* Cannot go beyond end of file! */
 		return TRUE;				/* Completed file being seeded */
