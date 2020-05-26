@@ -1518,15 +1518,34 @@ bw_available(bio_source_t *bio, int len)
 	 * Active sources are disabled, but we could face a passive one.
 	 */
 
-	if (used && (bs->flags & BS_F_UNIFORM_BW))
-		result = 0;
-	else if (bio->flags & BIO_F_FAVOUR)
-		result = available;
-	else if (0 != bio->bw_allocated) {
-		result = MAX(bio->bw_allocated, bs->bw_slot);
-		result = MIN(result, available);
-	} else
-		result = MIN(bs->bw_slot, available);
+	{
+		int64 bwslot = bs->bw_slot;
+
+		/*
+		 * The penalty factor exponentially decreases the amount of slot
+		 * bandwidth we allocate for the I/O source.  It enables us to
+		 * progressively adjust up or down the amount of allocated write
+		 * bandwidth we can give to "stalling" sources (those incapable
+		 * of withstanding the amount of writing we're using).
+		 * 		--RAM, 2020-05-26
+		 */
+
+		if (0 != bio->bw_penalty_factor) {
+			bwslot >>= bio->bw_penalty_factor;
+			if G_UNLIKELY(bwslot < BW_SLOT_MIN)
+				bwslot = BW_SLOT_MIN;
+		}
+
+		if (used && (bs->flags & BS_F_UNIFORM_BW))
+			result = 0;
+		else if (bio->flags & BIO_F_FAVOUR)
+			result = available;
+		else if (0 != bio->bw_allocated) {
+			result = MAX(bio->bw_allocated, bwslot);
+			result = MIN(result, available);
+		} else
+			result = MIN(bwslot, available);
+	}
 
 	available -= result;
 
@@ -1551,7 +1570,8 @@ bw_available(bio_source_t *bio, int len)
 	if (
 		result < len && available > 0 && bs->looped &&
 		(!used || bs->bw_last_capped > 0) &&
-		!(bs->flags & BS_F_UNIFORM_BW)
+		!(bs->flags & BS_F_UNIFORM_BW) &&
+		0 == bio->bw_penalty_factor
 	) {
 		int64 adj = len - result;
 		int64 nominal;
@@ -1625,7 +1645,11 @@ bw_available(bio_source_t *bio, int len)
 	 * 		--RAM, 2017-08-15
 	 */
 
-	return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* For 32-bit systems */
+	if (MAX_INT_VAL(size_t) != MAX_INT_VAL(uint64)) {
+		return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* 32-bit system */
+	} else {
+		return UNSIGNED(result);							/* 64-bit system */
+	}
 }
 
 /**
@@ -1720,6 +1744,74 @@ bio_add_allocated(bio_source_t *bio, unsigned bw)
 	bio->bw_allocated = uint_saturate_add(bio->bw_allocated, bw);
 
 	return bio->bw_allocated;
+}
+
+/**
+ * Add penalty (power of 2) `n' to the I/O source.
+ *
+ * @param bio	the I/O source
+ * @param n		how many additional power-of-2 shifts should we perform?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_add_penalty(bio_source_t *bio, uint8 n)
+{
+	uint np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor + n;
+	np = MIN(np, 62);		/* At most 62 shifts on a 64-bit system */
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Remove penalty (power of 2) `n' to the I/O source.
+ *
+ * If `n' is MAX_INT_VAL(uint8) or larger than the existing amount of penalty
+ * present, the penalty is reset to 0 (i.e. it can never become negative).
+ *
+ * @param bio	the I/O source
+ * @param n		how many power-of-2 shifts should we deduce from existing ones?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_remove_penalty(bio_source_t *bio, uint8 n)
+{
+	int np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor - n;
+	np = MAX(np, 0);
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Get current amount of I/O penalty we have on the given source.
+ *
+ * This amount corresponds to the decimation factor we apply to the scheduler
+ * slot bandwidth, in powers of 2.  Hence a value of 0 tells us there is no
+ * penalty, 3 that the slot bandwidth is divided by 2^3 = 8, with a minimum
+ * bandwidth allowed to go through.
+ *
+ * Penalty is used to slow down our transmission rate on a given I/O source
+ * in the hope it will avoid congestion on the other side, if it cannot cope
+ * correctly with all the incoming traffic we're sending.
+ *
+ * Application code uses bio_add_penalty() and bio_remove_penalty() to control
+ * the amount of penalty being used.
+ */
+uint8
+bio_penalty(const bio_source_t *bio)
+{
+	bio_check(bio);
+
+	return bio->bw_penalty_factor;
 }
 
 /**

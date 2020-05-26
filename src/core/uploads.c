@@ -777,9 +777,15 @@ upload_timer(time_t now)
 
 		/*
 		 * Detect frequent stalling conditions on sending.
+		 *
+		 * We not only want UPLOAD_IS_SENDING() but also u->bio != NULL
+		 * otherwise we are facing a cloned upload whose HTTP status
+		 * header has not been sent back yet, hence we are not within a
+		 * data transfer!
+		 * 		--RAM, 2020-05-26
 		 */
 
-		if (!UPLOAD_IS_SENDING(u))
+		if (!UPLOAD_IS_SENDING(u) || NULL == u->bio)
 			goto not_sending;		/* Avoid deep nesting level */
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
@@ -797,6 +803,8 @@ upload_timer(time_t now)
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
 				u->flags |= UPLOAD_F_STALLED;
+				bio_add_penalty(u->bio, 1);		/* Reduce write bandwidth */
+
 				if (!skip)
 					upload_new_stalling(u);
 
@@ -871,14 +879,35 @@ upload_timer(time_t now)
 					socket_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
-				if (!(u->flags & UPLOAD_F_EARLY_STALL)) {
-					upload_new_early_stalling(u);
-					u->flags |= UPLOAD_F_EARLY_STALL;
-				} else {
-					wd_kick(early_stall_wd);
+				if (u->bio != NULL) {		/* Within chunk serving */
+					if (!(u->flags & UPLOAD_F_EARLY_STALL)) {
+						upload_new_early_stalling(u);
+						/* Reduce write bandwidth by a factor of 2^2 = 4 */
+						bio_add_penalty(u->bio, 2);
+						u->flags |= UPLOAD_F_EARLY_STALL;
+					} else {
+						wd_kick(early_stall_wd);
+					}
 				}
-			} else
-				u->flags &= ~UPLOAD_F_EARLY_STALL;
+			} else if (u->bio != NULL) {
+				/*
+				 * When clearing the early stalling condition, we re-increase
+				 * the write bandwidth but less than what we had decreased
+				 * before. The net effect is that bandwidth returns to half
+				 * what it was before the early stalling condition, until this
+				 * request is completed.  More stalling will continue to add
+				 * some penalty until we can write less but more often to the
+				 * remote host.  This should smooth out traffic by adapting
+				 * to the available end-to-end bandwidth.
+				 * 		--RAM, 2020-05-26
+				 */
+
+				if (u->flags & UPLOAD_F_EARLY_STALL) {
+					/* Re-increase bandwidth by a factor of 2^1 = 2 */
+					bio_remove_penalty(u->bio, 1);
+					u->flags &= ~UPLOAD_F_EARLY_STALL;
+				}
+			}
 		}
 	}
 
@@ -4362,6 +4391,22 @@ upload_http_status_sent(struct upload *u)
 
 		u->bio = bsched_source_add(bsched_out_select_by_addr(u->addr),
 					&u->socket->wio, BIO_F_WRITE, upload_writable, u);
+
+		/*
+		 * Decimate max bandwidth by additional amount of power of 2 in
+		 * case the address is known to be stalling.
+		 * 		--RAM, 2020-05-26
+		 */
+
+		if (u->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))
+			bio_add_penalty(u->bio, 1);
+
+		if (aging_lookup(early_stalling_uploads, &u->addr))
+			bio_add_penalty(u->bio, 1);
+
+		if (aging_lookup(stalling_uploads, &u->addr))
+			bio_add_penalty(u->bio, 2);
+
 		upload_stats_file_begin(u->sf);
 	}
 }
@@ -6374,15 +6419,14 @@ upload_is_enabled(void)
  * Computes the maximum amount of uploads per IP.
  *
  * This is dynamic in order to forcefully limit uploads to 1 when the IP
- * address is known to be causing stalls.
+ * address is known to be causing stalls, recently.
  */
 uint
 upload_max_by_addr(host_addr_t addr)
 {
-	if (
-		aging_lookup(early_stalling_uploads, &addr) ||
-		aging_lookup(stalling_uploads, &addr)
-	)
+	time_delta_t d = aging_age(stalling_uploads, &addr);
+
+	if (d != (time_delta_t) -1 && d < STALL_CLEAR / 3)
 		return 1;
 
 	return GNET_PROPERTY(max_uploads_ip);
@@ -6547,7 +6591,9 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     if (u->bio) {
         si->bps = bio_bps(u->bio);
 		si->avg_bps = bio_avg_bps(u->bio);
-	}
+		si->bw_penalty = bio_penalty(u->bio);
+	} else
+		si->bw_penalty = 0;
 
 	if (u->last_update != u->start_date) {
 		si->avg_bps = (u->pos - u->skip) /

@@ -64,6 +64,7 @@ typedef struct bio_source {
 	inputevt_handler_t io_callback;	/**< I/O callback routine */
 	void *io_arg;					/**< I/O callback argument */
 	uint32 flags;					/**< Source flags */
+	uint8 bw_penalty_factor;		/**< Bit shifts to apply to allocated B/W */
 	int64 bw_allocated;				/**< Allocated bandwidth credit */
 	int64 bw_actual;				/**< Actual bandwidth used in period */
 	int64 bw_last_bps;				/**< B/w used last period (bps) */

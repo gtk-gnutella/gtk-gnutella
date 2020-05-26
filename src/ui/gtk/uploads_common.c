@@ -130,18 +130,23 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
-			gdouble p = uploads_gui_progress(u, data);
+			double p = uploads_gui_progress(u, data);
 			time_t now = tm_time();
-			gboolean stalled = delta_time(now, data->last_update) > IO_STALLED;
-			gchar pbuf[32];
+			bool stalled = delta_time(now, data->last_update) > IO_STALLED;
+			char pbuf[32];
+			char dbuf[32];
 			size_t rw;
+
+			if (u->bw_penalty != 0)
+				str_bprintf(ARYLEN(dbuf), " [/%u]", 1U << u->bw_penalty);
 
 			str_bprintf(ARYLEN(pbuf), "%5.02f%% ", p * 100.0);
 			rw = str_bprintf(ARYLEN(tmpstr),
-				_("%s(%s) TR: %s %s#%u"),
+				_("%s(%s)%s TR: %s %s#%u"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
+				u->bw_penalty != 0 ? dbuf : "",
 				short_time(tr),
 				u->parq_quick ? _("(quick) ") : "",
 				u->reqnum);
