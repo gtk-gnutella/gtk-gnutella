@@ -652,7 +652,16 @@ upload_new_early_stalling(const struct upload *u)
 
 	aging_record(early_stalling_uploads, WCOPY(&u->addr));
 
-	upload_early_stall();
+	/*
+	 * We need to have at least two remote hosts early stallling at the same
+	 * time to start counter-measures.  Otherwise, we rely on the new
+	 * bandwidth decimation feature on early stalling conditions to hopefully
+	 * take care of the problem.
+	 * 		--RAM, 2020-05-26
+	 */
+
+	if (aging_count(early_stalling_uploads) > 1)
+		upload_early_stall();
 }
 
 /**
@@ -738,10 +747,20 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 
 	aging_insert(stalling_uploads, WCOPY(&u->addr), STALL_FIRST);
 
-	if (d >= IO_STALLED) {
-		upload_stall();
-	} else {
-		upload_early_stall();
+	/*
+	 * We need to have at least two remote hosts stallling at the same
+	 * time to start counter-measures.  Otherwise, we rely on the new
+	 * bandwidth decimation feature on stalling conditions to hopefully
+	 * take care of the problem.
+	 * 		--RAM, 2020-05-26
+	 */
+
+	if (aging_count(stalling_uploads) > 1) {
+		if (d >= IO_STALLED) {
+			upload_stall();
+		} else {
+			upload_early_stall();
+		}
 	}
 }
 
