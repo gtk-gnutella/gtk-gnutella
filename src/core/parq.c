@@ -1785,13 +1785,11 @@ parq_upload_free(struct parq_ul_queued *puq)
 	/* Free the memory used by the current queued item */
 	HFREE_NULL(puq->addr_and_name);
 	atom_sha1_free_null(&puq->sha1);
-	puq->name = NULL;
 
 	if (GNET_PROPERTY(parq_debug) > 3)
 		g_debug("PARQ UL: entry %s freed from memory", guid_hex_str(&puq->id));
 
-	puq->magic = 0;
-	WFREE(puq);
+	WFREE0(puq);
 }
 
 /**
