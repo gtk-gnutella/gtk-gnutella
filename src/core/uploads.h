@@ -122,6 +122,10 @@ struct upload {
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	filesize_t downloaded;		/**< What they claim as downloaded so far */
 
+	filesize_t last_sent;		/**< Bytes sent in previous request */
+	time_t last_start;			/**< Time at which previous request started */
+	uint32 bw_cap;				/**< Bandwidth cap (in bytes/s) set, 0 = none */
+
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
 

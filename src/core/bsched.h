@@ -68,6 +68,7 @@ uint64 bio_bw_per_second(const bio_source_t *bio);
 uint8 bio_add_penalty(bio_source_t *bio, uint8 n);
 uint8 bio_remove_penalty(bio_source_t *bio, uint8 n);
 uint8 bio_penalty(const bio_source_t *bio);
+void bio_set_cap(bio_source_t *bio, uint32 cap);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, void *arg);
 void bio_add_passive_callback(bio_source_t *bio,

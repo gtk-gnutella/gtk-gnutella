@@ -57,6 +57,7 @@ typedef struct gnet_upload_status {
 	uint reqnum;			/**< Count of uploaded chunks */
 	uint error_count;		/**< Number of errors */
 	uint bw_penalty;		/**< Current bandwidth penalty */
+	uint32 bw_cap;			/**< Bandwidth cap for current request */
 
 	bool parq_quick;
 	bool parq_frozen;

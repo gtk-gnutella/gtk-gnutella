@@ -1374,6 +1374,16 @@ bw_available(bio_source_t *bio, int len)
 		return 0;							/* No bandwidth available */
 
 	/*
+	 * If capping is in effect and we have already used our allowed share,
+	 * disable source to avoid it triggering again.
+	 */
+
+	if (0 != bio->bw_cap && bio->bw_actual >= (int64) bio->bw_cap) {
+		bio_disable(bio);
+		return 0;
+	}
+
+	/*
 	 * If uniform scheduling is on, disable source so that it does not
 	 * trigger again for this timeslice.
 	 */
@@ -1627,6 +1637,24 @@ bw_available(bio_source_t *bio, int len)
 	}
 
 	/*
+	 * Now apply capping to avoid sending more than what we promised for
+	 * this I/O source.  Naturally, if we do cap at this stage, we'll
+	 * skip the cap-bandwidth tracking logic below.
+	 */
+
+	if (0 != bio->bw_cap) {
+		int64 remain = (int64) bio->bw_cap - bio->bw_actual;
+
+		if (remain <= 0)
+			result = 0;
+		else
+			result = remain;
+
+		if (0 == result)
+			bio_disable(bio);		/* Avoid further triggering this timeslice */
+	}
+
+	/*
 	 * If we return less than the amount requested, we capped the bandwidth.
 	 *
 	 * Keep track of that bandwidth, because if we end-up having consumed
@@ -1635,7 +1663,7 @@ bw_available(bio_source_t *bio, int len)
 	 * enough" during the period.
 	 */
 
-	if (result < len)
+	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap)
 		bs->bw_capped += len - result;
 
 	/*
@@ -1812,6 +1840,23 @@ bio_penalty(const bio_source_t *bio)
 	bio_check(bio);
 
 	return bio->bw_penalty_factor;
+}
+
+/**
+ * Set b/w cap for I/O source: the max amount of data we can write per second.
+ *
+ * @param bio	the I/O source
+ * @param cap	the b/w cap, 0 meaning none
+ */
+void
+bio_set_cap(bio_source_t *bio, uint32 cap)
+{
+	bio_check(bio);
+
+	if (cap != 0 && cap < BW_SLOT_MIN)
+		cap = BW_SLOT_MIN;
+
+	bio->bw_cap = cap;
 }
 
 /**

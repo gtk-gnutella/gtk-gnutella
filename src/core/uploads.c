@@ -110,6 +110,7 @@
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
@@ -123,6 +124,7 @@
 #define BW_OUT_MIN		1024		/**< Minimum bandwidth to enable uploads */
 #define IO_PRE_STALL	10			/**< Pre-stalling warning */
 #define IO_RTT_STALL	15			/**< Watch for RTT larger than that */
+#define IO_RTT_CAP		5			/**< Initiate b/w cap if RTT larger */
 #define IO_STALLED		30			/**< Stalling condition */
 #define IO_STALL_WATCH	300			/**< Watchdog period for stall monitoring */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
@@ -719,6 +721,158 @@ upload_new_stalling(const struct upload *u)
 }
 
 /**
+ * Bandwidth capping requests.
+ *
+ * The purpose of b/w capping is to prevent stalling conditions when
+ * sending chunks to the remote host.  If we have a lot of bandwidth but
+ * the remote host has less and has many connections, its bandwdith could
+ * be saturating, slowing down our transmission.
+ *
+ * If we do nothing, what happens usually is that we fill the large TX
+ * send buffer on our side and then, when we think we are done sending, we
+ * wait for the follow-up request.  If the remote host does not do HTTP
+ * request pipelining like gtk-gnutella does, then we will not get the
+ * reply until the whole TX buffer is flushed.  That can take a while, and
+ * during this time we have no feedback from the kernel because it has
+ * space in the TX buffer so we are not flow-controlled.
+ *
+ * Eventually, this can lead to a follow-up request timeout and we will
+ * close the connection, thinking the remote side is lost.
+ *
+ * Therefore, what we do is try to adapt to the actual transfer rate we
+ * can witness between the two hosts (us and them).  This is the job of the
+ * upload_update_bw_cap() routine, and it tries to cut down bandwidth, but
+ * not too severely or we will converge to 1 KiB/s or less very quickly if
+ * transfers start to stall.
+ *
+ * Hopefully this new adaptative strategy will allow us to serve more requests
+ * when we have more bandwidth than they have.  If we have less bandwidth, then
+ * we will be limited by the b/w scheduler normally.
+ *
+ * 		--RAM, 2020-05-27
+ */
+enum upload_bw_cap {
+	UL_BW_CAP_CLEAR = 0,
+	UL_BW_CAP_UP,
+	UL_BW_CAP_DOWN,
+};
+
+/*
+ * Recompute bandwidth cap for the follow-up request.
+ *
+ * @param u		the upload
+ * @param cmd	requested b/w cap adjustment
+ */
+static void
+upload_update_bw_cap(struct upload *u, enum upload_bw_cap cmd)
+{
+	const char *what = "reset";
+	time_delta_t elapsed;
+	filesize_t fspeed;
+	uint32 speed;
+
+	upload_check(u);
+
+	elapsed = delta_time(tm_time(), u->last_start);
+	if G_UNLIKELY(0 == u->last_start)
+		elapsed = 0;		/* First time, no previous request */
+
+	/*
+	 * Compute speed of last request, overall, by using brute overall timing.
+	 *
+	 * We substract 1 second from the total elapsed time to get a more
+	 * optimistic speed.
+	 *
+	 * If no elapsed time or it is too small, assume it was all sent instantly.
+	 */
+
+	if (elapsed > 2)
+		fspeed = u->last_sent / (elapsed - 1);
+	else
+		fspeed = u->last_sent;
+
+	if (fspeed > MAX_INT_VAL(uint32))
+		fspeed = MAX_INT_VAL(uint32);
+
+	/*
+	 * We aim to remain at 12.5% above the measured speed otherwise we may
+	 * be dragged down to lower and lower speeds, and due to the b/w scheduler
+	 * doing its job, the measured speed will be always what we had set for,
+	 * modulo the delays we get during follow-ups which may be due to us or
+	 * to them, and that we do not know!
+	 */
+
+	speed = uint32_saturate_add(fspeed, fspeed / 8);
+
+	if (UL_BW_CAP_CLEAR == cmd) {
+		u->bw_cap = 0;
+	} else if (0 != u->bw_cap) {
+		if (UL_BW_CAP_DOWN == cmd) {
+			uint32 pct = u->bw_cap / 5;		/* 20% decrement */
+			uint32 ncap = u->bw_cap - pct;
+			if (ncap >= speed) {
+				if (ncap - speed > pct) {
+					/* Large difference, better cut-down TX rate */
+					u->bw_cap = speed;
+					what = "cut-down";
+				} else {
+					u->bw_cap = ncap;
+					what = "lowered";
+				}
+			} else if (u->bw_cap >= speed){
+				u->bw_cap = speed;		/* Don't lower too much */
+				what = "decreased";
+			} else {
+				u->bw_cap = speed;		/* Need to stay optimist */
+				what = "increased";
+			}
+		} else if (UL_BW_CAP_UP == cmd) {
+			uint32 pct = u->bw_cap / 4;		/* 25% increment */
+			if (u->bw_cap >= u->last_sent) {
+				/* Request was smaller than b/w, be careful! */
+				if (u->bw_cap - pct < speed) {
+					what = "kept";
+				} else {
+					/* This is actually a reduction! */
+					u->bw_cap = speed;
+					what = "forced";
+				}
+			} else {
+				uint32 ncap = uint32_saturate_add(u->bw_cap, pct);
+				u->bw_cap = ncap;
+				what = "raised";
+			}
+		} else
+			g_assert_not_reached();
+	} else {
+		/* First time, regardless of UL_BW_CAP_DOWN or UL_BW_CAP_UP */
+		if (elapsed > 2) {
+			u->bw_cap = speed;
+			what = "set";
+		} else {
+			what = "kept";
+		}
+	}
+
+	if (GNET_PROPERTY(upload_debug) > 1) {
+		char buf[SIZE_FIELD_MAX];
+
+		if (UL_BW_CAP_CLEAR == cmd)
+			elapsed = 0;
+
+		short_size_to_string_buf(speed, FALSE, ARYLEN(buf));
+
+		g_debug(
+			"UL b/w cap %s to %s/s%s for host %s (%s) request #%u, "
+			"T=%s for %s, speed ~ %s/s",
+			what, short_size(u->bw_cap, FALSE),
+			0 == u->bw_cap ? " (none)" : "",
+			host_addr_to_string(u->addr), upload_vendor_str(u), u->reqnum,
+			short_time_ascii(elapsed), short_size2(u->last_sent, FALSE), buf);
+	}
+}
+
+/**
  * Invoked when we spot a large round trip time between the end of the previous
  * request and the followup from the remote client.
  */
@@ -727,17 +881,22 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 {
 	bool ignore = FALSE;
 
+	upload_check(u);
+
 	/*
-	 * If IP has been stalling recently, then ignore.
+	 * If bandwidth capping was used or IP has been stalling recently,
+	 * then ignore.
 	 */
 
-	if (aging_lookup_revitalise(stalling_uploads, &u->addr))
+	if (0 != u->bw_cap || aging_lookup_revitalise(stalling_uploads, &u->addr))
 		ignore = TRUE;
 
 	if (GNET_PROPERTY(upload_debug)) {
-		g_debug("UL host %s (%s) took %s to send follow-up after request #%u%s",
+		g_debug(
+			"UL host %s (%s) took %s to send follow-up after request #%u (%s)%s",
 			host_addr_to_string(u->addr), upload_vendor_str(u),
-			compact_time(d), u->reqnum, ignore ? " (IGNORED)" : "");
+			compact_time(d), u->reqnum, short_size(u->last_sent, FALSE),
+			ignore ? " (IGNORED)" : "");
 	}
 
 	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
@@ -1520,6 +1679,8 @@ upload_clone(struct upload *u)
 		cu->flags &= ~UPLOAD_F_WAS_PLAIN;
 
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
+	cu->last_sent = u->sent;			/* Bytes sent in previous request */
+	cu->last_start = u->start_date;		/* Remember previous request start */
 	cu->bio = NULL;						/* Recreated on each transfer */
 	cu->sf = NULL;						/* File re-opened each time */
 	cu->file = NULL;					/* File re-opened each time */
@@ -4426,6 +4587,17 @@ upload_http_status_sent(struct upload *u)
 		if (aging_lookup(stalling_uploads, &u->addr))
 			bio_add_penalty(u->bio, 2);
 
+		/*
+		 * In addition to b/w penalty, set-up b/w capping: the maximum
+		 * amount of data we shall write per second.  This is computed
+		 * dynamically at each follow-up request and allows us to avoid
+		 * overwhelming the remote host with more data it can consume.
+		 * 		--RAM, 2020-05-27
+		 */
+
+		if (0 != u->bw_cap)
+			bio_set_cap(u->bio, u->bw_cap);
+
 		upload_stats_file_begin(u->sf);
 	}
 }
@@ -5629,10 +5801,30 @@ upload_request(struct upload *u, header_t *header)
 
 	if (u->is_followup) {
 		time_delta_t d = delta_time(now, u->last_update);
-		if (d > IO_RTT_STALL) {
+
+		if (d > IO_RTT_STALL)
 			upload_large_followup_rtt(u, d);
+
+		/*
+		 * If the reply comes quickly, we are likely sending at the right
+		 * rate (or the remote side is using HTTP request pipelining), so
+		 * try to raise our b/w cap if possible.
+		 *
+		 * If we have to wait for the follow-up request, we're probably
+		 * sending too much at a time and it takes time for TCP to flush
+		 * its buffers.  Therefore, attempt to reduce our b/w cap.
+		 */
+
+		if (d > IO_RTT_CAP) {
+			upload_update_bw_cap(u, UL_BW_CAP_DOWN);
+		} else {
+			upload_update_bw_cap(u, UL_BW_CAP_UP);
 		}
+
 		entropy_harvest_single(VARLEN(d));
+	} else {
+		/* Ensure no cap on first request */
+		upload_update_bw_cap(u, UL_BW_CAP_CLEAR);
 	}
 
 	/*
@@ -6613,6 +6805,8 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 		si->bw_penalty = bio_penalty(u->bio);
 	} else
 		si->bw_penalty = 0;
+
+	si->bw_cap = u->bw_cap;
 
 	if (u->last_update != u->start_date) {
 		si->avg_bps = (u->pos - u->skip) /
