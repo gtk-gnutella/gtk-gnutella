@@ -103,6 +103,7 @@
 #include "lib/listener.h"
 #include "lib/misc.h"			/* For english_strerror() */
 #include "lib/parse.h"
+#include "lib/pow2.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
@@ -128,6 +129,10 @@
 #define IO_STALLED		30			/**< Stalling condition */
 #define IO_STALL_WATCH	300			/**< Watchdog period for stall monitoring */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
+#define TX_DURATION		20			/**< Aimed max TX duration for request (s) */
+#define TX_MIN_CHUNK	(16*1024)	/**< Min chunk size we wish to keep */
+#define TX_FIRST_STALL	(128*1024)	/**< Capped first request for stalling hosts */
+#define TX_FIRST_CHUNK	(512*1024)	/**< Capped first request for other hosts */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 #define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
@@ -4717,7 +4722,7 @@ upload_http_status_partially_sent(
 static bool
 upload_request_for_shared_file(struct upload *u, const header_t *header)
 {
-	filesize_t range_skip = 0, range_end = 0;
+	filesize_t range_skip = 0, range_end = 0, max_chunk_size, requested;
 	bool range_unavailable = FALSE;
 	const struct sha1 *sha1 = NULL;
 	const char *buf;
@@ -5053,11 +5058,87 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	}
 
 	/*
+	 * Bandwidth capping:
+	 *
+	 * - if the remote host is known to have been stalling, then limit its
+	 *   first chunk to a maximum of TX_FIRST_STALL bytes, so that we can measure
+	 *   the apparent b/w we're getting.  For other hosts, limit to the
+	 *   reasonable TX_FIRST_CHUNK to avoid them requesting the whole file
+	 *   without us getting to measure the apparent bandwidth we have on that
+	 *   connection.
+	 *
+	 * - otherwise, for follow-up requests, we have already computed the b/w
+	 *   cap we're going to enforce in u->bw_cap.  Compute a suitable chunk
+	 *   size so that the transfer takes about TX_DURATION seconds.
+	 *
+	 * The rationale is that we want to avoid stalling uploads, so we're
+	 * monitoring the apparent bandwidth available with the remote host, whilst
+	 * ensuring that we do rather frequent adjustments.  Should the b/w drop
+	 * to a ridiculous level below 1 KiB/s and the remote end were to request
+	 * a 1 MiB chunk, it would mean the next b/w adjustment would only occur
+	 * in 1024 seconds, more than 17 minutes!  That is way too long to be able
+	 * to react to b/w fluctuations.
+	 *
+	 * All chunk sizes are aligned to a power-of-two and we ensure a minimal
+	 * size of TX_MIN_CHUNK to avoid the problem of getting so small a size that
+	 * the HTTP header overhead associated with the response becomes bigger
+	 * than the data we send back!
+	 *
+	 * 		--RAM, 2020-06-01
+	 */
+
+	requested = range_end - range_skip + 1;
+	max_chunk_size = 0;		/* Signals: no adjustment necessary */
+
+	if (u->is_followup) {
+		if (u->bw_cap != 0) {
+			ulong maxsize = TX_DURATION * u->bw_cap;
+
+			if (requested > maxsize) {
+				max_chunk_size = next_pow2_64(maxsize);
+				if (max_chunk_size > maxsize)		/* Not a power of 2 */
+					max_chunk_size >>= 1;			/* Drop to previous power */
+				if (max_chunk_size < TX_MIN_CHUNK)
+					max_chunk_size = TX_MIN_CHUNK;	/* Our minimum */
+			}
+		}
+	} else if (
+		aging_lookup(stalling_uploads, &u->addr) ||
+		aging_lookup(early_stalling_uploads, &u->addr)
+	) {
+		max_chunk_size = TX_FIRST_STALL;	/* First request on stalling host */
+	} else {
+		max_chunk_size = TX_FIRST_CHUNK;	/* First request for other hosts */
+	}
+
+	/*
+	 * Adjust their request if they end-up asking for more than we are willing
+	 * to serve them right now.
+	 */
+
+	if (max_chunk_size != 0 && max_chunk_size < requested) {
+		if (GNET_PROPERTY(upload_debug) > 1) {
+			g_debug(
+				"UL b/w cap is %s/s for host %s (%s), %srequest #%u capped to %s",
+				short_size(u->bw_cap, FALSE),
+				host_addr_to_string(u->addr), upload_vendor_str(u),
+				u->is_followup ? "" : "initial ",
+				u->reqnum, short_size2(max_chunk_size, FALSE));
+		}
+
+		u->end = range_end = range_skip + max_chunk_size - 1;
+		u->shrunk_chunk = TRUE;
+		requested = max_chunk_size;
+	} else {
+		u->shrunk_chunk = FALSE;
+	}
+
+	/*
 	 * Keep track of the amount they requested, for possible greed limit
 	 * someday.
 	 */
 
-	u->total_requested += range_end - range_skip + 1;
+	u->total_requested += requested;
 
 	g_assert(NULL == u->file);		/* File opened each time */
 
@@ -6760,6 +6841,7 @@ upload_get_info(gnet_upload_t uh)
 	info->partial       = u->file_info != NULL;
 	info->gnet_addr     = u->gnet_addr;
 	info->gnet_port     = u->gnet_port;
+	info->shrunk_chunk  = u->shrunk_chunk;
 
     return info;
 }
@@ -6790,14 +6872,15 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->last_update = u->last_update;
 	si->reqnum      = u->reqnum;
 	si->error_count = u->error_count;
+	si->bw_cap      = u->bw_cap;
 
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
-	si->parq_size = parq_upload_lookup_size(u);
+	si->parq_size     = parq_upload_lookup_size(u);
 	si->parq_lifetime = MAX(0, delta_time(parq_upload_lifetime(u), now));
-	si->parq_retry = MAX(0, delta_time(parq_upload_retry(u), now));
-	si->parq_quick = parq_upload_lookup_quick(u);
-	si->parq_frozen = parq_upload_lookup_frozen(u);
+	si->parq_retry    = MAX(0, delta_time(parq_upload_retry(u), now));
+	si->parq_quick    = parq_upload_lookup_quick(u);
+	si->parq_frozen   = parq_upload_lookup_frozen(u);
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);
@@ -6805,8 +6888,6 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
 		si->bw_penalty = bio_penalty(u->bio);
 	} else
 		si->bw_penalty = 0;
-
-	si->bw_cap = u->bw_cap;
 
 	if (u->last_update != u->start_date) {
 		si->avg_bps = (u->pos - u->skip) /

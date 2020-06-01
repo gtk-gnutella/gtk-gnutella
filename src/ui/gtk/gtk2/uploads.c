@@ -273,9 +273,10 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		if (u->range_start == 0 && u->range_end == 0)
 			cstr_lcpy(ARYLEN(str), "...");
 		else {
-			range_len = str_bprintf(ARYLEN(str), "%s%s",
+			range_len = str_bprintf(ARYLEN(str), "%s%s%s",
 				short_size(u->range_end - u->range_start + 1,
 					show_metric_units()),
+				u->shrunk_chunk ? "-" : "",
 				u->partial ? _(" (partial)") : "");
 
 			if ((guint) range_len < sizeof str) {

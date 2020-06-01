@@ -147,6 +147,7 @@ struct upload {
 	unsigned fwalt:1;			/**< Downloader accepts firewalled locations */
 	unsigned g2:1;				/**< Initiated via G2 /PUSH */
 	unsigned tls_upgraded:1;	/**< Was upgraded to TLS */
+	unsigned shrunk_chunk:1;	/**< Limited chunk size due to b/w concerns */
 };
 
 static inline void
