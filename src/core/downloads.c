@@ -9936,7 +9936,7 @@ download_convert_to_urires(struct download *d)
 uint
 extract_retry_after(struct download *d, const header_t *header)
 {
-	const char *buf;
+	const char *buf, *end;
 	uint32 delay;
 	int error;
 
@@ -9951,8 +9951,8 @@ extract_retry_after(struct download *d, const header_t *header)
 	if (!buf)
 		return 0;
 
-	delay = parse_uint32(buf, NULL, 10, &error);
-	if (error || delay > INT_MAX) {
+	delay = parse_uint32(buf, &end, 10, &error);
+	if (error || delay > INT_MAX || *end != '\0') {
 		time_t now = tm_time();
 		time_t retry = date2time(buf, now);
 
