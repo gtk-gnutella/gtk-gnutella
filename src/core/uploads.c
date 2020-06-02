@@ -2208,7 +2208,7 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 
 	uint64_to_string_buf(u->file_size, ARYLEN(fsize));
 	len = concat_strings(buf, size,
-			"Content-Range: bytes */", fsize, NULL_PTR);
+			"Content-Range: bytes */", fsize, "\r\n", NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
