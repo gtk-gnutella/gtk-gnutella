@@ -97,7 +97,7 @@ uint parq_upload_lookup_queue_no(const struct upload *);
 bool parq_upload_lookup_quick(const struct upload *);
 bool parq_upload_lookup_frozen(const struct upload *);
 
-bool parq_upload_queued(struct upload *);
+bool parq_upload_queued(const struct upload *);
 bool parq_upload_remove(struct upload *, bool, bool);
 void parq_upload_collect_stats(const struct upload *);
 void parq_upload_upload_got_freed(struct upload *);

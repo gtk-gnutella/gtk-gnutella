@@ -2880,7 +2880,7 @@ parq_upload_queue_full(struct upload *u)
  * Whether the current upload is already queued.
  */
 bool
-parq_upload_queued(struct upload *u)
+parq_upload_queued(const struct upload *u)
 {
 	return parq_upload_lookup_position(u) != (uint) -1;
 }
@@ -4497,7 +4497,7 @@ parq_upload_add_old_queue_header(char *buf, size_t size,
 static size_t
 parq_upload_add_x_queued_header(char *buf, size_t size,
 	struct parq_ul_queued *puq, uint max_poll,
-	bool small_reply, struct upload *u)
+	bool small_reply, const struct upload *u)
 {
 	size_t rw = 0, len;
 
@@ -4579,8 +4579,8 @@ size_t
 parq_upload_add_headers(char *buf, size_t size, void *arg, uint32 flags)
 {
 	struct parq_ul_queued *puq;
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	bool small_reply;
 	time_delta_t d;
 	uint min_poll, max_poll;
@@ -4647,8 +4647,8 @@ size_t
 parq_upload_add_header_id(char *buf, size_t size, void *arg,
 	uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	struct parq_ul_queued *puq;
 	size_t rw = 0;
 

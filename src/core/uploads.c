@@ -2032,7 +2032,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 {
 	const struct sha1 *sha1;
 	size_t rw = 0, mesh_len;
-	struct upload_http_cb *a = arg;
+	const struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
 	time_t last_sent;
 	bool need_content_urn;
@@ -2224,8 +2224,8 @@ static size_t
 upload_http_content_length_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
@@ -2248,8 +2248,8 @@ static size_t
 upload_http_content_type_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
@@ -2276,7 +2276,7 @@ static size_t
 upload_http_last_modified_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
+	const struct upload_http_cb *a = arg;
 	size_t len;
 
 	(void) unused_flags;
@@ -2298,8 +2298,8 @@ static size_t
 upload_http_content_range_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
