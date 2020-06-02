@@ -64,6 +64,7 @@
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
+#include "lib/stacktrace.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -249,20 +250,31 @@ retry:
 		size_t size;
 
 		g_assert(header_size >= rw);
-	   	size = header_size - rw;
+		size = header_size - rw - 3;	/* Leave room for trailing NUL + CRLF */
 
 		if (size <= sizeof("\r\n"))
 			break;
-		size -= sizeof("\r\n");
 
 		switch (type) {
 		case HTTP_EXTRA_BODY:
 			/* Already handled above */
 			break;
 		case HTTP_EXTRA_LINE:
-			if (size > vstrlen(he->he_msg)) {
-				/* Don't emit truncated lines */
-				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
+			{
+				size_t len = vstrlen(he->he_msg);
+
+				if (len != 0 && NULL == is_strsuffix(he->he_msg, len, "\r\n")) {
+					g_carp("%s(): ignoring HTTP_EXTRA_LINE '%s' lacking CRLF",
+						G_STRFUNC, he->he_msg);
+				} else if (size > len) {
+					/* Don't emit truncated lines */
+					rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
+				} else if (GNET_PROPERTY(http_debug)) {
+					g_warning("%s(): leaving out HTTP_EXTRA_LINE '%*s': "
+						"no space in reply %d to %s",
+						G_STRFUNC, (int) (len - 2), he->he_msg, code,
+						host_addr_port_to_string(s->addr, s->port));
+				}
 			}
 			break;
 		case HTTP_EXTRA_CALLBACK:
@@ -271,7 +283,14 @@ retry:
 
 				len = (*he->he_cb)(&header[rw], size, he->he_arg, cb_flags);
 				g_assert(len < size);
-				rw += len;
+
+				if (len != 0 && NULL == is_strsuffix(&header[rw], len, "\r\n")) {
+					g_carp("%s(): ignoring %zu byte%s from %s(%p) lacking CRLF",
+						G_STRFUNC, PLURAL(len),
+						stacktrace_function_name(he->he_cb), he->he_arg);
+				} else {
+					rw += len;
+				}
 			}
 			break;
 		}
@@ -301,9 +320,10 @@ retry:
 		}
 	}
 	if (rw >= header_size - 1 && (hev || body)) {
-		g_warning("HTTP status %d (%s) too big, "
+		g_warning("%s(): HTTP status %d (%s) too big, "
 			"ignoring extra information (%s)",
-			code, status_msg, host_addr_port_to_string(s->addr, s->port));
+			G_STRFUNC, code, status_msg,
+			host_addr_port_to_string(s->addr, s->port));
 
 		rw = minimal_rw;
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
@@ -320,18 +340,19 @@ retry:
 			 */
 
 			if (rw >= header_size - 1) {
-				g_carp("HTTP status %d (%s) too big, "
+				g_carp("%s(): HTTP status %d (%s) too big, "
 					"can only send %zu/%zu body bytes to %s",
-					code, status_msg, w, body_length,
+					G_STRFUNC, code, status_msg, w, body_length,
 					host_addr_port_to_string(s->addr, s->port));
 
 				if (keep_alive) {
 					g_assert(!retried);		/* No deadly endless loops */
 					body_length = w;
 					retried = TRUE;
-					g_warning("HTTP status sent on kept-alive, "
+					g_warning("%s(): HTTP status sent on kept-alive, "
 						"retrying with stripped %zu-byte body for %s",
-						w, host_addr_port_to_string(s->addr, s->port));
+						G_STRFUNC, w,
+						host_addr_port_to_string(s->addr, s->port));
 					goto retry;
 				}
 			}
@@ -341,15 +362,18 @@ retry:
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, header, rw);
 	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
-		if (GNET_PROPERTY(http_debug) > 1)
-			g_warning("unable to send back HTTP status %d (%s) to %s: %m",
-			code, status_msg, host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(http_debug) > 1) {
+			g_warning("%s(): unable to send back HTTP status %d (%s) to %s: %m",
+				G_STRFUNC, code, status_msg, host_addr_to_string(s->addr));
+		}
 		return FALSE;
 	} else if ((size_t) sent < rw) {
-		if (GNET_PROPERTY(http_debug)) g_warning(
-			"only sent %lu out of %lu bytes of status %d (%s) to %s",
-			(ulong) sent, (ulong) rw, code, status_msg,
-			host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(http_debug)) {
+			g_warning(
+				"%s(): only sent %lu out of %lu bytes of status %d (%s) to %s",
+				G_STRFUNC, (ulong) sent, (ulong) rw, code, status_msg,
+				host_addr_to_string(s->addr));
+		}
 
 		/*
 		 * If we do not have an "unsent" callback, fail now.
