@@ -126,14 +126,10 @@ pproxy_free_resources(struct pproxy *pp)
 static void
 send_pproxy_error_v(
 	struct pproxy *pp,
-	const char *ext,
 	int code,
 	const char *msg, va_list ap)
 {
 	char reason[1024];
-	char extra[1024];
-	http_extra_desc_t hev[1];
-	int hevcnt = 0;
 
 	if (msg) {
 		str_vbprintf(ARYLEN(reason), msg, ap);
@@ -148,26 +144,8 @@ send_pproxy_error_v(
 		return;
 	}
 
-	extra[0] = '\0';
-
-	/*
-	 * If `ext' is not NULL, we have extra header information to propagate.
-	 */
-
-	if (ext) {
-		size_t extlen = clamp_strcpy(ARYLEN(extra), ext);
-
-		if ('\0' != ext[extlen]) {
-			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, vstrlen(ext));
-		} else {
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = extra;
-		}
-	}
-
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, HTTP_ATOMIC_SEND, "%s", reason);
+			NULL, 0, HTTP_ATOMIC_SEND, "%s", reason);
 
 	pp->error_sent = code;
 }
@@ -182,7 +160,7 @@ send_pproxy_error(struct pproxy *pp, int code, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	send_pproxy_error_v(pp, NULL, code, msg, args);
+	send_pproxy_error_v(pp, code, msg, args);
 	va_end(args);
 }
 
@@ -261,7 +239,7 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
-	send_pproxy_error_v(pp, NULL, code, msg, errargs);
+	send_pproxy_error_v(pp, code, msg, errargs);
 	va_end(errargs);
 
 	pproxy_remove_v(pp, msg, args);
