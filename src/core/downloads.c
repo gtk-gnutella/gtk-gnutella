@@ -11986,9 +11986,18 @@ http_version_nofix:
 			 * As a further precaution, to avoid hammering, we check
 			 * whether there is a Retry-After header.  If there is,
 			 * `delay' won't be 0 and we will not try to make the request.
+			 *
+			 * However, sending Retry-After for 416 is a bending of the HTTP
+			 * protocol, and it is only meant to prevent us from requesting
+			 * a range not advertised as available too soon, when the remote
+			 * host is not actively downloading the (necessarily partial) file.
+			 * Therefore, we ignore delay on 416 errors, but not on 503.
 			 */
 
-			if (delay == 0 && download_pick_available(d, &d->chunk)) {
+			if (
+				(0 == delay || 416 == ack_code) &&
+				download_pick_available(d, &d->chunk)
+			) {
 				uint64 v;
 				int error;
 

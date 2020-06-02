@@ -142,6 +142,7 @@
 #define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
 #define BROWSING_THRESH	3600		/**< secs: at most once per hour! */
 #define BROWSING_ABUSE	3			/**< More than that in an hour is abusing! */
+#define ONE_DAY			(24*3600)	/**< Seconds in a day */
 
 static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -2023,12 +2024,73 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 }
 
 /**
- * This routine is called by http_send_status() to generate the
- * SHA1-specific headers (added to the HTTP status) into `buf'.
+ * This routine is called by http_send_status() on 416 errors to generate a
+ * Retry-After header (added to the HTTP headers) into `buf'.
+ *
+ * @param buf		where the callback can generate extra data.
+ * @param size		the size of buf in bytes.
+ * @param arg		user-supplied data.
+ * @param flags		extra flags passed by callback invoker
+ *
+ * @return the amount of bytes written to buf.
  */
 static size_t
-upload_http_content_urn_add(char *buf, size_t size, void *arg,
-	uint32 flags)
+upload_retry_after(char *buf, size_t size, void *arg, uint32 flags)
+{
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
+	time_delta_t after;
+	char ra[32];
+	size_t len;
+
+	upload_check(u);
+	g_return_val_if_fail(u->sf != NULL, 0);
+	(void) flags;
+
+	/*
+	 * The HTTP Retry-After is normally defined for 503 errors, but we also
+	 * bend the protocol and return it as well for 416: partial files where
+	 * the requested range is not available yet.
+	 *
+	 * Remote gtk-gnutella (and maybe other modern servents) will parse it
+	 * and honour it for this particular file request, to avoid hammering.
+	 * Of course, this is only to be used when there has been no updating
+	 * on the file for some time.
+	 *
+	 * As a safety precaution, we compute the time since the last file
+	 * modification and set a timeout to half that time, capped to 1 day.
+	 * We do not send any Retry-After if there as been a recent modification
+	 * on the file (i.e. the file is currently being downloaded).
+	 */
+
+	after = delta_time(tm_time(), shared_file_modification_time(u->sf)) / 2;
+	after = MIN(after, ONE_DAY);
+
+	if (after < 60)		/* Was updated this last minute */
+		return 0;		/* No header generated */
+
+	len = str_bprintf(ARYLEN(ra), "Retry-After: %s\r\n", int64_to_string(after));
+
+	if (len > size)
+		return 0;
+
+	cstr_bcpy(buf, size, ra);		/* Will loudly warn if failing */
+	return len;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * SHA1-specific headers (added to the HTTP status) into `buf'.
+ *
+ * @param buf		where the callback can generate extra data.
+ * @param size		the size of buf in bytes.
+ * @param arg		user-supplied data.
+ * @param flags		extra flags passed by callback invoker
+ *
+ * @return the amount of bytes written to buf.
+ */
+static size_t
+upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	const struct sha1 *sha1;
 	size_t rw = 0, mesh_len;
@@ -4882,6 +4944,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	if (range_skip >= u->file_size || range_end >= u->file_size) {
 		u->cb_416_arg.u = u;
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
+		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_416_arg);
 		upload_send_error(u, 416, N_("Requested range not satisfiable"));
 		return FALSE;
 	}
@@ -4900,6 +4963,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		u->cb_sha1_arg.u = u;
 		upload_http_extra_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
+		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_sha1_arg);
 
 		/* Same for HEAD or GET */
 		upload_send_error(u, 416, N_("Requested range not available yet"));
