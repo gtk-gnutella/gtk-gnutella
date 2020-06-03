@@ -5227,6 +5227,18 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		parq_upload_busy(u, u->parq_ul);
 
 	/*
+	 * If it's not a HEAD request but a new request, then mark the
+	 * connection legitimate so that it does not count against the
+	 * banning limits for that host.  This allows them to initiate
+	 * several download requests, as long as they have the upload
+	 * slots or the active queue slots.
+	 * 		--RAM, 2020-06-03
+	 */
+
+	if (!u->head_only && !u->is_followup && !u->was_actively_queued)
+		ban_legit(BAN_CAT_SOCKET, u->addr);
+
+	/*
 	 * PARQ ID, emitted if needed.
 	 *
 	 * We do that before calling upload_http_status() to avoid lacking

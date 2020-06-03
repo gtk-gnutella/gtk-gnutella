@@ -317,12 +317,13 @@ ipf_destroy(cqueue_t *cq, void *obj)
 }
 
 /**
- * Called from callout queue when it's time to unban the IP.
+ * Lift ban for given entry.
+ *
+ * @return TRUE if we freed the entry.
  */
-static void
-ipf_unban(cqueue_t *cq, void *obj)
+static bool
+ipf_lift_ban(struct addr_info *ipf)
 {
-	struct addr_info *ipf = obj;
 	time_t now = tm_time();
 	int delay;
 	float decay_coeff;
@@ -331,7 +332,6 @@ ipf_unban(cqueue_t *cq, void *obj)
 	g_assert(ipf->banned);
 	ban_check(ipf->owner);
 
-	cq_zero(cq, &ipf->cq_ev);
 	decay_coeff = ipf->owner->decay_coeff;
 
 	/*
@@ -342,9 +342,10 @@ ipf_unban(cqueue_t *cq, void *obj)
 	ipf->counter -= delta_time(now, ipf->created) * decay_coeff;
 	ipf->created = now;
 
-	if (GNET_PROPERTY(ban_debug) > 2)
+	if (GNET_PROPERTY(ban_debug) > 2) {
 		g_debug("lifting BAN for %s (%s), counter = %.3f",
 			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
+	}
 
 	/**
 	 * Compute new scheduling delay.
@@ -366,12 +367,67 @@ ipf_unban(cqueue_t *cq, void *obj)
 
 		hevset_remove(ipf->owner->info, &ipf->addr);
 		ipf_free(ipf);
-		return;
+		return TRUE;
 	}
 
 	ipf->banned = FALSE;
 	atom_str_free_null(&ipf->ban_msg);
 	ipf->cq_ev = cq_insert(ban_cq, delay, ipf_destroy, ipf);
+
+	return FALSE;
+}
+
+/**
+ * Called from callout queue when it's time to unban the IP.
+ */
+static void
+ipf_unban(cqueue_t *cq, void *obj)
+{
+	struct addr_info *ipf = obj;
+
+	addr_info_check(ipf);
+	g_assert(ipf->banned);
+
+	cq_zero(cq, &ipf->cq_ev);
+	ipf_lift_ban(ipf);
+}
+
+/**
+ * A legitimate connection was made (for instance we granted an upload
+ * slot), hence we do not want to count the connection attempt as hammering.
+ *
+ * This routine is invoked to decrease the ccnnection counter, so that the
+ * remote host does not incur a penalty and does not become prematurely banned.
+ */
+void
+ban_legit(const ban_category_t cat, const host_addr_t addr)
+{
+	struct addr_info *ipf;
+	struct ban *b;
+
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
+	ban_check(b);
+
+	switch (host_addr_net(addr)) {
+	case NET_TYPE_IPV4:
+	case NET_TYPE_IPV6:
+		break;
+	default:
+		return;
+	}
+
+	ipf = hevset_lookup(b->info, &addr);
+	if (NULL == ipf)
+		return;
+
+	ipf->counter -= 1.0;
+
+	if (ipf->banned && ipf->counter <= (float) b->requests) {
+		cq_cancel(&ipf->cq_ev);
+		ipf_lift_ban(ipf);
+	}
 }
 
 /**
@@ -463,7 +519,7 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 		if (ipf->ban_msg != NULL)
 			return BAN_MSG;
 
-		/**
+		/*
 		 * Every ``remind'' attempts, return BAN_FIRST to let them know
 		 * that they have been banned, in case they "missed" our previous
 		 * indications or did not get the Retry-After right.

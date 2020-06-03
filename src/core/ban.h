@@ -63,6 +63,7 @@ typedef enum {
 void ban_init(void);
 void ban_close(void);
 ban_type_t ban_allow(const ban_category_t cat, const host_addr_t addr);
+void ban_legit(const ban_category_t cat, const host_addr_t addr);
 void ban_record(const host_addr_t addr, const char *msg);
 void ban_force(struct gnutella_socket *s);
 int ban_delay(const ban_category_t cat, const host_addr_t addr);
