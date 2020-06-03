@@ -11765,6 +11765,8 @@ download_reply(struct download *d, header_t *header, bool ok)
 	 */
 
 	if (http_major == 0) {
+		bool has_content_range = FALSE;
+
 		buf = header_get(header, "X-Available-Ranges");
 		if (buf != NULL)
 			goto http_version_fix;	/* PFS implies HTTP/1.1 hopefully */
@@ -11780,8 +11782,10 @@ download_reply(struct download *d, header_t *header, bool ok)
 		if (ack_code >= 200 && ack_code <= 299) {
 			/* We're downloading */
 			buf = header_get(header, "Content-Range");
-			if (buf != NULL)
+			if (buf != NULL) {
+				has_content_range = TRUE;
 				goto http_version_fix;	/* HTTP/1.1 hopefully */
+			}
 		}
 
 		goto http_version_nofix;
@@ -11789,11 +11793,12 @@ download_reply(struct download *d, header_t *header, bool ok)
 	http_version_fix:
 		/*
 		 * If there's no Content-Length, HTTP/1.1 is no good to us anyway,
-		 * since there cannot be any keep-alive performed.
+		 * since there cannot be any keep-alive performed, unless we spotted
+		 * a Content-Range header.
 		 */
 
 		buf = header_get(header, "Content-Length");
-		if (buf != NULL) {
+		if (buf != NULL || has_content_range) {
 			http_major = 1;
 			http_minor = 1;
 			if (GNET_PROPERTY(download_debug)) g_debug(
