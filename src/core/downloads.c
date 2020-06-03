@@ -159,7 +159,8 @@
 #define DOWNLOAD_PUSH_FREQ		30		/**< Each 30 secs, we allow sending... */
 #define DOWNLOAD_PUSH_MAX		4		/**< ...4 PUSHes max to a server */
 
-#define IO_AVG_RATE		5		/**< Compute global recv rate every 5 secs */
+#define IO_AVG_RATE		5			/**< Compute global recv rate every 5 secs */
+#define ONE_DAY			(24*3600)	/**< Seconds in one day */
 
 static hash_list_t *sl_downloads;	/**< All downloads (queued + unqueued) */
 static hash_list_t *sl_unqueued;	/**< Unqueued downloads only */
@@ -9934,7 +9935,7 @@ download_convert_to_urires(struct download *d)
  * Extract Retry-After delay from header, returning 0 if none.
  */
 uint
-extract_retry_after(struct download *d, const header_t *header)
+extract_retry_after(const struct download *d, const header_t *header)
 {
 	const char *buf, *end;
 	uint32 delay;
@@ -9968,6 +9969,32 @@ extract_retry_after(struct download *d, const header_t *header)
 	}
 
 	return delay;
+}
+
+/**
+ * Extract Last-Modified timestamp from header, returning 0 if none.
+ */
+time_t
+extract_last_modified(const struct download *d, const header_t *header)
+{
+	const char *buf;
+	time_t modified;
+
+	download_check(d);
+
+	buf = header_get(header, "Last-Modified");
+	if (!buf)
+		return 0;
+
+	modified = date2time(buf, tm_time());
+
+	if ((time_t) -1 == modified) {
+		g_warning("cannot parse Last-Modified \"%s\" sent by %s",
+			buf, download_host_info(d));
+		return 0;
+	}
+
+	return modified;
 }
 
 /**
@@ -11930,6 +11957,27 @@ http_version_nofix:
 	delay = extract_retry_after(d, header);
 	d->retry_after = time_advance(tm_time(), MAX(1, delay));
 	d->timeout_delay = 0;			/* We managed to connect */
+
+	/*
+	 * If they are sending us a 416 without a Retry-After but with a
+	 * Last-Modified header, use that to compute a suitable retry delay.
+	 * We're using the same logic as the one in upload_retry_after().
+	 * 		--RAM, 2020-06-03
+	 */
+
+	if (416 == ack_code && 0 == delay) {
+		time_t modified = extract_last_modified(d, header);
+
+		if (modified != 0) {
+			time_delta_t after;
+
+			after = delta_time(tm_time(), modified) / 2;
+			after = MIN(after, ONE_DAY);
+
+			if (after >= 60)
+				delay = after;
+		}
+	}
 
 	/*
 	 * Partial File Sharing Protocol (PFSP) -- client-side

@@ -4943,8 +4943,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	if (range_skip >= u->file_size || range_end >= u->file_size) {
 		u->cb_416_arg.u = u;
+		u->cb_416_arg.mtime = shared_file_modification_time(u->sf);
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
 		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_416_arg);
+		upload_http_extra_callback_add(u,
+			upload_http_last_modified_add, &u->cb_416_arg);
 		upload_send_error(u, 416, N_("Requested range not satisfiable"));
 		return FALSE;
 	}
@@ -4961,9 +4964,12 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		g_assert(GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server));
 
 		u->cb_sha1_arg.u = u;
+		u->cb_sha1_arg.mtime = shared_file_modification_time(u->sf);
 		upload_http_extra_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
 		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_sha1_arg);
+		upload_http_extra_callback_add(u,
+			upload_http_last_modified_add, &u->cb_sha1_arg);
 
 		/* Same for HEAD or GET */
 		upload_send_error(u, 416, N_("Requested range not available yet"));

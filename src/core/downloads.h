@@ -97,7 +97,7 @@ void download_move_done(struct download *d, const char *pathname,
 		uint elapsed);
 void download_move_error(struct download *d);
 
-uint extract_retry_after(struct download *d, const header_t *header);
+uint extract_retry_after(const struct download *d, const header_t *header);
 bool is_faked_download(const struct download *d);
 
 struct download *download_find_waiting_unparq(const host_addr_t addr,
