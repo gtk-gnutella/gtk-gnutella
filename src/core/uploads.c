@@ -2397,10 +2397,42 @@ upload_http_status(char *buf, size_t size, void *arg, uint32 flags)
 {
 	size_t rw = 0;
 
-	rw += upload_http_content_length_add(&buf[rw], size - rw, arg, flags);
-	rw += upload_http_content_range_add(&buf[rw], size - rw, arg, flags);
 	rw += upload_http_last_modified_add(&buf[rw], size - rw, arg, flags);
 	rw += upload_http_content_type_add(&buf[rw], size - rw, arg, flags);
+	return rw;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * mandatory upload-specific headers into `buf'.
+ *
+ * This is for prioritary headers that must be generated or the downloading
+ * host will not be able to process the incoming data properly.
+ */
+static size_t
+upload_http_status_mandatory(char *buf, size_t size, void *arg, uint32 flags)
+{
+	size_t rw = 0;
+
+	/*
+	 * When there is not enough room in the header to include all the
+	 * information added by the callbacks, a second pass is made with
+	 * just the prioritary headers.  The http_send_status() routine
+	 * indicates that with the HTTP_CBF_RETRY_PRIO flag set.
+	 *
+	 * In that case, we do not generate the Content-Length header if
+	 * we managed (and required) a Content-Range header.  We'll know
+	 * about that by monitring the returned value: a 0 indicates that
+	 * the callback could not (or did not need to) generate the header.
+	 *
+	 * 		--RAM, 2020-06-03
+	 */
+
+	rw += upload_http_content_range_add(&buf[rw], size - rw, arg, flags);
+
+	if (0 == (HTTP_CBF_RETRY_PRIO & flags) || 0 == rw)
+		rw += upload_http_content_length_add(&buf[rw], size - rw, arg, flags);
+
 	return rw;
 }
 
@@ -2416,6 +2448,28 @@ upload_http_extra_callback_add(struct upload *u,
 	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
+	u->hevcnt++;
+}
+
+/**
+ * Record additional header-generation prioritary callback to invoke when
+ * we generate the HTTP status.
+ *
+ * A prioritary callback is noramlly always emitted in the HTTP status but
+ * others can have their output dropped when the header size becomes too large.
+ *
+ * Use that for mandatory headers that need to be sent back or the remote host
+ * will not be able to properly parse the reply (e.g. the Content-Range header
+ * when a partial request is made).
+ */
+static void
+upload_http_extra_prio_callback_add(struct upload *u,
+	http_status_cb_t callback, void *user_arg)
+{
+	upload_check(u);
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
+
+	http_extra_prio_callback_set(&u->hev[u->hevcnt], callback, user_arg);
 	u->hevcnt++;
 }
 
@@ -5261,6 +5315,12 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	u->cb_status_arg.u = u;
 	u->cb_status_arg.mtime = shared_file_modification_time(u->sf);
+
+	/* Necessary headers */
+	upload_http_extra_prio_callback_add(u,
+		upload_http_status_mandatory, &u->cb_status_arg);
+
+	/* Send these headers provided everything fits in the reply */
 	upload_http_extra_callback_add(u,
 		upload_http_status, &u->cb_status_arg);
 
@@ -5628,7 +5688,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			u->skip = 0;
 			u->end = u->file_size - 1;
 			u->cb_length_arg.u = u;
-			upload_http_extra_callback_add(u,
+			upload_http_extra_prio_callback_add(u,
 				upload_http_content_length_add, &u->cb_length_arg);
 		}
 	}
