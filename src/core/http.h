@@ -57,9 +57,10 @@ typedef enum {
  */
 
 typedef enum {
-	HTTP_EXTRA_LINE,
-	HTTP_EXTRA_CALLBACK,
-	HTTP_EXTRA_BODY
+	HTTP_EXTRA_LINE,				/**< Extra header line */
+	HTTP_EXTRA_CALLBACK,			/**< User callback generating lines */
+	HTTP_EXTRA_PRIO_CALLBACK,		/**< Prioritary user callback */
+	HTTP_EXTRA_BODY					/**< Payload to include in reply */
 } http_extra_type_t;
 
 /**
@@ -145,6 +146,19 @@ http_extra_callback_set(http_extra_desc_t *he,
 }
 
 static inline void
+http_extra_prio_callback_set(http_extra_desc_t *he,
+	http_status_cb_t callback, void *user_arg)
+{
+	/*
+	 * We try to include prioritary callbacks, even when the generated header
+	 * including all the callbacks is too large.
+	 */
+	he->he_type = HTTP_EXTRA_PRIO_CALLBACK;
+	he->he_cb = callback;
+	he->he_arg = user_arg;
+}
+
+static inline void
 http_extra_line_set(http_extra_desc_t *he, const char *msg)
 {
 	he->he_type = HTTP_EXTRA_LINE;
@@ -173,6 +187,7 @@ http_extra_callback_matches(http_extra_desc_t *he, http_status_cb_t callback)
 #define HTTP_CBF_BW_SATURATED	(1 << 1)	/**< Bandwidth is saturated */
 #define HTTP_CBF_BUSY_SIGNAL	(1 << 2)	/**< Sending back a 503 "busy" */
 #define HTTP_CBF_SHOW_RANGES	(1 << 3)	/**< Show available ranges */
+#define HTTP_CBF_RETRY_PRIO		(1 << 4)	/**< Retrying, mandatory info only! */
 
 struct header;
 struct http_async;
