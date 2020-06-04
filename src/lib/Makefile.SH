@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-245]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in
@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
-DBUS_CFLAGS =  $dbuscflags
-GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
 COMMON_LIBS =  $libs
 GLIB_CFLAGS =  $glibcflags
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
+DBUS_CFLAGS =  $dbuscflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care

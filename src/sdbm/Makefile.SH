@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in
@@ -54,11 +54,11 @@ SED = $sed
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-GLIB_LDFLAGS =  $glibldflags
-SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)  \$(DBE_SRC)  \$(DBT_SRC)
 OBJECTS =   \$(OBJ)  \$(DBA_OBJ)  \$(DBU_OBJ)  \$(DBE_OBJ)  \$(DBT_OBJ)
 GLIB_CFLAGS =  $glibcflags
+GLIB_LDFLAGS =  $glibldflags
 COMMON_LIBS =  $libs
+SOURCES =   \$(SRC)  \$(DBA_SRC)  \$(DBU_SRC)  \$(DBE_SRC)  \$(DBT_SRC)
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care

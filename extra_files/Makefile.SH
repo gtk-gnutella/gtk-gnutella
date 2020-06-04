@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-36]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -17,7 +17,7 @@ esac
 case "$0" in
 */*) cd `expr X$0 : 'X\(.*\)/'` ;;
 esac
-CURRENT=src/gtk-gnutella/extra_files
+CURRENT=extra_files
 DIR=`echo $CURRENT/ | sed -e 's/\.\///g'`
 echo "Extracting ${DIR}Makefile (with variable substitutions)"
 
@@ -56,7 +56,7 @@ SUBDIRS = el en it fr ja tr
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Start of Jmakefile
@@ -261,7 +261,7 @@ depend::
 # Rules for building in sub-directories -- do not edit
 
 subdirs:
-	@case '${MFLAGS}' in *[ik]*) set +e;; *) set -e;; esac; \
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
 		(cd $$i ; echo "$(VERB) in $(DIR)$$i..."; \
@@ -298,7 +298,7 @@ sub_clobber::
 	@echo "Back to $(CURRENT) for "clobber...
 
 tag::
-	@case '${MFLAGS}' in *[ik]*) set +e;; *) set -e;; esac; \
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS) ;\
 	do \
 		(cd $$i ; echo "Tagging" "in $(DIR)$$i..."; \
@@ -306,7 +306,7 @@ tag::
 	done
 
 Makefiles::
-	@case '${MFLAGS}' in *[ik]*) set +e;; *) set -e;; esac; \
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS);\
 	do \
 		echo "Making "Makefiles" in $(DIR)$$i..."; \
@@ -316,7 +316,7 @@ Makefiles::
 	done
 
 Makefiles.SH:: Makefile.SH
-	@case '${MFLAGS}' in *[ik]*) set +e;; *) set -e;; esac; \
+	@case '${MFLAGS}' in *[ik]*) set +e;; esac; \
 	for i in $(SUBDIRS);\
 	do \
 		case "$(DIR)$$i/" in \

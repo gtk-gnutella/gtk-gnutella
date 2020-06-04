@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-254]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in
@@ -53,11 +53,11 @@ SED = $sed
 
 SUBDIRS = g2
 USRINC = $usrinc
+OBJECTS =   \$(OBJ)
+GLIB_CFLAGS =  $glibcflags
 SOCKER_CFLAGS =  $sockercflags
 SOURCES =   \$(SRC)
 GNUTLS_CFLAGS =  $gnutlscflags
-GLIB_CFLAGS =  $glibcflags
-OBJECTS =   \$(OBJ)
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
