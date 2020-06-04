@@ -273,7 +273,6 @@ scripts/generic-cat
 scripts/generic-pp
 scripts/geo-to-db.pl
 scripts/geo6-to-db.pl
-scripts/geolite-to-db.pl
 scripts/git-revision
 scripts/git-version.sh
 scripts/gtkg-dbus-listener.py

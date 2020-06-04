@@ -3,7 +3,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2011, 2018, Raphael Manfredi
+# Copyright (c) 2011, 2018, 2020 Raphael Manfredi
 #
 #----------------------------------------------------------------------
 # This file is part of gtk-gnutella.
@@ -26,64 +26,63 @@
 
 use strict;
 
+use Math::BigInt;
 use Getopt::Std;
-getopts('dg');
+getopts('di');
 
 #
-# Converts the Geo IPv6 database into a suitable format for GTKG
-# From http://www.tcpiputils.com/download/ipv6geodb.csv
+# Converts the IP2Location LITE database into a GTKG network format
 #
-# 2001:0608:0004::/48,DE,Germany,51.1657,10.4515,"SPACENET SpaceNET AG, Munich"
-#
-# From http://geolite.maxmind.com/download/geoip/database/GeoIPv6.csv.gz
-#
-# "2c0f:ff40::", "2c0f:ff80:ffff:ffff:ffff:ffff:ffff:ffff",
-#	"58569093352465652911071180633164218368",
-#	"58569098502296216338253124213520990207", "ZA", "South Africa"
+# "0","281470681743359","-","-"
+# "281470681743360","281470698520575","-","-"
+# "281470698520576","281470698520831","US","United States of America"
+# "281470698520832","281470698521599","CN","China"
 #
 # Options:
 #   -d : add comments showing how each initial range splits
-#   -g : select the GeoIP file format
+#   -i : interactive, show progression on tty
+#
 
 my $CNT = 8;
 
-if ($'opt_g) {
-	print "# From " .
-		"http://geolite.maxmind.com/download/geoip/database/GeoIPv6.csv.gz\n";
-	print "# Redistributed under the OPEN DATA LICENSE (see GEO_LICENCE)\n";
-} else {
-	print "# From http://www.tcpiputils.com/download/ipv6geodb.csv\n";
-}
+print <<'EOM';
+# IP2Location LITE - http://lite.ip2location.com/
+# Redistributed under the Creative Commons Attribution-ShareAlike 4.0
+# (see the GEO_LICENCE file at the top of the source tree)
+EOM
 print "# Conversion for GTKG generated on ", scalar(gmtime), " GMT\n";
 
-if ($'opt_g) {
-	while (<>) {
-		chomp;
-		my @items = map { s/^\s*"//; s/"$//; $_ } split(/,/);
-		my $start = $items[0];
-		my $end = $items[1];
-		my $country = lc($items[4]);
-		my $country_name = $items[5];
-		next if $country_name eq '';
+my ($file) = @ARGV;
+my $line_count = 0;
 
-		my $start6 = IPv6->make($start);
-		my $end6 = IPv6->make($end);
-		print "# $start6 -> $end6\n" if $'opt_d;
-		print_networks($start6, $end6, $country);
-		print "\n" if $'opt_d;
-	}
-} else {
-	while (<>) {
-		chomp;
-		my @items = map { s/^"//; s/"$//; $_ } split(/,/);
-		my $range = $items[0];
-		my $country = lc($items[1]);
-
-		next if $range =~ /^cidr/i;
-
-		print "$range $country\n";
-	}
+if (-t STDIN && $'opt_i) {
+	$line_count = int(`wc -l $file`);
+	open(TTY, ">/dev/tty") || warn "Can't open tty: $!\n";
+	select(TTY);
+	$| = 1;
+	select(STDOUT);
 }
+
+open(FILE, $file) || die "Can't open $file: $!\n";
+while (<FILE>) {
+	chomp;
+	my @items = map { s/^\s*"//; s/"$//; $_ } split(/,/);
+	my $start = $items[0];
+	my $end = $items[1];
+	my $country = lc($items[2]);
+	next if $country eq '-';
+
+	my $start6 = IPv6->make_from_int($start);
+	my $end6 = IPv6->make_from_int($end);
+	print "# $start6 -> $end6\n" if $'opt_d;
+	print_networks($start6, $end6, $country);
+	print "\n" if $'opt_d;
+
+	printf TTY "\r%u %.02f%%", $., $. * 100.0 / $line_count
+		if $line_count != 0 && 0 == $. % 128;
+}
+
+print TTY "\r" if $line_count != 0;
 
 # Print network ranges encompassing the IP space between two boundaries
 #
@@ -98,9 +97,15 @@ sub print_networks {
 	if ($bits == 128) {
 		die "ip1=$ip1, ip2=$ip2" if $ip1 != $ip2;
 		print "$ip1 $country\n";
-	} elsif (($ip2 & ($mask - 1)) == $mask - 1) {
+		return;
+	}
+
+	# Pre-compute "$mask - 1" since this is a non-trivial operation
+	my $mask_m1 = $mask - 1;
+
+	if (($ip2 & $mask_m1) == $mask_m1) {
 		# All the trailing bits of $ip2 are 1s.
-		if (0 == ($ip1 & ($mask - 1))) {
+		if (0 == ($ip1 & $mask_m1)) {
 			# All the trailing bits in $ip1 are 0s, we're done.
 			print "$ip1/$bits $country\n";
 		} else {
@@ -161,6 +166,15 @@ use overload
 # Equal operation
 sub eq {
 	my ($self, $other) = @_;
+	# Optimize with immediate constant up to 0xffff
+	if (!ref($other) && $other <= 0xffff) {
+		return 0 if $self->[$CNT - 1] != $other;
+		for (my $i = 0; $i < $CNT - 1; $i++) {
+			return 0 if $self->[$i] != 0;
+		}
+		return 1;	# Last member of array tested ahead
+	}
+	# Slow path
 	$other = IPv6->number($other) unless ref $other;
 	for (my $i = 0; $i < $CNT; $i++) {
 		return 0 if $self->[$i] != $other->[$i];
@@ -177,7 +191,7 @@ sub neq {
 # Not operation
 sub not {
 	my ($self) = @_;
-	my $result = IPv6->number(0);
+	my $result = bless [], ref $self;
 	for (my $i = 0; $i < $CNT; $i++) {
 		$result->[$i] = ~$self->[$i];
 	}
@@ -188,7 +202,7 @@ sub not {
 sub or {
 	my ($self, $other) = @_;
 	$other = IPv6->number($other) unless ref $other;
-	my $result = IPv6->number(0);
+	my $result = bless [], ref $self;
 	for (my $i = 0; $i < $CNT; $i++) {
 		$result->[$i] = $self->[$i] | $other->[$i];
 	}
@@ -199,7 +213,7 @@ sub or {
 sub and {
 	my ($self, $other) = @_;
 	$other = IPv6->number($other) unless ref $other;
-	my $result = IPv6->number(0);
+	my $result = bless [], ref $self;
 	for (my $i = 0; $i < $CNT; $i++) {
 		$result->[$i] = $self->[$i] & $other->[$i];
 	}
@@ -220,7 +234,7 @@ sub lshift1 {
 	}
 }
 
-# Left shift operation by whole chunks of 16-bits
+# Left shift operation by whole chunks of 16 bits
 sub lshift16 {
 	my ($self, $result, $n) = @_;
 	for (my $i = $n; $i < $CNT; $i++) {
@@ -258,7 +272,7 @@ sub rshift1 {
 	}
 }
 
-# Right shift operation by whole chunks of 16-bits
+# Right shift operation by whole chunks of 16 bits
 sub rshift16 {
 	my ($self, $result, $n) = @_;
 	for (my $i = $n; $i < $CNT; $i++) {
@@ -286,13 +300,30 @@ sub rshift {
 # Plus operation
 sub plus {
 	my ($self, $other) = @_;
-	$other = IPv6->number($other) unless ref $other;
 	my $result = bless [], ref $self;
 	my $carry = 0;
-	for (my $i = $CNT; $i > 0; $i--) {
-		my $j = $i - 1;
-		my $v = $self->[$j] + $other->[$j] + $carry;
-		$result->[$j] = $v & 0xffff;
+	# Optimize with immediate constant up to 0xffff
+	if (!ref($other) && $other <= 0xffff) {
+		@$result = @$self;
+		return $result if 0 == $other;
+		my $i = $CNT - 1;
+		my $v = $self->[$i] + $other;
+		$result->[$i] = $v & 0xffff;
+		$carry = $v >= 0x10000 ? 1 : 0;
+		return $result unless $carry;
+		for ($i--; $i >= 0; $i--) {
+			$v = $self->[$i] + $carry;
+			$result->[$i] = $v & 0xffff;
+			$carry = $v >= 0x10000 ? 1 : 0;
+			return $result unless $carry;
+		}
+		return $result;
+	}
+	# Slow path
+	$other = IPv6->number($other) unless ref $other;
+	for (my $i = $CNT - 1; $i >= 0; $i--) {
+		my $v = $self->[$i] + $other->[$i] + $carry;
+		$result->[$i] = $v & 0xffff;
 		$carry = $v >= 0x10000 ? 1 : 0;
 	}
 	return $result;
@@ -301,21 +332,48 @@ sub plus {
 # Minus operation
 sub minus {
 	my ($self, $other, $swap) = @_;
-	$other = IPv6->number($other) unless ref $other;
 	my $result = bless [], ref $self;
-	my ($a, $b) = ($self, $other);
-	($a, $b) = ($other, $self) if $swap;
 	my $carry = 0;
-	for (my $i = $CNT; $i != 0; $i--) {
-		my $j = $i - 1;
-		my $v = $a->[$j] - $b->[$j] - $carry;
+	# Optimize with immediate constant up to 0xffff
+	if (!ref($other) && $other <= 0xffff && !$swap) {
+		@$result = @$self;
+		return $result if 0 == $other;
+		my $i = $CNT - 1;
+		my $v = $self->[$i] - $other;
 		if ($v < 0) {
 			$carry = 1;
-			$v += 65536;
+			$v += 0x10000;
 		} else {
 			$carry = 0;
 		}
-		$result->[$j] = $v;
+		$result->[$i] = $v;
+		return $result unless $carry;
+		for ($i--; $i >= 0; $i--) {
+			$v = $self->[$i] - $carry;
+			if ($v < 0) {
+				$carry = 1;
+				$v += 0x10000;
+			} else {
+				$carry = 0;
+			}
+			$result->[$i] = $v;
+			return $result unless $carry;
+		}
+		return $result;
+	}
+	# Slow path
+	$other = IPv6->number($other) unless ref $other;
+	my ($a, $b) = ($self, $other);
+	($a, $b) = ($other, $self) if $swap;
+	for (my $i = $CNT - 1; $i >= 0; $i--) {
+		my $v = $a->[$i] - $b->[$i] - $carry;
+		if ($v < 0) {
+			$carry = 1;
+			$v += 0x10000;
+		} else {
+			$carry = 0;
+		}
+		$result->[$i] = $v;
 	}
 	return $result;
 }
@@ -389,6 +447,7 @@ sub to_str {
 sub number {
 	my $self = bless [], shift;
 	my ($n) = @_;			# Assume 32-bit max
+	die if $n >= 0x100000000;
 	$self->[$CNT - 1] = $n % 65536;
 	$self->[$CNT - 2] = int($n / 65536);
 	return $self;
@@ -399,9 +458,30 @@ sub number {
 sub single_bit {
 	my $self = bless [], shift;
 	my ($bit) = @_;
-	$self->[0, $CNT-1] = 0;
 	my $q = $CNT - int($bit / 16) - 1;
 	$self->[$q] = 1 << ($bit % 16);
+	return $self;
+}
+
+# Creation routine from IPv6 (big) integer representation
+sub make_from_int {
+	my $self = bless [], shift;
+	my ($addr) = @_;
+	my $b = Math::BigInt->new($addr);
+	my $mask = 0xffffffffffffffff;		# 64 bits set to 1
+	# Fill-in number in big-endian representation ($self->[0] is highest!)
+	for (my $i = $CNT - 1; $i >= 3; $i -= 4) {
+		# Processing on Math::BigInt is slow, operate 64 bits at a time
+		# to limit amounts of >>= and numify() operations.
+		my $n = ($b & $mask)->numify();
+		$self->[$i] = $n & 0xffff;
+		$self->[$i - 1] = ($n >> 16) & 0xffff;
+		$self->[$i - 2] = ($n >> 32) & 0xffff;
+		$self->[$i - 3] = $n >> 48;
+		$b >>= 64;
+		last if $b->is_zero;
+	}
+	die if @$self != $CNT;
 	return $self;
 }
 
@@ -436,4 +516,4 @@ sub make {
 	return $self;
 };
 
-# vi: set sw=4 ts=4:
+# vi: set ts=4 sw=4 syn=perl:
