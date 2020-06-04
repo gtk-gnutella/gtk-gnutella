@@ -285,6 +285,37 @@ found:
 }
 
 /**
+ * Re-initialize UHC list from hardwired set.
+ */
+static void G_COLD
+uhc_hardwired_reload(void)
+{
+	uint i;
+
+	g_return_if_fail(NULL != uhc_list);
+
+	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
+		const char *host, *ep, *uhc;
+		uint16 port;
+
+		uhc = boot_hosts[i].uhc;
+
+		/* Some consistency checks */
+		uhc_get_host_port(uhc, &host, &port);
+		g_assert(NULL != host);
+		g_assert(0 != port);
+
+		ep = is_strprefix(uhc, host);
+		g_assert(NULL != ep);
+		g_assert(':' == ep[0]);
+
+		uhc_list_append(uhc);
+	}
+
+	hash_list_shuffle(uhc_list);
+}
+
+/**
  * Pick host at random among the host array.
  *
  * @return TRUE if OK.
@@ -299,7 +330,12 @@ uhc_pick(void)
 	if (NULL == uhc) {
 		if (GNET_PROPERTY(bootstrap_debug))
 			g_warning("BOOT ran out of UHCs, switching to GHCs");
+
 		ghc_get_hosts();
+
+		if (0 == hash_list_count(uhc_list))
+			uhc_hardwired_reload();		/* For next time */
+
 		goto finish;
 	}
 
@@ -317,6 +353,7 @@ uhc_pick(void)
 		str_bprintf(ARYLEN(msg), _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
 	}
+
 	success = TRUE;
 
 finish:
@@ -348,11 +385,14 @@ uhc_try_next(void)
 	if (string_to_host_addr(uhc_ctx.host, NULL, &addr)) {
 		uhc_ctx.addr = addr;
 
-		if (GNET_PROPERTY(bootstrap_debug))
-			g_debug("BOOT UDP host cache \"%s\"", uhc_ctx.host);
+		if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_debug("BOOT UDP pinging host cache \"%s\"", uhc_ctx.host);
 
 		uhc_send_ping();
 	} else {
+		if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_debug("BOOT UDP reolving host cache \"%s\"", uhc_ctx.host);
+
 		(void) adns_resolve(uhc_ctx.host, settings_dns_net(),
 					uhc_host_resolved, NULL);
 	}
@@ -496,7 +536,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 		uhc_ctx.addr = addrs[0];
 	}
 
-	if (GNET_PROPERTY(bootstrap_debug))
+	if (GNET_PROPERTY(bootstrap_debug) > 1)
 		g_debug("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
 
@@ -634,30 +674,10 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 void G_COLD
 uhc_init(void)
 {
-	uint i;
-
 	g_return_if_fail(NULL == uhc_list);
+
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
-
-	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
-		const char *host, *ep, *uhc;
-		uint16 port;
-
-		uhc = boot_hosts[i].uhc;
-
-		/* Some consistency checks */
-		uhc_get_host_port(uhc, &host, &port);
-		g_assert(NULL != host);
-		g_assert(0 != port);
-
-		ep = is_strprefix(uhc, host);
-		g_assert(NULL != ep);
-		g_assert(':' == ep[0]);
-
-		uhc_list_append(uhc);
-	}
-
-	hash_list_shuffle(uhc_list);
+	uhc_hardwired_reload();
 }
 
 /**
