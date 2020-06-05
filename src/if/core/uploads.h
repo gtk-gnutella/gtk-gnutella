@@ -77,6 +77,7 @@ typedef struct gnet_upload_info {
 	filesize_t file_size;	/**< Size of requested file */
 	filesize_t range_start;	/**< First byte to send, inclusive */
 	filesize_t range_end;	/**< Last byte to send, inclusive */
+	filesize_t available;	/**< Amount available for upload */
 
 	const char *name;		/**< Name of requested file (converted to UTF-8) */
 	const char *user_agent;	/**< Remote user agent (converted to UTF-8) */

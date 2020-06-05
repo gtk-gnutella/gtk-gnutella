@@ -6981,6 +6981,7 @@ upload_get_info(gnet_upload_t uh)
 	info->g2            = booleanize(u->flags & UPLOAD_F_G2);
 	info->tls_upgraded  = u->tls_upgraded;
 	info->partial       = u->file_info != NULL;
+	info->available     = info->partial ? u->file_info->done : u->file_size;
 	info->gnet_addr     = u->gnet_addr;
 	info->gnet_port     = u->gnet_port;
 	info->shrunk_chunk  = u->shrunk_chunk;
