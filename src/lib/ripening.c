@@ -440,7 +440,38 @@ ripening_unlock(ripening_table_t *rt)
 }
 
 /**
+ * Check whether key is present in table.
+ *
+ * @param rt	the ripening table
+ * @param key	the key we are looking for
+ *
+ * @return registered value for key; NULL if not found.
+ */
+bool
+ripening_contains(const ripening_table_t *rt, const void *key)
+{
+	bool present;
+
+	ripening_check(rt);
+
+	ripening_synchronize(rt);
+
+	present = hikset_contains(rt->table, key);
+
+	ripening_return(rt, present);
+}
+
+/**
  * Lookup value in table.
+ *
+ * @param rt	the ripening table
+ * @param key	the key we are looking for
+ *
+ * @return registered value for key; NULL if not found.
+ *
+ * @note
+ * If NULL values can be stored in the ripening table, then one must
+ * use ripening_contains() to be able to accurately determine key presence.
  */
 void *
 ripening_lookup(const ripening_table_t *rt, const void *key)

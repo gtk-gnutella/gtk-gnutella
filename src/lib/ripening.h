@@ -54,6 +54,7 @@ ripening_table_t *ripening_make_data(hash_fn_t hash, eq_fn_t eq,
 void ripening_destroy(ripening_table_t **);
 
 time_t ripening_time(const ripening_table_t *rt, const void *key);
+bool ripening_contains(const ripening_table_t *rt, const void *key);
 void *ripening_lookup(const ripening_table_t *rt, const void *key);
 void *ripening_lookup_revitalise(ripening_table_t *rt, const void *key);
 void ripening_insert(ripening_table_t *rt, uint delay,
