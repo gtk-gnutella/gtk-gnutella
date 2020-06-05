@@ -1017,6 +1017,8 @@ ban_vendor(const char *vendor)
 	 *
 	 * As of 2014-06-16, any version older than 0.98 is deemed harmful to
 	 * the network, since they are too ancient.
+	 *
+	 * As of 2020-06-05, any version older than 1.1 is deemed too old.
 	 */
 
 	if (gtkg_version) {
@@ -1025,7 +1027,7 @@ ban_vendor(const char *vendor)
 		if (0 != parse_major_minor(gtkg_version, NULL, &major, &minor))
 			return refused;			/* Cannot parse */
 
-		if (0 == major && minor <= 97)
+		if (0 == major || (1 == major && 0 == minor))
 			return harmful;			/* Too old */
 
 		return NULL;
