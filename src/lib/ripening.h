@@ -57,7 +57,7 @@ time_t ripening_time(const ripening_table_t *rt, const void *key);
 bool ripening_contains(const ripening_table_t *rt, const void *key);
 void *ripening_lookup(const ripening_table_t *rt, const void *key);
 void *ripening_lookup_revitalise(ripening_table_t *rt, const void *key);
-void ripening_insert(ripening_table_t *rt, uint delay,
+bool ripening_insert(ripening_table_t *rt, uint delay,
 	const void *key, void *value);
 size_t ripening_count(const ripening_table_t *rt);
 

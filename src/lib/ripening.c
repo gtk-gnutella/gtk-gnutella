@@ -658,8 +658,10 @@ ripening_remove_using_free(ripening_table_t *rt,
  * @param delay		the ripening delay (seconds until maturation)
  * @param key		the key to insert
  * @param value		the value to insert
+ *
+ * @return TRUE if key existed already.
  */
-void
+bool
 ripening_insert(ripening_table_t *rt, uint delay, const void *key, void *value)
 {
 	bool found;
@@ -745,7 +747,7 @@ ripening_insert(ripening_table_t *rt, uint delay, const void *key, void *value)
 	rt->expire_ev = cq_main_insert(delta, ripening_gc, rt);
 
 done:
-	ripening_return_void(rt);
+	ripening_return(rt, found);
 }
 
 /**
