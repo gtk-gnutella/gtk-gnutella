@@ -8850,7 +8850,8 @@ err_header_read_eof(void *o, header_t *header)
 		 */
 
 		d->server->attrs |= DLS_A_BANNING;		/* Probably... */
-		ban_record(download_addr(d), "IP probably denying uploads");
+		ban_record(BAN_CAT_HTTP,
+			download_addr(d), "IP probably denying uploads");
 		upload_kill_addr(download_addr(d));
 		delay = MAX(delay, DOWNLOAD_BAN_DELAY);
 
@@ -12396,7 +12397,8 @@ http_version_nofix:
 		case 401:
 		case 403:
 			if (d->server->attrs & DLS_A_BANNING) {
-				ban_record(download_addr(d), "IP denying uploads");
+				ban_record(BAN_CAT_HTTP,
+					download_addr(d), "IP denying uploads");
 				upload_kill_addr(download_addr(d));
 			}
 			break;

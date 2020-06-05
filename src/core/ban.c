@@ -89,10 +89,15 @@
 #define BAN_DELAY		300		/**< Initial ban delay: 5 minutes */
 #define BAN_CALLOUT		1000	/**< Every 1 second */
 
-#define MAX_SOCK_REQUEST	5		/**< Maximum of 5 requests... */
-#define MAX_SOCK_PERIOD		60		/**< ...per minute */
-#define MAX_SOCK_BAN		10800	/**< 3 hours */
-#define BAN_SOCK_REMIND		5		/**< Every so many attempts, remind them */
+#define MAX_GNET_REQUEST	2		/**< Maximum of 2 requests... */
+#define MAX_GNET_PERIOD		60		/**< ...per minute */
+#define MAX_GNET_BAN		3600	/**< 1 hour */
+#define BAN_GNET_REMIND		5		/**< Every so many attempts, remind them */
+
+#define MAX_HTTP_REQUEST	5		/**< Maximum of 5 requests... */
+#define MAX_HTTP_PERIOD		60		/**< ...per minute */
+#define MAX_HTTP_BAN		10800	/**< 3 hours */
+#define BAN_HTTP_REMIND		5		/**< Every so many attempts, remind them */
 
 #define MAX_OOB_REQUEST		25		/**< Maximum of 25 unanswered claims... */
 #define MAX_OOB_PERIOD		60		/**< ...per minute */
@@ -167,7 +172,8 @@ const char *
 ban_category_string(const ban_category_t cat)
 {
 	switch (cat) {
-	case BAN_CAT_SOCKET:		return "socket";
+	case BAN_CAT_GNUTELLA:		return "Gnutella";
+	case BAN_CAT_HTTP:			return "HTTP";
 	case BAN_CAT_OOB_CLAIM:		return "OOB claim";
 	case BAN_CAT_COUNT:
 		break;
@@ -571,15 +577,16 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 
 /**
  * Record banning with specific message for a given IP, for MAX_BAN seconds.
- *
- * This applies on the BAN_CAT_SOCKET banning category implicitly
  */
 void
-ban_record(const host_addr_t addr, const char *msg)
+ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
 {
 	struct addr_info *ipf;
-	struct ban *b = ban_object[BAN_CAT_SOCKET];
+	struct ban *b;
 
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
 	ban_check(b);
 
 	/*
@@ -841,8 +848,8 @@ ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 int
 ban_delay(const ban_category_t cat, const host_addr_t addr)
 {
-	struct addr_info *ipf;
-	struct ban *b;
+	const struct addr_info *ipf;
+	const struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
 
@@ -858,18 +865,21 @@ ban_delay(const ban_category_t cat, const host_addr_t addr)
 /**
  * Get banning message for banned IP.
  *
- * This only applies to BAN_CAT_SOCKET type of bans since there needs to be
+ * This only applies to connection-type of bans since there needs to be
  * a configured reminder period whereby we explicitly tell them that they
  * are banned, so we need a communication channel for that.
  *
  * @return banning message for banned IP.
  */
 const char *
-ban_message(const host_addr_t addr)
+ban_message(ban_category_t cat, const host_addr_t addr)
 {
-	struct addr_info *ipf;
-	struct ban *b = ban_object[BAN_CAT_SOCKET];
+	const struct addr_info *ipf;
+	const struct ban *b;
 
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
 	ban_check(b);
 
 	ipf = hevset_lookup(b->info, &addr);
@@ -886,8 +896,12 @@ ban_init(void)
 {
 	ban_cq = cq_main_submake("ban", BAN_CALLOUT);
 
-	ban_object[BAN_CAT_SOCKET] = ban_make(BAN_CAT_SOCKET, BAN_DELAY,
-		MAX_SOCK_REQUEST, MAX_SOCK_PERIOD, MAX_SOCK_BAN, BAN_SOCK_REMIND);
+	ban_object[BAN_CAT_GNUTELLA] = ban_make(BAN_CAT_GNUTELLA, BAN_DELAY,
+		MAX_GNET_REQUEST, MAX_GNET_PERIOD, MAX_GNET_BAN, BAN_GNET_REMIND);
+
+	ban_object[BAN_CAT_HTTP] = ban_make(BAN_CAT_HTTP, BAN_DELAY,
+		MAX_HTTP_REQUEST, MAX_HTTP_PERIOD, MAX_HTTP_BAN, BAN_HTTP_REMIND);
+
 	ban_object[BAN_CAT_OOB_CLAIM] = ban_make(BAN_CAT_OOB_CLAIM, BAN_DELAY,
 		MAX_OOB_REQUEST, MAX_OOB_PERIOD, MAX_OOB_BAN, 0);
 

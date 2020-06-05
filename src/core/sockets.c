@@ -1854,6 +1854,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	size_t parsed;
 	const char *first, *endptr;
 	hostiles_flags_t hostile;
+	ban_category_t bcat;
 
 	(void) source;
 
@@ -2033,30 +2034,35 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Check for banning.
 	 */
 
-	switch (ban_allow(BAN_CAT_SOCKET, s->addr)) {
+	if (is_strprefix(first, GNUTELLA_HELLO))
+		bcat = BAN_CAT_GNUTELLA;
+	else
+		bcat = BAN_CAT_HTTP;
+
+	switch (ban_allow(bcat, s->addr)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
 		ban_force(s);
 		goto cleanup;
-	case BAN_MSG:				/* Send specific 403 error message */
+	case BAN_MSG:				/* Send specific 503 error message */
 		{
-			const char *msg = ban_message(s->addr);
+			const char *msg = ban_message(bcat, s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
                 g_debug("%s(): rejecting connection from "
 					"banned %s (%s still): %s",
                     G_STRFUNC, host_addr_to_string(s->addr),
-					short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
+					short_time_ascii(ban_delay(bcat, s->addr)), msg);
             }
 
-			if (is_strprefix(first, GNUTELLA_HELLO)) {
+			if (BAN_CAT_GNUTELLA == bcat) {
 				send_node_error(s, 503, "%s", msg);
 			} else {
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
-					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
+					uint_to_pointer(ban_delay(bcat, s->addr)));
 				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
 					HTTP_ATOMIC_SEND,
 					"%s", msg);
@@ -2065,18 +2071,20 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		entropy_harvest_single(VARLEN(s->addr));
-		if (is_strprefix(first, GNUTELLA_HELLO))
-			send_node_error(s, 550, "Banned for %s",
-				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
-		else {
-			int delay = ban_delay(BAN_CAT_SOCKET, s->addr);
-			http_extra_desc_t hev;
+		{
+			int delay = ban_delay(bcat, s->addr);
 
-			http_extra_callback_set(&hev, http_retry_after_add,
-				GUINT_TO_POINTER(delay));
-			http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
-				HTTP_ATOMIC_SEND,
-				"Banned for %s", short_time_ascii(delay));
+			if (BAN_CAT_GNUTELLA == bcat)
+				send_node_error(s, 550, "Banned for %s", short_time_ascii(delay));
+			else {
+				http_extra_desc_t hev;
+
+				http_extra_callback_set(&hev, http_retry_after_add,
+					uint_to_pointer(delay));
+				http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
+					HTTP_ATOMIC_SEND,
+					"Banned for %s", short_time_ascii(delay));
+			}
 		}
 		goto cleanup;
 	default:
@@ -2131,7 +2139,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				hostiles_flags_to_string(hostile), string);
 		}
 
-		if (is_strprefix(first, GNUTELLA_HELLO)) {
+		if (BAN_CAT_GNUTELLA == bcat) {
 			send_node_error(s, 550, bad ? banned : shunned);
 		} else {
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
@@ -2145,7 +2153,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
 
-	if (is_strprefix(first, GNUTELLA_HELLO)) {
+	if (BAN_CAT_GNUTELLA == bcat) {
 		/* Incoming control connection */
 		node_add_socket(s);
 	} else if (

@@ -1522,7 +1522,9 @@ node_timer(time_t now)
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				g_message("removing %s due to security violation",
 					node_infostr(n));
-				ban_record(n->addr,
+				ban_record(BAN_CAT_GNUTELLA, n->addr,
+					"IP with Gnutella security violations");
+				ban_record(BAN_CAT_HTTP, n->addr,
 					"IP with Gnutella security violations");
 				hostiles_dynamic_add(n->addr, "Gnutella security violations",
 					HSTL_WEIRD_MSG);
@@ -6718,7 +6720,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 		const char *msg = ban_vendor(n->vendor);
 
 		if (msg != NULL) {
-			ban_record(n->socket->addr, msg);
+			ban_record(BAN_CAT_GNUTELLA, n->socket->addr, msg);
 			node_send_error(n, 403, "%s", msg);
 			node_remove(n, "%s", msg);
 			return;

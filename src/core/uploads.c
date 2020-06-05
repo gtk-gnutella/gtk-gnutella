@@ -5290,7 +5290,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 */
 
 	if (!u->head_only && !u->is_followup && !u->was_actively_queued)
-		ban_legit(BAN_CAT_SOCKET, u->addr);
+		ban_legit(BAN_CAT_HTTP, u->addr);
 
 	/*
 	 * PARQ ID, emitted if needed.
@@ -6152,7 +6152,7 @@ upload_request(struct upload *u, header_t *header)
 		const char *msg = ban_vendor(u->user_agent);
 
 		if (msg != NULL) {
-			ban_record(u->addr, msg);
+			ban_record(BAN_CAT_HTTP, u->addr, msg);
 			upload_error_remove(u, 403, "%s", msg);
 			return;
 		}

@@ -2523,7 +2523,7 @@ parq_ul_queue_dead_timer(time_t now, const struct parq_ul_queue *q)
 			delta_time(puq->send_next_queue, now) < 0 &&
 			puq->queue_sent < MAX_QUEUE &&
 			puq->queue_refused < MAX_QUEUE_REFUSED &&
-			!ban_is_banned(BAN_CAT_SOCKET, puq->remote_addr)
+			!ban_is_banned(BAN_CAT_HTTP, puq->remote_addr)
 		)
 			parq_upload_register_send_queue(puq);
 	}
@@ -2585,7 +2585,7 @@ parq_upload_queue_timer(time_t now, struct parq_ul_queue *q, pslist_t **rlp)
 			puq->queue_sent < MAX_QUEUE &&
 			puq->queue_refused < MAX_QUEUE_REFUSED &&
 			GNET_PROPERTY(max_uploads) > 0 &&
-			!ban_is_banned(BAN_CAT_SOCKET, puq->remote_addr)
+			!ban_is_banned(BAN_CAT_HTTP, puq->remote_addr)
 		)
 			parq_upload_register_send_queue(puq);
 
