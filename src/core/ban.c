@@ -400,6 +400,78 @@ ipf_unban(cqueue_t *cq, void *obj)
 }
 
 /**
+ * Initiate ban for given entry.
+ *
+ * @param ipf	the address information, giving the IP to ban
+ * @param msg	if not NULL, records the reason for the ban
+ */
+static void
+ipf_start_ban(struct addr_info *ipf, const char *msg)
+{
+	const struct ban *b;
+
+	addr_info_check(ipf);
+	g_assert(!ipf->banned);
+
+	b = ipf->owner;
+	ban_check(b);
+
+	cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy() */
+
+	ipf->banned = TRUE;
+
+	if (msg != NULL)
+		atom_str_change(&ipf->ban_msg, msg);
+
+	if (ipf->ban_delay)
+		ipf->ban_delay *= 2;
+	else
+		ipf->ban_delay = b->delay;
+
+	if (ipf->ban_delay > b->bantime)
+		ipf->ban_delay = b->bantime;
+
+	ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
+}
+
+/**
+ * Create an address info if not existing for this ban object.
+ *
+ * If `created' is non-NULL, we fill-it with TRUE if we created a new object,
+ * FALSE if the address info was already present.
+ *
+ * @param ban		the ban object
+ * @param addr		the IP address we wish to track
+ * @param created	if non-NULL, filled with creation status
+ *
+ * @return existing or new address info object.
+ */
+static struct addr_info *
+ipf_get(const struct ban *b, const host_addr_t addr, bool *created)
+{
+	struct addr_info *ipf;
+
+	ban_check(b);
+
+	/*
+	 * It is possible that we already have an addr_info for that host.
+	 */
+
+	ipf = hevset_lookup(b->info, &addr);
+
+	if (NULL == ipf) {
+		ipf = ipf_make(addr, tm_time(), b);
+		hevset_insert(b->info, ipf);
+		if (created != NULL) *created = TRUE;
+	} else {
+		if (created != NULL) *created = FALSE;
+	}
+
+	addr_info_check(ipf);
+	return ipf;
+}
+
+/**
  * A legitimate connection was made (for instance we granted an upload
  * slot), hence we do not want to count the connection attempt as hammering.
  *
@@ -453,6 +525,7 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 	struct addr_info *ipf;
 	time_t now = tm_time();
 	struct ban *b;
+	bool created;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
 
@@ -470,19 +543,10 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 	if (whitelist_check(addr))
 		return BAN_OK;
 
-	ipf = hevset_lookup(b->info, &addr);
+	ipf = ipf_get(b, addr, &created);
 
-	/*
-	 * First time we see this IP?  It's OK then.
-	 */
-
-	if (NULL == ipf) {
-		ipf = ipf_make(addr, now, b);
-		hevset_insert(b->info, ipf);
+	if (created)
 		return BAN_OK;
-	}
-
-	addr_info_check(ipf);
 
 	/*
 	 * Decay counter by measuring the amount of seconds since last connection
@@ -541,21 +605,7 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 	 */
 
 	if (ipf->counter > (float) b->requests) {
-		cq_cancel(&ipf->cq_ev);		/* Cancel ipf_destroy */
-
-		ipf->banned = TRUE;
-		atom_str_change(&ipf->ban_msg, "Too frequent connections");
-
-		if (ipf->ban_delay)
-			ipf->ban_delay *= 2;
-		else
-			ipf->ban_delay = BAN_DELAY;
-
-		if (ipf->ban_delay > b->bantime)
-			ipf->ban_delay = b->bantime;
-
-		ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
-
+		ipf_start_ban(ipf, "Too frequent connections");
 		return BAN_FIRST;
 	}
 
@@ -574,7 +624,52 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 }
 
 /**
- * Record banning with specific message for a given IP, for MAX_BAN seconds.
+ * Penalize remote address for a behaviour that seems weird.
+ *
+ * This is the opposite of ban_legit(), only the penalty we impose here is
+ * greater than the one we lift with ban_legit().
+ *
+ * @param cat	the ban category to use
+ * @param addr	the address in question
+ * @param msg	the reason for the penalty
+ */
+void
+ban_penalty(ban_category_t cat, const host_addr_t addr, const char *msg)
+{
+	struct addr_info *ipf;
+	struct ban *b;
+	bool created;
+
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+
+	b = ban_object[cat];
+	ban_check(b);
+
+	ipf = ipf_get(b, addr, &created);
+	if (created)
+		ipf->counter += 1.0;
+	else
+		ipf->counter += 1.7;
+
+	if (ipf->counter > (float) b->requests) {
+		if (ipf->banned)
+			cq_resched(ipf->cq_ev, ipf->ban_delay * 1000);
+		else
+			ipf_start_ban(ipf, msg);
+	}
+
+	if (GNET_PROPERTY(ban_debug)) {
+		g_debug("BAN %s(%s) %s record %s (counter: %.3f): %s",
+			G_STRFUNC, ban_category_string(b->cat),
+			ipf->banned ? "updating" : "penalized",
+			host_addr_to_string(ipf->addr), ipf->counter, msg);
+	}
+
+}
+
+/**
+ * Record banning with specific message for a given IP, for the maximum
+ * amount of seconds in the given category.
  */
 void
 ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
@@ -583,23 +678,12 @@ ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
 	struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
+	g_assert(msg != NULL);
 
 	b = ban_object[cat];
 	ban_check(b);
 
-	/*
-	 * If is possible that we already have an addr_info for that host.
-	 */
-
-	ipf = hevset_lookup(b->info, &addr);
-
-	if (NULL == ipf) {
-		ipf = ipf_make(addr, tm_time(), b);
-		hevset_insert(b->info, ipf);
-	}
-
-	addr_info_check(ipf);
-
+	ipf = ipf_get(b, addr, NULL);
 	atom_str_change(&ipf->ban_msg, msg);
 	ipf->ban_delay = b->bantime;
 
@@ -607,7 +691,7 @@ ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
 		g_debug("BAN %s(%s) %s record %s: %s",
 			G_STRFUNC, ban_category_string(b->cat),
 			ipf->banned ? "updating" : "new",
-			host_addr_to_string(ipf->addr), ban_reason(ipf));
+			host_addr_to_string(ipf->addr), msg);
 	}
 
 	if (ipf->banned)
@@ -767,7 +851,7 @@ ban_force(struct gnutella_socket *s)
 
 	/*
 	 * Let the kernel discard incoming data; SHUT_WR or SHUT_RDWR
-	 * would cause to sent a FIN which we want to prevent.
+	 * would cause sending a FIN, which we want to prevent.
 	 */
 	shutdown(s->file_desc, SHUT_RD);
 

@@ -1698,6 +1698,8 @@ upload_clone(struct upload *u)
 	cu->sent = 0;
 	cu->hevcnt = 0;
 	cu->error_sent = 0;
+	cu->http_status = 0;
+	cu->http_status_sent = FALSE;
 	cu->sending_error = NULL;			/* Freed by the parent upload */
 
 	socket_change_owner(cu->socket, cu);	/* Takes ownership of socket */
@@ -1809,6 +1811,8 @@ upload_send_http_status(struct upload *u,
 		send_upload_error(u, 403, "Unauthorized");
 		return TRUE;
 	}
+
+	u->http_status = code;
 
 	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
 				u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
@@ -2851,24 +2855,42 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	if (!UPLOAD_IS_COMPLETE(u) && GNET_PROPERTY(upload_debug) > 1) {
 		if (u->name) {
 			g_debug(
-				"ending upload of \"%s\" [%s bytes out, %s total] "
-				"request #%u from %s (%s): %s",
-				u->name,
+				"ending upload of %s \"%s\" [%s bytes out, %s total] "
+				"request #%u [%sHTTP %03d] from %s (%s): %s",
+				u->head_only ? "HEAD" : "GET", u->name,
 				uint64_to_string(u->sent),
 				uint64_to_string2(u->total_sent),
-				u->reqnum, host_addr_to_string(u->addr),
+				u->reqnum, u->http_status_sent ? "" : "unsent ",
+				u->http_status, host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		} else {
 			g_debug(
 				"ending upload [%s bytes out, %s total] "
-				"request #%u from %s (%s): %s",
+				"request #%u [%sHTTP %03d] from %s (%s): %s",
 				uint64_to_string(u->sent),
 				uint64_to_string2(u->total_sent),
-				u->reqnum, host_addr_to_string(u->addr),
+				u->reqnum, u->http_status_sent ? "" : "unsent ",
+				u->http_status, host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		}
+	}
+
+	/*
+	 * Check for obvious abuse: a servent requesting some chunk and
+	 * then not even bothering to get the output back.
+	 * 		--RAM, 2020-06-06
+	 */
+
+	if (
+		0 == u->sent &&				/* No payload sent back for this request */
+		0 == u->total_sent &&		/* And never sent any payload yet */
+		(u->http_status >= 200 && u->http_status < 300) &&	/* 2xx status code */
+		!u->head_only &&			/* Not a HEAD request */
+		u->http_status_sent			/* And header was sent back */
+	) {
+		ban_penalty(BAN_CAT_HTTP, u->addr, "Not reading HTTP payloads");
 	}
 
 	/*
@@ -4606,6 +4628,7 @@ static void
 upload_http_status_sent(struct upload *u)
 {
 	u->last_update = tm_time();
+	u->http_status_sent = TRUE;
 
 	/*
 	 * If we were sending an error back, with the connection kept alive

@@ -129,10 +129,12 @@ struct upload {
 
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
+	int http_status;			/**< HTTP status sent back */
 
 	host_net_t net;				/**< IPv6-Ready: type of addresses they want */
 
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
+	unsigned http_status_sent:1;/**< Whole HTTP headers were sent back */
 	unsigned push:1;
 	unsigned queue:1;			/**< Similar to PUSH, but for PARQ's QUEUE */
 	unsigned accounted:1;		/**< True when upload was accounted for */
