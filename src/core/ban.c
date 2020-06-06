@@ -349,7 +349,8 @@ ipf_lift_ban(struct addr_info *ipf)
 	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 2) {
-		g_debug("lifting BAN for %s (%s), counter = %.3f",
+		g_debug("BAN %s(%s) lifting for %s (%s), counter = %.3f",
+			G_STRFUNC, ban_category_string(ipf->owner->cat),
 			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter);
 	}
 
@@ -366,11 +367,11 @@ ipf_lift_ban(struct addr_info *ipf)
 	 */
 
 	if (delay <= 0) {
-		if (GNET_PROPERTY(ban_debug) > 8)
-			g_debug("disposing of %s BAN %s: %s",
-				ban_category_string(ipf->owner->cat),
+		if (GNET_PROPERTY(ban_debug) > 8) {
+			g_debug("BAN %s(%s) disposing of %s: %s",
+				G_STRFUNC, ban_category_string(ipf->owner->cat),
 				host_addr_to_string(ipf->addr), ban_reason(ipf));
-
+		}
 		hevset_remove(ipf->owner->info, &ipf->addr);
 		ipf_free(ipf);
 		return TRUE;
@@ -504,8 +505,8 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 	ipf->created = now;
 
 	if (GNET_PROPERTY(ban_debug) > 4) {
-		g_debug("BAN %s %s, counter = %.3f (%s)",
-			ban_category_string(b->cat),
+		g_debug("BAN %s(%s) %s, counter = %.3f (%s)",
+			G_STRFUNC, ban_category_string(b->cat),
 			host_addr_to_string(ipf->addr), ipf->counter,
 			ipf->banned ? "already banned" :
 			ipf->counter > (float) b->requests ? "banning" : "OK");
@@ -603,8 +604,8 @@ ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
 	ipf->ban_delay = b->bantime;
 
 	if (GNET_PROPERTY(ban_debug)) {
-		g_debug("BAN %s %s record %s: %s",
-			ban_category_string(b->cat),
+		g_debug("BAN %s(%s) %s record %s: %s",
+			G_STRFUNC, ban_category_string(b->cat),
 			ipf->banned ? "updating" : "new",
 			host_addr_to_string(ipf->addr), ban_reason(ipf));
 	}
