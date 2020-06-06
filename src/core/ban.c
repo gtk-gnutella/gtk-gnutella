@@ -53,6 +53,7 @@
 
 #include "ban.h"
 
+#include "bsched.h"			/* For bws_read() */
 #include "gnet_stats.h"
 #include "sockets.h"		/* For socket_register_fd_reclaimer() */
 #include "token.h"
@@ -828,19 +829,63 @@ ban_reclaim_fd(void)
  * Force banning of the connection.
  *
  * We're putting it in a list and forgetting about it.
+ *
+ * @param cat		banning category
+ * @param s			the socket we wish to put into a blackhole
  */
 void
-ban_force(struct gnutella_socket *s)
+ban_force(const ban_category_t cat, struct gnutella_socket *s)
 {
+	bsched_bws_t bws;
+	size_t i, total = 0;
 	int fd;
 
+	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
 	socket_check(s);
+
 	fd = s->file_desc;
 	g_return_if_fail(is_valid_fd(fd));
 	g_return_if_fail(fd > STDERR_FILENO); /* fd 0-2 are not used for sockets */
 
 	/* Ensure we're not listening to I/O events anymore. */
 	socket_evt_clear(s);
+
+	/*
+	 * Read the data we have been sent, in case shutdown(SHUT_RD) below causes
+	 * a write exception on the remote end, which would signal them that we're
+	 * going to ignore their request.  We don't want that of course, we want
+	 * them to wait for a reply that will never come.  That's the essence.
+	 *
+	 * This could also help us successfully shrink the TCP socket buffers.
+	 */
+
+	switch (cat) {
+	case BAN_CAT_GNUTELLA:	bws = BSCHED_BWS_GIN; break;
+	case BAN_CAT_HTTP:		bws = BSCHED_BWS_IN;  break;
+	case BAN_CAT_OOB_CLAIM:
+	case BAN_CAT_COUNT:
+		g_assert_not_reached();
+	}
+
+	total = s->pos;		/* Amount already read before by socket_read() */
+
+	for (i = 0; i < 4; i++) {	/* Read up to 4 buffers, arbitrary! */
+		ssize_t r;
+
+		r = bws_read(bws, &s->wio, s->buf, s->buf_size);
+		if ((ssize_t) -1 == r)
+			break;
+		total += r;
+		if ((size_t) r < s->buf_size)
+			break;
+	}
+
+	if (GNET_PROPERTY(ban_debug)) {
+		g_debug("BAN %s(%s) banning %s fd=%d (sunk %zu incoming bytes) for %s",
+			G_STRFUNC, ban_category_string(cat),
+			host_addr_to_string(s->addr), fd, total,
+			short_time_ascii(ban_delay(cat, s->addr)));
+	}
 
 	/*
 	 * Shrink socket buffers.

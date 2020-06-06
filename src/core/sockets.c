@@ -2055,7 +2055,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 					NULL == msg ? "<no message>" : msg);
 			}
 		}
-		ban_force(s);
+		ban_force(bcat, s);
 		goto cleanup;
 	case BAN_MSG:				/* Send specific 503 error message */
 		{
@@ -2121,12 +2121,12 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 		banlimit = parq_banned_source_expire(s->addr);
 		if (banlimit) {
-			if (GNET_PROPERTY(socket_debug)) {
+			if (GNET_PROPERTY(socket_debug) || GNET_PROPERTY(ban_debug)) {
 				g_warning("[sockets] PARQ has banned host %s until %s",
 					host_addr_to_string(s->addr),
 					timestamp_to_string(banlimit));
 			}
-			ban_force(s);
+			ban_force(bcat, s);
 			goto cleanup;
 		}
 	}

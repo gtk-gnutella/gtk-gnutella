@@ -67,7 +67,7 @@ ban_type_t ban_allow(const ban_category_t cat, const host_addr_t addr);
 void ban_legit(const ban_category_t cat, const host_addr_t addr);
 void ban_penalty(ban_category_t cat, const host_addr_t addr, const char *msg);
 void ban_record(ban_category_t cat, const host_addr_t addr, const char *msg);
-void ban_force(struct gnutella_socket *s);
+void ban_force(ban_category_t cat, struct gnutella_socket *s);
 int ban_delay(const ban_category_t cat, const host_addr_t addr);
 const char *ban_message(ban_category_t cat, const host_addr_t addr);
 bool ban_is_banned(const ban_category_t cat, const host_addr_t addr);
