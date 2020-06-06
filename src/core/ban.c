@@ -984,6 +984,9 @@ ban_delay(const ban_category_t cat, const host_addr_t addr)
 	ban_check(b);
 
 	ipf = hevset_lookup(b->info, &addr);
+	if (NULL == ipf)
+		return 0;
+
 	addr_info_check(ipf);
 
 	return ipf->ban_delay;
