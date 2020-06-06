@@ -2043,6 +2043,18 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
+		{
+			const char *msg = ban_message(bcat, s->addr);
+
+			if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): silently idling %s connection from "
+					"banned %s (%s still): %s",
+					G_STRFUNC, ban_category_string(bcat),
+					host_addr_to_string(s->addr),
+					short_time_ascii(ban_delay(bcat, s->addr)),
+					NULL == msg ? "<no message>" : msg);
+			}
+		}
 		ban_force(s);
 		goto cleanup;
 	case BAN_MSG:				/* Send specific 503 error message */
@@ -2050,7 +2062,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 			const char *msg = ban_message(bcat, s->addr);
 
             if (GNET_PROPERTY(socket_debug)) {
-                g_debug("%s(): rejecting connection from "
+				g_debug("%s(): rejecting connection from "
 					"banned %s (%s still): %s",
                     G_STRFUNC, host_addr_to_string(s->addr),
 					short_time_ascii(ban_delay(bcat, s->addr)), msg);
@@ -2073,6 +2085,15 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		entropy_harvest_single(VARLEN(s->addr));
 		{
 			int delay = ban_delay(bcat, s->addr);
+			const char *msg = ban_message(bcat, s->addr);
+
+            if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): initiating %s connection ban from %s (for %s): %s",
+					G_STRFUNC, ban_category_string(bcat),
+					host_addr_to_string(s->addr),
+					short_time_ascii(ban_delay(bcat, s->addr)),
+					NULL == msg ? "<no message>" : msg);
+            }
 
 			if (BAN_CAT_GNUTELLA == bcat)
 				send_node_error(s, 550, "Banned for %s", short_time_ascii(delay));

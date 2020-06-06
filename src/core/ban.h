@@ -73,6 +73,7 @@ bool ban_is_banned(const ban_category_t cat, const host_addr_t addr);
 void ban_max_recompute(void);
 
 const char *ban_vendor(const char *vendor);
+const char *ban_category_string(const ban_category_t cat);
 
 #endif	/* _core_ban_h_ */
 

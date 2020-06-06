@@ -522,18 +522,15 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 	 */
 
 	if (ipf->banned) {
-		if (ipf->ban_msg != NULL)
-			return BAN_MSG;
-
 		/*
-		 * Every ``remind'' attempts, return BAN_FIRST to let them know
-		 * that they have been banned, in case they "missed" our previous
+		 * Every ``remind'' attempts, return BAN_FIRST / BAN_MSG to let them
+		 * know that they have been banned, in case they "missed" our previous
 		 * indications or did not get the Retry-After right.
 		 *		--RAM, 2004-06-21
 		 */
 
 		if (0 != b->remind && 0 == ++(ipf->ban_count) % b->remind)
-			return BAN_FIRST;
+			return (ipf->ban_msg != NULL) ? BAN_MSG : BAN_FIRST;
 
 		return BAN_FORCE;
 	}
