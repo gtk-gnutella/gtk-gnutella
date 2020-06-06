@@ -119,6 +119,7 @@ struct upload {
 	filesize_t end;				/**< Last byte to send, inclusive */
 	filesize_t pos;				/**< Read position in file we're sending */
 	filesize_t sent;			/**< Bytes sent in this request */
+	filesize_t total_sent;		/**< Total amount of bytes sent */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	filesize_t downloaded;		/**< What they claim as downloaded so far */
 

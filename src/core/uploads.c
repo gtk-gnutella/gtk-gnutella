@@ -2851,17 +2851,21 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	if (!UPLOAD_IS_COMPLETE(u) && GNET_PROPERTY(upload_debug) > 1) {
 		if (u->name) {
 			g_debug(
-				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
+				"ending upload of \"%s\" [%s bytes out, %s total] "
+				"request #%u from %s (%s): %s",
 				u->name,
 				uint64_to_string(u->sent),
-				host_addr_to_string(u->addr),
+				uint64_to_string2(u->total_sent),
+				u->reqnum, host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		} else {
 			g_debug(
-				"ending upload [%s bytes out] from %s (%s): %s",
+				"ending upload [%s bytes out, %s total] "
+				"request #%u from %s (%s): %s",
 				uint64_to_string(u->sent),
-				host_addr_to_string(u->addr),
+				uint64_to_string2(u->total_sent),
+				u->reqnum, host_addr_to_string(u->addr),
 				upload_vendor_str(u),
 				logreason);
 		}
@@ -6661,6 +6665,7 @@ upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 
 	u->last_update = tm_time();
 	u->sent += written;
+	u->total_sent += written;
 	if (u->file_info) {
 		fi_increase_uploaded(u->file_info, written);
 	}
@@ -6796,6 +6801,7 @@ upload_special_writable(void *obj)
 
 	u->last_update = tm_time();
 	u->sent += written;
+	u->total_sent += written;
 }
 
 /**
