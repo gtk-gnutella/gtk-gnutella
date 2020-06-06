@@ -145,7 +145,7 @@ http_send_status(
 	size_t body_length = 0;
 	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
 	int cb_flags;
-	bool retried = FALSE, no_more_room;
+	bool retried = FALSE, no_more_room, only_prio = FALSE;
 	bool has_prio_callbacks = FALSE;
 	bool emergency_close = FALSE;
 
@@ -167,7 +167,8 @@ retry:
 	 * Prepare flags for callbacks.
 	 */
 
-	if (retried)		cb_flags |= HTTP_CBF_RETRY_PRIO;
+	if (retried)		cb_flags |= HTTP_CBF_SMALL_REPLY;
+	if (only_prio)		cb_flags |= HTTP_CBF_RETRY_PRIO;
 	if (saturated)		cb_flags |= HTTP_CBF_BW_SATURATED;
 	if (code == 503)	cb_flags |= HTTP_CBF_BUSY_SIGNAL;
 
@@ -183,19 +184,6 @@ retry:
 	else if	(code >= 400 && code <= 499)	header_size = 512;
 
 	/*
-	 * Activate X-Available-Ranges: emission on 416 and 2xx provided the
-	 * connection will be kept alive.
-	 */
-
-	if (keep_alive) {
-		if (code == 416) {
-			header_size = sizeof(header);		/* Was reduced above for 4xx */
-			cb_flags |= HTTP_CBF_SHOW_RANGES;
-		} else if (code >= 200 && code <= 299)
-			cb_flags |= HTTP_CBF_SHOW_RANGES;
-	}
-
-	/*
 	 * If bandwidth is short, reduce the header size noticeably, so that only
 	 * the most important stuff gets out.
 	 *		--RAM, 12/10/2003
@@ -209,6 +197,19 @@ retry:
 	} else {
 		version = version_string;
 		token = socket_omit_token(s) ? NULL : tok_version();
+	}
+
+	/*
+	 * Activate X-Available-Ranges: emission on 416 and 2xx provided the
+	 * connection will be kept alive.
+	 */
+
+	if (keep_alive) {
+		if (code == 416) {
+			header_size = sizeof(header);		/* Was reduced above for 4xx */
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
+		} else if (code >= 200 && code <= 299)
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
 	}
 
 	for (i = 0; i < hevcnt; i++) {
@@ -297,13 +298,11 @@ retry:
 		case HTTP_EXTRA_PRIO_CALLBACK:
 		case HTTP_EXTRA_CALLBACK:
 			/*
-			 * When retrying, do not emit HTTP_EXTRA_CALLBACK callbacks.
-			 *
 			 * Prioritary callbacks can, if possible, further limit the
 			 * amount of data they generate based on the HTTP_CBF_RETRY_PRIO
 			 * flag given.
 			 */
-			if (!retried || HTTP_EXTRA_PRIO_CALLBACK == type) {
+			if (!retried || !only_prio || HTTP_EXTRA_PRIO_CALLBACK == type) {
 				size_t len;
 
 				len = (*he->he_cb)(&header[rw], size, he->he_arg, cb_flags);
@@ -346,23 +345,38 @@ retry:
 
 	if ((rw >= header_size - 1 || no_more_room) && (hev || body)) {
 		/*
-		 * Not everything fits but if we have prioritary callbacks, retry
-		 * emitting them only, if not already done before.
+		 * Not everything fits.
+		 *
+		 * If we never retry, do it now and the HTTP_CBF_SMALL_REPLY will be
+		 * forced.
+		 *
+		 * If we already retried but have prioritary callbacks, retry
+		 * emitting them only.
 		 */
 
-		if (has_prio_callbacks && !retried) {
+		if (!retried) {
 			if (GNET_PROPERTY(http_debug)) {
 				g_warning("%s(): HTTP status %d (%s) too big (max %zu bytes), "
-					"retrying with only prioritary information (%s)",
+					"retrying with small-reply directive (%s)",
 					G_STRFUNC, code, status_msg,
 					header_size, host_addr_port_to_string(s->addr, s->port));
 			}
 			retried = TRUE;
 			goto retry;
+		} else if (!only_prio && has_prio_callbacks) {
+			if (GNET_PROPERTY(http_debug)) {
+				g_warning("%s(): HTTP status %d (%s) too big again "
+					"(max %zu bytes), "
+					"retrying with only prioritary information (%s)",
+					G_STRFUNC, code, status_msg,
+					header_size, host_addr_port_to_string(s->addr, s->port));
+			}
+			only_prio = TRUE;
+			goto retry;
 		}
 
 		if (GNET_PROPERTY(http_debug)) {
-			g_warning("%s(): HTTP status %d (%s) too big (max %zu bytes), "
+			g_warning("%s(): HTTP status %d (%s) still too big (max %zu bytes), "
 				"ignoring extra%s information (%s)",
 				G_STRFUNC, code, status_msg,
 				header_size, has_prio_callbacks ? " (even prioritary!)" : "",
@@ -424,6 +438,13 @@ retry:
 			"Content-Length: 0\r\n"
 			"\r\n",
 			version, date);
+
+		if (GNET_PROPERTY(http_debug)) {
+			g_warning("%s(): HTTP status %d (%s) too big (max %zu bytes), "
+				"aborting with emergency %zu-byte header (%s)",
+				G_STRFUNC, code, status_msg, header_size, rw,
+				host_addr_port_to_string(s->addr, s->port));
+		}
 
 		emergency_close = TRUE;		/* If not already set */
 	}

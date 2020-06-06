@@ -139,6 +139,7 @@
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
 #define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
+#define RANGES_SIZE		120			/**< Minimal size of X-Available-Ranges */
 #define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
 #define BROWSING_THRESH	3600		/**< secs: at most once per hour! */
 #define BROWSING_ABUSE	3			/**< More than that in an hour is abusing! */
@@ -2161,7 +2162,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	 * The X-Thex-URI line is never sent on follow-up requests.
 	 */
 
-	if (!u->is_followup)
+	if (!u->is_followup && !(flags & HTTP_CBF_SMALL_REPLY))
 		rw += upload_thex_uri_add(&buf[rw], size - rw, arg, flags);
 
 	/*
@@ -2170,10 +2171,11 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	 *
 	 * However, we're not going to include the available ranges when we
 	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
-	 * since the data will be stale by the time it is needed.  We only dump
-	 * them when explicitly requested to do so.  Otherwise, we let them know
-	 * about the amount of data we have for the file, so that they know we
-	 * hold only a fraction of it.
+	 * (but 416) since the data will be stale by the time it is needed.
+	 *
+	 * We only dump them when explicitly requested to do so.
+	 * Otherwise, we let them know about the amount of data we have for the
+	 * file, so that they know we hold only a fraction of it.
 	 */
 
 	if (
@@ -2196,13 +2198,17 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 		 * want to leave size for alt-locs and yet there are none to emit!
 		 */
 
-		mesh_len = dmesh_alternate_location(sha1,
-					ARYLEN(alt_locs), u->addr,
-					last_sent, u->user_agent, NULL, FALSE,
-					u->fwalt ? u->guid : NULL, u->net);
+		if (flags & HTTP_CBF_SMALL_REPLY)
+			mesh_len = 0;
+		else {
+			mesh_len = dmesh_alternate_location(sha1,
+						ARYLEN(alt_locs), u->addr,
+						last_sent, u->user_agent, NULL, FALSE,
+						u->fwalt ? u->guid : NULL, u->net);
+		}
 
 		if (size - rw > mesh_len) {
-			size_t len;
+			size_t len, avail;
 
 			/*
 			 * Emit the X-Available-Ranges: header if file is partial and we're
@@ -2210,12 +2216,21 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 			 * X-Available header.
 			 */
 
+			avail = size - rw - mesh_len;
+
+			if (flags & HTTP_CBF_RETRY_PRIO) {
+				avail = MIN(avail, RANGES_SIZE);
+			} else if (flags & HTTP_CBF_SMALL_REPLY) {
+				avail /= 2;
+				avail = MAX(avail, RANGES_SIZE);
+			}
+
 			if (flags & HTTP_CBF_BUSY_SIGNAL) {
 				len = file_info_available(shared_file_fileinfo(u->sf),
-						&buf[rw], size - rw - mesh_len);
+						&buf[rw], avail);
 			} else {
 				len = file_info_available_ranges(shared_file_fileinfo(u->sf),
-						&buf[rw], size - rw - mesh_len);
+						&buf[rw], avail);
 			}
 			rw += len;
 		}
@@ -5046,7 +5061,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 		u->cb_sha1_arg.u = u;
 		u->cb_sha1_arg.mtime = shared_file_modification_time(u->sf);
-		upload_http_extra_callback_add(u,
+		upload_http_extra_prio_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
 		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_sha1_arg);
 		upload_http_extra_callback_add(u,
