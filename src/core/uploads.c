@@ -4759,7 +4759,7 @@ upload_http_status_sent(struct upload *u)
 		 */
 
 		if (0 != u->bw_cap)
-			bio_set_cap(u->bio, u->bw_cap);
+			u->bw_cap = bio_set_cap(u->bio, u->bw_cap);
 
 		upload_stats_file_begin(u->sf);
 	}

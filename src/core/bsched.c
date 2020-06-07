@@ -1847,8 +1847,10 @@ bio_penalty(const bio_source_t *bio)
  *
  * @param bio	the I/O source
  * @param cap	the b/w cap, 0 meaning none
+ *
+ * @return the actual cap registered
  */
-void
+uint32
 bio_set_cap(bio_source_t *bio, uint32 cap)
 {
 	bio_check(bio);
@@ -1856,7 +1858,7 @@ bio_set_cap(bio_source_t *bio, uint32 cap)
 	if (cap != 0 && cap < BW_SLOT_MIN)
 		cap = BW_SLOT_MIN;
 
-	bio->bw_cap = cap;
+	return bio->bw_cap = cap;
 }
 
 /**
