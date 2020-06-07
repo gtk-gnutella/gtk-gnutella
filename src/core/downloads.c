@@ -11908,11 +11908,63 @@ http_version_nofix:
 			NULL == header_get(header, "X-Queued")
 		) {
 			if (GNET_PROPERTY(download_debug)) {
-				g_warning("fixing inappropriate status code 503 (%s) "
+				g_warning("%s(): fixing inappropriate status code 503 (%s) "
 					"from %s to 416",
-					ack_message, download_host_info(d));
+					G_STRFUNC, ack_message, download_host_info(d));
 			}
 			ack_code = 416;
+		}
+	}
+
+	/*
+	 * In update_available_ranges() we merge old ranges we previously collected
+	 * with new ones we are seeing.  This is fine usually, and required in case
+	 * the server does not send back a list of all the ranges it holds (because
+	 * it is too large if the file is heavily fragmented, for instance).
+	 *
+	 * But if we sent a request that appears to be available and we get a 416,
+	 * then it means our list is no longer valid.  This can happen when the
+	 * remote server completes the file, and then invalidates parts of it via
+	 * a TTH check.
+	 *
+	 * In that case, we need to reset our held range list and restart from
+	 * scratch, reparsing the headers but this time reconstructing the ranges
+	 * with the information we are given.  If after that the range we requested
+	 * still appears to be available, then something is wrong in our processing
+	 * or in their advertisement... log a warning!
+	 *
+	 * 		--RAM, 2020-06-07
+	 */
+
+	if (
+		416 == ack_code && d->ranges != NULL &&
+		http_rangeset_contains(d->ranges, d->chunk.start, d->chunk.end - 1)
+	) {
+		if (GNET_PROPERTY(download_debug)) {
+			g_message(
+				"%s(): reloading ranges after a 416 for \"%s\" (%s) "
+				"for [%s, %s]",
+				G_STRFUNC, d->file_name, download_host_info(d),
+				filesize_to_string(d->chunk.start),
+				filesize_to_string2(d->chunk.end - 1));
+		}
+
+		http_rangeset_free_null(&d->ranges);
+		d->ranges_size = 0;
+
+		if (update_available_ranges(d, header)) {
+			if (
+				d->ranges != NULL &&
+				http_rangeset_contains(d->ranges,
+					d->chunk.start, d->chunk.end - 1)
+			) {
+				g_warning(
+					"%s(): reloaded ranges after a 416 for \"%s\" (%s) "
+					"contain requested [%s, %s]",
+					G_STRFUNC, d->file_name, download_host_info(d),
+					filesize_to_string(d->chunk.start),
+					filesize_to_string2(d->chunk.end - 1));
+			}
 		}
 	}
 
