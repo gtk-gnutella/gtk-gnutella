@@ -306,12 +306,30 @@ retry:
 				size_t len;
 
 				len = (*he->he_cb)(&header[rw], size, he->he_arg, cb_flags);
-				g_assert(len < size);
+
+				/*
+				 * HTTP generation callbacks must detect that they are
+				 * not able to fit data correctly into the supplied buffer.
+				 * They return a formatted length (without the trailing NUL),
+				 * and therefore either they accidentally overstepped, or
+				 * made off-by-one error.  Does not necessarily mean they
+				 * wrote data off the boundaries, if they used cstr_bcpy()
+				 * for instance, but their header does not fit, and it is
+				 * a bug in their callback.
+				 *
+				 * We need to know precisely, hence the logging assertion.
+				 */
+
+				g_assert_log(len < size,
+					"%s(): %s() formatted len=%zu bytes into size=%zu buffer",
+					G_STRFUNC, stacktrace_function_name(he->he_cb), len, size);
+
+				/* FIXME: turn below check into assertion? -- RAM, 2020-06-07 */
 
 				if (len != 0 && NULL == is_strsuffix(&header[rw], len, "\r\n")) {
-					g_carp("%s(): ignoring %zu byte%s from %s(%p) lacking CRLF",
+					g_carp("%s(): ignoring %zu byte%s from %s() lacking CRLF",
 						G_STRFUNC, PLURAL(len),
-						stacktrace_function_name(he->he_cb), he->he_arg);
+						stacktrace_function_name(he->he_cb));
 				} else {
 					rw += len;
 				}
