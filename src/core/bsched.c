@@ -159,7 +159,7 @@ static pslist_t *bws_in_list = NULL;
 static int64 bws_out_ema = 0;
 static int64 bws_in_ema = 0;
 
-#define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		256	 /**< Minimum bandwidth/slot for realloc */
 
 #define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
