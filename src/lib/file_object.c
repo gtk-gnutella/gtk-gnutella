@@ -1442,7 +1442,10 @@ file_object_info_list(void)
 {
 	pslist_t *sl = NULL;
 
+	FILE_OBJECTS_LOCK;
 	hset_foreach(file_objects, file_object_info_get, &sl);
+	FILE_OBJECTS_UNLOCK;
+
 	return sl;
 }
 
