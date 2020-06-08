@@ -5253,6 +5253,9 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 * 		--RAM, 2020-06-01
 	 */
 
+	if (u->head_only)		/* No capping for HEAD requests */
+		goto head_request;	/* Avoid indenting too much code below */
+
 	requested = range_end - range_skip + 1;
 	max_chunk_size = 0;		/* Signals: no adjustment necessary */
 
@@ -5306,6 +5309,9 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	u->total_requested += requested;
 
+	/* FALL THROUGH */
+
+head_request:
 	g_assert(NULL == u->file);		/* File opened each time */
 
 	/*
