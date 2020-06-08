@@ -39,6 +39,8 @@
 
 #include "common.h"
 
+#include "lib/timestamp.h"	/* For time_delta_t */
+
 typedef struct file_object file_object_t;
 
 enum file_object_info_magic { FILE_OBJECT_INFO_MAGIC = 0x56f2fd57 };
@@ -60,6 +62,26 @@ file_object_info_check(const file_object_info_t * const foi)
 {
 	g_assert(foi != NULL);
 	g_assert(FILE_OBJECT_INFO_MAGIC == foi->magic);
+}
+
+enum file_object_descriptor_info_magic { FILE_OBJ_DESC_INFO_MAGIC = 0x0c6b520c };
+
+/*
+ * File descriptor information that can be retrieved.
+ */
+typedef struct {
+	enum file_object_descriptor_info_magic magic;
+	const char *path;					/**< Pathname opened (atom) */
+	int mode;							/**< Access mode */
+	int refcnt;							/**< Shared openings on descriptor */
+	time_delta_t linger;				/**< If non-zero, remaining linger time */
+} file_object_descriptor_info_t;
+
+static inline void
+file_object_descriptor_info_check(const file_object_descriptor_info_t * const fdi)
+{
+	g_assert(fdi != NULL);
+	g_assert(FILE_OBJ_DESC_INFO_MAGIC == fdi->magic);
 }
 
 void file_object_init(void);
@@ -97,7 +119,9 @@ int file_object_ftruncate(const file_object_t * const fo, filesize_t off);
 void file_object_fadvise_sequential(const file_object_t * const fo);
 
 struct pslist *file_object_info_list(void) WARN_UNUSED_RESULT;
-void file_object_info_list_free_nulll(struct pslist **sl_ptr);
+struct pslist *file_object_descriptor_info_list(void) WARN_UNUSED_RESULT;
+void file_object_info_list_free_null(struct pslist **sl_ptr);
+void file_object_descriptor_info_list_free_null(struct pslist **sl_ptr);
 
 #endif /* _file_object_h_ */
 

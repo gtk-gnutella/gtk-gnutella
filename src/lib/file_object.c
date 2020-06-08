@@ -1554,6 +1554,55 @@ file_object_info_list(void)
 	return sl;
 }
 
+/**
+ * Set iterator to get information about specific file descriptor and add
+ * it to the returned list of structures.
+ */
+static void
+file_object_descriptor_info_get(void *data, void *udata)
+{
+	const struct file_descriptor *fd = data;
+	pslist_t **list = udata;				/* List being built for user */
+	pslist_t *sl = *list;					/* Current list head pointer */
+	file_object_descriptor_info_t *fdi;
+
+	file_descriptor_check(fd);
+
+	WALLOC0(fdi);
+	fdi->magic = FILE_OBJ_DESC_INFO_MAGIC;
+
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	fdi->path = atom_str_get(fd->pathname);
+	fdi->refcnt = atomic_int_get(&fd->refcnt);
+	fdi->mode = fd->omode;
+	if (0 == fdi->refcnt && fd->linger_ev != NULL)
+		fdi->linger = cq_remaining(fd->linger_ev) / 1000;
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	sl = pslist_prepend(sl, fdi);
+	*list = sl;							/* Update list head pointer */
+}
+
+/**
+ * Retrieve file_descriptor information.
+ *
+ * @return list of file_object_descriptor_info_t that must be freed by calling
+ * the * file_object_descriptor_info_list_free_null() routine.
+ */
+pslist_t *
+file_object_descriptor_info_list(void)
+{
+	pslist_t *sl = NULL;
+
+	FILE_OBJECTS_LOCK;
+	hikset_foreach(file_descriptors, file_object_descriptor_info_get, &sl);
+	FILE_OBJECTS_UNLOCK;
+
+	return sl;
+}
+
 static void
 file_object_info_free(void *data, void *udata)
 {
@@ -1571,11 +1620,36 @@ file_object_info_free(void *data, void *udata)
  * Free list returned by file_object_info_list() and nullify pointer.
  */
 void
-file_object_info_list_free_nulll(pslist_t **sl_ptr)
+file_object_info_list_free_null(pslist_t **sl_ptr)
 {
 	pslist_t *sl = *sl_ptr;
 
 	pslist_foreach(sl, file_object_info_free, NULL);
+	pslist_free_null(sl_ptr);
+}
+
+static void
+file_object_descriptor_info_free(void *data, void *udata)
+{
+	file_object_descriptor_info_t *fdi = data;
+
+	file_object_descriptor_info_check(fdi);
+	(void) udata;
+
+	atom_str_free_null(&fdi->path);
+	fdi->magic = 0;
+	WFREE(fdi);
+}
+
+/**
+ * Free list returned by file_object_descriptor_info_list() and nullify pointer.
+ */
+void
+file_object_descriptor_info_list_free_null(pslist_t **sl_ptr)
+{
+	pslist_t *sl = *sl_ptr;
+
+	pslist_foreach(sl, file_object_descriptor_info_free, NULL);
 	pslist_free_null(sl_ptr);
 }
 
