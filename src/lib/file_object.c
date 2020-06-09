@@ -74,6 +74,18 @@
  *     // Error handling
  *  }
  *
+ * The we use the file object to read/write but since this is a shared
+ * object, all I/O must be done with an explicit offset within the file.
+ *
+ *  // Read from file at given offset
+ *  r = file_object_pread(file, data, size, offset);
+ *
+ *  // Write to file at given offset
+ *  w = file_object_pwrite(file, data, size, offset);
+ *
+ *  // And finally close the file (object), which NULL-ifies pointer
+ *  file_object_close(&file);
+ *
  * Internally, all files are opened O_RDWR if possible to be able to share
  * the file descriptors, but the API checks the access mode and will loudly
  * complain if the user is trying to read from a write-only file for instance,
@@ -770,7 +782,7 @@ file_object_create_from(const char * const pathname, int accmode, mode_t mode,
  *               point to an initialized file_object.
  */
 void
-file_object_release(file_object_t **fo_ptr)
+file_object_close(file_object_t **fo_ptr)
 {
 	g_assert(fo_ptr != NULL);
 
@@ -1476,7 +1488,7 @@ file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
  * @note Still existing file objects are not destroyed.
  */
 void
-file_object_close(void)
+file_object_shutdown(void)
 {
 	/*
 	 * Release lingering file descriptors since we're shutdowning...

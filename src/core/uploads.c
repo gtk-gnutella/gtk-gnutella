@@ -1606,7 +1606,7 @@ upload_free_resources(struct upload *u)
 	parq_upload_upload_got_freed(u);
 
 	atom_str_free_null(&u->name);
-	file_object_release(&u->file);
+	file_object_close(&u->file);
 
 #ifdef HAS_MMAP
 	if (u->sendfile_ctx.map) {
@@ -3063,7 +3063,7 @@ upload_wait_new_request(struct upload *u)
 	 * File will be re-opened each time a new request is made.
 	 */
 
-	file_object_release(&u->file);	/* expect_http_header() expects this */
+	file_object_close(&u->file);	/* expect_http_header() expects this */
  	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_EXPECTING);
 }

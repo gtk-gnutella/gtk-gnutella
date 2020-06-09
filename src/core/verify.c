@@ -771,7 +771,7 @@ done:
 	else
 		verify_failure(ctx);
 
-	file_object_release(&ctx->file);
+	file_object_close(&ctx->file);
 }
 
 static void
@@ -789,7 +789,7 @@ verify_final(struct verify *ctx)
 	} else {
 		verify_done(ctx);
 	}
-	file_object_release(&ctx->file);
+	file_object_close(&ctx->file);
 }
 
 static void
@@ -851,7 +851,7 @@ verify_update(struct verify *ctx)
 
 error:
 	verify_failure(ctx);
-	file_object_release(&ctx->file);
+	file_object_close(&ctx->file);
 }
 
 /**
@@ -903,7 +903,7 @@ verify_bg_sighandler(struct bgtask *bt, void *data, bgsig_t sig)
 
 	if (ctx->file != NULL) {
 		verify_shutdown(ctx);
-		file_object_release(&ctx->file);
+		file_object_close(&ctx->file);
 	}
 	HFREE_NULL(ctx->buffer);
 

@@ -85,7 +85,7 @@ file_object_descriptor_info_check(const file_object_descriptor_info_t * const fd
 }
 
 void file_object_init(void);
-void file_object_close(void);
+void file_object_shutdown(void);		/* Leave file_object_close() for users */
 
 #define file_object_create(p,a,m) \
 	file_object_create_from((p), (a), (m), _WHERE_, __LINE__)
@@ -110,7 +110,7 @@ ssize_t file_object_preadv(const file_object_t *fo,
 int file_object_fd(const file_object_t *fo);
 const char *file_object_pathname(const file_object_t *fo);
 
-void file_object_release(file_object_t **fo_ptr);
+void file_object_close(file_object_t **fo_ptr);
 bool file_object_rename(const char * const o, const char * const n);
 bool file_object_unlink(const char * const path);
 void file_object_moved(const char * const o, const char * const n);

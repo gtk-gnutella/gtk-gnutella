@@ -1070,7 +1070,7 @@ gtk_gnutella_exit(int exit_code)
 	 * off the thread element for a while).
 	 */
 
-	DO(file_object_close);
+	DO(file_object_shutdown);
 	DO(settings_close);		/* Must come after hcache_close() */
 	DO(cq_close);
 

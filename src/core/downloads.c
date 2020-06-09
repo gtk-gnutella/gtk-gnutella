@@ -4726,7 +4726,7 @@ download_stop_v(struct download *d, download_status_t new_status,
 		d->bio = NULL;
 	}
 	socket_free_null(&d->socket);		/* Close socket */
-	file_object_release(&d->out_file);	/* Close output file */
+	file_object_close(&d->out_file);	/* Close output file */
 	if (d->io_opaque) {					/* I/O data */
 		io_free(d->io_opaque);
 		g_assert(d->io_opaque == NULL);
@@ -7160,7 +7160,7 @@ download_fallback_to_push(struct download *d,
 		socket_free_null(&d->socket);
 	}
 
-	file_object_release(&d->out_file);
+	file_object_close(&d->out_file);
 
 	download_set_status(d, user_request ? GTA_DL_PUSH_SENT : GTA_DL_FALLBACK);
 	d->last_update = tm_time();		/* Reset timeout if we send the push */
@@ -9174,7 +9174,7 @@ download_overlap_check(struct download *d)
 
 out:
 	WFREE_NULL(data, d->chunk.overlap);
-	file_object_release(&fo);
+	file_object_close(&fo);
 
 	return success;
 }

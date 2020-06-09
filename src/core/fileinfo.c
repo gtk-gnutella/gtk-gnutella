@@ -910,7 +910,7 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 
 	if (fo != NULL) {
 		file_info_fd_store_binary(fi, fo);
-		file_object_release(&fo);
+		file_object_close(&fo);
 	}
 }
 
