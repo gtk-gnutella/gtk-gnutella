@@ -10869,27 +10869,34 @@ check_push_proxies(struct download *d, const header_t *header)
  * whether we can spot a range that is available and which we
  * do not have.
  *
- * @param[in,out] d  The download for which we update available ranges
- * @param[in] header  The HTTP header which contains ranges info
+ * @param[in,out] d		The download for which we update available ranges
+ * @param[in] header	The HTTP header which contains ranges info
+ * @param[in] code		The HTTP status code we got
  *
  * @return TRUE if we have seen one of the X-Available headers, indicating
  * that the remote file is partial.
  */
 static bool
-update_available_ranges(struct download *d, const header_t *header)
+update_available_ranges(struct download *d, const header_t *header, uint code)
 {
 	static const char available_ranges[] = "X-Available-Ranges";
 	static const char available[] = "X-Available";
 	const char *buf;
 	filesize_t available_bytes = 0;
-	bool seen_available = FALSE;
-	bool has_new_ranges = FALSE;
-	bool was_complete;
+	bool seen_available = FALSE, has_new_ranges = FALSE;
+	bool was_complete, decisive = FALSE;
 
 	download_check(d);
 
+	/*
+	 * Would absence of X-Available and X-Available-Ranges tell us that
+	 * the file is complete?  It depends on the HTTP status code we got.
+	 */
+
+	if (code >= 200 && code < 300)
+		decisive = TRUE;
+
 	was_complete = !(d->flags & DL_F_PARTIAL);
-	d->flags &= ~DL_F_PARTIAL;		/* Assume file is complete now */
 
 	if (!d->file_info->use_swarming)
 		goto send_event;
@@ -10900,6 +10907,7 @@ update_available_ranges(struct download *d, const header_t *header)
 	 * Handle X-Available (indicates a partial file).
 	 */
 
+	d->flags &= ~DL_F_PARTIAL;		/* Assume file is complete now */
 	buf = header_get(header, available);
 
 	if (buf) {
@@ -10933,14 +10941,13 @@ update_available_ranges(struct download *d, const header_t *header)
 
 	buf = header_get(header, available_ranges);
 
-	if (NULL == buf && !seen_available) {
-		/*
-		 * Neither X-Available nor X-Available-Ranges were seen, therefore
-		 * file must be complete.
-		 */
+	/*
+	 * When neither X-Available nor X-Available-Ranges were seen, the
+	 * file must be complete when HTTP code was decisive.
+	 */
 
-		available_bytes = download_filesize(d);
-	}
+	if (NULL == buf && !seen_available && decisive)
+		available_bytes = download_filesize(d);		/* The whole thing */
 
 	if (NULL == buf || download_filesize(d) == 0)
 		goto send_event;
@@ -10983,6 +10990,32 @@ update_available_ranges(struct download *d, const header_t *header)
 			new_length = old_length;
 		}
 
+		/*
+		 * Sanity check: if we have consolidated more bytes than they claim
+		 * they have in an X-Available header, then our range set is no longer
+		 * correct: restart from what they just listed.
+		 */
+
+		if (available_bytes != 0 && available_bytes < new_length) {
+			if (GNET_PROPERTY(download_debug)) {
+				g_info("%s(): consolidated ranges span %s bytes "
+					"whilst server advertises only %s (with %s explicit)"
+					" -- resetting!",
+					G_STRFUNC,
+					filesize_to_string(available_bytes),
+					filesize_to_string2(new_length),
+					filesize_to_string3(
+						NULL == new_ranges ? 0 :
+						http_rangeset_length(new_ranges)
+					)
+				);
+			}
+			http_rangeset_free_null(&d->ranges);
+			d->ranges = new_ranges;
+			new_length =
+				NULL == new_ranges ? 0 : http_rangeset_length(new_ranges);
+		}
+
 		d->ranges_size = new_length;
 		has_new_ranges = old_length != new_length;
 
@@ -11004,21 +11037,31 @@ update_available_ranges(struct download *d, const header_t *header)
 
  send_event:
 	/*
+	 * If file was not complete upon entry and we have not seen any
+	 * available header and the HTTP code was not decisive, we need to
+	 * reflag it as being partial, since we cannot know for sure.
+	 */
+
+	if (!(was_complete || seen_available || decisive))
+		d->flags |= DL_F_PARTIAL;
+
+	/*
 	 * If we have an X-Available header mentionning more data than we
 	 * can see in X-Available-Ranges, use the former on the basis that
 	 * the latter could have been truncated due to header size constraints.
 	 */
 
-	if (available_bytes > d->ranges_size) {
-		d->ranges_size = available_bytes;
-		has_new_ranges = TRUE;
-
+	if (available_bytes >= d->ranges_size) {
 		if (GNET_PROPERTY(download_debug)) {
-			g_debug("%s X-Available header from %s: has %s bytes for \"%s\"",
+			g_debug("%s X-Available header from %s: claims %s bytes "
+				"for \"%s\" whilst X-Available-Ranges advertise %s bytes",
 				seen_available ? "seen some" : "no",
-				download_host_info(d), uint64_to_string(available_bytes),
-				download_basename(d));
+				download_host_info(d), filesize_to_string(available_bytes),
+				download_basename(d),
+				filesize_to_string2(NULL == d->ranges ? 0 : d->ranges_size));
 		}
+
+		d->ranges_size = available_bytes;
 	}
 
 	/*
@@ -11026,7 +11069,7 @@ update_available_ranges(struct download *d, const header_t *header)
 	 */
 
 	if (
-		!was_complete &&
+		!was_complete && decisive &&
 		download_filesize(d) != 0 &&
 		d->ranges_size >= download_filesize(d)
 	) {
@@ -11905,7 +11948,7 @@ http_version_nofix:
 
 	download_handle_thex_uri_header(d, header);
 
-	if (update_available_ranges(d, header)) {	/* Updates `d->ranges' */
+	if (update_available_ranges(d, header, ack_code)) {	/* Updates `d->ranges' */
 		/*
 		 * Some X-Availble or X-Available-Ranges header was present.
 		 * Some broken servents return 503 when they meant 416, fix this.
@@ -11962,7 +12005,7 @@ http_version_nofix:
 		http_rangeset_free_null(&d->ranges);
 		d->ranges_size = 0;
 
-		if (update_available_ranges(d, header)) {
+		if (update_available_ranges(d, header, ack_code)) {
 			if (
 				d->ranges != NULL &&
 				http_rangeset_contains(d->ranges,
