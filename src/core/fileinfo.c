@@ -8102,7 +8102,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 
 	fi_update_rarest_chunks(fi);
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 5 || GNET_PROPERTY(download_debug) > 1)
 		g_debug("%s(): updating ranges for %s", G_STRFUNC, fi->pathname);
 
 	/*
@@ -8134,8 +8134,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			download_is_active(src)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				g_debug("- %s:%d replied (%s, flags=0x%x), ",
-					host_addr_to_string(src->server->key->addr),
+				g_debug("%s(): - %s:%d replied (%s, flags=0x%x), ",
+					G_STRFUNC, host_addr_to_string(src->server->key->addr),
 					src->server->key->port,
 					download_status_to_string(src), src->flags);
 
@@ -8145,7 +8145,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 */
 
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					g_debug("   whole file is now available");
+					g_debug("%s():   whole file is now available", G_STRFUNC);
 
 				http_rangeset_clear(hrs);
 				http_rangeset_insert(hrs, 0, fi->size - 1);
@@ -8156,8 +8156,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5) {
-					g_debug("   ranges available: %s",
-						http_rangeset_to_string(src->ranges));
+					g_debug("%s():   ranges available: %s",
+						G_STRFUNC, http_rangeset_to_string(src->ranges));
 				}
 
 				http_rangeset_merge(hrs, src->ranges);
@@ -8172,13 +8172,18 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		}
 	}
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("=> final ranges: %s", http_rangeset_to_string(hrs));
+	if (GNET_PROPERTY(fileinfo_debug) > 5 || GNET_PROPERTY(download_debug) > 1) {
+		g_debug("%s(): => final ranges (%s / %s = %.3f%%): %s",
+			G_STRFUNC, filesize_to_string(http_rangeset_length(hrs)),
+			filesize_to_string2(fi->size),
+			0 == fi->size ? 100.0 : http_rangeset_length(hrs) * 100.0 / fi->size,
+			http_rangeset_to_string(hrs));
+	}
 
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
-	fi_event_trigger(d->file_info, EV_FI_RANGES_CHANGED);
+	fi_event_trigger(fi, EV_FI_RANGES_CHANGED);
 }
 
 struct file_info_foreach {

@@ -10986,6 +10986,16 @@ update_available_ranges(struct download *d, const header_t *header)
 		d->ranges_size = new_length;
 		has_new_ranges = old_length != new_length;
 
+		if (GNET_PROPERTY(download_debug) > 1) {
+			g_debug("%s(): %sranges for \"%s\" at %s span %s bytes (%.3f%%): %s",
+				G_STRFUNC, has_new_ranges ? "new " : "",
+				download_basename(d), download_host_info(d),
+				filesize_to_string(new_length),
+				0 == download_filesize(d) ? 100.0 :
+					new_length * 100.0 / download_filesize(d),
+				NULL == d->ranges ? "-" : http_rangeset_to_string(d->ranges));
+		}
+
 		if (d->ranges != new_ranges)
 			http_rangeset_free_null(&new_ranges);
 	}
