@@ -2076,6 +2076,12 @@ upload_retry_after(char *buf, size_t size, void *arg, uint32 flags)
 
 	len = str_bprintf(ARYLEN(ra), "Retry-After: %s\r\n", int64_to_string(after));
 
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Retry-After header back: "
+			"only %u byte%s left",
+			(unsigned) PLURAL(size));
+	}
+
 	if (len >= size)
 		return 0;
 
