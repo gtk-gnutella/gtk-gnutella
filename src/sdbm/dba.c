@@ -154,7 +154,7 @@ pagestat(char *pag,
 
 		if (!summary_only) {
 			printf("%3d entr%-3s, %2d%% used, keys %3d, values %3d, free %3d%s",
-				n / 2, plural_y(n / 2),
+				PLURAL_Y(n / 2),
 				((DBM_PBLKSIZ - pfree) * 100) / DBM_PBLKSIZ,
 				keysize, valsize, pfree,
 				(DBM_PBLKSIZ - pfree) / (n/2) * (1+n/2) > DBM_PBLKSIZ ?
@@ -225,13 +225,13 @@ sdump(int pagf, long npag)
 
 	if (b == 0) {
 		printf("%d page%s (%d hole%s):  %d entr%s\n",
-			n, plural(n), o, plural(o), t, plural_y(t));
-		if (bad != 0) printf("%d bad page%s\n", bad, plural(bad));
+			PLURAL(n), PLURAL(o), PLURAL(t));
+		if (bad != 0) printf("%d bad page%s\n", PLURAL(bad));
 		printf("keys: %u byte%s, values: %u byte%s\n",
-			ksize, plural(ksize), vsize, plural(vsize));
+			PLURAL(ksize), PLURAL(vsize));
 		if (tlk || tlv)
 			printf("%d large key%s, %d large value%s\n",
-				tlk, plural(tlk), tlv, plural(tlv));
+				PLURAL(tlk), PLURAL(tlv));
 	} else
 		oops("read failed: block %d", n);
 }
@@ -263,7 +263,7 @@ bdump(int datf)
 		total++;
 
 	printf("%lu block%s used / %lu total (%.2f%% used)\n",
-		used, plural(used), total, used * 100.0 / (total ? total : 1));
+		PLURAL(used), total, used * 100.0 / (total ? total : 1));
 }
 
 /* vi: set ts=4 sw=4 cindent: */

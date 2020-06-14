@@ -811,14 +811,14 @@ real_check(const void *key, void *value, void *ctx)
 			rb->header_corrupted = TRUE;
 			bc->new_corrupted++;
 			s_warning("MALLOC corrupted real block magic at %p (%zu byte%s)",
-				p, rb->size, plural(rb->size));
+				p, PLURAL(rb->size));
 		} else if (rmh->size != rb->size) {
 			/* Can indicate memory corruption as well */
 			bc->new_corrupted++;
 			rb->header_corrupted = TRUE;
 			s_warning("MALLOC size mismatch for real block %p: "
 				"hashtable says %zu byte%s, header says %zu",
-				p, rb->size, plural(rb->size), rmh->size);
+				p, PLURAL(rb->size), rmh->size);
 		}
 	}
 #endif	/* MALLOC_SAFE */
@@ -843,7 +843,7 @@ malloc_periodic(void *unused_obj)
 		s_message("malloc periodic check starting...");
 	} else {
 		s_message("malloc periodic check starting... [%u error%s already]",
-			errors, plural(errors));
+			PLURAL(errors));
 	}
 
 	ZERO(&ctx);
@@ -915,7 +915,7 @@ block_check_missed_free(const void *p, const char *file, int line)
 		s_warning("MALLOC (%s:%d) reusing %sblock %p (%zu byte%s) "
 			"from %s:%d, missed its freeing",
 			file, line, b->owned ? "owned " : "foreign ",
-			p, b->size, plural(b->size), b->file, b->line);
+			p, PLURAL(b->size), b->file, b->line);
 		stacktrace_where_print(stderr);
 
 		b->owned = FALSE;					/* No need to check markers */
@@ -955,7 +955,7 @@ real_check_missed_free(void *p)
 				s_rawwarn("MALLOC reusing %s block %p (%zu byte%s) "
 					"from %s:%d, missed its freeing",
 					b->owned ? "owned" : "foreign",
-					p, rb->size, plural(rb->size), b->file, b->line);
+					p, PLURAL(rb->size), b->file, b->line);
 				b->owned = FALSE;
 				free_record(p, _WHERE_, __LINE__);
 			}
@@ -964,7 +964,7 @@ real_check_missed_free(void *p)
 		warning = TRUE;
 		s_rawwarn("MALLOC reusing %s block %p (%zu byte%s), "
 			"missed its freeing",
-			rb->is_real ? "real" : "trapped", p, rb->size, plural(rb->size));
+			rb->is_real ? "real" : "trapped", p, PLURAL(rb->size));
 #endif	/* TRACK_MALLOC */
 		if (warning) {
 			s_rawwarn("current frame:");
@@ -1487,7 +1487,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 		uint cnt = g_slist_length(b->reallocations);
 
 		s_warning("   (realloc'ed %u time%s, lastly from \"%s:%d\")",
-			cnt, plural(cnt), r->file, r->line);
+			PLURAL(cnt), r->file, r->line);
 	}
 
 #ifdef MALLOC_FRAMES

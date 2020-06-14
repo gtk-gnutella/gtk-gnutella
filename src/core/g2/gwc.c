@@ -356,7 +356,7 @@ retry:
 	} else {
 		if (GNET_PROPERTY(bootstrap_debug)) {
 			g_debug("%s(): loaded %u URL%s from \"%s/%s\"",
-				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
+				G_STRFUNC, PLURAL(added), fpv[idx].dir, fpv[idx].name);
 		}
 	}
 }
@@ -789,7 +789,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_message("BOOT got %d host%s from GWC %s",
-			ctx->processed, plural(ctx->processed), gwc_current_url);
+			PLURAL(ctx->processed), gwc_current_url);
 
 	/*
 	 * If we did not get enough addresses, try to feed the cache with ours.

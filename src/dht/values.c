@@ -675,7 +675,7 @@ dht_value_to_string(const dht_value_t *v)
 
 	str_bprintf(ARYLEN(buf),
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
-		kuid, type, v->major, v->minor, v->length, plural(v->length),
+		kuid, type, v->major, v->minor, PLURAL(v->length),
 		knode);
 
 	return buf;
@@ -1755,7 +1755,7 @@ mismatch:
 			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid),
 			dht_value_type_to_string(vd->type),
 			vd->value_major, vd->value_minor,
-			vd->length, plural(vd->length),
+			PLURAL(vd->length),
 			vd->original ? "original" : "copy");
 	}
 
@@ -1795,7 +1795,7 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
-			v->major, v->minor, v->length, plural(v->length),
+			v->major, v->minor, PLURAL(v->length),
 			knode_to_string(v->creator),
 			kuid_eq(v->creator->id, kn->id) ? "original" : "copy");
 
@@ -2140,7 +2140,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
-			hset_count(dbkeys), plural(hset_count(dbkeys)),
+			PLURAL(hset_count(dbkeys)),
 			dbmw_count(db_valuedata));
 	}
 
@@ -2172,8 +2172,8 @@ values_init_data(const hset_t *dbkeys)
 		dbmw_count(db_rawdata), dbmw_count(db_valuedata));
 
 	if (GNET_PROPERTY(dht_values_debug)) {
-		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
-			plural(dbmw_count(db_valuedata)));
+		g_debug("DHT VALUES reloaded %zu value%s",
+			PLURAL(dbmw_count(db_valuedata)));
 	}
 
 	/*

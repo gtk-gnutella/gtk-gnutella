@@ -3214,7 +3214,7 @@ clamped:
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
-				fmt, processed, plural(processed));
+				fmt, PLURAL(processed));
 			thread_private_remove(TKEY);
 		}
 	}

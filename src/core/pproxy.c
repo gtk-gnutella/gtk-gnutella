@@ -421,7 +421,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 26 && datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -446,7 +446,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -872,11 +872,11 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
 					HTTP_ATOMIC_SEND,
 					"Push-proxy: message sent through Gnutella "
-					"(via %zd node%s)", cnt, plural(cnt));
+					"(via %zd node%s)", PLURAL(cnt));
 
 			pp->error_sent = 203;
 			pproxy_remove(pp, "Push sent via Gnutella (%zd node%s) for GUID %s",
-					cnt, plural(cnt), guid_hex_str(pp->guid));
+					PLURAL(cnt), guid_hex_str(pp->guid));
 		}
 
 		pslist_free_null(&nodes);

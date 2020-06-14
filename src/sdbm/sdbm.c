@@ -723,13 +723,13 @@ log_sdbmstats(DBM *db)
 		sdbm_name(db), db->dirread, db->dirwrite, db->dirwdelayed);
 	s_info("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
-		db->pagfetch, plural(db->pagfetch));
+		PLURAL(db->pagfetch));
 	s_info("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
-		db->dirfetch, plural(db->dirfetch));
+		PLURAL(db->dirfetch));
 	s_info("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
-		db->repl_stores, plural(db->repl_stores));
+		PLURAL(db->repl_stores));
 }
 
 static void
@@ -743,11 +743,11 @@ log_sdbm_warnings(DBM *db)
 	}
 	if (db->bad_pages) {
 		s_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
-			sdbm_name(db), db->bad_pages, plural(db->bad_pages));
+			sdbm_name(db), PLURAL(db->bad_pages));
 	}
 	if (db->removed_keys) {
 		s_warning("sdbm: \"%s\" removed %lu key%s not belonging to their page",
-			sdbm_name(db), db->removed_keys, plural(db->removed_keys));
+			sdbm_name(db), PLURAL(db->removed_keys));
 	}
 	if (db->read_errors || db->write_errors) {
 		s_warning("sdbm: \"%s\" "
@@ -758,12 +758,12 @@ log_sdbm_warnings(DBM *db)
 	}
 	if (db->spl_corrupt) {
 		s_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
-			sdbm_name(db), db->spl_corrupt, plural(db->spl_corrupt));
+			sdbm_name(db), PLURAL(db->spl_corrupt));
 	}
 #ifdef BIGDATA
 	if (db->bad_bigkeys) {
 		s_warning("sdbm: \"%s\" encountered %lu bad big key%s",
-			sdbm_name(db), db->bad_bigkeys, plural(db->bad_bigkeys));
+			sdbm_name(db), PLURAL(db->bad_bigkeys));
 	}
 #endif
 }
@@ -1008,7 +1008,7 @@ sdbm_can_release(DBM *db, const char *caller, const char *what)
 	g_assert(db->refcnt >= 0);
 	if (db->refcnt >= 2) {
 		s_carp("%s(): attempting to %s SDBM \"%s\" (still has %d ref%s)",
-			caller, what, sdbm_name(db), db->refcnt, plural(db->refcnt));
+			caller, what, sdbm_name(db), PLURAL(db->refcnt));
 
 		atomic_int_dec(&db->refcnt);
 		g_assert(db->refcnt >= 0);

@@ -357,7 +357,7 @@ open_failed:
 			s_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
 			s_debug("[%s] unable to retrieve: tried %d alternate location%s",
-				what, fvcnt, plural(fvcnt));
+				what, PLURAL(fvcnt));
 		} else {
 			s_debug("[%s] unable to retrieve: no alternate locations known",
 				what);

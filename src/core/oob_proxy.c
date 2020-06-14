@@ -490,7 +490,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 			g_debug(
 				"QUERY OOB-proxied #%s dropping %d hit%s from %s: no leaf #%s",
 				guid_hex_str(opr->proxied_muid),
-				results, plural(results),
+				PLURAL(results),
 				node_addr(n), nid_to_string(opr->node_id));
 		}
 
@@ -537,7 +537,7 @@ oob_proxy_got_results(gnutella_node_t *n, uint results)
 
 	if (GNET_PROPERTY(query_debug) > 5 || GNET_PROPERTY(oob_proxy_debug) > 2)
 		g_debug("QUERY OOB-proxied #%s routed %d hit%s to %s from %s %s",
-			guid_hex_str(opr->proxied_muid), results, plural(results),
+			guid_hex_str(opr->proxied_muid), PLURAL(results),
 			node_infostr(leaf), NODE_IS_UDP(n) ? "UDP" : "TCP", node_addr2(n));
 
 	return TRUE;			/* We routed the message */

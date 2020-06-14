@@ -417,7 +417,7 @@ g2_msg_infostr_to_buf(const void *data, size_t len, char *buf, size_t buflen)
 
 	return str_bprintf(buf, buflen,
 		"/%s (%zu byte%s)%s%s",
-		g2_msg_type_name(m), len, plural(len),
+		g2_msg_type_name(m), PLURAL(len),
 		NULL == muid ? "" : " #",
 		NULL == muid ? "" : guid_hex_str(muid));
 }

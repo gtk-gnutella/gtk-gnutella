@@ -288,8 +288,7 @@ failed:
 		"%s(): cannot allocate %'zu bytes (used %'zu bytes out of %'zu reserved"
 			" with %zu allocation%s and %zu freeing%s)",
 			G_STRFUNC, size, vr->allocated, vr->capacity,
-			vr->allocations, plural(vr->allocations),
-			vr->freeings, plural(vr->freeings));
+			PLURAL(vr->allocations), PLURAL(vr->freeings));
 	return NULL;
 
 allocated:

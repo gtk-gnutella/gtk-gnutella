@@ -346,7 +346,7 @@ wq_notify(hash_list_t *hl, void *data)
 		if (i++ >= count) {
 			/* Something is odd, let them know about the calling stack */
 			s_critical("stopping after processing %zu item%s (list now has %u)",
-				count, plural(count), hash_list_length(hl));
+				PLURAL(count), hash_list_length(hl));
 		}
 
 		status = (*we->cb)(we->arg, data);

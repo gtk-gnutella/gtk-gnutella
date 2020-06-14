@@ -1094,7 +1094,7 @@ search_results_log(const gnutella_node_t *n, const gnet_results_set_t *rs)
 		NULL == n ? "NULL" : NODE_IS_UDP(n) ? "UDP" : "TCP",
 		vendor_code_to_string(rs->vcode.u32),
 		str_2c(s), iso3166_country_cc(rs->country), guid_to_string(rs->guid),
-		buf, rs->num_recs, plural(rs->num_recs),
+		buf, PLURAL(rs->num_recs),
 		search_rs_status_to_string(rs));
 
 	str_destroy_null(&s);
@@ -1127,7 +1127,7 @@ search_results_records_log(const gnutella_node_t *n,
 		NULL == n ? "NULL" : NODE_IS_UDP(n) ? "UDP" : "TCP",
 		vendor_code_to_string(rs->vcode.u32),
 		host_addr_port_to_string(rs->addr, rs->port),
-		rs->num_recs, plural(rs->num_recs),
+		PLURAL(rs->num_recs),
 		search_rs_status_to_string(rs));
 
 	PSLIST_FOREACH(rs->records, sl) {
@@ -1288,7 +1288,7 @@ sha1_check:
 
 	if (dups != 0) {
 		search_log_spam(n, rs, "--> %u duplicate%s over %u item%s",
-			dups, plural(dups), rs->num_recs, plural(rs->num_recs));
+			PLURAL(dups), PLURAL(rs->num_recs));
 	}
 }
 
@@ -1941,7 +1941,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		if (GNET_PROPERTY(search_debug)) {
 			g_warning("trailer from %s is too small (%u byte%s) "
 				"for open size field", vendor,
-				(unsigned) trailer_size, plural(trailer_size));
+				(unsigned) PLURAL(trailer_size));
 		}
 		return TRUE;
 	} else if (open_size == 4) {
@@ -1973,7 +1973,7 @@ search_results_handle_trailer(const gnutella_node_t *n,
 		} else {
 			if (GNET_PROPERTY(search_debug) > 1)
 				g_warning("ignoring %d open data byte%s from %s",
-						open_size, plural(open_size), vendor);
+						PLURAL(open_size), vendor);
 		}
 	}
 
@@ -3392,7 +3392,7 @@ bad_packet:
 		g_warning(
 			"BAD %s from %s (via %s) -- %zu/%u record%s parsed: %s",
 			 gmsg_node_infostr(n), vendor ? vendor : "????", node_infostr(n),
-			 nr, rs->num_recs, plural(rs->num_recs), badmsg);
+			 nr, PLURAL(rs->num_recs), badmsg);
 		if (GNET_PROPERTY(qhit_bad_debug) > 1)
 			dump_hex(stderr, "/QH2 Data (BAD)", n->data, n->size);
 	}
@@ -4070,7 +4070,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 				"over %u record%s",
 				gmsg_node_infostr(n), vendor ? vendor : "????",
 				node_infostr(n),
-				sha1_errors, plural(sha1_errors), nr, plural(nr));
+				PLURAL(sha1_errors), PLURAL(nr));
 		gnet_stats_count_dropped(n, MSG_DROP_MALFORMED_SHA1);
 		badmsg = "malformed SHA1";
 		goto bad_packet;		/* Will drop this bad query hit */
@@ -4085,7 +4085,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 		g_warning("%s from %s (via %s) had %u ALT error%s over %u record%s",
 			gmsg_node_infostr(n), vendor ? vendor : "????",
 			node_infostr(n),
-			alt_errors, plural(alt_errors), nr, plural(nr));
+			PLURAL(alt_errors), PLURAL(nr));
 	}
 
 	if (alt_without_hash && GNET_PROPERTY(search_debug)) {
@@ -4093,7 +4093,7 @@ get_results_set(gnutella_node_t *n, bool browse, hostiles_flags_t *hostile)
 			"with no hash over %u record%s",
 			gmsg_node_infostr(n), vendor ? vendor : "????",
 			node_infostr(n),
-			alt_without_hash, plural(alt_without_hash), nr, plural(nr));
+			PLURAL(alt_without_hash), PLURAL(nr));
 	}
 
 	if (GNET_PROPERTY(search_debug) > 1) {
@@ -4137,7 +4137,7 @@ bad_packet:
 		g_warning(
 			"BAD %s from %s (via %s) -- %u/%u record%s parsed: %s",
 			 gmsg_node_infostr(n), vendor ? vendor : "????", node_infostr(n),
-			 nr, rs->num_recs, plural(rs->num_recs), badmsg);
+			 nr, PLURAL(rs->num_recs), badmsg);
 		if (GNET_PROPERTY(qhit_bad_debug) > 1)
 			dump_hex(stderr, "Query Hit Data (BAD)", n->data, n->size);
 	}
@@ -5586,7 +5586,7 @@ search_check_alt_locs(gnet_results_set_t *rs, gnet_record_t *rc, fileinfo_t *fi)
 	if (ignored) {
 		const char *vendor = vendor_get_name(rs->vcode);
 		g_warning("ignored %u invalid alt-loc%s in hits from %s (%s)",
-			ignored, plural(ignored),
+			PLURAL(ignored),
 			host_addr_port_to_string(rs->addr, rs->port),
 			vendor ? vendor : "????");
 	}
@@ -6050,7 +6050,7 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 					} else {
 						g_debug("GUESS delivering hit with %u record%s "
 							"for \"%s\" %s",
-							rs->num_recs, plural(rs->num_recs),
+							PLURAL(rs->num_recs),
 							sch->name, guid_to_string(muid));
 					}
 				}
@@ -6076,7 +6076,7 @@ search_results_process(gnutella_node_t *n, const g2_tree_t *t, int *results)
 
 			if (GNET_PROPERTY(search_debug) > 1) {
 				g_debug("SEARCH \"%s\" got %u record%s for %s#%s from %s",
-					sch->name, rs->num_recs, plural(rs->num_recs),
+					sch->name, PLURAL(rs->num_recs),
 					(ST_GUESS & rs->status) ? "GUESS " : "",
 					guid_to_string(muid), node_infostr(n));
 			}
@@ -7057,7 +7057,7 @@ search_oob_pending_results(
 		if (GNET_PROPERTY(search_debug)) {
 			g_warning("got OOB indication of %d hit%s for unknown query #%s "
 				"at %s",
-				hits, plural(hits), guid_hex_str(muid), node_infostr(n));
+				PLURAL(hits), guid_hex_str(muid), node_infostr(n));
 		}
 
 		if (GNET_PROPERTY(log_bad_gnutella))
@@ -8299,7 +8299,7 @@ search_request_preprocess(gnutella_node_t *n,
 				gnutella_header_get_hops(&n->header),
 				gnutella_header_get_ttl(&n->header),
 				sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
-				extra, plural(extra));
+				PLURAL(extra));
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
 		}
@@ -8624,7 +8624,7 @@ search_request_preprocess(gnutella_node_t *n,
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					WHATS_NEW,
-					sri->exv_sha1cnt, plural(sri->exv_sha1cnt));
+					PLURAL(sri->exv_sha1cnt));
 			}
 			gnet_stats_count_dropped(n, MSG_DROP_QUERY_OVERHEAD);
 			goto drop;
@@ -9398,7 +9398,7 @@ search_request(gnutella_node_t *n,
 
 			if (GNET_PROPERTY(share_debug) > 3) {
 				g_debug("share HIT %u file%s '%s'%s for #%s%s",
-					qctx->found, plural(qctx->found),
+					PLURAL(qctx->found),
 					sri->whats_new ? WHATS_NEW : safe_search,
 					sri->skip_file_search ? " (skipped)" : "",
 					guid_hex_str(gnutella_header_get_muid(&n->header)),
@@ -9426,7 +9426,7 @@ search_request(gnutella_node_t *n,
 					sri->whats_new ? WHATS_NEW : lazy_safe_search(search),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
-					qctx->found, plural(qctx->found),
+					PLURAL(qctx->found),
 					sri->skip_file_search ? " (skipped local)" : "",
 					sri->exv_sha1cnt > 0 ? " (SHA1)" : "",
 					search_media_mask_to_string(sri->media_types));
@@ -10025,7 +10025,7 @@ search_compact(gnutella_node_t *n)
 				"(now %zu byte%s, was %zu), payload now %u bytes",
 				NODE_IS_UDP(n) ? "(GUESS) " : "",
 				guid_hex_str(gnutella_header_get_muid(&n->header)),
-				newlen, plural(newlen), extra, n->size);
+				PLURAL(newlen), extra, n->size);
 			ext_dump(stderr, exv, exvcnt, "> ", "\n",
 				GNET_PROPERTY(query_debug) > 14);
 			ext_reset(exv, MAX_EXTVEC);

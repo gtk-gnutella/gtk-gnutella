@@ -854,8 +854,7 @@ signal_uncaught(int signo)
 
 	if (0 != atomic_uint_get(&sig_cleanup_count)) {
 		s_miniwarn("%s(%s): running %u cleanup handler%s",
-			G_STRFUNC, signal_name(signo), sig_cleanup_count,
-			plural(sig_cleanup_count));
+			G_STRFUNC, signal_name(signo), PLURAL(sig_cleanup_count));
 
 		signal_perform_cleanup();
 	}

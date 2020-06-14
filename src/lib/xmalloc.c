@@ -2540,7 +2540,7 @@ xfl_process_deferred(struct xfreelist *fl)
 	if (n != 0 && xmalloc_debugging(0)) {
 		s_minidbg("XM %s() handled %zu deferred block%s "
 			"in free list #%zu (%zu bytes)",
-			G_STRFUNC, n, plural(n), xfl_index(fl), fl->blocksize);
+			G_STRFUNC, PLURAL(n), xfl_index(fl), fl->blocksize);
 	}
 }
 
@@ -3018,7 +3018,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 			if (xmalloc_debugging(6)) {
 				s_debug("XM ignoring coalescing request for %zu-byte %p:"
 					" target free list #%zu has only %zu item%s",
-					len, base, idx, fl->count, plural(fl->count));
+					len, base, idx, PLURAL(fl->count));
 			}
 			XSTATS_INCX(freelist_coalescing_ignored);
 			return FALSE;
@@ -3408,7 +3408,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 					s_debug("XM freed %sembedded %zu page%s, "
 						"%s head, %s tail",
 						coalesced ? "coalesced " : "",
-						npages, plural(npages),
+						PLURAL(npages),
 						head_len != 0 ? "has" : "no",
 						tail_len != 0 ? "has" : "no");
 				} else {
@@ -3772,7 +3772,7 @@ assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid, bool local)
 		"corrupted freelist in %zu-byte chunk %p for %s [#%u]: "
 		"expected %u free block%s, found %u",
 		xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
-		xck->xc_stid, free_count, plural(free_count), free_items);
+		xck->xc_stid, PLURAL(free_count), free_items);
 }
 #else
 #define assert_chunk_freelist_valid(x,s,l)
@@ -3941,8 +3941,7 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 					"shared blocks have %F bytes overhead (%u per page), "
 					"currently has %zu chunk%s",
 					ch->blocksize, stid, (double) overhead / capacity,
-					capacity, elist_count(&ch->list),
-					plural(elist_count(&ch->list)));
+					capacity, PLURAL(elist_count(&ch->list)));
 			}
 			return NULL;
 		}
@@ -4178,7 +4177,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 
 	if (xmalloc_debugging(0)) {
 		s_minidbg("XM starting handling deferred %zu block%s for %s",
-			xcr->count, plural(xcr->count), thread_id_name(stid));
+			PLURAL(xcr->count), thread_id_name(stid));
 	}
 
 	for (n = 0, p = xcr->head; p != NULL; p = next) {
@@ -4220,7 +4219,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 
 	if (xmalloc_debugging(0)) {
 		s_debug("XM handled delayed free of %zu block%s (%zu bytes) in %s",
-			n, plural(n), size, thread_id_name(stid));
+			PLURAL(n), size, thread_id_name(stid));
 	}
 }
 
@@ -4376,7 +4375,7 @@ xmalloc_thread_ended(unsigned stid)
 
 		if (n != 0) {
 			s_info("XM dead thread #%u still holds %zu thread-private chunk%s",
-				stid, n , plural(n));
+				stid, PLURAL(n));
 		}
 	}
 }
@@ -6106,7 +6105,7 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		g_assert_log(NULL == old,		/* Was not already present in tree */
 			"xr=[%p, %p[, old=[%p, %p[ (%u block%s)",
 			start, end, old->start, old->end,
-			old->blocks, plural(old->blocks));
+			PLURAL(old->blocks));
 	}
 }
 
@@ -6594,8 +6593,7 @@ xgc(void)
 
 	if (xmalloc_debugging(0) && 0 != deferred_buckets) {
 		s_debug("XM GC processed %zu bucket%s with %zu deferred block%s",
-			deferred_buckets, plural(deferred_buckets),
-			deferred_blocks, plural(deferred_blocks));
+			PLURAL(deferred_buckets), PLURAL(deferred_blocks));
 	}
 
 	/*
@@ -6659,7 +6657,7 @@ xgc(void)
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
 		s_debug("XM GC freelist holds %zu block%s defining %zu range%s",
-			blocks, plural(blocks), ranges, plural(ranges));
+			PLURAL(blocks), PLURAL(ranges));
 	}
 
 	/*
@@ -6670,8 +6668,7 @@ xgc(void)
 
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
-		s_debug("XM GC left with %zu range%s to process",
-			ranges, plural(ranges));
+		s_debug("XM GC left with %zu range%s to process", PLURAL(ranges));
 	}
 
 	if (0 == erbtree_count(&rbt))
@@ -6811,7 +6808,7 @@ unlock:
 				"coalesced-blocks=%zu, freed-pages=%zu, next in %d sec%s",
 				(uint) real_elapsed, (uint) cpu_elapsed,
 				processed.coalesced, processed.pages,
-				increment, plural(increment));
+				PLURAL(increment));
 		}
 	}
 
@@ -6873,7 +6870,7 @@ xmalloc_post_init(void)
 
 		if (sbrk_alignment != 0)
 			s_info("addded %zu byte%s to heap base for %zu-byte alignment",
-				sbrk_alignment, plural(sbrk_alignment), xmalloc_round(1));
+				PLURAL(sbrk_alignment), xmalloc_round(1));
 	}
 
 	if (xmalloc_debugging(0)) {
@@ -7169,7 +7166,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
-		blocks, plural(blocks));
+		PLURAL(blocks));
 
 	log_info(la, "XM freelist largest block is %zu bytes", largest);
 
@@ -7183,17 +7180,17 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			"among %zu block%s", j,
 			uint64_to_string(tstats[j].freebytes),
 			short_size(tstats[j].freebytes, FALSE),
-			tstats[j].freeblocks, plural(tstats[j].freeblocks));
+			PLURAL(tstats[j].freeblocks));
 
 		pool = size_saturate_mult(tstats[j].chunks, xmalloc_pagesize);
 
 		log_info(la, "XM thread #%zu uses a pool of %zu bytes (%s, %zu page%s)",
 			j, pool, short_size(pool, FALSE),
-			tstats[j].chunks, plural(tstats[j].chunks));
+			PLURAL(tstats[j].chunks));
 
 		if (0 != tstats[j].shared) {
 			log_warning(la, "XM thread #%zu has %zu size%s requiring locking",
-				j, tstats[j].shared, plural(tstats[j].shared));
+				j, PLURAL(tstats[j].shared));
 		}
 	}
 }
@@ -8744,12 +8741,11 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 						if (fl->count == fl->sorted) {
 							log_info(la,
 								"XM freelist #%u has %zu item%s fully sorted",
-								i, fl->count, plural(fl->count));
+								i, PLURAL(fl->count));
 						} else {
 							log_info(la,
 								"XM freelist #%u has %zu/%zu item%s sorted",
-								i, fl->sorted, fl->count,
-								plural(fl->sorted));
+								i, fl->sorted, PLURAL(fl->sorted));
 						}
 					}
 				}

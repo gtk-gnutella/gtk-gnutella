@@ -2355,7 +2355,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->search_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->search_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new search table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	/*
@@ -2688,7 +2688,7 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->partial_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->partial_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new partial table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	SHARED_LIBFILE_LOCK;

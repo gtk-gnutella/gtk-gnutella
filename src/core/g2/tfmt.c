@@ -187,7 +187,7 @@ g2_tfmt_handle_enter(const void *node, void *data)
 
 	if (payload != NULL) {
 		if (ctx->options & G2FMT_O_PAYLEN)
-			ostream_printf(ctx->os, " (%zu byte%s)", paylen, plural(paylen));
+			ostream_printf(ctx->os, " (%zu byte%s)", PLURAL(paylen));
 
 		if (ctx->options & G2FMT_O_PAYLOAD)
 			g2_tfmt_payload(ctx, payload, paylen);

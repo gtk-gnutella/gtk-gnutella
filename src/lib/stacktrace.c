@@ -849,7 +849,7 @@ stack_sym_trylock(const char *caller)
 				warning[stid] = TRUE;
 
 				s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
-					caller, thread_safe_name(), cnt, plural(cnt));
+					caller, thread_safe_name(), PLURAL(cnt));
 				thread_lock_dump_if_any(STDERR_FILENO, stid);
 
 				warning[stid] = FALSE;

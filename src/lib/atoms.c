@@ -1425,7 +1425,7 @@ dump_tracking_table(const void *atom, htable_t *h, char *what)
 	size_t opcount = atom_track_count(h);
 
 	g_warning("all %zu %s spot%s (%zu operation%s) for %p:",
-		count, what, plural(count), opcount, plural(opcount), atom);
+		count, what, plural(count), PLURAL(opcount), atom);
 
 	htable_foreach(h, dump_tracking_entry, what);
 }

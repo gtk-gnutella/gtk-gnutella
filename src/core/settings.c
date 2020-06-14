@@ -544,7 +544,7 @@ settings_random_reload(void)
 		ssize_t cleared;
 
 		if (debugging(0))
-			g_info("loaded %zd random byte%s from %s", got, plural(got), file);
+			g_info("loaded %zd random byte%s from %s", PLURAL(got), file);
 
 		/*
 		 * We clear the random bytes we load since they entered the entropy
@@ -556,7 +556,7 @@ settings_random_reload(void)
 		cleared = frand_clear(file, got);
 		if (cleared != got) {
 			g_warning("could not clear leading %zd byte%s from %s: %m",
-				got, plural(got), file);
+				PLURAL(got), file);
 		}
 	}
 
@@ -579,9 +579,9 @@ settings_random_save(bool verbose)
 		g_warning("could not save random data into %s: %m", file);
 	} else if (saved != SETTINGS_RANDOM_SEED) {
 		g_warning("saved only %zd random byte%s into %s, expected %d: %m",
-			saved, plural(saved), file, SETTINGS_RANDOM_SEED);
+			PLURAL(saved), file, SETTINGS_RANDOM_SEED);
 	} else if (verbose) {
-		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
+		g_info("saved %zd random byte%s into %s", PLURAL(saved), file);
 	}
 
 	HFREE_NULL(file);
@@ -788,7 +788,7 @@ settings_init(bool resume)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			fd_need_non_stdio() ? "cannot" : "can");
-		g_info("detected %ld CPU%s", cpus, plural(cpus));
+		g_info("detected %ld CPU%s", PLURAL(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",

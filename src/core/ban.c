@@ -1054,8 +1054,7 @@ ban_max_recompute(void)
 	max = MAX(1, max);
 
 	if (GNET_PROPERTY(ban_debug))
-		g_info("will use at most %d file descriptor%s for banning",
-			max, plural(max));
+		g_info("will use at most %d file descriptor%s for banning", PLURAL(max));
 
 	gnet_prop_set_guint32_val(PROP_MAX_BANNED_FD, max);
 

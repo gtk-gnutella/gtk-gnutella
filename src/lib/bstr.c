@@ -403,8 +403,7 @@ bstr_trailing_error(bstr_t *bs)
 		bs->ok = FALSE;
 		if (bs->flags & BSTR_F_ERROR) {
 			alloc_error(bs);
-			str_printf(bs->error, "has %zu trailing unread byte%s",
-				n, plural(n));
+			str_printf(bs->error, "has %zu trailing unread byte%s", PLURAL(n));
 		} else {
 			bs->flags |= BSTR_F_TRAILING;
 		}

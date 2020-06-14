@@ -221,7 +221,7 @@ aq_free(aqueue_t *aq)
 	if G_UNLIKELY(0 != eslist_count(&aq->queue)) {
 		size_t count = eslist_count(&aq->queue);
 		s_carp("%s() freeing asynchronous queue still holding %zu item%s",
-			G_STRFUNC, count, plural(count));
+			G_STRFUNC, PLURAL(count));
 	}
 
 	eslist_foreach(&aq->queue, aq_free_item, NULL);

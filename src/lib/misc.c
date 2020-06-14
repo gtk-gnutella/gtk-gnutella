@@ -1766,8 +1766,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 
 	WFREE_ARRAY(xiov, iovcnt);
 
-	fprintf(out, "----------------- (%u byte%s).\n",
-		(unsigned) length, plural(length));
+	fprintf(out, "----------------- (%u byte%s).\n", (uint) PLURAL(length));
 	fflush(out);
 }
 

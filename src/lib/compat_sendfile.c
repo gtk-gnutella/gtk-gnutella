@@ -118,7 +118,7 @@ compat_sendfile_linux(int out_fd, int in_fd, off_t *offset, size_t count)
 		s_carp("%s(): fixed sendfile() returned offset: "
 			"was set to %s instead of %s (%zu byte%s written)",
 			G_STRFUNC, uint64_to_string(*offset), uint64_to_string2(start + r),
-			r, plural(r));
+			PLURAL(r));
 		*offset = start + r;
 	} else if G_UNLIKELY((ssize_t) -1 == r) {
 		*offset = start;		/* In case sendfile() touched it */

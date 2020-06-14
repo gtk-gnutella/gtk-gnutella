@@ -527,7 +527,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			nid_to_string(&um->mid), G_STRFUNC,
 			um->fragsent == um->fragcnt ? "sent" : "dropped",
 			pmsg_size(um->mb), um->seqno, um->fragsent,
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->reliable ? "ack'ed" : "sent", gnet_host_to_string(um->to));
 	}
 
@@ -817,7 +817,7 @@ ut_to_banned(const struct attr *attr, const gnet_host_t *to)
 		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
 			time_delta_t age = aging_age(attr->ban, to);
 			g_debug("TX UT: %s: dropping message to %s, banned since %ld sec%s",
-				G_STRFUNC, gnet_host_to_string(to), (long) age, plural(age));
+				G_STRFUNC, gnet_host_to_string(to), (long) PLURAL(age));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_BANNED);
 		return TRUE;
@@ -1062,7 +1062,7 @@ ut_ear_resend(cqueue_t *cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC,
 				gnet_host_to_string(um->to), um->ears,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt));
+				PLURAL(um->fragcnt));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_LINGER_UNSENT);
 		return;
@@ -1079,7 +1079,7 @@ ut_ear_resend(cqueue_t *cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC,
 				gnet_host_to_string(um->to), um->ears,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt));
+				PLURAL(um->fragcnt));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_OVERSENT);
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
@@ -1179,7 +1179,7 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC, uf->fragno + 1,
 				gnet_host_to_string(um->to), uf->txcnt,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt),
+				PLURAL(um->fragcnt),
 				give_up ? "giving up" : "continuing");
 		}
 
@@ -1604,7 +1604,7 @@ ut_frag_send(const struct ut_frag *uf)
 			0 == uf->txcnt ? "" : "re",
 			uf->fragno + 1, pmsg_size(mb), prio,
 			gnet_host_to_string(um->to),
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag));
 	}
 
@@ -1967,11 +1967,11 @@ ut_um_lingered(cqueue_t *cq, void *obj)
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->reliable ? "ack-ed" : "sent",
 			um->fragtx, um->fragtx2,
-			um->pending, plural(um->pending),
-			elist_count(&um->resend), plural(elist_count(&um->resend)));
+			PLURAL(um->pending),
+			PLURAL(elist_count(&um->resend)));
 	}
 
 	/*
@@ -2005,11 +2005,11 @@ ut_um_expired(cqueue_t *cq, void *obj)
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->reliable ? "ack-ed" : "sent",
 			um->fragtx, um->fragtx2,
-			um->pending, plural(um->pending),
-			elist_count(&um->resend), plural(elist_count(&um->resend)));
+			PLURAL(um->pending),
+			PLURAL(elist_count(&um->resend)));
 	}
 
 	/*
@@ -2197,7 +2197,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 			nid_to_string(&um->mid), G_STRFUNC, pdulen,
 			um->reliable ? "reliable" : "unreliable",
 			deflated ? "deflated" : "plain", pmsg_size(mb),
-			gnet_host_to_string(to), um->fragcnt, plural(um->fragcnt),
+			gnet_host_to_string(to), PLURAL(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag), pmsg_prio(mb));
 	}
 
@@ -2538,7 +2538,7 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 			g_debug("TX UT: %s: got first ACK (seq=0x%04x) from %s, "
 				"flushing remaining %u fragment%s",
 				G_STRFUNC, ack->seqno, gnet_host_to_string(from),
-				um->fragcnt - 1, plural(um->fragcnt - 1));
+				PLURAL(um->fragcnt - 1));
 		}
 
 		ut_send_remaining(um);

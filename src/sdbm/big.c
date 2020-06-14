@@ -154,21 +154,19 @@ log_bigstats(DBM *db)
 		sdbm_name(db), dbg->bitread, dbg->bitwrite, dbg->bitwdelayed);
 	g_info("sdbm: \"%s\" bitmap blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), dbg->bitbno_hit * 100.0 / MAX(dbg->bitfetch, 1),
-		dbg->bitfetch, plural(dbg->bitfetch));
+		PLURAL(dbg->bitfetch));
 	g_info("sdbm: \"%s\" large key short matches = %.2f%% on %lu attempt%s",
 		sdbm_name(db),
 		dbg->key_short_match * 100.0 / MAX(dbg->key_matching, 1),
-		dbg->key_matching, plural(dbg->key_matching));
+		PLURAL(dbg->key_matching));
 	g_info("sdbm: \"%s\" large key full matches = %.2f%% on %lu attempt%s",
 		sdbm_name(db),
 		dbg->key_full_match * 100.0 / MAX(dbg->key_short_match, 1),
-		dbg->key_short_match, plural(dbg->key_short_match));
+		PLURAL(dbg->key_short_match));
 	g_info("sdbm: \"%s\" big blocks read = %lu (%lu system call%s)",
-		sdbm_name(db),
-		dbg->bigread_blk, dbg->bigread, plural(dbg->bigread));
+		sdbm_name(db), dbg->bigread_blk, PLURAL(dbg->bigread));
 	g_info("sdbm: \"%s\" big blocks written = %lu (%lu system call%s)",
-		sdbm_name(db),
-		dbg->bigwrite_blk, dbg->bigwrite, plural(dbg->bigwrite));
+		sdbm_name(db), dbg->bigwrite_blk, PLURAL(dbg->bigwrite));
 }
 
 /**
@@ -493,7 +491,7 @@ big_check_end(DBM *db, bool completed)
 
 				if (flush_bitbuf(db)) {
 					s_warning("sdbm: \"%s\": adjusted %zu bit%s in bitmap #%ld",
-						sdbm_name(db), adj, plural(adj), i);
+						sdbm_name(db), PLURAL(adj), i);
 				}
 			}
 		}
@@ -847,7 +845,7 @@ corrupted_database:
 
 corrupted_page:
 	s_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
-		sdbm_name(db), bcnt, plural(bcnt));
+		sdbm_name(db), PLURAL(bcnt));
 
 	/* FALL THROUGH */
 
@@ -909,7 +907,7 @@ bigkey_eq(DBM *db, const char *bkey, size_t blen, const char *key, size_t siz)
 		s_critical("sdbm: \"%s\": found %zu-byte corrupted key at offset %zu "
 			"(%zu storage byte%s instead of %zu) on page #%lu",
 			sdbm_name(db), len, ptr_diff(bkey, db->pagbuf),
-			blen, plural(blen), bigkey_length(len),
+			PLURAL(blen), bigkey_length(len),
 			db->pagbno);
 		sdbm_page_dump(db, db->pagbuf, db->pagbno);
 		return FALSE;
@@ -1004,7 +1002,7 @@ bigkey_hash(DBM *db, const char *bkey, size_t blen, bool *failed)
 		s_critical("sdbm: \"%s\": found %zu-byte corrupted key at offset %zu "
 			"(%zu storage byte%s instead of %zu) on page #%lu",
 			sdbm_name(db), len, ptr_diff(bkey, db->pagbuf),
-			blen, plural(blen), bigkey_length(len),
+			PLURAL(blen), bigkey_length(len),
 			db->pagbno);
 		sdbm_page_dump(db, db->pagbuf, db->pagbno);
 		goto corrupted;
@@ -1135,7 +1133,7 @@ big_store(DBM *db, const void *bvec, const void *data, size_t len)
 
 corrupted_page:
 	s_critical("sdbm: \"%s\": corrupted page: %d big data block%s not sorted",
-		sdbm_name(db), bcnt, plural(bcnt));
+		sdbm_name(db), PLURAL(bcnt));
 
 	errno = EFAULT;		/* Data corrupted somehow (.pag file) */
 	return -1;
@@ -1601,7 +1599,7 @@ bigkey_mark_used(DBM *db, const char *bkey, size_t blen)
 	if (bigkey_length(len) != blen) {
 		s_carp("sdbm: \"%s\": %s(): inconsistent key length %zu: "
 			"uses %zu storage byte%s but would need %zu in .pag #%ld",
-			sdbm_name(db), G_STRFUNC, len, blen, plural(blen),
+			sdbm_name(db), G_STRFUNC, len, PLURAL(blen),
 			bigkey_length(len), db->pagbno);
 		return;
 	}
@@ -1625,7 +1623,7 @@ bigval_mark_used(DBM *db, const char *bval, size_t blen)
 	if (bigval_length(len) != blen) {
 		s_carp("sdbm: \"%s\": %s(): inconsistent value length %zu: "
 			"uses %zu storage byte%s but would need %zu in .pag #%ld",
-			sdbm_name(db), G_STRFUNC, len, blen, plural(blen),
+			sdbm_name(db), G_STRFUNC, len, PLURAL(blen),
 			bigval_length(len), db->pagbno);
 		return;
 	}

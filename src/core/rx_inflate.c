@@ -121,7 +121,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 			g_assert(m < sizeof data);
 			data[m] = '\0';
 
-			str_catf(s, " [first %zu hex byte%s: %s]", m/2, plural(m/2), data);
+			str_catf(s, " [first %zu hex byte%s: %s]", PLURAL(m/2), data);
 		}
 
 		errno = EIO;

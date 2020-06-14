@@ -612,7 +612,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d host%s in UDP IPP pong #%s from %s",
-			cnt, plural(cnt),
+			PLURAL(cnt),
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
@@ -643,7 +643,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug)) {
 		g_debug("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
-			uhc_ctx.host, cnt, plural(cnt), node_addr(n));
+			uhc_ctx.host, PLURAL(cnt), node_addr(n));
 	}
 
 	/*

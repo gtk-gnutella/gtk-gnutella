@@ -305,7 +305,7 @@ pmsg_no_presend_check(const pmsg_t * const mb, const char *caller)
 
 	s_carp_once("%s(): mb=%p (%d byte%s, prio=%u, refcnt=%u, flags=0x%x)"
 		" already has %s %s()",
-		caller, mb, pmsg_size(mb), plural(pmsg_size(mb)),
+		caller, mb, PLURAL(pmsg_size(mb)),
 		mb->m_prio, mb->m_refcnt, mb->m_flags,
 		(mb->m_flags & PMSG_PF_HOOK) ? "transmit hook" : "can-send callback",
 		stacktrace_function_name(mb->m_u.m_check));

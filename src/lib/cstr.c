@@ -115,7 +115,7 @@ cstr_bcpy(char *dst, size_t len, const char *src)
 
 	if G_UNLIKELY(slen >= len) {
 		s_carp_once("%s(): truncated output after %zu byte%s, needed %zu",
-			G_STRFUNC, len, plural(len), slen + 1);
+			G_STRFUNC, PLURAL(len), slen + 1);
 	}
 
 	return slen;

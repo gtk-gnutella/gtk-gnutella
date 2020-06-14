@@ -819,8 +819,7 @@ player_stats(int n)
 	stats = &game_stats[n];
 
 	emit("%s played %d times (%d spurious event%s, %d timeout%s)",
-		name[n], stats->play, stats->spurious, plural(stats->spurious),
-		stats->timeout, plural(stats->timeout));
+		name[n], stats->play, PLURAL(stats->spurious), PLURAL(stats->timeout));
 }
 
 static void
@@ -934,10 +933,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		player_stats(i);
 	}
-	if (monitor) {
-		emit("main got %u notification%s",
-			notifications, plural(notifications));
-	}
+	if (monitor)
+		emit("main got %u notification%s", PLURAL(notifications));
 }
 
 static spinlock_t locks[] = { SPINLOCK_INIT, SPINLOCK_INIT };
@@ -986,7 +983,7 @@ fork_forker(void *arg)
 
 	running = thread_count();
 	emit("%s() forking with %u running thread%s, STID=%u", G_STRFUNC,
-		running, plural(running), thread_small_id());
+		PLURAL(running), thread_small_id());
 
 	thread_lock_dump_all(STDOUT_FILENO);
 
@@ -1025,7 +1022,7 @@ test_fork(bool safe)
 	emit("--- testing thread_fork(%s)", bool_to_string(safe));
 
 	running = thread_count();
-	emit("starting with %u running thread%s", running, plural(running));
+	emit("starting with %u running thread%s", PLURAL(running));
 
 	l1 = thread_create(fork_locker, int_to_pointer(0), THREAD_F_PANIC, 8192);
 	l2 = thread_create(fork_locker, int_to_pointer(1), THREAD_F_PANIC, 8192);
@@ -1042,7 +1039,7 @@ test_fork(bool safe)
 		s_error("final thread_join() failed: %m");
 
 	running = thread_count();
-	emit("ending with %u running thread%s", running, plural(running));
+	emit("ending with %u running thread%s", PLURAL(running));
 
 	emit("--- test of thread_fork(%s) done!", bool_to_string(safe));
 }
@@ -2083,7 +2080,7 @@ test_memory(unsigned repeat, bool posix, int percentage)
 
 	TESTING(G_STRFUNC);
 
-	emit("%s() detected %ld CPU%s%s", G_STRFUNC, cpus, plural(cpus),
+	emit("%s() detected %ld CPU%s%s", G_STRFUNC, PLURAL(cpus),
 		0 == cpu_count ? "" : " (forced by -c)");
 
 	if (randomize_free)
@@ -2710,10 +2707,8 @@ main(int argc, char **argv)
 			allocator = 'r';
 			break;
 		}
-		if (allocator_bsize != 0) {
-			emit("Using blocks of %lu byte%s", (ulong) allocator_bsize,
-				plural(allocator_bsize));
-		}
+		if (allocator_bsize != 0)
+			emit("Using blocks of %lu byte%s", (ulong) PLURAL(allocator_bsize));
 		if (posix)
 			emit("Adding (discovered) POSIX threads");
 		if (percentage)

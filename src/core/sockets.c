@@ -192,7 +192,7 @@ socket_free_buffer(struct gnutella_socket *s)
 	if (NULL != s->buf) {
 		if G_UNLIKELY(s->pos != 0) {
 			s_carp("%s(): buffer still holding %'zu unread byte%s",
-				G_STRFUNC, s->pos, plural(s->pos));
+				G_STRFUNC, PLURAL(s->pos));
 		}
 		s->buf_size = 0;
 		HFREE_NULL(s->buf);
@@ -590,7 +590,7 @@ socket_tcp_linger2(struct gnutella_socket *s, int secs, const char *caller)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_LINGER2, VARLEN(secs))) {
 		if (ECONNRESET != errno) {
 			g_warning("%s(): cannot set TCP_LINGER2 to %d sec%s on fd#%d: %m",
-				caller, secs, plural(secs), s->file_desc);
+				caller, PLURAL(secs), s->file_desc);
 		}
 	}
 #else	/* !TCP_LINGER2 */
@@ -3239,7 +3239,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			"(%s%'zu more pending) during %'lu ms, "
 			"enqueued %'zu bytes (%'zu datagram%s) in %'lu us",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, (ulong) processing,
-			qd, qn, plural(qn), (ulong) tm_elapsed_us(&end, &start));
+			qd, PLURAL(qn), (ulong) tm_elapsed_us(&end, &start));
 	}
 
 	/*

@@ -2128,7 +2128,7 @@ search_matched(search_t *sch, const guid_t *muid, results_set_t *rs)
 	if (GUI_PROPERTY(gui_debug) > 6) {
 		g_debug("%s(): [%s] got hit with %d record%s (from %s via %s%s%s%s) "
 			"need_push=%d, skipping=%d", G_STRFUNC,
-			search_gui_query(sch), rs->num_recs, plural(rs->num_recs),
+			search_gui_query(sch), PLURAL(rs->num_recs),
 			host_addr_port_to_string(rs->addr, rs->port),
 			(rs->status & ST_UDP) ? "UDP" : "TCP",
 			(rs->status & ST_GUESS) ? " + GUESS" : "",
@@ -2490,7 +2490,7 @@ search_gui_got_results(pslist_t *schl, const struct guid *muid,
 	} else {
 		if (GUI_PROPERTY(gui_debug) >= 6) {
 			g_debug("%s(): ignoring %u result%s%s%s",
-				G_STRFUNC, r_set->num_recs, plural(r_set->num_recs),
+				G_STRFUNC, PLURAL(r_set->num_recs),
 				NULL == muid ? "" : " for GUESS ",
 				NULL == muid ? "" : guid_to_string(muid));
 		}
@@ -2568,7 +2568,7 @@ search_gui_flush(time_t now, gboolean force)
 
 		if (GUI_PROPERTY(gui_debug) > 6 && muid != NULL) {
 			g_debug("%s(): processing accumulated %u record%s for %s",
-				G_STRFUNC, rs->num_recs, plural(rs->num_recs),
+				G_STRFUNC, PLURAL(rs->num_recs),
 				guid_to_string(muid));
 		}
 

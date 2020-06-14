@@ -1739,7 +1739,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
 		g_debug("HCACHE sorted %s cache (%u item%s)",
-			hcache_type_to_string(type), count, plural(count));
+			hcache_type_to_string(type), PLURAL(count));
 	}
 }
 

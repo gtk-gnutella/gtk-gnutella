@@ -498,7 +498,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 
 	if (wc != NULL) {
 		s_rawinfo("waiting queue for rwlock %p (%u item%s):",
-			rw, rw->waiters, plural(rw->waiters));
+			rw, PLURAL(rw->waiters));
 	} else {
 		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
@@ -903,10 +903,8 @@ rwlock_destroy(rwlock_t *rw)
 		if (need_carp) {
 			s_carp("destroying %srwlock %p with %u reader%s, "
 				"%u writer%s, %u read-waiter%s and %u write-waiter%s",
-				owned ? "owned " : "", rw, rw->readers, plural(rw->readers),
-				rw->writers, plural(rw->writers),
-				rwait, plural(rwait),
-				rw->write_waiters, plural(rw->write_waiters));
+				owned ? "owned " : "", rw, PLURAL(rw->readers),
+				PLURAL(rw->writers), PLURAL(rwait), PLURAL(rw->write_waiters));
 		}
 
 		if (owned)

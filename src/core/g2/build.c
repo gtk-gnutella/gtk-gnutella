@@ -1233,7 +1233,7 @@ done:
 	if (GNET_PROPERTY(g2_debug) > 3) {
 		g_debug("%s(): sent %d/%d hit%s in %d message%s to %s",
 			G_STRFUNC, sent, count, plural(sent),
-			ctx.messages, plural(ctx.messages), node_infostr(n));
+			PLURAL(ctx.messages), node_infostr(n));
 	}
 }
 
@@ -1281,7 +1281,7 @@ g2_build_qh2_results(const pslist_t *files, int count, size_t max_msgsize,
 	if (GNET_PROPERTY(g2_debug) > 3) {
 		g_debug("%s(): procesed %d/%d hit%s in %d message%s to %s()",
 			G_STRFUNC, sent, count, plural(sent),
-			ctx.messages, plural(ctx.messages), stacktrace_function_name(cb));
+			PLURAL(ctx.messages), stacktrace_function_name(cb));
 	}
 }
 

@@ -369,7 +369,7 @@ teq_destroy(struct teq *teq)
 
 		if (0 != count) {
 			s_warning("%s(): I/O event queue still has %zu pending I/O event%s",
-				G_STRFUNC, count, plural(count));
+				G_STRFUNC, PLURAL(count));
 		}
 
 		while (NULL != (ev = eslist_shift(&teq_io->ioq))) {
@@ -1712,14 +1712,14 @@ teq_monitor(void *unused_obj)
 				str_catf(logs,
 					"%s(): found %zu pending event%s "
 					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					G_STRFUNC, PLURAL(mon[i].stuck),
 					mon[i].throttled ? THROTTLED : "",
 					thread_id_name(i));
 			} else {
 				str_catf(logs,
 					"%s(): found %zu pending event%s (with %zu %sI/O) "
 					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					G_STRFUNC, PLURAL(mon[i].stuck),
 					mon[i].ioq, mon[i].io_throttled ? THROTTLED : "",
 					mon[i].throttled ? THROTTLED : "", thread_id_name(i));
 			}

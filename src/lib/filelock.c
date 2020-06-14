@@ -361,13 +361,13 @@ filelock_write_pid(int fd, pid_t ourpid)
 
 	if ((ssize_t) -1 == r) {
 		s_carp("%s(): cannot write %zu byte%s to fd #%d: %m",
-			G_STRFUNC, w, plural(w), fd);
+			G_STRFUNC, PLURAL(w), fd);
 		return -1;
 	}
 
 	if (UNSIGNED(r) != w) {
 		s_carp("%s(): could only write %zd byte%s out of %zu to fd #%d",
-			G_STRFUNC, r, plural(r), w, fd);
+			G_STRFUNC, PLURAL(r), w, fd);
 		errno = ENOSPC;		/* Assume it's a filesystem space problem */
 		return -1;
 	}
@@ -455,7 +455,7 @@ filelock_usleep(const filelock_params_t *p, const char *caller)
 	uint us = 100 + random_value(4900);
 
 	if (filelock_is_debug(p)) {
-		s_debug("%s(): sleeping for %u usec%s", caller, us, plural(us));
+		s_debug("%s(): sleeping for %u usec%s", caller, PLURAL(us));
 	}
 
 	compat_usleep(us);
@@ -724,7 +724,7 @@ opened:
 			if (filelock_is_debug(p)) {
 				time_delta_t age = delta_time(tm_time(), buf_fd.st_mtime);
 				s_debug("%s(): file \"%s\" recent: %d sec%s old, retrying...",
-					G_STRFUNC, path, (int) age, plural(age));
+					G_STRFUNC, path, (int) PLURAL(age));
 			}
 			goto restart;
 		}
@@ -761,7 +761,7 @@ opened:
 			if (filelock_is_debug(p)) {
 				time_delta_t age = delta_time(tm_time(), buf_fd.st_mtime);
 				s_debug("%s(): file \"%s\" is %d sec%s old, retrying...",
-					G_STRFUNC, path, (int) age, plural(age));
+					G_STRFUNC, path, (int) PLURAL(age));
 			}
 			if (-1 == unlink(path)) {
 				if (ENOENT == errno) {

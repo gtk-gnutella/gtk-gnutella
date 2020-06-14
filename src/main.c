@@ -1051,14 +1051,14 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0)) {
 		unsigned n = thread_count() - 1;
 		if (n != 0)
-			g_info("suspending other %u thread%s", n, plural(n));
+			g_info("suspending other %u thread%s", PLURAL(n));
 	}
 
 	{
 		size_t n = thread_suspend_others(FALSE);
 
 		if (debugging(0))
-			g_info("suspended %zu thread%s", n, plural(n));
+			g_info("suspended %zu thread%s", PLURAL(n));
 	}
 
 	/*

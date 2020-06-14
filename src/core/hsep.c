@@ -653,7 +653,7 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Received %d triple%s from node %s (msg #%u): ",
-			max, plural(max),
+			PLURAL(max),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_received + 1);
 	}
@@ -809,7 +809,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Sending %d triple%s to node %s (msg #%u): ",
-			opttriples, plural(opttriples),
+			PLURAL(opttriples),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_sent + 1);
 	}

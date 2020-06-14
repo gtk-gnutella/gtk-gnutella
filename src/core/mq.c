@@ -209,8 +209,7 @@ mq_info(const mqueue_t *q)
 			(q->flags & MQ_DISCARD) ? " DISCARD" : "",
 			(q->flags & MQ_SWIFT) ? " SWIFT" : "",
 			(q->flags & MQ_WARNZONE) ? " WARNZONE" : "",
-			q->count, plural(q->count),
-			q->size, plural(q->size)
+			PLURAL(q->count), PLURAL(q->size)
 		);
 	}
 

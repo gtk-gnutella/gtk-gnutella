@@ -661,7 +661,7 @@ tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			g_debug("%s(): host=%s still has %zu buffered byte%s",
 				G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
-				s->pos, plural(s->pos));
+				PLURAL(s->pos));
 		}
 
 		avail = MIN(avail, size);	/* Can't read more than they request */

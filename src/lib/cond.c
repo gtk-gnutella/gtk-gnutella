@@ -644,7 +644,7 @@ cond_destroy(cond_t *c)
 	if (locked) {
 		if G_UNLIKELY(cv->waiting != 0) {
 			s_carp("%s(): condition variable still has %u waiting thread%s",
-				G_STRFUNC, cv->waiting, plural(cv->waiting));
+				G_STRFUNC, PLURAL(cv->waiting));
 		}
 		cond_free(cv, TRUE);
 	}

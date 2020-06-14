@@ -248,7 +248,7 @@ hfield_dump(const header_field_t *h, FILE *out)
 			int c;
 			size_t len = vstrlen(s);
 			str_bprintf(ARYLEN(buf), "<%u non-printable byte%s>",
-				(unsigned) len, plural(len));
+				(unsigned) PLURAL(len));
 			fputs(buf, out);
 			while ((c = *p++)) {
 				if (is_ascii_print(c) || is_ascii_space(c))

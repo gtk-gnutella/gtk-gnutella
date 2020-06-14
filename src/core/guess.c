@@ -2206,7 +2206,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 						g_warning("GUESS QUERY[%s] G2 %s requests "
 							"%u sec%s querying delay, capping to %d",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra),
+							gnet_host_to_string(host), PLURAL(ra),
 							GUESS_TIMEOUT_DELAY);
 					}
 					ra = GUESS_TIMEOUT_DELAY;
@@ -2240,7 +2240,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 						g_debug("GUESS QUERY[%s] G2 %s requests "
 							"%u sec%s querying delay (%s)",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra),
+							gnet_host_to_string(host), PLURAL(ra),
 							qk != NULL ? timestamp_to_string(qk->retry_after) :
 								"not held in cache");
 					}
@@ -2287,7 +2287,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 							"G2 %s queried (%u lea%s) via %s",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
 							host_addr_port_to_string(addr, port),
-							lc, plural_f(lc), gnet_host_to_string(host));
+							PLURAL_F(lc), gnet_host_to_string(host));
 					}
 
 					if (NULL == gq) {
@@ -4003,7 +4003,7 @@ guess_load_more_hosts(guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool%s",
-			nid_to_string(&gq->gid), added, plural(added),
+			nid_to_string(&gq->gid), PLURAL(added),
 			(gq->flags & GQ_F_POOL_LOAD) ? " (pool load pending)" : "");
 	}
 }
@@ -4047,7 +4047,7 @@ next:
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s from disk pool",
-			nid_to_string(&gq->gid), ctx.loaded, plural(ctx.loaded));
+			nid_to_string(&gq->gid), PLURAL(ctx.loaded));
 	}
 
 	guess_stats_fire(gq);
@@ -4066,7 +4066,7 @@ done:
 	if (GNET_PROPERTY(guess_client_debug) && count != 0) {
 		g_debug("GUESS %s() took %u ms for %u load%s",
 			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
-			count, plural(count));
+			PLURAL(count));
 	}
 
 	return TRUE;				/* Keep calling */
@@ -5137,8 +5137,7 @@ guess_iterate(guess_t *gq)
 		if (alpha <= 0) {
 			if (GNET_PROPERTY(guess_client_debug) > 2) {
 				g_debug("GUESS QUERY[%s] not iterating yet (%d RPC%s pending)",
-					nid_to_string(&gq->gid), gq->rpc_pending,
-					plural(gq->rpc_pending));
+					nid_to_string(&gq->gid), PLURAL(gq->rpc_pending));
 			}
 			return;
 		}
@@ -5155,7 +5154,7 @@ guess_iterate(guess_t *gq)
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
 			gq->hops, gq->query_acks, hash_list_length(gq->pool),
 			hset_count(gq->deferred), guess_mode_to_string(gq->mode),
-			alpha, plural(alpha), gq->rpc_pending);
+			PLURAL(alpha), gq->rpc_pending);
 	}
 
 	gq->flags |= GQ_F_SENDING;		/* Proctect against syncrhonous UDP drops */

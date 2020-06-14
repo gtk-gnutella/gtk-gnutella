@@ -261,7 +261,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	}
 	if G_UNLIKELY(truncated != 0) {
 		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
-			"with \"%s\"", truncated, plural(truncated),
+			"with \"%s\"", PLURAL(truncated),
 			size, fmt);
 	}
 	return retval;

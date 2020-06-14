@@ -701,8 +701,7 @@ malformed:
 		str_bprintf(ARYLEN(msg), "byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
-			len, plural(len), expectlen);
+		str_bprintf(ARYLEN(msg), "%d byte%s, need %d", PLURAL(len), expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
 		str_bprintf(ARYLEN(msg), "overflow at 0x%02lx, byte 0x%02lx",
@@ -716,7 +715,7 @@ malformed:
 		break;
 	case UTF8_WARN_LONG:
 		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
-			expectlen, plural(expectlen), uniskip(v));
+			PLURAL(expectlen), uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
 		str_bprintf(ARYLEN(msg), "character 0x%04lx", (ulong) v);

@@ -241,7 +241,7 @@ urpc_send(const char *what,
 				g_warning("unable to send whole %zu-byte UDP %s RPC to %s: "
 					"only sent %zu byte%s",
 					len, what, host_addr_port_to_string(addr, port),
-					r, plural(r));
+					PLURAL(r));
 			}
 		}
 		socket_free_null(&s);

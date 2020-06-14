@@ -2841,7 +2841,7 @@ crash_vmea_usage(const char *caller)
 			s_miniinfo("%s(): still using %'zu bytes out of the %'zu reserved,"
 				" after %zu emergency allocation%s and %zu freeing%s",
 				caller, allocated, reserved,
-				nba, plural(nba), nbf, plural(nbf));
+				PLURAL(nba), PLURAL(nbf));
 		}
 	}
 }
@@ -3036,7 +3036,7 @@ crash_try_reexec(void)
 		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
 		s_minimsg("launching %s with %d argument%s", vars->argv0,
-			vars->argc, plural(vars->argc));
+			PLURAL(vars->argc));
 	}
 
 	/*

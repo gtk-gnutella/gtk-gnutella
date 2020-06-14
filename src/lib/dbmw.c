@@ -352,7 +352,7 @@ write_back(dbmw_t *dw, const void *key, struct cached *value)
 	) {
 		dbg_ds_log(dw->dbg, dw, "%s: %s dirty value (%zu byte%s) key=%s",
 			G_STRFUNC, value->absent ? "deleting" : "flushing",
-			dval.len, plural(dval.len),
+			PLURAL(dval.len),
 			dbg_ds_keystr(dw->dbg, key, (size_t) -1));
 	}
 
@@ -793,7 +793,7 @@ dbmw_sync(dbmw_t *dw, int which)
 	if (dbg_ds_debugging(dw->dbg, 5, DBG_DSF_CACHING)) {
 		dbg_ds_log(dw->dbg, dw, "%s: %s (flushed %zu value%s, %zu page%s)",
 			G_STRFUNC, error ? "FAILED" : "OK",
-			values, plural(values), pages, plural(pages));
+			PLURAL(values), PLURAL(pages));
 	}
 
 	return error ? -1 : amount;
@@ -1539,7 +1539,7 @@ dbmw_foreach(dbmw_t *dw, dbmw_cb_t cb, void *arg)
 		dbg_ds_log(dw->dbg, dw, "%s: done with %s(%p)"
 			"has %zu unflushed entr%s in cache", G_STRFUNC,
 			stacktrace_function_name(cb), arg,
-			dw->cached, plural_y(dw->cached));
+			PLURAL_Y(dw->cached));
 	}
 }
 
@@ -1618,7 +1618,7 @@ dbmw_foreach_remove(dbmw_t *dw, dbmw_cbr_t cbr, void *arg)
 			G_STRFUNC,
 			stacktrace_function_name(cbr), arg,
 			pruned, fctx.removed, pruned + fctx.removed,
-			dw->cached, plural_y(dw->cached));
+			PLURAL_Y(dw->cached));
 	}
 
 	return pruned + fctx.removed;

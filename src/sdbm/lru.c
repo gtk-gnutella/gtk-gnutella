@@ -288,15 +288,15 @@ log_lrustats(DBM *db)
 	sdbm_lru_check(cache);
 
 	s_info("sdbm: \"%s\" LRU cache size = %u page%s, %s writes, %s DB",
-		sdbm_name(db), cache->pages, plural(cache->pages),
+		sdbm_name(db), PLURAL(cache->pages),
 		cache->write_deferred ? "deferred" : "synchronous",
 		db->is_volatile ? "volatile" : "persistent");
 	s_info("sdbm: \"%s\" LRU read cache hits = %.2f%% on %lu request%s",
-		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1), raccesses,
-		plural(raccesses));
+		sdbm_name(db), cache->rhits * 100.0 / MAX(raccesses, 1),
+		PLURAL(raccesses));
 	s_info("sdbm: \"%s\" LRU write cache hits = %.2f%% on %lu request%s",
-		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1), waccesses,
-		plural(waccesses));
+		sdbm_name(db), cache->whits * 100.0 / MAX(waccesses, 1),
+		PLURAL(waccesses));
 
 	s_info("sdbm: \"%s\" LRU pages "
 		"created = %lu, freed = %lu, reused = %lu, discarded = %lu",
@@ -483,7 +483,7 @@ setcache(DBM *db, uint pages)
 	if (common_stats) {
 		s_info("sdbm: \"%s\" LRU cache size %s from %u page%s to %u",
 			sdbm_name(db), pages > cache->pages ? "increased" : "decreased",
-			cache->pages, plural(cache->pages), pages);
+			PLURAL(cache->pages), pages);
 		log_lrustats(db);
 	}
 
@@ -542,7 +542,7 @@ setcache(DBM *db, uint pages)
 		} else {
 			s_carp_once("%s(): attempting to disable cache on SDBM \"%s\""
 				"whilst still holding %zu wired page%s",
-				G_STRFUNC, sdbm_name(db), wired, plural(wired));
+				G_STRFUNC, sdbm_name(db), PLURAL(wired));
 		}
 
 		return 0;
@@ -1414,7 +1414,7 @@ readpag(DBM *db, char *pag, long num)
 			int n = paircount(pag);
 
 			s_warning("sdbm: \"%s\": clearing page #%ld, dropping %d pair%s",
-				sdbm_name(db), num, n, plural(n));
+				sdbm_name(db), num, PLURAL(n));
 		}
 
 		memset(pag, 0, DBM_PBLKSIZ);

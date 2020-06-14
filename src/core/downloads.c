@@ -2728,7 +2728,7 @@ download_can_ignore(struct download *d)
 			g_debug("download \"%s\" has incoming connection from %s "
 				"and %u waiting file%s on that server -- will sink %s bytes",
 				download_basename(d), download_host_info(d),
-				count, plural(count), uint64_to_string(remain));
+				PLURAL(count), uint64_to_string(remain));
 		}
 
 		goto sink_data;
@@ -2913,7 +2913,7 @@ done:
 	if (GNET_PROPERTY(download_debug) > 1) {
 		g_debug("PUSH %s %u message%s on wakeup for GUID %s at %s",
 			broadcast ? "broadcasted" : "sent",
-			sent, plural(sent),
+			PLURAL(sent),
 			guid_hex_str(server->key->guid), server_host_info(server));
 	}
 }
@@ -6833,7 +6833,7 @@ download_got_push_proxies(const struct guid *guid,
 		if (GNET_PROPERTY(download_debug)) {
 			g_debug("PUSH found %zu new push prox%s in query hit "
 				"for GUID %s at %s",
-				added, plural_y(added),
+				PLURAL_Y(added),
 				guid_hex_str(guid), server_host_info(server));
 		}
 		gnet_stats_inc_general(GNR_COLLECTED_PUSH_PROXIES);
@@ -11901,7 +11901,7 @@ http_version_nofix:
 	else {
 		uint count = header_num_lines(header);
 		str_bprintf(ARYLEN(short_read),
-			"[short %u line%s header] ", count, plural(count));
+			"[short %u line%s header] ", PLURAL(count));
 
 		d->keep_alive = FALSE;			/* Got incomplete headers -> close */
 	}
@@ -14982,7 +14982,7 @@ download_retrieve_magnets(FILE *f)
 
 				if (GNET_PROPERTY(download_debug)) {
 					g_debug("created %d download%s from %s",
-						created, plural(created), buffer);
+						PLURAL(created), buffer);
 				}
 			} else {
 				g_warning("%s, line %u: Ignored unknown item",
@@ -15898,8 +15898,8 @@ download_tigertree_sweep(struct download *d,
 		}
 	} else {
 		if (GNET_PROPERTY(tigertree_debug)) {
-			g_debug("TTH tree sweep: all %zu slice%s okay",
-				num_leaves, plural(num_leaves));
+			g_debug("TTH tree sweep: all %zu slice%s okay for \"%s\"",
+				PLURAL(num_leaves), download_basename(d));
 		}
 	}
 	HFREE_NULL(nodes);
@@ -16793,7 +16793,7 @@ download_data_received(struct download *d, ssize_t received)
 			g_warning("%s(): receiving extra data for \"%s\" from %s: "
 				"thought size was %s bytes, receiving %zu byte%s at %s -> %s",
 				G_STRFUNC, fi->pathname, download_host_info(d),
-				filesize_to_string(fi->size), received, plural(received),
+				filesize_to_string(fi->size), PLURAL(received),
 				filesize_to_string2(d->pos),
 				filesize_to_string3(upper));
 		}

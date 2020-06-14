@@ -3523,8 +3523,8 @@ qrt_update_create(gnutella_node_t *n, struct routing_table *query_table)
 					g_debug("QRP default %s (%s) has "
 						"%d entr%s but routing table has %d slot%s",
 						qrp_patch_to_string(rp), node_infostr(n),
-						rp->size, plural_y(rp->size),
-						routing_table->slots, plural(routing_table->slots));
+						PLURAL_Y(rp->size),
+						PLURAL(routing_table->slots));
 				}
 			}
 
@@ -5665,9 +5665,8 @@ qrt_route_query(gnutella_node_t *n, query_hashvec_t *qhvec,
 			NODE_IS_UDP(n) ? "(GUESS) " : "",
 			gmsg_node_infostr(n),
 			qhvec_whats_new(qhvec) ? "\"What's New?\" " : "",
-			words, plural(words), urns, plural(urns),
-			leaves, GNET_PROPERTY(node_leaf_count),
-			ultras, plural(ultras));
+			PLURAL(words), PLURAL(urns),
+			leaves, GNET_PROPERTY(node_leaf_count), PLURAL(ultras));
 	}
 
 	if (nodes == NULL)

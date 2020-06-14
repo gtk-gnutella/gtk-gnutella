@@ -958,7 +958,7 @@ shell_write_data(struct gnutella_shell *sh)
 
 		if (GNET_PROPERTY(shell_debug) > 2) {
 			s_debug("%s(%p): wrote %zd byte%s (out of %zu)",
-				G_STRFUNC, sh, written, plural(written),
+				G_STRFUNC, sh, PLURAL(written),
 				iov_calculate_size(iov, iov_cnt));
 		}
 
@@ -1049,7 +1049,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
 		s_debug("%s(%p): %zu byte%s in socket buffer",
-			G_STRFUNC, sh, s->pos, plural(s->pos));
+			G_STRFUNC, sh, PLURAL(s->pos));
 	}
 
 	while (s->pos > 0) {

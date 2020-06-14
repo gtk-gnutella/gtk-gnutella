@@ -7701,7 +7701,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 
 		BACKTRACE_DEBUG(BACK_F_OTHER,
 			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
-			mingw_opcode_name(op), fill, plural(fill), p);
+			mingw_opcode_name(op), PLURAL(fill), p);
 
 		first_opcode = p + fill;
 		p += (fill - 1);
@@ -8041,7 +8041,7 @@ mingw_inspect_stack(const void *sp, int words, const void *start)
 	BACKTRACE_ENTRY;
 
 	BACKTRACE_DEBUG(BACK_F_PC, "inspecting %d word%s around SP=%p",
-		words, plural(words), sp);
+		PLURAL(words), sp);
 
 	for (i = 0; i < 2 * words + 1; i++) {
 		int off;
@@ -8286,7 +8286,7 @@ found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
-		G_STRFUNC, offset, savings, plural_es(savings));
+		G_STRFUNC, offset, PLURAL_ES(savings));
 
 	/*
 	 * We found that the current routine decreased the stack pointer by
@@ -8640,7 +8640,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		int j;
 
 		BACKTRACE_DEBUG(BACK_F_RESULT,
-			"stack returned has %d element%s:", i, plural(i));
+			"stack returned has %d element%s:", PLURAL(i));
 
 		for (j = 0; j < i; j++) {
 			BACKTRACE_DEBUG(BACK_F_RESULT,
@@ -9606,7 +9606,7 @@ mingw_close(void)
 
 		if (0 != cnt) {
 			s_warning("%s(): still has %zu child process%s unwaited for",
-				G_STRFUNC, cnt, plural_es(cnt));
+				G_STRFUNC, PLURAL_ES(cnt));
 		}
 	}
 }

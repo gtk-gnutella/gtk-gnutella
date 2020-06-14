@@ -237,14 +237,12 @@ host_timer(void)
 	if (GNET_PROPERTY(host_debug)) {
 		if (missing > 0) {
 			g_debug("%s(): missing %d host%s%s", G_STRFUNC,
-				missing, plural(missing),
-				empty_cache ? " [empty caches]" : "");
+				PLURAL(missing), empty_cache ? " [empty caches]" : "");
 		}
 
 		if (g2_missing > 0) {
 			g_debug("%s(): missing %d G2 host%s%s", G_STRFUNC,
-				g2_missing, plural(g2_missing),
-				empty_g2_cache ? " [empty caches]" : "");
+				PLURAL(g2_missing), empty_g2_cache ? " [empty caches]" : "");
 		}
 	}
 

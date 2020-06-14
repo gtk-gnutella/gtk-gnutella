@@ -909,7 +909,7 @@ st_run_search(
 			"scanned %d/%d bin entr%s, "
 			"compiled %u/%u pattern%s, got %d match%s",
 			G_STRFUNC, scanned, best_bin_size, plural_y(scanned),
-			compiled, wocnt, plural(compiled), nres, plural_es(nres));
+			compiled, wocnt, plural(compiled), PLURAL_ES(nres));
 	}
 
 	/*

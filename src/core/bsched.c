@@ -2977,7 +2977,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 			int64_to_string3(bs->count ? bs->bw_max / bs->count : 0),
 			int64_to_string4(
 				bs->count ? (bs->bw_max + bs->bw_capped) / bs->count : 0),
-			int64_to_string5(bs->bw_per_second), bs->count, plural(bs->count),
+			int64_to_string5(bs->bw_per_second), PLURAL(bs->count),
 			bs->bw_actual * 1000.0 / delay);
 	}
 
@@ -3144,7 +3144,7 @@ bsched_stealbeat(bsched_t *bs)
 				g_debug("BSCHED %s: \"%s\" giving %s bytes to \"%s\" "
 					"(%d favour%s)",
 					G_STRFUNC, bs->name, int64_to_string((int64) amount),
-					xbs->name, xbs->io_favours, plural(xbs->io_favours));
+					xbs->name, PLURAL(xbs->io_favours));
 		}
 	} else if (all_used_count == 0) {
 		PSLIST_FOREACH(bs->stealers, l) {

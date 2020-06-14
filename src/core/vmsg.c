@@ -556,7 +556,7 @@ handle_features_supported(gnutella_node_t *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u extra feature%s",
-			node_infostr(n), count, plural(count));
+			node_infostr(n), PLURAL(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_FEATURE_SIZE + sizeof count))
 		return;
@@ -1349,7 +1349,7 @@ vmsg_send_oob_reply_ack(gnutella_node_t *n,
 			bin_to_hex_buf(token->data, token->size, ARYLEN(buf));
 		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
 			gmsg_infostr_full(v_tmp, msgsize),
-			node_infostr(n), want, plural(want),
+			node_infostr(n), PLURAL(want),
 			token->data ? ", token=0x" : "", token->data ? buf : "");
 	}
 }
@@ -3220,7 +3220,7 @@ handle_messages_supported(gnutella_node_t *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u vendor message%s",
-			node_infostr(n), count, plural(count));
+			node_infostr(n), PLURAL(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_ITEM_SIZE + sizeof count))
 		return;

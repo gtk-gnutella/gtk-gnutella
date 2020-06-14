@@ -1247,7 +1247,7 @@ done:
 		s_debug("CQ: %squeue \"%s\" %striggered %zu event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
-			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
+			PLURAL(processed), PLURAL(cq->cq_items));
 	}
 
 	/*
@@ -1371,7 +1371,7 @@ cq_delay(const cqueue_t *cq)
 	if (cq_debugging(4)) {
 		s_debug("%s(%s): %smin delay is %d, scanned %d bucket%s",
 			G_STRFUNC, cq->cq_name, adjusted ? "adjusted " : "",
-			delay, i, plural(i));
+			delay, PLURAL(i));
 	}
 
 	return delay;

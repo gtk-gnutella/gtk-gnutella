@@ -1773,13 +1773,13 @@ tmalloc_beat(void *data)
 
 		if (tmalloc_debugging(0) && full_purged != 0) {
 			s_debug("%s(\"%s\"): purged %zu full magazine%s, %zu remaining",
-				G_STRFUNC, d->tma_name, full_purged, plural(full_purged),
+				G_STRFUNC, d->tma_name, PLURAL(full_purged),
 				eslist_count(&d->tma_full.tml_list));
 		}
 
 		if (tmalloc_debugging(0) && empty_purged != 0) {
 			s_debug("%s(\"%s\"): purged %zu empty magazine%s, %zu remaining",
-				G_STRFUNC, d->tma_name, empty_purged, plural(empty_purged),
+				G_STRFUNC, d->tma_name, PLURAL(empty_purged),
 				eslist_count(&d->tma_empty.tml_list));
 		}
 	}
@@ -2059,7 +2059,7 @@ tmalloc_reset(tmalloc_t *tma)
 		s_debug("%s(\"%s\"): %d thread%s, "
 			"full=%zu+%zu, empty=%zu+%zu, objects=%zu",
 			G_STRFUNC, tma->tma_name,
-			tma->tma_threads, plural(tma->tma_threads),
+			PLURAL(tma->tma_threads),
 			eslist_count(&full.tml_list), eslist_count(&full.tml_trash),
 			eslist_count(&empty.tml_list), eslist_count(&empty.tml_trash),
 			tma->tma_obj_trash_count);

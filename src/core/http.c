@@ -3687,7 +3687,7 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 		void *ha;
 
 		g_message("HTTP async wget of \"%s\" SUCCEEDED (%zu byte%s)",
-			url, len, plural(len));
+			url, PLURAL(len));
 		g_debug("---- Begin HTTP Header ----");
 		header_dump(stderr, h, NULL);
 		g_debug("---- End HTTP Header ----");

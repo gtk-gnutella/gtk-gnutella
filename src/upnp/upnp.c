@@ -203,8 +203,7 @@ upnp_delete_pending(void)
 		if (last != tm_time()) {
 			unsigned nat = natpmp_pending();
 			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
-				igd.delete_pending, plural(igd.delete_pending),
-				nat, plural(nat));
+				PLURAL(igd.delete_pending), PLURAL(nat));
 			last = tm_time();
 		}
 	}

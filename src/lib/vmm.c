@@ -787,7 +787,7 @@ vmf_to_string(const struct vm_fragment *vmf)
 	size_t n = pagecount_fast(vmf_size(vmf));
 
 	str_bprintf(b, sizeof buf[0], "%s [%p, %p[ (%'zu page%s)",
-		vmf_type_str(vmf->type), vmf->start, vmf->end, n, plural(n));
+		vmf_type_str(vmf->type), vmf->start, vmf->end, PLURAL(n));
 
 	return b;
 }
@@ -1569,8 +1569,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			if (vmm_debugging(0)) {
 				s_miniwarn("VMM kernel did not follow hint %p for %'zuKiB "
 					"region, picked %p (after %'zu followed hint%s)",
-					hint, size / 1024, p, (size_t) hint_followed,
-					plural(hint_followed));
+					hint, size / 1024, p, (size_t) PLURAL(hint_followed));
 			}
 			VMM_STATS_LOCK;
 			vmm_stats.hints_ignored++;
@@ -3726,7 +3725,7 @@ insert:
 		s_minidbg("VMM page cache #%zu: inserted [%p, %p] %'zuKiB, "
 			"now holds %'zu item%s",
 			pc->pages - 1, base, ptr_add_offset(base, pc->chunksize - 1),
-			pc->chunksize / 1024, pc->current, plural(pc->current));
+			pc->chunksize / 1024, PLURAL(pc->current));
 	}
 
 	spinunlock(&pc->lock);
@@ -3825,8 +3824,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 						"%s lookup for %'zu page%s at %p "
 						"(upper than hole %p, ignoring %'zu cached entr%s)",
 						pc->pages - 1, i == 0 ? "ignoring" : "stopping",
-						n, plural(n), p, hole,
-						pc->current - i, plural(pc->current - i));
+						PLURAL(n), p, hole, PLURAL(pc->current - i));
 				}
 				if (0 == i) {
 					/* Did not consider any of the pages in that line */
@@ -4062,7 +4060,7 @@ page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 			size_t np = pagecount_fast(len);
 			s_minidbg("VMM %s hole of %'zu page%s at %p (%'zu page%s)",
 				hole == upper.p ? "upper" : "lowest",
-				n, plural(n), hole, np, plural(np));
+				PLURAL(n), hole, PLURAL(np));
 		}
 	}
 
@@ -5164,7 +5162,7 @@ vmm_get_magazine(size_t npages, bool alloc)
 		s_minicarp_once("%s(): %s attempting to %s %'zu page%s"
 			" from signal handler",
 			G_STRFUNC, thread_safe_name(), alloc ? "allocate" : "free",
-			npages, plural(npages));
+			PLURAL(npages));
 	}
 
 	return depot;
@@ -5555,7 +5553,7 @@ page_cache_timer(void *unused_udata)
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
 		s_minidbg("VMM scanning page cache #%zu (%'zu item%s)",
-			page_cache_line, pc->current, plural(pc->current));
+			page_cache_line, PLURAL(pc->current));
 	}
 
 	/*
@@ -5651,9 +5649,9 @@ page_cache_timer(void *unused_udata)
 			s_minidbg("VMM expired %'zu item%s (%'zuKiB total) from "
 				"page cache #%zu (%'zu item%s remaining), "
 				"process has %'zu VM regions%s",
-				expired, plural(expired),
+				PLURAL(expired),
 				expired * pc->chunksize / 1024, page_cache_line,
-				pc->current, plural(pc->current), regions,
+				PLURAL(pc->current), regions,
 				old_regions < regions ? " (fragmented further)" : "");
 		}
 		if (vmm_debugging(5)) {
@@ -5705,7 +5703,7 @@ page_cache_free_all(bool locked)
 				size_t pages = pc->current;
 				s_miniwarn("%s(): skipping locked cache line #%zu "
 					"(%'zu bytes) with %'zu page%s",
-					G_STRFUNC, i, pc->chunksize, pages, plural(pages));
+					G_STRFUNC, i, pc->chunksize, PLURAL(pages));
 				continue;
 			}
 		} else {
@@ -6636,7 +6634,7 @@ vmm_close(void)
 
 		if (opages > pages) {
 			s_warning("VMM omalloc() claims using %'zu page%s, have %'zu left",
-				opages, plural(opages), pages);
+				PLURAL(opages), pages);
 		} else {
 			pages -= opages;
 			memory -= opages * (compat_pagesize() / 1024);
@@ -6644,7 +6642,7 @@ vmm_close(void)
 
 		if (mpages > pages) {
 			s_warning("VMM malloc() claims using %'zu page%s, have %'zu left",
-				mpages, plural(mpages), pages);
+				PLURAL(mpages), pages);
 		} else {
 			pages -= mpages;
 			memory -= mpages * (compat_pagesize() / 1024);
@@ -6652,7 +6650,7 @@ vmm_close(void)
 
 		if (spages > pages) {
 			s_warning("VMM stacktrace claims using %'zu page%s, have %'zu left",
-				spages, plural(spages), pages);
+				PLURAL(spages), pages);
 		} else {
 			pages -= spages;
 			memory -= spages * (compat_pagesize() / 1024);
@@ -6661,17 +6659,17 @@ vmm_close(void)
 
 	if (pages != 0) {
 		s_warning("VMM still holds %'zu non-attributed page%s totaling %s KiB",
-			pages, plural(pages), size_t_to_gstring(memory));
+			PLURAL(pages), size_t_to_gstring(memory));
 		if (vmm_stats.user_pages != 0) {
 			s_warning("VMM holds %'zu user page%s (%'zu block%s) "
 				"totaling %s KiB",
-				vmm_stats.user_pages, plural(vmm_stats.user_pages),
-				vmm_stats.user_blocks, plural(vmm_stats.user_blocks),
+				PLURAL(vmm_stats.user_pages),
+				PLURAL(vmm_stats.user_blocks),
 				size_t_to_gstring(vmm_stats.user_memory / 1024));
 		}
 		if (vmm_stats.core_pages != 0) {
 			s_message("VMM holds %'zu core page%s totaling %s KiB",
-				vmm_stats.core_pages, plural(vmm_stats.core_pages),
+				PLURAL(vmm_stats.core_pages),
 				size_t_to_gstring(vmm_stats.core_memory / 1024));
 		}
 	}
@@ -6683,7 +6681,7 @@ vmm_close(void)
 	}
 	if (mapped_pages != 0) {
 		s_warning("VMM still holds %'zu memory-mapped page%s totaling %s KiB",
-			mapped_pages, plural(mapped_pages),
+			PLURAL(mapped_pages),
 			size_t_to_gstring(mapped_memory));
 	}
 }
@@ -7029,7 +7027,7 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 				"from \"%s:%d\" with wrong size %'zu [%'zu missed event%s]",
 				pt->file, pt->line, track_mem(xpt->user), p,
 				xpt->size, xpt->file, xpt->line, pt->size,
-				vmm_buffer.missed, plural(vmm_buffer.missed));
+				PLURAL(vmm_buffer.missed));
 		}
 	}
 
@@ -7039,7 +7037,7 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 				"from \"%s:%d\" as wrong type \"%s\" [%'zu missed event%s]",
 				pt->file, pt->line, track_mem(xpt->user), p,
 				xpt->size, xpt->file, xpt->line, track_mem(pt->user),
-				vmm_buffer.missed, plural(vmm_buffer.missed));
+				PLURAL(vmm_buffer.missed));
 		}
 	}
 
@@ -7214,7 +7212,7 @@ static void unbuffer_operations(void)
 				"(%'zu other record%s pending)",
 				track_operation_to_string(tb.op), tb.pt.size,
 				track_mem(tb.pt.user), tb.addr, tb.pt.file, tb.pt.line,
-				vmm_buffer.idx, plural(vmm_buffer.idx));
+				PLURAL(vmm_buffer.idx));
 		}
 
 		switch (tb.op) {
@@ -7401,7 +7399,7 @@ vmm_track_malloc_inited(void)
 {
 	if (vmm_buffer.missed != 0) {
 		s_warning("VMM missed %'zu initial tracking event%s",
-			vmm_buffer.missed, plural(vmm_buffer.missed));
+			PLURAL(vmm_buffer.missed));
 	}
 }
 
@@ -7413,11 +7411,11 @@ vmm_track_post_init(void)
 {
 	if (vmm_buffer.max > 0 && vmm_debugging(0)) {
 		s_minidbg("VMM required %'zu bufferred event%s",
-			vmm_buffer.max, plural(vmm_buffer.max));
+			PLURAL(vmm_buffer.max));
 	}
 	if (vmm_nl_buffer.max > 0 && vmm_debugging(0)) {
 		s_minidbg("VMM required %'zu bufferred non-leaking event%s",
-			vmm_nl_buffer.max, plural(vmm_nl_buffer.max));
+			PLURAL(vmm_nl_buffer.max));
 	}
 }
 

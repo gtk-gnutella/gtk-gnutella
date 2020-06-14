@@ -5232,7 +5232,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 					"[%s, %s] (%zu source%s)",
 					G_STRFUNC, rarest_count + 1, fi->pathname,
 					filesize_to_string(fa->from), filesize_to_string2(fa->to),
-					fa->sources, plural(fa->sources));
+					PLURAL(fa->sources));
 			}
 
 			/*
@@ -5292,7 +5292,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				"[%s, %s] (%zu source%s)",
 				G_STRFUNC, fi->pathname,
 				filesize_to_string(start), filesize_to_string2(end),
-				rarest->sources, plural(rarest->sources));
+				PLURAL(rarest->sources));
 		}
 
 		g_assert(start < end);		/* Because the two MUST overlap */
@@ -7939,8 +7939,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5) {
 		g_debug("- collected %zu range%s out of %zu source%s:",
-			rbtree_count(rbt), plural(rbtree_count(rbt)),
-			sources, plural(sources));
+			PLURAL(rbtree_count(rbt)), PLURAL(sources));
 
 		iter = rbtree_iter_new(rbt);
 		while (rbtree_iter_next(iter, &item)) {
@@ -7948,7 +7947,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 			g_debug("   [%s, %s] (%.2f%%) %zu source%s",
 				filesize_to_string(ac->from), filesize_to_string2(ac->to),
 				100.0 * (ac->to - ac->from) / (0 == fi->size ? 1 : fi->size),
-				ac->sources, plural(ac->sources));
+				PLURAL(ac->sources));
 		}
 		rbtree_iter_release(&iter);
 	}
@@ -8014,7 +8013,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 		iter = rbtree_iter_new(arbt);
 
 		g_debug("- identified %zu available range%s over file:",
-			rbtree_count(arbt), plural(rbtree_count(arbt)));
+			PLURAL(rbtree_count(arbt)));
 
 		while (rbtree_iter_next(iter, &item)) {
 			const struct dl_avail_chunk *avc = item;
@@ -8023,7 +8022,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 
 			g_debug("   [%s, %s] %zu source%s",
 				filesize_to_string(avc->from), filesize_to_string2(avc->to),
-				avc->sources, plural(avc->sources));
+				PLURAL(avc->sources));
 
 			available += avc->to - avc->from;	/* For logging */
 		}

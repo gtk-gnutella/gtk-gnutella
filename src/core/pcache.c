@@ -2186,7 +2186,7 @@ pong_extract_metadata(gnutella_node_t *n)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, plural(paylen));
+					PLURAL(paylen));
 			}
 			break;
 		}
@@ -2573,7 +2573,7 @@ pcache_udp_pong_received(gnutella_node_t *n)
 						"bad length for GGEP \"%s\" "
 						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, plural(paylen), len);
+						PLURAL(paylen), len);
 				}
 			} else {
 				switch (e->ext_token) {
@@ -2624,7 +2624,7 @@ pcache_udp_pong_received(gnutella_node_t *n)
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, plural(paylen));
+					PLURAL(paylen));
 			}
 			break;
 		}

@@ -973,7 +973,7 @@ node_slow_timer(time_t now)
 
 		if (GNET_PROPERTY(fw_debug) > 2) {
 			g_debug("FW: found %u ultra node%s to send connect-back messages",
-				count, plural(count));
+				PLURAL(count));
 		}
 
 		if (count > 0) {
@@ -1487,8 +1487,7 @@ node_timer(time_t now)
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout (%d sec%s)",
-						GNET_PROPERTY(node_connected_timeout),
-						plural(GNET_PROPERTY(node_connected_timeout)));
+						PLURAL(GNET_PROPERTY(node_connected_timeout)));
 					continue;
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
@@ -1501,8 +1500,7 @@ node_timer(time_t now)
                     hcache_add(HCACHE_UNSTABLE, n->addr, 0,
                         "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
-						GNET_PROPERTY(node_tx_flowc_timeout),
-						plural(GNET_PROPERTY(node_tx_flowc_timeout)));
+						PLURAL(GNET_PROPERTY(node_tx_flowc_timeout)));
 					continue;
 				}
 			}
@@ -5740,7 +5738,7 @@ feed_host_cache_from_headers(header_t *header,
 			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
 					g_debug("peer %s sent %u pong%s in %s header (%s)",
-						host_addr_to_string(peer), r, plural(r), name,
+						host_addr_to_string(peer), PLURAL(r), name,
 						host_type_to_string(type));
 				else
 					g_debug("peer %s <%s> sent unparseable %s header: \"%s\"",
@@ -10432,7 +10430,7 @@ node_tx_leave_flowc(gnutella_node_t *n)
 		int spent = delta_time(tm_time(), n->tx_flowc_date);
 
 		g_debug("node %s spent %d second%s in TX FLOWC",
-			node_addr(n), spent, plural(spent));
+			node_addr(n), PLURAL(spent));
 	}
 
 	if (NODE_USES_UDP(n)) {
@@ -11124,8 +11122,7 @@ node_bye_pending(void)
 	if (GNET_PROPERTY(shutdown_debug) > 1) {
 		static time_t last;
 		if (last != tm_time()) {
-			g_debug("SHUTDOWN %d pending BYE message%s",
-				pending_byes, plural(pending_byes));
+			g_debug("SHUTDOWN %d pending BYE message%s", PLURAL(pending_byes));
 			last = tm_time();
 		}
 	}

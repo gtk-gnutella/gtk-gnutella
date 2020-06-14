@@ -946,8 +946,7 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
-					port, host_addr_to_string(addr), sd->ports,
-					plural(sd->ports));
+					port, host_addr_to_string(addr), PLURAL(sd->ports));
 			}
 
 			gnet_host_set(&host, addr, 0);

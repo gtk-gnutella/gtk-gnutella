@@ -161,11 +161,10 @@ symbols_log_loaded(const char *path,
 			str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
 
 		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
-			count, plural(count), path, method, secs, buf);
+			PLURAL(count), path, method, secs, buf);
 
 		if (stripped != 0) {
-			s_message("stripped %zu duplicate symbol%s",
-				stripped, plural(stripped));
+			s_message("stripped %zu duplicate symbol%s", PLURAL(stripped));
 		}
 		if (offset != 0) {
 			s_message("will be offsetting symbol addresses by 0x%lx (%ld)",

@@ -316,7 +316,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 		if (common_dbg) {
 			s_debug("SDBM \"%s\": superblock has %u key%s%s, "
 				"last check done %s ago",
-				sdbm_name(sdbm), (unsigned) sblock.count, plural(sblock.count),
+				sdbm_name(sdbm), (unsigned) PLURAL(sblock.count),
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
 					" (keycheck required)" : "",
 				compact_time(delta_time(tm_time(), sblock.last_check)));

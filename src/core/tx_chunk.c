@@ -145,11 +145,11 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 	g_assert(0 == attr->head_remain);
 	g_assert(final || ((size_t) -1 != len && len > 0));
 
-	if (GNET_PROPERTY(tx_debug) > 9)
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("TX %s: %s chunk %zu byte%s",
 			G_STRFUNC, final ? "final" :
-			attr->first ? "first" :
-			"next", len, plural(len));
+			attr->first ? "first" : "next", PLURAL(len));
+	}
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.

@@ -690,7 +690,7 @@ timeit(
 
 	if (verbose)
 		g_debug("%s (%zu items, %zu loop%s): %F s (average: %F s)", what,
-			count, iter, plural(iter), elapsed, elapsed / iter);
+			count, PLURAL(iter), elapsed, elapsed / iter);
 
 	return elapsed;
 }

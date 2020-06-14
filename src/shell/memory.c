@@ -576,7 +576,7 @@ shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
 		shell_write(sh, ".\n");
 
 	shell_write_linef(sh, REPLY_READY, "Found %zu freelist%s in error",
-		errors, plural(errors));
+		PLURAL(errors));
 
 	return REPLY_READY;
 }

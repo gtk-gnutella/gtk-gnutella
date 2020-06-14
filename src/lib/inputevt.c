@@ -1099,7 +1099,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 		if (inputevt_debug > 2) {
 			unsigned long count = plist_length(list);
-			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
+			s_debug("%s(): %lu fake event%s", G_STRFUNC, PLURAL(count));
 		}
 
 		CTX_UNLOCK(ctx);

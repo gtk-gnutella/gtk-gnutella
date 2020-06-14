@@ -434,7 +434,7 @@ publish_final_stats(publish_t *pb)
 		g_debug("DHT PUBLISH[%s] %g secs published %d/%d (%d error%s) "
 			"in=%d bytes, out=%d bytes",
 			nid_to_string(&pb->pid), tm_elapsed_f(&end, &pb->start),
-			pb->published, pb->cnt, pb->errors, plural(pb->errors),
+			pb->published, pb->cnt, PLURAL(pb->errors),
 			pb->bw_incoming, pb->bw_outgoing);
 }
 
@@ -497,7 +497,7 @@ path_loaded:
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		size_t count = patricia_count(path);
 		g_debug("DHT PUBLISH[%s] updating roots cache with %zu entr%s near %s",
-			nid_to_string(&pb->pid), count, plural_y(count),
+			nid_to_string(&pb->pid), PLURAL_Y(count),
 			kuid_to_hex_string(pb->key));
 	}
 
@@ -638,7 +638,7 @@ publish_cancel(publish_t *pb, bool callback)
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
 			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 			publish_type_to_string(pb->type),
-			pb->published, pb->cnt, plural(pb->cnt),
+			pb->published, PLURAL(pb->cnt),
 			kuid_to_hex_string(pb->key));
 	}
 
@@ -679,7 +679,7 @@ publish_cache_expired(cqueue_t *cq, void *obj)
 			(pb->flags & PB_F_SUBORDINATE) ? "subordinate " : "",
 			(pb->flags & PB_F_BACKGROUND) ? "background " : "",
 			publish_type_to_string(pb->type),
-			pb->cnt, plural(pb->cnt),
+			PLURAL(pb->cnt),
 			kuid_to_hex_string(pb->key));
 
 	publish_terminate(pb, PUBLISH_E_EXPIRED);
@@ -700,7 +700,7 @@ publish_offload_expired(cqueue_t *cq, void *obj)
 	if (GNET_PROPERTY(dht_publish_debug))
 		g_debug("DHT PUBLISH[%s] %s publish of %d key%s to %s expired",
 			nid_to_string(&pb->pid), publish_type_to_string(pb->type),
-			pb->cnt, plural(pb->cnt),
+			PLURAL(pb->cnt),
 			knode_to_string(pb->target.o.kn));
 
 	publish_terminate(pb, PUBLISH_E_EXPIRED);
@@ -723,7 +723,7 @@ publish_store_expired(cqueue_t *cq, void *obj)
 			"published to %d/%d root%s",
 			nid_to_string(&pb->pid), publish_type_to_string(pb->type),
 			dht_value_to_string(pb->target.v.value),
-			pb->published, pb->cnt, plural(pb->cnt));
+			pb->published, PLURAL(pb->cnt));
 
 	publish_terminate(pb, PUBLISH_E_EXPIRED);
 }
@@ -757,7 +757,7 @@ log_status(publish_t *pb)
 		PUBLISH_VALUE == pb->type ? "to " : "",
 		pb->published, pb->cnt,
 		PUBLISH_VALUE == pb->type ? "root" : "item", plural(pb->cnt),
-		pb->errors, plural(pb->errors));
+		PLURAL(pb->errors));
 }
 
 /**
@@ -927,7 +927,7 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 		g_warning("DHT PUBLISH[%s] STORE ACK from %s has %u status%s "
 			"(expected %u)",
 			nid_to_string(&pb->pid), knode_to_string(kn),
-			acks, plural_es(acks), published);
+			PLURAL_ES(acks), published);
 
 		if (acks > published)
 			goto ignore;		/* How can remote send us more acks? */
@@ -1056,8 +1056,8 @@ publish_handle_reply(publish_t *pb, const knode_t *kn,
 		g_warning("DHT PUBLISH[%s] the STORE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
 			 nid_to_string(&pb->pid),
-			 (ulong) len, plural(len), knode_to_string(kn),
-			 (ulong) unparsed, plural(unparsed));
+			 (ulong) PLURAL(len), knode_to_string(kn),
+			 (ulong) PLURAL(unparsed));
 	}
 
 	/* FALL THROUGH */
@@ -1096,7 +1096,7 @@ bad:
 		g_warning("DHT PUBLISH[%s] improper STORE_RESPONSE payload "
 			"(%zu byte%s) from %s: %s%s%s",
 			nid_to_string(&pb->pid),
-			len, plural(len), knode_to_string(kn), reason,
+			PLURAL(len), knode_to_string(kn), reason,
 			bstr_has_error(bs) ? ": " : "",
 			bstr_has_error(bs) ? bstr_error(bs) : "");
 
@@ -1289,7 +1289,7 @@ pb_msg_dropped(void *obj, knode_t *unused_kn, pmsg_t *mb)
 			uint8 held = values_held(mb);
 			const kuid_t *id = first_creator_kuid(mb);
 			g_debug("DHT PUBLISH[%s] UDP dropped STORE with %u value%s sk=%s",
-				nid_to_string(&pb->pid), held, plural(held),
+				nid_to_string(&pb->pid), PLURAL(held),
 				kuid_to_hex_string(id));
 		}
 	} else {
@@ -1300,7 +1300,7 @@ pb_msg_dropped(void *obj, knode_t *unused_kn, pmsg_t *mb)
 			const kuid_t *id = first_creator_kuid(mb);
 			g_debug("DHT PUBLISH[%s] "
 				"synchronous UDP drop of STORE with %u value%s sk=%s",
-				nid_to_string(&pb->pid), held, plural(held),
+				nid_to_string(&pb->pid), PLURAL(held),
 				kuid_to_hex_string(id));
 		}
 	}
@@ -1385,7 +1385,7 @@ pb_cache_handling_rpc(void *obj, enum dht_rpc_ret type,
 			if (GNET_PROPERTY(dht_publish_debug) > 1) {
 				uint8 held = values_held(pb->target.c.pending);
 				g_debug("DHT PUBLISH[%s] dropping publishing of %u value%s",
-					nid_to_string(&pb->pid), held, plural(held));
+					nid_to_string(&pb->pid), PLURAL(held));
 			}
 			pmsg_free(mbp);
 			pb->target.c.timeouts = 0;
@@ -1698,7 +1698,7 @@ publish_cache_send(publish_t *pb, pmsg_t *mb)
 			nid_to_string(&pb->pid), pb->hops, pmsg_size(mb),
 			pb->target.c.timeouts + 1,
 			kuid_to_hex_string(first_creator_kuid(mb)),
-			held, plural(held));
+			PLURAL(held));
 	}
 
 	revent_store(pb->target.c.kn, mb, pb->pid, &publish_cache_ops, pb->hops);
@@ -1784,7 +1784,7 @@ pb_offload_child_done(void *obj, int count, int published, int errors,
 			nid_to_string(&pb->pid),
 			tm_elapsed_f(&now, &pb->start), pb->hops,
 			published, count, plural(published),
-			errors, plural(errors), bw_incoming, bw_outgoing);
+			PLURAL(errors), bw_incoming, bw_outgoing);
 	}
 
 	pb->target.o.child = NULL;
@@ -1849,7 +1849,7 @@ publish_offload_iterate(publish_t *pb)
 				"%g secs, hop %u: offloaded key %s has %d value%s",
 				nid_to_string(&pb->pid),
 				tm_elapsed_f(&now, &pb->start), pb->hops,
-				kuid_to_hex_string(key), valcnt, plural(valcnt));
+				kuid_to_hex_string(key), PLURAL(valcnt));
 		}
 
 		if (valcnt > 0) {
@@ -2133,8 +2133,7 @@ publish_cache_internal(const kuid_t *key,
 	if (GNET_PROPERTY(dht_publish_debug) > 1) {
 		g_debug("DHT PUBLISH[%s] to %s (security token: %u byte%s)",
 			nid_to_string(&pb->pid),
-			knode_to_string(target->kn), target->token_len,
-			plural(target->token_len));
+			knode_to_string(target->kn), PLURAL(target->token_len));
 	}
 
 	if (GNET_PROPERTY(dht_publish_debug) > 3) {
@@ -2285,7 +2284,7 @@ pb_token_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			"offloading got security token (%d byte%s) in slot #%zu for %s",
 			nid_to_string(&pb->pid),
 			tm_elapsed_f(&now, &pb->start),
-			rc->token_len, plural(rc->token_len), i,
+			PLURAL(rc->token_len), i,
 			knode_to_string(pb->target.o.kn));
 	}
 
