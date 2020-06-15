@@ -4883,6 +4883,10 @@ file_info_reset(fileinfo_t *fi)
 
 	atom_sha1_free_null(&fi->cha1);
 
+	/* Better forget old TTH, could be invalid */
+	atom_tth_free_null(&fi->tth);
+	fi_tigertree_free(fi);
+
 	/* File possibly shared */
 	file_info_upload_stop(fi, N_("File info being reset"));
 
