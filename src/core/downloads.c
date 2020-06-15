@@ -6209,6 +6209,9 @@ download_restart(struct download *d)
 
 /**
  * Pause a download.
+ *
+ * A paused download will not restart this session, unless the user
+ * explicitly requests it again.
  */
 static void
 download_pause(struct download *d)
@@ -15307,6 +15310,7 @@ download_moved_with_bad_sha1(struct download *d)
 	g_assert(!has_good_sha1(d));
 
 	queue_suspend_downloads_with_file(d->file_info, FALSE);
+	file_info_reset(d->file_info);
 
 	/*
 	 * If it was a faked download or has a bad bitprint, we cannot resume.
@@ -15315,19 +15319,14 @@ download_moved_with_bad_sha1(struct download *d)
 	if (fi_has_bad_bitprint(d->file_info)) {
 		g_warning("SHA1 mismatch for \"%s\" but TTH was good, cannot restart",
 			download_basename(d));
-		goto pause;
 	} else if (is_faked_download(d)) {
 		g_warning("SHA1 mismatch for \"%s\", and cannot restart download",
 			download_basename(d));
-		goto pause;
 	} else {
-		file_info_reset(d->file_info);
 		download_restart(d);
+		return;
 	}
 
-	return;
-
-pause:
 	/*
 	 * FIXME: If the download is not paused, the file would be downloaded
 	 *		  over and over again, even if there is just a single known
