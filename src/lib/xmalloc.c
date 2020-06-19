@@ -94,10 +94,6 @@
 
 #include "override.h"		/* Must be the last header included */
 
-#ifdef USE_MY_MALLOC			/* metaconfig symbol */
-#define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
-#endif
-
 #if 0
 #define XMALLOC_SORT_SAFETY		/* Adds expensive sort checking assertions */
 #endif
@@ -108,35 +104,8 @@
 #define XMALLOC_CHUNK_SAFETY	/* Adds expensive thread chunk checking */
 #endif
 
-/*
- * The VMM layer is based on mmap() and falls back to posix_memalign()
- * or memalign().
- *
- * However, when trapping malloc() we also have to define posix_memalign(),
- * memalign() and valign() because glib 2.x can use these routines in its
- * slice allocator and the pointers returned by these functions must be
- * free()able.
- *
- * It follows that when mmap() is not available, we cannot trap malloc().
- */
-#if defined(HAS_MMAP) || defined(MINGW32)
-#define CAN_TRAP_MALLOC
-#endif
-#if defined(XMALLOC_IS_MALLOC) && !defined(CAN_TRAP_MALLOC)
-#undef XMALLOC_IS_MALLOC
-#endif
+/* XMALLOC_ALIGNBYTES is defined in "xmalloc.h" now, to be widely visible */
 
-/**
- * Memory alignment constraints.
- *
- * Glib-2.30.2 does masking on pointer values with 0x7, relying on the
- * assumption that the system's malloc() will return pointers aligned on
- * 8 bytes.
- *
- * To be able to work successfully on systems with such a glib, we have no
- * other option but to remain speachless... and comply with that assumption.
- */
-#define XMALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* Forced thanks to glib */
 #define XMALLOC_MASK		(XMALLOC_ALIGNBYTES - 1)
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
