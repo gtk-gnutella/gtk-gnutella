@@ -194,8 +194,6 @@ arc4_getword(struct arc4_stream *as)
 	return (val);
 }
 
-#ifndef HAS_ARC4RANDOM
-
 static spinlock_t arc4_lck = SPINLOCK_INIT;
 
 #define ARC4_LOCK		spinlock_hidden(&arc4_lck)
@@ -278,16 +276,6 @@ arc4random64(void)
 
 	return UINT64_VALUE(hi, lo);
 }
-#else
-/**
- * @return 64-bit random number.
- */
-uint64
-arc4random64(void)
-{
-	return UINT64_VALUE(arc4random(), arc4random());
-}
-#endif	/* !HAS_ARC4RANDOM */
 
 /**
  * Perform random initialization if not already done.
