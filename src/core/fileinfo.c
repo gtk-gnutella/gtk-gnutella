@@ -5103,6 +5103,24 @@ fi_busy_count(fileinfo_t *fi, const struct download *d)
 }
 
 /**
+ * Log available chunk list.
+ */
+static void
+fi_available_log(const fileinfo_t *fi)
+{
+	const struct dl_avail_chunk *fa;
+
+	g_debug("%s(): available chunks for %s", G_STRFUNC, fi->pathname);
+
+	ESLIST_FOREACH_DATA(&fi->available, fa) {
+		g_debug("%s(): [%s, %s] (%zu source%s)",
+			G_STRFUNC,
+			filesize_to_string(fa->from), filesize_to_string2(fa->to - 1),
+			PLURAL(fa->sources));
+	}
+}
+
+/**
  * Compares two offered ranges so that two ranges are equal when they overlap.
  */
 static int
@@ -5153,6 +5171,9 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 
 	if (!fi->file_size_known)
 		return first;
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
+		fi_available_log(fi);
 
 	if (GNET_PROPERTY(pfsp_first_chunk) > 0) {
 		/*
@@ -8070,6 +8091,9 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	 */
 
 	eslist_sort(&fi->available, fi_avail_source_cmp);
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
+		fi_available_log(fi);
 }
 
 /**
