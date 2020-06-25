@@ -791,8 +791,10 @@ xmalloc_early_init(void)
 void G_COLD
 xmalloc_show_settings_log(logagent_t *la)
 {
-	log_info(la, "using %s", xmalloc_is_malloc() ?
-		"our own malloc() replacement" : "native malloc()");
+	log_info(la, "using %s (memory alignment: %u bytes)",
+		xmalloc_is_malloc() ?
+			"our own malloc() replacement" : "native malloc()",
+		XMALLOC_ALIGNBYTES);
 
 	/*
 	 * On Windows, we're performing dynamic patching of loaded libraries
