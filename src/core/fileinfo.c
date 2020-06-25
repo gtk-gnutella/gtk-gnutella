@@ -5175,6 +5175,13 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	if (GNET_PROPERTY(fileinfo_debug) > 5)
 		fi_available_log(fi);
 
+	/*
+	 * The `offered' set contains the HTTP ranges offered by the source,
+	 * if any given.  If NULL, it means the source covers the whole file.
+	 */
+
+	offered = NULL == d ? NULL : d->ranges;
+
 	if (GNET_PROPERTY(pfsp_first_chunk) > 0) {
 		/*
 		 * See whether chunks up to ``pfsp_first_chunk'' bytes are free.
@@ -5185,8 +5192,14 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				break;
 
 			if (DL_CHUNK_EMPTY == fc->status) {
+				if (
+					offered != NULL &&
+					!http_rangeset_contains(offered, fc->from, fc->to - 1)
+				)
+					continue;	/* Not offered by remote host */
+
 				if (GNET_PROPERTY(download_debug)) {
-					g_debug("%s(): less than %u bytes, using first chunk",
+					g_debug("%s(): less than %u bytes, using early empty chunk",
 						G_STRFUNC, GNET_PROPERTY(pfsp_first_chunk));
 				}
 
@@ -5199,13 +5212,9 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	/*
 	 * The `missing' red-black tree contains the file chunks that are still
 	 * empty and need to be downloaded.
-	 *
-	 * The `offered' set contains the HTTP ranges offered by the source,
-	 * if any given.  If NULL, it means the source covers the whole file.
 	 */
 
 	missing = rbtree_create(fi_chunk_overlap_cmp);
-	offered = NULL == d ? NULL : d->ranges;
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 		dl_file_chunk_check(fc);
@@ -5379,6 +5388,8 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		candidate = first;
 
 	rbtree_free_null(&missing);
+
+	/* FALL THROUGH */
 
 done:
 	if (GNET_PROPERTY(fileinfo_debug) || GNET_PROPERTY(download_debug)) {
