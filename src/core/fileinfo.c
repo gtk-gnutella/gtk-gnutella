@@ -5138,6 +5138,29 @@ fi_chunk_overlap_cmp(const void *a, const void *b)
 }
 
 /**
+ * Wrapper around http_rangeset_lookup_over() to simplify code logic in
+ * fi_pick_rarest_chunk().
+ *
+ * If `offered' is NULL, then we return the supplied `dflt' the first time,
+ * i.e. when `r' is NULL, and NULL the second time: in effect we are "iterating"
+ * over one single chunk, the supplied `dflt'.
+ *
+ * Otherwise we perform a regular iteration to identify all the offered chunks
+ * that overlap with the `fa' "available chunk range".
+ */
+static const http_range_t *
+fi_rangeset_lookup_over(const http_rangeset_t *offered,
+	const struct dl_avail_chunk *fa, const http_range_t *dflt,
+	const http_range_t *r)
+{
+	if (NULL == offered)
+		return NULL == r ? dflt : NULL;
+
+	return http_rangeset_lookup_over(offered, fa->from, fa->to - 1, r);
+}
+
+
+/**
  * Select a chunk randomly among the rarest chunks offered on the network.
  *
  * If no download source is provided, then we assume we can pick any missing
@@ -5151,7 +5174,8 @@ fi_chunk_overlap_cmp(const void *a, const void *b)
  * @param d			the possibly partial download source (may be NULL)
  * @param size		the targeted chunk size
  *
- * @return the picked chunk among the fileinfo's chunklist.
+ * @return the picked chunk among the fileinfo's chunklist, or NULL if we
+ * determine we have nothing available remotely.
  */
 static const struct dl_file_chunk *
 fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
@@ -5162,6 +5186,8 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	const struct dl_file_chunk *first, *candidate = NULL;
 	uint32 rarest_count = 0;
 	const struct dl_avail_chunk *rarest = NULL, *fa;
+	http_range_t r_dflt = { 0, 0 };
+	const http_range_t *server_range = NULL;
 
 	file_info_check(fi);
 	g_assert(0 != eslist_count(&fi->chunklist));
@@ -5231,41 +5257,56 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	 */
 
 	ESLIST_FOREACH_DATA(&fi->available, fa) {
-		struct dl_file_chunk *dfc;
-		struct dl_file_chunk crange;
+		const http_range_t *r = NULL;
 
 		dl_avail_chunk_check(fa);
 
 		/*
 		 * If we have already found a candidate and this chunk has more
-		 * sources, we're done.
+		 * sources, we're done (since fi->available is sorted by increasing
+		 * source count).
 		 */
 
 		if (rarest != NULL && fa->sources > rarest->sources)
 			break;
 
-		if (
-			offered != NULL &&
-			!http_rangeset_contains(offered, fa->from, fa->to - 1)
-		)
-			continue;		/* Range not offered */
+		/*
+		 * Look for the offered ranges overlapping with the overall available
+		 * chunks for this file.  Since `offered' can be NULL, we prepare a
+		 * default chunk to process and then blindly "iterate" through the
+		 * wrapper fi_rangeset_lookup_over() so that the processing logic below
+		 * does not depend on whether `offered' was NULL.
+		 */
 
-		crange.from = fa->from;
-		crange.to = fa->to;
+		if (NULL == offered) {
+			/* The chunk we wish to return from fi_rangeset_lookup_over() */
+			r_dflt.start = fa->from;
+			r_dflt.end = fa->to - 1;
+		} else if (!http_rangeset_contains(offered, fa->from, fa->to - 1))
+			continue;		/* Range not offered by source*/
 
-		dfc = rbtree_lookup(missing, &crange);
+		while (NULL != (r = fi_rangeset_lookup_over(offered, fa, &r_dflt, r))) {
+			struct dl_file_chunk *dfc;
+			struct dl_file_chunk crange;
 
-		if (dfc != NULL) {
-			/* Rare range overlaps with missing range */
+			crange.from = r->start;
+			crange.to = r->end + 1;
+
+			dfc = rbtree_lookup(missing, &crange);
+
+			if (NULL == dfc)
+				continue;	/* Rare range not overlapping with missing range */
 
 			if (
 				GNET_PROPERTY(fileinfo_debug) > 2 ||
 				GNET_PROPERTY(download_debug) > 1
 			) {
-				g_debug("%s(): possible rarest candidate #%u for \"%s\" is "
-					"[%s, %s] (%zu source%s)",
-					G_STRFUNC, rarest_count + 1, fi->pathname,
-					filesize_to_string(fa->from), filesize_to_string2(fa->to),
+				g_debug("%s(): possible rarest %schunk #%u for \"%s\" "
+					"is [%s, %s] (%zu source%s)",
+					G_STRFUNC,
+					NULL == offered ? "" : "offered ",
+					rarest_count + 1, fi->pathname,
+					filesize_to_string(r->start), filesize_to_string2(r->end),
 					PLURAL(fa->sources));
 			}
 
@@ -5287,15 +5328,20 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 
 			rarest = fa;
 			candidate = dfc;
+			server_range = r;
 
 			/*
 			 * If we're not a PFSP server, we retain the first candidate we see.
 			 */
 
 			if (!GNET_PROPERTY(pfsp_server))
-				break;
+				goto selected;
 		}
 	}
+
+	/* FALL THROUGH */
+
+selected:
 
 	/*
 	 * If we have a candidate, then randomly pick the starting point in the
@@ -5330,6 +5376,38 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		}
 
 		g_assert(start < end);		/* Because the two MUST overlap */
+
+		/*
+		 * Intersect with offered chunk if we have a list.
+		 */
+
+		if (offered != NULL) {
+			start = MAX(start, server_range->start);
+			end = MIN(end, server_range->end + 1);
+
+			if (
+				GNET_PROPERTY(fileinfo_debug) > 2 ||
+				GNET_PROPERTY(download_debug) > 1
+			) {
+				g_debug("%s(): after intersection with offered from %s, "
+					"becomes [%s, %s]",
+					G_STRFUNC, download_host_info(d),
+					filesize_to_string(start), filesize_to_string2(end));
+			}
+
+			if (end <= start) {
+				if (
+					GNET_PROPERTY(fileinfo_debug) ||
+					GNET_PROPERTY(download_debug)
+				) {
+					g_debug("%s(): null intersection, nothing available at %s",
+						G_STRFUNC, download_host_info(d));
+				}
+
+				candidate = NULL;		/* Signals: nothing! */
+				goto nothing;
+			}
+		}
 
 		if (end - start > size && GNET_PROPERTY(pfsp_server)) {
 			filesize_t offset, length;
@@ -5372,9 +5450,9 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				GNET_PROPERTY(fileinfo_debug) > 2 ||
 				GNET_PROPERTY(download_debug) > 1
 			) {
-				g_debug("%s(): selected chunk is [%s, %s]",
+				g_debug("%s(): selected chunk is [%s, %s] (status %d)",
 					G_STRFUNC, filesize_to_string(nfc->from),
-					filesize_to_string2(nfc->to));
+					filesize_to_string2(nfc->to), nfc->status);
 			}
 		}
 	}
@@ -5387,16 +5465,23 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	if (NULL == candidate)
 		candidate = first;
 
+	/* FALL THROUGH */
+
+nothing:
 	rbtree_free_null(&missing);
 
 	/* FALL THROUGH */
 
 done:
 	if (GNET_PROPERTY(fileinfo_debug) || GNET_PROPERTY(download_debug)) {
-		g_debug("%s(): returning [%s, %s] (%u) for \"%s\"",
-			G_STRFUNC, filesize_to_string(candidate->from),
-			filesize_to_string2(candidate->to), candidate->status,
-			fi->pathname);
+		if (candidate != NULL) {
+			g_debug("%s(): returning [%s, %s] (status %d) for \"%s\"",
+				G_STRFUNC, filesize_to_string(candidate->from),
+				filesize_to_string2(candidate->to), candidate->status,
+				fi->pathname);
+		} else {
+			g_debug("%s(): returning NULL for \"%s\"", G_STRFUNC, fi->pathname);
+		}
 	}
 
 	return candidate;
@@ -6139,6 +6224,8 @@ file_info_find_hole(const struct download *d, filesize_t *from, filesize_t *to)
 			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
 	}
 
+	g_assert(chunk != NULL);
+
 	/*
 	 * Iteration is done using a "circular" list illusion, to be able to
 	 * nicely iterate even if we don't start from the head.
@@ -6250,6 +6337,8 @@ file_info_find_available_hole(
 	if (eslist_count(&fi->available) > 1) {
 		chunksize = fi_chunksize(fi);
 		chunk = fi_pick_rarest_chunk(fi, d, chunksize);
+		if (NULL == chunk)
+			return FALSE;
 	} else {
 		chunk = GNET_PROPERTY(pfsp_server) ?
 			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
@@ -7912,7 +8001,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	if (!fi->file_size_known)
 		return;
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 4 || GNET_PROPERTY(download_debug))
 		g_debug("%s(): updating available for %s", G_STRFUNC, fi->pathname);
 
 	/*

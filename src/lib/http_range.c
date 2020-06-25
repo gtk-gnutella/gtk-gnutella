@@ -486,6 +486,44 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 }
 
 /**
+ * Iterate along all the ranges (ordered by increasing starting point)
+ * overlapping with the specified boundaries.
+ *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
+ * @param hrs		the HTTP range set
+ * @param start		start of HTTP range
+ * @param end		end (last byte) of HTTP range
+ * @param r			previous return, NULL if starting iteration
+ *
+ * @return next HTTP range if a match is found, NULL if no more overlapping range.
+ */
+const http_range_t *
+http_rangeset_lookup_over(const http_rangeset_t *hrs,
+	filesize_t start, filesize_t end, const http_range_t *r)
+{
+	const http_range_t *rn;
+
+	http_rangeset_check(hrs);
+
+	if (NULL == r)
+		return http_rangeset_lookup_first(hrs, start, end);
+
+	rn = http_range_next(hrs, r);
+
+	if (NULL == rn)
+		return NULL;
+
+	if (rn->start > end)
+		return NULL;
+
+	return rn;
+}
+
+/**
  * Insert a new standalone HTTP range in the set, which does not overlap with
  * any previous or next range nor is adjacent to them.
  *
