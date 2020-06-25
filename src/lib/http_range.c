@@ -980,6 +980,11 @@ http_range_first(const http_rangeset_t *hrs)
 /**
  * Continue iteration over the list of HTTP ranges.
  *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
  * @param hrs		the HTTP range set
  * @param r			the previous HTTP range iterated over
  *
@@ -994,6 +999,7 @@ http_range_next(const http_rangeset_t *hrs, const http_range_t *r)
 
 	http_rangeset_check(hrs);
 
+	/* Ensure that the `r' they gave us is really our internal structure */
 	hitem = (const struct http_range_item *) r;
 	http_range_item_check(hitem);
 
