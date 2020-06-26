@@ -96,7 +96,6 @@
 #include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/hstrfn.h"
-#include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
@@ -188,24 +187,25 @@ upload_free_handle(gnet_upload_t n)
 }
 
 /**
- * This structure is the key used in the mesh_info hash table to record
+ * Record association between a SHA1 and a remote IP address.
+ *
+ * This structure is the key used in the mesh_info aging table to record
  * when we last sent mesh information to some IP about a given file
  * (identified by its SHA1).
+ *
+ * It is also meant to be used to register Retry-After time, for insertion in
+ * a ripening table (each item having a different expiration time, we cannot
+ * use an aging table in that case).
  */
-struct mesh_info_key {
+struct upload_tag_key {
 	host_addr_t addr;				/**< Remote host IP address */
 	const struct sha1 *sha1;		/**< SHA1 atom */
 };
 
-struct mesh_info_val {
-	uint32 stamp;					/**< When we last sent the mesh */
-	cevent_t *cq_ev;				/**< Scheduled cleanup callout event */
-};
+/* Keep mesh info about uploaders for that long (unit: s) */
+#define MESH_INFO_TIMEOUT	(PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)
 
-/* Keep mesh info about uploaders for that long (unit: ms) */
-#define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
-
-static htable_t *mesh_info;
+static aging_table_t *mesh_info;		/**< Tracks when we last sent mesh info */
 static aging_table_t *push_requests;	/**< Throttle push requests */
 static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 
@@ -306,13 +306,13 @@ upload_fire_upload_info_changed(struct upload *u)
  ***/
 
 /***
- *** Upload mesh info tracking.
+ *** Upload mesh information tracking.
  ***/
 
-static struct mesh_info_key *
-mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
+static struct upload_tag_key *
+upload_tag_key_make(const host_addr_t addr, const struct sha1 *sha1)
 {
-	struct mesh_info_key *mik;
+	struct upload_tag_key *mik;
 
 	WALLOC(mik);
 	mik->addr = addr;
@@ -322,97 +322,55 @@ mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
 }
 
 static void
-mi_key_free(struct mesh_info_key *mik)
+upload_tag_key_free(void *p)
 {
-	g_assert(mik);
+	struct upload_tag_key *mik = p;
+
+	g_assert(mik != NULL);
 
 	atom_sha1_free(mik->sha1);
 	WFREE(mik);
 }
 
-static uint
-mi_key_hash(const void *key)
+static void
+upload_tag_key_free2(void *p, void *unused)
 {
-	const struct mesh_info_key *mik = key;
+	struct upload_tag_key *mik = p;
+
+	(void) unused;
+
+	if (GNET_PROPERTY(upload_debug) > 4) {
+		g_debug("upload MESH info (%s/%s) discarded",
+			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
+	}
+
+	upload_tag_key_free(p);
+}
+
+static void
+upload_tag_key_free2_silent(void *p, void *unused)
+{
+	(void) unused;
+	upload_tag_key_free(p);
+}
+
+static uint
+upload_tag_key_hash(const void *key)
+{
+	const struct upload_tag_key *mik = key;
 
 	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
-static uint
-mi_key_hash2(const void *key)
-{
-	const struct mesh_info_key *mik = key;
-
-	return binary_hash2(mik->sha1, SHA1_RAW_SIZE) ^ host_addr_hash2(mik->addr);
-}
-
 static int
-mi_key_eq(const void *a, const void *b)
+upload_tag_key_eq(const void *a, const void *b)
 {
-	const struct mesh_info_key *mika = a, *mikb = b;
+	const struct upload_tag_key *mika = a, *mikb = b;
+
+	/* The SHA1 being an atom, we use == instead of sha1_eq() */
 
 	return host_addr_equiv(mika->addr, mikb->addr) &&
 		sha1_eq(mika->sha1, mikb->sha1);
-}
-
-static struct mesh_info_val *
-mi_val_make(uint32 stamp)
-{
-	struct mesh_info_val *miv;
-
-	WALLOC(miv);
-	miv->stamp = stamp;
-	miv->cq_ev = NULL;
-
-	return miv;
-}
-
-static void
-mi_val_free(struct mesh_info_val *miv)
-{
-	g_assert(miv);
-
-	cq_cancel(&miv->cq_ev);
-	WFREE(miv);
-}
-
-/**
- * Hash table iterator callback.
- */
-static void
-mi_free_kv(const void *key, void *value, void *unused_udata)
-{
-	(void) unused_udata;
-	mi_key_free(deconstify_pointer(key));
-	mi_val_free(value);
-}
-
-/**
- * Callout queue callback invoked to clear the entry.
- */
-static void
-mi_clean(cqueue_t *cq, void *obj)
-{
-	struct mesh_info_key *mik = obj;
-	struct mesh_info_val *miv;
-	const void *key;
-	void *value;
-	bool found;
-
-	found = htable_lookup_extended(mesh_info, mik, &key, &value);
-	miv = value;
-
-	g_assert(found);
-	g_assert(obj == key);
-	g_assert(miv->cq_ev);
-
-	if (GNET_PROPERTY(upload_debug) > 4)
-		g_debug("upload MESH info (%s/%s) discarded",
-			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
-
-	htable_remove(mesh_info, mik);
-	cq_zero(cq, &miv->cq_ev);
-	mi_free_kv(key, value, NULL);
 }
 
 /**
@@ -420,54 +378,38 @@ mi_clean(cqueue_t *cq, void *obj)
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static uint32
-mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
+static uint
+upload_mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 {
-	struct mesh_info_key mikey;
-	struct mesh_info_val *miv;
-	struct mesh_info_key *mik;
+	struct upload_tag_key mikey, *mik;
+	uint stamp;
 
 	mikey.addr = addr;
 	mikey.sha1 = sha1;
 
-	miv = htable_lookup(mesh_info, &mikey);
+	/* Update stamp if key already exists */
 
-	/*
-	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
-	 * Then return the timestamp.
-	 */
+	stamp = pointer_to_uint(
+		aging_replace_revitalise(mesh_info, &mikey, uint_to_pointer(now)));
 
-	if (miv) {
-		uint32 oldstamp;
-
-		g_assert(miv->cq_ev);
-		cq_resched(miv->cq_ev, MESH_INFO_TIMEOUT);
-
-		oldstamp = miv->stamp;
-		miv->stamp = (uint32) now;
-
-		if (GNET_PROPERTY(upload_debug) > 4)
+	if (stamp != 0) {
+		if (GNET_PROPERTY(upload_debug) > 4) {
 			g_debug("upload MESH info (%s/%s) has stamp=%u",
-				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
-
-		return oldstamp;
+				host_addr_to_string(addr), sha1_base32(sha1), stamp);
+		}
+		return stamp;		/* Previously sent stamp */
 	}
 
-	/*
-	 * Create new entry.
-	 */
+	/* Create new entry since key was missing */
 
-	mik = mi_key_make(addr, sha1);
-	miv = mi_val_make((uint32) now);
-	miv->cq_ev = cq_main_insert(MESH_INFO_TIMEOUT, mi_clean, mik);
-
-	htable_insert(mesh_info, mik, miv);
+	mik = upload_tag_key_make(addr, sha1);
+	aging_insert(mesh_info, mik, uint_to_pointer(now));
 
 	if (GNET_PROPERTY(upload_debug) > 4)
 		g_debug("new upload MESH info (%s/%s) stamp=%u",
 			host_addr_to_string(addr), sha1_base32(sha1), (uint32) now);
 
-	return 0;			/* Don't remember sending info about this file */
+	return 0;			/* Don't remember sending info about this file yet */
 }
 
 /**
@@ -2129,7 +2071,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	if (u->last_dmesh) {
 		last_sent = u->last_dmesh;
 	} else {
-		last_sent = mi_get_stamp(u->addr, sha1, tm_time());
+		last_sent = upload_mi_get_stamp(u->addr, sha1, tm_time());
 	}
 
 	/*
@@ -6931,7 +6873,9 @@ upload_init(void)
 	pat_http        = PATTERN_COMPILE_CONST(" HTTP/");
 	pat_applewebkit = PATTERN_COMPILE_CONST("AppleWebKit");
 
-	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
+	mesh_info = aging_make(MESH_INFO_TIMEOUT,
+						upload_tag_key_hash, upload_tag_key_eq,
+						upload_tag_key_free2);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
@@ -6988,9 +6932,7 @@ upload_close(void)
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
 
-	htable_foreach(mesh_info, mi_free_kv, NULL);
-	htable_free_null(&mesh_info);
-
+	aging_destroy(&mesh_info);
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&early_stalling_uploads);
 	aging_destroy(&browsing_reqs);
