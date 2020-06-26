@@ -105,6 +105,7 @@
 #include "lib/pow2.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
+#include "lib/ripening.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
@@ -214,6 +215,11 @@ static aging_table_t *stalling_uploads;
 static aging_table_t *early_stalling_uploads;
 
 static aging_table_t *browsing_reqs;	/**< Throttle browsing requests */
+
+/* Enfore Retry-After */
+static ripening_table_t *retry_after;	/**< Tracks known delays per IP + SHA1 */
+
+#define RETRY_AFTER_ENFORCE_MAX		3600	/* seconds */
 
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
@@ -1762,6 +1768,33 @@ upload_send_http_status(struct upload *u,
 }
 
 /**
+ * Record that we're sending a Retry-After for this resource (as identified
+ * by u->sf), and penalize the remote host if another request comes before.
+ */
+static void
+upload_enforce_retry_after(const struct upload *u, time_delta_t delay)
+{
+	const struct sha1 *sha1;
+	struct upload_tag_key *tk;
+
+	upload_check(u);
+	g_assert(u->sf != NULL);
+
+	delay -= 2;		/* Grace time for their computation errors, etc. */
+	if (delay <= 0)
+		return;
+
+	sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
+	if (NULL == sha1)
+		return;		/* Not possible to enforce without a SHA1 */
+
+	delay = MIN(RETRY_AFTER_ENFORCE_MAX, delay);
+
+	tk = upload_tag_key_make(u->addr, sha1);
+	ripening_insert_key(retry_after, delay, tk);
+}
+
+/**
  * This routine is called by http_send_status() to generate the
  * X-Host line (added to the HTTP status) into `buf'.
  */
@@ -2027,7 +2060,9 @@ upload_retry_after(char *buf, size_t size, void *arg, uint32 flags)
 	if (len >= size)
 		return 0;
 
+	upload_enforce_retry_after(u, after);
 	cstr_bcpy(buf, size, ra);		/* Will loudly warn if failing */
+
 	return len;
 }
 
@@ -4903,6 +4938,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		u->sha1 = atom_sha1_get(sha1);
 	}
 	atom_str_change(&u->name, shared_file_name_nfc(u->sf));
+
 	/* NULL unless partially shared file */
 	u->file_info = shared_file_fileinfo(u->sf);
 
@@ -4911,6 +4947,21 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	if (!u->head_only && upload_is_already_downloading(u)) {
 		upload_send_error(u, 409, N_("Already downloading this file"));
 		return FALSE;
+	}
+
+	/*
+	 * Enforcing Retry-After, not applicable of course to follow-up requests,
+	 * but applicable to HEAD requests!
+	 */
+
+	if (u->sha1 != NULL && !u->is_followup) {
+		struct upload_tag_key key;
+
+		key.addr = u->addr;
+		key.sha1 = u->sha1;
+
+		if (ripening_contains(retry_after, &key))
+			ban_penalty(BAN_CAT_HTTP, u->addr, "Not honouring Retry-After");
 	}
 
 	/*
@@ -5083,22 +5134,22 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
-			char retry_after[80];
+			char after[80];
 			time_delta_t delay = delta_time(expire, now);
 
 			if (delay <= 0)
 				delay = 60;		/* Let them retry in a minute, only */
 
+			upload_enforce_retry_after(u, delay);
 
-			str_bprintf(ARYLEN(retry_after),
-				"Retry-After: %u\r\n", (unsigned) delay);
+			str_bprintf(ARYLEN(after), "Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
 			 * Looks like upload got removed from PARQ queue. For now this
 			 * only happens when a client got banned. Bye bye!
 			 *		-- JA, 19/05/'03
 			 */
-			upload_error_remove_ext(u, retry_after, 403,
+			upload_error_remove_ext(u, after, 403,
 				N_("%s not honoured; removed from PARQ queue"),
 				u->was_actively_queued ?
 					N_("Minimum retry delay") :
@@ -6890,6 +6941,9 @@ upload_init(void)
 	push_conn_failed = aging_make(PUSH_BAN_FREQ,
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
+	retry_after = ripening_make(FALSE,
+		upload_tag_key_hash, upload_tag_key_eq, upload_tag_key_free2_silent);
+
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
 		GNET_PROPERTY_PTR(browse_host_enabled));
@@ -6938,6 +6992,7 @@ upload_close(void)
 	aging_destroy(&browsing_reqs);
 	aging_destroy(&push_requests);
 	aging_destroy(&push_conn_failed);
+	ripening_destroy(&retry_after);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
 	pattern_free_null(&pat_http);
