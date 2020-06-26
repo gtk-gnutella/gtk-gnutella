@@ -1595,8 +1595,7 @@ guess_defer(guess_t *gq, const gnet_host_t *host, time_t earliest)
 		delay = MIN(delay, GUESS_TIMEOUT_DELAY);	/* Set upper boundary */
 		delay = MAX(delay, 0);
 
-		ripening_insert(guess_deferred, delay,
-			atom_host_get(host), int_to_pointer(1));
+		ripening_insert_key(guess_deferred, delay, atom_host_get(host));
 
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
 			g_debug("GUESS deferring %s for next %s",
@@ -2382,8 +2381,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 			g_assert(delay > 0);
 
 			ripening_remove_using(guess_deferred, host, gnet_host_free_atom2);
-			ripening_insert(guess_deferred, delay,
-				atom_host_get(host), int_to_pointer(1));
+			ripening_insert_key(guess_deferred, delay, atom_host_get(host));
 
 			if (GNET_PROPERTY(guess_client_debug)) {
 				g_message("GUESS deferring %s again for next %s (adding %s)",
@@ -5900,8 +5898,8 @@ guess_init(void)
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	guess_old_muids =
 		aging_make(GUESS_MUID_LINGER, guid_hash, guid_eq, guid_free_atom2);
-	guess_deferred =
-		ripening_make(gnet_host_hash, gnet_host_equal, guess_host_available);
+	guess_deferred = ripening_make(FALSE,
+		gnet_host_hash, gnet_host_equal, guess_host_available);
 
 	guess_load_link_cache();
 	guess_check_link_cache();
