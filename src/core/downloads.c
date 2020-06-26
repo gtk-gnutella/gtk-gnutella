@@ -8666,11 +8666,12 @@ done:
 		aging_saw_another_revitalise(local_pushes, server->key, NULL);
 	} else if (GNET_PROPERTY(download_debug)) {
 		g_warning("failed to send %sPUSH (udp=%s, %s=%s) "
-			"for %s (index=%lu)",
+			"for %s (GUID: %s, index: %lu)",
 			download_is_g2(d) ? "G2 " : "",
 			bool_to_string(udp),
 			download_is_g2(d) ? "g2" : "gnet", bool_to_string(broadcast),
-			server_host_info(d->server), (ulong) d->record_index);
+			download_host_info(d), guid_to_string(download_guid(d)),
+			(ulong) d->record_index);
 	}
 
 	return success;
