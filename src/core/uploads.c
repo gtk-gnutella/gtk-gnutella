@@ -4471,6 +4471,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		if (count >= BROWSING_ABUSE) {
 			(void) aging_lookup_revitalise(browsing_reqs, &u->addr);
 			upload_remove(u, N_("Browsing abuse detected"));
+			ban_record(BAN_CAT_HTTP, u->addr, "Browsing abuse");
 		} else {
 			upload_remove(u, N_("Browsing throttled"));
 		}
