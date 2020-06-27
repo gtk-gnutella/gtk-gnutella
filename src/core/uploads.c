@@ -3034,6 +3034,19 @@ upload_error_remove_ext(struct upload *u, const char *ext, int code,
 }
 
 /**
+ * Signal that we cannot serve request because the library is being rebuilt.
+ */
+static void
+upload_error_library_rebuilt(struct upload *u)
+{
+	upload_check(u);
+
+	ban_legit(BAN_CAT_HTTP, u->addr);
+	/* Retry-able by user, hence 503 */
+	upload_error_remove(u, 503, N_("Library being rebuilt"));
+}
+
+/**
  * This is used for HTTP/1.1 persistent connections.
  *
  * Move the upload back to a waiting state, until a new HTTP request comes
@@ -3871,8 +3884,7 @@ not_found:
 	return -1;
 
 library_rebuilt:
-	/* Retry-able by user, hence 503 */
-	upload_error_remove(u, 503, N_("Library being rebuilt"));
+	upload_error_library_rebuilt(u);
 	return -1;
 }
 
@@ -3951,8 +3963,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == SHARE_REBUILDING) {
-		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
+		upload_error_library_rebuilt(u);
 		return -1;
 	}
 
@@ -4022,9 +4033,8 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 
 	sf = shared_file_by_sha1(&sha1);
 	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 503 */
 		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
+		upload_error_library_rebuilt(u);
 		return -1;
 	}
 	if (sf == NULL) {
