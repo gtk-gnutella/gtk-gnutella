@@ -499,10 +499,25 @@ ban_legit(const ban_category_t cat, const host_addr_t addr)
 	}
 
 	ipf = hevset_lookup(b->info, &addr);
-	if (NULL == ipf)
+
+	if (NULL == ipf) {
+		if (GNET_PROPERTY(ban_debug)) {
+			g_debug("BAN %s(%s) %s was not registered",
+				G_STRFUNC, ban_category_string(cat),
+				host_addr_to_string(addr));
+		}
 		return;
+	}
 
 	ipf->counter -= 1.0;
+
+	if (GNET_PROPERTY(ban_debug) > 4) {
+		g_debug("BAN %s(%s) %s, counter = %.3f (%s)",
+			G_STRFUNC, ban_category_string(b->cat),
+			host_addr_to_string(ipf->addr), ipf->counter,
+			(ipf->banned && ipf->counter <= (float) b->requests) ?
+				"lifting ban": "");
+	}
 
 	if (ipf->banned && ipf->counter <= (float) b->requests) {
 		cq_cancel(&ipf->cq_ev);
