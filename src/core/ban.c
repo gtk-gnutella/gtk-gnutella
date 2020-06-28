@@ -985,7 +985,7 @@ ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 }
 
 /**
- * @return banning delay for banned IP in the given category.
+ * @return remainng ban time (in seconds) for banned IP in the given category.
  */
 int
 ban_delay(const ban_category_t cat, const host_addr_t addr)
@@ -1004,7 +1004,13 @@ ban_delay(const ban_category_t cat, const host_addr_t addr)
 
 	addr_info_check(ipf);
 
-	return ipf->ban_delay;
+	if (!ipf->banned)
+		return 0;
+
+	/* When banned, cq_ev refers to the banning event, hence must not be NULL */
+	g_return_val_unless(ipf->cq_ev != NULL, 0);
+
+	return cq_remaining(ipf->cq_ev) / 1000;	/* Converts ms into s */
 }
 
 /**
