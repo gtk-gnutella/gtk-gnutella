@@ -12416,7 +12416,8 @@ http_version_nofix:
 					"%sHTTP %u %s", short_read, ack_code, ack_message);
 			}
 			return;
-		case 550:				/* Banned */
+		case 429:				/* Banned, since 2020-06-28 (RFC6585) */
+		case 550:				/* Banned, older code used before */
 			download_passively_queued(d, FALSE);
 			download_queue_hold(d,
 				delay ? delay : GNET_PROPERTY(download_retry_refused_delay),

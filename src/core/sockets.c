@@ -2057,9 +2057,11 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		}
 		ban_force(bcat, s);
 		goto cleanup;
-	case BAN_MSG:				/* Send specific 503 error message */
+	case BAN_MSG:				/* Send specific 429 error message */
 		{
 			const char *msg = ban_message(bcat, s->addr);
+
+			/* RFC6585 specifies 429 for "Too Many Requests" --RAM, 2020-06-28 */
 
             if (GNET_PROPERTY(socket_debug)) {
 				g_debug("%s(): rejecting connection from "
@@ -2069,13 +2071,13 @@ socket_read(void *data, int source, inputevt_cond_t cond)
             }
 
 			if (BAN_CAT_GNUTELLA == bcat) {
-				send_node_error(s, 503, "%s", msg);
+				send_node_error(s, 429, "%s", msg);
 			} else {
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
 					uint_to_pointer(ban_delay(bcat, s->addr)));
-				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
+				http_send_status(HTTP_UPLOAD, s, 429, FALSE, &hev, 1,
 					HTTP_ATOMIC_SEND,
 					"%s", msg);
 			}
@@ -2095,14 +2097,16 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 					NULL == msg ? "<no message>" : msg);
             }
 
+			/* RFC6585 specifies 429 for "Too Many Requests" --RAM, 2020-06-28 */
+
 			if (BAN_CAT_GNUTELLA == bcat)
-				send_node_error(s, 550, "Banned for %s", short_time_ascii(delay));
+				send_node_error(s, 429, "Banned for %s", short_time_ascii(delay));
 			else {
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
 					uint_to_pointer(delay));
-				http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
+				http_send_status(HTTP_UPLOAD, s, 429, FALSE, &hev, 1,
 					HTTP_ATOMIC_SEND,
 					"Banned for %s", short_time_ascii(delay));
 			}

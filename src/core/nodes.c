@@ -3633,9 +3633,12 @@ send_error(
 	/*
 	 * Do not send them any pong on 403 and 406 errors, even if GTKG.
 	 * When banning, the error code is 550 and does not warrant pongs either.
+	 *
+	 * Switched to 429 for banning instead of 550, as per RFC6585
+	 * 		--RAM, 2020-06-28
 	 */
 
-	if (code == 403 || code == 406 || code == 550)
+	if (code == 403 || code == 406 || code == 429 || code == 550)
 		pongs = 0;
 
 	/*

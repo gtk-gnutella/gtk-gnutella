@@ -4467,7 +4467,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	count = aging_saw_another(browsing_reqs, &u->addr, host_addr_wcopy);
 
 	if (count > 1) {
-		send_upload_error(u, 403, "Cannot Browse Too Often");
+		send_upload_error(u, 429, "Cannot Browse Too Often");
 		if (count >= BROWSING_ABUSE) {
 			(void) aging_lookup_revitalise(browsing_reqs, &u->addr);
 			upload_remove(u, N_("Browsing abuse detected"));
@@ -5160,7 +5160,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			 * only happens when a client got banned. Bye bye!
 			 *		-- JA, 19/05/'03
 			 */
-			upload_error_remove_ext(u, after, 403,
+			upload_error_remove_ext(u, after, 429,
 				N_("%s not honoured; removed from PARQ queue"),
 				u->was_actively_queued ?
 					N_("Minimum retry delay") :
