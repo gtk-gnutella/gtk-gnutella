@@ -1750,6 +1750,8 @@ upload_send_http_status(struct upload *u,
 	http_send_status_cb_t unsent, void *unsent_arg,
 	const char *msg)
 {
+	bool flushed;
+
 	upload_check(u);
 	g_assert(msg != NULL);
 
@@ -1763,8 +1765,14 @@ upload_send_http_status(struct upload *u,
 
 	u->http_status = code;
 
-	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
-				u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
+	flushed = http_send_status(HTTP_UPLOAD,
+		u->socket, code, keep_alive,
+		u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
+
+	if (flushed)
+		u->http_status_sent = TRUE;		/* For logging */
+
+	return flushed;
 }
 
 /**
@@ -4637,7 +4645,6 @@ static void
 upload_http_status_sent(struct upload *u)
 {
 	u->last_update = tm_time();
-	u->http_status_sent = TRUE;
 
 	/*
 	 * If we were sending an error back, with the connection kept alive
@@ -4822,6 +4829,7 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 
 	socket_evt_clear(s);
 	pmsg_free_null(&u->reply);
+	u->http_status_sent = TRUE;			/* For logging */
 
 	upload_http_status_sent(u);
 }
