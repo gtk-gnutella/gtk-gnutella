@@ -93,12 +93,12 @@
 #define MAX_GNET_REQUEST	2		/**< Maximum of 2 requests... */
 #define MAX_GNET_PERIOD		60		/**< ...per minute */
 #define MAX_GNET_BAN		3600	/**< 1 hour */
-#define BAN_GNET_REMIND		5		/**< Every so many attempts, remind them */
+#define BAN_GNET_REMIND		15		/**< Every so many attempts, remind them */
 
 #define MAX_HTTP_REQUEST	5		/**< Maximum of 5 requests... */
 #define MAX_HTTP_PERIOD		60		/**< ...per minute */
 #define MAX_HTTP_BAN		10800	/**< 3 hours */
-#define BAN_HTTP_REMIND		5		/**< Every so many attempts, remind them */
+#define BAN_HTTP_REMIND		15		/**< Every so many attempts, remind them */
 
 #define MAX_OOB_REQUEST		25		/**< Maximum of 25 unanswered claims... */
 #define MAX_OOB_PERIOD		60		/**< ...per minute */
@@ -365,6 +365,7 @@ ipf_record_ban(struct ban_addr_info *ipf)
 			short_time_ascii(ipf->ban_delay));
 	}
 
+	ipf->ban_count = 0;
 	ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
 }
 
