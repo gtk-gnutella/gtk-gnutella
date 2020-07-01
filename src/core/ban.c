@@ -142,13 +142,13 @@ static struct ban *ban_object[BAN_CAT_COUNT];
 
 static cqueue_t *ban_cq;		/**< Private callout queue */
 
-enum addr_info_magic { ADDR_INFO_MAGIC = 0x2546b3bb };
+enum ban_addr_info_magic { BAN_ADDR_INFO_MAGIC = 0x2546b3bb };
 
 /**
  * Information kept in the info table, per IP address.
  */
-struct addr_info {
-	enum addr_info_magic magic;	/**< Magic number */
+struct ban_addr_info {
+	enum ban_addr_info_magic magic;	/**< Magic number */
 	host_addr_t addr;			/**< IP address -- the embedded key */
 	const char *ban_msg;		/**< Banning message (atom) */
 	cevent_t *cq_ev;			/**< Scheduled callout event */
@@ -161,10 +161,10 @@ struct addr_info {
 };
 
 static inline void
-addr_info_check(const struct addr_info * const ipf)
+ban_addr_info_check(const struct ban_addr_info * const ipf)
 {
 	g_assert(ipf != NULL);
-	g_assert(ADDR_INFO_MAGIC == ipf->magic);
+	g_assert(BAN_ADDR_INFO_MAGIC == ipf->magic);
 }
 
 static void ipf_destroy(cqueue_t *cq, void *obj);
@@ -213,7 +213,7 @@ ban_make(const ban_category_t cat,
 	b->period = period;
 	b->bantime = bantime;
 	b->remind = remind;
-	b->info = hevset_create_any(offsetof(struct addr_info, addr),
+	b->info = hevset_create_any(offsetof(struct ban_addr_info, addr),
 		host_addr_hash_func, host_addr_hash_func2, host_addr_eq_func);
 
 	/*
@@ -227,18 +227,18 @@ ban_make(const ban_category_t cat,
 }
 
 /**
- * Create new addr_info structure for said IP.
+ * Create new ban_addr_info structure for said IP.
  */
-static struct addr_info *
+static struct ban_addr_info *
 ipf_make(const host_addr_t addr, time_t now, const struct ban *owner)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 
 	ban_check(owner);
 
 	WALLOC0(ipf);
 
-	ipf->magic = ADDR_INFO_MAGIC;
+	ipf->magic = BAN_ADDR_INFO_MAGIC;
 	ipf->counter = 1.0;
 	ipf->addr = addr;
 	ipf->created = now;
@@ -268,12 +268,12 @@ ipf_make(const host_addr_t addr, time_t now, const struct ban *owner)
 }
 
 /**
- * Free addr_info structure.
+ * Free ban_addr_info structure.
  */
 static void
-ipf_free(struct addr_info *ipf)
+ipf_free(struct ban_addr_info *ipf)
 {
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 
 	cq_cancel(&ipf->cq_ev);
 	atom_str_free_null(&ipf->ban_msg);
@@ -308,9 +308,9 @@ ban_free(struct ban *b)
 static void
 ipf_destroy(cqueue_t *cq, void *obj)
 {
-	struct addr_info *ipf = obj;
+	struct ban_addr_info *ipf = obj;
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 	g_assert(!ipf->banned);
 
 	if (GNET_PROPERTY(ban_debug) > 8)
@@ -329,13 +329,13 @@ ipf_destroy(cqueue_t *cq, void *obj)
  * @return TRUE if we freed the entry.
  */
 static bool
-ipf_lift_ban(struct addr_info *ipf)
+ipf_lift_ban(struct ban_addr_info *ipf)
 {
 	time_t now = tm_time();
 	int delay;
 	float decay_coeff;
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 	g_assert(ipf->banned);
 	ban_check(ipf->owner);
 
@@ -391,9 +391,9 @@ ipf_lift_ban(struct addr_info *ipf)
 static void
 ipf_unban(cqueue_t *cq, void *obj)
 {
-	struct addr_info *ipf = obj;
+	struct ban_addr_info *ipf = obj;
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 	g_assert(ipf->banned);
 
 	cq_zero(cq, &ipf->cq_ev);
@@ -407,11 +407,11 @@ ipf_unban(cqueue_t *cq, void *obj)
  * @param msg	if not NULL, records the reason for the ban
  */
 static void
-ipf_start_ban(struct addr_info *ipf, const char *msg)
+ipf_start_ban(struct ban_addr_info *ipf, const char *msg)
 {
 	const struct ban *b;
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 	g_assert(!ipf->banned);
 
 	b = ipf->owner;
@@ -447,15 +447,15 @@ ipf_start_ban(struct addr_info *ipf, const char *msg)
  *
  * @return existing or new address info object.
  */
-static struct addr_info *
+static struct ban_addr_info *
 ipf_get(const struct ban *b, const host_addr_t addr, bool *created)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 
 	ban_check(b);
 
 	/*
-	 * It is possible that we already have an addr_info for that host.
+	 * It is possible that we already have an ban_addr_info for that host.
 	 */
 
 	ipf = hevset_lookup(b->info, &addr);
@@ -468,7 +468,7 @@ ipf_get(const struct ban *b, const host_addr_t addr, bool *created)
 		if (created != NULL) *created = FALSE;
 	}
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 	return ipf;
 }
 
@@ -482,7 +482,7 @@ ipf_get(const struct ban *b, const host_addr_t addr, bool *created)
 void
 ban_legit(const ban_category_t cat, const host_addr_t addr)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 	struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
@@ -538,7 +538,7 @@ ban_legit(const ban_category_t cat, const host_addr_t addr)
 ban_type_t
 ban_allow(const ban_category_t cat, const host_addr_t addr)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 	time_t now = tm_time();
 	struct ban *b;
 	bool created;
@@ -652,7 +652,7 @@ ban_allow(const ban_category_t cat, const host_addr_t addr)
 void
 ban_penalty(ban_category_t cat, const host_addr_t addr, const char *msg)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 	struct ban *b;
 	bool created;
 
@@ -690,7 +690,7 @@ ban_penalty(ban_category_t cat, const host_addr_t addr, const char *msg)
 void
 ban_record(ban_category_t cat, const host_addr_t addr, const char *msg)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 	struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
@@ -970,7 +970,7 @@ ban_force(const ban_category_t cat, struct gnutella_socket *s)
 bool
 ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 {
-	struct addr_info *ipf;
+	struct ban_addr_info *ipf;
 	struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
@@ -979,7 +979,7 @@ ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 	ban_check(b);
 
 	ipf = hevset_lookup(b->info, &addr);
-	g_assert(NULL == ipf || ADDR_INFO_MAGIC == ipf->magic);
+	g_assert(NULL == ipf || BAN_ADDR_INFO_MAGIC == ipf->magic);
 
 	return ipf != NULL && ipf->banned;
 }
@@ -990,7 +990,7 @@ ban_is_banned(const ban_category_t cat, const host_addr_t addr)
 int
 ban_delay(const ban_category_t cat, const host_addr_t addr)
 {
-	const struct addr_info *ipf;
+	const struct ban_addr_info *ipf;
 	const struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
@@ -1002,7 +1002,7 @@ ban_delay(const ban_category_t cat, const host_addr_t addr)
 	if (NULL == ipf)
 		return 0;
 
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 
 	if (!ipf->banned)
 		return 0;
@@ -1025,7 +1025,7 @@ ban_delay(const ban_category_t cat, const host_addr_t addr)
 const char *
 ban_message(ban_category_t cat, const host_addr_t addr)
 {
-	const struct addr_info *ipf;
+	const struct ban_addr_info *ipf;
 	const struct ban *b;
 
 	g_assert(uint_is_non_negative(cat) && cat < BAN_CAT_COUNT);
@@ -1034,7 +1034,7 @@ ban_message(ban_category_t cat, const host_addr_t addr)
 	ban_check(b);
 
 	ipf = hevset_lookup(b->info, &addr);
-	addr_info_check(ipf);
+	ban_addr_info_check(ipf);
 
 	return ipf->ban_msg;
 }
