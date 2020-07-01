@@ -155,7 +155,7 @@ struct ban_addr_info {
 	const struct ban *owner;	/**< Owning ban object */
 	time_t updated;				/**< When did last connection occur? */
 	unsigned ban_delay;			/**< Banning delay, in seconds */
-	int ban_count;				/**< Amount of time we banned this source */
+	unsigned ban_count;			/**< Amount of time we banned this source */
 	float counter;				/**< Counts connection, decayed linearily */
 	unsigned banned:1;			/**< Is this IP currently banned? */
 };
@@ -242,11 +242,7 @@ ipf_make(const host_addr_t addr, time_t now, const struct ban *owner)
 	ipf->counter = 1.0;
 	ipf->addr = addr;
 	ipf->updated = now;
-	ipf->ban_delay = 0;
-	ipf->ban_count = 0;
-	ipf->ban_msg = NULL;
 	ipf->owner = owner;
-	ipf->banned = FALSE;
 
 	/*
 	 * Schedule collecting of record.
@@ -323,6 +319,55 @@ ipf_destroy(cqueue_t *cq, void *obj)
 	ipf_free(ipf);
 }
 
+static bool ipf_lift_ban(struct ban_addr_info *ipf);
+
+/**
+ * Called from callout queue when it's time to unban the IP.
+ */
+static void
+ipf_unban(cqueue_t *cq, void *obj)
+{
+	struct ban_addr_info *ipf = obj;
+
+	ban_addr_info_check(ipf);
+	g_assert(ipf->banned);
+
+	cq_zero(cq, &ipf->cq_ev);
+	ipf_lift_ban(ipf);
+}
+
+/**
+ * Record new banning timer for banned IP.
+ */
+static void
+ipf_record_ban(struct ban_addr_info *ipf)
+{
+	const struct ban *b;
+
+	ban_addr_info_check(ipf);
+	g_assert(ipf->banned);
+
+	b = ipf->owner;
+	ban_check(b);
+
+	if (ipf->ban_delay)
+		ipf->ban_delay *= 2;
+	else
+		ipf->ban_delay = b->delay;
+
+	if (ipf->ban_delay > b->bantime)
+		ipf->ban_delay = b->bantime;
+
+	if (GNET_PROPERTY(ban_debug) > 2) {
+		g_debug("BAN %s(%s) recording %s (%s), counter = %.3f, delay = %s",
+			G_STRFUNC, ban_category_string(b->cat),
+			host_addr_to_string(ipf->addr), ban_reason(ipf), ipf->counter,
+			short_time_ascii(ipf->ban_delay));
+	}
+
+	ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
+}
+
 /**
  * Lift ban for given entry.
  *
@@ -349,6 +394,11 @@ ipf_lift_ban(struct ban_addr_info *ipf)
 	ipf->counter -= delta_time(now, ipf->updated) * decay_coeff;
 	ipf->updated = now;
 
+	if (ipf->counter > (float) ipf->owner->requests) {
+		ipf_record_ban(ipf);
+		return FALSE;
+	}
+
 	if (GNET_PROPERTY(ban_debug) > 2) {
 		g_debug("BAN %s(%s) lifting for %s (%s), counter = %.3f",
 			G_STRFUNC, ban_category_string(ipf->owner->cat),
@@ -356,18 +406,12 @@ ipf_lift_ban(struct ban_addr_info *ipf)
 	}
 
 	/**
-	 * Compute new scheduling delay.
-	 */
-
-	delay = 1000.0 * ipf->counter / decay_coeff;
-
-	/**
 	 * If counter is negative or null, we can remove the entry.
 	 * Since we round to an integer, we must consider `delay' and
 	 * not the original counter.
 	 */
 
-	if (delay <= 0) {
+	if (ipf->counter <= 0.0) {
 		if (GNET_PROPERTY(ban_debug) > 8) {
 			g_debug("BAN %s(%s) disposing of %s: %s",
 				G_STRFUNC, ban_category_string(ipf->owner->cat),
@@ -378,26 +422,13 @@ ipf_lift_ban(struct ban_addr_info *ipf)
 		return TRUE;
 	}
 
+	delay = 1000.0 * ipf->counter / decay_coeff;
+
 	ipf->banned = FALSE;
 	atom_str_free_null(&ipf->ban_msg);
 	ipf->cq_ev = cq_insert(ban_cq, delay, ipf_destroy, ipf);
 
 	return FALSE;
-}
-
-/**
- * Called from callout queue when it's time to unban the IP.
- */
-static void
-ipf_unban(cqueue_t *cq, void *obj)
-{
-	struct ban_addr_info *ipf = obj;
-
-	ban_addr_info_check(ipf);
-	g_assert(ipf->banned);
-
-	cq_zero(cq, &ipf->cq_ev);
-	ipf_lift_ban(ipf);
 }
 
 /**
@@ -424,15 +455,7 @@ ipf_start_ban(struct ban_addr_info *ipf, const char *msg)
 	if (msg != NULL)
 		atom_str_change(&ipf->ban_msg, msg);
 
-	if (ipf->ban_delay)
-		ipf->ban_delay *= 2;
-	else
-		ipf->ban_delay = b->delay;
-
-	if (ipf->ban_delay > b->bantime)
-		ipf->ban_delay = b->bantime;
-
-	ipf->cq_ev = cq_insert(ban_cq, 1000 * ipf->ban_delay, ipf_unban, ipf);
+	ipf_record_ban(ipf);
 }
 
 /**
