@@ -1423,7 +1423,7 @@ compact_time(time_delta_t t)
 const char *
 compact_time2(time_delta_t t)
 {
-	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	buf_t *b = buf_private(G_STRFUNC, COMPACT_TIME_MAX_LEN);
 	char *p = buf_data(b);
 	size_t n, sz = buf_size(b);
 
