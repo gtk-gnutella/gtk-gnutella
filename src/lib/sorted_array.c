@@ -37,6 +37,7 @@
 
 #include "bsearch.h"
 #include "halloc.h"
+#include "log.h"
 #include "misc.h"
 #include "vsort.h"
 #include "walloc.h"
@@ -53,6 +54,7 @@ struct sorted_array {
 	size_t added;		/**< Number of items added */
 	size_t isize;		/**< The size of an array item (in bytes) */
 	int (*cmp)(const void *a, const void *b); /**< Defines the order */
+	uint unsorted:1;	/**< Whether array is unsorted */
 };
 
 static inline void
@@ -135,6 +137,21 @@ sorted_array_lookup(struct sorted_array *tab, const void *key)
 {
 	sorted_array_check(tab);
 
+	/*
+	 * If they forgot to call sorted_array_sync() after a bunch of additions,
+	 * loudly warn them before doing the sorting now.  However, we cannot supply
+	 * a collision-handling routine at this stage so any duplicate or overlapping
+	 * ranges present will remain.  The aim is to detect mistakes without causing
+	 * an assertion failure.
+	 * 		--RAM, 2020-07-03
+	 */
+
+	if G_UNLIKELY(tab->unsorted) {
+		s_carp("%s(): sorting array since sorted_array_sync() was not called!",
+			G_STRFUNC);
+		sorted_array_sync(tab, NULL);
+	}
+
 	return bsearch(key, tab->items, tab->count, tab->isize, tab->cmp);
 }
 
@@ -160,6 +177,7 @@ sorted_array_add(struct sorted_array *tab, const void *item)
 	dst = sorted_array_item_intern(tab, tab->added);
 	memmove(dst, item, tab->isize);
 	tab->added++;
+	tab->unsorted = TRUE;	/* Probably, if appended item is not new maximum! */
 }
 
 /**
@@ -226,6 +244,8 @@ sorted_array_sync(struct sorted_array *tab,
 		tab->capacity = tab->count;
 		tab->items = hrealloc(tab->items, tab->capacity * tab->isize);
 	}
+
+	tab->unsorted = FALSE;
 }
 
 /**
