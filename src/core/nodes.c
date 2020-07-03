@@ -200,6 +200,7 @@
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
 #define NODE_CONN_FAILED_FREQ	900		/**< once every 15 minutes */
+#define NODE_CONN_ATTEMPT_FREQ	300		/**< once every 5 minutes */
 
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
 #define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
@@ -270,6 +271,7 @@ static aging_table_t *tcp_crawls;
 static aging_table_t *udp_crawls;
 
 static aging_table_t *node_connect_failures;
+static aging_table_t *node_connect_attempts;
 
 typedef struct node_bad_client {
 	const char *vendor;
@@ -920,6 +922,7 @@ node_record_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
+	aging_remove(node_connect_attempts, &host);
 	aging_record(node_connect_failures, atom_host_get(&host));
 }
 
@@ -933,10 +936,33 @@ node_had_recent_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
-
 	return NULL != aging_lookup(node_connect_failures, &host);
 }
 
+/**
+ * Register connection attempt to given IP:port.
+ */
+static void
+node_record_connect_attempt(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	aging_record(node_connect_attempts, atom_host_get(&host));
+}
+
+/**
+ * Check whether IP:port is that of a host to which we recently attempted
+ * to connect.
+ */
+static bool
+node_had_recent_connect_attempt(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	return NULL != aging_lookup(node_connect_attempts, &host);
+}
 /**
  * Low frequency node timer.
  */
@@ -1802,6 +1828,17 @@ node_init(void)
 	 */
 
 	node_connect_failures = aging_make(NODE_CONN_FAILED_FREQ,
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
+
+	/*
+	 * Avoid too frequent connections to a given IP:port.
+	 *
+	 * We are starting to ban hosts that connect to us too frequently, we
+	 * therefore need to be examplary and abide by our rules.
+	 * 		--RAM, 2020-07-03
+	 */
+
+	node_connect_attempts = aging_make(NODE_CONN_ATTEMPT_FREQ,
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	/*
@@ -8599,8 +8636,12 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	already_connected = node_is_connected(addr, port, incoming);
 
-	if (!incoming && already_connected)
-		return;
+	if (!incoming) {
+		if (already_connected)
+			return;
+		/* Remember connection attempt to avoid hammering */
+		node_record_connect_attempt(addr, port);
+	}
 
 	/*
 	 * Too many GnutellaNet connections?
@@ -8807,7 +8848,8 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 		(
 			hostiles_is_bad(addr) ||
 			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port)
+			node_had_recent_connect_failure(addr, port) ||
+			node_had_recent_connect_attempt(addr, port)
 		)
 	)
 		return;
@@ -8829,7 +8871,8 @@ node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 		(
 			hostiles_is_bad(addr) ||
 			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port)
+			node_had_recent_connect_failure(addr, port) ||
+			node_had_recent_connect_attempt(addr, port)
 		)
 	)
 		return;
@@ -11809,6 +11852,7 @@ node_close(void)
 	aging_destroy(&tcp_crawls);
 	aging_destroy(&udp_crawls);
 	aging_destroy(&node_connect_failures);
+	aging_destroy(&node_connect_attempts);
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 	node_udp_scheduler_destroy_all();
