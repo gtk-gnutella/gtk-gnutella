@@ -2966,7 +2966,9 @@ pattern_benchmark_n_times(
 		case PATTERN_BENCH_MEMCHR:
 		case PATTERN_BENCH_STRCHR:
 		case PATTERN_BENCH_STRLEN:
-			s_info("will use %s()", ctx->name[i]);
+			g_assert(i <= 1);
+			s_info("will use %s() over %s()",
+				ctx->name[i], ctx->name[1 - i]);
 			/* FALL THROUGH */
 		default:
 			break;
@@ -3156,7 +3158,9 @@ pattern_benchmark_dflt(int verbose, struct pattern_benchmark_context *ctx)
 		winner = 1;
 
 	if (verbose & PATTERN_INIT_SELECTED) {
-		s_info("will use %s()", ctx->name[winner]);
+		g_assert(winner <= 1);
+		s_info("will use %s() over %s()",
+			ctx->name[winner], ctx->name[1 - winner]);
 	}
 
 	pattern_dflt_unknown = ctx->u.pu[winner];
@@ -3299,10 +3303,15 @@ retry:
 		if (verbose & PATTERN_INIT_SELECTED) {
 			s_info("%s() cut-over is for needles >= %zu byte%s",
 				ctx->name[1], PLURAL(cutoff));
+			if (cutoff > 1) {
+				s_info("...hence %s() will be used for shorter needles",
+					ctx->name[0]);
+			}
 		}
 	} else {
 		if (verbose & PATTERN_INIT_SELECTED) {
 			s_info("no cut-over found in favor of %s()", ctx->name[1]);
+			s_info("...hence we shall always use %s()", ctx->name[0]);
 		}
 	}
 
