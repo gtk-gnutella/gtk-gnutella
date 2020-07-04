@@ -12554,8 +12554,9 @@ node_infostr_to_buf(const gnutella_node_t *n, char *dst, size_t size)
 				(NODE_TALKS_G2(n) ? "(G2) " : "(semi-reliable) ") : "",
 			node_addr(n));
 	} else {
-		return str_bprintf(dst, size, "%s node %s <%s>",
-			node_type(n), node_gnet_addr(n), node_vendor(n));
+		return str_bprintf(dst, size, "%s node %s%s <%s>",
+			node_type(n), (n->flags & NODE_F_ALIEN_IP) ? "~" : "",
+			node_gnet_addr(n), node_vendor(n));
 	}
 }
 

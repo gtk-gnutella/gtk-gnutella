@@ -2656,6 +2656,26 @@ pcache_udp_pong_received(gnutella_node_t *n)
 }
 
 /**
+ * Signals that host sends us alien IP informaion via pongs and therefore it
+ * is most probably firewalled.
+ */
+static void
+pcache_alien_ip(gnutella_node_t *n, host_addr_t addr, uint16 port)
+{
+	node_check(n);
+
+	if (0 != (n->flags & NODE_F_ALIEN_IP))
+		return;		/* Already flagged as such */
+
+	if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(node_debug)) {
+		g_warning("%s(): %s sent us a pong for itself with alien IP %s",
+			G_STRFUNC, node_infostr(n), host_addr_port_to_string(addr, port));
+	}
+
+	n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
+}
+
+/**
  * Called when a pong is received from a node.
  *
  * Here needs brief description for the following list:
@@ -2679,6 +2699,8 @@ pcache_pong_received(gnutella_node_t *n)
 	host_type_t ptype;
 	host_addr_t addr;
 	pong_meta_t *meta;
+
+	node_check(n);
 
 	n->n_pong_received++;
 
@@ -2764,15 +2786,27 @@ pcache_pong_received(gnutella_node_t *n)
 		 * may help us fill this gap.
 		 */
 
-		if (!is_host_addr(n->gnet_addr) && (n->flags & NODE_F_INCOMING)) {
-			if (host_addr_equiv(addr, n->addr)) {
-				n->gnet_addr = addr;	/* Signals: we have figured it out */
-				n->gnet_port = port;
-			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
-				if (GNET_PROPERTY(pcache_debug)) g_warning(
-					"%s sent us a pong for itself with alien IP %s",
-					node_infostr(n), host_addr_to_string(addr));
-				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
+		if (0 != (n->flags & NODE_F_INCOMING)) {
+			if (!is_host_addr(n->gnet_addr)) {
+				/* Neither gnet_addr nor gnet_port known */
+				if (host_addr_equiv(addr, n->addr)) {
+					n->gnet_addr = addr;	/* Signals: we have figured it out */
+					n->gnet_port = port;
+				} else {
+					pcache_alien_ip(n, addr, port);
+				}
+			} else {
+				/* gnet_addr was already known, check address and port */
+				if (host_addr_equiv(addr, n->gnet_addr)) {
+					if (GTA_PORT == n->gnet_port || 0 == n->gnet_port) {
+						/* GTA_PORT is a default value we set initially */
+						n->gnet_port = port;
+					} else if (n->gnet_port != port) {
+						pcache_alien_ip(n, addr, port);
+					}
+				} else {
+					pcache_alien_ip(n, addr, port);
+				}
 			}
 		}
 
