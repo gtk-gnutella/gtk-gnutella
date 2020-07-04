@@ -1382,8 +1382,8 @@ found:
 	*port = last_port = cp->info.port;
 
 	if (GNET_PROPERTY(pcache_debug) > 8)
-		g_debug("returning recent %s PONG %s",
-			host_type_to_string(type),
+		g_debug("%s(): returning recent %s PONG %s",
+			G_STRFUNC, host_type_to_string(type),
 			host_addr_port_to_string(cp->info.addr, cp->info.port));
 
 	return TRUE;
@@ -1531,8 +1531,8 @@ pcache_expire(void)
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
-		g_debug("Pong CACHE expired (%d entr%s, %d in reserve)",
-			entries, plural_y(entries), hcache_size(HOST_ANY));
+		g_debug("%s(): Pong CACHE expired (%d entr%s, %d in reserve)",
+			G_STRFUNC, entries, plural_y(entries), hcache_size(HOST_ANY));
 }
 
 /**
@@ -1573,7 +1573,7 @@ ping_all_neighbours(void)
 	time_t now = tm_time();
 
 	if (GNET_PROPERTY(pcache_debug))
-		g_debug("PCACHE attempting to ping all neighbours");
+		g_debug("%s(): PCACHE attempting to ping all neighbours", G_STRFUNC);
 
 	/*
 	 * Because nowadays the network has a higher outdegree for ultrapeers,
@@ -1627,8 +1627,8 @@ ping_all_neighbours(void)
 			n->next_ping = time_advance(now, OLD_PING_PERIOD);
 
 		if (GNET_PROPERTY(pcache_debug) > 1)
-			g_debug("PCACHE pinging \"%s\" %s",
-				(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
+			g_debug("%s(): PCACHE pinging \"%s\" %s",
+				G_STRFUNC, (n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
 				host_addr_port_to_string(n->addr, n->port));
 
 		send_ping(n, GNET_PROPERTY(my_ttl));
@@ -1714,8 +1714,10 @@ setup_pong_demultiplexing(gnutella_node_t *n, uint8 ttl)
 		uchar amount = (uchar) (remains / (MAX_CACHE_HOPS + 1 - h));
 		n->pong_needed[h] = amount;
 		remains -= amount;
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_needed[%d] = %d, remains = %d", h, amount, remains);
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug("%s(): pong_needed[%d] = %d, remains = %d",
+				G_STRFUNC, h, amount, remains);
+		}
 	}
 
 	g_assert(remains == 0);
@@ -1967,11 +1969,12 @@ pong_all_neighbours_but_one(
 		send_pong(cn, FALSE, PING_F_NONE,
 			hops + 1, ttl, &cn->ping_guid, &cp->info, cp->meta);
 
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
-				"missing=%d",
-				host_addr_port_to_string(cp->info.addr, cp->info.port),
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug(
+				"%s(): sent cached pong %s (hops=%d, TTL=%d) to %s missing=%d",
+				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl, node_addr(cn), cn->pong_missing);
+		}
 	}
 }
 
@@ -2025,10 +2028,11 @@ pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 		send_pong(leaf, FALSE, PING_F_NONE, hops + 1, ttl, &leaf->ping_guid,
 			&cp->info, cp->meta);
 
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s",
-				host_addr_port_to_string(cp->info.addr, cp->info.port),
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug("%s(): sent pong %s (hops=%d, TTL=%d) to %s",
+				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl, node_addr(leaf));
+		}
 	}
 }
 
@@ -2253,8 +2257,10 @@ pcache_udp_ping_received(gnutella_node_t *n)
 		guid_eq(GNET_PROPERTY(servent_guid),
 			gnutella_header_get_muid(&n->header))
 	) {
-		if (GNET_PROPERTY(udp_debug) > 19)
-			g_debug("UDP got unsolicited PING matching our GUID!");
+		if (GNET_PROPERTY(udp_debug) > 19) {
+			g_debug("%s(): UDP got unsolicited PING matching our GUID from %s!",
+				G_STRFUNC, node_infostr(n));
+		}
 		inet_udp_got_unsolicited_incoming();
 		return;
 	}
@@ -2311,8 +2317,8 @@ pcache_udp_ping_received(gnutella_node_t *n)
 	}
 
 	if (is_uhc && GNET_PROPERTY(log_uhc_pings_rx)) {
-		g_debug("UDP UHC got %s from %s%s",
-			gmsg_infostr_full_split(n->header, n->data, n->size),
+		g_debug("%s(): UDP UHC got %s from %s%s",
+			G_STRFUNC, gmsg_infostr_full_split(n->header, n->data, n->size),
 			node_infostr(n), throttled ? " (throttled)" : "");
 	}
 }
@@ -2751,16 +2757,16 @@ pcache_pong_received(gnutella_node_t *n)
 
 		if (swapped_count > PCACHE_MAX_FILES) {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
-				g_warning("%s sent us a pong with "
+				g_warning("%s(): %s sent us a pong with "
 					"large file count %u (0x%x), dropped",
-					node_infostr(n), files_count, files_count);
+					G_STRFUNC, node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
 			goto done;
 		} else {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
-				g_warning("%s sent us a pong with suspect file count %u "
+				g_warning("%s(): %s sent us a pong with suspect file count %u "
 					"(fixed to %u)",
-					node_infostr(n), files_count, swapped_count);
+					G_STRFUNC, node_infostr(n), files_count, swapped_count);
 			files_count = swapped_count;
 			fixed = TRUE;
 		}
@@ -2836,8 +2842,9 @@ pcache_pong_received(gnutella_node_t *n)
 			!host_addr_equiv(addr, n->gnet_pong_addr)
 		) {
 			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) {
-				g_warning("%s sent us a pong for new IP %s (used %s before)",
-					node_infostr(n),
+				g_warning(
+					"%s(): %s sent us a pong for new IP %s (used %s before)",
+					G_STRFUNC, node_infostr(n),
 					host_addr_port_to_string(addr, port),
 					host_addr_to_string(n->gnet_pong_addr));
 			}
@@ -2895,8 +2902,8 @@ pcache_pong_received(gnutella_node_t *n)
 		unsigned ratio = random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (GNET_PROPERTY(pcache_debug) > 7)
-				g_debug("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s",
-					host_addr_port_to_string(addr, port),
+				g_debug("%s(): NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s",
+					G_STRFUNC, host_addr_port_to_string(addr, port),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					node_addr(n));
@@ -2932,8 +2939,8 @@ pcache_pong_received(gnutella_node_t *n)
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 6)
-		g_debug("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",
-			ptype == HOST_ULTRA ? "ultra" : "normal",
+		g_debug("%s(): CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",
+			G_STRFUNC, ptype == HOST_ULTRA ? "ultra" : "normal",
 			host_addr_port_to_string(addr, port),
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),
