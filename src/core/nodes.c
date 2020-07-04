@@ -261,9 +261,6 @@ static htable_t *ht_connected_nodes   = NULL;
 static uint32 total_nodes_connected;
 static uint32 total_g2_nodes_connected;
 
-static void *no_metadata;
-#define NO_METADATA		(no_metadata)	/**< No metadata for host */
-
 static htable_t *unstable_servent = NULL;
 static pslist_t *unstable_servents = NULL;
 
@@ -576,28 +573,28 @@ node_tsync_tcp(gnutella_node_t *n)
 static bool
 node_ht_connected_nodes_has(const host_addr_t addr, uint16 port)
 {
-	gnet_host_t  host;
+	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
 	return NULL != htable_lookup(ht_connected_nodes, &host);
 }
 
 /**
- * Check whether we already have the host.
+ * Check whether we already have the node.
  *
- * @return the original host structure at this IP:port, or NULL if unknown.
+ * @return the original node structure for the IP:port, NULL if none found.
  */
-static gnet_host_t *
-node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
+static const gnutella_node_t *
+node_ht_connected_nodes_find(const gnutella_node_t *n)
 {
 	gnet_host_t host;
     bool found;
-    const void *orig_host;
+    void *orig_n;
 
-	gnet_host_set(&host, addr, port);
-	found = htable_lookup_extended(ht_connected_nodes, &host, &orig_host, NULL);
+	gnet_host_set(&host, n->addr, n->gnet_port);
+	found = htable_lookup_extended(ht_connected_nodes, &host, NULL, &orig_n);
 
-    return found ? deconstify_pointer(orig_host) : NULL;
+    return found ? orig_n : NULL;
 }
 
 /**
@@ -606,8 +603,11 @@ node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
 static void
 node_ht_connected_nodes_add(const gnutella_node_t *n)
 {
-	const host_addr_t addr = n->gnet_addr;
+	const host_addr_t addr = n->addr;
 	const uint16 port = n->gnet_port;
+
+	if (GNET_PROPERTY(node_debug) > 1)
+		g_debug("%s(): %s", G_STRFUNC, host_addr_port_to_string(addr, port));
 
 	/* This is done unconditionally, whether we add host to table or not */
 	if (NODE_TALKS_G2(n)) {
@@ -619,22 +619,34 @@ node_ht_connected_nodes_add(const gnutella_node_t *n)
 	if (node_ht_connected_nodes_has(addr, port))
 		return;
 
-	htable_insert(ht_connected_nodes, gnet_host_new(addr, port), NO_METADATA);
+	htable_insert_const(ht_connected_nodes, gnet_host_new(addr, port), n);
 }
 
 /**
- * Remove host from the hash table host cache.
+ * Remove host from the hash table host cache if it was that node which was
+ * registered for the address and Gnutella port.
  */
 static void
 node_ht_connected_nodes_remove(const gnutella_node_t *n)
 {
-    gnet_host_t *orig_host;
+	gnet_host_t host;
+	const void *orig_host;
+	void *orig_n;
+    bool found;
 
-    orig_host = node_ht_connected_nodes_find(n->gnet_addr, n->gnet_port);
+	gnet_host_set(&host, n->addr, n->gnet_port);
+	found = htable_lookup_extended(ht_connected_nodes,
+				&host, &orig_host, &orig_n);
 
-    if (orig_host) {
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("%s(): %s (%s, %s)", G_STRFUNC,
+			host_addr_port_to_string(n->addr, n->gnet_port),
+		found ? "present" : "MISSING", orig_n == n ? "same" : "DIFFERS");
+	}
+
+    if (found && orig_n == n) {
 		htable_remove(ht_connected_nodes, orig_host);
-		gnet_host_free(orig_host);
+		gnet_host_free(deconstify_pointer(orig_host));
 	}
 
 	/* This is done unconditionally, whether host was in table or not */
@@ -1767,7 +1779,6 @@ node_init(void)
 
 	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 
-	no_metadata = deconstify_pointer(vmm_trap_page());
 	rxbuf_init();
 	proxies = pproxy_set_allocate(0);
 
@@ -3317,6 +3328,18 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
     } else {
         return node_ht_connected_nodes_has(addr, port);
     }
+}
+
+/**
+ * Is this node connected already for same Gnutella IP:port?
+ */
+bool
+node_is_already_connected(const gnutella_node_t *n)
+{
+	const gnutella_node_t *other_n;
+
+	other_n = node_ht_connected_nodes_find(n);
+	return other_n != NULL && n != other_n;
 }
 
 /**
@@ -5654,13 +5677,15 @@ purge_host_cache_from_hub_list(const char *s)
     return;
 }
 
-
 /**
  * Compute node's Gnutella address and port based on the supplied
  * handshake headers.
  *
  * The n->gnet_addr and n->gnet_port fields are updated if we are able
  * to get the information out of the headers.
+ *
+ * @param n			the node (incoming connection)
+ * @param header	initial incoming handshaking headers
  *
  * @return TRUE if we were able to intuit an address.
  */
@@ -5681,13 +5706,10 @@ node_intuit_address(gnutella_node_t *n,  header_t *header)
 		uint16 port;
 
 		if (val != NULL && parse_ip_port(val, NULL, &addr, &port)) {
-			if (host_address_is_usable(addr)) {
-				node_ht_connected_nodes_remove(n);
+			if (host_address_is_usable(addr))
 				n->gnet_addr = addr;
-				if (port_is_valid(port))
-					n->gnet_port = port;
-				node_ht_connected_nodes_add(n);
-			} else if (n->gnet_port != port && port_is_valid(port)) {
+			if (n->gnet_port != port && port_is_valid(port)) {
+				/* n->gnet_port is part of the key */
 				node_ht_connected_nodes_remove(n);
 				n->gnet_port = port;
 				node_ht_connected_nodes_add(n);
@@ -6513,6 +6535,8 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 	/* Node -- remote node Gnet IP/port information */
 
 	if (incoming) {
+		bool already_connected;
+
 		/*
 		 * We parse only for incoming connections.  Even though the remote
 		 * node may reply with such a header to our outgoing connections,
@@ -6536,6 +6560,33 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			if (host_addr_equiv(n->gnet_addr, n->addr)) {
 				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
+			}
+
+			/*
+			 * Check for duplicate incoming connection, since this is no longer
+			 * done in node_add_internal() for these connections, so that we
+			 * get to process the port number possibly present in the
+			 * handshaking header.  See node_intuit_address().
+			 * 		--RAM, 2020-07-04
+			 */
+
+			if (port_is_valid(n->gnet_port)) {
+				already_connected = node_is_already_connected(n);
+			} else {
+				already_connected = node_is_connected(n->addr, 0, TRUE);
+			}
+
+			if (already_connected) {
+				if (GNET_PROPERTY(node_debug)) {
+					g_debug("%s(): %s is already connected (%s [%u])",
+						G_STRFUNC, node_infostr(n),
+						host_addr_port_to_string(n->addr, n->port),
+						n->gnet_port);
+				}
+				if ((n->proto_major > 0 || n->proto_minor > 4))
+					node_send_error(n, 409, "Already connected");
+				node_remove(n, _("Already connected"));
+				return;
 			}
 
 			/* FIXME: What about LAN connections? Should we blindly accept
@@ -8585,7 +8636,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 	uint16 port, uint32 flags, bool g2)
 {
 	gnutella_node_t *n;
-	bool incoming = FALSE, already_connected = FALSE;
+	bool incoming = FALSE;
 	uint major = 0, minor = 0;
 	bool forced = 0 != (SOCK_F_FORCE & flags);
 
@@ -8632,12 +8683,15 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	/*
 	 * Check whether we have already a connection to this node.
+	 *
+	 * We are now deferring the check for an already connected node
+	 * for incoming connections until we have parsed the first incoming
+	 * handshake header.  See node_process_handshake_header().
+	 * 		--RAM, 2020-07-04
 	 */
 
-	already_connected = node_is_connected(addr, port, incoming);
-
 	if (!incoming) {
-		if (already_connected)
+		if (node_is_connected(addr, port, FALSE))
 			return;
 		/* Remember connection attempt to avoid hammering */
 		node_record_connect_attempt(addr, port);
@@ -8664,14 +8718,12 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 				>= GNET_PROPERTY(max_connections)
 		)
 	) {
-        if (!already_connected) {
-			if (forced || whitelist_check(addr)) {
-				/* Incoming whitelisted IP, and we're full. Remove one node. */
-				(void) node_remove_worst(FALSE);
-			} else if (GNET_PROPERTY(use_netmasks) && host_is_nearby(addr)) {
-				 /* We are preferring local hosts, remove a non-local node */
-				(void) node_remove_worst(TRUE);
-			}
+		if (forced || whitelist_check(addr)) {
+			/* Incoming whitelisted IP, and we're full. Remove one node. */
+			(void) node_remove_worst(FALSE);
+		} else if (GNET_PROPERTY(use_netmasks) && host_is_nearby(addr)) {
+			 /* We are preferring local hosts, remove a non-local node */
+			(void) node_remove_worst(TRUE);
 		}
 	}
 
@@ -8769,24 +8821,10 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
     node_fire_node_added(n);
     node_fire_node_flags_changed(n);
 
-	/*
-	 * Insert node in lists, before checking `already_connected', since
-	 * we need everything installed to call node_remove(): we want to
-	 * leave a trail in the GUI.
-	 */
-
 	sl_nodes = pslist_prepend(sl_nodes, n);
 
-	if (n->status != GTA_NODE_REMOVING) {
+	if (n->status != GTA_NODE_REMOVING)
 		node_ht_connected_nodes_add(n);
-	}
-
-	if (already_connected) {
-		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
-			node_send_error(n, 409, "Already connected");
-		node_remove(n, _("Already connected"));
-		return;
-	}
 
 	if (incoming) {
 		/*
