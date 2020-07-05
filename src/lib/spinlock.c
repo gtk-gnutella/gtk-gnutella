@@ -202,12 +202,14 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
-
-	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
-		s->lock ? "" : "free ", obj, file, line);
+	bool locked;
 
 	atomic_mb();
 	spinlock_check(s);
+
+	locked = s->lock;
+	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
+		locked ? "" : "free ", obj, file, line);
 
 #ifdef SPINLOCK_DEBUG
 #ifdef SPINLOCK_OWNER_DEBUG
@@ -224,7 +226,7 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
-		s->lock ? "" : "free ", obj, elapsed, file, line);
+		locked ? "" : "free ", obj, elapsed, file, line);
 }
 
 /**
