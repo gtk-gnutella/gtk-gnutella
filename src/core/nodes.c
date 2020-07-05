@@ -598,7 +598,11 @@ node_ht_connected_nodes_find(const gnutella_node_t *n)
 }
 
 /**
- * Add host to the hash table host cache.
+ * Register that we are connected to a node, at its address and Gnutella port.
+ *
+ * If another node is registered for that (addr, gnet_port) tuple, do nothing.
+ * The rationale is that we shall detect that the (new) node we are trying to
+ * register is actually a duplicate connection.
  */
 static void
 node_ht_connected_nodes_add(const gnutella_node_t *n)
