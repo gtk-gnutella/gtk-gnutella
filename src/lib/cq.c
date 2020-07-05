@@ -877,7 +877,7 @@ bool
 cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
-	bool triggered = FALSE;
+	bool triggered;
 
 	if (ev != NULL) {
 		cqueue_t *cq;
@@ -889,16 +889,18 @@ cq_cancel(cevent_t **handle_ptr)
 
 		cq = EV_CQ_LOCK(ev);
 
-		if G_LIKELY(!ev_triggered(ev)) {
+		triggered = ev_triggered(ev);
+
+		if G_LIKELY(!triggered) {
 			g_assert(cq->cq_items > 0);
 			ev_unlink(ev);
-		} else {
-			triggered = TRUE;
 		}
 
 		CQ_UNLOCK(cq);
 		ev_free(ev);
 		*handle_ptr = NULL;
+	} else {
+		triggered = TRUE;	/* NULL event given, must have triggered */
 	}
 
 	return triggered;
