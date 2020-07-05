@@ -1173,6 +1173,7 @@ upload_create(struct gnutella_socket *s, bool push)
     u->upload_handle = upload_new_handle(u);
 	u->socket = s;
     u->addr = s->addr;
+    u->port = s->port;
 	u->country = gip_country(u->addr);
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
@@ -2859,28 +2860,24 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	}
 
 	if (!UPLOAD_IS_COMPLETE(u) && GNET_PROPERTY(upload_debug) > 1) {
-		if (u->name) {
-			g_debug(
-				"ending upload of %s \"%s\" [%s bytes out, %s total] "
-				"request #%u [%sHTTP %03d] from %s (%s): %s",
-				u->head_only ? "HEAD" : "GET", u->name,
-				uint64_to_string(u->sent),
-				uint64_to_string2(u->total_sent),
-				u->reqnum, u->http_status_sent ? "" : "unsent ",
-				u->http_status, host_addr_to_string(u->addr),
-				upload_vendor_str(u),
-				logreason);
-		} else {
-			g_debug(
-				"ending upload [%s bytes out, %s total] "
-				"request #%u [%sHTTP %03d] from %s (%s): %s",
-				uint64_to_string(u->sent),
-				uint64_to_string2(u->total_sent),
-				u->reqnum, u->http_status_sent ? "" : "unsent ",
-				u->http_status, host_addr_to_string(u->addr),
-				upload_vendor_str(u),
-				logreason);
-		}
+		str_t *s = str_new(128);
+
+		str_catf(s, "ending %supload ", u->push ? "pushed " : "");
+		if (u->name != NULL)
+			str_catf(s, "of %s \"%s\" ", u->head_only ? "HEAD" : "GET", u->name);
+		str_catf(s, "[%s bytes out, %s total] request #%u [%sHTTP %03d] ",
+			uint64_to_string(u->sent),
+			uint64_to_string2(u->total_sent),
+			u->reqnum, u->http_status_sent ? "" : "unsent ", u->http_status);
+		if (u->push)
+			str_catf(s, "to %s", host_addr_port_to_string(u->addr, u->port));
+		else
+			str_catf(s, "from %s", host_addr_to_string(u->addr));
+		if (u->user_agent != NULL)
+			str_catf(s, " (%s)", u->user_agent);
+		str_catf(s, ": %s", logreason);
+		g_debug("%s", str_2c(s));
+		str_destroy(s);
 	}
 
 	/*

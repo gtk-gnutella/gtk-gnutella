@@ -108,6 +108,7 @@ struct upload {
 
 	host_addr_t addr;			/**< Remote IP address */
 	host_addr_t gnet_addr;		/**< Advertised remote IP address */
+	uint16 port;				/**< Remote TCP port */
 	uint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 	uint16 country;				/**< Country of origin, ISO3166 code */
 
