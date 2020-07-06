@@ -1253,8 +1253,9 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 	uint32 file_index, flags = 0;
 	uint16 port;
 	const char *info;
-	const char *file_name = "<invalid file index>";
+	const char *file_name = "<any file index>";
 	int push_count;
+	bool emit_warning;
 
 	if (NODE_TALKS_G2(n)) {
 		const char *payload;
@@ -1418,36 +1419,41 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 	 *		--RAM. 18/07/2003
 	 */
 
-	if (file_index == QUERY_FW2FW_FILE_INDEX) {
+	emit_warning = TRUE;
+
+	if (QUERY_FW2FW_FILE_INDEX == file_index) {
 		file_name = "<RUDP connection request>";
-		if (GNET_PROPERTY(upload_debug))
-			g_warning(
-				"PUSH request (hops=%d, ttl=%d) for RUDP connection request",
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header));
+	} else if (QUERY_GENERIC_FILE_INDEX == file_index) {
+		file_name = "<generic file index>";
+		emit_warning = FALSE;
 	} else {
 		shared_file_t *req_file;
 
 		req_file = shared_file(file_index);
 		if (req_file == SHARE_REBUILDING) {
-			file_name = "<rebuilding library>";
-			if (GNET_PROPERTY(upload_debug))
-				g_warning(
-					"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
-					gnutella_header_get_hops(&n->header),
-					gnutella_header_get_ttl(&n->header));
+			file_name = "<whilst rebuilding library>";
 		} else if (req_file == NULL) {
 			file_name = "<invalid file index>";
-			if (GNET_PROPERTY(upload_debug))
-				g_warning(
-					"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
-					gnutella_header_get_hops(&n->header),
-					gnutella_header_get_ttl(&n->header),
-					file_index);
 		} else {
 			file_name = shared_file_name_nfc(req_file);
+			emit_warning = FALSE;
 		}
 		shared_file_unref(&req_file);
+	}
+
+	if (
+		(emit_warning && GNET_PROPERTY(upload_debug)) ||
+		 GNET_PROPERTY(upload_debug) > 1
+	) {
+		GLogLevelFlags lf =
+			emit_warning ? G_LOG_LEVEL_WARNING : G_LOG_LEVEL_DEBUG;
+		gl_log(G_LOG_DOMAIN, lf,
+			"%s(): PUSH request (hops=%d, ttl=%d) via %s for %s on remote %s",
+			G_STRFUNC,
+			gnutella_header_get_hops(&n->header),
+			gnutella_header_get_ttl(&n->header),
+			node_infostr(n), file_name,
+			host_addr_port_to_string(ha, port));
 	}
 
 connect_to_host:
@@ -1463,11 +1469,16 @@ connect_to_host:
 	 */
 
 	if (!host_is_valid(ha, port) && !node_is_connected(ha, port, TRUE)) {
-		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"PUSH request (hops=%d, ttl=%d) from invalid address %s",
-			gnutella_header_get_hops(&n->header),
-			gnutella_header_get_ttl(&n->header),
-			host_addr_port_to_string(ha, port));
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning(
+				"%s(): PUSH request (hops=%d, ttl=%d) for %s via %s "
+				"bearing invalid address %s",
+				G_STRFUNC,
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				node_infostr(n), file_name,
+				host_addr_port_to_string(ha, port));
+		}
 		return;
 	}
 

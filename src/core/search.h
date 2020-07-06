@@ -72,6 +72,15 @@
  */
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
 
+/**
+ * Generic file index used within PUSH requests to mean "any file".
+ * Nowadays, file indices are no longer really used to request files, everything
+ * is done via URNs with a SHA1 key, hence servents do not bother to use
+ * file indices, which may change every time a file is added to the library
+ * of shared files anyway.
+ */
+#define QUERY_GENERIC_FILE_INDEX 0
+
 /*
  * The version of GUESS we support.
  *
