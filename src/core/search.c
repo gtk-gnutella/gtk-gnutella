@@ -779,11 +779,9 @@ search_free_record(gnet_record_t *rc)
 static gnet_results_set_t *
 search_new_r_set(void)
 {
-	static const gnet_results_set_t zero_rs;
 	gnet_results_set_t *rs;
 
-	WALLOC(rs);
-	*rs = zero_rs;
+	WALLOC0(rs);
 	return rs;
 }
 
@@ -812,11 +810,9 @@ search_free_r_set(gnet_results_set_t *rs)
 static gnet_record_t *
 search_record_new(void)
 {
-	static const gnet_record_t zero_record;
 	gnet_record_t *rc;
 
-	WALLOC(rc);
-	*rc = zero_record;
+	WALLOC0(rc);
 	rc->create_time = (time_t) -1;
 	return rc;
 }

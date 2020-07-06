@@ -793,13 +793,11 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 void
 search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 {
-	static const struct result_data zero_data;
 	struct result_data *data;
 
 	record_check(rc);
 
-	WALLOC(data);
-	*data = zero_data;
+	WALLOC0(data);
 	data->color = color;
 	data->record = rc;
 	data->sh = sch->search_handle;

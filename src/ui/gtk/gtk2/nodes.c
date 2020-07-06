@@ -632,16 +632,13 @@ nodes_gui_remove_node(const struct nid *node_id)
 void
 nodes_gui_add_node(gnet_node_info_t *info)
 {
-	static const struct node_data zero_data;
 	struct node_data *data;
 	gnet_node_flags_t flags;
 
     g_return_if_fail(info);
 	g_return_if_fail(!htable_contains(nodes_handles, info->node_id));
 
-	WALLOC(data);
-	*data = zero_data;
-
+	WALLOC0(data);
 	data->node_id = nid_ref(info->node_id);
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;

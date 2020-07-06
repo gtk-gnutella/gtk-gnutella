@@ -56,15 +56,12 @@ struct html_node {
 	enum html_node_type type;
 };
 
-static const struct html_node zero_html_node;
-
 static struct html_node *
 html_node_alloc(void)
 {
 	struct html_node *node;
 
-	WALLOC(node);
-	*node = zero_html_node;
+	WALLOC0(node);
 	return node;
 }
 
@@ -111,11 +108,9 @@ html_output_tag(struct html_output *output, const struct array tag)
 struct html_output *
 html_output_alloc(void)
 {
-	static const struct html_output zero_output;
 	struct html_output *output;
 
-	WALLOC(output);
-	*output = zero_output;
+	WALLOC0(output);
 	return output;
 }
 

@@ -344,11 +344,9 @@ hcache_addr_within_net(const host_addr_t addr, host_net_t net)
 static hostcache_entry_t *
 hce_alloc(void)
 {
-	static const hostcache_entry_t zero_hce;
 	hostcache_entry_t *hce;
 
-	WALLOC(hce);
-	*hce = zero_hce;
+	WALLOC0(hce);
 	return hce;
 }
 

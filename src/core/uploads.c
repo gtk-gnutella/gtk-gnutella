@@ -1067,11 +1067,9 @@ upload_timer(time_t now)
 struct upload *
 upload_alloc(void)
 {
-	static const struct upload zero_upload;
 	struct upload *u;
 
-	WALLOC(u);
-	*u = zero_upload;
+	WALLOC0(u);
 	u->magic = UPLOAD_MAGIC;
 	return u;
 }
@@ -7018,15 +7016,13 @@ upload_close(void)
 gnet_upload_info_t *
 upload_get_info(gnet_upload_t uh)
 {
-    static const gnet_upload_info_t zero_info;
     gnet_upload_info_t *info;
     struct upload *u;
 
     u = upload_find_by_handle(uh);
 	g_return_val_if_fail(u, NULL);
 
-    WALLOC(info);
-	*info = zero_info;
+    WALLOC0(info);
 
 	if (u->sf) {
    		info->name = atom_str_get(shared_file_name_nfc(u->sf));

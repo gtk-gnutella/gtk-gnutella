@@ -1378,7 +1378,6 @@ download_restore_state(void)
 static void
 buffers_alloc(struct download *d)
 {
-	static const struct dl_buffers zero_buffers;
 	struct dl_buffers *b;
 
 	download_check(d);
@@ -1386,8 +1385,7 @@ buffers_alloc(struct download *d)
 	g_assert(d->buffers == NULL);
 	g_assert(DOWNLOAD_IS_ACTIVE(d));
 
-	WALLOC(b);
-	*b = zero_buffers;
+	WALLOC0(b);
 	b->list = slist_new();
 	b->amount = GNET_PROPERTY(download_buffer_size);
 
@@ -7895,14 +7893,11 @@ download_request_new(
 	const gnet_host_vec_t *proxies,
 	const char *parq_id)
 {
-	static struct download_request zero_req;
 	struct download_request *req;
 
 	g_return_val_if_fail(filename, NULL);
 
-	WALLOC(req);
-	*req = zero_req;
-
+	WALLOC0(req);
 	req->filename = atom_str_get(filename);
 	req->uri = uri ? atom_str_get(uri) : NULL;
 	req->size = size;

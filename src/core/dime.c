@@ -81,11 +81,9 @@ struct dime_record {
 struct dime_record *
 dime_record_alloc(void)
 {
-	static const struct dime_record zero_record;
 	struct dime_record *record;
 
-	WALLOC(record);
-	*record = zero_record;
+	WALLOC0(record);
 	return record;
 }
 

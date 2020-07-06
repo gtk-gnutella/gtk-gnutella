@@ -35,6 +35,8 @@
 
 #include "drag.h"
 
+#include "lib/walloc.h"
+
 #include "lib/override.h"		/* Must be the last header included */
 
 /*
@@ -53,11 +55,9 @@ struct drag_context {
 static struct drag_context *
 drag_alloc(void)
 {
-	static const struct drag_context zero_ctx;
 	struct drag_context *ctx;
 
-	ctx = g_malloc(sizeof *ctx);
-	*ctx = zero_ctx;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -70,8 +70,7 @@ drag_free(struct drag_context **ptr)
 	struct drag_context *ctx = *ptr;
 
 	if (ctx) {
-		ctx->get_data = NULL;
-		G_FREE_NULL(ctx);
+		WFREE0(ctx);
 		*ptr = NULL;
 	}
 }

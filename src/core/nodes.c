@@ -2159,11 +2159,9 @@ node_type_count_dec(const gnutella_node_t *n)
 static gnutella_node_t *
 node_alloc(void)
 {
-	static const gnutella_node_t zero_node;
 	gnutella_node_t *n;
 
-	WALLOC(n);
-	*n = zero_node;
+	WALLOC0(n);
 	n->magic = NODE_MAGIC;
 	return n;
 }

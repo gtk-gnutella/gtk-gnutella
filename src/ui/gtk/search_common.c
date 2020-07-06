@@ -1297,31 +1297,22 @@ search_gui_get_info(const record_t *rc, const gchar *vinfo)
 static record_t *
 search_gui_create_record(const gnet_results_set_t *rs, gnet_record_t *r)
 {
-    static const record_t zero_record;
     record_t *rc;
 
     g_assert(r != NULL);
     g_assert(rs != NULL);
 
-    WALLOC(rc);
-	*rc = zero_record;
+    WALLOC0(rc);
 	rc->magic = RECORD_MAGIC;
 	rc->refcount = 1;
-
     rc->size = r->size;
     rc->file_index = r->file_index;
-	if (r->sha1) {
-    	rc->sha1 = atom_sha1_get(r->sha1);
-	}
-	if (r->tth) {
-    	rc->tth = atom_tth_get(r->tth);
-	}
-	if (r->xml) {
-    	rc->xml = atom_str_get(r->xml);
-	}
-	if (r->tag) {
-    	rc->tag = atom_str_get(r->tag);
-	}
+
+	if (r->sha1) rc->sha1 = atom_sha1_get(r->sha1);
+	if (r->tth)  rc->tth  = atom_tth_get(r->tth);
+	if (r->xml)  rc->xml  = atom_str_get(r->xml);
+	if (r->tag)  rc->tag  = atom_str_get(r->tag);
+
    	rc->flags = r->flags;
    	rc->create_time = r->create_time;
 	rc->name = atom_str_get(r->filename);
@@ -3141,11 +3132,9 @@ search_gui_handle_query(const gchar *query_str, guint32 flags,
 	}
 
 	{
-		static const struct query zero_query;
 		struct query *query;
 
-		WALLOC(query);
-		*query = zero_query;
+		WALLOC0(query);
 
 		if (parse) {
 			search_gui_parse_text_query(query_str, query);
@@ -3187,7 +3176,6 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, guint32 flags, search_t **search_ptr)
 {
-	static const search_t zero_search;
 	gboolean is_only_search;
 	enum search_new_result result;
     const gchar *error_str;
@@ -3195,9 +3183,8 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	struct query *query;
 	search_t *search;
 
-	if (search_ptr) {
+	if (search_ptr)
 		*search_ptr = NULL;
-	}
 
 	query = search_gui_handle_query(query_str, flags, &error_str);
 	if (!query) {
@@ -3219,12 +3206,10 @@ search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 		return FALSE;
 	}
 
-	WALLOC(search);
-	*search = zero_search;
+	WALLOC0(search);
 
-	if (search_ptr) {
+	if (search_ptr)
 		*search_ptr = search;
-	}
 
 	if (sort_col >= 0 && (guint) sort_col < SEARCH_RESULTS_VISIBLE_COLUMNS) {
 		search->sorting.s_column = sort_col;

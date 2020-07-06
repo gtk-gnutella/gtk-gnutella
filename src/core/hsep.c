@@ -425,7 +425,6 @@ hsep_reset(void)
 void
 hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 {
-	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
 	uint i;
 
@@ -435,8 +434,7 @@ hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 		printf("HSEP: Initializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
-	WALLOC(n->hsep);
-	*n->hsep = zero_hsep; /* Initializes everything to 0 */
+	WALLOC0(n->hsep);
 	n->hsep->last_sent = now;
 	n->hsep->major = major;
 	n->hsep->minor = minor;

@@ -172,7 +172,6 @@ static struct oob_results *
 results_make(const struct guid *muid, pslist_t *files, int count,
 	gnet_host_t *to, bool secure, bool reliable, unsigned flags)
 {
-	static const struct oob_results zero_results;
 	struct oob_results *r;
 	int timeout;
 
@@ -211,8 +210,7 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 	 * First time we're seeing this query (normal case).
 	 */
 
-	WALLOC(r);
-	*r = zero_results;
+	WALLOC0(r);
 	r->magic = OOB_RESULTS_MAGIC;
 	r->muid = atom_guid_get(muid);
 	r->files = files;

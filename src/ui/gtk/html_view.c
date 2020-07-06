@@ -85,11 +85,9 @@ struct html_context {
 static struct html_context *
 html_context_alloc(void)
 {
-	static const struct html_context zero_html_context;
 	struct html_context *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_context;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -108,11 +106,9 @@ html_context_free(struct html_context **ctx_ptr)
 static struct html_view *
 html_view_alloc(void)
 {
-	static const struct html_view zero_html_view;
 	struct html_view *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_view;
+	WALLOC0(ctx);
 	return ctx;
 }
 

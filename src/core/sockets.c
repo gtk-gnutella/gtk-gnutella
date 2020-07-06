@@ -160,11 +160,9 @@ socket_tls_banned(const host_addr_t addr, const uint16 port)
 static struct gnutella_socket *
 socket_alloc(void)
 {
-	static const struct gnutella_socket zero_socket;
 	struct gnutella_socket *s;
 
-	WALLOC(s);
-	*s = zero_socket;
+	WALLOC0(s);
 	s->magic = SOCKET_MAGIC;
 	return s;
 }

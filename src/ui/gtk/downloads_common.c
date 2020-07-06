@@ -1475,13 +1475,11 @@ fi_gui_file_by_handle(gnet_fi_t handle)
 static void
 fi_gui_fi_added(gnet_fi_t handle)
 {
-	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
 
 	g_return_if_fail(!htable_contains(fi_handles, uint_to_pointer(handle)));
 
-	WALLOC(file);
-	*file = zero_data;
+	WALLOC0(file);
 	file->handle = handle;
 	fi_gui_file_invalidate(file);
 	htable_insert(fi_handles, uint_to_pointer(handle), file);

@@ -176,14 +176,12 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	uint32 attempts, uint32 complete, uint64 ul_bytes,
 	time_t rtime, time_t dtime, const struct sha1 *sha1)
 {
-	static const struct ul_stats zero_stats;
 	struct ul_stats *s;
 
 	g_assert(pathname != NULL);
 	g_assert(name != NULL);
 
-	WALLOC(s);
-	*s = zero_stats;
+	WALLOC0(s);
 	s->pathname = atom_str_get(pathname);
 	s->filename = atom_str_get(name);
 	s->size = size;

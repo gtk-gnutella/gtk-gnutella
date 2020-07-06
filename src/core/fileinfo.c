@@ -652,11 +652,9 @@ tbuf_read(int fd, size_t len)
 static struct dl_file_chunk *
 dl_file_chunk_alloc(void)
 {
-	static const struct dl_file_chunk zero_fc;
 	struct dl_file_chunk *fc;
 
-	WALLOC(fc);
-	*fc = zero_fc;
+	WALLOC0(fc);
 	fc->magic = DL_FILE_CHUNK_MAGIC;
 	return fc;
 }
