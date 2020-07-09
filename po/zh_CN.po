@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -593,6 +593,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr "Servent 关闭"
 
+msgid "Already connected"
+msgstr "已连接"
+
 msgid "Not a network member"
 msgstr ""
 
@@ -656,9 +659,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr ""
-
-msgid "Already connected"
-msgstr "已连接"
 
 msgid "Limited connection"
 msgstr ""
@@ -800,6 +800,9 @@ msgstr ""
 msgid "Bad Request"
 msgstr ""
 
+msgid "Library being rebuilt"
+msgstr ""
+
 msgid "Header too large"
 msgstr ""
 
@@ -825,9 +828,6 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
-msgstr ""
-
-msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -1131,6 +1131,9 @@ msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "OOB querying hosts banned for some time"
 msgstr ""
 
 msgid "Received query hits for untracked queries"
@@ -4617,6 +4620,15 @@ msgstr ""
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "UDP交通布局的debug级别。"
+
 msgid "disable"
 msgstr "禁用"
 
@@ -5852,6 +5864,9 @@ msgstr "瓦利斯和富图纳"
 msgid "Samoa"
 msgstr "萨摩亚"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "也门"
 
@@ -5904,6 +5919,8 @@ msgstr "%u分 %u秒"
 msgid "%us"
 msgstr "%u秒"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "zh_CN"
 
@@ -8530,6 +8547,14 @@ msgstr "复制到剪贴板"
 msgid "_Remove filter"
 msgstr "删除过滤器(_R)"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"此产品包括由 MaxMind 创建的 GeoIP 数据，可由以下地址获取\n"
+"http://maxmind.com/"
+
 msgid "_Close"
 msgstr "关闭(_C)"
 
@@ -9288,8 +9313,8 @@ msgstr "(快)"
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR：%s %s#%u"
 
 msgid "stalled"

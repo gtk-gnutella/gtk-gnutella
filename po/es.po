@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -600,6 +600,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr "Nodo Cerrado"
 
+msgid "Already connected"
+msgstr "Ya está conectado"
+
 msgid "Not a network member"
 msgstr "No es miembro de la red"
 
@@ -663,9 +666,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr ""
-
-msgid "Already connected"
-msgstr "Ya está conectado"
 
 msgid "Limited connection"
 msgstr "Conexión limitada"
@@ -808,6 +808,9 @@ msgstr "No se indicó una razón"
 msgid "Bad Request"
 msgstr "Solicitud errónea"
 
+msgid "Library being rebuilt"
+msgstr "La biblioteca se está recompilando"
+
 msgid "Header too large"
 msgstr "Encabezado demasiado grande"
 
@@ -834,9 +837,6 @@ msgstr "URN no encontrado (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "El SHA1 se está recalculando"
-
-msgid "Library being rebuilt"
-msgstr "La biblioteca se está recompilando"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -1144,6 +1144,9 @@ msgstr "Reclamos de Hits OOB espurios recibidos"
 
 msgid "Unrequested OOB hits received"
 msgstr "Hits OOB no solicitados recibidos"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr ""
@@ -5138,6 +5141,15 @@ msgstr ""
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "Nivel de depuración para búsquedas en cola de usuarios DHT."
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -6427,6 +6439,9 @@ msgstr "Wallis y Futuna"
 msgid "Samoa"
 msgstr "Samoa"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Yemen"
 
@@ -6481,6 +6496,8 @@ msgstr "%um %us"
 msgid "%us"
 msgstr "%us"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "es"
 
@@ -9186,6 +9203,14 @@ msgstr "Copiar al portapapeles"
 msgid "_Remove filter"
 msgstr "_Borrar filtro"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"Este producto incluye datos GeoIP creados por MaxMind, disponibles en\n"
+"http://maxmind.com/"
+
 msgid "_Close"
 msgstr "_Cerrar"
 
@@ -9978,8 +10003,8 @@ msgstr "(rápido) "
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR: %s %s#%u"
 
 msgid "stalled"

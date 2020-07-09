@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-10-01 07:48+0000\n"
 "Last-Translator: Lucio Marinelli\n"
 "Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -603,6 +603,9 @@ msgstr "Header di upgrade mancante"
 msgid "Servent Shutdown"
 msgstr "Spegnimento servent"
 
+msgid "Already connected"
+msgstr "Già connesso"
+
 msgid "Not a network member"
 msgstr "Non un membro del network"
 
@@ -666,9 +669,6 @@ msgstr "Nodo UDP pseudo G2"
 
 msgid "Pseudo DHT node"
 msgstr "Nodo pseudo DHT"
-
-msgid "Already connected"
-msgstr "Già connesso"
 
 msgid "Limited connection"
 msgstr "Connessione limitata"
@@ -811,6 +811,9 @@ msgstr "Nessuna spiegazione fornita"
 msgid "Bad Request"
 msgstr "Richiesta sbagliata"
 
+msgid "Library being rebuilt"
+msgstr "Biblioteca in ricostruzione"
+
 msgid "Header too large"
 msgstr "Header troppo grande"
 
@@ -837,9 +840,6 @@ msgstr "URN non trovato (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "SHA1 in ricalcolo"
-
-msgid "Library being rebuilt"
-msgstr "Biblioteca in ricostruzione"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr "URN malformato nella richiesta /uri-res/N2R"
@@ -1147,6 +1147,9 @@ msgstr "Ricevuta richiesta di risultato OOB spuria"
 
 msgid "Unrequested OOB hits received"
 msgstr "Ricevuto risultato OOB non richiesto"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr "Ricevuti risultati per query non tracciate"
@@ -5333,6 +5336,15 @@ msgstr "Definisce quale scambio intestazione Gnutella debba essere tracciato."
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "Livello di debug per il codice di sincronizzazione del tempo."
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -6652,6 +6664,9 @@ msgstr "Wallis e Futuna"
 msgid "Samoa"
 msgstr "Samoa"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Yemen"
 
@@ -6707,6 +6722,8 @@ msgstr "%um %us"
 msgid "%us"
 msgstr "%us"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "it"
 
@@ -9423,6 +9440,14 @@ msgstr "Copia negli appunti"
 msgid "_Remove filter"
 msgstr "_Rimuovi il filtro"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"Questo prodotto include i dati GeoIP creati da MaxMind, disponibili su\n"
+"http://maxmind.com/"
+
 msgid "_Close"
 msgstr "_Chiudi"
 
@@ -10229,8 +10254,8 @@ msgstr "(veloce)"
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR: %s %s#%u"
 
 msgid "stalled"
