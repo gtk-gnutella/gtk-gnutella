@@ -8,7 +8,7 @@
 .\" or simply:
 .\"    nroff -man gtk\-gnutella.man | less -s
 .\"
-.TH GTK\\-GNUTELLA 1 "July 2019" Version "1.1.15"
+.TH GTK\\-GNUTELLA 1 "July 2020" Version "1.2.0"
 .SH NAME
 gtk\-gnutella \- A Gnutella client for Gtk+
 .SH SYNOPSIS
@@ -390,7 +390,7 @@ of this manpage.
 .SH COPYRIGHT
 .I gtk\-gnutella
 is Copyright (c) 2000, Yann Grossel, with additional copyrights held
-by other contributors 2000-2014.
+by other contributors 2000-2020
 .PP
 License to use and copy
 .I gtk\-gnutella
@@ -401,3 +401,4 @@ distribution for complete information.
 This manual page can also be redistributed under the same conditions as
 .I gtk\-gnutella
 itself.
+.\" vi: set ts=4 sw=4 syn=nroff:
