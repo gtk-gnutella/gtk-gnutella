@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1475,13 +1475,11 @@ fi_gui_file_by_handle(gnet_fi_t handle)
 static void
 fi_gui_fi_added(gnet_fi_t handle)
 {
-	static const struct fileinfo_data zero_data;
 	struct fileinfo_data *file;
 
 	g_return_if_fail(!htable_contains(fi_handles, uint_to_pointer(handle)));
 
-	WALLOC(file);
-	*file = zero_data;
+	WALLOC0(file);
 	file->handle = handle;
 	fi_gui_file_invalidate(file);
 	htable_insert(fi_handles, uint_to_pointer(handle), file);

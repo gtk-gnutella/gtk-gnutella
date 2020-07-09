@@ -237,7 +237,7 @@ rebuild_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
 
 	printf("Starting rebuild test (%ld time%s), cache=%ld page%s...\n",
-		count, plural(count), cpage, plural(cpage));
+		PLURAL(count), PLURAL(cpage));
 
 	for (i = 0; i < count; i++) {
 		if (progress && 0 == i % 50)
@@ -262,7 +262,7 @@ read_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
 
 	printf("Starting read test (%ld item%s), cache=%ld page%s...\n",
-		count, plural(count), cpage, plural(cpage));
+		PLURAL(count), PLURAL(cpage));
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
 	key.dptr = buf;
@@ -297,7 +297,7 @@ exist_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	long cpage = 0 == cache ? 64 : cache;
 
 	printf("Starting existence test (%ld item%s), cache=%ld page%s...\n",
-		count, plural(count), cpage, plural(cpage));
+		PLURAL(count), PLURAL(cpage));
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
 	key.dptr = buf;
@@ -334,7 +334,7 @@ write_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	printf("Starting %swrite test (%ld item%s), "
 		"cache=%ld page%s, %s write...\n",
 		(wflags & WR_VOLATILE) ? "volatile " : "",
-		count, plural(count), cpage, plural(cpage),
+		PLURAL(count), PLURAL(cpage),
 		(wflags & WR_DELAY) ? "delayed" : "immediate");
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
@@ -384,7 +384,7 @@ delete_db(const char *name, long count, long cache, int wflags, tm_t *done)
 	printf("Starting %sdelete test (%ld item%s), "
 		"cache=%ld page%s, %s write...\n",
 		(wflags & WR_VOLATILE) ? "volatile " : "",
-		count, plural(count), cpage, plural(cpage),
+		PLURAL(count), PLURAL(cpage),
 		(wflags & WR_DELAY) ? "delayed" : "immediate");
 
 	key.dsize = large_keys ? sizeof buf : NORMAL_KEY_LEN;
@@ -413,7 +413,7 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 	datum key;
 
 	printf("Starting %siteration test (%ld item%s), cache=%ld page%s...\n",
-		safe ? "safe " : "", count, plural(count), cpage, plural(cpage));
+		safe ? "safe " : "", PLURAL(count), PLURAL(cpage));
 
 	if (sdbm_is_thread_safe(db))
 		sdbm_lock(db);
@@ -437,7 +437,7 @@ iter_db(const char *name, long count, long cache, int safe, tm_t *done)
 
 	if (i != count) {
 		errno = 0;
-		oops("iterated over %ld item%s but requested %ld", i, plural(i), count);
+		oops("iterated over %ld item%s but requested %ld", PLURAL(i), count);
 	}
 
 	show_done(done);
@@ -517,7 +517,7 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 	printf("Starting loose %siteration test (%ld item%s), "
 		"cache=%ld page%s...\n",
 		loose_delete ? "delete " : "",
-		count, plural(count), cpage, plural(cpage));
+		PLURAL(count), PLURAL(cpage));
 
 	args.db = sdbm_ref(db);
 	args.stats = &stats;
@@ -579,7 +579,7 @@ loose_db(const char *name, long count, long cache, int safe, tm_t *done)
 #define SHOW_LONG(f) printf("\t" #f " = %lu\n", (long) stats.f);
 
 	printf("Perturbed iteration by issuing %lu concurrent NOP update%s\n",
-		nop, plural(nop));
+		PLURAL(nop));
 	printf("Loose iterator statistics (extract):\n");
 	SHOW_LONG(pages);
 	SHOW_LONG(restarted);
@@ -618,7 +618,7 @@ count_db(const char *name, long count, long cache, int safe, tm_t *done)
 
 	printf("Counting items in \"%s\"...\n", name);
 	items = sdbm_count(db);
-	printf("...has %ld item%s\n", items, plural(items));
+	printf("...has %ld item%s\n", PLURAL(items));
 
 	show_done(done);
 	sdbm_close(db);
@@ -780,7 +780,7 @@ main(int argc, char **argv)
 			printf("Counting items in \"%s\"...\n", name);
 			count = sdbm_count(db);
 			sdbm_close(db);
-			printf("(found %ld item%s)\n", count, plural(count));
+			printf("(found %ld item%s)\n", PLURAL(count));
 		}
 	} else {
 		count = atoi(argv[optind + 1]);
@@ -797,7 +797,7 @@ main(int argc, char **argv)
 			if (items == count)
 				return 0;
 			printf("Found %ld item%s in \"%s\", expected %ld\n",
-				(long) items, plural(items), name, count);
+				(long) PLURAL(items), name, count);
 			return 1;
 		}
 	}

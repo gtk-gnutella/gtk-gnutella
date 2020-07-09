@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -98,6 +98,7 @@ void stacktrace_atom_log(struct logagent *la, const struct stackatom *st);
 
 const char *stacktrace_caller_name(size_t n);
 const char *stacktrace_routine_name(const void *pc, bool offset);
+const char *stacktrace_routine_name_light(const void *pc, size_t *offset);
 size_t stacktrace_unwind(void *stack[], size_t count, size_t offset);
 size_t stacktrace_safe_unwind(void *stack[], size_t count, size_t offset);
 

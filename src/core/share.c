@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -2355,7 +2355,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->search_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->search_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new search table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	/*
@@ -2688,7 +2688,7 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->partial_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->partial_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new partial table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	SHARED_LIBFILE_LOCK;
@@ -3364,9 +3364,15 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * if we, for instance, access a hash table being resized by an
 			 * earlier call on the stack.
 			 *		--RAM, 2014-01-02
+			 *
+			 * Since SHA1 are atomic, we can also optimize by not duplicating
+			 * the event for a file.  Unlikely, but does not hurt to specify
+			 * the intent: only one such event is required to be processed if
+			 * another is currently pending.
+			 * 		--RAM, 2020-01-31
 			 */
 
-			teq_safe_post(THREAD_MAIN_ID, publisher_add_event,
+			teq_safe_post_unique(THREAD_MAIN_ID, publisher_add_event,
 				deconstify_pointer(sf->sha1));
 		}
 	}

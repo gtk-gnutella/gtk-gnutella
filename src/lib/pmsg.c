@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -305,7 +305,7 @@ pmsg_no_presend_check(const pmsg_t * const mb, const char *caller)
 
 	s_carp_once("%s(): mb=%p (%d byte%s, prio=%u, refcnt=%u, flags=0x%x)"
 		" already has %s %s()",
-		caller, mb, pmsg_size(mb), plural(pmsg_size(mb)),
+		caller, mb, PLURAL(pmsg_size(mb)),
 		mb->m_prio, mb->m_refcnt, mb->m_flags,
 		(mb->m_flags & PMSG_PF_HOOK) ? "transmit hook" : "can-send callback",
 		stacktrace_function_name(mb->m_u.m_check));

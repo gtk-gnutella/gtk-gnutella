@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -357,7 +357,7 @@ open_failed:
 			s_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
 			s_debug("[%s] unable to retrieve: tried %d alternate location%s",
-				what, fvcnt, plural(fvcnt));
+				what, PLURAL(fvcnt));
 		} else {
 			s_debug("[%s] unable to retrieve: no alternate locations known",
 				what);

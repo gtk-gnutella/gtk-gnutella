@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1099,7 +1099,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 		if (inputevt_debug > 2) {
 			unsigned long count = plist_length(list);
-			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
+			s_debug("%s(): %lu fake event%s", G_STRFUNC, PLURAL(count));
 		}
 
 		CTX_UNLOCK(ctx);

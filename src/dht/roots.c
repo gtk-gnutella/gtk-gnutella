@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -627,7 +627,7 @@ roots_fill_closest(const kuid_t *id,
 			g_debug("DHT ROOTS exact match for %s (%s), filled %d new node%s",
 				kuid_to_hex_string(id),
 				compact_time(delta_time(tm_time(), ri->last_update)),
-				filled, plural(filled));
+				PLURAL(filled));
 		}
 
 		/*
@@ -755,7 +755,7 @@ roots_fill_closest(const kuid_t *id,
 					kuid_to_hex_string(id),
 					kuid_to_hex_string2(cri->kuid),
 					compact_time(delta_time(tm_time(), cri->last_update)),
-					added, plural(added));
+					PLURAL(added));
 			}
 		} else if (NULL == ri) {
 			gnet_stats_inc_general(GNR_DHT_CACHED_ROOTS_MISSES);
@@ -1001,7 +1001,7 @@ recreate_ri(void *key, void *value, size_t u_len, void *data)
 
 	if (GNET_PROPERTY(dht_roots_debug) > 3)
 		g_debug("DHT ROOTS retrieved %u closest node%s from %s kept (for %s)",
-			rd->count, plural(rd->count),
+			PLURAL(rd->count),
 			kuid_to_hex_string(id), compact_time(ROOTKEY_LIFETIME / 1000 - d));
 
 	return FALSE;
@@ -1054,7 +1054,7 @@ roots_init_rootinfo(void)
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		count = dbmw_count(db_rootdata);
 		g_debug("DHT ROOTS scanning %u retrieved target KUID%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	ctx.dbkeys = hset_create(HASH_KEY_FIXED, sizeof(uint64));
@@ -1070,10 +1070,10 @@ roots_init_rootinfo(void)
 
 	if (GNET_PROPERTY(dht_roots_debug)) {
 		g_debug("DHT ROOTS kept %u target KUID%s: targets=%u, contacts=%u",
-			(unsigned) count, plural(count),
+			(unsigned) PLURAL(count),
 			targets_managed, contacts_managed);
 		g_debug("DHT ROOTS stripped %u orphan contact DB-key%s",
-			ctx.orphans, plural(ctx.orphans));
+			PLURAL(ctx.orphans));
 	}
 
 	/*

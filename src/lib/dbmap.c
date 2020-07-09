@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -316,7 +316,7 @@ dbmap_sdbm_count_keys(dbmap_t *dm, bool expect_superblock)
 		if (common_dbg) {
 			s_debug("SDBM \"%s\": superblock has %u key%s%s, "
 				"last check done %s ago",
-				sdbm_name(sdbm), (unsigned) sblock.count, plural(sblock.count),
+				sdbm_name(sdbm), (unsigned) PLURAL(sblock.count),
 				(sblock.flags & DBMAP_SF_KEYCHECK) ?
 					" (keycheck required)" : "",
 				compact_time(delta_time(tm_time(), sblock.last_check)));

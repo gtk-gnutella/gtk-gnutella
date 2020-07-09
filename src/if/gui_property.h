@@ -21,7 +21,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -222,6 +222,7 @@ gui_prop_get_boolean_val(property_t p, gboolean *value_ptr)
 	gui_prop_get_boolean(p, value_ptr, 0, 1);
 }
 
+#define gui_prop_get_bool_val gui_prop_get_boolean_val
 
 void gui_prop_set_string(property_t, const char *);
 char *gui_prop_get_string(property_t, char *, size_t);
@@ -244,6 +245,8 @@ gui_prop_get_guint32_val(property_t p, guint32 *value_ptr)
 {
 	gui_prop_get_guint32(p, value_ptr, 0, 1);
 }
+
+#define gui_prop_get_uint32_val gui_prop_get_guint32_val
 
 static inline void
 gui_prop_incr_guint32(property_t p)

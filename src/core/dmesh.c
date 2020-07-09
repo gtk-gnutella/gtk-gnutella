@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1704,7 +1704,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 		if (rw + 2 >= size)		/* Not enough room for 2 quotes */
 			return (size_t) -1;
 
-		g_memmove(buf + 1, buf, rw);
+		memmove(buf + 1, buf, rw);
 		buf[0] = '"';
 		buf[++rw] = '"';
 		buf[++rw] = '\0';

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -241,7 +241,7 @@ urpc_send(const char *what,
 				g_warning("unable to send whole %zu-byte UDP %s RPC to %s: "
 					"only sent %zu byte%s",
 					len, what, host_addr_port_to_string(addr, port),
-					r, plural(r));
+					PLURAL(r));
 			}
 		}
 		socket_free_null(&s);

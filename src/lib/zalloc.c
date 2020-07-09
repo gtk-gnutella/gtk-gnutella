@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -104,7 +104,6 @@
 #include "hashtable.h"
 #include "leak.h"
 #include "log.h"			/* For statistics logging */
-#include "malloc.h"			/* For MALLOC_FRAMES */
 #include "memusage.h"
 #include "misc.h"			/* For short_filename() */
 #include "once.h"
@@ -1018,7 +1017,7 @@ zdump_used(const zone_t *zone, void *leakset)
 	if (used != zone->zn_cnt) {
 		s_warning("BUG: "
 			"found %u used block%s, but %zu-byte zone said it was holding %u",
-			used, plural(used), zone->zn_size, zone->zn_cnt);
+			PLURAL(used), zone->zn_size, zone->zn_cnt);
 	}
 }
 #endif	/* TRACK_ZALLOC */
@@ -1649,6 +1648,124 @@ zn_shrink(zone_t *zone)
 }
 #endif	/* !REMAP_ZALLOC */
 
+#if defined(TRACK_MALLOC) && !defined(REMAP_ZALLOC)
+/**
+ * When TRACK_MALLOC is defined and we're not remapping zalloc to malloc,
+ * we keep track of all the allocated zones in a hash table indexed by
+ * the zone address (the table is used as a set).
+ *
+ * This lets us determine whether an unknown block we are freeing has not
+ * been actually allocated through zalloc(), indicating a harmful mixup
+ * of allocators!
+ */
+static hash_table_t *all_zones;	/**< Set tracking all the allocated zones */
+static once_flag_t all_zones_created;
+
+/**
+ * Create the table recording the zones.
+ */
+static void
+zalloc_all_zones_create(void)
+{
+	all_zones = hash_table_new_not_leaking();
+}
+
+/**
+ * Record that a new zone has been created.
+ *
+ * @return argument as convenience.
+ */
+static zone_t *
+zalloc_zone_record(zone_t *z)
+{
+	zone_check(z);
+
+	ONCE_FLAG_RUN(all_zones_created, zalloc_all_zones_create);
+
+	g_assert(!hash_table_contains(all_zones, z));
+	hash_table_insert(all_zones, z, z);
+
+	return z;
+}
+
+/**
+ * Record that a zone is being destroyed.
+ */
+static void
+zalloc_zone_remove(zone_t *z)
+{
+	zone_check(z);
+	g_assert(all_zones != NULL);	/* Since zone must be listed! */
+	g_assert(hash_table_contains(all_zones, z));
+
+	hash_table_remove(all_zones, z);
+}
+
+struct zalloc_zone_find_ctx {
+	const void *p;			/* The address we're checking */
+	const zone_t *zone;		/* When found, the zone where `p' belongs */
+};
+
+static void
+zalloc_zone_lookup(const void *key, void *value, void *data)
+{
+	const zone_t *zone = key;
+	const struct subzone *sz;
+	struct zalloc_zone_find_ctx *ctx = data;
+
+	(void) value;
+
+	zone_check(zone);
+
+	if (ctx->zone != NULL)
+		return;		/* Already found */
+
+	for (sz = &zone->zn_arena; sz != NULL; sz = sz->sz_next) {
+		if (ptr_cmp(ctx->p, sz->sz_base) < 0)
+			continue;
+		if (ptr_cmp(ctx->p, ptr_add_offset(sz->sz_base, sz->sz_size)) >= 0)
+			continue;
+		/* Found matching zone! */
+		ctx->zone = zone;
+	}
+}
+
+/**
+ * Check whether pointer belongs to a zone.
+ *
+ * @param p		the address we wish to check
+ * @param size	where zone size is written if pointer within a zone
+ *
+ * @return TRUE if pointer was in a zone, with `size' filled to block size.
+ */
+bool
+zalloc_zone_info(const void *p, size_t *size)
+{
+	struct zalloc_zone_find_ctx ctx;
+
+	if (NULL == all_zones)
+		return FALSE;
+
+	ZERO(&ctx);
+	ctx.p = p;
+	hash_table_foreach(all_zones, zalloc_zone_lookup, &ctx);
+
+	if (NULL == ctx.zone)
+		return FALSE;
+
+	zone_check(ctx.zone);
+
+	if (size != NULL)
+		*size = ctx.zone->zn_size;
+
+	return TRUE;
+}
+
+#else	/* !TRACK_MALLOC || REMAP_ZALLOC */
+#define zalloc_zone_record(z)	(z)
+#define zalloc_zone_remove(z)
+#endif	/* TRACK_MALLOC && !REMAP_ZALLOC */
+
 /**
  * Create a new zone able to hold items of 'size' bytes. Returns
  * NULL if no new zone can be created.
@@ -1683,7 +1800,7 @@ zcreate_internal(size_t size, unsigned hint, bool embedded, bool user)
 	}
 #endif
 
-	return zone;
+	return zalloc_zone_record(zone);
 }
 
 /**
@@ -1723,11 +1840,13 @@ zdestroy_physical(zone_t *zone)
 
 	if (zone->zn_cnt) {
 		s_warning("destroyed zone (%zu-byte blocks) still holds %u entr%s",
-			zone->zn_size, zone->zn_cnt, plural_y(zone->zn_cnt));
+			zone->zn_size, PLURAL_Y(zone->zn_cnt));
 #ifdef TRACK_ZALLOC
 		zdump_used(zone, z_leakset);
 #endif
 	}
+
+	zalloc_zone_remove(zone);
 
 #ifndef REMAP_ZALLOC
 	if (zone->zn_gc)
@@ -2016,8 +2135,7 @@ zclose(void)
 	if (zalloc_frames != NULL) {
 		extern void hash_table_destroy_real(hash_table_t *ht);
 		size_t frames = hash_table_count(zalloc_frames);
-		s_message("zalloc() tracked %zu distinct stack frame%s",
-			frames, plural(frames));
+		s_message("zalloc() tracked %zu distinct stack frame%s", PLURAL(frames));
 		hash_table_destroy_real(zalloc_frames);
 		zalloc_frames = NULL;
 	}
@@ -2026,14 +2144,14 @@ zclose(void)
 	if (not_leaking != NULL) {
 		size_t blocks = hash_table_count(not_leaking);
 		s_message("zalloc() had %zu block%s registered as not-leaking",
-			blocks, plural(blocks));
+			PLURAL(blocks));
 		hash_table_destroy(not_leaking);
 		not_leaking = NULL;
 	}
 	if (alloc_used_to_real != NULL) {
 		size_t blocks = hash_table_count(alloc_used_to_real);
 		s_message("zalloc() had %zu block%s registered for address shifting",
-			blocks, plural(blocks));
+			PLURAL(blocks));
 		hash_table_destroy(alloc_used_to_real);
 		if (hash_table_count(alloc_real_to_used) != blocks) {
 			s_warning("zalloc() had count mismatch in address shifting tables");
@@ -2507,7 +2625,7 @@ release_zone:
 				szi->szi_base, szi->szi_end - 1,
 				ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 				zone->zn_subzblocks, compact_time(life),
-				free_blocks, plural(free_blocks));
+				PLURAL(free_blocks));
 		}
 
 		subzone_free_arena(&zone->zn_arena);
@@ -2544,7 +2662,7 @@ release_zone:
 						szi->szi_base, szi->szi_end - 1,
 						ptr_diff(szi->szi_end, szi->szi_base) / 1024,
 						zone->zn_subzblocks, compact_time(life),
-						free_blocks, plural(free_blocks));
+						PLURAL(free_blocks));
 				}
 				subzone_free_arena(sz);
 				zrange_clear(zone);
@@ -2670,8 +2788,7 @@ zgc_allocate(zone_t *zone)
 		s_debug("ZGC zone %s: "
 			"setting up garbage collection for %u subzone%s, %u free block%s",
 			z2str(zone),
-			zone->zn_subzones, plural(zone->zn_subzones),
-			free_blocks, plural(free_blocks));
+			PLURAL(zone->zn_subzones), PLURAL(free_blocks));
 	}
 
 	XMALLOC(zg);
@@ -2884,8 +3001,7 @@ zgc_dispose(zone_t *zone)
 			"(%u free block%s, %u subzone%s, freed %u and defragmented %u "
 			"in %s)",
 			z2str(zone),
-			free_blocks, plural(free_blocks),
-			zone->zn_subzones, plural(zone->zn_subzones),
+			PLURAL(free_blocks), PLURAL(zone->zn_subzones),
 			zg->zg_zone_freed, zg->zg_zone_defragmented,
 			compact_time(elapsed));
 	}
@@ -2998,13 +3114,23 @@ zgc_zalloc(zone_t *zone)
 	goto extended;
 
 found:
-	g_assert(zgc_within_subzone(szi, blk));
+	g_assert_log(zgc_within_subzone(szi, blk),
+		"%s(): blk=%p, szi=[%p, %p] (szi_free_cnt=%u)",
+		G_STRFUNC, blk, szi->szi_base, szi->szi_end - 1, szi->szi_free_cnt);
 
 	szi->szi_free = (char **) *blk;
 	szi->szi_free_cnt--;
 
-	g_assert(0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free));
-	g_assert((0 == szi->szi_free_cnt) == (NULL == szi->szi_free));
+	g_assert_log((0 == szi->szi_free_cnt) == (NULL == szi->szi_free),
+		"%s(): szi_free_cnt=%u, szi_free=%p",
+		G_STRFUNC, szi->szi_free_cnt, szi->szi_free);
+
+	g_assert_log(
+		0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free),
+		"%s(): szi_free_cnt=%u, szi_free=%p, szi=[%p, %p]",
+		G_STRFUNC, szi->szi_free_cnt, szi->szi_free,
+		szi->szi_base, szi->szi_end - 1);
+
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
 	/* FALL THROUGH */
@@ -3185,7 +3311,7 @@ found:
 		s_debug("ZGC zone %s: moved %p to %p, "
 			"zone has %u blocks, %u used, previous subzone has %zu block%s",
 			z2str(zone), p, np,
-			zone->zn_blocks, zone->zn_cnt, used, plural(used));
+			zone->zn_blocks, zone->zn_cnt, PLURAL(used));
 	}
 
 #if defined(TRACK_ZALLOC) || defined(MALLOC_FRAMES)
@@ -3793,12 +3919,11 @@ zalloc_dump_zones_log(logagent_t *la)
 	overhead += hash_table_memory(zt);
 
 	log_info(la, "ZALLOC zones have %zu bytes (%s) free among %zu block%s",
-		bytes, short_size(bytes, FALSE), blocks, plural(blocks));
+		bytes, short_size(bytes, FALSE), PLURAL(blocks));
 
 	log_info(la, "ZALLOC zones wasting %zu bytes (%s) among %zu subzone%s "
 		"(%zu page%s)",
-		wasted, short_size(wasted, FALSE),
-		subzones, plural(subzones), zpages, plural(zpages));
+		wasted, short_size(wasted, FALSE), PLURAL(subzones), PLURAL(zpages));
 
 	log_info(la, "ZALLOC zones structural overhead totals %zu bytes (%s)",
 		overhead, short_size(overhead, FALSE));

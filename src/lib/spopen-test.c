@@ -56,6 +56,8 @@
 #include "thread.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool verbose, sigpipe;
 const char *redirect_child;
@@ -632,7 +634,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hvpr:z:X:";
 	int c;
 

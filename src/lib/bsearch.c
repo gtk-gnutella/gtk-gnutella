@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -68,8 +68,6 @@
  * by the true comparison routine (the last one made by the prefix-matching
  * routine).
  *
- * Because we can have
- *
  * @note
  * The comparison function is invoked as cmp(key, item), to compare the
  * given key with the item.  It means its signature may not be homogeneous,
@@ -116,19 +114,16 @@ bsearch_prefix(const void *key,
 	if (ptr_cmp(found, base) > 0) {
 		/* We have a previous item */
 		if (0 == (cmp)(key, const_ptr_add_offset(found, -size)))
-			goto ambiguous;		/*  Previous item would also match */
+			return BSEARCH_MULTI;	/*  Previous item would also match */
 	}
 
 	if (ptr_cmp(found, const_ptr_add_offset(base, (count - 1) * size)) < 0) {
 		/* We have a next item */
 		if (0 == (*cmp)(key, const_ptr_add_offset(found, +size)))
-			goto ambiguous;		/*  Next item would also match */
+			return BSEARCH_MULTI;	/*  Next item would also match */
 	}
 
 	return BSEARCH_SINGLE;	/* Has to be unique since array is sorted */
-
-ambiguous:
-	return BSEARCH_MULTI;
 }
 
 /**

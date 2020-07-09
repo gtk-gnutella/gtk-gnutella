@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -909,7 +909,7 @@ st_run_search(
 			"scanned %d/%d bin entr%s, "
 			"compiled %u/%u pattern%s, got %d match%s",
 			G_STRFUNC, scanned, best_bin_size, plural_y(scanned),
-			compiled, wocnt, plural(compiled), nres, plural_es(nres));
+			compiled, wocnt, plural(compiled), PLURAL_ES(nres));
 	}
 
 	/*

@@ -148,14 +148,14 @@ pair_offset_invalid(const DBM *db, const char *pag, unsigned short off)
 
 	if (db->pagbuf == pag) {
 		s_warning("sdbm: \"%s\": bad offset %u at %p (%d item%s), page #%ld",
-			sdbm_name(db), off, pag, n / 2, plural(n / 2), db->pagbno);
+			sdbm_name(db), off, pag, PLURAL(n / 2), db->pagbno);
 	} else {
 		unsigned short m = INO(db->pagbuf)[0];
 
 		s_warning("sdbm: \"%s\": bad offset %u at %p (%d item%s), "
 			"current page is #%ld at %p (%d item%s)",
-			sdbm_name(db), off, pag, n / 2, plural(n /2),
-			db->pagbno, db->pagbuf, m / 2, plural(m / 2));
+			sdbm_name(db), off, pag, PLURAL(n /2),
+			db->pagbno, db->pagbuf, PLURAL(m / 2));
 	}
 
 	LRU_PAGE_LOG(db, pag);
@@ -174,11 +174,11 @@ pair_index_invalid(const DBM *db, const char *pag, int i)
 
 	if (db->pagbuf == pag) {
 		s_warning("sdbm: \"%s\": bad key index %d (%d item%s on %p) page #%ld",
-			sdbm_name(db), i, n / 2, plural(n / 2), pag, db->pagbno);
+			sdbm_name(db), i, PLURAL(n / 2), pag, db->pagbno);
 	} else {
 		s_warning("sdbm: \"%s\": bad key index %d (%d item%s on %p), "
 			"current page is #%ld at %p",
-			sdbm_name(db), n, n / 2, plural(n / 2), pag,
+			sdbm_name(db), n, PLURAL(n / 2), pag,
 			db->pagbno, db->pagbuf);
 	}
 
@@ -198,11 +198,11 @@ pair_kv_invalid(const DBM *db, const char *pag, int i, const char *reason)
 	if (db->pagbuf == pag) {
 		s_warning("sdbm: \"%s\": bad pair #%d (%d item%s on %p) in page #%ld"
 			": %s",
-			sdbm_name(db), i, n / 2, plural(n / 2), pag, db->pagbno, reason);
+			sdbm_name(db), i, PLURAL(n / 2), pag, db->pagbno, reason);
 	} else {
 		s_warning("sdbm: \"%s\": bad pair #%d (%d item%s on %p), "
 			"current page is #%ld at %p: %s",
-			sdbm_name(db), n, n / 2, plural(n / 2), pag,
+			sdbm_name(db), n, PLURAL(n / 2), pag,
 			db->pagbno, db->pagbuf, reason);
 	}
 
@@ -1174,7 +1174,7 @@ sdbm_page_dump_log(logagent_t *la, const DBM *db, const char *pag, long num)
 		unsigned off = DBM_PBLKSIZ;
 		unsigned p;
 
-		log_debug(la, "entry count: %u (%u pair%s)", n, n / 2, plural(n / 2));
+		log_debug(la, "entry count: %u (%u pair%s)", n, PLURAL(n / 2));
 
 		for (ino++, p = 1; n != 0; ino += 2, p++) {
 			bool valid_koff = TRUE, valid_voff = TRUE;

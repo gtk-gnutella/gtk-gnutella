@@ -146,8 +146,8 @@ enum crash_level {
 	CRASH_LVL_NONE = 0,				/**< No crash yet */
 	CRASH_LVL_BASIC,				/**< Basic crash level */
 	CRASH_LVL_OOM,					/**< Out of memory */
-	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_FAILURE,				/**< Assertion failure */
+	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
 	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
 };
@@ -172,6 +172,7 @@ struct crash_vars {
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
 	const char *fail_name;	/**< Name of thread triggering assertion failure */
+	uint64 deadlock_mask;	/**< Has 1 bit set for each deadlocked thread */
 	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
 	pid_t ppid;				/**< Parent PID, when supervising */
@@ -457,7 +458,18 @@ crash_time_internal(char *buf, size_t size, bool raw)
 
 	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level || !done) {
 		static uint8 computing[THREAD_MAX];
-		uint stid = thread_small_id();
+		int stid;
+
+		/*
+		 * In raw mode or when we're crashing, we cannot call thread_small_id()
+		 * to compute the thread ID because it calls thread_get_element()
+		 * which can take locks, and therefore there is a risk of recursing
+		 * indefinitely if logging is enabled in the locking code and we cannot
+		 * take the locks for some reason.
+		 *		--RAM, 2020-01-19
+		 */
+
+		stid = thread_safe_small_id();
 
 		/*
 		 * Avoid deadly recursions if logging from a memory layer,
@@ -466,11 +478,11 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		 * 		--RAM, 2017-11-19
 		 */
 
-		if (!computing[stid]) {
+		if (stid >= 0 && !computing[stid]) {
 			computing[stid] = TRUE;
 			tm_current_time(&tv);			/* Get system value, no locks */
 			loc = tm_localtime_raw(&tv);
-			done = TRUE;
+			done = TRUE;					/* Can now use the other path */
 			computing[stid] = FALSE;
 		} else {
 			ZERO(&tm);
@@ -652,8 +664,8 @@ crash_level_to_string(const enum crash_level level)
 	case CRASH_LVL_NONE:		return "none";
 	case CRASH_LVL_BASIC:		return "basic";
 	case CRASH_LVL_OOM:			return "OOM";
-	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_FAILURE:		return "failure";
+	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_EXCEPTION:	return "exception";
 	case CRASH_LVL_RECURSIVE:	return "recursive";
 	}
@@ -1100,9 +1112,9 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
 	volatile bool success = TRUE;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -1274,7 +1286,7 @@ crash_fork(void)
 {
 #ifdef HAS_FORK
 	pid_t pid;
-	signal_handler_t old_sigalrm;
+	volatile signal_handler_t old_sigalrm;
 #ifdef HAS_ALARM
 	unsigned remain;
 #endif
@@ -1348,6 +1360,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char nbuf[ULONG_DEC_BUFLEN];
 	char lbuf[ULONG_DEC_BUFLEN];
 	char pbuf[ULONG_DEC_BUFLEN];
+	char u64buf[UINT64_HEX_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1483,6 +1496,9 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str(":");						/* 5 */
 		print_str(PRINT_NUMBER(lbuf, vars->lock_line));	/* 6 */
 		print_str("\n");					/* 7 */
+		print_str("Deadlock-Thread-Mask: 0x");						/* 8 */
+		print_str(print_hex(ARYLEN(u64buf), vars->deadlock_mask));	/* 9 */
+		print_str("\n");					/* 10 */
 	}
 	flush_str(clf);
 
@@ -2685,8 +2701,8 @@ crash_mode(enum crash_level level, bool external)
 
 		/* FALL THROUGH */
 
-	case CRASH_LVL_FAILURE:
 	case CRASH_LVL_DEADLOCKED:
+	case CRASH_LVL_FAILURE:
 		/*
 		 * Put our main allocators in crash mode, which will limit risks if we
 		 * are crashing due to a data structure corruption or an assertion
@@ -2744,14 +2760,6 @@ done:
 
 	if (CRASH_LVL_OOM == level)
 		crash_oom_condition();
-
-	/*
-	 * Specifically for deadlock conditions, disable all locks, if not
-	 * already done above by the thread_crash_mode() call.
-	 */
-
-	if (CRASH_LVL_DEADLOCKED == level)
-		thread_lock_disable(FALSE);
 
 	/*
 	 * Activate crash mode.
@@ -2833,7 +2841,7 @@ crash_vmea_usage(const char *caller)
 			s_miniinfo("%s(): still using %'zu bytes out of the %'zu reserved,"
 				" after %zu emergency allocation%s and %zu freeing%s",
 				caller, allocated, reserved,
-				nba, plural(nba), nbf, plural(nbf));
+				PLURAL(nba), PLURAL(nbf));
 		}
 	}
 }
@@ -3028,7 +3036,7 @@ crash_try_reexec(void)
 		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
 		s_minimsg("launching %s with %d argument%s", vars->argv0,
-			vars->argc, plural(vars->argc));
+			PLURAL(vars->argc));
 	}
 
 	/*
@@ -3337,10 +3345,12 @@ crash_handler(int signo)
 	struct crash_handler_ctx v;
 	unsigned i;
 
+	i = ATOMIC_INC(&crash_count);		/* Previous value */
+
 	ZERO(&v);
 	v.cwd = "";
-	v.recursive = ATOMIC_GET(&crash_count) > 0;
 	v.signo = signo;
+	v.recursive = i != 0;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -3352,15 +3362,16 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (ATOMIC_INC(&crash_count) > 1) {
-		if (2 == ATOMIC_GET(&crash_count)) {
+	if (i > 1) {
+		/* This is at least the second recursive crash! */
+		if (2 == i) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == ATOMIC_GET(&crash_count)) {
+		} else if (3 == i) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -3373,8 +3384,18 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crash_count))
+	if (0 == i) {
+		/*
+		 * Cleanup will take locks, and removing system resources, such as
+		 * semaphores, could create panics in other threads that would lead
+		 * to a recursive crash.  Better enter thread crashing mode now,
+		 * which will suspend the other threads and disable locks if needed.
+		 * 		--RAM, 2020-04-03
+		 */
+
+		thread_crash_mode(FALSE);
 		signal_perform_cleanup();
+	}
 
 	/*
 	 * If we are in the child process, prevent any exec() or pausing.
@@ -4820,9 +4841,13 @@ crash_dump_stacks(int fd)
 
 /**
  * Record that we are deadlocked.
+ *
+ * @param dump_stacks	whether to dump stacks to stderr
+ * @param file			source file name where lock was being taken
+ * @param line			line within file where lock was being taken
  */
 void G_COLD
-crash_deadlocked(const char *file, unsigned line)
+crash_deadlocked(bool dump_stacks, const char *file, unsigned line)
 {
 	crash_last_deadlock_file = file;
 
@@ -4838,7 +4863,30 @@ crash_deadlocked(const char *file, unsigned line)
 			crash_set_var(lock_line, line);
 		}
 
-		crash_dump_stacks(STDERR_FILENO);
+		if (dump_stacks)
+			crash_dump_stacks(STDERR_FILENO);
+	}
+}
+
+/**
+ * Record deadlock thread mask, with 1 bit set for each involved thread.
+ *
+ * When a crash occurs due to a detected deadlock from the thread layer, we
+ * compute this mask and emit it in the crashlog to make it easier to determine
+ * afterwards the set of involved threads in that deadlock.
+ *
+ * Indeed, the crashlog will contain (hopefully) the whole set of threads
+ * that had locks or where waiting for a lock, and some may not be part of
+ * the deadlock -- it may not always be obvious which of them where, especially
+ * when some threads hold many locks.
+ */
+void G_COLD
+crash_deadlocked_set_thread_mask(uint64 mask)
+{
+	if (vars != NULL) {
+		uint8 t = TRUE;
+		crash_set_var(deadlocked, t);
+		crash_set_var(deadlock_mask, mask);
 	}
 }
 

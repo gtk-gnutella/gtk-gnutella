@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -681,8 +681,7 @@ route_string(struct route_dest *dest,
 	case ROUTE_MULTI:
 		{
 			int count = pslist_length(dest->ur.u_nodes);
-			str_bprintf(ARYLEN(msg), "selected %u node%s",
-				count, plural(count));
+			str_bprintf(ARYLEN(msg), "selected %u node%s", PLURAL(count));
 		}
 		break;
 	default:
@@ -2311,7 +2310,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			if (GNET_PROPERTY(log_gnutella_routing)) {
 				unsigned count = pslist_length(m->routes);
 				routing_log_extra(route_log, "%u remaining route%s",
-					count, plural(count));
+					PLURAL(count));
 			}
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
@@ -2319,7 +2318,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 				gmsg_log_duplicate(sender,
 					"from %s: %sother node, %u route%s (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "",
-					count, plural(count), sender->n_dups);
+					PLURAL(count), sender->n_dups);
 			}
 		}
 	}
@@ -3216,18 +3215,14 @@ routing_close(void)
 	hset_free_null(&ht_banned_push);
 
 	cnt = htable_count(ht_proxyfied);
-	if (cnt != 0) {
-		g_warning("push-proxification table still holds %u node%s",
-			cnt, plural(cnt));
-	}
+	if (cnt != 0)
+		g_warning("push-proxification table still holds %u node%s", PLURAL(cnt));
 
 	htable_free_null(&ht_proxyfied);
 
 	cnt = htable_count(ht_starving_guid);
-	if (cnt != 0) {
-		g_warning("starving GUID table still holds %u entr%s",
-			cnt, plural_y(cnt));
-	}
+	if (cnt != 0)
+		g_warning("starving GUID table still holds %u entr%s", PLURAL_Y(cnt));
 
 	htable_free_null(&ht_starving_guid);
 	aging_destroy(&at_udp_routes);

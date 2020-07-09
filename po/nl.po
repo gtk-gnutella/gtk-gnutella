@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Dutch (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -603,6 +603,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr "Servent afgesloten"
 
+msgid "Already connected"
+msgstr "Reeds verbonden"
+
 msgid "Not a network member"
 msgstr "Geen lid van het netwerk"
 
@@ -666,9 +669,6 @@ msgstr "Pseudo G2 UDP node"
 
 msgid "Pseudo DHT node"
 msgstr "Pseudo DHT node"
-
-msgid "Already connected"
-msgstr "Reeds verbonden"
 
 msgid "Limited connection"
 msgstr "Beperkte connectie"
@@ -813,6 +813,9 @@ msgstr "Geen reden opgegeven"
 msgid "Bad Request"
 msgstr "Ongeldig verzoek"
 
+msgid "Library being rebuilt"
+msgstr "Bibiliotheek wordt opnieuw opgebouwd"
+
 msgid "Header too large"
 msgstr "Header te groot"
 
@@ -839,9 +842,6 @@ msgstr "URN niet gevonden (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "SHA1 wordt opnieuw berekend"
-
-msgid "Library being rebuilt"
-msgstr "Bibiliotheek wordt opnieuw opgebouwd"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr "Ongeldige URN in /uri-res/N2R aanvraag"
@@ -1151,6 +1151,9 @@ msgstr "Vals OOB hit beweert te zijn ontvangen"
 
 msgid "Unrequested OOB hits received"
 msgstr "Ongevraagde OOB overeenkomsten ontvangen"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr "Ontvangen query hits voor niet getraceerd query's"
@@ -5352,6 +5355,15 @@ msgstr "Bepaalt welke Gnutella-header uitwisselingen moeten worden getraceerd."
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "Debug level voor de tijdsynchronisatiecode"
+
 msgid "disable"
 msgstr "uitschakelen"
 
@@ -6670,6 +6682,9 @@ msgstr "Wallis en Futuna"
 msgid "Samoa"
 msgstr "Samoa"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Jemen"
 
@@ -6724,6 +6739,8 @@ msgstr "%um %us"
 msgid "%us"
 msgstr "%us"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "nl"
 
@@ -9453,6 +9470,14 @@ msgstr "Kopieer naar klembord"
 msgid "_Remove filter"
 msgstr "Ve_rwijder filter"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"Dit produkt bevat GeoIP gegevens, gemaakt door MaxMind, beschikbaar van\n"
+"http://maxmind.com"
+
 msgid "_Close"
 msgstr "Sluiten"
 
@@ -10255,8 +10280,8 @@ msgstr "(snel)"
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) Resterende tijd: %s %s#%u"
 
 msgid "stalled"

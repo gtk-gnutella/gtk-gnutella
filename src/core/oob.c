@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -172,7 +172,6 @@ static struct oob_results *
 results_make(const struct guid *muid, pslist_t *files, int count,
 	gnet_host_t *to, bool secure, bool reliable, unsigned flags)
 {
-	static const struct oob_results zero_results;
 	struct oob_results *r;
 	int timeout;
 
@@ -211,8 +210,7 @@ results_make(const struct guid *muid, pslist_t *files, int count,
 	 * First time we're seeing this query (normal case).
 	 */
 
-	WALLOC(r);
-	*r = zero_results;
+	WALLOC0(r);
 	r->magic = OOB_RESULTS_MAGIC;
 	r->muid = atom_guid_get(muid);
 	r->files = files;
@@ -340,7 +338,7 @@ results_destroy(cqueue_t *cq, void *obj)
 
 		g_debug("OOB query #%s from %s expired with unclaimed %d hit%s%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
-			r->count, plural(r->count),
+			PLURAL(r->count),
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
@@ -373,7 +371,7 @@ results_timeout(cqueue_t *cq, void *obj)
 		g_debug("OOB query #%s, no ACK from %s to %sclaim %d hit%s%s",
 			guid_hex_str(r->muid), gnet_host_to_string(&r->dest),
 			r->reliable ? "reliably " : "",
-			r->count, plural(r->count),
+			PLURAL(r->count),
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
@@ -405,7 +403,7 @@ results_timeout(cqueue_t *cq, void *obj)
 		if (GNET_PROPERTY(query_debug)) {
 			int delay = ban_delay(BAN_CAT_OOB_CLAIM, addr);
 			g_debug("OOB host %s will be banned for the next %d second%s",
-				host_addr_to_string(addr), delay, plural(delay));
+				host_addr_to_string(addr), PLURAL(delay));
 		}
 	}
 
@@ -602,7 +600,7 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 			g_warning("OOB got spurious LIME/11 from %s for #%s, "
 				"asking for %d hit%s",
 				node_addr(n), guid_hex_str(muid),
-				wanted, plural(wanted));
+				PLURAL(wanted));
 		return;
 	}
 
@@ -687,7 +685,7 @@ oob_deliver_hits(gnutella_node_t *n, const struct guid *muid,
 		char buf[OOB_GTKG_FMTLEN];
 
 		g_debug("OOB query #%s: host %s wants %d hit%s, %sdelivering %d%s",
-			guid_hex_str(r->muid), node_addr(n), wanted, plural(wanted),
+			guid_hex_str(r->muid), node_addr(n), PLURAL(wanted),
 			r->reliable ? "reliably " : "", deliver_count,
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
@@ -762,7 +760,7 @@ oob_pmsg_free(pmsg_t *mb, void *arg)
 					guid_hex_str(r->muid),
 					r->reliable ? "reliably " : "",
 					gnet_host_to_string(&r->dest),
-					r->count, plural(r->count),
+					PLURAL(r->count),
 					oob_gtkg_logstr_fmt(ARYLEN(buf), r),
 					r->notify_requeued);
 			}
@@ -839,7 +837,7 @@ drop_results:
 		g_debug("OOB query #%s, freeing %s %d hit%s for %s%s",
 			guid_hex_str(r->muid),
 			r->ev_timeout ? "timed-out" : r->reliable ? "unsent" : "dropped",
-			r->count, plural(r->count),
+			PLURAL(r->count),
 			gnet_host_to_string(&r->dest),
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
@@ -880,7 +878,7 @@ oob_send_reply_ind(struct oob_results *r)
 		g_debug("OOB query #%s, %snotifying %s about %d hit%s, try #%d%s",
 			guid_hex_str(r->muid), r->reliable ? "reliably " : "",
 			gnet_host_to_string(&r->dest),
-			r->count, plural(r->count), r->notify_requeued,
+			PLURAL(r->count), r->notify_requeued,
 			oob_gtkg_logstr_fmt(ARYLEN(buf), r));
 	}
 
@@ -986,10 +984,9 @@ oob_shutdown(void)
 
 	if (GNET_PROPERTY(search_debug)) {
 		g_info("OOB %s: still has %zu entr%s by MUID, %zu host%s recorded",
-			G_STRFUNC, hikset_count(results_by_muid),
-			plural_y(hikset_count(results_by_muid)),
-			hikset_count(servent_by_host),
-			plural(hikset_count(servent_by_host)));
+			G_STRFUNC,
+			PLURAL_Y(hikset_count(results_by_muid)),
+			PLURAL(hikset_count(servent_by_host)));
 	}
 }
 

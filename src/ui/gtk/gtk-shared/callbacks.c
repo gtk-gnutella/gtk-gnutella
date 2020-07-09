@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -309,6 +309,7 @@ directory_chooser_show(enum dir_choice dir_choice, const char *title,
 	const char *current_directory)
 {
 	GtkWidget *widget;
+	GtkFileFilter *filter;
 
 	if (directory_chooser) {
 		gtk_widget_destroy(directory_chooser);
@@ -324,9 +325,13 @@ directory_chooser_show(enum dir_choice dir_choice, const char *title,
 	g_return_if_fail(NULL != widget);
 	directory_chooser = widget;
 
+	filter = gtk_file_filter_new();
+	gtk_file_filter_add_mime_type(filter, "inode/directory");
+
+
 	gtk_file_chooser_set_local_only(GTK_FILE_CHOOSER(widget), TRUE);
 	gtk_file_chooser_set_filter(GTK_FILE_CHOOSER(widget),
-		gtk_file_filter_new());	/* Display only directories */
+		filter);	/* Display only directories */
 
 	if (NULL != current_directory) {
 		gtk_file_chooser_set_current_folder(GTK_FILE_CHOOSER(widget),

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -272,6 +272,20 @@ walloc_raw(size_t size)
 }
 
 /**
+ * Same as walloc_raw(), but zeroes the allocated memory before returning.
+ */
+static void *
+walloc_raw0(size_t size)
+{
+	void *p = walloc_raw(size);
+
+	if (p != NULL)
+		memset(p, 0, size);
+
+	return p;
+}
+
+/**
  * Free a block allocated via walloc_raw().
  *
  * The size is used to find the zone from which the block was allocated, or
@@ -424,6 +438,34 @@ walloc_get_magazine(size_t rounded)
 }
 #endif	/* !TRACK_ZALLOC */
 
+#ifdef TRACK_ZALLOC
+#define DEPOT_ALLOC(RAW, TMALLOC)						\
+	return RAW(size);
+#else	/* !TRACK_ZALLOC */
+#define DEPOT_ALLOC(RAW, TMALLOC)						\
+{														\
+	tmalloc_t *depot = walloc_get_magazine(rounded);	\
+														\
+	if G_UNLIKELY(NULL == depot)						\
+		return RAW(size);								\
+														\
+	return TMALLOC(depot);								\
+}
+#endif	/* TRACK_ZALLOC */
+
+#define DO_ALLOC(XMALLOC, RAW, TMALLOC)					\
+	size_t rounded = zalloc_round(size);				\
+														\
+	g_assert(size_is_positive(size));					\
+														\
+	if G_UNLIKELY(rounded > walloc_max) {				\
+		/* Too big for efficient zalloc() */			\
+		return XMALLOC(size);							\
+	}													\
+														\
+	DEPOT_ALLOC(RAW, TMALLOC)
+
+
 /**
  * Allocate memory from a magazine depot suitable for the given size, or
  * via xmalloc() if the requested size is too large.
@@ -433,27 +475,7 @@ walloc_get_magazine(size_t rounded)
 void * G_HOT
 walloc(size_t size)
 {
-	size_t rounded = zalloc_round(size);
-
-	g_assert(size_is_positive(size));
-
-	if G_UNLIKELY(rounded > walloc_max) {
-		/* Too big for efficient zalloc() */
-		return xmalloc(size);
-	}
-
-#ifdef TRACK_ZALLOC
-	return walloc_raw(size);
-#else
-	{
-		tmalloc_t *depot = walloc_get_magazine(rounded);
-
-		if G_UNLIKELY(NULL == depot)
-			return walloc_raw(size);
-
-		return tmalloc(depot);
-	}
-#endif	/* TRACK_ZALLOC */
+	DO_ALLOC(xmalloc, walloc_raw, tmalloc)
 }
 
 /**
@@ -462,12 +484,7 @@ walloc(size_t size)
 void *
 walloc0(size_t size)
 {
-	void *p = walloc(size);
-
-	if (p != NULL)
-		memset(p, 0, size);
-
-	return p;
+	DO_ALLOC(xmalloc0, walloc_raw0, tmalloc0)
 }
 
 /**

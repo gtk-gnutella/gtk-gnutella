@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -311,11 +311,9 @@ rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 	g_return_val_if_fail(0 != port, NULL);
 
 	if (!rudp_find(addr, port, conn_id)) {
-		static const struct rudp_con zero_con;
 		struct rudp_con *con;
 
-		WALLOC(con);
-		*con = zero_con;
+		WALLOC0(con);
 		con->addr = addr;
 		con->port = port;
 		con->conn_id = conn_id;

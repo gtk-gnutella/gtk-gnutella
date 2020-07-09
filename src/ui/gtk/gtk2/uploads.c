@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -73,7 +73,7 @@ static struct sorting_context uploads_sort;
 #endif	/* GTK+ >= 2.6.0 */
 
 static void uploads_gui_update_upload_info(const gnet_upload_info_t *u);
-static void uploads_gui_add_upload(gnet_upload_info_t *u);
+static void uploads_gui_add_upload(const gnet_upload_info_t *u);
 
 static const char * const column_titles[UPLOADS_GUI_VISIBLE_COLUMNS] = {
 	N_("Filename"),
@@ -273,10 +273,18 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
 		if (u->range_start == 0 && u->range_end == 0)
 			cstr_lcpy(ARYLEN(str), "...");
 		else {
-			range_len = str_bprintf(ARYLEN(str), "%s%s",
+			char pct[20];
+
+			if (u->partial && u->file_size != 0) {
+				str_bprintf(ARYLEN(pct), " (%.2f%%)",
+					u->available * 100.0 / u->file_size);
+			} else {
+				pct[0] = '\0';
+			}
+			range_len = str_bprintf(ARYLEN(str), "%s%s%s",
 				short_size(u->range_end - u->range_start + 1,
 					show_metric_units()),
-				u->partial ? _(" (partial)") : "");
+				u->shrunk_chunk ? "-" : "", pct);
 
 			if ((guint) range_len < sizeof str) {
 				if (u->range_start)
@@ -341,7 +349,7 @@ uploads_gui_update_upload_info(const gnet_upload_info_t *u)
  * Adds the given upload to the gui.
  */
 void
-uploads_gui_add_upload(gnet_upload_info_t *u)
+uploads_gui_add_upload(const gnet_upload_info_t *u)
 {
 	gint range_len, progress;
 	const gchar *titles[UPLOADS_GUI_VISIBLE_COLUMNS];
@@ -374,11 +382,17 @@ uploads_gui_add_upload(gnet_upload_info_t *u)
         titles[c_ul_range] =  "...";
     else {
 		static gchar range_tmp[256];	/* MUST be static! */
+		char pct[20];
 
-        range_len = str_bprintf(ARYLEN(range_tmp), "%s%s",
-            short_size(u->range_end - u->range_start + 1,
-				show_metric_units()),
-			u->partial ? _(" (partial)") : "");
+		if (u->partial && u->file_size != 0) {
+			str_bprintf(ARYLEN(pct), " (%.2f%%)",
+				u->available * 100.0 / u->file_size);
+		} else {
+			pct[0] = '\0';
+		}
+        range_len = str_bprintf(ARYLEN(range_tmp), "%s%s%s",
+            short_size(u->range_end - u->range_start + 1, show_metric_units()),
+			u->shrunk_chunk ? "-" : "", pct);
 
         if (u->range_start)
             range_len += str_bprintf(ARYPOSLEN(range_tmp, range_len),

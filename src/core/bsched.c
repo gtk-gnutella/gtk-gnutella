@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -159,7 +159,7 @@ static pslist_t *bws_in_list = NULL;
 static int64 bws_out_ema = 0;
 static int64 bws_in_ema = 0;
 
-#define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		256	 /**< Minimum bandwidth/slot for realloc */
 
 #define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
@@ -1374,6 +1374,16 @@ bw_available(bio_source_t *bio, int len)
 		return 0;							/* No bandwidth available */
 
 	/*
+	 * If capping is in effect and we have already used our allowed share,
+	 * disable source to avoid it triggering again.
+	 */
+
+	if (0 != bio->bw_cap && bio->bw_actual >= (int64) bio->bw_cap) {
+		bio_disable(bio);
+		return 0;
+	}
+
+	/*
 	 * If uniform scheduling is on, disable source so that it does not
 	 * trigger again for this timeslice.
 	 */
@@ -1518,15 +1528,34 @@ bw_available(bio_source_t *bio, int len)
 	 * Active sources are disabled, but we could face a passive one.
 	 */
 
-	if (used && (bs->flags & BS_F_UNIFORM_BW))
-		result = 0;
-	else if (bio->flags & BIO_F_FAVOUR)
-		result = available;
-	else if (0 != bio->bw_allocated) {
-		result = MAX(bio->bw_allocated, bs->bw_slot);
-		result = MIN(result, available);
-	} else
-		result = MIN(bs->bw_slot, available);
+	{
+		int64 bwslot = bs->bw_slot;
+
+		/*
+		 * The penalty factor exponentially decreases the amount of slot
+		 * bandwidth we allocate for the I/O source.  It enables us to
+		 * progressively adjust up or down the amount of allocated write
+		 * bandwidth we can give to "stalling" sources (those incapable
+		 * of withstanding the amount of writing we're using).
+		 * 		--RAM, 2020-05-26
+		 */
+
+		if (0 != bio->bw_penalty_factor) {
+			bwslot >>= bio->bw_penalty_factor;
+			if G_UNLIKELY(bwslot < BW_SLOT_MIN)
+				bwslot = BW_SLOT_MIN;
+		}
+
+		if (used && (bs->flags & BS_F_UNIFORM_BW))
+			result = 0;
+		else if (bio->flags & BIO_F_FAVOUR)
+			result = available;
+		else if (0 != bio->bw_allocated) {
+			result = MAX(bio->bw_allocated, bwslot);
+			result = MIN(result, available);
+		} else
+			result = MIN(bwslot, available);
+	}
 
 	available -= result;
 
@@ -1551,7 +1580,8 @@ bw_available(bio_source_t *bio, int len)
 	if (
 		result < len && available > 0 && bs->looped &&
 		(!used || bs->bw_last_capped > 0) &&
-		!(bs->flags & BS_F_UNIFORM_BW)
+		!(bs->flags & BS_F_UNIFORM_BW) &&
+		0 == bio->bw_penalty_factor
 	) {
 		int64 adj = len - result;
 		int64 nominal;
@@ -1607,6 +1637,24 @@ bw_available(bio_source_t *bio, int len)
 	}
 
 	/*
+	 * Now apply capping to avoid sending more than what we promised for
+	 * this I/O source.  Naturally, if we do cap at this stage, we'll
+	 * skip the cap-bandwidth tracking logic below.
+	 */
+
+	if (0 != bio->bw_cap) {
+		int64 remain = (int64) bio->bw_cap - bio->bw_actual;
+
+		if (remain <= 0)
+			result = 0;
+		else
+			result = remain;
+
+		if (0 == result)
+			bio_disable(bio);		/* Avoid further triggering this timeslice */
+	}
+
+	/*
 	 * If we return less than the amount requested, we capped the bandwidth.
 	 *
 	 * Keep track of that bandwidth, because if we end-up having consumed
@@ -1615,7 +1663,7 @@ bw_available(bio_source_t *bio, int len)
 	 * enough" during the period.
 	 */
 
-	if (result < len)
+	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap)
 		bs->bw_capped += len - result;
 
 	/*
@@ -1625,7 +1673,11 @@ bw_available(bio_source_t *bio, int len)
 	 * 		--RAM, 2017-08-15
 	 */
 
-	return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* For 32-bit systems */
+	if (MAX_INT_VAL(size_t) != MAX_INT_VAL(uint64)) {
+		return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* 32-bit system */
+	} else {
+		return UNSIGNED(result);							/* 64-bit system */
+	}
 }
 
 /**
@@ -1720,6 +1772,93 @@ bio_add_allocated(bio_source_t *bio, unsigned bw)
 	bio->bw_allocated = uint_saturate_add(bio->bw_allocated, bw);
 
 	return bio->bw_allocated;
+}
+
+/**
+ * Add penalty (power of 2) `n' to the I/O source.
+ *
+ * @param bio	the I/O source
+ * @param n		how many additional power-of-2 shifts should we perform?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_add_penalty(bio_source_t *bio, uint8 n)
+{
+	uint np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor + n;
+	np = MIN(np, 62);		/* At most 62 shifts on a 64-bit system */
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Remove penalty (power of 2) `n' to the I/O source.
+ *
+ * If `n' is MAX_INT_VAL(uint8) or larger than the existing amount of penalty
+ * present, the penalty is reset to 0 (i.e. it can never become negative).
+ *
+ * @param bio	the I/O source
+ * @param n		how many power-of-2 shifts should we deduce from existing ones?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_remove_penalty(bio_source_t *bio, uint8 n)
+{
+	int np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor - n;
+	np = MAX(np, 0);
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Get current amount of I/O penalty we have on the given source.
+ *
+ * This amount corresponds to the decimation factor we apply to the scheduler
+ * slot bandwidth, in powers of 2.  Hence a value of 0 tells us there is no
+ * penalty, 3 that the slot bandwidth is divided by 2^3 = 8, with a minimum
+ * bandwidth allowed to go through.
+ *
+ * Penalty is used to slow down our transmission rate on a given I/O source
+ * in the hope it will avoid congestion on the other side, if it cannot cope
+ * correctly with all the incoming traffic we're sending.
+ *
+ * Application code uses bio_add_penalty() and bio_remove_penalty() to control
+ * the amount of penalty being used.
+ */
+uint8
+bio_penalty(const bio_source_t *bio)
+{
+	bio_check(bio);
+
+	return bio->bw_penalty_factor;
+}
+
+/**
+ * Set b/w cap for I/O source: the max amount of data we can write per second.
+ *
+ * @param bio	the I/O source
+ * @param cap	the b/w cap, 0 meaning none
+ *
+ * @return the actual cap registered
+ */
+uint32
+bio_set_cap(bio_source_t *bio, uint32 cap)
+{
+	bio_check(bio);
+
+	if (cap != 0 && cap < BW_SLOT_MIN)
+		cap = BW_SLOT_MIN;
+
+	return bio->bw_cap = cap;
 }
 
 /**
@@ -2838,7 +2977,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 			int64_to_string3(bs->count ? bs->bw_max / bs->count : 0),
 			int64_to_string4(
 				bs->count ? (bs->bw_max + bs->bw_capped) / bs->count : 0),
-			int64_to_string5(bs->bw_per_second), bs->count, plural(bs->count),
+			int64_to_string5(bs->bw_per_second), PLURAL(bs->count),
 			bs->bw_actual * 1000.0 / delay);
 	}
 
@@ -3005,7 +3144,7 @@ bsched_stealbeat(bsched_t *bs)
 				g_debug("BSCHED %s: \"%s\" giving %s bytes to \"%s\" "
 					"(%d favour%s)",
 					G_STRFUNC, bs->name, int64_to_string((int64) amount),
-					xbs->name, xbs->io_favours, plural(xbs->io_favours));
+					xbs->name, PLURAL(xbs->io_favours));
 		}
 	} else if (all_used_count == 0) {
 		PSLIST_FOREACH(bs->stealers, l) {

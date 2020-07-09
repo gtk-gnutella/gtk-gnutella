@@ -57,6 +57,8 @@
 #include "tm.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool debugging, pid_only;
 

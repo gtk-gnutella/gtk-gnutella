@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -42,7 +42,6 @@
 #include "progname.h"
 
 #include "iovec.h"
-#include "malloc.h"				/* For real_malloc() */
 #include "mem.h"
 #include "misc.h"				/* For is_strcasesuffix() */
 #include "mutex.h"
@@ -89,11 +88,26 @@ progstart(int argc, char * const *argv)
 
 	g_return_unless(NULL == progname_argv);	/* Should be called once only! */
 
+#ifdef MINGW32
+	mingw_early_init();			/* Must be done as early as possible! */
+#endif	/* MINGW32 */
+
+	thread_main_starting();		/* We are now certain we're the main thread */
+
 	progname_argc = argc;
 	progname_argv = deconstify_pointer(argv);
 
 	progname_info.name = filepath_basename(argv[0]);
 	tm_current_time(&progname_info.start);
+
+#ifdef TRACK_MALLOC
+	/*
+	 * When using TRACK_MALLOC, this needs to be done early to configure
+	 * the tracking hash tables.
+	 */
+
+	malloc_init_tracking();
+#endif
 
 	/*
 	 * Ensure we have a valid product name configured, otherwise use
@@ -109,10 +123,6 @@ progstart(int argc, char * const *argv)
 
 	if (NULL == product_name())
 		product_set_forced_name(progname_info.name);
-
-#ifdef MINGW32
-	mingw_early_init();
-#endif	/* MINGW32 */
 
 	/*
 	 * Because fd_preserve() can allocate memory and we are going to call

@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -194,8 +194,6 @@ arc4_getword(struct arc4_stream *as)
 	return (val);
 }
 
-#ifndef HAS_ARC4RANDOM
-
 static spinlock_t arc4_lck = SPINLOCK_INIT;
 
 #define ARC4_LOCK		spinlock_hidden(&arc4_lck)
@@ -278,16 +276,6 @@ arc4random64(void)
 
 	return UINT64_VALUE(hi, lo);
 }
-#else
-/**
- * @return 64-bit random number.
- */
-uint64
-arc4random64(void)
-{
-	return UINT64_VALUE(arc4random(), arc4random());
-}
-#endif	/* !HAS_ARC4RANDOM */
 
 /**
  * Perform random initialization if not already done.

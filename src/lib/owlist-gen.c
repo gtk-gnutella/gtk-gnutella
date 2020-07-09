@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -888,7 +888,7 @@ OWLIST_sort_with_data(OWLIST_T *list, cmp_data_fn_t cmp, void *data)
 void
 OWLIST_sort(OWLIST_T *list, cmp_fn_t cmp)
 {
-	OWLIST_sort_internal(list, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_sort_internal(list, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -972,7 +972,8 @@ OWLIST_insert_sorted_with_data(OWLIST_T *list, void *item,
 void
 OWLIST_insert_sorted(OWLIST_T *list, void *item, cmp_fn_t cmp)
 {
-	OWLIST_insert_sorted_internal(list, item, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_insert_sorted_internal(
+		list, item, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

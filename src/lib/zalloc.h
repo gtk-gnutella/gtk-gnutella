@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -136,6 +136,10 @@ void *zalloc_track(zone_t *z, const char *file, int line);
 
 #if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
 void zalloc_shift_pointer(const void *allocated, const void *used);
+#endif
+
+#if defined(TRACK_MALLOC) && !defined(REMAP_ZALLOC)
+bool zalloc_zone_info(const void *p, size_t *size);
 #endif
 
 #endif /* _zalloc_h_ */

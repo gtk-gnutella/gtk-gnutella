@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -483,6 +483,44 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 	}
 
 	return HTTP_RANGE(hri);
+}
+
+/**
+ * Iterate along all the ranges (ordered by increasing starting point)
+ * overlapping with the specified boundaries.
+ *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
+ * @param hrs		the HTTP range set
+ * @param start		start of HTTP range
+ * @param end		end (last byte) of HTTP range
+ * @param r			previous return, NULL if starting iteration
+ *
+ * @return next HTTP range if a match is found, NULL if no more overlapping range.
+ */
+const http_range_t *
+http_rangeset_lookup_over(const http_rangeset_t *hrs,
+	filesize_t start, filesize_t end, const http_range_t *r)
+{
+	const http_range_t *rn;
+
+	http_rangeset_check(hrs);
+
+	if (NULL == r)
+		return http_rangeset_lookup_first(hrs, start, end);
+
+	rn = http_range_next(hrs, r);
+
+	if (NULL == rn)
+		return NULL;
+
+	if (rn->start > end)
+		return NULL;
+
+	return rn;
 }
 
 /**
@@ -980,6 +1018,11 @@ http_range_first(const http_rangeset_t *hrs)
 /**
  * Continue iteration over the list of HTTP ranges.
  *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
  * @param hrs		the HTTP range set
  * @param r			the previous HTTP range iterated over
  *
@@ -994,6 +1037,7 @@ http_range_next(const http_rangeset_t *hrs, const http_range_t *r)
 
 	http_rangeset_check(hrs);
 
+	/* Ensure that the `r' they gave us is really our internal structure */
 	hitem = (const struct http_range_item *) r;
 	http_range_item_check(hitem);
 

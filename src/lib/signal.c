@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -197,7 +197,10 @@ static signal_cleanup_t sig_cleanup[SIGNAL_CLEANUP];
 static unsigned sig_cleanup_count;
 static spinlock_t sig_cleanup_slk = SPINLOCK_INIT;
 
-static mutex_t signal_lock = MUTEX_INIT;
+static mutex_t signal_mtx = MUTEX_INIT;
+
+#define SIGNAL_LOCK		mutex_lock(&signal_mtx);
+#define SIGNAL_UNLOCK	mutex_unlock(&signal_mtx);
 
 /**
  * Various "undefined" values for the PC register number.
@@ -330,6 +333,7 @@ signal_name(int signo)
 {
 	buf_t *b, bs;
 	unsigned i;
+	const char *data;		/* Necessary to avoid gcc-10 warnings */
 
 	/*
 	 * Look in the cache first.
@@ -364,8 +368,10 @@ signal_name(int signo)
 	if (signal_in_unsafe_handler()) {
 		static char sig_buf[32];	/* Do not allocate memory in handler */
 		b = buf_init(&bs, ARYLEN(sig_buf));
+		data = sig_buf;
 	} else {
 		b = buf_private(G_STRFUNC, 32);
+		data = buf_data(b);
 	}
 
 	if (signo < SIG_COUNT && !is_strprefix(signal_names[signo], "NUM")) {
@@ -374,7 +380,7 @@ signal_name(int signo)
 		buf_printf(b, "signal #%d", signo);
 	}
 
-	return buf_data(b);
+	return data;
 }
 
 /**
@@ -422,14 +428,14 @@ signal_cleanup_add(signal_cleanup_t cleanup)
 
 		/* Skip SIGZERO, this is not a real signal */
 
-		mutex_lock(&signal_lock);
+		SIGNAL_LOCK;
 
 		for (i = 1; i < SIGNAL_COUNT; i++) {
 			if (SIG_DFL == signal_handler[i] && signal_is_fatal(i))
 				signal_set(i, signal_uncaught);
 		}
 
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
 	}
 }
 
@@ -452,9 +458,9 @@ signal_perform_cleanup(void)
 {
 	static spinlock_t cleanup_slk = SPINLOCK_INIT;
 	bool locked;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -525,9 +531,13 @@ sig_compute_pc_index(void)
 	 * The instruction causing the SIGSEGV should be near the top of the
 	 * routine to make sure we can identify which register was holding
 	 * the faulting PC.
+	 *
+	 * The volatile cast is to make sure no compiler will ever attempt to
+	 * optimize away this memory assignment, which would lead to a crash
+	 * here by falling into g_assert_not_reached().
 	 */
 
-	*p = 1;						/* We expect this to raise a SIGSEGV */
+	*(int volatile *) p = 1;	/* We expect this to raise a SIGSEGV */
 	g_assert_not_reached();
 }
 
@@ -844,8 +854,7 @@ signal_uncaught(int signo)
 
 	if (0 != atomic_uint_get(&sig_cleanup_count)) {
 		s_miniwarn("%s(%s): running %u cleanup handler%s",
-			G_STRFUNC, signal_name(signo), sig_cleanup_count,
-			plural(sig_cleanup_count));
+			G_STRFUNC, signal_name(signo), PLURAL(sig_cleanup_count));
 
 		signal_perform_cleanup();
 	}
@@ -866,7 +875,7 @@ signal_uncaught(int signo)
 		|| SIGBUS == signo
 #endif
 	) {
-		mutex_lock(&signal_lock);
+		SIGNAL_LOCK;
 		signal_catch_segv = FALSE;
 	}
 
@@ -879,7 +888,41 @@ signal_uncaught(int signo)
 		|| SIGBUS == signo
 #endif
 	)
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
+
+	/*
+	 * If the signal is harmful, dump a stack trace because the crash handler
+	 * will not be doing it and this is our last chance before raise() kills us!
+	 *
+	 * Of course, depending on the reason that led us into here, we may not be
+	 * able to do much, but the data we collect is precious.  We do that in
+	 * incremental steps, leaving riskier operations for later.
+	 *
+	 * 		--RAM, 2020-04-10
+	 */
+
+	if (signal_is_fatal(signo)) {
+		static void *stack[STACKTRACE_DEPTH_MAX];
+		size_t count;
+
+		s_rawcrit("%s(): used default handler for %s, dumping stack:",
+			G_STRFUNC, signal_name(signo));
+
+		s_rawinfo("%s(): attempting dump of decorated stack:", G_STRFUNC);
+
+		/*
+		 * Last chance, this will allocate memory so, as we are about to crash,
+		 * avoid any verbose warning about allocation from a signal handler!
+		 */
+
+		ZERO(&in_signal_handler);		/* Silence warnings */
+
+		count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
+		stacktrace_stack_print_decorated(STDERR_FILENO, 0, stack, count,
+			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE | STACKTRACE_F_MAIN_STOP);
+
+		s_rawinfo("%s(): end of line.", G_STRFUNC);	/* Last message emitted */
+	}
 
 	raise(signo);
 }
@@ -894,7 +937,7 @@ signal_uncaught(int signo)
 static void
 signal_thread_init(void)
 {
-	mutex_lock(&signal_lock);
+	SIGNAL_LOCK;
 
 	/*
 	 * Going through signal_set() ensures we'll properly use sigaction()
@@ -916,7 +959,7 @@ signal_thread_init(void)
 #endif
 
 	signal_catch_segv = TRUE;
-	mutex_unlock(&signal_lock);
+	SIGNAL_UNLOCK;
 }
 #endif	/* HAS_SIGALTSTACK */
 
@@ -1030,6 +1073,7 @@ signal_trampoline(int signo)
 	g_assert(signo > 0 && signo < SIGNAL_COUNT);
 
 	in_syscall = thread_was_in_syscall(&id);
+	atomic_mb();		/* In case locks were disabled */
 	handler = signal_handler[signo];
 
 	g_soft_assert_log(handler != SIG_DFL && handler != SIG_IGN,
@@ -1422,7 +1466,8 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	if G_UNLIKELY(!ONCE_DONE(signal_inited))
 		signal_init();
 
-	mutex_lock(&signal_lock);
+	SIGNAL_LOCK;
+	atomic_mb();	/* In case locks have been disabled and are pass-through */
 	old_handler = signal_handler[signo];
 
 	g_assert(old_handler != SIG_ERR);
@@ -1552,7 +1597,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 		ret = sigaction(signo, &sa, &osa) ? SIG_ERR :
 #ifdef SA_SIGINFO
 			(osa.sa_flags & SA_SIGINFO) ?
-				(signal_handler_t) osa.sa_sigaction : osa.sa_handler
+				func_cast(signal_handler_t, osa.sa_sigaction) : osa.sa_handler
 #else
 			osa.sa_handler
 #endif
@@ -1564,12 +1609,27 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 #endif	/* HAS_SIGACTION */
 
 	if (SIG_ERR == ret) {
-		mutex_unlock(&signal_lock);
+		SIGNAL_UNLOCK;
 		return ret;
 	}
 
 	signal_handler[signo] = handler;
-	mutex_unlock(&signal_lock);
+	SIGNAL_UNLOCK;
+	atomic_mb();	/* In case locks have been disabled and are pass-through */
+
+	/*
+	 * If we are in the middle of a signal handling (e.g. SIGSEGV), the
+	 * kernel will have reset the handler to SIG_DFL before dispatching
+	 * the signal handling routine.
+	 *
+	 * Therefore, whenver the kernel returns a different handler from
+	 * the one we had configured and know about, force our handler!
+	 *
+	 * 		--RAM, 2020-04-11
+	 */
+
+	if G_UNLIKELY(ret != old_handler)
+		ret = old_handler;
 
 	/*
 	 * Hide our internal signal_uncaught() handler which is only installed
@@ -1578,9 +1638,9 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 	 */
 
 	if (signal_uncaught == old_handler)
-		old_handler = SIG_DFL;
+		ret = SIG_DFL;
 
-	return (SIG_DFL == ret || SIG_IGN == ret) ? ret : old_handler;
+	return ret;
 }
 
 /**

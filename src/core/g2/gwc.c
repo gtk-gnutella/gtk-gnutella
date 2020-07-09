@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -356,7 +356,7 @@ retry:
 	} else {
 		if (GNET_PROPERTY(bootstrap_debug)) {
 			g_debug("%s(): loaded %u URL%s from \"%s/%s\"",
-				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
+				G_STRFUNC, PLURAL(added), fpv[idx].dir, fpv[idx].name);
 		}
 	}
 }
@@ -789,7 +789,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_message("BOOT got %d host%s from GWC %s",
-			ctx->processed, plural(ctx->processed), gwc_current_url);
+			PLURAL(ctx->processed), gwc_current_url);
 
 	/*
 	 * If we did not get enough addresses, try to feed the cache with ours.

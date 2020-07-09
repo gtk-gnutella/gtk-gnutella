@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -591,6 +591,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr "サーバントが停止します"
 
+msgid "Already connected"
+msgstr "既に接続しています"
+
 msgid "Not a network member"
 msgstr "ネットワークのメンバーではありません"
 
@@ -654,9 +657,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr "擬似DHTピア"
-
-msgid "Already connected"
-msgstr "既に接続しています"
 
 msgid "Limited connection"
 msgstr "制限接続"
@@ -798,6 +798,9 @@ msgstr ""
 msgid "Bad Request"
 msgstr ""
 
+msgid "Library being rebuilt"
+msgstr ""
+
 msgid "Header too large"
 msgstr ""
 
@@ -823,9 +826,6 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
-msgstr ""
-
-msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -1134,6 +1134,9 @@ msgstr "受信した偽のOOBヒット要求"
 
 msgid "Unrequested OOB hits received"
 msgstr "リクエストしていないOOBヒットの受信数"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr ""
@@ -4996,6 +4999,15 @@ msgstr "受信した検索クエリーの数を表示するかどうかを選択
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "DHT ユーザー参照キューのデバッグレベルです。"
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -6264,6 +6276,9 @@ msgstr "仏領ワリス・フツナ諸島"
 msgid "Samoa"
 msgstr "サモア独立国"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "イエメン共和国"
 
@@ -6316,6 +6331,8 @@ msgstr ""
 msgid "%us"
 msgstr ""
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "ja"
 
@@ -9000,6 +9017,14 @@ msgstr "クリップボードへコピー"
 msgid "_Remove filter"
 msgstr "フィルターを削除(_R)"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"このプロダクトは MaxMind が作成した GeoIP データを含んでいます。\n"
+"http://maxmind.com/ から取得できます。"
+
 msgid "_Close"
 msgstr "閉じる(_C)"
 
@@ -9770,8 +9795,8 @@ msgstr ""
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR: %s %s #%u"
 
 msgid "stalled"

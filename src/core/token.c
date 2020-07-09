@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -62,70 +62,6 @@
  * Keys are generated through "od -x /dev/random".
  * There can be up to 2^5 = 32 keys per version.
  */
-
-static const char *keys_100_0[] = {
-	"b6e8 a799 db61 cbe8 ce60 1438 a3c0 31ab",
-	"6f8c 91be f9df b352 cce4 a837 ce3b 73a2",
-	"2c61 cb7b e7c7 613f b020 17ac cad1 899f",
-	"bda1 e42e 8d26 f98a bb37 8b3a fe33 9de2",
-	"612a 8eea af18 3792 aec1 42dd d242 53c7",
-	"7ebf 027a c5a3 8cf2 19d7 17ae 1ac3 4d48",
-	"de52 5dc9 1130 059e a7e3 5994 bd17 99a4",
-	"f27e 75d7 b23f 20b7 ba72 bde7 6b05 6513",
-	"377f 9f2a 049e 8410 57fb edf9 e67e 80e0",
-	"48cc 202c eaf1 a7eb 0ae9 d2b1 1f40 a333",
-	"05b4 e02f 8369 8712 e31a 3a2f 8f9b 8a65",
-	"0290 e4a5 bcb8 795e 31e7 5cd3 e73a 3a0b",
-	"7781 c375 0d49 d4d5 175a 7c69 fcf6 d345",
-	"c2be 1fb2 1056 6ea7 0299 d8f7 8cfa bdd8",
-	"91b1 e043 eb64 4ed4 b195 0967 623c 5532",
-	"cf11 65f8 2688 9e26 b0b4 c75a 2eec 4ca9",
-	"e9a3 ec87 e160 2783 0de9 df46 b1b5 952f",
-	"ce27 deba 3d8b a62f 1940 77b7 4a54 e281",
-	"30ac 305f 1ec6 cf78 8e76 d47b 4a1b d291",
-	"4b4e 899d c18c 4b71 c621 a6e3 6740 4993",
-	"0094 fcab 5cd6 5b5f 91e9 9829 5fdd 930b",
-	"3d6f 2ec5 f111 f18b fe59 1aa8 7cd6 b444",
-	"b88f 9d67 d687 3355 0ada 0631 3b6d 6a3d",
-	"41f2 d33f d88a f371 6c11 feaa 83c2 f964",
-	"a525 93a8 ade7 49fa 3e76 bcf2 ccc8 f043",
-	"df6d b945 a6ff 14f6 2963 1795 ea92 266d",
-	"7271 5313 f59d f0da 343d b348 2089 c717",
-	"0ce6 7dd0 5a41 7f37 a7fd 1a81 c77e 2f89",
-	"c14b 2928 a554 d0db d921 45ce 91b7 7dd8",
-};
-
-static const char *keys_100_1[] = {
-	"d8d4 9d20 bfdb b0c4 16a0 5295 be08 1b85",
-	"0644 874b 1c69 38e6 4d9a aef7 6290 ca51",
-	"32ca 7a16 e87c ae50 43cd b55f e8df 55de",
-	"769e 0046 b99a 1377 b955 8969 f643 9169",
-	"6f17 f2fa cec5 8276 9ac0 04bc c834 d339",
-	"4e81 3e42 ff1f 9d55 b201 a3eb a521 3ea9",
-	"319f c22f 1a55 9e8c 646c 6275 0beb 166b",
-	"2907 4301 9ea6 bb77 ad8e 1772 e0e0 67b7",
-	"0a65 44ed 2016 5889 39d1 93f7 c998 fdf8",
-	"291f f564 1853 eb1d c242 6918 361d 56c1",
-	"69fe 41b6 cf04 0e28 2d7e 1d1b be21 a88e",
-	"0819 a7e0 f5c6 c596 0524 d826 3e39 8e12",
-	"bd56 2ece ca17 966f 4bcc 34c9 770d 0227",
-	"44b8 2e27 fba9 88c5 a693 1f6d 7219 7dd4",
-	"5ab2 1203 ac8e a0e8 d493 27c1 9da8 f6ff",
-	"1aab 5cdb a0ea 3a04 9c7a c72b 00c8 0ba9",
-	"9fc8 0038 a170 b822 3e9c a53f 1eb2 4f44",
-	"bd8c 2065 f363 ccdb 5976 36b5 0066 e02c",
-	"07df 6ea9 4b11 3fe2 138a 89d7 6439 457d",
-	"363c 5617 e66b 2a99 a33e f868 e694 9bd3",
-	"8cb4 7d83 8e67 55f8 8890 2762 f374 951d",
-	"99d6 00ef ec4d 8f80 5fb0 71c3 8967 c64e",
-	"26f0 b2cc bff1 8ea8 f39d 5cd8 4873 adce",
-	"953c 3fb1 4f9c 6390 9657 1596 2a31 e287",
-	"c596 de71 7e6e a5a6 7727 6db4 90f8 338f",
-	"8d33 5aa8 36ec 8117 e0fb c02e 296b a65a",
-	"c40a 619a b29d d17e 6100 e982 4dca 364e",
-	"75e4 4d2d 3533 d462 6846 52be d9d7 c12d",
-	"c831 6dc0 2434 f793 4ae2 ba68 37c6 ae9c",
-};
 
 static const char *keys_101_0[] = {
 	"0e52 1f9e 9175 3956 c50c ea12 2c04 8571",
@@ -628,6 +564,38 @@ static const char *keys_101_15[] = {
 	"d524 983c 9f60 1ce8 804c 88b3 d902 0dfe",
 };
 
+static const char *keys_120_0[] = {
+	"dc29 762a 977d b0d4 3cb7 71ea f633 0a29",
+	"b7dd aef2 d529 3a75 fb9e 8c7b c9e1 7f6a",
+	"a66d 0b92 db02 45fd 1cf2 b007 6cd4 ec9f",
+	"0021 3e20 4a0b b354 8f72 9178 9791 b695",
+	"72f6 eb92 cd15 2da9 a668 19f2 6d1c 629b",
+	"bd8e a0cc 2774 b95b 5cbf 8d83 d706 e838",
+	"7dfd bb93 702b 0994 acdc b90e ac93 31ef",
+	"35b5 b048 633e 2b18 1021 ef92 39a2 8f6a",
+	"e46b be05 3824 85f9 8170 49a4 895b c04a",
+	"a19d d800 7a1a 34fc 8234 b459 adff a328",
+	"4930 f2bd e472 4b50 f4b5 a898 484b 5d69",
+	"a6b4 558e 685c a7ef bad4 ceed f978 21cb",
+	"1864 c9bd 4323 a8bd 4416 e990 5b40 4ccf",
+	"f223 5c7c 8d2a 9fd6 fa44 3cde 2e2e 9abe",
+	"b90d 7d30 b2ae 432f dba2 0c12 5514 502c",
+	"dec0 5b46 35e6 23e4 4026 93fb 3581 0f62",
+	"f600 501f 516d e575 1b60 ab2d 404b 0ce9",
+	"45c4 7333 f5e4 1853 0668 c6da ff04 db74",
+	"934d 638d edd5 deed 4850 1825 369c 3e9d",
+	"da16 280b 3093 0a67 aae7 fe12 0b27 dd86",
+	"68cc 42a9 126e fe35 b85e a08d 8b0f 2f9c",
+	"db65 38ba 29dc d2d4 be2a 3d0f 1aff d0a8",
+	"27ee 6ce1 235b 42bd 7a2e fd88 9237 9b00",
+	"4799 11ba 373f effa 6b6b ceb0 6da9 b551",
+	"5dd3 104c a1d0 7b4d 84d6 61a2 9cbd ac39",
+	"fe0e b10d f9c8 fbcb e27b 5542 d89e 9d98",
+	"bfde 09f2 e83a 9eb5 9e15 6978 207d e69e",
+	"a412 e334 288c 1f0f 52cb 0aad b816 2972",
+	"5be0 7069 6266 7905 5bba 101c e96a d403",
+};
+
 #define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
@@ -639,8 +607,6 @@ struct tokkey {
 	uint count;			/**< Amount of keys defined */
 } token_keys[] = {
 	/* maj min PL  tag lvl #  timestamp     key array          ISO date   */
-	{ { 1, 0,  0, '\0', 0, 0, 1377986400 }, KEYS(100_0) },	/* 2013-09-01 */
-	{ { 1, 0,  1, '\0', 0, 0, 1388444400 }, KEYS(100_1) },	/* 2013-12-31 */
 	{ { 1, 1,  0, '\0', 0, 0, 1404252000 }, KEYS(101_0) },	/* 2014-07-02 */
 	{ { 1, 1,  1, '\0', 0, 0, 1409608800 }, KEYS(101_1) },	/* 2014-09-02 */
 	{ { 1, 1,  2, '\0', 0, 0, 1426892400 }, KEYS(101_2) },	/* 2015-03-21 */
@@ -657,6 +623,7 @@ struct tokkey {
 	{ { 1, 1, 13, '\0', 0, 0, 1508623200 }, KEYS(101_13) },	/* 2017-10-22 */
 	{ { 1, 1, 14, '\0', 0, 0, 1538604000 }, KEYS(101_14) },	/* 2018-10-04 */
 	{ { 1, 1, 15, '\0', 0, 0, 1563055200 }, KEYS(101_15) },	/* 2019-07-14 */
+	{ { 1, 2,  0, '\0', 0, 0, 1594245600 }, KEYS(120_0) },	/* 2020-07-09 */
 };
 
 #undef KEYS

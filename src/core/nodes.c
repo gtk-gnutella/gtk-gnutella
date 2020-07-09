@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -200,6 +200,7 @@
 #define UDP_CRAWLER_FREQ		120		/**< once every 2 minutes */
 
 #define NODE_CONN_FAILED_FREQ	900		/**< once every 15 minutes */
+#define NODE_CONN_ATTEMPT_FREQ	300		/**< once every 5 minutes */
 
 #define NODE_FW_CHECK			1200	/**< 20 minutes */
 #define NODE_IPP_NEIGHBOURS		8U		/**< # of neighbouring UPs to select */
@@ -260,9 +261,6 @@ static htable_t *ht_connected_nodes   = NULL;
 static uint32 total_nodes_connected;
 static uint32 total_g2_nodes_connected;
 
-static void *no_metadata;
-#define NO_METADATA		(no_metadata)	/**< No metadata for host */
-
 static htable_t *unstable_servent = NULL;
 static pslist_t *unstable_servents = NULL;
 
@@ -270,6 +268,7 @@ static aging_table_t *tcp_crawls;
 static aging_table_t *udp_crawls;
 
 static aging_table_t *node_connect_failures;
+static aging_table_t *node_connect_attempts;
 
 typedef struct node_bad_client {
 	const char *vendor;
@@ -574,38 +573,45 @@ node_tsync_tcp(gnutella_node_t *n)
 static bool
 node_ht_connected_nodes_has(const host_addr_t addr, uint16 port)
 {
-	gnet_host_t  host;
+	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
 	return NULL != htable_lookup(ht_connected_nodes, &host);
 }
 
 /**
- * Check whether we already have the host.
+ * Check whether we already have the node.
  *
- * @return the original host structure at this IP:port, or NULL if unknown.
+ * @return the original node structure for the IP:port, NULL if none found.
  */
-static gnet_host_t *
-node_ht_connected_nodes_find(const host_addr_t addr, uint16 port)
+static const gnutella_node_t *
+node_ht_connected_nodes_find(const gnutella_node_t *n)
 {
 	gnet_host_t host;
     bool found;
-    const void *orig_host;
+    void *orig_n;
 
-	gnet_host_set(&host, addr, port);
-	found = htable_lookup_extended(ht_connected_nodes, &host, &orig_host, NULL);
+	gnet_host_set(&host, n->addr, n->gnet_port);
+	found = htable_lookup_extended(ht_connected_nodes, &host, NULL, &orig_n);
 
-    return found ? deconstify_pointer(orig_host) : NULL;
+    return found ? orig_n : NULL;
 }
 
 /**
- * Add host to the hash table host cache.
+ * Register that we are connected to a node, at its address and Gnutella port.
+ *
+ * If another node is registered for that (addr, gnet_port) tuple, do nothing.
+ * The rationale is that we shall detect that the (new) node we are trying to
+ * register is actually a duplicate connection.
  */
 static void
 node_ht_connected_nodes_add(const gnutella_node_t *n)
 {
-	const host_addr_t addr = n->gnet_addr;
+	const host_addr_t addr = n->addr;
 	const uint16 port = n->gnet_port;
+
+	if (GNET_PROPERTY(node_debug) > 1)
+		g_debug("%s(): %s", G_STRFUNC, host_addr_port_to_string(addr, port));
 
 	/* This is done unconditionally, whether we add host to table or not */
 	if (NODE_TALKS_G2(n)) {
@@ -617,22 +623,34 @@ node_ht_connected_nodes_add(const gnutella_node_t *n)
 	if (node_ht_connected_nodes_has(addr, port))
 		return;
 
-	htable_insert(ht_connected_nodes, gnet_host_new(addr, port), NO_METADATA);
+	htable_insert_const(ht_connected_nodes, gnet_host_new(addr, port), n);
 }
 
 /**
- * Remove host from the hash table host cache.
+ * Remove host from the hash table host cache if it was that node which was
+ * registered for the address and Gnutella port.
  */
 static void
 node_ht_connected_nodes_remove(const gnutella_node_t *n)
 {
-    gnet_host_t *orig_host;
+	gnet_host_t host;
+	const void *orig_host;
+	void *orig_n;
+    bool found;
 
-    orig_host = node_ht_connected_nodes_find(n->gnet_addr, n->gnet_port);
+	gnet_host_set(&host, n->addr, n->gnet_port);
+	found = htable_lookup_extended(ht_connected_nodes,
+				&host, &orig_host, &orig_n);
 
-    if (orig_host) {
+	if (GNET_PROPERTY(node_debug) > 1) {
+		g_debug("%s(): %s (%s, %s)", G_STRFUNC,
+			host_addr_port_to_string(n->addr, n->gnet_port),
+		found ? "present" : "MISSING", orig_n == n ? "same" : "DIFFERS");
+	}
+
+    if (found && orig_n == n) {
 		htable_remove(ht_connected_nodes, orig_host);
-		gnet_host_free(orig_host);
+		gnet_host_free(deconstify_pointer(orig_host));
 	}
 
 	/* This is done unconditionally, whether host was in table or not */
@@ -920,6 +938,7 @@ node_record_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
+	aging_remove(node_connect_attempts, &host);
 	aging_record(node_connect_failures, atom_host_get(&host));
 }
 
@@ -933,10 +952,33 @@ node_had_recent_connect_failure(const host_addr_t addr, uint16 port)
 	gnet_host_t host;
 
 	gnet_host_set(&host, addr, port);
-
 	return NULL != aging_lookup(node_connect_failures, &host);
 }
 
+/**
+ * Register connection attempt to given IP:port.
+ */
+static void
+node_record_connect_attempt(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	aging_record(node_connect_attempts, atom_host_get(&host));
+}
+
+/**
+ * Check whether IP:port is that of a host to which we recently attempted
+ * to connect.
+ */
+static bool
+node_had_recent_connect_attempt(const host_addr_t addr, uint16 port)
+{
+	gnet_host_t host;
+
+	gnet_host_set(&host, addr, port);
+	return NULL != aging_lookup(node_connect_attempts, &host);
+}
 /**
  * Low frequency node timer.
  */
@@ -973,7 +1015,7 @@ node_slow_timer(time_t now)
 
 		if (GNET_PROPERTY(fw_debug) > 2) {
 			g_debug("FW: found %u ultra node%s to send connect-back messages",
-				count, plural(count));
+				PLURAL(count));
 		}
 
 		if (count > 0) {
@@ -1487,8 +1529,7 @@ node_timer(time_t now)
                     hcache_add(HCACHE_TIMEOUT, n->addr, 0,
                         "activity timeout");
 					node_bye_if_writable(n, 405, "Activity timeout (%d sec%s)",
-						GNET_PROPERTY(node_connected_timeout),
-						plural(GNET_PROPERTY(node_connected_timeout)));
+						PLURAL(GNET_PROPERTY(node_connected_timeout)));
 					continue;
 				} else if (
 					NODE_IN_TX_FLOW_CONTROL(n) &&
@@ -1501,8 +1542,7 @@ node_timer(time_t now)
                     hcache_add(HCACHE_UNSTABLE, n->addr, 0,
                         "flow-controlled too long");
 					node_bye(n, 405, "Flow-controlled for too long (%d sec%s)",
-						GNET_PROPERTY(node_tx_flowc_timeout),
-						plural(GNET_PROPERTY(node_tx_flowc_timeout)));
+						PLURAL(GNET_PROPERTY(node_tx_flowc_timeout)));
 					continue;
 				}
 			}
@@ -1522,7 +1562,9 @@ node_timer(time_t now)
 			if (n->n_weird >= MAX_WEIRD_MSG) {
 				g_message("removing %s due to security violation",
 					node_infostr(n));
-				ban_record(n->addr,
+				ban_record(BAN_CAT_GNUTELLA, n->addr,
+					"IP with Gnutella security violations");
+				ban_record(BAN_CAT_HTTP, n->addr,
 					"IP with Gnutella security violations");
 				hostiles_dynamic_add(n->addr, "Gnutella security violations",
 					HSTL_WEIRD_MSG);
@@ -1741,7 +1783,6 @@ node_init(void)
 
 	STATIC_ASSERT(23 == sizeof(gnutella_header_t));
 
-	no_metadata = deconstify_pointer(vmm_trap_page());
 	rxbuf_init();
 	proxies = pproxy_set_allocate(0);
 
@@ -1802,6 +1843,17 @@ node_init(void)
 	 */
 
 	node_connect_failures = aging_make(NODE_CONN_FAILED_FREQ,
+		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
+
+	/*
+	 * Avoid too frequent connections to a given IP:port.
+	 *
+	 * We are starting to ban hosts that connect to us too frequently, we
+	 * therefore need to be examplary and abide by our rules.
+	 * 		--RAM, 2020-07-03
+	 */
+
+	node_connect_attempts = aging_make(NODE_CONN_ATTEMPT_FREQ,
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 
 	/*
@@ -2107,11 +2159,9 @@ node_type_count_dec(const gnutella_node_t *n)
 static gnutella_node_t *
 node_alloc(void)
 {
-	static const gnutella_node_t zero_node;
 	gnutella_node_t *n;
 
-	WALLOC(n);
-	*n = zero_node;
+	WALLOC0(n);
 	n->magic = NODE_MAGIC;
 	return n;
 }
@@ -2295,10 +2345,10 @@ node_remove_v(gnutella_node_t *n, const char *reason, va_list ap)
 		n->sent_query_table = NULL;
 	}
 	if (n->qrt_info) {
-		WFREE_NULL(n->qrt_info, sizeof *n->qrt_info);
+		WFREE_TYPE_NULL(n->qrt_info);
 	}
 	if (n->rxfc) {
-		WFREE_NULL(n->rxfc, sizeof *n->rxfc);
+		WFREE_TYPE_NULL(n->rxfc);
 	}
 
 	if (n->status == GTA_NODE_SHUTDOWN) {
@@ -3283,6 +3333,18 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
 }
 
 /**
+ * Is this node connected already for same Gnutella IP:port?
+ */
+bool
+node_is_already_connected(const gnutella_node_t *n)
+{
+	const gnutella_node_t *other_n;
+
+	other_n = node_ht_connected_nodes_find(n);
+	return other_n != NULL && n != other_n;
+}
+
+/**
  * Are we directly connected to that host?
  */
 bool
@@ -3633,9 +3695,12 @@ send_error(
 	/*
 	 * Do not send them any pong on 403 and 406 errors, even if GTKG.
 	 * When banning, the error code is 550 and does not warrant pongs either.
+	 *
+	 * Switched to 429 for banning instead of 550, as per RFC6585
+	 * 		--RAM, 2020-06-28
 	 */
 
-	if (code == 403 || code == 406 || code == 550)
+	if (code == 403 || code == 406 || code == 429 || code == 550)
 		pongs = 0;
 
 	/*
@@ -5614,13 +5679,15 @@ purge_host_cache_from_hub_list(const char *s)
     return;
 }
 
-
 /**
  * Compute node's Gnutella address and port based on the supplied
  * handshake headers.
  *
  * The n->gnet_addr and n->gnet_port fields are updated if we are able
  * to get the information out of the headers.
+ *
+ * @param n			the node (incoming connection)
+ * @param header	initial incoming handshaking headers
  *
  * @return TRUE if we were able to intuit an address.
  */
@@ -5641,13 +5708,10 @@ node_intuit_address(gnutella_node_t *n,  header_t *header)
 		uint16 port;
 
 		if (val != NULL && parse_ip_port(val, NULL, &addr, &port)) {
-			if (host_address_is_usable(addr)) {
-				node_ht_connected_nodes_remove(n);
+			if (host_address_is_usable(addr))
 				n->gnet_addr = addr;
-				if (port_is_valid(port))
-					n->gnet_port = port;
-				node_ht_connected_nodes_add(n);
-			} else if (n->gnet_port != port && port_is_valid(port)) {
+			if (n->gnet_port != port && port_is_valid(port)) {
+				/* n->gnet_port is part of the key */
 				node_ht_connected_nodes_remove(n);
 				n->gnet_port = port;
 				node_ht_connected_nodes_add(n);
@@ -5738,7 +5802,7 @@ feed_host_cache_from_headers(header_t *header,
 			if (GNET_PROPERTY(node_debug) > 0) {
 				if (r > 0)
 					g_debug("peer %s sent %u pong%s in %s header (%s)",
-						host_addr_to_string(peer), r, plural(r), name,
+						host_addr_to_string(peer), PLURAL(r), name,
 						host_type_to_string(type));
 				else
 					g_debug("peer %s <%s> sent unparseable %s header: \"%s\"",
@@ -6473,6 +6537,8 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 	/* Node -- remote node Gnet IP/port information */
 
 	if (incoming) {
+		bool already_connected;
+
 		/*
 		 * We parse only for incoming connections.  Even though the remote
 		 * node may reply with such a header to our outgoing connections,
@@ -6496,6 +6562,33 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 			if (host_addr_equiv(n->gnet_addr, n->addr)) {
 				n->gnet_pong_addr = n->addr;	/* Cannot lie about its IP */
 				n->flags |= NODE_F_VALID;
+			}
+
+			/*
+			 * Check for duplicate incoming connection, since this is no longer
+			 * done in node_add_internal() for these connections, so that we
+			 * get to process the port number possibly present in the
+			 * handshaking header.  See node_intuit_address().
+			 * 		--RAM, 2020-07-04
+			 */
+
+			if (port_is_valid(n->gnet_port)) {
+				already_connected = node_is_already_connected(n);
+			} else {
+				already_connected = node_is_connected(n->addr, 0, TRUE);
+			}
+
+			if (already_connected) {
+				if (GNET_PROPERTY(node_debug)) {
+					g_debug("%s(): %s is already connected (%s [%u])",
+						G_STRFUNC, node_infostr(n),
+						host_addr_port_to_string(n->addr, n->port),
+						n->gnet_port);
+				}
+				if ((n->proto_major > 0 || n->proto_minor > 4))
+					node_send_error(n, 409, "Already connected");
+				node_remove(n, _("Already connected"));
+				return;
 			}
 
 			/* FIXME: What about LAN connections? Should we blindly accept
@@ -6718,7 +6811,7 @@ node_process_handshake_header(gnutella_node_t *n, header_t *head)
 		const char *msg = ban_vendor(n->vendor);
 
 		if (msg != NULL) {
-			ban_record(n->socket->addr, msg);
+			ban_record(BAN_CAT_GNUTELLA, n->socket->addr, msg);
 			node_send_error(n, 403, "%s", msg);
 			node_remove(n, "%s", msg);
 			return;
@@ -8545,7 +8638,7 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 	uint16 port, uint32 flags, bool g2)
 {
 	gnutella_node_t *n;
-	bool incoming = FALSE, already_connected = FALSE;
+	bool incoming = FALSE;
 	uint major = 0, minor = 0;
 	bool forced = 0 != (SOCK_F_FORCE & flags);
 
@@ -8592,12 +8685,19 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 
 	/*
 	 * Check whether we have already a connection to this node.
+	 *
+	 * We are now deferring the check for an already connected node
+	 * for incoming connections until we have parsed the first incoming
+	 * handshake header.  See node_process_handshake_header().
+	 * 		--RAM, 2020-07-04
 	 */
 
-	already_connected = node_is_connected(addr, port, incoming);
-
-	if (!incoming && already_connected)
-		return;
+	if (!incoming) {
+		if (node_is_connected(addr, port, FALSE))
+			return;
+		/* Remember connection attempt to avoid hammering */
+		node_record_connect_attempt(addr, port);
+	}
 
 	/*
 	 * Too many GnutellaNet connections?
@@ -8620,14 +8720,12 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
 				>= GNET_PROPERTY(max_connections)
 		)
 	) {
-        if (!already_connected) {
-			if (forced || whitelist_check(addr)) {
-				/* Incoming whitelisted IP, and we're full. Remove one node. */
-				(void) node_remove_worst(FALSE);
-			} else if (GNET_PROPERTY(use_netmasks) && host_is_nearby(addr)) {
-				 /* We are preferring local hosts, remove a non-local node */
-				(void) node_remove_worst(TRUE);
-			}
+		if (forced || whitelist_check(addr)) {
+			/* Incoming whitelisted IP, and we're full. Remove one node. */
+			(void) node_remove_worst(FALSE);
+		} else if (GNET_PROPERTY(use_netmasks) && host_is_nearby(addr)) {
+			 /* We are preferring local hosts, remove a non-local node */
+			(void) node_remove_worst(TRUE);
 		}
 	}
 
@@ -8725,24 +8823,10 @@ node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
     node_fire_node_added(n);
     node_fire_node_flags_changed(n);
 
-	/*
-	 * Insert node in lists, before checking `already_connected', since
-	 * we need everything installed to call node_remove(): we want to
-	 * leave a trail in the GUI.
-	 */
-
 	sl_nodes = pslist_prepend(sl_nodes, n);
 
-	if (n->status != GTA_NODE_REMOVING) {
+	if (n->status != GTA_NODE_REMOVING)
 		node_ht_connected_nodes_add(n);
-	}
-
-	if (already_connected) {
-		if (incoming && (n->proto_major > 0 || n->proto_minor > 4))
-			node_send_error(n, 409, "Already connected");
-		node_remove(n, _("Already connected"));
-		return;
-	}
 
 	if (incoming) {
 		/*
@@ -8804,7 +8888,8 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 		(
 			hostiles_is_bad(addr) ||
 			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port)
+			node_had_recent_connect_failure(addr, port) ||
+			node_had_recent_connect_attempt(addr, port)
 		)
 	)
 		return;
@@ -8826,7 +8911,8 @@ node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 		(
 			hostiles_is_bad(addr) ||
 			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port)
+			node_had_recent_connect_failure(addr, port) ||
+			node_had_recent_connect_attempt(addr, port)
 		)
 	)
 		return;
@@ -10430,7 +10516,7 @@ node_tx_leave_flowc(gnutella_node_t *n)
 		int spent = delta_time(tm_time(), n->tx_flowc_date);
 
 		g_debug("node %s spent %d second%s in TX FLOWC",
-			node_addr(n), spent, plural(spent));
+			node_addr(n), PLURAL(spent));
 	}
 
 	if (NODE_USES_UDP(n)) {
@@ -10806,10 +10892,8 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 					break;
 				if (0 == r)
 					return FALSE;	/* Reached end of buffer */
-				if (n->pos >= NODE_G2_MINLEN) {
-					node_bye(n, 400, "Garbled input stream");
-					return FALSE;
-				}
+				if (n->pos >= NODE_G2_MINLEN)
+					goto garbage;
 			}
 		}
 
@@ -10817,10 +10901,23 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 
 		/*
 		 * Since we have correctly determined the frame length above,
-		 * we cannot have read more bytes than the frame holds!
+		 * we cannot have read (probed, as indicated by the value of `n->pos')
+		 * more bytes than the whole frame is supposed to hold (including the
+		 * header, which was computed in `len')!
+		 *
+		 * We used to assert:
+		 *
+		 *		g_assert(len >= n->pos);
+		 *
+		 * at this point but that was clearly a mistake: if the assumption
+		 * does not hold, it means we are just parsing garbage since the
+		 * computed value does not make any physical sense.
+		 *
+		 * 		--RAM, 2020-04-21
 		 */
 
-		g_assert(len >= n->pos);
+		if G_UNLIKELY(len < n->pos)
+			goto garbage;
 
 		/*
 		 * If the length is 1, we reached an "end of stream" byte.
@@ -10884,6 +10981,16 @@ node_g2_read(gnutella_node_t *n, pmsg_t *mb)
 	n->pos = 0;
 
 	return TRUE;		/* There may be more data */
+
+garbage:
+	if (GNET_PROPERTY(node_debug)) {
+		g_debug("NODE got garbage from %s [TX=%u, RX=%u, %s]",
+			node_infostr(n), n->sent, n->received,
+			compact_time(delta_time(tm_time(), n->connect_date)));
+	}
+
+	node_bye(n, 400, "Garbled input stream");
+	return FALSE;
 }
 
 /**
@@ -11101,8 +11208,7 @@ node_bye_pending(void)
 	if (GNET_PROPERTY(shutdown_debug) > 1) {
 		static time_t last;
 		if (last != tm_time()) {
-			g_debug("SHUTDOWN %d pending BYE message%s",
-				pending_byes, plural(pending_byes));
+			g_debug("SHUTDOWN %d pending BYE message%s", PLURAL(pending_byes));
 			last = tm_time();
 		}
 	}
@@ -11786,6 +11892,7 @@ node_close(void)
 	aging_destroy(&tcp_crawls);
 	aging_destroy(&udp_crawls);
 	aging_destroy(&node_connect_failures);
+	aging_destroy(&node_connect_attempts);
 	pproxy_set_free_null(&proxies);
 	rxbuf_close();
 	node_udp_scheduler_destroy_all();
@@ -12487,8 +12594,9 @@ node_infostr_to_buf(const gnutella_node_t *n, char *dst, size_t size)
 				(NODE_TALKS_G2(n) ? "(G2) " : "(semi-reliable) ") : "",
 			node_addr(n));
 	} else {
-		return str_bprintf(dst, size, "%s node %s <%s>",
-			node_type(n), node_gnet_addr(n), node_vendor(n));
+		return str_bprintf(dst, size, "%s node %s%s <%s>",
+			node_type(n), (n->flags & NODE_F_ALIEN_IP) ? "~" : "",
+			node_gnet_addr(n), node_vendor(n));
 	}
 }
 

@@ -739,7 +739,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	void *array;
 	void *copy;
 
-	str_bprintf(ARYLEN(buf), "%zu item%s of %zu bytes", cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf), "%zu item%s of %zu bytes", PLURAL(cnt), isize);
 
 	array = generate_array(cnt, isize);
 	copy = xcopy(array, cnt * isize);
@@ -747,31 +747,31 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf), "%zu sorted item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+		PLURAL(cnt), isize);
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf),
-		"%zu almost sorted item%s of %zu bytes", cnt, plural(cnt), isize);
+		"%zu almost sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf),
-		"%zu reverse-sorted item%s of %zu bytes", cnt, plural(cnt), isize);
+		"%zu reverse-sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	xsort(array, cnt, isize, get_revcmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf),
-		"%zu almost rev-sorted item%s of %zu bytes", cnt, plural(cnt), isize);
+		"%zu almost rev-sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf),
-		"%zu sorted 3/4-1/4 item%s of %zu bytes", cnt, plural(cnt), isize);
+		"%zu sorted 3/4-1/4 item%s of %zu bytes", PLURAL(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 
@@ -787,7 +787,7 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	run(array, cnt, isize, chrono, loops, buf);
 
 	str_bprintf(ARYLEN(buf),
-		"%zu sorted n-8 item%s of %zu bytes", cnt, plural(cnt), isize);
+		"%zu sorted n-8 item%s of %zu bytes", PLURAL(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 

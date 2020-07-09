@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -724,7 +724,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
 	DO(pproxy_close);
-	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
 	DO(gwc_close);
@@ -932,6 +931,7 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(socket_closedown);
 	DO(upnp_close);
+	DO(http_close);			/* UPnP layer uses HTTP, close UPnP before */
 	DO(ntp_close);
 	DO(gdht_close);
 	DO(sq_close);
@@ -1051,14 +1051,14 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0)) {
 		unsigned n = thread_count() - 1;
 		if (n != 0)
-			g_info("suspending other %u thread%s", n, plural(n));
+			g_info("suspending other %u thread%s", PLURAL(n));
 	}
 
 	{
 		size_t n = thread_suspend_others(FALSE);
 
 		if (debugging(0))
-			g_info("suspended %zu thread%s", n, plural(n));
+			g_info("suspended %zu thread%s", PLURAL(n));
 	}
 
 	/*
@@ -1070,7 +1070,7 @@ gtk_gnutella_exit(int exit_code)
 	 * off the thread element for a while).
 	 */
 
-	DO(file_object_close);
+	DO(file_object_shutdown);
 	DO(settings_close);		/* Must come after hcache_close() */
 	DO(cq_close);
 
@@ -1939,6 +1939,12 @@ handle_compile_info_argument(void)
 	printf("ipv6=disabled\n");
 #endif	/* HAS_IPV6 */
 
+#ifdef USE_MY_MALLOC
+	printf("use_my_malloc=yes\n");
+#else
+	printf("use_my_malloc=no\n");
+#endif	/* HAS_IPV6 */
+
 	printf("largefile-support=%s\n",
 		MAX_INT_VAL(fileoffset_t) > MAX_INT_VAL(guint32) ?
 			"enabled" : "disabled");
@@ -2288,7 +2294,6 @@ main(int argc, char **argv)
 	signal_init();
 	halloc_init(!OPT(no_halloc));
 	malloc_init_vtable();
-	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 

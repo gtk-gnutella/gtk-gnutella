@@ -55,6 +55,8 @@
 #include "thread.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool verbose, reparenting;
 
@@ -516,7 +518,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hivz:X:";
 	int c;
 

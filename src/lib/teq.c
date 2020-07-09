@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -171,6 +171,13 @@ tevent_is_plain(const struct tevent * const tev)
 {
 	return THREAD_EVENT_MAGIC == tev->magic ||
 		THREAD_EVENT_IO_MAGIC == tev->magic;
+}
+
+static inline bool
+tevent_is_io(const struct tevent * const tev)
+{
+	return THREAD_EVENT_IO_MAGIC == tev->magic ||
+		THREAD_EVENT_IRPC_MAGIC == tev->magic;
 }
 
 /**
@@ -362,7 +369,7 @@ teq_destroy(struct teq *teq)
 
 		if (0 != count) {
 			s_warning("%s(): I/O event queue still has %zu pending I/O event%s",
-				G_STRFUNC, count, plural(count));
+				G_STRFUNC, PLURAL(count));
 		}
 
 		while (NULL != (ev = eslist_shift(&teq_io->ioq))) {
@@ -523,16 +530,21 @@ teq_ack(const struct tevent_acked *eva)
 static int
 teq_ev_cmp(const void *a, const void *b)
 {
-	const struct tevent *ea = a, *eb = b;
-	const struct tevent_plain *epa = a, *epb = b;
+	const struct tevent_plain *ea = a, *eb = b;
+
+	/*
+	 * We can compare magic number even if both events are not plain
+	 * because of structural equivalence of all the tevent_* structures:
+	 * they all start with a magic number.
+	 */
 
 	if (ea->magic != eb->magic)
 		return 1;		/* Different */
 
-	g_assert(tevent_is_plain(ea));
-	g_assert(tevent_is_plain(eb));
+	g_assert(tevent_is_plain((struct tevent *) ea));
+	g_assert(tevent_is_plain((struct tevent *) eb));
 
-	return epa->event == epb->event && epa->data == epb->data ? 0 : 1;
+	return ea->event == eb->event && ea->data == eb->data ? 0 : 1;
 }
 
 /**
@@ -547,7 +559,9 @@ teq_ev_cmp(const void *a, const void *b)
 static bool
 teq_put(struct teq *teq, void *ev, bool unique)
 {
+	struct teq_io *teq_io;
 	bool posted = TRUE;
+	eslist_t *q;
 
 	teq_check(teq);
 	tevent_check(ev);
@@ -555,43 +569,58 @@ teq_put(struct teq *teq, void *ev, bool unique)
 	/* We only support "unique" for plain events */
 	g_assert(implies(unique, tevent_is_plain(ev)));
 
-	TEQ_LOCK(teq);
-
-	if G_UNLIKELY(unique && NULL != eslist_find(&teq->queue, ev, teq_ev_cmp))
-		posted = FALSE;
-
-	if (posted)
-		eslist_append(&teq->queue, ev);
-
-	TEQ_UNLOCK(teq);
-
-	if (posted)
-		thread_kill(teq->stid, TSIG_TEQ);
-
-	return posted;
-}
-
-/**
- * Add event to the I/O queue, signalling the I/O event loop.
- */
-static void
-teq_io_enqueue(struct teq *teq, void *ev)
-{
-	struct teq_io *teq_io = TEQ_IO(teq);
-
-	g_assert(teq_io != NULL);	/* If NULL, cast failed so wrong type */
-
-	TEQ_LOCK(teq);
-	eslist_append(&teq_io->ioq, ev);
-	TEQ_UNLOCK(teq);
-
 	/*
-	 * This will trigger an I/O event in the event loop, causing the
-	 * teq_io_callback() to be invoked to process the events inserted
-	 * in the I/O queue.
+	 * If we're posting an I/O event, it has to be sent to an I/O queue.
+	 * This was checked by our caller, and therefore it is an assertion here
+	 * that the cast of the `teq' argument to an I/O queue works.
+	 *
+	 * The I/O queue is usually installed in the main thread, the one running
+	 * the event loop and dispatching callbacks.  The advantage of going through
+	 * that and not through the regular queue is that it will be processed from
+	 * the main dispatching loop, at the top of the calling stack, which means
+	 * less opportunities to have the event processed anywhere in the targetted
+	 * thread running context (where it is processed through a thread signal
+	 * handler, in a safe place, but withoout any guarantee about which calls
+	 * we are already in).
 	 */
 
-	waiter_signal(teq_io->w);
+	if (tevent_is_io(ev)) {
+		teq_io = TEQ_IO(teq);
+		g_assert(teq_io != NULL);	/* If NULL, cast failed so wrong type */
+		q = &teq_io->ioq;			/* Selects the I/O queue */
+	} else {
+		teq_io = NULL;
+		q = &teq->queue;			/* Regular queue */
+	}
+
+	TEQ_LOCK(teq);
+
+	if G_UNLIKELY(unique && NULL != eslist_find(q, ev, teq_ev_cmp))
+		posted = FALSE;
+	else
+		eslist_append(q, ev);
+
+	TEQ_UNLOCK(teq);
+
+	if (posted) {
+		if (teq_io != NULL) {
+			/*
+			 * This will trigger an I/O event in the event loop, causing the
+			 * teq_io_callback() to be invoked to process the events inserted
+			 * in the I/O queue.
+			 */
+			waiter_signal(teq_io->w);
+		} else {
+			/*
+			 * The thread signal handler for TSIG_TEQ was set to teq_handle()
+			 * and will be executed as soon as the thread checks its signals,
+			 * whenever it enters our thread runtime.
+			 */
+			thread_kill(teq->stid, TSIG_TEQ);
+		}
+	}
+
+	return posted;
 }
 
 /**
@@ -748,18 +777,15 @@ teq_process(struct teq *teq)
 			goto next;
 		case THREAD_EVENT_IRPC_MAGIC:		/* Asynchronous "safe" RPC */
 		case THREAD_EVENT_IO_MAGIC:			/* Asynchronous "safe" routine */
-			{
-				/*
-				 * Simply move the event to the I/O queue, which will be
-				 * processed later from the main I/O event loop.
-				 */
-
-				teq_io_enqueue(teq, ev);
-			}
-			goto next;
+			/*
+			 * These events are directly enqueued into the I/O queue part
+			 * of the teq_io structure, hence they cannot appear in the
+			 * regular queue.
+			 */
+			g_assert_not_reached();
 		}
 
-		g_assert_not_reached();
+		g_assert_not_reached();		/* Unhandled case, impossible! */
 
 	next:
 		/*
@@ -958,6 +984,30 @@ teq_safe_post(unsigned id, notify_fn_t routine, void *data)
 		G_STRFUNC, thread_id_name(id));
 
 	teq_post_event(teq, routine, data, FALSE, THREAD_EVENT_IO_MAGIC);
+}
+
+/**
+ * Same as teq_safe_post() but avoids enqueuing another event if a similar
+ * event (same routine and data) is already pending.
+ *
+ * The targeted thread must have a valid I/O event queue.
+ *
+ * @param id		ID of the thread to which we want to post the event
+ * @param routine	the routine to invoke
+ * @param data		the context to pass to the routine
+ *
+ * @return TRUE if the event was posted, FALSE if skipped.
+ */
+bool
+teq_safe_post_unique(unsigned id, notify_fn_t routine, void *data)
+{
+	struct teq *teq = teq_get_mandatory(id, G_STRFUNC);
+
+	g_assert_log(teq_is_io(teq),
+		"%s(): attempt to post safe event to %s requires an I/O TEQ there",
+		G_STRFUNC, thread_id_name(id));
+
+	return teq_post_event(teq, routine, data, TRUE, THREAD_EVENT_IO_MAGIC);
 }
 
 /**
@@ -1234,10 +1284,10 @@ teq_io_process(struct teq *teq)
 		tm_now_exact(&start);
 
 	/*
-	 * Consume all the events enqueued in our queue.
+	 * Consume all the events enqueued in our I/O queue.
 	 *
-	 * We're only dealing with THREAD_EVENT_IRPC_MAGIC events here, since
-	 * they are the only kind that gets redirected to that I/O queue.
+	 * We're only dealing with I/O events here, since they are the only
+	 * kind that gets redirected to that I/O queue.
 	 */
 
 	while (NULL != (ev = teq_io_remove(teq_io))) {
@@ -1436,7 +1486,7 @@ teq_io_allocate(unsigned id)
  * Thread exit callback invoked when the current thread exits.
  */
 static void
-teq_reclaim(void *value, void *ctx)
+teq_reclaim(const void *value, void *ctx)
 {
 	struct teq_exited *ex = ctx;
 	struct teq *teq;
@@ -1662,14 +1712,14 @@ teq_monitor(void *unused_obj)
 				str_catf(logs,
 					"%s(): found %zu pending event%s "
 					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					G_STRFUNC, PLURAL(mon[i].stuck),
 					mon[i].throttled ? THROTTLED : "",
 					thread_id_name(i));
 			} else {
 				str_catf(logs,
 					"%s(): found %zu pending event%s (with %zu %sI/O) "
 					"in %sevent queue for %s",
-					G_STRFUNC, mon[i].stuck, plural(mon[i].stuck),
+					G_STRFUNC, PLURAL(mon[i].stuck),
 					mon[i].ioq, mon[i].io_throttled ? THROTTLED : "",
 					mon[i].throttled ? THROTTLED : "", thread_id_name(i));
 			}

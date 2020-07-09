@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1307,7 +1307,7 @@ completion_iterate(struct bootstrap *b)
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT completing bootstrap with KUID %s (%d bit%s)",
-			kuid_to_hex_string(&b->id), b->bits, plural(b->bits));
+			kuid_to_hex_string(&b->id), PLURAL(b->bits));
 }
 
 /**
@@ -1332,7 +1332,7 @@ bootstrap_completion_status(
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT bootstrap with ID %s (%d bit%s) done: %s",
-			kuid_to_hex_string(kuid), b->bits, plural(b->bits),
+			kuid_to_hex_string(kuid), PLURAL(b->bits),
 			lookup_strerror(error));
 
 	/*
@@ -3029,7 +3029,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merging %s%s with its sibling (total of %u good node%s)",
 			forced ? "(forced) " : "",
-			kbucket_to_string(kb), good_nodes, plural(good_nodes));
+			kbucket_to_string(kb), PLURAL(good_nodes));
 	}
 
 	/*
@@ -3257,7 +3257,7 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
 		unsigned count = pslist_length(to_remove);
 		g_debug("DHT selected %u stale node%s to remove (likely dead)",
-			count, plural(count));
+			PLURAL(count));
 	}
 
 	PSLIST_FOREACH(to_remove, sl) {
@@ -3327,7 +3327,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT missing %u good node%s in %s",
-				missing, plural(missing), kbucket_to_string(kb));
+				PLURAL(missing), kbucket_to_string(kb));
 		}
 
 		do {
@@ -3343,7 +3343,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 			uint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
 				g_debug("DHT promoted %u pending node%s in %s",
-					promoted, plural(promoted), kbucket_to_string(kb));
+					PLURAL(promoted), kbucket_to_string(kb));
 			}
 		}
 	}
@@ -3638,7 +3638,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
-			kuid_to_hex_string(kuid), amount, plural(amount),
+			kuid_to_hex_string(kuid), PLURAL(amount),
 			(unsigned) (i - 1));
 		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
@@ -3766,7 +3766,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT target KUID is %s (%u node%s in path, retained %u)",
-			kuid_to_hex_string(kuid), (unsigned) count, plural(count),
+			kuid_to_hex_string(kuid), (unsigned) PLURAL(count),
 			(unsigned) retained);
 	}
 
@@ -3824,7 +3824,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average common prefix is %f bits over %zu node%s",
-			bits, retained, plural(retained));
+			bits, PLURAL(retained));
 	}
 
 	return estimate;
@@ -4110,8 +4110,8 @@ update_cached_size_estimate(void)
 			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
 			uint64_to_string(stats.average.estimate),
 			uint64_to_string2(avg_stderr),
-			count, plural(count), n + 1 - count,
-			stats.kball_furthest, plural(stats.kball_furthest));
+			PLURAL(count), n + 1 - count,
+			PLURAL(stats.kball_furthest));
 		if (n > 1) {
 			g_debug(
 				"DHT collected average is %.0f (%d points), avg_stderr = %g",
@@ -5288,7 +5288,7 @@ dht_ipp_extract(const gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
-			cnt, plural(cnt), node_addr(n));
+			PLURAL(cnt), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -198,6 +198,7 @@ bool rwlock_is_owned(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
+bool rwlock_is_busy(const rwlock_t *rw) NON_NULL_PARAM((1));
 
 unsigned rwlock_writers(const rwlock_t *rw);
 

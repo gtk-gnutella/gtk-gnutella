@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1145,7 +1145,7 @@ tmalloc_thread_layer_free(void *data)
 	 * The embedded list descriptor itself is held in a thread-local variable
 	 * and will be cleared by tmalloc_thread_free_magazines().
 	 *
-	 * Al the "struct tmalloc_thread" objects pertaining to the dying thread
+	 * All the "struct tmalloc_thread" objects pertaining to the dying thread
 	 * are therefore reclaimed not because they are part of the "tmagazines"
 	 * list, but because they are indexed via a specific thread-local variable:
 	 * the tma_key in the tmalloc_t object (the magazine depot).
@@ -1178,10 +1178,12 @@ tmalloc_thread_free_magazines(void *data)
  * registering an event in the event queue.
  */
 static void
-tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
+tmalloc_thread_exiting(const void *unused_value, void *ctx)
 {
+	tmalloc_t *tma = ctx;
 	(void) unused_value;
-	(void) unused_ctx;
+
+	tmalloc_check(tma);
 
 	/*
 	 * Setting the local variable to NULL will invoke the free routine
@@ -1189,6 +1191,20 @@ tmalloc_thread_exiting(void *unused_value, void *unused_ctx)
 	 */
 
 	thread_local_set(tmalloc_periodic_key, NULL);
+
+	/*
+	 * Setting the local variable to NULL will invoked the free routine
+	 * registered on the key, which is tmalloc_thread_layer_free().
+	 */
+
+	thread_local_set(tma->tma_key, NULL);
+
+	/*
+	 * Setting the local variable to NULL will invoke the free routine
+	 * registered on the key, which is tmalloc_thread_free_magazines().
+	 */
+
+	thread_local_set(tmalloc_magazines_key, NULL);
 }
 
 /**
@@ -1757,13 +1773,13 @@ tmalloc_beat(void *data)
 
 		if (tmalloc_debugging(0) && full_purged != 0) {
 			s_debug("%s(\"%s\"): purged %zu full magazine%s, %zu remaining",
-				G_STRFUNC, d->tma_name, full_purged, plural(full_purged),
+				G_STRFUNC, d->tma_name, PLURAL(full_purged),
 				eslist_count(&d->tma_full.tml_list));
 		}
 
 		if (tmalloc_debugging(0) && empty_purged != 0) {
 			s_debug("%s(\"%s\"): purged %zu empty magazine%s, %zu remaining",
-				G_STRFUNC, d->tma_name, empty_purged, plural(empty_purged),
+				G_STRFUNC, d->tma_name, PLURAL(empty_purged),
 				eslist_count(&d->tma_empty.tml_list));
 		}
 	}
@@ -1832,6 +1848,11 @@ tmalloc_list_init(struct tma_list *tl)
 
 /**
  * Allocate a new thread magazine depot.
+ *
+ * These objects are NEVER FREED and should therefore be considered GLOBAL
+ * objects.  They are usable by any thread to request allocation of objects
+ * of a given size, using the specified memory allocators (and deallocators)
+ * to manage creation (and release) of objects within the depot.
  *
  * @param name			the name of the thread magazine allocator (copied)
  * @param size			size in bytes of objects created
@@ -2038,7 +2059,7 @@ tmalloc_reset(tmalloc_t *tma)
 		s_debug("%s(\"%s\"): %d thread%s, "
 			"full=%zu+%zu, empty=%zu+%zu, objects=%zu",
 			G_STRFUNC, tma->tma_name,
-			tma->tma_threads, plural(tma->tma_threads),
+			PLURAL(tma->tma_threads),
 			eslist_count(&full.tml_list), eslist_count(&full.tml_trash),
 			eslist_count(&empty.tml_list), eslist_count(&empty.tml_trash),
 			tma->tma_obj_trash_count);
@@ -2238,7 +2259,7 @@ tmalloc_thread_create(tmalloc_t *tma)
 		 * the event queue (execution order is LIFO).
 		 */
 
-		thread_atexit(tmalloc_thread_exiting, NULL);
+		thread_atexit(tmalloc_thread_exiting, tma);
 	}
 
 	eslist_append(tmagazines, tmt);

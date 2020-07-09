@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -36,6 +36,8 @@
 
 #ifndef _hashing_h_
 #define _hashing_h_
+
+#include "xmalloc.h"		/* For XMALLOC_ALIGNBYTES */
 
 /*
  * Golden ratios.
@@ -106,20 +108,22 @@ unsigned hashing_fold(unsigned hash, size_t bits) G_CONST;
  *
  * That number of bits is the base-2 logarihtm of the alignment.
  *
- * We define HASHING_PTR_SHIFT for common values of MEM_ALIGNBYTES.
+ * We define HASHING_PTR_SHIFT for common values of XMALLOC_ALIGNBYTES, and not
+ * MEM_ALIGNBYTES.  Indeed, when xmalloc() is used to redefine malloc(), we have
+ * to use the higher alignment requirements.  See "xmalloc.h" for details.
  */
-#if 2 == MEM_ALIGNBYTES
-#define HASHING_PTR_SHIFT	1
-#elif 4 == MEM_ALIGNBYTES
+#if 4 == XMALLOC_ALIGNBYTES
 #define HASHING_PTR_SHIFT	2
-#elif 8 == MEM_ALIGNBYTES
+#elif 8 == XMALLOC_ALIGNBYTES
 #define HASHING_PTR_SHIFT	3
-#elif 16 == MEM_ALIGNBYTES
+#elif 16 == XMALLOC_ALIGNBYTES
 #define HASHING_PTR_SHIFT	4
-#elif 32 == MEM_ALIGNBYTES
+#elif 32 == XMALLOC_ALIGNBYTES
 #define HASHING_PTR_SHIFT	5
+#elif 64 == XMALLOC_ALIGNBYTES
+#define HASHING_PTR_SHIFT	6
 #else
-#error "unexpected value for MEM_ALIGNBYTES"
+#error "unexpected value for XMALLOC_ALIGNBYTES"
 #endif
 
 /**

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -386,8 +386,7 @@ win32dlp_scan_modules(void)
 	}
 
 	win32dlp_debugf("registered %zu initially loaded module%s",
-		hash_table_count(win32dlp_loaded),
-		plural(hash_table_count(win32dlp_loaded)));
+		PLURAL(hash_table_count(win32dlp_loaded)));
 }
 
 /**
@@ -695,7 +694,7 @@ win32dlp_apply(const void *unused_key, void *value, void *data)
 	m->flags |= WIN32DLP_MODF_PATCHED;
 
 	win32dlp_debugf("module at %p \"%s\" patched for %zu entr%s",
-		m->addr, m->name, patched, plural_y(patched));
+		m->addr, m->name, PLURAL_Y(patched));
 }
 
 /***
@@ -1377,7 +1376,7 @@ win32dlp_show_settings_log(logagent_t *la)
 	size_t initial = AU64_VALUE(&win32dlp_stats.modules_initial);
 
 	log_info(la, "win32 dynamic linker patched %zu module%s out of %zu+%zu=%zu",
-		patched, plural(patched), initial, loaded, initial + loaded);
+		PLURAL(patched), initial, loaded, initial + loaded);
 
 	if (win32dlp_in_place_only_used)
 		log_warning(la, "HeapReAlloc() is using HEAP_REALLOC_IN_PLACE_ONLY");

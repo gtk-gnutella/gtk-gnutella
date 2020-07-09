@@ -1,14 +1,14 @@
 # SOME DESCRIPTIVE TITLE.
 # Copyright (C) YEAR Raphael Manfredi
-# This file is distributed under the same license as the PACKAGE package.
+# This file is distributed under the same license as the gtk-gnutella package.
 # FIRST AUTHOR <EMAIL@ADDRESS>, YEAR.
 #
 #, fuzzy
 msgid ""
 msgstr ""
-"Project-Id-Version: gtk-gnutella 1.1.13\n"
+"Project-Id-Version: gtk-gnutella 1.1.15\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
 "Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
 "Language-Team: LANGUAGE <LL@li.org>\n"
@@ -598,6 +598,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr ""
 
+msgid "Already connected"
+msgstr ""
+
 msgid "Not a network member"
 msgstr ""
 
@@ -660,9 +663,6 @@ msgid "Pseudo G2 UDP node"
 msgstr ""
 
 msgid "Pseudo DHT node"
-msgstr ""
-
-msgid "Already connected"
 msgstr ""
 
 msgid "Limited connection"
@@ -806,6 +806,9 @@ msgstr ""
 msgid "Bad Request"
 msgstr ""
 
+msgid "Library being rebuilt"
+msgstr ""
+
 msgid "Header too large"
 msgstr ""
 
@@ -831,9 +834,6 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
-msgstr ""
-
-msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -1133,6 +1133,9 @@ msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "OOB querying hosts banned for some time"
 msgstr ""
 
 msgid "Received query hits for untracked queries"
@@ -4583,6 +4586,14 @@ msgstr ""
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr ""
+
 msgid "disable"
 msgstr ""
 
@@ -5818,6 +5829,9 @@ msgstr ""
 msgid "Samoa"
 msgstr ""
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr ""
 
@@ -5872,6 +5886,8 @@ msgstr ""
 msgid "%us"
 msgstr ""
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr ""
 
@@ -8497,6 +8513,11 @@ msgstr ""
 msgid "_Remove filter"
 msgstr ""
 
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+
 msgid "_Close"
 msgstr ""
 
@@ -9270,7 +9291,7 @@ msgid " E=%u"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s#%u"
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr ""
 
 msgid "stalled"

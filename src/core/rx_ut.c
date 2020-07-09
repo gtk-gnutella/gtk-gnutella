@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -260,7 +260,7 @@ ut_rmsg_expired(cqueue_t *cq, void *obj)
 			"(seq=0x%04x, got %u/%u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
+			um->id.seqno, um->fragrecv, PLURAL(um->fragcnt));
 	}
 
 	/*
@@ -341,7 +341,7 @@ ut_rmsg_almost_expired(cqueue_t *cq, void *obj)
 			"(seq=0x%04x, got %u/%u fragment%s so far)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragrecv, um->fragcnt, plural(um->fragcnt));
+			um->id.seqno, um->fragrecv, PLURAL(um->fragcnt));
 	}
 
 	ut_rmsg_reack(um, UT_REACK_ALMOST_EXPIRED);
@@ -522,9 +522,9 @@ ut_rmsg_clear_acks(struct ut_rmsg *um)
 		g_debug("RX UT[%s]: %s: clearing %u delayed ACK%s to %s "
 			"(seq=0x%04x, received %u/%u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
-			um->acks_pending, plural(um->acks_pending),
+			PLURAL(um->acks_pending),
 			gnet_host_to_string(um->id.from), um->id.seqno,
-			um->fragrecv, um->fragcnt, plural(um->fragcnt));
+			um->fragrecv, PLURAL(um->fragcnt));
 	}
 
 	gnet_stats_count_general(GNR_UDP_SR_RX_AVOIDED_ACKS, um->acks_pending);
@@ -630,7 +630,7 @@ ut_assemble_message(struct ut_rmsg *um)
 			um->reliable ? "reliable " : "",
 			um->deflated ? "deflated " : "",
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, plural(um->fragcnt), len);
+			um->id.seqno, PLURAL(um->fragcnt), len);
 	}
 
 	ut_update_rx_messages_stats(um->reliable, um->fragcnt);
@@ -692,8 +692,7 @@ drop:
 			"(seq=0x%04x, %u fragment%s, %zu byte%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, plural(um->fragcnt),
-			len, plural(len));
+			um->id.seqno, PLURAL(um->fragcnt), PLURAL(len));
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_INFLATION_ERROR);
@@ -705,7 +704,7 @@ empty:
 			"(seq=0x%04x, %u fragment%s)",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from),
-			um->id.seqno, um->fragcnt, plural(um->fragcnt));
+			um->id.seqno, PLURAL(um->fragcnt));
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_MESSAGES_EMPTY);
@@ -734,7 +733,7 @@ ut_handle_fragment(struct ut_rmsg *um, const struct ut_header *head, pmsg_t *mb)
 			um->deflated ? "deflated " : "",
 			head->part + 1, um->fragcnt,
 			gnet_host_to_string(um->id.from), head->seqno,
-			um->acks_pending, plural(um->acks_pending));
+			PLURAL(um->acks_pending));
 	}
 
 	if (um->lingering) {
@@ -1211,8 +1210,7 @@ ut_rmsg_reack_improved(struct ut_rmsg *um)
 			rack.cumulative ? "cumulative " : "",
 			rack.missing != 0 ? "extended " : "",
 			gnet_host_to_string(um->id.from), rack.seqno,
-			rack.fragno + 1, um->fragrecv, um->fragcnt,
-			plural(um->fragcnt), rack.missing);
+			rack.fragno + 1, um->fragrecv, PLURAL(um->fragcnt), rack.missing);
 	}
 
 	gnet_stats_inc_general(GNR_UDP_SR_RX_RESENT_ACKS);
@@ -1252,7 +1250,7 @@ ut_rmsg_reack(struct ut_rmsg *um, enum ut_reack_reason reason)
 			"(seq=0x%04x, got %u/%u fragment%s) -- %s",
 			udp_tag_to_string(um->attr->tag), G_STRFUNC,
 			gnet_host_to_string(um->id.from), um->id.seqno,
-			um->fragrecv, um->fragcnt, plural(um->fragcnt), msg);
+			um->fragrecv, PLURAL(um->fragcnt), msg);
 	}
 
 	/*
@@ -1523,7 +1521,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 				(head.flags & UDP_RF_ACKME) ? "reliable " : "",
 				(head.flags & UDP_RF_DEFLATED) ? "deflated " : "",
 				gnet_host_to_string(from),
-				head.seqno, head.count, plural(head.count),
+				head.seqno, PLURAL(head.count),
 				hevset_count(attr->mseq));
 		}
 
@@ -1563,7 +1561,7 @@ ut_got_message(const rxdrv_t *rx, const void *data, size_t len,
 				head.seqno, head.part + 1, head.count,
 				um->reliable ? "" : "un",
 				um->deflated ? "and deflated " : "",
-				um->fragcnt, plural(um->fragcnt));
+				PLURAL(um->fragcnt));
 		}
 
 		gnet_stats_inc_general(GNR_UDP_SR_RX_FRAGMENTS_DROPPED);

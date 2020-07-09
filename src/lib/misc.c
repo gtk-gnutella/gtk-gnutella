@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1766,8 +1766,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 
 	WFREE_ARRAY(xiov, iovcnt);
 
-	fprintf(out, "----------------- (%u byte%s).\n",
-		(unsigned) length, plural(length));
+	fprintf(out, "----------------- (%u byte%s).\n", (uint) PLURAL(length));
 	fflush(out);
 }
 
@@ -2235,24 +2234,23 @@ int G_HOT
 bitcmp(const void *s1, const void *s2, size_t n)
 {
 	int i, bytes, remain;
-	const uint8 *p1 = s1, *p2 = s2;
+	const uint8 *p1, *p2;
 	uint8 mask, c1, c2;
 
 	bytes = n / 8;				/* First bytes to compare */
 
-	for (i = 0; i < bytes; i++) {
-		c1 = *p1++;
-		c2 = *p2++;
-		if (c1 != c2)
-			return c1 < c2 ? -1 : +1;
-	}
+	i = memcmp(s1, s2, bytes);
+	if (i != 0)
+		return i;
 
 	remain = n - 8 * bytes;		/* Bits in next byte */
 
-	if (0 == remain)
+	if G_UNLIKELY(0 == remain)
 		return 0;
 
 	mask = (uint8) -1 << (8 - remain);
+	p1   = const_ptr_add_offset(s1, bytes);
+	p2   = const_ptr_add_offset(s2, bytes);
 
 	c1 = *p1 & mask;
 	c2 = *p2 & mask;

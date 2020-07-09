@@ -25,7 +25,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -3214,7 +3214,7 @@ clamped:
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
-				fmt, processed, plural(processed));
+				fmt, PLURAL(processed));
 			thread_private_remove(TKEY);
 		}
 	}

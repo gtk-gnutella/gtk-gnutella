@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -344,11 +344,9 @@ hcache_addr_within_net(const host_addr_t addr, host_net_t net)
 static hostcache_entry_t *
 hce_alloc(void)
 {
-	static const hostcache_entry_t zero_hce;
 	hostcache_entry_t *hce;
 
-	WALLOC(hce);
-	*hce = zero_hce;
+	WALLOC0(hce);
 	return hce;
 }
 
@@ -1582,7 +1580,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 	 */
 
 	iter = hash_list_iterator(hc->hostlist);
-	for (i = 0; i < hcount; i++) {
+	for (i = 0; i < hcount; /* empty */) {
 		gnet_host_t *h;
 
 		h = hash_list_iter_next(iter);
@@ -1598,8 +1596,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		 */
 
 		gnet_host_copy(&hosts[i], h);
-
-		hset_insert(seen_host, &hosts[i]);
+		hset_insert(seen_host, &hosts[i++]);
 	}
 	hash_list_iter_release(&iter);
 
@@ -1612,7 +1609,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		goto done;
 
 	iter = hash_list_iterator(hc2->hostlist);
-	for (/* empty */; i < hcount; i++) {
+	while (i < hcount) {
 		gnet_host_t *h;
 
 		h = hash_list_iter_next(iter);
@@ -1628,8 +1625,7 @@ hcache_fill_caught_array(host_net_t net, host_type_t type,
 		 */
 
 		gnet_host_copy(&hosts[i], h);
-
-		hset_insert(seen_host, &hosts[i]);
+		hset_insert(seen_host, &hosts[i++]);
 	}
 	hash_list_iter_release(&iter);
 
@@ -1739,7 +1735,7 @@ hcache_sort_by_added_time(hcache_type_t type)
 	if (GNET_PROPERTY(hcache_debug)) {
 		unsigned count = hash_list_length(hc->hostlist);
 		g_debug("HCACHE sorted %s cache (%u item%s)",
-			hcache_type_to_string(type), count, plural(count));
+			hcache_type_to_string(type), PLURAL(count));
 	}
 }
 

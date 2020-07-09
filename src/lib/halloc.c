@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -48,7 +48,6 @@
 #include "dump_options.h"
 #include "entropy.h"
 #include "hashtable.h"
-#include "malloc.h"
 #include "once.h"
 #include "pagetable.h"
 #include "spinlock.h"
@@ -66,11 +65,9 @@
  * Under REMAP_ZALLOC or TRACK_MALLOC, do not define halloc(), hfree(), etc...
  */
 
-#if defined(USE_HALLOC)
 #if defined(REMAP_ZALLOC) || defined(TRACK_MALLOC) || defined(MALLOC_STATS)
 #undef USE_HALLOC
 #endif	/* REMAP_ZALLOC || TRACK_MALLOC */
-#endif	/* USE_HALLOC */
 
 /**
  * Internal statistics collected.
@@ -751,7 +748,6 @@ static inline void
 halloc_init_vtable(void)
 {
 }
-
 #endif	/* USE_HALLOC */
 
 /**

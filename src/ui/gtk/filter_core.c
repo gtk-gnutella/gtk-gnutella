@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1396,7 +1396,8 @@ filter_free_rule(rule_t *r)
 
         switch (r->u.text.type) {
         case RULE_TEXT_WORDS:
-            g_list_foreach(r->u.text.u.words, (GFunc)pattern_free, NULL);
+            g_list_foreach(
+				r->u.text.u.words, func_cast(GFunc, pattern_free), NULL);
             gm_list_free_null(&r->u.text.u.words);
             break;
         case RULE_TEXT_SUBSTR:
@@ -2373,23 +2374,23 @@ filter_record(struct search *search, const struct record *rec)
 	ctx.l_name = ctx.utf8_name = NULL;
 	ctx.l_len = ctx.utf8_len = 0;
 
-    /*
-     * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
-     * the props_set count with 0;
-     */
+	/*
+	 * Initialize all properties with FILTER_PROP_STATE_UNKNOWN and
+	 * the props_set count with 0;
+	 */
 
-    WALLOC0(result);
-    filter_apply(filter_global_pre, &ctx, result);
+	WALLOC0(result);
+	filter_apply(filter_global_pre, &ctx, result);
 
-    /*
-     * If not decided check if the filters for this search apply.
-     */
-    if (result->props_set < MAX_FILTER_PROP)
-        filter_apply(search_gui_get_filter(search), &ctx, result);
+	/*
+	 * If not decided check if the filters for this search apply.
+	 */
+	if (result->props_set < MAX_FILTER_PROP)
+		filter_apply(search_gui_get_filter(search), &ctx, result);
 
-    /*
-     * If it has not yet been decided, try the global filter
-     */
+	/*
+	 * If it has not yet been decided, try the global filter
+	 */
 	if (result->props_set < MAX_FILTER_PROP)
 		filter_apply(filter_global_post, &ctx, result);
 

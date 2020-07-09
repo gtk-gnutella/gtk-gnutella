@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -160,11 +160,9 @@ socket_tls_banned(const host_addr_t addr, const uint16 port)
 static struct gnutella_socket *
 socket_alloc(void)
 {
-	static const struct gnutella_socket zero_socket;
 	struct gnutella_socket *s;
 
-	WALLOC(s);
-	*s = zero_socket;
+	WALLOC0(s);
 	s->magic = SOCKET_MAGIC;
 	return s;
 }
@@ -192,7 +190,7 @@ socket_free_buffer(struct gnutella_socket *s)
 	if (NULL != s->buf) {
 		if G_UNLIKELY(s->pos != 0) {
 			s_carp("%s(): buffer still holding %'zu unread byte%s",
-				G_STRFUNC, s->pos, plural(s->pos));
+				G_STRFUNC, PLURAL(s->pos));
 		}
 		s->buf_size = 0;
 		HFREE_NULL(s->buf);
@@ -590,7 +588,7 @@ socket_tcp_linger2(struct gnutella_socket *s, int secs, const char *caller)
 	if (setsockopt(s->file_desc, sol_tcp(), TCP_LINGER2, VARLEN(secs))) {
 		if (ECONNRESET != errno) {
 			g_warning("%s(): cannot set TCP_LINGER2 to %d sec%s on fd#%d: %m",
-				caller, secs, plural(secs), s->file_desc);
+				caller, PLURAL(secs), s->file_desc);
 		}
 	}
 #else	/* !TCP_LINGER2 */
@@ -1854,6 +1852,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	size_t parsed;
 	const char *first, *endptr;
 	hostiles_flags_t hostile;
+	ban_category_t bcat;
 
 	(void) source;
 
@@ -2033,31 +2032,50 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Check for banning.
 	 */
 
-	switch (ban_allow(BAN_CAT_SOCKET, s->addr)) {
+	if (is_strprefix(first, GNUTELLA_HELLO))
+		bcat = BAN_CAT_GNUTELLA;
+	else
+		bcat = BAN_CAT_HTTP;
+
+	switch (ban_allow(bcat, s->addr)) {
 	case BAN_OK:				/* Connection authorized */
 		break;
 	case BAN_FORCE:				/* Connection refused, no ack */
-		ban_force(s);
-		goto cleanup;
-	case BAN_MSG:				/* Send specific 403 error message */
 		{
-			const char *msg = ban_message(s->addr);
+			const char *msg = ban_message(bcat, s->addr);
+
+			if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): silently idling %s connection from "
+					"banned %s (%s still): %s",
+					G_STRFUNC, ban_category_string(bcat),
+					host_addr_to_string(s->addr),
+					short_time_ascii(ban_delay(bcat, s->addr)),
+					NULL == msg ? "<no message>" : msg);
+			}
+		}
+		ban_force(bcat, s);
+		goto cleanup;
+	case BAN_MSG:				/* Send specific 429 error message */
+		{
+			const char *msg = ban_message(bcat, s->addr);
+
+			/* RFC6585 specifies 429 for "Too Many Requests" --RAM, 2020-06-28 */
 
             if (GNET_PROPERTY(socket_debug)) {
-                g_debug("%s(): rejecting connection from "
+				g_debug("%s(): rejecting connection from "
 					"banned %s (%s still): %s",
                     G_STRFUNC, host_addr_to_string(s->addr),
-					short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)), msg);
+					short_time_ascii(ban_delay(bcat, s->addr)), msg);
             }
 
-			if (is_strprefix(first, GNUTELLA_HELLO)) {
-				send_node_error(s, 503, "%s", msg);
+			if (BAN_CAT_GNUTELLA == bcat) {
+				send_node_error(s, 429, "%s", msg);
 			} else {
 				http_extra_desc_t hev;
 
 				http_extra_callback_set(&hev, http_retry_after_add,
-					GUINT_TO_POINTER(ban_delay(BAN_CAT_SOCKET, s->addr)));
-				http_send_status(HTTP_UPLOAD, s, 503, FALSE, &hev, 1,
+					uint_to_pointer(ban_delay(bcat, s->addr)));
+				http_send_status(HTTP_UPLOAD, s, 429, FALSE, &hev, 1,
 					HTTP_ATOMIC_SEND,
 					"%s", msg);
 			}
@@ -2065,18 +2083,31 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 		goto cleanup;
 	case BAN_FIRST:				/* Connection refused, negative ack */
 		entropy_harvest_single(VARLEN(s->addr));
-		if (is_strprefix(first, GNUTELLA_HELLO))
-			send_node_error(s, 550, "Banned for %s",
-				short_time_ascii(ban_delay(BAN_CAT_SOCKET, s->addr)));
-		else {
-			int delay = ban_delay(BAN_CAT_SOCKET, s->addr);
-			http_extra_desc_t hev;
+		{
+			int delay = ban_delay(bcat, s->addr);
+			const char *msg = ban_message(bcat, s->addr);
 
-			http_extra_callback_set(&hev, http_retry_after_add,
-				GUINT_TO_POINTER(delay));
-			http_send_status(HTTP_UPLOAD, s, 550, FALSE, &hev, 1,
-				HTTP_ATOMIC_SEND,
-				"Banned for %s", short_time_ascii(delay));
+            if (GNET_PROPERTY(socket_debug)) {
+				g_debug("%s(): initiating %s connection ban from %s (for %s): %s",
+					G_STRFUNC, ban_category_string(bcat),
+					host_addr_to_string(s->addr),
+					short_time_ascii(ban_delay(bcat, s->addr)),
+					NULL == msg ? "<no message>" : msg);
+            }
+
+			/* RFC6585 specifies 429 for "Too Many Requests" --RAM, 2020-06-28 */
+
+			if (BAN_CAT_GNUTELLA == bcat)
+				send_node_error(s, 429, "Banned for %s", short_time_ascii(delay));
+			else {
+				http_extra_desc_t hev;
+
+				http_extra_callback_set(&hev, http_retry_after_add,
+					uint_to_pointer(delay));
+				http_send_status(HTTP_UPLOAD, s, 429, FALSE, &hev, 1,
+					HTTP_ATOMIC_SEND,
+					"Banned for %s", short_time_ascii(delay));
+			}
 		}
 		goto cleanup;
 	default:
@@ -2092,12 +2123,12 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 
 		banlimit = parq_banned_source_expire(s->addr);
 		if (banlimit) {
-			if (GNET_PROPERTY(socket_debug)) {
+			if (GNET_PROPERTY(socket_debug) || GNET_PROPERTY(ban_debug)) {
 				g_warning("[sockets] PARQ has banned host %s until %s",
 					host_addr_to_string(s->addr),
 					timestamp_to_string(banlimit));
 			}
-			ban_force(s);
+			ban_force(bcat, s);
 			goto cleanup;
 		}
 	}
@@ -2131,7 +2162,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 				hostiles_flags_to_string(hostile), string);
 		}
 
-		if (is_strprefix(first, GNUTELLA_HELLO)) {
+		if (BAN_CAT_GNUTELLA == bcat) {
 			send_node_error(s, 550, bad ? banned : shunned);
 		} else {
 			http_send_status(HTTP_UPLOAD, s, 550, FALSE, NULL, 0,
@@ -2145,7 +2176,7 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	 * Dispatch request. Here we decide what kind of connection this is.
 	 */
 
-	if (is_strprefix(first, GNUTELLA_HELLO)) {
+	if (BAN_CAT_GNUTELLA == bcat) {
 		/* Incoming control connection */
 		node_add_socket(s);
 	} else if (
@@ -3210,7 +3241,7 @@ socket_udp_event(void *data, int unused_source, inputevt_cond_t cond)
 			"(%s%'zu more pending) during %'lu ms, "
 			"enqueued %'zu bytes (%'zu datagram%s) in %'lu us",
 			G_STRFUNC, i, rd, guessed ? "~" : "", avail, (ulong) processing,
-			qd, qn, plural(qn), (ulong) tm_elapsed_us(&end, &start));
+			qd, PLURAL(qn), (ulong) tm_elapsed_us(&end, &start));
 	}
 
 	/*
@@ -3284,7 +3315,7 @@ socket_set_accept_filters(struct gnutella_socket *s)
 
 		arg = zero_arg;
 		STATIC_ASSERT(sizeof arg.af_name >= CONST_STRLEN(name));
-		strncpy(arg.af_name, name, sizeof arg.af_name);
+		cstr_bcpy(ARYLEN(arg.af_name), name);
 
 		if (setsockopt(s->file_desc, SOL_SOCKET, SO_ACCEPTFILTER, VARLEN(arg))) {
 			/* This is usually not supported for IPv6. Thus suppress

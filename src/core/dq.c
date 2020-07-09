@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -563,7 +563,7 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 				nid_to_string(&dq->qid),
 				node_id_self(dq->node_id) ? "local " : "",
 				(int) (tm_time() - dq->start),
-				dq->up_sent, plural(dq->up_sent),
+				PLURAL(dq->up_sent),
 				dq->horizon, dq->results);
 		}
 	}
@@ -873,7 +873,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_debug("DQ QRP %s (%d word%s%s) forwarded to %zd/%d leaves",
 			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),
-			qhvec_count(dq->qhv), plural(qhvec_count(dq->qhv)),
+			PLURAL(qhvec_count(dq->qhv)),
 			qhvec_has_urn(dq->qhv) ? " + URN" : "",
 			pslist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
@@ -1141,7 +1141,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug(
 				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
+				nid_to_string(&dq->qid), PLURAL(dq->up_sent));
 		dq_terminate(dq);
 		return;
 	}
@@ -1494,7 +1494,7 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] still %d UP%s to query (results %sso far: %u)",
-			nid_to_string(&dq->qid), found, plural(found),
+			nid_to_string(&dq->qid), PLURAL(found),
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0)
@@ -1633,7 +1633,7 @@ dq_send_probe(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] found %d UP%s to probe",
-			nid_to_string(&dq->qid), found, plural(found));
+			nid_to_string(&dq->qid), PLURAL(found));
 
 	/*
 	 * If we don't find any suitable UP holding that content, then
@@ -1799,8 +1799,8 @@ dq_common_init(dquery_t *dq)
 			"MUID=%s%s%s q=\"%s\" flags=0x%x (%s%s%s%s%s%s%s)",
 			nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
 			dq->ttl, dq->max_results,
-			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
-			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
+			bool_to_string(0 != (dq->flags & DQ_F_LEAF_GUIDED)),
+			bool_to_string(0 != (dq->flags & DQ_F_ROUTING_HITS)),
 			guid_hex_str(gnutella_header_get_muid(head)),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid->v, GUID_RAW_SIZE): "",
@@ -2229,7 +2229,7 @@ dq_node_removed(const struct nid *node_id)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
-				dq->up_sent, plural(dq->up_sent));
+				PLURAL(dq->up_sent));
 
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
@@ -2488,7 +2488,7 @@ dq_got_query_status(const struct guid *muid,
 	if (kept == 0xffff) {
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminating at user's request (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
+				nid_to_string(&dq->qid), PLURAL(dq->up_sent));
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -2655,7 +2655,7 @@ free_query_list(const void *key, void *value, void *unused_udata)
 
 	(void) unused_udata;
 	g_warning("remained %d un-freed dynamic quer%s for node #%u",
-		count, plural_y(count), GPOINTER_TO_UINT(key));
+		PLURAL_Y(count), GPOINTER_TO_UINT(key));
 
 	PSLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;

@@ -21,7 +21,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -539,6 +539,7 @@ extern const gboolean gnet_property_variable_lock_contention_trace;
 extern const gboolean gnet_property_variable_lock_sleep_trace;
 extern const gboolean gnet_property_variable_running_topless;
 extern const gboolean gnet_property_variable_send_oob_ind_reliably;
+extern const guint32  gnet_property_variable_adns_debug;
 
 
 prop_set_t *gnet_prop_init(void);

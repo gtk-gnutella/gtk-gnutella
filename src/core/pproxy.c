@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -126,14 +126,10 @@ pproxy_free_resources(struct pproxy *pp)
 static void
 send_pproxy_error_v(
 	struct pproxy *pp,
-	const char *ext,
 	int code,
 	const char *msg, va_list ap)
 {
 	char reason[1024];
-	char extra[1024];
-	http_extra_desc_t hev[1];
-	int hevcnt = 0;
 
 	if (msg) {
 		str_vbprintf(ARYLEN(reason), msg, ap);
@@ -148,26 +144,8 @@ send_pproxy_error_v(
 		return;
 	}
 
-	extra[0] = '\0';
-
-	/*
-	 * If `ext' is not NULL, we have extra header information to propagate.
-	 */
-
-	if (ext) {
-		size_t extlen = clamp_strcpy(ARYLEN(extra), ext);
-
-		if ('\0' != ext[extlen]) {
-			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, vstrlen(ext));
-		} else {
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = extra;
-		}
-	}
-
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, HTTP_ATOMIC_SEND, "%s", reason);
+			NULL, 0, HTTP_ATOMIC_SEND, "%s", reason);
 
 	pp->error_sent = code;
 }
@@ -182,7 +160,7 @@ send_pproxy_error(struct pproxy *pp, int code, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	send_pproxy_error_v(pp, NULL, code, msg, args);
+	send_pproxy_error_v(pp, code, msg, args);
 	va_end(args);
 }
 
@@ -261,7 +239,7 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
-	send_pproxy_error_v(pp, NULL, code, msg, errargs);
+	send_pproxy_error_v(pp, code, msg, errargs);
 	va_end(errargs);
 
 	pproxy_remove_v(pp, msg, args);
@@ -443,7 +421,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 26 && datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -468,7 +446,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -894,11 +872,11 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
 					HTTP_ATOMIC_SEND,
 					"Push-proxy: message sent through Gnutella "
-					"(via %zd node%s)", cnt, plural(cnt));
+					"(via %zd node%s)", PLURAL(cnt));
 
 			pp->error_sent = 203;
 			pproxy_remove(pp, "Push sent via Gnutella (%zd node%s) for GUID %s",
-					cnt, plural(cnt), guid_hex_str(pp->guid));
+					PLURAL(cnt), guid_hex_str(pp->guid));
 		}
 
 		pslist_free_null(&nodes);

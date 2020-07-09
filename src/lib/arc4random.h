@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -36,11 +36,28 @@
 
 #include "common.h"
 
-#ifndef HAS_ARC4RANDOM
+#ifdef HAS_ARC4RANDOM
+/*
+ * Rename our implementation so that it does not conflict
+ * with the one on this system.
+ *
+ * The arc4random routines not remapped here were not part of
+ * the initial ARC4 interface and are therefore left untouched.
+ *
+ *		--RAM, 2020-06-23
+ */
+#define arc4random				xrc4random
+#define arc4random_stir			xrc4random_stir
+#define arc4random_addrandom	xrc4random_addrandom
+#endif	/* HAS_ARC4RANDOM */
+
+/*
+ * Public interface.
+ */
+
 uint32 arc4random(void);
 void arc4random_stir(void);
 void arc4random_addrandom(const unsigned char *dat, int datlen);
-#endif
 
 void arc4random_stir_once(void);
 uint64 arc4random64(void);

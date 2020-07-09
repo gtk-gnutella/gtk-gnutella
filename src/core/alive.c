@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -155,7 +155,7 @@ alive_free(alive_t *a)
 {
 	alive_check(a);
 
-	eslist_foreach(&a->pings, (data_fn_t) ap_clear, NULL);
+	eslist_foreach(&a->pings, func_cast(data_fn_t, ap_clear), NULL);
 	eslist_wfree(&a->pings, sizeof(struct alive_ping));
 	eslist_discard(&a->pings);
 	a->magic = 0;

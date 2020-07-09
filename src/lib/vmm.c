@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2006, Christian Biere
- * Copyright (c) 2006, 2011, 2013-2015, Raphael Manfredi
+ * Copyright (c) 2006, 2011, 2013-2015, 2018-2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -99,7 +99,7 @@
  * @author Christian Biere
  * @date 2006
  * @author Raphael Manfredi
- * @date 2006, 2009, 2011, 2013-2015
+ * @date 2006, 2009, 2011, 2013-2015, 2018-2020
  */
 
 #include "common.h"
@@ -119,6 +119,7 @@
 #include "fd.h"
 #include "log.h"
 #include "memusage.h"
+#include "misc.h"
 #include "mutex.h"
 #include "omalloc.h"
 #include "once.h"
@@ -490,7 +491,6 @@ static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
-static tmalloc_t *vmm_get_magazine(size_t npages, bool alloc);
 static void vmm_free_internal(void *p, size_t size, bool user_mem);
 
 /**
@@ -772,7 +772,7 @@ vmf_type_str(const vmf_type_t type)
 	case VMF_FOREIGN:	return "foreign";
 	}
 
-	g_error("corrupted VM fragment type: %d", type);
+	s_error("corrupted VM fragment type: %d", type);
 	return NULL;
 }
 
@@ -787,7 +787,7 @@ vmf_to_string(const struct vm_fragment *vmf)
 	size_t n = pagecount_fast(vmf_size(vmf));
 
 	str_bprintf(b, sizeof buf[0], "%s [%p, %p[ (%'zu page%s)",
-		vmf_type_str(vmf->type), vmf->start, vmf->end, n, plural(n));
+		vmf_type_str(vmf->type), vmf->start, vmf->end, PLURAL(n));
 
 	return b;
 }
@@ -799,36 +799,88 @@ void G_COLD
 vmm_dump_pmap_log(logagent_t *la)
 {
 	struct pmap *pm = vmm_pmap();
-	size_t i, count, size, length;
+	size_t i, count, size, length, native, mapped, foreign;
 	time_t now = tm_time();
 	struct vm_fragment *array;
 
 	/*
-	 * We use a write-lock and not a read-lock here, which can seem surprising
-	 * at first since we're in essence reading the pmap.  However, we are
-	 * allocating memory and re-enter the VMM layer, attempting to then grab
-	 * the write-lock.  It is not allowed to request a write-lock when the
-	 * read-lock is already owned (one needs to upgrade it or release the read
-	 * lock and request the write lock).
+	 * We cannot write-lock the pmap before calling vmm_alloc() because this
+	 * can create a deadlock when probing the page cache (which takes
+	 * a spinlock for the page cache and can then read-lock the pmap). Another
+	 * thread could therefore grab the page cache lock and then stall waiting
+	 * for the read-lock whilst we hold the write lock, and our vmm_alloc()
+	 * call is probably going to inspect the page cache for a fit, deadlocking
+	 * as it attempts to get the page cache spinlock.
 	 *
-	 * Therefore we need to take the write-lock to be fully protected, since
-	 * we can then take it again or request read-locks whilst we own the
-	 * write-lock.
+	 * The above scenario was evidenced clearly by thread_deadlock_check()
+	 * today.
+	 *
+	 * Therefore we need to iterate, attempting to allocate the proper length
+	 * and make sure that length hasn't changed when we come back from
+	 * the vmm_alloc().
+	 *
+	 * 		--RAM, 2020-03-20
 	 */
 
-	rwlock_wlock(&pm->lock);
+	for (i = 0; /* empty */; i++) {
+		rwlock_rlock(&pm->lock);
+		count = pm->count;
+		rwlock_runlock(&pm->lock);
 
-	count = pm->count;
-	size = pm->size;
-	length = count * sizeof array[0];
-	array = vmm_alloc(length);			/* Why we need a write-lock on pmap */
-	memcpy(array, pm->array, length);
+		length = count * sizeof array[0];
+		array = vmm_alloc(length);		/* Call without any lock on pmap */
 
-	rwlock_wunlock(&pm->lock);
+		rwlock_rlock(&pm->lock);
+		size = pm->size;
+
+		if (count >= pm->count) {
+			/* OK if the count decreased, our array is large enough */
+			count = pm->count;			/* Refresh in case it decreased */
+			memcpy(array, pm->array, count * sizeof array[0]);
+			rwlock_runlock(&pm->lock);
+			break;		/* Got the copy of pmap in correctly-sized array */
+		} else {
+			/* Bad luck, amount of entries in pmap increased! */
+			rwlock_runlock(&pm->lock);
+			vmm_free(array, length);
+		}
+
+		if (i > 10) {
+			/* Bail out */
+			s_warning("%s(): cannot copy pmap, its length keeps changing!",
+				G_STRFUNC);
+			log_debug(la, "VMM local pmap (%'zu/%'zu region%s) keeps changing!",
+				count, size, plural(count));
+			return;
+		}
+
+		thread_yield();
+	}
 
 	/*
 	 * Remaining code running without any lock, using the data we just copied.
 	 */
+
+	for (i = native = mapped = foreign = 0; i < count; i++) {
+		struct vm_fragment *vmf = &array[i];
+		size_t vsize = vmf_size(vmf);
+
+		if (vmf_is_native(vmf))
+			native += vsize;
+		else if (vmf_is_mapped(vmf))
+			mapped += vsize;
+		else
+			foreign += vsize;
+	}
+
+	{
+		char buf[SIZE_FIELD_MAX];
+
+		(void) short_size_to_string_buf(foreign, FALSE, ARYLEN(buf));
+
+		log_debug(la, "VMM pmap sizes: %s native, %s mapped, %s foreign",
+			short_size(native, FALSE), short_size2(mapped, FALSE), buf);
+	}
 
 	log_debug(la, "VMM local pmap (%'zu/%'zu region%s):",
 		count, size, plural(count));
@@ -1517,8 +1569,7 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 			if (vmm_debugging(0)) {
 				s_miniwarn("VMM kernel did not follow hint %p for %'zuKiB "
 					"region, picked %p (after %'zu followed hint%s)",
-					hint, size / 1024, p, (size_t) hint_followed,
-					plural(hint_followed));
+					hint, size / 1024, p, (size_t) PLURAL(hint_followed));
 			}
 			VMM_STATS_LOCK;
 			vmm_stats.hints_ignored++;
@@ -2593,6 +2644,26 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 }
 
 /**
+ * @return type of region to which `p' belongs, for logging messages.
+ */
+const char *
+vmm_type_pointer(const void *p)
+{
+	struct vm_fragment *vmf;
+	struct pmap *pm = vmm_pmap();
+	const char *type = "invalid";
+
+	rwlock_rlock(&pm->lock);
+
+	vmf = pmap_lookup(pm, page_start(p), NULL);
+	if (vmf != NULL)
+		type = vmf_type_str(vmf->type);
+
+	rwlock_runlock(&pm->lock);
+	return type;
+}
+
+/**
  * Is pointer within the stack?
  *
  * If the ``top'' parameter is NULL, then the current stack pointer will be
@@ -3654,7 +3725,7 @@ insert:
 		s_minidbg("VMM page cache #%zu: inserted [%p, %p] %'zuKiB, "
 			"now holds %'zu item%s",
 			pc->pages - 1, base, ptr_add_offset(base, pc->chunksize - 1),
-			pc->chunksize / 1024, pc->current, plural(pc->current));
+			pc->chunksize / 1024, PLURAL(pc->current));
 	}
 
 	spinunlock(&pc->lock);
@@ -3753,8 +3824,7 @@ vpc_find_pages(struct page_cache *pc, size_t n, const void *hole)
 						"%s lookup for %'zu page%s at %p "
 						"(upper than hole %p, ignoring %'zu cached entr%s)",
 						pc->pages - 1, i == 0 ? "ignoring" : "stopping",
-						n, plural(n), p, hole,
-						pc->current - i, plural(pc->current - i));
+						PLURAL(n), p, hole, PLURAL(pc->current - i));
 				}
 				if (0 == i) {
 					/* Did not consider any of the pages in that line */
@@ -3990,7 +4060,7 @@ page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 			size_t np = pagecount_fast(len);
 			s_minidbg("VMM %s hole of %'zu page%s at %p (%'zu page%s)",
 				hole == upper.p ? "upper" : "lowest",
-				n, plural(n), hole, np, plural(np));
+				PLURAL(n), hole, PLURAL(np));
 		}
 	}
 
@@ -4967,6 +5037,18 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 	}
 }
 
+/*
+ * Avoid VMM magazine allocation under TRACK_MALLOC.
+ *
+ * This can cause infinite recursions through tmalloc() when attempting to
+ * record the allocated region into the tracking hash tables, which use VMM.
+ * 		--RAM, 2020-01-12
+ */
+
+#ifdef TRACK_MALLOC
+#define vmm_get_magazine(n,a)	NULL
+#define vmm_magazine_alloc(n,z)	NULL
+#else	/* !TRACK_MALLOC */
 /**
  * Internal general-purpose memory allocator given to the thread magazine
  * depot in order to either allocate objects or the magazines themselves.
@@ -5080,7 +5162,7 @@ vmm_get_magazine(size_t npages, bool alloc)
 		s_minicarp_once("%s(): %s attempting to %s %'zu page%s"
 			" from signal handler",
 			G_STRFUNC, thread_safe_name(), alloc ? "allocate" : "free",
-			npages, plural(npages));
+			PLURAL(npages));
 	}
 
 	return depot;
@@ -5112,6 +5194,7 @@ vmm_magazine_alloc(size_t npages, bool zero)
 
 	return zero ? tmalloc0(depot) : tmalloc(depot);
 }
+#endif	/* TRACK_MALLOC */
 
 /**
  * Allocates a page-aligned memory chunk, possibly returning a cached region
@@ -5470,7 +5553,7 @@ page_cache_timer(void *unused_udata)
 
 	if (vmm_debugging(pc->current > 0 ? 4 : 8)) {
 		s_minidbg("VMM scanning page cache #%zu (%'zu item%s)",
-			page_cache_line, pc->current, plural(pc->current));
+			page_cache_line, PLURAL(pc->current));
 	}
 
 	/*
@@ -5566,9 +5649,9 @@ page_cache_timer(void *unused_udata)
 			s_minidbg("VMM expired %'zu item%s (%'zuKiB total) from "
 				"page cache #%zu (%'zu item%s remaining), "
 				"process has %'zu VM regions%s",
-				expired, plural(expired),
+				PLURAL(expired),
 				expired * pc->chunksize / 1024, page_cache_line,
-				pc->current, plural(pc->current), regions,
+				PLURAL(pc->current), regions,
 				old_regions < regions ? " (fragmented further)" : "");
 		}
 		if (vmm_debugging(5)) {
@@ -5620,7 +5703,7 @@ page_cache_free_all(bool locked)
 				size_t pages = pc->current;
 				s_miniwarn("%s(): skipping locked cache line #%zu "
 					"(%'zu bytes) with %'zu page%s",
-					G_STRFUNC, i, pc->chunksize, pages, plural(pages));
+					G_STRFUNC, i, pc->chunksize, PLURAL(pages));
 				continue;
 			}
 		} else {
@@ -5754,7 +5837,7 @@ vmm_is_long_term(void)
  * Called when memory allocator has been initialized and it is possible to
  * call routines that will allocate core memory and perform logging calls.
  */
-void
+static void
 vmm_malloc_inited(void)
 {
 	safe_to_log = TRUE;
@@ -6378,6 +6461,7 @@ vmm_init_once(void)
 	 */
 
 	xmalloc_vmm_inited();
+	vmm_malloc_inited();
 
 	atomic_bool_set(&vmm_fully_inited, TRUE);
 
@@ -6550,7 +6634,7 @@ vmm_close(void)
 
 		if (opages > pages) {
 			s_warning("VMM omalloc() claims using %'zu page%s, have %'zu left",
-				opages, plural(opages), pages);
+				PLURAL(opages), pages);
 		} else {
 			pages -= opages;
 			memory -= opages * (compat_pagesize() / 1024);
@@ -6558,7 +6642,7 @@ vmm_close(void)
 
 		if (mpages > pages) {
 			s_warning("VMM malloc() claims using %'zu page%s, have %'zu left",
-				mpages, plural(mpages), pages);
+				PLURAL(mpages), pages);
 		} else {
 			pages -= mpages;
 			memory -= mpages * (compat_pagesize() / 1024);
@@ -6566,7 +6650,7 @@ vmm_close(void)
 
 		if (spages > pages) {
 			s_warning("VMM stacktrace claims using %'zu page%s, have %'zu left",
-				spages, plural(spages), pages);
+				PLURAL(spages), pages);
 		} else {
 			pages -= spages;
 			memory -= spages * (compat_pagesize() / 1024);
@@ -6575,17 +6659,17 @@ vmm_close(void)
 
 	if (pages != 0) {
 		s_warning("VMM still holds %'zu non-attributed page%s totaling %s KiB",
-			pages, plural(pages), size_t_to_gstring(memory));
+			PLURAL(pages), size_t_to_gstring(memory));
 		if (vmm_stats.user_pages != 0) {
 			s_warning("VMM holds %'zu user page%s (%'zu block%s) "
 				"totaling %s KiB",
-				vmm_stats.user_pages, plural(vmm_stats.user_pages),
-				vmm_stats.user_blocks, plural(vmm_stats.user_blocks),
+				PLURAL(vmm_stats.user_pages),
+				PLURAL(vmm_stats.user_blocks),
 				size_t_to_gstring(vmm_stats.user_memory / 1024));
 		}
 		if (vmm_stats.core_pages != 0) {
 			s_message("VMM holds %'zu core page%s totaling %s KiB",
-				vmm_stats.core_pages, plural(vmm_stats.core_pages),
+				PLURAL(vmm_stats.core_pages),
 				size_t_to_gstring(vmm_stats.core_memory / 1024));
 		}
 	}
@@ -6597,7 +6681,7 @@ vmm_close(void)
 	}
 	if (mapped_pages != 0) {
 		s_warning("VMM still holds %'zu memory-mapped page%s totaling %s KiB",
-			mapped_pages, plural(mapped_pages),
+			PLURAL(mapped_pages),
 			size_t_to_gstring(mapped_memory));
 	}
 }
@@ -6943,7 +7027,7 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 				"from \"%s:%d\" with wrong size %'zu [%'zu missed event%s]",
 				pt->file, pt->line, track_mem(xpt->user), p,
 				xpt->size, xpt->file, xpt->line, pt->size,
-				vmm_buffer.missed, plural(vmm_buffer.missed));
+				PLURAL(vmm_buffer.missed));
 		}
 	}
 
@@ -6953,7 +7037,7 @@ vmm_free_record_desc(const void *p, const struct page_track *pt)
 				"from \"%s:%d\" as wrong type \"%s\" [%'zu missed event%s]",
 				pt->file, pt->line, track_mem(xpt->user), p,
 				xpt->size, xpt->file, xpt->line, track_mem(pt->user),
-				vmm_buffer.missed, plural(vmm_buffer.missed));
+				PLURAL(vmm_buffer.missed));
 		}
 	}
 
@@ -7128,7 +7212,7 @@ static void unbuffer_operations(void)
 				"(%'zu other record%s pending)",
 				track_operation_to_string(tb.op), tb.pt.size,
 				track_mem(tb.pt.user), tb.addr, tb.pt.file, tb.pt.line,
-				vmm_buffer.idx, plural(vmm_buffer.idx));
+				PLURAL(vmm_buffer.idx));
 		}
 
 		switch (tb.op) {
@@ -7315,7 +7399,7 @@ vmm_track_malloc_inited(void)
 {
 	if (vmm_buffer.missed != 0) {
 		s_warning("VMM missed %'zu initial tracking event%s",
-			vmm_buffer.missed, plural(vmm_buffer.missed));
+			PLURAL(vmm_buffer.missed));
 	}
 }
 
@@ -7327,11 +7411,11 @@ vmm_track_post_init(void)
 {
 	if (vmm_buffer.max > 0 && vmm_debugging(0)) {
 		s_minidbg("VMM required %'zu bufferred event%s",
-			vmm_buffer.max, plural(vmm_buffer.max));
+			PLURAL(vmm_buffer.max));
 	}
 	if (vmm_nl_buffer.max > 0 && vmm_debugging(0)) {
 		s_minidbg("VMM required %'zu bufferred non-leaking event%s",
-			vmm_nl_buffer.max, plural(vmm_nl_buffer.max));
+			PLURAL(vmm_nl_buffer.max));
 	}
 }
 

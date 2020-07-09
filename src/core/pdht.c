@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -438,7 +438,7 @@ pdht_publish_done(void *arg,
 		g_debug("PDHT ending %s%s publish for %s (%u publish%s): %s",
 			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
-			info->published, plural_es(info->published),
+			PLURAL_ES(info->published),
 			publish_strerror(code));
 	}
 
@@ -933,7 +933,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
 				g_debug("PDHT ALOC found %zu publish root%s for %s \"%s\"",
-					roots, plural(roots),
+					PLURAL(roots),
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
 			}
@@ -965,7 +965,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
 			g_debug("PDHT NOPE found %zu publish root%s for %s",
-				roots, plural(roots), guid_hex_str(pp->u.nope.guid));
+				PLURAL(roots), guid_hex_str(pp->u.nope.guid));
 		}
 
 		value = pdht_get_nope(pp->u.nope.guid, pp->id);
@@ -973,7 +973,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT PROX found %zu publish root%s", roots, plural(roots));
+			g_debug("PDHT PROX found %zu publish root%s", PLURAL(roots));
 		}
 
 		value = pdht_get_prox(pp->id);
@@ -1339,7 +1339,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 			info->roots, 1 == info->roots ? "" : "s",
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pdht_proxy.last_enqueued)),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -1423,7 +1423,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX using %zu push-prox%s for local node (%sfirewalled)",
-			i, plural_y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
+			PLURAL_Y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
 	}
 
 	return i;
@@ -1488,8 +1488,7 @@ pdht_prox_publish(bool force)
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
-			(unsigned) pdht_proxy.proxies_count,
-			plural_y(pdht_proxy.proxies_count),
+			(unsigned) PLURAL_Y(pdht_proxy.proxies_count),
 			changed ? "" : "un",
 			publishing ?  "publishing" : "ignoring",
 			force ? "forced" : "on change only");
@@ -1706,9 +1705,9 @@ pdht_nope_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			" %s bg, path %u) [%s]",
 			info->was_bg ? "[bg] " : "",
 			guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
-			info->roots, plural(info->roots),
+			PLURAL(info->roots),
 			pdht_strerror(code),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");

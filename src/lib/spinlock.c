@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -202,12 +202,14 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 	const char *file, unsigned line)
 {
 	const volatile spinlock_t *s = obj;
-
-	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
-		s->lock ? "" : "free ", obj, file, line);
+	bool locked;
 
 	atomic_mb();
 	spinlock_check(s);
+
+	locked = s->lock;
+	s_rawwarn("deadlock on %sspinlock %p at %s:%u",
+		locked ? "" : "free ", obj, file, line);
 
 #ifdef SPINLOCK_DEBUG
 #ifdef SPINLOCK_OWNER_DEBUG
@@ -221,10 +223,10 @@ spinlock_deadlocked(const volatile void *obj, unsigned elapsed,
 #endif
 #endif
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on %sspinlock %p (after %u secs) at %s:%u",
-		s->lock ? "" : "free ", obj, elapsed, file, line);
+		locked ? "" : "free ", obj, elapsed, file, line);
 }
 
 /**

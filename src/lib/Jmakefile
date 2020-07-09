@@ -21,24 +21,27 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
 ;# $Id$
 
 /*
- * Generation of bit_array.h and bit_field.h from a generic template.
+ * Generation of bit_array.[ch] and bit_field.[ch] from a generic template.
  */
 
 #define BitGenericCat(type)						@!\
-bit_/**/type.h: bit_/**/type.ht bit_generic.t	@@\
-	$(TOP)/scripts/generic-cat bit_/**/type.ht bit_generic.t type >$@ @!\
+bit_/**/type.h: bit_/**/type.ht bit_generic.ht	@@\
+	$(TOP)/scripts/generic-cat bit_/**/type.ht bit_generic.ht type >$@ @!\
 												@!\
-all:: bit_/**/type.h							@!\
-depend:: bit_/**/type.h							@!\
+bit_/**/type.c: bit_generic.ct					@@\
+	$(TOP)/scripts/generic-cat /dev/null bit_generic.ct type >$@ @!\
+												@!\
+all:: bit_/**/type.h bit_/**/type.c				@!\
+depend:: bit_/**/type.h bit_/**/type.c			@!\
 local_realclean::								@@\
-	$(RM) bit_/**/type.h
+	$(RM) bit_/**/type.h bit_/**/type.c
 
 BitGenericCat(array)
 BitGenericCat(field)
@@ -47,7 +50,7 @@ BitGenericCat(field)
 h/**/type.h: hgeneric.ht						@@\
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht type sig TYPE >$@	@!\
 												@!\
-h/**/type.c: hgeneric.ht						@@\
+h/**/type.c: hgeneric.ct						@@\
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct type sig TYPE >$@	@!\
 												@!\
 all:: h/**/type.h h/**/type.c					@!\
@@ -77,6 +80,8 @@ LSRC = \
 	bfd_util.c \
 	bg.c \
 	bigint.c \
+	bit_array.c \
+	bit_field.c \
 	bsearch.c \
 	bstr.c \
 	buf.c \

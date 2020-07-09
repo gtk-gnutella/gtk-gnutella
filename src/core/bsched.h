@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -65,6 +65,10 @@ bio_source_t *bsched_source_add(bsched_bws_t bs, wrap_io_t *wio, uint32 flags,
 void bsched_source_remove(bio_source_t *bio);
 void bsched_set_bandwidth(bsched_bws_t bs, int64 bandwidth);
 uint64 bio_bw_per_second(const bio_source_t *bio);
+uint8 bio_add_penalty(bio_source_t *bio, uint8 n);
+uint8 bio_remove_penalty(bio_source_t *bio, uint8 n);
+uint8 bio_penalty(const bio_source_t *bio);
+uint32 bio_set_cap(bio_source_t *bio, uint32 cap);
 void bio_add_callback(bio_source_t *bio,
 	inputevt_handler_t callback, void *arg);
 void bio_add_passive_callback(bio_source_t *bio,

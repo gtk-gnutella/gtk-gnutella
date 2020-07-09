@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -74,6 +74,18 @@
  *     // Error handling
  *  }
  *
+ * The we use the file object to read/write but since this is a shared
+ * object, all I/O must be done with an explicit offset within the file.
+ *
+ *  // Read from file at given offset
+ *  r = file_object_pread(file, data, size, offset);
+ *
+ *  // Write to file at given offset
+ *  w = file_object_pwrite(file, data, size, offset);
+ *
+ *  // And finally close the file (object), which NULL-ifies pointer
+ *  file_object_close(&file);
+ *
  * Internally, all files are opened O_RDWR if possible to be able to share
  * the file descriptors, but the API checks the access mode and will loudly
  * complain if the user is trying to read from a write-only file for instance,
@@ -94,6 +106,7 @@
 #include "atoms.h"
 #include "compat_misc.h"
 #include "compat_pio.h"
+#include "cq.h"
 #include "fd.h"
 #include "file.h"
 #include "hikset.h"
@@ -109,6 +122,8 @@
 #include "walloc.h"
 
 #include "override.h"       /* Must be the last header included */
+
+#define FILE_OBJECT_LINGER_MS	(120*1000)	/* Two minutes */
 
 /**
  * Table contains all the file descriptors, indexed by absolute pathname
@@ -158,6 +173,7 @@ enum file_descriptor_magic { FILE_DESCRIPTOR_MAGIC   = 0x69ba3bc8 };
 struct file_descriptor {
 	enum file_descriptor_magic magic;
 	const char *pathname;		/* Atom, internal indexing key */
+	cevent_t *linger_ev;		/* Lingering before beeing freed */
 	int refcnt;					/* Reference count */
 	int fd;						/* The file descriptor, opened O_RDWR usually */
 	int omode;					/* Opening mode of file descriptor */
@@ -289,6 +305,7 @@ file_object_free_descriptor(struct file_descriptor * const fd)
 	file_descriptor_check(fd);
 	g_assert(0 == fd->refcnt);
 
+	cq_cancel(&fd->linger_ev);
 	fd_close(&fd->fd);
 	atom_str_free_null(&fd->pathname);
 	spinlock_destroy(&fd->lock);
@@ -422,6 +439,35 @@ file_object_revoke(struct file_descriptor * const fd)
 }
 
 /**
+ * Callout queue callback invoked when the lingering period of the unref-ed
+ * file descriptor expired.
+ */
+static void
+file_object_descriptor_expired(cqueue_t *cq, void *data)
+{
+	struct file_descriptor *fd = data;
+
+	file_descriptor_check(fd);
+
+	FILE_DESCRIPTOR_LOCK(fd);
+	cq_zero(cq, &fd->linger_ev);
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	if (0 != atomic_int_get(&fd->refcnt))
+		return;		/* File descriptor got reused, our lingering was useful */
+
+	FILE_OBJECTS_LOCK;
+	if (0 != atomic_int_get(&fd->refcnt)) {
+		FILE_OBJECTS_UNLOCK;
+		return;
+	}
+	file_object_remove(fd);		/* Can no longer be used! */
+	FILE_OBJECTS_UNLOCK;
+
+	file_object_free_descriptor(fd);
+}
+
+/**
  * Remove a reference on a file descriptor, freeing it if it reaches zero.
  */
 static void
@@ -429,20 +475,46 @@ file_object_unref_descriptor(struct file_descriptor *fd)
 {
 	/*
 	 * If d->refcnt is not zero, we don't need to take the global lock.
-	 * Otherwise, we need to take the lock and recheck, since file descriptor
+	 *
+	 * Otherwise, we need to take the lock and recheck, since the file descriptor
 	 * could have been concurrently re-used.
 	 */
 
 	if (atomic_int_dec_is_zero(&fd->refcnt)) {
-		bool need_free = FALSE;
+		bool norefs;
+
 		FILE_OBJECTS_LOCK;
-		if (0 == atomic_int_get(&fd->refcnt)) {
-			file_object_remove(fd);
-			need_free = TRUE;
-		}
+		norefs = (0 == atomic_int_get(&fd->refcnt));
 		FILE_OBJECTS_UNLOCK;
-		if (need_free)
-			file_object_free_descriptor(fd);
+
+		/*
+		 * We don't free a file descriptor immediately when its reference count
+		 * drops to 0, in case the application is going to re-use it in a short
+		 * while.
+		 *
+		 * If the file descriptor was revoked however, a file_object_remove()
+		 * was already done by file_object_revoke() and we can immediately free
+		 * the descriptor now that the last reference is gone.
+		 *
+		 * Otherwise, we install a lingering timer and the descriptor will
+		 * get free when it expires, unless the file descriptor has been
+		 * reused meanwhile.
+		 */
+
+		if (norefs) {
+			if (fd->revoked)
+				file_object_free_descriptor(fd);
+			else {
+				FILE_DESCRIPTOR_LOCK(fd);
+				if (NULL == fd->linger_ev) {
+					fd->linger_ev = cq_main_insert(FILE_OBJECT_LINGER_MS,
+						file_object_descriptor_expired, fd);
+				} else {
+					cq_resched(fd->linger_ev, FILE_OBJECT_LINGER_MS);
+				}
+				FILE_DESCRIPTOR_UNLOCK(fd);
+			}
+		}
 	}
 }
 
@@ -505,7 +577,7 @@ file_object_descriptor_is_compatible(struct file_descriptor *fd,
 		return FALSE;
 
 	/*
-	 * We managed to opend the file in read-write mode, update the
+	 * We managed to open the file in read-write mode, update the
 	 * file descriptor.
 	 */
 
@@ -562,10 +634,15 @@ file_object_open_from(const char * const pathname, int accmode,
 
 	FILE_OBJECTS_LOCK;
 	fd = file_object_find(pathname);
+	/*
+	 * Get a reference under lock protection to avoid race with
+	 * file_object_descriptor_expired().
+	 */
+	if (fd != NULL)
+		atomic_int_inc(&fd->refcnt);
 	FILE_OBJECTS_UNLOCK;
 
 	if (fd != NULL) {
-		atomic_int_inc(&fd->refcnt);
 		if (!file_object_descriptor_is_compatible(fd, pathname, accmode)) {
 			file_object_unref_descriptor(fd);
 			errno = EACCES;
@@ -644,10 +721,15 @@ file_object_create_from(const char * const pathname, int accmode, mode_t mode,
 
 	FILE_OBJECTS_LOCK;
 	fd = file_object_find(pathname);
+	/*
+	 * Get a reference under lock protection to avoid race with
+	 * file_object_descriptor_expired().
+	 */
+	if (fd != NULL)
+		atomic_int_inc(&fd->refcnt);
 	FILE_OBJECTS_UNLOCK;
 
 	if (fd != NULL) {
-		atomic_int_inc(&fd->refcnt);
 		if (!file_object_descriptor_is_compatible(fd, pathname, accmode)) {
 			file_object_unref_descriptor(fd);
 			errno = EACCES;
@@ -700,7 +782,7 @@ file_object_create_from(const char * const pathname, int accmode, mode_t mode,
  *               point to an initialized file_object.
  */
 void
-file_object_release(file_object_t **fo_ptr)
+file_object_close(file_object_t **fo_ptr)
 {
 	g_assert(fo_ptr != NULL);
 
@@ -1360,6 +1442,28 @@ file_object_show_item(const void *value, void *unused_udata)
 		fo->file, fo->line);
 }
 
+/**
+ * Hikset iterator callback to free and remove lingering descriptors.
+ */
+static bool
+file_object_descriptor_free_lingering(void *data, void *udata)
+{
+	struct file_descriptor *fd = data;
+
+	file_descriptor_check(fd);
+	(void) udata;
+
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	if (0 != atomic_int_get(&fd->refcnt)) {
+		FILE_DESCRIPTOR_UNLOCK(fd);
+		return FALSE;	/* Keep it */
+	}
+
+	file_object_free_descriptor(fd);	/* Will unlock */
+	return TRUE;						/* Remove from set */
+}
+
 static inline void
 file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
 {
@@ -1384,8 +1488,21 @@ file_object_destroy_table(hikset_t **ht_ptr, const char * const name)
  * @note Still existing file objects are not destroyed.
  */
 void
-file_object_close(void)
+file_object_shutdown(void)
 {
+	/*
+	 * Release lingering file descriptors since we're shutdowning...
+	 *
+	 * Not doing so could raise false alarms in file_object_destroy_table()
+	 * since nobody references these descriptors, hence their presence does
+	 * not mean there is a file_object leak.
+	 */
+
+	FILE_OBJECTS_LOCK;
+	hikset_foreach_remove(file_descriptors,
+		file_object_descriptor_free_lingering, NULL);
+	FILE_OBJECTS_UNLOCK;
+
 #define D(x) &x, #x
 
 	file_object_destroy_table(D(file_descriptors));
@@ -1442,7 +1559,59 @@ file_object_info_list(void)
 {
 	pslist_t *sl = NULL;
 
+	FILE_OBJECTS_LOCK;
 	hset_foreach(file_objects, file_object_info_get, &sl);
+	FILE_OBJECTS_UNLOCK;
+
+	return sl;
+}
+
+/**
+ * Set iterator to get information about specific file descriptor and add
+ * it to the returned list of structures.
+ */
+static void
+file_object_descriptor_info_get(void *data, void *udata)
+{
+	const struct file_descriptor *fd = data;
+	pslist_t **list = udata;				/* List being built for user */
+	pslist_t *sl = *list;					/* Current list head pointer */
+	file_object_descriptor_info_t *fdi;
+
+	file_descriptor_check(fd);
+
+	WALLOC0(fdi);
+	fdi->magic = FILE_OBJ_DESC_INFO_MAGIC;
+
+	FILE_DESCRIPTOR_LOCK(fd);
+
+	fdi->path = atom_str_get(fd->pathname);
+	fdi->refcnt = atomic_int_get(&fd->refcnt);
+	fdi->mode = fd->omode;
+	if (0 == fdi->refcnt && fd->linger_ev != NULL)
+		fdi->linger = cq_remaining(fd->linger_ev) / 1000;
+
+	FILE_DESCRIPTOR_UNLOCK(fd);
+
+	sl = pslist_prepend(sl, fdi);
+	*list = sl;							/* Update list head pointer */
+}
+
+/**
+ * Retrieve file_descriptor information.
+ *
+ * @return list of file_object_descriptor_info_t that must be freed by calling
+ * the * file_object_descriptor_info_list_free_null() routine.
+ */
+pslist_t *
+file_object_descriptor_info_list(void)
+{
+	pslist_t *sl = NULL;
+
+	FILE_OBJECTS_LOCK;
+	hikset_foreach(file_descriptors, file_object_descriptor_info_get, &sl);
+	FILE_OBJECTS_UNLOCK;
+
 	return sl;
 }
 
@@ -1463,11 +1632,36 @@ file_object_info_free(void *data, void *udata)
  * Free list returned by file_object_info_list() and nullify pointer.
  */
 void
-file_object_info_list_free_nulll(pslist_t **sl_ptr)
+file_object_info_list_free_null(pslist_t **sl_ptr)
 {
 	pslist_t *sl = *sl_ptr;
 
 	pslist_foreach(sl, file_object_info_free, NULL);
+	pslist_free_null(sl_ptr);
+}
+
+static void
+file_object_descriptor_info_free(void *data, void *udata)
+{
+	file_object_descriptor_info_t *fdi = data;
+
+	file_object_descriptor_info_check(fdi);
+	(void) udata;
+
+	atom_str_free_null(&fdi->path);
+	fdi->magic = 0;
+	WFREE(fdi);
+}
+
+/**
+ * Free list returned by file_object_descriptor_info_list() and nullify pointer.
+ */
+void
+file_object_descriptor_info_list_free_null(pslist_t **sl_ptr)
+{
+	pslist_t *sl = *sl_ptr;
+
+	pslist_foreach(sl, file_object_descriptor_info_free, NULL);
 	pslist_free_null(sl_ptr);
 }
 

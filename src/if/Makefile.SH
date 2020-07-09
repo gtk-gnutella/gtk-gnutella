@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-241]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in

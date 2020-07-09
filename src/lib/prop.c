@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -539,7 +539,7 @@ prop_free_def(prop_def_t *d)
 	}
 	HFREE_NULL(d->name);
 	HFREE_NULL(d->desc);
-	WFREE_NULL(d, sizeof *d);
+	WFREE_TYPE_NULL(d);
 }
 
 /**
@@ -676,7 +676,7 @@ prop_set_boolean(prop_set_t *ps, property_t prop, const bool *src,
 
 		for (i = 0; i < d->vector_size; i++)
 			str_catf(s, "%s%s ",
-				d->data.boolean.value[i] ? "TRUE" : "FALSE",
+				bool_to_string(d->data.boolean.value[i]),
 				i < d->vector_size - 1 ? "," : "");
 
 		str_putc(s, ')');
@@ -1526,10 +1526,7 @@ prop_to_string(prop_set_t *ps, property_t prop)
 				STR_CAT(s, ", ");
 
 			prop_get_boolean(ps, prop, &val, n, 1);
-			if (val)
-				STR_CAT(s, "TRUE");
-			else
-				STR_CAT(s, "FALSE");
+			str_cat(s, bool_to_string(val));
 		}
 
 		if (d->vector_size != 1)
@@ -1612,10 +1609,7 @@ prop_default_to_string(prop_set_t *ps, property_t prop)
 		str_reset(s);		/* No default value for these types */
 		goto done;
 	case PROP_TYPE_BOOLEAN:
-		if (p->data.boolean.def[0])
-			STR_CPY(s, "TRUE");
-		else
-			STR_CPY(s, "FALSE");
+		str_cpy(s, bool_to_string(p->data.boolean.def[0]));
 		goto done;
 	case PROP_TYPE_MULTICHOICE:
 		{

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -571,8 +571,8 @@ ext_ggep_parse(const char **retp, int len, extvec_t *exv, int exvcnt)
 		d->ext_phys_payload = p;
 		d->ext_phys_paylen = data_length;
 		d->ext_phys_len = (p - lastp) + data_length;
-		d->ext_ggep_cobs = flags & GGEP_F_COBS;
-		d->ext_ggep_deflate = flags & GGEP_F_DEFLATE;
+		d->ext_ggep_cobs = booleanize(flags & GGEP_F_COBS);
+		d->ext_ggep_deflate = booleanize(flags & GGEP_F_DEFLATE);
 
 		if (0 == (flags & (GGEP_F_COBS|GGEP_F_DEFLATE))) {
 			d->ext_payload = d->ext_phys_payload;
@@ -1567,8 +1567,7 @@ ext_ggep_strip(char *buf, int len, const char *key)
 		int newlen = end - buf;
 		g_debug("GGEP stripping of \"%s\" in %u block%s removed %d bytes "
 			"(emptied %u block%s)",
-			key, blocks, plural(blocks), len - newlen,
-			removed, plural(removed));
+			key, PLURAL(blocks), len - newlen, PLURAL(removed));
 	}
 
 	return end - buf;
@@ -1638,7 +1637,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 				if (GNET_PROPERTY(ggep_debug)) {
 					g_warning("GGEP payload \"%s\" (%d byte%s) would "
 						"decompress to more than %d bytes",
-						name, len, plural(len), GGEP_MAXLEN);
+						name, PLURAL(len), GGEP_MAXLEN);
 				}
 				failed = TRUE;
 				break;
@@ -1667,7 +1666,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 		if (ret == Z_STREAM_END) {			/* All done! */
 			if (GNET_PROPERTY(ggep_debug) > 3) {
 				g_info("GGEP payload \"%s\" inflated %d byte%s into %d",
-					name, len, plural(len), inflated);
+					name, PLURAL(len), inflated);
 			}
 			break;
 		}
@@ -1679,7 +1678,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 			if (GNET_PROPERTY(ggep_debug)) {
 				g_warning("GGEP payload \"%s\" does not decompress properly "
 					"(consumed %d/%d byte%s inflated into %d)",
-					name, len - inz->avail_in, len, plural(len), inflated);
+					name, len - inz->avail_in, PLURAL(len), inflated);
 			}
 			failed = TRUE;
 			break;
@@ -1689,7 +1688,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 			if (GNET_PROPERTY(ggep_debug)) {
 				g_warning("decompression of GGEP payload \"%s\""
 					" (%d byte%s) failed: %s [consumed %d, inflated into %d]",
-					name, len, plural(len), zlib_strerror(ret),
+					name, PLURAL(len), zlib_strerror(ret),
 					len - inz->avail_in, inflated);
 			}
 			failed = TRUE;
@@ -1726,7 +1725,7 @@ ext_ggep_inflate(const char *buf, int len, uint16 *retlen, const char *name)
 
 	if (GNET_PROPERTY(ggep_debug) > 5) {
 		g_debug("decompressed GGEP payload \"%s\" (%d byte%s) into %d",
-			name, len, plural(len), inflated);
+			name, PLURAL(len), inflated);
 	}
 
 	return result;					/* OK, successfully inflated */
@@ -2088,8 +2087,7 @@ ext_to_string_buf(const extvec_t *e, char *buf, size_t len)
 		g_assert_not_reached();
 	}
 
-	rw += str_bprintf(&buf[rw], len - rw, "(%u byte%s)",
-		ext_paylen(e), plural(ext_paylen(e)));
+	rw += str_bprintf(&buf[rw], len - rw, "(%u byte%s)", PLURAL(ext_paylen(e)));
 
 	return rw;
 }
@@ -2131,18 +2129,17 @@ ext_dump_one(FILE *f, const extvec_t *e, const char *prefix,
 	phys_paylen = ext_phys_paylen(e);
 
 	if (paylen == phys_paylen) {
-		fprintf(f, "%u byte%s", paylen, plural(paylen));
+		fprintf(f, "%u byte%s", PLURAL(paylen));
 	} else {
-		fprintf(f, "%u byte%s <%u byte%s>",
-			paylen, plural(paylen), phys_paylen, plural(phys_paylen));
+		fprintf(f, "%u byte%s <%u byte%s>", PLURAL(paylen), PLURAL(phys_paylen));
 	}
 
 	if (e->ext_type == EXT_GGEP) {
 		extdesc_t *d = e->opaque;
 		fprintf(f, " (ID=\"%s\", COBS: %s, deflate: %s)",
 			d->ext_ggep_id,
-			d->ext_ggep_cobs ? "yes" : "no",
-			d->ext_ggep_deflate ? "yes" : "no");
+			bool_to_string(d->ext_ggep_cobs),
+			bool_to_string(d->ext_ggep_deflate));
 	}
 
 	if (postfix)

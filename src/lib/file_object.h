@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -38,6 +38,8 @@
 #define _file_object_h_
 
 #include "common.h"
+
+#include "lib/timestamp.h"	/* For time_delta_t */
 
 typedef struct file_object file_object_t;
 
@@ -62,8 +64,28 @@ file_object_info_check(const file_object_info_t * const foi)
 	g_assert(FILE_OBJECT_INFO_MAGIC == foi->magic);
 }
 
+enum file_object_descriptor_info_magic { FILE_OBJ_DESC_INFO_MAGIC = 0x0c6b520c };
+
+/*
+ * File descriptor information that can be retrieved.
+ */
+typedef struct {
+	enum file_object_descriptor_info_magic magic;
+	const char *path;					/**< Pathname opened (atom) */
+	int mode;							/**< Access mode */
+	int refcnt;							/**< Shared openings on descriptor */
+	time_delta_t linger;				/**< If non-zero, remaining linger time */
+} file_object_descriptor_info_t;
+
+static inline void
+file_object_descriptor_info_check(const file_object_descriptor_info_t * const fdi)
+{
+	g_assert(fdi != NULL);
+	g_assert(FILE_OBJ_DESC_INFO_MAGIC == fdi->magic);
+}
+
 void file_object_init(void);
-void file_object_close(void);
+void file_object_shutdown(void);		/* Leave file_object_close() for users */
 
 #define file_object_create(p,a,m) \
 	file_object_create_from((p), (a), (m), _WHERE_, __LINE__)
@@ -88,7 +110,7 @@ ssize_t file_object_preadv(const file_object_t *fo,
 int file_object_fd(const file_object_t *fo);
 const char *file_object_pathname(const file_object_t *fo);
 
-void file_object_release(file_object_t **fo_ptr);
+void file_object_close(file_object_t **fo_ptr);
 bool file_object_rename(const char * const o, const char * const n);
 bool file_object_unlink(const char * const path);
 void file_object_moved(const char * const o, const char * const n);
@@ -97,7 +119,9 @@ int file_object_ftruncate(const file_object_t * const fo, filesize_t off);
 void file_object_fadvise_sequential(const file_object_t * const fo);
 
 struct pslist *file_object_info_list(void) WARN_UNUSED_RESULT;
-void file_object_info_list_free_nulll(struct pslist **sl_ptr);
+struct pslist *file_object_descriptor_info_list(void) WARN_UNUSED_RESULT;
+void file_object_info_list_free_null(struct pslist **sl_ptr);
+void file_object_descriptor_info_list_free_null(struct pslist **sl_ptr);
 
 #endif /* _file_object_h_ */
 

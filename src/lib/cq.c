@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -679,7 +679,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  * @param cq		the callout queue that dispatched the event
  * @param ev_ptr	reference to the event
  * @param zero		TRUE if cq_zero() was called
- * @param locked	TRUE if we must warn when the call this unlocked
+ * @param locked	TRUE if we must warn when they call this unlocked
  * @param caller	name of our caller for logging
  */
 static void
@@ -877,7 +877,7 @@ bool
 cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
-	bool triggered = FALSE;
+	bool triggered;
 
 	if (ev != NULL) {
 		cqueue_t *cq;
@@ -889,16 +889,18 @@ cq_cancel(cevent_t **handle_ptr)
 
 		cq = EV_CQ_LOCK(ev);
 
-		if G_LIKELY(!ev_triggered(ev)) {
+		triggered = ev_triggered(ev);
+
+		if G_LIKELY(!triggered) {
 			g_assert(cq->cq_items > 0);
 			ev_unlink(ev);
-		} else {
-			triggered = TRUE;
 		}
 
 		CQ_UNLOCK(cq);
 		ev_free(ev);
 		*handle_ptr = NULL;
+	} else {
+		triggered = TRUE;	/* NULL event given, must have triggered */
 	}
 
 	return triggered;
@@ -1247,7 +1249,7 @@ done:
 		s_debug("CQ: %squeue \"%s\" %striggered %zu event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
-			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
+			PLURAL(processed), PLURAL(cq->cq_items));
 	}
 
 	/*
@@ -1371,7 +1373,7 @@ cq_delay(const cqueue_t *cq)
 	if (cq_debugging(4)) {
 		s_debug("%s(%s): %smin delay is %d, scanned %d bucket%s",
 			G_STRFUNC, cq->cq_name, adjusted ? "adjusted " : "",
-			delay, i, plural(i));
+			delay, PLURAL(i));
 	}
 
 	return delay;

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -638,8 +638,8 @@ etree_sort(etree_t *tree, cmp_fn_t cmp)
 	if (NULL == tree->root)
 		return;
 
-	tree->count =
-		etree_sort_internal(tree, tree->root, (cmp_data_fn_t) cmp, NULL);
+	tree->count = etree_sort_internal(
+		tree, tree->root, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -658,8 +658,7 @@ etree_sort_with_data(etree_t *tree, cmp_data_fn_t cmp, void *data)
 	if (NULL == tree->root)
 		return;
 
-	tree->count =
-		etree_sort_internal(tree, tree->root, (cmp_data_fn_t) cmp, data);
+	tree->count = etree_sort_internal(tree, tree->root, cmp, data);
 }
 
 /**

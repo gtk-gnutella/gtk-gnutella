@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -88,6 +88,30 @@
 #include "override.h"		/* Must be the last header included */
 
 #ifdef HAS_BFD_LIBRARY
+
+/*
+ * Deal with backward portability issue.
+ *
+ * The 'b' argument in bfd_get_section_vma() was ignored, so the
+ * BFD library folks changed their macro definition to drop that
+ * unused argument, causing a portability issue.
+ *
+ * Actually, the bfd_get_section_xxx() accessors are removed now
+ * and only bfd_section_xxx() accessors exist, using only the section
+ * as their sole parameter.
+ * 		--RAM, 2020-03-16
+ */
+#ifdef HAS_BFD_SECTION_1ARG
+/* New API, starting with BFD 2.34 */
+#define BFD_UTIL_SECTION_FLAGS(b,s)	bfd_section_flags(s)
+#define BFD_UTIL_SECTION_SIZE(s)	bfd_section_size(s)
+#define BFD_UTIL_SECTION_VMA(b,s)	bfd_section_vma(s)
+#else	/* !HAS_BFD_SECTION_1ARG */
+/* Safe defaults, using the old API */
+#define BFD_UTIL_SECTION_FLAGS(b,s)	bfd_get_section_flags((b),(s))
+#define BFD_UTIL_SECTION_SIZE(s)	bfd_get_section_size(s)
+#define BFD_UTIL_SECTION_VMA(b,s)	bfd_get_section_vma((b),(s))
+#endif	/* HAS_BFD_SECTION_1ARG */
 
 enum bfd_ctx_magic { BFD_CTX_MAGIC = 0x3bb7920e };
 
@@ -203,11 +227,12 @@ bfd_util_lookup_section(bfd *b, asection *sec, void *data)
 	if (sc->location.function != NULL)
 		return;		/* Already found */
 
-	if (0 == (bfd_get_section_flags(b, sec) & SEC_ALLOC))
+	if (0 == (BFD_UTIL_SECTION_FLAGS(b, sec) & SEC_ALLOC))
 		return;
 
-	vma = bfd_get_section_vma(b, sec);
-	if (sc->addr < vma || sc->addr >= bfd_get_section_size(sec) + vma)
+	vma = BFD_UTIL_SECTION_VMA(b, sec);
+
+	if (sc->addr < vma || sc->addr >= BFD_UTIL_SECTION_SIZE(sec) + vma)
 		return;
 
 	bfd_find_nearest_line(b, sec, sc->symbols, sc->addr - vma,
@@ -306,6 +331,9 @@ bfd_util_check_format(bfd *b, bfd_format fmt, const char *path)
 		s_miniwarn("%s: possible format is \"%s\"", G_STRFUNC, matching[i]);
 		i++;
 	}
+
+	/* So we can use free() when TRACK_MALLOC is on */
+	(void) MEMTRACK(matching, 1);
 
 	free(matching);		/* Not xfree(), was allocated by bfd */
 	return FALSE;
@@ -411,7 +439,7 @@ done:
 
 	bc->magic = BFD_CTX_MAGIC;
 	bc->handle = b;
-	bc->symbols = symbols;		/* Allocated by the bfd library */
+	bc->symbols = MEMTRACK(symbols, 1);		/* Allocated by the bfd library */
 	bc->count = count;
 	bc->symsize = size;
 	mutex_init(&bc->lock);
@@ -428,23 +456,32 @@ bfd_util_close_context_null(bfd_ctx_t **bc_ptr)
 	bfd_ctx_t *bc = *bc_ptr;
 
 	if (bc != NULL) {
+		bfd_ctx_check(bc);
+
 		mutex_lock(&bc->lock);	/* Not a fast mutex since we'll destroy it */
+
 		if (bc->symbols != NULL)
 			free(bc->symbols);	/* Not xfree(): created by the bfd library */
 
 		/*
-		 * We use bfd_close_all_done() and not bfd_close() because the latter
-		 * causes a SIGSEGV now that we are using bfd_fdopenr(). The fault
-		 * occurs in some part trying to write changes to the file...
-		 *
-		 * Since the file is opened as read-only and we don't expect any
-		 * write operation, using bfd_close_all_done() is a viable workaround
-		 * for this BFD library bug.
+		 * On Windows, we apparently still need to avoid calling bfd_close()
+		 * as this creates a SIGSEGV in the BFD library code.  Diagnosing
+		 * such crashes on Windows is not easy, therefore using the fastpath
+		 * of reverting to a known working solution, even though the root cause
+		 * is still lurking and can cause instability (read: "random crashes").
+		 * 		--RAM, 2020-03-22
 		 */
 
-		if (bc->handle != NULL)
-			bfd_close_all_done(bc->handle);		/* Workaround for BFD bug */
+		if (bc->handle != NULL) {
+#ifdef MINGW32
+			bfd_close_all_done(bc->handle);
+#else
+			bfd_close(bc->handle);
+#endif
+		}
+
 		symbols_free_null(&bc->text_symbols);
+
 		bc->magic = 0;
 		mutex_destroy(&bc->lock);
 		xfree(bc);
@@ -552,7 +589,7 @@ bfd_util_compute_offset(bfd_ctx_t *bc, ulong base)
 	 */
 
 	if (sec != NULL) {
-		bfd_vma addr = bfd_section_vma(b, sec);
+		bfd_vma addr = BFD_UTIL_SECTION_VMA(b, sec);
 
 		bc->offset = ptr_diff(vmm_page_start(ulong_to_pointer(addr)),
 			vmm_page_start(ulong_to_pointer(base)));

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -212,7 +212,7 @@ G_STMT_START { \
 #define g_return_val_unless_log(expr, val, ...) \
 	return_value_unless_intern_log((expr), #expr, (val), __VA_ARGS__)
 
-#ifdef FAST_ASSERTIONS
+/* Superseding glib versions */
 
 #undef g_assert
 #define g_assert(expr) fast_assert((expr), #expr)
@@ -226,8 +226,6 @@ G_STMT_START { \
 #undef g_return_val_if_fail
 #define g_return_val_if_fail(expr, val) \
 	return_value_unless_intern((expr), #expr, (val))
-
-#endif /* FAST_ASSERTIONS */
 
 #endif /* _fast_assert_h_ */
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -61,6 +61,7 @@ void teq_post(unsigned id, notify_fn_t routine, void *data);
 bool teq_post_unique(unsigned id, notify_fn_t routine, void *data);
 bool teq_post_ext(unsigned id, bool unique, notify_fn_t routine, void *data);
 void teq_safe_post(unsigned id, notify_fn_t routine, void *data);
+bool teq_safe_post_unique(unsigned id, notify_fn_t routine, void *data);
 void teq_post_ack(unsigned id, notify_fn_t routine, void *data,
 	teq_ackmode_t mode, notify_fn_t ack, void *ack_data);
 void *teq_rpc(unsigned id, teq_rpc_fn_t routine, void *data);

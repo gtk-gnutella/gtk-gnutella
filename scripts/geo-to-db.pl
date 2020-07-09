@@ -3,7 +3,7 @@
 #
 # $Id$
 #
-# Copyright (c) 2004, Raphael Manfredi
+# Copyright (c) 2004, 2020, Raphael Manfredi
 #
 #----------------------------------------------------------------------
 # This file is part of gtk-gnutella.
@@ -21,32 +21,56 @@
 #  You should have received a copy of the GNU General Public License
 #  along with gtk-gnutella; if not, write to the Free Software
 #  Foundation, Inc.:
-#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #----------------------------------------------------------------------
 
 #
-# Converts the Geo IP database into a GTKG network format
-# From http://www.maxmind.com/app/geoip_country
+# Converts the IP2Location LITE database into a GTKG network format
 #
-# "2.0.0.0","2.6.190.55","33554432","33996343","ZA","South Africa"
+# "0","16777215","-","-"
+# "16777216","16777471","US","United States of America"
+# "16777472","16778239","CN","China"
 #
+# Options:
+#   -c : use compact form
+#   -i : interactive, show progression on tty
+#
+
+use strict;
 
 use Getopt::Std;
-getopts('c');
+getopts('ci');
 
-print "# From http://www.maxmind.com/app/geoip_country\n";
-print "# Redistributed under the OPEN DATA LICENSE (see GEO_LICENCE)\n";
+print <<'EOM';
+# IP2Location LITE - http://lite.ip2location.com/
+# Redistributed under the Creative Commons Attribution-ShareAlike 4.0
+# (see the GEO_LICENCE file at the top of the source tree)
+EOM
 print "# Conversion for GTKG generated on ", scalar(gmtime), " GMT\n";
 
-while (<>) {
+my ($file) = @ARGV;
+my $line_count = 0;
+
+if (-t STDIN && $'opt_i) {
+	$line_count = int(`wc -l $file`);
+	open(TTY, ">/dev/tty") || warn "Can't open tty: $!\n";
+	select(TTY);
+	$| = 1;
+	select(STDOUT);
+}
+
+open(FILE, $file) || die "Can't open $file: $!\n";
+while (<FILE>) {
 	chomp;
 	my @items = map { s/^"//; s/"$//; $_ } split(/,/);
-	my $first = $items[0];
-	my $last = $items[1];
-	my $country = lc($items[4]);
+	my $ip1 = $items[0];
+	my $ip2 = $items[1];
+	my $country = lc($items[2]);
 
-	my $ip1 = ip_to_int($first);
-	my $ip2 = ip_to_int($last);
+	next if $country eq '-';
+
+	my $first = int_to_ip($ip1);
+	my $last = int_to_ip($ip2);
 
 	if ($ip1 > $ip2) {
 		warn "Inverted range '$first - $last $country' -- skipping line $.\n";
@@ -59,15 +83,21 @@ while (<>) {
 		next;
 	}
 
-	if ($opt_c) {
-		# Compact format
-		print "$first - $last $country\n";
+	if ($'opt_c) {
+		# Compact CIDR format
+		print_networks($ip1, $ip2, $country);
 	} else {
+		# CIDR format + leading comment
 		print "# $first - $last\n";
 		print_networks($ip1, $ip2, $country);
 		print "\n";
 	}
+
+	printf TTY "\r%u %.02f%%", $., $. * 100.0 / $line_count
+		if $line_count != 0 && 0 == $. % 128;
 }
+
+print TTY "\r" if $line_count != 0;
 
 # Converts IP in doted decimal to a 32-bit integer
 sub ip_to_int {
@@ -154,3 +184,5 @@ sub print_networks {
 		}
 	}
 }
+
+# vi: set ts=4 sw=4 syn=perl:

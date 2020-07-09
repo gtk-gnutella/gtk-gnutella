@@ -523,8 +523,7 @@ test_strstr(bool low_letters)
 	}
 
 	s_info("%s(%zu): %'zu match%s over %'zu attempt%s",
-		G_STRFUNC, asize, matches,
-		plural_es(matches), try, plural(try));
+		G_STRFUNC, asize, PLURAL_ES(matches), PLURAL(try));
 	s_info("%s(%zu): max matching needle length was %'zu",
 		G_STRFUNC, asize, max_nlen);
 }
@@ -649,7 +648,7 @@ test_strchr(void)
 	}
 
 	s_info("%s(): %'zu match%s over %'zu attempt%s",
-		G_STRFUNC, matches, plural_es(matches), try, plural(try));
+		G_STRFUNC, PLURAL_ES(matches), PLURAL(try));
 }
 
 static void
@@ -791,7 +790,7 @@ test_memchr(void)
 	}
 
 	s_info("%s(): %'zu match%s over %'zu attempt%s",
-		G_STRFUNC, matches, plural_es(matches), try, plural(try));
+		G_STRFUNC, PLURAL_ES(matches), PLURAL(try));
 }
 
 static void

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -56,15 +56,7 @@
 #define compat_socket socket
 #define unix_read read
 #define unix_write write
-
-static inline void
-fd_close(int *fd_ptr)
-{
-	if (*fd_ptr >= 0) {
-		close(*fd_ptr);
-		*fd_ptr = -1;
-	}
-}
+#define vstrlen strlen
 
 typedef struct sockaddr_un sockaddr_unix_t;
 
@@ -80,6 +72,17 @@ typedef struct sockaddr_un sockaddr_unix_t;
 #include <fcntl.h>
 #include <poll.h>
 #include <pwd.h>
+
+#define ARYLEN(x)		(x), sizeof(x)
+
+static inline void
+fd_close(int *fd_ptr)
+{
+	if (*fd_ptr >= 0) {
+		close(*fd_ptr);
+		*fd_ptr = -1;
+	}
+}
 
 static inline int
 is_temporary_error(int e)
@@ -98,12 +101,22 @@ fd_set_nonblocking(int fd)
 		(void) fcntl(fd, F_SETFL, flags);
 }
 
+size_t
+cstr_bcpy(char *dst, size_t len, const char *src)
+{
+	if (len != 0)
+		strncpy(dst, src, len - 1);
+	return strlen(src);
+}
+
+
 #else	/* !LOCAL_SHELL_STANDALONE */
 
 #include "common.h"
 
 #include "core/local_shell.h"
 
+#include "lib/cstr.h"
 #include "lib/misc.h"
 #include "lib/fd.h"
 #include "lib/log.h"
@@ -497,11 +510,11 @@ local_shell_mainloop(int fd)
 			if (ret < 0) {
 				return -1;
 			}
-			client.readable = 0 != (fds[0].revents & (POLLIN | POLLHUP));
-			client.writable = 0 != (fds[2].revents & POLLOUT);
+			client.readable = 0 != (fds[0].revents & (POLLIN  | POLLHUP));
+			client.writable = 0 != (fds[2].revents & (POLLOUT | POLLHUP));
 
-			server.readable = 0 != (fds[2].revents & (POLLIN | POLLHUP));
-			server.writable = 0 != (fds[1].revents & POLLOUT);
+			server.readable = 0 != (fds[2].revents & (POLLIN  | POLLHUP));
+			server.writable = 0 != (fds[1].revents & (POLLOUT | POLLHUP));
 
 #ifdef MINGW32
 			/*
@@ -561,7 +574,7 @@ local_shell(const char *socket_path)
 			fprintf(stderr, "local_shell(): pathname is too long\n");
 			goto failure;
 		}
-		strncpy(addr.sun_path, socket_path, sizeof addr.sun_path);
+		cstr_bcpy(ARYLEN(addr.sun_path), socket_path);
 	}
 
 	fd = compat_socket(PF_LOCAL, SOCK_STREAM, 0);

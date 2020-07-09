@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -477,7 +477,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	if (GNET_PROPERTY(dh_debug) > 19) {
 		g_debug("DH #%s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u",
-			guid_hex_str(muid), count, plural(count),
+			guid_hex_str(muid), PLURAL(count),
 			dh->msg_recv, dh->hits_recv, dh->hits_sent,
 			dh->hits_queued);
 	}
@@ -532,7 +532,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
 			g_debug("GUESS sending %d hit%s (%s) for #%s to %s",
-				count, plural(count),
+				PLURAL(count),
 				NODE_CAN_SR_UDP(dest) ? "reliably" :
 				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(muid), node_infostr(dest));
@@ -571,7 +571,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(dh_debug) > 19) {
 			g_debug("DH enqueued %d hit%s for #%s to %s",
-				count, plural(count), guid_hex_str(muid),
+				PLURAL(count), guid_hex_str(muid),
 				node_infostr(dest));
 		}
 	}

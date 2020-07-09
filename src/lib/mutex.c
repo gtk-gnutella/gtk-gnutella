@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -155,7 +155,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,
@@ -230,6 +230,21 @@ mutex_is_owned(const mutex_t *m)
 	 * This is mostly used during assertions, so we do not need to call
 	 * thread_current().  Use thread_self() for speed and safety, in case
 	 * something goes wrong in the thread-checking code.
+	 *
+	 * Furthermore, as we have discovered when investigating sbrk() failures
+	 * when running in a Docker container, we must not call thread_current()
+	 * since we have no assurance we're running in the main thread yet!  We
+	 * could very possibly run in an alternative thread from the dynamic loader.
+	 *
+	 * To that end, thread_current(), as used by mutex_thread(), has been fixed
+	 * so that it will always return thread_self() until we have started the
+	 * main thread and know for suce that its thread_self() will no longer change.
+	 *
+	 * Hence this code only needs to rely on the thread_self() value, regardless
+	 * of whether it was computed dynamically by mutex_thread() or through a
+	 * call to thread_current().
+	 *
+	 * 		--RAM, 2020-02-12
 	 */
 
 	return thread_eq(m->owner, thread_self());

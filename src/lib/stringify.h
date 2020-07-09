@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -189,16 +189,11 @@ const char *short_uptime(time_delta_t s);
 size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
 const char *time_t_to_string(time_t);
+const char *bool_to_string(bool);
 
 /*
  * Miscellaneous stringifications.
  */
-
-static inline const char *
-bool_to_string(const bool v)
-{
-	return v ? "TRUE" : "FALSE";
-}
 
 /* Plural of most words */
 static inline const char *

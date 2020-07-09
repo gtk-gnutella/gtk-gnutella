@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1074,7 +1074,8 @@ plist_insert_sorted_internal(plist_t *pl, void *data,
 plist_t *
 plist_insert_sorted(plist_t *pl, void *data, cmp_fn_t cmp)
 {
-	return plist_insert_sorted_internal(pl, data, (cmp_data_fn_t) cmp, NULL);
+	return plist_insert_sorted_internal(
+		pl, data, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1202,7 +1203,7 @@ plist_sort_with_data(plist_t *pl, cmp_data_fn_t cmp, void *data)
 plist_t *
 plist_sort(plist_t *pl, cmp_fn_t cmp)
 {
-	return plist_sort_internal(pl, (cmp_data_fn_t) cmp, NULL);
+	return plist_sort_internal(pl, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

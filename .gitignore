@@ -22,6 +22,7 @@ gtk-gnutella.nsh
 /gtk-gnutella.spec
 /config.sh.old
 /install
+/src/tags
 
 # Files that can be left over by metaconfig
 /Obsolete
@@ -66,9 +67,10 @@ src/lib/pattern-test
 /src/revision.h
 
 src/bin/sha1sum
+src/core/gtkg-shell
 
-/src/lib/bit_array.h
-/src/lib/bit_field.h
+/src/lib/bit_array.[ch]
+/src/lib/bit_field.[ch]
 /src/lib/htable.[ch]
 /src/lib/hset.[ch]
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -64,6 +64,7 @@
 #include "lib/parse.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
+#include "lib/stacktrace.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/timestamp.h"
@@ -143,8 +144,10 @@ http_send_status(
 	const char *body = NULL;
 	size_t body_length = 0;
 	bool saturated = bsched_saturated(BSCHED_BWS_OUT);
-	int cb_flags = 0;
-	bool retried = FALSE;
+	int cb_flags;
+	bool retried = FALSE, no_more_room, only_prio = FALSE;
+	bool has_prio_callbacks = FALSE;
+	bool emergency_close = FALSE;
 
 	va_start(args, reason);
 	str_vbprintf(ARYLEN(status_msg) - 1, reason, args);
@@ -157,10 +160,15 @@ http_send_status(
 	 */
 retry:
 
+	cb_flags = 0;
+	no_more_room = FALSE;
+
 	/*
 	 * Prepare flags for callbacks.
 	 */
 
+	if (retried)		cb_flags |= HTTP_CBF_SMALL_REPLY;
+	if (only_prio)		cb_flags |= HTTP_CBF_RETRY_PRIO;
 	if (saturated)		cb_flags |= HTTP_CBF_BW_SATURATED;
 	if (code == 503)	cb_flags |= HTTP_CBF_BUSY_SIGNAL;
 
@@ -176,19 +184,6 @@ retry:
 	else if	(code >= 400 && code <= 499)	header_size = 512;
 
 	/*
-	 * Activate X-Available-Ranges: emission on 416 and 2xx provided the
-	 * connection will be kept alive.
-	 */
-
-	if (keep_alive) {
-		if (code == 416) {
-			header_size = sizeof(header);		/* Was reduced above for 4xx */
-			cb_flags |= HTTP_CBF_SHOW_RANGES;
-		} else if (code >= 200 && code <= 299)
-			cb_flags |= HTTP_CBF_SHOW_RANGES;
-	}
-
-	/*
 	 * If bandwidth is short, reduce the header size noticeably, so that only
 	 * the most important stuff gets out.
 	 *		--RAM, 12/10/2003
@@ -202,6 +197,19 @@ retry:
 	} else {
 		version = version_string;
 		token = socket_omit_token(s) ? NULL : tok_version();
+	}
+
+	/*
+	 * Activate X-Available-Ranges: emission on 416 and 2xx provided the
+	 * connection will be kept alive.
+	 */
+
+	if (keep_alive) {
+		if (code == 416) {
+			header_size = sizeof(header);		/* Was reduced above for 4xx */
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
+		} else if (code >= 200 && code <= 299)
+			cb_flags |= HTTP_CBF_SHOW_RANGES;
 	}
 
 	for (i = 0; i < hevcnt; i++) {
@@ -243,35 +251,88 @@ retry:
 	 * Append extra information to the minimal header created above.
 	 */
 
-	for (i = 0; i < hevcnt && rw + 3 < header_size; i++) {
+	for (i = 0; i < hevcnt; i++) {
 		http_extra_desc_t *he = &hev[i];
 		http_extra_type_t type = he->he_type;
 		size_t size;
 
-		g_assert(header_size >= rw);
-	   	size = header_size - rw;
+		if (HTTP_EXTRA_PRIO_CALLBACK == type)
+			has_prio_callbacks = TRUE;
 
-		if (size <= sizeof("\r\n"))
-			break;
-		size -= sizeof("\r\n");
+		if (header_size < rw + 3) {
+			/* Not enough place for trailing NUL + CRLF */
+			no_more_room = TRUE;
+			continue;
+		}
+
+		size = header_size - rw - 3;	/* Leave room for trailing NUL + CRLF */
+
+		if (size <= sizeof("\r\n")) {
+			/* Cannot generate anything useful */
+			no_more_room = TRUE;
+			continue;
+		}
 
 		switch (type) {
 		case HTTP_EXTRA_BODY:
 			/* Already handled above */
 			break;
 		case HTTP_EXTRA_LINE:
-			if (size > vstrlen(he->he_msg)) {
-				/* Don't emit truncated lines */
-				rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
+			{
+				size_t len = vstrlen(he->he_msg);
+
+				if (len != 0 && NULL == is_strsuffix(he->he_msg, len, "\r\n")) {
+					g_carp("%s(): ignoring HTTP_EXTRA_LINE '%s' lacking CRLF",
+						G_STRFUNC, he->he_msg);
+				} else if (size > len) {
+					/* Don't emit truncated lines */
+					 rw += str_bprintf(&header[rw], size, "%s", he->he_msg);
+				} else if (GNET_PROPERTY(http_debug)) {
+					g_warning("%s(): leaving out HTTP_EXTRA_LINE '%*s': "
+						"no space in reply %d to %s",
+						G_STRFUNC, (int) (len - 2), he->he_msg, code,
+						host_addr_port_to_string(s->addr, s->port));
+				}
 			}
 			break;
+		case HTTP_EXTRA_PRIO_CALLBACK:
 		case HTTP_EXTRA_CALLBACK:
-			{
+			/*
+			 * Prioritary callbacks can, if possible, further limit the
+			 * amount of data they generate based on the HTTP_CBF_RETRY_PRIO
+			 * flag given.
+			 */
+			if (!retried || !only_prio || HTTP_EXTRA_PRIO_CALLBACK == type) {
 				size_t len;
 
 				len = (*he->he_cb)(&header[rw], size, he->he_arg, cb_flags);
-				g_assert(len < size);
-				rw += len;
+
+				/*
+				 * HTTP generation callbacks must detect that they are
+				 * not able to fit data correctly into the supplied buffer.
+				 * They return a formatted length (without the trailing NUL),
+				 * and therefore either they accidentally overstepped, or
+				 * made off-by-one error.  Does not necessarily mean they
+				 * wrote data off the boundaries, if they used cstr_bcpy()
+				 * for instance, but their header does not fit, and it is
+				 * a bug in their callback.
+				 *
+				 * We need to know precisely, hence the logging assertion.
+				 */
+
+				g_assert_log(len < size,
+					"%s(): %s() formatted len=%zu bytes into size=%zu buffer",
+					G_STRFUNC, stacktrace_function_name(he->he_cb), len, size);
+
+				/* FIXME: turn below check into assertion? -- RAM, 2020-06-07 */
+
+				if (len != 0 && NULL == is_strsuffix(&header[rw], len, "\r\n")) {
+					g_carp("%s(): ignoring %zu byte%s from %s() lacking CRLF",
+						G_STRFUNC, PLURAL(len),
+						stacktrace_function_name(he->he_cb));
+				} else {
+					rw += len;
+				}
 			}
 			break;
 		}
@@ -283,9 +344,8 @@ retry:
 		rw += str_bprintf(&header[rw], header_size - rw,
 						"Content-Length: %zu\r\n", body_length);
 	}
-	if (rw < header_size) {
+	if (rw < header_size)
 		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
-	}
 	if (body) {
 		if (!retried) {
 			rw += str_bprintf(&header[rw], header_size - rw, "%s", body);
@@ -300,16 +360,53 @@ retry:
 					body, body_length);
 		}
 	}
-	if (rw >= header_size - 1 && (hev || body)) {
-		g_warning("HTTP status %d (%s) too big, "
-			"ignoring extra information (%s)",
-			code, status_msg, host_addr_port_to_string(s->addr, s->port));
 
-		rw = minimal_rw;
-		rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
-		g_assert(rw < header_size);
+	if ((rw >= header_size - 1 || no_more_room) && (hev || body)) {
+		/*
+		 * Not everything fits.
+		 *
+		 * If we never retry, do it now and the HTTP_CBF_SMALL_REPLY will be
+		 * forced.
+		 *
+		 * If we already retried but have prioritary callbacks, retry
+		 * emitting them only.
+		 */
+
+		if (!retried) {
+			if (GNET_PROPERTY(http_debug)) {
+				g_warning("%s(): HTTP status %d (%s) too big (max %zu bytes), "
+					"retrying with small-reply directive (%s)",
+					G_STRFUNC, code, status_msg,
+					header_size, host_addr_port_to_string(s->addr, s->port));
+			}
+			retried = TRUE;
+			goto retry;
+		} else if (!only_prio && has_prio_callbacks) {
+			if (GNET_PROPERTY(http_debug)) {
+				g_warning("%s(): HTTP status %d (%s) too big again "
+					"(max %zu bytes), "
+					"retrying with only prioritary information (%s)",
+					G_STRFUNC, code, status_msg,
+					header_size, host_addr_port_to_string(s->addr, s->port));
+			}
+			only_prio = TRUE;
+			goto retry;
+		}
+
+		if (GNET_PROPERTY(http_debug)) {
+			g_warning("%s(): HTTP status %d (%s) still too big (max %zu bytes), "
+				"ignoring extra%s information (%s)",
+				G_STRFUNC, code, status_msg,
+				header_size, has_prio_callbacks ? " (even prioritary!)" : "",
+				host_addr_port_to_string(s->addr, s->port));
+		}
+
 		if (body) {
 			size_t w;
+
+			rw = minimal_rw;
+			rw += str_bprintf(&header[rw], header_size - rw, "\r\n");
+			g_assert(rw < header_size);
 
 			rw += (w = str_bprintf(&header[rw], header_size - rw, "%s", body));
 
@@ -320,46 +417,82 @@ retry:
 			 */
 
 			if (rw >= header_size - 1) {
-				g_carp("HTTP status %d (%s) too big, "
+				g_carp("%s(): HTTP status %d (%s) too big, "
 					"can only send %zu/%zu body bytes to %s",
-					code, status_msg, w, body_length,
+					G_STRFUNC, code, status_msg, w, body_length,
 					host_addr_port_to_string(s->addr, s->port));
 
-				if (keep_alive) {
-					g_assert(!retried);		/* No deadly endless loops */
+				if (keep_alive && !retried) {
 					body_length = w;
 					retried = TRUE;
-					g_warning("HTTP status sent on kept-alive, "
+					g_warning("%s(): HTTP status sent on kept-alive, "
 						"retrying with stripped %zu-byte body for %s",
-						w, host_addr_port_to_string(s->addr, s->port));
+						G_STRFUNC, w,
+						host_addr_port_to_string(s->addr, s->port));
 					goto retry;
 				}
 			}
 		}
+
+		emergency_close = TRUE;		/* No choice but to forcefully abort */
+	}
+
+	if (emergency_close || rw >= header_size - 1 || no_more_room) {
+		/*
+		 * The header we wish to generate, along with the optional body,
+		 * is not fitting our constraints.  We cannot just send the minimal
+		 * header and be done with it, it may miss critical information!
+		 *
+		 * So we're going to take extreme measures and forcefully write
+		 * a nice little 503 error and declare that the connection will be
+		 * closed.
+		 */
+
+		rw = str_bprintf(header, header_size,
+			"HTTP/1.1 503 Emergency Abort\r\n"
+			"Server: %s\r\n"
+			"Date: %s\r\n"
+			"Connection: close\r\n"
+			"Content-Length: 0\r\n"
+			"\r\n",
+			version, date);
+
+		if (GNET_PROPERTY(http_debug)) {
+			g_warning("%s(): HTTP status %d (%s) too big (max %zu bytes), "
+				"aborting with emergency %zu-byte header (%s)",
+				G_STRFUNC, code, status_msg, header_size, rw,
+				host_addr_port_to_string(s->addr, s->port));
+		}
+
+		emergency_close = TRUE;		/* If not already set */
 	}
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, header, rw);
 	if ((ssize_t) -1 == sent) {
 		socket_eof(s);
-		if (GNET_PROPERTY(http_debug) > 1)
-			g_warning("unable to send back HTTP status %d (%s) to %s: %m",
-			code, status_msg, host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(http_debug) > 1) {
+			g_warning("%s(): unable to send back HTTP status %d (%s) to %s: %m",
+				G_STRFUNC, code, status_msg, host_addr_to_string(s->addr));
+		}
 		return FALSE;
 	} else if ((size_t) sent < rw) {
-		if (GNET_PROPERTY(http_debug)) g_warning(
-			"only sent %lu out of %lu bytes of status %d (%s) to %s",
-			(ulong) sent, (ulong) rw, code, status_msg,
-			host_addr_to_string(s->addr));
+		if (GNET_PROPERTY(http_debug)) {
+			g_warning(
+				"%s(): only sent %lu out of %lu bytes of status %d (%s) to %s",
+				G_STRFUNC, (ulong) sent, (ulong) rw, code, status_msg,
+				host_addr_to_string(s->addr));
+		}
 
 		/*
-		 * If we do not have an "unsent" callback, fail now.
+		 * If we do not have an "unsent" callback, or if we were in emergency
+		 * abort mode, fail now.
 		 *
 		 * Otherwise, let the caller know how much we sent so that the unsent
 		 * part can be buffered and asynchronously sent later when there is
 		 * room on the socket.
 		 */
 
-		if (NULL == unsent)
+		if (NULL == unsent || emergency_close)
 			return FALSE;
 
 		(*unsent)(header, rw, sent, unsent_arg);	/* Capture unsent part */
@@ -388,6 +521,17 @@ retry:
 				host_addr_to_string(s->addr), (ulong) rw);
 			dump_string(stderr, header, rw, "----");
 		}
+	}
+
+	/*
+	 * Make sure nobody can write more data on the connection if we
+	 * emitted an emergency header.
+	 */
+
+	if (emergency_close) {
+		g_carp("%s(): had to perform emergency close for %s, shutdowning TX",
+			G_STRFUNC, host_addr_port_to_string(s->addr, s->port));
+		socket_tx_shutdown(s);
 	}
 
 	return (size_t) sent == rw;		/* Only TRUE if fully sent */
@@ -3543,7 +3687,7 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 		void *ha;
 
 		g_message("HTTP async wget of \"%s\" SUCCEEDED (%zu byte%s)",
-			url, len, plural(len));
+			url, PLURAL(len));
 		g_debug("---- Begin HTTP Header ----");
 		header_dump(stderr, h, NULL);
 		g_debug("---- End HTTP Header ----");

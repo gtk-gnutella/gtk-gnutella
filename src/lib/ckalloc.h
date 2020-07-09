@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -44,6 +44,7 @@ typedef struct ckhunk ckhunk_t;
 
 ckhunk_t *ck_init(size_t size, size_t reserved);
 ckhunk_t *ck_init_not_leaking(size_t size, size_t reserved);
+void ck_destroy(ckhunk_t *ck);
 void ck_destroy_null(ckhunk_t **ck_ptr);
 void *ck_alloc(ckhunk_t *ck, size_t len);
 void *ck_alloc_critical(ckhunk_t *ck, size_t len);

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -7701,7 +7701,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 
 		BACKTRACE_DEBUG(BACK_F_OTHER,
 			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
-			mingw_opcode_name(op), fill, plural(fill), p);
+			mingw_opcode_name(op), PLURAL(fill), p);
 
 		first_opcode = p + fill;
 		p += (fill - 1);
@@ -7740,7 +7740,7 @@ mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
 	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
 		"starting at PC=%p, max=%p%s, at_start=%s",
 		pc, max, ptr_cmp(pc, max) >= 0 ? " (already over!)" : "",
-		at_start ? "TRUE" : "FALSE");
+		bool_to_string(at_start));
 
 	if (ptr_cmp(pc, max) >= 0)
 		BACKTRACE_RETURN("%d", FALSE);
@@ -8041,7 +8041,7 @@ mingw_inspect_stack(const void *sp, int words, const void *start)
 	BACKTRACE_ENTRY;
 
 	BACKTRACE_DEBUG(BACK_F_PC, "inspecting %d word%s around SP=%p",
-		words, plural(words), sp);
+		PLURAL(words), sp);
 
 	for (i = 0; i < 2 * words + 1; i++) {
 		int off;
@@ -8286,7 +8286,7 @@ found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
-		G_STRFUNC, offset, savings, plural_es(savings));
+		G_STRFUNC, offset, PLURAL_ES(savings));
 
 	/*
 	 * We found that the current routine decreased the stack pointer by
@@ -8640,7 +8640,7 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		int j;
 
 		BACKTRACE_DEBUG(BACK_F_RESULT,
-			"stack returned has %d element%s:", i, plural(i));
+			"stack returned has %d element%s:", PLURAL(i));
 
 		for (j = 0; j < i; j++) {
 			BACKTRACE_DEBUG(BACK_F_RESULT,
@@ -8927,17 +8927,17 @@ static void G_COLD
 mingw_exception_log(int stid, uint code,
 	const void *pc, const void *sp, const struct stackframe *sf)
 {
-	DECLARE_STR(15);
-	char time_buf[CRASH_TIME_BUFLEN];
-	char buf[ULONG_DEC_BUFLEN];
-	char pc_buf[POINTER_BUFLEN];
-	const char *s, *name, *file = NULL;
-	const void *caller_pc = NULL;
+	/* All variables declared static to avoid taking up stack space */
+	STATIC_DECLARE_STR(15);
+	static char time_buf[CRASH_TIME_BUFLEN];
+	static char buf[ULONG_DEC_BUFLEN];
+	static char pc_buf[POINTER_BUFLEN];
+	static char caller_buf[POINTER_BUFLEN];
+	static const char *s, *name, *file = NULL;
+	static const void *caller_pc = NULL;
 
-	crash_time(ARYLEN(time_buf));
-	name = mingw_routine_name(pc);
-	if (is_strprefix(name, "0x"))
-		name = NULL;
+	crash_time_raw(ARYLEN(time_buf));
+	name = stacktrace_routine_name_light(pc, NULL);
 
 	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
@@ -8947,10 +8947,7 @@ mingw_exception_log(int stid, uint code,
 	 * Try to intuit our caller from the stackframe pointer given.
 	 */
 
-	if (
-		EXCEPTION_STACK_OVERFLOW != code &&
-		NULL == name && NULL == file
-	) {
+	if (NULL == name && NULL == file) {
 		if (valid_stack_ptr(sf, sf) && valid_ptr(sf->ret)) {
 			caller_pc = sf->ret;
 
@@ -8959,10 +8956,8 @@ mingw_exception_log(int stid, uint code,
 			 */
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = mingw_routine_name(caller_pc);
-				if (is_strprefix(name, "0x"))
-					name = NULL;
-			} else {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
 				file = dl_util_get_path(caller_pc);
 			}
 
@@ -8980,10 +8975,8 @@ mingw_exception_log(int stid, uint code,
 			caller_pc = ulong_to_pointer(peek_le32(sp));
 
 			if (stacktrace_pc_within_our_text(caller_pc)) {
-				name = mingw_routine_name(caller_pc);
-				if (is_strprefix(name, "0x"))
-					name = NULL;
-			} else {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
 				file = dl_util_get_path(caller_pc);
 			}
 
@@ -8999,11 +8992,12 @@ mingw_exception_log(int stid, uint code,
 	s = PRINT_NUMBER(buf, stid);
 	print_str(s);										/* 2 */
 	print_str("): received exception at PC=");			/* 3 */
-	print_str(pointer_to_string(pc));					/* 4 */
+	pointer_to_string_buf(pc, ARYLEN(pc_buf));
+	print_str(pc_buf);									/* 4 */
 	if (caller_pc != NULL) {
-		pointer_to_string_buf(caller_pc, ARYLEN(pc_buf));
+		pointer_to_string_buf(caller_pc, ARYLEN(caller_buf));
 		print_str(" probably called from PC=");			/* 5 */
-		print_str(pc_buf);								/* 6 */
+		print_str(caller_buf);							/* 6 */
 	}
 	if (name != NULL) {
 		print_str(" (");								/* 7 */
@@ -9124,6 +9118,9 @@ mingw_exception(EXCEPTION_POINTERS *ei)
 		pc, sp, thread_sp(),
 		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
 		signal_in_exception());
+
+	if (EXCEPTION_STACK_OVERFLOW == er->ExceptionCode)
+		s_rawwarn("stack used: %'zu bytes", thread_id_stack_used(stid, sp));
 
 	/*
 	 * Dump nested exception records, if any.
@@ -9609,7 +9606,7 @@ mingw_close(void)
 
 		if (0 != cnt) {
 			s_warning("%s(): still has %zu child process%s unwaited for",
-				G_STRFUNC, cnt, plural_es(cnt));
+				G_STRFUNC, PLURAL_ES(cnt));
 		}
 	}
 }

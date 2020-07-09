@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -92,15 +92,13 @@ struct thex_download *
 thex_download_create(void *owner, gnet_host_t *host,
 	const struct sha1 *sha1, const struct tth *tth, filesize_t filesize)
 {
-	static const struct thex_download zero_ctx;
 	struct thex_download *ctx;
 
 	g_return_val_if_fail(host, NULL);
 	g_return_val_if_fail(sha1, NULL);
 	g_return_val_if_fail(tth, NULL);
 
-	WALLOC(ctx);
-	*ctx = zero_ctx;
+	WALLOC0(ctx);
 	ctx->owner = owner;
 	gnet_host_copy(&ctx->host, host);
 	ctx->sha1 = atom_sha1_get(sha1);

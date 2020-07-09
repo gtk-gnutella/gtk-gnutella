@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1147,7 +1147,7 @@ show_popup_menu(widget_popup_menu_cb handler)
 static inline widget_popup_menu_cb
 cast_to_widget_popup_menu_cb(const void *p)
 {
-	return (widget_popup_menu_cb) cast_pointer_to_func(p);
+	return func_cast(widget_popup_menu_cb, cast_pointer_to_func(p));
 }
 
 #if GTK_CHECK_VERSION(2,0,0)

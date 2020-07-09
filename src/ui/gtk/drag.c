@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,6 +34,8 @@
 #include "gui.h"
 
 #include "drag.h"
+
+#include "lib/walloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
 
@@ -53,11 +55,9 @@ struct drag_context {
 static struct drag_context *
 drag_alloc(void)
 {
-	static const struct drag_context zero_ctx;
 	struct drag_context *ctx;
 
-	ctx = g_malloc(sizeof *ctx);
-	*ctx = zero_ctx;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -70,8 +70,7 @@ drag_free(struct drag_context **ptr)
 	struct drag_context *ctx = *ptr;
 
 	if (ctx) {
-		ctx->get_data = NULL;
-		G_FREE_NULL(ctx);
+		WFREE0(ctx);
 		*ptr = NULL;
 	}
 }

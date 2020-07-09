@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -84,6 +84,9 @@ void bzero(void *s, size_t n);		/* Avoid compilation warning */
 #endif	/* HAS_BZERO */
 
 #include "regex.h"
+
+#include "cstr.h"
+
 #include "override.h"		/* Must be last file included */
 
 /* Define the syntax stuff for \<, \>, etc.  */
@@ -4733,7 +4736,6 @@ regerror (errcode, unused_preg, errbuf, errbuf_size)
     size_t errbuf_size;
 {
   const char *msg;
-  size_t msg_size;
 
   (void) unused_preg;
 
@@ -4752,20 +4754,7 @@ regerror (errcode, unused_preg, errbuf, errbuf_size)
   if (! msg)
     msg = "Success";
 
-  msg_size = vstrlen (msg) + 1; /* Includes the null.  */
-
-  if (errbuf_size != 0)
-    {
-      if (msg_size > errbuf_size)
-        {
-          strncpy (errbuf, msg, errbuf_size - 1);
-          errbuf[errbuf_size - 1] = 0;
-        }
-      else
-        strcpy (errbuf, msg);
-    }
-
-  return msg_size;
+  return cstr_lcpy(errbuf, errbuf_size, msg) + 1; /* Includes the NUL */
 }
 
 

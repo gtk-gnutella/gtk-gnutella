@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -359,7 +359,7 @@ ghc_host_eof(struct parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT GHC got %d host%s from %s",
-			ctx->processed, plural(ctx->processed), http_async_url(ghc_ctx.ha));
+			PLURAL(ctx->processed), http_async_url(ghc_ctx.ha));
 
 	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;

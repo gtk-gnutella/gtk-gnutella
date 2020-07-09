@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -104,7 +104,8 @@ static once_flag_t stacktrace_atom_inited;
 static struct {
 	struct stacktrace circular[STACKTRACE_CIRCULAR_LEN];
 	unsigned idx;
-	bool dirty;
+	bool dirty:1;			/**< Have unflushed entries */
+	bool superseded:1;		/**< Have superseded unflushed entries */
 } stacktrace_atom_buffer;
 
 static hash_table_t *stack_atoms;
@@ -413,9 +414,9 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 {
 	volatile size_t n;
 	int stid;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -678,6 +679,14 @@ stacktrace_load_symbols(void)
 	bool stale = FALSE;
 
 	/*
+	 * If we are called before the main thread has started, then bail out
+	 * as dl_util_get_path() will probably not be able to work correctly.
+	 */
+
+	if (!thread_main_has_started())
+		return;
+
+	/*
 	 * Don't use the once_flag_run() mechanism here since this can be used
 	 * on the assertion failure path, and maybe called recursively.
 	 */
@@ -840,7 +849,7 @@ stack_sym_trylock(const char *caller)
 				warning[stid] = TRUE;
 
 				s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
-					caller, thread_safe_name(), cnt, plural(cnt));
+					caller, thread_safe_name(), PLURAL(cnt));
 				thread_lock_dump_if_any(STDERR_FILENO, stid);
 
 				warning[stid] = FALSE;
@@ -1624,6 +1633,27 @@ stacktrace_caller_name(size_t n)
 }
 
 /**
+ * Return symbolic name of the routine to which a PC belongs, in a light way.
+ *
+ * This routine should be used when crashing and it is critical to gather
+ * information in a light way, for fear that more correct and accurate ways
+ * would lead to a subsequent crash.
+ *
+ * @param pc		the PC we're looking for
+ * @param offset	if non-NULL, written with offset within routine
+ *
+ * @return pointer to static data, NULL if symbols were not loaded.
+ */
+const char *
+stacktrace_routine_name_light(const void *pc, size_t *offset)
+{
+	if (NULL == stacktrace_symbols)
+		return NULL;
+
+	return symbols_name_light(stacktrace_symbols, pc, offset);
+}
+
+/**
  * Return symbolic name of the routine to which a PC belongs.
  *
  * @param pc		the PC we're looking for
@@ -1963,9 +1993,9 @@ void G_COLD
 stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 {
 	static volatile sig_atomic_t printing[THREAD_MAX];
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	if (printing[stid]) {
@@ -2188,14 +2218,30 @@ insert:
 	i %= STACKTRACE_CIRCULAR_LEN;
 
 	stacktrace_atom_buffer.dirty = TRUE;
+	atomic_mb();
+
+	if (
+		stacktrace_atom_buffer.circular[i].len != 0 &&
+		!stacktrace_atom_buffer.superseded
+	) {
+		/* Warn only once until we are able to flush the circular buffer */
+		stacktrace_atom_buffer.superseded = TRUE;
+		s_rawwarn("%s(): circular buffer full, superseding entries", G_STRFUNC);
+	}
+
 	stacktrace_atom_buffer.circular[i].len = 0;		/* Invalid */
 	atomic_mb();
 
 	memcpy(&stacktrace_atom_buffer.circular[i].stack,
 		&st->stack, len * sizeof st->stack[0]);
-
-	stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
 	atomic_mb();
+
+	if G_UNLIKELY(stacktrace_atom_buffer.circular[i].len != 0) {
+		s_rawwarn("%s(): concurrent update on slot #%u", G_STRFUNC, i);
+	} else {
+		stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
+		atomic_mb();
+	}
 
 	return FALSE;
 }
@@ -2368,8 +2414,11 @@ stacktrace_atom_circular_flush(void)
 		stacktrace_atom_insert(&cst, cst.len);
 	}
 
-	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx)
-		stacktrace_atom_buffer.dirty = FALSE;	/* Flushed everything */
+	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx) {
+		/* Flushed everything */
+		stacktrace_atom_buffer.dirty = FALSE;
+		stacktrace_atom_buffer.superseded = FALSE;
+	}
 }
 
 /**

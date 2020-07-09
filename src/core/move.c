@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -163,7 +163,7 @@ move_d_free(void *ctx)
 
 	g_assert(md->magic == MOVED_MAGIC);
 
-	file_object_release(&md->rd);
+	file_object_close(&md->rd);
 	fd_forget_and_close(&md->wd);
 	HFREE_NULL(md->buffer);
 	md->magic = 0;
@@ -291,7 +291,7 @@ move_d_start(struct bgtask *h, void *ctx, void *item)
 
 abort_read:
 	md->error = errno;
-	file_object_release(&md->rd);
+	file_object_close(&md->rd);
 	g_warning("can't copy \"%s\" to \"%s\"", download_pathname(d), we->dest);
 	return;
 }
@@ -339,7 +339,7 @@ move_d_end(struct bgtask *h, void *ctx, void *item)
 		goto finish;
 	}
 
-	file_object_release(&md->rd);
+	file_object_close(&md->rd);
 	if (fd_forget_and_close(&md->wd)) {
 		md->error = errno;
 		g_warning("error whilst closing copy target \"%s\": %m", md->target);

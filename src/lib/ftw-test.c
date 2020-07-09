@@ -45,6 +45,8 @@
 #include "strtok.h"
 #include "walloc.h"
 
+#include "override.h"
+
 static void G_NORETURN
 usage(void)
 {
@@ -331,8 +333,7 @@ sorted_tree(const char *rootdir, uint32 flags)
 	etree_init(&tree, FALSE, offsetof(filenode_t, node));
 	launch(rootdir, flags, sortpath, &ctx);
 
-	emitz("%s(): tree has %zu item%s",
-		G_STRFUNC, etree_count(&tree), plural(etree_count(&tree)));
+	emitz("%s(): tree has %zu item%s", G_STRFUNC, PLURAL(etree_count(&tree)));
 
 	etree_sort(&tree, filenode_cmp);
 	etree_foreach(&tree, filenode_print, NULL);

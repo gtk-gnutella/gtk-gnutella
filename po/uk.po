@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -609,6 +609,9 @@ msgstr ""
 msgid "Servent Shutdown"
 msgstr ""
 
+msgid "Already connected"
+msgstr "Вже з'єднано"
+
 msgid "Not a network member"
 msgstr ""
 
@@ -672,9 +675,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr ""
-
-msgid "Already connected"
-msgstr "Вже з'єднано"
 
 msgid "Limited connection"
 msgstr ""
@@ -818,6 +818,9 @@ msgstr "Причину не вказано"
 msgid "Bad Request"
 msgstr "Некоректний запит"
 
+msgid "Library being rebuilt"
+msgstr ""
+
 msgid "Header too large"
 msgstr ""
 
@@ -843,9 +846,6 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
-msgstr ""
-
-msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -1145,6 +1145,9 @@ msgid "Spurious OOB hit claiming received"
 msgstr ""
 
 msgid "Unrequested OOB hits received"
+msgstr ""
+
+msgid "OOB querying hosts banned for some time"
 msgstr ""
 
 msgid "Received query hits for untracked queries"
@@ -4595,6 +4598,14 @@ msgstr ""
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr ""
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr ""
+
 msgid "disable"
 msgstr "вимкнути"
 
@@ -5830,6 +5841,9 @@ msgstr "Уолліс і Футуна"
 msgid "Samoa"
 msgstr "Самоа"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Ємен"
 
@@ -5886,6 +5900,8 @@ msgstr ""
 msgid "%us"
 msgstr "%uс"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "uk"
 
@@ -8521,6 +8537,11 @@ msgstr "Скопіювати до буфера"
 msgid "_Remove filter"
 msgstr ""
 
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+
 msgid "_Close"
 msgstr "_Закрити"
 
@@ -9311,7 +9332,7 @@ msgid " E=%u"
 msgstr ""
 
 #, c-format
-msgid "%s(%s) TR: %s %s#%u"
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr ""
 
 msgid "stalled"

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -701,8 +701,7 @@ malformed:
 		str_bprintf(ARYLEN(msg), "byte 0x%02lx", (ulong) v);
 		break;
 	case UTF8_WARN_SHORT:
-		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
-			len, plural(len), expectlen);
+		str_bprintf(ARYLEN(msg), "%d byte%s, need %d", PLURAL(len), expectlen);
 		break;
 	case UTF8_WARN_OVERFLOW:
 		str_bprintf(ARYLEN(msg), "overflow at 0x%02lx, byte 0x%02lx",
@@ -716,7 +715,7 @@ malformed:
 		break;
 	case UTF8_WARN_LONG:
 		str_bprintf(ARYLEN(msg), "%d byte%s, need %d",
-			expectlen, plural(expectlen), uniskip(v));
+			PLURAL(expectlen), uniskip(v));
 		break;
 	case UTF8_WARN_ILLEGAL:
 		str_bprintf(ARYLEN(msg), "character 0x%04lx", (ulong) v);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -85,11 +85,9 @@ struct html_context {
 static struct html_context *
 html_context_alloc(void)
 {
-	static const struct html_context zero_html_context;
 	struct html_context *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_context;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -108,11 +106,9 @@ html_context_free(struct html_context **ctx_ptr)
 static struct html_view *
 html_view_alloc(void)
 {
-	static const struct html_view zero_html_view;
 	struct html_view *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_view;
+	WALLOC0(ctx);
 	return ctx;
 }
 

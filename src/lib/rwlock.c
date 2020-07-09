@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -498,7 +498,7 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 
 	if (wc != NULL) {
 		s_rawinfo("waiting queue for rwlock %p (%u item%s):",
-			rw, rw->waiters, plural(rw->waiters));
+			rw, PLURAL(rw->waiters));
 	} else {
 		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
@@ -567,7 +567,7 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 	atomic_mb();
 	rwlock_check(rw);
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	rwlock_wait_queue_dump(rw);
 	thread_lock_deadlock(rw);
 
@@ -903,10 +903,8 @@ rwlock_destroy(rwlock_t *rw)
 		if (need_carp) {
 			s_carp("destroying %srwlock %p with %u reader%s, "
 				"%u writer%s, %u read-waiter%s and %u write-waiter%s",
-				owned ? "owned " : "", rw, rw->readers, plural(rw->readers),
-				rw->writers, plural(rw->writers),
-				rwait, plural(rwait),
-				rw->write_waiters, plural(rw->write_waiters));
+				owned ? "owned " : "", rw, PLURAL(rw->readers),
+				PLURAL(rw->writers), PLURAL(rwait), PLURAL(rw->write_waiters));
 		}
 
 		if (owned)
@@ -971,6 +969,7 @@ rwlock_is_used(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	if (0 != rw->readers || 0 != rw->writers)
 		return TRUE;
 
@@ -983,6 +982,18 @@ rwlock_is_used(const rwlock_t *rw)
 }
 
 /**
+ * Check whether write lock is used.
+ */
+bool
+rwlock_is_busy(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	atomic_mb();
+	return 0 != rw->writers;
+}
+
+/**
  * Check whether lock is free.
  */
 bool
@@ -990,6 +1001,7 @@ rwlock_is_free(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	return 0 == rw->readers && 0 == rw->writers;
 }
 

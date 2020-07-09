@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -108,6 +108,7 @@ struct upload {
 
 	host_addr_t addr;			/**< Remote IP address */
 	host_addr_t gnet_addr;		/**< Advertised remote IP address */
+	uint16 port;				/**< Remote TCP port */
 	uint16 gnet_port;			/**< Advertised Gnet port, for browsing */
 	uint16 country;				/**< Country of origin, ISO3166 code */
 
@@ -119,15 +120,22 @@ struct upload {
 	filesize_t end;				/**< Last byte to send, inclusive */
 	filesize_t pos;				/**< Read position in file we're sending */
 	filesize_t sent;			/**< Bytes sent in this request */
+	filesize_t total_sent;		/**< Total amount of bytes sent */
 	filesize_t total_requested;	/**< Total amount of bytes requested */
 	filesize_t downloaded;		/**< What they claim as downloaded so far */
 
+	filesize_t last_sent;		/**< Bytes sent in previous request */
+	time_t last_start;			/**< Time at which previous request started */
+	uint32 bw_cap;				/**< Bandwidth cap (in bytes/s) set, 0 = none */
+
 	int http_major;				/**< HTTP major version */
 	int http_minor;				/**< HTTP minor version */
+	int http_status;			/**< HTTP status sent back */
 
 	host_net_t net;				/**< IPv6-Ready: type of addresses they want */
 
 	unsigned keep_alive:1;		/**< Keep HTTP connection? */
+	unsigned http_status_sent:1;/**< Whole HTTP headers were sent back */
 	unsigned push:1;
 	unsigned queue:1;			/**< Similar to PUSH, but for PARQ's QUEUE */
 	unsigned accounted:1;		/**< True when upload was accounted for */
@@ -143,6 +151,7 @@ struct upload {
 	unsigned fwalt:1;			/**< Downloader accepts firewalled locations */
 	unsigned g2:1;				/**< Initiated via G2 /PUSH */
 	unsigned tls_upgraded:1;	/**< Was upgraded to TLS */
+	unsigned shrunk_chunk:1;	/**< Limited chunk size due to b/w concerns */
 };
 
 static inline void

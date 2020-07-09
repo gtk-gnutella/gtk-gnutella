@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -203,8 +203,7 @@ upnp_delete_pending(void)
 		if (last != tm_time()) {
 			unsigned nat = natpmp_pending();
 			g_debug("SHUTDOWN %u pending IDG delete%s and %u NAT-PMP delete%s",
-				igd.delete_pending, plural(igd.delete_pending),
-				nat, plural(nat));
+				PLURAL(igd.delete_pending), PLURAL(nat));
 			last = tm_time();
 		}
 	}

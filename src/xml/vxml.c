@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1580,7 +1580,7 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 		if (vxml_debugging(19)) {
 			vxml_parser_debug(vp, "removed %sinput buffer (%zu byte%s)",
 				NULL == vp->input ? "last " : "",
-				vb->u.m->length, plural(vb->u.m->length));
+				PLURAL(vb->u.m->length));
 		}
 		break;
 	case VXML_BUFFER_FILE:
@@ -2189,7 +2189,7 @@ uc_read:
 	if G_UNLIKELY(vxml_debugging(19)) {
 		vxml_parser_debug(vp, "read U+%X '%c' %u byte%s%s", vp->last_uc,
 			is_ascii_print(vp->last_uc) ? vp->last_uc & 0xff : ' ',
-			retlen, plural(retlen), m->user ? "" : " (entity)");
+			PLURAL(retlen), m->user ? "" : " (entity)");
 	}
 
 	return m->user;
@@ -2810,7 +2810,7 @@ vxml_expand(vxml_parser_t *vp, const char *name, nv_table_t *entities)
 			vxml_parser_debug(vp, "expanded %c%s; into \"%s\" (%zu byte%s)",
 				entities == vp->entities ? '&' :
 				entities == vp->pe_entities ? '%' : '?',
-				name, value, m->length, plural(m->length));
+				name, value, PLURAL(m->length));
 		}
 	}
 
@@ -3502,7 +3502,7 @@ vxml_parser_do_notify_text(vxml_parser_t *vp,
 					vp->name,
 					text ==  vxml_output_start(&vp->out) ? "no" : "yes",
 					previous_end == current_end ? "no" : "yes",
-					len, plural(len));
+					PLURAL(len));
 			}
 		}
 
@@ -4510,7 +4510,7 @@ vxml_parser_handle_entity_decl(vxml_parser_t *vp, const char *name,
 			vxml_parser_debug(vp, "defined %s entity \"%s\" as "
 				"\"%s\" (%zu byte%s)",
 				with_percent ? "parameter" : "general", name,
-				vxml_output_start(&vp->out), len, plural(len));
+				vxml_output_start(&vp->out), PLURAL(len));
 		}
 
 		vxml_output_discard(&vp->out);
@@ -6497,7 +6497,7 @@ tricky_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"tricky_text: got \"%s\" (%zu byte%s) in <%s> at depth %u",
-			info->num, info->name, text, len, plural(len),
+			info->num, info->name, text, PLURAL(len),
 			name, vxml_parser_depth(vp));
 	}
 
@@ -6527,7 +6527,7 @@ evaluation_text(vxml_parser_t *vp,
 		g_info("VXML test #%d \"%s\": "
 			"evaluation_text: "
 			"got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, plural(len),
+			info->num, info->name, text, PLURAL(len),
 			id, vxml_parser_depth(vp));
 	}
 
@@ -6547,7 +6547,7 @@ blank_text(vxml_parser_t *vp,
 	if (vxml_debugging(0)) {
 		g_info("VXML test #%d \"%s\": "
 			"blank_text: got \"%s\" (%zu byte%s) in <token #%u> at depth %u",
-			info->num, info->name, text, len, plural(len),
+			info->num, info->name, text, PLURAL(len),
 			id, vxml_parser_depth(vp));
 	}
 

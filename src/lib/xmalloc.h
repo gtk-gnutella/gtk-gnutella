@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -33,6 +33,65 @@
 
 #ifndef _xmalloc_h_
 #define _xmalloc_h_
+
+#include "common.h"
+
+#ifdef USE_MY_MALLOC			/* metaconfig symbol */
+#define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
+#endif
+
+/*
+ * The VMM layer is based on mmap() and falls back to posix_memalign()
+ * or memalign().
+ *
+ * However, when trapping malloc() we also have to define posix_memalign(),
+ * memalign() and valign() because glib 2.x can use these routines in its
+ * slice allocator and the pointers returned by these functions must be
+ * free()able.
+ *
+ * It follows that when mmap() is not available, we cannot trap malloc().
+ *
+ * On Windows, we do not have mmap() but we know we can trap malloc() hence
+ * we allow the supersededing nonetheless.
+ *
+ */
+#if defined(XMALLOC_IS_MALLOC) && !defined(HAS_MMAP) && !defined(MINGW32)
+#undef XMALLOC_IS_MALLOC
+#endif
+
+/**
+ * Memory alignment constraints.
+ *
+ * Glib-2.30.2 does masking on pointer values with 0x7, relying on the
+ * assumption that the system's malloc() will return pointers aligned on
+ * 8 bytes.
+ *
+ * Apparently starting early 2020, the system malloc() was configured to
+ * on MAX(2 * sizeof(size_t), __alignof__(long double)).
+ *
+ * We do not want to change the value of the MEM_ALIGNBYTES, which is also
+ * used by other memory allocators, internal to gtk-gnutella, such as zalloc()
+ * or omalloc(), where we know we will not make use of the "long double" type.
+ *
+ * To be able to work successfully on systems with such a glib, we have no
+ * other option but to remain speachless... and comply with that assumption
+ * for xmalloc(), in case it is going to be used to supersede the system malloc().
+ * However we cannot use sizeof(size_t) in cpp tests, hence we use PTRSIZE
+ * instead, which should be a good-enough substitute.
+ *
+ * Finally, this internal definition is now made in the "xmalloc.h" header and
+ * not internally in xmalloc.c to be able to share the value with "hashing.h",
+ * in particular, since we need to be careful about hashing pointers due to
+ * the systematic presence of zeroes in the lower bits, thanks to alignment.
+ * 		--RAM, 2020-06-19
+ */
+#ifdef XMALLOC_IS_MALLOC
+/* Forced to comply with glib */
+#define XMALLOC_ALIGNBYTES	MAX(2 * PTRSIZE, MEM_ALIGNBYTES)
+#else
+/* Internal use only */
+#define XMALLOC_ALIGNBYTES	MEM_ALIGNBYTES
+#endif	/* USE_MY_MALLOC */
 
 /**
  * The largest block size in the free list represents the maximum block length
@@ -67,12 +126,21 @@ void xmalloc_thread_disable_local_pool(unsigned stid, bool disable);
  * one day...  Remap them to "internal" names so that we do not have to change
  * the existing code.
  *		--RAM, 2016-10-28
+ *
+ * Likewise for xstrdup() (and probably xstrndup()) which is called by the BFD
+ * library, and would cause free() errors when not compiled with xmalloc()
+ * really being malloc(): our xstrdup() routine would be called, but the BFD
+ * library probably expects to be able to free() such pointers!
+ * 		--RAM, 2020-01-12
  */
 
 #define xmalloc 	e_xmalloc
 #define xcalloc		e_xcalloc
 #define xrealloc	e_xrealloc
 #define xfree		e_xfree
+
+#define xstrdup		e_xstrdup
+#define xstrndup	e_xstrndup
 
 /*
  * Public interface.
@@ -116,6 +184,10 @@ char *xstrndup(const char *str, size_t n);
 void xstrfreev(char **str);
 size_t xallocated(const void *p);
 size_t xpallocated(const void *p);
+
+#ifdef TRACK_MALLOC
+bool xmalloc_block_info(const void *p, uint *tid, size_t *len);
+#endif
 
 static inline void * G_MALLOC G_NON_NULL
 xcopy(const void *p, size_t size)

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -690,7 +690,7 @@ timeit(
 
 	if (verbose)
 		g_debug("%s (%zu items, %zu loop%s): %F s (average: %F s)", what,
-			count, iter, plural(iter), elapsed, elapsed / iter);
+			count, PLURAL(iter), elapsed, elapsed / iter);
 
 	return elapsed;
 }

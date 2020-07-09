@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,14 +34,7 @@
  * All s_xxx() routines also supports an enhanced %m formatting option which
  * displays both the symbolic errno and the error message string, plus %' to
  * format integers with groupped thousands separated with ",".
- *
- * The t_xxx() routines are meant to be used in dedicate threads to avoid
- * concurrent memory allocation which is not otherwise supported.  They require
- * a thread-private logging object, which can be NULL to request a default
- * object for the main thread.
- *
- * A side effect of using t_xxx() or s_xxx() routines is that there is a
- * guarantee that no malloc()-like routine will be called to log the message.
+ * They guarantee that no malloc()-like routine will be used to log the message.
  *
  * There is also support for a polymorphic logging interface, through a
  * so-called "log agent" object.

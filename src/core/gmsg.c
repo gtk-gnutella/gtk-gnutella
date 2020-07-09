@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1131,10 +1131,8 @@ gmsg_mq_queries(void)
 	 * and hits are more prioritary than queries.
 	 */
 
-	if (GNET_PROPERTY(gmsg_debug)) {
-		g_debug("%s(): generated %zu entr%s",
-			G_STRFUNC, t->cnt, plural_y(t->cnt));
-	}
+	if (GNET_PROPERTY(gmsg_debug))
+		g_debug("%s(): generated %zu entr%s", G_STRFUNC, PLURAL_Y(t->cnt));
 }
 
 static void
@@ -1183,10 +1181,8 @@ gmsg_mq_qhits(void)
 			G_STRFUNC, ttl, gmsg_infostr(prev));
 	}
 
-	if (GNET_PROPERTY(gmsg_debug)) {
-		g_debug("%s(): generated %zu entr%s",
-			G_STRFUNC, t->cnt, plural_y(t->cnt));
-	}
+	if (GNET_PROPERTY(gmsg_debug))
+		g_debug("%s(): generated %zu entr%s", G_STRFUNC, PLURAL_Y(t->cnt));
 }
 
 
@@ -1271,7 +1267,7 @@ gmsg_infostr_split_to_buf(
 
 	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
-		size, plural(size),
+		PLURAL(size),
 		guid_hex_str(gnutella_header_get_muid(head)),
 		gnutella_header_get_ttl(head) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(head),
@@ -1295,7 +1291,7 @@ gmsg_infostr_to_buf(const void *msg, char *buf, size_t buf_size)
 
 	return str_bprintf(buf, buf_size, "%s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 		gmsg_name(function),
-		size, plural(size),
+		PLURAL(size),
 		guid_hex_str(gnutella_header_get_muid(msg)),
 		gnutella_header_get_ttl(msg) & GTA_UDP_DEFLATED ? "deflated " : "",
 		gnutella_header_get_hops(msg),
@@ -1326,7 +1322,7 @@ gmsg_infostr_full_split_to_buf(const void *head, const void *data,
 				"%s %s (%u byte%s) #%s %s[hops=%d, TTL=%d]",
 				gmsg_name(gnutella_header_get_function(head)),
 				vmsg_infostr(data, size),
-				size, plural(size),
+				PLURAL(size),
 				guid_hex_str(gnutella_header_get_muid(head)),
 				ttl & GTA_UDP_DEFLATED ? "deflated " :
 					ttl & GTA_UDP_CAN_INFLATE ? "can_inflate " : "",

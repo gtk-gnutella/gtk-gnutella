@@ -75,6 +75,8 @@
 #include "xmalloc.h"
 #include "zalloc.h"
 
+#include "override.h"
+
 #define STACK_SIZE		16384
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
@@ -208,7 +210,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 static char *names[] = { "one", "two", "three", "four", "five" };
 
 static void
-exit_callback(void *result, void *arg)
+exit_callback(const void *result, void *arg)
 {
 	char *name = arg;
 	long length = pointer_to_long(result);
@@ -412,11 +414,26 @@ posix_threads(void *unused_arg)
 	return posix_worker(NULL);
 }
 
+static void
+pexit_callback(const void *result, void *earg)
+{
+	unsigned stid = pointer_to_uint(earg);
+
+	(void) result;
+	emit("POSIX thread #%u exiting", stid);
+}
+
 static void *
 posix_exiting_thread(void *unused_arg)
 {
+	unsigned stid = thread_small_id();
 	void *p;
+
 	(void) unused_arg;
+
+	emit("POSIX thread #%u starting", stid);
+
+	thread_atexit(pexit_callback, uint_to_pointer(stid));
 
 	p = xmalloc(100);
 	compat_sleep_ms(100);
@@ -802,8 +819,7 @@ player_stats(int n)
 	stats = &game_stats[n];
 
 	emit("%s played %d times (%d spurious event%s, %d timeout%s)",
-		name[n], stats->play, stats->spurious, plural(stats->spurious),
-		stats->timeout, plural(stats->timeout));
+		name[n], stats->play, PLURAL(stats->spurious), PLURAL(stats->timeout));
 }
 
 static void
@@ -917,10 +933,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		player_stats(i);
 	}
-	if (monitor) {
-		emit("main got %u notification%s",
-			notifications, plural(notifications));
-	}
+	if (monitor)
+		emit("main got %u notification%s", PLURAL(notifications));
 }
 
 static spinlock_t locks[] = { SPINLOCK_INIT, SPINLOCK_INIT };
@@ -969,7 +983,7 @@ fork_forker(void *arg)
 
 	running = thread_count();
 	emit("%s() forking with %u running thread%s, STID=%u", G_STRFUNC,
-		running, plural(running), thread_small_id());
+		PLURAL(running), thread_small_id());
 
 	thread_lock_dump_all(STDOUT_FILENO);
 
@@ -1005,10 +1019,10 @@ test_fork(bool safe)
 
 	TESTING(G_STRFUNC);
 
-	emit("--- testing thread_fork(%s)", safe ? "TRUE" : "FALSE");
+	emit("--- testing thread_fork(%s)", bool_to_string(safe));
 
 	running = thread_count();
-	emit("starting with %u running thread%s", running, plural(running));
+	emit("starting with %u running thread%s", PLURAL(running));
 
 	l1 = thread_create(fork_locker, int_to_pointer(0), THREAD_F_PANIC, 8192);
 	l2 = thread_create(fork_locker, int_to_pointer(1), THREAD_F_PANIC, 8192);
@@ -1025,9 +1039,9 @@ test_fork(bool safe)
 		s_error("final thread_join() failed: %m");
 
 	running = thread_count();
-	emit("ending with %u running thread%s", running, plural(running));
+	emit("ending with %u running thread%s", PLURAL(running));
 
-	emit("--- test of thread_fork(%s) done!", safe ? "TRUE" : "FALSE");
+	emit("--- test of thread_fork(%s) done!", bool_to_string(safe));
 }
 
 static int
@@ -2066,7 +2080,7 @@ test_memory(unsigned repeat, bool posix, int percentage)
 
 	TESTING(G_STRFUNC);
 
-	emit("%s() detected %ld CPU%s%s", G_STRFUNC, cpus, plural(cpus),
+	emit("%s() detected %ld CPU%s%s", G_STRFUNC, PLURAL(cpus),
 		0 == cpu_count ? "" : " (forced by -c)");
 
 	if (randomize_free)
@@ -2693,10 +2707,8 @@ main(int argc, char **argv)
 			allocator = 'r';
 			break;
 		}
-		if (allocator_bsize != 0) {
-			emit("Using blocks of %lu byte%s", (ulong) allocator_bsize,
-				plural(allocator_bsize));
-		}
+		if (allocator_bsize != 0)
+			emit("Using blocks of %lu byte%s", (ulong) PLURAL(allocator_bsize));
 		if (posix)
 			emit("Adding (discovered) POSIX threads");
 		if (percentage)

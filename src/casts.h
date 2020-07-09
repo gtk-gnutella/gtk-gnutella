@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -238,11 +238,19 @@ cast_to_free_fn(const func_ptr_t fn)
 }
 
 /**
+ * Re-casting a function is also cumbersome when one wants to avoid
+ * compiler warnings.  Factorize this in a macro to flag all such casts
+ * and have a common processing for them.
+ */
+#define func_cast(type, fn)	((type) (void *) (fn))
+
+/**
  * Casting of a random function pointer to "void *" is cumbersome if
  * you want to spell it out in a pedantic-safe way.  That's where the
  * func_to_pointer() macro is handy.
  */
-#define func_to_pointer(x)	cast_func_to_pointer((func_ptr_t) (x))
+#define func_to_pointer(x)	cast_func_to_pointer(func_cast(func_ptr_t, (x)))
+
 
 static inline size_t G_CONST WARN_UNUSED_RESULT ALWAYS_INLINE
 ptr_diff(const void *a, const void *b)

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -97,7 +97,7 @@ void download_move_done(struct download *d, const char *pathname,
 		uint elapsed);
 void download_move_error(struct download *d);
 
-uint extract_retry_after(struct download *d, const header_t *header);
+uint extract_retry_after(const struct download *d, const header_t *header);
 bool is_faked_download(const struct download *d);
 
 struct download *download_find_waiting_unparq(const host_addr_t addr,

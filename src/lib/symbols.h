@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -54,6 +54,7 @@ symbols_t *symbols_make(size_t capacity, bool once);
 void symbols_free_null(symbols_t **st_ptr);
 const char *symbols_name(const symbols_t *st, const void *pc, bool offset);
 const char *symbols_name_only(const symbols_t *st, const void *pc, bool offset);
+const char *symbols_name_light(const symbols_t *st, const void *pc, size_t *off);
 const void *symbols_addr(const symbols_t *st, const void *pc);
 void symbols_load_from(symbols_t *st, const char *path, const  char *lpath);
 enum stacktrace_sym_quality symbols_quality(const symbols_t *st);

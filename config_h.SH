@@ -162,6 +162,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bfd_lib HAS_BFD_LIBRARY		/**/
 
+/* HAS_BFD_SECTION_1ARG:
+ *	This symbol, if defined, indicates that the bfd_section_xxx() accessors
+ *	from the BFD library takes only one argument, which is the new behaviour
+ *	starting from BFD 2.34.
+ */
+#$d_bfd_section HAS_BFD_SECTION_1ARG		/**/
+
 /* HAS_BIND_TEXTDOMAIN_CODESET:
  *	This symbol, if defined, indicates that the bind_textdomain_codeset routine
  *	is available.
@@ -302,13 +309,6 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  *	and then use &etext to know the end of the text segment.
  */
 #$d_etext_symbol HAS_ETEXT_SYMBOL	/**/
-
-/* FAST_ASSERTIONS:
- *	This symbol, when defined, indicates that the program should make
- *	use of its own asserting and failure reporting code, instead of
- *	the one from GLib.
- */
-#$d_fast_assert FAST_ASSERTIONS	/**/
 
 /* HAS_FCHDIR:
  *	This symbol, if defined, indicates that the fchdir routine is

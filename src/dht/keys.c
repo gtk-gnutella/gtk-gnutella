@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -425,7 +425,7 @@ keys_reclaim(struct keyinfo *ki, bool can_remove)
 	g_assert(ki);
 	g_assert_log(0 == ki->values || can_remove,
 		"%s(): ki->values=%u, can_remove=%s",
-		G_STRFUNC, ki->values, can_remove ? "y" : "n");
+		G_STRFUNC, ki->values, bool_to_string(can_remove));
 
 	if (GNET_PROPERTY(dht_storage_debug) > 2)
 		g_debug("DHT STORE key %s reclaimed", kuid_to_hex_string(ki->kuid));
@@ -466,7 +466,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 
 	if (kd->values != ki->values) {
 		str_bprintf(ARYLEN(buf), "expected %u value%s, has %u in keydata",
-			ki->values, plural(ki->values), kd->values);
+			PLURAL(ki->values), kd->values);
 		reason = buf;
 		goto discard_key;
 	}
@@ -499,7 +499,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 
 	if (GNET_PROPERTY(dht_storage_debug) > 3)
 		g_debug("DHT STORE key %s has %d expired value%s out of %d",
-			kuid_to_hex_string(ki->kuid), expired, plural(expired),
+			kuid_to_hex_string(ki->kuid), PLURAL(expired),
 			ki->values);
 
 	if (next_expire != TIME_T_MAX)
@@ -520,7 +520,7 @@ discard_key:
 	 */
 
 	g_warning("DHT KEYS discarding corrupted key %s (%u value%s): %s",
-		kuid_to_hex_string(ki->kuid), ki->values, plural(ki->values),
+		kuid_to_hex_string(ki->kuid), PLURAL(ki->values),
 		reason);
 
 	keys_reclaim(ki, TRUE);
@@ -819,11 +819,12 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		common = kuid_common_prefix(get_our_kuid(), id);
 		in_kball = bits_within_kball(common);
 
-		if (GNET_PROPERTY(dht_storage_debug) > 5)
+		if (GNET_PROPERTY(dht_storage_debug) > 5) {
 			g_debug("DHT STORE new %s %s (%zu common bit%s) with creator %s",
 				in_kball ? "key" : "cached key",
-				kuid_to_hex_string(id), common, plural(common),
+				kuid_to_hex_string(id), PLURAL(common),
 				kuid_to_hex_string2(cid));
+		}
 
 		ki = allocate_keyinfo(id, common);
 		ki->next_expire = expire;
@@ -853,11 +854,12 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		g_assert_log(ki->values == kd->values,
 			"ki->values=%u, kd->values=%u", ki->values, kd->values);
 
-		if (GNET_PROPERTY(dht_storage_debug) > 5)
+		if (GNET_PROPERTY(dht_storage_debug) > 5) {
 			g_debug("DHT STORE existing key %s (%u common bit%s) "
 				"has new creator %s",
-				kuid_to_hex_string(id), ki->common_bits,
-				plural(ki->common_bits), kuid_to_hex_string2(cid));
+				kuid_to_hex_string(id), PLURAL(ki->common_bits),
+				kuid_to_hex_string2(cid));
+		}
 
 		/*
 		 * Keys are collected asynchronously, so it is possible that
@@ -1015,7 +1017,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 			" with %d secondary key%s",
 			kuid_to_hex_string(id), ki->get_req_load, ki->get_requests,
 			dht_value_type_to_string(type),
-			secondary_count, plural(secondary_count));
+			PLURAL(secondary_count));
 
 	*loadptr = ki->get_req_load;
 	ki->get_requests++;
@@ -1255,7 +1257,7 @@ keys_periodic_load(void *unused_obj)
 	if (GNET_PROPERTY(dht_storage_debug)) {
 		size_t keys_count = hikset_count(keys);
 		g_debug("DHT holding %zu value%s spread over %zu key%s",
-			ctx.values, plural(ctx.values), keys_count, plural(keys_count));
+			PLURAL(ctx.values), PLURAL(keys_count));
 	}
 
 	return TRUE;		/* Keep calling */
@@ -1318,11 +1320,11 @@ keys_update_kball(void)
 				kball.seeded ? "" : "(not seeded yet) ",
 				width == kball.width ? "remained at" :
 				width > kball.width ? "expanded to" : "shrunk to",
-				width, plural(width), kball.width);
+				PLURAL(width), kball.width);
 			g_debug("DHT k-ball closest (%zu common bit%s) is %s",
-				cbits, plural(cbits), knode_to_string(closest));
+				PLURAL(cbits), knode_to_string(closest));
 			g_debug("DHT k-ball furthest (%zu common bit%s) is %s",
-				fbits, plural(fbits), knode_to_string(furthest));
+				PLURAL(fbits), knode_to_string(furthest));
 		}
 
 		STATIC_ASSERT(KUID_RAW_BITSIZE < 256);
@@ -1538,7 +1540,7 @@ keys_init_keyinfo(void)
 	if (GNET_PROPERTY(dht_keys_debug)) {
 		size_t count = dbmw_count(db_keydata);
 		g_debug("DHT KEYS scanning %u persisted key%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	ctx.our_kuid = get_our_kuid();
@@ -1549,7 +1551,7 @@ keys_init_keyinfo(void)
 	if (GNET_PROPERTY(dht_keys_debug)) {
 		size_t count = dbmw_count(db_keydata);
 		g_debug("DHT KEYS kept %u key%s, now loading associated values",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	/*
@@ -1590,10 +1592,8 @@ keys_init_keyinfo(void)
 		"keys reloaded: %zu, key data persisted: %zu",
 		hikset_count(keys), dbmw_count(db_keydata));
 
-	if (GNET_PROPERTY(dht_keys_debug)) {
-		g_debug("DHT KEYS reloaded %zu key%s",
-			hikset_count(keys), plural(hikset_count(keys)));
-	}
+	if (GNET_PROPERTY(dht_keys_debug))
+		g_debug("DHT KEYS reloaded %zu key%s", PLURAL(hikset_count(keys)));
 
 	gnet_stats_set_general(GNR_DHT_KEYS_HELD, hikset_count(keys));
 }

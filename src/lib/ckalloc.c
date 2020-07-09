@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -157,8 +157,8 @@ ck_init_not_leaking(size_t size, size_t reserved)
 /**
  * Destroy a chunk allocator.
  */
-static void
-ckdestroy(ckhunk_t *ck)
+void
+ck_destroy(ckhunk_t *ck)
 {
 	ckhunk_check(ck);
 	g_assert(ck != NULL);
@@ -177,7 +177,7 @@ ck_destroy_null(ckhunk_t **ck_ptr)
 	ckhunk_t *ck = *ck_ptr;
 
 	if (ck != NULL) {
-		ckdestroy(ck);
+		ck_destroy(ck);
 		*ck_ptr = NULL;
 	}
 }

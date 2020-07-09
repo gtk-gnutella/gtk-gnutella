@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-245]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in
@@ -165,43 +165,41 @@ local_deinstall::
 # Update the bogons and GeoIp databases
 #
 
-update: update_bogons update_geoip
+update: update_bogons update_geoip4 update_geoip6
 
 update_bogons:
 # Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
 	: wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
 
-GEODB = GeoLite2-Country-CSV.zip
-URL = https://geolite.maxmind.com/download/geoip/database/$(GEODB)
+URL4 = https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.CSV.ZIP
+URL6 = https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.IPV6.CSV.ZIP
+GEODB4 = IP2LOCATION-LITE-DB1.CSV
+GEODB6 = IP2LOCATION-LITE-DB1.IPV6.CSV
 TMP = tmp
 
-#
-# The fetched GEODB zip file unzips itself into a sub-directory.
-#
-# Hence the strategy is to create a tempory directory where we unzip it,
-# and then descend in the single created directory below it to find the
-# CSV files containing the CIDR mappings to country codes.
-#
-# We therefore issue "cd tmp/*" to be at the location of the extracted files.
-#
-
-update_geoip:
-	rm -f $(GEODB)
+update_geoip4:
+	rm -f $(GEODB4).ZIP
 	rm -rf $(TMP)
-	wget $(URL)
+	wget $(URL4)
 	mkdir $(TMP)
-	(cd $(TMP); unzip ../$(GEODB))
-	(cd $(TMP)/*; \
-		../../$(TOP)/scripts/geolite-to-db.pl \
-		../../geo-ip.txt GeoLite2-Country-Blocks-IPv4.csv)
-	(cd $(TMP)/*; \
-		../../$(TOP)/scripts/geolite-to-db.pl \
-		../../geo-ipv6.txt GeoLite2-Country-Blocks-IPv6.csv)
+	(cd $(TMP); unzip ../$(GEODB4).ZIP)
+	(cd $(TMP); \
+		../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt)
+
+update_geoip6:
+	rm -f $(GEODB6).ZIP
+	rm -rf $(TMP)
+	wget $(URL6)
+	mkdir $(TMP)
+	(cd $(TMP); unzip ../$(GEODB6).ZIP)
+	(cd $(TMP); \
+		../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt)
 
 local_clean::
 	rm -rf $(TMP)
-	rm -f $(GEODB)
+	rm -f $(GEODB4).ZIP
+	rm -f $(GEODB6).ZIP
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -38,10 +38,25 @@
 #include "compat_gettid.h"		/* For systid_t */
 
 /**
- * Thread exiting callback, which will be invoked asynchronously in the
- * context of the main thread, NOT the thread which created that exiting thread.
+ * Thread exiting callback.
+ *
+ * When the thread was created with the THREAD_F_ASYNC_EXIT flag, the exit
+ * callback supplied to thread_create_full() will NOT be called within the
+ * thread exiting but from the main thread.
+ *
+ * Otherwise (by default), the exit callback is invoked synchronously, in
+ * the context of the exiting thread.  The thread result (the value of
+ * thread_exit() or the return of the main entry point of the thread) is
+ * to be considered informative only and should not be modified as a side
+ * effect of the exiting callback!
+ *
+ * Likewise, all exit callbacks registered via thread_atexit() will be
+ * invoked synchronously.
+ *
+ * @param result		the thread exit value (read-only)
+ * @param earg			the extra argument registered via thread_atexit()
  */
-typedef void (*thread_exit_t)(void *result, void *earg);
+typedef void (*thread_exit_t)(const void *result, void *earg);
 
 typedef unsigned long thread_t;
 typedef size_t thread_qid_t;		/* Quasi Thread ID */
@@ -246,6 +261,8 @@ unsigned thread_by_name(const char *name);
 
 unsigned thread_count();
 unsigned thread_discovered_count(void);
+void thread_main_starting(void);
+bool thread_main_has_started(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_exit_mode(void);

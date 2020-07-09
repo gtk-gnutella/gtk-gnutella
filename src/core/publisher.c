@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -502,10 +502,10 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			info->roots, plural(info->roots),
+			PLURAL(info->roots),
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -656,7 +656,7 @@ publisher_handle(struct publisher_entry *pe)
 			g_debug("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),
 				is_partial ? "partial " : "", shared_file_name_nfc(sf),
-				alt_locs, plural_y(alt_locs));
+				PLURAL_Y(alt_locs));
 		}
 		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
 		goto done;
@@ -925,7 +925,7 @@ publisher_trim_pubdata(void)
 	if (GNET_PROPERTY(publisher_debug)) {
 		count = dbmw_count(db_pubdata);
 		g_debug("PUBLISHER scanning %u retrieved SHA1%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	dbmw_foreach_remove(db_pubdata, publisher_remove_expired, NULL);
@@ -934,7 +934,7 @@ publisher_trim_pubdata(void)
 
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_debug("PUBLISHER kept information about %u SHA1%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	if (!crash_was_restarted())

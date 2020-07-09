@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -130,6 +130,7 @@ static struct random_stats {
 	uint cmwc_ignored_threads;			/* Threads using CMWC with no TEQ */
 	uint well_ignored_threads;			/* Threads using WELL with no TEQ */
 	AU64(concurrent_random_add);		/* Thread collisions adding randomness */
+	AU64(concurrent_random_fire);		/* Thread collisions firing randomness */
 	AU64(input_random_add);				/* Bytes input to random_add() */
 	AU64(input_random_add_pool);		/* Bytes input to random_add_pool() */
 	AU64(output_random_bytes);			/* Bytes emitted via random_bytes() */
@@ -881,17 +882,37 @@ random_pool_append(void *buf, size_t len)
 	g_assert(size_is_positive(len));
 
 	if (random_add_pool(buf, len)) {
+		static spinlock_t guard_slk = SPINLOCK_INIT;
+
 		/*
 		 * The time at which the pool was flushed is in itself a random event.
 		 *
 		 * Calling entropy_harvest_time() will recurse back into this routine
 		 * but the chance of us having to flush the pool again are low, unless
-		 * much randomness was added by other threads.  Therefore, we will not
+		 * much randomness was added by other threads.  Therefore, we should not
 		 * be stuck in an endless recursion.
+		 *
+		 * To guarantee we are never stuck in endless recursion, no matter what
+		 * the other threads are doing, we're protecting the call to the
+		 * entropy_harvest_time() routine to ensure it is done only by one
+		 * thread at a time in this block.
+		 * 		--RAM, 2019-08-03
 		 */
 
-		entropy_harvest_time();	/* More randomness */
-		random_added_fire();	/* Let them know new randomness is available */
+		if (spinlock_try(&guard_slk)) {
+			entropy_harvest_time();	/* More randomness */
+
+			/*
+			 * There's no need to concurrently fire this, hence we do it
+			 * in the guarded block as well.
+			 */
+
+			random_added_fire();	/* Let them know new randomness is available */
+
+			spinunlock(&guard_slk);
+		} else {
+			RANDOM_STATS_INC(concurrent_random_fire);
+		}
 	}
 }
 
@@ -1281,6 +1302,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 } G_STMT_END
 
 	DUMP64(concurrent_random_add);
+	DUMP64(concurrent_random_fire);
 	DUMP64(input_random_add);
 	DUMP64(input_random_add_pool);
 	DUMP64(output_random_bytes);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -281,7 +281,7 @@ qlock_deadlocked(const void *obj, unsigned elapsed,
 	if (q->stid != (uint8) THREAD_INVALID_ID)
 		s_rawinfo("thread #%u is %s", q->stid, thread_id_name(q->stid));
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 
 	s_error("deadlocked on %s%s %p (after %u secs) at %s:%u",

@@ -21,7 +21,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1134,6 +1134,8 @@ gboolean gnet_property_variable_running_topless     = FALSE;
 static const gboolean gnet_property_variable_running_topless_default = FALSE;
 gboolean gnet_property_variable_send_oob_ind_reliably     = TRUE;
 static const gboolean gnet_property_variable_send_oob_ind_reliably_default = TRUE;
+guint32  gnet_property_variable_adns_debug     = 0;
+static const guint32  gnet_property_variable_adns_debug_default = 0;
 
 static prop_set_t *gnet_property;
 
@@ -11417,6 +11419,28 @@ gnet_prop_init(void) {
     gnet_property->props[488].type               = PROP_TYPE_BOOLEAN;
     gnet_property->props[488].data.boolean.def   = (void *) &gnet_property_variable_send_oob_ind_reliably_default;
     gnet_property->props[488].data.boolean.value = (void *) &gnet_property_variable_send_oob_ind_reliably;
+
+
+    /*
+     * PROP_ADNS_DEBUG:
+     *
+     * General data:
+     */
+    gnet_property->props[489].name = "adns_debug";
+    gnet_property->props[489].desc = _("Debug level for the ADNS (asynchronous DNS) thread.");
+    gnet_property->props[489].ev_changed = event_new("adns_debug_changed");
+    gnet_property->props[489].save = TRUE;
+    gnet_property->props[489].internal = FALSE;
+    gnet_property->props[489].vector_size = 1;
+	mutex_init(&gnet_property->props[489].lock);
+
+    /* Type specific data: */
+    gnet_property->props[489].type               = PROP_TYPE_GUINT32;
+    gnet_property->props[489].data.guint32.def   = (void *) &gnet_property_variable_adns_debug_default;
+    gnet_property->props[489].data.guint32.value = (void *) &gnet_property_variable_adns_debug;
+    gnet_property->props[489].data.guint32.choices = NULL;
+    gnet_property->props[489].data.guint32.max   = 20;
+    gnet_property->props[489].data.guint32.min   = 0;
 
     gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
     for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

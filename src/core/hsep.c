@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -425,7 +425,6 @@ hsep_reset(void)
 void
 hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 {
-	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
 	uint i;
 
@@ -435,8 +434,7 @@ hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 		printf("HSEP: Initializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
-	WALLOC(n->hsep);
-	*n->hsep = zero_hsep; /* Initializes everything to 0 */
+	WALLOC0(n->hsep);
 	n->hsep->last_sent = now;
 	n->hsep->major = major;
 	n->hsep->minor = minor;
@@ -653,7 +651,7 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Received %d triple%s from node %s (msg #%u): ",
-			max, plural(max),
+			PLURAL(max),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_received + 1);
 	}
@@ -809,7 +807,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Sending %d triple%s to node %s (msg #%u): ",
-			opttriples, plural(opttriples),
+			PLURAL(opttriples),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_sent + 1);
 	}

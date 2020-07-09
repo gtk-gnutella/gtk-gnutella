@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -748,7 +748,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		size_t count = OMALLOC_RW == mode ?
 			ostats.objects_rw : ostats.objects_ro;
 		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
-			pages, plural(pages),
+			PLURAL(pages),
 			OMALLOC_RW == mode ? ostats.pages_rw : ostats.pages_ro,
 			count, OMALLOC_RW == mode ? "read-write" : "read-only",
 			plural(count));
@@ -1027,22 +1027,22 @@ omalloc_close(void)
 	if (omalloc_debug) {
 		s_debug("omalloc() allocated %zu read-write object%s "
 			"spread on %zu page%s",
-			ostats.objects_rw, plural(ostats.objects_rw),
-			ostats.pages_rw, plural(ostats.pages_rw));
+			PLURAL(ostats.objects_rw),
+			PLURAL(ostats.pages_rw));
 		s_debug("omalloc() allocated %s read-write, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_rw, FALSE),
-			ostats.chunks_rw, plural(ostats.chunks_rw),
-			plural(ostats.chunks_rw));
+			PLURAL(ostats.chunks_rw),
+			1 == ostats.chunks_rw ? "s" : "");
 		s_debug("omalloc() allocated %zu read-only object%s "
 			"spread on %zu page%s",
-			ostats.objects_ro, plural(ostats.objects_ro),
-			ostats.pages_ro, plural(ostats.pages_ro));
+			PLURAL(ostats.objects_ro),
+			PLURAL(ostats.pages_ro));
 		s_debug("omalloc() allocated %s read-only, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_ro, FALSE),
-			ostats.chunks_ro, plural(ostats.chunks_ro),
-			plural(ostats.chunks_ro));
+			PLURAL(ostats.chunks_ro),
+			1 == ostats.chunks_ro ? "s" : "");
 	}
 }
 

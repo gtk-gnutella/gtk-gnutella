@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -621,7 +621,7 @@ pool_reclaim_garbage(pool_t *p)
 		if (palloc_debug > 1) {
 			size_t n = eslist_count(&p->buffers);
 			s_debug("PGC not collecting %zu block%s from \"%s\": "
-				"recent allocation burst", n, plural(n), p->name);
+				"recent allocation burst", PLURAL(n), p->name);
 		}
 		goto reset;
 	}
@@ -674,7 +674,7 @@ pool_reclaim_garbage(pool_t *p)
 			size_t n = eslist_count(&p->buffers);
 			s_debug("PGC not collecting %zu block%s from \"%s\": "
 				"allocation count %zu currently below or at target of %zu",
-				n, plural(n), p->name, p->allocated, threshold);
+				PLURAL(n), p->name, p->allocated, threshold);
 		}
 		goto reset;
 	}
@@ -714,7 +714,7 @@ reset:
 		/* Reading p->allocated without the pool's lock, but we don't care */
 		s_debug("PGC \"%s\": collecting %zu block%s "
 			"(%zu spurious, %zu allocated)",
-			p->name, collecting, plural(collecting), spurious, p->allocated);
+			p->name, PLURAL(collecting), spurious, p->allocated);
 	}
 
 	while (NULL != (b = eslist_shift(&to_remove))) {

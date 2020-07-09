@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -129,6 +129,7 @@ size_t compat_pagesize(void) G_PURE;
 const void *vmm_page_start(const void *p) G_PURE;
 const void *vmm_page_next(const void *p) G_PURE;
 const void *vmm_trap_page(void);
+const char *vmm_type_pointer(const void *p);
 size_t vmm_page_count(size_t size) G_PURE;
 bool vmm_is_fragment(const void *base, size_t size);
 bool vmm_is_relocatable(const void *base, size_t size);
@@ -147,7 +148,6 @@ bool vmm_is_extending(void);
 void vmm_init(void);
 bool vmm_is_inited(void);
 void vmm_memusage_init(void);
-void vmm_malloc_inited(void);
 void vmm_post_init(void);
 void vmm_pre_close(void);
 void vmm_stop_freeing(void);

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -946,8 +946,7 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
-					port, host_addr_to_string(addr), sd->ports,
-					plural(sd->ports));
+					port, host_addr_to_string(addr), PLURAL(sd->ports));
 			}
 
 			gnet_host_set(&host, addr, 0);

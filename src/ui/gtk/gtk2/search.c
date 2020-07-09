@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -793,13 +793,11 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 void
 search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 {
-	static const struct result_data zero_data;
 	struct result_data *data;
 
 	record_check(rc);
 
-	WALLOC(data);
-	*data = zero_data;
+	WALLOC0(data);
 	data->color = color;
 	data->record = rc;
 	data->sh = sch->search_handle;

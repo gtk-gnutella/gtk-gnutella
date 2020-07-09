@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2018-10-04 20:40+0200\n"
+"POT-Creation-Date: 2020-07-09 10:54+0200\n"
 "PO-Revision-Date: 2018-06-02 15:32+0300\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -602,6 +602,9 @@ msgstr "Yükseltme Başlığı Eksik"
 msgid "Servent Shutdown"
 msgstr "İstemci kapanıyor"
 
+msgid "Already connected"
+msgstr "Zaten bağlı"
+
 msgid "Not a network member"
 msgstr "Şebeke üyesi değil"
 
@@ -665,9 +668,6 @@ msgstr "Sözde G2 UDP düğümü"
 
 msgid "Pseudo DHT node"
 msgstr "Sözde DHT düğümü"
-
-msgid "Already connected"
-msgstr "Zaten bağlı"
 
 msgid "Limited connection"
 msgstr "Sınırlı bağlantı"
@@ -811,6 +811,9 @@ msgstr "Herhangi bir sebep gösterilmemiş"
 msgid "Bad Request"
 msgstr "Kötü istek"
 
+msgid "Library being rebuilt"
+msgstr "Kütüphane yeniden yapılandırılmakta"
+
 msgid "Header too large"
 msgstr "Çok büyük başlık"
 
@@ -837,9 +840,6 @@ msgstr "URN bulunamadı (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "SHA1 yeniden hesaplanmakta"
-
-msgid "Library being rebuilt"
-msgstr "Kütüphane yeniden yapılandırılmakta"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr "/uri-res/N2R isteğinde yanlış yapılandırılmış URN"
@@ -1144,6 +1144,9 @@ msgstr "Sahte OOB isabet talebi alındı"
 
 msgid "Unrequested OOB hits received"
 msgstr "Talep edilmeden alınan OOB isabetleri"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr "İzlenmeyen sorgular için alınan sorgu isabetleri"
@@ -5311,6 +5314,15 @@ msgstr "Kilit uykularının izlenmelerinin gerekip gerekmediğini tanımlar."
 msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
 msgstr "Eğer DOĞRU ise, gtk-gnutella grafik arayüzü olmadan çalışır."
 
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "Zaman senkronizasyon kodu için hata ayıklama seviyesi."
+
 msgid "disable"
 msgstr "devre dışı"
 
@@ -6621,6 +6633,9 @@ msgstr "Wallis ve Futuna Adaları"
 msgid "Samoa"
 msgstr "Samoa"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Yemen"
 
@@ -6676,6 +6691,8 @@ msgstr "%ud %us"
 msgid "%us"
 msgstr "%us"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "tr"
 
@@ -9381,6 +9398,14 @@ msgstr "Panoya kopyala"
 msgid "_Remove filter"
 msgstr "Filtreyi _Kaldır"
 
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"Bu ürün MaxMind tarafından oluşturulan ve http://maxmind.com/ \n"
+"adresinde sunulan GeoİP verileri içerir"
+
 msgid "_Close"
 msgstr "_Kapat"
 
@@ -10179,8 +10204,8 @@ msgstr "(çabuk) "
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) KZ: %s %s#%u"
 
 msgid "stalled"

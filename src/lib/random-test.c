@@ -263,7 +263,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 		if (0 == (n & 0xfff)) {
 			int bits = highest_bit_set64(n);
 			printf("Period %s (%d bit%s)\r",
-				uint64_to_string(n), bits, plural(bits));
+				uint64_to_string(n), PLURAL(bits));
 			fflush(stdout);
 		}
 	}
@@ -771,7 +771,7 @@ G_STMT_START {			\
 	if (countval) {
 		unsigned n = count_values(fn, period, mask, cval);
 		printf("Found %u occurence%s of %u (mask 0x%x) within period of %s\n",
-			n, plural(n), cval & mask, mask, uint64_to_string(period));
+			PLURAL(n), cval & mask, mask, uint64_to_string(period));
 	}
 
 	if (countbits) {

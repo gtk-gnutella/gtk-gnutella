@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -56,15 +56,12 @@ struct html_node {
 	enum html_node_type type;
 };
 
-static const struct html_node zero_html_node;
-
 static struct html_node *
 html_node_alloc(void)
 {
 	struct html_node *node;
 
-	WALLOC(node);
-	*node = zero_html_node;
+	WALLOC0(node);
 	return node;
 }
 
@@ -111,11 +108,9 @@ html_output_tag(struct html_output *output, const struct array tag)
 struct html_output *
 html_output_alloc(void)
 {
-	static const struct html_output zero_output;
 	struct html_output *output;
 
-	WALLOC(output);
-	*output = zero_output;
+	WALLOC0(output);
 	return output;
 }
 
