@@ -3329,13 +3329,14 @@ crash_handler_process(void *arg)
 	}
 
 the_end:
-	if (!v->in_child)
+	if (!v->in_child && vars->may_restart)
 		crash_auto_restart();
 	raise(SIGABRT);			/* This is the end of our road */
 
 	g_assert_not_reached();
 	return NULL;			/* Never used by caller! */
 }
+
 /**
  * The signal handler used to trap harmful signals.
  */
