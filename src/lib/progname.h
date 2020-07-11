@@ -50,6 +50,7 @@ size_t progname_args_size(void);
 struct tmval;
 
 void progstart(int argc, char * const *argv);
+bool progstart_was_called(void);
 struct tmval progstart_time(void);
 int progstart_dup(const char ***argv_ptr, const char ***envp_ptr);
 const char *progstart_arg(int n);

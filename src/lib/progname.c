@@ -171,13 +171,22 @@ progstart(int argc, char * const *argv)
 }
 
 /**
+ * Was progstart() called?
+ */
+bool
+progstart_was_called(void)
+{
+	return progname_info.name != NULL;
+}
+
+/**
  * Ensure progstart() was called.
  */
 static void
 progstart_called(const char *routine)
 {
-	g_assert_log(progname_info.name != NULL,
-		"%s(): must not be called before progstart()", routine);
+	if (!progstart_was_called())
+		s_error("%s(): must not be called before progstart()", routine);
 }
 
 /**
