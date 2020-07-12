@@ -91,6 +91,8 @@ pslist_t *pslist_insert_before(pslist_t *pl,
 pslist_t *pslist_insert_after(pslist_t *pl,
 	pslist_t *sibling, void *data) WARN_UNUSED_RESULT;
 pslist_t *pslist_concat(pslist_t *l1, pslist_t *l2) WARN_UNUSED_RESULT;
+pslist_t *pslist_concat_after(pslist_t *l1, pslist_t *s,
+	pslist_t *l2) WARN_UNUSED_RESULT;
 pslist_t *pslist_remove(pslist_t *pl, const void *data) WARN_UNUSED_RESULT;
 pslist_t *pslist_remove_link(pslist_t *pl, pslist_t *cell);
 pslist_t *pslist_delete_link(pslist_t *pl, pslist_t *cell);

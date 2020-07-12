@@ -517,6 +517,35 @@ pslist_concat(pslist_t *l1, pslist_t *l2)
 }
 
 /**
+ * Adds second list after sibling from first list.
+ *
+ * The second list becomes part of the first list, physically, i.e. the cells
+ * are not copied.
+ *
+ * @param l1		the head of the first list
+ * @param sibling	the cell after which we need to insert a new cell
+ * @param l2		the head of the second list
+ *
+ * @return the new head of the list.
+ */
+pslist_t *
+pslist_concat_after(pslist_t *l1, pslist_t *sibling, pslist_t *l2)
+{
+	g_assert(NULL != l1 || NULL == sibling);
+
+	if G_UNLIKELY(NULL == l2)
+		return l1;
+
+	if G_UNLIKELY(NULL == sibling || NULL == l1)
+		return pslist_concat(l1, l2);
+
+	pslist_last(l2)->next = sibling->next;
+	sibling->next = l2;
+
+	return l1;
+}
+
+/**
  * Remove the first cell we find that contains the specified data, if any.
  *
  * @param pl		the head of the list
