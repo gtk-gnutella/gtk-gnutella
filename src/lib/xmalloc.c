@@ -91,6 +91,7 @@
 #include "vmm.h"
 #include "win32dlp.h"
 #include "xsort.h"
+#include "zalloc.h"			/* For zalloc_is_closing() */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -697,6 +698,9 @@ xpages_pool_free(void *p, size_t len, bool fragment)
 static void
 xpages_pool_init(void)
 {
+	if (zalloc_is_closing())
+		return;		/* Too late to create a page pool! */
+
 	xpages_pool = pool_create("xmalloc thread chunks",
 		xmalloc_pagesize, xpages_pool_alloc, xpages_pool_free, NULL);
 }
@@ -4053,7 +4057,10 @@ xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 
 		if G_LIKELY(xpages_pool != NULL)
 			pfree(xpages_pool, xck);
-		else if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init))
+		else if (
+			once_flag_run_safe(&xpages_pool_inited, xpages_pool_init) &&
+			xpages_pool != NULL
+		)
 			pfree(xpages_pool, xck);
 		else
 			vmm_core_free(xck, xmalloc_pagesize);

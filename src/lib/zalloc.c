@@ -2112,6 +2112,15 @@ free_zone(const void *u_key, void *value, void *u_data)
 }
 
 /**
+ * Is zalloc() closing?
+ */
+bool
+zalloc_is_closing(void)
+{
+	return zalloc_closing;
+}
+
+/**
  * Close the zone allocator, destroying all the remaining zones regardless
  * of their reference count.
  */

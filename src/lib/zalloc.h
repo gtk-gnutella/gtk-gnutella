@@ -114,6 +114,7 @@ void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
 void zalloc_show_settings(void);
 void zalloc_show_settings_log(struct logagent *la);
+bool zalloc_is_closing(void);
 
 void zone_info(const zone_t *, zone_info_t *);
 
