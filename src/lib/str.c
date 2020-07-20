@@ -1066,6 +1066,9 @@ str_shift(str_t *str, size_t n)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, and so on.
  *
+ * As a convenience, act as str_putc() if index equals string length.
+ * This allows us to treat str_ichar(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
@@ -1080,8 +1083,13 @@ str_ichar(str_t *str, ssize_t idx, int c)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)		/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)		/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_putc(str, c);
+		return TRUE;
+	}
 
 	str_makeroom(str, 1);
 	memmove(str->s_data + idx + 1, str->s_data + idx, len - idx);
@@ -1096,6 +1104,9 @@ str_ichar(str_t *str, ssize_t idx, int c)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, etc...
  *
+ * As a convenience, act as str_cat() if index equals string length.
+ * This allows us to treat str_istr(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
@@ -1109,6 +1120,9 @@ str_istr(str_t *str, ssize_t idx, const char *string)
 
 /**
  * Same as str_istr, only the first `n' chars of string are inserted.
+ *
+ * As a convenience, act as str_cat_len() if index equals string length.
+ * This allows us to treat str_instr(s, 0, ...) nicely even if s is empty.
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
@@ -1129,8 +1143,13 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)	/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_cat_len(str, string, n);
+		return TRUE;
+	}
 
 	str_makeroom(str, n);
 	memmove(str->s_data + idx + n, str->s_data + idx, len - idx);
