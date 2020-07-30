@@ -63,6 +63,14 @@ char **h_strsplit(const char *str, const char *delim, size_t max_tokens)
 char **h_strsplit_set(const char *str, const char *delim, size_t max_tokens)
 	G_NON_NULL;
 
+#define H_STRFREEV_NULL(p)	\
+G_STMT_START {				\
+	if (p != NULL) {		\
+		h_strfreev(p);		\
+		p = NULL;			\
+	}						\
+} G_STMT_END
+
 #endif	/* _hstrfn_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
