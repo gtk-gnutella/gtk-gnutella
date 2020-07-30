@@ -80,25 +80,31 @@
  */
 
 #ifndef SETJMP_SOURCE
+
+/* metaconfig symbols */
 #undef Setjmp
 #undef Sigsetjmp
-#undef longjmp
-#undef siglongjmp
 #undef Siglongjmp
 
-#define Setjmp(e)		(setjmp_prep((e), _WHERE_, __LINE__), setjmp((e)->buf))
+/* Possible libc macros */
+#undef longjmp
+#undef siglongjmp
+
+#define Setjmp(e)	\
+	(setjmp_prep((e), _WHERE_, __LINE__, G_STRFUNC), setjmp((e)->buf))
 
 #ifdef HAS_SIGSETJMP
 #define Sigsetjmp(e,s)	\
-	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__), sigsetjmp((e)->buf, (s)))
+	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__, G_STRFUNC), \
+		sigsetjmp((e)->buf, (s)))
 #else
 #define Sigsetjmp(e,s)	\
-	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__), setjmp((e)->buf))
+	(sigsetjmp_prep((e), (s), _WHERE_, __LINE__, G_STRFUNC), setjmp((e)->buf))
 #endif
 
-#define longjmp(e,v)	compat_longjmp((e), (v), _WHERE_, __LINE__)
-#define siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__)
-#define Siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__)
+#define longjmp(e,v)	compat_longjmp((e),    (v), _WHERE_, __LINE__, G_STRFUNC)
+#define siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__, G_STRFUNC)
+#define Siglongjmp(e,v)	compat_siglongjmp((e), (v), _WHERE_, __LINE__, G_STRFUNC)
 #endif	/* SETJMP_SOURCE */
 
 /*
@@ -124,8 +130,11 @@ enum setjmp_magic {
 	enum setjmp_magic magic;	/**< Magic number */ \
 	uint stid;					/**< Thread which saved the context */ \
 	uint line;					/**< Line number where state was taken */ \
-	const char *file;			/**< File name where state was taken */ \
+	const char *file;			/**< Name of file where state was taken */ \
+	const char *routine;		/**< Name of routine where state was taken */ \
+	void *sp;					/**< Stack pointer at time of capture */ \
 	struct {					/**< To help debug multiple context usage */ \
+		const char *routine;	/**< Name of routine where state was used */ \
 		const char *file;		/**< File name where state was used */ \
 		uint line;				/**< Line where state was used */ \
 		int arg;				/**< Argument passed to (sig)longjmp() */ \
@@ -149,11 +158,14 @@ typedef struct compat_sigjmpbuf {
  * Public interface.
  */
 
-void setjmp_prep(jmp_buf env, const char *file, uint line);
-void sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line);
+void setjmp_prep(jmp_buf env, const char *file, uint line, const char *routine);
+void sigsetjmp_prep(sigjmp_buf env, int savesigs,
+	const char *file, uint line, const char *routine);
 
-void compat_longjmp(jmp_buf env, int val, const char *, uint) G_NORETURN;
-void compat_siglongjmp(sigjmp_buf env, int val, const char *, uint) G_NORETURN;
+void compat_longjmp(jmp_buf env, int val, const char *, uint, const char *)
+	G_NORETURN;
+void compat_siglongjmp(sigjmp_buf env, int val, const char *, uint, const char *)
+	G_NORETURN;
 
 #endif	/* _compat_setjmp_h_ */
 

@@ -740,7 +740,7 @@ thread_sig_pending(const struct thread_element *te)
  * Compare two stack pointers according to the stack growth direction.
  * A pointer is larger than another if it is further away from the base.
  */
-static inline int
+int
 thread_stack_ptr_cmp(const void *a, const void *b)
 {
 	return thread_sp_direction > 0 ? ptr_cmp(a, b) : ptr_cmp(b, a);

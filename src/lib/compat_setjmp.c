@@ -63,13 +63,18 @@
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-setjmp_prep(jmp_buf env, const char *file, uint line)
+setjmp_prep(jmp_buf env,
+	const char *file, uint line, const char *routine)
 {
-	env->stid = thread_small_id();
+	int sp;
+
+	env->magic     = SETJMP_MAGIC;
+	env->stid      = thread_small_id();
 	env->sig_level = signal_thread_handler_level(env->stid);
-	env->magic = SETJMP_MAGIC;
-	env->file = file;
-	env->line = line;
+	env->sp        = &sp;
+	env->routine   = routine;
+	env->file      = file;
+	env->line      = line;
 }
 
 /**
@@ -79,13 +84,19 @@ setjmp_prep(jmp_buf env, const char *file, uint line)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
+sigsetjmp_prep(sigjmp_buf env,
+	int savesigs,
+	const char *file, uint line, const char *routine)
 {
-	env->stid = thread_small_id();
+	int sp;
+
+	env->magic     = SIGSETJMP_MAGIC;
+	env->stid      = thread_small_id();
 	env->sig_level = signal_thread_handler_level(env->stid);
-	env->magic = SIGSETJMP_MAGIC;
-	env->file = file;
-	env->line = line;
+	env->sp        = &sp;
+	env->routine   = routine;
+	env->file      = file;
+	env->line      = line;
 
 #ifndef HAS_SIGSETJMP
 	env->mask_saved = booleanize(savesigs);
@@ -109,30 +120,50 @@ sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_longjmp(jmp_buf env, int val, const char *file, uint line)
+compat_longjmp(jmp_buf env, int val,
+	const char *file, uint line, const char *routine)
 {
 	uint stid = thread_small_id();
 
 	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u and longjmp(%d) called at %s:%u in %s",
-		env->file, env->line,
-		env->used.arg, env->used.file, env->used.line,
+		"%s(): context was taken at %s:%u in %s() "
+		"and longjmp(%d) already called at %s:%u in %s() within %s",
+		G_STRFUNC, env->file, env->line, env->routine,
+		env->used.arg, env->used.file, env->used.line, env->used.routine,
 		thread_safe_id_name(env->stid));
 
 	g_assert_log(SETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
 	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
+		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u in %s()",
 		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid), env->file, env->line);
+		stid, thread_safe_id_name(stid), env->file, env->line, env->routine);
+
+	/*
+	 * See whether routine where setjmp() occurred has already returned.
+	 * We must still be deeper in the call stack at the time of longjmp(),
+	 * or the context is completely invalid.
+	 *
+	 * This is imperfect of couse, we could have grown the stack since we
+	 * returned and not be able to detect the situation where the context is
+	 * truly gone, but it will detect some blatant mistakes.
+	 */
+
+	g_assert_log(thread_stack_ptr_cmp(&stid, env->sp) > 0,
+		"%s(): context, taken at %s:%u in %s(), already gone when "
+		"longjmp(%d) is called at %s:%u in %s() within %s (SP was %p, now %p)",
+		G_STRFUNC, env->file, env->line, env->routine,
+		env->used.arg, file, line, routine,
+		thread_safe_id_name(env->stid), env->sp, &stid);
 
 	signal_thread_handler_level_set(stid, env->sig_level);
 
-	env->magic = SETJMP_USED_MAGIC;
-	env->used.arg = val;
-	env->used.file = file;
-	env->used.line = line;
+	env->magic        = SETJMP_USED_MAGIC;
+	env->used.arg     = val;
+	env->used.file    = file;
+	env->used.line    = line;
+	env->used.routine = routine;
 
 	longjmp(env->buf, val);
 }
@@ -144,23 +175,42 @@ compat_longjmp(jmp_buf env, int val, const char *file, uint line)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_siglongjmp(sigjmp_buf env, int val, const char *file, uint line)
+compat_siglongjmp(sigjmp_buf env, int val,
+	const char *file, uint line, const char *routine)
 {
 	uint stid = thread_small_id();
 
 	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u and longjmp(%d) called at %s:%u in %s",
-		env->file, env->line,
-		env->used.arg, env->used.file, env->used.line,
+		"%s(): context was taken at %s:%u in %s() "
+		"and longjmp(%d) already called at %s:%u in %s() within %s",
+		G_STRFUNC, env->file, env->line, env->routine,
+		env->used.arg, env->used.file, env->used.line, env->used.routine,
 		thread_safe_id_name(env->stid));
 
 	g_assert_log(SIGSETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
 	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
+		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u in %s()",
 		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid), env->file, env->line);
+		stid, thread_safe_id_name(stid), env->file, env->line, env->routine);
+
+	/*
+	 * See whether routine where sigsetjmp() occurred has already returned.
+	 * We must still be deeper in the call stack at the time of longjmp(),
+	 * or the context is completely invalid.
+	 *
+	 * This is imperfect of couse, we could have grown the stack since we
+	 * returned and not be able to detect the situation where the context is
+	 * truly gone, but it will detect some blatant mistakes.
+	 */
+
+	g_assert_log(thread_stack_ptr_cmp(&stid, env->sp) > 0,
+		"%s(): context, taken at %s:%u in %s(), already gone when "
+		"siglongjmp(%d) is called at %s:%u in %s() within %s (SP was %p, now %p)",
+		G_STRFUNC, env->file, env->line, env->routine,
+		env->used.arg, file, line, routine,
+		thread_safe_id_name(env->stid), env->sp, &stid);
 
 #ifndef HAS_SIGSETJMP
 	if (env->mask_saved)
@@ -169,10 +219,11 @@ compat_siglongjmp(sigjmp_buf env, int val, const char *file, uint line)
 
 	signal_thread_handler_level_set(stid, env->sig_level);
 
-	env->magic = SETJMP_USED_MAGIC;
-	env->used.arg = val;
-	env->used.file = file;
-	env->used.line = line;
+	env->magic        = SETJMP_USED_MAGIC;
+	env->used.arg     = val;
+	env->used.file    = file;
+	env->used.line    = line;
+	env->used.routine = routine;
 
 	Siglongjmp(env->buf, val);		/* metaconfig symbol definition */
 }
