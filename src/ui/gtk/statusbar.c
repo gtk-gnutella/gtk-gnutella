@@ -49,6 +49,7 @@
 #include "lib/override.h"	/* Must be the last header included */
 
 static const statusbar_msgid_t zero_msgid;
+static bool statusbar_inited;
 
 /**
  * Timeout entry for statusbar messages.
@@ -113,7 +114,8 @@ statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
     if (format != NULL) {
         switch (type) {
         case SB_WARNING:
-            gdk_beep();
+			if (statusbar_inited)
+				gdk_beep();
 			/* FALL THRU */
         case SB_MESSAGE:
             str_vbprintf(ARYLEN(buf), format, args);
@@ -122,6 +124,18 @@ statusbar_gui_push_v(sb_types_t type, guint scid, guint timeout,
     } else {
         buf[0] = '\0';
     }
+
+	/*
+	 * We must guard against early messages sent to the statusbar before
+	 * the GUI is initialized.
+	 * 		--RAM, 2020-07-30
+	 */
+
+	if G_UNLIKELY(!statusbar_inited) {
+		if (buf[0] != '\0')
+			g_message("[statusbar] %s", buf);
+		return zero_msgid;
+	}
 
     id.scid = scid;
     id.msgid = gtk_statusbar_push(statusbar_get(), scid, buf);
@@ -330,11 +344,13 @@ statusbar_gui_init(void)
 	statusbar_gui_push(SB_MESSAGE, scid_bottom, 0, "%s", statbar_botstr);
 
 	main_gui_add_timer(statusbar_gui_clear_timeouts);
+	statusbar_inited = TRUE;
 }
 
 void
 statusbar_gui_shutdown(void)
 {
+	statusbar_inited = FALSE;
     statusbar_gui_free_timeout_list();
 	HFREE_NULL(statbar_botstr_new);
 	HFREE_NULL(statbar_botstr);
