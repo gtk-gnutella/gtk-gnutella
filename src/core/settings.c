@@ -417,6 +417,23 @@ settings_unique_usage(const char *path, const char *lockfile,
 }
 
 /**
+ * Log shell command that can be used to remove the lockfile if needed.
+ */
+static void
+settings_log_rm_lockfile(const char *lockfile)
+{
+	char *file;
+
+	g_assert(lockfile != NULL);
+	g_assert(config_dir != NULL);
+
+	file = make_pathname(config_dir, lockfile);
+	g_message("rm %s", file);
+
+	HFREE_NULL(file);
+}
+
+/**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
@@ -623,6 +640,9 @@ settings_unique_instance(bool is_supervisor)
 			_("Another gtk-gnutella supervisor is running as PID %lu") :
 			_("Another gtk-gnutella is running as PID %lu"),
 			(ulong) lpid);
+		g_message(_("If PID %lu is not a gtk-gnutella process, run:"),
+			(ulong) lpid);
+		settings_log_rm_lockfile(lock);
 		exit(EXIT_FAILURE);
 	}
 }
