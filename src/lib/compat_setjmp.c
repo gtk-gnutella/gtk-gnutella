@@ -50,6 +50,7 @@
 
 #include "compat_setjmp.h"
 
+#include "alloca.h"			/* For alloca_stack_direction() */
 #include "log.h"
 #include "signal.h"
 #include "thread.h"
@@ -149,17 +150,23 @@ longjmp_validate(const char *caller,
 	 * This is imperfect of couse, we could have grown the stack since we
 	 * returned and not be able to detect the situation where the context is
 	 * truly gone, but it will detect some blatant mistakes.
+	 *
+	 * We can't do this check when we are in a signal handler running on
+	 * an alternate signal stack, sorry.
 	 */
 
-	if G_UNLIKELY((thread_stack_ptr_cmp(sp, x->sp) > 0)) {
+	if G_UNLIKELY(
+		thread_stack_ptr_cmp(sp, x->sp) <= 0 &&
+		!thread_on_altstack()
+	) {
 		s_error(
 			"%s(): context, taken at %s:%u in %s(), already gone when "
 			"%slongjmp(%d) is called at %s:%u in %s() within %s "
-			"(SP was %p, now %p)",
+			"(SP was %p, now %p, stack growing %s)",
 			caller, x->file, x->line, x->routine,
 			SIGSETJMP_MAGIC == magic ? "sig" : "",
 			val, file, line, routine, thread_safe_id_name(x->stid),
-			x->sp, sp);
+			x->sp, sp, alloca_stack_direction() < 0 ? "down" : "up");
 	}
 }
 

@@ -83,6 +83,7 @@ void signal_unblock(int signo);
 void signal_abort(void);
 size_t signal_stack_allocate(void **base_ptr);
 bool signal_stack_free(void **base_ptr);
+bool signal_on_altstack(void);
 
 void signal_crashing(void);
 void signal_uncrashing(void);

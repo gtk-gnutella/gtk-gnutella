@@ -1061,6 +1061,26 @@ signal_stack_free(void **base_ptr)
 }
 
 /**
+ * Are we running on a signal alternate stack?
+ */
+bool
+signal_on_altstack(void)
+{
+#ifdef HAS_SIGALTSTACK
+	stack_t ss;
+
+	if (-1 == sigaltstack(NULL, &ss)) {
+		s_carp("%s(): cannot check alt stack status: %m", G_STRFUNC);
+		return FALSE;
+	} else {
+		return SS_ONSTACK == ss.ss_flags;
+	}
+#else
+	return FALSE;
+#endif
+}
+
+/**
  * Wrapper for signal delivery.
  */
 static void

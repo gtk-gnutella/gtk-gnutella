@@ -11296,6 +11296,18 @@ done:
 }
 
 /**
+ * Is current thread running on its alternate signal stack?
+ */
+bool
+thread_on_altstack(void)
+{
+	struct thread_element *te = thread_get_element();
+	thread_qid_t qid = thread_quasi_id_fast(&te);;
+
+	return qid >= te->low_sig_qid && qid <= te->high_sig_qid;
+}
+
+/**
  * Block thread until a signal is received or until we are explicitly unblocked.
  *
  * @note

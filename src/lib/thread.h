@@ -390,6 +390,7 @@ int thread_interrupt(uint id, process_fn_t cb, void *arg,
 
 void *thread_sp(void);
 int thread_stack_ptr_cmp(const void *a, const void *b);
+bool thread_on_altstack(void);
 
 void thread_cleanup_push_from(notify_fn_t cleanup, void *arg,
 	const char *routine, const char *file, unsigned line, const void *sp);
