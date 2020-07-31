@@ -125,29 +125,30 @@ enum setjmp_magic {
 	SETJMP_USED_MAGIC = 0x780be360
 };
 
-#define JMPBUF_COMMON_ATTRIBUTES \
-	sig_atomic_t sig_level;		/**< Internal signal handler level */ \
-	enum setjmp_magic magic;	/**< Magic number */ \
-	uint stid;					/**< Thread which saved the context */ \
-	uint line;					/**< Line number where state was taken */ \
-	const char *file;			/**< Name of file where state was taken */ \
-	const char *routine;		/**< Name of routine where state was taken */ \
-	void *sp;					/**< Stack pointer at time of capture */ \
-	struct {					/**< To help debug multiple context usage */ \
-		const char *routine;	/**< Name of routine where state was used */ \
-		const char *file;		/**< File name where state was used */ \
-		uint line;				/**< Line where state was used */ \
-		int arg;				/**< Argument passed to (sig)longjmp() */ \
+struct compat_jmpbuf_ctx {
+	sig_atomic_t sig_level;		/**< Internal signal handler level */
+	enum setjmp_magic magic;	/**< Magic number */
+	uint stid;					/**< Thread which saved the context */
+	uint line;					/**< Line number where state was taken */
+	const char *file;			/**< Name of file where state was taken */
+	const char *routine;		/**< Name of routine where state was taken */
+	void *sp;					/**< Stack pointer at time of capture */
+	struct {					/**< To help debug multiple context usage */
+		const char *routine;	/**< Name of routine where state was used */
+		const char *file;		/**< File name where state was used */
+		uint line;				/**< Line where state was used */
+		int arg;				/**< Argument passed to (sig)longjmp() */
 	} used;
+};
 
 typedef struct compat_jmpbuf {
 	native_jmp_buf buf;			/**< CPU state, must be at the start */
-	JMPBUF_COMMON_ATTRIBUTES
+	struct compat_jmpbuf_ctx x;	/**< Our internal common context */
 } jmp_buf[1];
 
 typedef struct compat_sigjmpbuf {
 	native_sigjmp_buf buf;		/**< CPU state, must be at the start */
-	JMPBUF_COMMON_ATTRIBUTES
+	struct compat_jmpbuf_ctx x;	/**< Our internal common context */
 #ifndef HAS_SIGSETJMP
 	bool mask_saved;			/**< Did we save the signal mask? */
 	sigset_t mask;				/**< Signal mask saved */
