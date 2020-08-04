@@ -70,7 +70,9 @@ typedef struct re_match {
  * Regular expression matching statistics.
  */
 typedef struct re_exec_stats {
-	size_t elapsed;			/**< Elapsed execution time, in us */
+	bool remi;				/**< Went through RE Matching Interpreter? */
+	bool engine;			/**< Went through a RE engine (C or MI) */
+	size_t elapsed;			/**< Elapsed execution time, in ns */
 	size_t stack_max;		/**< Execution stack threshold */
 	size_t stack_used;		/**< Actual maximum stack used */
 } re_exec_stats_t;
@@ -84,8 +86,8 @@ typedef struct re_exec_stats {
 #define RE_F_NEWLINE	(1U << 2)	/**< Match-any (.) now also matches \n */
 
 /* For debugging and testing */
-#define RE_F_NO_OPTIM	(1U << 29)	/** Disable optimizations */
-#define RE_F_NO_SIMPLE	(1U << 30)	/** Disable "simple regex" recognition */
+#define RE_F_NO_OPTIM	(1U << 29)	/**< Disable optimizations */
+#define RE_F_NO_SIMPLE	(1U << 30)	/**< Disable "simple regex" recognition */
 
 /**
  * Execution flags.
@@ -94,7 +96,25 @@ typedef struct re_exec_stats {
 #define RE_X_MULTI_LINE	(1U << 1)	/**< ^ and $ can match after / before \n */
 
 /* For debugging and testing */
-#define RE_X_NO_MUST	(1U << 30)	/** Disable "must" string processing */
+#define RE_X_NO_MUST	(1U << 29)	/**< Disable "must" string processing */
+#define RE_X_DEBUG		(1U << 30)	/**< Enable debug mode (for byte-code) */
+#define RE_X_USE_BC		(1U << 31)	/**< Force byte-code matching */
+
+/**
+ * Flags for `show'.
+ */
+#define RE_SHOW_DUMP	(1U << 0)	/**< Show the compiled dump */
+#define RE_SHOW_TREE	(1U << 1)	/**< Show the compiled tree */
+#define RE_SHOW_BC		(1U << 2)	/**< Show the compiled bytecode */
+#define RE_SHOW_FCMAP	(1U << 3)	/**< Show the First Char Map */
+#define RE_SHOW_CASE	(1U << 4)	/**< Show compilation case */
+#define RE_SHOW_DEBUG	(1U << 31)	/**< Emit bytecode with debug  */
+
+#define RE_SHOW_ALL	\
+	(RE_SHOW_DUMP | RE_SHOW_TREE | RE_SHOW_BC | RE_SHOW_FCMAP | RE_SHOW_CASE)
+
+#define RE_SHOW_DFLT \
+	(RE_SHOW_DUMP | RE_SHOW_TREE | RE_SHOW_FCMAP)
 
 /*
  * Public interface.
@@ -111,10 +131,14 @@ int re_execute_full(const re_regex_t *re, const char *string, size_t slen,
 	re_match_t *mvec, size_t mcnt, uint eflags);
 int re_execute_stats(const re_regex_t *re, const char *string, size_t slen,
 	re_match_t *mvec, size_t mcnt, uint eflags, re_exec_stats_t *stats);
+const char *re_execute_strerror(int error);
 
 char *re_dump_as_string(const re_regex_t *re);
 char *re_show_as_string(const re_regex_t *re);
+char *re_show_as_string_ext(const re_regex_t *re, uint flags);
 char *re_fcmap_dump_as_string(const re_regex_t *re);
+char *re_bytecode_as_string(const re_regex_t *re, bool debug);
+
 const char *re_pattern(const re_regex_t *re) G_PURE;
 bool re_is_simple(const re_regex_t *re) G_PURE;
 bool re_is_optimized(const re_regex_t *re) G_PURE;

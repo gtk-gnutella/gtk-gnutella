@@ -53,12 +53,17 @@
 
 #include "override.h"
 
-static bool colorize = FALSE;
+static bool colorize;
 static bool optimize = TRUE;
-static bool once_match = FALSE;
-static bool compare_optimized = FALSE;
-static bool show_patterns = FALSE;
-static bool time_match = FALSE;
+static bool byte_code;
+static bool debug_byte_code;
+static bool list_groups;
+static bool once_match;
+static bool compare;
+static bool switch_optimization;
+static bool switch_implementation;
+static bool show_patterns;
+static bool time_match;
 static long test_errors;
 static size_t timing_loops = 100;
 
@@ -66,18 +71,22 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-			"Usage: %s [-COSTcghinos] [-D n] [-E pattern] [-G n] [-M n]\n"
+			"Usage: %s [-BCLOSTXcdghinos] [-D n] [-E pattern] [-G n] [-M n]\n"
 			"       [-N loops] [-g pattern]\n"
+			"  -B : for use of byte-code interpreter for matching\n"
 			"  -C : check optimized versus non-optimized matching\n"
 			"  -D : execute only dump test #n\n"
 			"  -E : examine pattern: compile and show it\n"
 			"  -G : execute only group test #n\n"
+			"  -L : show all matching groups for pattern\n"
 			"  -M : execute only matching test #n\n"
 			"  -N : amount of timing loops for -T (default: %zu)\n"
 			"  -O : turn-off regex optimizations for matching and -E\n"
 			"  -S : show patterns, for debugging\n"
 			"  -T : time -g matches\n"
+			"  -X : exchange matching implementations during comparisons\n"
 			"  -c : colorize matching strings for -g\n"
+			"  -d : request debugging during bytecode execution\n"
 			"  -g : grep pattern from stdin\n"
 			"  -h : prints this help message\n"
 			"  -i : compile case-insensitively for -E\n"
@@ -163,9 +172,9 @@ compile_pattern(const char *pattern, uint flags, re_exec_stats_t *stats)
 	re_regex_t *re;
 	re_error_t error;
 
-	/* If compare_optimized is TRUE, caller will supply the flags */
+	/* If compare is TRUE, caller will supply the flags */
 
-	if (!compare_optimized)
+	if (!compare)
 		flags |= !optimize ? RE_F_NO_OPTIM : 0;
 
 	re = compile_stats(pattern, flags, &error, stats);
@@ -193,9 +202,9 @@ examine_pattern(const char *pattern, uint flags)
 	re_regex_t *re;
 	re_exec_stats_t stats, *statp = NULL;
 
-	/* Must supply flags when compare_optimized is TRUE */
+	/* Must supply flags when compare is TRUE */
 
-	if (compare_optimized)
+	if (compare)
 		flags |= !optimize ? RE_F_NO_OPTIM : 0;
 
 	 /* We abuse time_match to also measure compilation time */
@@ -206,15 +215,24 @@ examine_pattern(const char *pattern, uint flags)
 	re = compile_pattern(pattern, flags, statp);
 
 	if (re != NULL) {
+		char *dump;
+		uint sflags = RE_SHOW_ALL & ~RE_SHOW_BC;
+
+		if (byte_code)			sflags |= RE_SHOW_BC;
+		if (debug_byte_code)	sflags |= RE_SHOW_DEBUG;
+
 		if (statp != NULL) {
-			if (statp->elapsed >= 1000) {
+			if (statp->elapsed >= 9999999) {
 				fputs(str_smsg("Compile : %.2fms\n",
+						statp->elapsed / 1000000.0), stdout);
+			} else if (statp->elapsed >= 9999) {
+				fputs(str_smsg("Compile : %.2fus\n",
 						statp->elapsed / 1000.0), stdout);
 			} else {
-				fputs(str_smsg("Compile : %zuus\n", statp->elapsed), stdout);
+				fputs(str_smsg("Compile : %zuns\n", statp->elapsed), stdout);
 			}
 		}
-		char *dump = re_show_as_string(re);
+		dump = re_show_as_string_ext(re, sflags);
 		fputs(dump, stdout);
 		fflush(stdout);
 		HFREE_NULL(dump);
@@ -254,7 +272,7 @@ static re_regex_t *
 compile_stats(const char *s, uint32 cflags, re_error_t *error,
 	re_exec_stats_t *stats)
 {
-	tm_t start, end;
+	tm_nano_t start, end;
 	re_regex_t **re, *r;
 	size_t loops = MIN(timing_loops, 100000);	/* Allocating RAM, so... */
 	size_t i;
@@ -267,12 +285,12 @@ compile_stats(const char *s, uint32 cflags, re_error_t *error,
 	loops = MAX(loops, 1);
 
 	HALLOC_ARRAY(re, loops);
-	tm_now_exact(&start);
+	tm_precise_time(&start);
 
 	for (i = 0; i < loops; i++)
 		re[i] = re_compile(s, cflags, error);
 
-	tm_now_exact(&end);
+	tm_precise_time(&end);
 
 	for (i = 1; i < loops; i++)
 		re_free_null(&re[i]);
@@ -281,7 +299,7 @@ compile_stats(const char *s, uint32 cflags, re_error_t *error,
 	HFREE_NULL(re);
 
 	ZERO(stats);
-	stats->elapsed = (size_t) tm_elapsed_us(&end, &start) / loops;
+	stats->elapsed = (size_t) tm_precise_elapsed_ns(&end, &start) / loops;
 
 	return r;
 }
@@ -316,15 +334,23 @@ match_stats(
 /**
  * Append opening statistics sequence to string.
  *
- * @param s		string to which we append
- * @param re	compiled regex for which we dump stats
+ * @param s			string to which we append
+ * @param re		compiled regex for which we dump stats
+ * @param xstats	RE execution statistics
  */
 static void
-append_opening(str_t *s, const re_regex_t *re)
+append_opening(str_t *s, const re_regex_t *re, const re_exec_stats_t *xstats)
 {
 	const char *gray = color_escape("bright black", FALSE);
 
 	str_cat(s, gray);
+
+	if (!xstats->engine)
+		str_putc(s, 'D');
+	else if (xstats->remi)
+		str_putc(s, 'I');
+	else
+		str_putc(s, 'C');
 
 	if (re_is_optimized(re))
 		str_putc(s, 'o');
@@ -378,11 +404,13 @@ static struct max_stats {
  * @param re			the regular expression we timed
  * @param elapsed		average elapsed time in us
  * @param mstats		if non-NULL, updated with maximum values
+ * @param xstats		RE execution statistics
  * @param incremental	if TRUE, only print stuff inside brackets
  */
 static void
 print_cstats_internal(const re_regex_t *re,
-	size_t elapsed, struct max_cstats *mstats, bool incremental)
+	size_t elapsed, struct max_cstats *mstats,
+	const re_exec_stats_t *xstats, bool incremental)
 {
 	const char *gray = color_escape("bright black", FALSE);
 	const char *bgray = color_escape("bold; bright black", TRUE);
@@ -391,7 +419,7 @@ print_cstats_internal(const re_regex_t *re,
 	bool maximum = FALSE;
 
 	if (!incremental)
-		append_opening(st, re);
+		append_opening(st, re, xstats);
 
 	if (mstats != NULL) {
 		if (elapsed > mstats->elapsed) {
@@ -402,9 +430,11 @@ print_cstats_internal(const re_regex_t *re,
 	}
 
 	if (elapsed <= 9999)
-		str_catf(st, "%4zuus", elapsed);
+		str_catf(st, "%4zuns", elapsed);
+	else if (elapsed <= 9999999)
+		str_catf(st, "%4zuus", elapsed / 1000);
 	else
-		str_catf(st, "%4zums", elapsed / 1000);
+		str_catf(st, "%4zums", elapsed / 1000000);
 	if (maximum) {
 		str_cat(st, normal);
 		str_cat(st, gray);
@@ -426,12 +456,13 @@ print_cstats_internal(const re_regex_t *re,
  * @param re			the regular expression we timed
  * @param elapsed		average elapsed time in us
  * @param mstats		if non-NULL, updated with maximum values
+ * @param xstats		RE execution statistics
  */
 static void
 print_cstats(const re_regex_t *re,
-	size_t elapsed, struct max_cstats *mstats)
+	size_t elapsed, struct max_cstats *mstats, const re_exec_stats_t *xstats)
 {
-	print_cstats_internal(re, elapsed, mstats, FALSE);
+	print_cstats_internal(re, elapsed, mstats, xstats, FALSE);
 }
 
 /**
@@ -444,11 +475,13 @@ print_cstats(const re_regex_t *re,
  * @param elapsed		average elapsed time in us
  * @param stack			stack space reported used, in bytes
  * @param mstats		if non-NULL, updated with maximum values
+ * @param xstats		RE statistics of last execution
  * @param incremental	if TRUE, only print stuff inside brackets
  */
 static void
 print_stats_internal(const re_regex_t *re,
-	size_t elapsed, size_t stack, struct max_stats *mstats, bool incremental)
+	size_t elapsed, size_t stack, struct max_stats *mstats,
+	const re_exec_stats_t *xstats, bool incremental)
 {
 	const char *gray = color_escape("bright black", FALSE);
 	const char *bgray = color_escape("bold; bright black", TRUE);
@@ -457,7 +490,7 @@ print_stats_internal(const re_regex_t *re,
 	bool maximum = FALSE;
 
 	if (!incremental)
-		append_opening(st, re);
+		append_opening(st, re, xstats);
 
 	if (mstats != NULL) {
 		if (elapsed > mstats->elapsed) {
@@ -468,9 +501,11 @@ print_stats_internal(const re_regex_t *re,
 	}
 
 	if (elapsed <= 9999)
-		str_catf(st, "%4zuus", elapsed);
+		str_catf(st, "%4zuns", elapsed);
+	else if (elapsed <= 9999999)
+		str_catf(st, "%4zuus", elapsed / 1000);
 	else
-		str_catf(st, "%4zums", elapsed / 1000);
+		str_catf(st, "%4zums", elapsed / 1000000);
 	if (maximum) {
 		str_cat(st, normal);
 		str_cat(st, gray);
@@ -515,12 +550,14 @@ print_stats_internal(const re_regex_t *re,
  * @param elapsed		average elapsed time in us
  * @param stack			stack space reported used, in bytes
  * @param mstats		if non-NULL, updated with maximum values
+ * @param xstats		RE statistics of last execution
  */
 static void
 print_stats(const re_regex_t *re,
-	size_t elapsed, size_t stack, struct max_stats *mstats)
+	size_t elapsed, size_t stack, struct max_stats *mstats,
+	const re_exec_stats_t *xstats)
 {
-	print_stats_internal(re, elapsed, stack, mstats, FALSE);
+	print_stats_internal(re, elapsed, stack, mstats, xstats, FALSE);
 }
 
 /**
@@ -536,21 +573,23 @@ print_stats(const re_regex_t *re,
  * @param stack			stack space reported used, in bytes
  * @param cstats		if non-NULL, compile stats updated with maximum values
  * @param rstats		if non-NULL, running stats updated with maximum values
+ * @param xstats		RE-execution statistics
  */
 static void
 print_both_stats(const re_regex_t *re,
 	size_t compile, size_t elapsed, size_t stack,
 	struct max_cstats *cstats,
-	struct max_stats *rstats)
+	struct max_stats *rstats,
+	const re_exec_stats_t *xstats)
 {
 	str_t *st = str_new(0);
 
-	append_opening(st, re);
+	append_opening(st, re, xstats);
 	flush_string(st);
 
-	print_cstats_internal(re, compile, cstats, TRUE);
+	print_cstats_internal(re, compile, cstats, xstats, TRUE);
 	fputc(',', stdout);
-	print_stats_internal(re, elapsed, stack, rstats, TRUE);
+	print_stats_internal(re, elapsed, stack, rstats, xstats, TRUE);
 
 	append_closing(st);
 	flush_string(st);
@@ -642,8 +681,9 @@ print_match_header(size_t maxlen)
  * Print all matches on the line, along with matching statistics.
  */
 static void
-print_all_matches(const re_regex_t *re, const char *text, re_match_t *mvec,
-		size_t mcnt, re_exec_stats_t *stats)
+print_all_matches(const re_regex_t *re, uint eflags,
+	const char *text, re_match_t *mvec,
+	size_t mcnt, re_exec_stats_t *stats)
 {
 	const char *red  = color_escape("bold; red",  FALSE);
 	const char *blue = color_escape("bold; blue", FALSE);
@@ -655,10 +695,61 @@ print_all_matches(const re_regex_t *re, const char *text, re_match_t *mvec,
 	bool match = mcnt != 0 && mvec[0].re_start != (ssize_t) -1;
 	str_t *s = str_new_from(text);
 	struct max_stats *mstats = &max_stats[re_is_optimized(re)];
+	str_t *groups = str_new(0);
 
 	if (stats != NULL) {
 		max_stack = stats->stack_used;
 		elapsed = stats->elapsed;
+	}
+
+	if (list_groups && 0 != re_group_count(re)) {
+		size_t i;
+		size_t upper = MIN(1 + re_group_count(re), mcnt);
+
+		for (i = 1; i < upper; i++) {
+			str_t *g = NULL;
+
+			if (
+				(ssize_t) -1 == mvec[i].re_start ||
+				(ssize_t) -1 == mvec[i].re_end
+			) {
+				if (mvec[i].re_start != mvec[i].re_end) {
+					s_warning("%s(): weird offsets for group #%zu (%zd, %zd)",
+						G_STRFUNC, i, mvec[i].re_start, mvec[i].re_end);
+				}
+				continue;
+			} else if (mvec[i].re_start > mvec[i].re_end) {
+				s_warning("%s(): invalid offsets for group #%zu (%zd, %zd)",
+					G_STRFUNC, i, mvec[i].re_start, mvec[i].re_end);
+				continue;
+			}
+
+			if (!match)
+				continue;
+
+			/* Extract group match */
+
+			if (colorize) {
+				g = str_clone(s);
+				if (
+					!str_instr(g, mvec[i].re_start, color, colorlen) ||
+					!str_instr(g, mvec[i].re_end + colorlen, normal, normlen)
+				) {
+					s_warning(
+						"%s(): offsets for group #%zu are wrong (%zd, %zd)",
+						G_STRFUNC, i, mvec[i].re_start, mvec[i].re_end);
+					str_instr(g, -1, normal, normlen);	/* Before trailing \n */
+				}
+				str_catf(groups, "  $%zu: %s\n", i, str_2c(g));
+			} else {
+				size_t len = mvec[i].re_end - mvec[i].re_start;
+				g = str_substr(s, mvec[i].re_start, len);
+				str_catf(groups, "  $%zu: %s (%zu byte%s at offset %zu)\n",
+					i, str_2c(g), PLURAL(len), mvec[i].re_start);
+			}
+
+			str_destroy_null(&g);
+		}
 	}
 
 	if (colorize && match) {
@@ -688,15 +779,16 @@ print_all_matches(const re_regex_t *re, const char *text, re_match_t *mvec,
 				break;
 
 			ok = match_stats(re, str_2c_from(s, o), str_len(s) - o,
-					mvec, mcnt, RE_X_MULTI_LINE, stats);
+					mvec, mcnt, eflags | RE_X_MULTI_LINE, stats);
 
 			if (time_match) {
 				max_stack = MAX(max_stack, stats->stack_used);
 				elapsed = size_saturate_add(elapsed, stats->elapsed);
 			}
 
-			if (-1 == ok) {
-				s_warning("%s(): middle stack overflow", G_STRFUNC);
+			if (ok < 0) {
+				s_warning("%s(): middle error %d (%s)",
+					G_STRFUNC, ok, re_execute_strerror(ok));
 				break;
 			}
 
@@ -722,45 +814,61 @@ print_all_matches(const re_regex_t *re, const char *text, re_match_t *mvec,
 output:
 	if (match || time_match) {
 		if (time_match)
-			print_stats(re, elapsed, max_stack, mstats);
+			print_stats(re, elapsed, max_stack, mstats, stats);
 		fputs(str_2c(s), stdout);
 		if (str_at(s, -1) != '\n')
 			fputc('\n', stdout);
+		if (0 != str_len(groups))
+			fputs(str_2c(groups), stdout);
 		fflush(stdout);
 	}
 
 	str_destroy_null(&s);
+	str_destroy_null(&groups);
 }
 
 static void
 do_match(
-	const re_regex_t *re, str_t *t, re_match_t *mvec, size_t mcnt, uint eflags)
+	const re_regex_t *re, str_t *t, uint eflags)
 {
 	int match;
 	str_t *s = str_clone(t);
 	re_exec_stats_t stats, *statp = NULL;
+	re_match_t *mvec;
+	size_t mcnt;
+
+	mcnt = 1 + re_group_count(re);
+	HALLOC_ARRAY(mvec, mcnt);
 
 	if (time_match)
 		statp = &stats;
 
 	match = match_stats(re, str_2c(s), str_len(s), mvec, mcnt, eflags, statp);
 
-	if (-1 == match) {
-		s_warning("%s(): stack overflow", G_STRFUNC);
+	if (match < 0) {
+		s_warning("%s(): error=%d (%s)",
+			G_STRFUNC, match, re_execute_strerror(match));
 		str_chomp(s);
 		s_info("%s(): line was: %s", G_STRFUNC, str_2c(s));
 		s_info("%s(): pattern was: %s", G_STRFUNC, re_pattern(re));
 	} else {
-		print_all_matches(re, str_2c(t), mvec, mcnt, statp);
+		print_all_matches(re, eflags, str_2c(t), mvec, mcnt, statp);
 	}
 
 	str_destroy_null(&s);
+	HFREE_NULL(mvec);
 }
 
 static void
 show_pattern(const char *caller, const re_regex_t *re)
 {
-	char *rs = re_show_as_string(re);
+	char *rs;
+	uint flags = RE_SHOW_ALL & ~RE_SHOW_BC;
+
+	if (byte_code)			flags |= RE_SHOW_BC;
+	if (debug_byte_code)	flags |= RE_SHOW_DEBUG;
+
+	rs = re_show_as_string_ext(re, flags);
 
 	s_info("%s(): %soptimized:\n", caller, re_is_optimized(re) ? "" : "un");
 	fputs(rs, stderr);
@@ -776,8 +884,10 @@ log_max_cstats(bool i)
 	fputs(
 		str_smsg("- %2soptimized - max elapsed: %4zu%cs",
 			i ? "" : "un",
-			elapsed <= 9999 ? elapsed : elapsed / 1000,
-			elapsed <= 9999 ? 'u' : 'm'),
+			elapsed <= 9999 ? elapsed :
+			elapsed <= 9999999 ? elapsed / 1000 : elapsed / 1000000,
+			elapsed <= 9999 ? 'n' :
+			elapsed <= 9999999 ? 'u' : 'm'),
 		stdout
 	);
 	fputc('\n', stdout);
@@ -791,8 +901,10 @@ log_max_stats(bool i)
 	fputs(
 		str_smsg("- %2soptimized - max elapsed: %4zu%cs, stack: %5zuB",
 			i ? "" : "un",
-			elapsed <= 9999 ? elapsed : elapsed / 1000,
-			elapsed <= 9999 ? 'u' : 'm',
+			elapsed <= 9999 ? elapsed :
+			elapsed <= 9999999 ? elapsed / 1000 : elapsed / 1000000,
+			elapsed <= 9999 ? 'n' :
+			elapsed <= 9999999 ? 'u' : 'm',
 			max_stats[i].stack),
 		stdout
 	);
@@ -812,7 +924,7 @@ log_max_cstats_summary(int force)
 {
 	if (time_match) {
 		fputs("Compilation statistics:\n", stdout);
-		if (compare_optimized) {
+		if (compare) {
 			bool i;
 			for (i = TRUE; i >= FALSE; i--)
 				log_max_cstats(i);
@@ -830,7 +942,7 @@ log_max_stats_summary(void)
 {
 	if (time_match) {
 		fputs("Matching statistics:\n", stdout);
-		if (compare_optimized) {
+		if (compare) {
 			bool i;
 			for (i = TRUE; i >= FALSE; i--)
 				log_max_stats(i);
@@ -854,7 +966,7 @@ log_dump_test(const re_regex_t *re, size_t n, size_t maxlen,
 	struct max_cstats *max = &max_cstats[re_is_optimized(re)];
 
 	fputs(str_smsg("%3zu ", n), stdout);
-	print_cstats(re, stats->elapsed, max);
+	print_cstats(re, stats->elapsed, max, stats);
 	printf("%*s ", (int) maxlen, printable_char(re_pattern(re)));
 
 	switch (type) {
@@ -883,10 +995,19 @@ log_match_test(const re_regex_t *re, size_t n, size_t maxlen, const char *text,
 
 	fputs(str_smsg("%3zu ", n), stdout);
 	print_both_stats(re,
-		costats->elapsed, stats->elapsed, stats->stack_used, comax, mamax);
+		costats->elapsed, stats->elapsed, stats->stack_used, comax, mamax, stats);
 	printf("%*s ", (int) maxlen, printable_char(re_pattern(re)));
 	print_match(re, text, vec);
 	print_eol();
+}
+
+/**
+ * Invert bit specified by `mask' within `flags', in-place.
+ */
+static void
+invert_bit(uint *flags, uint mask)
+{
+	*flags ^= mask;
 }
 
 static void
@@ -894,12 +1015,24 @@ grep_pattern(const char *pattern, uint flags)
 {
 	re_regex_t *re, *re_plain = NULL;
 	str_t *s;
-	re_match_t mvec[1];
+	uint eflags = RE_X_MULTI_LINE;
+	uint eflags2;
 
-	if (compare_optimized) {
+	if (byte_code) {
+		eflags |= RE_X_USE_BC;
+		if (debug_byte_code) eflags |= RE_X_DEBUG;
+	}
+
+	eflags2 = eflags;
+
+	if (compare) {
 		re = compile_pattern(pattern, flags, NULL);
+
+		if (switch_optimization)   invert_bit(&flags,   RE_F_NO_OPTIM);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
+
 		if (NULL != re)
-			re_plain = compile_pattern(pattern, flags | RE_F_NO_OPTIM, NULL);
+			re_plain = compile_pattern(pattern, flags, NULL);
 	} else {
 		re = compile_pattern(pattern, flags, NULL);
 	}
@@ -917,13 +1050,14 @@ grep_pattern(const char *pattern, uint flags)
 
 	/*
 	 * Lines contain a trailing \n hence we need to match with RE_X_MULTI_LINE
-	 * so that we can match '$' before a \n.
+	 * so that we can match '$' before a \n.  That is why we forced that
+	 * flag above.
 	 */
 
 	while (string_fgets(s, stdin)) {
-		do_match(re, s, mvec, N_ITEMS(mvec), RE_X_MULTI_LINE);
-		if (compare_optimized)
-			do_match(re_plain, s, mvec, N_ITEMS(mvec), RE_X_MULTI_LINE);
+		do_match(re, s, eflags);
+		if (compare)
+			do_match(re_plain, s, eflags2);
 	}
 
 	re_free_null(&re);
@@ -1169,21 +1303,31 @@ test_dump_run(const struct dumptest *d, size_t n, bool show, size_t maxlen)
 		return;
 	}
 
+	if (show) {
+		s_info("%s(): test #%zu", G_STRFUNC, n);
+		show_pattern(G_STRFUNC, re);
+	}
+
 	dump = test_dump_string(d, re);
 
 	if (time_match)
 		log_dump_test(re, n, maxlen, statp, dump, d->type);
 
-	if (time_match && compare_optimized) {
+	if (time_match && compare) {
 		re_regex_t *re2;
 		char *dump2;
+		uint flags2 = flags;
 
-		if (flags & RE_F_NO_OPTIM)
-			flags &= ~RE_F_NO_OPTIM;
-		else
-			flags |= RE_F_NO_OPTIM;
+		/*
+		 * We always perform dump tests with optimized patterns, so
+		 * here we add the RE_F_NO_OPTIM to perform the comparison
+		 * for compilation timing stats if -C.
+		 */
 
-		re2 = compile_stats(d->pattern, flags, &error, statp);
+		if (switch_optimization)
+			invert_bit(&flags2, RE_F_NO_OPTIM);
+
+		re2 = compile_stats(d->pattern, flags2, &error, statp);
 		dump2 = test_dump_string(d, re2);
 		log_dump_test(re2, n, maxlen, statp, dump2, d->type);
 
@@ -1221,16 +1365,13 @@ test_dump_run(const struct dumptest *d, size_t n, bool show, size_t maxlen)
 
 			HFREE_NULL(dump2);
 			if (difference && show) {
-				char *s = re_show_as_string(re2);
+				char *s = re_show_as_string_ext(re2, RE_SHOW_TREE);
 				s_info("%s(): recompiled pattern dump:\n%s", G_STRFUNC, s);
 				HFREE_NULL(s);
 			}
 		}
 		re_free_null(&re2);
 	}
-
-	if (show)
-		show_pattern(G_STRFUNC, re);
 
 	re_free(re);
 	HFREE_NULL(dump);
@@ -1372,7 +1513,7 @@ test_dump(size_t n, bool show)
 		{ 1, "[^b]|B",					"[^]",							},
 		{ 0, "foobar|(?:footar|fooxar)","foo[btx]ar"					},
 		{ 0, "(?:fbar)+|(?:ftar|fxar)+","(?:fbar)+|(?:f[tx]ar)+"		},
-		{ 0, "[ab]2|[cd]3",				"a2|b2|c3|d3"					},
+		{ 0, "[ab]2|[cd]3|e4",				"a2|b2|c3|d3|e4"			},
 		/* 120 */
 		{ 0, "(?:dad|(?:a[^d]*|def)+)x","(?:dad|(?:a[^d]*|def)+)x"		},
 		{ 0, "ab|abc|ab",				"abc??",						},
@@ -1557,6 +1698,70 @@ substring(const char *text, ssize_t start, ssize_t end)
 	return h_strndup(text + start, end - start);
 }
 
+static const char *
+engine_string(uint eflags)
+{
+	if (eflags & RE_X_USE_BC)
+		return "MI";
+	else
+		return "C";
+}
+
+static void
+compare_matches(const char *caller, size_t n, const char *pattern,
+	int match, int match2,
+	uint flags, uint flags2,
+	uint eflags, uint eflags2,
+	const re_match_t *vec, const re_match_t *vec2, size_t veccnt)
+{
+	size_t i;
+
+	if (match < 0 && match2 >= 0) {
+		s_warning(
+			"%s(): %soptimized pattern #%zu \"%s\" [%s] did not cause error",
+			caller, (flags2 & RE_F_NO_OPTIM) ? "non-" : "",
+			n, pattern, engine_string(eflags2));
+		return;
+	}
+
+	if (match != match2) {
+		test_errors++;
+		s_warning(
+			"%s(): %soptimized pattern #%zu \"%s\" [%s] disagrees with "
+			"%soptimized one [%s]: first match=%d, second match=%d",
+			caller,
+			(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* first run */
+			n, pattern, engine_string(eflags),
+			(flags2 & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
+			engine_string(eflags2), match, match2);
+	}
+
+	for (i = 0; i < veccnt; i++) {
+		const char *which = NULL;
+
+		if (vec[i].re_start != vec2[i].re_start)
+			which = "start";
+
+		if (vec[i].re_end != vec2[i].re_end)
+			which = NULL == which ? "end" : "start & end";
+
+		if (which != NULL) {
+			test_errors++;
+			s_warning(
+				"%s(): pattern #%zu \"%s\" group %zu mismatching %s: "
+				"%soptimized [%s] is (%zd, %zd), %soptimized [%s] is (%zd, %zd)",
+				caller,
+				n, pattern, i, which,
+				(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* first run */
+				engine_string(eflags),
+				vec[i].re_start, vec[i].re_end,
+				(flags2 & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
+				engine_string(eflags2),
+				vec2[i].re_start, vec2[i].re_end);
+		}
+	}
+}
+
 struct matchtest {
 	bool match;
 	bool icase;
@@ -1573,9 +1778,14 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 	re_error_t error;
 	int match;
 	re_match_t vec[10];
-	bool overflow = FALSE;
 	re_exec_stats_t stats, *statp = NULL;
 	re_exec_stats_t costats, *costatp = NULL;
+	uint eflags = RE_X_NO_MUST;
+
+	if (byte_code) {
+		eflags |= RE_X_USE_BC;
+		if (debug_byte_code) eflags |= RE_X_DEBUG;
+	}
 
 	if (time_match) {
 		statp = &stats;
@@ -1594,13 +1804,17 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 		return;
 	}
 
+	if (show) {
+		s_info("%s(): test #%zu", G_STRFUNC, n);
+		show_pattern(G_STRFUNC, re);
+	}
+
 	match = match_stats(re, m->text, (size_t) -1,
-				vec, N_ITEMS(vec), RE_X_NO_MUST, statp);
+				vec, N_ITEMS(vec), eflags, statp);
 
 	if (match < 0) {
-		s_warning("%s(): pattern #%zu \"%s\" caused a stack overflow",
-			G_STRFUNC, n, m->pattern);
-		overflow = TRUE;
+		s_warning("%s(): pattern #%zu \"%s\" caused error %d (%s) on \"%s\"",
+			G_STRFUNC, n, m->pattern, match, re_execute_strerror(match), m->text);
 	}
 	else if (match != m->match) {
 		s_warning("%s(): pattern #%zu \"%s\" expected to %s on \"%s\" but %s",
@@ -1654,76 +1868,33 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 		}
 	}
 
-	if (show)
-		show_pattern(G_STRFUNC, re);
-
 	if (time_match)
 		log_match_test(re, n, maxlen, m->text, vec, costatp, statp);
 
-	if (compare_optimized) {
+	if (compare) {
 		re_match_t vec2[N_ITEMS(vec)];
 		int match2;
+		uint flags2 = flags;
+		uint eflags2 = eflags;
 
-		if (flags & RE_F_NO_OPTIM)
-			flags &= ~RE_F_NO_OPTIM;
-		else
-			flags |= RE_F_NO_OPTIM;
+		if (switch_optimization)   invert_bit(&flags2,  RE_F_NO_OPTIM);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
 
 		re_free(re);
-		re = compile_stats(m->pattern, flags, &error, costatp);
+		re = compile_stats(m->pattern, flags2, &error, costatp);
 		g_assert(re != NULL);		/* Worked above, must work here */
 
 		match2 = match_stats(re, m->text, (size_t) -1,
-					vec2, N_ITEMS(vec2), RE_X_NO_MUST, statp);
+					vec2, N_ITEMS(vec2), eflags2, statp);
 
-		if (!overflow) {
-			size_t i;
-			if (match != match2) {
-				test_errors++;
-				s_warning(
-					"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-					"%soptimized one: first match=%d, second match=%d",
-					G_STRFUNC,
-					(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-					n, m->pattern,
-					(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-					match, match2);
-			}
-			for (i = 0; i < N_ITEMS(vec2); i++) {
-				if (vec[i].re_start != vec2[i].re_start) {
-					test_errors++;
-					s_warning(
-						"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-						"%soptimized match start for group #%zu: "
-						"first=%zu, second=%zu",
-						G_STRFUNC,
-						(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-						n, m->pattern,
-						(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-						i, vec[i].re_start, vec2[i].re_start);
-				}
-				if (vec[i].re_end != vec2[i].re_end) {
-					test_errors++;
-					s_warning(
-						"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-						"%soptimized match end for group #%zu: "
-						"first=%zu, second=%zu",
-						G_STRFUNC,
-						(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-						n, m->pattern,
-						(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-						i, vec[i].re_end, vec2[i].re_end);
-				}
-			}
-		} else if (match2 >= 0) {
-			s_warning(
-				"%s(): %soptimized pattern #%zu \"%s\" did not cause overflow",
-				G_STRFUNC, (flags & RE_F_NO_OPTIM) ? "non-" : "",
-				n, m->pattern);
-		}
+		compare_matches(G_STRFUNC, n, m->pattern,
+			match, match2,
+			flags, flags2,
+			eflags, eflags2,
+			vec, vec2, N_ITEMS(vec2));
 
 		if (time_match)
-			log_match_test(re, n, maxlen, m->text, vec, costatp, statp);
+			log_match_test(re, n, maxlen, m->text, vec2, costatp, statp);
 	}
 
 	re_free(re);
@@ -1973,11 +2144,49 @@ test_match(size_t n, bool show, uint flags)
 		/* 210 */
 		{ n, X, X, "(?:\\da{0,3}?){5,6}",		"1aa234aaaa5aa",		},
 		{ y, 0, 5, "(?:\\da{0,3}?){3,}",		"1aa23aaaa4",			},
+		{ n, X, X, "(?:\\da{0,3}?){4,}",		"1aa23aaaa4",			},
 		{ y, 0, 9, "(?:\\da{0,3}?){4,}",		"1aa23aaa4",			},
 		{ y, 0, 8, "(?:a.*b){2,3}?",			"avcdbaxb",				},
 		{ y, 0, 7, "(?:a.*b?){1,2}?x",			"avcdbaxb",				},
 		{ y, 1, 1, "aa*?",						"baab",					},
 		{ y, 1, 1, "a+?",						"baab",					},
+		{ y, 8, 5, "(?:(?:a|[^b]?)++b){1,2}?x",	"ababababababx",		},
+		{ y, 0, 0, "(?:(?:a.){1,3}+)*",			"baaaaaaaaaaaab",		},
+		/* 220 */
+		{ y, 1,12, "(?:(?:a.){1,3}+)+",			"baaaaaaaaaaaab",		},
+		{ y, 1,12, "(?=a)(?:(?:a.){1,3}+)*",	"baaaaaaaaaaaab",		},
+		{ y, 1,10, "(?:a.){1,5}",				"baaaaaaaaaaaab",		},
+		{ y, 0, 8, "(?:a.){3,4}",				"axaaafagadd",			},
+		{ y, 0,10, "(?:a.){3,}",				"axaaafagadd",			},
+		{ n, X, X, "(?:a.){3,}x",				"axaaafagadd",			},
+		{ n, X, X, "(?=a+)ab(?=(?=y))",			"xaabx",				},
+		{ y, 2, 2, "(?=a+)ab(?=(?=y))",			"xaaby",				},
+		{ y, 4, 2, "(?=a+)ab(?=(?=yx))",		"xabyabyx",				},
+		{ n, X, X, ".?+win",					"win",					},
+		/* 230 */
+		{ y, 0, 3, "(([a-b]+c?)){2,4}",			"abccabcabcx",			},
+		{ y, 4, 6, "(([a-b]++c?)){2,4}",		"abccabcabcx",			},
+		{ y, 4, 7, "(?:abc|cde){2,4}s",			"abetabccdesabcscde",	},
+		{ y, 4,10, "(?:abc|cde){2,4}s",			"abetabccdeabcscde",	},
+		{ y, 4,13, "(?:abc|cde){2,4}s",			"abetabccdeabccdes",	},
+		{ y, 7,13, "(?:abc|cde){2,4}s",			"abetabccdeabccdeabcs",	},
+		{ y, 4,16, "(?:abc|cde)+s",				"abetabccdeabccdeabcs",	},
+		{ y, 0,12, "^(a.*|def){3}g$",			"axxdefaxdefg",			},
+		{ y, 0,12, "^(a.*|def){4}g$",			"axxdefaxdefg",			},
+		{ n, X, X, "^(a.*|def){5}g$",			"axxdefaxdefg",			},
+		/* 240 */
+		{ y, 0,14, "(a(?:xx|z\\d|def){1,2}){4}g",	"axxadefaz1az2g",	},
+		{ y, 0,15, "^(a(xx|z\\d|def){1,2}){4}g","axxadefaz1adefg",		},
+		{ y, 0,16, "((.b){2,3}b?){3}",			"abcbbbbbdbebabcb",		},
+		{ y, 0,14, "(?:(?:ab|cd)[ce]?){3,}g",	"abccdecdabcdcg",		},
+		{ n, X, X, "(?:(?:ab|cd)[ce]?){3,}+g",	"abccdecdabcdcg",		},
+		{ y, 0,15, "(?:(?:ab|cd)[ce]?){3,}+g",	"abccdecdcababcg",		},
+		{ y,10, 5, "(?:[ac]|ed)*?b",			"aaaaaaaaaxaaaabb",		},
+		{ y,13, 2, "(?:[ac]|ed)?b",				"aaaaaaaaaxaaaabb",		},
+		{ y,11, 4, "(?:[ac]|ed){0,3}b",			"aaaaaaaaaxaaaabb",		},
+		{ y,11, 4, "(?:[ac]|ed){0,3}?b",		"aaaaaaaaaxaaaabb",		},
+		{ y,11, 4, "(?:[ac]|ed){0,3}+b",		"aaaaaaaaaxaaaabb",		},
+		{ y,12, 3, "(?:[ac]|ed){0,2}b",			"aaaaaaaaaxaaaabb",		},
 	};
 #undef n
 #undef y
@@ -2063,12 +2272,17 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 {
 	re_regex_t *re;
 	re_error_t error;
-	int flags = 0;
+	uint flags = 0;
 	int match;
 	re_match_t vec[3];
-	bool overflow = FALSE;
 	re_exec_stats_t stats, *statp = NULL;
 	re_exec_stats_t costats, *costatp = NULL;
+	uint eflags = 0;
+
+	if (byte_code) {
+		eflags |= RE_X_USE_BC;
+		if (debug_byte_code) eflags |= RE_X_DEBUG;
+	}
 
 	if (time_match) {
 		statp = &stats;
@@ -2092,12 +2306,17 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 		return;
 	}
 
-	match = match_stats(re, g->text, (size_t) -1, vec, N_ITEMS(vec), 0, statp);
+	if (show) {
+		s_info("%s(): test #%zu", G_STRFUNC, n);
+		show_pattern(G_STRFUNC, re);
+	}
+
+	match = match_stats(re, g->text, (size_t) -1,
+				vec, N_ITEMS(vec), eflags, statp);
 
 	if (match < 0) {
-		s_warning("%s(): pattern #%zu \"%s\" caused a stack overflow",
-			G_STRFUNC, n, g->pattern);
-		overflow = TRUE;
+		s_warning("%s(): pattern #%zu \"%s\" caused error %d (%s)",
+			G_STRFUNC, n, g->pattern, match, re_execute_strerror(match));
 	}
 	else if (!match) {
 		s_warning("%s(): pattern #%zu \"%s\" expected to match on \"%s\"",
@@ -2133,76 +2352,33 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 		}
 	}
 
-	if (show)
-		show_pattern(G_STRFUNC, re);
-
 	if (time_match)
 		log_match_test(re, n, maxlen, g->text, vec, costatp, statp);
 
-	if (compare_optimized) {
+	if (compare) {
 		re_match_t vec2[N_ITEMS(vec)];
 		int match2;
+		uint flags2 = flags;
+		uint eflags2 = eflags;
 
-		if (flags & RE_F_NO_OPTIM)
-			flags &= ~RE_F_NO_OPTIM;
-		else
-			flags |= RE_F_NO_OPTIM;
+		if (switch_optimization)   invert_bit(&flags2,  RE_F_NO_OPTIM);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
 
 		re_free(re);
-		re = compile_stats(g->pattern, flags, &error, costatp);
+		re = compile_stats(g->pattern, flags2, &error, costatp);
 		g_assert(re != NULL);		/* Worked above, must work here */
 
 		match2 = match_stats(re, g->text, (size_t) -1,
-					vec2, N_ITEMS(vec2), 0, statp);
+					vec2, N_ITEMS(vec2), eflags2, statp);
 
-		if (!overflow) {
-			size_t i;
-			if (match != match2) {
-				test_errors++;
-				s_warning(
-					"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-					"%soptimized one: first match=%d, second match=%d",
-					G_STRFUNC,
-					(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-					n, g->pattern,
-					(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-					match, match2);
-			}
-			for (i = 0; i < N_ITEMS(vec2); i++) {
-				if (vec[i].re_start != vec2[i].re_start) {
-					test_errors++;
-					s_warning(
-						"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-						"%soptimized match start for group %zu: "
-						"first=%zu, second=%zu",
-						G_STRFUNC,
-						(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-						n, g->pattern,
-						(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-						i, vec[i].re_start, vec2[i].re_start);
-				}
-				if (vec[i].re_end != vec2[i].re_end) {
-					test_errors++;
-					s_warning(
-						"%s(): %soptimized pattern #%zu \"%s\" disagrees with "
-						"%soptimized match end for group %zu: "
-						"first=%zu, second=%zu",
-						G_STRFUNC,
-						(flags & RE_F_NO_OPTIM) ? "" : "non-",	/* first run */
-						n, g->pattern,
-						(flags & RE_F_NO_OPTIM) ? "non-" : "",	/* this run */
-						i, vec[i].re_end, vec2[i].re_end);
-				}
-			}
-		} else if (match2 >= 0) {
-			s_warning(
-				"%s(): %soptimized pattern #%zu \"%s\" did not cause overflow",
-				G_STRFUNC, (flags & RE_F_NO_OPTIM) ? "non-" : "",
-				n, g->pattern);
-		}
+		compare_matches(G_STRFUNC, n, g->pattern,
+			match, match2,
+			flags, flags2,
+			eflags, eflags2,
+			vec, vec2, N_ITEMS(vec2));
 
 		if (time_match)
-			log_match_test(re, n, maxlen, g->text, vec, costatp, statp);
+			log_match_test(re, n, maxlen, g->text, vec2, costatp, statp);
 	}
 
 	re_free(re);
@@ -2304,7 +2480,7 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	int c;
-	const char options[] = "CD:E:G:M:N:OSTcg:hinos";
+	const char options[] = "BCD:E:G:LM:N:OSTXcdg:hinos";
 	size_t dump_n = (size_t) -1;
 	size_t match_n = (size_t) -1;
 	size_t group_n = (size_t) -1;
@@ -2315,8 +2491,12 @@ main(int argc, char **argv)
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
+		case 'B':			/* Use byte-code interpreter */
+			byte_code = TRUE;
+			break;
 		case 'C':			/* Compare optimized versus non-optimized */
-			compare_optimized = TRUE;
+			compare = TRUE;
+			switch_optimization = TRUE;
 			break;
 		case 'D':			/* Dump only specified pattern */
 			dump_n = get_number(optarg, c);
@@ -2327,6 +2507,9 @@ main(int argc, char **argv)
 		case 'G':			/* Test goup only for specified pattern */
 			group_n = get_number(optarg, c);
 			break;
+		case 'L':			/* List all matching groups for pattern */
+			list_groups = TRUE;
+			break;
 		case 'M':			/* Match only specified pattern */
 			match_n = get_number(optarg, c);
 			break;
@@ -2335,6 +2518,7 @@ main(int argc, char **argv)
 			break;
 		case 'O':			/* Turn off optimization for matching and -E */
 			optimize = FALSE;
+			flags |= RE_F_NO_OPTIM;
 			break;
 		case 'S':			/* show patterns */
 			show_patterns = TRUE;
@@ -2342,8 +2526,15 @@ main(int argc, char **argv)
 		case 'T':			/* time matches */
 			time_match = TRUE;
 			break;
+		case 'X':			/* Exchange implementations during comparisons */
+			compare = TRUE;
+			switch_implementation = TRUE;
+			break;
 		case 'c':			/* colorize matching strings for -g */
 			colorize = TRUE;
+			break;
+		case 'd':			/* request debugging byte-code execution */
+			debug_byte_code = TRUE;
 			break;
 		case 'g':			/* grep mode */
 			grep = h_strdup(optarg);
@@ -2363,6 +2554,7 @@ main(int argc, char **argv)
 		case 'h':			/* show help */
 			/* FALL THROUGH */
 		default:
+			fprintf(stderr, "%s: unknown option -%c\n", getprogname(), c);
 			usage();
 			break;
 		}
@@ -2415,6 +2607,7 @@ done:
 	evq_close();
 	zclose();
 #endif	/* TRACK_ZALLOC */
+	malloc_close();
 
 	return test_errors != 0;	/* Success if 0 == test_errors */
 }
