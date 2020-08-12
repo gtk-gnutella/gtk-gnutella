@@ -75,6 +75,14 @@
 #define RWLOCK_READSPOT_DEBUG	/* Tracks first read lock point per thread */
 #endif
 
+/**
+ * Set RWLOCK_WRITER_DEBUG to track write-owner origin (filename and line)
+ * so that we can more easily spot which place took the write lock.
+ */
+#if 0
+#define RWLOCK_WRITER_DEBUG		/* Tracks write lock point */
+#endif
+
 #ifdef RWLOCK_READER_DEBUG
 #include "bit_array.h"
 #endif
@@ -112,6 +120,10 @@ typedef struct rwlock {
 #ifdef RWLOCK_READSPOT_DEBUG
 	struct { const char *file; unsigned line; } readspot[THREAD_MAX];
 #endif
+#ifdef RWLOCK_WRITER_DEBUG
+	const char *file;		/* Filename where write lock was acquired */
+	uint line;				/* Line number where write lock was acquired */
+#endif
 } rwlock_t;
 
 #ifdef RWLOCK_READER_DEBUG
@@ -126,6 +138,11 @@ typedef struct rwlock {
 #define RWLOCK_READSPOT_INIT
 #endif
 
+#ifdef RWLOCK_WRITER_DEBUG
+#define RWLOCK_WRITER_INIT	, NULL, 0
+#else
+#define RWLOCK_WRITER_INIT
+#endif
 
 /**
  * Static initialization value for a rwlock structure.
@@ -134,6 +151,7 @@ typedef struct rwlock {
 	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL	\
 		RWLOCK_READING_INIT		\
 		RWLOCK_READSPOT_INIT	\
+		RWLOCK_WRITER_INIT	\
 	}
 
 /*
