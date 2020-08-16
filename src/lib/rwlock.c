@@ -143,10 +143,12 @@ rwlock_writer_record(rwlock_t *rw, const char *file, unsigned line)
 	 * case of bugs, avoid race conditions whilst updating these fields.
 	 */
 
-	RWLOCK_LOCK(rw);
-	rw->file = file;
-	rw->line = line;
-	RWLOCK_UNLOCK(rw);
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = file;
+		rw->line = line;
+		RWLOCK_UNLOCK(rw);
+	}
 }
 
 /**
@@ -162,10 +164,12 @@ rwlock_writer_clear(rwlock_t *rw)
 	 * case of bugs, avoid race conditions whilst updating these fields.
 	 */
 
-	RWLOCK_LOCK(rw);
-	rw->file = NULL;
-	rw->line = 0;
-	RWLOCK_UNLOCK(rw);
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = NULL;
+		rw->line = 0;
+		RWLOCK_UNLOCK(rw);
+	}
 }
 #else	/* !RWLOCK_WRITER_DEBUG */
 #define rwlock_writer_record(rw,f,l)
@@ -616,6 +620,15 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 		rw->readers, rw->writers,
 		rw->waiters - rw->write_waiters, rw->write_waiters,
 		file, line);
+
+#ifdef RWLOCK_WRITER_DEBUG
+	if (rw->file != NULL) {
+		s_rawinfo("rwlock (%c) %p %s %s:%u",
+			reading ? 'R' : 'W', rw,
+			rw->writers != 0 ? "owned by " : "traced to",
+			rw->file, rw->line);
+	}
+#endif
 
 	atomic_mb();
 	rwlock_check(rw);
