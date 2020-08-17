@@ -65,3 +65,4 @@ typedef uint8 bit_field_t;
 #define BIT_FIELD_WORD(base, i)	base[(i) >> BIT_FIELD_BITSHIFT]
 #define BIT_FIELD_BIT(i)		(1UL << ((i) & BIT_FIELD_BITMASK))
 
+;# vi: set ts=4 sw=4 syn=c cindent:

@@ -281,4 +281,4 @@ bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 	return (size_t) -1;
 }
 
-/* vi: set ts=4 sw=4 cindent: */
+/* vi: set ts=4 sw=4 syn=c cindent: */

@@ -72,3 +72,4 @@ typedef unsigned long bit_array_t;
 #define BIT_ARRAY_WORD(base, i)	base[(i) >> BIT_ARRAY_BITSHIFT]
 #define BIT_ARRAY_BIT(i)		(1UL << ((i) & BIT_ARRAY_BITMASK))
 
+;# vi: set ts=4 sw=4 syn=c cindent:
