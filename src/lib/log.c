@@ -1426,6 +1426,16 @@ s_logv(logthread_t *lt, GLogLevelFlags level, const char *format, va_list args)
 		msglen = LOG_MSG_REGULAR_LEN;
 	}
 
+	/*
+	 * During early initializations, signal_chunk() can return NULL.
+	 * Hence if we are crashing very early, we must take care of that.
+	 */
+
+	if G_UNLIKELY(NULL == ck) {
+		s_rawlogv(level, TRUE, FALSE, format, args);	/* Lower size limit */
+		goto log_done;
+	}
+
 	saved = ck_save(ck);
 	msg = str_new_in_chunk(ck, msglen);
 
@@ -1472,7 +1482,8 @@ log_done:
 	 * message logged.
 	 */
 
-	ck_restore(ck, saved);
+	if (ck != NULL)
+		ck_restore(ck, saved);
 
 	if (G_LIKELY(NULL == lt)) {
 		logging[stid] = FALSE;

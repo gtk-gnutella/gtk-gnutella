@@ -226,6 +226,7 @@ static volatile sig_atomic_t sig_pc_regnum = SIG_PC_UNKNOWN;
 static sig_atomic_t in_signal_handler[THREAD_MAX];
 static bool in_safe_handler[THREAD_MAX];
 static once_flag_t signal_inited;
+static once_flag_t signal_chunk_inited;
 static bool signal_catch_segv;
 
 static void signal_uncaught(int signo);
@@ -1873,6 +1874,21 @@ signal_abort(void)
 }
 
 /**
+ * Once initialization done when it is safe.
+ */
+static void G_COLD
+signal_init_chunk_once(void)
+{
+	/*
+	 * Chunk allocated as non-leaking because the signal chunk must
+	 * remain active up to the very end, way past the point where we're
+	 * supposed to have freed everything and leak detection kicks in.
+	 */
+
+	sig_chunk = ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+}
+
+/**
  * Initialize the signal layer.
  */
 static void G_COLD
@@ -1884,14 +1900,6 @@ signal_init_once(void)
 	for (i = 0; i < N_ITEMS(signal_handler); i++) {
 		signal_handler[i] = SIG_DFL;	/* Can't assume it's NULL */
 	}
-
-	/*
-	 * Chunk allocated as non-leaking because the signal chunk must
-	 * remain active up to the very end, way past the point where we're
-	 * supposed to have freed everything and leak detection kicks in.
-	 */
-
-	sig_chunk = ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
 
 	/*
 	 * Compute the PC register index in the saved user machine context.
@@ -1923,6 +1931,8 @@ void
 signal_init(void)
 {
 	once_flag_run(&signal_inited, signal_init_once);
+	if (thread_main_has_started())
+		once_flag_run(&signal_chunk_inited, signal_init_chunk_once);
 }
 
 /**
