@@ -970,8 +970,10 @@ real_check_missed_free(void *p)
 			s_rawwarn("current frame:");
 			stacktrace_where_print(stderr);
 #ifdef MALLOC_FRAMES
-			s_rawwarn("allocation frame:");
-			stacktrace_atom_print(stderr, rb->alloc->ast);
+			if (rb->alloc != NULL) {
+				s_rawwarn("allocation frame:");
+				stacktrace_atom_print(stderr, rb->alloc->ast);
+			}
 #endif
 		}
 		hash_table_remove(reals, p);
@@ -1016,16 +1018,29 @@ malloc_bookkeeping(void *o, size_t size, bool is_real)
 		rb->atime = tm_time();
 #endif
 #ifdef MALLOC_FRAMES
-		{
+		/*
+		 * Unfortunately, when called very early (before main() has
+		 * started), we are not in a condition to capture frames.
+		 * That would require too much early initializations, and
+		 * it ends-up being recursive today due to the complex
+		 * inter-mixing of layers we have built over time.  It would
+		 * require a complete rethink to be able to fix that.
+		 * For now, just avoid capturing the frame by setting rb->alloc
+		 * to NULL if we come here too early.
+		 * 		--RAM, 2020-08-18
+		 */
+		if (thread_main_has_started()) {
 			struct stacktrace t;
 			struct frame *fr;
 
 			stacktrace_get(&t);	/* Want to see real_malloc() in stack */
 			fr = get_frame_atom(&gst.alloc_frames, &t);
-			ATOMIC_ADD(fr->count, size);
-			ATOMIC_ADD(fr->total_count, size);
-			ATOMIC_INC(fr->blocks);
+			AU64_ADD(&fr->count, size);
+			AU64_ADD(&fr->total_count, size);
+			AU64_INC(&fr->blocks);
 			rb->alloc = fr;
+		} else {
+			rb->alloc = NULL;
 		}
 #endif	/* MALLOC_FRAMES */
 	}
@@ -1579,9 +1594,13 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 	leak_add(leaksort, rb->size, "FAKED", 0);
 
 #ifdef MALLOC_FRAMES
-	s_message("block %p (out of %u) allocated from:",
-		p, (unsigned) rb->alloc->blocks);
-	stacktrace_atom_print(stderr, rb->alloc->ast);
+	if (rb->alloc != NULL) {
+		s_message("block %p (out of %u) allocated from:",
+			p, (unsigned) rb->alloc->blocks);
+		stacktrace_atom_print(stderr, rb->alloc->ast);
+	} else {
+		s_message("block %p (out of %u) allocated early (no frame)", p);
+	}
 #endif	/* MALLOC_FRAMES */
 }
 #endif	/* MALLOC_LEAK_ALL */
