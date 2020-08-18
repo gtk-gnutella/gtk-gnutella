@@ -312,12 +312,14 @@ pattern_prefix_period(cpattern_t *cp)
 
 	if (cp->d8bits) {
 		uint8 *up = cp->uperiod;
-		up[0] = 0;		/* Trivial, zero letters */
-		up[1] = 1;		/* Trivial, one letter */
+		up[0] = 0;			/* Trivial, zero letters */
+		if (cp->len != 0)
+			up[1] = 1;		/* Trivial, one letter */
 	} else {
 		size_t *up = cp->uperiod;
 		up[0] = 0;		/* Trivial, zero letters */
-		up[1] = 1;		/* Trivial, one letter */
+		if (cp->len != 0)
+			up[1] = 1;		/* Trivial, one letter */
 	}
 
 	while (j < cp->len) {
