@@ -630,7 +630,16 @@ hdestroy(void)
 	/* EMPTY */
 }
 
-#ifdef REMAP_ZALLOC
+/**
+ * Is halloc() possible given current walloc() limits?
+ */
+bool
+halloc_is_possible(void)
+{
+	return TRUE;
+}
+
+#if defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
 void *
 halloc(size_t size)
 {
@@ -666,7 +675,13 @@ halloc_is_disabled(void)
 {
 	return TRUE;
 }
-#endif	/* REMAP_ZALLOC */
+
+bool
+halloc_is_possible(void)
+{
+	return FALSE;
+}
+#endif	/* REMAP_ZALLOC && !TRACK_MALLOC */
 
 #endif	/* !REMAP_ZALLOC && !TRACK_MALLOC */
 
@@ -750,6 +765,10 @@ halloc_init_vtable(void)
 }
 #endif	/* USE_HALLOC */
 
+#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
+static bool replacing_malloc;
+static bool halloc_is_compiled = TRUE;
+
 /**
  * Is halloc() possible given current walloc() limits?
  */
@@ -758,10 +777,6 @@ halloc_is_possible(void)
 {
 	return walloc_maxsize() > sizeof(union halign);
 }
-
-#if !defined(REMAP_ZALLOC) && !defined(TRACK_MALLOC)
-static bool replacing_malloc;
-static bool halloc_is_compiled = TRUE;
 
 static void
 halloc_init_once(void)

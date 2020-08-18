@@ -61,6 +61,7 @@
 
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
+#include "atomic.h"
 #include "hashlist.h"
 
 #undef strdup			/**< Defined in <bits/string2.h> */
@@ -385,9 +386,9 @@ struct stackatom;
  */
 struct frame {
 	const struct stackatom *ast;	/**< Atomic stack frame */
-	size_t blocks;				/**< Blocks allocated from this stack frame */
-	size_t count;				/**< Bytes allocated/freed since reset */
-	size_t total_count;			/**< Grand total for this stack frame */
+	AU64(blocks);				/**< Blocks allocated from this stack frame */
+	AU64(count);				/**< Bytes allocated/freed since reset */
+	AU64(total_count);			/**< Grand total for this stack frame */
 };
 
 struct frame *get_frame_atom(hash_table_t **hptr, const struct stacktrace *st);

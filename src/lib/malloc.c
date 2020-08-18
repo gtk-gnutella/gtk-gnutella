@@ -432,7 +432,7 @@ get_frame_atom(hash_table_t **hptr, const struct stacktrace *st)
 #endif	/* MALLOC_FRAMES */
 
 /**
- * @struct stats
+ * @struct malloc_stats
  *
  * When MALLOC_STATS is supplied, we keep information about the amount
  * of bytes allocated from a single point in the code, and the amount
@@ -444,15 +444,15 @@ get_frame_atom(hash_table_t **hptr, const struct stacktrace *st)
  */
 #ifdef MALLOC_STATS
 
-struct stats {
+struct malloc_stats {
 	const char *file;			/**< Place where allocation took place */
 	int line;					/**< Line number */
 	int blocks;					/**< Live blocks since last "reset" */
 	int total_blocks;			/**< Total live blocks */
-	size_t allocated;			/**< Total allocated since last "reset" */
-	size_t freed;				/**< Total freed since last "reset" */
-	size_t total_allocated;		/**< Total allocated overall */
-	size_t total_freed;			/**< Total freed overall */
+	AU64(allocated);			/**< Total allocated since last "reset" */
+	AU64(freed);				/**< Total freed since last "reset" */
+	AU64(total_allocated);		/**< Total allocated overall */
+	AU64(total_freed);			/**< Total freed overall */
 	ssize_t reallocated;		/**< Total reallocated since last "reset" */
 	ssize_t total_reallocated;	/**< Total reallocated overall (algebric!) */
 #ifdef MALLOC_FRAMES
@@ -1097,6 +1097,10 @@ real_check_free(void *p)
 }
 #endif	/* MALLOC_SAFE */
 
+#ifdef REMAP_ZALLOC
+#define zalloc_zone_info(p,s)	FALSE
+#endif
+
 #if defined(TRACK_MALLOC) || defined(TRACK_VMM)
 /**
  * Log information about address that we can gather by probing the various
@@ -1500,7 +1504,7 @@ malloc_log_block(const void *k, void *v, void *leaksort)
 				k, b->file, b->line);
 		else {
 			s_message("block %p (out of %u) allocated from:",
-				k, (unsigned) fr->blocks);
+				k, (unsigned) AU64_VALUE(&fr->blocks));
 			stacktrace_atom_print(stderr, fr->ast);
 		}
 	}
@@ -1694,10 +1698,10 @@ malloc_record(const void *o, size_t sz, bool owned,
 			hash_table_insert(stats, st, st);
 		}
 
-		ATOMIC_INC(st->total_blocks);
-		ATOMIC_INC(st->blocks);
-		ATOMIC_ADD(st->allocated, sz);
-		ATOMIC_ADD(st->total_allocated, sz);
+		AU64_INC(&st->total_blocks);
+		AU64_INC(&st->blocks);
+		AU64_ADD(&st->allocated, sz);
+		AU64_ADD(&st->total_allocated, sz);
 	}
 #endif /* MALLOC_STATS */
 #ifdef MALLOC_FRAMES
@@ -1708,9 +1712,9 @@ malloc_record(const void *o, size_t sz, bool owned,
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(st ? &st->alloc_frames : &gst.alloc_frames, &t);
 
-		ATOMIC_ADD(fr->count, sz);
-		ATOMIC_ADD(fr->total_count, sz);
-		ATOMIC_INC(fr->blocks);
+		AU64_ADD(&fr->count, sz);
+		AU64_ADD(&fr->total_count, sz);
+		AU64_INC(&fr->blocks);
 
 		hash_table_insert(alloc_points, o, fr);
 	}
@@ -1879,10 +1883,10 @@ free_record(const void *o, const char *file, int line)
 				file, line, o, b->file, b->line);
 		else {
 			/* Count present block size, after possible realloc() */
-			ATOMIC_ADD(st->freed, b->size);
-			ATOMIC_ADD(st->total_freed, b->size);
+			AU64_ADD(&st->freed, b->size);
+			AU64_ADD(&st->total_freed, b->size);
 			if (st->total_blocks > 0)
-				ATOMIC_DEC(st->total_blocks);
+				AU64_DEC(&st->total_blocks);
 			else
 				s_warning(
 					"MALLOC (%s:%d) live # of blocks was zero at free time?",
@@ -1890,7 +1894,7 @@ free_record(const void *o, const char *file, int line)
 
 			/* We could free blocks allocated before "reset", don't warn */
 			if (st->blocks > 0)
-				ATOMIC_DEC(st->blocks);
+				AU64_DEC(&st->blocks);
 		}
 	}
 #endif /* MALLOC_STATS */
@@ -1902,8 +1906,8 @@ free_record(const void *o, const char *file, int line)
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(&st->free_frames, &t);
 
-		ATOMIC_INC(fr->count, b->size);	/* Counts actual size, not original */
-		ATOMIC_INC(fr->total_count, b->size);
+		AU64_ADD(&fr->count, b->size);	/* Counts actual size, not original */
+		AU64_ADD(&fr->total_count, b->size);
 	}
 	hash_table_remove(alloc_points, o);
 #endif /* MALLOC_FRAMES */
@@ -2101,8 +2105,8 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 				file, line, o, b->file, b->line);
 		else {
 			/* We store variations in size, as algebric quantities */
-			ATOMIC_INC(st->reallocated, b->size - r->size);
-			ATOMIC_INC(st->total_reallocated, b->size - r->size);
+			AU64_INC(&st->reallocated, b->size - r->size);
+			AU64_INC(&st->total_reallocated, b->size - r->size);
 		}
 	}
 #endif /* MALLOC_STATS */
@@ -2114,8 +2118,8 @@ realloc_record(void *o, void *n, size_t size, const char *file, int line)
 		stacktrace_get_offset(&t, 1);
 		fr = get_frame_atom(&st->realloc_frames, &t);
 
-		ATOMIC_INC(fr->count, b->size - r->size);
-		ATOMIC_INC(fr->total_count, b->size - r->size);
+		AU64_ADD(&fr->count, b->size - r->size);
+		AU64_ADD(&fr->total_count, b->size - r->size);
 	}
 	if (n != o) {
 		struct frame *fra = hash_table_lookup(alloc_points, o);
@@ -2974,7 +2978,7 @@ track_list_delete_link(GList *l, GList *lk, const char *file, int line)
 #ifdef MALLOC_STATS
 
 struct afiller {		/* Used by hash table iterator to fill alloc array */
-	const struct stats **stats;
+	const struct malloc_stats **stats;
 	int count;			/* Size of `stats' array */
 	int idx;			/* Next index to be filled */
 };
@@ -2986,7 +2990,7 @@ struct afiller {		/* Used by hash table iterator to fill alloc array */
 static int
 stats_allocated_cmp(const void *p1, const void *p2)
 {
-	const struct stats * const *s1 = p1, * const *s2 = p2;
+	const struct malloc_stats * const *s1 = p1, * const *s2 = p2;
 
 	/* Reverse order: largest first */
 	return CMP((*s2)->allocated, (*s1)->allocated);
@@ -2999,7 +3003,7 @@ stats_allocated_cmp(const void *p1, const void *p2)
 static int
 stats_total_allocated_cmp(const void *p1, const void *p2)
 {
-	const struct stats * const *s1 = p1, * const *s2 = p2;
+	const struct malloc_stats * const *s1 = p1, * const *s2 = p2;
 
 	/* Reverse order: largest first */
 	return CMP((*s2)->total_allocated, (*s1)->total_allocated);
@@ -3012,8 +3016,8 @@ stats_total_allocated_cmp(const void *p1, const void *p2)
 static int
 stats_residual_cmp(const void *p1, const void *p2)
 {
-	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
-	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
+	const struct malloc_stats * const *s1_ptr = p1, * const *s2_ptr = p2;
+	const struct malloc_stats *s1 = *s1_ptr, *s2 = *s2_ptr;
 	ssize_t i1 = s1->allocated + s1->reallocated - s1->freed;
 	ssize_t i2 = s2->allocated + s2->reallocated - s2->freed;
 	int ret;
@@ -3030,8 +3034,8 @@ stats_residual_cmp(const void *p1, const void *p2)
 static int
 stats_total_residual_cmp(const void *p1, const void *p2)
 {
-	const struct stats * const *s1_ptr = p1, * const *s2_ptr = p2;
-	const struct stats *s1 = *s1_ptr, *s2 = *s2_ptr;
+	const struct malloc_stats * const *s1_ptr = p1, * const *s2_ptr = p2;
+	const struct malloc_stats *s1 = *s1_ptr, *s2 = *s2_ptr;
 	size_t i1 = s1->total_allocated + s1->total_reallocated - s1->total_freed;
 	size_t i2 = s2->total_allocated + s2->total_reallocated - s2->total_freed;
 	int ret;
@@ -3049,8 +3053,8 @@ static void
 stats_fill_array(const void *unused_key, void *value, void *user)
 {
 	struct afiller *filler = user;
-	const struct stats *st = value;
-	const struct stats **e;
+	const struct malloc_stats *st = value;
+	const struct malloc_stats **e;
 
 	(void) unused_key;
 
@@ -3076,7 +3080,7 @@ stats_array_dump(FILE *f, struct afiller *filler)
 		"alloc", "freed", "realloc", "remains", "live", "from");
 
 	for (i = 0; i < filler->count; i++) {
-		const struct stats *st = filler->stats[i];
+		const struct malloc_stats *st = filler->stats[i];
 		int alloc_stacks;
 		int free_stacks;
 		int realloc_stacks;
@@ -3155,7 +3159,7 @@ alloc_dump(FILE *f, bool total)
 	fprintf(f, "--- distinct allocation spots found: %d at %s\n",
 		count, short_time_ascii(delta_time(now, init_time)));
 
-	filler.stats = real_malloc(sizeof(struct stats *) * count);
+	filler.stats = real_malloc(sizeof(struct malloc_stats *) * count);
 	filler.count = count;
 	filler.idx = 0;
 
@@ -3165,7 +3169,7 @@ alloc_dump(FILE *f, bool total)
 	 */
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	vsort(filler.stats, count, sizeof(struct stats *),
+	vsort(filler.stats, count, sizeof(struct malloc_stats *),
 		total ? stats_total_allocated_cmp : stats_allocated_cmp);
 
 	/*
@@ -3184,7 +3188,7 @@ alloc_dump(FILE *f, bool total)
 	filler.idx = 0;
 
 	hash_table_foreach(stats, stats_fill_array, &filler);
-	vsort(filler.stats, count, sizeof(struct stats *),
+	vsort(filler.stats, count, sizeof(struct malloc_stats *),
 		total ? stats_total_residual_cmp : stats_residual_cmp);
 
 	fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -3201,7 +3205,7 @@ alloc_dump(FILE *f, bool total)
 		filler.idx = 0;
 
 		hash_table_foreach(stats, stats_fill_array, &filler);
-		vsort(filler.stats, count, sizeof(struct stats *),
+		vsort(filler.stats, count, sizeof(struct malloc_stats *),
 			stats_total_residual_cmp);
 
 		fprintf(f, "--- summary by decreasing %s residual memory size %s %s:\n",
@@ -3220,7 +3224,7 @@ alloc_dump(FILE *f, bool total)
 static void
 stats_reset(const void *uu_key, void *value, void *uu_user)
 {
-	struct stats *st = value;
+	struct malloc_stats *st = value;
 
 	(void) uu_key;
 	(void) uu_user;

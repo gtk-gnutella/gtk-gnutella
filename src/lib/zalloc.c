@@ -459,6 +459,9 @@ zgc(bool overloaded)
 {
 	(void) overloaded;
 }
+#define zrange_clear(z)
+#define zlock(zone)
+#define zunlock(zone)
 #else	/* !REMAP_ZALLOC */
 
 static char **zn_extend(zone_t *);
@@ -1876,8 +1879,10 @@ zdestroy_physical(zone_t *zone)
 	 * zone is not really locked)
 	 */
 
+#ifndef REMAP_ZALLOC
 	if (zone->private)
 		zunlock(zone);
+#endif
 
 	spinlock_destroy(&zone->lock);
 
@@ -1935,6 +1940,7 @@ zdestroy_if_empty(zone_t *zone)
 	return TRUE;
 }
 
+#ifndef REMAP_ZALLOC
 /**
  * Get a zone suitable for allocating blocks of 'size' bytes.
  * `hint' represents the desired amount of blocks per subzone.
@@ -2042,11 +2048,7 @@ zmove(zone_t *zone, void *p)
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
 
-#ifdef REMAP_ZALLOC
-	return p;
-#else
 	return zgc_zmove(zone, p);
-#endif
 }
 
 /**
@@ -2089,6 +2091,7 @@ zmoveto(zone_t *zone, void *o, void *n)
 
 	return n;
 }
+#endif	/* !REMAP_ZALLOC */
 
 /**
  * Iterator callback on hash table.
@@ -3630,6 +3633,7 @@ zinit(void)
 void G_COLD
 zalloc_memusage_init(void)
 {
+#ifndef REMAP_ZALLOC
 	zone_t **zones;
 	size_t i, count;
 
@@ -3663,6 +3667,7 @@ zalloc_memusage_init(void)
 	}
 
 	xfree(zones);
+#endif	/* REMAP_ZALLOC */
 }
 
 /**
@@ -3975,6 +3980,10 @@ zalloc_dump_usage_log(logagent_t *la, unsigned options)
 void G_COLD
 zalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+#ifdef REMAP_ZALLOC
+	(void) options;
+	log_info(la, "ZALLOC zalloc() is remapped via REMAP_ZALLOC");
+#else	/* !REMAP_ZALLOC */
 	struct zstats stats;
 	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
@@ -4037,6 +4046,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 #undef DUMP
 #undef DUMP64
+#endif /* REMAP_ZALLOC */
 }
 
 /**

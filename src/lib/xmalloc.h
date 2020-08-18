@@ -59,6 +59,10 @@
 #undef XMALLOC_IS_MALLOC
 #endif
 
+#ifdef TRACK_MALLOC
+#undef XMALLOC_IS_MALLOC
+#endif
+
 /**
  * Memory alignment constraints.
  *
