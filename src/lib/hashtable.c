@@ -37,7 +37,7 @@
  *
  * A simple hashtable implementation.
  *
- * There are fiven interesting properties in this hash table:
+ * There are five interesting properties in this hash table:
  *
  * - The items and the internal data structures are allocated out of a
  *   same contiguous memory region (aka the "arena").
@@ -75,6 +75,7 @@
 #include "pow2.h"
 #include "rand31.h"
 #include "spinlock.h"
+#include "stringify.h"		/* For PLURAL() */
 #include "vmm.h"
 #include "xmalloc.h"
 
@@ -563,7 +564,7 @@ static inline unsigned
 hash_key(const hash_table_t *ht, const void *key)
 {
 	/*
-	 * There is no offseting of the hashed value for fixed-size table.
+	 * There is no offsetting of the hashed value for fixed-size table.
 	 * Rather than issuing a test and a branch, we use an array indexed
 	 * by 0 or 1.
 	 */
@@ -637,14 +638,14 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 void
 hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
 {
-	size_t i, n;
+	size_t i, n, old_n;
 
 	hash_table_check(ht);
 	g_assert(func != NULL);
 
 	ht_synchronize(ht);
 
-	n = ht->num_held;
+	old_n = n = ht->num_held;
 	i = ht->num_bins;
 
 	while (i-- > 0) {
@@ -655,9 +656,102 @@ hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
 			n--;
 		}
 	}
-	g_assert(0 == n);
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were iterating over it!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == ht->num_held ? "stable" : "MODIFIED", ht->num_held);
 
 	ht_return_void(ht);
+}
+
+/**
+ * Iterate over the hashtable, invoking the "func" callback on each item
+ * with the additional "data" argument.
+ *
+ * Unlike hash_table_foreach(), we work on a copy of the table, in case
+ * the table could change whilst we iterate over it.
+ *
+ * This is particularity useful for memory allocators who can do some actions
+ * whilst iterating that cause memory allocation that in turn gets tracked
+ * into the hash table we are iterating over!
+ */
+void
+hash_table_copy_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
+{
+	size_t i, n, old_n;
+	void **keys, **values;
+
+	hash_table_check(ht);
+	g_assert(func != NULL);
+
+	ht_synchronize(ht);
+
+	n = old_n = ht->num_held;
+	i = ht->num_bins;
+
+	if G_UNLIKELY(0 == n)
+		ht_return_void(ht);
+
+	keys   = vmm_alloc(n * sizeof keys[0]);
+	values = vmm_alloc(n * sizeof values[0]);
+
+	/*
+	 * If we have no memory left, then use hash_table_foreach() as a
+	 * last resort but loudly warn because if they used this routine,
+	 * it was because it might be altered whilst iterating.
+	 */
+
+	if (NULL == keys || NULL == values) {
+		VMM_FREE_NULL(keys,   n * sizeof keys[0]);
+		VMM_FREE_NULL(values, n * sizeof values[0]);
+		s_carp("%s(): falling back to hash_table_foreach(): "
+			"no memory for %zu item%s", G_STRFUNC, PLURAL(n));
+		hash_table_foreach(ht, func, data);
+		ht_return_void(ht);
+	}
+
+	while (i-- > 0) {
+		hash_item_t *item;
+
+		for (item = ht->bins[i]; NULL != item; item = item->next) {
+			keys[--n]  = deconstify_pointer(item->key);
+			values[n] = deconstify_pointer(item->value);
+		}
+	}
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were allocating the keys[] and values[] array!  No luck!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == ht->num_held ? "stable" : "MODIFIED", ht->num_held);
+
+	/*
+	 * We can now release the lock and iterate on our copy.
+	 */
+
+	ht_unsynchronize(ht);
+
+	n = old_n;
+
+	while (n-- > 0)
+		(*func)(keys[n], values[n], data);
+
+	vmm_free(keys,   old_n * sizeof keys[0]);
+	vmm_free(values, old_n * sizeof values[0]);
 }
 
 /**
@@ -1112,8 +1206,21 @@ hash_table_foreach_remove(hash_table_t *ht, ckeyval_rm_fn_t func, void *data)
 			n--;
 		}
 	}
-	g_assert(0 == n);
-	g_assert(old_n == removed + ht->num_held);
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were iterating over it (not considering the removed items)!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == removed + ht->num_held ? "stable" : "MODIFIED", ht->num_held);
+
+	/* Protect condition we want via an implies(), due to above soft assert */
+	g_assert(implies(0 == n, old_n == removed + ht->num_held));
 
 	if (removed != 0 && !ht->fixed_size)
 		hash_table_resize_on_remove(ht);
@@ -1294,7 +1401,7 @@ struct ht_linearize {
 };
 
 /**
- * Hash table iterator -- linearize the keys/values.
+ * Hash table iterator -- linearise the keys/values.
  */
 static void
 hash_table_linearize_item(const void *key, void *value, void *data)
@@ -1307,7 +1414,7 @@ hash_table_linearize_item(const void *key, void *value, void *data)
 }
 
 /**
- * Linearize the keys/values into dynamically allocated array.
+ * Linearise the keys/values into dynamically allocated array.
  */
 static void **
 hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
