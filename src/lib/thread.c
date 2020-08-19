@@ -4589,8 +4589,15 @@ thread_id_name_to_buf(unsigned id,
 {
 	const struct thread_element *te;
 
+	/*
+	 * This will catch negative IDs as well, coming from
+	 * thread_safe_small_id() for instance, which become
+	 * large numbers in our unsigned argument.
+	 */
+
 	if (id >= THREAD_MAX) {
-		str_bprintf(b, len, "<invalid thread ID %u>", id);
+		/* Note the %d to print -1 and -2 nicely and the cast */
+		str_bprintf(b, len, "<invalid thread ID %d>", (int) id);
 		return b;
 	}
 
