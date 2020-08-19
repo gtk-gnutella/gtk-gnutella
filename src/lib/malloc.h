@@ -151,8 +151,10 @@
 #define g_hash_table_new(x,y)	hashtable_new_track(x, y, _WHERE_, __LINE__)
 #define g_hash_table_destroy(x)	hashtable_destroy_track(x, _WHERE_, __LINE__)
 
+#ifndef REMAP_ZALLOC
 #define hash_list_new(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
 #define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
+#endif	/* !REMAP_ZALLOC */
 
 #define g_slist_alloc()			track_slist_alloc(_WHERE_, __LINE__)
 #define g_slist_append(l,d)		track_slist_append((l),(d), _WHERE_, __LINE__)
