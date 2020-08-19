@@ -301,6 +301,7 @@ struct realblock {
 	struct frame *alloc;	/**< Allocation frame (atom) */
 #endif
 	size_t size;			/**< Size of allocated block */
+	int stid;				/**< ID of the allocating thread */
 #ifdef MALLOC_TIME
 	time_t atime;			/**< Allocation time */
 #endif
@@ -310,6 +311,12 @@ struct realblock {
 #endif
 	uint is_real:1;			/**< Allocated from real_malloc() */
 };
+
+#ifdef MALLOC_FRAMES
+#define malloc_real_ast(rb)	(NULL == (rb)->alloc ? NULL : (rb)->alloc->ast)
+#else
+#define malloc_real_ast(rb)	NULL
+#endif
 
 #ifdef TRACK_MALLOC
 static time_t init_time = 0;
@@ -507,6 +514,64 @@ struct stats {
 #endif /* MALLOC_STATS */
 
 /**
+ * When MALLOC_FREE_ERASE is set, freed blocks are overwritten to detect
+ * accidental reuse of freed memory.
+ */
+#ifdef MALLOC_FREE_ERASE
+#define MALLOC_ERASE_MARK	'Z'	/* 0x5a */
+
+static inline void
+block_erase(const void *o, size_t size)
+{
+	void *p = deconstify_pointer(o);
+	memset(p, MALLOC_ERASE_MARK, size);
+}
+#else	/* !MALLOC_FREE_ERASE */
+#define block_erase(p_, s_)
+#endif	/* MALLOC_FREE_ERASE */
+
+/**
+ * When MALLOC_DUP_FREE is set, the first integer of the block is marked to
+ * allow free() to detect duplicates.
+ */
+#ifdef MALLOC_DUP_FREE
+#define MALLOC_DEAD_MARK	0xdeadbeefU
+#define MALLOC_DEAD_CLEAR	0x0
+
+static inline void
+block_mark_dead(const void *p, size_t size)
+{
+	if (size >= sizeof(uint)) {
+		*(uint *) p = MALLOC_DEAD_MARK;
+	}
+}
+
+static inline void
+block_clear_dead(const void *p, size_t size)
+{
+	if (size >= sizeof(uint)) {
+		*(uint *) p = MALLOC_DEAD_CLEAR;
+	}
+}
+
+static inline bool
+block_is_dead(const void *p, size_t size)
+{
+	if (size >= sizeof(uint)) {
+		return MALLOC_DEAD_MARK == *(uint *) p;
+	}
+
+	return FALSE;
+}
+#endif	/* MALLOC_DUP_FREE */
+
+#if !defined(TRACK_MALLOC) || !defined(MALLOC_DUP_FREE)
+#define block_mark_dead(p_, s_)
+#define block_clear_dead(p_, s_)
+#define block_is_dead(p_, s_)		(FALSE)
+#endif /* !TRAC_MALLOC || !MALLOC_DUP_FREE */
+
+/**
  * To help reduce #ifdef hell a bit.
  */
 #define malloc_header_from_arena(o) o
@@ -573,6 +638,8 @@ block_write_trailer(void *o, size_t size)
  * @param size		the user-known size of the buffer
  * @param file		file where block allocation was done
  * @param line		line number within file where allocation was done
+ * @param ast		if non-NULL, the known atomic stack frame for allocation
+ * @param stid		the ID of the allocating thread
  * @param op_file	file where free()/realloc() operation is happening
  * @param op_line	line where free()/realloc() operation is happening
  * @param showstack	whether to log the stackframe on errors
@@ -581,19 +648,34 @@ block_write_trailer(void *o, size_t size)
  */
 static bool G_UNUSED
 block_check_trailer(const void *o, size_t size,
-	const char *file, int line, const char *op_file, int op_line,
+	const char *file, int line, const struct stackatom *ast, int stid,
+	const char *op_file, int op_line,
 	bool showstack)
 {
 	bool error = FALSE;
 	size_t trailer = MALLOC_TRAILER_LEN;
 	const char *p;
 
+#ifdef TRACK_MALLOC
+	if (0 == line && blocks != NULL) {
+		const struct block *b = hash_table_lookup(blocks, o);
+		if (b != NULL) {
+			file = b->file;
+			line = b->line;
+			stid = b->stid;
+		}
+	}
+#endif	/* TRACK_MALLOC */
+
 	if (MALLOC_END_MARK != peek_be32(const_ptr_add_offset(o, size))) {
 		error = TRUE;
 		s_warning(
-			"MALLOC (%s:%d) block %p (%zu byte%s) from %s:%d "
+			"%s(): MALLOC (%s:%d) %sblock %p (%zu byte%s) from %s:%d%s%s "
 			"has corrupted end mark",
-			op_file, op_line, o, PLURAL(size), file, line);
+			G_STRFUNC, op_file, op_line,
+			block_is_dead(o, size) ? "DEAD " : "", o, PLURAL(size), file, line,
+			-1 == stid ? "" : " by ",
+			-1 == stid ? "" : thread_id_name(stid));
 		goto done;
 	}
 
@@ -602,14 +684,28 @@ block_check_trailer(const void *o, size_t size,
 		if (*p++ != MALLOC_TRAILER_MARK) {
 			error = TRUE;
 			s_warning(
-				"MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
+				"%s(): MALLOC (%s:%d) block %p (%zu bytes) from %s:%d "
 				"has corrupted trailer",
-				op_file, op_line, o, size, file, line);
+				G_STRFUNC, op_file, op_line, o, size, file, line);
 			break;
 		}
 	}
 
 done:
+	if (error) {
+#ifdef MALLOC_FRAMES
+		if (NULL == ast) {
+			struct frame *fr = hash_table_lookup(alloc_points, o);
+			if (fr != NULL)
+				ast = fr->ast;
+		}
+#endif	/* MALLOC_FRAMES */
+		if (ast != NULL) {
+			s_warning("%s(): block %p was allocated from:", G_STRFUNC, o);
+			stacktrace_atom_decorate(stderr, ast,
+				STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+		}
+	}
 	if (error && showstack) {
 		stacktrace_where_print(stderr);
 	}
@@ -652,7 +748,10 @@ block_check_marks(const void *o, struct block *b,
 	}
 #endif /* MALLOC_SAFE_HEAD */
 
-	if (block_check_trailer(o, b->size, b->file, b->line, file, line, FALSE)) {
+	if (
+		block_check_trailer(o, b->size, b->file, b->line, NULL, b->stid,
+			file, line, FALSE)
+	) {
 		b->corrupted = TRUE;
 		error = TRUE;
 	}
@@ -671,8 +770,8 @@ block_write_trailer(void *o, size_t size)
 }
 static inline bool G_UNUSED
 block_check_trailer(const void *o, size_t size,
-	const char *file, int line, const char *op_file, int op_line,
-	bool showstack)
+	const char *file, int line, const struct stackatom *ast, int stid,
+	const char *op_file, int op_line, bool showstack)
 {
 	(void) o; (void) size; (void) file; (void) line;
 	(void) op_file; (void) op_line; (void) showstack;
@@ -680,72 +779,7 @@ block_check_trailer(const void *o, size_t size,
 }
 #endif	/* MALLOC_SAFE */
 
-/**
- * When MALLOC_FREE_ERASE is set, freed blocks are overwritten to detect
- * accidental reuse of freed memory.
- */
-#ifdef MALLOC_FREE_ERASE
-#define MALLOC_ERASE_MARK	'Z'	/* 0x5a */
-
-static inline void
-block_erase(const void *o, size_t size)
-{
-	void *p = deconstify_pointer(o);
-	memset(p, MALLOC_ERASE_MARK, size);
-}
-#else	/* !MALLOC_FREE_ERASE */
-#define block_erase(p_, s_)
-#endif	/* MALLOC_FREE_ERASE */
-
-/**
- * When MALLOC_DUP_FREE is set, the first integer of the block is marked to
- * allow free() to detect duplicates.
- */
-#ifdef MALLOC_DUP_FREE
-#define MALLOC_DEAD_MARK	0xdeadbeefU
-#define MALLOC_DEAD_CLEAR	0x0
-
-static inline void
-block_mark_dead(const void *p, size_t size)
-{
-	if (size >= sizeof(uint)) {
-		*(uint *) p = MALLOC_DEAD_MARK;
-	}
-}
-
-static inline void
-block_clear_dead(const void *p, size_t size)
-{
-	if (size >= sizeof(uint)) {
-		*(uint *) p = MALLOC_DEAD_CLEAR;
-	}
-}
-
-static inline bool
-block_is_dead(const void *p, size_t size)
-{
-	if (size >= sizeof(uint)) {
-		return MALLOC_DEAD_MARK == *(uint *) p;
-	}
-
-	return FALSE;
-}
-#endif	/* MALLOC_DUP_FREE */
-
-#if !defined(TRACK_MALLOC) || !defined(MALLOC_DUP_FREE)
-#define block_mark_dead(p_, s_)
-#define block_clear_dead(p_, s_)
-#define block_is_dead(p_, s_)		(FALSE)
-#endif /* !TRAC_MALLOC || !MALLOC_DUP_FREE */
-
-/**
- * With MALLOC_PERIODIC, all the allocated blocks (whether they be tracked
- * or allocated directly via real_malloc() and friends)
- */
-#ifdef MALLOC_PERIODIC
-
-static bool need_periodic;
-
+#ifdef TRACK_MALLOC
 struct block_check_context {
 	size_t tracked_size;
 	size_t real_size;
@@ -755,12 +789,11 @@ struct block_check_context {
 	unsigned new_corrupted;
 };
 
-#ifdef TRACK_MALLOC
 /**
  * Iterating callback to check a tracked block.
  */
 static void
-block_check(const void *key, void *value, void *ctx)
+malloc_check_block(const void *key, void *value, void *ctx)
 {
 	struct block_check_context *bc = ctx;
 	struct block *b = value;
@@ -788,15 +821,35 @@ block_check(const void *key, void *value, void *ctx)
 #endif	/* TRACK_MALLOC */
 
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+
+#ifdef MALLOC_FRAMES
+static void
+malloc_log_realblock_alloc_stack(const void *p, const struct realblock *rb)
+{
+	if (rb->alloc != NULL) {
+		s_message("block %p (out of %zu) allocated by %s from:",
+			p, AU64_VALUE(&rb->alloc->blocks), thread_id_name(rb->stid));
+		stacktrace_atom_decorate(stderr, rb->alloc->ast,
+			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+	} else {
+		s_message("block %p allocated early (no frame) by %s",
+			p, thread_id_name(rb->stid));
+	}
+}
+#else	/* !MALLOC_FRAMES */
+#define malloc_log_realblock_alloc_stack(p, rb)
+#endif	/* MALLOC_FRAMES */
+
 /**
  * Iterating callback to check a real (untracked) malloc'ed block.
  */
 static void
-real_check(const void *key, void *value, void *ctx)
+malloc_check_real(const void *key, void *value, void *ctx)
 {
 	struct block_check_context *bc = ctx;
 	struct realblock *rb = value;
 	void *p = deconstify_pointer(key);
+	bool logged = FALSE;
 
 	bc->real_count++;
 	bc->real_size = size_saturate_add(bc->real_size, rb->size);
@@ -805,78 +858,83 @@ real_check(const void *key, void *value, void *ctx)
 		bc->old_corrupted++;
 	}
 
+	if (block_is_dead(p, rb->size)) {
+		s_warning("%s(): MALLOC allocated real block %p (%zu byte%s) "
+			"marked as DEAD",
+			G_STRFUNC, p, PLURAL(rb->size));
+		malloc_log_realblock_alloc_stack(p, rb);
+		logged = TRUE;
+	}
+
 	if (
 		!rb->corrupted &&
-		block_check_trailer(p, rb->size, "FAKED", 0, _WHERE_, __LINE__, TRUE)
+		block_check_trailer(p, rb->size, "FAKED", 0, malloc_real_ast(rb),
+			rb->stid, _WHERE_, __LINE__, FALSE)
 	) {
 		bc->new_corrupted++;
 		rb->corrupted = TRUE;
-	}
-	if (block_is_dead(p, rb->size)) {
-		s_warning("MALLOC allocated block %p marked as DEAD", p);
 	}
 
 #ifdef MALLOC_SAFE
 	if (!rb->header_corrupted) {
 		struct real_malloc_header *rmh = real_malloc_header_from_arena(p);
+		bool problem = FALSE;
 		if (REAL_MALLOC_MAGIC != rmh->magic) {
 			rb->header_corrupted = TRUE;
 			bc->new_corrupted++;
-			s_warning("MALLOC corrupted real block magic at %p (%zu byte%s)",
-				p, PLURAL(rb->size));
+			problem = TRUE;
+			s_warning("%s(): MALLOC corrupted real block magic at %p "
+				"(%zu byte%s)", G_STRFUNC, p, PLURAL(rb->size));
 		} else if (rmh->size != rb->size) {
 			/* Can indicate memory corruption as well */
 			bc->new_corrupted++;
 			rb->header_corrupted = TRUE;
-			s_warning("MALLOC size mismatch for real block %p: "
+			problem = TRUE;
+			s_warning("%s(): MALLOC size mismatch for real block %p: "
 				"hashtable says %zu byte%s, header says %zu",
-				p, PLURAL(rb->size), rmh->size);
+				G_STRFUNC, p, PLURAL(rb->size), rmh->size);
 		}
+		if (problem && !logged)
+			malloc_log_realblock_alloc_stack(p, rb);
 	}
 #endif	/* MALLOC_SAFE */
 }
 
 /**
- * Periodic check to make sure all the known blocks are correct.
+ * Conduct a full memory check for possible block corruption.
+ *
+ * @param error_count	if non-NULL, update with errors we spotted
+ *
+ * @return whether something was checked.
  */
 static bool
-malloc_periodic(void *unused_obj)
+malloc_check_allocations(uint *error_count)
 {
 	struct block_check_context ctx;
 	bool checked = FALSE;
 	tm_t start, end;
-	static unsigned errors;
+	uint errors = 0;
 	char tracked_size[SIZE_FIELD_MAX];
 	char real_size[SIZE_FIELD_MAX];
-
-	(void) unused_obj;
-
-	thread_suspend_others(TRUE);
-
-	if (0 == errors) {
-		s_message("malloc periodic check starting...");
-	} else {
-		s_message("malloc periodic check starting... [%u error%s already]",
-			PLURAL(errors));
-	}
 
 	ZERO(&ctx);
 	tm_now_exact(&start);
 
+	if (error_count != NULL)
+		errors = *error_count;
+
 #ifdef TRACK_MALLOC
 	checked = TRUE;
 	if (blocks != NULL)
-		hash_table_foreach(blocks, block_check, &ctx);
+		hash_table_foreach(blocks, malloc_check_block, &ctx);
 #endif
 #if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
-		checked = TRUE;
-		hash_table_foreach(reals, real_check, &ctx);
+	checked = TRUE;
+	hash_table_copy_foreach(reals, malloc_check_real, &ctx);
 #endif
 
-	if (!checked) {
-		s_message("malloc periodic: nothing to check, disabling.");
+	if (!checked)
 		return FALSE;
-	}
 
 	tm_now_exact(&end);
 
@@ -884,28 +942,64 @@ malloc_periodic(void *unused_obj)
 	short_size_to_string_buf(ctx.real_size, FALSE, ARYLEN(real_size));
 
 	if (0 == ctx.old_corrupted && 0 == ctx.new_corrupted) {
-		s_message("malloc periodic check done (%u msecs): "
+		s_message("%s(): check done (%u msecs): "
 			"tracked: %u [%s], real: %u [%s]",
-			(unsigned) tm_elapsed_ms(&end, &start),
+			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
 			ctx.tracked_count, tracked_size,
 			ctx.real_count, real_size);
 	} else {
-		if (ctx.new_corrupted) {
+		if (ctx.new_corrupted)
 			errors++;
-		}
-		s_warning("malloc periodic check done (%u msecs): %s"
+		s_warning("%s(): check done (%u msecs): %s"
 			"tracked: %u [%s], real: %u [%s], "
 			"NEWLY CORRUPTED: %u (%u old)",
-			(unsigned) tm_elapsed_ms(&end, &start),
+			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
 			0 == ctx.new_corrupted ? "" : "WATCH OUT ",
 			ctx.tracked_count, tracked_size,
 			ctx.real_count, real_size,
 			ctx.new_corrupted, ctx.old_corrupted);
 	}
 
-	thread_unsuspend_others();
+	if (error_count != NULL)
+		*error_count = errors;
 
 	return TRUE;
+}
+
+/**
+ * With MALLOC_PERIODIC, all the allocated blocks (whether they be tracked
+ * or allocated directly via real_malloc() and friends)
+ */
+#ifdef MALLOC_PERIODIC
+
+static bool need_periodic;
+
+/**
+ * Periodic check to make sure all the known blocks are correct.
+ */
+static bool
+malloc_periodic(void *unused_obj)
+{
+	static unsigned errors;
+	bool checked;
+
+	(void) unused_obj;
+
+	if (0 == errors) {
+		s_message("%s(): check starting...", G_STRFUNC);
+	} else {
+		s_message("%s(): check starting... [%u error%s already]",
+			G_STRFUNC, PLURAL(errors));
+	}
+
+	thread_suspend_others(TRUE);
+	checked = malloc_check_allocations(&errors);
+	thread_unsuspend_others();
+
+	if (!checked)
+		s_message("%s(): nothing to check, disabling.", G_STRFUNC);
+
+	return checked;
 }
 
 static void
@@ -950,15 +1044,7 @@ block_check_missed_free(const char *caller,
 		{
 			struct realblock *rb = hash_table_lookup(reals, p);
 			if (rb != NULL) {
-#ifdef MALLOC_FRAMES
-				if (rb->alloc != NULL) {
-					s_rawwarn("allocation frame:");
-					stacktrace_atom_decorate(stderr, rb->alloc->ast,
-						STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
-				} else {
-					s_rawwarn("no allocation frame for %p", p);
-				}
-#endif
+				malloc_log_realblock_alloc_stack(p, rb);
 			} else {
 				s_rawwarn("block %p is not tracked", p);
 			}
@@ -1043,56 +1129,63 @@ real_check_missed_free(void *p)
 		if (warning) {
 			s_rawwarn("current frame:");
 			stacktrace_where_print(stderr);
-#ifdef MALLOC_FRAMES
-			if (rb->alloc != NULL) {
-				s_rawwarn("allocation frame:");
-				stacktrace_atom_decorate(stderr, rb->alloc->ast,
-					STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
-			} else {
-				s_rawwarn("no allocation frame for %p", p);
-			}
-#endif
+			malloc_log_realblock_alloc_stack(p, rb);
 		}
 		hash_table_remove(reals, p);
 		libc_free(rb);
 	}
 }
-#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 /**
- * Perform bookkeeping on allocated block.
+ * Allocate and fill tracking block, used by TRACK_MALLOC.
  *
- * @param o			the allocated block
- * @param size		the size of the allocated block
- * @param is_real	TRUE if comming from real_malloc()
+ * This is used for blocks we allocate through our trapping macros, hence we
+ * have the source file and line locations where the allocation is made.
  *
- * @return the allocated block `o' as a convenience.
+ * @return allocated block, ready to be tracked in the `blocks' hash table.
  */
-static void *
-malloc_bookkeeping(void *o, size_t size, bool is_real)
+static struct block *
+malloc_new_track_block(const char *file, int line, size_t size, bool owned)
 {
-	block_clear_dead(o, size);
+	struct block *b = libc_calloc(1, sizeof *b);
 
-	(void) size;
-	(void) is_real;
+	if (NULL == b)
+		s_error("%s(): unable to allocate %zu bytes", G_STRFUNC, sizeof *b);
 
-#ifdef TRACK_MALLOC
-	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+	b->file  = short_filename(deconstify_pointer(file));
+	b->line  = line;
+	b->size  = size;
+	b->stid  = thread_safe_small_id();
+	b->owned = owned;
+#ifdef MALLOC_TIME
+	b->ttime = tm_time();
 #endif
 
-#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
-	{
-		struct realblock *rb;
+	return b;
+}
 
-		rb = libc_calloc(1, sizeof *rb);
-		rb->size = size;
-		rb->is_real = booleanize(is_real);
-		real_check_missed_free(o);
-		if (!hash_table_insert(reals, o, rb)) {
-			s_error("MALLOC cannot record real block %p", o);
-		}
+/**
+ * Allocate and fill realblock info, used by TRACK_MALLOC.
+ *
+ * This is used for blocks we allocate directly at the lowest level, hence
+ * we do not have the source file and line locations where the allocation
+ * is actually made.
+ *
+ * @return allocated structure, ready to be inserted in the `reals' hash table.
+ */
+static struct realblock *
+malloc_new_track_realblock(size_t size, bool is_real)
+{
+	struct realblock *rb = libc_calloc(1, sizeof *rb);
+
+	if (NULL == rb)
+		s_error("%s(): unable to allocate %zu bytes", G_STRFUNC, sizeof *rb);
+
+	rb->size    = size;
+	rb->stid    = thread_safe_small_id();
+	rb->is_real = booleanize(is_real);
 #ifdef MALLOC_TIME
-		rb->atime = tm_time();
+	rb->atime   = tm_time();
 #endif
 #ifdef MALLOC_FRAMES
 		/*
@@ -1116,10 +1209,42 @@ malloc_bookkeeping(void *o, size_t size, bool is_real)
 			AU64_ADD(&fr->total_count, size);
 			AU64_INC(&fr->blocks);
 			rb->alloc = fr;
-		} else {
-			rb->alloc = NULL;
 		}
 #endif	/* MALLOC_FRAMES */
+
+	return rb;
+}
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
+
+/**
+ * Perform bookkeeping on allocated block.
+ *
+ * @param o			the allocated block (user-visible pointer)
+ * @param size		the size of the allocated block
+ * @param is_real	TRUE if comming from real_malloc()
+ *
+ * @return the allocated block `o' as a convenience.
+ */
+static void *
+malloc_bookkeeping(void *o, size_t size, bool is_real)
+{
+	block_clear_dead(o, size);
+
+	(void) size;
+	(void) is_real;
+
+#ifdef TRACK_MALLOC
+	ONCE_FLAG_RUN(malloc_tracking_inited, malloc_init_tracking_once);
+#endif
+
+#if defined(TRACK_MALLOC) || defined(MALLOC_VTABLE)
+	{
+		struct realblock *rb = malloc_new_track_realblock(size, is_real);
+
+		real_check_missed_free(o);
+		if (!hash_table_insert(reals, o, rb)) {
+			s_error("MALLOC cannot record real block %p", o);
+		}
 	}
 #endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
@@ -1303,15 +1428,21 @@ real_free(void *p)
 		if (rb != NULL) {
 			if (!rb->is_real) {
 				s_rawwarn(
-					"MALLOC freeing trapped %zu-byte block %p from %s:%d with %s()",
+					"MALLOC freeing trapped %zu-byte block %p "
+					"from %s:%d with %s()",
 					rb->size, p, file, line, G_STRFUNC);
 				malloc_address_log_info(p);
 				stacktrace_where_print(stderr);
-				s_error("%s(): attempt to free invalid pointer %p", G_STRFUNC, p);
+				s_error("%s(): attempt to free invalid pointer %p",
+					G_STRFUNC, p);
 			}
-			hash_table_remove(reals, start);
+			if (!hash_table_remove(reals, start)) {
+				s_error("%s(): cannot remove %p (start of %p)",
+					G_STRFUNC, start, p);
+			}
 			block_check_trailer(start, rb->size,
-				"FAKED", 0, _WHERE_, __LINE__, TRUE);
+				"FAKED", 0, malloc_real_ast(rb), rb->stid,
+				_WHERE_, __LINE__, TRUE);
 			block_erase(start, rb->size);
 			block_mark_dead(start, rb->size);
 			libc_free(rb);
@@ -1462,8 +1593,8 @@ real_realloc(void *ptr, size_t size)
 			}
 
 			if (rmh != NULL) {
-				block_check_trailer(p, rmh->size,
-					"FAKED", 0, _WHERE_, __LINE__, TRUE);
+				block_check_trailer(p, rmh->size, "FAKED", 0, NULL, /* stid */ -1,
+					_WHERE_, __LINE__, TRUE);
 			}
 
 			rmh = libc_realloc(rmh, len);
@@ -1525,15 +1656,10 @@ real_realloc(void *ptr, size_t size)
 				s_warning("MALLOC reallocated known foreign block %p", p);
 				s_error("MALLOC realloc() given foreign block but it was known");
 			} else {
-				rb = libc_calloc(1, sizeof *rb);
-				rb->size = size;
-				rb->is_real = TRUE;
+				rb = malloc_new_track_realblock(size, TRUE);
 				if (!hash_table_insert(reals, ptr, rb)) {
 					s_error("MALLOC realloc() cannot record real block %p", ptr);
 				}
-#ifdef MALLOC_TIME
-				rb->atime = tm_time();
-#endif
 			}
 		} else {
 			struct realblock *rb = hash_table_lookup(reals, ptr);
@@ -1702,19 +1828,8 @@ malloc_log_real_block(const void *k, void *v, void *leaksort)
 #endif	/* MALLOC_TIME */
 
 	s_warning("leaked block %p (%zu bytes)%s", p, rb->size, ago);
-
 	leak_add(leaksort, rb->size, "FAKED", 0);
-
-#ifdef MALLOC_FRAMES
-	if (rb->alloc != NULL) {
-		s_message("block %p (out of %zu) allocated from:",
-			p, AU64_VALUE(&rb->alloc->blocks));
-		stacktrace_atom_decorate(stderr, rb->alloc->ast,
-			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
-	} else {
-		s_message("block %p allocated early (no frame)", p);
-	}
-#endif	/* MALLOC_FRAMES */
+	malloc_log_realblock_alloc_stack(p, rb);
 }
 #endif	/* MALLOC_LEAK_ALL */
 
@@ -1730,27 +1845,16 @@ malloc_not_leaking(const void *o)
 	 * we do not know anything about.
 	 */
 
-	if (hash_table_lookup(reals, o)) {
+	if (hash_table_lookup(reals, malloc_header_from_arena(o))) {
 		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
 		goto done;
 	}
-
-#ifdef MALLOC_SAFE_HEAD
-	{
-		const void *p = malloc_header_from_arena(o);
-		if (hash_table_lookup(reals, p)) {
-			hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
-			goto done;
-		}
-	}
-#endif	/* MALLOC_SAFE_HEAD */
 
 	if (blocks != NULL && hash_table_lookup(blocks, o)) {
 		hash_table_insert(not_leaking, o, GINT_TO_POINTER(1));
 		goto done;
 	}
 
-#ifdef MALLOC_VTABLE
 	/*
 	 * With MALLOC_VTABLE we should track most of the allocations, it may
 	 * be worth noting the usage of NOT_LEAKING() calls that are made on
@@ -1759,35 +1863,9 @@ malloc_not_leaking(const void *o)
 
 	s_warning("MALLOC asked to ignore leaks on unknown address %p", o);
 	stacktrace_where_print(stderr);
-#endif
 
 done:
 	return deconstify_pointer(o);
-}
-
-/**
- * Allocate and fill tracking block, used by TRACK_MALLOC.
- *
- * @return allocated block.
- */
-static struct block *
-malloc_new_track_block(const char *file, int line, size_t size, bool owned)
-{
-	struct block *b = libc_calloc(1, sizeof *b);
-
-	if (NULL == b)
-		s_error("%s(): unable to allocate %zu bytes", G_STRFUNC, sizeof *b);
-
-	b->file  = short_filename(deconstify_pointer(file));
-	b->line  = line;
-	b->size  = size;
-	b->stid  = thread_safe_small_id();
-	b->owned = owned;
-#ifdef MALLOC_TIME
-	b->ttime = tm_time();
-#endif
-
-	return b;
 }
 
 /**
@@ -1978,8 +2056,11 @@ free_record(const void *o, const char *file, int line)
 		return FALSE;
 
 	if (blocks == NULL || !(hash_table_lookup_extended(blocks, o, &k, &v))) {
-		if (hash_table_lookup(reals, o))
+		if (hash_table_lookup(reals, o)) {
+			s_warning("%s(): block %p is untracked by listed as real block",
+				G_STRFUNC, o);
 			return FALSE;
+		}
 
 		if (block_is_dead(o, 4))
 			s_error("MALLOC (%s:%d) duplicate free of %p", file, line, o);
@@ -3705,14 +3786,19 @@ malloc_close(void)
 	alloc_dump(stderr, TRUE);
 #endif
 
+	g_message("checking for block corruption...");
+	malloc_check_allocations(NULL);
+
+	g_message("computing leak information...");
+
+	leaksort = leak_init();
+	hash_table_copy_foreach(blocks, malloc_log_block, leaksort);
+
 	/*
 	 * We can't iterate on "reals" and fill "leaksort" without affecting
 	 * the table since real_*() routines are used to allocate memory.
 	 * That is why we're using hash_table_copy_foreach().
 	 */
-
-	leaksort = leak_init();
-	hash_table_copy_foreach(blocks, malloc_log_block, leaksort);
 
 #ifdef MALLOC_LEAK_ALL
 	hash_table_copy_foreach(reals, malloc_log_real_block, leaksort);
