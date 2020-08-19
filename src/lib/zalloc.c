@@ -236,7 +236,9 @@ static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
 static hash_table_t *not_leaking;
 static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
+#ifndef REMAP_ZALLOC
 static spinlock_t zleak_lock = SPINLOCK_INIT;
+#endif
 #define ZLEAK_LOCK		spinlock(&zleak_lock)
 #define ZLEAK_UNLOCK	spinunlock(&zleak_lock)
 #endif
@@ -407,6 +409,7 @@ zalloc_overhead(void)
 	return OVH_LENGTH;
 }
 
+#ifndef REMAP_ZALLOC
 /**
  * @return static thread-private verbose description of zone, for debugging clues.
  */
@@ -437,6 +440,7 @@ z2str(const zone_t *zone)
 
 	return b;
 }
+#endif	/* !REMAP_ZALLOC */
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
