@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
-: $X-Id$
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-36]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-COMMON_LIBS =  $libs
-GLIB_CFLAGS =  $glibcflags
 GLIB_LDFLAGS =  $glibldflags
 SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stat-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
 DBUS_CFLAGS =  $dbuscflags
+COMMON_LIBS =  $libs
+GLIB_CFLAGS =  $glibcflags
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stat-test.o  thread-test.o
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -75,7 +75,7 @@ DBUS_CFLAGS =  $dbuscflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id$
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -237,6 +237,7 @@ LSRC = \
 	http_range.c \
 	idtable.c \
 	inputevt.c \
+	iovec.c \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
@@ -444,6 +445,7 @@ LOBJ = \
 	http_range.o \
 	idtable.o \
 	inputevt.o \
+	iovec.o \
 	iprange.o \
 	ipset.o \
 	iso3166.o \

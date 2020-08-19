@@ -852,6 +852,7 @@ src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
 src/lib/inputevt.h
+src/lib/iovec.c
 src/lib/iovec.h
 src/lib/iprange.c
 src/lib/iprange.h

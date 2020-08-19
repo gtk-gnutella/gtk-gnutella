@@ -39,24 +39,9 @@
 
 #include "common.h"
 
-#include "xmalloc.h"
-
-/**
- * Allocates an array of "struct iov" elements.
- * @param n The desired array length in elements.
- */
-static inline iovec_t *
-iov_alloc_n(size_t n)
-{
-	iovec_t *iov;
-
-	if (n > (size_t) -1 / sizeof *iov) {
-		g_assert_not_reached(); /* We don't want to handle failed allocations */
-		return NULL;
-	}
-	XMALLOC0_ARRAY(iov, n);
-	return iov;
-}
+iovec_t *iov_alloc_n(size_t n);
+void iov_free(iovec_t *iov);
+size_t iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s);
 
 static inline iovec_t
 iov_get(void *base, size_t size)
@@ -68,15 +53,6 @@ iov_get(void *base, size_t size)
 	iovec_set_base(&iov, base);
 	iovec_set_len(&iov, size);
 	return iov;
-}
-
-/**
- * Free array of "struct iov" elements allocated via iov_alloc_n().
- */
-static inline void
-iov_free(iovec_t *iov)
-{
-	xfree(iov);
 }
 
 /**
@@ -215,52 +191,6 @@ iov_calculate_size(const iovec_t *iov, size_t iov_cnt)
 		size += n;
 	}
 	return size;
-}
-
-/**
- * Scatters a NUL-terminated string over an array of struct iovec buffers. The
- * trailing buffer space is zero-filled. If the string is too long, it is
- * truncated, so that there is a terminating NUL in any case, except if the
- * buffer space is zero.
- *
- * @param iov An array of initialized memory buffers.
- * @param iov_cnt The array length of iov.
- * @return The amount of bytes copied excluding the terminating NUL.
- */
-static inline size_t
-iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s)
-{
-	size_t i, len, avail, size;
-
-	g_assert(iov);
-	g_assert(s);
-
-	/* Reserve one byte for the trailing NUL */
-	size = iov_calculate_size(iov, iov_cnt);
-	len = vstrlen(s);
-	if (len >= size) {
-		len = size > 0 ? (size - 1) : 0;
-	}
-	avail = len;
-
-	for (i = 0; i < iov_cnt; i++) {
-		size_t n;
-
-		n = MIN(iovec_len(&iov[i]), avail);
-		memmove(iovec_base(&iov[i]), s, n);
-		avail -= n;
-		s += n;
-		if (0 == avail) {
-			iov_clear(&iov[i], n);
-			i++;
-			break;
-		}
-	}
-	while (i < iov_cnt) {
-		iov_clear(&iov[i], 0);
-		i++;
-	}
-	return len;
 }
 
 #endif /* _lib_iovec_h_ */
