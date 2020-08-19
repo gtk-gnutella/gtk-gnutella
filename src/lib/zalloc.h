@@ -139,9 +139,7 @@ void *zalloc_track(zone_t *z, const char *file, int line);
 void zalloc_shift_pointer(const void *allocated, const void *used);
 #endif
 
-#if defined(TRACK_MALLOC) && !defined(REMAP_ZALLOC)
 bool zalloc_zone_info(const void *p, size_t *size);
-#endif
 
 #endif /* _zalloc_h_ */
 

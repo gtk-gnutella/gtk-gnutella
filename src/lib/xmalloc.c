@@ -7185,7 +7185,6 @@ xmalloc_dump_stats(void)
 	xmalloc_dump_freelist_log(log_agent_stderr_get());
 }
 
-#ifdef TRACK_MALLOC
 /*
  * Identify whether address is that of an xmalloc() block.
  *
@@ -7249,7 +7248,6 @@ probable_xmalloc:
 
 	return TRUE;		/* Have to assume it's possible! */
 }
-#endif	/* TRACK_MALLOC */
 
 #ifdef XMALLOC_IS_MALLOC
 /***
