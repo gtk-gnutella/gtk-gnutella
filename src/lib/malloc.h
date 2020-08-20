@@ -125,8 +125,6 @@
 
 #endif	/* !XMALLOC_SOURCE */
 
-#undef XCOPY
-#define XCOPY(p)	malloc_copy_track(e_xmalloc, p, sizeof *p, _WHERE_, __LINE__)
 #define xcopy(p,s)	malloc_copy_track(e_xmalloc, (p), (s), _WHERE_, __LINE__)
 
 /* FIXME: This is only correct if xmlFree() is equivalent to free(). */

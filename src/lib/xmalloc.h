@@ -193,6 +193,7 @@ size_t xpallocated(const void *p);
 bool xmalloc_block_info(const void *p, uint *tid, size_t *len);
 #endif
 
+#ifndef TRACK_MALLOC
 static inline void * G_MALLOC G_NON_NULL
 xcopy(const void *p, size_t size)
 {
@@ -200,6 +201,7 @@ xcopy(const void *p, size_t size)
 	memcpy(cp, p, size);
 	return cp;
 }
+#endif	/* !TRACK_MALLOC */
 
 #define XCOPY(p)	xcopy(p, sizeof *p)
 
