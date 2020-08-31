@@ -252,6 +252,18 @@ tm_precise_elapsed_f(const tm_nano_t *t1, const tm_nano_t *t0)
 	return tmn2f(&elapsed);
 }
 
+/**
+ * Computes the elapsed time (t1 - t0) and return duration in nanoseconds.
+ */
+static inline long
+tm_precise_elapsed_ns(const tm_nano_t *t1, const tm_nano_t *t0)
+{
+	tm_nano_t elapsed;
+
+	tm_precise_elapsed(&elapsed, t1, t0);
+	return tmn2ns(&elapsed);
+}
+
 extern tm_t tm_cached_now;			/* Currently cached time */
 
 /**
