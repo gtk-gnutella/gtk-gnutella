@@ -40,6 +40,8 @@
 
 #include "common.h"
 
+#include "pow2.h"
+
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
  * <bitstring.h> could be used for better efficiency.
@@ -50,6 +52,7 @@
 typedef unsigned long bit_array_t;
 
 #if LONG_MAX == 0x7fffffffL
+#define BIT_ARRAY_SETCOUNT(w)	bits_set32(w)
 #if CHAR_BIT == 8
 #define BIT_ARRAY_BITSHIFT	(2 + 3)
 #elif CHAR_BIT == 16
@@ -58,6 +61,7 @@ typedef unsigned long bit_array_t;
 #error "Unsupported size of char"
 #endif	/* CHAR_BIT */
 #elif (ULONG_MAX >> 31) > 0xffffffffUL
+#define BIT_ARRAY_SETCOUNT(w)	bits_set64(w)
 #if CHAR_BIT == 8
 #define BIT_ARRAY_BITSHIFT	(3 + 3)
 #elif CHAR_BIT == 16
@@ -69,7 +73,8 @@ typedef unsigned long bit_array_t;
 
 #define BIT_ARRAY_BITSIZE		(CHAR_BIT * sizeof(bit_array_t))
 #define BIT_ARRAY_BITMASK		(BIT_ARRAY_BITSIZE - 1)
-#define BIT_ARRAY_WORD(base, i)	base[(i) >> BIT_ARRAY_BITSHIFT]
+#define BIT_ARRAY_IDX(i)		((i) >> BIT_ARRAY_BITSHIFT)
+#define BIT_ARRAY_WORD(base, i)	base[BIT_ARRAY_IDX(i)]
 #define BIT_ARRAY_BIT(i)		(1UL << ((i) & BIT_ARRAY_BITMASK))
 
 ;# vi: set ts=4 sw=4 syn=c cindent:

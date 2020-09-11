@@ -281,4 +281,70 @@ bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to)
 	return (size_t) -1;
 }
 
+/**
+ * Peforms a linear scan of the bit <generic> to count set bits within given range.
+ *
+ * @param base	The base address of the bit <generic> which must be initialized.
+ * @param from	The first bit.
+ * @param to	The last bit, must be equal to or above "from".
+ *
+ * @return the amount of set bits between from and to, inclusive.
+ */
+size_t
+bit_generic_count_set(const bit_generic_t *base, size_t from, size_t to)
+{
+	size_t i, cnt = 0;
+
+	g_assert(from <= to);
+
+	for (i = from; i <= to; /* NOTHING */) {
+		/* Handle the first word if `i' is not 0 modulo the word size */
+
+		if (0 != (i & BIT_GENERIC_BITMASK)) {
+			bit_generic_t word = BIT_GENERIC_WORD(base, i);
+			bit_generic_t mask = BIT_GENERIC_BIT(i) - 1;
+
+			word &= ~mask;		/* Clear all bits before `i' in word */
+
+			if (BIT_GENERIC_IDX(i) == BIT_GENERIC_IDX(to)) {
+				mask = BIT_GENERIC_BIT(to) + (BIT_GENERIC_BIT(to) - 1);
+				word &= mask;	/* Clear all bits above `to' in word */
+			}
+
+			cnt += BIT_GENERIC_SETCOUNT(word);
+			i   += BIT_GENERIC_BITSIZE - (i & BIT_GENERIC_BITMASK);
+
+			g_assert(0 == (i & BIT_GENERIC_BITMASK));
+		} else {
+			size_t n = (to - i) >> BIT_GENERIC_BITSHIFT;
+			size_t j = BIT_GENERIC_IDX(i);
+
+			/* Handle whole words between `i' and `to' */
+
+			while (n--) {
+				cnt += BIT_GENERIC_SETCOUNT(base[j++]);
+				i   += BIT_GENERIC_BITSIZE;
+			}
+
+			/* Handle trailing word where `to' lies */
+
+			g_assert(0 == (i & BIT_GENERIC_BITMASK));
+			g_assert(implies(i <= to, to - i < BIT_GENERIC_BITSIZE));
+
+			if (i <= to) {
+				bit_generic_t word = BIT_GENERIC_WORD(base, i);
+				bit_generic_t mask =
+					BIT_GENERIC_BIT(to) + (BIT_GENERIC_BIT(to) - 1);
+
+				g_assert(BIT_GENERIC_IDX(i) == BIT_GENERIC_IDX(to));
+
+				word &= mask;	/* Clear all bits above `to' in word */
+				cnt += BIT_GENERIC_SETCOUNT(word);
+				i   += BIT_GENERIC_BITSIZE;
+			}
+		}
+	}
+
+	return cnt;
+}
 /* vi: set ts=4 sw=4 syn=c cindent: */

@@ -50,6 +50,8 @@
 
 #include "common.h"
 
+#include "pow2.h"
+
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
  * <bitstring.h> could be used for better efficiency.
@@ -62,7 +64,9 @@ typedef uint8 bit_field_t;
 #define BIT_FIELD_BITSHIFT		3
 #define BIT_FIELD_BITSIZE		(8 * sizeof(bit_field_t))
 #define BIT_FIELD_BITMASK		(BIT_FIELD_BITSIZE - 1)
-#define BIT_FIELD_WORD(base, i)	base[(i) >> BIT_FIELD_BITSHIFT]
+#define BIT_FIELD_IDX(i)		((i) >> BIT_FIELD_BITSHIFT)
+#define BIT_FIELD_WORD(base, i)	base[BIT_FIELD_IDX(i)]
 #define BIT_FIELD_BIT(i)		(1UL << ((i) & BIT_FIELD_BITMASK))
+#define BIT_FIELD_SETCOUNT(w)	bits_set(w)
 
 ;# vi: set ts=4 sw=4 syn=c cindent:
