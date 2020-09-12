@@ -72,9 +72,11 @@
 #include "common.h"
 
 #include "waiter.h"
+
 #include "elist.h"
 #include "fd.h"
 #include "spinlock.h"
+#include "stringify.h"			/* For PLURAL_CHILD() */
 #include "thread.h"				/* For thread_assert_no_locks() */
 #include "walloc.h"
 
@@ -525,7 +527,7 @@ waiter_ack(waiter_t *w)
 		G_STRFUNC, w, mw,
 		mw->m_notified ? 'y' : 'n',
 		mw->m_blocking ? 'y' : 'n',
-		mw->children, 1 == mw->children ? "" : "ren",
+		PLURAL_CHILD(mw->children),
 		elist_count(&mw->idle), elist_count(&mw->active));
 
 	if (w->notified) {

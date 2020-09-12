@@ -223,6 +223,13 @@ plural_f(const unsigned long v)
 	return 1 == v ? "f" : "ves";
 }
 
+/* Plural of "child" */
+static inline const char *
+plural_child(const unsigned long v)
+{
+	return 1 == v ? "" : "ren";
+}
+
 /*
  * Convenience macros to supply both the quantity argument and
  * the correct plural, in formatting arguments.
@@ -238,6 +245,7 @@ plural_f(const unsigned long v)
 #define PLURAL_Y(n)		(n), plural_y(n)
 #define PLURAL_ES(n)	(n), plural_es(n)
 #define PLURAL_F(n)		(n), plural_f(n)
+#define PLURAL_CHILD(n)	(n), plural_child(n)
 
 #endif /* _stringify_h_ */
 

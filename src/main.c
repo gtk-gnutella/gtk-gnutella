@@ -2135,7 +2135,7 @@ main_supervise(void)
 		children++;
 		aging_record(ag, ulong_to_pointer(children));
 		setproctitle("supervisor, %lu child%s launched",
-			children, 1 == children ? "" : "ren");
+			PLURAL_CHILD(children));
 
 		s_info("launched child #%lu as PID %lu", children, (ulong) pid);
 
@@ -2152,7 +2152,7 @@ main_supervise(void)
 
 		if (0 == status) {
 			s_info("supervisor exiting, launched %lu child%s over %s",
-				children, 1 == children ? "" : "ren",
+				PLURAL_CHILD(children),
 				short_time_ascii(delta_time(end, progstart_time().tv_sec)));
 			exit(EXIT_SUCCESS);
 		}
@@ -2164,7 +2164,7 @@ main_supervise(void)
 
 done:
 	s_info("supervisor exiting on failure, launched %lu child%s over %s",
-		children, 1 == children ? "" : "ren",
+		PLURAL_CHILD(children),
 		short_time_ascii(delta_time(tm_time_exact(), progstart_time().tv_sec)));
 
 	exit(EXIT_FAILURE);
