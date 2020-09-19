@@ -60,6 +60,10 @@ src/lib/pattern-test
 src/lib/stack-test
 src/lib/stat-test
 
+# Regular expression support
+src/lib/re-test
+src/lib/trie-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 
