@@ -184,7 +184,20 @@ u32_ptr_hash2(uint32 v)
 
 /**
  * Fast inlined hashing of integers.
- *
+ * The identity function makes a poor hash for consecutive integers.
+ */
+static inline ALWAYS_INLINE unsigned
+uint_hash(uint v)
+{
+#if INTSIZE <= 4
+	return u32_hash(v);
+#else
+	return u32_hash(v) + u32_hash(v >> 32);
+#endif
+}
+
+/**
+ * Fast inlined hashing of integers.
  * The identity function makes a poor hash for consecutive integers.
  */
 static inline ALWAYS_INLINE unsigned
