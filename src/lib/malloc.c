@@ -1517,7 +1517,7 @@ real_check_free(void *p)
  * Log information about address that we can gather by probing the various
  * layers which can allocate memory.  This could give insight about the problem.
  */
-static void
+static void G_UNUSED	/* Not always used by conditional scenarios */
 malloc_address_log_info(const void *p)
 {
 	size_t size;
@@ -1551,7 +1551,7 @@ malloc_address_log_info(const void *p)
  * Calls real free(), no tracking.
  * Block must have been allocated via real_malloc().
  */
-static void
+static void G_UNUSED	/* Not always used by conditional scnearios */
 real_free(void *p)
 {
 	bool owned = FALSE;
@@ -1667,6 +1667,7 @@ real_free(void *p)
 			}
 		}
 	}
+#endif	/* TRACK_MALLOC || MALLOC_VTABLE */
 
 #ifdef MALLOC_SAFE
 	/*
@@ -1687,11 +1688,10 @@ real_free(void *p)
 	{
 		libc_free(p);	/* NOT g_free(): would recurse if MALLOC_VTABLE */
 	}
-#ifdef TRACK_MALLOC
+#ifndef MALLOC_SAFE
 	(void) owned;		/* Avoid compiler warning */
 #endif
 }
-#endif	/* TRACK_MALLOC || TRACK_VMM */
 #endif /* TRACK_MALLOC || TRACK_ZALLOC || TRACK_VMM || MALLOC_VTABLE */
 
 #if defined(TRACK_MALLOC) || defined(TRACK_VMM)

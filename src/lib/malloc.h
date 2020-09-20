@@ -372,6 +372,8 @@ void alloc_reset(FILE *f, bool total);
 
 #ifdef MALLOC_FRAMES
 
+#include "atomic.h"		/* For AU64 */
+
 #define FRAME_DEPTH_MAX	128
 #define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
 
