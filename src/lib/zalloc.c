@@ -247,7 +247,7 @@ static leak_set_t *z_leakset;
 #endif
 
 /*
- * Optional additional overhead at the beginning of each block:
+ * Optional additional overhead at the beginning of each allocated block:
  *
  *  +---------------------+ <---- OVH_ZONE_SAFE_OFFSET   ^
  *  | BLOCK_USED magic    | ZONE_SAFE                    | OVH_ZONE_SAFE_LEN
@@ -720,7 +720,12 @@ zprepare(zone_t *zone, char **blk)
 	(void) zone;
 #ifdef ZONE_SAFE
 	*blk++ = BLOCK_USED;
-	*blk++ = (char *) zone;
+	/* Blocks are tagged via zfmark() at cramming time */
+	if G_UNLIKELY(*blk != (char *) zone) {
+		s_error("free block %p corrupted in %zu-byte zone %p (tag is %p)",
+			blk - 1, zone_size(zone), zone, *blk);
+	}
+	blk++;
 #endif
 #ifdef TRACK_ZALLOC
 	blk = ptr_add_offset(blk, OVH_TRACK_LEN);
@@ -1098,7 +1103,7 @@ zalloc_shift_pointer(const void *allocated, const void *used)
  * the wrong zone and that the block is indeed still allocated.
  *
  * @param zone		the zone to which the pointer must belong
- * @param ptr		address of block
+ * @param ptr		address of block (user pointer, past our overhead)
  * @param what		what we are trying to do ("free block", "move block", ...)
  */
 #ifdef ZONE_SAFE
@@ -1129,6 +1134,28 @@ zcheck(zone_t *zone, void *ptr, const char *what)
 }
 #else	/* !ZONE_SAFE */
 #define zcheck(z,p,w)
+#endif	/* ZONE_SAFE */
+
+/**
+ * Mark that (free) block belongs to a given zone during zone cramming.
+ *
+ * @param zone		the zone to which the pointer must belong
+ * @param ptr		physical address of block (start of overhead)
+ *
+ * @return pointer to start of block as a convenience.
+ */
+#ifdef ZONE_SAFE
+static inline void *
+zfmark(const zone_t *zone, void *ptr)
+{
+	char **tmp = ptr;	/* We're given the start of a physical block */
+
+	tmp[1] = (char *) zone;
+
+	return ptr;
+}
+#else	/* !ZONE_SAFE */
+#define zfmark(z,p)		cast_to_void_ptr(p)
 #endif	/* ZONE_SAFE */
 
 /**
@@ -1324,10 +1351,10 @@ zn_cram(const zone_t *zone, void *arena, size_t len)
 
 	while (ptr_cmp(&p[size], last) <= 0) {
 		blocks++;
-		next = cast_to_void_ptr(p);
+		next = zfmark(zone, p);
 		p = *next = &p[size];
 	}
-	next = cast_to_void_ptr(p);
+	next = zfmark(zone, p);
 	*next = NULL;
 
 	return blocks;
