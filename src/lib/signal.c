@@ -42,6 +42,7 @@
 #include "dl_util.h"
 #include "glib-missing.h"       /* For g_strlcpy() */
 #include "log.h"
+#include "mem.h"
 #include "misc.h"
 #include "mutex.h"
 #include "once.h"
@@ -1323,6 +1324,21 @@ sig_exception_format(char *dest, size_t size,
 	case SIGSEGV:
 		str_catf(&s, " for VA=%p", si->si_addr);
 		pc = sig_get_pc(u);
+#ifdef SEGV_ACCERR
+		if (
+			!recursive &&
+			SEGV_ACCERR == si->si_code &&
+			mem_protection_testable()
+		) {
+			int prot = mem_protection(si->si_addr);
+			char pstr[3] = { '-', '-', '\0' };
+			if (prot & MEM_PROT_READ)
+				pstr[0] = 'r';
+			if (prot & MEM_PROT_WRITE)
+				pstr[1] = 'w';
+			str_catf(&s, " [%s]", pstr);
+		}
+#endif	/* SEGV_ACCERR */
 		break;
 #ifdef SIGTRAP
 	case SIGTRAP:
@@ -1484,7 +1500,7 @@ signal_trap_with(int signo, signal_handler_t handler, bool extra)
 
 	STATIC_ASSERT(SIGNAL_COUNT == N_ITEMS(signal_handler));
 
-	if G_UNLIKELY(!ONCE_DONE(signal_inited))
+	if G_UNLIKELY(!ONCE_DONE(signal_chunk_inited))
 		signal_init();
 
 	SIGNAL_LOCK;
@@ -1886,6 +1902,8 @@ signal_init_chunk_once(void)
 	 */
 
 	sig_chunk = ck_init_not_leaking(SIGNAL_CHUNK_SIZE, SIGNAL_CHUNK_RESERVE);
+
+	mem_test();
 }
 
 /**
@@ -1931,6 +1949,7 @@ void
 signal_init(void)
 {
 	once_flag_run(&signal_inited, signal_init_once);
+
 	if (thread_main_has_started())
 		once_flag_run(&signal_chunk_inited, signal_init_chunk_once);
 }
