@@ -1323,6 +1323,10 @@ sig_exception_format(char *dest, size_t size,
 #endif
 	case SIGSEGV:
 		str_catf(&s, " for VA=%p", si->si_addr);
+		{
+			const void *page = vmm_page_start(si->si_addr);
+			str_catf(&s, " {PA=%p+%zd}", page, ptr_diff(si->si_addr, page));
+		}
 		pc = sig_get_pc(u);
 #ifdef SEGV_ACCERR
 		if (
