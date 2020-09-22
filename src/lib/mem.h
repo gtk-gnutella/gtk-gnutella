@@ -55,6 +55,8 @@ bool mem_is_writable(const void *p);
 bool mem_is_writable_range(const void *p, size_t len);
 
 void mem_test(void);
+bool mem_validity_testable(void);
+bool mem_protection_testable(void);
 
 /*
  * Convenience aliases, for symetry with mem_is_writable().
