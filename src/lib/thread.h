@@ -276,6 +276,9 @@ void thread_stack_check_overflow(const void *va);
 ssize_t thread_stack_diff(const void *sp) G_PURE;
 void thread_stack_check(void);
 
+void thread_suspend(int stid);
+void thread_unsuspend(int stid);
+
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
 bool thread_check_suspended(void);

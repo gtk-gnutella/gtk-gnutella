@@ -5211,6 +5211,53 @@ thread_lock_disable(bool silent)
 }
 
 /**
+ * Suspend specific thread, without waiting for it to clear its locks.
+ *
+ * @param stid	the thread to suspend
+ */
+void
+thread_suspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to suspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	atomic_int_inc(&xte->suspend);
+}
+
+/**
+ * Unsuspend specific thread.
+ *
+ * @param stid	the thread to unsuspend
+ */
+void
+thread_unsuspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to unsuspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	if (atomic_int_dec(&xte->suspend) <= 0)
+		s_error("%s(): %s was not suspended", G_STRFUNC, thread_id_name(stid));
+}
+
+/**
  * Suspend other threads (advisory, not kernel-enforced).
  *
  * This is voluntary suspension, which will only occur when threads actively
