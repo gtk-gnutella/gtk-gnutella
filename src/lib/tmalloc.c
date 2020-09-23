@@ -290,6 +290,9 @@ struct tmalloc_depot {
 
 	/* statistics */
 	struct tmalloc_stats tma_stats;
+
+	/* flags */
+	uint tma_protected:1;		/* Whether objects (pages) can be protected */
 };
 
 static inline void
@@ -602,6 +605,9 @@ tmalloc_magazine_free(tmalloc_t *d, tmalloc_magazine_t *m)
 		 * Chain the objects to free using their first pointer.
 		 */
 
+		if (d->tma_protected)
+			vmm_validate(p, d->tma_size);
+
 		if G_UNLIKELY(NULL == tail) {
 			head = tail = p;
 		} else {
@@ -700,6 +706,8 @@ tmalloc_magazine_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 
 	while (m->tmag_count != 0) {
 		void **p = m->tmag_objects[--m->tmag_count];
+		if (d->tma_protected)
+			vmm_validate(p, d->tma_size);
 		*p = d->tma_obj_trash;
 		d->tma_obj_trash = p;
 		d->tma_obj_trash_count++;
@@ -791,6 +799,8 @@ tmalloc_depot_return_empty(tmalloc_t *d, tmalloc_magazine_t *m)
 				d->tma_obj_trash = *p;	/* Next in the chain */
 				d->tma_obj_trash_count--;
 				fm->tmag_objects[fm->tmag_count++] = p;
+				if (d->tma_protected)
+					vmm_invalidate(p, d->tma_size);
 			}
 
 			g_assert(size_is_non_negative(d->tma_obj_trash_count));
@@ -1037,6 +1047,9 @@ tmalloc_depot_trash(tmalloc_t *d, void *p)
 	g_assert(size_is_non_negative(d->tma_obj_trash_count));
 	g_assert((NULL == d->tma_obj_trash) == (0 == d->tma_obj_trash_count));
 	tmalloc_trash_list_check(d);
+
+	if (d->tma_protected)
+		vmm_validate(p, d->tma_size);
 
 	*(void **) p = d->tma_obj_trash;
 	d->tma_obj_trash = p;
@@ -2701,7 +2714,9 @@ tmalloc_magazine_contains(const tmalloc_magazine_t *mag, const void *p)
 	tmalloc_magazine_check(mag);
 
 	count = mag->tmag_count;
-	g_assert(count >= 0 && count < mag->tmag_capacity);
+	g_assert_log(count >= 0 && count <= mag->tmag_capacity,
+		"%s(): count=%d, mag->tmag_capacity=%d",
+		G_STRFUNC, count, mag->tmag_capacity);
 
 	for (i = 0; i < count; i++) {
 		if (mag->tmag_objects[i] == p)
@@ -2844,6 +2859,20 @@ done:
 	TMALLOC_UNLOCK(tma);
 
 	return found;
+}
+
+/**
+ * Set or clear the `protected' flag indicating whether object memory can
+ * be invalidated when put back to magazines.
+ */
+void
+tmalloc_set_protected(tmalloc_t *tma, bool flag)
+{
+	tmalloc_check(tma);
+
+	TMALLOC_LOCK(tma);
+	tma->tma_protected = booleanize(flag);
+	TMALLOC_UNLOCK(tma);
 }
 
 /**

@@ -296,6 +296,7 @@ allocated:
 	vr->allocations++;
 	spinunlock(&vr->lock);
 	vmea_stacktrace(size, TRUE);
+	vmm_validate(p, size);
 	return p;
 }
 
@@ -347,6 +348,8 @@ vmea_free(void *p, size_t size)
 		/*
 		 * We found memory that falls within the emergency region.  Free it!
 		 */
+
+		vmm_invalidate(p, size);
 
 		n = vmm_page_count(size);
 		first = vmm_page_count(ptr_diff(p, vr->memory));

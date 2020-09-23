@@ -173,6 +173,13 @@ void *vmm_mmap(void *addr, size_t length,
 	int prot, int flags, int fd, fileoffset_t offset);
 int vmm_munmap(void *addr, size_t length);
 
+/*
+ * These rely on the definition of some internal options in lib/vmm.c.
+ * By default, they are doing nothing.
+ */
+void vmm_validate(void *p, size_t size);
+void vmm_invalidate(void *p, size_t size);
+
 #define VMM_FREE_NULL(p, size) \
 G_STMT_START { \
 	if (p) { \

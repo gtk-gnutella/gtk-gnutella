@@ -1776,10 +1776,11 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 	}
 }
 
-static void
+static inline void
 vmm_validate_pages(void *p, size_t size)
 {
-	g_assert(p);
+	g_assert(p != NULL);
+	g_assert(page_start(p) == p);
 	g_assert(size_is_positive(size));
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_READ | PROT_WRITE);
@@ -1790,10 +1791,21 @@ vmm_validate_pages(void *p, size_t size)
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
 }
 
-static void
+/**
+ * Validate page by ensuring `size' bytes starting at `p' are
+ * both readable and writable.
+ */
+void
+vmm_validate(void *p, size_t size)
+{
+	vmm_validate_pages(p, size);
+}
+
+static inline void
 vmm_invalidate_pages(void *p, size_t size)
 {
-	g_assert(p);
+	g_assert(p != NULL);
+	g_assert(page_start(p) == p);
 	g_assert(size_is_positive(size));
 
 	if (G_UNLIKELY(stop_freeing))
@@ -1805,6 +1817,16 @@ vmm_invalidate_pages(void *p, size_t size)
 #ifdef VMM_INVALIDATE_FREE_PAGES
 	vmm_madvise_free(p, size);
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
+/**
+ * Invalidate pages, ensuring that any acccess to `size' bytes starting
+ * at `p' will result in a page fault (SIGSEGV with "invalid access").
+ */
+void
+vmm_invalidate(void *p, size_t size)
+{
+	vmm_invalidate_pages(p, size);
 }
 
 /**
@@ -3045,6 +3067,7 @@ success:
 					free_pages_intern(p, size, TRUE);
 				}
 				p = t;		/* Superseded by magazine allocation */
+				vmm_validate_pages(p, size);
 			}
 		}
 	}
@@ -4818,6 +4841,7 @@ success:
 					free_pages(p, size, TRUE);
 				}
 				p = t;	/* Allocated from magazines */
+				vmm_validate_pages(p, size);
 			}
 		}
 	}
@@ -5192,7 +5216,17 @@ vmm_magazine_alloc(size_t npages, bool zero)
 		vmm_stats.allocations_zeroed++;
 	VMM_STATS_UNLOCK;
 
+#if defined(VMM_PROTECT_FREE_PAGES) || defined(VMM_INVALIDATE_FREE_PAGES)
+	{
+		void *p = tmalloc(depot);
+		vmm_validate_pages(p, nsize_fast(npages));
+		if (zero)
+			memset(p, 0, nsize_fast(npages));
+		return p;
+	}
+#else
 	return zero ? tmalloc0(depot) : tmalloc(depot);
+#endif	/* VMM_PROTECT_FREE_PAGES || VMM_INVALIDATE_FREE_PAGES */
 }
 #endif	/* TRACK_MALLOC */
 
@@ -5304,6 +5338,7 @@ vmm_free(void *p, size_t size)
 			vmm_stats.magazine_freeings++;
 			VMM_STATS_UNLOCK;
 
+			vmm_invalidate_pages(p, size);
 			tmfree(depot, p);
 			return;
 		}

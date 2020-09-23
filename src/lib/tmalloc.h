@@ -121,6 +121,8 @@ bool tmalloc_contains(tmalloc_t *tma, const void *p, bool other);
 struct pslist;
 struct eslist;
 
+void tmalloc_set_protected(tmalloc_t *tma, bool flag);
+
 void *tmalloc(tmalloc_t *tma) G_MALLOC G_NON_NULL;
 void *tmalloc0(tmalloc_t *tma) G_MALLOC G_NON_NULL;
 void *tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
