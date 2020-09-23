@@ -2691,6 +2691,162 @@ tmalloc_smart(tmalloc_t *tma, tmalloc_better_fn_t cb, const void *p)
 }
 
 /**
+ * Check whether given magazine contains the specified pointer.
+ */
+static bool
+tmalloc_magazine_contains(const tmalloc_magazine_t *mag, const void *p)
+{
+	int count, i;
+
+	tmalloc_magazine_check(mag);
+
+	count = mag->tmag_count;
+	g_assert(count >= 0 && count < mag->tmag_capacity);
+
+	for (i = 0; i < count; i++) {
+		if (mag->tmag_objects[i] == p)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * Check whether any of the magazines contain the pointer.
+ *
+ * @param tmt		the thread-specific TM allocator
+ * @param p			the pointer to check against
+ * @param local		whether this belongs to the local thread
+ *
+ * @return TRUE if we found the pointer listed
+ */
+static bool
+tmalloc_magazines_contains(const struct tmalloc_thread *tmt,
+	const void *p, bool local)
+{
+	bool found = FALSE;
+	size_t i;
+
+	tmalloc_thread_check(tmt);
+
+	if (!local) {
+		g_assert(tmt->tmt_stid != thread_small_id());
+		thread_suspend(tmt->tmt_stid);
+	}
+
+	for (i = 0; i < N_ITEMS(tmt->tmt_mag); i++) {
+		const tmalloc_magazine_t *mag = tmt->tmt_mag[i];
+
+		if (mag != NULL && tmalloc_magazine_contains(mag, p)) {
+			found = TRUE;
+			goto done;
+		}
+	}
+
+done:
+	if (!local)
+		thread_unsuspend(tmt->tmt_stid);
+
+	return found;
+}
+
+struct tmalloc_contains_ctx {
+	const void *p;
+	bool found;
+};
+
+/**
+ * Callback from thread_foreach_local() to check whether magazine contains
+ * the pointer.
+ */
+static void
+tmalloc_thread_contains(const void *data, void *udata)
+{
+	const struct tmalloc_thread *tmt = data;
+	struct tmalloc_contains_ctx *ctx = udata;
+
+	tmalloc_thread_check(tmt);
+
+	if (ctx->found)
+		return;
+
+	/* We're looking in magazines from foreign threads, be careful */
+
+	ctx->found = tmalloc_magazines_contains(tmt, ctx->p, FALSE);
+}
+
+/**
+ * Check whether allocator contains the given pointer.
+ *
+ * This is meant to be used by assertions, to detect double frees for instance.
+ *
+ * @note
+ * When `other' is TRUE, we also look at the magazines of other threads but
+ * because we do not lock them (there are no locks, these are thread-private
+ * data), we cannot be 100% certain that the pointer is not there.
+ *
+ * @param tma		the thread magazine allocator
+ * @param p			the pointer to check against
+ * @param other		whether to "look" at magazines from other threads (unsafe!)
+ *
+ * @return TRUE if we found the block in the magazine(s) or the depot.
+ */
+bool
+tmalloc_contains(tmalloc_t *tma, const void *p, bool other)
+{
+	const struct tmalloc_thread *tmt;
+	const tmalloc_magazine_t *m;
+	bool found = FALSE;
+
+	tmalloc_check(tma);
+	g_assert(p != NULL);
+
+	tmt = thread_local_get(tma->tma_key);
+
+	if (tmt != NULL) {
+		tmalloc_thread_check(tmt);
+		g_assert(tmt->tmt_depot == tma);
+
+		if (tmalloc_magazines_contains(tmt, p, TRUE))
+			return TRUE;
+	}
+
+	if (other) {
+		struct tmalloc_contains_ctx ctx;
+
+		ZERO(&ctx);
+		ctx.p = p;
+
+		thread_foreach_local(tma->tma_key,
+			THREAD_LOCAL_SKIP_SELF, tmalloc_thread_contains, &ctx);
+
+		if (ctx.found)
+			return TRUE;
+	}
+
+	TMALLOC_LOCK(tma);	/* Keeping it long enough, make it visible */
+
+	ESLIST_FOREACH_DATA(&tma->tma_full.tml_trash, m) {
+		if (tmalloc_magazine_contains(m, p)) {
+			found = TRUE;
+			goto done;
+		}
+	}
+
+	ESLIST_FOREACH_DATA(&tma->tma_full.tml_list, m) {
+		if (tmalloc_magazine_contains(m, p)) {
+			found = TRUE;
+			goto done;
+		}
+	}
+
+done:
+	TMALLOC_UNLOCK(tma);
+
+	return found;
+}
+
+/**
  * Allocate a new object.
  *
  * @param tma		the thread magazine allocator
