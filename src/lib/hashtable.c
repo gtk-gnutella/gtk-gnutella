@@ -140,6 +140,7 @@ struct hash_table {
 	unsigned once:1;			/* Object allocated using "once" memory */
 	unsigned self_keys:1;		/* Keys are self-representing */
 	unsigned fixed_size:1;		/* Table allocated statically */
+	unsigned resizing:1;		/* Table being resized */
 };
 
 /**
@@ -868,24 +869,32 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_table_t tmp;
 
 	g_assert(!ht->fixed_size);
+	g_assert(!ht->resizing);
+
+	ht->resizing = TRUE;
 
 	ZERO(&tmp);
 	hash_copy_flags(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq, NULL, 0);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 
+#define TMP_SWAP(x)		SWAP((void *) &ht->x, (void *) &tmp.x, sizeof ht->x)
+
 	g_assert(ht->num_held == tmp.num_held);
 
-	hash_table_reset(ht);
+	TMP_SWAP(bins);
+	TMP_SWAP(items);
+	TMP_SWAP(num_bins);
+	TMP_SWAP(num_items);
+	TMP_SWAP(bin_fill);
+	TMP_SWAP(bin_bits);
+	TMP_SWAP(free_list);
 
-	ht->bins = tmp.bins;
-	ht->items = tmp.items;
-	ht->num_bins = tmp.num_bins;
-	ht->num_items = tmp.num_items;
-	ht->num_held = tmp.num_held;
-	ht->bin_fill = tmp.bin_fill;
-	ht->bin_bits = tmp.bin_bits;
-	ht->free_list = tmp.free_list;
+	ht->resizing = FALSE;
+
+#undef TMP_SWAP
+
+	hash_table_reset(&tmp);
 }
 
 static inline void
@@ -925,6 +934,12 @@ hash_table_resize_on_insert(hash_table_t *ht)
 {
 	if (ht->num_held / HASH_ITEMS_PER_BIN < ht->num_bins)
 		return;
+
+	if (ht->resizing) {
+		if (ht->num_held == ht->num_bins)
+			s_error("%s(): hash table became full during resizing", G_STRFUNC);
+		return;
+	}
 
 	hash_table_resize(ht, ht->num_bins * 2);
 }
