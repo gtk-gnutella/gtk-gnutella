@@ -6502,7 +6502,11 @@ vmm_post_init(void)
 		unsigned non_default:1;
 		unsigned vmm_invalidate_free_pages:1;
 		unsigned vmm_protect_free_pages:1;
-	} settings = { FALSE, FALSE, FALSE };
+		unsigned vmm_pmap:1;
+		unsigned vmm_cache_free:1;
+		unsigned vmm_magazine_free:1;
+		unsigned vmm_log_ops:1;
+	} settings = { FALSE };
 
 	crash_hook_add(_WHERE_, vmm_crash_hook);
 
@@ -6518,13 +6522,37 @@ vmm_post_init(void)
 	settings.non_default = TRUE;
 	settings.vmm_protect_free_pages = TRUE;
 #endif
+#ifdef VMM_PMAP_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_pmap = TRUE;
+#endif
+#ifdef VMM_CACHE_FREE_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_cache_free = TRUE;
+#endif
+#ifdef VMM_MAGAZINE_FREE_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_magazine_free = TRUE;
+#endif
+#ifdef VMM_LOG_OPS
+	settings.non_default = TRUE;
+	settings.vmm_log_ops = TRUE;
+#endif
 
 	if (settings.non_default) {
-		s_message("VMM settings: %s%s",
+		s_message("VMM settings: %s%s%s%s%s%s",
+			settings.vmm_pmap ?
+				"VMM_PMAP_CHECK " : "",
+			settings.vmm_cache_free ?
+				"VMM_CACHE_FREE_CHECK " : "",
+			settings.vmm_magazine_free ?
+				"VMM_MAGAZINE_FREE_CHECK " : "",
+			settings.vmm_log_ops ?
+				"VMM_LOG_OPS " : "",
 			settings.vmm_invalidate_free_pages ?
-				"VMM_INVALIDATE_FREE_PAGES" : "",
+				"VMM_INVALIDATE_FREE_PAGES " : "",
 			settings.vmm_protect_free_pages ?
-				"VMM_PROTECT_FREE_PAGES" : "");
+				"VMM_PROTECT_FREE_PAGES " : "");
 	}
 
 	if (vmm_debugging(0)) {
