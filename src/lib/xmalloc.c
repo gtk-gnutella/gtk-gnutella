@@ -111,7 +111,9 @@
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
 
-#if 8 == XMALLOC_ALIGNBYTES
+#if 4 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		2
+#elif 8 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		3
 #elif 16 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		4
