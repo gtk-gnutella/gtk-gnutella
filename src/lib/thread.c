@@ -7369,9 +7369,6 @@ thread_lock_waiting_done(const void *element, const void *lock)
 
 	thread_element_check(te);
 
-	if G_UNLIKELY(thread_lock_is_problematic())
-		goto done;
-
 	tls = &te->waits;
 
 	/*
@@ -7396,6 +7393,9 @@ thread_lock_waiting_done(const void *element, const void *lock)
 			s_rawcrit("%s(): was waiting for %s %p at %s:%u but given lock %p",
 				G_STRFUNC, thread_lock_kind_to_string(l->kind), l->lock,
 				l->file, l->line, lock);
+
+			if G_UNLIKELY(thread_lock_is_problematic())
+				goto done;
 
 			/*
 			 * Make sure the lock is not present in the waiting stack, or
