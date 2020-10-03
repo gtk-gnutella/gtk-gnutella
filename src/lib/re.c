@@ -11977,6 +11977,14 @@ re_free(re_regex_t *re)
  *** =================== C Matching Engine ====================
  ***/
 
+#define RE_MATCH_COUNT_COMMON \
+	const re_element_t *e;	/* The element being matched */					\
+	size_t n;				/* Amount of times it was matched so far */		\
+	const uchar *tp;		/* Text position BEFORE we attempted match */	\
+	slink_t link;			/* Pointer up the calling chain */				\
+	uint completed:1;		/* If TRUE, iterations were completed */		\
+	uint extended:1;		/* If TRUE, element is extended */
+
 /**
  * Context on the stack that records how many times a given element
  * has been matched so far.
@@ -12001,12 +12009,13 @@ re_free(re_regex_t *re)
  * The head of the list is kept in the execution context.
  */
 typedef struct re_match_count {
-	const re_element_t *e;			/* The element being matched */
-	size_t n;						/* Amount of times it was matched so far */
-	const uchar *tp;				/* Text position BEFORE we attempted match */
-	slink_t link;					/* Pointer up the calling chain */
+	RE_MATCH_COUNT_COMMON
 } re_match_count_t;
 
+typedef struct re_match_count_ext {
+	RE_MATCH_COUNT_COMMON
+	jmp_buf env;			/* Jump back there to commit atomic match */
+} re_match_count_ext_t;
 
 enum re_exec_ctx_magic { RE_EXEC_CTX_MAGIC = 0x23a49ac2 };
 
@@ -12253,7 +12262,7 @@ re_exec_match_group_start(struct re_exec_ctx *rec, const uchar *tp, size_t n)
 	REX_ENTRY;
 
 	REX_DEBUG(RE_D_MATCHPOS,
-		"n=%zu, start=%zu ('%c')%s",
+		"group #%zu start=%zu ('%c')%s",
 		n, tp - rec->text, *tp,
 		n >= rec->mcnt ? " unrecordable" : "");
 
@@ -12290,7 +12299,7 @@ re_exec_match_group_end(struct re_exec_ctx *rec, const uchar *tp, size_t n)
 	REX_ENTRY;
 
 	REX_DEBUG(RE_D_MATCHPOS,
-		"n=%zu, end=%zu ('%c')%s",
+		"group #%zu end=%zu ('%c')%s",
 		n, tp - rec->text, *tp,
 		n >= rec->mcnt ? " unrecordable" : "");
 
@@ -13031,8 +13040,7 @@ static bool G_FAST
 re_exec_match_minimal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	re_exec_match_fn_t matcher, re_match_count_t *count)
 {
-	size_t i;
-	size_t len;
+	size_t i, len, max;
 
 	re_exec_ctx_check(rec);
 	re_elemvec_check(ev);
@@ -13046,6 +13054,7 @@ re_exec_match_minimal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	re_exec_check_stack(rec);	/* Highly recursive, monitor permanently */
 
 	len = re_exec_element_length(rec, &ev->elements[n]);
+	max = re_element_get_repeat_max(&ev->elements[n]);
 
 	REX_DEBUG(RE_D_REPEAT,
 		"handling %s, len=%zu%s, with min=%zu already matched",
@@ -13057,7 +13066,7 @@ re_exec_match_minimal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	for (
 		i = NULL == count ?
 			re_element_get_repeat_min(&ev->elements[n]) : count->n;
-		i < re_element_get_repeat_max(&ev->elements[n]);
+		i < max;
 		i++
 	) {
 		const uchar *tp = rec->tp;
@@ -13081,16 +13090,21 @@ re_exec_match_minimal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 		}
 
 		rec->tp = tp;
-		if (count != NULL)
-			count->n++;			/* Assume it matches */
+		if (count != NULL) {
+			count->n++;					/* Assume it matches */
+			if (max == count->n)
+				count->completed = TRUE;	/* No more repeats! */
+		}
 
 		REX_DEBUG(RE_D_REPEAT, "trying to match %s once more for i=%zu",
 			re_elem_info(&ev->elements[n]), i);
 
 		if (!(*matcher)(rec, &ev->elements[n])) {
 			rec->tp = tp;
-			if (count != NULL)
+			if (count != NULL) {
 				count->n--;		/* Did not match */
+				count->completed = FALSE;
+			}
 			break;
 		} else {
 			if (count != NULL)
@@ -13196,16 +13210,21 @@ re_exec_match_maximal_deep(const struct re_exec_match_maximal_ctx *ctx, size_t n
 	}
 
 	if ((*ctx->matcher)(ctx->rec, &ctx->ev->elements[ctx->n])) {
-		if (ctx->count != NULL)
+		if (ctx->count != NULL) {
 			ctx->count->n++;
+			if (1 == n)
+				ctx->count->completed = TRUE;
+		}
 
 		REX_DEBUG(RE_D_REPEAT, "another match, %zu more to try", n - 1);
 
 		if (re_exec_match_maximal_deep(ctx, n - 1))
 			REX_RETURN(bool, "[propagating success] %d", TRUE);
 
-		if (ctx->count != NULL)
+		if (ctx->count != NULL) {
 			ctx->count->n--;
+			ctx->count->completed = FALSE;
+		}
 
 		ctx->rec->tp = tp;
 		REX_DEBUG(RE_D_REPEAT, "deep failure, back at n=%zu", n);
@@ -13254,6 +13273,7 @@ re_exec_match_maximal_recursively(
 	int constant, size_t offset)
 {
 	struct re_exec_match_maximal_ctx ctx;
+	bool ok;
 
 	re_exec_ctx_check(rec);
 	re_elemvec_check(ev);
@@ -13280,8 +13300,9 @@ re_exec_match_maximal_recursively(
 	ctx.constant = constant;
 	ctx.offset   = offset;
 
-	REX_RETURN(bool, "[exiting deep recursion] %d",
-		re_exec_match_maximal_deep(&ctx, amount));
+	ok = re_exec_match_maximal_deep(&ctx, amount);
+
+	REX_RETURN(bool, "[exiting deep recursion] %d", ok);
 }
 
 /**
@@ -13417,12 +13438,15 @@ re_exec_match_maximal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 			old_count_tp = count->tp;
 			count->tp = rec->tp;
 			count->n++;			/* Assume it will match */
+			if (max == count->n)
+				count->completed = TRUE;
 		}
 
 		if (!(*matcher)(rec, e)) {
 			if (count != NULL) {
 				count->tp = old_count_tp;
 				count->n--;			/* Did not match, finally */
+				count->completed = FALSE;
 			}
 			break;
 		}
@@ -13488,7 +13512,7 @@ re_exec_match_maximal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 		goto done;
 	}
 
-	REX_DEBUG(RE_D_REPEAT, "attempting to match remaining");
+	REX_DEBUG(RE_D_REPEAT, "%s(): attempting to match remaining", G_STRFUNC);
 
 	if (re_exec_match_here(rec, ev, n + 1, TRUE)) {
 		REX_DEBUG(RE_D_REPEAT, "MATCHED, max=%s", re_max2str(max));
@@ -13691,29 +13715,95 @@ re_exec_same_element(const void *a, const void *b)
 }
 
 /**
+ * Capture matching end of a SUBN capturing group.
+ */
+static void
+re_exec_match_subn_handle(struct re_exec_ctx *rec, const re_element_t *e)
+{
+	uint n;
+
+	/* Don't bother if they supplied RE_X_NOSUB and no back-refs */
+	if G_UNLIKELY(0 != (rec->eflags & RE_X_NOSUB) && NULL == rec->bvec)
+		return;
+
+	n = re_element_get_sub_number(e);	/* Capturing group number */
+	re_exec_match_group_end(rec, rec->tp, n);
+}
+
+/**
  * When hitting a NEXT, was the enclosing element a SUBN, in which case
  * we need to track the matching for that group.
  */
 static void NO_INLINE
-re_exec_match_subn_handle(
+re_exec_match_subn_next(
 	struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n)
 {
-	re_element_t *be;	/* Element before next */
+	const re_element_t *be;	/* Element before next */
 
-	g_assert(n >= 1);	/* Ensures we have a previous */
+	g_assert(n >= 1);		/* Ensures we have a previous */
 
 	be = &ev->elements[n - 1];
 
-	if G_UNLIKELY(RE_TYPE_SUBN == be->type) {
-		uint m;
+	if (RE_TYPE_SUBN == be->type)
+		re_exec_match_subn_handle(rec, be);
+}
 
-		/* Don't bother if they supplied RE_X_NOSUB and no back-refs */
-		if G_UNLIKELY(0 != (rec->eflags & RE_X_NOSUB) && NULL == rec->bvec)
-			return;
+#define RE_EXEC_MATCH_LATEST_DONE	((re_match_count_t *) 0x1)
 
-		m = re_element_get_sub_number(be);
-		re_exec_match_group_end(rec, rec->tp, m);
+/**
+ * Look for similar entry in rec->multi for the element described in `count'.
+ *
+ * @return
+ * 	- NULL if we will have to prepend a new entry
+ * 	- the special value RE_EXEC_MATCH_LATEST_DONE if the current entry is the
+ * 	  head of rec->multi and is done with its maximum amount of repetitions
+ * 	- the pointer to the latest entry for that element otherwise.
+ */
+static re_match_count_t *
+re_exec_match_find_latest(struct re_exec_ctx *rec, re_match_count_t *count)
+{
+	const re_match_count_t *latest;
+
+	REX_ENTRY;
+
+	REX_DEBUG(RE_D_REPEAT,
+		"current count of rec->multi: %zu", eslist_count(&rec->multi));
+
+	latest = eslist_find(&rec->multi, count, re_exec_same_element);
+
+	if (latest != NULL) {
+		REX_DEBUG(RE_D_REPEAT,
+			"found %s %s entry for %s (%p) with n=%zu (min is %zu, max is %s)",
+			latest == eslist_head(&rec->multi) ? "head" : "inner",
+			latest->completed ? "completed" : "incomplete",
+			re_elem_info(count->e), count->e, latest->n,
+			re_element_get_repeat_min(count->e),
+			re_max2str(re_element_get_repeat_max(count->e)));
+
+		/*
+		 * If the entry we found in the &rec->multi list is not the head
+		 * of that list and it is flagged as completed, then we're recursing
+		 * from an outer group and we need to restart matching from the
+		 * beginning...
+		 */
+
+		if (eslist_head(&rec->multi) == latest) {
+			if (latest->n >= re_element_get_repeat_max(count->e))
+				REX_RETURN(void *, "%p", RE_EXEC_MATCH_LATEST_DONE);
+		} else {
+			if (latest->completed) {
+				REX_DEBUG(RE_D_REPEAT,
+					"completed entry, will prepend new record");
+				/* Force prepending of new entry */
+				REX_RETURN(void *, "%p", NULL);
+			}
+		}
+
+		count->n  = latest->n;
+		count->tp = latest->tp;
 	}
+
+	REX_RETURN(void *, "%p", deconstify_pointer(latest));
 }
 
 /**
@@ -13735,7 +13825,8 @@ re_exec_match_subn_handle(
  * flow in case of heavy recursion in order to minimize the stack space used!
  */
 static int G_FAST NO_INLINE
-re_exec_match_track(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
+re_exec_match_track(struct re_exec_ctx *rec,
+	const re_elemvec_t *ev, size_t n,
 	re_exec_match_fn_t matcher)
 {
 	re_match_count_t count;
@@ -13787,23 +13878,16 @@ re_exec_match_track(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	REX_DEBUG(RE_D_REPEAT,
 		"current count of rec->multi: %zu", eslist_count(&rec->multi));
 
-	u.latest = eslist_find(&rec->multi, &count, re_exec_same_element);
+	u.latest = re_exec_match_find_latest(rec, &count);
 
-	if (u.latest != NULL) {
-		REX_DEBUG(RE_D_REPEAT,
-			"found entry for %s (%p) with n=%zu (min is %zu, max is %s)",
-			re_elem_info(count.e), count.e, u.latest->n,
-			re_element_get_repeat_min(count.e),
-			re_max2str(re_element_get_repeat_max(count.e)));
+	if (RE_EXEC_MATCH_LATEST_DONE == u.latest)
+		REX_RETURN(int, "[max count already matched] %+d", +1);
 
-		count.n  = u.latest->n;
-		count.tp = u.latest->tp;
-
-		if (count.n >= re_element_get_repeat_max(count.e))
-			REX_RETURN(int, "[max count already matched] %+d", +1);
-	}
-
-	if (
+	if (u.latest != NULL && u.latest->extended) {
+		REX_DEBUG(RE_D_REPEAT, "dealing with existing atomic record");
+		count.extended = TRUE;
+		/* Do nothing, see re_exec_match_track_atomic() */
+	} else if (
 		NULL == u.latest ||			/* At least one record for tracking */
 		!count.e->minimal ||		/* Always process greedy matches */
 		count.n < re_element_get_repeat_min(count.e)
@@ -13857,16 +13941,19 @@ re_exec_match_track(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	 * on the element to get a final matching success.
 	 */
 
-	if (u.r <= 0) {
+	if (u.r <= 0 && !count.extended) {
 		REX_DEBUG(RE_D_REPEAT,
-			"removing record for %s (%p) with n=%zu (min is %zu)",
+			"removing %s record for %s (%p) with n=%zu (min is %zu)",
+			count.completed ? "completed" : "incomplete",
 			re_elem_info(count.e), count.e, count.n,
 			re_element_get_repeat_min(count.e));
 		eslist_remove(&rec->multi, &count);
 		count.e = NULL;		/* Our signal that it was removed */
 	} else {
 		REX_DEBUG(RE_D_REPEAT,
-			"leaving record for %s %s (%p) with n=%zu (min is %zu)",
+			"leaving %s %s record for %s %s (%p) with n=%zu (min is %zu)",
+			count.completed ? "completed" : "incomplete",
+			count.extended ? "extended" : "regular",
 			count.e->minimal ? "minimal" : "greedy",
 			re_elem_info(count.e), count.e, count.n,
 			re_element_get_repeat_min(count.e));
@@ -13895,28 +13982,151 @@ re_exec_match_track(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 		u.ok = re_exec_match_maximal(rec, ev, n, matcher, &count);
 
 	REX_DEBUG(RE_D_REPEAT,
-		"removing record for %s %s (%p) with n=%zu (min is %zu), ok=%d",
+		"%s %s %s record for %s %s (%p) with n=%zu (min is %zu), ok=%d",
+		count.extended ? "leaving" : "removing",
+		count.completed ? "completed" : "incomplete",
+		count.extended ? "extended" : "regular",
 		count.e->minimal ? "lazy" : "greedy",
 		re_elem_info(&ev->elements[n]), &ev->elements[n], count.n,
 		re_element_get_repeat_min(&ev->elements[n]), u.ok);
 
-	eslist_remove(&rec->multi, &count);
+	/*
+	 * We cannot remove an extended record because it is not in our
+	 * stack frame: it belongs to re_exec_match_track_atomic() and
+	 * will be handled there!
+	 */
+
+	if (!count.extended)
+		eslist_remove(&rec->multi, &count);
 
 	/*
 	 * If the element matched and was a capturing group at the end
 	 * of the regular expression, handle the end of its capture.
 	 *
-	 * We supply `n + 1' here to move to the "next" element, as this is
-	 * what the re_exec_match_subn_handle() expects, but that does not
-	 * mean there is a NEXT item there (there is not actually, which is
-	 * precisely why we need to call that routine now or we would never
-	 * close this group capture).
+	 * We do this when there is no NEXT element after this group, because
+	 * we are at the end of the regular expression tree in the first
+	 * element vector.
 	 */
 
-	if (u.ok && n + 1 == ev->ecnt)
-		re_exec_match_subn_handle(rec, ev, ev->ecnt);
+	if (u.ok && n + 1 == ev->ecnt && RE_TYPE_SUBN == ev->elements[n].type)
+		re_exec_match_subn_handle(rec, &ev->elements[n]);
 
 	REX_RETURN(int, "%+d", u.ok);
+}
+
+/**
+ * Generic wrapper for matching an atomic element possibly multiple times
+ * with a minimum amount of matches to guarantee, or when greedy maximal
+ * matching is requested.
+ *
+ * @param rec		the execution context
+ * @param ev		the element vector we are in
+ * @param n			position in the element vector
+ * @param matcher	the routine that can match one instance of the element
+ *
+ * @return +1 on match, 0 on no-match, and -1 if we do not need to track.
+ *
+ * @note
+ * This routine is flagged NO_INLINE because it is otherwise a likely expansion
+ * candidate within its sole caller, re_exec_match_repeat().  But inlining
+ * would completely defeat the great care we are taking to alter the execution
+ * flow in case of heavy recursion in order to minimize the stack space used!
+ */
+static int G_FAST NO_INLINE
+re_exec_match_track_atomic(struct re_exec_ctx *rec,
+	const re_elemvec_t *ev, size_t n,
+	re_exec_match_fn_t matcher)
+{
+	re_match_count_ext_t count;
+	re_match_count_t *latest;
+	int ret;
+	PRIVLOG_DECLARE_LEVEL(indent);
+
+	REX_ENTRY;
+	PRIVLOG_SAVE_LEVEL(indent);
+
+	re_exec_check_stack(rec);	/* Highly recursive, monitor permanently */
+
+	REX_DEBUG(RE_D_REPEAT, "handling atomic %s",
+		re_elem_info(&ev->elements[n]));
+
+	ZERO(&count);
+	count.e  = &ev->elements[n];
+	count.tp = rec->tp;
+	count.extended = TRUE;
+
+	g_assert(count.e->atomic);
+
+	latest = re_exec_match_find_latest(rec, (re_match_count_t *) &count);
+
+	if (RE_EXEC_MATCH_LATEST_DONE == latest)
+		REX_RETURN(int, "[max count already matched] %+d", +1);
+
+	REX_DEBUG(RE_D_REPEAT,
+		"prepending new record for %s %s (%p) with n=%zu (min is %zu)",
+		count.e->minimal ? "lazy???" : "greedy (atomic)",
+		re_elem_info(count.e), count.e, count.n,
+		re_element_get_repeat_min(count.e));
+
+	/*
+	 * The item we are prepending is flagged as being extended.
+	 *
+	 * That will be a signal for re_exec_match_track() to not further
+	 * prepend any record to the list.
+	 */
+
+	eslist_prepend(&rec->multi, &count);
+
+	/*
+	 * We need to track longjmp() success reports so that, on success, we
+	 * get back here,  or we can propagate stack overflow conditions that
+	 * would arise later in the call chain
+	 */
+
+repeat:
+	if ((ret = Setjmp(count.env))) {
+		PRIVLOG_RESTORE_LEVEL(indent);
+		REX_DEBUG(RE_D_EXEC, "%s(): back through longjmp(), ret=%d",
+			G_STRFUNC, ret);
+		if (ret < 0) {
+			REX_DEBUG(RE_D_EXEC, "propagating error %d (%s)",
+				ret, re_execute_strerror(ret));
+			longjmp(rec->matched, ret);
+		}
+		goto back;
+	}
+
+	ret = re_exec_match_track(rec, ev, n, matcher);
+
+	/* FALL THROUGH */
+
+back:
+	REX_DEBUG(RE_D_EXEC, "%s(): dealing with %s %s, match count is %zu",
+		G_STRFUNC, count.completed ? "complete" : "incomplete",
+		re_elem_info(count.e), count.n);
+
+	if (ret) {
+		if (count.n < re_element_get_repeat_min(count.e))
+			goto repeat;	/* Atomic matching is greedy */
+
+		/*
+		 * We succeeded as soon as we matched the minimal amount we had to
+		 * match.
+		 *
+		 * But since we are greedy, try to match as much as possibly now.
+		 * There will be no backtracking done since we are atomic, but we
+		 * will no longer need to longjmp(), hence we must flag the record
+		 * as no longer being extended.
+		 */
+
+		count.extended = FALSE;		/* Will no longer longjmp() */
+
+		(void) re_exec_match_maximal(rec,
+					ev, n, matcher, (re_match_count_t *) &count);
+	}
+
+	eslist_remove(&rec->multi, &count);
+	REX_RETURN(int, "%+d", ret);
 }
 
 /**
@@ -13957,7 +14167,19 @@ re_exec_match_repeat(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	 */
 
 	if (re_element_needs_tracking(&ev->elements[n])) {
-		int r = re_exec_match_track(rec, ev, n, matcher);
+		int r;
+
+		/*
+		 * We have a special path for atomic elements, so that, when we
+		 * reach their NEXT and attempt to repeat, we will commit the
+		 * text already matched through a longjmp(), so that no backtracking
+		 * occurs on that text.
+		 */
+
+		if (ev->elements[n].atomic)
+			r = re_exec_match_track_atomic(rec, ev, n, matcher);
+		else
+			r = re_exec_match_track(rec, ev, n, matcher);
 
 		if (-1 == r)
 			goto fetch_count;	/* Save stack space during recursions */
@@ -13968,9 +14190,8 @@ re_exec_match_repeat(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	/*
 	 * Handling a non-recursive element.
 	 *
-	 * First match the minimum we have to, before invoking
-	 * re_exec_match_optional() to match the remaining variable
-	 * parts.
+	 * First match the minimum we have to, before attempting
+	 * to match the remaining variable parts.
 	 */
 
 	REX_DEBUG(RE_D_REPEAT, "non-recursive element %s",
@@ -14012,8 +14233,10 @@ no_track:
 		 * declare the match.
 		 */
 
-		if (count != NULL && count->tp == rec->tp)
+		if (count != NULL && count->tp == rec->tp) {
+			count->completed = TRUE;
 			REX_RETURN(bool, "[matching the empty string] %d", TRUE);
+		}
 
 		/*
 		 * The "goto success" below is to factorize code a little bit
@@ -14029,6 +14252,9 @@ no_track:
 				goto success;
 		}
 
+		if (count != NULL)
+			count->completed = FALSE;
+
 		REX_RETURN(bool, "%d", FALSE);
 
 	success:
@@ -14037,10 +14263,15 @@ no_track:
 				"%s(): %s has count=%zu, tp=%p (%zd from current)",
 				G_STRFUNC, re_elem_info(&ev->elements[n]),
 				count->n, count->tp, count->tp - rec->tp);
+
+			if (re_element_get_repeat_max(&ev->elements[n]) == count->n)
+				count->completed = TRUE;
 		}
 
 		REX_RETURN(bool, "%d", TRUE);
 	}
+
+	g_assert_not_reached();
 
 fetch_count:
 	/*
@@ -15078,7 +15309,7 @@ static void NO_INLINE
 re_exec_match_subn_start(struct re_exec_ctx *rec, const re_element_t *e)
 {
 	uint n = re_element_get_sub_number(e);
-	void *entry;
+	const re_match_count_t *entry;
 
 	REX_ENTRY;
 
@@ -15093,20 +15324,23 @@ re_exec_match_subn_start(struct re_exec_ctx *rec, const re_element_t *e)
 
 	entry = eslist_find(&rec->multi, &rec->tkey, re_exec_same_element);
 
-	REX_DEBUG(RE_D_MATCHPOS, "%s entry for %s (%p)",
-		NULL == entry ? "no" : "found", re_elem_info(e), e);
+	REX_DEBUG(RE_D_MATCHPOS, "%s%s entry for %s (%p)",
+		NULL == entry ? "no" : "found",
+		entry != NULL && entry->completed ? " completed" : "",
+		re_elem_info(e), e);
 
 	/*
 	 * We capture matching text for the group based on the first position
 	 * where we enter the group: we can only enter a group when there
-	 * is no entry for the element in the rec->multi list.
+	 * is no entry for the element in the rec->multi list, or when that
+	 * entry has already been completed.
 	 *
 	 * When they gave RE_X_NOSUB in the execution flags, we do not need
 	 * to capture group matching.  We always keep track of matching for
 	 * the groups that may later be perused in the pattern as a back-reference.
 	 */
 
-	if (NULL == entry) {
+	if (NULL == entry || entry->completed) {
 		if (0 == (rec->eflags & RE_X_NOSUB) || rec->bvec != NULL)
 			re_exec_match_group_start(rec, rec->tp, n);
 	}
@@ -15485,11 +15719,28 @@ re_exec_should_resume(
 		g_assert(be == latest->e);	/* by virtue of find!*/
 
 		REX_DEBUG(RE_D_EXEC,
-			"%s(): found entry for %s (%p) n=%zu (min=%zu)",
-			G_STRFUNC, re_elem_info(be), be,
+			"%s(): found %s %s entry for %s (%p) n=%zu (min=%zu)",
+			G_STRFUNC,
+			latest->completed ? "completed" : "incomplete",
+			latest->extended ? "extended" : "regular",
+			re_elem_info(be), be,
 			latest->n, re_element_get_repeat_min(be));
 
-		return latest->n < re_element_get_repeat_max(be);
+		/*
+		 * If we have an extended entry, then it means we are dealing
+		 * with an atomic group repetition.  Report matching success
+		 * via longjmp() so that we do not backtrack on what we matched
+		 * so far.
+		 */
+
+		if (latest->extended) {
+			re_match_count_ext_t *extended = (re_match_count_ext_t *) latest;
+			REX_DEBUG(RE_D_EXEC,
+				"%s(): ATOMIC MATCH committed via longjmp()", G_STRFUNC);
+			longjmp(extended->env, TRUE);
+		}
+
+		return !latest->completed;
 	}
 
 	return FALSE;
@@ -15725,7 +15976,7 @@ next:		/* Comes back here when we process NEXT nodes */
 			 * for that group.
 			 */
 
-			re_exec_match_subn_handle(rec, ev, n);
+			re_exec_match_subn_next(rec, ev, n);
 
 			if (next) {
 				/*
