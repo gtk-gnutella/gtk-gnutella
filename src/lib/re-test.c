@@ -32,6 +32,19 @@
 
 #include "common.h"
 
+/**
+ * Set to TRUE to allow comparisons with PCRE.
+ *
+ * To be able to link correctly, the Makefile must be manually adjusted to
+ * include the -lpcre2-8 linking flag to the COMMON_LIBS variable.
+ */
+#define RE_PCRE 1
+
+#if RE_PCRE
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+#endif
+
 #include "ascii.h"
 #include "color.h"
 #include "halloc.h"
@@ -42,8 +55,10 @@
 #include "progname.h"
 #include "re.h"
 #include "str.h"
+#include "str_subst_str.h"
 #include "stringify.h"
 #include "unsigned.h"
+#include "walloc.h"
 
 #ifdef TRACK_ZALLOC
 #include "evq.h"
@@ -66,13 +81,15 @@ static bool show_patterns;
 static bool time_match;
 static long test_errors;
 static size_t timing_loops = 100;
+static bool use_pcre;
+static bool use_regex;
 
 static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-			"Usage: %s [-BCLOSTXcdghinos] [-D n] [-E pattern] [-G n] [-M n]\n"
-			"       [-N loops] [-g pattern]\n"
+			"Usage: %s [-BCLOPRSTXcdghinos] [-D n] [-E pattern] [-G n]\n"
+			"       [-M n] [-N loops] [-g pattern]\n"
 			"  -B : for use of byte-code interpreter for matching\n"
 			"  -C : check optimized versus non-optimized matching\n"
 			"  -D : execute only dump test #n\n"
@@ -82,6 +99,12 @@ usage(void)
 			"  -M : execute only matching test #n\n"
 			"  -N : amount of timing loops for -T (default: %zu)\n"
 			"  -O : turn-off regex optimizations for matching and -E\n"
+#if RE_PCRE
+			"  -P : use PCRE for comparisons\n"
+#else
+			"  -P : unsupported option, since PCRE not compiled in\n"
+#endif
+			"  -R : use POSIX regex for comparison\n"
 			"  -S : show patterns, for debugging\n"
 			"  -T : time -g matches\n"
 			"  -X : exchange matching implementations during comparisons\n"
@@ -159,9 +182,253 @@ printable_char(const char *s)
 	return str_2c(sp);
 }
 
+enum retex_type {
+	RETEX_OURS,
+	RETEX_REGEX,
+	RETEX_PCRE
+};
+
+/**
+ * Testing RE object.
+ *
+ * This encapsulates the regular expression and the execution stats.
+ */
+typedef struct retex {
+	enum retex_type type;
+	union {
+		struct {
+			re_regex_t *r;
+			re_exec_stats_t *stats;
+			re_match_t *mvec;
+			size_t mcnt;
+		} re;
+#if RE_PCRE
+		struct {
+			pcre2_code *c;
+			pcre2_match_data *pvec;
+			re_match_t *pmvec;
+			size_t pcnt;
+		} pc;
+#endif	/* RE_PCRE */
+		struct {
+			regex_t *r;
+			re_match_t *mvec;
+			regmatch_t *pmatch;
+			size_t nmatch;
+		} rx;
+	} u;
+} retex_t;
+
+static retex_t *
+retex_allocate(enum retex_type type)
+{
+	retex_t *rt;
+
+	WALLOC0(rt);
+	rt->type = type;
+
+	return rt;
+}
+
+static void
+retex_vec_allocate(retex_t *rt)
+{
+	g_assert(rt != NULL);
+
+	switch (rt->type) {
+	case RETEX_OURS:
+		rt->u.re.mcnt = 1 + re_group_count(rt->u.re.r);
+		HALLOC_ARRAY(rt->u.re.mvec, rt->u.re.mcnt);
+		break;
+	case RETEX_PCRE:
+#if RE_PCRE
+		rt->u.pc.pvec = pcre2_match_data_create_from_pattern(rt->u.pc.c, NULL);
+		rt->u.pc.pcnt = pcre2_get_ovector_count(rt->u.pc.pvec);
+		HALLOC_ARRAY(rt->u.pc.pmvec, rt->u.pc.pcnt);
+#else	/* !RE_PCRE */
+	g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		rt->u.rx.nmatch = 10;		/* Assumption: no more than 10 groups */
+		HALLOC_ARRAY(rt->u.rx.pmatch, rt->u.rx.nmatch);
+		HALLOC_ARRAY(rt->u.rx.mvec, rt->u.rx.nmatch);
+		break;
+	}
+}
+
+static bool
+retex_is_optimized(const retex_t *rt)
+{
+	if (RETEX_OURS == rt->type)
+		return re_is_optimized(rt->u.re.r);
+
+	return TRUE;		/* Assume PCRE / regex always optimize */
+}
+
+static bool
+retex_matched(const retex_t *rt)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return rt->u.re.mcnt != 0 && rt->u.re.mvec[0].re_start != (ssize_t) -1;
+	case RETEX_PCRE:
+#if RE_PCRE
+		{
+			PCRE2_SIZE *ovec = NULL;
+
+			if (rt->u.pc.pvec != NULL)
+				ovec = pcre2_get_ovector_pointer(rt->u.pc.pvec);
+
+			return ovec != NULL && ovec[0] != PCRE2_UNSET;
+		}
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		return rt->u.rx.nmatch != 0 && rt->u.rx.pmatch[0].rm_so != (ssize_t) -1;
+	}
+
+	g_assert_not_reached();
+}
+
+static bool
+retex_group_count(const retex_t *rt)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return re_group_count(rt->u.re.r);
+	case RETEX_PCRE:
+#if RE_PCRE
+		return rt->u.pc.pcnt - 1;
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		return rt->u.rx.nmatch - 1;
+	}
+
+	g_assert_not_reached();
+}
+
+static bool
+retex_vec_count(const retex_t *rt)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return rt->u.re.mcnt;
+	case RETEX_PCRE:
+#if RE_PCRE
+		return rt->u.pc.pcnt;
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+	case RETEX_REGEX:
+		return rt->u.rx.nmatch;
+	}
+
+	g_assert_not_reached();
+}
+
+static const re_match_t *
+retex_match_vec(const retex_t *rt)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return rt->u.re.mvec;
+	case RETEX_PCRE:
+#if RE_PCRE
+		{
+			size_t i;
+			PCRE2_SIZE *ovec = pcre2_get_ovector_pointer(rt->u.pc.pvec);
+
+			/* Load pmvec, since PCRE2 uses int and we use ssize_t for offsets */
+			for (i = 0; i < rt->u.pc.pcnt; i++) {
+				PCRE2_SIZE start = ovec[2 * i];
+				PCRE2_SIZE end   = ovec[2 * i + 1];
+				if (PCRE2_UNSET == start) start = -1;
+				if (PCRE2_UNSET == end)   end   = -1;
+				rt->u.pc.pmvec[i].re_start = start;
+				rt->u.pc.pmvec[i].re_end   = end;
+			}
+			return (re_match_t *) rt->u.pc.pmvec;
+		}
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		{
+			size_t i;
+
+			/* Must translate the int offsets into size_t offsets */
+
+			for (i = 0; i < rt->u.rx.nmatch; i++) {
+				regoff_t start = rt->u.rx.pmatch[i].rm_so;
+				regoff_t end = rt->u.rx.pmatch[i].rm_eo;
+				rt->u.rx.mvec[i].re_start = (size_t) start;
+				rt->u.rx.mvec[i].re_end   = (size_t) end;
+			}
+		}
+		return rt->u.rx.mvec;
+	}
+
+	g_assert_not_reached();
+}
+
+static void
+retex_free(retex_t *rt)
+{
+	if (NULL == rt)
+		return;
+
+	switch (rt->type) {
+	case RETEX_OURS:
+		re_free_null(&rt->u.re.r);
+		HFREE_NULL(rt->u.re.mvec);
+		break;
+	case RETEX_PCRE:
+#if RE_PCRE
+		pcre2_code_free(rt->u.pc.c);
+		if (rt->u.pc.pvec != NULL)
+			pcre2_match_data_free(rt->u.pc.pvec);
+		HFREE_NULL(rt->u.pc.pmvec);
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		WFREE(rt->u.rx.r);
+		HFREE_NULL(rt->u.rx.pmatch);
+		HFREE_NULL(rt->u.rx.mvec);
+		break;
+	}
+
+	WFREE0(rt);
+}
+
 static re_regex_t *compile_stats(
 	const char *s, uint32 cflags, re_error_t *error,
 	re_exec_stats_t *stats);
+
+static void
+compile_error(const char *pattern, const char *errstr, size_t pos)
+{
+	fprintf(stderr, "error compiling \"%s\": %s at offset %zu\n",
+		pattern, errstr, pos);
+
+	if (pos < 80) {
+		size_t i;
+		fprintf(stderr, "%s\n", pattern);
+		for (i = 0; i < pos; i++)
+			fputc('.', stderr);
+		fputc('^', stderr);
+		fputc('\n', stderr);
+		fflush(stderr);
+	}
+}
 
 /**
  * Compile pattern, return NULL on error with verbose tracing.
@@ -179,21 +446,128 @@ compile_pattern(const char *pattern, uint flags, re_exec_stats_t *stats)
 
 	re = compile_stats(pattern, flags, &error, stats);
 
-	if (NULL == re) {
-		fprintf(stderr, "error compiling \"%s\": %s at offset %zu\n",
-			pattern, re_strerror(error.code), error.pos);
-		if (error.pos < 80) {
-			size_t i;
-			fprintf(stderr, "%s\n", pattern);
-			for (i = 0; i < error.pos; i++)
-				fputc('.', stderr);
-			fputc('^', stderr);
-			fputc('\n', stderr);
-			fflush(stderr);
-		}
-	}
+	if (NULL == re)
+		compile_error(pattern, re_strerror(error.code), error.pos);
 
 	return re;
+}
+
+#if RE_PCRE
+static retex_t *
+compile_pcre_pattern(const char *pattern, uint flags)
+{
+	retex_t *rt = NULL;
+	pcre2_code *c;
+	int err;
+	PCRE2_SIZE pos;
+	uint options = 0;
+
+	if (flags & RE_F_ICASE)   options |= PCRE2_CASELESS;
+	if (flags & RE_F_NOSUB)   options |= PCRE2_NO_AUTO_CAPTURE;
+	if (flags & RE_F_NEWLINE) options |= PCRE2_DOTALL;
+
+	c = pcre2_compile((uchar *) pattern, PCRE2_ZERO_TERMINATED,
+			options, &err, &pos, NULL);
+
+	if (NULL == c) {
+		PCRE2_UCHAR buffer[256];
+		pcre2_get_error_message(err, ARYLEN(buffer));
+		compile_error(pattern, (char *) buffer, pos);
+	} else {
+		(void) flags;		/* No way to avoid optimizations in PCRE2 */
+		rt = retex_allocate(RETEX_PCRE);
+		rt->u.pc.c = c;
+	}
+
+	return rt;
+}
+#else	/* !RE_PCRE */
+static retex_t *
+compile_pcre_pattern(const char *pattern, uint flags)
+{
+	(void) pattern;
+	(void) flags;
+	g_assert_not_reached();
+}
+#endif	/* RE_PCRE */
+
+static retex_t *
+compile_regex_pattern(const char *pattern, uint flags)
+{
+	retex_t *rt = NULL;
+	uint options = REG_NEWLINE | REG_EXTENDED;
+	regex_t *rx;
+	int r;
+	str_t *ps;
+	size_t n = 0;
+
+	WALLOC(rx);
+
+	if (flags & RE_F_ICASE)   options |= REG_ICASE;
+	if (flags & RE_F_NEWLINE) options &= ~REG_NEWLINE;	/* Inverted logic */
+
+	/*
+	 * POSIX regex does not understand (?:) nor \d, \w and \s.
+	 * We patch the pattern in-place.
+	 * Also we cannot use REG_NOSUB or we do not get to know the portion of
+	 * the pattern which matched.
+	 */
+
+	ps = str_new_from(pattern);
+	n += str_subst_all_str(ps, "(?:", "(");
+	n += str_subst_all_str(ps, "\\d", "[0-9]");
+	n += str_subst_all_str(ps, "\\s", "[ \\t]");
+	n += str_subst_all_str(ps, "\\w", "[0-9a-zA-Z_]");
+	n += str_subst_all_str(ps, "\\D", "[^0-9]");
+	n += str_subst_all_str(ps, "\\S", "[^ \\t]");
+	n += str_subst_all_str(ps, "\\W", "[^0-9a-zA-Z_]");
+
+	if (n != 0) {
+		s_warning("%s(): applied %zu change%s to pattern: %s -> %s",
+			G_STRFUNC, PLURAL(n), pattern, str_2c(ps));
+	}
+
+	r = regcomp(rx, str_2c(ps), options);
+	str_destroy_null(&ps);
+
+	if (r) {
+		char buffer[256];
+		regerror(r, rx, ARYLEN(buffer));
+		compile_error(pattern, buffer, (size_t) -1);
+		WFREE(rx);
+	} else {
+		(void) flags;		/* No way to avoid optimizations in regex */
+		rt = retex_allocate(RETEX_REGEX);
+		rt->u.rx.r = rx;
+	}
+
+	return rt;
+}
+
+/**
+ * Compile pattern, return NULL on error with verbose tracing.
+ */
+static retex_t *
+compile_test_pattern(const char *pattern, uint flags, uint eflags)
+{
+	re_regex_t *re;
+
+	if (0 == (eflags & RE_X_USE_BC)) {
+		if (use_pcre)
+			return compile_pcre_pattern(pattern, flags);
+		if (use_regex)
+			return compile_regex_pattern(pattern, flags);
+	}
+
+	re = compile_pattern(pattern, flags, NULL);
+
+	if (NULL != re) {
+		retex_t *rt = retex_allocate(RETEX_OURS);
+		rt->u.re.r = re;
+		return rt;
+	}
+
+	return NULL;
 }
 
 static void
@@ -304,6 +678,74 @@ compile_stats(const char *s, uint32 cflags, re_error_t *error,
 	return r;
 }
 
+static const char *
+retex_execute_strerror(const retex_t *rt, int errnum)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return re_execute_strerror(errnum);
+	case RETEX_PCRE:
+#if RE_PCRE
+		{
+			static PCRE2_UCHAR buffer[256];
+			pcre2_get_error_message(errnum, ARYLEN(buffer));
+			return (char *) buffer;
+		}
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+	case RETEX_REGEX:
+		return "No error should be reported by regexec()";
+	}
+
+	g_assert_not_reached();
+}
+
+static int
+retex_execute(const retex_t *rt, const char *s, size_t len, uint eflags,
+	re_exec_stats_t *stats, size_t n)
+{
+	int r = 0;
+
+	switch (rt->type) {
+	case RETEX_OURS:
+		while (n-- != 0) {
+			r = re_execute_stats(rt->u.re.r, s, len,
+					rt->u.re.mvec, rt->u.re.mcnt, eflags, stats);
+		}
+		break;
+	case RETEX_PCRE:
+#if RE_PCRE
+		while (n-- != 0) {
+			r = pcre2_match(rt->u.pc.c, (uchar *) s, len,
+					0, 0, rt->u.pc.pvec, NULL);
+		}
+
+		if (PCRE2_ERROR_NOMATCH == r) {
+			r = 0;
+			if (rt->u.pc.pvec != NULL) {
+				PCRE2_SIZE *ovec = pcre2_get_ovector_pointer(rt->u.pc.pvec);
+				ovec[0] = ovec[1] = PCRE2_UNSET;
+			}
+		}
+#else	/* !RE_PCRE */
+		g_assert_not_reached();
+#endif	/* RE_PCRE */
+		break;
+	case RETEX_REGEX:
+		while (n-- != 0) {
+			r = regexec(rt->u.rx.r, s, rt->u.rx.nmatch, rt->u.rx.pmatch, 0);
+		}
+		if (REG_NOMATCH == r) {
+			r = 0;
+		} else {
+			r = 1;	/* Success */
+		}
+	}
+
+	return r;
+}
+
 static int
 match_stats(
 	const re_regex_t *re, const char *s, size_t len,
@@ -315,7 +757,7 @@ match_stats(
 
 	r = re_execute_stats(re, s, len, mvec, mcnt, eflags, stats);
 
-	if (NULL == stats || r < 0)
+	if (NULL == stats || r < 0 || !time_match)
 		return r;
 
 	elapsed = stats->elapsed;
@@ -331,28 +773,104 @@ match_stats(
 	return r;
 }
 
+static int
+match_test_stats(
+	const retex_t *rt, const char *s, size_t len,
+	uint eflags, re_exec_stats_t *stats)
+{
+	int r, x;
+	size_t elapsed = 0;
+	tm_nano_t start, end;
+	bool remi;
+
+	/*
+	 * If the regular expression is ours then we can use our internal
+	 * stats gathering, which is done internally within the engine, at
+	 * the lowest level possible, so it only measures the time spent
+	 * actually matching.
+	 */
+
+	if (RETEX_OURS == rt->type && !(use_pcre || use_regex)) {
+		return match_stats(rt->u.re.r, s, len,
+				rt->u.re.mvec, rt->u.re.mcnt, eflags, stats);
+	}
+
+	/*
+	 * Prepare match results since we do not know the actual amount of
+	 * groups in the compiled regular expression.
+	 */
+
+	if (RETEX_REGEX == rt->type) {
+		size_t i;
+
+		for (i = 0; i < rt->u.rx.nmatch; i++) {
+			rt->u.rx.pmatch[i].rm_so = (regoff_t) -1;
+			rt->u.rx.pmatch[i].rm_eo = (regoff_t) -1;
+		}
+	}
+
+	/*
+	 * If we compare with another algorithm, then we need to be fair and
+	 * use a similar logic for timing.  For our regular expression, it will
+	 * yield a slightly higher value than the internal stats, because we
+	 * also measure the initial setup cost before actual matching can start.
+	 */
+
+	r = retex_execute(rt, s, len, eflags, stats, 1);	/* Sets stats->remi */
+	remi = NULL == stats ? FALSE : stats->remi;
+
+	if (use_pcre || use_regex) {
+		if (stats != NULL) {
+			ZERO(stats);
+			stats->engine  = TRUE;
+		}
+	}
+
+	if (NULL == stats || r < 0 || !time_match)
+		return r;
+
+	stats->stack_max = stats->stack_used = 0;		/* Cannot compare stacks */
+
+	tm_precise_time(&start);
+	x = retex_execute(rt, s, len, eflags, NULL, timing_loops);
+	tm_precise_time(&end);
+
+	g_assert(x == r);
+
+	elapsed = size_saturate_add(elapsed, tm_precise_elapsed_ns(&end, &start));
+
+	stats->elapsed = elapsed / timing_loops;
+	stats->remi = remi;
+
+	return r;
+}
+
 /**
  * Append opening statistics sequence to string.
  *
  * @param s			string to which we append
- * @param re		compiled regex for which we dump stats
+ * @param rt		tested compiled regex for which we dump stats
  * @param xstats	RE execution statistics
  */
 static void
-append_opening(str_t *s, const re_regex_t *re, const re_exec_stats_t *xstats)
+append_opening(str_t *s, const retex_t *rt, const re_exec_stats_t *xstats)
 {
 	const char *gray = color_escape("bright black", FALSE);
 
 	str_cat(s, gray);
 
-	if (!xstats->engine)
+	if (RETEX_PCRE == rt->type)
+		str_putc(s, 'P');
+	else if (RETEX_REGEX == rt->type)
+		str_putc(s, 'R');
+	else if (!xstats->engine)
 		str_putc(s, 'D');
 	else if (xstats->remi)
 		str_putc(s, 'I');
 	else
 		str_putc(s, 'C');
 
-	if (re_is_optimized(re))
+	if (RETEX_OURS != rt->type || re_is_optimized(rt->u.re.r))
 		str_putc(s, 'o');
 	else
 		str_putc(s, 'u');
@@ -418,8 +936,16 @@ print_cstats_internal(const re_regex_t *re,
 	str_t *st = str_new(0);
 	bool maximum = FALSE;
 
-	if (!incremental)
-		append_opening(st, re, xstats);
+
+	if (!incremental) {
+		retex_t rt;
+
+		ZERO(&rt);
+		rt.type = RETEX_OURS;
+		rt.u.re.r = deconstify_pointer(re);
+
+		append_opening(st, &rt, xstats);
+	}
 
 	if (mstats != NULL) {
 		if (elapsed > mstats->elapsed) {
@@ -471,7 +997,7 @@ print_cstats(const re_regex_t *re,
  * When `mstats' is given, any value establishing a new maximum is flagged
  * in bold.
  *
- * @param re			the regular expression we timed
+ * @param rt			the test regular expression we timed
  * @param elapsed		average elapsed time in us
  * @param stack			stack space reported used, in bytes
  * @param mstats		if non-NULL, updated with maximum values
@@ -479,7 +1005,7 @@ print_cstats(const re_regex_t *re,
  * @param incremental	if TRUE, only print stuff inside brackets
  */
 static void
-print_stats_internal(const re_regex_t *re,
+print_test_stats_internal(const retex_t *rt,
 	size_t elapsed, size_t stack, struct max_stats *mstats,
 	const re_exec_stats_t *xstats, bool incremental)
 {
@@ -490,7 +1016,7 @@ print_stats_internal(const re_regex_t *re,
 	bool maximum = FALSE;
 
 	if (!incremental)
-		append_opening(st, re, xstats);
+		append_opening(st, rt, xstats);
 
 	if (mstats != NULL) {
 		if (elapsed > mstats->elapsed) {
@@ -551,13 +1077,40 @@ print_stats_internal(const re_regex_t *re,
  * @param stack			stack space reported used, in bytes
  * @param mstats		if non-NULL, updated with maximum values
  * @param xstats		RE statistics of last execution
+ * @param incremental	if TRUE, only print stuff inside brackets
  */
 static void
-print_stats(const re_regex_t *re,
+print_stats_internal(const re_regex_t *re,
+	size_t elapsed, size_t stack, struct max_stats *mstats,
+	const re_exec_stats_t *xstats, bool incremental)
+{
+	retex_t rt;
+
+	ZERO(&rt);
+	rt.type = RETEX_OURS;
+	rt.u.re.r = deconstify_pointer(re);
+
+	print_test_stats_internal(&rt, elapsed, stack, mstats, xstats, incremental);
+}
+
+/**
+ * Show running statistics, updating maximum if `mstats' is not NULL.
+ *
+ * When `mstats' is given, any value establishing a new maximum is flagged
+ * in bold.
+ *
+ * @param rt			the test regular expression we timed
+ * @param elapsed		average elapsed time in us
+ * @param stack			stack space reported used, in bytes
+ * @param mstats		if non-NULL, updated with maximum values
+ * @param xstats		RE statistics of last execution
+ */
+static void
+print_test_stats(const retex_t *rt,
 	size_t elapsed, size_t stack, struct max_stats *mstats,
 	const re_exec_stats_t *xstats)
 {
-	print_stats_internal(re, elapsed, stack, mstats, xstats, FALSE);
+	print_test_stats_internal(rt, elapsed, stack, mstats, xstats, FALSE);
 }
 
 /**
@@ -583,8 +1136,13 @@ print_both_stats(const re_regex_t *re,
 	const re_exec_stats_t *xstats)
 {
 	str_t *st = str_new(0);
+	retex_t rt;
 
-	append_opening(st, re, xstats);
+	ZERO(&rt);
+	rt.type = RETEX_OURS;
+	rt.u.re.r = deconstify_pointer(re);
+
+	append_opening(st, &rt, xstats);
 	flush_string(st);
 
 	print_cstats_internal(re, compile, cstats, xstats, TRUE);
@@ -597,17 +1155,62 @@ print_both_stats(const re_regex_t *re,
 	str_destroy_null(&st);
 }
 
-static void
-print_match(const re_regex_t *re, const char *text, const re_match_t *mvec)
+static const char *
+matching_color(const re_regex_t *re, const re_exec_stats_t *stats)
 {
-	const char *red  = color_escape("bold; red",  FALSE);
-	const char *blue = color_escape("bold; blue", FALSE);
+	const char *color;
+
+	/*
+	 * Use darker "faint" colors when REMI is used to be able to
+	 * distinguish the differences between C and REMI when -X is used.
+	 *
+	 * This requires the usage of statistics to be able to get feedback
+	 * from the regex engine about which implementation was used.
+	 *
+	 * We use red for optimized matching, blue for non-optimized ones.
+	 */
+
+	color = re_is_optimized(re) ? "bold; red" : "bold; blue";
+
+	if (NULL != stats) {
+		if (!stats->engine)
+			color = re_is_optimized(re) ? "red" : "blue";
+		else if (stats->remi)
+			color = re_is_optimized(re) ?
+				"faint; bold; red" : "faint; bold; blue";
+	}
+
+	return color_escape(color,  FALSE);
+}
+
+static const char *
+matching_test_color(const retex_t *rt, const re_exec_stats_t *stats)
+{
+	switch (rt->type) {
+	case RETEX_OURS:
+		return matching_color(rt->u.re.r, stats);
+	case RETEX_PCRE:
+		return color_escape("faint; bold; magenta", FALSE);
+	case RETEX_REGEX:
+		return color_escape("faint; bold; green", FALSE);
+	}
+
+	g_assert_not_reached();
+}
+
+static void
+print_match(const re_regex_t *re, const char *text, const re_match_t *mvec,
+	const re_exec_stats_t *stats)
+{
 	const char *normal = color_reset();
 	size_t normlen = vstrlen(normal);
-	const char *color = re_is_optimized(re) ? red : blue;
-	size_t colorlen = vstrlen(color);
+	const char *color;
+	size_t colorlen;
 	str_t *s = str_new_from(text);
 	bool match = mvec[0].re_start != (ssize_t) -1;
+
+	color = matching_color(re, stats);
+	colorlen = vstrlen(color);
 
 	if (
 		match && colorize &&
@@ -681,20 +1284,17 @@ print_match_header(size_t maxlen)
  * Print all matches on the line, along with matching statistics.
  */
 static void
-print_all_matches(const re_regex_t *re, uint eflags,
-	const char *text, re_match_t *mvec,
-	size_t mcnt, re_exec_stats_t *stats)
+print_all_matches(const retex_t *rt, uint eflags,
+	const char *text, re_exec_stats_t *stats)
 {
-	const char *red  = color_escape("bold; red",  FALSE);
-	const char *blue = color_escape("bold; blue", FALSE);
 	const char *normal = color_reset();
 	size_t normlen = vstrlen(normal);
-	const char *color = re_is_optimized(re) ? red : blue;
-	size_t colorlen = vstrlen(color);
+	const char *color;
+	size_t colorlen;
 	size_t elapsed = 0, max_stack = 0;
-	bool match = mcnt != 0 && mvec[0].re_start != (ssize_t) -1;
+	bool match;
 	str_t *s = str_new_from(text);
-	struct max_stats *mstats = &max_stats[re_is_optimized(re)];
+	struct max_stats *mstats = &max_stats[retex_is_optimized(rt)];
 	str_t *groups = str_new(0);
 
 	if (stats != NULL) {
@@ -702,9 +1302,14 @@ print_all_matches(const re_regex_t *re, uint eflags,
 		elapsed = stats->elapsed;
 	}
 
-	if (list_groups && 0 != re_group_count(re)) {
+	color = matching_test_color(rt, stats);
+	colorlen = vstrlen(color);
+	match = retex_matched(rt);
+
+	if (list_groups && 0 != retex_group_count(rt)) {
 		size_t i;
-		size_t upper = MIN(1 + re_group_count(re), mcnt);
+		size_t upper = MIN(1 + retex_group_count(rt), retex_vec_count(rt));
+		const re_match_t *mvec = retex_match_vec(rt);
 
 		for (i = 1; i < upper; i++) {
 			str_t *g = NULL;
@@ -757,6 +1362,7 @@ print_all_matches(const re_regex_t *re, uint eflags,
 		size_t o;
 		int ok = TRUE;
 		size_t n = 1;
+		const re_match_t *mvec = retex_match_vec(rt);
 
 		/* Highlight first match */
 		if (
@@ -778,8 +1384,8 @@ print_all_matches(const re_regex_t *re, uint eflags,
 			if (o >= str_len(s))
 				break;
 
-			ok = match_stats(re, str_2c_from(s, o), str_len(s) - o,
-					mvec, mcnt, eflags | RE_X_MULTI_LINE, stats);
+			ok = match_test_stats(rt, str_2c_from(s, o), str_len(s) - o,
+					eflags | RE_X_MULTI_LINE, stats);
 
 			if (time_match) {
 				max_stack = MAX(max_stack, stats->stack_used);
@@ -794,6 +1400,7 @@ print_all_matches(const re_regex_t *re, uint eflags,
 
 			/* Highlight subsequent matches */
 			if (ok) {
+				mvec = retex_match_vec(rt);
 				if (
 					!str_instr(s, o + mvec[0].re_start, color, colorlen) ||
 					!str_instr(s, o + mvec[0].re_end + colorlen,
@@ -814,7 +1421,7 @@ print_all_matches(const re_regex_t *re, uint eflags,
 output:
 	if (match || time_match) {
 		if (time_match)
-			print_stats(re, elapsed, max_stack, mstats, stats);
+			print_test_stats(rt, elapsed, max_stack, mstats, stats);
 		fputs(str_2c(s), stdout);
 		if (str_at(s, -1) != '\n')
 			fputc('\n', stdout);
@@ -829,34 +1436,29 @@ output:
 
 static void
 do_match(
-	const re_regex_t *re, str_t *t, uint eflags)
+	const retex_t *rt, str_t *t, uint eflags)
 {
 	int match;
 	str_t *s = str_clone(t);
 	re_exec_stats_t stats, *statp = NULL;
-	re_match_t *mvec;
-	size_t mcnt;
 
-	mcnt = 1 + re_group_count(re);
-	HALLOC_ARRAY(mvec, mcnt);
+	if (time_match || switch_implementation)
+		statp = &stats;		/* Need stats for coloring matches with -X */
 
-	if (time_match)
-		statp = &stats;
-
-	match = match_stats(re, str_2c(s), str_len(s), mvec, mcnt, eflags, statp);
+	match = match_test_stats(rt, str_2c(s), str_len(s), eflags, statp);
 
 	if (match < 0) {
 		s_warning("%s(): error=%d (%s)",
-			G_STRFUNC, match, re_execute_strerror(match));
+			G_STRFUNC, match, retex_execute_strerror(rt, match));
 		str_chomp(s);
 		s_info("%s(): line was: %s", G_STRFUNC, str_2c(s));
-		s_info("%s(): pattern was: %s", G_STRFUNC, re_pattern(re));
+		if (RETEX_OURS == rt->type)
+			s_info("%s(): pattern was: %s", G_STRFUNC, re_pattern(rt->u.re.r));
 	} else {
-		print_all_matches(re, eflags, str_2c(t), mvec, mcnt, statp);
+		print_all_matches(rt, eflags, str_2c(t), statp);
 	}
 
 	str_destroy_null(&s);
-	HFREE_NULL(mvec);
 }
 
 static void
@@ -997,7 +1599,7 @@ log_match_test(const re_regex_t *re, size_t n, size_t maxlen, const char *text,
 	print_both_stats(re,
 		costats->elapsed, stats->elapsed, stats->stack_used, comax, mamax, stats);
 	printf("%*s ", (int) maxlen, printable_char(re_pattern(re)));
-	print_match(re, text, vec);
+	print_match(re, text, vec, stats);
 	print_eol();
 }
 
@@ -1013,7 +1615,7 @@ invert_bit(uint *flags, uint mask)
 static void
 grep_pattern(const char *pattern, uint flags)
 {
-	re_regex_t *re, *re_plain = NULL;
+	retex_t *rt, *rt_plain = NULL;
 	str_t *s;
 	uint eflags = RE_X_MULTI_LINE;
 	uint eflags2;
@@ -1026,27 +1628,31 @@ grep_pattern(const char *pattern, uint flags)
 	eflags2 = eflags;
 
 	if (compare) {
-		re = compile_pattern(pattern, flags, NULL);
+		rt = compile_test_pattern(pattern, flags, eflags);
 
 		if (switch_optimization)   invert_bit(&flags,   RE_F_NO_OPTIM);
 		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
 
-		if (NULL != re)
-			re_plain = compile_pattern(pattern, flags, NULL);
+		if (NULL != rt)
+			rt_plain = compile_test_pattern(pattern, flags, eflags2);
 	} else {
-		re = compile_pattern(pattern, flags, NULL);
+		rt = compile_test_pattern(pattern, flags, eflags);
 	}
 
-	if (NULL == re)
+	if (NULL == rt)
 		return;
 
 	if (show_patterns) {
-		show_pattern(G_STRFUNC, re);
-		if (re_plain != NULL)
-			show_pattern(G_STRFUNC, re_plain);
+		if (RETEX_OURS == rt->type)
+			show_pattern(G_STRFUNC, rt->u.re.r);
+		if (rt_plain != NULL && RETEX_OURS == rt_plain->type)
+			show_pattern(G_STRFUNC, rt_plain->u.re.r);
 	}
 
 	s = str_new(0);
+	retex_vec_allocate(rt);
+	if (rt_plain != NULL)
+		retex_vec_allocate(rt_plain);
 
 	/*
 	 * Lines contain a trailing \n hence we need to match with RE_X_MULTI_LINE
@@ -1055,13 +1661,13 @@ grep_pattern(const char *pattern, uint flags)
 	 */
 
 	while (string_fgets(s, stdin)) {
-		do_match(re, s, eflags);
-		if (compare)
-			do_match(re_plain, s, eflags2);
+		do_match(rt, s, eflags);
+		if (rt_plain)
+			do_match(rt_plain, s, eflags2);
 	}
 
-	re_free_null(&re);
-	re_free_null(&re_plain);
+	retex_free(rt);
+	retex_free(rt_plain);
 	str_destroy_null(&s);
 
 	log_max_stats_summary();
@@ -1787,7 +2393,7 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 		if (debug_byte_code) eflags |= RE_X_DEBUG;
 	}
 
-	if (time_match) {
+	if (time_match || switch_implementation) {
 		statp = &stats;
 		costatp = &costats;
 	}
@@ -2284,7 +2890,7 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 		if (debug_byte_code) eflags |= RE_X_DEBUG;
 	}
 
-	if (time_match) {
+	if (time_match || switch_implementation) {
 		statp = &stats;
 		costatp = &costats;
 	}
@@ -2480,7 +3086,7 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	int c;
-	const char options[] = "BCD:E:G:LM:N:OSTXcdg:hinos";
+	const char options[] = "BCD:E:G:LM:N:OPRSTXcdg:hinos";
 	size_t dump_n = (size_t) -1;
 	size_t match_n = (size_t) -1;
 	size_t group_n = (size_t) -1;
@@ -2520,6 +3126,12 @@ main(int argc, char **argv)
 			optimize = FALSE;
 			flags |= RE_F_NO_OPTIM;
 			break;
+		case 'P':
+			use_pcre = TRUE;
+			break;
+		case 'R':
+			use_regex = TRUE;
+			break;
 		case 'S':			/* show patterns */
 			show_patterns = TRUE;
 			break;
@@ -2558,6 +3170,26 @@ main(int argc, char **argv)
 			usage();
 			break;
 		}
+	}
+
+	if (use_pcre) {
+#if RE_PCRE
+		int len = pcre2_config(PCRE2_CONFIG_VERSION, NULL);
+		char *buf = malloc(len);
+		pcre2_config(PCRE2_CONFIG_VERSION, buf);
+		printf("%s: using PCRE %s\n", getprogname(), buf);
+		free(buf);
+#else
+		fprintf(stderr, "%s: unsupported -P: PCRE support not compiled in\n",
+			getprogname());
+		exit(EXIT_FAILURE);
+#endif
+	}
+
+	if (use_pcre && use_regex) {
+		fprintf(stderr, "%s: cannot use -P and -R simultaneously\n",
+			getprogname());
+		exit(EXIT_FAILURE);
 	}
 
 	if (0 != (argc -= optind))
