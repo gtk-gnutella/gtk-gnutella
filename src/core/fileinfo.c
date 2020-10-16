@@ -5526,7 +5526,7 @@ fi_pick_chunk(fileinfo_t *fi)
 			dl_file_chunk_check(fc);
 
 			if (fc->from >= GNET_PROPERTY(pfsp_first_chunk))
-				break;		/* Already past the first "pfsp_first_chunk" bytes */
+				break;	/* Already past the first "pfsp_first_chunk" bytes */
 
 			if (DL_CHUNK_EMPTY == fc->status)
 				return fc;
@@ -5630,8 +5630,9 @@ fi_pick_chunk(fileinfo_t *fi)
 			 * Try to align the starting offset to a natural boundary.
 			 *
 	 		 * The aim of the alignment is to avoid having too many small empty
-	 		 * chunks in the list (chunks of a few bytes), which would necessarily
-	 		 * happen after a while if we kept the random offsets as-is.
+			 * chunks in the list (chunks of a few bytes), which would
+			 * necessarily happen after a while if we kept the random offsets
+			 * as-is.
 			 *
 			 * If we cannot align (alignment falls before the beginning of
 			 * the chunk) then start at the beginning of the chunk to avoid
