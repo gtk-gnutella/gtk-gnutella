@@ -5373,7 +5373,14 @@ selected:
 				PLURAL(rarest->sources));
 		}
 
-		g_assert(start < end);		/* Because the two MUST overlap */
+		/* Because the two MUST overlap */
+		g_assert_log(start < end,
+			"%s(): intersection of rarest [%zu, %zu] and candidate [%zu, %zu] "
+			"gave [start = %zu, end = %zu]",
+			G_STRFUNC,
+			(size_t) rarest->from, (size_t) rarest->to,
+			(size_t) candidate->from, (size_t) candidate->to,
+			(size_t) start, (size_t) end);
 
 		/*
 		 * Intersect with offered chunk if we have a list.
