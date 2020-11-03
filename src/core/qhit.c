@@ -869,10 +869,8 @@ add_file(const shared_file_t *sf)
 		int len;
 
 		len = ggept_filesize_encode(shared_file_size(sf), ARYLEN(buf));
-
-		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
-
 		ok = ggep_stream_pack(&gs, GGEP_NAME(LF), buf, len, GGEP_W_COBS);
+
 		if (!ok)
 			qhit_log_ggep_write_failure("LF");
 	}

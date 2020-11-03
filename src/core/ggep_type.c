@@ -1033,9 +1033,16 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 uint
 ggept_filesize_encode(uint64 filesize, char *data, size_t len)
 {
-	g_assert(len >= 8);
+	int vlen;
 
-	return vlint_encode(filesize, data);
+	g_assert(len >= sizeof(uint64));
+
+	vlen = vlint_encode(filesize, data);
+
+	/* Ensure no overflow in buffer! */
+	g_assert(vlen >= 0 && UNSIGNED(vlen) <= len);
+
+	return vlen;
 }
 
 /**
