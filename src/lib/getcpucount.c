@@ -34,9 +34,17 @@
 #include "common.h"
 #include "getcpucount.h"
 
+#ifndef _SC_NPROCESSORS_ONLN
+/*
+ * Only include <sys/sysctl.h> if we're going to actually need it.
+ * Indeed, that header file is now deprecated on linux, but since linux
+ * has sysconf(), we don't really need to include that file there!
+ * 		--RAM, 2020-11-10.
+ */
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>
 #endif
+#endif	/* !_SC_NPROCESSORS_ONLN */
 
 #include "override.h"			/* Must be the last header included */
 
