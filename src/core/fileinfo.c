@@ -5286,6 +5286,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		while (NULL != (r = fi_rangeset_lookup_over(offered, fa, &r_dflt, r))) {
 			struct dl_file_chunk *dfc;
 			struct dl_file_chunk crange;
+			filesize_t start, end;
 
 			crange.from = r->start;
 			crange.to = r->end + 1;
@@ -5306,6 +5307,48 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 					rarest_count + 1, fi->pathname,
 					filesize_to_string(r->start), filesize_to_string2(r->end),
 					PLURAL(fa->sources));
+			}
+
+			/*
+			 * [start, end] is the intersection of the rarest chunk we are
+			 * currently considering (`fa') and the candidate `dfc'.
+			 *
+			 * Since the upper range `to' is not part of the interval, we
+			 * have no overlap between the two when start >= end.
+			 *
+			 * It is necessary to check for overlapping here, because we
+			 * could have this setup:
+			 *
+			 * rarest chunk (fa)  :        [-----]
+			 * server range (r):               [-----]
+			 * missing chunk (dfc):                [------]
+			 *
+			 * We know `r' and `fa' intersect, as `r' and `dfc' do,
+			 * but we need to ensure `fa' and `dfc' do as well!  In the
+			 * graphic above, they do not!
+			 *
+			 * Forgetting to check that condition led to assertion failures
+			 * later because we want `rarest' and `candidate' to overlap!
+			 * 		--RAM, 2020-12-12
+			 */
+
+			start = MAX(fa->from, dfc->from);
+			end   = MIN(fa->to,   dfc->to);
+
+			if (start >= end) {
+				if (
+					GNET_PROPERTY(fileinfo_debug) > 2 ||
+					GNET_PROPERTY(download_debug) > 1
+				) {
+					g_debug("%s(): but download empty chunk [%s, %s] is not "
+						"intersecting with rarest [%s, %s]",
+						G_STRFUNC,
+						filesize_to_string(dfc->from),
+						filesize_to_string2(dfc->to),
+						filesize_to_string3(fa->from),
+						fileoffset_t_to_string(fa->to));
+				}
+				continue;
 			}
 
 			/*
@@ -5360,7 +5403,7 @@ selected:
 		 */
 
 		start = MAX(rarest->from, candidate->from);
-		end = MIN(rarest->to, candidate->to);
+		end   = MIN(rarest->to,   candidate->to);
 
 		if (
 			GNET_PROPERTY(fileinfo_debug) > 2 ||
@@ -5375,8 +5418,9 @@ selected:
 
 		/* Because the two MUST overlap */
 		g_assert_log(start < end,
-			"%s(): intersection of rarest [%zu, %zu] and candidate [%zu, %zu] "
-			"gave [start = %zu, end = %zu]",
+			"%s(): intersection of rarest [%'zu, %'zu] and "
+			"candidate [%'zu, %'zu] "
+			"gave [start = %'zu, end = %'zu]",
 			G_STRFUNC,
 			(size_t) rarest->from, (size_t) rarest->to,
 			(size_t) candidate->from, (size_t) candidate->to,
