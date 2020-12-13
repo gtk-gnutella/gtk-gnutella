@@ -540,6 +540,20 @@ extern const gboolean gnet_property_variable_lock_sleep_trace;
 extern const gboolean gnet_property_variable_running_topless;
 extern const gboolean gnet_property_variable_send_oob_ind_reliably;
 extern const guint32  gnet_property_variable_adns_debug;
+extern const guint64  gnet_property_variable_bc_http_out;
+extern const guint64  gnet_property_variable_bc_gnet_tcp_up_out;
+extern const guint64  gnet_property_variable_bc_gnet_tcp_leaf_out;
+extern const guint64  gnet_property_variable_bc_gnet_udp_out;
+extern const guint64  gnet_property_variable_bc_dht_out;
+extern const guint64  gnet_property_variable_bc_loopback_out;
+extern const guint64  gnet_property_variable_bc_private_out;
+extern const guint64  gnet_property_variable_bc_http_in;
+extern const guint64  gnet_property_variable_bc_gnet_tcp_up_in;
+extern const guint64  gnet_property_variable_bc_gnet_tcp_leaf_in;
+extern const guint64  gnet_property_variable_bc_gnet_udp_in;
+extern const guint64  gnet_property_variable_bc_dht_in;
+extern const guint64  gnet_property_variable_bc_loopback_in;
+extern const guint64  gnet_property_variable_bc_private_in;
 
 
 prop_set_t *gnet_prop_init(void);

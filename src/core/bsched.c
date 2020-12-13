@@ -39,6 +39,7 @@
 #include "uploads.h"
 
 #include "if/core/wrap.h"		/* For wrapped_io_t */
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/compat_sendfile.h"
@@ -121,6 +122,7 @@ struct bsched {
 	plist_t *sources;			/**< List of bio_source_t */
 	pslist_t *stealers;			/**< List of bsched_t stealing bw */
 	char *name;					/**< Name, for tracing purposes */
+	property_t byte_count;		/**< Property used to count transferred bytes */
 	int count;					/**< Amount of sources */
 	uint type;					/**< Scheduling type */
 	uint flags;					/**< Processing flags */
@@ -189,14 +191,15 @@ bio_check(const bio_source_t * const bio)
 /**
  * Create a new bandwidth scheduler.
  *
- * @param `name' no brief description.
+ * @param `name' brief description.
+ * @param `account' property used to account for traffic
  * @param `type' refers to the scheduling model.  Only BS_T_STREAM for now.
  * @param `mode' refers to the nature of the sources: either reading or writing.
  * @param `bandwidth' is the expected bandwidth in bytes per second.
  * @param `period' is the scheduling period in ms.
  */
 static bsched_t *
-bsched_make(const char *name, uint type, uint32 mode,
+bsched_make(const char *name, property_t account, uint type, uint32 mode,
 	int64 bandwidth, uint period)
 {
 	bsched_t *bs;
@@ -213,6 +216,7 @@ bsched_make(const char *name, uint type, uint32 mode,
 
 	WALLOC0(bs);
 	bs->magic = BSCHED_MAGIC;
+	bs->byte_count = account;
 	bs->name = h_strdup(name);
 	bs->flags = mode;
 	bs->type = type;
@@ -459,6 +463,20 @@ bsched_config_steal_gnet(void)
 	bsched_dht_cross_stealing();
 }
 
+/**
+ * Add `arycnt'  items from `ary' at the head of the `sl' list.
+ */
+static pslist_t *
+bssched_load_bws(pslist_t *sl, int *ary, size_t arycnt)
+{
+	size_t i;
+
+	for (i = 0; i < arycnt; i++)
+		sl = pslist_prepend(sl, uint_to_pointer(ary[i]));
+
+	return sl;
+}
+
 /*
  * This is called BEFORE settings_init(), bandwidth values are the default
  * values, not the configured ones.
@@ -466,106 +484,78 @@ bsched_config_steal_gnet(void)
 void G_COLD
 bsched_early_init(void)
 {
-	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_http_out), 1000);
+	size_t i;
+	static int in[] = {
+		BSCHED_BWS_LOOPBACK_IN,
+		BSCHED_BWS_PRIVATE_IN,
+		BSCHED_BWS_GLIN,
+		BSCHED_BWS_GIN,
+		BSCHED_BWS_GIN_UDP,
+		BSCHED_BWS_IN,
+		BSCHED_BWS_DHT_IN,
+	};
+	static int out[] = {
+		BSCHED_BWS_LOOPBACK_OUT,
+		BSCHED_BWS_PRIVATE_OUT,
+		BSCHED_BWS_GLOUT,
+		BSCHED_BWS_GOUT,
+		BSCHED_BWS_GOUT_UDP,
+		BSCHED_BWS_OUT,
+		BSCHED_BWS_DHT_OUT,
+	};
 
-	bws_set[BSCHED_BWS_GOUT] = bsched_make("G TCP out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
+#define BS(x)	BSCHED_BWS_ ## x
+#define M(x)	BS_F_ ## x
+#define PCO(x)	PROP_BC_ ## x ## _OUT
+#define PCGO(x)	PROP_BC_GNET_ ## x ## _OUT
+#define PCI(x)	PROP_BC_ ## x ## _IN
+#define PCGI(x)	PROP_BC_GNET_ ## x ## _IN
+#define RD		M(READ)
+#define WR		M(WRITE)
 
-	bws_set[BSCHED_BWS_GOUT_UDP] = bsched_make("G UDP out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
+	static struct bws_set_init {
+		int id;
+		const char *name;
+		uint32 mode;
+		property_t bc;
+	} schedulers[] = {
+		{ BS(OUT),			"out",			WR, PCO(HTTP)      },
+		{ BS(GOUT),			"G TCP out",	WR, PCGO(TCP_UP)   },
+		{ BS(GOUT_UDP),		"G UDP out",	WR, PCGO(UDP)      },
+		{ BS(GLOUT),		"GL out",		WR, PCGO(TCP_LEAF) },
+		{ BS(LOOPBACK_OUT),	"loopback out",	WR, PCO(LOOPBACK)  },
+		{ BS(PRIVATE_OUT),	"private out",	WR, PCO(PRIVATE)   },
+		{ BS(DHT_OUT),		"DHT out",		WR, PCO(DHT)       },
+		{ BS(IN),			"in",			RD, PCI(HTTP)      },
+		{ BS(GIN),			"G TCP in",		RD, PCGI(TCP_UP)   },
+		{ BS(GIN_UDP),		"G UDP in",		RD, PCGI(UDP)      },
+		{ BS(GLIN),			"GL in",		RD, PCGI(TCP_LEAF) },
+		{ BS(LOOPBACK_IN),	"loopback in",	RD, PCI(LOOPBACK)  },
+		{ BS(PRIVATE_IN),	"private in",	RD, PCI(PRIVATE)   },
+		{ BS(DHT_IN),		"DHT in",		RD, PCI(DHT)       },
+	};
 
-	bws_set[BSCHED_BWS_GLOUT] = bsched_make("GL out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_lout), 1000);
+#undef BS
+#undef M
+#undef PC
+#undef RD
+#undef WR
+#undef PCO
+#undef PCGO
+#undef PCI
+#undef PCGI
 
-	bws_set[BSCHED_BWS_IN] = bsched_make("in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_http_in), 1000);
+	bws_list = bssched_load_bws(NULL,     out, N_ITEMS(out));
+	bws_list = bssched_load_bws(bws_list, in,  N_ITEMS(in));
 
-	bws_set[BSCHED_BWS_GIN] = bsched_make("G TCP in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
+	bws_out_list = bssched_load_bws(NULL, out, N_ITEMS(out));
+	bws_in_list  = bssched_load_bws(NULL, in,  N_ITEMS(in));
 
-	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
-
-	bws_set[BSCHED_BWS_LOOPBACK_OUT] = bsched_make("loopback out",
-		BS_T_STREAM, BS_F_WRITE, 0, 1000);
-
-	bws_set[BSCHED_BWS_LOOPBACK_IN] = bsched_make("loopback in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_PRIVATE_OUT] = bsched_make("private out",
-		BS_T_STREAM, BS_F_WRITE, 0, 1000);
-
-	bws_set[BSCHED_BWS_PRIVATE_IN] = bsched_make("private in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_DHT_OUT] = bsched_make("DHT out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_dht_out), 1000);
-
-	bws_set[BSCHED_BWS_DHT_IN] = bsched_make("DHT in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GLIN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GIN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GIN_UDP));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_DHT_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GLOUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GOUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_DHT_OUT));
-
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GLIN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GIN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GIN_UDP));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_DHT_IN));
-
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GLOUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GOUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_DHT_OUT));
+	for (i = 0; i < N_ITEMS(schedulers); i++) {
+		const struct bws_set_init *b = &schedulers[i];
+		bws_set[b->id] =
+			bsched_make(b->name, b->bc, BS_T_STREAM, b->mode, 0, 1000);
+	}
 }
 
 /**
@@ -1697,11 +1687,28 @@ bsched_bw_update(bsched_t *bs, ssize_t used, size_t requested)
 	g_assert(UNSIGNED(used) <= requested);
 
 	/*
-	 * Even when the scheduler is disabled, update the actual bandwidth used
-	 * for the statistics and the GUI display.
+	 * Even when the scheduler is disabled, update the actual bandwidth
+	 * used for the statistics and the GUI display.
 	 */
 
 	bs->bw_actual += used;
+
+	/*
+	 * Global byte counters are not displayed by the GUI on a permanent
+	 * basis but can be fetched in the properties and are persisted for
+	 * the session.
+	 */
+
+	{
+		property_t p = bs->byte_count;
+		uint64 value;
+
+		gnet_prop_lock(p);
+		gnet_prop_get_guint64_val(p, &value);
+		value += used;
+		gnet_prop_set_guint64_val(p, value);
+		gnet_prop_unlock(p);
+	}
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return;								/* Nothing to update */
