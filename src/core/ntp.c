@@ -234,9 +234,11 @@ ntp_send_probes(void)
 	static const struct {
 		const char *addr;
 	} hosts[] = {
+		/*
+		 * Skip this for now. We check replies only against 127.0.0.1 and ::1
+		 * anyway and there is also the minor DNS issue below.
+		 */
 #if 0
-		/* Skip this for now. We check replies only against 127.0.0.1 and ::1
-		 * anyway and there is also the minor DNS issue below. */
 		{ "localhost" },
 #endif
 		{ "::1"		  },
@@ -245,8 +247,13 @@ ntp_send_probes(void)
 	bool sent = FALSE;
 	uint i;
 
-	/* TODO:	The name_to_host_addr() could take a while which would
+	/*
+	 * TODO:	The name_to_host_addr() could take a while which would
 	 *			delay startup. Thus, use ADNS for this.
+	 *
+	 * Note that when we are only using IP addresses, there is no DNS
+	 * resolution going on at all here: name_to_single_host_addr() will
+	 * parse that IP address and return it.
 	 */
 
 	for (i = 0; i < N_ITEMS(hosts); i++) {
