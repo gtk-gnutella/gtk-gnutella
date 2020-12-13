@@ -57,7 +57,6 @@
 #include "hset.h"
 #include "parse.h"
 #include "pslist.h"
-#include "random.h"
 #include "stringify.h"
 #include "walloc.h"
 
@@ -1463,7 +1462,7 @@ host_addr_free_list(pslist_t **sl_ptr)
 {
 	g_assert(sl_ptr);
 
-	if (*sl_ptr) {
+	if (*sl_ptr != NULL) {
 		pslist_t *sl;
 
 		PSLIST_FOREACH(*sl_ptr, sl) {
@@ -1487,13 +1486,10 @@ name_to_single_host_addr(const char *host, enum net_type net)
 
 	addr = zero_host_addr;
 	sl_addr = name_to_host_addr(host, net);
-	if (sl_addr) {
-		size_t i, len;
+	if (sl_addr != NULL) {
 		const host_addr_t *addr_ptr;
 
-		len = pslist_length(sl_addr);
-		i = len > 1 ? random_value(len - 1) : 0;
-		addr_ptr = pslist_nth_data(sl_addr, i);
+		addr_ptr = pslist_data(pslist_random(sl_addr));
 		g_assert(addr_ptr != NULL);
 		addr = *addr_ptr;
 
