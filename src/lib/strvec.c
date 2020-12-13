@@ -204,12 +204,6 @@ strvec_cpy(char **dstv, char *const *strv, size_t cnt, void *mem, size_t *len)
 
 	avail = *len;
 
-	if G_UNLIKELY(0 == avail)
-		return NULL;
-
-	if G_UNLIKELY(0 == cnt)
-		return mem;
-
 	for (i = 0; i < cnt; i++) {
 		size_t n = strsize(strv[i]);
 
