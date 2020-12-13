@@ -124,7 +124,7 @@ xfmt_find_common_parent(const xnode_t *x1, const xnode_t *x2)
 	 *
 	 * The worst case complexity is O(d1 * d2) where d1 and d2 are the depths
 	 * of x1 and x2.  However, in practice x2 is going to be part of x1's
-	 * subtree or of that of its parent node so we do not always fall into the
+	 * sub-tree or of that of its parent node so we do not always fall into the
 	 * worst case scenario where the common ancestor ends up being the root.
 	 */
 
@@ -375,7 +375,7 @@ xfmt_has_quotes(const char *text)
  *
  * @param text		the text to scan (UTF-8)
  * @param amp		whether '&' also needs to be escaped
- * @param apos		whether signle quotes also need to be escaped
+ * @param apos		whether single quotes also need to be escaped
  * @param len		if non-NULL, filled with the input string length
  *
  * @return the overhead (additional characters) that will be required to

@@ -212,7 +212,7 @@ xattr_table_lookup_key(const xattr_table_t *xat, const struct xattr *key)
  * Insert an attribute to the table.
  *
  * If the attribute already existed, the value is replaced so that the
- * older position is kept.  Otherwsie, the new attribute is appended to the
+ * older position is kept.  Otherwise, the new attribute is appended to the
  * list of existing attributes.
  *
  * @return TRUE when we create a new attribute, FALSE if we replaced the
@@ -270,7 +270,7 @@ xattr_table_remove_key(xattr_table_t *xat, const struct xattr *key)
 /**
  * Add an XML attribute value to the table.
  *
- * If the value exisited in the table, the new value replaces the older one
+ * If the value existed in the table, the new value replaces the older one
  * which is then freed.
  *
  * Attributes are kept in the order in which they are inserted.

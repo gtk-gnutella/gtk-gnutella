@@ -260,13 +260,13 @@ struct vxml_parser {
 	const char *charset;			/**< Document's charset (atom) */
 	pslist_t *input;				/**< List of input buffers to parse */
 	plist_t *path;					/**< Path (list of vxml_path_entry) */
-	nv_table_t *tokens;				/**< For element tokenization */
+	nv_table_t *tokens;				/**< For element tokenisation */
 	nv_table_t *entities;			/**< Entities defined in document */
 	nv_table_t *pe_entities;		/**< Entities defined in <!DOCTYPE...> */
 	xattr_table_t *attrs;			/**< Current element attributes */
 	symtab_t *namespaces;			/**< Symbol table for namespaces */
 	const char *element;			/**< Current element (atom, NULL if none) */
-	const char *namespace;			/**< Element's namesapace (atom, or NULL) */
+	const char *namespace;			/**< Element's namespace (atom, or NULL) */
 	char *user_error;				/**< User-defined error string */
 	struct vxml_output out;			/**< Output parsing buffer (UTF-8) */
 	struct vxml_output entity;		/**< Entity parsing buffer (UTF-8) */
@@ -582,7 +582,7 @@ vxml_parser_line(const vxml_parser_t *vp)
 /**
  * Get current element's name.
  *
- * This can be used in tokenized callabacks for logging purposes.
+ * This can be used in tokenized callbacks for logging purposes.
  *
  * @return the current element's name.
  */
@@ -604,7 +604,7 @@ vxml_parser_current_element(const vxml_parser_t *vp)
 /**
  * Get the name of the element's parent.
  *
- * This can be used in tokenized callabacks for logging purposes.
+ * This can be used in tokenized callbacks for logging purposes.
  *
  * @return the parent element's name, or NULL if the current element is
  * already the root element.
@@ -631,7 +631,7 @@ vxml_parser_parent_element(const vxml_parser_t *vp)
  * Get the name of the nth enclosing parent of the current element, n=1
  * being the immediate parent, n=0 being the current element.
  *
- * @return te n-th parent element's name (in a path from the current element
+ * @return the nth parent element's name (in a path from the current element
  * towards the root of the tree) or NULL if there are not enough parents
  * to move up.
  */
@@ -662,7 +662,7 @@ vxml_parser_nth_parent_element(const vxml_parser_t *vp, size_t n)
 }
 
 /**
- * Intialize parser location.
+ * Initialize parser location.
  */
 static void
 vxml_location_init(struct vxml_location *vl)
@@ -999,7 +999,7 @@ vxml_buffer_read_ahead(struct vxml_buffer *vbm, struct vxml_buffer *vbf)
 		 *
 		 * Coming here means we were unable to UTF-8 decode the input, and it
 		 * was from a buffer we initially successfully converted to UTF-8.
-		 * That's an imposible situation which we flag.
+		 * That's an impossible situation which we flag.
 		 */
 
 		g_carp("cannot read next character from UTF-8 converted buffer?");
@@ -1279,7 +1279,7 @@ vxml_fill_tokens(const nv_table_t *tokens, struct vxml_token *tvec, size_t tlen)
  * This supersedes any previously recorded tokens and is a global table
  * stored in the parser.
  *
- * It is possible to also setup another tokenization table which can enrich
+ * It is possible to also setup another tokenisation table which can enrich
  * the global table locally during parsing, for instance to parse a given
  * XML section.  The global table defined here acts as a fallback.
  *
@@ -1572,7 +1572,7 @@ vxml_parser_remove_buffer(vxml_parser_t *vp, struct vxml_buffer *vb)
 	switch (vb->type) {
 	case VXML_BUFFER_MEMORY:
 		if (vb->u.m->entity) {
-			/* Unstacking an entity expansion buffer */
+			/* Popping an entity expansion buffer */
 			g_assert(uint_is_positive(vp->expansions));
 			vp->expansions--;
 		}
@@ -1641,7 +1641,7 @@ vxml_parser_buffer_remains(vxml_parser_t *vp)
 					vxml_parser_remove_buffer(vp, vb);
 
 					/*
-					 * Request cacheline pre-fill of next memory buffer.
+					 * Request cache line pre-fill of next memory buffer.
 					 */
 
 					if (vp->input != NULL) {
@@ -2131,7 +2131,7 @@ has_buffer:
 		/*
 		 * Short buffer can only happen with file inputs, since we
 		 * arbitrarily read a fixed amount of bytes held in the
-		 * synthetized memory buffer.
+		 * synthesized memory buffer.
 		 *
 		 * If there is a next input buffer and it is a file, this memory
 		 * buffer comes from the file, so read more data from the file
@@ -2351,7 +2351,7 @@ vxml_is_ascii_upper_letter_char(uint32 uc)
  * @param vo	the output buffer into which name is written.
  * @param c		if non-zero, the character that has to be a NameStartChar
  *
- * @return TRUE if we successfuly parsed the name, FALSE on error with
+ * @return TRUE if we successfully parsed the name, FALSE on error with
  * vp->error set.
  */
 static bool
@@ -2411,7 +2411,7 @@ vxml_parser_handle_name(vxml_parser_t *vp, struct vxml_output *vo, uint32 c)
  * @param vp	the XML parser
  * @param vo	the output buffer into which name is written.
  *
- * @return TRUE if we successfuly parsed the name, FALSE on error with
+ * @return TRUE if we successfully parsed the name, FALSE on error with
  * vp->error set.
  */
 static bool
@@ -2547,7 +2547,7 @@ vxml_get_default_entity(const char *name)
 }
 
 /**
- * Tokenization of declaration keywords.
+ * Tokenisation of declaration keywords.
  *
  * @return VXT_UNKNOWN if unknown token.
  */
@@ -2558,7 +2558,7 @@ vxml_get_declaration_token(const char *name)
 }
 
 /**
- * Tokenization of miscellaneous keywords.
+ * Tokenisation of miscellaneous keywords.
  *
  * @return VXT_UNKNOWN if unknown token.
  */
@@ -2569,7 +2569,7 @@ vxml_get_misc_token(const char *name)
 }
 
 /**
- * Tokenization of immediate keywords (introduced by a leading '#' character).
+ * Tokenisation of immediate keywords (introduced by a leading '#' character).
  *
  * @return VXT_UNKNOWN if unknown token.
  */
@@ -3130,7 +3130,7 @@ vxml_parser_namespace_lookup(const vxml_parser_t *vp, const char *ns)
 /**
  * Resolve the current namespace local prefix into an URI, considering that
  * a NULL local prefix means no explicit namespace and that means the default
- * namespace for elements (there is no default namespace for unprefixed
+ * namespace for elements (there is no default namespace for non-prefixed
  * attributes).
  *
  * @return namespace URI if found, an empty string otherwise.
@@ -3316,7 +3316,7 @@ vxml_parser_element_prefix_known(vxml_parser_t *vp)
 }
 
 /**
- * Attempt element tokenization.
+ * Attempt element tokenisation.
  *
  * @param vp		the XML parser
  * @param tokens	if non-NULL, additional tokens to consider for elements
@@ -3843,7 +3843,7 @@ vxml_handle_attribute(vxml_parser_t *vp, bool in_document)
 		start = name;
 
 		/*
-		 * Stip name space in attribute names, unless we're running with
+		 * Strip name space in attribute names, unless we're running with
 		 * no namespace support.
 		 */
 
@@ -3958,7 +3958,7 @@ vxml_parser_pi_has_ended(vxml_parser_t *vp, uint32 uc)
 }
 
 /**
- * Warn that document-sepcified encoding is being ignored.
+ * Warn that document-specified encoding is being ignored.
  */
 static void
 vxml_encoding_ignored(const vxml_parser_t *vp, const char *encoding)
@@ -5405,7 +5405,7 @@ vxml_parser_end_element(vxml_parser_t *vp, const struct vxml_uctx *ctx)
 	/*
 	 * Before invoking user-callbacks, if any, make sure tags nest properly.
 	 *
-	 * This helps parsing callbacks because users are assurred that the ending
+	 * This helps parsing callbacks because users are assured that the ending
 	 * callbacks invocation match the starting callbacks in a LIFO order.
 	 */
 
@@ -5955,7 +5955,7 @@ done:
  *
  * The specified callbacks are invoked when non-NULL, the tokenized form
  * being preferred if the element name can be tokenized.  The supplied
- * token vector is used for tokenization, before the global token table
+ * token vector is used for tokenisation, before the global token table
  * at the parser level, set via vxml_parser_set_tokens().
  *
  * The parser is fully re-entrant by design, and another parsing method may
@@ -6004,8 +6004,8 @@ vxml_parse_callbacks_tokens(vxml_parser_t *vp, const struct vxml_ops *ops,
  * until the end of the document.
  *
  * The specified callbacks are invoked when non-NULL.  If element tokens
- * where specified and there are tokenized callbacks defined, the parser
- * will attempt tokenization and if it fails, will not invoke the tokenized
+ * were specified and there are tokenized callbacks defined, the parser
+ * will attempt tokenisation and if it fails, will not invoke the tokenized
  * callback but the regular by-name element callback instead (if non-NULL).
  *
  * The parser is fully re-entrant by design, and another parsing method may
@@ -6879,7 +6879,7 @@ vxml_test(void)
 	{
 		char *iseq = xstrdup(illseq);
 
-		/* Avoids warning about illegal char in litteral */
+		/* Avoids warning about illegal char in literal */
 		iseq[5] = (char) 0xF1;		/* Replaces 'X' with '\xf1' */
 
 		vxml_run_simple_test(30, "illseq", iseq, CONST_STRLEN(illseq),
