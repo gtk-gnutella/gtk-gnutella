@@ -74,11 +74,12 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-24eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-24aeghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -2 : test entropy_minirand() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
+		"  -a : used with -t (and -l) to benchmark all routines in sequence\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
@@ -557,6 +558,39 @@ start_generate_thread(bool verbose)
 		printf("Started entropy generation thread.\n");
 }
 
+#define FN(x)	{ #x, (random_fn_t) x }
+
+struct random_function {
+	const char *name;
+	random_fn_t fn;
+};
+
+static struct random_function random_global[] = {
+	FN(aje_rand),
+	FN(aje_rand_strong),
+	FN(arc4random),
+	FN(cmwc_rand),
+	FN(entropy_minirand),
+	FN(entropy_random),
+	FN(mt_rand),
+	FN(rand31),
+	FN(rand31_u32),
+	FN(random_strong),
+	FN(shuffle_thread_rand),
+	FN(well_rand),
+};
+
+static struct random_function random_threaded[] = {
+	FN(aje_thread_rand),
+	FN(aje_thread_rand_strong),
+	FN(arc4_thread_rand),
+	FN(cmwc_thread_rand),
+	FN(mt_thread_rand),
+	FN(well_thread_rand),
+};
+
+#undef FN
+
 int
 main(int argc, char **argv)
 {
@@ -570,11 +604,11 @@ main(int argc, char **argv)
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
-	bool generate = FALSE, no_precompute = FALSE;
+	bool all = FALSE, generate = FALSE, no_precompute = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "24b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
+	const char options[] = "24ab:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -612,6 +646,9 @@ G_STMT_START {			\
 			} else {
 				SET_RANDOM(arc4random);
 			}
+			break;
+		case 'a':			/* with -t, benchmark all routines */
+			all = TRUE;
 			break;
 		case 'b':			/* bitmask to apply to random values */
 			mask = get_number(optarg, c);
@@ -747,8 +784,24 @@ G_STMT_START {			\
 			uniform.max, fnname);
 	}
 
-	if (benchmark != 0)
-		timeit(fn, benchmark, fnname);
+	if (benchmark != 0) {
+		if (all) {
+			size_t n, i;
+			struct random_function *afn;
+			if (test_local) {
+				n = N_ITEMS(random_threaded);
+				afn = random_threaded;
+			} else {
+				n = N_ITEMS(random_global);
+				afn = random_global;
+			}
+			for (i = 0; i < n; i++) {
+				timeit(afn[i].fn, benchmark, afn[i].name);
+			}
+		} else {
+			timeit(fn, benchmark, fnname);
+		}
+	}
 
 	if (is_strprefix(fnname, "rand31")) {
 		rand31_set_seed(rseed);
