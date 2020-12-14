@@ -74,7 +74,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-24aeghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-24aeghluvxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -2 : test entropy_minirand() instead of rand31()\n"
@@ -91,6 +91,7 @@ usage(void)
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
+		"  -v : use verbose benchmarking when -a is used\n"
 		"  -x : disable caching (pre-computing) of AJE random numbers\n"
 		"  -A : test aje_rand(), the Fortuna-like PRNG, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
@@ -444,7 +445,7 @@ retry:
 }
 
 static void
-timeit(random_fn_t fn, unsigned amount, const char *name)
+timeit(random_fn_t fn, unsigned amount, const char *name, bool verbose)
 {
 	tm_t start, end;
 	double ustart, uend;
@@ -458,10 +459,11 @@ timeit(random_fn_t fn, unsigned amount, const char *name)
 	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 
-	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
-		name, tm_elapsed_f(&end, &start), uend - ustart);
-
-	fflush(stdout);
+	if (verbose) {
+		printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
+			name, tm_elapsed_f(&end, &start), uend - ustart);
+		fflush(stdout);
+	}
 
 	tm_now_exact(&start);
 	tm_cputime(&ustart, NULL);
@@ -481,9 +483,13 @@ again:
 		double elapsed = tm_elapsed_f(&end, &start);
 		double cpu = uend - ustart;
 
-		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
-			name, generated, elapsed, cpu, generated / elapsed);
-
+		if (verbose) {
+			printf(
+				"Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
+				name, generated, elapsed, cpu, generated / elapsed);
+		} else {
+			printf("%25s(): %12g numbers/s\n", name, generated / elapsed);
+		}
 	}
 }
 
@@ -604,11 +610,11 @@ main(int argc, char **argv)
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
-	bool all = FALSE, generate = FALSE, no_precompute = FALSE;
+	bool all = FALSE, generate = FALSE, no_precompute = FALSE, verbose = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "24ab:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
+	const char options[] = "24ab:c:eghlm:p:s:t:uvxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -678,6 +684,9 @@ G_STMT_START {			\
 			break;
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
+			break;
+		case 'v':			/* verbose benchmarking */
+			verbose = TRUE;
 			break;
 		case 'x':			/* disable AJE caching (already handled before) */
 			break;
@@ -769,6 +778,12 @@ G_STMT_START {			\
 
 	printf("Testing %s()\n", fnname);
 
+	if (is_strprefix(fnname, "rand31")) {
+		rand31_set_seed(rseed);
+		printf("Initial random seed is %s\n",
+			uint32_to_gstring(rand31_initial_seed()));
+	}
+
 	if (fp.max != 0) {
 		fp.rf = fn;
 		fn = rand_fp;
@@ -796,17 +811,11 @@ G_STMT_START {			\
 				afn = random_global;
 			}
 			for (i = 0; i < n; i++) {
-				timeit(afn[i].fn, benchmark, afn[i].name);
+				timeit(afn[i].fn, benchmark, afn[i].name, verbose);
 			}
 		} else {
-			timeit(fn, benchmark, fnname);
+			timeit(fn, benchmark, fnname, TRUE);
 		}
-	}
-
-	if (is_strprefix(fnname, "rand31")) {
-		rand31_set_seed(rseed);
-		printf("Initial random seed is %s\n",
-			uint32_to_gstring(rand31_initial_seed()));
 	}
 
 	if (skip != 0)
