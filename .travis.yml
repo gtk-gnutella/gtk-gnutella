@@ -11,6 +11,10 @@ addons:
     - libglib2.0-dev
     - libgtk2.0-dev
 
+cache:
+  directories:
+    - $HOME/gtk-gnutella
+
 before_install:
   - ./scripts/travis.$TRAVIS_OS_NAME.sh before_install
 
