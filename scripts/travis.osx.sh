@@ -1,15 +1,21 @@
 #!/bin/sh
 bold=$(tput bold)
 normal=$(tput sgr0)
-export PATH="/Users/travis/.new_local/bin:/usr/local/opt/python/libexec/bin:$PATH"
+export PATH="/Users/travis/.new_local/bin:/Library/Frameworks/Python.framework/Versions/3.8/bin:$PATH"
 
 case "$1" in
 'before_install')
-	brew remove --force $(brew list | grep -v "openssl\|python\|pyenv") --ignore-dependencies
-	pip3 install virtualenv
+	pushd `brew --prefix`
+	sudo rm -rf Cellar && find -L . -type l -exec rm -- {} +
+	popd
+
+	curl -s https://www.python.org/ftp/python/3.8.7/python-3.8.7-macosx10.9.pkg -o python.pkg && sudo installer -pkg python.pkg -target /
+	python3 --version
+	python3 -m pip install --upgrade pip &&	python3 -m pip install virtualenv
+
 	virtualenv -p python3 /Users/travis/.new_local
 	source /Users/travis/.new_local/bin/activate
-	pip install pipenv
+	python3 -m pip install pipenv
 
 	[ -n "${OBJECTSTORE_URL}" ] && mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.gz | tar -zx  -C ~/gtk-gnutella || echo "Nothing prebuild"
 	curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh | sh
