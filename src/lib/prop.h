@@ -336,9 +336,9 @@ prop_in_range(const prop_set_t *ps, property_t prop)
 static inline prop_def_t *
 get_prop(prop_set_t *ps, property_t prop, const char *loc)
 {
-	if (!ps)
-		g_error("%s: ps != NULL failed", loc);
-	if (!prop_in_range(ps, prop))
+	if G_UNLIKELY(NULL == ps)
+		g_error("%s: ps != NULL failed for property %u", loc, prop);
+	if G_UNLIKELY(!prop_in_range(ps, prop))
 		g_error("%s: unknown property %u", loc, (uint) prop);
 	return &ps->props[prop - ps->offset];
 }
