@@ -1818,6 +1818,11 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			product_date(), product_website());
 	}
 	{
+		time_t now = tm_time();
+		fprintf(config, "# %s saved on %s\n#\n",
+			ps->name, timestamp_to_string(now));
+	}
+	{
 		char *comment = config_comment(ps->desc);
 
 		fprintf(config,
