@@ -1825,12 +1825,12 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	{
 		char *comment = config_comment(ps->desc);
 
-		fprintf(config,
-			"#\n# Description of contents\n"
-			"%s\n\n",
-			comment);
+		if ('\0' != *comment)
+			fprintf(config, "# Description of contents\n%s\n#\n", comment);
 		HFREE_NULL(comment);
 	}
+
+	fputc('\n', config);	/* End of descriptive header */
 
 	/*
 	 * We're about to save the properties.
