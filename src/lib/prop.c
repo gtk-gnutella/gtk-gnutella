@@ -706,7 +706,7 @@ prop_get_boolean(prop_set_t *ps, property_t prop, bool *t,
 	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
-	target = t != NULL ? (gpointer) t : g_malloc(n);
+	target = t != NULL ? (gpointer) t : xmalloc(n);
 	PROP_DEF_LOCK(d);
 	memcpy(target, &d->data.boolean.value[offset], n);
 	PROP_DEF_UNLOCK(d);
@@ -812,7 +812,7 @@ prop_get_guint64(prop_set_t *ps, property_t prop, uint64 *t,
 	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
-	target = t != NULL ? (gpointer) t : g_malloc(n);
+	target = t != NULL ? (gpointer) t : xmalloc(n);
 	PROP_DEF_LOCK(d);
 	memcpy(target, &d->data.guint64.value[offset], n);
 	PROP_DEF_UNLOCK(d);
@@ -942,7 +942,7 @@ prop_get_guint32(prop_set_t *ps, property_t prop, uint32 *t,
 	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
-	target = t != NULL ? (gpointer) t : g_malloc(n);
+	target = t != NULL ? (gpointer) t : xmalloc(n);
 	PROP_DEF_LOCK(d);
 	memcpy(target, &d->data.guint32.value[offset], n);
 	PROP_DEF_UNLOCK(d);
@@ -1050,7 +1050,7 @@ prop_get_timestamp(prop_set_t *ps, property_t prop, time_t *t,
 	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
-	target = t != NULL ? (gpointer) t : g_malloc(n);
+	target = t != NULL ? (gpointer) t : xmalloc(n);
 	PROP_DEF_LOCK(d);
 	memcpy(target, &d->data.timestamp.value[offset], n);
 	PROP_DEF_UNLOCK(d);
@@ -1127,7 +1127,7 @@ prop_get_ip(prop_set_t *ps, property_t prop, host_addr_t *t,
 	prop_assert(ps, prop, offset + length <= d->vector_size);
 
 	n = length * sizeof *target;
-	target = t != NULL ? (gpointer) t : g_malloc(n);
+	target = t != NULL ? (gpointer) t : xmalloc(n);
 	PROP_DEF_LOCK(d);
 	memcpy(target, &d->data.ip.value[offset], n);
 	PROP_DEF_UNLOCK(d);
@@ -1184,7 +1184,7 @@ prop_get_storage(prop_set_t *ps, property_t prop, char *t, size_t length)
 
 	prop_assert(ps, prop, length == d->vector_size);
 
-	target = t != NULL ? (gpointer) t : g_malloc(length);
+	target = t != NULL ? (gpointer) t : xmalloc(length);
 	PROP_DEF_LOCK(d);
 	memcpy(target, d->data.storage.value, length);
 	PROP_DEF_UNLOCK(d);
@@ -1231,8 +1231,8 @@ prop_set_string(prop_set_t *ps, property_t prop, const char *val)
 		return;
 	}
 
-	*d->data.string.value = g_strdup(val);
-	G_FREE_NULL(old);
+	*d->data.string.value = xstrdup(val);
+	XFREE_NULL(old);
 
 	if (debug >= 5)
 		s_debug("PROP updated property [%s] = \"%s\"",
@@ -2283,7 +2283,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 			char *d, *buf;
 
 			if (p->vector_size > sizeof s) {
-				d = g_malloc(p->vector_size);
+				d = xmalloc(p->vector_size);
 				buf = d;
 			} else {
 				d = NULL;
@@ -2293,7 +2293,7 @@ prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 				stub->storage.set(prop, buf, p->vector_size);
 			}
 
-			G_FREE_NULL(d);
+			XFREE_NULL(d);
 		}
 		break;
 	case NUM_PROP_TYPES:

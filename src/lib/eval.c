@@ -50,6 +50,7 @@
 #include "path.h"
 #include "str.h"
 #include "unsigned.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -171,6 +172,36 @@ eval_subst(const char *str)
 	str_destroy_null(&s);
 
 	return constant;
+}
+
+/**
+ * Substitutes variables from string:
+ *
+ * - The leading "~" is replaced by the home directory.
+ * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
+ *   fetched from the environment, or the empty string if not found.
+ *
+ * If given a NULL input, we return NULL.
+ *
+ * @param str		string where variables must be substituted
+ *
+ * @return new string that can be freed with xfree().
+ */
+char *
+eval_subst_x(const char *str)
+{
+	str_t *s;
+	char *p;
+
+	if G_UNLIKELY(NULL == str)
+		return NULL;
+
+	s = str_new_from(str);
+	eval_substitute(s);
+	p = xstrdup(str_2c(s));		/* Not str_s2c(): strings use halloc() */
+	str_destroy_null(&s);
+
+	return p;
 }
 
 /*

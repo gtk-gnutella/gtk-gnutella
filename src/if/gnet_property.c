@@ -1260,7 +1260,7 @@ gnet_prop_init(void) {
     gnet_property->props[3].data.string.value  = (void *) &gnet_property_variable_new_version_str;
     if (gnet_property->props[3].data.string.def) {
         *gnet_property->props[3].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[3].data.string.def));
+			eval_subst_x(*gnet_property->props[3].data.string.def);
     }
 
 
@@ -3565,7 +3565,7 @@ gnet_prop_init(void) {
     gnet_property->props[112].data.string.value  = (void *) &gnet_property_variable_socks_user;
     if (gnet_property->props[112].data.string.def) {
         *gnet_property->props[112].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[112].data.string.def));
+			eval_subst_x(*gnet_property->props[112].data.string.def);
     }
 
 
@@ -3588,7 +3588,7 @@ gnet_prop_init(void) {
     gnet_property->props[113].data.string.value  = (void *) &gnet_property_variable_socks_pass;
     if (gnet_property->props[113].data.string.def) {
         *gnet_property->props[113].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[113].data.string.def));
+			eval_subst_x(*gnet_property->props[113].data.string.def);
     }
 
 
@@ -3629,7 +3629,7 @@ gnet_prop_init(void) {
     gnet_property->props[115].data.string.value  = (void *) &gnet_property_variable_proxy_hostname;
     if (gnet_property->props[115].data.string.def) {
         *gnet_property->props[115].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[115].data.string.def));
+			eval_subst_x(*gnet_property->props[115].data.string.def);
     }
 
 
@@ -4280,7 +4280,7 @@ gnet_prop_init(void) {
     gnet_property->props[145].data.string.value  = (void *) &gnet_property_variable_scan_extensions;
     if (gnet_property->props[145].data.string.def) {
         *gnet_property->props[145].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[145].data.string.def));
+			eval_subst_x(*gnet_property->props[145].data.string.def);
     }
 
 
@@ -4341,7 +4341,7 @@ gnet_prop_init(void) {
     gnet_property->props[148].data.string.value  = (void *) &gnet_property_variable_save_file_path;
     if (gnet_property->props[148].data.string.def) {
         *gnet_property->props[148].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[148].data.string.def));
+			eval_subst_x(*gnet_property->props[148].data.string.def);
     }
 
 
@@ -4364,7 +4364,7 @@ gnet_prop_init(void) {
     gnet_property->props[149].data.string.value  = (void *) &gnet_property_variable_move_file_path;
     if (gnet_property->props[149].data.string.def) {
         *gnet_property->props[149].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[149].data.string.def));
+			eval_subst_x(*gnet_property->props[149].data.string.def);
     }
 
 
@@ -4387,7 +4387,7 @@ gnet_prop_init(void) {
     gnet_property->props[150].data.string.value  = (void *) &gnet_property_variable_bad_file_path;
     if (gnet_property->props[150].data.string.def) {
         *gnet_property->props[150].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[150].data.string.def));
+			eval_subst_x(*gnet_property->props[150].data.string.def);
     }
 
 
@@ -4410,7 +4410,7 @@ gnet_prop_init(void) {
     gnet_property->props[151].data.string.value  = (void *) &gnet_property_variable_shared_dirs_paths;
     if (gnet_property->props[151].data.string.def) {
         *gnet_property->props[151].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[151].data.string.def));
+			eval_subst_x(*gnet_property->props[151].data.string.def);
     }
 
 
@@ -4433,7 +4433,7 @@ gnet_prop_init(void) {
     gnet_property->props[152].data.string.value  = (void *) &gnet_property_variable_local_netmasks_string;
     if (gnet_property->props[152].data.string.def) {
         *gnet_property->props[152].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[152].data.string.def));
+			eval_subst_x(*gnet_property->props[152].data.string.def);
     }
 
 
@@ -5649,7 +5649,7 @@ gnet_prop_init(void) {
     gnet_property->props[211].data.string.value  = (void *) &gnet_property_variable_server_hostname;
     if (gnet_property->props[211].data.string.def) {
         *gnet_property->props[211].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[211].data.string.def));
+			eval_subst_x(*gnet_property->props[211].data.string.def);
     }
 
 
@@ -7547,7 +7547,7 @@ gnet_prop_init(void) {
     gnet_property->props[302].data.string.value  = (void *) &gnet_property_variable_latest_svn_release_signature;
     if (gnet_property->props[302].data.string.def) {
         *gnet_property->props[302].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[302].data.string.def));
+			eval_subst_x(*gnet_property->props[302].data.string.def);
     }
 
 
@@ -8612,7 +8612,7 @@ gnet_prop_init(void) {
     gnet_property->props[352].data.string.value  = (void *) &gnet_property_variable_country_limits;
     if (gnet_property->props[352].data.string.def) {
         *gnet_property->props[352].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[352].data.string.def));
+			eval_subst_x(*gnet_property->props[352].data.string.def);
     }
 
 
@@ -10413,7 +10413,7 @@ gnet_prop_init(void) {
     gnet_property->props[438].data.string.value  = (void *) &gnet_property_variable_tx_debug_addrs;
     if (gnet_property->props[438].data.string.def) {
         *gnet_property->props[438].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[438].data.string.def));
+			eval_subst_x(*gnet_property->props[438].data.string.def);
     }
 
 
@@ -10436,7 +10436,7 @@ gnet_prop_init(void) {
     gnet_property->props[439].data.string.value  = (void *) &gnet_property_variable_dump_rx_addrs;
     if (gnet_property->props[439].data.string.def) {
         *gnet_property->props[439].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[439].data.string.def));
+			eval_subst_x(*gnet_property->props[439].data.string.def);
     }
 
 
@@ -10459,7 +10459,7 @@ gnet_prop_init(void) {
     gnet_property->props[440].data.string.value  = (void *) &gnet_property_variable_dump_tx_from_addrs;
     if (gnet_property->props[440].data.string.def) {
         *gnet_property->props[440].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[440].data.string.def));
+			eval_subst_x(*gnet_property->props[440].data.string.def);
     }
 
 
@@ -10482,7 +10482,7 @@ gnet_prop_init(void) {
     gnet_property->props[441].data.string.value  = (void *) &gnet_property_variable_dump_tx_to_addrs;
     if (gnet_property->props[441].data.string.def) {
         *gnet_property->props[441].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[441].data.string.def));
+			eval_subst_x(*gnet_property->props[441].data.string.def);
     }
 
 
@@ -10568,7 +10568,7 @@ gnet_prop_init(void) {
     gnet_property->props[445].data.string.value  = (void *) &gnet_property_variable_rx_debug_addrs;
     if (gnet_property->props[445].data.string.def) {
         *gnet_property->props[445].data.string.value =
-            g_strdup(eval_subst(*gnet_property->props[445].data.string.def));
+			eval_subst_x(*gnet_property->props[445].data.string.def);
     }
 
 

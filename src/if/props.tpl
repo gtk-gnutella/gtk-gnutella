@@ -567,7 +567,7 @@ FOR prop =][=
     [=(. current-prop)=].data.string.value  = [=(. prop-var)=];
     if ([=(. current-prop)=].data.string.def) {
         *[=(. current-prop)=].data.string.value =
-            g_strdup(eval_subst(*[=(. current-prop)=].data.string.def));
+			eval_subst_x(*[=(. current-prop)=].data.string.def);
     }[=
     ESAC =][=
 ENDFOR prop=]
