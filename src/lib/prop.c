@@ -362,7 +362,7 @@ prop_lock(prop_set_t *ps, property_t p)
 
 	d = &PROP(ps, p);
 
-	mutex_lock(&d->lock);
+	PROP_DEF_LOCK(d);
 }
 
 /**
@@ -383,7 +383,7 @@ prop_unlock(prop_set_t *ps, property_t p)
 	g_assert_log(mutex_is_owned(&d->lock),
 		"%s(): attempt to unlock property %u which is not owned", G_STRFUNC, p);
 
-	mutex_unlock(&d->lock);
+	PROP_DEF_UNLOCK(d);
 }
 
 /**
