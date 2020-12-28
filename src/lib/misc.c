@@ -890,6 +890,38 @@ short_value(char *buf, size_t size, uint64 v, bool metric)
 	return buf;
 }
 
+char *
+long_value(char *buf, size_t size, uint64 v, bool metric)
+{
+	if (v < kilo(metric)) {
+		str_bprintf(buf, size, "%u ", (uint) v);
+	} else {
+		uint q, r;
+		char c;
+
+		c = norm_size_scale(v, &q, &r, metric);
+		r = (r * 1000) / kilo(metric);
+		str_bprintf(buf, size, "%u.%03u %c%s", q, r, c, metric ? "" : "i");
+	}
+
+	return buf;
+}
+
+static size_t
+long_value_to_string_buf(uint64 value, bool metric, char *dst, size_t size)
+{
+	long_value(dst, size, value, metric);
+	return clamp_strcat(dst, size, "B");
+}
+
+short_string_t
+long_value_get_string(uint64 value, bool metric)
+{
+	short_string_t buf;
+	long_value_to_string_buf(value, metric, ARYLEN(buf.str));
+	return buf;
+}
+
 const char *
 compact_size(uint64 size, bool metric)
 {
