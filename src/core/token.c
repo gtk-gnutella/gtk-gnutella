@@ -1011,8 +1011,7 @@ tok_short_version(void)
  * @returns error code, or TOK_OK if token is valid.
  */
 tok_error_t
-tok_version_valid(
-	const char *version, const char *tokenb64, int len, host_addr_t addr)
+tok_version_valid(const char *version, const char *tokenb64, int len)
 {
 	time_t now = tm_time();
 	time_t stamp;
@@ -1047,13 +1046,6 @@ tok_version_valid(
 		return TOK_BAD_ENCODING;
 
 	stamp = (time_t) peek_be32(&token);
-
-	/*
-	 * Use that stamp, whose precision is TOKEN_LIFE, to update our
-	 * clock skew if necessary.
-	 */
-
-	clock_update(stamp, TOKEN_LIFE, addr);
 
 	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
