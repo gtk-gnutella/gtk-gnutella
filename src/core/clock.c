@@ -54,7 +54,6 @@
 #define REUSE_DELAY	10800		/**< 3 hours */
 #define ENOUGH_DATA	30			/**< Update skew when we have enough data */
 #define MIN_DATA	15			/**< Minimum amount of points for update */
-#define MAX_SDEV	60.0		/**< Maximum dispersion we tolerate */
 #define CLEAN_STEPS	3			/**< Amount of steps to remove off-track data */
 
 struct used_val {
@@ -254,19 +253,16 @@ clock_adjust(void)
 			g_debug("CLOCK after #%d: kept n=%d avg=%g sdev=%g",
 				k, n, avg, sdev);
 
-		if (sdev <= MAX_SDEV || n < MIN_DATA || old_n == n)
+		if (n < MIN_DATA || old_n == n)
 			break;
 	}
 
 	/*
-	 * If standard deviation is too large still, we cannot update our
-	 * clock, collect more points.
-	 *
 	 * If we don't have a minimum amount of data, don't attempt the
 	 * update yet, continue collecting.
 	 */
 
-	if (sdev > MAX_SDEV || n < MIN_DATA) {
+	if (n < MIN_DATA) {
 		if (GNET_PROPERTY(clock_debug) > 1)
 			g_debug("CLOCK will continue collecting data");
 		return;
