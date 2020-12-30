@@ -211,6 +211,7 @@ clock_adjust(void)
 
 	for (k = 0; k < CLEAN_STEPS; k++) {
 		double *value = statx_data(datapoints);
+		int old_n = statx_n(datapoints);
 
 		g_assert(value != NULL);	/* Since n > 1, there are data points */
 
@@ -253,7 +254,7 @@ clock_adjust(void)
 			g_debug("CLOCK after #%d: kept n=%d avg=%g sdev=%g",
 				k, n, avg, sdev);
 
-		if (sdev <= MAX_SDEV || n < MIN_DATA)
+		if (sdev <= MAX_SDEV || n < MIN_DATA || old_n == n)
 			break;
 	}
 
