@@ -221,12 +221,12 @@ clock_adjust(void)
 		statx_clear(datapoints);
 
 		/*
-		 * Remove aberration points: keep only the sigma range around the
-		 * average.
+		 * Remove aberration points: keep only a 2*sigma range around the
+		 * mean (about 95% of the values for a Normal distribution).
 		 */
 
-		min = avg - sdev;
-		max = avg + sdev;
+		min = avg - 2.0 * sdev;
+		max = avg + 2.0 * sdev;
 
 		for (i = 0; i < n; i++) {
 			double v = value[i];
@@ -273,7 +273,7 @@ clock_adjust(void)
 
 	statx_clear(datapoints);
 
-	new_skew = GNET_PROPERTY(clock_skew) + (int32) avg;
+	new_skew = (int32) avg;
 
 	if (GNET_PROPERTY(clock_debug))
 		g_debug("CLOCK with n=%d avg=%g sdev=%g => SKEW old=%d new=%d",
@@ -321,7 +321,7 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 		VARLEN(update), VARLEN(precision), VARLEN(addr), NULL);
 
 	now = tm_time();
-	delta = delta_time(update, (now + (int32) GNET_PROPERTY(clock_skew)));
+	delta = delta_time(update, now);
 
 	statx_add(datapoints, (double) (delta + precision));
 	statx_add(datapoints, (double) (delta - precision));
