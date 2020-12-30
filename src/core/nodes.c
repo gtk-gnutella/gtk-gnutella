@@ -8487,6 +8487,26 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 }
 
 /**
+ * Get "fake" node for UDP transmission to a given node, if possible.
+ */
+gnutella_node_t *
+node_udp_get(const gnutella_node_t *n)
+{
+
+	if (NODE_IS_UDP(n))
+		return deconstify_pointer(n);
+
+	if (0 != n->gnet_port && is_host_addr(n->gnet_addr)) {
+		gnutella_node_t *un =
+			node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
+		if (un != NULL)
+			return un;
+	}
+
+	return deconstify_pointer(n);	/* Sorry, no UDP possible */
+}
+
+/**
  * Get "fake" node for semi-reliable UDP transmission.
  */
 gnutella_node_t *
