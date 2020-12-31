@@ -612,9 +612,9 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 
 	idx = hashing_keep(hash_key(ht, key), ht->bin_bits);
 	item = ht->bins[idx];
-	if (bin) {
+
+	if (bin)
 		*bin = idx;
-	}
 
 	for ( /* NOTHING */ ; item != NULL; item = item->next) {
 		if G_LIKELY(hash_eq(ht, key, item->key)) {
@@ -804,16 +804,9 @@ hash_table_reset(hash_table_t *ht)
 	g_assert(!ht->readonly);
 
 	arena = hash_bins_items_arena_size(ht, NULL);
-
 	hash_vmm_free(ht, ht->bins, arena);
-	ht->bins = NULL;
-	ht->num_bins = 0;
-	ht->items = NULL;
-	ht->num_held = 0;
-	ht->num_items = 0;
-	ht->free_list = NULL;
-	ht->last_key = NULL;
-	ht->last_item = NULL;
+
+	ZERO(ht);
 }
 
 /**
@@ -1010,8 +1003,9 @@ hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 	size_t bin;
 
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->readonly);
+
+	ht_synchronize(ht);
 
 	item = hash_table_find(ht, key, &bin);
 	if (item) {
@@ -1019,21 +1013,20 @@ hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 
 		i = ht->bins[bin];
 		g_assert(i != NULL);
+
 		if (i == item) {
-			if (!i->next) {
+			if (NULL == i->next) {
 				g_assert(ht->bin_fill > 0);
 				ht->bin_fill--;
 			}
 			ht->bins[bin] = i->next;
 		} else {
-
 			g_assert(i->next != NULL);
 			while (item != i->next) {
 				g_assert(i->next != NULL);
 				i = i->next;
 			}
 			g_assert(i->next == item);
-
 			i->next = item->next;
 		}
 
@@ -1255,15 +1248,15 @@ void
 hash_table_destroy(hash_table_t *ht)
 {
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->special);
 	g_assert(!ht->once);
 
-	hash_table_reset(ht);
-	if (ht->thread_safe) {
+	ht_synchronize(ht);
+
+	if (ht->thread_safe)
 		mutex_destroy(&ht->lock);
-	}
-	ht->magic = 0;
+
+	hash_table_reset(ht);
 	xfree(ht);
 }
 
@@ -1700,14 +1693,14 @@ void
 hash_table_destroy_real(hash_table_t *ht)
 {
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->once);
 
-	hash_table_reset(ht);
-	if (ht->thread_safe) {
+	ht_synchronize(ht);
+
+	if (ht->thread_safe)
 		mutex_destroy(&ht->lock);
-	}
-	ht->magic = 0;
+
+	hash_table_reset(ht);
 	free(ht);
 }
 
