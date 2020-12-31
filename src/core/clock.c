@@ -51,8 +51,8 @@
 #include "lib/override.h"		/* Must be the last header included */
 
 #define REUSE_DELAY	1800		/**< 30 minutes */
-#define ENOUGH_DATA	30			/**< Update skew when we have enough data */
-#define MIN_DATA	15			/**< Minimum amount of points for update */
+#define ENOUGH_DATA	15			/**< Update skew when we have enough data */
+#define MIN_DATA	10			/**< Minimum amount of points for update */
 #define CLEAN_STEPS	3			/**< Amount of steps to remove off-track data */
 
 struct used_val {
@@ -287,13 +287,17 @@ clock_update(time_t update, int precision, const host_addr_t addr)
 	delta = delta_time(update, now);
 
 	statx_add(datapoints, (double) (delta + precision));
-	statx_add(datapoints, (double) (delta - precision));
 
-	if (GNET_PROPERTY(clock_debug) > 1)
+	if (precision != 0)
+		statx_add(datapoints, (double) (delta - precision));
+
+	if (GNET_PROPERTY(clock_debug) > 1) {
 		g_debug("CLOCK skew=%d delta=%d +/-%d [%s] (n=%d avg=%g sdev=%g)",
 			(int32) GNET_PROPERTY(clock_skew),
 			delta, precision, host_addr_to_string(addr),
-			statx_n(datapoints), statx_avg(datapoints), statx_sdev(datapoints));
+			statx_n(datapoints), statx_avg(datapoints),
+			statx_n(datapoints) >= 2 ? statx_sdev(datapoints) : 0.0);
+	}
 
 	if (statx_n(datapoints) >= ENOUGH_DATA)
 		clock_adjust();
