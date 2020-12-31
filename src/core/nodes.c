@@ -496,8 +496,7 @@ node_g2_active(void)
 static void
 node_tsync_udp(cqueue_t *cq, void *obj)
 {
-	gnutella_node_t *n = obj;
-	gnutella_node_t *udp = NULL, *tn;
+	gnutella_node_t *n = obj, *tn;
 
 	node_check(n);
 	g_assert(!NODE_USES_UDP(n));
@@ -510,13 +509,8 @@ node_tsync_udp(cqueue_t *cq, void *obj)
 	 * marked the node with NODE_F_TSYNC_TCP to use TCP instead of UDP.
 	 */
 
-	if (
-		!(n->flags & NODE_F_TSYNC_TCP) &&
-		is_host_addr(n->gnet_addr)
-	)
-		udp = node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
+	tn = (0 == (n->flags & NODE_F_TSYNC_TCP)) ? node_udp_get(n) : n;
 
-	tn = udp ? udp : n;
 	if (!host_is_valid(tn->addr, tn->port))
 		return;
 
@@ -8492,7 +8486,6 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 gnutella_node_t *
 node_udp_get(const gnutella_node_t *n)
 {
-
 	if (NODE_IS_UDP(n))
 		return deconstify_pointer(n);
 

@@ -131,6 +131,7 @@ tsync_send(gnutella_node_t *n, const struct nid *node_id)
 	struct tsync *ts;
 
 	g_return_if_fail(n->port != 0);
+
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
@@ -140,18 +141,6 @@ tsync_send(gnutella_node_t *n, const struct nid *node_id)
 	ts->sent.tv_sec = clock_loc2gmt(ts->sent.tv_sec);
 	ts->node_id = nid_ref(node_id);
 	ts->udp = booleanize(NODE_IS_UDP(n));
-
-	/*
-	 * If node is not an UDP one and we do not have the NODE_F_TSYNC_TCP
-	 * flag set yet, try synchronisation with UDP: the RTT will likely be
-	 * much smaller than via TCP).
-	 */
-
-	if (!ts->udp && 0 == (n->flags & NODE_F_TSYNC_TCP)) {
-		n = node_udp_get(n);
-		/* Node could still be TCP if we don't know its Gnutella port */
-		ts->udp = booleanize(NODE_IS_UDP(n));
-	}
 
 	/*
 	 * As far as time synchronization goes, we must get the reply within
