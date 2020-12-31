@@ -226,11 +226,18 @@ aging_destroy(aging_table_t **ag_ptr)
 	if (ag) {
 		aging_check(ag);
 
+		/*
+		 * Need to do this before calling aging_synchronize() in case
+		 * tha callout queue is in a concurrent thread and is about to
+		 * invoke the periodic callback!
+		 */
+
+		cq_periodic_remove(&ag->gc_ev);
+
 		aging_synchronize(ag);
 
 		hikset_foreach(ag->table, aging_free, ag);
 		hikset_free_null(&ag->table);
-		cq_periodic_remove(&ag->gc_ev);
 
 		if (ag->lock != NULL) {
 			mutex_destroy(ag->lock);
