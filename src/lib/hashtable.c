@@ -890,6 +890,11 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	TMP_SWAP(bin_bits);
 	TMP_SWAP(free_list);
 
+	/* Clear cached lookup since table was resized */
+	ht->last_key = NULL;
+	ht->last_bin = 0;
+	ht->last_item = NULL;
+
 	ht->resizing = FALSE;
 
 #undef TMP_SWAP
