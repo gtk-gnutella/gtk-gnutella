@@ -59,12 +59,28 @@ enum symbol_quality {
 	SYMBOL_Q_MAX
 };
 
+/**
+ * Give information about a symbol loading operation.
+ */
+struct symbol_load_info {
+	size_t count;					/**> Amount of symbols loaded */
+	size_t stripped;				/**> Amount of stripped symbols (dups) */
+	size_t offset;					/**> Offsetting done to get symbol */
+	const char *path;				/**> File from which symbols were loaded */
+	const char *method;				/**> How symbols were loaded */
+	enum symbol_quality quality;	/**> Self-assessed quality */
+	double secs;					/**> Time spent processing symbols */
+	tm_t when;						/**> When were symbols loaded? */
+};
+
 /*
  * Public interface.
  */
 
 const char *symbol_quality_string(const enum symbol_quality sq);
 void symbols_set_verbose(bool verbose);
+void symbols_load_foreach(cdata_fn_t cb, void *udata);
+const struct symbol_load_info *symbols_load_first(void);
 symbols_t *symbols_make(size_t capacity, bool once);
 void symbols_free_null(symbols_t **st_ptr);
 const char *symbols_name(const symbols_t *st, const void *pc, bool offset);

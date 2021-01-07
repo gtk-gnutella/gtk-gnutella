@@ -51,6 +51,7 @@
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
+#include "omalloc.h"
 #include "parse.h"
 #include "path.h"
 #include "rwlock.h"
@@ -113,14 +114,14 @@ enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
  * happened after the fact.
  *
  * These structures are linked together to form a single list that will be
- * flushed as soon as symbols_set_verbose() is called.
+ * flushed to logs as soon as symbols_set_verbose() is called.
  */
 struct symbols_loadinfo {
 	enum symbols_loadinfo_magic magic;
 	size_t count;
 	size_t stripped;
 	size_t offset;
-	char *path;
+	const char *path;
 	const char *method;
 	uint garbage:1;
 	uint mismatch:1;
@@ -163,35 +164,114 @@ symbol_quality_string(const enum symbol_quality sq)
 }
 
 /**
+ * Export internal info from `sli' into user-visible `uli' structure.
+ */
+static void
+symbols_export_info(
+	struct symbol_load_info *uli,
+	const struct symbols_loadinfo *sli)
+{
+#define UCP(x)	uli->x = sli->x
+
+	UCP(count);
+	UCP(stripped);
+	UCP(offset);
+	UCP(path);
+	UCP(method);
+	UCP(secs);
+	UCP(when);
+
+	if (sli->garbage)
+		uli->quality = SYMBOL_Q_GARBAGE;
+	else if (sli->mismatch)
+		uli->quality = SYMBOL_Q_MISMATCH;
+	else
+		uli->quality = SYMBOL_Q_GOOD;
+
+#undef UCP
+}
+
+/**
+ * Iterate over the list of loaded symbols and invoke callback on each of
+ * them.
+ *
+ * The callback will be invoked with a "struct symbol_load_info" data.
+ *
+ * @param cb	callback to invoke
+ * @param udata	opaque user data supplied to callback
+ */
+void
+symbols_load_foreach(cdata_fn_t cb, void *udata)
+{
+	const struct symbols_loadinfo *sli;
+
+	SYMBOLS_LOADED_LOCK;
+
+	ESLIST_FOREACH_DATA(&symbols_loaded, sli) {
+		struct symbol_load_info uli;
+
+		symbols_export_info(&uli, sli);
+		(*cb)(&uli, udata);
+	}
+
+	SYMBOLS_LOADED_UNLOCK;
+}
+
+/**
+ * Return information about the first symbol load operation, NULL if none.
+ * This is a pointer to static data.
+ */
+const struct symbol_load_info *
+symbols_load_first(void)
+{
+	const struct symbols_loadinfo *sli;
+	static struct symbol_load_info uli;
+
+	SYMBOLS_LOADED_LOCK;
+	sli = eslist_head(&symbols_loaded);
+	SYMBOLS_LOADED_UNLOCK;
+
+	if (NULL == sli)
+		return NULL;
+
+	symbols_export_info(&uli, sli);
+
+	return &uli;
+}
+
+/**
  * Log symbol loading if requested.
  */
 static void
-symbols_log_loaded(const char *path,
-	const char *method, size_t count, size_t stripped,
-	size_t offset, bool garbage, bool mismatch, double secs, double ago)
+symbols_log_loaded(const struct symbols_loadinfo *sli)
 {
-	if (symbols_verbose) {
-		char buf[20];
+	char buf[20];
+	tm_t now;
+	double ago;
 
-		buf[0] = '\0';
-		if (ago != 0.0)
-			str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
+	if (!symbols_verbose)
+		return
 
-		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
-			PLURAL(count), path, method, secs, buf);
+	tm_now_exact(&now);
+	ago = tm_elapsed_f(&now, &sli->when);
 
-		if (stripped != 0) {
-			s_message("stripped %zu duplicate symbol%s", PLURAL(stripped));
-		}
-		if (offset != 0) {
-			s_message("will be offsetting symbol addresses by 0x%lx (%ld)",
-				(unsigned long) offset, (long) offset);
-		}
-		if (garbage) {
-			s_warning("loaded symbols are pure garbage");
-		} else if (mismatch) {
-			s_warning("loaded symbols are partially inaccurate");
-		}
+	buf[0] = '\0';
+	if (ago != 0.0)
+		str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
+
+	s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
+		PLURAL(sli->count), sli->path, sli->method, sli->secs, buf);
+
+	if (sli->stripped != 0)
+		s_message("stripped %zu duplicate symbol%s", PLURAL(sli->stripped));
+	if (sli->offset != 0) {
+		s_message("will be offsetting symbol addresses by 0x%lx (%ld)",
+			(unsigned long) sli->offset, (long) sli->offset);
+	}
+	if (sli->garbage) {
+		s_warning("loaded symbols are pure garbage");
+	} else if (sli->mismatch) {
+		s_warning("loaded symbols are partially inaccurate");
 	}
 }
 
@@ -204,33 +284,40 @@ symbols_notify_loaded(const char *path,
 	const char *method, size_t count, size_t stripped, size_t offset,
 	bool garbage, bool mismatch, double secs)
 {
+	struct symbols_loadinfo *sli;
+
+	/*
+	 * This information is recorded and never gets freed.
+	 *
+	 * In case of a crash later, we'll peruse this information and propagate
+	 * it into the crash log so that we know how confident we can be about
+	 * the symbolic information we are logging.
+	 *
+	 * If everything goes well, there must be only one single loading of
+	 * the symbols for each path, hence we can use omalloc() to allocate
+	 * that structure.
+	 */
+
+	OMALLOC0(sli);
+	sli->magic = SYMBOLS_LOADINFO_MAGIC;
+	sli->path = ostrdup_readonly(path);
+	sli->method = method;	/* Since `method' points to static string */
+	sli->count = count;
+	sli->stripped = stripped;
+	sli->offset = offset;
+	sli->garbage = booleanize(garbage);
+	sli->mismatch = booleanize(mismatch);
+	sli->secs = secs;
+	tm_now_exact(&sli->when);
+
 	SYMBOLS_LOADED_LOCK;
-
-	if (!symbols_verbose_set) {
-		struct symbols_loadinfo *sli;
-
-		XMALLOC0(sli);
-		sli->magic = SYMBOLS_LOADINFO_MAGIC;
-		sli->path = xstrdup(path);
-		sli->method = method;
-		sli->count = count;
-		sli->stripped = stripped;
-		sli->offset = offset;
-		sli->garbage = booleanize(garbage);
-		sli->mismatch = booleanize(mismatch);
-		sli->secs = secs;
-		tm_now_exact(&sli->when);
-
-		eslist_append(&symbols_loaded, sli);
-
-		SYMBOLS_LOADED_UNLOCK;
-		return;
-	}
-
+	eslist_append(&symbols_loaded, sli);
 	SYMBOLS_LOADED_UNLOCK;
 
-	symbols_log_loaded(path, method, count, stripped,
-		offset, garbage, mismatch, secs, 0.0);
+	if (!symbols_verbose_set)
+		return;
+
+	symbols_log_loaded(sli);
 }
 
 /**
@@ -240,19 +327,11 @@ static void
 symbols_loaded_process(void *data, void *udata)
 {
 	struct symbols_loadinfo *sli = data;
-	tm_t now;
 
 	symbols_loadinfo_check(sli);
 	(void) udata;
 
-	tm_now_exact(&now);
-	symbols_log_loaded(sli->path, sli->method, sli->count,
-		sli->stripped, sli->offset, sli->garbage, sli->mismatch, sli->secs,
-		tm_elapsed_f(&now, &sli->when));
-
-	XFREE_NULL(sli->path);
-	sli->magic = 0;
-	xfree(sli);
+	symbols_log_loaded(sli);
 }
 
 /**
@@ -266,9 +345,8 @@ symbols_set_verbose(bool verbose)
 	SYMBOLS_LOADED_LOCK;
 
 	if (!symbols_verbose_set) {
-		eslist_foreach(&symbols_loaded, symbols_loaded_process, NULL);
-		eslist_clear(&symbols_loaded);
 		symbols_verbose_set = TRUE;
+		eslist_foreach(&symbols_loaded, symbols_loaded_process, NULL);
 	}
 
 	SYMBOLS_LOADED_UNLOCK;

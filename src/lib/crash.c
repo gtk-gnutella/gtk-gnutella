@@ -1362,6 +1362,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char lbuf[ULONG_DEC_BUFLEN];
 	char pbuf[ULONG_DEC_BUFLEN];
 	char u64buf[UINT64_HEX_BUFLEN];
+	char rtbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
@@ -1540,7 +1541,6 @@ crash_log_write_header(int clf, int signo, const char *filename)
 			print_str("; parent still there");		/* 2 */
 		}
 	} else if (t <= CRASH_MIN_ALIVE) {
-		char rtbuf[ULONG_DEC_BUFLEN];
 		print_str("; run time threshold of ");	/* 2 */
 		print_str(PRINT_NUMBER(rtbuf, CRASH_MIN_ALIVE));
 		print_str("s not reached");				/* 4 */
@@ -1552,6 +1552,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("\n");					/* 5 */
 	{
 		enum symbol_quality sq = stacktrace_quality();
+
 		if (SYMBOL_Q_GOOD != sq) {
 			const char *quality = symbol_quality_string(sq);
 			print_str("Stacktrace-Symbols: ");		/* 6 */
@@ -1559,13 +1560,26 @@ crash_log_write_header(int clf, int signo, const char *filename)
 			print_str("\n");						/* 8 */
 		}
 	}
-
 	print_str("Stacktrace:\n");			/* 9 */
 	flush_str(clf);
 	crash_stack_print(clf, 3);
 
 	rewind_str(0);
-	print_str("\n");					/* 0 -- End of Header */
+	{
+		const struct symbol_load_info *uli = symbols_load_first();
+		if (uli != NULL) {
+			print_str("Symbols-Loaded: from ");		/* 0 */
+			print_str(uli->path);					/* 1 */
+			print_str(" via ");						/* 2 */
+			print_str(uli->method);					/* 3 */
+			print_str("\n");						/* 4 */
+		} else {
+			print_str("Symbols-Loaded: never");		/* 0 */
+			print_str("\n");						/* 1 */
+		}
+
+	}
+	print_str("\n");					/* 5 -- End of Header */
 	flush_str(clf);
 }
 
