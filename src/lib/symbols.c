@@ -146,6 +146,23 @@ static spinlock_t symbols_loaded_slk = SPINLOCK_INIT;
 #define SYMBOLS_LOADED_UNLOCK	spinunlock(&symbols_loaded_slk)
 
 /**
+ * Return string version of the self-assessed symbol quality.
+ */
+const char *
+symbol_quality_string(const enum symbol_quality sq)
+{
+	switch (sq) {
+	case SYMBOL_Q_GOOD:		return "good";
+	case SYMBOL_Q_STALE:	return "stale";
+	case SYMBOL_Q_MISMATCH:	return "mismatch";
+	case SYMBOL_Q_GARBAGE:	return "garbage";
+	case SYMBOL_Q_MAX:		break;
+	}
+
+	return "UNKNOWN";
+}
+
+/**
  * Log symbol loading if requested.
  */
 static void
@@ -1521,19 +1538,19 @@ unlock:
 /**
  * Return self-assessed symbol quality.
  */
-enum stacktrace_sym_quality
+enum symbol_quality
 symbols_quality(const symbols_t *st)
 {
 	symbols_check(st);
 
 	if (st->garbage)
-		return STACKTRACE_SYM_GARBAGE;
+		return SYMBOL_Q_GARBAGE;
 	else if (st->mismatch)
-		return STACKTRACE_SYM_MISMATCH;
+		return SYMBOL_Q_MISMATCH;
 	else if (st->stale)
-		return STACKTRACE_SYM_STALE;
+		return SYMBOL_Q_STALE;
 	else
-		return STACKTRACE_SYM_GOOD;
+		return SYMBOL_Q_GOOD;
 }
 
 /**

@@ -474,28 +474,11 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 /**
  * Return self-assessed symbol quality.
  */
-enum stacktrace_sym_quality
+enum symbol_quality
 stacktrace_quality(void)
 {
 	return NULL == stacktrace_symbols ?
-		STACKTRACE_SYM_GOOD : symbols_quality(stacktrace_symbols);
-}
-
-/**
- * Return string version of the self-assessed symbol quality.
- */
-const char *
-stacktrace_quality_string(const enum stacktrace_sym_quality sq)
-{
-	switch (sq) {
-	case STACKTRACE_SYM_GOOD:		return "good";
-	case STACKTRACE_SYM_STALE:		return "stale";
-	case STACKTRACE_SYM_MISMATCH:	return "mismatch";
-	case STACKTRACE_SYM_GARBAGE:	return "garbage";
-	case STACKTRACE_SYM_MAX:		break;
-	}
-
-	return "UNKNOWN";
+		SYMBOL_Q_GOOD : symbols_quality(stacktrace_symbols);
 }
 
 /**

@@ -111,6 +111,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "symbols.h"
 #include "thread.h"				/* For thread_name(), et al. */
 #include "timestamp.h"
 #include "tm.h"
@@ -1550,9 +1551,9 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	print_str("\n");					/* 5 */
 	{
-		enum stacktrace_sym_quality sq = stacktrace_quality();
-		if (STACKTRACE_SYM_GOOD != sq) {
-			const char *quality = stacktrace_quality_string(sq);
+		enum symbol_quality sq = stacktrace_quality();
+		if (SYMBOL_Q_GOOD != sq) {
+			const char *quality = symbol_quality_string(sq);
 			print_str("Stacktrace-Symbols: ");		/* 6 */
 			print_str(quality);						/* 7 */
 			print_str("\n");						/* 8 */

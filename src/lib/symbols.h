@@ -34,6 +34,8 @@
 #ifndef _symbols_h_
 #define _symbols_h_
 
+#include "tm.h"		/* For tm_t */
+
 /**
  * An entry in the symbol table.
  */
@@ -45,10 +47,23 @@ struct symbol {
 struct symbols;
 typedef struct symbols symbols_t;
 
+/**
+ * Self-assessed stacktrace symbol quality.
+ */
+enum symbol_quality {
+	SYMBOL_Q_GOOD = 0,
+	SYMBOL_Q_STALE,
+	SYMBOL_Q_MISMATCH,
+	SYMBOL_Q_GARBAGE,
+
+	SYMBOL_Q_MAX
+};
+
 /*
  * Public interface.
  */
 
+const char *symbol_quality_string(const enum symbol_quality sq);
 void symbols_set_verbose(bool verbose);
 symbols_t *symbols_make(size_t capacity, bool once);
 void symbols_free_null(symbols_t **st_ptr);
@@ -57,7 +72,7 @@ const char *symbols_name_only(const symbols_t *st, const void *pc, bool offset);
 const char *symbols_name_light(const symbols_t *st, const void *pc, size_t *off);
 const void *symbols_addr(const symbols_t *st, const void *pc);
 void symbols_load_from(symbols_t *st, const char *path, const  char *lpath);
-enum stacktrace_sym_quality symbols_quality(const symbols_t *st);
+enum symbol_quality symbols_quality(const symbols_t *st);
 size_t symbols_count(const symbols_t *st);
 void symbols_mark_stale(symbols_t *st);
 size_t symbols_memory_size(const symbols_t *st);
