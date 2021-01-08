@@ -250,7 +250,7 @@ symbols_log_loaded(const struct symbols_loadinfo *sli)
 	double ago;
 
 	if (!symbols_verbose)
-		return
+		return;
 
 	tm_now_exact(&now);
 	ago = tm_elapsed_f(&now, &sli->when);
