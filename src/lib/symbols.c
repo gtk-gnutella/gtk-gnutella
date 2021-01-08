@@ -171,6 +171,8 @@ symbols_export_info(
 	struct symbol_load_info *uli,
 	const struct symbols_loadinfo *sli)
 {
+	symbols_loadinfo_check(sli);
+
 #define UCP(x)	uli->x = sli->x
 
 	UCP(count);
@@ -249,6 +251,8 @@ symbols_log_loaded(const struct symbols_loadinfo *sli)
 	tm_t now;
 	double ago;
 
+	symbols_loadinfo_check(sli);
+
 	if (!symbols_verbose)
 		return;
 
@@ -259,7 +263,7 @@ symbols_log_loaded(const struct symbols_loadinfo *sli)
 	if (ago != 0.0)
 		str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
 
-	s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
+	s_info("loaded %zu symbol%s from \"%s\" via %s in %.3f secs%s",
 		PLURAL(sli->count), sli->path, sli->method, sli->secs, buf);
 
 	if (sli->stripped != 0)
