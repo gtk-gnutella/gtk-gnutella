@@ -50,6 +50,11 @@ typedef struct tmval {
 
 #define TM_ZERO		{ 0L, 0L }
 
+/*
+ * For printing a tmval structure, as "%ld:%ld" for instance.
+ */
+#define TM_LONG(x)	(x).tv_sec, (x).tv_usec
+
 /**
  * Copies the timeval fields into our internal tmval structure.
  *
@@ -79,6 +84,11 @@ typedef struct tmspec {
 } tm_nano_t;
 
 #define TM_NANO_ZERO	{ 0L, 0L }
+
+/*
+ * For printing a tmspec structure, as "%ld:%ld" for instance.
+ */
+#define TM_NANO_LONG(x)	(x).tv_sec, (x).tv_nsec
 
 /**
  * Copies the timespec fields into our internal tmspec structure.
