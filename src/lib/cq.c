@@ -74,6 +74,8 @@ enum cevent_magic {
 	CEVENT_EXT_MAGIC = 0x6a8fe830
 };
 
+#define CEVENT_TRIGGERED ((cq_time_t) -1)	/* Flags triggered events */
+
 /**
  * Callout queue event.
  */
@@ -129,6 +131,12 @@ static inline ALWAYS_INLINE bool
 cevent_is_extended(const cevent_t *ce)
 {
 	return CEVENT_EXT_MAGIC == ce->ce_magic;
+}
+
+static inline ALWAYS_INLINE bool
+cevent_has_triggered(const cevent_t *ce)
+{
+	return CEVENT_TRIGGERED == ce->ce_time;
 }
 
 /**
@@ -422,10 +430,12 @@ ev_triggered(const cevent_t *ev)
 	if G_UNLIKELY(cevent_is_extended(ev)) {
 		const struct cevent_ext *evx = cast_to_cevent_ext(ev);
 		g_assert(evx->cex_refcnt <= 2);
-		return 1 == evx->cex_refcnt;
+		g_assert(equiv(1 == evx->cex_refcnt, cevent_has_triggered(ev)));
+	} else {
+		g_assert(!cevent_has_triggered(ev));
 	}
 
-	return FALSE;
+	return cevent_has_triggered(ev);
 }
 
 /**
@@ -661,12 +671,12 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 		 * will keep the returned value in a variable.
 		 */
 
-		WALLOC(evx);
+		WALLOC0(evx);
 		ev = &evx->event;
 		ev->ce_magic = CEVENT_EXT_MAGIC;
 		evx->cex_refcnt = 2;				/* One by queue, one by thread */
 	} else {
-		WALLOC(ev);
+		WALLOC0(ev);
 		ev->ce_magic = CEVENT_MAGIC;
 	}
 
@@ -1011,6 +1021,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	ev_unlink(ev);
+	ev->ce_time = CEVENT_TRIGGERED;
 
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
