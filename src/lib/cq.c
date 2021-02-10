@@ -477,6 +477,7 @@ ev_link(cevent_t *ev)
 	cq = ev->ce_cq;
 	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
+	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	trigger = ev->ce_time;
@@ -584,10 +585,18 @@ ev_unlink(cevent_t *ev)
 	if (ch->ch_tail == ev)
 		ch->ch_tail = ev->ce_bprev;
 
-	if (ev->ce_bprev)
+	if (ev->ce_bprev != NULL) {
+		cevent_check(ev->ce_bprev);
 		ev->ce_bprev->ce_bnext = ev->ce_bnext;
-	if (ev->ce_bnext)
+	}
+	if (ev->ce_bnext != NULL) {
+		cevent_check(ev->ce_bnext);
 		ev->ce_bnext->ce_bprev = ev->ce_bprev;
+	}
+
+	/* Flag event as removed, for ev_link() assertions */
+	ev->ce_bnext = NULL;
+	ev->ce_bprev = NULL;
 
 	g_assert(ch->ch_head == NULL || ch->ch_head->ce_bprev == NULL);
 	g_assert(ch->ch_tail == NULL || ch->ch_tail->ce_bnext == NULL);
