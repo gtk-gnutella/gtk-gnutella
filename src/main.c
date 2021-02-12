@@ -2388,12 +2388,13 @@ main(int argc, char **argv)
 	 * --daemonize switch is used.
 	 *
 	 * It can only be called after settings_early_init() since this
-	 * is where the crash directory is initialized.
+	 * is where the config directory is initialized.
 	 */
 
 	settings_early_init();
-	crash_setdir(settings_crash_dir());
 	handle_arguments();		/* Returning from here means we're good to go */
+
+	crash_setdir(settings_crash_dir());
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	/*
