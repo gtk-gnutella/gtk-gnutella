@@ -508,14 +508,13 @@ ev_link(cevent_t *ev)
 		return;
 	}
 
-	g_assert(ch->ch_tail);
-
 	/*
 	 * If item is larger than the tail, insert at the end right away.
 	 */
 
 	hev = ch->ch_tail;
 
+	cevent_check(hev);
 	g_assert(hev->ce_bnext == NULL);
 
 	if (trigger >= hev->ce_time) {
@@ -532,6 +531,7 @@ ev_link(cevent_t *ev)
 
 	hev = ch->ch_head;
 
+	cevent_check(hev);
 	g_assert(hev->ce_bprev == NULL);
 
 	if (trigger < hev->ce_time) {
@@ -546,12 +546,16 @@ ev_link(cevent_t *ev)
 	 * Insert before the first item whose trigger will come after ours.
 	 */
 
-	for (hev = hev->ce_bnext; hev; hev = hev->ce_bnext) {
+	for (hev = hev->ce_bnext; hev != NULL; hev = hev->ce_bnext) {
+		cevent_check(hev);
+		g_assert(hev->ce_bprev != NULL);
+
 		if (trigger < hev->ce_time) {
+			/* Inserting `ev' before `hev', which is not the head of list */
 			hev->ce_bprev->ce_bnext = ev;
 			ev->ce_bprev = hev->ce_bprev;
-			hev->ce_bprev = ev;
 			ev->ce_bnext = hev;
+			hev->ce_bprev = ev;
 			return;
 		}
 	}
@@ -580,10 +584,14 @@ ev_unlink(cevent_t *ev)
 	 * Unlinking the item is straigthforward, unlike insertion!
 	 */
 
-	if (ch->ch_head == ev)
+	if (ch->ch_head == ev) {
+		g_assert(NULL == ev->ce_bprev);
 		ch->ch_head = ev->ce_bnext;
-	if (ch->ch_tail == ev)
+	}
+	if (ch->ch_tail == ev) {
+		g_assert(NULL == ev->ce_bnext);
 		ch->ch_tail = ev->ce_bprev;
+	}
 
 	if (ev->ce_bprev != NULL) {
 		cevent_check(ev->ce_bprev);
