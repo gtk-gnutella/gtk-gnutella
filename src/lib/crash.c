@@ -1945,9 +1945,8 @@ retry_child:
 						"gdb", "-q", "-n", "-p", pid_str, NULL_PTR);
 
 				if (-1 == spfd) {
-					crash_logerr("spopen() failed", pid_str,
+					crash_logerr("spopenlp() failed", pid_str,
 						STDERR_FILENO, clf, STDOUT_FILENO);
-					crash_stack_print_decorated(clf, 2, FALSE);
 				} else {
 					/* We'll wait for child and close the pipe ourselves */
 					pid = sppid(spfd, TRUE);
