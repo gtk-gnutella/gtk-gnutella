@@ -445,6 +445,8 @@ static void
 ev_free(cevent_t *ev)
 {
 	cevent_check(ev);
+	/* Even must no longer be part of a callout queue list */
+	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
 
 	/*
 	 * There is no need to have a lock on the callout queue to call this
