@@ -477,6 +477,7 @@ ev_link(cevent_t *ev)
 	cevent_check(ev);
 
 	cq = ev->ce_cq;
+
 	cqueue_check(cq);
 	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
@@ -497,16 +498,16 @@ ev_link(cevent_t *ev)
 	else
 		ch = &cq->cq_hash[EV_HASH(trigger)];
 
-	g_assert(ch);
+	g_assert(ch != NULL);
 
 	/*
 	 * If bucket is empty, the event is the new head.
 	 */
 
-	if (ch->ch_head == NULL) {
-		g_assert(ch->ch_tail == NULL);
+	if (NULL == ch->ch_head) {
+		g_assert(NULL == ch->ch_tail);
 		ch->ch_tail = ch->ch_head = ev;
-		ev->ce_bnext = ev->ce_bprev = NULL;
+		/* This is a precondition: ev->ce_bnext = ev->ce_bprev = NULL; */
 		return;
 	}
 
@@ -517,11 +518,11 @@ ev_link(cevent_t *ev)
 	hev = ch->ch_tail;
 
 	cevent_check(hev);
-	g_assert(hev->ce_bnext == NULL);
+	g_assert(NULL == hev->ce_bnext);
 
 	if (trigger >= hev->ce_time) {
 		hev->ce_bnext = ev;
-		ev->ce_bnext = NULL;
+		/* This is a precondition: ev->ce_bnext = NULL; */
 		ev->ce_bprev = hev;
 		ch->ch_tail = ev;
 		return;
@@ -534,12 +535,12 @@ ev_link(cevent_t *ev)
 	hev = ch->ch_head;
 
 	cevent_check(hev);
-	g_assert(hev->ce_bprev == NULL);
+	g_assert(NULL == hev->ce_bprev);
 
 	if (trigger < hev->ce_time) {
 		hev->ce_bprev = ev;
 		ev->ce_bnext = hev;
-		ev->ce_bprev = NULL;
+		/* This is a precondition: ev->ce_bprev = NULL; */
 		ch->ch_head = ev;
 		return;
 	}
@@ -575,12 +576,22 @@ ev_unlink(cevent_t *ev)
 	cqueue_t *cq;
 
 	cevent_check(ev);
+
 	cq = ev->ce_cq;
+
 	cqueue_check(cq);
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
+
+	/* Bucket cannot be empty or `ev' is not part of the callout list! */
+	cevent_check(ch->ch_head);
+	cevent_check(ch->ch_tail);
+
+	/* Head has no previous, tail has no next, by definition */
+	g_assert(NULL == ch->ch_head->ce_bprev);
+	g_assert(NULL == ch->ch_tail->ce_bnext);
 
 	/*
 	 * Unlinking the item is straigthforward, unlike insertion!
@@ -608,8 +619,9 @@ ev_unlink(cevent_t *ev)
 	ev->ce_bnext = NULL;
 	ev->ce_bprev = NULL;
 
-	g_assert(ch->ch_head == NULL || ch->ch_head->ce_bprev == NULL);
-	g_assert(ch->ch_tail == NULL || ch->ch_tail->ce_bnext == NULL);
+	/* Postcondition: head and tail are still correct */
+	g_assert(NULL == ch->ch_head || NULL == ch->ch_head->ce_bprev);
+	g_assert(NULL == ch->ch_tail || NULL == ch->ch_tail->ce_bnext);
 }
 
 /**
