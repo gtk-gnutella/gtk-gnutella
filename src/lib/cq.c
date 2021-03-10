@@ -977,7 +977,7 @@ cq_resched(cevent_t *ev, int delay)
 	 * current clock time. Hence the assertion below.
 	 */
 
-	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
+	g_assert(ev->ce_time > cq->cq_time || cq->cq_current != NULL);
 
 	/*
 	 * Events are sorted into the callout queue by trigger time, and are also
@@ -1039,6 +1039,14 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 {
 	cq_service_t fn;
 	void *arg;
+
+	cevent_check(ev);
+	cqueue_check(ev->ce_cq);
+
+	g_assert_log(ev->ce_cq == cq,
+		"%s(): event %p for %s(%p) belongs to cq \"%s\" but expiring cq \"%s\"",
+		G_STRFUNC, ev, stacktrace_function_name(ev->ce_fn), ev->ce_arg,
+		ev->ce_cq->cq_name, cq->cq_name);
 
 	assert_mutex_is_owned(&cq->cq_lock);
 
