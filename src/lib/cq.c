@@ -586,6 +586,13 @@ ev_unlink(cevent_t *ev)
 	cq->cq_items--;
 
 	/* Bucket cannot be empty or `ev' is not part of the callout list! */
+	g_assert_log(ch->ch_head != NULL && ch->ch_tail != NULL,
+		"%s(): bucket #%u for ev=%p %s(%p) in cq \"%s\" has head=%p, tail=%p",
+		G_STRFUNC, (uint) EV_HASH(ev->ce_time), ev,
+		stacktrace_function_name(ev->ce_fn), ev->ce_arg, cq->cq_name,
+		ch->ch_head, ch->ch_tail);
+
+	/* Since bucket is not empty, verify pointers are valid */
 	cevent_check(ch->ch_head);
 	cevent_check(ch->ch_tail);
 
