@@ -479,24 +479,13 @@ ev_link(cevent_t *ev)
 	cq = ev->ce_cq;
 
 	cqueue_check(cq);
-	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
+	g_assert(ev->ce_time >= cq->cq_time);
 	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	trigger = ev->ce_time;
 	cq->cq_items++;
-
-	/*
-	 * Important corner case: we may be rescheduling an event BEFORE
-	 * the current clock time, in which case we must insert the event
-	 * in the current bucket, so it gets fired during the current
-	 * cq_clock() run.
-	 */
-
-	if (trigger <= cq->cq_time)
-		ch = cq->cq_current;
-	else
-		ch = &cq->cq_hash[EV_HASH(trigger)];
+	ch = &cq->cq_hash[EV_HASH(trigger)];
 
 	g_assert(ch != NULL);
 
@@ -971,6 +960,11 @@ cq_resched(cevent_t *ev, int delay)
 {
 	cqueue_t *cq;
 
+	cevent_check(ev);
+	g_assert_log(delay >= 0,
+		"%s(): delay=%d for %s(%p)",
+		G_STRFUNC, delay, stacktrace_function_name(ev->ce_fn), ev->ce_arg);
+
 	cq = EV_CQ_LOCK(ev);
 
 	if G_UNLIKELY(ev_triggered(ev)) {
@@ -978,14 +972,6 @@ cq_resched(cevent_t *ev, int delay)
 		s_carp("%s() called on already triggered event", G_STRFUNC);
 		return FALSE;
 	}
-
-	/*
-	 * If is perfectly possible that whilst running cq_clock() and
-	 * expiring an event, some other event gets rescheduled BEFORE the
-	 * current clock time. Hence the assertion below.
-	 */
-
-	g_assert(ev->ce_time > cq->cq_time || cq->cq_current != NULL);
 
 	/*
 	 * Events are sorted into the callout queue by trigger time, and are also
