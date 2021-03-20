@@ -587,8 +587,9 @@ ev_unlink(cevent_t *ev)
 
 	/* Bucket cannot be empty or `ev' is not part of the callout list! */
 	g_assert_log(ch->ch_head != NULL && ch->ch_tail != NULL,
-		"%s(): bucket #%u for ev=%p %s(%p) in cq \"%s\" has head=%p, tail=%p",
-		G_STRFUNC, (uint) EV_HASH(ev->ce_time), ev,
+		"%s(): bucket #%u for ev%s=%p %s(%p) in cq \"%s\" has head=%p, tail=%p",
+		G_STRFUNC, (uint) EV_HASH(ev->ce_time),
+		cevent_is_extended(ev) ? "x" : "", ev,
 		stacktrace_function_name(ev->ce_fn), ev->ce_arg, cq->cq_name,
 		ch->ch_head, ch->ch_tail);
 
@@ -1051,8 +1052,9 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	cqueue_check(ev->ce_cq);
 
 	g_assert_log(ev->ce_cq == cq,
-		"%s(): event %p for %s(%p) belongs to cq \"%s\" but expiring cq \"%s\"",
-		G_STRFUNC, ev, stacktrace_function_name(ev->ce_fn), ev->ce_arg,
+		"%s(): ev%s=%p for %s(%p) belongs to cq \"%s\" but expiring cq \"%s\"",
+		G_STRFUNC, cevent_is_extended(ev) ? "x" : "", ev,
+		stacktrace_function_name(ev->ce_fn), ev->ce_arg,
 		ev->ce_cq->cq_name, cq->cq_name);
 
 	assert_mutex_is_owned(&cq->cq_lock);
