@@ -846,6 +846,10 @@ locked:
 	 *
 	 * We use our malloc() layer here on purpose, because the locks can be
 	 * disposed of very late when auto-cleaning triggers.
+	 *
+	 * Note that for fcntl() locks, the file descriptor needs to be kept
+	 * around as closing it would release the advisory locks we took for
+	 * that file.
 	 */
 
 	once_flag_run(&filelock_inited, filelock_init_once);
