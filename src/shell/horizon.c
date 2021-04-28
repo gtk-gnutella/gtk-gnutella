@@ -193,6 +193,8 @@ shell_exec_horizon(struct gnutella_shell *sh, int argc, const char *argv[])
 		PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 			const gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
 			if ((!NODE_IS_ESTABLISHED(n)) || !(n->attrs & NODE_A_CAN_HSEP))
 				continue;
 

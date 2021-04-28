@@ -1328,9 +1328,13 @@ mrg_step_get_list(struct bgtask *unused_h, void *u, int unused_ticks)
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *dn = sl->data;
-		struct routing_table *rt = dn->recv_query_table;
+		struct routing_table *rt;
 
-		if (rt == NULL || !NODE_IS_LEAF(dn))
+		node_check(dn);
+
+		rt = dn->recv_query_table;
+
+		if (NULL == rt || !NODE_IS_LEAF(dn))
 			continue;
 
 		/*
@@ -5466,8 +5470,10 @@ qrt_build_query_target(
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *dn = sl->data;
-		struct routing_table *rt = dn->recv_query_table;
+		struct routing_table *rt;
 		bool is_leaf;
+
+		node_check(dn);
 
 		/*
 		 * Avoid G_UNLIKELY() hints in the loop.  Either they are wrong hints
@@ -5491,6 +5497,7 @@ qrt_build_query_target(
 		 */
 
 		is_leaf = NODE_IS_LEAF(dn);
+		rt      = dn->recv_query_table;
 
 		if (is_leaf) {
 			/* Leaf node */
@@ -5505,7 +5512,7 @@ qrt_build_query_target(
 					continue;			/* Leaf won't understand it, skip! */
 				}
 			}
-			if (rt == NULL)				/* No QRT yet */
+			if (NULL == rt)				/* No QRT yet */
 				continue;				/* Don't send anything */
 			if (NODE_HAS_BAD_GUID(dn)) {
 				if (!NODE_USES_DUP_GUID(dn))
@@ -5526,7 +5533,7 @@ qrt_build_query_target(
 					continue;			/* Skip node, would not be efficient */
 				}
 			}
-			if (rt == NULL)				/* UP has not sent us its table */
+			if (NULL == rt)				/* UP has not sent us its table */
 				goto can_send;			/* Forward everything then */
 		}
 

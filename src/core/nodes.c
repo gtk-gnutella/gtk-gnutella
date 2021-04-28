@@ -13327,12 +13327,12 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
-		const gnutella_node_t *n;
+		const gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (i >= ucnt)
 			break;
-
-		n = sl->data;
 
 		/* Skip transient nodes, or nodes that have not sent us anything yet */
 		if (NODE_IS_TRANSIENT(n) || 0 == n->received)

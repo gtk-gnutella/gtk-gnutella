@@ -115,6 +115,7 @@ shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	PSLIST_FOREACH(node_all_nodes(), sl) {
 		const gnutella_node_t *n = sl->data;
+		node_check(n);
 		print_node_info(sh, n);
 	}
 	shell_write(sh, ".\n");	/* Terminate message body */

@@ -956,6 +956,8 @@ send_neighbouring_info(gnutella_node_t *n)
 		gnutella_node_t *cn = sl->data;
 		struct pong_info info;
 
+		node_check(cn);
+
 		if (!NODE_IS_WRITABLE(cn))
 			continue;
 
@@ -1589,6 +1591,8 @@ ping_all_neighbours(void)
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
 
@@ -1929,6 +1933,8 @@ pong_all_neighbours_but_one(
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *cn = sl->data;
 
+		node_check(cn);
+
 		if (cn == n)
 			continue;
 
@@ -1986,13 +1992,15 @@ static void
 pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
 	const pslist_t *sl;
-	unsigned leaves;
+	unsigned leaves = 0;
 	gnutella_node_t *leaf = NULL;
 
 	g_assert(settings_is_ultra());
 
-	for (sl = node_all_gnet_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
