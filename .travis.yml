@@ -43,5 +43,5 @@ after_script:
   - if [ "$TRAVIS_OS_NAME" == "osx" ]; then for f in ~/Desktop/*dmg; do curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T $f ;done ;fi
 
 notifications:
-  irc: "irc.freenode.net#gtk-gnutella"
+  irc: "irc.libera.chat#gtk-gnutella"
 
