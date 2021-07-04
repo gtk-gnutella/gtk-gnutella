@@ -86,18 +86,22 @@ $(GEODB6).ZIP: .FORCE
 	wget -N $(URL6)
 
 geo-ip.txt: $(GEODB4).ZIP
-	rm -rf $(TMP)
-	mkdir $(TMP)
-	(cd $(TMP); unzip ../$(GEODB4).ZIP)
-	(cd $(TMP); \
-		../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt)
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB4).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt); \
+	else touch $@; fi
 
 geo-ipv6.txt: $(GEODB6).ZIP
-	rm -rf $(TMP)
-	mkdir $(TMP)
-	(cd $(TMP); unzip ../$(GEODB6).ZIP)
-	(cd $(TMP); \
-		../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt)
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB6).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt); \
+	else touch $@; fi
 
 local_clean::
 	rm -rf $(TMP)
