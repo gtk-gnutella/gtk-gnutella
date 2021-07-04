@@ -181,10 +181,14 @@ TMP = tmp
 .FORCE:
 
 $(GEODB4).ZIP: .FORCE
-	wget -N $(URL4)
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL4); \
+	else touch $@; fi
 
 $(GEODB6).ZIP: .FORCE
-	wget -N $(URL6)
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL6); \
+	else touch $@; fi
 
 geo-ip.txt: $(GEODB4).ZIP
 	@if test -f $(TOP)/.package; then \
