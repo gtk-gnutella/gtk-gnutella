@@ -439,14 +439,12 @@ ev_triggered(const cevent_t *ev)
 }
 
 /**
- * Free callout queue event.
+ * Free callout queue event, without checking whether it's part of the list.
  */
 static void
-ev_free(cevent_t *ev)
+ev_forced_free(cevent_t *ev)
 {
 	cevent_check(ev);
-	/* Even must no longer be part of a callout queue list */
-	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
 
 	/*
 	 * There is no need to have a lock on the callout queue to call this
@@ -461,6 +459,19 @@ ev_free(cevent_t *ev)
 		ev->ce_magic = 0;
 		WFREE(ev);
 	}
+}
+
+/**
+ * Free callout queue event.
+ */
+static void
+ev_free(cevent_t *ev)
+{
+	cevent_check(ev);
+	/* Event must no longer be part of a callout queue list */
+	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
+
+	ev_forced_free(ev);
 }
 
 /**
@@ -2324,7 +2335,7 @@ cq_free(cqueue_t *cq)
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
-			ev_free(ev);
+			ev_forced_free(ev);
 		}
 	}
 
