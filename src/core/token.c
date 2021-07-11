@@ -663,6 +663,13 @@ tok_strerror(tok_error_t errnum)
 	return tok_errstr[errnum];
 }
 
+/*
+ * This is the date when the banning time was changed for gtk-gnutella,
+ * moving from 1 year to a little bit more than 2 years.
+ */
+#define TOK_POLICY_DATE_CHANGE	1625954400		/* 2021-07-11 */
+#define TOK_POLICY_OLD_BAN		(86400 * 365)	/* 1-year */
+
 /**
  * Based on the timestamp, determine the proper token keys to use limiting
  * to the first ``count'' items.
@@ -672,7 +679,6 @@ tok_strerror(tok_error_t errnum)
 static const struct tokkey *
 find_tokkey_upto(time_t now, size_t count)
 {
-	time_t adjusted = now - VERSION_ANCIENT_BAN;
 	uint i;
 
 	if (GNET_PROPERTY(version_debug) > 4) {
@@ -685,15 +691,43 @@ find_tokkey_upto(time_t now, size_t count)
 	for (i = 0; i < count; i++) {
 		const struct tokkey *tk = &token_keys[i];
 
-		if (GNET_PROPERTY(version_debug) > 4) {
-			g_debug("%s: index=%u, ver.timestamp=%u, adjusted=%u (%s)",
-				G_STRFUNC, i, (unsigned) tk->ver.timestamp, (unsigned) adjusted,
-				tk->ver.timestamp > adjusted ? "OK" :
-					i + 1 == count ? "FAILED" : "no");
-		}
+		/*
+		 * Prior to TOK_POLICY_DATE_CHANGE, tokens were selected based on
+		 * an expiration time of TOK_POLICY_OLD_BAN seconds.  To remain
+		 * compatible with all the other gtk-gnutella out there, we need
+		 * to continue this selection as long as the token's timestamp
+		 * pre-dates the policy change.
+		 * 		--RAM, 2021-07-11
+		 */
 
-		if (tk->ver.timestamp > adjusted)
-			return tk;
+		if (tk->ver.timestamp < TOK_POLICY_DATE_CHANGE) {
+			/* Older policy */
+			time_t old_adjusted = now - TOK_POLICY_OLD_BAN;
+
+			if (GNET_PROPERTY(version_debug) > 4) {
+				g_debug("%s: (old) index=%u, ver.timestamp=%u, adjusted=%u (%s)",
+					G_STRFUNC, i, (unsigned) tk->ver.timestamp,
+					(unsigned) old_adjusted,
+					tk->ver.timestamp > old_adjusted ? "OK" :
+						i + 1 == count ? "FAILED" : "no");
+			}
+			if (tk->ver.timestamp > old_adjusted)
+				return tk;
+		} else {
+			/* New policy */
+			time_t adjusted = now - VERSION_ANCIENT_BAN;
+
+			if (GNET_PROPERTY(version_debug) > 4) {
+				g_debug("%s: (new) index=%u, ver.timestamp=%u, adjusted=%u (%s)",
+					G_STRFUNC, i, (unsigned) tk->ver.timestamp,
+					(unsigned) adjusted,
+					tk->ver.timestamp > adjusted ? "OK" :
+						i + 1 == count ? "FAILED" : "no");
+			}
+
+			if (tk->ver.timestamp > adjusted)
+				return tk;
+		}
 	}
 
 	return NULL;
@@ -796,7 +830,7 @@ find_tokkey_version(const version_t *ver, time_t now)
 			G_STRFUNC, i, N_ITEMS(token_keys));
 	}
 
-	i++;									/* We need a count, not an index */
+	i++;								/* We need a count, not an index */
 	i = MIN(i, N_ITEMS(token_keys));	/* In case loop did not match */
 
 	return find_tokkey_upto_fallback(now, i);
