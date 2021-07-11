@@ -67,8 +67,8 @@ typedef struct version_ext {
  * Banning periods for our versions.
  */
 
-#define VERSION_ANCIENT_WARN	(86400*365)		/**< 1 year */
-#define VERSION_ANCIENT_BAN		(86400*365)		/**< 1 year */
+#define VERSION_ANCIENT_WARN	(86400*366*2)	/**< 2 years + epsilon */
+#define VERSION_ANCIENT_BAN		(86400*366*2)	/**< 2 years + epsilon */
 
 #define VERSION_ANCIENT_REMIND	(86400*30)		/**< 30 days */
 #define VERSION_ANCIENT_GRACE	(86400*20)		/**< 20 days */
