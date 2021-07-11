@@ -257,6 +257,7 @@ enum main_arg {
 	main_arg_minimized,
 	main_arg_no_build_version,
 	main_arg_no_dbus,
+	main_arg_no_expire,
 	main_arg_no_halloc,
 	main_arg_no_restart,
 	main_arg_no_supervise,
@@ -323,6 +324,11 @@ static struct option {
 #endif	/* USE_TOPLESS */
 	OPTION(no_build_version,NONE, NULL),	/* hidden option */
 	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
+#ifdef USE_TOPLESS
+	OPTION(no_expire,		NONE, NULL),	/* accept but hide */
+#else
+	OPTION(no_expire,		NONE, "Disable expired popup notifications."),
+#endif
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -2537,6 +2543,7 @@ main(int argc, char **argv)
 
 	if (!running_topless) {
 		main_gui_early_init(argc, argv, OPT(no_xshm));
+		main_gui_disable_ancient(OPT(no_expire));
 	}
 
 	upload_stats_load_history();	/* Loads the upload statistics */

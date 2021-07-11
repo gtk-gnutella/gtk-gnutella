@@ -1414,13 +1414,15 @@ ancient_version_dialog(gboolean show)
 void
 ancient_version_dialog_show(void)
 {
-	ancient_version_dialog(TRUE);
+	if (!main_gui_ancient_is_disabled())
+		ancient_version_dialog(TRUE);
 }
 
 void
 ancient_version_dialog_hide(void)
 {
-	ancient_version_dialog(FALSE);
+	if (!main_gui_ancient_is_disabled())
+		ancient_version_dialog(FALSE);
 }
 
 static gboolean

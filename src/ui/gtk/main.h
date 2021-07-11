@@ -59,6 +59,7 @@ WIDGET(shutdown_window)
 #undef WIDGET
 
 void main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm);
+void main_gui_disable_ancient(bool v);
 void main_gui_init(void);
 void main_gui_exit(int n);
 void main_gui_run(const gchar *geometry_spec, const gboolean minimized);
@@ -68,6 +69,7 @@ void main_gui_shutdown_tick(guint);
 void main_gui_show_prefences(void);
 
 gboolean main_gui_window_visible(void);
+bool main_gui_ancient_is_disabled(void);
 
 typedef void (*main_gui_visibility_cb)(gboolean visible);
 
