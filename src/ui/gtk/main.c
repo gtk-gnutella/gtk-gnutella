@@ -834,6 +834,20 @@ void main_gui_init_osx()
 }
 #endif
 
+static bool opt_ancien_is_disabled = FALSE;
+
+bool
+main_gui_ancient_is_disabled(void)
+{
+	return opt_ancien_is_disabled;
+}
+
+void
+main_gui_disable_ancient(bool v)
+{
+	opt_ancien_is_disabled = v;
+}
+
 /**
  * Some setup of the gui side which I wanted out of main.c but must be done
  * before the backend can be initialized since the core code is not free of

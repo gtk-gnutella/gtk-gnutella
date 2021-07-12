@@ -124,6 +124,13 @@ Disable notifications of
 .I gtk\-gnutella
 events to D-BUS.
 .TP
+.B "\-\-no\-expire"
+Disable GUI popups when
+.I gtk\-gnutella
+has expired.  This is not the default behaviour because we wish to keep
+the network healthy by having recent versions running, but at the same
+time we understand not everyone can or wants to upgrade in a timely manner.
+.TP
 .B "\-\-no\-restart"
 Prevents
 .I gtk\-gnutella

@@ -70,9 +70,10 @@ static char empty[] = "";
 enum shell_reply
 shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *cur;
+	const char *cur, *tot;
 	const option_t options[] = {
 		{ "i", &cur },
+		{ "t", &tot },
 	};
 	int parsed;
 	char buf[2048];
@@ -304,43 +305,68 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		short_string_t dht_in, dht_out;
 		gnet_bw_stats_t bw_stats, bw2_stats;
-		const char *bwtype = cur ? "(cur)" : "(avg)";
+		const char *bwtype = tot ? "(sum)" : cur ? "(cur)" : "(avg)";
 
-		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
-		gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
-		gnet_in = short_rate_get_string(
-			cur ? bw_stats.current + bw2_stats.current
-				: bw_stats.average + bw2_stats.average, metric);
+		if (tot) {
+			gnet_in = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_up_in) +
+				GNET_PROPERTY(bc_gnet_udp_in), metric);
 
-		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
-		gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
-		gnet_out = short_rate_get_string(
-			cur ? bw_stats.current + bw2_stats.current
-				: bw_stats.average + bw2_stats.average, metric);
+			gnet_out = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_up_out) +
+				GNET_PROPERTY(bc_gnet_udp_out), metric);
 
-		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
-		http_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			http_in =
+				long_value_get_string(GNET_PROPERTY(bc_http_in), metric);
+			http_out =
+				long_value_get_string(GNET_PROPERTY(bc_http_out), metric);
 
-		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
-		http_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			leaf_in  = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_leaf_in), metric);
+			leaf_out = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_leaf_out), metric);
 
-		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
-		leaf_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			dht_in =
+				long_value_get_string( GNET_PROPERTY(bc_dht_in), metric);
+			dht_out =
+				long_value_get_string(GNET_PROPERTY(bc_dht_out), metric);
+		} else {
+			gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
+			gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
+			gnet_in = short_rate_get_string(
+				cur ? bw_stats.current + bw2_stats.current
+					: bw_stats.average + bw2_stats.average, metric);
 
-		gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
-		leaf_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
+			gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
+			gnet_out = short_rate_get_string(
+				cur ? bw_stats.current + bw2_stats.current
+					: bw_stats.average + bw2_stats.average, metric);
 
-		gnet_get_bw_stats(BW_DHT_IN, &bw_stats);
-		dht_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
+			http_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
 
-		gnet_get_bw_stats(BW_DHT_OUT, &bw_stats);
-		dht_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
+			http_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
+			leaf_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
+			leaf_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_DHT_IN, &bw_stats);
+			dht_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_DHT_OUT, &bw_stats);
+			dht_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+		}
 
 		str_bprintf(ARYLEN(buf),
 			"| %-70s|\n"
@@ -395,9 +421,10 @@ shell_help_status(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "status [-i]\n"
+	return "status [-it]\n"
 		"Display status pane summary\n"
 		"-i : display instantaneous bandwidth instead of average\n"
+		"-t : display total bandwidth used instead\n"
 		"Upper-right corner flags mimic status icons in the GUI:\n"
 		"(from left to right in lightening order)\n"
 		"  UMP           port mapping configured via UPnP\n"

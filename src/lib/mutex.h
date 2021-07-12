@@ -121,7 +121,9 @@ typedef struct lmutex {
 static inline bool
 mutex_is_valid(const volatile mutex_t * const m)
 {
-	return m != NULL && MUTEX_MAGIC == m->magic;
+	return m != NULL &&
+		MUTEX_MAGIC == m->magic &&
+		SPINLOCK_MAGIC == m->lock.magic;
 }
 
 /**

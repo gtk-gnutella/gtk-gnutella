@@ -16,7 +16,7 @@ if not "MACOSX_DEPLOYMENT_TARGET" in os.environ:
 moduleset = os.path.expanduser("~/gtk-gnutella.modules")
 modules = [ 'meta-gtk-osx-bootstrap', 'meta-gtk-osx-core', 'gtk-gnutella-deps' ]
 
-if os.environ["MACOSX_DEPLOYMENT_TARGET"] > 10.7:
+if float(os.environ["MACOSX_DEPLOYMENT_TARGET"]) > 10.7:
 	skip.append("openssl")
 #append_autogenargs("libxslt", "--without-python")
 

@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sat May 16 10:27:46 CEST 2020 [metaconfig 3.5-255]
+# Generated on Sun Jul 12 10:41:08 CEST 2020 [metaconfig 3.5-255]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -11083,17 +11083,28 @@ set iconv.h i_iconv
 eval $inhdr
 
 : see whether we can omit the frame pointer
+needframe=
 case "$gccversion" in
 '') ;;
 *)
 	echo " "
+	needframe=y
+	case "$d_backtrace" in
+	"$define") needframe=n;;
+	esac
 	$cat >try.c <<'EOC'
 int main()
 {
 	return 0;
 }
 EOC
-	if $cc $ccflags -momit-leaf-frame-pointer $ldflags -o try try.c >/dev/null 2>&1
+	;;
+esac
+case "$needframe" in
+n)
+	if
+		$cc $ccflags -momit-leaf-frame-pointer $ldflags \
+			-o try try.c >/dev/null 2>&1
 	then
 		case "$ccflags $optimize" in
 		*-momit-leaf-frame-pointer*) ;;
@@ -11112,7 +11123,29 @@ EOC
 		esac
 	fi
 	;;
+y)
+	if
+		$cc $ccflags -fno-omit-frame-pointer $ldflags \
+			-o try try.c >/dev/null 2>&1
+	then
+		case "$ccflags" in
+		*-fno-omit-frame-pointer*) ;;
+		*)
+			ccflags="-fno-omit-frame-pointer $ccflags"
+			echo "Added -fno-omit-frame-pointer to the cc flags." >&4
+			;;
+		esac
+	else
+		case "$ccflags" in
+		*-fno-omit-frame-pointer*)
+			echo "Stripping -fno-omit-frame-pointer from cc flags." >&4
+			ccflags=`echo $ccflags | $sed 's/ *-fno-omit-frame-pointer//'`
+		;;
+		esac
+	fi
+	;;
 esac
+$rm -f try try.c
 
 : see if deflate exists
 $cat >try.c <<EOC

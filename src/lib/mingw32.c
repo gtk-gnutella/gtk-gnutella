@@ -5351,12 +5351,81 @@ mingw_fopen(const char *pathname, const char *mode)
 	return res;
 }
 
+/**
+ * Special version of freopen() to be used when re-opening files for writing.
+ *
+ * Blindly using freopen() opens the file with exclusive access, which
+ * prevents opening the file to inspect it whilst the program runs.
+ *
+ * So we use a different strategy by going deeper into the Windows API to
+ * open the file with shared access, and then we just change the file
+ * descriptor of the file structure to use our new descriptor.
+ *
+ * @param wpathname		the wpathname.utf16 is the wide-char pathname
+ * @param flags			O_XXX read/write/trunc/append flags
+ * @param file			the existing FILE we want to redirect to wpathname
+ *
+ * @return TRUE on success.
+ */
+static bool
+mingw_write_redirect(pncs_t wpathname, int flags, FILE *file)
+{
+	HANDLE h;
+	int fd, r;
+	DWORD mode = 0;
+
+	/* Assert they are flags, not values we cannot combine */
+	STATIC_ASSERT(3 == (O_RDWR | O_WRONLY | O_RDONLY));
+
+	if (flags & (O_RDWR | O_WRONLY))
+		mode |= GENERIC_WRITE;
+
+	if (flags & (O_RDWR | O_RDONLY))
+		mode |= GENERIC_READ;
+
+	if (flags & O_APPEND)
+		mode |= FILE_APPEND_DATA;
+
+	h = CreateFileW(wpathname.utf16, mode,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (INVALID_HANDLE_VALUE == h)
+		return FALSE;
+
+	if (flags & O_TRUNC)
+		SetEndOfFile(h);
+
+	/*
+	 * According to MSDN, the only flags interesting here are O_APPEND and
+	 * O_RDONLY.  Limit to those then.
+	 */
+
+	fd = _open_osfhandle((intptr_t) h, flags & (O_APPEND | O_RDONLY));
+	if (-1 == fd) {
+		CloseHandle(h);
+		return FALSE;
+	}
+
+	r = mingw_dup2(fd, fileno(file));	/* replaces old fd in `file' */
+	close(fd);
+
+	if (-1 == r) {
+		/* Should already be taken care of by close(fd) if dup2() failed */
+		CloseHandle(h);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 FILE *
 mingw_freopen(const char *pathname, const char *mode, FILE *file)
 {
 	pncs_t wpathname;
 	char bin_mode[14];
 	wchar_t wmode[32];
+	int flags = 0;
 	FILE *res;
 
 	if (pncs_convert(&wpathname, pathname))
@@ -5378,9 +5447,52 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 		return NULL;
 	}
 
-	res = _wfreopen(wpathname.utf16, wmode, file);
-	if (NULL == res)
-		errno = mingw_last_error();
+	/*
+	 * Analyze the reopen flags to determine how the file will be
+	 * written to, in case we have to handle it manually.
+	 */
+
+	if (NULL != vstrchr(mode, 'a')) {
+		if (NULL != vstrstr(mode, "a+"))
+			flags |= O_RDWR | O_APPEND;
+		else
+			flags |= O_WRONLY | O_APPEND;
+	}
+
+	if (NULL != vstrchr(mode, 'w')) {
+		if (NULL != vstrstr(mode, "w+"))
+			flags |= O_RDWR | O_TRUNC;
+		else
+			flags |= O_WRONLY | O_TRUNC;
+	}
+
+	if (NULL != vstrchr(mode, 'r')) {
+		if (NULL != vstrstr(mode, "r+"))
+			flags |= O_RDWR;
+		else
+			flags |= O_RDONLY;
+	}
+
+	/*
+	 * Handle re-opening for writing specially to avoid exclusive access
+	 * preventing concurrent reads.
+	 */
+
+	if (flags & (O_WRONLY | O_RDWR)) {
+		/* Writing to file, use special version */
+		if (mingw_write_redirect(wpathname, flags, file)) {
+			res = file;
+		} else {
+			errno = mingw_last_error();
+			res = NULL;
+		}
+	} else {
+		/* No writing, let the default Windows behaviour apply */
+		res = _wfreopen(wpathname.utf16, wmode, file);
+		if (NULL == res)
+			errno = mingw_last_error();
+	}
+
 	return res;
 }
 
@@ -9546,7 +9658,7 @@ mingw_early_init(void)
 				STARTUP_DEBUG("stdout file will be %s", pathname);
 				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout files rotated");
-				if (NULL != freopen(pathname, "ab", stdout)) {
+				if (NULL != mingw_freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
 				} else {
@@ -9557,7 +9669,7 @@ mingw_early_init(void)
 				STARTUP_DEBUG("stderr file will be %s", pathname);
 				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr files rotated");
-				if (NULL != freopen(pathname, "ab", stderr)) {
+				if (NULL != mingw_freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
 				} else {

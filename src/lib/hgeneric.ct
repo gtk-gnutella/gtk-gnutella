@@ -981,4 +981,4 @@ htable_test(void)
 }
 @end	/* TABLE */
 
-/* vi: set ts=4 sw=4 cindent: */
+/* vi: set ts=4 sw=4 syn=c cindent: */

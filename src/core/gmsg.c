@@ -708,6 +708,8 @@ gmsg_search_sendto_all(
 	for (/* empty */; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *dn = sl->data;
 
+		node_check(dn);
+
 		/*
 		 * When switching UP -> leaf, it may happen that we try to send
 		 * a search to a leaf node without any search queue.  Hence
@@ -753,6 +755,7 @@ gmsg_split_routeto_all_but_one(const gnutella_node_t *from,
 
 	for (/* empty */; sl; sl = pslist_next(sl)) {
 		gnutella_node_t *dn = sl->data;
+		node_check(dn);
 		if (dn == n)
 			continue;
 		if (!NODE_IS_ESTABLISHED(dn) || NODE_IS_LEAF(dn))

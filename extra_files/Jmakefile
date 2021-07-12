@@ -64,7 +64,7 @@ SetSubdirs(el en it fr ja tr)
 ;# Update the bogons and GeoIp databases
 ;#
 
-update: update_bogons update_geoip4 update_geoip6
+update: update_bogons geo-ip.txt geo-ipv6.txt
 
 update_bogons:
 ;# Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
@@ -77,23 +77,35 @@ GEODB4 = IP2LOCATION-LITE-DB1.CSV
 GEODB6 = IP2LOCATION-LITE-DB1.IPV6.CSV
 TMP = tmp
 
-update_geoip4:
-	rm -f $(GEODB4).ZIP
-	rm -rf $(TMP)
-	wget $(URL4)
-	mkdir $(TMP)
-	(cd $(TMP); unzip ../$(GEODB4).ZIP)
-	(cd $(TMP); \
-		../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt)
+.FORCE:
 
-update_geoip6:
-	rm -f $(GEODB6).ZIP
-	rm -rf $(TMP)
-	wget $(URL6)
-	mkdir $(TMP)
-	(cd $(TMP); unzip ../$(GEODB6).ZIP)
-	(cd $(TMP); \
-		../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt)
+$(GEODB4).ZIP: .FORCE
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL4); \
+	else touch $@; fi
+
+$(GEODB6).ZIP: .FORCE
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL6); \
+	else touch $@; fi
+
+geo-ip.txt: $(GEODB4).ZIP
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB4).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt); \
+	else touch $@; fi
+
+geo-ipv6.txt: $(GEODB6).ZIP
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB6).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt); \
+	else touch $@; fi
 
 local_clean::
 	rm -rf $(TMP)

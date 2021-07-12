@@ -740,7 +740,7 @@ thread_sig_pending(const struct thread_element *te)
  * Compare two stack pointers according to the stack growth direction.
  * A pointer is larger than another if it is further away from the base.
  */
-static inline int
+int
 thread_stack_ptr_cmp(const void *a, const void *b)
 {
 	return thread_sp_direction > 0 ? ptr_cmp(a, b) : ptr_cmp(b, a);
@@ -4589,8 +4589,15 @@ thread_id_name_to_buf(unsigned id,
 {
 	const struct thread_element *te;
 
+	/*
+	 * This will catch negative IDs as well, coming from
+	 * thread_safe_small_id() for instance, which become
+	 * large numbers in our unsigned argument.
+	 */
+
 	if (id >= THREAD_MAX) {
-		str_bprintf(b, len, "<invalid thread ID %u>", id);
+		/* Note the %d to print -1 and -2 nicely and the cast */
+		str_bprintf(b, len, "<invalid thread ID %d>", (int) id);
 		return b;
 	}
 
@@ -4956,7 +4963,7 @@ thread_signal_check_element(struct thread_element *te)
 int
 thread_sighandler_level(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->in_signal_handler;
 }
@@ -4977,9 +4984,22 @@ thread_sighandler_level(void)
 unsigned
 thread_sig_generation(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->sig_generation;
+}
+
+/**
+ * Get the known stack size for the thread.
+ *
+ * @return the stack size for created threads, 0 for discovered ones.
+ */
+size_t
+thread_stack_size(void)
+{
+	const struct thread_element *te = thread_get_element();
+
+	return te->stack_size;
 }
 
 /**
@@ -5188,6 +5208,53 @@ thread_lock_disable(bool silent)
 		rwlock_crash_mode();
 		qlock_crash_mode();
 	}
+}
+
+/**
+ * Suspend specific thread, without waiting for it to clear its locks.
+ *
+ * @param stid	the thread to suspend
+ */
+void
+thread_suspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to suspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	atomic_int_inc(&xte->suspend);
+}
+
+/**
+ * Unsuspend specific thread.
+ *
+ * @param stid	the thread to unsuspend
+ */
+void
+thread_unsuspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to unsuspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	if (atomic_int_dec(&xte->suspend) <= 0)
+		s_error("%s(): %s was not suspended", G_STRFUNC, thread_id_name(stid));
 }
 
 /**
@@ -7302,9 +7369,6 @@ thread_lock_waiting_done(const void *element, const void *lock)
 
 	thread_element_check(te);
 
-	if G_UNLIKELY(thread_lock_is_problematic())
-		goto done;
-
 	tls = &te->waits;
 
 	/*
@@ -7329,6 +7393,9 @@ thread_lock_waiting_done(const void *element, const void *lock)
 			s_rawcrit("%s(): was waiting for %s %p at %s:%u but given lock %p",
 				G_STRFUNC, thread_lock_kind_to_string(l->kind), l->lock,
 				l->file, l->line, lock);
+
+			if G_UNLIKELY(thread_lock_is_problematic())
+				goto done;
 
 			/*
 			 * Make sure the lock is not present in the waiting stack, or
@@ -10183,7 +10250,7 @@ thread_exit(void *value)
 bool
 thread_is_exiting(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->exit_started;
 }
@@ -11293,6 +11360,18 @@ thread_sigmask(enum thread_sighow how, const tsigset_t *s, tsigset_t *os)
 
 done:
 	thread_signal_check_element(te);
+}
+
+/**
+ * Is current thread running on its alternate signal stack?
+ */
+bool
+thread_on_altstack(void)
+{
+	struct thread_element *te = thread_get_element();
+	thread_qid_t qid = thread_quasi_id_fast(&te);;
+
+	return qid >= te->low_sig_qid && qid <= te->high_sig_qid;
 }
 
 /**

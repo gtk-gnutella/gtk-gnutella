@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2020-07-09 10:54+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Chinese (China) (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -740,6 +740,10 @@ msgstr ""
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
+msgstr ""
+
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
 msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
@@ -4628,6 +4632,56 @@ msgstr ""
 #, fuzzy
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
 msgstr "UDP交通布局的debug级别。"
+
+#, fuzzy
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr "HTTP出去流量的带宽限制，以字节/秒为单位。"
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr "HTTP出去流量的带宽限制，以字节/秒为单位。"
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr "HTTP进入流量的带宽限制，以字节/秒为单位。"
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr "HTTP进入流量的带宽限制，以字节/秒为单位。"
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
+msgstr ""
 
 msgid "disable"
 msgstr "禁用"
@@ -8546,6 +8600,10 @@ msgstr "复制到剪贴板"
 
 msgid "_Remove filter"
 msgstr "删除过滤器(_R)"
+
+#, fuzzy
+msgid "Meet us on #gtk-gnutella at libera.chat."
+msgstr "通过 irc.freenode.net 上的 #gtk-gnutella 聊天室直接交流。"
 
 #, fuzzy
 msgid ""

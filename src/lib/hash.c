@@ -531,7 +531,7 @@ hash_compute_increment(const struct hkeys *hk, const void *key, unsigned hv)
 
 	hv2 += hash_offset_secondary;
 
-	return (hv2 & 0x1) ? hv2 : ~hv2;	/* Ensure it is an odd number */
+	return hv2 + !(hv2 & 0x1); 		/* Ensure it is an odd number */
 }
 
 /**

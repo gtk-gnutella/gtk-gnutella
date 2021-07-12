@@ -257,6 +257,7 @@ enum main_arg {
 	main_arg_minimized,
 	main_arg_no_build_version,
 	main_arg_no_dbus,
+	main_arg_no_expire,
 	main_arg_no_halloc,
 	main_arg_no_restart,
 	main_arg_no_supervise,
@@ -323,6 +324,11 @@ static struct option {
 #endif	/* USE_TOPLESS */
 	OPTION(no_build_version,NONE, NULL),	/* hidden option */
 	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
+#ifdef USE_TOPLESS
+	OPTION(no_expire,		NONE, NULL),	/* accept but hide */
+#else
+	OPTION(no_expire,		NONE, "Disable expired popup notifications."),
+#endif
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -2135,7 +2141,7 @@ main_supervise(void)
 		children++;
 		aging_record(ag, ulong_to_pointer(children));
 		setproctitle("supervisor, %lu child%s launched",
-			children, 1 == children ? "" : "ren");
+			PLURAL_CHILD(children));
 
 		s_info("launched child #%lu as PID %lu", children, (ulong) pid);
 
@@ -2152,7 +2158,7 @@ main_supervise(void)
 
 		if (0 == status) {
 			s_info("supervisor exiting, launched %lu child%s over %s",
-				children, 1 == children ? "" : "ren",
+				PLURAL_CHILD(children),
 				short_time_ascii(delta_time(end, progstart_time().tv_sec)));
 			exit(EXIT_SUCCESS);
 		}
@@ -2164,7 +2170,7 @@ main_supervise(void)
 
 done:
 	s_info("supervisor exiting on failure, launched %lu child%s over %s",
-		children, 1 == children ? "" : "ren",
+		PLURAL_CHILD(children),
 		short_time_ascii(delta_time(tm_time_exact(), progstart_time().tv_sec)));
 
 	exit(EXIT_FAILURE);
@@ -2388,12 +2394,13 @@ main(int argc, char **argv)
 	 * --daemonize switch is used.
 	 *
 	 * It can only be called after settings_early_init() since this
-	 * is where the crash directory is initialized.
+	 * is where the config directory is initialized.
 	 */
 
 	settings_early_init();
-	crash_setdir(settings_crash_dir());
 	handle_arguments();		/* Returning from here means we're good to go */
+
+	crash_setdir(settings_crash_dir());
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	/*
@@ -2536,6 +2543,7 @@ main(int argc, char **argv)
 
 	if (!running_topless) {
 		main_gui_early_init(argc, argv, OPT(no_xshm));
+		main_gui_disable_ancient(OPT(no_expire));
 	}
 
 	upload_stats_load_history();	/* Loads the upload statistics */

@@ -8,7 +8,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2020-07-09 10:54+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Norwegian Bokmål (http://www.transifex.com/gtk-gnutella/gtk-"
@@ -746,6 +746,10 @@ msgstr ""
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
+msgstr ""
+
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
 msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
@@ -5078,6 +5082,56 @@ msgstr ""
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
 msgstr "Feilsøkingsnivå for køen for oppslagskøen av DHT-brukere."
 
+#, fuzzy
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr "Båndbreddebegrensning for utgående HTTP-trafikk i byte per sekund."
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr "Båndbreddebegrensning for utgående HTTP-trafikk i byte per sekund."
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr "Båndbreddebegrensning for innkommende HTTP-trafikk i byte per sekund."
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr "Båndbreddebegrensning for innkommende HTTP-trafikk i byte per sekund."
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
+msgstr ""
+
 msgid "disable"
 msgstr "slå av"
 
@@ -9105,6 +9159,10 @@ msgstr "Kopier til utklippstavlen"
 
 msgid "_Remove filter"
 msgstr "Fje_rn filter"
+
+#, fuzzy
+msgid "Meet us on #gtk-gnutella at libera.chat."
+msgstr "Møt oss i «#gtk-gnutella» på «irc.freenode.net»."
 
 #, fuzzy
 msgid ""

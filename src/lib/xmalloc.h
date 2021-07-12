@@ -59,6 +59,10 @@
 #undef XMALLOC_IS_MALLOC
 #endif
 
+#ifdef TRACK_MALLOC
+#undef XMALLOC_IS_MALLOC
+#endif
+
 /**
  * Memory alignment constraints.
  *
@@ -185,10 +189,9 @@ void xstrfreev(char **str);
 size_t xallocated(const void *p);
 size_t xpallocated(const void *p);
 
-#ifdef TRACK_MALLOC
 bool xmalloc_block_info(const void *p, uint *tid, size_t *len);
-#endif
 
+#ifndef TRACK_MALLOC
 static inline void * G_MALLOC G_NON_NULL
 xcopy(const void *p, size_t size)
 {
@@ -196,6 +199,7 @@ xcopy(const void *p, size_t size)
 	memcpy(cp, p, size);
 	return cp;
 }
+#endif	/* !TRACK_MALLOC */
 
 #define XCOPY(p)	xcopy(p, sizeof *p)
 

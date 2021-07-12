@@ -97,8 +97,8 @@ alnum2int_inline(uchar c)
 
 /**
  * ctype-like functions that allow only ASCII characters whereas the locale
- * would allow others. The parameter doesn't have to be casted to (unsigned
- * char) because these functions return false for everything out of [0..127].
+ * would allow others. The parameter doesn't have to be cast to (unsigned
+ * char) because these functions return FALSE for everything out of [0..127].
  *
  * GLib 2.x has similar macros/functions but defines only a subset.
  */
@@ -106,92 +106,96 @@ alnum2int_inline(uchar c)
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_blank(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_BLANK & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_BLANK & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_cntrl(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_CTRL & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_CTRL & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_digit(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_DIGIT & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_DIGIT & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_xdigit(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_HEXA & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_HEXA & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_upper(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_UPPER & ascii_ctype[c]);
+	/* Using && here helps ascii_tolower() be faster */
+	return ((uint) c < 0x80) && (0 != (A_UPPER & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_lower(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_LOWER & ascii_ctype[c]);
+	/* Using && here helps ascii_toupper() be faster */
+	return ((uint) c < 0x80) && (0 != (A_LOWER & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alpha(int c)
 {
-	return !(c & ~0x7f) && 0 != ((A_UPPER | A_LOWER) & ascii_ctype[c]);
+	return ((uint) c < 0x80) &
+		(0 != ((A_UPPER | A_LOWER) & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_alnum(int c)
 {
-	return !(c & ~0x7f) && 0 != ((A_DIGIT | A_UPPER | A_LOWER) & ascii_ctype[c]);
+	return ((uint) c < 0x80) &
+		(0 != ((A_DIGIT | A_UPPER | A_LOWER) & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_ident(int c)
 {
 	/* Part of an identifier, i,e, one of [A-Za-z0-9_] */
-	return !(c & ~0x7f) && 0 != (A_IDENT & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_IDENT & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_space(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_SPACE & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_SPACE & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_graph(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_GRAPH & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_GRAPH & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_print(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_PRINT & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_PRINT & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT bool
 is_ascii_punct(int c)
 {
-	return !(c & ~0x7f) && 0 != (A_PUNCT & ascii_ctype[c]);
+	return ((uint) c < 0x80) & (0 != (A_PUNCT & ascii_ctype[(uint8) c]));
 }
 
 static inline G_CONST WARN_UNUSED_RESULT int
 ascii_toupper(int c)
 {
-	return is_ascii_lower(c) ? c - 32 : c;
+	return c - (is_ascii_lower(c) << 5);
 }
 
 static inline G_CONST WARN_UNUSED_RESULT int
 ascii_tolower(int c)
 {
-	return is_ascii_upper(c) ? c + 32 : c;
+	return c + (is_ascii_upper(c) << 5);
 }
 
 /**

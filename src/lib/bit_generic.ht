@@ -118,6 +118,8 @@ void bit_generic_set_range(bit_generic_t *base, size_t from, size_t to);
 size_t bit_generic_first_clear(const bit_generic_t *base, size_t from, size_t to);
 size_t bit_generic_first_set(const bit_generic_t *base, size_t from, size_t to);
 size_t bit_generic_last_set(const bit_generic_t *base, size_t from, size_t to);
+size_t bit_generic_count_set(const bit_generic_t *base, size_t from, size_t to);
 
 #endif /* _bit_generic_h_ */
-/* vi: set ts=4 sw=4 cindent: */
+
+/* vi: set ts=4 sw=4 syn=c cindent: */

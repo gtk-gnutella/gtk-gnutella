@@ -5731,4 +5731,134 @@ prop = {
     };
 };
 
+prop = {
+    name = "bc_http_out";
+    desc = "Total outgoing HTTP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_tcp_up_out";
+    desc = "Total outgoing Gnutella TCP UP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_tcp_leaf_out";
+    desc = "Total outgoing Gnutella TCP leaf traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_udp_out";
+    desc = "Total outgoing Gnutella UDP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_dht_out";
+    desc = "Total outgoing DHT traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_loopback_out";
+    desc = "Total outgoing traffic in bytes on the loopback address "
+		"for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_private_out";
+    desc = "Total outgoing traffic in bytes on the private addresses "
+		"for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_http_in";
+    desc = "Total incoming HTTP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_tcp_up_in";
+    desc = "Total incoming Gnutella TCP UP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_tcp_leaf_in";
+    desc = "Total incoming Gnutella TCP leaf traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_gnet_udp_in";
+    desc = "Total incoming Gnutella UDP traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_dht_in";
+    desc = "Total incoming DHT traffic in bytes for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_loopback_in";
+    desc = "Total incoming traffic in bytes on the loopback address "
+		"for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
+prop = {
+    name = "bc_private_in";
+    desc = "Total incoming traffic in bytes on the private addresses "
+		"for this session.";
+    type = guint64;
+    data = {
+        default = 0;
+    };
+};
+
 /* vi: set ts=4: */

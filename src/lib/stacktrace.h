@@ -34,6 +34,8 @@
 #ifndef _stacktrace_h_
 #define _stacktrace_h_
 
+enum symbol_quality;
+
 #define STACKTRACE_DEPTH_MAX	128		/**< Maximum depth we can handle */
 #define STACKTRACE_DEPTH		10		/**< Typical fixed-size trace */
 
@@ -54,18 +56,6 @@ struct stacktrace {
 struct stackatom {
 	void **stack;				/**< Array of PC of callers */
 	size_t len;					/**< Number of valid entries in stack */
-};
-
-/**
- * Self-assessed stacktrace symbol quality.
- */
-enum stacktrace_sym_quality {
-	STACKTRACE_SYM_GOOD = 0,
-	STACKTRACE_SYM_STALE,
-	STACKTRACE_SYM_MISMATCH,
-	STACKTRACE_SYM_GARBAGE,
-
-	STACKTRACE_SYM_MAX
 };
 
 /*
@@ -119,6 +109,7 @@ void stacktrace_cautious_print(int fd, int stid, void *stack[], size_t offset);
 
 const struct stackatom *stacktrace_get_atom(const struct stacktrace *st);
 const void *stacktrace_caller(size_t n);
+const void *stacktrace_caller_fast(size_t n);
 bool stacktrace_caller_known(size_t offset);
 const void *stacktrace_routine_start(const void *pc);
 bool stacktrace_pc_within_our_text(const void *pc);
@@ -131,8 +122,7 @@ void stacktrace_post_init(void);
 void stacktrace_close(void);
 size_t stacktrace_memory_used(void);
 void stacktrace_crash_mode(void);
-enum stacktrace_sym_quality stacktrace_quality(void);
-const char *stacktrace_quality_string(const enum stacktrace_sym_quality sq);
+enum symbol_quality stacktrace_quality(void);
 
 /**
  * @return function's name given a function pointer.

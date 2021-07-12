@@ -852,6 +852,7 @@ src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
 src/lib/inputevt.h
+src/lib/iovec.c
 src/lib/iovec.h
 src/lib/iprange.c
 src/lib/iprange.h
@@ -983,6 +984,7 @@ src/lib/spinlock.h
 src/lib/spopen-test.c
 src/lib/spopen.c
 src/lib/spopen.h
+src/lib/stack-test.c
 src/lib/stacktrace.c
 src/lib/stacktrace.h
 src/lib/stat-test.c

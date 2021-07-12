@@ -116,8 +116,12 @@ tmalloc_t *tmalloc_create(const char *name, size_t size,
 void tmalloc_reset(tmalloc_t *tma);
 size_t tmalloc_size(const tmalloc_t *tma);
 
+bool tmalloc_contains(tmalloc_t *tma, const void *p, bool other);
+
 struct pslist;
 struct eslist;
+
+void tmalloc_set_protected(tmalloc_t *tma, bool flag);
 
 void *tmalloc(tmalloc_t *tma) G_MALLOC G_NON_NULL;
 void *tmalloc0(tmalloc_t *tma) G_MALLOC G_NON_NULL;

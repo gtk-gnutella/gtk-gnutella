@@ -496,8 +496,7 @@ node_g2_active(void)
 static void
 node_tsync_udp(cqueue_t *cq, void *obj)
 {
-	gnutella_node_t *n = obj;
-	gnutella_node_t *udp = NULL, *tn;
+	gnutella_node_t *n = obj, *tn;
 
 	node_check(n);
 	g_assert(!NODE_USES_UDP(n));
@@ -510,13 +509,8 @@ node_tsync_udp(cqueue_t *cq, void *obj)
 	 * marked the node with NODE_F_TSYNC_TCP to use TCP instead of UDP.
 	 */
 
-	if (
-		!(n->flags & NODE_F_TSYNC_TCP) &&
-		is_host_addr(n->gnet_addr)
-	)
-		udp = node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
+	tn = (0 == (n->flags & NODE_F_TSYNC_TCP)) ? node_udp_get(n) : n;
 
-	tn = udp ? udp : n;
 	if (!host_is_valid(tn->addr, tn->port))
 		return;
 
@@ -8487,6 +8481,25 @@ node_udp_get_addr_port(const host_addr_t addr, uint16 port)
 }
 
 /**
+ * Get "fake" node for UDP transmission to a given node, if possible.
+ */
+gnutella_node_t *
+node_udp_get(const gnutella_node_t *n)
+{
+	if (NODE_IS_UDP(n))
+		return deconstify_pointer(n);
+
+	if (0 != n->gnet_port && is_host_addr(n->gnet_addr)) {
+		gnutella_node_t *un =
+			node_udp_get_addr_port(n->gnet_addr, n->gnet_port);
+		if (un != NULL)
+			return un;
+	}
+
+	return deconstify_pointer(n);	/* Sorry, no UDP possible */
+}
+
+/**
  * Get "fake" node for semi-reliable UDP transmission.
  */
 gnutella_node_t *
@@ -13314,12 +13327,12 @@ node_fill_ultra(host_net_t net, gnet_host_t *hvec, unsigned hcnt)
 		hset_create_any(gnet_host_hash, gnet_host_hash2, gnet_host_equal);
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
-		const gnutella_node_t *n;
+		const gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (i >= ucnt)
 			break;
-
-		n = sl->data;
 
 		/* Skip transient nodes, or nodes that have not sent us anything yet */
 		if (NODE_IS_TRANSIENT(n) || 0 == n->received)

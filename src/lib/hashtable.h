@@ -92,6 +92,7 @@ bool hash_table_contains(const hash_table_t *ht, const void *key);
 bool hash_table_remove(hash_table_t *ht, const void *key);
 bool hash_table_remove_no_resize(hash_table_t *ht, const void *key);
 void hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data);
+void hash_table_copy_foreach(const hash_table_t *ht, ckeyval_fn_t fn, void *d);
 size_t hash_table_foreach_remove(hash_table_t *ht,
 	ckeyval_rm_fn_t func, void *data);
 

@@ -129,6 +129,53 @@ rwlock_set_contention_trace(bool on)
 	rwlock_contention_trace = on;
 }
 
+#ifdef RWLOCK_WRITER_DEBUG
+/**
+ * Record that we got the writer lock.
+ */
+static void
+rwlock_writer_record(rwlock_t *rw, const char *file, unsigned line)
+{
+	rwlock_check(rw);
+
+	/*
+	 * Locking would be unnecessary since we have the write lock, but in
+	 * case of bugs, avoid race conditions whilst updating these fields.
+	 */
+
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = file;
+		rw->line = line;
+		RWLOCK_UNLOCK(rw);
+	}
+}
+
+/**
+ * Record that we lost the writer lock.
+ */
+static void
+rwlock_writer_clear(rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	/*
+	 * Locking would be unnecessary since we still have the write lock, but in
+	 * case of bugs, avoid race conditions whilst updating these fields.
+	 */
+
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = NULL;
+		rw->line = 0;
+		RWLOCK_UNLOCK(rw);
+	}
+}
+#else	/* !RWLOCK_WRITER_DEBUG */
+#define rwlock_writer_record(rw,f,l)
+#define rwlock_writer_clear(rw)
+#endif	/* RWLOCK_WRITER_DEBUG */
+
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 /**
  * Record that the current thread is becoming a reader.
@@ -503,10 +550,20 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
 
+#ifdef RWLOCK_WRITER_DEBUG
+	if (RWLOCK_WFREE != rw->owner) {
+		s_rawinfo("(rwlock %p write-locked by %s from %s:%u)",
+			rw, thread_safe_id_name(rw->owner), rw->file, rw->line);
+	} else if (rw->file != NULL) {
+		s_rawinfo("(rwlock %p was last write-locked from %s:%u)",
+			rw, rw->file, rw->line);
+	}
+#else	/* !RWLOCK_WRITER_DEBUG */
 	if (RWLOCK_WFREE != rw->owner) {
 		s_rawinfo("(rwlock %p write-locked by %s)",
 			rw, thread_safe_id_name(rw->owner));
 	}
+#endif	/* RWLOCK_WRITER_DEBUG */
 
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 	{
@@ -563,6 +620,15 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 		rw->readers, rw->writers,
 		rw->waiters - rw->write_waiters, rw->write_waiters,
 		file, line);
+
+#ifdef RWLOCK_WRITER_DEBUG
+	if (rw->file != NULL) {
+		s_rawinfo("rwlock (%c) %p %s %s:%u",
+			reading ? 'R' : 'W', rw,
+			rw->writers != 0 ? "owned by " : "traced to",
+			rw->file, rw->line);
+	}
+#endif
 
 	atomic_mb();
 	rwlock_check(rw);
@@ -907,8 +973,10 @@ rwlock_destroy(rwlock_t *rw)
 				PLURAL(rw->writers), PLURAL(rwait), PLURAL(rw->write_waiters));
 		}
 
-		if (owned)
+		if (owned) {
+			rwlock_writer_clear(rw);
 			rwlock_write_unaccount(rw);
+		}
 	}
 
 	rw->magic = RWLOCK_DESTROYED;		/* Now invalid */
@@ -1160,13 +1228,17 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		rwlock_wait_grant(rw, &wc, file, line);
 
+		rwlock_writer_record(rw, file, line);
+
 		if (account)
 			rwlock_write_account(rw, file, line);
 
 		g_assert(1 == rw->writers || rwlock_pass_through);
 	}
-	else if (account) {
-		rwlock_write_account(rw, file, line);
+	else {
+		rwlock_writer_record(rw, file, line);
+		if (account)
+			rwlock_write_account(rw, file, line);
 	}
 }
 
@@ -1354,6 +1426,7 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	RWLOCK_UNLOCK(rw);
 
 	if G_LIKELY(got) {
+		rwlock_writer_record(rw, file, line);
 		rwlock_write_account(rw, file, line);
 	} else if G_UNLIKELY(rwlock_contention_trace) {
 		s_rawinfo("LOCK contention for write-lock %p at %s:%u", rw, file, line);
@@ -1380,8 +1453,9 @@ rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line)
 		"attempting to release unowned write-lock %p at %s:%u",
 		rw, file, line);
 
-	rwlock_wungrab(rw);
+	rwlock_writer_clear(rw);
 	rwlock_write_unaccount(rw);
+	rwlock_wungrab(rw);
 }
 
 /**

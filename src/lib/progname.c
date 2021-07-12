@@ -171,13 +171,22 @@ progstart(int argc, char * const *argv)
 }
 
 /**
+ * Was progstart() called?
+ */
+bool
+progstart_was_called(void)
+{
+	return progname_info.name != NULL;
+}
+
+/**
  * Ensure progstart() was called.
  */
 static void
 progstart_called(const char *routine)
 {
-	g_assert_log(progname_info.name != NULL,
-		"%s(): must not be called before progstart()", routine);
+	if (!progstart_was_called())
+		s_error("%s(): must not be called before progstart()", routine);
 }
 
 /**
@@ -192,7 +201,8 @@ progstart_time(void)
 }
 
 /**
- * Duplicate the original main() arguments + environment into read-only.
+ * Duplicate the original main() arguments + environment into a read-only
+ * memory segment.
  */
 static void
 progstart_duplicate(void)
@@ -209,6 +219,8 @@ progstart_duplicate(void)
 	arg_count = progname_argc;
 	arg_size = strvec_size(progname_argv);
 
+	/* +2 for the trailing NULL entries of both argv[] and envp[] */
+
 	len = total_size = (arg_count + env_count + 2) * sizeof(char *) +
 		env_size + arg_size;
 
@@ -217,10 +229,17 @@ progstart_duplicate(void)
 	envp = ptr_add_offset(argv, (arg_count + 1) * sizeof(char *));
 	q = ptr_add_offset(envp, (env_count + 1) * sizeof(char *));
 
-	q = strvec_cpy(argv, progname_argv, arg_count, q, &len);
-	q = strvec_cpy(envp, environ, env_count, q, &len);
+	len -= ptr_diff(q, p);	/* Amount available for strings */
 
-	g_assert(ptr_diff(q, p) == total_size);
+	q = strvec_cpy(argv, progname_argv, arg_count, q, &len);
+	g_assert(q != NULL);
+
+	q = strvec_cpy(envp, environ, env_count, q, &len);
+	g_assert(q != NULL);
+
+	g_assert_log(ptr_diff(q, p) == total_size,
+		"%s(): ptr_diff=%zd, total_size=%zu, len=%zd",
+		G_STRFUNC, ptr_diff(q, p), total_size, len);
 
 	if (-1 == mprotect(p, total_size, PROT_READ))
 		s_warning("%s(): cannot protect memory as read-only: %m", G_STRFUNC);
@@ -239,7 +258,7 @@ progstart_duplicate(void)
  * argument pointers and progstart_dup() must be called as soon as possible,
  * before alteration of the argument list or the passed environment.
  *
- * @param argv_ptr	where the allocated argment vector is returned
+ * @param argv_ptr	where the allocated argument vector is returned
  * @param envp_ptr	where the allocated environment is returned
  *
  * @return the amount of entries in the returned argv[]

@@ -133,4 +133,4 @@ void htable_test(void);
 
 #endif /* _h<generic>_h_ */
 
-/* vi: set ts=4 sw=4 cindent: */
+/* vi: set ts=4 sw=4 syn=c cindent: */

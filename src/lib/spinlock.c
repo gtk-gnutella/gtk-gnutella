@@ -323,6 +323,17 @@ spinlock_loop(volatile spinlock_t *s,
 					spinlock_source_string(src), src_object, i, file, line);
 			}
 
+			/*
+			 * Normally there is a synchronization done whenever s->lock is
+			 * acquired or released, hence all the CPUs will read s->lock
+			 * consistently.  Furthermore, the value is flagged as being
+			 * volatile to force the compiler to re-fetch it each time and
+			 * never optimize accesses.
+			 *
+			 * Therefore, we can bluntly read s->lock without first issuing
+			 * an atomic_mb().
+			 */
+
 			if G_LIKELY(s->lock) {
 				/* Lock is busy, do nothing as cheaply as possible */
 			} else if (atomic_acquire(&s->lock)) {

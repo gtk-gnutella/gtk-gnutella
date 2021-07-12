@@ -36,9 +36,17 @@
 #include "vmm.h"
 #include "getphysmemsize.h"
 
+#ifndef _SC_PHYS_PAGES
+/*
+ * Only include <sys/sysctl.h> if we're going to actually need it.
+ * Indeed, that header file is now deprecated on linux, but since linux
+ * has sysconf(), we don't really need to include that file there!
+ * 		--RAM, 2020-11-10.
+ */
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>
 #endif
+#endif	/* !_SC_PHYS_PAGES */
 
 #ifdef I_INVENT
 #include <invent.h>

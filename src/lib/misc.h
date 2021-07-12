@@ -131,6 +131,7 @@ const char *compact_size2(uint64 size, bool metric);
 const char *compact_rate(uint64 rate, bool metric);
 const char *compact_kb_size(uint32 size, bool metric);
 const char *nice_size(uint64 size, bool metric);
+char *long_value(char *buf, size_t size, uint64 v, bool metric);
 char *short_value(char *buf, size_t size, uint64 v, bool metric);
 char *compact_value(char *buf, size_t size, uint64 v, bool metric);
 
@@ -139,6 +140,7 @@ size_t short_kb_size_to_buf(uint64 size, bool metric, char *, size_t);
 size_t short_size_to_string_buf(uint64 size, bool metric, char *, size_t);
 
 short_string_t short_rate_get_string(uint64 rate, bool metric);
+short_string_t long_value_get_string(uint64 value, bool metric);
 
 /*
  * SHA1<->base32 string conversion

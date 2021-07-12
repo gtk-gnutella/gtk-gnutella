@@ -236,7 +236,9 @@ static hash_table_t *zalloc_frames;	/**< Tracks allocation frame atoms */
 static hash_table_t *not_leaking;
 static hash_table_t *alloc_used_to_real;
 static hash_table_t *alloc_real_to_used;
+#ifndef REMAP_ZALLOC
 static spinlock_t zleak_lock = SPINLOCK_INIT;
+#endif
 #define ZLEAK_LOCK		spinlock(&zleak_lock)
 #define ZLEAK_UNLOCK	spinunlock(&zleak_lock)
 #endif
@@ -245,7 +247,7 @@ static leak_set_t *z_leakset;
 #endif
 
 /*
- * Optional additional overhead at the beginning of each block:
+ * Optional additional overhead at the beginning of each allocated block:
  *
  *  +---------------------+ <---- OVH_ZONE_SAFE_OFFSET   ^
  *  | BLOCK_USED magic    | ZONE_SAFE                    | OVH_ZONE_SAFE_LEN
@@ -407,6 +409,7 @@ zalloc_overhead(void)
 	return OVH_LENGTH;
 }
 
+#ifndef REMAP_ZALLOC
 /**
  * @return static thread-private verbose description of zone, for debugging clues.
  */
@@ -437,6 +440,7 @@ z2str(const zone_t *zone)
 
 	return b;
 }
+#endif	/* !REMAP_ZALLOC */
 
 /* Under REMAP_ZALLOC, map zalloc() and zfree() to g_malloc() and g_free() */
 
@@ -459,6 +463,9 @@ zgc(bool overloaded)
 {
 	(void) overloaded;
 }
+#define zrange_clear(z)
+#define zlock(zone)
+#define zunlock(zone)
 #else	/* !REMAP_ZALLOC */
 
 static char **zn_extend(zone_t *);
@@ -713,7 +720,12 @@ zprepare(zone_t *zone, char **blk)
 	(void) zone;
 #ifdef ZONE_SAFE
 	*blk++ = BLOCK_USED;
-	*blk++ = (char *) zone;
+	/* Blocks are tagged via zfmark() at cramming time */
+	if G_UNLIKELY(*blk != (char *) zone) {
+		s_error("free block %p corrupted in %zu-byte zone %p (tag is %p)",
+			blk - 1, zone_size(zone), zone, *blk);
+	}
+	blk++;
 #endif
 #ifdef TRACK_ZALLOC
 	blk = ptr_add_offset(blk, OVH_TRACK_LEN);
@@ -1091,7 +1103,7 @@ zalloc_shift_pointer(const void *allocated, const void *used)
  * the wrong zone and that the block is indeed still allocated.
  *
  * @param zone		the zone to which the pointer must belong
- * @param ptr		address of block
+ * @param ptr		address of block (user pointer, past our overhead)
  * @param what		what we are trying to do ("free block", "move block", ...)
  */
 #ifdef ZONE_SAFE
@@ -1122,6 +1134,28 @@ zcheck(zone_t *zone, void *ptr, const char *what)
 }
 #else	/* !ZONE_SAFE */
 #define zcheck(z,p,w)
+#endif	/* ZONE_SAFE */
+
+/**
+ * Mark that (free) block belongs to a given zone during zone cramming.
+ *
+ * @param zone		the zone to which the pointer must belong
+ * @param ptr		physical address of block (start of overhead)
+ *
+ * @return pointer to start of block as a convenience.
+ */
+#ifdef ZONE_SAFE
+static inline void *
+zfmark(const zone_t *zone, void *ptr)
+{
+	char **tmp = ptr;	/* We're given the start of a physical block */
+
+	tmp[1] = (char *) zone;
+
+	return ptr;
+}
+#else	/* !ZONE_SAFE */
+#define zfmark(z,p)		cast_to_void_ptr(p)
 #endif	/* ZONE_SAFE */
 
 /**
@@ -1317,10 +1351,10 @@ zn_cram(const zone_t *zone, void *arena, size_t len)
 
 	while (ptr_cmp(&p[size], last) <= 0) {
 		blocks++;
-		next = cast_to_void_ptr(p);
+		next = zfmark(zone, p);
 		p = *next = &p[size];
 	}
-	next = cast_to_void_ptr(p);
+	next = zfmark(zone, p);
 	*next = NULL;
 
 	return blocks;
@@ -1876,8 +1910,10 @@ zdestroy_physical(zone_t *zone)
 	 * zone is not really locked)
 	 */
 
+#ifndef REMAP_ZALLOC
 	if (zone->private)
 		zunlock(zone);
+#endif
 
 	spinlock_destroy(&zone->lock);
 
@@ -1935,6 +1971,7 @@ zdestroy_if_empty(zone_t *zone)
 	return TRUE;
 }
 
+#ifndef REMAP_ZALLOC
 /**
  * Get a zone suitable for allocating blocks of 'size' bytes.
  * `hint' represents the desired amount of blocks per subzone.
@@ -2042,11 +2079,7 @@ zmove(zone_t *zone, void *p)
 	if G_LIKELY(NULL == zone->zn_gc)
 		return p;
 
-#ifdef REMAP_ZALLOC
-	return p;
-#else
 	return zgc_zmove(zone, p);
-#endif
 }
 
 /**
@@ -2089,6 +2122,7 @@ zmoveto(zone_t *zone, void *o, void *n)
 
 	return n;
 }
+#endif	/* !REMAP_ZALLOC */
 
 /**
  * Iterator callback on hash table.
@@ -2109,6 +2143,15 @@ free_zone(const void *u_key, void *value, void *u_data)
 	}
 
 	zdestroy(zone);
+}
+
+/**
+ * Is zalloc() closing?
+ */
+bool
+zalloc_is_closing(void)
+{
+	return zalloc_closing;
 }
 
 /**
@@ -3621,6 +3664,7 @@ zinit(void)
 void G_COLD
 zalloc_memusage_init(void)
 {
+#ifndef REMAP_ZALLOC
 	zone_t **zones;
 	size_t i, count;
 
@@ -3654,6 +3698,7 @@ zalloc_memusage_init(void)
 	}
 
 	xfree(zones);
+#endif	/* REMAP_ZALLOC */
 }
 
 /**
@@ -3966,6 +4011,10 @@ zalloc_dump_usage_log(logagent_t *la, unsigned options)
 void G_COLD
 zalloc_dump_stats_log(logagent_t *la, unsigned options)
 {
+#ifdef REMAP_ZALLOC
+	(void) options;
+	log_info(la, "ZALLOC zalloc() is remapped via REMAP_ZALLOC");
+#else	/* !REMAP_ZALLOC */
 	struct zstats stats;
 	bool groupped = booleanize(options & DUMP_OPT_PRETTY);
 
@@ -4028,6 +4077,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 
 #undef DUMP
 #undef DUMP64
+#endif /* REMAP_ZALLOC */
 }
 
 /**

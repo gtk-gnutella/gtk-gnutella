@@ -61,6 +61,7 @@
 
 #if defined(TRACK_MALLOC) && !defined(MALLOC_SOURCE)
 
+#include "atomic.h"
 #include "hashlist.h"
 
 #undef strdup			/**< Defined in <bits/string2.h> */
@@ -124,8 +125,6 @@
 
 #endif	/* !XMALLOC_SOURCE */
 
-#undef XCOPY
-#define XCOPY(p)	malloc_copy_track(e_xmalloc, p, sizeof *p, _WHERE_, __LINE__)
 #define xcopy(p,s)	malloc_copy_track(e_xmalloc, (p), (s), _WHERE_, __LINE__)
 
 /* FIXME: This is only correct if xmlFree() is equivalent to free(). */
@@ -150,8 +149,10 @@
 #define g_hash_table_new(x,y)	hashtable_new_track(x, y, _WHERE_, __LINE__)
 #define g_hash_table_destroy(x)	hashtable_destroy_track(x, _WHERE_, __LINE__)
 
+#ifndef REMAP_ZALLOC
 #define hash_list_new(h,c)		hash_list_new_track((h),(c),_WHERE_, __LINE__)
 #define hash_list_free(h)		hash_list_free_track((h), _WHERE_, __LINE__)
+#endif	/* !REMAP_ZALLOC */
 
 #define g_slist_alloc()			track_slist_alloc(_WHERE_, __LINE__)
 #define g_slist_append(l,d)		track_slist_append((l),(d), _WHERE_, __LINE__)
@@ -371,6 +372,8 @@ void alloc_reset(FILE *f, bool total);
 
 #ifdef MALLOC_FRAMES
 
+#include "atomic.h"		/* For AU64 */
+
 #define FRAME_DEPTH_MAX	128
 #define FRAME_DEPTH		10	/**< Size of allocation frame we keep around */
 
@@ -385,9 +388,9 @@ struct stackatom;
  */
 struct frame {
 	const struct stackatom *ast;	/**< Atomic stack frame */
-	size_t blocks;				/**< Blocks allocated from this stack frame */
-	size_t count;				/**< Bytes allocated/freed since reset */
-	size_t total_count;			/**< Grand total for this stack frame */
+	AU64(blocks);				/**< Blocks allocated from this stack frame */
+	AU64(count);				/**< Bytes allocated/freed since reset */
+	AU64(total_count);			/**< Grand total for this stack frame */
 };
 
 struct frame *get_frame_atom(hash_table_t **hptr, const struct stacktrace *st);

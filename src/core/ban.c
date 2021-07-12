@@ -346,6 +346,7 @@ ipf_record_ban(struct ban_addr_info *ipf)
 
 	ban_addr_info_check(ipf);
 	g_assert(ipf->banned);
+	g_assert(NULL == ipf->cq_ev);
 
 	b = ipf->owner;
 	ban_check(b);
@@ -384,6 +385,7 @@ ipf_lift_ban(struct ban_addr_info *ipf)
 	ban_addr_info_check(ipf);
 	g_assert(ipf->banned);
 	ban_check(ipf->owner);
+	g_assert(NULL == ipf->cq_ev);
 
 	decay_coeff = ipf->owner->decay_coeff;
 

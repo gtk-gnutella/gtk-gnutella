@@ -180,6 +180,19 @@ bits_set32(uint32 v)
 	return popcount(v);
 }
 
+/**
+ * @returns amount of bits set in a 64-bit value.
+ */
+static inline ALWAYS_INLINE G_CONST int
+bits_set64(uint64 v)
+{
+	if G_LIKELY(v <= 0xffffffffU)
+		return bits_set32(v);
+	else
+		return bits_set32((uint32) v) + bits_set32(v >> 32);
+	return popcount(v);
+}
+
 #endif /* _pow2_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */

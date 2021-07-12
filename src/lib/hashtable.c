@@ -37,7 +37,7 @@
  *
  * A simple hashtable implementation.
  *
- * There are fiven interesting properties in this hash table:
+ * There are five interesting properties in this hash table:
  *
  * - The items and the internal data structures are allocated out of a
  *   same contiguous memory region (aka the "arena").
@@ -75,6 +75,7 @@
 #include "pow2.h"
 #include "rand31.h"
 #include "spinlock.h"
+#include "stringify.h"		/* For PLURAL() */
 #include "vmm.h"
 #include "xmalloc.h"
 
@@ -139,6 +140,7 @@ struct hash_table {
 	unsigned once:1;			/* Object allocated using "once" memory */
 	unsigned self_keys:1;		/* Keys are self-representing */
 	unsigned fixed_size:1;		/* Table allocated statically */
+	unsigned resizing:1;		/* Table being resized */
 };
 
 /**
@@ -563,7 +565,7 @@ static inline unsigned
 hash_key(const hash_table_t *ht, const void *key)
 {
 	/*
-	 * There is no offseting of the hashed value for fixed-size table.
+	 * There is no offsetting of the hashed value for fixed-size table.
 	 * Rather than issuing a test and a branch, we use an array indexed
 	 * by 0 or 1.
 	 */
@@ -610,9 +612,9 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 
 	idx = hashing_keep(hash_key(ht, key), ht->bin_bits);
 	item = ht->bins[idx];
-	if (bin) {
+
+	if (bin)
 		*bin = idx;
-	}
 
 	for ( /* NOTHING */ ; item != NULL; item = item->next) {
 		if G_LIKELY(hash_eq(ht, key, item->key)) {
@@ -637,14 +639,14 @@ hash_table_find(const hash_table_t *ht, const void *key, size_t *bin)
 void
 hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
 {
-	size_t i, n;
+	size_t i, n, old_n;
 
 	hash_table_check(ht);
 	g_assert(func != NULL);
 
 	ht_synchronize(ht);
 
-	n = ht->num_held;
+	old_n = n = ht->num_held;
 	i = ht->num_bins;
 
 	while (i-- > 0) {
@@ -655,9 +657,102 @@ hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
 			n--;
 		}
 	}
-	g_assert(0 == n);
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were iterating over it!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == ht->num_held ? "stable" : "MODIFIED", ht->num_held);
 
 	ht_return_void(ht);
+}
+
+/**
+ * Iterate over the hashtable, invoking the "func" callback on each item
+ * with the additional "data" argument.
+ *
+ * Unlike hash_table_foreach(), we work on a copy of the table, in case
+ * the table could change whilst we iterate over it.
+ *
+ * This is particularity useful for memory allocators who can do some actions
+ * whilst iterating that cause memory allocation that in turn gets tracked
+ * into the hash table we are iterating over!
+ */
+void
+hash_table_copy_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data)
+{
+	size_t i, n, old_n;
+	void **keys, **values;
+
+	hash_table_check(ht);
+	g_assert(func != NULL);
+
+	ht_synchronize(ht);
+
+	n = old_n = ht->num_held;
+	i = ht->num_bins;
+
+	if G_UNLIKELY(0 == n)
+		ht_return_void(ht);
+
+	keys   = vmm_alloc(n * sizeof keys[0]);
+	values = vmm_alloc(n * sizeof values[0]);
+
+	/*
+	 * If we have no memory left, then use hash_table_foreach() as a
+	 * last resort but loudly warn because if they used this routine,
+	 * it was because it might be altered whilst iterating.
+	 */
+
+	if (NULL == keys || NULL == values) {
+		VMM_FREE_NULL(keys,   n * sizeof keys[0]);
+		VMM_FREE_NULL(values, n * sizeof values[0]);
+		s_carp("%s(): falling back to hash_table_foreach(): "
+			"no memory for %zu item%s", G_STRFUNC, PLURAL(n));
+		hash_table_foreach(ht, func, data);
+		ht_return_void(ht);
+	}
+
+	while (i-- > 0) {
+		hash_item_t *item;
+
+		for (item = ht->bins[i]; NULL != item; item = item->next) {
+			keys[--n]  = deconstify_pointer(item->key);
+			values[n] = deconstify_pointer(item->value);
+		}
+	}
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were allocating the keys[] and values[] array!  No luck!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == ht->num_held ? "stable" : "MODIFIED", ht->num_held);
+
+	/*
+	 * We can now release the lock and iterate on our copy.
+	 */
+
+	ht_unsynchronize(ht);
+
+	n = old_n;
+
+	while (n-- > 0)
+		(*func)(keys[n], values[n], data);
+
+	vmm_free(keys,   old_n * sizeof keys[0]);
+	vmm_free(values, old_n * sizeof values[0]);
 }
 
 /**
@@ -709,16 +804,9 @@ hash_table_reset(hash_table_t *ht)
 	g_assert(!ht->readonly);
 
 	arena = hash_bins_items_arena_size(ht, NULL);
-
 	hash_vmm_free(ht, ht->bins, arena);
-	ht->bins = NULL;
-	ht->num_bins = 0;
-	ht->items = NULL;
-	ht->num_held = 0;
-	ht->num_items = 0;
-	ht->free_list = NULL;
-	ht->last_key = NULL;
-	ht->last_item = NULL;
+
+	ZERO(ht);
 }
 
 /**
@@ -774,24 +862,37 @@ hash_table_resize(hash_table_t *ht, size_t n)
 	hash_table_t tmp;
 
 	g_assert(!ht->fixed_size);
+	g_assert(!ht->resizing);
+
+	ht->resizing = TRUE;
 
 	ZERO(&tmp);
 	hash_copy_flags(&tmp, ht);
 	hash_table_new_intern(&tmp, n, ht->hash, ht->eq, NULL, 0);
 	hash_table_foreach(ht, hash_table_resize_helper, &tmp);
 
+#define TMP_SWAP(x)		SWAP((void *) &ht->x, (void *) &tmp.x, sizeof ht->x)
+
 	g_assert(ht->num_held == tmp.num_held);
 
-	hash_table_reset(ht);
+	TMP_SWAP(bins);
+	TMP_SWAP(items);
+	TMP_SWAP(num_bins);
+	TMP_SWAP(num_items);
+	TMP_SWAP(bin_fill);
+	TMP_SWAP(bin_bits);
+	TMP_SWAP(free_list);
 
-	ht->bins = tmp.bins;
-	ht->items = tmp.items;
-	ht->num_bins = tmp.num_bins;
-	ht->num_items = tmp.num_items;
-	ht->num_held = tmp.num_held;
-	ht->bin_fill = tmp.bin_fill;
-	ht->bin_bits = tmp.bin_bits;
-	ht->free_list = tmp.free_list;
+	/* Clear cached lookup since table was resized */
+	ht->last_key = NULL;
+	ht->last_bin = 0;
+	ht->last_item = NULL;
+
+	ht->resizing = FALSE;
+
+#undef TMP_SWAP
+
+	hash_table_reset(&tmp);
 }
 
 static inline void
@@ -831,6 +932,12 @@ hash_table_resize_on_insert(hash_table_t *ht)
 {
 	if (ht->num_held / HASH_ITEMS_PER_BIN < ht->num_bins)
 		return;
+
+	if (ht->resizing) {
+		if (ht->num_held == ht->num_bins)
+			s_error("%s(): hash table became full during resizing", G_STRFUNC);
+		return;
+	}
 
 	hash_table_resize(ht, ht->num_bins * 2);
 }
@@ -896,8 +1003,9 @@ hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 	size_t bin;
 
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->readonly);
+
+	ht_synchronize(ht);
 
 	item = hash_table_find(ht, key, &bin);
 	if (item) {
@@ -905,21 +1013,20 @@ hash_table_remove_key(hash_table_t *ht, const void *key, bool can_resize)
 
 		i = ht->bins[bin];
 		g_assert(i != NULL);
+
 		if (i == item) {
-			if (!i->next) {
+			if (NULL == i->next) {
 				g_assert(ht->bin_fill > 0);
 				ht->bin_fill--;
 			}
 			ht->bins[bin] = i->next;
 		} else {
-
 			g_assert(i->next != NULL);
 			while (item != i->next) {
 				g_assert(i->next != NULL);
 				i = i->next;
 			}
 			g_assert(i->next == item);
-
 			i->next = item->next;
 		}
 
@@ -1112,8 +1219,21 @@ hash_table_foreach_remove(hash_table_t *ht, ckeyval_rm_fn_t func, void *data)
 			n--;
 		}
 	}
-	g_assert(0 == n);
-	g_assert(old_n == removed + ht->num_held);
+
+	/*
+	 * That's either a bug in our implementation, or a table changing whilst
+	 * we were iterating over it (not considering the removed items)!
+	 */
+
+	g_soft_assert_log(0 == n,
+		"%s(): did not loop through %zu item%s, %zd %s visited (%s count=%zu)",
+		G_STRFUNC, PLURAL(old_n),
+		(ssize_t) n > 0 ? n : -n,
+		(ssize_t) n > 0 ? "non" : "new",
+		old_n == removed + ht->num_held ? "stable" : "MODIFIED", ht->num_held);
+
+	/* Protect condition we want via an implies(), due to above soft assert */
+	g_assert(implies(0 == n, old_n == removed + ht->num_held));
 
 	if (removed != 0 && !ht->fixed_size)
 		hash_table_resize_on_remove(ht);
@@ -1128,15 +1248,15 @@ void
 hash_table_destroy(hash_table_t *ht)
 {
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->special);
 	g_assert(!ht->once);
 
-	hash_table_reset(ht);
-	if (ht->thread_safe) {
+	ht_synchronize(ht);
+
+	if (ht->thread_safe)
 		mutex_destroy(&ht->lock);
-	}
-	ht->magic = 0;
+
+	hash_table_reset(ht);
 	xfree(ht);
 }
 
@@ -1294,7 +1414,7 @@ struct ht_linearize {
 };
 
 /**
- * Hash table iterator -- linearize the keys/values.
+ * Hash table iterator -- linearise the keys/values.
  */
 static void
 hash_table_linearize_item(const void *key, void *value, void *data)
@@ -1307,7 +1427,7 @@ hash_table_linearize_item(const void *key, void *value, void *data)
 }
 
 /**
- * Linearize the keys/values into dynamically allocated array.
+ * Linearise the keys/values into dynamically allocated array.
  */
 static void **
 hash_table_linearize(const hash_table_t *ht, size_t *count, bool keys)
@@ -1573,14 +1693,14 @@ void
 hash_table_destroy_real(hash_table_t *ht)
 {
 	hash_table_check(ht);
-	ht_synchronize(ht);
 	g_assert(!ht->once);
 
-	hash_table_reset(ht);
-	if (ht->thread_safe) {
+	ht_synchronize(ht);
+
+	if (ht->thread_safe)
 		mutex_destroy(&ht->lock);
-	}
-	ht->magic = 0;
+
+	hash_table_reset(ht);
 	free(ht);
 }
 

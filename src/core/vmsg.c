@@ -1563,6 +1563,15 @@ vmsg_time_sync_reply_stamp(const pmsg_t *mb, const void *unused_q)
 }
 
 /**
+ * Same as vmsg_time_sync_reply_stamp() but for UDP messages.
+ */
+static bool
+vmsg_time_sync_reply_stamp_udp(const pmsg_t *mb)
+{
+	return vmsg_time_sync_reply_stamp(mb, NULL);
+}
+
+/**
  * Send a "Time Sync Reply" message to the node, including the time at
  * which we send back the message in the second half of the MUID.
  * The time in `got' is the time at which we received their request.
@@ -1607,7 +1616,21 @@ vmsg_send_time_sync_reply(gnutella_node_t *n, bool ntp, tm_t *got)
 	/* First half of MUID */
 	memcpy(muid, gnutella_header_get_muid(&n->header), 8);
 
-	pmsg_set_send_callback(mb, vmsg_time_sync_reply_stamp);
+	/*
+	 * When replying over UDP, we set a transmit hook so that our timestamp
+	 * is written as late as possible in the UDP TX scheduler, invoked when
+	 * the message is about to be actually sent.
+	 *
+	 * Otherwise, with TCP, we are less precise in that we write the
+	 * timestamp when the message is popped from the message queue and
+	 * given to the kernel, but we do not know how much buffering is going
+	 * on already for that TCP connection!
+	 */
+
+	if (NODE_IS_UDP(n))
+		pmsg_set_transmit_hook(mb, vmsg_time_sync_reply_stamp_udp);
+	else
+		pmsg_set_send_callback(mb, vmsg_time_sync_reply_stamp);
 
 	vmsg_send_reply(n, mb);
 }

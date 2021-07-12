@@ -114,6 +114,7 @@ void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
 void zalloc_show_settings(void);
 void zalloc_show_settings_log(struct logagent *la);
+bool zalloc_is_closing(void);
 
 void zone_info(const zone_t *, zone_info_t *);
 
@@ -138,9 +139,7 @@ void *zalloc_track(zone_t *z, const char *file, int line);
 void zalloc_shift_pointer(const void *allocated, const void *used);
 #endif
 
-#if defined(TRACK_MALLOC) && !defined(REMAP_ZALLOC)
 bool zalloc_zone_info(const void *p, size_t *size);
-#endif
 
 #endif /* _zalloc_h_ */
 

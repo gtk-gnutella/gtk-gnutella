@@ -60,6 +60,7 @@ cpattern_t *pattern_compile_fast(const char *pattern, size_t plen, bool icase);
 void pattern_free(cpattern_t *cpat);
 void pattern_free_null(cpattern_t **cpat_ptr);
 size_t pattern_len(const cpattern_t *p);
+const char *pattern_string(const cpattern_t *p);
 char *pattern_strstr(const char *haystack, const cpattern_t *p);
 char *pattern_strstrlen(const char *haystack, size_t hlen, const cpattern_t *p);
 

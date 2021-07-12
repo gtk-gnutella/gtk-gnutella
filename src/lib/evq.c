@@ -331,6 +331,8 @@ void
 evq_close(void)
 {
 	atomic_bool_set(&evq_run, FALSE);
+	if (THREAD_INVALID_ID == evq_thread_id)
+		return;
 	if (-1 != thread_kill(evq_thread_id, TSIG_TERM)) {
 		tm_t tmout;
 

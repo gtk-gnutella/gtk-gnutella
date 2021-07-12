@@ -49,6 +49,16 @@
 #define _array_util_h_
 
 /**
+ * Copy array `src' into array `dest'.
+ */
+#define ARRAY_COPY(dest, src) G_STMT_START {		\
+	g_assert_log(sizeof(dest) == sizeof(src),		\
+		"%s(): size mismatch: dest=%zu, src=%zu",	\
+		G_STRFUNC, sizeof(dest), sizeof(src));		\
+	memcpy((dest), (src), sizeof(src));				\
+} G_STMT_END
+
+/**
  * Remove item 'i' from an array of 'n' items (before removal).
  *
  * When the removed item is not the last one in the array, all subsequent

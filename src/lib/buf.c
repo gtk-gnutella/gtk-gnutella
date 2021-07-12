@@ -212,7 +212,7 @@ buf_private(const void *key, size_t size)
 	 * with an associated free routine.
 	 */
 
-	b = buf_new_embedded(size);
+	b = NOT_LEAKING(buf_new_embedded(size));
 	b->b_magic = BUF_MAGIC_PRIVATE;		/* Prevents accidental free */
 
 	thread_private_add_extended(key, b, buf_private_reclaim, NULL);

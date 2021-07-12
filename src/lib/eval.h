@@ -41,6 +41,8 @@
  */
 
 const char *eval_subst(const char *str);
+const char *eval_subst_atom(const char *str);
+char *eval_subst_x(const char *str);
 
 #endif	/* _eval_h_ */
 

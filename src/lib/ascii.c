@@ -47,7 +47,7 @@
  * so that we can write more efficicient is_ascii_*() routines.
  */
 const uint16
-ascii_ctype[] =
+ascii_ctype[256] =
 {
 	/*   0 */	A_CTRL,
 	/*   1 */	A_CTRL,
@@ -189,7 +189,7 @@ ascii_strlower(char *dst, const char *src)
 {
 	int c;
 
-	STATIC_ASSERT(128 == N_ITEMS(ascii_ctype));
+	STATIC_ASSERT(256 == N_ITEMS(ascii_ctype));
 
 	if (dst != src)
 		do {

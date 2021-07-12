@@ -672,6 +672,8 @@ search_mark_sent_to_connected_nodes(search_ctrl_t *sch)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (NODE_IS_WRITABLE(n))
 			search_mark_sent_to_node(sch, n);
 	}

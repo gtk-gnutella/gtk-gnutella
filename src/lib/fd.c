@@ -133,7 +133,7 @@ fd_socket_close(const void *data, void *udata)
 static void
 fd_preserved_allocate(void)
 {
-	fd_preserved = hset_create(HASH_KEY_SELF, 0);
+	fd_preserved = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	hset_thread_safe(fd_preserved);
 }
 

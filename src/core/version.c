@@ -675,7 +675,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 			return FALSE;	/* Can't be correct */
 		}
 
-		error = tok_version_valid(str, token, vstrlen(token), addr);
+		error = tok_version_valid(str, token, vstrlen(token));
 
 		/*
 		 * Unfortunately, if our token has expired, we can no longer

@@ -462,6 +462,28 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 		return NULL;
 
 	/*
+	 * Range `hri' MUST overlap with `range' defined by [start, end].
+	 *
+	 * We already know that start <= end, since this is a pre-condition.
+	 *
+	 * We first assert that hri is a valid interval, which implies that
+	 * hri>start <= hri->end naturally.
+	 *
+	 * And then we need to ensure that the two ranges overlap, that is
+	 * we both have:
+	 *
+	 * 	start <= hri->end
+	 * 	hri->start <= end
+	 */
+
+	http_range_item_check(hri);
+	g_assert_log(start <= hri->end && hri->start <= end,
+		"%s(): given range [%zu, %zu] not overlapping with found [%zu, %zu]",
+		G_STRFUNC,
+		(size_t) start, (size_t) end,
+		(size_t) hri->start, (size_t) hri->end);
+
+	/*
 	 * Move to the earliest overlapping range.
 	 */
 
@@ -480,6 +502,21 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 			break;			/* Not overlapping */
 
 		hri = prange;		/* Update earliest overlapping range */
+
+		/*
+		 * Same assertions as above, but this time we already know that
+		 * hri->end >= start due to the comparison we just did between
+		 * prange->end and start.
+		 *
+		 * Also since we called http_range_item_check() on prange, we know
+		 * due to the above assignment that hri->start <= hri->end.
+		 */
+
+		g_assert_log(hri->start <= end,
+			"%s(): given range [%zu, %zu] not overlapping with found [%zu, %zu]",
+			G_STRFUNC,
+			(size_t) start, (size_t) end,
+			(size_t) hri->start, (size_t) hri->end);
 	}
 
 	return HTTP_RANGE(hri);

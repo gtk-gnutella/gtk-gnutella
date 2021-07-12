@@ -39,6 +39,7 @@
 #include "eval.h"
 
 #include "ascii.h"
+#include "atoms.h"
 #include "constants.h"
 #include "cstr.h"
 #include "debug.h"
@@ -47,7 +48,9 @@
 #include "halloc.h"
 #include "hstrfn.h"
 #include "path.h"
+#include "str.h"
 #include "unsigned.h"
+#include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -60,7 +63,7 @@
  * of the character right after the variable name.
  */
 static const char *
-get_variable(const char *s, const char **end)
+eval_get_variable(const char *s, const char **end)
 {
 	const char *value, *p = s;
 	bool end_brace = FALSE;
@@ -75,9 +78,8 @@ get_variable(const char *s, const char **end)
 		end_brace = TRUE;
 	}
 
-	while (is_ascii_alnum(*p) || *p == '_') {
+	while (is_ascii_ident(*p))
 		p++;
-	}
 
 	if (end_brace && *p == '}')
 		*end = &p[1];
@@ -107,37 +109,42 @@ get_variable(const char *s, const char **end)
 }
 
 /**
- * Insert value `val' at beginning of string `start'.
+ * Perform leading ~ and $ENV variable substitutions on string.
  *
- * The string `start' is held in a buffer capable of holding a string of
- * `maxlen' bytes, and the string is currently `len' bytes long, with `start'
- * being at the offset `off' within buffer.
- *
- * @return the pointer right after the inserted value.
+ * @param s			the string being edited inplace
  */
-static char *
-insert_value(const char *val, char *start, size_t off,
-	size_t len, size_t maxlen)
+static void
+eval_substitute(str_t *s)
 {
-	size_t vlen = vstrlen(val);
+	size_t i;
 
-	g_assert(len <= maxlen);
-	g_assert(off <= len);
+	if (common_dbg > 3)
+		s_debug("%s(): on entry: \"%s\"", G_STRFUNC, str_2c(s));
 
-	if (vlen > maxlen - len) {
-		g_warning("ignoring variable substitution text \"%s\"", val);
-		return start;
+	/*
+	 * Handle standalone "~" or leading "~/".
+	 */
+
+	if ('~' == str_at(s, 0) && (1 == str_len(s) || '/' == str_at(s, 1)))
+		str_replace(s, 0, 1, gethomedir());
+
+	for (i = 0; i < str_len(s); i++) {
+		const char *val, *start, *after;
+
+		if ('$' != str_at(s, i))
+			continue;
+
+		start = str_2c_from(s, i + 1);
+		val = eval_get_variable(start, &after);
+		str_replace(s, i, after - start + 1, val);
+		i += vstrlen(val) - 1;
 	}
 
-	memmove(&start[vlen], start, len + 1 - off);
-	memmove(start, val, vlen);
-
-	return &start[vlen];
+	if (common_dbg > 3)
+		s_debug("%s(): on exit: \"%s\"", G_STRFUNC, str_2c(s));
 }
 
 /**
- * Needs brief description here.
- *
  * Substitutes variables from string:
  *
  * - The leading "~" is replaced by the home directory.
@@ -146,81 +153,81 @@ insert_value(const char *val, char *start, size_t off,
  *
  * If given a NULL input, we return NULL.
  *
+ * @param str		string where variables must be substituted
+ *
  * @return string constant, which is not meant to be freed until exit time.
  */
 const char *
 eval_subst(const char *str)
 {
-	char buf[MAX_STRING];
-	char *end = &buf[sizeof(buf)];
-	char *p;
-	size_t len;
-	char c;
+	str_t *s;
+	const char *constant;
 
-	if (str == NULL)
+	if G_UNLIKELY(NULL == str)
 		return NULL;
 
-	len = cstr_lcpy(ARYLEN(buf), str);
-	if (len >= sizeof buf) {
-		g_warning("%s(): string too large for substitution (%zu bytes)",
-			G_STRFUNC, len);
-		return constant_str(str);
-	}
+	s = str_new_from(str);
+	eval_substitute(s);
+	constant = constant_str(str_2c(s));
+	str_destroy_null(&s);
 
+	return constant;
+}
 
-	if (common_dbg > 3)
-		g_debug("%s: on entry: \"%s\"", G_STRFUNC, buf);
+/**
+ * Substitutes variables from string:
+ *
+ * - The leading "~" is replaced by the home directory.
+ * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
+ *   fetched from the environment, or the empty string if not found.
+ *
+ * If given a NULL input, we return NULL.
+ *
+ * @param str		string where variables must be substituted
+ *
+ * @return new string that can be freed with xfree().
+ */
+char *
+eval_subst_x(const char *str)
+{
+	str_t *s;
+	char *p;
 
-	for (p = buf, c = *p++; c; c = *p++) {
-		const char *val = NULL;
-		char *start = p - 1;
+	if G_UNLIKELY(NULL == str)
+		return NULL;
 
-		switch (c) {
-		case '~':
-			if (start == buf && ('\0' == buf[1] || '/' == buf[1])) {
-				/* Leading ~ only */
-				val = gethomedir();
-				g_assert(val);
-				memmove(start, &start[1], len - (start - buf));
-				len--;
+	s = str_new_from(str);
+	eval_substitute(s);
+	p = xstrdup(str_2c(s));		/* Not str_s2c(): strings use halloc() */
+	str_destroy_null(&s);
 
-				g_assert(size_is_non_negative(len));
-			}
-			break;
-		case '$':
-			{
-				const char *after;
+	return p;
+}
 
-				val = get_variable(p, &after);
-				g_assert(val);
-				memmove(start, after, len + 1 - (after - buf));
-				len -= after - start;		/* Also removing leading '$' */
+/*
+ * Perform leading ~ substitution and environment variable substitutions.
+ *
+ * Substitutes variables from string:
+ *
+ * - The leading "~" is replaced by the home directory.
+ * - Variables like "$PATH" or "${PATH}" are replaced by their value, as
+ *   fetched from the environment, or the empty string if not found.
+ *
+ * There are no size limitations.
+ *
+ * @return a string atom.
+ */
+const char *
+eval_subst_atom(const char *str)
+{
+	str_t *s = str_new_from(str);
+	const char *atom;
 
-				g_assert(size_is_non_negative(len));
-			}
-			break;
-		}
+	eval_substitute(s);
+	atom = atom_str_get(str_2c(s));
+	str_destroy_null(&s);
 
-		if (val != NULL) {
-			char *next;
-
-			next = insert_value(val, start, start - buf, len, sizeof buf - 1);
-			len += next - start;
-			p = next;
-
-			g_assert(len < sizeof buf);
-			g_assert(p < end);
-		}
-
-		g_assert(p <= &buf[len]);
-	}
-
-	if (common_dbg > 3)
-		g_debug("%s: on exit: \"%s\"", G_STRFUNC, buf);
-
-	g_assert(len == vstrlen(buf));
-
-	return constant_str(buf);
+	return atom;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

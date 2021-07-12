@@ -175,6 +175,30 @@
 #define VMM_PROTECT_FREE_PAGES
 #endif
 
+/*
+ * Add runtime assertions ensuring that the pmap is consistent with the
+ * blocks we are freeing.
+ */
+#if 0
+#define VMM_PMAP_CHECK
+#endif
+
+/*
+ * Add runtime assertions to ensure we're not freeing a region that is
+ * already cached or held in a magazine, meaning it would be a duplicate free.
+ */
+#if 0
+#define VMM_CACHE_FREE_CHECK
+#define VMM_MAGAZINE_FREE_CHECK
+#endif
+
+/*
+ * Whether to verbosely log all operations.
+ */
+#if 0
+#define VMM_LOG_OPS
+#endif
+
 static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
@@ -458,6 +482,16 @@ static void vmm_track_close(void);
 #endif
 
 #define vmm_debugging(lvl)	G_UNLIKELY(vmm_debug > (lvl) && safe_to_log)
+
+#ifdef VMM_LOG_OPS
+#define vmm_rawdebug(...)			\
+G_STMT_START {						\
+	if (!vmm_crashing)				\
+		s_rawdebug(__VA_ARGS__);	\
+} G_STMT_END
+#else
+#define vmm_rawdebug(...)	{}
+#endif
 
 bool
 vmm_is_debugging(uint32 level)
@@ -1776,10 +1810,11 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 	}
 }
 
-static void
+static inline void
 vmm_validate_pages(void *p, size_t size)
 {
-	g_assert(p);
+	g_assert(p != NULL);
+	g_assert(page_start(p) == p);
 	g_assert(size_is_positive(size));
 #ifdef VMM_PROTECT_FREE_PAGES
 	mprotect(p, size, PROT_READ | PROT_WRITE);
@@ -1790,10 +1825,21 @@ vmm_validate_pages(void *p, size_t size)
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
 }
 
-static void
+/**
+ * Validate page by ensuring `size' bytes starting at `p' are
+ * both readable and writable.
+ */
+void
+vmm_validate(void *p, size_t size)
+{
+	vmm_validate_pages(p, size);
+}
+
+static inline void
 vmm_invalidate_pages(void *p, size_t size)
 {
-	g_assert(p);
+	g_assert(p != NULL);
+	g_assert(page_start(p) == p);
 	g_assert(size_is_positive(size));
 
 	if (G_UNLIKELY(stop_freeing))
@@ -1805,6 +1851,16 @@ vmm_invalidate_pages(void *p, size_t size)
 #ifdef VMM_INVALIDATE_FREE_PAGES
 	vmm_madvise_free(p, size);
 #endif	/* VMM_INVALIDATE_FREE_PAGES */
+}
+
+/**
+ * Invalidate pages, ensuring that any acccess to `size' bytes starting
+ * at `p' will result in a page fault (SIGSEGV with "invalid access").
+ */
+void
+vmm_invalidate(void *p, size_t size)
+{
+	vmm_invalidate_pages(p, size);
 }
 
 /**
@@ -2610,6 +2666,9 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 	g_assert(base != NULL);
 	g_assert(size_is_positive(size));
 
+	if G_UNLIKELY(vmm_crashing)
+		return;
+
 	if (locked) {
 		/*
 		 * Must prevent deadlocks if we are called with a spinlock held.
@@ -2642,6 +2701,97 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 
 	rwlock_runlock(&pm->lock);
 }
+
+#ifdef VMM_PMAP_CHECK
+static void
+assert_pmap_allocated(const void *base, size_t size, vmf_type_t type)
+{
+	assert_vmm_is_allocated(base, size, type, FALSE);
+}
+#else	/* !VMM_PMAP_CHECK */
+#define assert_pmap_allocated(b,s,t)
+#endif	/* VMM_PMAP_CHECK */
+
+#ifdef VMM_CACHE_FREE_CHECK
+static void
+assert_not_cached(const char *caller, const void *p, size_t size)
+{
+	size_t i;
+	const void *end;
+	bool found = FALSE;
+
+	if G_UNLIKELY(vmm_crashing)
+		return;
+
+	end = const_ptr_add_offset(p, size);
+
+	for (i = 0; i < N_ITEMS(page_cache) && !found; i++) {
+		struct page_cache *pc = &page_cache[i];
+		size_t j;
+
+		spinlock(&pc->lock);
+
+		for (j = 0; j < pc->current; j++) {
+			const struct page_info *pi = &pc->info[j];
+			const void *pend = const_ptr_add_offset(pi->base, pc->chunksize);
+
+
+			if (
+				/* p lies within cached region */
+				(ptr_cmp(pi->base, p) <= 0 && ptr_cmp(p, pend) < 0) ||
+				/* end lies well into cached region */
+				(ptr_cmp(pi->base, end) < 0 && ptr_cmp(end, pend) < 0)
+			) {
+				s_rawwarn("%s(): %zu-byte %p %s %zu-byte region [%p, %p[",
+					caller, size, p,
+					(ptr_cmp(pi->base, p) <= 0 && ptr_cmp(end, pend) <= 0) ?
+						"contained within" : "overlaps with",
+					pc->chunksize, pi->base, pend);
+				found = TRUE;
+				break;
+			}
+
+			if (ptr_cmp(p, pi->base) <= 0 && ptr_cmp(pend, end) <= 0) {
+				s_rawwarn("%s(): %zu-byte %p contains %zu-byte region [%p, %p[",
+					caller, size, p, pc->chunksize, pi->base, pend);
+				found = TRUE;
+				break;
+			}
+		}
+
+		spinunlock(&pc->lock);
+	}
+
+	if (found) {
+		s_error("%s(): %zu-byte region [%p, %p[ conficts with cached pages",
+			caller, size, p, end);
+	}
+}
+#else	/* !VMM_CACHE_FREE_CHECK */
+#define assert_not_cached(c,p,s)
+#endif	/* VMM_CACHE_FREE_CHECK */
+
+#ifdef VMM_MAGAZINE_FREE_CHECK
+static void
+assert_not_in_free_magazine(const char *caller, const void *p)
+{
+	size_t n;
+
+	if G_UNLIKELY(vmm_crashing)
+		return;
+
+	for (n = 1; n <= VMM_MAGAZINE_PAGEMAX; n++) {
+		tmalloc_t *depot = vmm_magazine[n - 1];
+
+		if (depot != NULL && tmalloc_contains(depot, p, TRUE)) {
+			s_error("%s(): %p found in %zu-page magazine",
+				caller, p, n);
+		}
+	}
+}
+#else	/* !VMM_MAGAZINE_FREE_CHECK */
+#define assert_not_in_free_magazine(c, p)
+#endif	/* VMM_MAGAZINE_FREE_CHECK */
 
 /**
  * @return type of region to which `p' belongs, for logging messages.
@@ -3045,6 +3195,7 @@ success:
 					free_pages_intern(p, size, TRUE);
 				}
 				p = t;		/* Superseded by magazine allocation */
+				vmm_validate_pages(p, size);
 			}
 		}
 	}
@@ -4656,10 +4807,13 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 	p = page_cache_find_pages(n, user_mem, FALSE);
 	if (p != NULL) {
 		vmm_validate_pages(p, size);
+
+		vmm_rawdebug("%s(%zu): [H] p=%p", G_STRFUNC, size, p);
+		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
+		assert_not_in_free_magazine(G_STRFUNC, p);
+
 		if G_UNLIKELY(zero_mem)
 			memset(p, 0, size);
-
-		assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
 
 		VMM_STATS_LOCK;
 		vmm_stats.alloc_from_cache++;
@@ -4689,7 +4843,9 @@ vmm_alloc_internal(size_t size, bool user_mem, bool zero_mem)
 
 	/* Memory allocated by the kernel is already zero-ed */
 
+	vmm_rawdebug("%s(%zu): [K] p=%p", G_STRFUNC, size, p);
 	assert_vmm_is_allocated(p, size, VMF_NATIVE, FALSE);
+
 	VMM_STATS_LOCK;
 	vmm_stats.alloc_direct_core++;
 	vmm_stats.alloc_direct_core_pages += n;
@@ -4818,6 +4974,7 @@ success:
 					free_pages(p, size, TRUE);
 				}
 				p = t;	/* Allocated from magazines */
+				vmm_validate_pages(p, size);
 			}
 		}
 	}
@@ -4999,13 +5156,16 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 				VMM_STATS_LOCK;
 				vmm_stats.free_to_cache++;
 				vmm_stats.free_to_cache_pages += n;
+				vmm_rawdebug("%s(%zu): [H] p=%p", G_STRFUNC, nsize_fast(m), p);
 			} else {
+				vmm_rawdebug("%s(%zu): [D] p=%p", G_STRFUNC, nsize_fast(m), p);
 				VMM_STATS_LOCK;		/* For later below */
 			}
 		} else {
 			size_t m = n;
 			page_cache_coalesce_pages(&p, &m);
 			free_pages(p, nsize_fast(m), TRUE);
+			vmm_rawdebug("%s(%zu): [F] p=%p", G_STRFUNC, nsize_fast(m), p);
 			VMM_STATS_LOCK;
 			vmm_stats.free_to_system++;
 			vmm_stats.free_to_system_pages += m;
@@ -5069,10 +5229,21 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 static void *
 vmm_alloc_raw(size_t size)
 {
-	if G_LIKELY(round_pagesize_fast(size) == size)
-		return vmm_alloc_internal(size, TRUE, FALSE);
+	void *p;
+	int c;
 
-	return xmalloc(size);
+	(void) c;	/* In case vmm_rawdebug() does nothing */
+
+	if G_LIKELY(round_pagesize_fast(size) == size) {
+		p = vmm_alloc_internal(size, TRUE, FALSE);
+		c = 'V';
+	} else {
+		p = xmalloc(size);
+		c = 'X';
+	}
+
+	vmm_rawdebug("%s(%zu): [%c] p=%p", G_STRFUNC, size, c, p);
+	return p;
 }
 
 /**
@@ -5081,6 +5252,8 @@ vmm_alloc_raw(size_t size)
 static void
 vmm_free_raw(void *p, size_t size)
 {
+	vmm_rawdebug("%s(%zu): p=%p", G_STRFUNC, size, p);
+
 	if G_LIKELY(round_pagesize_fast(size) == size)
 		vmm_free_internal(p, size, TRUE);
 	else
@@ -5144,6 +5317,9 @@ vmm_get_magazine(size_t npages, bool alloc)
 			depot = vmm_magazine[idx] =
 				tmalloc_create(name, nsize_fast(npages),
 					vmm_alloc_raw, vmm_free_raw);
+#if defined(VMM_PROTECT_FREE_PAGES) || defined(VMM_INVALIDATE_FREE_PAGES)
+			tmalloc_set_protected(depot, TRUE);
+#endif
 		}
 
 		mutex_unlock(&vmm_magazine_mtx);
@@ -5192,7 +5368,17 @@ vmm_magazine_alloc(size_t npages, bool zero)
 		vmm_stats.allocations_zeroed++;
 	VMM_STATS_UNLOCK;
 
+#if defined(VMM_PROTECT_FREE_PAGES) || defined(VMM_INVALIDATE_FREE_PAGES)
+	{
+		void *p = tmalloc(depot);
+		vmm_validate_pages(p, nsize_fast(npages));
+		if (zero)
+			memset(p, 0, nsize_fast(npages));
+		return p;
+	}
+#else
 	return zero ? tmalloc0(depot) : tmalloc(depot);
+#endif	/* VMM_PROTECT_FREE_PAGES || VMM_INVALIDATE_FREE_PAGES */
 }
 #endif	/* TRACK_MALLOC */
 
@@ -5206,15 +5392,25 @@ void *
 vmm_alloc(size_t size)
 {
 	size_t npages = pagecount_fast(size);
+	void *p;
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		void *p = vmm_magazine_alloc(npages, FALSE);
+		p = vmm_magazine_alloc(npages, FALSE);
 
-		if G_LIKELY(p != NULL)
+		if G_LIKELY(p != NULL) {
+			vmm_rawdebug("%s(%zu): [M] p=%p", G_STRFUNC, size, p);
+			assert_not_cached(G_STRFUNC, p, size);
+
 			return p;
+		}
 	}
 
-	return vmm_alloc_internal(size, TRUE, FALSE);
+	p = vmm_alloc_internal(size, TRUE, FALSE);
+
+	vmm_rawdebug("%s(%zu): [I] p=%p", G_STRFUNC, size, p);
+
+	assert_not_cached(G_STRFUNC, p, size);
+	return p;
 }
 
 /**
@@ -5224,15 +5420,24 @@ void *
 vmm_alloc0(size_t size)
 {
 	size_t npages = pagecount_fast(size);
+	void *p;
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
-		void *p = vmm_magazine_alloc(npages, TRUE);
+		p = vmm_magazine_alloc(npages, TRUE);
 
-		if G_LIKELY(p != NULL)
-			return p;
+		if G_LIKELY(p != NULL) {
+			vmm_rawdebug("%s(%zu): [M] p=%p", G_STRFUNC, size, p);
+			goto done;
+		}
 	}
 
-	return vmm_alloc_internal(size, TRUE, TRUE);
+	p = vmm_alloc_internal(size, TRUE, TRUE);
+
+	vmm_rawdebug("%s(%zu): [I] p=%p", G_STRFUNC, size, p);
+
+done:
+	assert_not_cached(G_STRFUNC, p, size);
+	return p;
 }
 
 /**
@@ -5247,6 +5452,8 @@ vmm_alloc0(size_t size)
 void *
 vmm_core_alloc(size_t size)
 {
+	void *p;
+
 	/*
 	 * Under a long-term strategy, core allocation is strategic because the
 	 * chunks we allocate are difficult to move afterwards since they are
@@ -5260,9 +5467,16 @@ vmm_core_alloc(size_t size)
 	 */
 
 	if (VMM_STRATEGY_LONG_TERM == vmm_strategy)
-		return vmm_alloc_core(size);
+		p = vmm_alloc_core(size);
 	else
-		return vmm_alloc_internal(size, FALSE, FALSE);
+		p = vmm_alloc_internal(size, FALSE, FALSE);
+
+	vmm_rawdebug("%s(%zu): [%c] p=%p",
+		G_STRFUNC, size, VMM_STRATEGY_LONG_TERM == vmm_strategy ? 'L' : 'S', p);
+
+	assert_not_cached(G_STRFUNC, p, size);
+
+	return p;
 }
 
 /**
@@ -5274,6 +5488,12 @@ void
 vmm_free(void *p, size_t size)
 {
 	size_t npages = pagecount_fast(size);
+
+	vmm_rawdebug("%s(%zu): p=%p...", G_STRFUNC, size, p);
+
+	assert_pmap_allocated(p, size, VMF_NATIVE);
+	assert_not_cached(G_STRFUNC, p, size);	/* Or would be a duplicate free */
+	assert_not_in_free_magazine(G_STRFUNC, p);
 
 	if G_LIKELY(npages <= VMM_MAGAZINE_PAGEMAX) {
 		tmalloc_t *depot;
@@ -5292,6 +5512,7 @@ vmm_free(void *p, size_t size)
 			vmm_stats.magazine_freeings++;
 			vmm_stats.magazine_freeings_frag++;
 			VMM_STATS_UNLOCK;
+			vmm_rawdebug("%s(%zu): [E] p=%p", G_STRFUNC, size, p);
 			goto user_free;
 		}
 
@@ -5304,15 +5525,24 @@ vmm_free(void *p, size_t size)
 			vmm_stats.magazine_freeings++;
 			VMM_STATS_UNLOCK;
 
+			vmm_invalidate_pages(p, size);
+			vmm_rawdebug("%s(%zu): [M] p=%p", G_STRFUNC, size, p);
 			tmfree(depot, p);
+
+			assert_not_cached(G_STRFUNC, p, size);
 			return;
 		}
 
+		vmm_rawdebug("%s(%zu): [I] p=%p", G_STRFUNC, size, p);
+
 		/* FALL THROUGH -- if no depot yet for that amount of pages */
+	} else {
+		vmm_rawdebug("%s(%zu): [I] p=%p", G_STRFUNC, size, p);
 	}
 
 user_free:
 	vmm_free_internal(p, size, TRUE);
+	vmm_rawdebug("%s(%zu): p=%p done.", G_STRFUNC, size, p);
 }
 
 /**
@@ -5321,6 +5551,9 @@ user_free:
 void
 vmm_core_free(void *p, size_t size)
 {
+	assert_pmap_allocated(p, size, VMF_NATIVE);
+
+	vmm_rawdebug("%s(%zu): p=%p", G_STRFUNC, size, p);
 	vmm_free_internal(p, size, FALSE);
 }
 
@@ -6269,7 +6502,11 @@ vmm_post_init(void)
 		unsigned non_default:1;
 		unsigned vmm_invalidate_free_pages:1;
 		unsigned vmm_protect_free_pages:1;
-	} settings = { FALSE, FALSE, FALSE };
+		unsigned vmm_pmap:1;
+		unsigned vmm_cache_free:1;
+		unsigned vmm_magazine_free:1;
+		unsigned vmm_log_ops:1;
+	} settings = { FALSE };
 
 	crash_hook_add(_WHERE_, vmm_crash_hook);
 
@@ -6285,13 +6522,37 @@ vmm_post_init(void)
 	settings.non_default = TRUE;
 	settings.vmm_protect_free_pages = TRUE;
 #endif
+#ifdef VMM_PMAP_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_pmap = TRUE;
+#endif
+#ifdef VMM_CACHE_FREE_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_cache_free = TRUE;
+#endif
+#ifdef VMM_MAGAZINE_FREE_CHECK
+	settings.non_default = TRUE;
+	settings.vmm_magazine_free = TRUE;
+#endif
+#ifdef VMM_LOG_OPS
+	settings.non_default = TRUE;
+	settings.vmm_log_ops = TRUE;
+#endif
 
 	if (settings.non_default) {
-		s_message("VMM settings: %s%s",
+		s_message("VMM settings: %s%s%s%s%s%s",
+			settings.vmm_pmap ?
+				"VMM_PMAP_CHECK " : "",
+			settings.vmm_cache_free ?
+				"VMM_CACHE_FREE_CHECK " : "",
+			settings.vmm_magazine_free ?
+				"VMM_MAGAZINE_FREE_CHECK " : "",
+			settings.vmm_log_ops ?
+				"VMM_LOG_OPS " : "",
 			settings.vmm_invalidate_free_pages ?
-				"VMM_INVALIDATE_FREE_PAGES" : "",
+				"VMM_INVALIDATE_FREE_PAGES " : "",
 			settings.vmm_protect_free_pages ?
-				"VMM_PROTECT_FREE_PAGES" : "");
+				"VMM_PROTECT_FREE_PAGES " : "");
 	}
 
 	if (vmm_debugging(0)) {

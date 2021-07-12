@@ -544,7 +544,7 @@ typedef int socket_fd_t;
 /**
  * SIGN() returns the sign of an integer value.
  */
-#define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
+#define SIGN(x) CMP((x), 0)
 
 /**
  * Byte-wise swap two items of specified size.

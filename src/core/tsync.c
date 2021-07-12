@@ -131,6 +131,7 @@ tsync_send(gnutella_node_t *n, const struct nid *node_id)
 	struct tsync *ts;
 
 	g_return_if_fail(n->port != 0);
+
 	if (!NODE_IS_WRITABLE(n))
 		return;
 
@@ -166,22 +167,23 @@ tsync_send_timestamp(tm_t *orig, tm_t *final)
 {
 	struct tsync *ts;
 
-	if (GNET_PROPERTY(tsync_debug) > 1) {
-		tm_t elapsed = *final;
-		tm_sub(&elapsed, orig);
-		g_debug("TSYNC request %d.%d sent at %d.%d (delay = %g secs)",
-			(int) orig->tv_sec, (int) orig->tv_usec,
-			(int) final->tv_sec, (int) final->tv_usec,
-			tm2f(&elapsed));
-	}
-
 	ts = hevset_lookup(tsync_by_time, orig);
-	if (ts == NULL) {
+
+	if (NULL == ts) {
 		if (GNET_PROPERTY(tsync_debug) > 1) {
 			g_debug("TSYNC request %d.%d not found, expired already?",
 				(int) orig->tv_sec, (int) orig->tv_usec);
 		}
 		return;
+	}
+
+	if (GNET_PROPERTY(tsync_debug) > 1) {
+		tm_t elapsed = *final;
+		tm_sub(&elapsed, orig);
+		g_debug("TSYNC request %d.%d sent at %d.%d (delay = %g secs) via %s",
+			(int) orig->tv_sec, (int) orig->tv_usec,
+			(int) final->tv_sec, (int) final->tv_usec,
+			tm2f(&elapsed), ts->udp ? "UDP" : "TCP");
 	}
 
 	g_assert(ts);

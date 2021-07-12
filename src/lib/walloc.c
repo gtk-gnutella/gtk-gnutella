@@ -872,6 +872,7 @@ wrealloc_track(void *old, size_t old_size, size_t new_size,
 static void
 wmagazine_reset_all(void)
 {
+#ifndef REMAP_ZALLOC
 	size_t i;
 
 	for (i = 0; i < WZONE_SIZE; i++) {
@@ -883,6 +884,7 @@ wmagazine_reset_all(void)
 				tmalloc_reset(d);
 		}
 	}
+#endif	/* !REMAP_ZALLOC */
 }
 
 /**

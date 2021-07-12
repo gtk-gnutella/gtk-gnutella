@@ -91,6 +91,7 @@
 #include "vmm.h"
 #include "win32dlp.h"
 #include "xsort.h"
+#include "zalloc.h"			/* For zalloc_is_closing() */
 
 #include "override.h"		/* Must be the last header included */
 
@@ -110,7 +111,9 @@
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
 
-#if 8 == XMALLOC_ALIGNBYTES
+#if 4 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		2
+#elif 8 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		3
 #elif 16 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		4
@@ -697,6 +700,9 @@ xpages_pool_free(void *p, size_t len, bool fragment)
 static void
 xpages_pool_init(void)
 {
+	if (zalloc_is_closing())
+		return;		/* Too late to create a page pool! */
+
 	xpages_pool = pool_create("xmalloc thread chunks",
 		xmalloc_pagesize, xpages_pool_alloc, xpages_pool_free, NULL);
 }
@@ -1193,7 +1199,7 @@ xmalloc_freecore(void *ptr, size_t len)
 static bool
 xmalloc_is_valid_pointer(const void *p, bool locked)
 {
-	if (xmalloc_round(p) != pointer_to_ulong(p))
+	if (NULL == p || xmalloc_round(p) != pointer_to_ulong(p))
 		return FALSE;
 
 	if G_UNLIKELY(xmalloc_no_freeing)
@@ -1371,6 +1377,108 @@ xfl_find_freelist(size_t len)
 	return &xfreelist[idx];
 }
 
+#ifdef XMALLOC_SORT_SAFETY
+/**
+ * Verify that the freelist bucket is both valid AND sorted.
+ *
+ * @param caller	caller name
+ * @param fl		the freelist bucket
+ * @param low		first index expected to be sorted
+ * @param count		amount of items to check
+ * @param fmt		explaination message, printf()-like
+ * @param ...		variable printf arguments for message
+ */
+static void G_PRINTF(5, 6)
+assert_xfl_sorted(const char *caller,
+	const struct xfreelist *fl, size_t low, size_t count,
+	const char *fmt, ...)
+{
+	size_t i;
+	size_t high = size_saturate_add(low, count);
+	const char *prev;
+
+	assert_mutex_is_owned(&fl->lock);
+
+	g_assert_log(low <= fl->count,
+		"%s(): low=%zu, count=%zu, fl->count=%zu",
+		G_STRFUNC, low, count, fl->count);
+
+	/* Ensure freelist is valid */
+
+	for (i = 0; i < fl->count; i++) {
+		const void *p = fl->pointers[i];
+		const char *what = NULL;
+
+		if (NULL == p)
+			what = "NULL";
+		else if (0 != (pointer_to_ulong(p) & XMALLOC_MASK))
+			what = "unaligned";
+		else if (*(size_t *) p != fl->blocksize)
+			what = "corrupted";
+
+		if (what != NULL) {
+			s_warning("%s(): XM freelist #%zu (%zu-byte blocks) has "
+				"%s block %p at index %zu (cnt=%zu, cap=%zu)",
+				caller, xfl_index(fl), fl->blocksize,
+				what, p, i,
+				fl->count, fl->capacity);
+			goto corrupted;
+		}
+	}
+
+	if G_UNLIKELY(0 == fl->capacity) {
+		g_assert(NULL == fl->pointers);
+		return;
+	}
+
+	/* Ensure freelist is properly sorted from `low' to `count' */
+
+	for (prev = fl->pointers[low], i = low + 1; i < high;  i++) {
+		const char *cur = fl->pointers[i];
+
+		if (xm_ptr_cmp(prev, cur) >= 0) {
+			s_warning("%s(): XM freelist #%zu (%zu/%zu sorted) "
+				"items %zu-%zu unsorted: "
+				"breaks at item %zu (prev=%p, cur=%p)",
+				caller,
+				xfl_index(fl), fl->sorted, fl->count, low, high - 1, i,
+				prev, cur);
+
+			goto corrupted;
+		}
+
+		prev = cur;
+	}
+
+	return;
+
+corrupted:
+	{
+		va_list args;
+		char buf[80];
+
+		va_start(args, fmt);
+		str_vbprintf(ARYLEN(buf), fmt, args);
+		va_end(args);
+
+		s_info("%s(): XM freelist #%zu (%zu-byte blocks) dump of %zu entr%s:",
+			G_STRFUNC, xfl_index(fl), fl->blocksize, PLURAL_Y(fl->count));
+
+		for (i = 0; i < fl->count; i++) {
+			s_info("%8zu: %p%s",
+				i, fl->pointers[i], i < fl->sorted ? "" : " [U]");
+		}
+
+		s_error_from(_WHERE_, "%s(): freelist #%zu corrupted %s, "
+			"fl->pointers=%p (cap=%zu, cnt=%zu, sort=%zu)",
+			caller, xfl_index(fl), buf,
+			fl->pointers, fl->capacity, fl->count, fl->sorted);
+	}
+}
+#else
+#define assert_xfl_sorted(...)
+#endif	/* XMALLOC_SORT_SAFETY */
+
 /**
  * Replace the buckets's array of pointers.
  *
@@ -1410,6 +1518,8 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	fl->capacity = capacity;
 
 	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after replacement");
 
 	/*
 	 * Freelist bucket is now in a coherent state, we can unconditionally
@@ -1461,6 +1571,8 @@ xfl_shrink(struct xfreelist *fl)
 	g_assert(fl->count < fl->capacity);
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->shrinking);
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before");
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1698,8 +1810,7 @@ static void
 assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 {
 	(void) fl;
-	(void) p;
-	/* Disabled */
+	g_assert(p != NULL);
 }
 #endif	/* XMALLOC_PTR_SAFETY */
 
@@ -1715,6 +1826,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 	size_t i;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_valid_freelist_pointer(fl, p);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before removal");
 
 	g_assert(size_is_positive(fl->count));
 	g_assert(fl->count >= fl->sorted);
@@ -1739,6 +1852,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 	fl->pointers[i] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	if (i < fl->sorted)
 		fl->sorted--;
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after removal");
 
 	/*
 	 * Forbid any bucket shrinking as we could be in the middle of a bucket
@@ -1887,6 +2002,7 @@ xfl_extend(struct xfreelist *fl)
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before");
 
 	g_assert(fl->extending);
 	g_assert_log(fl->count == fl->capacity || fl->expand,
@@ -2003,50 +2119,6 @@ xfl_ptr_cmp(const void *a, const void *b)
 	return xm_ptr_cmp(*ap, *bp);
 }
 
-#ifdef XMALLOC_SORT_SAFETY
-/**
- * Verify that the freelist bucket is sorted.
- *
- * @param fl		the freelist bucket
- * @param low		first index expected to be sorted
- * @param count		amount of items to check
- * @param fmt		explaination message, printf()-like
- * @param ...		variable printf arguments for message
- */
-static void G_PRINTF(4, 5)
-assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
-	const char *fmt, ...)
-{
-	size_t i;
-	size_t high = size_saturate_add(low, count);
-	const char *prev = fl->pointers[low];
-
-	for (i = low + 1; i < high;  i++) {
-		const char *cur = fl->pointers[i];
-
-		if (xm_ptr_cmp(prev, cur) > 0) {
-			va_list args;
-			char buf[80];
-
-			va_start(args, fmt);
-			str_vbprintf(ARYLEN(buf), fmt, args);
-			va_end(args);
-
-			s_warning("XM freelist #%zu (%zu/%zu sorted) "
-				"items %zu-%zu unsorted %s: "
-				"breaks at item %zu",
-				xfl_index(fl), fl->sorted, fl->count, low, high - 1, buf, i);
-
-			s_error_from(_WHERE_, "freelist #%zu corrupted", xfl_index(fl));
-		}
-
-		prev = cur;
-	}
-}
-#else
-#define assert_xfl_sorted(...)
-#endif	/* XMALLOC_SORT_SAFETY */
-
 /**
  * Sort freelist bucket.
  */
@@ -2058,6 +2130,7 @@ xfl_sort(struct xfreelist *fl)
 	size_t x = fl->sorted;			/* Index of first unsorted item */
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, x, "sanity check");
 
 	/*
 	 * Items from 0 to fl->sorted are already fully sorted, so we only need
@@ -2080,7 +2153,7 @@ xfl_sort(struct xfreelist *fl)
 	if G_LIKELY(unsorted > 1) {
 		XSTATS_INCX(freelist_partial_sorting);
 		xqsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
-		assert_xfl_sorted(fl, x, unsorted, "after xqsort");
+		assert_xfl_sorted(G_STRFUNC, fl, x, unsorted, "after partial xqsort");
 	}
 
 	/*
@@ -2099,10 +2172,10 @@ xfl_sort(struct xfreelist *fl)
 
 		XSTATS_INCX(freelist_full_sorting);
 		xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
-		assert_xfl_sorted(fl, 0, fl->count, "after full qsort");
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->count, "after full xqsort");
 	} else {
 		XSTATS_INCX(freelist_avoided_sorting);
-		assert_xfl_sorted(fl, 0, fl->count, "after nosort");
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->count, "after nosort");
 	}
 
 	fl->sorted = fl->count;		/* Fully sorted now */
@@ -2218,7 +2291,7 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		return -1;
 	}
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "on entry in xfl_lookup");
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "on entry");
 
 	unsorted = fl->count - fl->sorted;
 
@@ -2301,6 +2374,8 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 
 	fl->pointers[fl->count] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	xfl_count_decreased(fl, TRUE);
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "on exit");
 }
 
 /**
@@ -2338,7 +2413,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	sorted = fl->count == fl->sorted;
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "before %ssorted %s xfl_insert",
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before %ssorted %s insert",
 		sorted ? "" : "un", burst ? "bursty" : "normal");
 
 	/*
@@ -2411,7 +2486,14 @@ plain_insert:
 	xmalloc_freelist_stamp++;		/* Let GC know it can run */
 	XSTATS_UNLOCK;
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "after %ssorted %s xfl_insert @ %zu",
+	/*
+	 * To detect freelist corruptions, write the size of the block at the
+	 * beginning of the block itself.
+	 */
+
+	*(size_t *) p = fl->blocksize;
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after %ssorted %s @ %zu",
 		sorted ? "" : "un", burst ? "bursty" : "normal", idx);
 
 	/*
@@ -2439,13 +2521,6 @@ plain_insert:
 		}
 		spinunlock(&xfreebits_slk);
 	}
-
-	/*
-	 * To detect freelist corruptions, write the size of the block at the
-	 * beginning of the block itself.
-	 */
-
-	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {
 		s_debug("XM inserted block %p in %sfree list #%zu (%zu bytes)",
@@ -2692,6 +2767,7 @@ xmalloc_freelist_setup(void)
 				void **ary = fl->pointers;
 				xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
 				fl->sorted = fl->count;
+				assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after sort");
 			}
 
 			mutex_unlock_hidden(&fl->lock);
@@ -2785,6 +2861,7 @@ xfl_select(struct xfreelist *fl)
 	void *p;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before selection");
 
 	g_assert(fl->count != 0);
 	g_assert_log(fl->count <= fl->capacity,
@@ -2811,6 +2888,13 @@ xfl_select(struct xfreelist *fl)
 
 	p = fl->pointers[fl->count - 1];
 
+	/*
+	 * Block must be valid: not NULL, properly aligned, and belong to that
+	 * freelist as indicated by its first word bearing the size of the bucket.
+	 */
+
+	assert_valid_freelist_pointer(fl, p);
+
 	if G_UNLIKELY(fl->count != fl->sorted) {
 		void **ary = fl->pointers;
 		size_t i = fl->count - 1, j = (fl->sorted != 0) ? fl->sorted - 1 : 0;
@@ -2833,6 +2917,8 @@ xfl_select(struct xfreelist *fl)
 
 			p = q;		/* Will use this pointer instead */
 			XSTATS_INCX(freelist_sorted_superseding);
+
+			assert_valid_freelist_pointer(fl, p);
 		}
 	}
 
@@ -4053,7 +4139,10 @@ xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 
 		if G_LIKELY(xpages_pool != NULL)
 			pfree(xpages_pool, xck);
-		else if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init))
+		else if (
+			once_flag_run_safe(&xpages_pool_inited, xpages_pool_init) &&
+			xpages_pool != NULL
+		)
 			pfree(xpages_pool, xck);
 		else
 			vmm_core_free(xck, xmalloc_pagesize);
@@ -6594,6 +6683,8 @@ xgc(void)
 		g_assert_log(fl->count <= fl->capacity,
 			"count=%zu, capacity=%zu in freelist #%zu (%zu-byte block)",
 			fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
+
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before GC");
 	}
 
 	/*
@@ -6618,7 +6709,7 @@ xgc(void)
 		for (j = 0; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
 
-			g_assert(p != NULL);		/* Or freelist corrupted */
+			assert_valid_freelist_pointer(fl, p);
 
 			blocks++;
 			xgc_block_add(&rbt, p, blksize, &xga);
@@ -6666,6 +6757,8 @@ xgc(void)
 
 		if (!xgctx.locked[i])
 			continue;
+
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before GC update");
 
 		blksize = fl->blocksize;		/* Actual physical block size */
 		old_count = fl->count;
@@ -6724,6 +6817,8 @@ xgc(void)
 				fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
 
 			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
+
+			assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after GC update");
 		}
 	}
 
@@ -7178,7 +7273,6 @@ xmalloc_dump_stats(void)
 	xmalloc_dump_freelist_log(log_agent_stderr_get());
 }
 
-#ifdef TRACK_MALLOC
 /*
  * Identify whether address is that of an xmalloc() block.
  *
@@ -7242,7 +7336,6 @@ probable_xmalloc:
 
 	return TRUE;		/* Have to assume it's possible! */
 }
-#endif	/* TRACK_MALLOC */
 
 #ifdef XMALLOC_IS_MALLOC
 /***

@@ -618,6 +618,15 @@ bfd_util_free_list(struct bfd_list *list)
 }
 
 /**
+ * Wrapper over bfd_init() since it does not return "void" in newer versions.
+ */
+static void
+bfd_util_init_once(void)
+{
+	(void) bfd_init();
+}
+
+/**
  * Initialze a BFD symbol lookup environment context.
  *
  * @return new context that will need to be closed with bfd_util_close_null().
@@ -632,7 +641,7 @@ bfd_util_init(void)
 	be->magic = BFD_ENV_MAGIC;
 	mutex_init(&be->lock);
 
-	ONCE_FLAG_RUN(done, bfd_init);
+	ONCE_FLAG_RUN(done, bfd_util_init_once);
 
 	return be;
 }

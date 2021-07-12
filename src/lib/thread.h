@@ -276,6 +276,9 @@ void thread_stack_check_overflow(const void *va);
 ssize_t thread_stack_diff(const void *sp) G_PURE;
 void thread_stack_check(void);
 
+void thread_suspend(int stid);
+void thread_unsuspend(int stid);
+
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
 bool thread_check_suspended(void);
@@ -370,6 +373,7 @@ int thread_kill(unsigned id, int signum);
 tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
+size_t thread_stack_size(void);
 bool thread_signal_has_pending(size_t locks);
 bool thread_signal_process(void);
 bool thread_pause(void);
@@ -389,6 +393,8 @@ int thread_interrupt(uint id, process_fn_t cb, void *arg,
 	notify_data_fn_t completed, void *udata);
 
 void *thread_sp(void);
+int thread_stack_ptr_cmp(const void *a, const void *b);
+bool thread_on_altstack(void);
 
 void thread_cleanup_push_from(notify_fn_t cleanup, void *arg,
 	const char *routine, const char *file, unsigned line, const void *sp);

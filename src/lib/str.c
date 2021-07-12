@@ -107,6 +107,32 @@ str_len(const str_t *s)
 }
 
 /**
+ * Check the available room we have in string to add new bytes to it.
+ *
+ * A dynamic string that can be resized has no limits, but a string for
+ * which we do not own the data pointer cannot be resized and is therefore
+ * constrained.
+ *
+ * @return amount of available room in string.
+ */
+size_t
+str_avail(const str_t *s)
+{
+	str_check(s);
+
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
+		size_t avail = s->s_size - s->s_len;
+		if ('\0' == s->s_data[s->s_len - 1])
+			avail++;		/* Already NUL-terminated */
+		if (avail <= 1)
+			return 0;		/* Must leave room for tailing NUL */
+		return avail - 1;	/* Trailing NUL accounted */
+	}
+
+	return MAX_INT_VAL(size_t);		/* No limits but virtual memory */
+}
+
+/**
  * Allocate a new non-leaking string structure.
  *
  * This should only be used with static string objects that are never freed.
@@ -763,6 +789,33 @@ str_2c(str_t *str)
 }
 
 /**
+ * Like str_2c() but starts at given offset.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s		the string
+ * @param idx	starting index
+ */
+char *
+str_2c_from(str_t *s, ssize_t idx)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (idx < 0)						/* Stands for chars before end */
+		idx += len;
+
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+		return "";		/* Empty string! */
+
+	return str_2c(s) + idx;		/* NUL-terminated string */
+}
+
+/**
  * Destroy the str_t container and keep only its data arena, returning a
  * pointer to it as a `C' string (NUL-terminated).
  *
@@ -1066,6 +1119,9 @@ str_shift(str_t *str, size_t n)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, and so on.
  *
+ * As a convenience, act as str_putc() if index equals string length.
+ * This allows us to treat str_ichar(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
@@ -1080,8 +1136,13 @@ str_ichar(str_t *str, ssize_t idx, int c)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)		/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)		/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_putc(str, c);
+		return TRUE;
+	}
 
 	str_makeroom(str, 1);
 	memmove(str->s_data + idx + 1, str->s_data + idx, len - idx);
@@ -1096,6 +1157,9 @@ str_ichar(str_t *str, ssize_t idx, int c)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, etc...
  *
+ * As a convenience, act as str_cat() if index equals string length.
+ * This allows us to treat str_istr(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
@@ -1109,6 +1173,9 @@ str_istr(str_t *str, ssize_t idx, const char *string)
 
 /**
  * Same as str_istr, only the first `n' chars of string are inserted.
+ *
+ * As a convenience, act as str_cat_len() if index equals string length.
+ * This allows us to treat str_instr(s, 0, ...) nicely even if s is empty.
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
@@ -1129,8 +1196,13 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)	/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_cat_len(str, string, n);
+		return TRUE;
+	}
 
 	str_makeroom(str, n);
 	memmove(str->s_data + idx + n, str->s_data + idx, len - idx);

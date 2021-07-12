@@ -1066,6 +1066,13 @@ overflow_handler(int unused_sig)
 	(void) unused_sig;
 
 	s_rawdebug("stack overflow signal properly caught!");
+
+	s_rawinfo("signal_on_altstack(() = %s",
+		bool_to_string(signal_on_altstack()));
+	s_rawinfo("thread_on_altstack(() = %s",
+		bool_to_string(thread_on_altstack()));
+
+	g_assert(signal_on_altstack() == thread_on_altstack());
 }
 
 static void *

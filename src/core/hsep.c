@@ -219,6 +219,8 @@ hsep_sanity_check(void)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		/* also consider unestablished connections here */
 
 		if (!(n->attrs & NODE_A_CAN_HSEP))
@@ -392,6 +394,8 @@ hsep_reset(void)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		/* also consider unestablished connections here */
 
 		if (!(n->attrs & NODE_A_CAN_HSEP))
@@ -479,6 +483,8 @@ hsep_timer(time_t now)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 		int diff;
+
+		node_check(n);
 
 		/* only consider established connections here */
 		if (!NODE_IS_ESTABLISHED(n))
@@ -985,6 +991,8 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 		gnet_node_status_t status;
+
+		node_check(n);
 
 		if ((!NODE_IS_ESTABLISHED(n)) || n->attrs & NODE_A_CAN_HSEP)
 			continue;

@@ -417,6 +417,23 @@ settings_unique_usage(const char *path, const char *lockfile,
 }
 
 /**
+ * Log shell command that can be used to remove the lockfile if needed.
+ */
+static void
+settings_log_rm_lockfile(const char *lockfile)
+{
+	char *file;
+
+	g_assert(lockfile != NULL);
+	g_assert(config_dir != NULL);
+
+	file = make_pathname(config_dir, lockfile);
+	g_message("rm %s", file);
+
+	HFREE_NULL(file);
+}
+
+/**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
@@ -623,6 +640,9 @@ settings_unique_instance(bool is_supervisor)
 			_("Another gtk-gnutella supervisor is running as PID %lu") :
 			_("Another gtk-gnutella is running as PID %lu"),
 			(ulong) lpid);
+		g_message(_("If PID %lu is not a gtk-gnutella process, run:"),
+			(ulong) lpid);
+		settings_log_rm_lockfile(lock);
 		exit(EXIT_FAILURE);
 	}
 }
@@ -663,7 +683,7 @@ settings_init(bool resume)
 	long cpus = getcpucount();
 	uint max_fd;
 	time_t session_start = 0;
-
+	bool clear_bytecount = !resume;
 	settings_init_running = TRUE;
 
 #if defined(HAS_GETRLIMIT) && defined(RLIMIT_AS)
@@ -734,6 +754,7 @@ settings_init(bool resume)
 	if (!GNET_PROPERTY(clean_shutdown)) {
 		uint32 pid = GNET_PROPERTY(pid);
 		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		clear_bytecount = FALSE;
 		if (resume)
 			g_info("implicitly resuming the previous session anyway");
 		crash_exited(pid);
@@ -757,12 +778,38 @@ settings_init(bool resume)
 		if (auto_restart) {
 			g_info("restarting session as requested");
 			session_start = GNET_PROPERTY(session_start_stamp);
+			clear_bytecount = FALSE;
 		}
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
 	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
 	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
+
+	if (clear_bytecount) {
+		uint i;
+		property_t bytecount[] = {
+			PROP_BC_HTTP_OUT,
+			PROP_BC_GNET_TCP_UP_OUT,
+			PROP_BC_GNET_TCP_LEAF_OUT,
+			PROP_BC_GNET_UDP_OUT,
+			PROP_BC_DHT_OUT,
+			PROP_BC_LOOPBACK_OUT,
+			PROP_BC_PRIVATE_OUT,
+			PROP_BC_HTTP_IN,
+			PROP_BC_GNET_TCP_UP_IN,
+			PROP_BC_GNET_TCP_LEAF_IN,
+			PROP_BC_GNET_UDP_IN,
+			PROP_BC_DHT_IN,
+			PROP_BC_LOOPBACK_IN,
+			PROP_BC_PRIVATE_IN,
+		};
+		for (i = 0; i < N_ITEMS(bytecount); i++) {
+			gnet_prop_set_guint64_val(bytecount[i], 0);
+		}
+	} else {
+		g_info("preserving session traffic counters");
+	}
 
 	/*
 	 * On explicit auto-restart, or restart after a crash, we have propagated
