@@ -11,7 +11,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2020-07-09 10:54+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-10-01 07:48+0000\n"
 "Last-Translator: Lucio Marinelli\n"
 "Language-Team: Italian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -751,6 +751,10 @@ msgstr "Un altro supervisore gtk-gnutella è in esecuzione come PID %lu"
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
 msgstr "Un altro gtk-gnutella è in esecuzione come PID %lu"
+
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
+msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Non posso procedere senza una cartella di configurazione valida"
@@ -5345,6 +5349,56 @@ msgstr ""
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
 msgstr "Livello di debug per il codice di sincronizzazione del tempo."
 
+#, fuzzy
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr "Limite di banda per il traffico HTTP in uscita in byte/sec."
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr "Limite di banda per il traffico HTTP in uscita in byte/sec."
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr "Limite di banda per il traffico HTTP in ingresso in byte/sec."
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr "Limite di banda per il traffico HTTP in ingresso in byte/sec."
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
+msgstr ""
+
 msgid "disable"
 msgstr "disabilita"
 
@@ -9439,6 +9493,10 @@ msgstr "Copia negli appunti"
 
 msgid "_Remove filter"
 msgstr "_Rimuovi il filtro"
+
+#, fuzzy
+msgid "Meet us on #gtk-gnutella at libera.chat."
+msgstr "Raggiungici su #gtk-gnutella at irc.freenode.net"
 
 #, fuzzy
 msgid ""

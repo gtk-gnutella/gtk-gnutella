@@ -10,7 +10,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2020-07-09 10:54+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Ukrainian (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -756,6 +756,10 @@ msgstr ""
 
 #, c-format
 msgid "Another gtk-gnutella is running as PID %lu"
+msgstr ""
+
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
 msgstr ""
 
 msgid "Cannot proceed without valid configuration directory"
@@ -4604,6 +4608,52 @@ msgid ""
 msgstr ""
 
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr ""
+
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
 msgstr ""
 
 msgid "disable"
@@ -8535,6 +8585,9 @@ msgid "Copy to clipboard"
 msgstr "Скопіювати до буфера"
 
 msgid "_Remove filter"
+msgstr ""
+
+msgid "Meet us on #gtk-gnutella at libera.chat."
 msgstr ""
 
 msgid ""
