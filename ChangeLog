@@ -1,3 +1,138 @@
+# v 1.2.1  2021-07-12  [stable]
+
+This is a maintenance release with minor bug fixes.
+
+Note that our project IRC #gtk-gnutella channel is now on irc.libera.chat.
+
+When launching gtk-gnutella and there is a stale lockfile present, listing
+some PID, and it happens that there is already another process running
+under this PID, we abort, complaining that another gtk-gnutella is running.
+However, if the lockfile is really stale, and the PID listed in there has
+nothing to do with gtk-gnutella at the moment, the user will need to remove
+the stale lockfile.  Hence we show them the command to run, listing the
+full lockfile path so that it is easy to overcome this little inconvenience!
+
+When using hashtables for memory management, it was possible to trigger a
+resizing and, during the course of operations, have further memory used,
+requiring tracking of new items in the same hashtable we were in the
+process of resizing.  That led to double VMM freeing of the region used
+to store the data.
+
+Add properties to track bytes exchanged by schedulers.  These properties
+track the amount of bytes exchanged by session and are reset to 0 whenever
+a new user session starts.  It allows users to see the actual amount of
+data consumed by running gtk-gnutella sessions, programatically via the
+shell interface.
+
+Add -t switch to shell "status" command: this displays the total amount
+of bandwidth consumed during the session for the different schedulers.
+
+Improvements:
+- Show command to clean stale lockfile.
+- Add properties to track bytes exchanged by schedulers.
+- Add -t switch to shell "status" command.
+- Make use of libera.chat instead of freenode.
+- Expiration time now increased from 1 to 2 years.
+- New --no-expire switch to disable GUI popup when expired.
+
+Bug Fixes:
+- pattern_prefix_period(): don't corrupt end-of-block.
+- Fix subtle recursive resizing bug.
+- Do not emit empty leading description in saved properties.
+- For time sync over UDP, write replying time later!
+- hash_table_resize(): clear last cached lookup!
+- ev_link(): insert events in the proper bucket!
+
+Under the Hood:
+- Updated GeoIP databases.
+- Ad bit_generic_count_set().
+- Add plural_child().
+- Add progstart_was_called().
+- Add H_STRFREEV_NULL().
+- Add syn=c to *.ht and *.ct files for vim.
+- Add hash_table_copy_foreach().
+- Add tm_precise_elapsed_ns() convenience routine.
+- Add thread_stack_size() to get configured stack size.
+- Add pattern_string() to get the string being looked for.
+- Add str_2c_from() to grab C string from a given offset.
+- Add eval_subst_atom().
+- Add stacktrace_caller_fast() and stack-test program.
+- Add thread_{un}suspend().
+- Add tmalloc_contains() for assertions.
+- Add public VMM validate/invalidate routines.
+- Add macros to ease printing for tmval and tmspec.
+- Add node_check() to node traversal loops.
+- Avoid branches in SIGN() as well.
+- Avoid regeneration of Geo DB if no data changes.
+- Bump python dependency for jhbuild on OSX.
+- Better clock skew computation.
+- Handle time-sync exchanges via UDP better.
+- Make use of travis cache feature for OSX builds.
+- Only include <sys/sysctl.h> if we actually need it.
+- Allow compilation with usemymalloc=n on 32-bit CPUs.
+- Let mem_test() run only once.
+- When no backtrace(), ensure we compile with a frame pointer.
+- Compile with -DTRACK_MALLOC -DREMAP_ZALLOC again.
+- Made -DTRACK_ZALLOC usable again.
+- Do not check stack at longjmp() if on altstack.
+- Do not trap hash_list_{new,free}() under REMAP_ZALLOC.
+- Ensure properties use xmalloc() for their values.
+- Wait until main() starts to allocate the signal chunk.
+- Made ascii_toupper() and ascii_tolower() avoid branching.
+- Trace saving time whithin property files.
+- Trace page (PA) and offset within page on SEGV.
+- Trace page protection on SEGV faults, if possible.
+- Trace how and where symbols were loaded in crash log.
+- Symbol quality definition moved to symbols!
+- Windows: handle freopen("a") specially to allow read sharing.
+- Windows: no need to dump stack again if no gdb.
+- mutex: supply more context on lock errors.
+- ostream: now also accepts str_t as output medium.
+- rwlock: added debug option to track wlock location.
+- random-test: added -a to benchmark all routines.
+- random-test: add -v to be verbose when -a is used.
+- VMM: added extra debugging tools / assertions.
+- VMM: trace new compile-time options.
+- clock: simplify code by using aging table.
+- xmalloc: avoid late page pool creation.
+- xmalloc: extended assertions to detect freelist corruption.
+- zalloc: avoid warnings when compiling with REMAP_ZALLOC.
+- zalloc: with ZONE_SAFE, ensure block tagging never changes!
+- malloc.c: enhanced and fixed some errors with multi-threading.
+- malloc.c: huge refactoring and cleanup.
+- aging_destroy(): remove periodic GC before cleanup.
+- bfd_util_init(): avoid warning on bfd_init() call.
+- clock_adjust(): removed MAX_SDEV.
+- clock_adjust(): stop pruning if we keep everything.
+- clock_update(): lowered required amount of data.
+- compat_setjmp(): protect against gone contexts.
+- crash_handler_process(): only call crash_auto_restart() if needed.
+- ev_free(): assert event is not linked in queue!
+- ev_unlink(): added list consistency assertions.
+- eval_subst(): remove the size limitation on the susbtituted string.
+- evq_close(): be silent if event queue not created.
+- fi_pick_rarest_chunk(): fixed assertion failure.
+- fi_pick_rarest_chunk(): log assertion values.
+- get_prop(): also trace failing property when ps is NULL.
+- ggept_filesize_encode(): can return 0 if given 0.
+- hash_compute_increment(): make it odd without branch.
+- main(): do not set a crash dir if not running for long.
+- name_to_single_host_addr(): use pslist_random().
+- ntp_send_probes(): comment updates, cleanup.
+- once_recursive(): avoid calling stacktrace_function_name().
+- progstart_duplicate(): added assertions.
+- prop_lock(): use macro for locking (hiding lock type).
+- rwlock_deadlocked(): trace write owner if known.
+- spinlock_loop(): document why no memory barrier.
+- statusbar_gui_push_v(): be safe if called early.
+- str_avail(): new implementation and semantics.
+- str_ichar() and str_istr() can now append.
+- strvec_cpy(): was failing when called with cnt=0.
+- thread_id_name_to_buf(): be nicer with negative IDs.
+- thread_lock_waiting_done(): cleanup when no problems.
+- tok_version_valid(): no longer run clock_update().
+- xcopy(): not defined as inlined routine when TRACK_MALLOC.
+
 # v 1.2.0  2020-07-09  [stable]
 
 This is an evolution release, hence the minor version bump.
