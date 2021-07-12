@@ -2,6 +2,12 @@ gtk-gnutella (1.2.0-1) unstable; urgency=high
 
   * New upstream release with important bug fixes.
 
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Mon, 12 Jul 2021 19:56:35 +0000
+
+gtk-gnutella (1.2.0-1) unstable; urgency=high
+
+  * New upstream release with important bug fixes.
+
  -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Thu,  9 Jul 2020 09:07:17 +0000
 
 gtk-gnutella (1.1.15-1) unstable; urgency=high
