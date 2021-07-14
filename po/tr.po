@@ -11,7 +11,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2021-07-12 21:45+0200\n"
-"PO-Revision-Date: 2018-06-02 15:32+0300\n"
+"PO-Revision-Date: 2021-07-14 17:24+0300\n"
 "Last-Translator: mauron\n"
 "Language-Team: Turkish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/tr/)\n"
@@ -20,7 +20,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 2.3\n"
 
 msgid "Harmful version banned, upgrade required"
 msgstr "Zararlı sürüm yasaklandı, güncelleme gerekiyor"
@@ -95,7 +95,7 @@ msgid "No download slot (start)"
 msgstr "İndirme oluğu yok (başlangıç)"
 
 msgid "Connection failed (Out of file descriptors?)"
-msgstr "Bağlantı başarısız oldu (Dosya tanımlayıcıları kalmamış olmasın?)"
+msgstr "Bağlantı başarısız oldu (Dosya tanımlayıcısı kalmamış olmasın?)"
 
 msgid "Connection failed"
 msgstr "Bağlantı başarısız"
@@ -270,7 +270,7 @@ msgid "Incomplete headers during TLS upgrade"
 msgstr "TLS yükseltmesi sırasında eksik başlıklar"
 
 msgid "Spammer detected"
-msgstr "Spamcı tespit edildi"
+msgstr "Spamci tespit edildi"
 
 msgid "Partial file, bad HTTP keep-alive support"
 msgstr "Kısmi dosya, kötü HTTP keep-alive (zinde tutma) desteği"
@@ -392,18 +392,18 @@ msgstr ", sağlayıcı?"
 
 #, c-format
 msgid "<Browse G2 Host %s>"
-msgstr "<%s G2 makinesine gözat>"
+msgstr "<%s G2 makinesine göz at>"
 
 #, c-format
 msgid "<Browse Host %s>"
-msgstr "<%s makinesine gözat>"
+msgstr "<%s makinesine göz at>"
 
 #, c-format
 msgid "<THEX data for %s>"
 msgstr "<%s için THEX verileri>"
 
 msgid "Browse search closed"
-msgstr "Gözatma araması kapandı"
+msgstr "Göz atma araması kapandı"
 
 msgid "Stopped data (EOF) <download_got_eof>"
 msgstr "Veriler durduruldu (EOF) <download_got_eof>"
@@ -509,7 +509,7 @@ msgstr "%s web makine arabelleğine bağlanılıyor"
 
 #, c-format
 msgid "Bootstrapping from %s"
-msgstr "%s konumundan ön yükleme."
+msgstr "%s konumundan ön yükleme"
 
 #, c-format
 msgid "Shutdown (%s)"
@@ -754,7 +754,7 @@ msgstr "Başka bir gtk-gnutella PID %lu olarak çalışmaktadır"
 
 #, c-format
 msgid "If PID %lu is not a gtk-gnutella process, run:"
-msgstr ""
+msgstr "Eğer %lu PID'i bir gtk-gnutella süreci değilse, şu komutu çalıştırın:"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Geçerli bir yapılandırma klasörü olmadan devam edilemez"
@@ -855,10 +855,10 @@ msgid "TTH is being computed"
 msgstr "TTH hesaplanmakta"
 
 msgid "<Browse Host Request>"
-msgstr "<Kişiye Gözatma Talebi>"
+msgstr "<Makineye Göz Atma Talebi>"
 
 msgid "Browse Host Disabled"
-msgstr "Kişiye Gözat devre dışı"
+msgstr "Makineye  Göz At devre dışı"
 
 msgid "Browsing abuse detected"
 msgstr "Göz atma istismarı tespit edildi"
@@ -913,7 +913,7 @@ msgstr "Kabul edilemez"
 
 #, c-format
 msgid "<Browse Host %sRequest> [%s%s%s]"
-msgstr "<Makineye gözatma %stalebi> [%s%s%s]"
+msgstr "<Makineye göz atma %stalebi> [%s%s%s]"
 
 msgid "query hits"
 msgstr "sorgu isabetleri"
@@ -1040,7 +1040,7 @@ msgid "SPAM dynamically caught hostile IP held"
 msgstr "SPAM saklanan dinamik olarak yakalanmış kötücül İP adresleri"
 
 msgid "SPAM spotted spamming IP addresses held"
-msgstr "SPAM tutulan tespit edilmiş spamcı İP adresleri"
+msgstr "SPAM tutulan tespit edilmiş spamci İP adresleri"
 
 msgid "Searches to local DB"
 msgstr "Yerel veritabanında aramalar"
@@ -1067,7 +1067,7 @@ msgid "G2 hits on local partial files"
 msgstr "Yerel kısmi dosyalara G2 isabetleri"
 
 msgid "Hits on aliased queries"
-msgstr "takma sorgulardaki isabetler"
+msgstr "Takma sorgulardaki isabetler"
 
 msgid "Query hits received for OOB-proxied queries"
 msgstr "OOB vekilli sorgular için alınan sorgu isabetleri"
@@ -1093,7 +1093,7 @@ msgid "OOB hits bearing alien IP address"
 msgstr "Yabancı İP adresi taşıyan OOB isabetleri"
 
 msgid "OOB hits ignored due to identified spamming address"
-msgstr "Bilinen spamcı adresi nedeniyle görmezden gelinen OOB isabetleri"
+msgstr "Bilinen spamci adresi nedeniyle görmezden gelinen OOB isabetleri"
 
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
@@ -1151,6 +1151,7 @@ msgstr "Talep edilmeden alınan OOB isabetleri"
 
 msgid "OOB querying hosts banned for some time"
 msgstr ""
+"Belli bir süre için yasaklanmış OOB (Bant dışı) sorgulama yapan makineler"
 
 msgid "Received query hits for untracked queries"
 msgstr "İzlenmeyen sorgular için alınan sorgu isabetleri"
@@ -1327,14 +1328,14 @@ msgid "UDP read-ahead datagram max delay"
 msgstr "UDP önceden okuma veri birimi azami gecikme"
 
 msgid "UDP push messages received for FW<->FW connections"
-msgstr "GD<->GD bağlantıları için alınan UDP itme mesajları"
+msgstr "UDP  GD<->GD bağlantıları için alınan itme mesajları"
 
 msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr "Bizimle GD<->GD bağlantısı talep eden UDP itme mesajları"
+msgstr "UDP bizimle GD<->GD bağlantısı talep eden itme mesajları"
 
 msgid "UDP push messages patched for FW<->FW connections"
 msgstr ""
-"GD<->GD (güvenlik duvarı) bağlantıları için yamalanmış UDP itme mesajları"
+"UDP GD<->GD (güvenlik duvarı) bağlantıları için yamalanmış itme mesajları"
 
 msgid "UDP UHC pings received"
 msgstr "UDP alınan UHC pingleri"
@@ -1343,10 +1344,10 @@ msgid "UDP UHC pongs sent"
 msgstr "UDP gönderilen UHC pongları"
 
 msgid "UDP messages with bogus source IP"
-msgstr "Bozuk kaynak İP adresi içeren UDP mesajları"
+msgstr "UDP Bozuk kaynak İP adresi içeren mesajları"
 
 msgid "UDP messages from shunned IP (discarded)"
-msgstr "Kaçınılan IP'den UDP mesajları (görmezden gelinir)"
+msgstr "UDP Kaçınılan IP'den mesajları (görmezden gelinir)"
 
 msgid "UDP truncated incoming messages"
 msgstr "UDP içeriye gelen kesilmiş mesajlar"
@@ -1370,76 +1371,76 @@ msgid "Uncompressed UDP messages due to no gain"
 msgstr "Kazanım olmadığı için sıkıştırılmayan UDP mesajları"
 
 msgid "UDP scheduler directly sent (P_DATA)"
-msgstr ""
+msgstr "UDP zamanlayıcı doğrudan gönderilen (P_DATA)"
 
 msgid "UDP scheduler directly sent (P_CONTROL)"
-msgstr ""
+msgstr "UDP zamanlayıcı doğrudan gönderilen (P_CONTROL)"
 
 msgid "UDP scheduler directly sent (P_URGENT)"
-msgstr ""
+msgstr "UDP zamanlayıcı doğrudan gönderilen (P_URGENT)"
 
 msgid "UDP scheduler directly sent (P_HIGHEST)"
-msgstr ""
+msgstr "UDP zamanlayıcı doğrudan gönderilen (P_HIGHEST)"
 
 msgid "UDP scheduler flow controlled (P_DATA)"
-msgstr ""
+msgstr "UDP zamanlayıcı akış kontrollü (P_DATA)"
 
 msgid "UDP scheduler flow controlled (P_CONTROL)"
-msgstr ""
+msgstr "UDP zamanlayıcı akış kontrollü (P_CONTROL)"
 
 msgid "UDP scheduler flow controlled (P_URGENT)"
-msgstr ""
+msgstr "UDP zamanlayıcı akış kontrollü  (P_URGENT)"
 
 msgid "UDP scheduler flow controlled (P_HIGHEST)"
-msgstr ""
+msgstr "UDP zamanlayıcı akış kontrollü (P_HIGHEST)"
 
 msgid "UDP scheduler message enqueued (P_DATA)"
-msgstr ""
+msgstr "UDP zamanlayıcı kuyruğa alınmış mesaj (P_DATA)"
 
 msgid "UDP scheduler message enqueued (P_CONTROL)"
-msgstr ""
+msgstr "UDP zamanlayıcı kuyruğa alınmış mesaj (P_CONTROL)"
 
 msgid "UDP scheduler message enqueued (P_URGENT)"
-msgstr ""
+msgstr "UDP zamanlayıcı kuyruğa alınmış mesaj (P_URGENT)"
 
 msgid "UDP scheduler message enqueued (P_HIGHEST)"
-msgstr ""
+msgstr "UDP zamanlayıcı kuyruğa alınmış mesaj (P_HIGHEST)"
 
 msgid "UDP scheduler message finally sent (P_DATA)"
-msgstr ""
+msgstr "UDP zamanlayıcı nihayetinde gönderilmiş mesaj (P_DATA)"
 
 msgid "UDP scheduler message finally sent (P_CONTROL)"
-msgstr ""
+msgstr "UDP zamanlayıcı nihayetinde gönderilmiş mesaj (P_CONTROL)"
 
 msgid "UDP scheduler message finally sent (P_URGENT)"
-msgstr ""
+msgstr "UDP zamanlayıcı nihayetinde gönderilmiş mesaj (P_URGENT)"
 
 msgid "UDP scheduler message finally sent (P_HIGHEST)"
-msgstr ""
+msgstr "UDP zamanlayıcı nihayetinde gönderilmiş mesaj (P_HIGHEST)"
 
 msgid "UDP scheduler message timeout (P_DATA)"
-msgstr ""
+msgstr "UDP zamanlayıcı mesaj zaman aşımı (P_DATA)"
 
 msgid "UDP scheduler message timeout (P_CONTROL)"
-msgstr ""
+msgstr "UDP zamanlayıcı mesaj zaman aşımı (P_CONTROL)"
 
 msgid "UDP scheduler message timeout (P_URGENT)"
-msgstr ""
+msgstr "UDP zamanlayıcı mesaj zaman aşımı (P_URGENT)"
 
 msgid "UDP scheduler message timeout (P_HIGHEST)"
-msgstr ""
+msgstr "UDP zamanlayıcı mesaj zaman aşımı (P_HIGHEST)"
 
 msgid "UDP scheduler message dropped: port=0"
-msgstr ""
+msgstr "UDP zamanlayıcı düşürülen mesaj: port=0"
 
 msgid "UDP scheduler message dropped: no socket"
-msgstr ""
+msgstr "UDP zamanlayıcı düşürülen mesaj: soket yok"
 
 msgid "UDP scheduler message dropped: I/O error"
-msgstr ""
+msgstr "UDP zamanlayıcı düşürülen mesaj: G/Ç hatası"
 
 msgid "UDP scheduler message dropped: no longer needed"
-msgstr ""
+msgstr "UDP zamanlayıcı düşürülen mesaj: artık ihtiyaç yok"
 
 msgid "Ambiguous UDP messages received"
 msgstr "Alınan belirsiz UDP mesajları"
@@ -1471,19 +1472,17 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr "Yarı güvenilir UDP tıkanma sebebiyle kısmen gönderilen toplam mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
 msgstr ""
-"Beklemeden önce temizlenen yarı güvenilir UDP iletim için verilen güvenli "
-"mesajlar"
+"Yarı güvenilir UDP EAR negatif ACK'dan sonra temizlenen güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
 msgstr ""
-"Beklemeden önce temizlenen yarı güvenilir UDP iletim için verilen güvenli "
+"Yarı güvenilir UDP beklemeden önce temizlenen  iletim için verilen güvenli "
 "mesajlar"
 
 msgid "Semi-reliable UDP TX messages currently lingering"
-msgstr "Güncel olarak bekleyen yarı güvenilir UDP TX mesajları"
+msgstr "Yarı güvenilir UDP Güncel olarak bekleyen TX mesajları"
 
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr "Yarı güvenilir UDP iletim için verilen güvenli mesajlar"
@@ -1493,94 +1492,94 @@ msgstr "Yarı güvenilir UDP doğru aktarılan güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
 msgstr ""
-"Beklemedeyken tamamen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
+"Yarı güvenilir UDP Beklemedeyken tamamen teyit edilen güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
 msgstr ""
-"Beklemedeyken tamamen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
+"Yarı güvenilir UDP temizlemeden sonra tamamen kabul edilen güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable messages not fully sent"
-msgstr "Tamamen gönderilmeyen yarı güvenilir UDP güvenilir mesajlar"
+msgstr "Yarı güvenilir UDP tamamen gönderilmeyen güvenilir mesajlar"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
-msgstr "Tamamen gönderilmeyen yarı güvenilir UDP güvenilir mesajlar"
+msgstr ""
+"Yarı güvenilir UDP temizlemeye rağmen tam olarak gönderilmemiş güvenilir "
+"mesajlar"
 
 msgid "Semi-reliable UDP reliable messages partially acknowledged"
-msgstr "Kısmen teyit edilen yarı güvenilir UDP güvenilir mesajlar"
+msgstr "Yarı güvenilir UDP Kısmen teyit edilen güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
-msgstr "Hiç teyit edilmeyen yarı güvenilir UDP güvenilir mesajlar"
+msgstr "Yarı güvenilir UDP hiç teyit edilmeyen güvenilir mesajlar"
 
 msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
-msgstr "1 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 1 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
-msgstr "2 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 2 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
-msgstr "3 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 3 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
-msgstr "4 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 4 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
-msgstr "5 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 5 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
-msgstr "6 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 6 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
-msgstr "7 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 7 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
-msgstr "8 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 8 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
-msgstr "9 parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 9 parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
-msgstr "10+ parçası gönderilmiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 10+ parçası gönderilmiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
-msgstr "1 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 1 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
-msgstr "2 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 2 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
-msgstr "3 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 3 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
-msgstr "4 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 4 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
-msgstr "5 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 5 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
-msgstr "6 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir 6 parçası gönderilmemiş UDP güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
-msgstr "7 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir 7 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
-msgstr "8 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir 8 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
-msgstr "9 parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP 9 parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
-msgstr "10+ parçası gönderilmemiş yarı güvenilir UDP güvenilir TX"
+msgstr "Yarı güvenilir UDP10+ parçası gönderilmemiş güvenilir TX"
 
 msgid "Semi-reliable UDP unreliable TX with 1 fragment"
-msgstr "1 parçalı yarı güvenilir UDP güvenilmez TX"
+msgstr "Yarı güvenilir UDP 1 parçalı güvenilmez TX"
 
 msgid "Semi-reliable UDP unreliable TX with 2 fragments"
-msgstr "2 parçalı yarı güvenilir UDP güvenilmez TX"
+msgstr "Yarı güvenilir UDP 2 parçalı güvenilmez TX"
 
 msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
-msgstr "3+ parçalı yarı güvenilir UDP güvenilmez TX"
+msgstr "Yarı güvenilir UDP 3+ parçalı güvenilmez TX"
 
 msgid "Semi-reliable UDP fragments sent"
 msgstr "Yarı güvenilir UDP yollanan parçalar"
@@ -1589,10 +1588,10 @@ msgid "Semi-reliable UDP fragments resent"
 msgstr "Yarı güvenilir UDP tekrar yollanan parçalar"
 
 msgid "Semi-reliable UDP fragments sent whilst lingering"
-msgstr "Beklemedeyken gönderilen yarı güvenilir UDP parçaları"
+msgstr "Yarı güvenilir UDP Beklemedeyken gönderilen parçaları"
 
 msgid "Semi-reliable UDP fragments resent whilst lingering"
-msgstr "Beklemedeyken tekrar gönderilen yarı güvenilir UDP parçaları"
+msgstr "Yarı güvenilir UDP Beklemedeyken tekrar gönderilen parçaları"
 
 msgid "Semi-reliable UDP reliable fragments sent"
 msgstr "Yarı güvenilir UDP güvenilir yollanan parçalar"
@@ -1601,18 +1600,19 @@ msgid "Semi-reliable UDP unreliable fragments sent"
 msgstr "Yarı güvenilir UDP güvenilmez yollanan parçalar"
 
 msgid "Semi-reliable UDP fragment sendings avoided"
-msgstr "Yarı güvenilir UDP yollanılması önlenen parçalar"
+msgstr "Yarı güvenilir UDP gönderilmesi önlenen parçalar"
 
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "Yarı güvenilir UDP fazla kez yollanan parçalar"
 
-#, fuzzy
 msgid ""
 "Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
-msgstr "Yarı güvenilir UDP güvenilir yollanan parçalar"
+msgstr ""
+"Yarı güvenilir UDP parçalar ACK olmadan fazla gönderildikten sonra bırakılan "
+"mesajlar"
 
 msgid "Semi-reliable UDP fragments not resent whilst lingering"
-msgstr "Beklemedeyken tekrar gönderilmeyen yarı güvenilir UDP parçaları"
+msgstr "Yarı güvenilir UDP beklemedeyken tekrar gönderilmeyen parçaları"
 
 msgid "Semi-reliable UDP total acknowledgments received"
 msgstr "Yarı güvenilir UDP alınan toplam teyitler"
@@ -1911,16 +1911,16 @@ msgid "PARQ upload slot limit overrides"
 msgstr "PARQ gönderme oluk sınırı aşımları"
 
 msgid "PARQ quick upload slots granted"
-msgstr "Verilen PARQ çabuk gönderme olukları"
+msgstr "PARQ verilen çabuk gönderme olukları"
 
 msgid "PARQ QUEUE sending attempts"
 msgstr "PARQ QUEUE yollama teşebbüsleri"
 
 msgid "PARQ QUEUE messages sent"
-msgstr "Yollanan PARQ QUEUE mesajları"
+msgstr "PARQ yollanan QUEUE mesajları"
 
 msgid "PARQ QUEUE follow-up requests received"
-msgstr "PARQ QUEUE yollanımından sonra alınan istekler"
+msgstr "PARQ QUEUE gönderiminden sonra alınan istekler"
 
 msgid "Launched SHA-1 file verifications"
 msgstr "Başlatılan SHA-1 dosya doğrulamaları"
@@ -1935,10 +1935,10 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Öksüz indirmelerin gönderme istekleri yoluyla tekrar sunumu"
 
 msgid "RUDP sent bytes"
-msgstr "Gönderilen RUDP baytları"
+msgstr "RUDP gönderilen baytlar"
 
 msgid "RUDP received bytes"
-msgstr "Alınan RUDP baytları"
+msgstr "RUDP alınan baytlar"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT tahmini düğüm sayısı"
@@ -3014,7 +3014,7 @@ msgid "Debug level for sockets."
 msgstr "Soketler için hata ayıklama seviyesi."
 
 msgid "Debug level for bootstrapping into the network."
-msgstr "Şebekeye bağlanımın önbaşlaması için hata ayıklama seviyesi."
+msgstr "Şebekeye bağlantının başlaması için hata ayıklama seviyesi."
 
 msgid "Debug level for HTTP code."
 msgstr "HTTP kodu için hata ayıklama seviyesi."
@@ -3094,7 +3094,7 @@ msgid ""
 "whether we can still bypass queuing. Set to 0 to disable this size-based "
 "bypassing feature and only rely on time-based bypassing."
 msgstr ""
-"PARQ'ın devam etmesine izin verilecek ve kuyruğa koymayacağı azami gönerme "
+"PARQ'ın devam etmesine izin verilecek ve kuyruğa koymayacağı azami gönderme "
 "boyutu. Bununla beraber, bir istemci art arda küçük parçalar isterse, daha "
 "önce istenen ve gönderilen parçaların boyutu da dikkate alınacaktır. İstenen "
 "boyut eşiği geçerse, ve sadece eşiği geçtiği durumda, bütün miktarı "
@@ -3761,7 +3761,7 @@ msgstr ""
 "Seçildiğinde, saatin geri kalması ya da ileri gitmesi görmezden "
 "gelinecektir. Normalde gtk-gnutella yerel olarak NTP çalıştırılıp "
 "çalıştırılmadığını kendisi belirler, ama örnek olarak bilgisayarınızın "
-"saatinin periyodik ntpdate çağrıları ile senkronize edilip edilmediğini "
+"saatinin periyodik ntpdate çağrıları ile eşleştirilip edilmediğini "
 "belirleyemez."
 
 msgid "Whether a running NTP daemon was detected locally."
@@ -3859,7 +3859,7 @@ msgstr ""
 "bu uygundur). Mevcut bütün bant genişliğinizin kullanılması ve bunun "
 "bağlantınızda gecikmelere yol açması sorun yaratmıyorsa büyük bir değer "
 "girebilirsiniz. Unutmayın ki bu değer ne kadar küçükse içeri gelen bant "
-"genişliğini o denli ince bir şekilde yönetebilirsiniz."
+"genişliğini o denli hassas bir şekilde yönetebilirsiniz."
 
 msgid ""
 "Size of the RX socket buffer to be used for nodes, in kbytes. The lower the "
@@ -4036,16 +4036,16 @@ msgid "The number of seconds the last scan of the library took."
 msgstr "Kütüphanenin son analizinin süresi, saniye olarak."
 
 msgid "Time at which we started shared file indexing."
-msgstr "Paylaşılan dosya indekslemesini başlattığımız zaman."
+msgstr "Paylaşılan dosya endekslemesini başlattığımız zaman."
 
 msgid "Time spent indexing shared files."
-msgstr "Paylaşılan dosyaların indekslenmesinin aldığı süre, saniye olarak."
+msgstr "Paylaşılan dosyaların endekslenmesinin aldığı süre, saniye olarak."
 
 msgid "Memory used by the QRP tables"
 msgstr "QRP tabloları tarafından kullanılan bellek"
 
 msgid "Time at which we started query routing table generation."
-msgstr "Sorgu yönlendirme tablosu oluşturumuna başladığımız zaman."
+msgstr "Sorgu yönlendirme tablosu oluşturulmasına başladığımız zaman."
 
 msgid "Time spent computing the QRP table, in seconds."
 msgstr "QRP tablosunu hesaplamaya harcanan zaman, saniye olarak."
@@ -4069,10 +4069,10 @@ msgid "Percentage of slots filled within our QRP table."
 msgstr "QRP tablomuzda dolan olukların yüzdesi."
 
 msgid "Percentage of hashing conflicts whilst inserting data in our QRP table."
-msgstr "QRP tablomuza veri yerleştirirken meydana gelen hash çatışma yüzdesi."
+msgstr "QRP tablomuza veri yerleştirirken meydana gelen karma çatışma yüzdesi."
 
 msgid "Amount of hashed keywords in our QRP table."
-msgstr "QRP tablomuzdaki anahtar kelime hash değeri miktarı."
+msgstr "QRP tablomuzdaki anahtar kelime karma değeri miktarı."
 
 msgid "Total raw size of the QRP table patch, in bytes."
 msgstr "QRP tablo yaması toplam kaba boyutu, bayt olarak."
@@ -4238,7 +4238,7 @@ msgstr ""
 "istemesine izin verilir."
 
 msgid "Number of HTML browsing requests received in this session."
-msgstr "Bu oturumda alınan HTML kişiye gözatma isteklerinin sayısı."
+msgstr "Bu oturumda alınan HTML kişiye göz atma isteklerinin sayısı."
 
 msgid "Number of HTML browsing requests fully served in this session."
 msgstr "Bu oturumda tamamen cevaplanan HTML kişiye gözatma istekleri."
@@ -4384,7 +4384,7 @@ msgid "Maximum number of results to show in any search."
 msgstr "Aramalarda gösterilecek azami sonuç sayısı."
 
 msgid "Maximum number of results to show in a browse_host request."
-msgstr "Kişiye gözatmalarda gösterilecek azami sonuç sayısı."
+msgstr "Kişiye göz atmalarda gösterilecek azami sonuç sayısı."
 
 msgid "Date of the latest SVN release."
 msgstr "Son SVN sürüm tarihi."
@@ -4407,9 +4407,9 @@ msgid ""
 "Otherwise, the TTH is only accepted if provided by the user, for example, by "
 "a magnet link."
 msgstr ""
-"Etkinleştirildiyse, Tigertree kök hash değerleri indirme sırasında "
-"keşfedilebilir. Aksi takdirde TTH değerleri sadece kullanıcı tarafından "
-"mesela bir magnet bağlantısı vasıtasıyla girildiğinde kabul edilir."
+"Etkinleştirildiyse, Tigertree kök karma indirme sırasında keşfedilebilir. "
+"Aksi takdirde TTH değerleri sadece kullanıcı tarafından mesela bir magnet "
+"bağlantısı vasıtasıyla girildiğinde kabul edilir."
 
 msgid ""
 "If set to TRUE, gtk-gnutella will turn on some hacks which, unfortunately, "
@@ -4417,7 +4417,7 @@ msgid ""
 "experience."
 msgstr ""
 "Seçildiğinde, gtk-gnutella maalesef bazen kullanılması gereken bazı "
-"numararaları etkinleştirecektir. Bunun amacı genel indirme deneyimini "
+"numaraları etkinleştirecektir. Bunun amacı genel indirme deneyimini "
 "iyileştirmektir."
 
 msgid "Maximum number of hosts in the G2 node cache."
@@ -4731,7 +4731,7 @@ msgid "Debug level for the file moving, accross filesystems."
 msgstr "Dosya sistemleri arası dosya taşımaları için hata ayıklama seviyesi."
 
 msgid "Debug level for query hit message generation."
-msgstr "Sorgu isabeti mesajları oluşturumu için hata ayıklama seviyesi."
+msgstr "Sorgu isabeti mesajları oluşturulması için hata ayıklama seviyesi."
 
 msgid "Debug level for version management."
 msgstr "Sürüm yönetimi için hata ayıklama seviyesi."
@@ -4956,7 +4956,7 @@ msgid "Current number of IPv4 hosts in the introduction GUESS cache."
 msgstr "GUESS başlangıç arabelleğinde şu andaki İPv4 bilgisayar sayısı."
 
 msgid "Debug level for the DB disk/RAM storage layer."
-msgstr "RAM/disk üzerinde saklatım katmanı için hata ayıklama seviyesi."
+msgstr "RAM/disk üzerinde saklama katmanı için hata ayıklama seviyesi."
 
 msgid ""
 "The current Session ID.  This is a unique ID generated each time gtk-"
@@ -5108,14 +5108,14 @@ msgstr "TX (göndermeleri) sıkıştırma ağ katmanı için hata ayıklama sevi
 
 msgid "Comma-separated list of TX debugging hosts (IP addresses only)"
 msgstr ""
-"TX hata ayıklama makinelerinin virgülle ayırılmış listesi (sadece İP "
+"TX hata ayıklama makinelerinin virgülle ayrılmış listesi (sadece İP "
 "adresleri)"
 
 msgid ""
 "Comma-separated list of hosts for whom we want to dump RX traffic (IP "
 "addresses only)"
 msgstr ""
-"RX trafiğinin dökümünü istediğimiz makinelerin virgülle ayırılmış listesi "
+"RX trafiğinin dökümünü istediğimiz makinelerin virgülle ayrılmış listesi "
 "(sadece İP adresleri)"
 
 msgid ""
@@ -5123,13 +5123,13 @@ msgid ""
 "(IP addresses only)"
 msgstr ""
 "Gönderdikleri TX trafiğinin dökümünü istediğimiz makinelerin virgülle "
-"ayırılmış listesi (sadece İP adresleri)"
+"ayrılmış listesi (sadece İP adresleri)"
 
 msgid ""
 "Comma-separated list of hosts for whom we want to dump TX traffic they "
 "receive (IP addresses only)"
 msgstr ""
-"Aldıkları TX trafiğinin dökümünü istediğimiz makinelerin virgülle ayırılmış "
+"Aldıkları TX trafiğinin dökümünü istediğimiz makinelerin virgülle ayrılmış "
 "listesi (sadece İP adresleri)"
 
 msgid ""
@@ -5155,7 +5155,7 @@ msgstr ""
 
 msgid "Comma-separated list of RX debugging hosts (IP addresses only)"
 msgstr ""
-"RX hata ayıklama makinelerinin virgülle ayırılmış listesi (sadece İP "
+"RX hata ayıklama makinelerinin virgülle ayrılmış listesi (sadece İP "
 "adresleri)"
 
 msgid ""
@@ -5322,64 +5322,59 @@ msgid ""
 "Whether OOB hit indications should be sent reliably over UDP when remote "
 "querying end has indicated support for semi-reliable UDP"
 msgstr ""
+"Uzaktan sorgulama tarafı yarı güvenilir UDP için destek belirttiğinde OOB "
+"isabet işaretlerinin UDP üzerinden güvenilir olarak gönderilip "
+"gönderilmeyeceği"
 
-#, fuzzy
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
-msgstr "Zaman senkronizasyon kodu için hata ayıklama seviyesi."
+msgstr "ADNS (eşzamansız DNS) iş parçacığı için hata ayıklama seviyesi."
 
-#, fuzzy
 msgid "Total outgoing HTTP traffic in bytes for this session."
-msgstr ""
-"Dışarıya giden HTTP trafiği için bant genişliği sınırı, bayt/saniye olarak."
+msgstr "Bu oturum için bayt olarak toplam çıkan HTTP trafiği."
 
 msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
 msgstr ""
+"Bu oturum için bayt olarak toplam çıkan Gnutella TCP UP (Ultraeş) trafiği."
 
 msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak toplam çıkan TCP yaprak trafiği."
 
 msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak toplam çıkan Gnutella UDP trafiği."
 
-#, fuzzy
 msgid "Total outgoing DHT traffic in bytes for this session."
-msgstr ""
-"Dışarıya giden HTTP trafiği için bant genişliği sınırı, bayt/saniye olarak."
+msgstr "Bu oturum için bayt olarak toplam çıkan DHT trafiği."
 
 msgid ""
 "Total outgoing traffic in bytes on the loopback address for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak geri döngü adresindeki toplam çıkan trafik."
 
 msgid ""
 "Total outgoing traffic in bytes on the private addresses for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak özel adreslerdeki toplam çıkan trafik."
 
-#, fuzzy
 msgid "Total incoming HTTP traffic in bytes for this session."
-msgstr ""
-"İçeriye gelen HTTP trafiği için bant genişliği sınırı, bayt/saniye olarak."
+msgstr "Bu oturum için bayt olarak toplam gelen HTTP trafiği."
 
 msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak toplam gelen Gnutella TCP UP trafiği."
 
 msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak toplam gelen Gnutella TCP yaprak trafiği."
 
 msgid "Total incoming Gnutella UDP traffic in bytes for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak toplam gelen Gnutella UDP trafiği."
 
-#, fuzzy
 msgid "Total incoming DHT traffic in bytes for this session."
-msgstr ""
-"İçeriye gelen HTTP trafiği için bant genişliği sınırı, bayt/saniye olarak."
+msgstr "Bu oturum için bayt olarak toplam gelen DHT trafiği."
 
 msgid ""
 "Total incoming traffic in bytes on the loopback address for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak geri döngü adresindeki toplam gelen trafik."
 
 msgid ""
 "Total incoming traffic in bytes on the private addresses for this session."
-msgstr ""
+msgstr "Bu oturum için bayt olarak özel adreslerdeki gelen trafik."
 
 msgid "disable"
 msgstr "devre dışı"
@@ -5924,7 +5919,7 @@ msgid ""
 "pertaining to the current search only."
 msgstr ""
 "GUESS özet satırının toplam istatistikleri mi yoksa sadece güncel aramanın "
-"istatistikerini mi göstereceğini belirler."
+"istatistiklerini mi göstereceğini belirler."
 
 msgid "Notebook tab number for the fileinfo listing"
 msgstr "Dosya bilgisi listesi için defter sekmesi numarası"
@@ -6389,7 +6384,7 @@ msgid "Marshall Islands"
 msgstr "Marshall Adaları"
 
 msgid "Macedonia"
-msgstr "Makedonya Eski Yugoslav Cumhuriyeti"
+msgstr "Kuzey Makedonya"
 
 msgid "Mali"
 msgstr "Mali"
@@ -6686,13 +6681,13 @@ msgid "Vanuatu"
 msgstr "Vanuatu"
 
 msgid "Wallis and Futuna"
-msgstr "Wallis ve Futuna Adaları"
+msgstr "Valis ve Futuna Adaları"
 
 msgid "Samoa"
 msgstr "Samoa"
 
 msgid "Kosovo"
-msgstr ""
+msgstr "Kosova"
 
 msgid "Yemen"
 msgstr "Yemen"
@@ -6755,7 +6750,7 @@ msgid "locale_get_language|en"
 msgstr "tr"
 
 msgid "unofficial build, accessing files from"
-msgstr "gayriresmî sürüm, şu dosyalara erişimi var:"
+msgstr "gayriresmî sürüm, dosyalara erişim şuradan:"
 
 msgid "URL missing"
 msgstr "URL eksik"
@@ -6921,7 +6916,7 @@ msgstr "komutta çok fazla argüman"
 
 #, c-format
 msgid "un-parseable argument #%u in command"
-msgstr "komutta ayrıştılamaz #%u argümanı"
+msgstr "komutta ayrıştırılamaz #%u argümanı"
 
 msgid "Malformed command"
 msgstr "Yanlış yapılandırılmış komut"
@@ -6953,7 +6948,7 @@ msgstr "Bitprint"
 
 #, c-format
 msgid "leaf hashes: %lu, depth: %u, granularity: %s%s"
-msgstr "yaprak hash değerleri: %lu, derinlik: %u, taneciklik: %s%s"
+msgstr "yaprak karma değerleri: %lu, derinlik: %u, taneciklik: %s%s"
 
 msgid " [re-computed]"
 msgstr " [tekrar hesaplanmış]"
@@ -7199,7 +7194,7 @@ msgid "no default filter"
 msgstr "varsayılan filtre yok"
 
 msgid "[no hash]"
-msgstr "[hash yok]"
+msgstr "[karma yok]"
 
 msgid "Filter"
 msgstr "Filtre"
@@ -7558,7 +7553,7 @@ msgid "Bandwidth limits for HTTP traffic"
 msgstr "HTTP trafiği için bant genişliği sınırları"
 
 msgid "Bandwidth limits for the Distributed Hash Table"
-msgstr "Dağıtılmış Hash Tablosu için bant genişliği sınırlamaları"
+msgstr "Dağıtılmış Karma Tablosu için bant genişliği sınırlamaları"
 
 msgid "Bandwidth targets for node lookups"
 msgstr "Bilgisayar aramaları için bant genişliği hedefleri"
@@ -7576,10 +7571,10 @@ msgid "Bind to this address"
 msgstr "Bu adrese bağla"
 
 msgid "Browse Host"
-msgstr "Kişiye Gözat"
+msgstr "Makineye Göz At"
 
 msgid "Browse host"
-msgstr "Kişiye Gözat"
+msgstr "Makineye Göz At"
 
 msgid "Busy"
 msgstr "Meşgul"
@@ -7719,7 +7714,7 @@ msgid "Copy URL to clipboard"
 msgstr "URL'i panoya kopyala"
 
 msgid "Copy browse-host results to passive searches"
-msgstr "Kişiye gözatma sonuçlarını pasif aramalara kopyala"
+msgstr "Kişiye göz atma sonuçlarını pasif aramalara kopyala"
 
 msgid "Copy magnet to clipboard"
 msgstr "Magnet'i panoya kopyala"
@@ -7758,7 +7753,7 @@ msgid "DHT traffic"
 msgstr "DHT trafiği"
 
 msgid "Debugging"
-msgstr "Hata ayıklama (debug)"
+msgstr "Hata ayıklama"
 
 msgid "Default search _reissue timeout"
 msgstr "Varsayılan arama _yenileme zaman aşımı"
@@ -7839,7 +7834,7 @@ msgid "Edit value:"
 msgstr "Değeri düzenle:"
 
 msgid "Enable \"_Browse Host\" feature"
-msgstr "\"_Kişiye Gözat\" işlevini etkinleştir"
+msgstr "\"_Kişiye Göz at\" işlevini etkinleştir"
 
 msgid "Enable _DHT"
 msgstr "_DHT'yi etkinleştir"
@@ -8073,7 +8068,7 @@ msgid "Ignore symbolically linked regular _files"
 msgstr "Sembolik bağlantılı olağan d_osyaları görmezden gel"
 
 msgid "Ignored files are"
-msgstr "Yoksayılan dosyaları"
+msgstr "Yok sayılan dosyalar"
 
 msgid "Incoming connecting timeout"
 msgstr "İçeriye gelen bağlantı zaman aşımı süresi"
@@ -8082,7 +8077,7 @@ msgid "Incoming traffic from _leaves"
 msgstr "Y_apraklardan içeriye gelen trafik"
 
 msgid "Indexing started on:"
-msgstr "İndekslemenin başladığı zaman:"
+msgstr "Endekslemenin başladığı zaman:"
 
 msgid "Info"
 msgstr "Bilgi"
@@ -8193,7 +8188,7 @@ msgid "Max. file _descriptors reserved"
 msgstr "Ayrılan azami dosya _tanımlayıcı sayısı"
 
 msgid "Max. number of browse host results"
-msgstr "Azami kişiye gözatma sonuçları"
+msgstr "Azami kişiye göz atma sonuçları"
 
 msgid "Max. number of passive results"
 msgstr "Azami pasif sonuç sayısı"
@@ -8582,7 +8577,7 @@ msgid "Running in ultrapeer mode."
 msgstr "Ultraeş modunda çalışıyor."
 
 msgid "SHA1 hash (not editable, add from search popup)"
-msgstr "SHA1 hash değeri (düzenlenemez, arama sekmesinden eklenmiştir)"
+msgstr "SHA1 karma değeri (düzenlenemez, arama sekmesinden eklenmiştir)"
 
 msgid "Save"
 msgstr "Kaydet"
@@ -8758,7 +8753,7 @@ msgid "Strict SHA_1 matching"
 msgstr "Katı SHA_1 denkleşimi"
 
 msgid "Sufficient average uptime"
-msgstr "Yeterli ortalama çalışma süresi:"
+msgstr "Yeterli ortalama çalışma süresi"
 
 msgid "Swarming development:"
 msgstr "Çoklu indirme geliştirmesi:"
@@ -8934,7 +8929,7 @@ msgid "Watch for similar queries"
 msgstr "Benzer sorguları izle"
 
 msgid "Watch hits for _alternate sources"
-msgstr "İsabetlerii _alternatif kaynak bulmak için izle"
+msgstr "İsabetleri _alternatif kaynak bulmak için izle"
 
 msgid "What other people see as your connection speed."
 msgstr "Başkalarının gördüğü bağlantı hızınız."
@@ -9013,7 +9008,7 @@ msgid "_Add directory"
 msgstr "Klasör _ekle"
 
 msgid "_Browse"
-msgstr "_Gözat"
+msgstr "_Göz At"
 
 msgid "_Cancel"
 msgstr "_İptal et"
@@ -9456,17 +9451,15 @@ msgstr "Panoya kopyala"
 msgid "_Remove filter"
 msgstr "Filtreyi _Kaldır"
 
-#, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Bizimle irc.freenode.net #gtk-gnutella'da görüşün."
+msgstr "Bizimle libera.chat #gtk-gnutella'da görüşün."
 
-#, fuzzy
 msgid ""
 "This product includes IP2Location LITE data, available from\n"
 "https://lite.ip2location.com/"
 msgstr ""
-"Bu ürün MaxMind tarafından oluşturulan ve http://maxmind.com/ \n"
-"adresinde sunulan GeoİP verileri içerir"
+"Bu ürün https://lite.ip2location.com/ adresinde sunulan \n"
+"IP2Location LITE verileri içerir"
 
 msgid "_Close"
 msgstr "_Kapat"
@@ -9907,7 +9900,7 @@ msgid ""
 "GUESS %s [%s (%zu %s, %zu kept, %s queries, %s keys)] [Pool: %zu %s, (%zu+"
 "%zu)/%zu queried, %zu %s (%.2f%%), %zu reached, %zu pending, %zu %s%s%s]"
 msgstr ""
-"GUESS %s [%s (%zu %s, %zu tutulmuş, %s sorgu, %s anahtar)] [Pool: %zu %s, "
+"GUESS %s [%s (%zu %s, %zu tutulmuş, %s sorgu, %s anahtar)] [Havuz: %zu %s, "
 "(%zu+%zu)/%zu sorgulanmış, %zu %s (%.2f%%), %zu erişilmiş, %zu beklemede, "
 "%zu %s%s%s]"
 
@@ -9943,7 +9936,7 @@ msgid ""
 "%s"
 msgstr ""
 "Eski bir arama dosyası bulundu. Arama verileri yeni XML\n"
-"biçiminde kaydedildi ve eski dosyanın ismi şu şekide değiştirildi:\n"
+"biçiminde kaydedildi ve eski dosyanın ismi şu şekilde değiştirildi:\n"
 "%s"
 
 #, c-format
@@ -10008,11 +10001,11 @@ msgstr "İşlenmeyen arama ön eki."
 
 #, c-format
 msgid "Added search showing browsing results for %s"
-msgstr "%s için gözatma sonuçlarını gösteren arama eklendi"
+msgstr "%s için göz atma sonuçlarını gösteren arama eklendi"
 
 #, c-format
 msgid "Could not launch browse host for %s"
-msgstr "%s için kişiye gözatım başlatılamadı"
+msgstr "%s için kişiye göz atım başlatılamadı"
 
 msgid "Show search list"
 msgstr "Arama listesini göster"
@@ -10266,9 +10259,9 @@ msgstr "(çabuk) "
 msgid " E=%u"
 msgstr " E=%u"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s)%s%s TR: %s %s#%u"
-msgstr "%s(%s) KZ: %s %s#%u"
+msgstr "%s(%s)%s%s KZ: %s %s#%u"
 
 msgid "stalled"
 msgstr "durakladı"
