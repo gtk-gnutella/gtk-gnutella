@@ -9705,7 +9705,7 @@ thread_launch_trampoline(void *arg)
  * In case PTHREAD_STACK_MIN is not defined by <pthread.h>.
  */
 #ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 0
+#define PTHREAD_STACK_MIN 1024U
 #endif
 
 /**
@@ -9737,12 +9737,7 @@ thread_launch(struct thread_element *te,
 	pthread_attr_init(&attr);
 
 	if (stack != 0) {
-		/* Avoid compiler warning when PTHREAD_STACK_MIN == 0 */
-#if PTHREAD_STACK_MIN != 0
 		stacksize = MAX(PTHREAD_STACK_MIN, stack);
-#else
-		stacksize = stack;
-#endif
 		stacksize = MAX(stacksize, THREAD_STACK_MIN);
 	} else {
 		stacksize = MAX(THREAD_STACK_DFLT, PTHREAD_STACK_MIN);

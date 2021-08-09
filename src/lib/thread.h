@@ -63,7 +63,7 @@ typedef size_t thread_qid_t;		/* Quasi Thread ID */
 typedef unsigned int thread_key_t;	/* Local thread storage key */
 
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
-#define THREAD_STACK_DFLT	(65536 * PTRSIZE)	/**< Default stack requested */
+#define THREAD_STACK_DFLT	(65536U * PTRSIZE)	/**< Default stack requested */
 #define THREAD_LOCAL_MAX	1024	/**< Max amount of thread-local keys */
 
 #define THREAD_SUSPEND_TIMEOUT	90	/**< secs: thread max suspension time */
