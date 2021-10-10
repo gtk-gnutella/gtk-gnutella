@@ -7862,8 +7862,8 @@ msgstr "最大"
 msgid "Measured HTTP latency:"
 msgstr "計測HTTP待ち時間:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "irc.freenode.net の #gtk-gnutella でお会いしましょう。"
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "irc.libera.chat の #gtk-gnutella でお会いしましょう。"
 
 msgid "Min/Max:"
 msgstr "最小/最大:"
@@ -9073,7 +9073,7 @@ msgstr "フィルターを削除(_R)"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "irc.freenode.net の #gtk-gnutella でお会いしましょう。"
+msgstr "irc.libera.chat の #gtk-gnutella でお会いしましょう。"
 
 #, fuzzy
 msgid ""

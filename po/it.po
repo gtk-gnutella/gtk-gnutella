@@ -8277,8 +8277,8 @@ msgstr "Massimo"
 msgid "Measured HTTP latency:"
 msgstr "Latenza HTTP misurata:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Raggiungici su #gtk-gnutella at irc.freenode.net"
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Raggiungici su #gtk-gnutella at irc.libera.chat"
 
 msgid "Min/Max:"
 msgstr "Min/Max:"
@@ -9496,7 +9496,7 @@ msgstr "_Rimuovi il filtro"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Raggiungici su #gtk-gnutella at irc.freenode.net"
+msgstr "Raggiungici su #gtk-gnutella at irc.libera.chat"
 
 #, fuzzy
 msgid ""
