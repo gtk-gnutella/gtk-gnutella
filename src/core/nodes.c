@@ -11091,9 +11091,6 @@ node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb)
 
 /**
  * Called when a node sends a message with TTL=0.
- *
- * @return TRUE if node was removed (due to a duplicate bye, probably),
- * FALSE otherwise.
  */
 void
 node_sent_ttl0(gnutella_node_t *n)
