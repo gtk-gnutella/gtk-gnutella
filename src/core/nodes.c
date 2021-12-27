@@ -9137,8 +9137,11 @@ node_patch_push_fw2fw(gnutella_node_t *n)
  * @attention
  * NB: callers of this routine must not use the node structure upon return,
  * since we may invalidate that node during the processing.
+ *
+ * @return TRUE if OK, FALSE if we BYE-ed the node (in which case the node
+ * pointer became invalid if we removed the node already).
  */
-static void
+static bool
 node_parse(gnutella_node_t *n)
 {
 	bool drop = FALSE;
@@ -9149,7 +9152,7 @@ node_parse(gnutella_node_t *n)
 	int results = 0;						/* # of results in query hits */
 	search_request_info_t *sri = NULL;
 
-	g_return_if_fail(n != NULL);
+	g_return_val_if_fail(n != NULL, FALSE);
 	g_assert(NODE_IS_CONNECTED(n));
 
 	dest.type = ROUTE_NONE;
@@ -9197,7 +9200,7 @@ node_parse(gnutella_node_t *n)
 	if (NODE_IS_LEAF(n) && gnutella_header_get_hops(&n->header) > 0) {
 		node_bye_if_writable(n, 414, "Leaf node relayed %s",
 			gmsg_name(gnutella_header_get_function(&n->header)));
-		return;
+		return FALSE;
 	}
 
 	/* First some simple checks */
@@ -9380,7 +9383,7 @@ node_parse(gnutella_node_t *n)
 	if (G_UNLIKELY(in_shutdown)) {
 		if (GTA_MSG_BYE == gnutella_header_get_function(&n->header)) {
 			node_got_bye(n);
-			return;
+			return TRUE;
 		}
 		goto reset_header;
 	}
@@ -9412,7 +9415,7 @@ node_parse(gnutella_node_t *n)
 	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_BYE:				/* Good bye! */
 		node_got_bye(n);
-		return;
+		return TRUE;
 	case GTA_MSG_INIT:				/* Ping */
 		pcache_ping_received(n);
 		goto reset_header;
@@ -9434,7 +9437,7 @@ node_parse(gnutella_node_t *n)
 		if (n->qrt_receive != NULL) {
 			bool done;
 			if (!qrt_receive_next(n->qrt_receive, &done))
-				return;				/* Node BYE-ed */
+				return FALSE;		/* Node BYE-ed */
 			if (done) {
 				qrt_receive_free(n->qrt_receive);
 				n->qrt_receive = NULL;
@@ -9710,6 +9713,8 @@ clean_dest:
 	search_request_info_free_null(&sri);
 	if (dest.type == ROUTE_MULTI)
 		pslist_free(dest.ur.u_nodes);
+
+	return TRUE;
 }
 
 static void
@@ -9925,7 +9930,8 @@ proceed:
 		}
 	}
 
-	node_parse(n);
+	if (!node_parse(n))
+		return;
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 }
@@ -10734,8 +10740,9 @@ node_read(gnutella_node_t *n, pmsg_t *mb)
 		/* If the message doesn't have any data, we process it now */
 
 		if (!n->size) {
-			node_parse(n);
-			return TRUE;		/* There may be more to come */
+			if (node_parse(n))
+				return TRUE;		/* There may be more to come */
+			return FALSE;			/* We BYE-ed the node */
 		}
 
 		/* Check whether the message is not too big */
@@ -10828,9 +10835,9 @@ node_read(gnutella_node_t *n, pmsg_t *mb)
 
 	gnet_stats_count_received_payload(n, n->data);
 
-	node_parse(n);
-
-	return TRUE;		/* There may be more data */
+	if (node_parse(n))
+		return TRUE;	/* There may be more data */
+	return FALSE;		/* We BYE-ed the node */
 
 bad_size:
 	gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
