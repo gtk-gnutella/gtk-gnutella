@@ -7509,8 +7509,8 @@ msgstr "Legnagyobb"
 msgid "Measured HTTP latency:"
 msgstr "Mért HTTP késés:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.freenode.net”-en!"
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.libera.chat”-en!"
 
 msgid "Min/Max:"
 msgstr ""
@@ -8677,7 +8677,7 @@ msgstr ""
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.freenode.net”-en!"
+msgstr "Találkozzznk a „#gtk-gnutella” csatornán az „irc.libera.chat”-en!"
 
 msgid ""
 "This product includes IP2Location LITE data, available from\n"

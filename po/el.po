@@ -7781,8 +7781,8 @@ msgstr "Μέγιστο"
 msgid "Measured HTTP latency:"
 msgstr "Μέτρηση καθυστέρησης HTTP:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Βρείτε μας στο #gtk-gnutella στο irc.freenode.net."
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Βρείτε μας στο #gtk-gnutella στο irc.libera.chat."
 
 msgid "Min/Max:"
 msgstr "Ελαχ/μεγ:"
@@ -8980,7 +8980,7 @@ msgstr "_Αφαίρεση φίλτρου"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Βρείτε μας στο #gtk-gnutella στο irc.freenode.net."
+msgstr "Βρείτε μας στο #gtk-gnutella στο irc.libera.chat."
 
 #, fuzzy
 msgid ""

@@ -8241,8 +8241,8 @@ msgstr "En çok"
 msgid "Measured HTTP latency:"
 msgstr "Ölçülen HTTP gecikmesi:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Bizimle irc.freenode.net #gtk-gnutella'da görüşün."
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Bizimle irc.libera.chat #gtk-gnutella'da görüşün."
 
 msgid "Min/Max:"
 msgstr "Asgari/Azami:"
@@ -9458,7 +9458,7 @@ msgstr "Filtreyi _Kaldır"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Bizimle irc.freenode.net #gtk-gnutella'da görüşün."
+msgstr "Bizimle irc.libera.chat #gtk-gnutella'da görüşün."
 
 #, fuzzy
 msgid ""
