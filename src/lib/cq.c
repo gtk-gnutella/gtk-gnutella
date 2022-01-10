@@ -760,10 +760,23 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
 		"%s() not called on current event from %s(): "
-		"%p points to ev=%p, current is %s%p",
+		"%p points to ev=%p (magic=0x%x), current is %s%p (magic=0x%x)",
 		caller, stacktrace_function_name(cq->cq_call_fn),
-		ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
-		cq->cq_call);
+		ev_ptr, ev, ev->ce_magic, cq->cq_call_extended ? "foreign " : "",
+		cq->cq_call, cq->cq_call->ce_magic);
+
+	/*
+	 * We no longer free the event before dispatching callbacks, to be able
+	 * to perform some sanity checks afterwards (such as accessing the magic
+	 * number, as in the assertion above).
+	 *
+	 * So we may as well make sure the event is valid here.
+	 *
+	 * 		--RAM, 2022-01-10
+	 */
+
+	if (ev != NULL)
+		cevent_check(ev);
 
 	if G_UNLIKELY(NULL == ev) {
 		s_warning("%s(): recording of event %s() not synchronized with lock?",
@@ -1077,13 +1090,12 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 		evx->cex_refcnt--;					/* Was fired */
 		cq->cq_call_extended = TRUE;
 	} else {
-		ev_free(ev);
 		cq->cq_call_extended = FALSE;
 	}
 
 	/*
-	 * Record the address of the event being dispatched.  Even though it may
-	 * have been freed, we allow one cq_zero() call on it.
+	 * Record the address of the event being dispatched.
+	 * We allow one cq_zero() call on it.
 	 */
 
 	cq->cq_call = ev;
@@ -1105,14 +1117,21 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	(*fn)(cq, arg);		/* Callback invoked with queue unlocked */
 	CQ_LOCK(cq);
 
-	/*
-	 * If the event was extended and they did not call cq_zero(),
-	 * then we assume they do not own any reference on the event to
-	 * call cq_cancel(), and therefore we need to free the event
-	 * immediately.
-	 */
+	if (!cq->cq_call_extended) {
+		/*
+		 * The event was not extended, and whether or not they called
+		 * cq_zero(), we may safely free it now.
+		 */
 
-	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
+		ev_free(ev);
+	} else if (NULL != cq->cq_call) {
+		/*
+		 * If the event was extended and they did not call cq_zero(),
+		 * then we assume they do not own any reference on the event to
+		 * call cq_cancel(), and therefore we need to free the event
+		 * immediately.
+		 */
+
 		if (cq_debugging(0)) {
 			s_debug("CQ called-out %s() did not call cq_zero() on event %p",
 				stacktrace_function_name(fn), ev);
