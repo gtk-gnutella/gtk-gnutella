@@ -410,6 +410,50 @@ EV_CQ_LOCK(const cevent_t *ev)
 	return cq;
 }
 
+static const char *
+cq_to_string(const cqueue_t *cq)
+{
+	buf_t *b = buf_private(G_STRFUNC, 80);
+
+	if G_UNLIKELY(NULL == cq)
+		return "NULL";
+
+	if (CQUEUE_MAGIC != cq->cq_magic && CSUBQUEUE_MAGIC != cq->cq_magic) {
+		buf_printf(b, "bad cq magic 0x%x", cq->cq_magic);
+	} else {
+		buf_printf(b, "c%sq \"%s\" at %s",
+			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "",
+			cq->cq_name, cq_time_to_string(cq->cq_time)
+		);
+	}
+
+	return buf_data(b);
+}
+
+static const char *
+ev_to_string(const cevent_t *ev)
+{
+	buf_t *b = buf_private(G_STRFUNC, 128);
+
+	if G_UNLIKELY(NULL == ev)
+		return "NULL";
+
+	if (CEVENT_MAGIC != ev->ce_magic && CEVENT_EXT_MAGIC != ev->ce_magic) {
+		buf_printf(b, "bad ev magic 0x%x", ev->ce_magic);
+	} else {
+		buf_printf(b, "%s(%p)",
+			stacktrace_function_name(ev->ce_fn), ev->ce_arg);
+		if (cevent_is_extended(ev)) {
+			const struct cevent_ext *evx = cast_to_cevent_ext(ev);
+			buf_catf(b, ", refcnt=%d", evx->cex_refcnt);
+		}
+		buf_catf(b, " at %s in %s",
+			cq_time_to_string(ev->ce_time), cq_to_string(ev->ce_cq));
+	}
+
+	return buf_data(b);
+}
+
 /**
  * Did the event trigger?
  */
@@ -760,10 +804,10 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
 		"%s() not called on current event from %s(): "
-		"%p points to ev=%p (magic=0x%x), current is %s%p (magic=0x%x)",
+		"%p points to ev=%p (%s), current is %s%p (%s)",
 		caller, stacktrace_function_name(cq->cq_call_fn),
-		ev_ptr, ev, ev->ce_magic, cq->cq_call_extended ? "foreign " : "",
-		cq->cq_call, cq->cq_call->ce_magic);
+		ev_ptr, ev, ev_to_string(ev), cq->cq_call_extended ? "foreign " : "",
+		cq->cq_call, ev_to_string(cq->cq_call));
 
 	/*
 	 * We no longer free the event before dispatching callbacks, to be able
