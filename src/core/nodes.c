@@ -9152,7 +9152,7 @@ node_parse(gnutella_node_t *n)
 	int results = 0;						/* # of results in query hits */
 	search_request_info_t *sri = NULL;
 
-	g_return_val_if_fail(n != NULL, FALSE);
+	node_check(n);
 	g_assert(NODE_IS_CONNECTED(n));
 
 	dest.type = ROUTE_NONE;
@@ -10672,6 +10672,8 @@ static bool
 node_read(gnutella_node_t *n, pmsg_t *mb)
 {
 	int r;
+
+	node_check(n);
 
 	if (!n->have_header) {		/* We haven't got the header yet */
 		char *w = (char *) &n->header;
