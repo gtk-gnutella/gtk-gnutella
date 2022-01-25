@@ -389,6 +389,9 @@ bsched_reset_stealers(bsched_t *bs)
 static void G_COLD
 bsched_dht_cross_stealing(void)
 {
+	if (!GNET_PROPERTY(enable_dht))
+		return;
+
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
 	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GOUT_UDP);
 }
@@ -396,7 +399,7 @@ bsched_dht_cross_stealing(void)
 /**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_http_gnet(void)
 {
 	pslist_t *iter;
@@ -446,7 +449,7 @@ bsched_config_steal_http_gnet(void)
 /**
  * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_gnet(void)
 {
 	pslist_t *iter;
@@ -461,6 +464,18 @@ bsched_config_steal_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
 
 	bsched_dht_cross_stealing();
+}
+
+/**
+ * Configure bandwidth stealing.
+ */
+void G_COLD
+bsched_config_stealing(void)
+{
+	if (GNET_PROPERTY(bw_allow_stealing))
+		bsched_config_steal_http_gnet();
+	else
+		bsched_config_steal_gnet();
 }
 
 /**
