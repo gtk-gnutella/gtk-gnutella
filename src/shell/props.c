@@ -48,12 +48,14 @@
 enum shell_reply
 shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *values;
+	const char *values, *exact, *ignore;
 	const option_t options[] = {
+		{ "e", &exact },
+		{ "i", &ignore },
 		{ "v", &values },
 	};
 	int parsed;
-	pslist_t *props, *sl;
+	pslist_t *props = NULL, *sl;
 
 	shell_check(sh);
 	g_assert(argv);
@@ -66,8 +68,31 @@ shell_exec_props(struct gnutella_shell *sh, int argc, const char *argv[])
 	argv += parsed;	/* args[0] is first command argument */
 	argc -= parsed;	/* counts only command arguments now */
 
-	props = gnet_prop_get_by_regex(argc > 0 ? argv[0] : ".", NULL);
-	if (!props) {
+	if (0 == argc) {
+		/* No argument: means all the properties, regardless of -e */
+		props = gnet_prop_get_by_regex(".", NULL);
+	} else {
+		int i;
+
+		for (i = 0; i < argc; i++) {
+			pslist_t *matching;
+
+			if (exact) {
+				property_t id = gnet_prop_get_by_name(argv[i]);
+
+				if (NO_PROP == id)
+					matching = NULL;
+				else
+					matching = pslist_append(NULL, uint_to_pointer(id));
+			} else {
+				matching = gnet_prop_get_by_regex(argv[i], NULL);
+			}
+
+			props = pslist_concat(props, matching);
+		}
+	}
+
+	if (NULL == props && !ignore) {
 		shell_set_msg(sh, _("No matching property."));
 		return REPLY_ERROR;
 	}
@@ -103,9 +128,11 @@ shell_help_props(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "props [-v] [<regexp>]\n"
+	return "props [-eiv] [<regexp>] [<regexp_2> ... <regexp_n>]\n"
 		"Display all properties, or those matching\n"
-		"the regular expression supplied.\n"
+		"the regular expression (or string if -e) supplied.\n"
+		"-e: exact, treat arguments as property names\n"
+		"-i: ignore non-matching arguments silently\n"
 		"-v: also display property values\n";
 }
 
