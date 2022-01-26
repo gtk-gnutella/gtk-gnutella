@@ -1446,8 +1446,8 @@ bw_available(bio_source_t *bio, int len)
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
 		g_debug("BSCHED %s: "
-			"[fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
-			G_STRFUNC, bio->wio->fd(bio->wio),
+			"\"%s\" [fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
 			int64_to_string(bs->bw_max),
 			int64_to_string2(bs->bw_stolen),
 			int64_to_string3(bs->bw_actual),
