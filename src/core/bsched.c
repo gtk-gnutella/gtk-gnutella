@@ -2049,9 +2049,11 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -2222,11 +2224,13 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		return -1;
 	}
 
-	amount = len > available ? available : len;
+	amount = MIN(len, available);
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 #if defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 	{
@@ -2359,10 +2363,13 @@ bio_read(bio_source_t *bio, void *data, size_t len)
 		return -1;
 	}
 
-	amount = len > available ? available : len;
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	amount = MIN(len, available);
+
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -2460,9 +2467,11 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);
