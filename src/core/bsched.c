@@ -1653,7 +1653,7 @@ bw_available(bio_source_t *bio, int len)
 		if (remain <= 0)
 			result = 0;
 		else
-			result = remain;
+			result = MIN(result, remain);
 
 		if (GNET_PROPERTY(bsched_debug) > 8) {
 			g_debug("BSCHED %s: \"%s\" [fd #%d] "
