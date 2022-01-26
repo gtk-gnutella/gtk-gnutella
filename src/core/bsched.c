@@ -1655,6 +1655,13 @@ bw_available(bio_source_t *bio, int len)
 		else
 			result = remain;
 
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"bw_cap=%u, bw_actual=%s => result=%s",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio), bio->bw_cap,
+				int64_to_string(bio->bw_actual), int64_to_string2(result));
+		}
+
 		if (0 == result)
 			bio_disable(bio);		/* Avoid further triggering this timeslice */
 	}
@@ -1668,8 +1675,26 @@ bw_available(bio_source_t *bio, int len)
 	 * enough" during the period.
 	 */
 
-	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap)
+	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap) {
 		bs->bw_capped += len - result;
+
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"adding %s to bw_capped (now at %s)",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+				int64_to_string(len - result),
+				int64_to_string2(bs->bw_capped));
+		}
+	}
+
+	/* All computations now done, trace result if debugging */
+
+	if (GNET_PROPERTY(bsched_debug) > 5) {
+		g_debug("BSCHED %s: "
+			"\"%s\" [fd #%d] len=%d => returning %s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+			len, int64_to_string(result));
+	}
 
 	/*
 	 * Since bandwidth computations are now done in 64-bit values but we can
