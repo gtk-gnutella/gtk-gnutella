@@ -1001,6 +1001,8 @@ node_slow_timer(time_t now)
 		PSLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
 			if (NODE_IS_ULTRA(n) && (n->attrs & NODE_A_CAN_VENDOR)) {
 				candidates = pslist_prepend(candidates, n);
 				count++;
@@ -1904,7 +1906,9 @@ node_set_socket_rx_size(int rx_size)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
-		if (n->socket) {
+		node_check(n);
+
+		if (n->socket != NULL) {
 			socket_check(n->socket);
 			socket_recv_buf(n->socket, rx_size, TRUE);
 		}
@@ -2650,6 +2654,8 @@ node_avoid_monopoly(gnutella_node_t *n)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *node = sl->data;
 
+		node_check(node);
+
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
 
@@ -3312,6 +3318,8 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
         PSLIST_FOREACH(sl_nodes, sl) {
             const gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
             if (
 				n->status != GTA_NODE_REMOVING &&
 				n->status != GTA_NODE_SHUTDOWN &&
@@ -3515,6 +3523,8 @@ node_crawler_headers(gnutella_node_t *n)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
 
 		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
@@ -3820,6 +3830,8 @@ node_became_firewalled(void)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (socket_listen_port() && sent < 10 && n->attrs & NODE_A_CAN_VENDOR) {
 			vmsg_send_tcp_connect_back(n, socket_listen_port());
 			sent++;
@@ -3857,6 +3869,8 @@ node_became_udp_firewalled(void)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
 			continue;
@@ -5478,6 +5492,8 @@ node_set_online_mode(bool on)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (n->status == GTA_NODE_REMOVING)
 			continue;
@@ -11126,6 +11142,8 @@ node_bye_flags(uint32 mask, int code, const char *message)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
 			continue;
 
@@ -11145,6 +11163,8 @@ node_bye_all_but_one(gnutella_node_t *nskip,
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
 			continue;
@@ -11192,6 +11212,8 @@ node_bye_all(bool all)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		/*
 		 * Servent is shutdowning, cancel all pending events.
@@ -11263,6 +11285,8 @@ node_remove_useless_leaf(bool *is_gtkg)
 		gnutella_node_t *n = sl->data;
 		time_t target = (time_t) -1;
 		time_delta_t diff;
+
+		node_check(n);
 
         if (n->status != GTA_NODE_CONNECTED)
             continue;
@@ -11373,6 +11397,8 @@ node_remove_useless_ultra(bool *is_gtkg)
 		qrt_info_t *qi;
 		int diff;
 
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11478,6 +11504,8 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 	PSLIST_FOREACH(sl_up_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11527,6 +11555,9 @@ node_remove_worst(bool non_local)
     /* Make list of "worst" based on number of "weird" packets. */
 	PSLIST_FOREACH(sl_nodes, sl) {
         n = sl->data;
+
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11787,6 +11818,9 @@ node_qrt_changed(struct routing_table *query_table)
 	if (settings_is_leaf()) {
 		PSLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
+
+			node_check(n);
+
 			if (n->qrt_update != NULL) {
 				qrt_update_free(n->qrt_update);
 				n->qrt_update = NULL;
@@ -13037,6 +13071,8 @@ node_proxy_cancel_all(void)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (is_host_addr(n->proxy_addr)) {
 			if (NODE_IS_WRITABLE(n))
 				vmsg_send_proxy_cancel(n);
@@ -13691,6 +13727,8 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		gnutella_node_t *cn = sl->data;
 		host_addr_t ha;
 
+		node_check(cn);
+
 		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
 
@@ -14048,6 +14086,8 @@ node_kill_hostiles(void)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (0 == (NODE_F_FORCE & n->flags) && hostiles_is_bad(n->addr)) {
 			to_remove = pslist_prepend(to_remove, n);
