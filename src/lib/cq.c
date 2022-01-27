@@ -421,7 +421,7 @@ cq_to_string(const cqueue_t *cq)
 	if (CQUEUE_MAGIC != cq->cq_magic && CSUBQUEUE_MAGIC != cq->cq_magic) {
 		buf_printf(b, "bad cq magic 0x%x", cq->cq_magic);
 	} else {
-		buf_printf(b, "c%sq \"%s\" at %s",
+		buf_printf(b, "c%sq \"%s\" at t=%s",
 			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "",
 			cq->cq_name, cq_time_to_string(cq->cq_time)
 		);
@@ -447,7 +447,7 @@ ev_to_string(const cevent_t *ev)
 			const struct cevent_ext *evx = cast_to_cevent_ext(ev);
 			buf_catf(b, ", refcnt=%d", evx->cex_refcnt);
 		}
-		buf_catf(b, " at %s in %s",
+		buf_catf(b, " scheduled at t=%s in %s",
 			cq_time_to_string(ev->ce_time), cq_to_string(ev->ce_cq));
 	}
 
@@ -804,7 +804,7 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
 		"%s() not called on current event from %s(): "
-		"%p points to ev=%p (%s), current is %s%p (%s)",
+		"%p points to ev=%p {%s}, current is %s%p {%s}",
 		caller, stacktrace_function_name(cq->cq_call_fn),
 		ev_ptr, ev, ev_to_string(ev), cq->cq_call_extended ? "foreign " : "",
 		cq->cq_call, ev_to_string(cq->cq_call));
@@ -2173,7 +2173,7 @@ cq_time_to_string(cq_time_t t)
 	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
 	char *p = buf_data(b);
 
-	uint64_to_string_buf(t, p, buf_size(b));
+	uint64_to_gstring_buf(t, p, buf_size(b));
 	return p;
 }
 
