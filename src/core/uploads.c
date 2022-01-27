@@ -4881,6 +4881,30 @@ upload_http_status_partially_sent(
 }
 
 /**
+ * Compute maximum output bandwidth, as configured in settings or for a given
+ * upload (upload-specific bw capping).
+ */
+static uint64
+upload_max_out_bw(const struct upload *u)
+{
+	uint64 cap = MAX_INT_VAL(uint64);
+
+	upload_check(u);
+
+	/* We aim for the maximum possible speed for our estimates */
+
+	if (GNET_PROPERTY(bws_out_enabled))
+		cap = GNET_PROPERTY(bw_http_out);	/* Only true if upload is alone */
+
+	/* If we decided to cap bandwidth, then enforce it for this upload */
+
+	if (u->bw_cap != 0)
+		cap = MIN(cap, u->bw_cap);
+
+	return cap;
+}
+
+/**
  * Handle request for a shared file.
  *
  * @return TRUE if we're going to actually serve the request.
@@ -5283,25 +5307,34 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	requested = range_end - range_skip + 1;
 	max_chunk_size = 0;		/* Signals: no adjustment necessary */
 
-	if (u->is_followup) {
-		if (u->bw_cap != 0) {
-			ulong maxsize = TX_DURATION * u->bw_cap;
+	/* Common logic: adjust to send chunk within, at most, TX_DURATION seconds */
 
-			if (requested > maxsize) {
-				max_chunk_size = next_pow2_64(maxsize);
-				if (max_chunk_size > maxsize)		/* Not a power of 2 */
-					max_chunk_size >>= 1;			/* Drop to previous power */
-				if (max_chunk_size < TX_MIN_CHUNK)
-					max_chunk_size = TX_MIN_CHUNK;	/* Our minimum */
-			}
+	{
+		ulong output_bw = upload_max_out_bw(u);
+		ulong maxsize = uint64_saturate_mult(TX_DURATION, output_bw);
+
+		if (requested > maxsize) {
+			max_chunk_size = next_pow2_64(maxsize);
+			if (max_chunk_size > maxsize)		/* Not a power of 2 */
+				max_chunk_size >>= 1;			/* Drop to previous power */
+			if (max_chunk_size != 0)			/* Enforce minimum */
+				max_chunk_size = MAX(max_chunk_size, TX_MIN_CHUNK);
 		}
-	} else if (
-		aging_lookup(stalling_uploads, &u->addr) ||
-		aging_lookup(early_stalling_uploads, &u->addr)
-	) {
-		max_chunk_size = TX_FIRST_STALL;	/* First request on stalling host */
-	} else {
-		max_chunk_size = TX_FIRST_CHUNK;	/* First request for other hosts */
+	}
+
+	/* If no adjustment was deemed necessary, be careful on first request */
+
+	if (0 == max_chunk_size && !u->is_followup) {
+		if (
+			aging_lookup(stalling_uploads, &u->addr) ||
+			aging_lookup(early_stalling_uploads, &u->addr)
+		) {
+			/* First request on stalling host */
+			max_chunk_size = TX_FIRST_STALL;
+		} else {
+			/* First request for other hosts */
+			max_chunk_size = TX_FIRST_CHUNK;
+		}
 	}
 
 	/*
@@ -5312,11 +5345,14 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	if (max_chunk_size != 0 && max_chunk_size < requested) {
 		if (GNET_PROPERTY(upload_debug) > 1) {
 			g_debug(
-				"UL b/w cap is %s/s for host %s (%s), %srequest #%u capped to %s",
+				"UL b/w cap is %s/s for host %s (%s), %s/s max overall: "
+				"%srequest #%u capped to %s",
 				short_size(u->bw_cap, FALSE),
 				host_addr_to_string(u->addr), upload_vendor_str(u),
+				GNET_PROPERTY(bws_out_enabled) ?
+					short_size2(GNET_PROPERTY(bw_http_out), FALSE) : "unlimited",
 				u->is_followup ? "" : "initial ",
-				u->reqnum, short_size2(max_chunk_size, FALSE));
+				u->reqnum, short_size3(max_chunk_size, FALSE));
 		}
 
 		u->end = range_end = range_skip + max_chunk_size - 1;
