@@ -658,10 +658,9 @@ short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 	}
 }
 
-const char *
-short_size(uint64 size, bool metric)
+static const char *
+short_size_b(uint64 size, bool metric, buf_t *b)
 {
-	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
 	char *p = buf_data(b);
 	size_t n, sz = buf_size(b);
 
@@ -671,15 +670,24 @@ short_size(uint64 size, bool metric)
 }
 
 const char *
+short_size(uint64 size, bool metric)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	return short_size_b(size, metric, b);
+}
+
+const char *
 short_size2(uint64 size, bool metric)
 {
 	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
-	char *p = buf_data(b);
-	size_t n, sz = buf_size(b);
+	return short_size_b(size, metric, b);
+}
 
-	n = short_size_to_string_buf(size, metric, p, sz);
-	g_assert(n < sz);
-	return p;
+const char *
+short_size3(uint64 size, bool metric)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	return short_size_b(size, metric, b);
 }
 
 const char *

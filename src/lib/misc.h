@@ -120,6 +120,7 @@ const char *local_hostname(void);
 const char *short_frequency(uint64 freq);
 const char *short_size(uint64 size, bool metric);
 const char *short_size2(uint64 size, bool metric);
+const char *short_size3(uint64 size, bool metric);
 const char *short_html_size(uint64 size, bool metric);
 const char *short_kb_size(uint64 size, bool metric);
 const char *short_kb_size2(uint64 size, bool metric);
