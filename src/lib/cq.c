@@ -431,10 +431,8 @@ cq_to_string(const cqueue_t *cq)
 }
 
 static const char *
-ev_to_string(const cevent_t *ev)
+ev_to_string_b(const cevent_t *ev, buf_t *b)
 {
-	buf_t *b = buf_private(G_STRFUNC, 128);
-
 	if G_UNLIKELY(NULL == ev)
 		return "NULL";
 
@@ -448,10 +446,26 @@ ev_to_string(const cevent_t *ev)
 			buf_catf(b, ", refcnt=%d", evx->cex_refcnt);
 		}
 		buf_catf(b, " scheduled at t=%s in %s",
-			cq_time_to_string(ev->ce_time), cq_to_string(ev->ce_cq));
+			CEVENT_TRIGGERED == ev->ce_time ?
+				"<now>" : cq_time_to_string(ev->ce_time),
+			cq_to_string(ev->ce_cq));
 	}
 
 	return buf_data(b);
+}
+
+static const char *
+ev_to_string(const cevent_t *ev)
+{
+	buf_t *b = buf_private(G_STRFUNC, 128);
+	return ev_to_string_b(ev, b);
+}
+
+static const char *
+ev_to_string2(const cevent_t *ev)
+{
+	buf_t *b = buf_private(G_STRFUNC, 128);
+	return ev_to_string_b(ev, b);
 }
 
 /**
@@ -807,7 +821,7 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 		"%p points to ev=%p {%s}, current is %s%p {%s}",
 		caller, stacktrace_function_name(cq->cq_call_fn),
 		ev_ptr, ev, ev_to_string(ev), cq->cq_call_extended ? "foreign " : "",
-		cq->cq_call, ev_to_string(cq->cq_call));
+		cq->cq_call, ev_to_string2(cq->cq_call));
 
 	/*
 	 * We no longer free the event before dispatching callbacks, to be able
