@@ -14547,6 +14547,14 @@ parse_giv(const char *line, char *hex_guid, size_t size)
 	}
 	hex_guid[i] = '\0';
 
+	/*
+	 * Note that for Gnutella, we parse until the '/' and then we simply
+	 * ignore whatever remains on the line: any filename given there is
+	 * purely irrelevant nowadays since the GIV callback is viewed as a way
+	 * to connect back from the "firewalled" server to the client requesting
+	 * the file.
+	 */
+
 	return (g2 ? '\0' : '/') == *endptr;
 }
 
