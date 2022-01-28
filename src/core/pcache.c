@@ -1850,7 +1850,7 @@ static void
 send_demultiplexed_pongs(gnutella_node_t *n)
 {
 	enum ping_flag flags;
-	uint h, ttl;
+	uint h, ttl, ping_ttl;
 
 	/*
 	 * Look whether the "ping" they sent bore the "SCP" extension, meaning
@@ -1869,7 +1869,9 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	 * array and compute `n->pong_missing'.
 	 */
 
-	setup_pong_demultiplexing(n, gnutella_header_get_ttl(&n->header));
+	ping_ttl = gnutella_header_get_ttl(&n->header);	/* TTL of received PING */
+
+	setup_pong_demultiplexing(n, ping_ttl);
 
 	if (n->pong_missing == 0)
 		return;
@@ -1885,11 +1887,8 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	ttl = gnutella_header_get_hops(&n->header) + 1U;
 	ttl = MIN(ttl, GNET_PROPERTY(max_ttl));
 
-	for (h = 0; n->pong_missing; h++) {
+	for (h = 0; n->pong_missing && h < ping_ttl; h++) {
 		struct cache_line *cl;
-
-		if (h >= gnutella_header_get_ttl(&n->header))
-			break;
 
 		cl = &pong_cache[CACHE_HOP_IDX(h)];
 		if (cl->pongs) {
@@ -1904,11 +1903,8 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	 * did not already send.
 	 */
 
-	for (h = 0; n->pong_missing; h++) {
+	for (h = 0; n->pong_missing && h < ping_ttl; h++) {
 		struct cache_line *cl;
-
-		if (h >= gnutella_header_get_ttl(&n->header))
-			break;
 
 		cl = &pong_cache[CACHE_HOP_IDX(h)];
 		if (cl->pongs) {
