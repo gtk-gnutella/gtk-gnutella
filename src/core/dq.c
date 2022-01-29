@@ -1073,6 +1073,8 @@ dq_expired(cqueue_t *cq, void *obj)
 	dq_terminate(dq);
 }
 
+static void dq_install_results_expired(dquery_t *dq, int delay);
+
 /**
  * Callout queue callback invoked when the result timer has expired.
  */
@@ -1219,7 +1221,19 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		g_debug("DQ[%s] status reply timeout set to %d s",
 			nid_to_string(&dq->qid), timeout / 1000);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
+}
+
+/**
+ * Install a new expiration callback.
+ */
+static void
+dq_install_results_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+	g_assert(NULL == dq->results_ev);	/* Since we are about to supersede it */
+
+	dq->results_ev = cq_main_insert(delay, dq_results_expired, dq);
 }
 
 /**
@@ -1482,8 +1496,8 @@ dq_send_next(dquery_t *dq)
 		if (GNET_PROPERTY(dq_debug) > 19)
 			g_debug("DQ[%s] waiting for %u ms (pending=%u)",
 				nid_to_string(&dq->qid), dq->result_timeout, dq->pending);
-		dq->results_ev = cq_main_insert(
-			dq->result_timeout, dq_results_expired, dq);
+
+		dq_install_results_expired(dq, dq->result_timeout);
 		return;
 	}
 
@@ -1603,7 +1617,7 @@ dq_send_next(dquery_t *dq)
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
 			timeout, dq->pending);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
 	return;
 
 terminate:
@@ -1681,9 +1695,8 @@ dq_send_probe(dquery_t *dq)
 	 * assse how popular the query is.
 	 */
 
-	dq->results_ev = cq_main_insert(
-		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout),
-		dq_results_expired, dq);
+	dq_install_results_expired(dq,
+		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout));
 
 cleanup:
 	WFREE_ARRAY(nv, ncount);
