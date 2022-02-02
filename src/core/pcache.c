@@ -1924,7 +1924,10 @@ pong_all_neighbours_but_one(
 	gnutella_node_t *n, struct cached_pong *cp, host_type_t ptype,
 	uint8 hops, uint8 ttl)
 {
+	pslist_t *to_pong = NULL;
 	const pslist_t *sl;
+
+	g_assert(hops < 255);
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *cn = sl->data;
@@ -1956,8 +1959,23 @@ pong_all_neighbours_but_one(
 		if (NODE_IS_LEAF(cn) && ptype != HOST_ULTRA)
 			continue;
 
+		to_pong = pslist_prepend(to_pong, cn);
+	}
+
+	PSLIST_FOREACH(to_pong, sl) {
+		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
+
 		cn->pong_missing--;
 		cn->pong_needed[hops]--;
+
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug(
+				"%s(): sending cached pong %s (hops=%d, TTL=%d) to %s missing=%d",
+				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
+				hops, ttl, node_addr(cn), cn->pong_missing);
+		}
 
 		/*
 		 * When sending a cached pong, don't forget that its cached hop count
@@ -1966,18 +1984,11 @@ pong_all_neighbours_but_one(
 		 * it, so we must increase the hop count.
 		 */
 
-		g_assert(hops < 255);
-
 		send_pong(cn, FALSE, PING_F_NONE,
 			hops + 1, ttl, &cn->ping_guid, &cp->info, cp->meta);
-
-		if (GNET_PROPERTY(pcache_debug) > 7) {
-			g_debug(
-				"%s(): sent cached pong %s (hops=%d, TTL=%d) to %s missing=%d",
-				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
-				hops, ttl, node_addr(cn), cn->pong_missing);
-		}
 	}
+
+	pslist_free_null(&to_pong);
 }
 
 /**
