@@ -109,13 +109,13 @@ routing_udp_node_check(const struct routing_udp_node * const un)
  * their liftime.
  */
 struct message {
-	struct guid muid;			/**< Message UID */
-	struct message **slot;		/**< Place where we're referenced from */
-	pslist_t *routes;            /**< route_data from where the message came */
+	struct guid muid;		/**< Message UID */
+	struct message **slot;	/**< Place where we're referenced from */
+	pslist_t *routes;		/**< route_data from where the message came */
 	pslist_t *ttls;			/**< For broadcasted messages: TTL by route */
-	uint8 function;				/**< Type of the message */
-	uint8 ttl;					/**< Max TTL we saw for this message */
-	uint8 chunk_idx;			/**< Index of chunk holding the slot */
+	uint8 function;			/**< Type of the message */
+	uint8 ttl;				/**< Max TTL we saw for this message */
+	uint8 chunk_idx;		/**< Index of chunk holding the slot */
 };
 
 /**
