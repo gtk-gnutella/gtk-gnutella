@@ -939,6 +939,8 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 	 * reuse the old structure, which will be rehashed after being updated.
 	 */
 
+	g_assert(entryp == entry->slot);	/* Invariant we ensure */
+
 	clean_entry(entry);
 
 	/*
@@ -948,8 +950,11 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 	{
 		struct message *nentry = WMOVE(entry);
 
-		if (nentry != entry)
+		if (nentry != entry) {
 			entry = *entryp = nentry;
+			/* PARANOID: move is not supposed to alter data but... */
+			g_assert(entryp == entry->slot);
+		}
 	}
 
 done:
