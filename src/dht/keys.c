@@ -93,6 +93,7 @@
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/glib-missing.h"
+#include "lib/halloc.h"
 #include "lib/hikset.h"
 #include "lib/hset.h"
 #include "lib/patricia.h"
@@ -337,13 +338,17 @@ keys_is_nearby(const kuid_t *id)
 
 /**
  * Get keydata from database.
+ *
+ * @param id	the KUID of the key
+ * @param clone	if TRUE, return a halloc()'ed shallow clone of the data
  */
 static struct keydata *
-get_keydata(const kuid_t *id)
+get_keydata(const kuid_t *id, bool clone)
 {
 	struct keydata *kd;
+	size_t length;
 
-	kd = dbmw_read(db_keydata, id, NULL);
+	kd = dbmw_read(db_keydata, id, &length);
 
 	if (kd == NULL) {
 		if (dbmw_has_ioerr(db_keydata)) {
@@ -357,6 +362,11 @@ get_keydata(const kuid_t *id)
 		}
 		return NULL;
 	}
+
+	g_assert(length != 0);	/* Since we deserialized keydata correctly */
+
+	if (clone)
+		kd = hcopy(kd, length);
 
 	return kd;
 }
@@ -458,7 +468,7 @@ keys_expire_values(struct keyinfo *ki, time_t now)
 	const char *reason = NULL;
 	char buf[80];
 
-	kd = get_keydata(ki->kuid);
+	kd = get_keydata(ki->kuid, FALSE);
 	if (NULL == kd) {
 		reason = "cannot retrieve associated keydata";
 		goto discard_key;
@@ -625,7 +635,7 @@ keys_has(const kuid_t *id, const kuid_t *cid, bool store)
 	if (store)
 		ki->store_requests++;
 
-	kd = get_keydata(id);
+	kd = get_keydata(id, FALSE);
 	if (kd == NULL)
 		return 0;
 
@@ -664,7 +674,7 @@ keys_remove_value(const kuid_t *id, const kuid_t *cid, uint64 dbkey)
 
 	g_assert(ki);
 
-	kd = get_keydata(id);
+	kd = get_keydata(id, FALSE);
 	if (NULL == kd)
 		return;
 
@@ -734,7 +744,7 @@ keys_update_value(const kuid_t *id, const kuid_t *cid, time_t expire)
 	g_assert(ki != NULL);
 
 	ki->next_expire = MIN(ki->next_expire, expire);
-	kd = get_keydata(id);
+	kd = get_keydata(id, FALSE);
 
 	if (kd != NULL) {
 		int low = 0, high = ki->values - 1;
@@ -845,7 +855,7 @@ keys_add_value(const kuid_t *id, const kuid_t *cid,
 		int low = 0;
 		int high = ki->values - 1;
 
-		kd = get_keydata(id);
+		kd = get_keydata(id, FALSE);
 
 		if (NULL == kd)
 			return;
@@ -951,7 +961,16 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 	if (ki == NULL)
 		return 0;
 
-	kd = get_keydata(id);
+	/*
+	 * During values_get(), we may recurse back to keys_remove_value()
+	 * via * delete_valuedata_at_key(), in case we detect that the
+	 * database is corrupted.
+	 *
+	 * Therefore, we must clone the returned data structure to be sure
+	 * we will keep iterating over memory we control.
+	 */
+
+	kd = get_keydata(id, TRUE);
 	if (kd == NULL)				/* DB failure */
 		return 0;
 
@@ -970,6 +989,8 @@ keys_get_all(const kuid_t *id, dht_value_t **valvec, int valcnt)
 		*vvec++ = v;
 		vcnt--;
 	}
+
+	hfree(kd);
 
 	return vvec - valvec;		/* Amount of entries filled */
 }
@@ -1022,7 +1043,17 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	*loadptr = ki->get_req_load;
 	ki->get_requests++;
 
-	kd = get_keydata(id);
+	/*
+	 * During values_get(), we may recurse back to keys_remove_value()
+	 * via * delete_valuedata_at_key(), in case we detect that the
+	 * database is corrupted.
+	 *
+	 * Therefore, we must clone the returned data structure to be sure
+	 * we will keep iterating over memory we control.
+	 */
+
+
+	kd = get_keydata(id, TRUE);
 	if (kd == NULL)				/* DB failure */
 		return 0;
 
@@ -1108,6 +1139,7 @@ keys_get(const kuid_t *id, dht_value_type_t type,
 	}
 
 done:
+	hfree(kd);		/* Free cloned data */
 
 	if (cached)
 		*cached = (ki->flags & DHT_KEY_F_CACHED) ? TRUE : FALSE;

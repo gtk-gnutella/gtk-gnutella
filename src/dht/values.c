@@ -961,6 +961,28 @@ get_valuedata(uint64 dbkey)
 }
 
 /**
+ * Physically remove the entry, updating the statistics.
+ *
+ * @param dbkey			the 64-bit DB key
+ * @param vd			the valuedata object
+ */
+static void
+delete_valuedata_at_key(uint64 dbkey, const struct valuedata *vd)
+{
+	g_assert(values_managed > 0);
+
+	values_managed--;
+	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
+	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
+	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
+
+	keys_remove_value(&vd->id, &vd->cid, dbkey);
+
+	dbmw_delete(db_rawdata, &dbkey);
+	dbmw_delete(db_valuedata, &dbkey);
+}
+
+/**
  * Delete valuedata from the database.
  *
  * @param dbkey			the 64-bit DB key
@@ -971,24 +993,14 @@ delete_valuedata(uint64 dbkey, bool has_expired)
 {
 	const struct valuedata *vd;
 
-	g_assert(values_managed > 0);
-
 	vd = get_valuedata(dbkey);
 	if (NULL == vd)
 		return;			/* I/O error or corrupted data */
 
-	values_managed--;
-	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
-	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
-	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
-
 	if (has_expired)
 		kuid_pair_has_expired(&vd->id, &vd->cid);
 
-	keys_remove_value(&vd->id, &vd->cid, dbkey);
-
-	dbmw_delete(db_rawdata, &dbkey);
-	dbmw_delete(db_valuedata, &dbkey);
+	delete_valuedata_at_key(dbkey, vd);
 }
 
 /**
@@ -1713,8 +1725,27 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
 		}
 
-		g_assert(data);
-		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
+		if (length != vd->length) {
+			/*
+			 * Our bookkeeping is faulty, or the data has been corrupted.
+			 */
+
+			s_critical(
+				"DBMW \"%s\" inconsistent length %u for %s in DB (expected %zu) "
+				"for key %s, published %s ago by %s -- "
+				"%s() aborted and data cleared",
+				dbmw_name(db_rawdata), vd->length,
+				dht_value_type_to_string(vd->type), length,
+				kuid_to_hex_string(&vd->id),
+				compact_time(delta_time(tm_time(), vd->publish)),
+				host_addr_port_to_string(vd->addr, vd->port),
+				G_STRFUNC
+			);
+
+			delete_valuedata_at_key(dbkey, vd);
+			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
+		}
+
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
 
 		if (0 != memcmp(data, v->data, v->length)) {
@@ -1927,8 +1958,26 @@ values_get(uint64 dbkey, dht_value_type_t type)
 			return NULL;		/* I/O error or corrupted DB */
 		}
 
-		g_assert(data);
-		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
+		if (length != vd->length) {
+			/*
+			 * Our bookkeeping is faulty, or the data has been corrupted.
+			 */
+
+			s_critical(
+				"DBMW \"%s\" inconsistent length %u for %s in DB (expected %zu) "
+				"for key %s, published %s ago by %s -- "
+				"%s() aborted and data cleared",
+				dbmw_name(db_rawdata), vd->length,
+				dht_value_type_to_string(vd->type), length,
+				kuid_to_hex_string(&vd->id),
+				compact_time(delta_time(tm_time(), vd->publish)),
+				host_addr_port_to_string(vd->addr, vd->port),
+				G_STRFUNC
+			);
+
+			delete_valuedata_at_key(dbkey, vd);
+			return NULL;
+		}
 
 		vdata = wcopy(data, length);
 	}
