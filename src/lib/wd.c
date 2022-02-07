@@ -100,8 +100,10 @@ wd_trigger(watchdog_t *wd)
 	WD_UNLOCK(wd);
 
 	if (!run) {
-		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
-			G_STRFUNC,  wd_name(wd));
+		s_critical("%s(): "
+			"watchdog \"%s\" was already running trigger %s(%p) -- skipped",
+			G_STRFUNC,  wd_name(wd),
+			stacktrace_function_name(wd->trigger), wd->arg);
 		return;
 	}
 
@@ -314,8 +316,10 @@ wd_expire(watchdog_t *wd)
 		}
 		WD_UNLOCK(wd);
 	} else {
-		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
-			G_STRFUNC,  wd_name(wd));
+		s_critical("%s(): "
+			"watchdog \"%s\" was already running trigger %s(%p) -- skipped",
+			G_STRFUNC,  wd_name(wd),
+			stacktrace_function_name(wd->trigger), wd->arg);
 	}
 
 	return run;
