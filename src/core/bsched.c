@@ -1382,7 +1382,10 @@ bw_available(bio_source_t *bio, int len)
 	 * disable source to avoid it triggering again.
 	 */
 
-	if (0 != bio->bw_cap && bio->bw_actual >= (int64) bio->bw_cap) {
+	if (
+		0 != bio->bw_cap && bio->io_tag &&
+		bio->bw_actual >= (int64) bio->bw_cap
+	) {
 		bio_disable(bio);
 		return 0;
 	}
