@@ -866,7 +866,6 @@ static void
 bio_disable(bio_source_t *bio)
 {
 	bio_check(bio);
-	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
