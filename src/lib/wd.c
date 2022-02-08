@@ -279,8 +279,10 @@ wd_sleep(watchdog_t *wd)
 }
 
 /**
- * Trigger callback and then put the watchdog to sleep, ignoring any desire
- * from the callback to re-arm the watchdog.
+ * If the watchdog was awoken, trigger callback and then put the watchdog to sleep,
+ * ignoring any desire from the callback to re-arm the watchdog.
+ *
+ * Does nothing if the watchdog was already asleep.
  *
  * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
  * or trigger was concurrently run, in which case the trigger was not invoked.
@@ -288,21 +290,25 @@ wd_sleep(watchdog_t *wd)
 bool
 wd_expire(watchdog_t *wd)
 {
-	bool run = TRUE;
+	bool run = TRUE, ignore = FALSE;
 	watchdog_check(wd);
 
 	WD_LOCK(wd);
 	if (wd->triggering) {
 		run = FALSE;
 	} else {
-		if (cq_cancel(&wd->ev))
+		if (NULL == wd->ev)
+			ignore = TRUE;
+		else if (cq_cancel(&wd->ev))
 			run = FALSE;
 		else
 			wd->triggering = TRUE;
 	}
 	WD_UNLOCK(wd);
 
-	if (run) {
+	if (ignore) {
+		run = FALSE;	/* Nothing to do, nothing run */
+	} else if (run) {
 		(*wd->trigger)(wd, wd->arg);
 
 		WD_LOCK(wd);
