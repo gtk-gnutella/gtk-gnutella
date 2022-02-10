@@ -7433,7 +7433,7 @@ done:
  * Record that current thread is waiting on the specified condition variable.
  *
  * This is used to allow signals to be delivered to threads whilst they
- * are aslept, waiting in the condition variable.
+ * are asleep, waiting in the condition variable.
  *
  * @return the thread element as an opaque pointer that can be given back
  * to thread_cond_waiting_done() to skip the thread lookup.

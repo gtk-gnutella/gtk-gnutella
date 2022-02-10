@@ -262,7 +262,7 @@ wd_wakeup(watchdog_t *wd)
 /**
  * Put the watchdog to sleep.
  *
- * @return TRUE if we stopped the watchdog, FALSE if it was already aslept.
+ * @return TRUE if we stopped the watchdog, FALSE if it was already asleep.
  */
 bool
 wd_sleep(watchdog_t *wd)
@@ -284,7 +284,7 @@ wd_sleep(watchdog_t *wd)
  *
  * Does nothing if the watchdog was already asleep.
  *
- * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
+ * @return TRUE if we stopped the watchdog, FALSE if it was already asleep,
  * or trigger was concurrently run, in which case the trigger was not invoked.
  */
 bool
