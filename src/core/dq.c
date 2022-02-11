@@ -1225,7 +1225,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 }
 
 /**
- * Install a new expiration callback.
+ * Install a new expiration callback for results.
  */
 static void
 dq_install_results_expired(dquery_t *dq, int delay)
@@ -1237,6 +1237,60 @@ dq_install_results_expired(dquery_t *dq, int delay)
 }
 
 /**
+ * Install a new expiration callback for the query.
+ */
+static void
+dq_install_query_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+
+	if (dq->expire_ev != NULL)
+		cq_resched(dq->expire_ev, delay);
+	else
+		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
+}
+
+/**
+ * Flag query as lingering.
+ */
+static void
+dq_flag_lingering(dquery_t *dq)
+{
+	dq->flags &= ~DQ_F_WAITING;
+	dq->flags |= DQ_F_LINGER;
+	dq->stop = tm_time();
+}
+
+/**
+ * Asynchronously free query.
+ */
+static void
+dq_async_free(dquery_t *dq)
+{
+	dquery_check(dq);
+
+	/*
+	 * Flagging the query as lingering ensures dq_expired() will
+	 * immediately free the query.
+	 */
+
+	if (0 == (DQ_F_LINGER & dq->flags))
+		dq_flag_lingering(dq);
+
+	/*
+	 * This lets us free the query "later", not within this calling
+	 * stack frame.  It allows code to still refer to the `dq' object
+	 * for a while, within the same calling stack.
+	 *
+	 * That is because gtk-gnutella runs the callout queue in its main
+	 * thread, ensuring the trigger cannot happen until we return to
+	 * the main I/O loop.
+	 */
+
+	dq_install_query_expired(dq, 1);
+}
+
+/**
  * Terminate active querying.
  */
 static void
@@ -1244,6 +1298,7 @@ dq_terminate(dquery_t *dq)
 {
 	int delay;
 
+	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev == NULL);
 
@@ -1257,20 +1312,14 @@ dq_terminate(dquery_t *dq)
 
 	delay = (dq->flags & DQ_F_USR_CANCELLED) ? 1 : DQ_LINGER_TIMEOUT;
 
-	if (dq->expire_ev != NULL)
-		cq_resched(dq->expire_ev, delay);
-	else
-		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
-
-	dq->flags &= ~DQ_F_WAITING;
-	dq->flags |= DQ_F_LINGER;
-	dq->stop = tm_time();
+	dq_flag_lingering(dq);
+	dq_install_query_expired(dq, delay);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ[%s] (%d secs) node #%s lingering: "
+		g_debug("DQ[%s] (%d secs) node #%s lingering (%d ms): "
 			"ttl=%d, queried=%d, horizon=%d, results=%d",
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
-			nid_to_string2(dq->node_id),
+			nid_to_string2(dq->node_id), delay,
 			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
 
@@ -2246,7 +2295,14 @@ dq_node_removed(const struct nid *node_id)
 
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
-		dq_free(dq);
+
+		/*
+		 * Must defer freeing, in case we are called synchronously whilst we are
+		 * within the DQ processing code for this particular object.
+		 * 		--RAM, 2022-02-11
+		 */
+
+		dq_async_free(dq);
 	}
 
 	g_assert(!htable_contains(by_node_id, node_id));
