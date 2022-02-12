@@ -1233,6 +1233,15 @@ dq_install_results_expired(dquery_t *dq, int delay)
 	dquery_check(dq);
 	g_assert(NULL == dq->results_ev);	/* Since we are about to supersede it */
 
+	/*
+	 * If the query has been marked as lingering, then we do not care
+	 * any more about this callback since we are just waiting for results
+	 * to come from already-sent queries, before destroying this dq object.
+	 */
+
+	if G_UNLIKELY(DQ_F_LINGER & dq->flags)
+		return;
+
 	dq->results_ev = cq_main_insert(delay, dq_results_expired, dq);
 }
 
@@ -1274,8 +1283,10 @@ dq_async_free(dquery_t *dq)
 	 * immediately free the query.
 	 */
 
-	if (0 == (DQ_F_LINGER & dq->flags))
+	if (0 == (DQ_F_LINGER & dq->flags)) {
+		cq_cancel(&dq->results_ev);
 		dq_flag_lingering(dq);
+	}
 
 	/*
 	 * This lets us free the query "later", not within this calling
