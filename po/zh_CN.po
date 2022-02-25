@@ -7443,8 +7443,8 @@ msgstr "最大"
 msgid "Measured HTTP latency:"
 msgstr ""
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "通过 irc.freenode.net 上的 #gtk-gnutella 聊天室直接交流。"
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "通过 irc.libera.chat 上的 #gtk-gnutella 聊天室直接交流。"
 
 msgid "Min/Max:"
 msgstr "最小/最大："
@@ -8603,7 +8603,7 @@ msgstr "删除过滤器(_R)"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "通过 irc.freenode.net 上的 #gtk-gnutella 聊天室直接交流。"
+msgstr "通过 irc.libera.chat 上的 #gtk-gnutella 聊天室直接交流。"
 
 #, fuzzy
 msgid ""

@@ -7428,7 +7428,7 @@ msgstr "Максимум"
 msgid "Measured HTTP latency:"
 msgstr ""
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
 msgstr ""
 
 msgid "Min/Max:"

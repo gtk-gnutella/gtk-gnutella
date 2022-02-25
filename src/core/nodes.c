@@ -1001,6 +1001,8 @@ node_slow_timer(time_t now)
 		PSLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
 			if (NODE_IS_ULTRA(n) && (n->attrs & NODE_A_CAN_VENDOR)) {
 				candidates = pslist_prepend(candidates, n);
 				count++;
@@ -1904,7 +1906,9 @@ node_set_socket_rx_size(int rx_size)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
-		if (n->socket) {
+		node_check(n);
+
+		if (n->socket != NULL) {
 			socket_check(n->socket);
 			socket_recv_buf(n->socket, rx_size, TRUE);
 		}
@@ -2650,6 +2654,8 @@ node_avoid_monopoly(gnutella_node_t *n)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *node = sl->data;
 
+		node_check(node);
+
 		if (node->status != GTA_NODE_CONNECTED || node->vendor == NULL)
 			continue;
 
@@ -3312,6 +3318,8 @@ node_is_connected(const host_addr_t addr, uint16 port, bool incoming)
         PSLIST_FOREACH(sl_nodes, sl) {
             const gnutella_node_t *n = sl->data;
 
+			node_check(n);
+
             if (
 				n->status != GTA_NODE_REMOVING &&
 				n->status != GTA_NODE_SHUTDOWN &&
@@ -3515,6 +3523,8 @@ node_crawler_headers(gnutella_node_t *n)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
 
 		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
@@ -3820,6 +3830,8 @@ node_became_firewalled(void)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (socket_listen_port() && sent < 10 && n->attrs & NODE_A_CAN_VENDOR) {
 			vmsg_send_tcp_connect_back(n, socket_listen_port());
 			sent++;
@@ -3857,6 +3869,8 @@ node_became_udp_firewalled(void)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (0 == (n->attrs & NODE_A_CAN_VENDOR))
 			continue;
@@ -5478,6 +5492,8 @@ node_set_online_mode(bool on)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (n->status == GTA_NODE_REMOVING)
 			continue;
@@ -9137,8 +9153,11 @@ node_patch_push_fw2fw(gnutella_node_t *n)
  * @attention
  * NB: callers of this routine must not use the node structure upon return,
  * since we may invalidate that node during the processing.
+ *
+ * @return TRUE if OK, FALSE if we BYE-ed the node (in which case the node
+ * pointer became invalid if we removed the node already).
  */
-static void
+static bool
 node_parse(gnutella_node_t *n)
 {
 	bool drop = FALSE;
@@ -9149,7 +9168,7 @@ node_parse(gnutella_node_t *n)
 	int results = 0;						/* # of results in query hits */
 	search_request_info_t *sri = NULL;
 
-	g_return_if_fail(n != NULL);
+	node_check(n);
 	g_assert(NODE_IS_CONNECTED(n));
 
 	dest.type = ROUTE_NONE;
@@ -9197,7 +9216,7 @@ node_parse(gnutella_node_t *n)
 	if (NODE_IS_LEAF(n) && gnutella_header_get_hops(&n->header) > 0) {
 		node_bye_if_writable(n, 414, "Leaf node relayed %s",
 			gmsg_name(gnutella_header_get_function(&n->header)));
-		return;
+		return FALSE;
 	}
 
 	/* First some simple checks */
@@ -9380,7 +9399,7 @@ node_parse(gnutella_node_t *n)
 	if (G_UNLIKELY(in_shutdown)) {
 		if (GTA_MSG_BYE == gnutella_header_get_function(&n->header)) {
 			node_got_bye(n);
-			return;
+			return TRUE;
 		}
 		goto reset_header;
 	}
@@ -9412,7 +9431,7 @@ node_parse(gnutella_node_t *n)
 	switch (gnutella_header_get_function(&n->header)) {
 	case GTA_MSG_BYE:				/* Good bye! */
 		node_got_bye(n);
-		return;
+		return TRUE;
 	case GTA_MSG_INIT:				/* Ping */
 		pcache_ping_received(n);
 		goto reset_header;
@@ -9434,7 +9453,7 @@ node_parse(gnutella_node_t *n)
 		if (n->qrt_receive != NULL) {
 			bool done;
 			if (!qrt_receive_next(n->qrt_receive, &done))
-				return;				/* Node BYE-ed */
+				return FALSE;		/* Node BYE-ed */
 			if (done) {
 				qrt_receive_free(n->qrt_receive);
 				n->qrt_receive = NULL;
@@ -9710,6 +9729,8 @@ clean_dest:
 	search_request_info_free_null(&sri);
 	if (dest.type == ROUTE_MULTI)
 		pslist_free(dest.ur.u_nodes);
+
+	return TRUE;
 }
 
 static void
@@ -9925,7 +9946,8 @@ proceed:
 		}
 	}
 
-	node_parse(n);
+	if (!node_parse(n))
+		return;
 
 	g_assert(n->status == GTA_NODE_CONNECTED && NODE_IS_READABLE(n));
 }
@@ -10667,6 +10689,8 @@ node_read(gnutella_node_t *n, pmsg_t *mb)
 {
 	int r;
 
+	node_check(n);
+
 	if (!n->have_header) {		/* We haven't got the header yet */
 		char *w = (char *) &n->header;
 		bool kick = FALSE;
@@ -10734,8 +10758,9 @@ node_read(gnutella_node_t *n, pmsg_t *mb)
 		/* If the message doesn't have any data, we process it now */
 
 		if (!n->size) {
-			node_parse(n);
-			return TRUE;		/* There may be more to come */
+			if (node_parse(n))
+				return TRUE;		/* There may be more to come */
+			return FALSE;			/* We BYE-ed the node */
 		}
 
 		/* Check whether the message is not too big */
@@ -10828,9 +10853,9 @@ node_read(gnutella_node_t *n, pmsg_t *mb)
 
 	gnet_stats_count_received_payload(n, n->data);
 
-	node_parse(n);
-
-	return TRUE;		/* There may be more data */
+	if (node_parse(n))
+		return TRUE;	/* There may be more data */
+	return FALSE;		/* We BYE-ed the node */
 
 bad_size:
 	gnet_stats_count_dropped_nosize(n, MSG_DROP_WAY_TOO_LARGE);
@@ -11084,9 +11109,6 @@ node_g2_data_ind(rxdrv_t *rx, pmsg_t *mb)
 
 /**
  * Called when a node sends a message with TTL=0.
- *
- * @return TRUE if node was removed (due to a duplicate bye, probably),
- * FALSE otherwise.
  */
 void
 node_sent_ttl0(gnutella_node_t *n)
@@ -11120,6 +11142,8 @@ node_bye_flags(uint32 mask, int code, const char *message)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
 			continue;
 
@@ -11139,6 +11163,8 @@ node_bye_all_but_one(gnutella_node_t *nskip,
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (n->status == GTA_NODE_REMOVING || n->status == GTA_NODE_SHUTDOWN)
 			continue;
@@ -11186,6 +11212,8 @@ node_bye_all(bool all)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		/*
 		 * Servent is shutdowning, cancel all pending events.
@@ -11257,6 +11285,8 @@ node_remove_useless_leaf(bool *is_gtkg)
 		gnutella_node_t *n = sl->data;
 		time_t target = (time_t) -1;
 		time_delta_t diff;
+
+		node_check(n);
 
         if (n->status != GTA_NODE_CONNECTED)
             continue;
@@ -11367,6 +11397,8 @@ node_remove_useless_ultra(bool *is_gtkg)
 		qrt_info_t *qi;
 		int diff;
 
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11472,6 +11504,8 @@ node_remove_uncompressed_ultra(bool *is_gtkg)
 	PSLIST_FOREACH(sl_up_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11521,6 +11555,9 @@ node_remove_worst(bool non_local)
     /* Make list of "worst" based on number of "weird" packets. */
 	PSLIST_FOREACH(sl_nodes, sl) {
         n = sl->data;
+
+		node_check(n);
+
         if (n->status != GTA_NODE_CONNECTED)
             continue;
 
@@ -11781,6 +11818,9 @@ node_qrt_changed(struct routing_table *query_table)
 	if (settings_is_leaf()) {
 		PSLIST_FOREACH(sl_nodes, sl) {
 			gnutella_node_t *n = sl->data;
+
+			node_check(n);
+
 			if (n->qrt_update != NULL) {
 				qrt_update_free(n->qrt_update);
 				n->qrt_update = NULL;
@@ -13031,6 +13071,8 @@ node_proxy_cancel_all(void)
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		if (is_host_addr(n->proxy_addr)) {
 			if (NODE_IS_WRITABLE(n))
 				vmsg_send_proxy_cancel(n);
@@ -13685,6 +13727,8 @@ node_crawl(gnutella_node_t *n, int ucnt, int lcnt, uint8 features)
 		gnutella_node_t *cn = sl->data;
 		host_addr_t ha;
 
+		node_check(cn);
+
 		if (!NODE_IS_ESTABLISHED(cn))
 			continue;
 
@@ -14042,6 +14086,8 @@ node_kill_hostiles(void)
 
 	PSLIST_FOREACH(sl_nodes, sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (0 == (NODE_F_FORCE & n->flags) && hostiles_is_bad(n->addr)) {
 			to_remove = pslist_prepend(to_remove, n);

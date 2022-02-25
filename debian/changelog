@@ -1,3 +1,9 @@
+gtk-gnutella (1.2.2-1) unstable; urgency=high
+
+  * New upstream release with major bug fixes.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Fri, 25 Feb 2022 07:32:37 +0000
+
 gtk-gnutella (1.2.1-1) unstable; urgency=high
 
   * New upstream release with important bug fixes.

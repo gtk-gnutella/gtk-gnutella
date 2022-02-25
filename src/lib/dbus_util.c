@@ -44,6 +44,7 @@
 #include "hstrfn.h"			/* For h_strdup() */
 #include "log.h"
 #include "misc.h"			/* For str_chomp() */
+#include "utf8.h"
 
 #include "override.h"		/* Must be last header included */
 
@@ -120,6 +121,20 @@ dbus_util_send_message(const char *signal_name, const char *text)
 	 */
 	if (NULL == bus)
 		return;
+
+	/*
+	 * We need to have a valid UTF-8 string or the D-Bus library can
+	 * crash whilst attempting to decode the text.  We don't attempt
+	 * to "fix" bad UTF-8, we simply ignore it and loudly log it.
+	 * 		--RAM, 2022-01-25
+	 */
+
+	if (!utf8_is_valid_string(text)) {
+		s_carp("%s(): invalid text (not valid UTF-8): cannot send signal %s %s",
+			G_STRFUNC, signal_name, text);
+		return;
+	}
+
 
 	/* Create a new message on the DBUS_INTERFACE */
 	message = dbus_message_new_signal(DBUS_PATH, DBUS_INTERFACE, signal_name);

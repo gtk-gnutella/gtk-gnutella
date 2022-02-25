@@ -10189,7 +10189,7 @@ create_dlg_about (void)
   gtk_widget_show (label717);
   gtk_box_pack_start (GTK_BOX (vbox133), label717, FALSE, FALSE, 0);
 
-  label718 = gtk_label_new (_("Meet us on #gtk-gnutella at irc.freenode.net."));
+  label718 = gtk_label_new (_("Meet us on #gtk-gnutella at irc.libera.chat."));
   gtk_widget_set_name (label718, "label718");
   gtk_widget_ref (label718);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label718", label718,

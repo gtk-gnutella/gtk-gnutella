@@ -1073,6 +1073,8 @@ dq_expired(cqueue_t *cq, void *obj)
 	dq_terminate(dq);
 }
 
+static void dq_install_results_expired(dquery_t *dq, int delay);
+
 /**
  * Callout queue callback invoked when the result timer has expired.
  */
@@ -1219,7 +1221,84 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		g_debug("DQ[%s] status reply timeout set to %d s",
 			nid_to_string(&dq->qid), timeout / 1000);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
+}
+
+/**
+ * Install a new expiration callback for results.
+ */
+static void
+dq_install_results_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+	g_assert(NULL == dq->results_ev);	/* Since we are about to supersede it */
+
+	/*
+	 * If the query has been marked as lingering, then we do not care
+	 * any more about this callback since we are just waiting for results
+	 * to come from already-sent queries, before destroying this dq object.
+	 */
+
+	if G_UNLIKELY(DQ_F_LINGER & dq->flags)
+		return;
+
+	dq->results_ev = cq_main_insert(delay, dq_results_expired, dq);
+}
+
+/**
+ * Install a new expiration callback for the query.
+ */
+static void
+dq_install_query_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+
+	if (dq->expire_ev != NULL)
+		cq_resched(dq->expire_ev, delay);
+	else
+		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
+}
+
+/**
+ * Flag query as lingering.
+ */
+static void
+dq_flag_lingering(dquery_t *dq)
+{
+	dq->flags &= ~DQ_F_WAITING;
+	dq->flags |= DQ_F_LINGER;
+	dq->stop = tm_time();
+}
+
+/**
+ * Asynchronously free query.
+ */
+static void
+dq_async_free(dquery_t *dq)
+{
+	dquery_check(dq);
+
+	/*
+	 * Flagging the query as lingering ensures dq_expired() will
+	 * immediately free the query.
+	 */
+
+	if (0 == (DQ_F_LINGER & dq->flags)) {
+		cq_cancel(&dq->results_ev);
+		dq_flag_lingering(dq);
+	}
+
+	/*
+	 * This lets us free the query "later", not within this calling
+	 * stack frame.  It allows code to still refer to the `dq' object
+	 * for a while, within the same calling stack.
+	 *
+	 * That is because gtk-gnutella runs the callout queue in its main
+	 * thread, ensuring the trigger cannot happen until we return to
+	 * the main I/O loop.
+	 */
+
+	dq_install_query_expired(dq, 1);
 }
 
 /**
@@ -1230,6 +1309,7 @@ dq_terminate(dquery_t *dq)
 {
 	int delay;
 
+	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev == NULL);
 
@@ -1243,20 +1323,14 @@ dq_terminate(dquery_t *dq)
 
 	delay = (dq->flags & DQ_F_USR_CANCELLED) ? 1 : DQ_LINGER_TIMEOUT;
 
-	if (dq->expire_ev != NULL)
-		cq_resched(dq->expire_ev, delay);
-	else
-		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
-
-	dq->flags &= ~DQ_F_WAITING;
-	dq->flags |= DQ_F_LINGER;
-	dq->stop = tm_time();
+	dq_flag_lingering(dq);
+	dq_install_query_expired(dq, delay);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ[%s] (%d secs) node #%s lingering: "
+		g_debug("DQ[%s] (%d secs) node #%s lingering (%d ms): "
 			"ttl=%d, queried=%d, horizon=%d, results=%d",
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
-			nid_to_string2(dq->node_id),
+			nid_to_string2(dq->node_id), delay,
 			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
 
@@ -1482,8 +1556,8 @@ dq_send_next(dquery_t *dq)
 		if (GNET_PROPERTY(dq_debug) > 19)
 			g_debug("DQ[%s] waiting for %u ms (pending=%u)",
 				nid_to_string(&dq->qid), dq->result_timeout, dq->pending);
-		dq->results_ev = cq_main_insert(
-			dq->result_timeout, dq_results_expired, dq);
+
+		dq_install_results_expired(dq, dq->result_timeout);
 		return;
 	}
 
@@ -1603,7 +1677,7 @@ dq_send_next(dquery_t *dq)
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
 			timeout, dq->pending);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
 	return;
 
 terminate:
@@ -1681,9 +1755,8 @@ dq_send_probe(dquery_t *dq)
 	 * assse how popular the query is.
 	 */
 
-	dq->results_ev = cq_main_insert(
-		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout),
-		dq_results_expired, dq);
+	dq_install_results_expired(dq,
+		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout));
 
 cleanup:
 	WFREE_ARRAY(nv, ncount);
@@ -2233,7 +2306,14 @@ dq_node_removed(const struct nid *node_id)
 
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
-		dq_free(dq);
+
+		/*
+		 * Must defer freeing, in case we are called synchronously whilst we are
+		 * within the DQ processing code for this particular object.
+		 * 		--RAM, 2022-02-11
+		 */
+
+		dq_async_free(dq);
 	}
 
 	g_assert(!htable_contains(by_node_id, node_id));

@@ -1,3 +1,48 @@
+# v 1.2.2  2022-02-25  [stable]
+
+This is a maintenance release with major bug fixes.
+
+There were several shortcomings with bandwidth management: capping was not
+performed correctly and could overuse uploading bandwidth. Also when the DHT
+is turned off or on, we need to recompute proper bandwidth stealing.
+
+Corruption of the DHT disk databases could also lead to a crash.
+
+There was a critical old bug in the Dynamic Querying layer that affected
+Ultrapeers mostly: we could corrupt memory and/or crash when the current node
+was removed and we were processing a Dynamic Query for that node.  This is
+more likely to happen when running as an Ultrapeer but it could also affect
+nodes running as leaves, although the probability of that bug happening is
+much less in that case.
+
+Finally, it is best to not iterate on a global list that could get changed
+due to a node removal.  This was the case when sending pongs to neighbouring
+nodes, so we now take a private copy.
+
+Improvements:
+- Extended "props" shell command with -e (exact) and -i (ignore missing).
+- The "props" command now takes a set of properties, handled as one batch.
+
+Bug Fixes:
+- Properly recompute bandwidth stealing on DHT changes.
+- Avoid crashing in D-Bus lib when filename is improperly UTF-8 encoded.
+- DHT: protect against corrupted database.
+- bw_available(): fix invalid logic for I/O source capping.
+- pong_all_neighbours_but_one(): iterate on local list.
+- dq_node_removed(): must free dq object asynchronously.
+
+Under the Hood:
+- Update IRC network information: moved from freenode to libera.chat
+- Chunk size limiting for uploads accounts for bandwidth.
+- Reduce memory footprint for statx_t if no data kept.
+- CQ: defer freeing of dispatched event.
+- watchdog: be more verbose within critical messages.
+- node_parse(): signal to callers when we have BYE-ed the node.
+- cq_event_called(): use better diagnostic on assert failure.
+- dbus_util_send_message(): protect against invalid text.
+- prepare_entry(): ensure entry invariant remains true.
+- wd_expire(): do nothing if watchdog was asleep.
+
 # v 1.2.1  2021-07-12  [stable]
 
 This is a maintenance release with minor bug fixes.
@@ -21,7 +66,7 @@ to store the data.
 Add properties to track bytes exchanged by schedulers.  These properties
 track the amount of bytes exchanged by session and are reset to 0 whenever
 a new user session starts.  It allows users to see the actual amount of
-data consumed by running gtk-gnutella sessions, programatically via the
+data consumed by running gtk-gnutella sessions, programmatically via the
 shell interface.
 
 Add -t switch to shell "status" command: this displays the total amount

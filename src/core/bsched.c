@@ -389,6 +389,9 @@ bsched_reset_stealers(bsched_t *bs)
 static void G_COLD
 bsched_dht_cross_stealing(void)
 {
+	if (!GNET_PROPERTY(enable_dht))
+		return;
+
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
 	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GOUT_UDP);
 }
@@ -396,7 +399,7 @@ bsched_dht_cross_stealing(void)
 /**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_http_gnet(void)
 {
 	pslist_t *iter;
@@ -446,7 +449,7 @@ bsched_config_steal_http_gnet(void)
 /**
  * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_gnet(void)
 {
 	pslist_t *iter;
@@ -461,6 +464,18 @@ bsched_config_steal_gnet(void)
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_GOUT);
 
 	bsched_dht_cross_stealing();
+}
+
+/**
+ * Configure bandwidth stealing.
+ */
+void G_COLD
+bsched_config_stealing(void)
+{
+	if (GNET_PROPERTY(bw_allow_stealing))
+		bsched_config_steal_http_gnet();
+	else
+		bsched_config_steal_gnet();
 }
 
 /**
@@ -851,7 +866,6 @@ static void
 bio_disable(bio_source_t *bio)
 {
 	bio_check(bio);
-	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
@@ -1368,7 +1382,10 @@ bw_available(bio_source_t *bio, int len)
 	 * disable source to avoid it triggering again.
 	 */
 
-	if (0 != bio->bw_cap && bio->bw_actual >= (int64) bio->bw_cap) {
+	if (
+		0 != bio->bw_cap && bio->io_tag &&
+		bio->bw_actual >= (int64) bio->bw_cap
+	) {
 		bio_disable(bio);
 		return 0;
 	}
@@ -1431,8 +1448,8 @@ bw_available(bio_source_t *bio, int len)
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
 		g_debug("BSCHED %s: "
-			"[fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
-			G_STRFUNC, bio->wio->fd(bio->wio),
+			"\"%s\" [fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
 			int64_to_string(bs->bw_max),
 			int64_to_string2(bs->bw_stolen),
 			int64_to_string3(bs->bw_actual),
@@ -1638,7 +1655,14 @@ bw_available(bio_source_t *bio, int len)
 		if (remain <= 0)
 			result = 0;
 		else
-			result = remain;
+			result = MIN(result, remain);
+
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"bw_cap=%u, bw_actual=%s => result=%s",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio), bio->bw_cap,
+				int64_to_string(bio->bw_actual), int64_to_string2(result));
+		}
 
 		if (0 == result)
 			bio_disable(bio);		/* Avoid further triggering this timeslice */
@@ -1653,8 +1677,26 @@ bw_available(bio_source_t *bio, int len)
 	 * enough" during the period.
 	 */
 
-	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap)
+	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap) {
 		bs->bw_capped += len - result;
+
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"adding %s to bw_capped (now at %s)",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+				int64_to_string(len - result),
+				int64_to_string2(bs->bw_capped));
+		}
+	}
+
+	/* All computations now done, trace result if debugging */
+
+	if (GNET_PROPERTY(bsched_debug) > 5) {
+		g_debug("BSCHED %s: "
+			"\"%s\" [fd #%d] len=%d => returning %s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+			len, int64_to_string(result));
+	}
 
 	/*
 	 * Since bandwidth computations are now done in 64-bit values but we can
@@ -2009,9 +2051,11 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -2182,11 +2226,13 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		return -1;
 	}
 
-	amount = len > available ? available : len;
+	amount = MIN(len, available);
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 #if defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 	{
@@ -2319,10 +2365,13 @@ bio_read(bio_source_t *bio, void *data, size_t len)
 		return -1;
 	}
 
-	amount = len > available ? available : len;
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	amount = MIN(len, available);
+
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -2420,9 +2469,11 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);

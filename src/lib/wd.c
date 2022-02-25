@@ -100,8 +100,10 @@ wd_trigger(watchdog_t *wd)
 	WD_UNLOCK(wd);
 
 	if (!run) {
-		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
-			G_STRFUNC,  wd_name(wd));
+		s_critical("%s(): "
+			"watchdog \"%s\" was already running trigger %s(%p) -- skipped",
+			G_STRFUNC,  wd_name(wd),
+			stacktrace_function_name(wd->trigger), wd->arg);
 		return;
 	}
 
@@ -260,7 +262,7 @@ wd_wakeup(watchdog_t *wd)
 /**
  * Put the watchdog to sleep.
  *
- * @return TRUE if we stopped the watchdog, FALSE if it was already aslept.
+ * @return TRUE if we stopped the watchdog, FALSE if it was already asleep.
  */
 bool
 wd_sleep(watchdog_t *wd)
@@ -277,30 +279,36 @@ wd_sleep(watchdog_t *wd)
 }
 
 /**
- * Trigger callback and then put the watchdog to sleep, ignoring any desire
- * from the callback to re-arm the watchdog.
+ * If the watchdog was awoken, trigger callback and then put the watchdog to sleep,
+ * ignoring any desire from the callback to re-arm the watchdog.
  *
- * @return TRUE if we stopped the watchdog, FALSE if it was already aslept,
+ * Does nothing if the watchdog was already asleep.
+ *
+ * @return TRUE if we stopped the watchdog, FALSE if it was already asleep,
  * or trigger was concurrently run, in which case the trigger was not invoked.
  */
 bool
 wd_expire(watchdog_t *wd)
 {
-	bool run = TRUE;
+	bool run = TRUE, ignore = FALSE;
 	watchdog_check(wd);
 
 	WD_LOCK(wd);
 	if (wd->triggering) {
 		run = FALSE;
 	} else {
-		if (cq_cancel(&wd->ev))
+		if (NULL == wd->ev)
+			ignore = TRUE;
+		else if (cq_cancel(&wd->ev))
 			run = FALSE;
 		else
 			wd->triggering = TRUE;
 	}
 	WD_UNLOCK(wd);
 
-	if (run) {
+	if (ignore) {
+		run = FALSE;	/* Nothing to do, nothing run */
+	} else if (run) {
 		(*wd->trigger)(wd, wd->arg);
 
 		WD_LOCK(wd);
@@ -314,8 +322,10 @@ wd_expire(watchdog_t *wd)
 		}
 		WD_UNLOCK(wd);
 	} else {
-		s_critical("%s(): watchdog \"%s\" was already running trigger, skipped",
-			G_STRFUNC,  wd_name(wd));
+		s_critical("%s(): "
+			"watchdog \"%s\" was already running trigger %s(%p) -- skipped",
+			G_STRFUNC,  wd_name(wd),
+			stacktrace_function_name(wd->trigger), wd->arg);
 	}
 
 	return run;

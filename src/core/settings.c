@@ -1888,6 +1888,8 @@ enable_dht_changed(property_t prop)
 		dht_close(FALSE);
 	}
 
+	bsched_config_stealing();
+
 	return FALSE;
 }
 
@@ -1900,7 +1902,7 @@ enable_g2_changed(property_t prop)
 	node_update_g2(enabled);
 
 	/*
-	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * As soon as either GUESS or G2 querying is enabled, we have to start
 	 * the GUESS layer.
 	 */
 
@@ -2676,12 +2678,10 @@ bw_dht_out_changed(property_t prop)
 }
 
 static void
-bw_allow_stealing_set(bool val)
+bw_allow_stealing_set(bool unused_val)
 {
-	if (val)
-		bsched_config_steal_http_gnet();
-	else
-		bsched_config_steal_gnet();
+	(void) unused_val;
+	bsched_config_stealing();
 }
 
 static void

@@ -7948,8 +7948,8 @@ msgstr "Høyst"
 msgid "Measured HTTP latency:"
 msgstr "Målt HTTP-ventetid:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Møt oss i «#gtk-gnutella» på «irc.freenode.net»."
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Møt oss i «#gtk-gnutella» på «irc.libera.chat»."
 
 msgid "Min/Max:"
 msgstr "Min/Maks:"
@@ -9162,7 +9162,7 @@ msgstr "Fje_rn filter"
 
 #, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Møt oss i «#gtk-gnutella» på «irc.freenode.net»."
+msgstr "Møt oss i «#gtk-gnutella» på «irc.libera.chat»."
 
 #, fuzzy
 msgid ""
