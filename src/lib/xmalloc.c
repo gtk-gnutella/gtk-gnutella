@@ -3686,7 +3686,7 @@ xmalloc_chunk_tag(const struct xchunk *xck)
 	 *
 	 * 		xc_size <= XM_THREAD_MAXSIZE (512)
 	 * 		xc_stid < THREAD_MAX (64)
-	 *		xc_capacity <= xmalloc_pagesize / 8 = 512
+	 *		xc_capacity <= xmalloc_pagesize / 8 = 512 (for 4K-pages)
 	 *
 	 * This makes the tag we compute below completely unique for a valid chunk,
 	 * with no collision possible.
@@ -3735,7 +3735,7 @@ xmalloc_chunk_is_valid(const struct xchunk *xck)
 			(xck->xc_size <= XM_THREAD_MAXSIZE) +
 			(xck->xc_size != 0) +
 			(xmalloc_round(xck->xc_size) == xck->xc_size) +
-			(xck->xc_capacity < xmalloc_pagesize / XMALLOC_ALIGNBYTES)	/* xmalloc_pagesize = page size */
+			(xck->xc_capacity < xmalloc_pagesize / XMALLOC_ALIGNBYTES)
 		) &&
 		xmalloc_chunk_tag(xck) == xck->xc_tag &&
 		xmalloc_chunk_checksum(xck) == xck->xc_cksum;
