@@ -1812,8 +1812,11 @@ socket_tls_upgrade(gnutella_socket_t *s, notify_fn_t cb, void *arg)
 	 * to terminate the handshaking synchronously!
 	 */
 
-	if (0 == socket_tls_setup(s))
-		g_error("%s(): synchronous TLS upgrade deemed impossible", G_STRFUNC);
+	if (0 == socket_tls_setup(s)) {
+		/* Something wrong is going on */
+		s_critical("%s(): synchronous TLS upgrade deemed impossible", G_STRFUNC);
+		goto failure;
+	}
 
 	if (!is_temporary_error(errno))
 		goto failure;
