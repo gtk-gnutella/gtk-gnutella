@@ -175,6 +175,7 @@ void search_gui_current_search_refresh(void);
 
 void search_gui_ref_record(record_t *);
 void search_gui_unref_record(record_t *);
+const char *search_gui_get_address(const struct results_set *);
 const char *search_gui_get_route(const struct results_set *);
 const char *search_gui_get_filename_extension(const char *filename_utf8);
 void search_gui_set_sort_defaults(void);

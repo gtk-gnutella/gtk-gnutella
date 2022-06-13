@@ -132,6 +132,7 @@ enum c_fi {
  */
 
 enum c_sr_columns {
+    c_sr_address,
     c_sr_filename,
 	c_sr_ext,
     c_sr_charset,

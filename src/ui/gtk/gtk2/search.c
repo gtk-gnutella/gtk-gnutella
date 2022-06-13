@@ -194,6 +194,9 @@ cell_renderer(GtkTreeViewColumn *column, GtkCellRenderer *cell,
     rs = data->record->results_set;
 
 	switch (id) {
+	case c_sr_address:
+		text = search_gui_get_address(rs);
+		break;
 	case c_sr_filename:
 		text = data->record->utf8_name;
 		break;
@@ -618,6 +621,14 @@ search_gui_init_tree(search_t *sch)
 		(-1));
 }
 
+static int
+search_gui_cmp_address(const struct result_data *a, const struct result_data *b)
+{
+
+	return host_addr_cmp(a->record->results_set->addr,
+				b->record->results_set->addr);
+}
+
 static inline int
 search_gui_cmp_strings(const char *a, const char *b)
 {
@@ -766,6 +777,7 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 	a = get_result_data(model, iter1);
 	b = get_result_data(model, iter2);
 	switch (column) {
+	case c_sr_address:	ret = search_gui_cmp_address(a, b); break;
 	case c_sr_filename: ret = search_gui_cmp_filename(a, b); break;
 	case c_sr_ext:		ret = search_gui_cmp_ext(a, b); break;
 	case c_sr_mime:		ret = search_gui_cmp_mime(a, b); break;
