@@ -5607,7 +5607,7 @@ parq_close_pre(void)
 	 * First locate all queued items (dead or alive). And place them in the
 	 * 'to be removed' list.
 	 */
-	for (queues = ul_parqs; queues != NULL; queues = queues->next) {
+	PLIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *queue = queues->data;
 
 		PLIST_FOREACH(queue->by_position, dl) {
