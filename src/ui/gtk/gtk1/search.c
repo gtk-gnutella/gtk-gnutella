@@ -308,6 +308,10 @@ search_gui_compare_records(gint sort_col,
         g_assert(rs2 != NULL);
 
         switch ((enum c_sr_columns) sort_col) {
+        case c_sr_address:
+			result = host_addr_cmp(rs1->addr, rs2->addr);
+			break;
+
         case c_sr_filename:
 			if (GUI_PROPERTY(search_sort_casesense)) {
             	result = strcmp(r1->utf8_name, r2->utf8_name);
@@ -1008,6 +1012,9 @@ search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 			const gchar *text = empty;
 
 			switch ((enum c_sr_columns) i) {
+	 		case c_sr_address:
+				text = search_gui_get_address(rs);
+				break;
 			case c_sr_filename:
 				text = lazy_utf8_to_ui_string(rc->utf8_name);
 				break;
