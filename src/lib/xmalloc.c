@@ -3867,6 +3867,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	struct xchunk *xck;
 	unsigned capacity, offset;
 
+	g_assert(xmalloc_round(ch->blocksize) == ch->blocksize);
+
 	/*
 	 * Each allocated thread-specific chunk looks like this:
 	 *
@@ -3892,6 +3894,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 
 	capacity = (xmalloc_pagesize - sizeof *xck) / ch->blocksize;
 	offset = xmalloc_pagesize - capacity * ch->blocksize;
+
+	g_assert(capacity < xmalloc_pagesize / XMALLOC_ALIGNBYTES);
 
 	/*
 	 * Try to allocate from the page pool if available.
