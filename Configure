@@ -326,6 +326,7 @@ d_built_bswap64=''
 d_built_clz=''
 d_built_ctz=''
 d_built_popcount=''
+d_popcount=''
 d_bzero=''
 d_clearenv=''
 d_clock_getres=''
@@ -5013,6 +5014,20 @@ int main(void)
 EOC
 cyn=__builtin_popcount
 set d_built_popcount
+eval $trylink
+
+: check for popcount
+$cat >try.c <<EOC
+#include <strings.h>
+int main(void)
+{
+	static int ret;
+	ret |= popcount(127);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=popcount
+set d_popcount
 eval $trylink
 
 : see if bzero exists
@@ -11567,6 +11582,7 @@ d_built_bswap64='$d_built_bswap64'
 d_built_clz='$d_built_clz'
 d_built_ctz='$d_built_ctz'
 d_built_popcount='$d_built_popcount'
+d_popcount='$d_popcount'
 d_bzero='$d_bzero'
 d_can64='$d_can64'
 d_clearenv='$d_clearenv'

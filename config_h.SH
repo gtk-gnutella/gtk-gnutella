@@ -211,6 +211,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_built_popcount HAS_BUILTIN_POPCOUNT	/**/
 
+/* HAS_POPCOUNT:
+ *	This symbol, if defined, indicates that popcount routine is
+ *	available to compute the amount of '1' bits in a word.
+ */
+#$d_popcount HAS_POPCOUNT	/**/
+
 /* HAS_BZERO:
  *	This symbol is defined if the bzero() routine is available to
  *	set a memory block to 0.
