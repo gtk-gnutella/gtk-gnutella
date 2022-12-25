@@ -81,7 +81,7 @@ bogons_load(FILE *f)
 		bogons_mtime = buf.st_mtime;
 	}
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		linenum++;
 
 		/*

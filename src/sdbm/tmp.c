@@ -219,7 +219,7 @@ tmp_clean_entries(int *fd, const char *ext, const DBM *db, const char *caller)
 	eslist_init(&items, offsetof(struct tmp_entry, next));
 	s = str_new(32);
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		char *extension;
 		pid_t pid;
 		struct tmp_entry *item;

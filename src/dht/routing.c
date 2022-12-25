@@ -5376,7 +5376,7 @@ dht_route_parse(FILE *f)
 	bit_array_init(tag_used, NUM_DHT_ROUTE_TAGS);
 	nodes = patricia_create(KUID_RAW_BITSIZE);
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		dht_route_tag_t tag;

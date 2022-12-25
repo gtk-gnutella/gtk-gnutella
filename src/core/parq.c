@@ -5208,7 +5208,7 @@ parq_upload_load_queue(void)
 	entry = zero_entry;
 	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		const char *tag_name, *value;
 		char *colon;
 		bool damaged;

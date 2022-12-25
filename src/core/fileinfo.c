@@ -3206,7 +3206,7 @@ file_info_retrieve(void)
 	if (!f)
 		return;
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		int error;
 		bool truncated = FALSE, damaged;
 		const char *ep;

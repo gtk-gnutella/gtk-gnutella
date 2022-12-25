@@ -199,7 +199,7 @@ spam_sha1_load(FILE *f)
 	spam_lut_create();
 	sha1_lut.state = SPAM_LOADING;
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		const struct sha1 *sha1;
 		size_t len;
 
