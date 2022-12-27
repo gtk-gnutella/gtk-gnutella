@@ -537,6 +537,32 @@ shared_file_deindex(shared_file_t *sf)
 }
 
 /**
+ * Summary of shared file, for tracing.
+ */
+static const char *
+shared_file_to_string(const shared_file_t *sf)
+{
+	str_t *s = str_private(G_STRFUNC, 256);
+
+	if (NULL == sf)
+		return "NULL";
+
+	if (SHARE_REBUILDING == sf)
+		return "SHARE_REBUILDING";
+
+	if (SHARED_FILE_MAGIC != sf->magic)
+		return "invalid: no SHARED_FILE_MAGIC";
+
+	str_printf(s, "%s%s\"%s\"",
+		(sf->flags & SHARE_F_FILEINFO) ? "[fi] " : "",
+		(sf->flags & SHARE_F_INDEXED) ? "[idx] " : "",
+		(NULL == sf->file_path) ? "<null>" : sf->file_path);
+
+	return str_2c(s);
+}
+
+
+/**
  * Dispose of a shared_file_t structure and nullify the pointer.
  */
 static void
@@ -546,13 +572,17 @@ shared_file_free(shared_file_t **sf_ptr)
 	if (*sf_ptr) {
 		shared_file_t *sf = *sf_ptr;
 
-		g_assert(0 == sf->refcnt);
+		g_assert_log(0 == sf->refcnt,
+			"%s(): sf->refcnt=%d for %s",
+			G_STRFUNC, sf->refcnt, shared_file_to_string(sf));
 
 		g_assert_log(0 == (sf->flags & SHARE_F_FILEINFO),
-			"%s(): invoked on file used by a fileinfo", G_STRFUNC);
+			"%s(): invoked on file used by a fileinfo: %s",
+			G_STRFUNC, shared_file_to_string(sf));
 
 		g_assert_log(0 == (sf->flags & SHARE_F_INDEXED),
-			"%s(): invoked on file still indexed", G_STRFUNC);
+			"%s(): invoked on file still indexed: %s",
+			G_STRFUNC, shared_file_to_string(sf));
 
 		atom_sha1_free_null(&sf->sha1);
 		atom_tth_free_null(&sf->tth);
