@@ -15067,7 +15067,7 @@ download_retrieve_old(FILE *f)
 	d_name = NULL;
 	flags = 0;
 
-	while (fgets(ARYLEN(dl_tmp), f)) {
+	while (fgets(dl_tmp, sizeof(dl_tmp), f)) {
 		line++;
 
 		if (!file_line_chomp_tail(ARYLEN(dl_tmp), NULL)) {

@@ -294,7 +294,7 @@ hostiles_load(FILE *f, hostiles_t which)
 
 	hostile_db[which] = iprange_new();
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		linenum++;
 
 		/*

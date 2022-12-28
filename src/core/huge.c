@@ -402,7 +402,7 @@ sha1_read_cache(void)
 		for (;;) {
 			char buffer[4096];
 
-			if (NULL == fgets(ARYLEN(buffer), f))
+			if (NULL == fgets(buffer, sizeof(buffer), f))
 				break;
 
 			if (!file_line_chomp_tail(ARYLEN(buffer), NULL)) {

@@ -165,7 +165,7 @@ sha1_parse(FILE *f, const char *file)
 
 	g_assert(f);
 
-	while (fgets(ARYLEN(ign_tmp), f)) {
+	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
 		line++;
 
 		if (!file_line_chomp_tail(ARYLEN(ign_tmp), &len)) {
@@ -241,7 +241,7 @@ namesize_parse(FILE *f, const char *file)
 
 	g_assert(f);
 
-	while (fgets(ARYLEN(ign_tmp), f)) {
+	while (fgets(ign_tmp, sizeof(ign_tmp), f)) {
 		line++;
 
 		if (!file_line_chomp_tail(ARYLEN(ign_tmp), NULL)) {

@@ -223,7 +223,7 @@ upload_stats_load_history(void)
 		goto done;
 
 	/* parse, insert names into ul_stats_clist */
-	while (fgets(ARYLEN(line), upload_stats_file)) {
+	while (fgets(line, sizeof(line), upload_stats_file)) {
 		static const struct ul_stats zero_item;
 		struct ul_stats item;
 		struct sha1 sha1_buf;

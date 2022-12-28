@@ -339,7 +339,7 @@ whitelist_retrieve(void)
 		return;
 	}
 
-    while (fgets(ARYLEN(line), f)) {
+    while (fgets(line, sizeof(line), f)) {
 		pslist_t *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;

@@ -221,7 +221,7 @@ spam_load(FILE *f)
 	item = zero_item;
 	bit_array_init(tag_used, NUM_SPAM_TAGS);
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		spam_tag_t tag;

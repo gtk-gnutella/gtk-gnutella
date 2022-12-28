@@ -435,7 +435,7 @@ gip_load(FILE *f, unsigned idx, const char *filename, bool initial)
 		gip_source[idx].mtime = buf.st_mtime;
 	}
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		linenum++;
 
 		/*

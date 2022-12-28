@@ -101,7 +101,7 @@ parse_netstat(host_addr_t *addrp)
 	 * output is "default" for the default route.
 	 */
 
-	while (fgets(ARYLEN(tmp), f)) {
+	while (fgets(tmp, sizeof(tmp), f)) {
 		char *p;
 		uint32 ip;
 
