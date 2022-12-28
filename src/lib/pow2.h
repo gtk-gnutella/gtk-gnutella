@@ -62,6 +62,7 @@ is_pow2(uint32 value)
 }
 #endif /* HAS_BUILTIN_POPCOUNT */
 
+#ifndef HAS_POPCOUNT
 /**
  * Populuation count.
  *
@@ -85,6 +86,7 @@ popcount(uint32 x)
 	return (((x + (x >> 4)) & 0xf0f0f0f) * 0x1010101) >> 24;
 }
 #endif	/* HAS_BUILTIN_POPCOUNT */
+#endif	/* HAS_POPCOUNT */
 
 /**
  * Count trailing zeroes in a 32-bit integer, -1 for zero.
@@ -190,7 +192,6 @@ bits_set64(uint64 v)
 		return bits_set32(v);
 	else
 		return bits_set32((uint32) v) + bits_set32(v >> 32);
-	return popcount(v);
 }
 
 #endif /* _pow2_h_ */

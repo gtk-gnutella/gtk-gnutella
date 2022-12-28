@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Sun Jul 12 10:41:08 CEST 2020 [metaconfig 3.5-255]
+# Generated on Wed Dec 28 18:44:06 CET 2022 [metaconfig 3.5-255]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -400,6 +400,7 @@ d_openat=''
 d_pause=''
 d_pipe2=''
 d_poll=''
+d_popcount=''
 d_popen=''
 d_portable=''
 d_posix_fadvise=''
@@ -7429,6 +7430,47 @@ cyn=poll
 set d_poll
 eval $trylink
 
+: see which of string.h or strings.h is needed
+echo " "
+strings=`./findhdr string.h`
+if $test "$strings" && $test -r "$strings"; then
+	echo "Using <string.h> instead of <strings.h>." >&4
+	val="$define"
+else
+	val="$undef"
+	strings=`./findhdr strings.h`
+	if $test "$strings" && $test -r "$strings"; then
+		echo "Using <strings.h> instead of <string.h>." >&4
+	else
+		./warn "No string header found -- You'll surely have problems." 4>&4
+	fi
+fi
+set i_string
+eval $setvar
+case "$i_string" in
+"$undef") strings=`./findhdr strings.h`;;
+*)	  strings=`./findhdr string.h`;;
+esac
+
+: see if popcount exists
+$cat >try.c <<EOC
+#$i_string I_STRING
+#ifdef I_STRING
+#include <string.h>
+#else
+#include <strings.h>
+#endif
+int main(void)
+{
+	static int ret;
+	ret |= popcount(127);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=popcount
+set d_popcount
+eval $trylink
+
 : see if popen exists
 $cat >try.c <<EOC
 #include <stdio.h>
@@ -11032,28 +11074,6 @@ case "$val" in
 esac
 $rm -f varargs*
 
-: see which of string.h or strings.h is needed
-echo " "
-strings=`./findhdr string.h`
-if $test "$strings" && $test -r "$strings"; then
-	echo "Using <string.h> instead of <strings.h>." >&4
-	val="$define"
-else
-	val="$undef"
-	strings=`./findhdr strings.h`
-	if $test "$strings" && $test -r "$strings"; then
-		echo "Using <strings.h> instead of <string.h>." >&4
-	else
-		./warn "No string header found -- You'll surely have problems." 4>&4
-	fi
-fi
-set i_string
-eval $setvar
-case "$i_string" in
-"$undef") strings=`./findhdr strings.h`;;
-*)	  strings=`./findhdr string.h`;;
-esac
-
 : see if this is a sys/ipc system
 set sys/ipc.h i_sysipc
 eval $inhdr
@@ -11656,6 +11676,7 @@ d_pause='$d_pause'
 d_phostname='$d_phostname'
 d_pipe2='$d_pipe2'
 d_poll='$d_poll'
+d_popcount='$d_popcount'
 d_popen='$d_popen'
 d_portable='$d_portable'
 d_posix_fadvise='$d_posix_fadvise'
