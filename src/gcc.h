@@ -179,11 +179,13 @@
  * registers before calling the routine.  However, this can mess up the
  * stack unwinding past these routines.
  */
+#ifndef G_NORETURN
 #if defined(HASATTRIBUTE) && HAS_GCC(2, 4)
 #define G_NORETURN __attribute__((__noreturn__))
 #else
 #define G_NORETURN
 #endif	/* GCC >= 2.4 */
+#endif	/* !defined(G_NORETURN) */
 
 #if defined(HASATTRIBUTE) && HAS_GCC(3, 0)
 #define G_MALLOC __attribute__((__malloc__)) WARN_UNUSED_RESULT
