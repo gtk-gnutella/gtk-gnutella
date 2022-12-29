@@ -2625,6 +2625,15 @@ crash_mode(enum crash_level level, bool external)
 		atomic_mb();
 	} else if (!crash_is_crashing_thread(&stid)) {
 		/*
+		 * If the level is critical enough, we may be stuck
+		 * somewhere and never recover, so disable all locking now.
+		 * 		--RAM, 2022-12-29
+		 */
+
+		if (level >= CRASH_LVL_DEADLOCKED)
+			thread_lock_disable(FALSE);		/* Be loud about it */
+
+		/*
 		 * Ensure we do not endlessly log concurrent calls because for some
 		 * reason there is another cause for calling crash_mode() during
 		 * the processing of s_rawarn() or thread_halt().
