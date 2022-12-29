@@ -160,9 +160,13 @@ getgateway(host_addr_t *addrp)
 #if defined(MINGW32)
 {
 	uint32 ip;
+	static bool warned;
 
 	if (-1 == mingw_getgateway(&ip)) {
-		g_warning("%s(): GetBestRoute() failed: %m", G_STRFUNC);
+		if (!warned) {
+			g_warning("%s(): GetBestRoute() failed: %m", G_STRFUNC);
+			warned = TRUE;
+		}
 		return parse_netstat(addrp);	/* Avoids "unused function" warning */
 	}
 
@@ -185,6 +189,7 @@ getgateway(host_addr_t *addrp)
 	static host_addr_t gw;			/* Previously computed gateway */
 	static time_t gw_time;			/* When it was computed */
 	static spinlock_t gw_slk = SPINLOCK_INIT;
+	static bool warned;
 
 	/*
 	 * This implementation uses the linux netlink interface.
@@ -299,7 +304,10 @@ getgateway(host_addr_t *addrp)
 
 error:
 	fd_close(&fd);
-	g_warning("%s(): netlink failed, using the netstat command", G_STRFUNC);
+	if (!warned) {
+		g_warning("%s(): netlink failed, using the netstat command", G_STRFUNC);
+		warned = TRUE;
+	}
 	return parse_netstat(addrp);
 
 found:
@@ -307,7 +315,7 @@ found:
 	*addrp = gateway;
 
 	/*
-	 * Save compute gateway in case we cannot compute it next time we are
+	 * Save computed gateway in case we cannot compute it next time we are
 	 * called due to the kernel being busy.
 	 */
 
@@ -350,6 +358,7 @@ try_cached:
 	} rtm;
 	struct rt_msghdr * const rt = &rtm.head;
 	char * const payload = rtm.data;
+	static bool warned;
 
 	/*
 	 * This implementation uses the BSD route socket interface.
@@ -452,8 +461,11 @@ got_gateway:
 
 error:
 	fd_close(&fd);
-	g_warning("%s(): route socket failed, using the netstat command",
-		G_STRFUNC);
+	if (!warned) {
+		g_warning("%s(): route socket failed, using the netstat command",
+			G_STRFUNC);
+		warned = TRUE;
+	}
 	return parse_netstat(addrp);
 
 found:
