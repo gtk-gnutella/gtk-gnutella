@@ -985,17 +985,25 @@ entropy_collect_thread(SHA1_context *ctx)
 }
 
 /**
- * Collect entropy from current IP gateway.
+ * Collect entropy from initial IP gateway.
  */
 static void
 entropy_collect_gateway(SHA1_context *ctx)
 {
-	host_addr_t addr;
+	static host_addr_t addr;
+	static bool done;
 
-	ZERO(&addr);
+	/*
+	 * This is for entropy computation, we do not need the accurate current
+	 * IP gateway information, hence cache results, forever.
+	 *		--RAM, 2022-12-29
+	 */
 
-	if (-1 == getgateway(&addr))
-		sha1_feed_errno(ctx);
+	if G_UNLIKELY(!done) {
+		done = TRUE;
+		if (-1 == getgateway(&addr))
+			sha1_feed_errno(ctx);
+	}
 
 	SHA1_INPUT(ctx, addr);
 }
