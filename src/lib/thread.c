@@ -5077,8 +5077,9 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		if (0 == cnt)
 			delayed |= thread_suspend_self(te);
 		else if (thread_in_crash_mode()) {
-			s_rawwarn("suspending %s which holds %zu lock%s",
+			s_rawwarn("suspending %s which holds %zu lock%s:",
 				thread_element_name_raw(te), PLURAL(cnt));
+			thread_lock_dump(te);
 
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 		}
@@ -5452,7 +5453,7 @@ thread_suspend_others(bool lockwait)
 	if (lockwait && busy != 0) {
 		size_t cnt = thread_element_lock_count(te);
 		if (0 != cnt) {
-			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
+			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s:",
 				G_STRFUNC, PLURAL(busy), PLURAL(cnt));
 			thread_lock_dump(te);
 		}
@@ -8190,7 +8191,7 @@ thread_assert_no_locks(const char *routine)
 	size_t cnt = thread_element_lock_count(te);
 
 	if G_UNLIKELY(0 != cnt) {
-		s_warning("%s(): %s currently holds %zu lock%s",
+		s_warning("%s(): %s currently holds %zu lock%s:",
 			routine, thread_element_name(te), PLURAL(cnt));
 		thread_lock_dump(te);
 		s_error("%s() expected no locks, found %zu held", routine, cnt);
