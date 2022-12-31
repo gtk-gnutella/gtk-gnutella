@@ -1018,6 +1018,19 @@ thread_lock_stack_allocate(struct thread_lock_stack *tls, size_t capacity)
 }
 
 /**
+ * Clear a thread lock stack.
+ */
+static void
+thread_lock_stack_clear(struct thread_lock_stack *tls)
+{
+	g_assert(size_is_positive(tls->capacity));
+	g_assert(tls->arena != NULL);
+
+	tls->count = 0;
+	tls->overflow = FALSE;
+}
+
+/**
  * Initialize the lock stack for the thread element.
  */
 static void
@@ -1035,6 +1048,16 @@ thread_lock_stack_init(struct thread_element *te)
 	 */
 
 	thread_lock_stack_allocate(&te->waits, THREAD_LOCK_NESTED);
+}
+
+/**
+ * Reset the lock stacks for the thread element.
+ */
+static void
+thread_lock_stack_reset(struct thread_element *te)
+{
+	thread_lock_stack_clear(&te->locks);
+	thread_lock_stack_clear(&te->waits);
 }
 
 /**
@@ -2212,8 +2235,7 @@ thread_element_reset(struct thread_element *te)
 
 	THREAD_LOCK(te);
 
-	te->locks.count = 0;
-	te->waits.count = 0;
+	thread_lock_stack_reset(te);
 	thread_element_clear_name(te);
 
 #ifdef MINGW32
