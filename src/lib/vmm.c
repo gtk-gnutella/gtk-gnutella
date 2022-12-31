@@ -4871,13 +4871,11 @@ failed:
 static void *
 vmm_alloc_core(size_t size)
 {
-	struct pmap *pm;
-	bool wlock;
+	struct pmap *pm = vmm_pmap();
+	bool wlock = FALSE;
 	size_t n;
 	void *p, *c, *t;
 
-	pm = vmm_pmap();
-	wlock = FALSE;
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
 
