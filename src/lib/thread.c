@@ -652,7 +652,7 @@ static bool thread_main_started;		/* Has user's main thread started? */
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
 
-static void thread_lock_dump(const struct thread_element *te);
+static void thread_lock_dump(const struct thread_element *te, bool details);
 static void thread_exit_internal(void *value, const void *sp) G_NORETURN;
 static void thread_will_exit(void *arg);
 static void thread_crash_hook(void);
@@ -2724,7 +2724,7 @@ thread_common_exit(struct thread_element *te, const void *sp, void *result)
 		size_t cnt = thread_element_lock_count(te);
 		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
 			G_STRFUNC, thread_element_name(te), PLURAL(cnt), lock_count);
-		thread_lock_dump(te);
+		thread_lock_dump(te, TRUE);
 		s_error("thread exiting without clearing its locks");
 	}
 
@@ -5079,7 +5079,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 		else if (thread_in_crash_mode()) {
 			s_rawwarn("suspending %s which holds %zu lock%s:",
 				thread_element_name_raw(te), PLURAL(cnt));
-			thread_lock_dump(te);
+			thread_lock_dump(te, FALSE);
 
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 		}
@@ -5455,7 +5455,7 @@ thread_suspend_others(bool lockwait)
 		if (0 != cnt) {
 			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s:",
 				G_STRFUNC, PLURAL(busy), PLURAL(cnt));
-			thread_lock_dump(te);
+			thread_lock_dump(te, TRUE);
 		}
 		thread_wait_others(te);
 	}
@@ -6837,9 +6837,13 @@ thread_lock_waited_for(const void *lock)
  *
  * This routine is called during critical conditions and therefore it must
  * use as little resources as possible and be as safe as possible.
+ *
+ * @param fd		the file descriptor on which dumping is done
+ * @param te		the thread element for which we want to dump held locks
+ * @param details	whether to give details about the locks
  */
 static void
-thread_lock_dump_fd(int fd, const struct thread_element *te)
+thread_lock_dump_fd(int fd, const struct thread_element *te, bool details)
 {
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
@@ -6919,7 +6923,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_ANY:
 			g_assert_not_reached();
 		case THREAD_LOCK_SPINLOCK:
-			{
+			if (details) {
 				const spinlock_t *s = l->lock;
 				if (!mem_is_valid_range(PTRLEN(s))) {
 					print_str(" FREED");			/* 7 */
@@ -6938,7 +6942,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			break;
 		case THREAD_LOCK_RLOCK:
 		case THREAD_LOCK_WLOCK:
-			{
+			if (details) {
 				const rwlock_t *rw = l->lock;
 				char rdbuf[UINT_DEC_BUFLEN];
 				char wrbuf[UINT_DEC_BUFLEN];
@@ -6979,7 +6983,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			}
 			break;
 		case THREAD_LOCK_QLOCK:
-			{
+			if (details) {
 				const qlock_t *q = l->lock;
 
 				if (!mem_is_valid_range(q, sizeof *q)) {
@@ -7024,7 +7028,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			}
 			break;
 		case THREAD_LOCK_MUTEX:
-			{
+			if (details) {
 				const mutex_t *m = l->lock;
 				if (!mem_is_valid_range(PTRLEN(m))) {
 					print_str(" FREED");			/* 7 */
@@ -7076,14 +7080,17 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 
 /*
  * Dump list of locks waited-for and held by thread to stderr.
+ *
+ * @param te		the thread element for which we want to dump held locks
+ * @param details	whether to give details about the locks
  */
 static void
-thread_lock_dump(const struct thread_element *te)
+thread_lock_dump(const struct thread_element *te, bool details)
 {
 	if (0 != te->waits.count)
 		thread_lock_waiting_dump_fd(STDERR_FILENO, te);
 
-	thread_lock_dump_fd(STDERR_FILENO, te);
+	thread_lock_dump_fd(STDERR_FILENO, te, details);
 }
 
 /**
@@ -7109,7 +7116,7 @@ thread_lock_dump_all(int fd)
 			thread_lock_waiting_dump_fd(fd, te);
 
 		if (0 != thread_element_lock_count(te))
-			thread_lock_dump_fd(fd, te);
+			thread_lock_dump_fd(fd, te, TRUE);
 
 	next:
 		if (locked)
@@ -7145,7 +7152,7 @@ thread_lock_dump_if_any(int fd, uint id)
 			thread_lock_waiting_dump_fd(fd, te);
 
 		if (0 != thread_element_lock_count(te))
-			thread_lock_dump_fd(fd, te);
+			thread_lock_dump_fd(fd, te, TRUE);
 	}
 }
 
@@ -7263,7 +7270,7 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 						" whilst adding %s %p",
 						thread_element_name_raw(te), file, line,
 						thread_lock_kind_to_string(kind), lock);
-					thread_lock_dump(te);
+					thread_lock_dump(te, TRUE);
 					s_minierror("too many nested lock waiting");
 				}
 				return te;		/* Already signaled, we're crashing */
@@ -7668,7 +7675,7 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		s_rawwarn("%s overflowing its lock stack at %s:%u whilst adding %s %p",
 			thread_element_name_raw(te), file, line,
 			thread_lock_kind_to_string(kind), lock);
-		thread_lock_dump(te);
+		thread_lock_dump(te, TRUE);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;				/* Crashing or exiting already */
 		s_minierror("too many locks grabbed simultaneously");
@@ -7774,7 +7781,7 @@ thread_lock_got_swap(const void *lock, enum thread_lock_kind kind,
 			" (swapping with %p)",
 			thread_element_name_raw(te), file, line,
 			thread_lock_kind_to_string(kind), lock, plock);
-		thread_lock_dump(te);
+		thread_lock_dump(te, TRUE);
 		if (atomic_int_get(&thread_locks_disabled))
 			return;			/* Crashing or exiting already */
 		s_minierror("too many locks grabbed simultaneously");
@@ -7945,7 +7952,7 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 			s_rawwarn("%s releases %s %p at inner position %u/%zu",
 				thread_element_name_raw(te), thread_lock_kind_to_string(kind),
 				lock, i + 1, tls->count);
-			thread_lock_dump(te);
+			thread_lock_dump(te, TRUE);
 
 			/*
 			 * If crashing, it's interesting to learn about possible
@@ -8193,7 +8200,7 @@ thread_assert_no_locks(const char *routine)
 	if G_UNLIKELY(0 != cnt) {
 		s_warning("%s(): %s currently holds %zu lock%s:",
 			routine, thread_element_name(te), PLURAL(cnt));
-		thread_lock_dump(te);
+		thread_lock_dump(te, TRUE);
 		s_error("%s() expected no locks, found %zu held", routine, cnt);
 	}
 }
@@ -8384,9 +8391,9 @@ thread_lock_deadlock(const volatile void *lock)
 			thread_lock_kind_to_string(kind), lock, buf);
 	}
 
-	thread_lock_dump(te);
+	thread_lock_dump(te, TRUE);
 	if (towner != NULL && towner != te)
-		thread_lock_dump(towner);
+		thread_lock_dump(towner, TRUE);
 
 	/*
 	 * Mark all the threads as overflowing their lock stack.
@@ -12346,7 +12353,7 @@ thread_deadlock_check(const volatile void *lock, const char *file, uint line)
 
 			involved++;
 			involved_mask |= (uint64) 1U << i;
-			thread_lock_dump(threads[i]);
+			thread_lock_dump(threads[i], TRUE);
 		}
 	}
 
