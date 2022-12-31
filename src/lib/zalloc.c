@@ -350,6 +350,7 @@ static struct zstats {
 	uint64 subzones_allocated_pages;	/**< Total pages used by subzones */
 	uint64 subzones_freed;			/**< Total amount of subzone freeings */
 	uint64 subzones_freed_pages;	/**< Total pages freed in subzones */
+	uint64 subzones_alloc_races;	/**< Race conditions whilst extending zone */
 	AU64(zmove_attempts);			/**< Total attempts to move blocks */
 	AU64(zmove_attempts_gc);		/**< Subset of moves attempted in GC mode */
 	AU64(zmove_1_block_in_subzone);	/**< Moving 1 single block in its subzone */
@@ -468,12 +469,13 @@ zgc(bool overloaded)
 #define zunlock(zone)
 #else	/* !REMAP_ZALLOC */
 
-static char **zn_extend(zone_t *);
+static char **zn_extend(zone_t *, bool *);
 static void *zgc_zalloc(zone_t *);
 static void zgc_zfree(zone_t *, void *);
 static void zgc_allocate(zone_t *zone);
 static void zgc_dispose(zone_t *);
 static void *zgc_zmove(zone_t *, void *);
+static void *zgc_find_free_block(zone_t *);
 
 #ifdef ZALLOC_SAFETY_ASSERT
 /**
@@ -906,11 +908,7 @@ zalloc(zone_t *zone)
 
 	g_assert(zone->zn_blocks == zone->zn_cnt);
 
-	/*
-	 * Use first block from new extended zone.
-	 */
-
-	blk = zn_extend(zone);
+	blk = zn_extend(zone, NULL);
 	zone->zn_free = (char **) *blk;
 	zone->zn_cnt++;
 	safety_assert(NULL == zone->zn_free || zbelongs(zone, zone->zn_free));
@@ -1608,23 +1606,83 @@ zn_create(zone_t *zone, size_t size, unsigned hint)
 /**
  * Extend zone by allocating a new zone chunk.
  *
+ * @param zone		the zone to extend
+ * @param extended	(optional) if non-NULL, set to whether we allocated a subzone
+ *
  * @return the address of the first new free block within the extended
- *         chunk arena.
+ *         chunk arena, or the next free block we found if we got a race
+ *         condition (free block available in the zone now).
  */
 static char **
-zn_extend(zone_t *zone)
+zn_extend(zone_t *zone, bool *extended)
 {
 	struct subzone *sz;		/* New sub-zone */
+	size_t len;
 	unsigned crammed;
+	char **blk;
 
 	g_assert(spinlock_is_held(&zone->lock));
 
+	len = zone->zn_size * zone->zn_hint;
+
+	/*
+	 * We are releasing the zone lock whilst performing memory allocation.
+	 *
+	 * Meanwhile, another thread could release a block in the zone, and the
+	 * allocation would not be required.  That is OK.
+	 *
+	 * It could also mean that 10 threads, requiring a block from that zone
+	 * could potentially all allocate subzones at the same time.  That is also OK.
+	 *
+	 * The reason it is OK is that, after allocating the data, we grab the
+	 * zone lock again and check whether we have a free block available.
+	 * If we do, we simply dispose of the allocated structures.
+	 */
+
+	zunlock(zone);
+
 	XMALLOC(sz);
-	subzone_alloc_arena(sz, zone->zn_size * zone->zn_hint);
-	zrange_clear(zone);
+	subzone_alloc_arena(sz, len);
 
 	if (NULL == sz->sz_base)
 		s_error("cannot extend %zu-byte zone", zone->zn_size);
+
+	zlock(zone);
+
+	/*
+	 * Check for free block released (or another subzone created) whilst we
+	 * released the lock.  If we do find a free block, cleanup and return NULL.
+	 */
+
+	if (zone->zn_gc != NULL)
+		blk = zgc_find_free_block(zone);
+	else
+		blk = zone->zn_free;
+
+	if (blk != NULL) {
+		/*
+		 * Race condition, free up new subzone and return the free block
+		 * we found in the zone.
+		 */
+
+		subzone_free_arena(sz);
+		xfree(sz);
+
+		ZSTATS_LOCK;
+		zstats.subzones_alloc_races++;
+		ZSTATS_UNLOCK;
+
+		if (extended != NULL)
+			*extended = FALSE;
+
+		return blk;
+	}
+
+	/*
+	 * OK, no race condition, keep the allocated zone.
+	 */
+
+	zrange_clear(zone);
 
 	zone->zn_free = cast_to_void_ptr(sz->sz_base);
 	sz->sz_next = zone->zn_arena.sz_next;
@@ -1637,6 +1695,9 @@ zn_extend(zone_t *zone)
 
 	g_assert(crammed == zone->zn_subzblocks);	/* Is an additional zone */
 	safety_assert(zbelongs(zone, zone->zn_free));
+
+	if (extended != NULL)
+		*extended = TRUE;
 
 	return zone->zn_free;
 }
@@ -2911,6 +2972,7 @@ zgc_extend(zone_t *zone)
 	char **blk;
 	struct subzone *sz;
 	struct subzinfo *szi;
+	bool extended;
 
 	g_assert(zone->zn_gc != NULL);
 	g_assert(zone->zn_free == NULL);
@@ -2919,7 +2981,15 @@ zgc_extend(zone_t *zone)
 	 * Extend the zone by allocating a new subzone.
 	 */
 
-	blk = zn_extend(zone);
+	blk = zn_extend(zone, &extended);
+
+	if (!extended)
+		goto done;
+
+	/*
+	 * A new subzone was allocated.
+	 */
+
 	sz = zone->zn_arena.sz_next;		/* Allocated zone */
 
 	g_assert(zone->zn_free != NULL);
@@ -2939,6 +3009,7 @@ zgc_extend(zone_t *zone)
 			z2str(zone), zone->zn_subzblocks, szi->szi_base, szi->szi_end - 1);
 	}
 
+done:
 	zone->zn_free = NULL;		/* In GC mode, we never use this */
 	return blk;					/* First free block */
 }
@@ -3089,10 +3160,12 @@ zgc_dispose(zone_t *zone)
 }
 
 /**
- * Allocate a block from the first subzone with free items.
+ * Find free block in the subzones.
+ *
+ * @return NULL if no more free blocks.
  */
 static void * G_HOT
-zgc_zalloc(zone_t *zone)
+zgc_find_free_block(zone_t *zone)
 {
 	struct zone_gc *zg = zone->zn_gc;
 	unsigned i;
@@ -3100,8 +3173,6 @@ zgc_zalloc(zone_t *zone)
 	char **blk;
 
 	g_assert(spinlock_is_held(&zone->lock));
-
-	ZSTATS_INCX(allocations_gc);
 
 	/*
 	 * Lookup for free blocks in each subzone, scanning them from the first
@@ -3136,25 +3207,7 @@ zgc_zalloc(zone_t *zone)
 		}
 	}
 
-	/*
-	 * No more free blocks, need a new zone.
-	 *
-	 * This means we can end trying to garbage-collect this zone unless we
-	 * are requested to always GC the zones.
-	 */
-
-	g_assert(zone->zn_blocks == zone->zn_cnt);
-
-	if (zgc_always(zone)) {
-		blk = zgc_extend(zone);
-	} else {
-		zgc_dispose(zone);
-		zg = NULL;
-		blk = zn_extend(zone);			/* First block from new subzone */
-		zone->zn_free = (char **) *blk;
-	}
-
-	goto extended;
+	return NULL;
 
 found:
 	g_assert_log(zgc_within_subzone(szi, blk),
@@ -3176,8 +3229,42 @@ found:
 
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
-	/* FALL THROUGH */
-extended:
+	return blk;
+}
+
+/**
+ * Allocate a block from the first subzone with free items.
+ */
+static void * G_HOT
+zgc_zalloc(zone_t *zone)
+{
+	char **blk;
+
+	g_assert(spinlock_is_held(&zone->lock));
+
+	ZSTATS_INCX(allocations_gc);
+
+	blk = zgc_find_free_block(zone);
+
+	if G_UNLIKELY(NULL == blk) {
+		/*
+		 * No more free blocks, need a new zone.
+		 *
+		 * This means we can end trying to garbage-collect this zone unless we
+		 * are requested to always GC that zone.
+		 */
+
+		g_assert(zone->zn_blocks == zone->zn_cnt);
+
+		if (zgc_always(zone)) {
+			blk = zgc_extend(zone);
+		} else {
+			zgc_dispose(zone);
+			blk = zn_extend(zone, NULL);
+			zone->zn_free = (char **) *blk;
+		}
+	}
+
 	zone->zn_cnt++;
 	zunlock(zone);
 	return zprepare(zone, blk);
@@ -4045,6 +4132,7 @@ zalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(subzones_allocated_pages);
 	DUMP(subzones_freed);
 	DUMP(subzones_freed_pages);
+	DUMP(subzones_alloc_races);
 	DUMP64(zmove_attempts);
 	DUMP64(zmove_attempts_gc);
 	DUMP64(zmove_1_block_in_subzone);
