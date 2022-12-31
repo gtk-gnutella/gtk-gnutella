@@ -7271,6 +7271,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 * in case we are deadlocking.
 		 */
 
+		g_assert(size_is_non_negative(tls->count));
+		g_assert(tls->capacity >= tls->count);
+
 		if G_UNLIKELY(problematic) {
 			if (0 != tls->count) {
 				l = &tls->arena[tls->count - 1];
@@ -7689,6 +7692,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 
 	tls = &te->locks;
 	thread_element_stack_check(te);
+
+	g_assert(size_is_non_negative(tls->count));
+	g_assert(tls->capacity >= tls->count);
 
 	if G_UNLIKELY(tls->capacity == tls->count) {
 		if (tls->overflow)
