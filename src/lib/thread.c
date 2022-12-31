@@ -2221,6 +2221,7 @@ thread_element_reset(struct thread_element *te)
 #endif
 
 	thread_set(te->tid, THREAD_INVALID);
+	te->ptid = (pthread_t) 0;
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
 	te->high_qid = te->high_sig_qid = 0;
@@ -2822,6 +2823,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->ptid = pthread_self();
 	te->running = TRUE;
 	te->last_seen = tm_time_raw();
 	te->cancelable = FALSE;
@@ -3061,6 +3063,7 @@ thread_main_element(thread_t t)
 	te->last_seen = tm_time_raw();
 	te->valid = TRUE;
 	thread_set(te->tid, t);
+	te->ptid = pthread_self();
 	te->main_thread = TRUE;
 	te->name = "main";
 	te->cancelable = FALSE;
