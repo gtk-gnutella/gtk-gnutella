@@ -892,12 +892,9 @@ rwlock_readers_downto(void *p)
 	 * Since the thread stuck in the loop has acquired the write
 	 * lock, no further readers can come in and therefore we shall
 	 * eventually get out.
-	 *
-	 * Because rw->readers is updated within a spinlock critical
-	 * section, there is no need to issue a memory (read) barrier
-	 * here, the data was already synchronized by the release of
-	 * the lock.
 	 */
+
+	atomic_mb();	/* Ensure we read a proper rw->readers */
 
 	if (arg->count == arg->rw->readers)
 		return TRUE;
@@ -906,6 +903,8 @@ rwlock_readers_downto(void *p)
 		thread_check_suspended();
 		return TRUE;
 	}
+
+	g_assert(arg->count < arg->rw->readers);
 
 	return FALSE;
 }
