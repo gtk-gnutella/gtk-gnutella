@@ -823,20 +823,28 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	}
 }
 
+struct rwlock_grant_wait {
+	struct rwlock_waiting *wc;
+	const rwlock_t *rw;
+	const char *file;
+	int line;
+};
+
 static bool
 rwlock_lock_granted(void *p)
 {
-	struct rwlock_waiting *wc = p;
+	struct rwlock_grant_wait *gw = p;
+	struct rwlock_waiting *wc = gw->wc;
+	rwlock_t *rw = deconstify_pointer(gw->rw);
 
 	g_assert(RWLOCK_WAITING_MAGIC == wc->magic);
+	rwlock_check(rw);
 
 	/*
 	 * Have we reached our turn in the wait queue?
-	 *
-	 * Because wc->ok is updated within a spinlock critical section, there
-	 * is no need to issue a memory (read) barrier here, the data was already
-	 * synchronized by the release of the lock.
 	 */
+
+	atomic_mb();	/* Ensure we read a proper wc->ok */
 
 	if (wc->ok) {
 		wc->magic = 0;	/* Structure is on the stack, will become invalid */
@@ -855,6 +863,34 @@ rwlock_lock_granted(void *p)
 		return TRUE;
 	}
 
+	/*
+	 * If we still have to wait, then there must still be waiters on the lock:
+	 * at least ourselves.
+	 *
+	 * We need to lock the rwlock since the rw->waiters field and the wc->ok
+	 * fields are both updated with the lock taken, and therefore there could
+	 * be a race condition.
+	 */
+
+	RWLOCK_LOCK(rw);
+
+	/* Have to re-check wc->ok now that we got the lock */
+
+	if (wc->ok) {
+		RWLOCK_UNLOCK(rw);
+		wc->magic = 0;	/* Structure is on the stack, will become invalid */
+		return TRUE;
+	}
+
+	g_assert_log(rw->waiters != 0,
+		"%s(): no more waiters on rwlock %p waited for at %s:%u: "
+		"owner=%s, readers=%u, writers=%u (write_waiters=%u)",
+		G_STRFUNC, rw, gw->file, gw->line,
+		RWLOCK_WFREE == rw->owner ? "nobody" : thread_id_name(rw->owner),
+		rw->readers, rw->writers, rw->write_waiters);
+
+	RWLOCK_UNLOCK(rw);
+
 	return FALSE;
 }
 
@@ -870,7 +906,15 @@ static inline void
 rwlock_wait_grant(const rwlock_t *rw, struct rwlock_waiting *wc,
 	const char *file, unsigned line)
 {
-	rwlock_wait(rw, wc->reading, rwlock_lock_granted, wc, file, line);
+	struct rwlock_grant_wait args;
+
+	args.wc = wc;
+	/* Remaining arguments used only with assertions */
+	args.rw = rw;
+	args.file = file;
+	args.line = line;
+
+	rwlock_wait(rw, wc->reading, rwlock_lock_granted, &args, file, line);
 }
 
 struct rwlock_readers_wait {
