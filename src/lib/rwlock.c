@@ -1555,15 +1555,17 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 
 	/*
 	 * We just ended a spinlock, acting as a memory barrier, so we can
-	 * immediately check for readers.
+	 * immediately check for readers: we need to wait when there are other
+	 * readers besides ourselves before being able to proceeed with the
+	 * write lock.
 	 */
 
 	if G_UNLIKELY(need_wait && !rwlock_pass_through)
 		rwlock_wait_readers(rw, count, file, line);
 
 	/*
-	 * Upgrading means the last instance of the lock on the stack now becomes
-	 * a write lock, and the locking point is updated.
+	 * Upgrading means the last instance of the lock on the lock stack now
+	 * becomes a write lock, and the locking point is updated.
 	 */
 
 	rwlock_upgrade_account(rw, file, line);
