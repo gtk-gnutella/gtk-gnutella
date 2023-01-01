@@ -2045,7 +2045,6 @@ zdestroy_if_empty(zone_t *zone)
 zone_t *
 zget(size_t size, unsigned hint, bool private)
 {
-	static spinlock_t zget_slk = SPINLOCK_INIT;
 	zone_t *zone;
 	zone_t key;
 
@@ -2053,11 +2052,26 @@ zget(size_t size, unsigned hint, bool private)
 	 * Allocate hash table if not already done!
 	 */
 
-	spinlock(&zget_slk);
+	if G_UNLIKELY(NULL == zt) {
+		static spinlock_t zget_slk = SPINLOCK_INIT;
 
-	if G_UNLIKELY(zt == NULL) {
-		zt = hash_table_new_full(zone_hash, zone_eq);
-		hash_table_thread_safe(zt);
+		spinlock(&zget_slk);
+		if (NULL == zt) {
+			hash_table_t *h;
+			spinunlock(&zget_slk);
+			/* No lock held whilst allocating new hash table */
+			h = hash_table_new_full(zone_hash, zone_eq);
+			hash_table_thread_safe(h);
+			/* Check for race condition */
+			spinlock(&zget_slk);
+			if (NULL == zt)
+				zt = h;
+			spinunlock(&zget_slk);
+			if (zt != h)
+				hash_table_destroy(h);
+		} else {
+			spinunlock(&zget_slk);
+		}
 	}
 
 	/*
@@ -2095,15 +2109,22 @@ zget(size_t size, unsigned hint, bool private)
 
 	/*
 	 * Insert new zone in the hash table so that we can return it to other
-	 * clients requesting a similar size. If we can't insert it, it's not
-	 * a fatal error, only a warning: we can always allocate a new zone next
-	 * time!
+	 * clients requesting a similar size.
+	 *
+	 * The hash_table_insert() returns FALSE if an existing key exists, and
+	 * this allows us to detect there was a race condition.  Note that the
+	 * hash table was created as thread-safe.
 	 */
 
-	hash_table_insert(zt, zone, zone);
+	if (!hash_table_insert(zt, zone, zone)) {
+		/* Race condition detected */
+		zone_t *old_zone = hash_table_lookup(zt, &key);
+		zone_check(old_zone);
+		zdestroy(zone);
+		zone = old_zone;
+	}
 
 found:
-	spinunlock(&zget_slk);
 
 	if (zalloc_debugging(1)) {
 		size_t count = hash_table_count(zt);
