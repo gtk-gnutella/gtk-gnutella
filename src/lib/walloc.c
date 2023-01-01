@@ -223,18 +223,43 @@ walloc_get_zone(size_t rounded, bool allocate)
 		WALLOC_LOCK;
 
 		if (NULL == (zone = wzone[idx])) {
-			if (walloc_stopped) {
-				WALLOC_UNLOCK;
+			/*
+			 * There is no need to keep the lock.
+			 *
+			 * And wzone_get() will call zget() which always returns the
+			 * same zone for the same initial parameters...
+			 */
+
+			WALLOC_UNLOCK;
+
+			if (walloc_stopped)
 				return NULL;
-			}
 
 			if (!allocate)
 				s_error("missing %zu-byte zone", rounded);
 
-			zone = wzone[idx] = wzone_get(rounded);
-		}
+			zone = wzone_get(rounded);
 
-		WALLOC_UNLOCK;
+			/*
+			 * Now grab the lock again and either initialize wzone[idx] or
+			 * ensure we get the same zone if it was already set concurrently
+			 * whilst we released the lock.
+			 */
+
+			WALLOC_LOCK;
+
+			if (NULL == wzone[idx]) {
+				wzone[idx] = zone;
+			} else {
+				/* Ensure race condition is indeed harmless */
+				g_assert_log(zone == wzone[idx],
+					"%s(): conflicting race for %zu-byte zones at idx=%zu: "
+					"just got new zone at %p but had registered one at %p",
+					G_STRFUNC, rounded, idx, zone, wzone[idx]);
+			}
+
+			WALLOC_UNLOCK;
+		}
 	}
 
 	return zone;
