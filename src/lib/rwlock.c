@@ -1123,13 +1123,13 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 	if G_UNLIKELY(!got) {
 		rwlock_wait_grant(rw, &wc, file, line);
-		rwlock_readers_record(rw, file, line);
-		if (account)
-			rwlock_read_account(rw, file, line);
-	} else if (account) {
-		rwlock_readers_record(rw, file, line);
-		rwlock_read_account(rw, file, line);
+		/* We now have the read lock */
 	}
+
+	rwlock_readers_record(rw, file, line);
+
+	if (account)
+		rwlock_read_account(rw, file, line);
 
 	/* Ensure there are no overflows */
 
@@ -1228,18 +1228,20 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		rwlock_wait_grant(rw, &wc, file, line);
 
-		rwlock_writer_record(rw, file, line);
-
-		if (account)
-			rwlock_write_account(rw, file, line);
-
+		/* This is necessarily the first time we grab the write lock */
 		g_assert(1 == rw->writers || rwlock_pass_through);
-	}
-	else {
+
+		/* Therefore, record the place where we got it */
 		rwlock_writer_record(rw, file, line);
-		if (account)
-			rwlock_write_account(rw, file, line);
+	} else {
+		/* Only save the place where we first got the write lock */
+		if (1 == rw->writers) {		/* Braces necessary, body can be empty */
+			rwlock_writer_record(rw, file, line);
+		}
 	}
+
+	if (account)
+		rwlock_write_account(rw, file, line);
 }
 
 /**
@@ -1339,7 +1341,6 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		s_rawinfo("LOCK contention for read-lock %p at %s:%u", rw, file, line);
 	}
 
-
 	return got;
 }
 
@@ -1426,7 +1427,12 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	RWLOCK_UNLOCK(rw);
 
 	if G_LIKELY(got) {
-		rwlock_writer_record(rw, file, line);
+		/* Only save the place where we first got the write lock */
+		if (1 == rw->writers) {		/* Braces necessary, body can be empty */
+			rwlock_writer_record(rw, file, line);
+		}
+
+		/* But always account all (recursive) instances of the write lock */
 		rwlock_write_account(rw, file, line);
 	} else if G_UNLIKELY(rwlock_contention_trace) {
 		s_rawinfo("LOCK contention for write-lock %p at %s:%u", rw, file, line);
