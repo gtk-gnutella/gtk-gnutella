@@ -623,9 +623,10 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 
 #ifdef RWLOCK_WRITER_DEBUG
 	if (rw->file != NULL) {
-		s_rawinfo("rwlock (%c) %p %s %s:%u",
+		s_rawinfo("rwlock (%c) %p owned by %s %s %s:%u",
 			reading ? 'R' : 'W', rw,
-			rw->writers != 0 ? "owned by " : "traced to",
+			RWLOCK_WFREE == rw->owner ? "nobody" : thread_id_name(rw->owner),
+			rw->writers != 0 ? "from" : "traced to",
 			rw->file, rw->line);
 	}
 #endif
