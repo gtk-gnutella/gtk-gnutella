@@ -165,6 +165,7 @@ static struct random_stats {
 	AU64(random_double_generate);		/* Calls to routine */
 	AU64(random_add);					/* Calls to routine */
 	AU64(random_add_pool);				/* Calls to routine */
+	AU64(random_add_cycles);			/* Cycling through buffer */
 	AU64(random_added_fire);			/* Calls to routine */
 	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
@@ -732,6 +733,8 @@ random_byte_cmwc_add(void *p)
 	random_byte_data_free(rbd);
 }
 
+#define RANDOM_ADD_CYCLING	1024
+
 /**
  * Add collected random byte(s) to the random pool used by random_bytes(),
  * flushing to the random number generator when enough has been collected.
@@ -746,6 +749,7 @@ random_add_pool(void *buf, size_t len)
 {
 	static uint8 data[256];
 	static size_t idx;
+	static size_t cycles;
 	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
 	size_t n;
@@ -769,17 +773,33 @@ random_add_pool(void *buf, size_t len)
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < N_ITEMS(data));
 
-	for (p = buf, n = len; n != 0; p++, n--) {
-		data[idx++] = *p;
+	for (p = buf, n = len; n != 0; n--) {
+		data[idx++] ^= *p++;
 
 		/*
 		 * Feed extra bytes when we have enough.
 		 */
 
 		if G_UNLIKELY(idx >= N_ITEMS(data)) {
+			/*
+			 * Before feeding random bytes, cycle over buffer XORing data
+			 * for RANDOM_ADD_CYCLING times.  The idea is to make sure
+			 * we do not add random data too often, but when we do, it is
+			 * as random as possible!
+			 * 		--RAM, 2023-01-17
+			 */
+
+			if (cycles++ < RANDOM_ADD_CYCLING) {
+				RANDOM_STATS_INC(random_add_cycles);
+				idx = 0;
+				continue;
+			}
+
+			/* Time to add random data */
+
 			random_add(ARYLEN(data));
 			ZERO(&data);		/* Hide them now */
-			idx = 0;
+			idx = cycles = 0;
 			flushed = TRUE;
 		}
 	}
@@ -1345,6 +1365,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_double_generate);
 	DUMP64(random_add);
 	DUMP64(random_add_pool);
+	DUMP64(random_add_cycles);
 	DUMP64(random_added_fire);
 	DUMP64(random_stats_digest);
 
