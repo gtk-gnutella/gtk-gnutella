@@ -785,18 +785,23 @@ random_add_pool(void *buf, size_t len)
 			/*
 			 * Before feeding random bytes, cycle over buffer XORing data
 			 * for RANDOM_ADD_CYCLING times.  The idea is to make sure
-			 * we do not add random data too often, but when we do, it is
-			 * as random as possible!
+			 * we do not spread random data to the PRNGs too often, but when
+			 * we do, it is as random as possible!
+			 *
+			 * The exception is the AJE global instance, which must be feed
+			 * on a regular basis with fresh randomness.
+			 *
 			 * 		--RAM, 2023-01-17
 			 */
 
 			if (cycles++ < RANDOM_ADD_CYCLING) {
 				RANDOM_STATS_INC(random_add_cycles);
 				idx = 0;
+				aje_addrandom(ARYLEN(data));
 				continue;
 			}
 
-			/* Time to add random data */
+			/* Time to add random data to one of the PRNGs */
 
 			RANDOM_STATS_INC(random_add_flushes);
 			random_add(ARYLEN(data));
