@@ -755,7 +755,7 @@ random_add_pool(void *buf, size_t len)
 	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
 	size_t n;
-	bool flushed = FALSE;
+	bool flushed = FALSE, added = FALSE;
 
 	RANDOM_STATS_INC(random_add_pool);
 	RANDOM_STATS_ADD(input_random_add_pool, len);
@@ -797,9 +797,15 @@ random_add_pool(void *buf, size_t len)
 
 			if (cycles++ < RANDOM_ADD_CYCLING) {
 				RANDOM_STATS_INC(random_add_cycles);
-				RANDOM_STATS_INC(random_added_aje);
 				idx = 0;
-				aje_addrandom(ARYLEN(data));
+
+				/* Only add once per call to random_add_pool() */
+				if (!added) {
+					RANDOM_STATS_INC(random_added_aje);
+					aje_addrandom(ARYLEN(data));
+					added = TRUE;
+				}
+
 				continue;
 			}
 
