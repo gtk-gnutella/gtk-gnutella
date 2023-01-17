@@ -168,6 +168,7 @@ static struct random_stats {
 	AU64(random_add_cycles);			/* Cycling through buffer */
 	AU64(random_add_flushes);			/* Counts random buffer flushes */
 	AU64(random_added_fire);			/* Calls to routine */
+	AU64(random_added_aje);				/* Calls to aje_addrandom() */
 	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
 
@@ -796,6 +797,7 @@ random_add_pool(void *buf, size_t len)
 
 			if (cycles++ < RANDOM_ADD_CYCLING) {
 				RANDOM_STATS_INC(random_add_cycles);
+				RANDOM_STATS_INC(random_added_aje);
 				idx = 0;
 				aje_addrandom(ARYLEN(data));
 				continue;
@@ -1183,6 +1185,7 @@ random_add(const void *data, size_t datalen)
 	 * the periodically scheduled random_entropy() call.
 	 */
 
+	RANDOM_STATS_INC(random_added_aje);
 	aje_addrandom(data, datalen);
 
 	/*
@@ -1375,6 +1378,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_add_cycles);
 	DUMP64(random_add_flushes);
 	DUMP64(random_added_fire);
+	DUMP64(random_added_aje);
 	DUMP64(random_stats_digest);
 
 #undef DUMP64
