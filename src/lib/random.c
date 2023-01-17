@@ -102,7 +102,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
+#define RANDOM_ENTROPY_PERIOD (60 * 1000)	/* ms: entropy propagation period */
 
 /**
  * Pseudo Random Number Generators managed by this library and for which
