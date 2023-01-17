@@ -166,6 +166,7 @@ static struct random_stats {
 	AU64(random_add);					/* Calls to routine */
 	AU64(random_add_pool);				/* Calls to routine */
 	AU64(random_add_cycles);			/* Cycling through buffer */
+	AU64(random_add_flushes);			/* Counts random buffer flushes */
 	AU64(random_added_fire);			/* Calls to routine */
 	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
@@ -797,6 +798,7 @@ random_add_pool(void *buf, size_t len)
 
 			/* Time to add random data */
 
+			RANDOM_STATS_INC(random_add_flushes);
 			random_add(ARYLEN(data));
 			ZERO(&data);		/* Hide them now */
 			idx = cycles = 0;
@@ -1366,6 +1368,7 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_add);
 	DUMP64(random_add_pool);
 	DUMP64(random_add_cycles);
+	DUMP64(random_add_flushes);
 	DUMP64(random_added_fire);
 	DUMP64(random_stats_digest);
 
