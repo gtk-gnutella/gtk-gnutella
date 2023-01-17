@@ -144,12 +144,6 @@ static spinlock_t entropy_previous_slk = SPINLOCK_INIT;
 #define ENTROPY_PREV_LOCK		spinlock_hidden(&entropy_previous_slk)
 #define ENTROPY_PREV_UNLOCK		spinunlock_hidden(&entropy_previous_slk)
 
-/**
- * Amount of input bytes necessary to harvest one byte of entropy to
- * the pool when computing SHA1 sums.
- */
-#define ENTROPY_ALPHA		3		/* Bytes to harvest 8 bits of entropy */
-
 #define ENTROPY_NONCE_MAX	1023	/* Change "nonce" base after that many uses */
 
 /**
@@ -1950,7 +1944,7 @@ entropy_harvest_small(const void *p, size_t len, ...)
  * Harvest entropy from a NULL-terminated list of (pointer, length).
  *
  * The overall entropy is supposed to be large and is therefore harvested
- * through a SHA1 computation.
+ * through a succession of CRC32 computations.
  *
  * @param p		pointer to first value
  * @param len	length of first value
@@ -1959,24 +1953,19 @@ entropy_harvest_small(const void *p, size_t len, ...)
 void
 entropy_harvest_many(const void *p, size_t len, ...)
 {
-	sha1_t digest;
-	SHA1_context ctx;
+	uint32 nonce = entropy_nonce();
 	tm_nano_t now;
-	uint32 nonce;
-	size_t runlen = 0;
 	va_list ap;
+	uint32 c[8];		/* Arbitrary amount of values, greater than 2  */
+	size_t i = 0;
 
 	g_assert(p != NULL);
 	g_assert(size_is_positive(len));
 
 	tm_precise_time(&now);
-	nonce = entropy_nonce();
 
-	SHA1_reset(&ctx);
-	SHA1_INPUT(&ctx, nonce);
-	SHA1_INPUT(&ctx, now);
-	SHA1_input(&ctx, p, len);
-	runlen = len;
+	c[i++] = crc32_update(-1U, VARLEN(now));
+	c[i++] = crc32_update(nonce, p, len);
 
 	va_start(ap, len);
 
@@ -1986,30 +1975,16 @@ entropy_harvest_many(const void *p, size_t len, ...)
 		p = va_arg(ap, const void *)
 	) {
 		len = va_arg(ap, size_t);
-		g_assert(size_is_positive(len));
-		SHA1_input(&ctx, p, len);
-		runlen = size_saturate_add(runlen, len);
+		if (N_ITEMS(c) == i) {
+			random_pool_append(ARYLEN(c));
+			i = 0;
+		}
+		c[i++] = crc32_update(nonce, p, len);
 	}
 
 	va_end(ap);
 
-	SHA1_result(&ctx, &digest);
-
-	/*
-	 * If we have collected data from enough bytes, we can use the full
-	 * digest to add randomness.  Otherwise, fold the digest to limit
-	 * the amount of entropy added each time.  However, we collect at least
-	 * 4 bytes each time.
-	 */
-
-	if (runlen < ENTROPY_ALPHA * SHA1_RAW_SIZE) {
-		size_t l = runlen / ENTROPY_ALPHA;
-		void *q = entropy_fold(&digest, (l = MAX(l, 4)));
-
-		random_pool_append(q, l);
-	} else {
-		random_pool_append(VARLEN(digest));
-	}
+	random_pool_append(c, ptr_diff(&c[i], &c[0]));
 }
 
 /* vi: set ts=4 sw=4 cindent: */
