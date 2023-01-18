@@ -168,7 +168,8 @@ static struct random_stats {
 	AU64(random_add_cycles);			/* Cycling through buffer */
 	AU64(random_add_flushes);			/* Counts random buffer flushes */
 	AU64(random_added_fire);			/* Calls to routine */
-	AU64(random_added_aje);				/* Calls to aje_addrandom() */
+	AU64(random_aje_added);				/* Calls to aje_addrandom() */
+	AU64(random_aje_throttled);			/* Calls to aje_addrandom() avoided */
 	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
 
@@ -735,6 +736,30 @@ random_byte_cmwc_add(void *p)
 	random_byte_data_free(rbd);
 }
 
+#define RANDOM_AJE_FEED_INTERVAL 500000		/* us: 0.5 seconds */
+
+/*
+ * Are we allowed to feed AJE?
+ *
+ * @note: we are called from random_add_pool() under spinlock protection.
+ */
+static bool
+random_aje_may_feed(void)
+{
+	static tm_t last_feed;
+	tm_t now;
+
+	tm_now_exact(&now);
+
+	if (tm_elapsed_us(&now, &last_feed) >= RANDOM_AJE_FEED_INTERVAL) {
+		last_feed = now;		/* struct copy */
+		return TRUE;
+	}
+
+	RANDOM_STATS_INC(random_aje_throttled);
+	return FALSE;
+}
+
 #define RANDOM_ADD_CYCLING	1024
 
 /**
@@ -799,9 +824,12 @@ random_add_pool(void *buf, size_t len)
 				RANDOM_STATS_INC(random_add_cycles);
 				idx = 0;
 
-				/* Only add once per call to random_add_pool() */
-				if (!added) {
-					RANDOM_STATS_INC(random_added_aje);
+				/*
+				 * Add only once per call to random_add_pool(), and not
+				 * too frequently.
+				 */
+				if (!added && random_aje_may_feed()) {
+					RANDOM_STATS_INC(random_aje_added);
 					aje_addrandom(ARYLEN(data));
 					added = TRUE;
 				}
@@ -1191,7 +1219,7 @@ random_add(const void *data, size_t datalen)
 	 * the periodically scheduled random_entropy() call.
 	 */
 
-	RANDOM_STATS_INC(random_added_aje);
+	RANDOM_STATS_INC(random_aje_added);
 	aje_addrandom(data, datalen);
 
 	/*
@@ -1384,7 +1412,8 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_add_cycles);
 	DUMP64(random_add_flushes);
 	DUMP64(random_added_fire);
-	DUMP64(random_added_aje);
+	DUMP64(random_aje_added);
+	DUMP64(random_aje_throttled);
 	DUMP64(random_stats_digest);
 
 #undef DUMP64
