@@ -1303,6 +1303,21 @@ random_double_generate(random_fn_t rf)
 	dc.d.mh = (high & ((1U << 20) - 1));	/* Chops leading "1" in bit 20 */
 	dc.d.ml = low;
 
+	if G_UNLIKELY(dc.value < 0.0 || dc.value >= 1.0) {
+		double v = dc.value;
+
+		if (v < 0.0)
+			v = - v;
+
+		if (v >= 1.0)
+			v = 0.999999999999999;
+
+		s_carp_once("%s(): generated %.15lf, returning %.15lf",
+			G_STRFUNC, dc.value, v);
+
+		dc.value = v;
+	}
+
 	return dc.value;
 }
 
