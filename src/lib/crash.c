@@ -4236,8 +4236,8 @@ crash_dumper_add(const callback_fn_t dumper)
 static int
 crash_hook_item_filename_cmp(const void *a, const void *b)
 {
-	const crash_hook_item_t *ai = a; 
-	const crash_hook_item_t *bi = b; 
+	const crash_hook_item_t *ai = a;
+	const crash_hook_item_t *bi = b;
 
 	return strcmp(ai->filename, bi->filename);
 }
