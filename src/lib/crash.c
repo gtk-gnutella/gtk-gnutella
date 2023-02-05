@@ -3777,6 +3777,18 @@ crash_init(const char *argv0, const char *progname,
 	if (NULL == argv0)
 		s_minierror("%s(): called with NULL argv0!", G_STRFUNC);
 
+	if (vars != NULL) {
+		/* Run crash_init() only once: subsequent calls are loudly ignored */
+		static bool traced;
+		if (!traced) {
+			traced = TRUE;
+			s_minicarp("%s(): ignoring subsequent call!", G_STRFUNC);
+		} else {
+			s_miniwarn("%s(): ignoring yet another subsequent call!", G_STRFUNC);
+		}
+		return;
+	}
+
 	ZERO(&iv);
 
 	vars = &iv;
