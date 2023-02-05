@@ -53,6 +53,8 @@ typedef struct link {
 	struct link *next, *prev;
 } link_t;
 
+#define LINK_NULL	{ NULL, NULL }	/* For static initializations */
+
 enum elist_magic { ELIST_MAGIC = 0x12a51414 };
 
 /**
