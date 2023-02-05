@@ -9414,6 +9414,32 @@ thread_timed_block_self(unsigned events, const tm_t *tmout)
 }
 
 /**
+ * Block execution of current thread until a thread_unblock() is posted to it
+ * or until we go past the specified ending time.
+ *
+ * When this routine returns, the thread has either been successfully unblocked
+ * and is resuming its execution normally or the timeout expired.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param events	the amount of events returned by thread_block_prepare()
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return TRUE if we were properly unblocked, FALSE if we timed out.
+ */
+bool
+thread_block_self_until(unsigned events, const tm_t *end)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (NULL == end || tm_remaining_ms(end) > THREAD_SUSPEND_TIMEOUT * 1000)
+		thread_assert_no_locks(G_STRFUNC);
+
+	return thread_element_block_until(te, events, end);
+}
+
+/**
  * Unblock thread blocked via thread_block_self().
  *
  * @return 0 if OK, -1 on error with errno set.

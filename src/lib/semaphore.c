@@ -293,7 +293,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 	bool success = FALSE;
 	struct waiting_thread waiting;
 	struct semaphore_emulate_vars v;
-	tm_t end;
+	tm_t end, *until;
 
 	semaphore_check(s);
 	g_assert(amount >= 0);
@@ -314,8 +314,9 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 	if (timeout != NULL) {
 		tm_now_exact(&end);
 		tm_add(&end, timeout);
+		until = &end;
 	} else {
-		ZERO(&end);
+		until = NULL;
 	}
 
 	/*
@@ -412,12 +413,12 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 		 * released semaphore tokens and saw we were listed as waiting for
 		 * more tokens, thereby attempting to unblock us.
 		 *
-		 * This will be noticed by thread_time_block_self() if the event count
+		 * This will be noticed by thread_block_self_until() if the event count
 		 * passed does not match the current count, in which case no blocking
 		 * will occur.
 		 */
 
-		if (!thread_timed_block_self(events, timeout))
+		if (!thread_block_self_until(events, until))
 			break;		/* Timed out */
 	}
 

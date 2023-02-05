@@ -340,6 +340,7 @@ struct tmval;
 unsigned thread_block_prepare(void);
 void thread_block_self(unsigned events);
 bool thread_timed_block_self(unsigned events, const struct tmval *timeout);
+bool thread_block_self_until(unsigned events, const struct tmval *end);
 int thread_unblock(unsigned id);
 
 void thread_set_main(bool can_block);
