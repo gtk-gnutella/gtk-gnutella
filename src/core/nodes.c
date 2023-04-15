@@ -8996,9 +8996,10 @@ node_add_by_name(const char *host, uint16 port, uint32 flags)
 		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
 	) {
 		/*	node_add_by_name_helper() was already invoked! */
-		if (GNET_PROPERTY(node_debug) > 0)
-			g_warning("node_add_by_name: "
-				"adns_resolve() failed in synchronous mode");
+		if (GNET_PROPERTY(node_debug) > 0) {
+			g_warning("%s(): adns_resolve() failed in synchronous mode",
+				G_STRFUNC);
+		}
 		return;
 	}
 }
