@@ -8664,12 +8664,13 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
  */
 static void
 node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
-	uint16 port, uint32 flags, bool g2)
+	uint16 port, uint32 flags)
 {
 	gnutella_node_t *n;
 	bool incoming = FALSE;
 	uint major = 0, minor = 0;
 	bool forced = 0 != (SOCK_F_FORCE & flags);
+	bool g2 = 0 != (SOCK_F_G2 & flags);
 
 	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
@@ -8900,11 +8901,14 @@ node_add_socket(struct gnutella_socket *s)
 	 * during handshaking.
 	 */
 
-	node_add_internal(s, s->addr, s->port, 0, FALSE);
+	node_add_internal(s, s->addr, s->port, 0);
 }
 
 /**
  * Add new Gnutella node.
+ *
+ * If flags specifies SOCK_F_G2 then the connection will be negotiated using
+ * the G2 protocol.
  */
 void
 node_add(const host_addr_t addr, uint16 port, uint32 flags)
@@ -8923,30 +8927,18 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 	)
 		return;
 
-	node_add_internal(NULL, addr, port, flags, FALSE);
+	node_add_internal(NULL, addr, port, flags);
 }
 
 /**
  * Add new G2 node.
+ *
+ * This is a convenience routine.
  */
 void
 node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 {
-	if (!is_host_addr(addr) || !port)
-		return;
-
-	if (
-		!(SOCK_F_FORCE & flags) &&
-		(
-			hostiles_is_bad(addr) ||
-			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port) ||
-			node_had_recent_connect_attempt(addr, port)
-		)
-	)
-		return;
-
-	node_add_internal(NULL, addr, port, flags, TRUE);
+	node_add(addr, port, flags | SOCK_F_G2);
 }
 
 struct node_add_by_name_data {
