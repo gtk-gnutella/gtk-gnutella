@@ -554,12 +554,6 @@ guc_node_add(const host_addr_t addr, uint16 port, uint32 flags)
 }
 
 void
-guc_node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
-{
-	node_g2_add(addr, port, flags);
-}
-
-void
 guc_node_remove_by_id(const struct nid *node_id)
 {
 	node_remove_by_id(node_id);
