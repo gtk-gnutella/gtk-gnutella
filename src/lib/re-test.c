@@ -1833,6 +1833,10 @@ test_compile_errors(void)
 		{ "((a\\1))",			4,	E(UNKNOWN_GROUP_REF) },
 		{ "((a)\\2\\g-2)",		8,	E(UNKNOWN_GROUP_REF) },
 		{ "((a)\\2)\\g-2",		0,	E(OK) },
+		{ "\\080",				2,	E(INVALID_OCTAL_DIGIT) },
+		/* 110 */
+		{ "\\079",				3,	E(INVALID_OCTAL_DIGIT) },
+		{ "\\07",				2,	E(INCOMPLETE_ESCAPE) },
 #undef E
 	};
 	for (i = 0; i < N_ITEMS(tests); i++) {

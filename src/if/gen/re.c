@@ -1,5 +1,5 @@
 /*
- * Generated on Thu Jul 23 14:44:45 2020 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Apr 23 09:28:25 2023 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl re.lst
  */
@@ -24,6 +24,7 @@ static const char *re_error_names[] = {
 	"UNKNOWN_POSIX_CLASS",
 	"CHAR_CLASS_CANNOT_MATCH",
 	"INVALID_HEXA_DIGIT",
+	"INVALID_OCTAL_DIGIT",
 	"UNPARSEABLE_NUMBER",
 	"NUMBER_OUT_OF_RANGE",
 	"ORPHAN_REPETITION",
@@ -69,6 +70,7 @@ static const char *re_error_code_str[] = {
 	"Unknown POSIX class name",
 	"Character class cannot match anything",
 	"Invalid hexadecimal digit",
+	"Invalid octal digit",
 	"Cannot parse number",
 	"Number out of range",
 	"Orphan repetition, not applicable to anything",

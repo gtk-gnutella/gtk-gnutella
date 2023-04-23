@@ -1,5 +1,5 @@
 /*
- * Generated on Thu Jul 23 14:44:45 2020 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun Apr 23 09:28:25 2023 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl re.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_re_h_
 
 /*
- * Enum count: 24
+ * Enum count: 25
  */
 typedef enum {
 	RE_E_OK = 0,
@@ -20,6 +20,7 @@ typedef enum {
 	RE_E_UNKNOWN_POSIX_CLASS,
 	RE_E_CHAR_CLASS_CANNOT_MATCH,
 	RE_E_INVALID_HEXA_DIGIT,
+	RE_E_INVALID_OCTAL_DIGIT,
 	RE_E_UNPARSEABLE_NUMBER,
 	RE_E_NUMBER_OUT_OF_RANGE,
 	RE_E_ORPHAN_REPETITION,

@@ -221,6 +221,7 @@
  * \r		carriage return
  * \f		form feed
  * \xHH		hexadecimal escape, 2 digits (H = hexa digit, case-insensitive)
+ * \0DD		octal escape, 2 digits (D = octal digit)
  *
  * LIMITATIONS
  *
@@ -9115,6 +9116,37 @@ re_parse_add_char(re_parser_t *rp, int c)
 }
 
 /**
+ * Parse octal character escape (\0DD).
+ *
+ * The leading '\0' sequence has already been read.
+ *
+ * @return the parsed character if OK, -1 on error with the parser error set.
+ */
+static int
+re_parse_octal(re_parser_t *rp)
+{
+	int v = 0;
+	size_t i;
+
+	re_parser_check(rp);
+
+	for (i = 0; i < 2; i++) {
+		int c = istream_getc(rp->is);
+		if G_UNLIKELY(-1 == c) {
+			re_parse_error(rp, -1, RE_E_INCOMPLETE_ESCAPE);
+			return -1;
+		}
+		if (c < '0' || c > '7') {
+			re_parse_error(rp, -1, RE_E_INVALID_OCTAL_DIGIT);
+			return -1;
+		}
+		v = (v << 3) + (c - '0');
+	}
+
+	return v;
+}
+
+/**
  * Parse hexadecimal character escape (\xHH).
  *
  * The leading '\x' sequence has already been read.
@@ -9124,32 +9156,27 @@ re_parse_add_char(re_parser_t *rp, int c)
 static int
 re_parse_hexa(re_parser_t *rp)
 {
-	uchar hexa[2];
-	int c;
+	int v = 0;
 	size_t i;
 
 	re_parser_check(rp);
 
-	hexa[0] = c = istream_getc(rp->is);
-	if G_UNLIKELY(-1 == c) {
-		re_parse_error(rp, -1, RE_E_INCOMPLETE_ESCAPE);
-		return -1;
-	}
-	hexa[1] = c = istream_getc(rp->is);
-	if G_UNLIKELY(-1 == c) {
-		re_parse_error(rp, -1, RE_E_INCOMPLETE_ESCAPE);
-		return -1;
-	}
-
-	for (i = 0; i < N_ITEMS(hexa); i++) {
-		int v = hex2int(hexa[i]);
-		if (v < 0) {
-			re_parse_error(rp, i - 2, RE_E_INVALID_HEXA_DIGIT);
+	for (i = 0; i < 2; i++) {
+		int c = istream_getc(rp->is);
+		int x;
+		if G_UNLIKELY(-1 == c) {
+			re_parse_error(rp, -1, RE_E_INCOMPLETE_ESCAPE);
 			return -1;
 		}
+		x = hex2int(c);
+		if (x < 0) {
+			re_parse_error(rp, -1, RE_E_INVALID_HEXA_DIGIT);
+			return -1;
+		}
+		v = (v << 4) + x;
 	}
 
-	return (hex2int(hexa[0]) << 4) + hex2int(hexa[1]);
+	return v;
 }
 
 /**
@@ -9426,6 +9453,11 @@ resume:
 				case 'W':
 				case 'S':
 					return re_parse_error(rp, -3, RE_E_INVALID_CHAR_CLASS_RANGE);
+				case '0':
+					c = re_parse_octal(rp);
+					if G_UNLIKELY(-1 == c)
+						return FALSE;		/* Error set by re_parse_octal() */
+					break;
 				case 'x':
 					c = re_parse_hexa(rp);
 					if G_UNLIKELY(-1 == c)
@@ -9488,6 +9520,11 @@ resume:
 				prev_char = -1;
 				re_class_add_known(e, c);
 				continue;	/* Not "break", we want to continue loop  */
+			case '0':
+				c = re_parse_octal(rp);
+				if G_UNLIKELY(-1 == c)
+					return FALSE;		/* Error set by re_parse_octal() */
+				break;
 			case 'x':
 				c = re_parse_hexa(rp);
 				if G_UNLIKELY(-1 == c)
@@ -10491,6 +10528,12 @@ re_parse(re_parser_t *rp)
 			case 'W':
 			case 'S':  re_parse_add_char_class(rp, c);   break;
 			case 'g':  ok = re_parse_add_backref(rp);    break;
+			case '0':
+				c = re_parse_octal(rp);
+				if (-1 == c)
+					return FALSE;
+				re_parse_add_char(rp, c);
+				break;
 			case 'x':
 				c = re_parse_hexa(rp);
 				if (-1 == c)
