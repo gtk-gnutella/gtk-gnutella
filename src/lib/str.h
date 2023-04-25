@@ -109,6 +109,7 @@ void str_remove(str_t *str, ssize_t idx, size_t n);
 void str_chomp(str_t *s);
 int str_chop(str_t *s);
 bool str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
+bool str_replace_len(str_t *, ssize_t idx, size_t amt, const char *str, size_t n);
 void str_reverse(str_t *s);
 void str_escape(str_t *str, int c, int e);
 size_t str_copyout(str_t *s, char *dest, size_t dest_size);

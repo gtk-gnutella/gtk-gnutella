@@ -1251,6 +1251,9 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 }
 
 /**
+ * Same as str_replace() but the length of the replacement string has been
+ * computed already (means that the string does not need to be NUL-terminated).
+ *
  * Replace amount characters starting at position idx (included) with the
  * content of the specified string. If the starting position is negative,
  * it is interpreted as an offset relative to the end of the string, i.e. -1
@@ -1264,20 +1267,21 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * @param idx		starting index (inclusive) of substring to replace
  * @param amount	length of substring to replace in "str"
  * @param string	replacement string
+ * @param length	length of replacement string
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
 bool
-str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
+str_replace_len(
+	str_t *str, ssize_t idx, size_t amount, const char *string, size_t length)
 {
-	size_t length;
 	size_t len;
 
 	str_check(str);
 	g_assert(size_is_non_negative(amount));
+	g_assert(size_is_non_negative(length));
 	g_assert(string != NULL);
 
-	length = vstrlen(string);
 	len = str->s_len;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -1326,6 +1330,31 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	str_instr(str, idx, string, length);
 
 	return TRUE;
+}
+
+/**
+ * Replace amount characters starting at position idx (included) with the
+ * content of the specified string. If the starting position is negative,
+ * it is interpreted as an offset relative to the end of the string, i.e. -1
+ * is the last character.
+ *
+ * If "amount" is greater than the number of characters held in the string
+ * after the starting index, then "amount"  is silently truncated down to the
+ * actual amount of bytes held until the end of the original string.
+ *
+ * @param str		the string in which we wish to replace some parts
+ * @param idx		starting index (inclusive) of substring to replace
+ * @param amount	length of substring to replace in "str"
+ * @param string	replacement string (must be NUL-terminated)
+ *
+ * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
+ */
+bool
+str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
+{
+	g_assert(string != NULL);
+
+	return str_replace_len(str, idx, amount, string, vstrlen(string));
 }
 
 /**
