@@ -363,6 +363,7 @@
 #include "trie_fmt.h"
 #include "trie.h"
 #include "unsigned.h"
+#include "vsort.h"
 #include "walloc.h"
 
 #include "override.h"	/* Must be the last header included */
@@ -1307,6 +1308,55 @@ re_minmax_decode(uint16 encoded, int *min, int *max)
 
 	*min = encoded & 0xff;
 	*max = encoded >> 8;
+}
+
+struct re_rarest_char {
+	uint32 count;		/* Number of occurrences */
+	uint32 offset;		/* Offset of first position seen */
+};
+
+static int
+re_rarest_char_cmp(const void *c1, const void *c2)
+{
+	const struct re_rarest_char *r1 = c1;
+	const struct re_rarest_char *r2 = c2;
+
+	if (r1->count == r2->count)
+		return CMP(r1->offset, r2->offset);		/* Earliest char */
+
+	return CMP(r1->count, r2->count);			/* Least frequent char first */
+}
+
+/**
+ * Find offset in string of the rarest character.
+ *
+ * @return the first position of the rarest character.
+ */
+size_t
+re_rarest_char_offset(const char *s)
+{
+	struct re_rarest_char map[RE_ALPHABET];
+	int c;
+	const char *p = s;
+
+
+	if G_UNLIKELY('\0' == *s)
+		return 0;		/* Empty string */
+
+	for (c = 0; c < RE_ALPHABET; c++) {
+		struct re_rarest_char *m = &map[c];
+		m->count = MAX_INT_VAL(uint32);
+		m->offset = MAX_INT_VAL(uint32);
+	}
+
+	while ((c = *p++)) {
+		if (0 == ++(map[c].count))
+			map[c].offset = ptr_diff(p, s) - 1;
+	}
+
+	vsort(map, N_ITEMS(map), sizeof(map[0]), re_rarest_char_cmp);
+
+	return map[0].offset;
 }
 
 /***
@@ -17403,6 +17453,30 @@ typedef enum {
 		 */
 	RE_OP_RET_A = 36,
 
+		/*
+		 * REW_TP n char [off]	-- rewind TP up to word 'n' under constraint.
+		 *
+		 * The constraint is that the character (byte) at TP+off be "char".
+		 *
+		 * The optional offset "off" is 0 by default.  Its presence and encoding
+		 * is given by the CS bits: 00b indicates no additionnal offset,
+		 * hence there is nothing if "off" is 0.
+		 *
+		 * If the Z bit is set, then 'n' is given as 2 bytes, otherwise 1 byte.
+		 * If the X bit is set, then matching is done case-insensitively and
+		 * character must be given in lowercase.
+		 *
+		 * This highly specialized complex instruction is meant to optimize
+		 * the matching of "a.*b" for instance, once ".*" starts to backtrack.
+		 * It can only be used to backtrack from a greedy operator matching a
+		 * single byte at a time.
+		 *
+		 * This limits the amount of FAIL_JMP we issue duing backtracking.
+		 *
+		 * Sets the Z bit if we find a matching constraint before the limit.
+		 */
+	RE_OP_REW_TP = 37,
+
 	RE_OP_MAX		/* 48 opcodes max */
 } re_mi_op_t;
 
@@ -17720,6 +17794,7 @@ re_mi_op2str(re_mi_op_t op)
 	CASE(SUB_TP);
 	CASE(ADD);
 	CASE(UPDATE_FPC);
+	CASE(REW_TP);
 	case RE_OP_MAX:
 		g_assert_not_reached();
 	}
@@ -19328,6 +19403,28 @@ re_mi_gen_matching(struct re_mi_gen_ctx *mig,
 {
 	re_op_cs_t cs = re_mi_cs_select(len, FALSE);
 
+	/*
+	 * If case does not matter, generate a case-sensitive match because it
+	 * is more efficient at runtime.
+	 */
+
+	if (icase) {
+		size_t n = len;
+		const char *p = text;
+		bool matters = FALSE;
+
+		while (n--) {
+			int c = *p++;
+			if (ascii_toupper(c) != ascii_tolower(c)) {
+				matters = TRUE;
+				break;
+			}
+		}
+
+		if (!matters)
+			icase = FALSE;
+	}
+
 	/* Timing shows that 1 CHAR is more efficient than a MATCH 1 instruction */
 
 	if (1 == len) {
@@ -19623,6 +19720,46 @@ re_mi_gen_inst_f_pop_track(struct re_mi_gen_ctx *mig, size_t n)
 
 	GEN_OP(FAIL_OP, X(1), Z(z), CS(RE_MI_FAIL_OP_TRACK), FLG(0));
 	re_mi_gen_constant(mig, csw, 2, n, FALSE);
+}
+
+/* REW_TP #n 'c' instruction */
+static void
+re_mi_gen_inst_rew_tp(struct re_mi_gen_ctx *mig,
+	size_t n, uint8 c, size_t offset, bool icase)
+{
+	re_mi_seg_t *text = mig->text;
+	bool z;
+	re_op_cs_t cso, csw;
+
+	n--;							/* We encode n - 1 */
+	z = n > MAX_INT_VAL(uint8);
+	csw = z ? RE_OP_CS_16BITS : RE_OP_CS_8BITS;
+	cso = 0 == offset ? RE_OP_CS_EMPTY : re_mi_cs_select(offset, FALSE);
+
+	/* Only request case-insensitive match if it matters */
+
+	if (icase) {
+		int lower = ascii_tolower(c);
+		int upper = ascii_toupper(c);
+
+		if (lower != upper) {
+			/* Case-insensitive */
+			GEN_OP(REW_TP, X(1), Z(z), CS(cso), FLG(0));
+			c = lower;				/* Character given in lowercase */
+			goto remaining;
+		}
+		/* FALL THROUGH -- case does not matter */
+	}
+
+	/* Case-sensitive matching */
+	GEN_OP(REW_TP, X(0), Z(z), CS(cso), FLG(0));
+
+remaining:
+	re_mi_gen_constant(mig, csw, 2, n, FALSE);
+	re_mi_seg_grow(text, 1);
+	text->p = poke_u8(text->p, c);
+	if (cso != RE_OP_CS_EMPTY)
+		re_mi_gen_constant(mig, cso, 0, offset, FALSE);
 }
 
 /**
@@ -22119,19 +22256,22 @@ re_mi_element_is_small(struct re_mi_gen_ctx *mig, const re_element_t *e)
  *
  * @param me		the current element
  * @param mne		if non-NULL, where next element information is returned
+ * @param next		whether to follow NEXT
  *
  * @return TRUE if we found a next element (information written in `mne').
  */
 static bool
-re_mi_find_next_element(const re_mi_element_t *me, re_mi_element_t *mne)
+re_mi_find_next_element(
+	const re_mi_element_t *me, re_mi_element_t *mne, bool next)
 {
 	const re_elemvec_t *ev = me->ev;
 	const re_element_t *e;
-	size_t n;
+	size_t n = me->n + 1;
 
 	re_elemvec_check(ev);
 
-	for (n = me->n + 1, e = &ev->elements[n]; n < ev->ecnt; n++, e++) {
+next:
+	for (e = &ev->elements[n]; n < ev->ecnt; n++, e++) {
 		switch ((re_elem_type_t) e->type) {
 		case RE_TYPE_EMPTY:
 		case RE_TYPE_IS_BOUNDARY:
@@ -22161,13 +22301,81 @@ re_mi_find_next_element(const re_mi_element_t *me, re_mi_element_t *mne)
 		case RE_TYPE_TEXT:
 		case RE_TYPE_CHAR:
 		case RE_TYPE_BACKREF:
+		case RE_TYPE_NOT_AHEAD:
+			goto found;
 		case RE_TYPE_SUB:
 		case RE_TYPE_SUBN:
 		case RE_TYPE_GROUP:
 		case RE_TYPE_ATOMIC:
 		case RE_TYPE_AHEAD:
-		case RE_TYPE_NOT_AHEAD:
+			if (next) {
+				const re_elemvec_t *next_ev = re_element_get_sub(e);
+				const re_element_t *ne;		/* Next element */
+
+				re_elemvec_check(next_ev);
+
+				ne = &next_ev->elements[0];
+
+				/*
+				 * If we need to follow NEXT, also enter groups: we are looking
+				 * for the next item that can be matched.
+				 *
+				 * However, if the group does not have at least one repetition,
+				 * then the elements we find inside could very well end-up not
+				 * matching against the text, hence there is not one single
+				 * solution for the next matching element and we have to stop.
+				 */
+
+				if (0 == re_element_get_repeat_min(ne))
+					goto found;
+
+				/* OK, enter the group and continue scanning */
+
+				ev = next_ev;
+				n  = 0;
+
+				goto next;
+			}
+			goto found;
 		case RE_TYPE_NEXT:
+			/*
+			 * At the end of an element vector, we need to find the parent.
+			 * We know there is no NEXT at the end of the root element vector.
+			 */
+			if (next) {
+				const re_element_t *pe;		/* Parent element */
+				const re_elemvec_t *next_ev;
+				size_t next_n;
+
+				next_ev = e->u.other->x.next.vec;
+				next_n  = e->u.other->x.next.n;
+
+				re_elemvec_check(next_ev);
+				g_assert(next_n > 0);
+
+				if (next_n >= next_ev->ecnt)
+					return FALSE;		/* Nothing, this is the end! */
+
+				pe = &next_ev->elements[next_n - 1];
+
+				/*
+				 * Only follow the NEXT element if the parent has at most
+				 * one repetition.  Otherwise, the NEXT element to match
+				 * could be the start of the parent again, depending on the
+				 * amount of repetitions already processed, so there is not
+				 * one solution for the next element.
+				 */
+
+				if (re_element_get_repeat_max(pe) > 1)
+					goto found;
+
+				/* OK, follow the NEXT pointer and continue scanning */
+
+				ev = next_ev;
+				n  = next_n;
+
+				goto next;
+			}
 			goto found;
 		case RE_TYPE_RETURN:
 			break;	/* End of look-around assertion -> end of sub-expression */
@@ -22756,7 +22964,7 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 {
 	const re_element_t *e = me->e;
 	bool atomic = e->atomic;
-	bool has_next = re_mi_find_next_element(me, NULL);
+	bool has_next = re_mi_find_next_element(me, NULL, FALSE);
 	bool is_cexable = re_mi_element_is_cexable(e);
 	bool is_disjoint = !has_next || re_mi_next_is_disjoint(me);
 
@@ -22930,7 +23138,7 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 	size_t minlen = re_element_get_minlen(e);
 	uint f = 0;
 	bool atomic = e->atomic;
-	bool has_next = re_mi_find_next_element(me, NULL);
+	bool has_next = re_mi_find_next_element(me, NULL, FALSE);
 	bool is_disjoint = !has_next || re_mi_next_is_disjoint(me);
 
 	if (1 == max && !first) {
@@ -22986,7 +23194,7 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			 */
 
 			if (
-				re_mi_find_next_element(me, &mne) &&
+				re_mi_find_next_element(me, &mne, FALSE) &&
 				RE_TYPE_NEXT != mne.e->type &&
 				!re_mi_match_overlap(me->e, mne.e)
 			) {
@@ -23372,9 +23580,51 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 				str_smsg("backracking %zu byte%s", PLURAL(minlen))
 			);
 
+			/*
+			 * If we are matching items whose minlen is 1, and we have a
+			 * next element following immediately which is a text or a
+			 * character with at least one repetition, then we can use
+			 * the REW_TP instruction to backtrack efficiently.
+			 */
+
+			if (1 == minlen) {
+				re_mi_element_t mne;
+
+				if (re_mi_find_next_element(me, &mne, TRUE)) {
+					const re_element_t *ne = mne.e;
+					uchar constraint = '\0';
+					size_t off = 0;
+
+					if (
+						re_element_get_repeat_min(ne) >= 1 &&
+						re_element_is_text(ne)
+					) {
+						const char *text = re_element_get_text(ne);
+						off = re_rarest_char_offset(text);
+						constraint = text[off];
+					} else if (
+						re_element_get_repeat_min(ne) >= 1 &&
+						re_element_is_char(ne)
+					) {
+						constraint = (uchar) re_element_get_char(ne);
+					}
+
+					if (constraint != '\0') {
+						/* REW_TP #t */
+						GENX(rew_tp, t, constraint, off, ne->icase);
+						GEN_BACKWARD_IF(Z, r);	/* JMP_Z <T> */
+						goto backtracking_failed;
+					}
+				}
+			}
+
+			/* Sub-optimal slow rewinding of TP */
+
 			GENX(sub_tp, minlen);				/* SUB_TP L */
 			GENX(lt_tp, t);						/* LT_TP #t */
-			GEN_BACKWARD_IF(NZ, r);				/* JMP <T> */
+			GEN_BACKWARD_IF(NZ, r);				/* JMP_NZ <T> */
+
+		backtracking_failed:
 
 			if (within_repeat)
 				GENX(f_pop_track, t);			/* F_POP_TRACK #t */
@@ -23835,7 +24085,7 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 	const re_element_t *e = me->e;
 	size_t minlen = re_element_get_minlen(e);
 	bool atomic = e->atomic;
-	bool has_next = re_mi_find_next_element(me, NULL);
+	bool has_next = re_mi_find_next_element(me, NULL, FALSE);
 	bool is_disjoint = !has_next || re_mi_next_is_disjoint(me);
 
 	g_assert(implies(SIZE_MAX == max, min > 1));	/* Or simpler code used! */
@@ -26876,6 +27126,7 @@ static struct re_mi_op_desc {
 	{ OP(UPDATE_FPC),	ALIAS(LD),			NO_ARGS()		},
 	{ OP(RG_A),			ALIAS(RG),			A_ARGS()		},
 	{ OP(RET_A),		ALIAS(RET),			NO_ARGS()		},
+	{ OP(REW_TP),		ALIAS(REW),			TP_ARGS()		},
 
 #undef OP
 #undef PLAIN
@@ -27781,6 +28032,33 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 					inst.x ? "pop" : "push", what, n + base);
 			}
 			p += 1 + inst.z;
+			goto ok;
+		case RE_OP_REW_TP:
+			{
+				uint n   = inst.z ? peek_le16(p) : peek_u8(p);
+				uint8 c;
+				size_t off = 0;
+				n++;
+				p += 1 + inst.z;
+				c = *p++;
+				if (inst.cs != RE_OP_CS_EMPTY)
+					p = re_mi_decode_immediate(p, inst.cs, 0, &off);
+				if (show) {
+					char tpreg[32];
+					if (0 == off) {
+						str_catf(s, "(%u), '%c'", n, c);
+						str_bprintf(ARYLEN(tpreg), "(TP)");
+					} else {
+						str_catf(s, "(%u), '%c'@%zu", n, c, off);
+						str_bprintf(ARYLEN(tpreg), "(TP+%zu)", off);
+					}
+					comment = str_smsg("TP-- upto (%u) until %s%s, Z <- OK",
+						n, tpreg, inst.x ?
+							str_smsg2(" in [%c%c]", c, ascii_toupper(c)) :
+							str_smsg2("='%c'", c)
+					);
+				}
+			}
 			goto ok;
 		case RE_OP_ESCAPE:
 		case RE_OP_MAX:
@@ -30044,6 +30322,85 @@ resume:
 
 				REX_DEBUG(RE_D_MI_MATCH, "rp[%zu] <- %u (%u + %u)",
 					n, rp[n], rp[n] - (uint) v, (uint) v);
+			}
+			continue;
+
+		case RE_OP_REW_TP:
+			{
+				register uint n;
+				uchar constraint;
+				const uchar *tp_min;
+				size_t off = 0;
+
+				/* Decode 'n', the reserved word number */
+
+				if (Z(inst)) {
+					n = (uint) PEEK_LE16(pc);
+					pc += 2;
+				} else {
+					n = (uint) *pc++;
+				}
+
+				if G_UNLIKELY(n >= code->tsp_words) goto bad_mword;
+
+				constraint = *pc++;
+
+				if (CS(inst) != RE_OP_CS_EMPTY)
+					pc = re_mi_decode_immediate(pc, CS(inst), 0, &off);
+
+				tp_min = const_ptr_add_offset(tp_start, (int) rp[n]);
+				tp--;
+
+				if (0 == off) {
+					/* Most common case, looking at first char */
+					if (X(inst)) {
+						/* Case insensitive matching */
+						while (tp >= tp_min) {
+							if (ascii_tolower(*tp) == constraint) {
+								ZF = TRUE;
+								goto resume;
+							}
+							tp--;
+						}
+					} else {
+						/* Case sensitive matching */
+						while (tp >= tp_min) {
+							if (*tp == constraint) {
+								ZF = TRUE;
+								goto resume;
+							}
+							tp--;
+						}
+					}
+				} else {
+					/*
+					 * Since we look ahead more than one character, we must
+					 * first ensure we backtrack by offset characters.
+					 */
+
+					tp -= off;
+
+					if (X(inst)) {
+						/* Case insensitive matching */
+						while (tp >= tp_min) {
+							if (ascii_tolower(tp[off]) == constraint) {
+								ZF = TRUE;
+								goto resume;
+							}
+							tp--;
+						}
+					} else {
+						/* Case sensitive matching */
+						while (tp >= tp_min) {
+							if (tp[off] == constraint) {
+								ZF = TRUE;
+								goto resume;
+							}
+							tp--;
+						}
+					}
+				}
+				ZF = FALSE;
 			}
 			continue;
 

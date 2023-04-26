@@ -2795,8 +2795,11 @@ test_match(size_t n, bool show, uint flags)
 		{ y,13, 2, "(?:[ac]|ed)?b",				"aaaaaaaaaxaaaabb",		},
 		{ y,11, 4, "(?:[ac]|ed){0,3}b",			"aaaaaaaaaxaaaabb",		},
 		{ y,11, 4, "(?:[ac]|ed){0,3}?b",		"aaaaaaaaaxaaaabb",		},
+		/* 250 */
 		{ y,11, 4, "(?:[ac]|ed){0,3}+b",		"aaaaaaaaaxaaaabb",		},
 		{ y,12, 3, "(?:[ac]|ed){0,2}b",			"aaaaaaaaaxaaaabb",		},
+		{ y, 0,11, ".*bbc",						"whateverbbcxcbcd",		},
+		{ Y, 0,11, ".*bbc",						"whateverBBCXCBCD",		},
 	};
 #undef n
 #undef y
