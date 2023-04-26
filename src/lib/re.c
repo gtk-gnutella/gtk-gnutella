@@ -22646,7 +22646,8 @@ re_mi_next_element_disjoint(const re_mi_element_t *mce,
 						 * account for NEXT.
 						 */
 						!(gev != NULL && gev == mce->ev && 2 == gev->ecnt) &&
-						!re_mi_next_element_disjoint(mce, ev, n - 1, FALSE)
+						TRUE
+						/* !re_mi_next_element_disjoint(mce, ev, n - 1, FALSE) */
 					) {
 						re_debug("%s(): failed check for repetition", G_STRFUNC);
 						return FALSE;
