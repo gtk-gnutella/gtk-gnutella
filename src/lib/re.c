@@ -17477,6 +17477,24 @@ typedef enum {
 		 */
 	RE_OP_REW_TP = 37,
 
+		/*
+		 * EQ_ATTP char [off]	-- check whether TP+off holds "char".
+		 *
+		 * The optional offset "off" is 0 by default.  Its presence and encoding
+		 * is given by the CS bits: 00b indicates no additionnal offset,
+		 * hence there is nothing if "off" is 0.
+		 *
+		 * If the X bit is set, then matching is done case-insensitively and
+		 * character must be given in lowercase.
+		 *
+		 * This instruction is meant to optimize the matching of "a.*?b" for
+		 * instance, to make sure we avoid piling up FAIL records on the stack
+		 * if we are going to have to backtrack to match one more character.
+		 *
+		 * Sets the Z bit if the character matches at TP+off.
+		 */
+	RE_OP_EQ_ATTP = 38,
+
 	RE_OP_MAX		/* 48 opcodes max */
 } re_mi_op_t;
 
@@ -17795,6 +17813,7 @@ re_mi_op2str(re_mi_op_t op)
 	CASE(ADD);
 	CASE(UPDATE_FPC);
 	CASE(REW_TP);
+	CASE(EQ_ATTP);
 	case RE_OP_MAX:
 		g_assert_not_reached();
 	}
@@ -19756,6 +19775,41 @@ re_mi_gen_inst_rew_tp(struct re_mi_gen_ctx *mig,
 
 remaining:
 	re_mi_gen_constant(mig, csw, 2, n, FALSE);
+	re_mi_seg_grow(text, 1);
+	text->p = poke_u8(text->p, c);
+	if (cso != RE_OP_CS_EMPTY)
+		re_mi_gen_constant(mig, cso, 0, offset, FALSE);
+}
+
+/* EQ_ATTP 'c' instruction */
+static void
+re_mi_gen_inst_eq_attp(struct re_mi_gen_ctx *mig,
+	uint8 c, size_t offset, bool icase)
+{
+	re_mi_seg_t *text = mig->text;
+	re_op_cs_t cso;
+
+	cso = 0 == offset ? RE_OP_CS_EMPTY : re_mi_cs_select(offset, FALSE);
+
+	/* Only request case-insensitive match if it matters */
+
+	if (icase) {
+		int lower = ascii_tolower(c);
+		int upper = ascii_toupper(c);
+
+		if (lower != upper) {
+			/* Case-insensitive */
+			GEN_OP(EQ_ATTP, X(1), Z(0), CS(cso), FLG(0));
+			c = lower;				/* Character given in lowercase */
+			goto remaining;
+		}
+		/* FALL THROUGH -- case does not matter */
+	}
+
+	/* Case-sensitive matching */
+	GEN_OP(EQ_ATTP, X(0), Z(0), CS(cso), FLG(0));
+
+remaining:
 	re_mi_seg_grow(text, 1);
 	text->p = poke_u8(text->p, c);
 	if (cso != RE_OP_CS_EMPTY)
@@ -22953,6 +23007,53 @@ re_mi_next_is_disjoint(const re_mi_element_t *me)
 }
 
 /**
+ * Look ahead in the regular expression for a coming textual constraint we
+ * know we will have to match after "me".
+ *
+ * @param me	the current element we are matching
+ * @param c		where the constraining character is written, if found
+ * @param off	where the offset of the constraint is written, if found
+ * @param icase	set if constraining character is case-insensitive
+ *
+ * @return TRUE when we found a coming constraint, with "c" and "off" set.
+ */
+static bool
+re_mi_find_ahead_constraint(const re_mi_element_t *me,
+	uchar *c, size_t *off, bool *icase)
+{
+	re_mi_element_t mne;
+
+	if (re_mi_find_next_element(me, &mne, TRUE)) {
+		const re_element_t *ne = mne.e;
+		uchar constraint = '\0';
+		size_t offset = 0;
+
+		if (
+			re_element_get_repeat_min(ne) >= 1 &&
+			re_element_is_text(ne)
+		) {
+			const char *text = re_element_get_text(ne);
+			offset = re_rarest_char_offset(text);
+			constraint = text[offset];
+		} else if (
+			re_element_get_repeat_min(ne) >= 1 &&
+			re_element_is_char(ne)
+		) {
+			constraint = (uchar) re_element_get_char(ne);
+		}
+
+		if (constraint != '\0') {
+			*c     = constraint;
+			*off   = offset;
+			*icase =  ne->icase;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
  * Generate byte code for up to one repetition of given element.
  *
  * This is special-cased because it does not require a variable for
@@ -22979,11 +23080,6 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 		/*
 		 * If nothing follows and we have to minimally match, then there is
 		 * no need to match anything in order to succeed!
-		 *
-		 * Likewise, if there is no commonality with the matching of this
-		 * element and the next (disjoint matches), then if we match what
-		 * follows, there will be no use backtracking to attempt to perform
-		 * a lazy match.
 		 */
 
 		GENX(debug, "trailing lazy match dropped");
@@ -23014,16 +23110,50 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 
 		atomic = FALSE;
 		GENX(debug, "trailing atomic match made greedy");
-	} else if (!atomic && has_next && is_disjoint) {
+	} else if (!atomic && !e->minimal && has_next && is_disjoint) {
 		atomic = TRUE;
 		GENX(debug, "internal disjoint greedy match made atomic");
 	}
 
 	if (e->minimal) {
-		uint a;
+		uint a, b;
+		uchar cc;		/* Constraining character */
+		size_t off;
+		bool icase;
+		bool use_constraint = FALSE;
+
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase)) {
+			/*
+			 * Lazy repetition, special case: X?? "known text to match"
+			 *
+			 * We have a known constraint to match after this element.
+			 * If we do not see the constraint, then we know we have to
+			 * try to match X, so we can avoid the FAIL point.
+			 *
+			 * In our above example, we need a 'k' if we do not match X
+			 * now, hence if we do not have a 'k' following, match X and
+			 * if it fails, then failure is propagated.
+			 *
+			 *      EQ_ATTP, 'k';	; do we see 'k' ahead, our constraint?
+			 *      JMP_NZ <B>		; no, we need to match X or fail
+			 *      ; yes, we do see 'k', so we can try to go ahead to <A>
+			 *      FAIL_JMP <A>	; first attempt will try without X
+			 * <B>:
+			 *      X				; match X if we backtracked
+			 * <A>: ...				; matching remaining
+			 */
+
+			GENX(debug,
+				str_smsg("known constraint '%c' in %zu byte%s", cc, PLURAL(off))
+			);
+			GENX(eq_attp, cc, off, icase);		/* EQ_ATTP */
+			b = GEN_FORWARD_IF(NZ, 8BITS);		/* JMP_NZ <B>*/
+
+			use_constraint = TRUE;
+		}
 
 		/*
-		 * Lazy repetition: X??
+		 * Lazy repetition, general case: X??
 		 *
 		 *      FAIL_JMP <A>	; first attempt will try without X
 		 *      X				; match X if we backtracked
@@ -23041,6 +23171,10 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 			a = GEN_FAIL_JMP(8BITS);			/* FAIL_JMP <A> */
 		else
 			a = GEN_FAIL_JMP(16BITS);			/* FAIL_JMP <A> */
+
+		if (use_constraint)
+			GEN_TARGET_HERE(b);					/* <B>: */
+
 		GEN_ELEMENT(e);							/* X */
 		GEN_TARGET_HERE(a);						/* <A>: */
 	} else if (!atomic) {
@@ -23242,7 +23376,11 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 	 */
 
 	if (e->minimal && !atomic) {
-		uint a, b, c, n = 0, t = 0;
+		uint a, b, c, d, g, n = 0, t = 0;
+		uchar cc;		/* Constraining character */
+		size_t off;
+		bool icase;
+		bool use_constraint = FALSE;
 
 		/*
 		 * Lazy repetition: X*?, non atomic (can backtrack)
@@ -23254,6 +23392,9 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			GENX(debug,
 				str_smsg("lazy, min match: %zu byte%s", PLURAL(minlen)));
 		}
+
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase))
+			use_constraint = TRUE;
 
 		/*
 		 * General code pattern for lazy matching is:
@@ -23279,6 +23420,16 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			f = GEN_FORWARD_JMP(8BITS);		/* We expect a small jump */
 		}
 
+		if (use_constraint) {
+			GENX(debug,
+				str_smsg("known constraint '%c' in %zu byte%s", cc, PLURAL(off))
+			);
+			/* Must come back here to attempt new match */
+			g = GEN_TEXT_POS();					/* <G>: */
+			GENX(eq_attp, cc, off, icase);		/* EQ_ATTP */
+			d = GEN_FORWARD_IF(NZ, 8BITS);		/* JMP_NZ <D>*/
+		}
+
 		/*
 		 * If X is shallow, then the leading FAIL_JMP offset can
 		 * be safely limited to 8-bits.
@@ -23294,6 +23445,8 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			a = GEN_TRACK_FAIL_JMP(16BITS, n, &b);
 		if (first)
 			GEN_TARGET_HERE(f);					/* Entry for 1st repetition */
+		if (use_constraint)
+			GEN_TARGET_HERE(d);					/* <D>: force X to match */
 		if (0 == minlen) {
 			t = GEN_TRACK_GET_NUM();
 			GENX(save_tp, t);					/* SAVE_TP #t */
@@ -23311,10 +23464,12 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 		GENX(debug,
 			str_smsg("looping for lazy %s", re_elem_info(e)));
 		if (SIZE_MAX == max) {
-			GEN_BACKWARD_JMP(b);				/* JMP <A> */
+			uint target = use_constraint ? g : b;
+			GEN_BACKWARD_JMP(target);			/* JMP <A> */
 		} else {
+			uint target = use_constraint ? g : b;
 			/* Instead of "DEC #n; JMP_NZ <A>", use "DJMP_NZ, #n, <A>" */
-			GEN_BACKWARD_DJMP_NZ(n, b);			/* DJMP_NZ #n, <A> */
+			GEN_BACKWARD_DJMP_NZ(n, target);	/* DJMP_NZ #n, <A> */
 			/*
 			 * Not releasing counter variable, only stopping its saving now
 			 * that we're out of the loop.
@@ -23588,33 +23743,15 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			 */
 
 			if (1 == minlen) {
-				re_mi_element_t mne;
+				uchar cc;		/* Constraining character */
+				size_t off;
+				bool icase;
 
-				if (re_mi_find_next_element(me, &mne, TRUE)) {
-					const re_element_t *ne = mne.e;
-					uchar constraint = '\0';
-					size_t off = 0;
-
-					if (
-						re_element_get_repeat_min(ne) >= 1 &&
-						re_element_is_text(ne)
-					) {
-						const char *text = re_element_get_text(ne);
-						off = re_rarest_char_offset(text);
-						constraint = text[off];
-					} else if (
-						re_element_get_repeat_min(ne) >= 1 &&
-						re_element_is_char(ne)
-					) {
-						constraint = (uchar) re_element_get_char(ne);
-					}
-
-					if (constraint != '\0') {
-						/* REW_TP #t */
-						GENX(rew_tp, t, constraint, off, ne->icase);
-						GEN_BACKWARD_IF(Z, r);	/* JMP_Z <T> */
-						goto backtracking_failed;
-					}
+				if (re_mi_find_ahead_constraint(me, &cc, &off, &icase)) {
+					/* REW_TP #t */
+					GENX(rew_tp, t, cc, off, icase);
+					GEN_BACKWARD_IF(Z, r);	/* JMP_Z <T> */
+					goto backtracking_failed;
 				}
 			}
 
@@ -24151,6 +24288,10 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 
 	if (e->minimal) {
 		uint a, b, c, d, i = 0, t = 0;
+		uchar cc;		/* Constraining character */
+		size_t off;
+		bool icase;
+		bool use_constraint = FALSE;
 
 		/*
 		 * Lazy repetition: X{n,m}?, non atomic (can backtrack)
@@ -24162,6 +24303,9 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			GENX(debug,
 				str_smsg("lazy, min match: %zu byte%s", PLURAL(minlen)));
 		}
+
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase))
+			use_constraint = TRUE;
 
 		/*
 		 * General code pattern for X{n,m}? lazy matching is:
@@ -24211,6 +24355,19 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 		} else {
 			GENX(lt_a, min);					/* LT_A n */
 			GEN_BACKWARD_IF(Z, a);				/* JMP_Z <A> */
+		}
+
+		/*
+		 * If we have a known constraint to match, we know we have
+		 * to try to match once more if we cannot see it ahead.
+		 */
+
+		if (use_constraint) {
+			GENX(debug,
+				str_smsg("known constraint '%c' in %zu byte%s", cc, PLURAL(off))
+			);
+			GENX(eq_attp, cc, off, icase);		/* EQ_ATTP */
+			GEN_BACKWARD_IF(NZ, a);				/* JMP_NZ <A> */
 		}
 
 		d = GEN_TRACK_FAIL_JMP(8BITS, i, NULL);	/* FAIL_JMP <B> */
@@ -27127,6 +27284,7 @@ static struct re_mi_op_desc {
 	{ OP(RG_A),			ALIAS(RG),			A_ARGS()		},
 	{ OP(RET_A),		ALIAS(RET),			NO_ARGS()		},
 	{ OP(REW_TP),		ALIAS(REW),			TP_ARGS()		},
+	{ OP(EQ_ATTP),		ALIAS(EQ),			NO_ARGS()		},
 
 #undef OP
 #undef PLAIN
@@ -28060,6 +28218,29 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 				}
 			}
 			goto ok;
+		case RE_OP_EQ_ATTP:
+			{
+				uint8 c;
+				size_t off = 0;
+				c = *p++;
+				if (inst.cs != RE_OP_CS_EMPTY)
+					p = re_mi_decode_immediate(p, inst.cs, 0, &off);
+				if (show) {
+					char tpreg[32];
+					if (0 == off) {
+						str_bprintf(ARYLEN(tpreg), "(TP)");
+					} else {
+						str_bprintf(ARYLEN(tpreg), "(TP+%zu)", off);
+					}
+					str_catf(s, "%s, '%c'", tpreg, c);
+					comment = str_smsg("Z <- %s%s",
+						tpreg, inst.x ?
+							str_smsg2(" in [%c%c]", c, ascii_toupper(c)) :
+							str_smsg2("='%c'", c)
+					);
+				}
+			}
+			goto ok;
 		case RE_OP_ESCAPE:
 		case RE_OP_MAX:
 			break;
@@ -28901,6 +29082,7 @@ re_mi_execute(struct re_mi_ctx *rmi, bool next)
 	const re_mi_seg_t *data   = &code->data;
 	register const uint8 *end = re_mi_seg_end(text);
 	const uchar *tp_start     = rmi->rec->text;
+	const uchar *tp_end       = NULL;		/* Unknown text end yet */
 	uint eflags               = rmi->rec->eflags;
 	struct {
 		size_t n;				/* Amount of repetitions */
@@ -30401,6 +30583,39 @@ resume:
 					}
 				}
 				ZF = FALSE;
+			}
+			continue;
+
+		case RE_OP_EQ_ATTP:
+			{
+				uchar constraint;
+				size_t off = 0;
+
+				constraint = *pc++;
+
+				if (CS(inst) != RE_OP_CS_EMPTY)
+					pc = re_mi_decode_immediate(pc, CS(inst), 0, &off);
+
+				if (0 == off) {
+					/* Most common case, looking at first char */
+					ZF = constraint == (*re_convert[X(inst)])(*tp);
+					goto resume;
+				} else {
+					const uchar *p = const_ptr_add_offset(tp, off);
+
+					/*
+					 * Since we look ahead more than one character, we must
+					 * first ensure we have enough text ahead.
+					 */
+
+					if (NULL == tp_end)
+						tp_end = re_exec_find_end(rmi->rec);
+
+					if (p < tp_end)
+						ZF = constraint == (*re_convert[X(inst)])(*p);
+					else
+						ZF = FALSE;
+				}
 			}
 			continue;
 
