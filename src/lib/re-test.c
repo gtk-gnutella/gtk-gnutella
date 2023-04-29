@@ -2800,6 +2800,11 @@ test_match(size_t n, bool show, uint flags)
 		{ y,12, 3, "(?:[ac]|ed){0,2}b",			"aaaaaaaaaxaaaabb",		},
 		{ y, 0,11, ".*bbc",						"whateverbbcxcbcd",		},
 		{ Y, 0,11, ".*bbc",						"whateverBBCXCBCD",		},
+		{ y, 0,19, "re.*?a[st]semble",			"rewind_and_assemble",	},
+		{ y, 0,19, "re.*?assemble",				"rewind_and_assemble",	},
+		{ y, 0,19, "re.+?assemble",				"rewind_and_assemble",	},
+		{ n, 0,19, "re.+?assembl.x",			"rewind_and_assemble",	},
+		{ Y, 0,19, "re.*?a[st]semble",			"rewind_and_ASSEMBLE",	},
 	};
 #undef n
 #undef y

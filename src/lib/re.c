@@ -17487,13 +17487,34 @@ typedef enum {
 		 * If the X bit is set, then matching is done case-insensitively and
 		 * character must be given in lowercase.
 		 *
-		 * This instruction is meant to optimize the matching of "a.*?b" for
-		 * instance, to make sure we avoid piling up FAIL records on the stack
-		 * if we are going to have to backtrack to match one more character.
+		 * This instruction is meant to optimize the matching of lazy operators
+		 * to make sure we avoid piling up FAIL records on the stack if we are
+		 * going to have to backtrack to match one more instance.
 		 *
 		 * Sets the Z bit if the character matches at TP+off.
 		 */
 	RE_OP_EQ_ATTP = 38,
+
+		/*
+		 * UNTIL size bytes -- matches anything up to given bytes
+		 *
+		 * If the X bit is set, the matching is case-insensitive and the
+		 * characters must be given in lower-case.
+		 *
+		 * If the Z bit is set, will match ALL, otherwise just ANY.
+		 *
+		 * Expects a CS-encoded unsigned constant, a single byte when CS=0
+		 * (at which time it just matches the single char this byte represents).
+		 *
+		 * At the end of the instruction, the text pointer (TP) is positionned
+		 * right before the given string and the C bit is set to indicate
+		 * success, or the text pointer is moved to the end of the text and
+		 * the C bit is cleared.
+		 *
+		 * This instruction is meant to optimize the matching of "a.*?b", to
+		 * quickly swallow everything up to the next "b".
+		 */
+	RE_OP_UNTIL = 39,
 
 	RE_OP_MAX		/* 48 opcodes max */
 } re_mi_op_t;
@@ -17814,6 +17835,7 @@ re_mi_op2str(re_mi_op_t op)
 	CASE(UPDATE_FPC);
 	CASE(REW_TP);
 	CASE(EQ_ATTP);
+	CASE(UNTIL);
 	case RE_OP_MAX:
 		g_assert_not_reached();
 	}
@@ -19415,10 +19437,10 @@ re_mi_gen_inst_add(struct re_mi_gen_ctx *mig, size_t n, size_t val)
 	re_mi_gen_constant(mig, fcs, 0, val, FALSE);
 }
 
-/* MATCH or CHAR instruction */
+/* MATCH or CHAR or UNTIL instruction */
 static void
 re_mi_gen_matching(struct re_mi_gen_ctx *mig,
-	const char *text, size_t len, bool icase)
+	re_mi_op_t op, const char *text, size_t len, bool icase, bool z)
 {
 	re_op_cs_t cs = re_mi_cs_select(len, FALSE);
 
@@ -19447,9 +19469,9 @@ re_mi_gen_matching(struct re_mi_gen_ctx *mig,
 	/* Timing shows that 1 CHAR is more efficient than a MATCH 1 instruction */
 
 	if (1 == len) {
-		GEN_OP(MATCH,  X(icase), Z(0), CS(RE_OP_CS_EMPTY),  FLG(0));
+		re_mi_gen_op(mig, op, X(icase), Z(z), CS(RE_OP_CS_EMPTY),  FLG(0));
 	} else {
-		GEN_OP(MATCH, X(icase), Z(0), CS(cs), FLG(0));
+		re_mi_gen_op(mig, op, X(icase), Z(z), CS(cs), FLG(0));
 		re_mi_gen_constant(mig, cs, 0, len, FALSE);
 	}
 
@@ -19468,6 +19490,16 @@ re_mi_gen_matching(struct re_mi_gen_ctx *mig,
 	}
 }
 
+/* UNTIL instruction */
+static void
+re_mi_gen_inst_until(struct re_mi_gen_ctx *mig,
+	const char *text, bool icase, bool all)
+{
+	size_t len = vstrlen(text);
+
+	re_mi_gen_matching(mig, RE_OP_UNTIL, text, len, icase, all);
+}
+
 /* MATCH instruction */
 static void
 re_mi_gen_inst_match(struct re_mi_gen_ctx *mig, const char *text, bool icase)
@@ -19476,7 +19508,7 @@ re_mi_gen_inst_match(struct re_mi_gen_ctx *mig, const char *text, bool icase)
 
 	/* Timing shows that replacing a MATCH 2 with 2 CHAR is not useful */
 
-	re_mi_gen_matching(mig, text, len, icase);
+	re_mi_gen_matching(mig, RE_OP_MATCH, text, len, icase, FALSE);
 }
 
 /* CHAR instruction (MATCH opcode with CS=EMPTY) */
@@ -19486,7 +19518,7 @@ re_mi_gen_inst_char(struct re_mi_gen_ctx *mig, int c, bool icase)
 	char buf[1];
 
 	buf[0] = c;
-	re_mi_gen_matching(mig, buf, 1, icase);
+	re_mi_gen_matching(mig, RE_OP_MATCH, buf, 1, icase, FALSE);
 }
 
 /* ANY minimal instruction */
@@ -23014,12 +23046,13 @@ re_mi_next_is_disjoint(const re_mi_element_t *me)
  * @param c		where the constraining character is written, if found
  * @param off	where the offset of the constraint is written, if found
  * @param icase	set if constraining character is case-insensitive
+ * @param str	if non-NULL, set with beginning of constraint, if a string
  *
  * @return TRUE when we found a coming constraint, with "c" and "off" set.
  */
 static bool
 re_mi_find_ahead_constraint(const re_mi_element_t *me,
-	uchar *c, size_t *off, bool *icase)
+	uchar *c, size_t *off, bool *icase, const char **str)
 {
 	re_mi_element_t mne;
 
@@ -23035,11 +23068,15 @@ re_mi_find_ahead_constraint(const re_mi_element_t *me,
 			const char *text = re_element_get_text(ne);
 			offset = re_rarest_char_offset(text);
 			constraint = text[offset];
+			if (str != NULL)
+				*str = text;
 		} else if (
 			re_element_get_repeat_min(ne) >= 1 &&
 			re_element_is_char(ne)
 		) {
 			constraint = (uchar) re_element_get_char(ne);
+			if (str != NULL)
+				*str = NULL;
 		}
 
 		if (constraint != '\0') {
@@ -23122,7 +23159,7 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 		bool icase;
 		bool use_constraint = FALSE;
 
-		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase)) {
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase, NULL)) {
 			/*
 			 * Lazy repetition, special case: X?? "known text to match"
 			 *
@@ -23134,7 +23171,7 @@ re_mi_generate_upto_1(struct re_mi_gen_ctx *mig, const re_mi_element_t *me)
 			 * now, hence if we do not have a 'k' following, match X and
 			 * if it fails, then failure is propagated.
 			 *
-			 *      EQ_ATTP, 'k';	; do we see 'k' ahead, our constraint?
+			 *      EQ_ATTP 'k';	; do we see 'k' ahead, our constraint?
 			 *      JMP_NZ <B>		; no, we need to match X or fail
 			 *      ; yes, we do see 'k', so we can try to go ahead to <A>
 			 *      FAIL_JMP <A>	; first attempt will try without X
@@ -23377,7 +23414,8 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 
 	if (e->minimal && !atomic) {
 		uint a, b, c, d, g, n = 0, t = 0;
-		uchar cc;		/* Constraining character */
+		uchar cc;				/* Constraining character */
+		const char *cstring;	/* Constraining string */
 		size_t off;
 		bool icase;
 		bool use_constraint = FALSE;
@@ -23393,7 +23431,7 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 				str_smsg("lazy, min match: %zu byte%s", PLURAL(minlen)));
 		}
 
-		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase))
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase, &cstring))
 			use_constraint = TRUE;
 
 		/*
@@ -23426,6 +23464,69 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 			);
 			/* Must come back here to attempt new match */
 			g = GEN_TEXT_POS();					/* <G>: */
+
+			/*
+			 * If it is ANY or ALL, with infinite repetitions, we can further
+			 * optimize by advancing TP up to the next occurrence of the
+			 * constraint full text, not just moving TP up to its rarest
+			 * character!
+			 *
+			 * Instead of generating a constraint lookup:
+			 *
+			 * <G>:
+			 *      ; coming back here due to matching failure
+			 *      EQ_ATTP 'k'		; do we see 'k' ahead, our constraint?
+			 *      JMP_NZ <B>		; no, we need to match X or fail
+			 *      FAIL_JMP <A>    ; yes, try without X
+			 * <B>:
+			 *      X				; have to match once more then
+			 *      [JMP <G>]		; possibly loop
+			 * <A>: ...
+			 *
+			 * We can generate instead (remember, X is either ANY or ALL,
+			 * typically it will be ".*?"):
+			 *
+			 * <G>:
+			 *      ; coming back here due to matching failure
+			 *      UNTIL 'keystr'  ; if we see constraint ahead, move up to it
+			 *      JMP_C <B>       ; we did, hence try to match remaining
+			 *      FAIL            ; no hope to match remaining
+			 * <B>:
+			 *      FAIL_JMP <A>    ; go match constant and remaining
+			 *      ANY             ; match one more character
+			 *      JMP <G>         ; need to match more text
+			 * <A>: ...
+			 *
+			 * The UNTIL instruction will advance the text pointer TP to the
+			 * beginning of the constraint and set the C bit if it found it.
+			 */
+
+			switch (e->type) {
+			case RE_TYPE_ANY:
+			case RE_TYPE_ALL:
+				if (SIZE_MAX == max) {
+					if (cstring != NULL) {
+						GENX(until, cstring, icase, RE_TYPE_ALL == e->type);
+					} else {
+						char buf[2];
+
+						buf[0] = cc;
+						buf[1] = '\0';
+						g_assert(0 == off);	/* Single char, necessarily */
+						GENX(until, buf, icase, RE_TYPE_ALL == e->type);
+					}
+					b = GEN_FORWARD_IF(C, 8BITS);		/* JMP_C <B>*/
+					GEN(fail);							/* FAIL */
+					GEN_TARGET_HERE(b);					/* <B>: */
+					a = GEN_FAIL_JMP(8BITS);			/* FAIL_JMP <A> */
+					GEN_ELEMENT(e);						/* X */
+					GEN_BACKWARD_JMP(g);				/* JMP <G> */
+					GEN_TARGET_HERE(a);					/* <A>: */
+					return;
+				}
+				break;
+			}
+
 			GENX(eq_attp, cc, off, icase);		/* EQ_ATTP */
 			d = GEN_FORWARD_IF(NZ, 8BITS);		/* JMP_NZ <D>*/
 		}
@@ -23747,7 +23848,7 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 				size_t off;
 				bool icase;
 
-				if (re_mi_find_ahead_constraint(me, &cc, &off, &icase)) {
+				if (re_mi_find_ahead_constraint(me, &cc, &off, &icase, NULL)) {
 					/* REW_TP #t */
 					GENX(rew_tp, t, cc, off, icase);
 					GEN_BACKWARD_IF(Z, r);	/* JMP_Z <T> */
@@ -24304,7 +24405,7 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 				str_smsg("lazy, min match: %zu byte%s", PLURAL(minlen)));
 		}
 
-		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase))
+		if (re_mi_find_ahead_constraint(me, &cc, &off, &icase, NULL))
 			use_constraint = TRUE;
 
 		/*
@@ -27285,6 +27386,7 @@ static struct re_mi_op_desc {
 	{ OP(RET_A),		ALIAS(RET),			NO_ARGS()		},
 	{ OP(REW_TP),		ALIAS(REW),			TP_ARGS()		},
 	{ OP(EQ_ATTP),		ALIAS(EQ),			NO_ARGS()		},
+	{ OP(UNTIL),		PLAIN(),			X_ARGS(S,I)		},
 
 #undef OP
 #undef PLAIN
@@ -27943,9 +28045,14 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 			}
 			goto ok;
 		case RE_OP_MATCH:
+		case RE_OP_UNTIL:
 			p = re_mi_decode_immediate(p, inst.cs, 1, &characters);
 			if (show) {
-				comment = str_smsg("case-%ssensitive", inst.x ? "in": "");
+				comment = str_smsg("%scase-%ssensitive",
+					RE_OP_UNTIL == inst.opcode ?
+						(inst.z ? "swallow ALL until, " : "swallow ANY until, ") :
+						"",
+					inst.x ? "in": "");
 				if (RE_OP_CS_EMPTY == inst.cs) {
 					str_catf(s, ", '%s'", re_format_char(characters));
 					characters = 0;
@@ -30145,6 +30252,117 @@ resume:
 				}
 			}
 			continue;
+
+		case RE_OP_UNTIL:
+			{
+				re_op_cs_t cs = CS(inst);
+				bool z = Z(inst);
+
+				if (RE_OP_CS_EMPTY == cs) {
+					int (*conv)(int) = re_convert[X(inst)];
+					int lc = *pc++;		/* Looked-up character */
+
+					/* We cannot use strchr() since it could allocate memory */
+
+					for (;; tp += dr) {
+						int c = (*conv)(*tp);
+
+						/* Matching an immediate single char */
+
+						if G_UNLIKELY('\0' == c || ('\n' == c && !z)) {
+							CF = FALSE;
+							goto resume;
+						}
+
+						REX_DEBUG(RE_D_MI_MATCH, "%c-matching '%c' with '%c'",
+							X(inst) ? 'i' : 's', lc, c);
+
+						if (c == lc) {
+							REX_DEBUG(RE_D_MI_MATCH, "%c-matched '%c'",
+								X(inst) ? 'i' : 's', c);
+
+							CF = TRUE;
+							goto resume;
+						}
+					}
+					g_assert_not_reached();
+				} else {
+					size_t nc, n;
+					const uchar *old_tp;
+					const uint8 *string, *p;
+
+					/*
+					 * Matching a sequence of characters.
+					 *
+					 * Note that pc already points at the fist byte of the
+					 * constant we need to read here, hence to check that
+					 * the whole matching bytes are held in the TEXT segment,
+					 * we need to ensure that its last byte is.  In other
+					 * words, we must satisfy:
+					 *
+					 * 		pc + (nc  -1) < end
+					 *
+					 * to be able to safely de-reference pc below.  Hence the
+					 * failure check:
+					 *
+					 * 		pc + nc > end		// strict comparison
+					 */
+
+					string = pc = re_mi_decode_immediate(pc, cs, 1, &nc);
+
+					if G_UNLIKELY(pc + nc > end) {
+						REX_DEBUG(RE_D_MI_MATCH,
+							"TEXT fault, nc=%zu, PC=%04X", nc, PC);
+						goto text_fault;
+					}
+
+					pc += nc;			/* Move past string */
+					old_tp = tp - dr;	/* Where we started matching string */
+
+					/* We cannot use strstr() since it could allocate memory */
+
+				advance_upto:			/* Avoid painful indentation */
+
+					old_tp += dr;
+					p       = string;
+					tp      = old_tp;
+					n       =  nc;
+
+					if (X(inst)) {
+						while (n--) {
+							register int c = *tp;
+							if G_UNLIKELY('\0' == c || ('\n' == c && !z)) {
+								CF = FALSE;
+								goto resume;
+							}
+							REX_DEBUG(RE_D_MI_MATCH, "i-matching '%c' with '%c'",
+								*p, c);
+							if (ascii_tolower(c) != *p++)
+								goto advance_upto
+							REX_DEBUG(RE_D_MI_MATCH, "i-matched '%c'", c);
+							tp += dr;
+						}
+					} else {
+						while (n--) {
+							register int c = *tp;
+							if G_UNLIKELY('\0' == c || ('\n' == c && !z)) {
+								CF = FALSE;
+								goto resume;
+							}
+							REX_DEBUG(RE_D_MI_MATCH, "s-matching '%c' with '%c'",
+								*p, c);
+							if (*p++ != c)
+								goto advance_upto;
+							REX_DEBUG(RE_D_MI_MATCH, "s-matched '%c'", c);
+							tp += dr;
+						}
+					}
+					tp = old_tp;	/* Move TP back to matching string */
+					CF = TRUE;
+					continue;
+				}
+			}
+			g_assert_not_reached();
 
 		case RE_OP_TRIE:
 			{
