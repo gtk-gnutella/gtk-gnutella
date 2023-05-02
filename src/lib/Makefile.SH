@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
+COMMON_LIBS =  $libs
 DBUS_CFLAGS =  $dbuscflags
 OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
 GLIB_CFLAGS =  $glibcflags
-GLIB_LDFLAGS =  $glibldflags
-COMMON_LIBS =  $libs
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -309,6 +309,7 @@ LSRC = \
 	stacktrace.c \
 	stats.c \
 	str.c \
+	str_subst_str.c \
 	stringify.c \
 	strpcpy.c \
 	strtok.c \
@@ -528,6 +529,7 @@ LOBJ = \
 	stacktrace.o \
 	stats.o \
 	str.o \
+	str_subst_str.o \
 	stringify.o \
 	strpcpy.o \
 	strtok.o \

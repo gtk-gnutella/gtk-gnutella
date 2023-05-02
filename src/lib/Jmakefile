@@ -237,6 +237,7 @@ LSRC = \
 	stacktrace.c \
 	stats.c \
 	str.c \
+	str_subst_str.c \
 	stringify.c \
 	strpcpy.c \
 	strtok.c \

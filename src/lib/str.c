@@ -57,7 +57,6 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
-#include "pattern.h"
 #include "stringify.h"		/* For logging */
 #include "thread.h"
 #include "unsigned.h"
@@ -2160,131 +2159,6 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 	}
 
 	return str_substr_internal(s, start, len);
-}
-
-/**
- * Replace `needle' string with `replacement', inplace, either the first
- * occurrence or all of them, as governed by `all'.
- *
- * @param s				the string we are modifying
- * @param needle		the element to replace
- * @param replacement	the replacement string
- * @param icase			whether needle is case-insensitive
- * @param all			whether all `needle' instances need to be replaced
- *
- * @return the amount of replacements done.
- */
-static size_t
-str_subst_str_internal(
-	str_t *s, const char *needle, const char *replacement, bool icase, bool all)
-{
-	cpattern_t *cp;
-	size_t offset = 0;
-	size_t matches = 0;
-	size_t nlen = vstrlen(needle);
-	size_t rlen = vstrlen(replacement);
-
-	cp = pattern_compile_fast(needle, nlen, icase);
-
-	for (;;) {
-		const char *r = pattern_search(cp, s->s_data, s->s_len, offset, qs_any);
-		size_t idx;
-
-		if (NULL == r)
-			goto done;
-
-		matches++;
-		idx = ptr_diff(r, s->s_data);
-		str_replace_len(s, idx, nlen, replacement, rlen);
-
-		if (!all)
-			goto done;
-
-		offset = idx + rlen;		/* Move past last replacement */
-	}
-
-done:
-	pattern_free(cp);
-
-	return matches;
-}
-
-/**
- * Replace first instance of `needle' string with `replacement', inplace.
- *
- * @param s				the string we are modifying
- * @param needle		the element to replace
- * @param replacement	the replacement string
- *
- * @return the amount of replacements done.
- */
-size_t
-str_subst_first_str(str_t *s, const char *needle, const char *replacement)
-{
-	str_check(s);
-	g_assert(needle != NULL);
-	g_assert(replacement != NULL);
-
-	return str_subst_str_internal(s, needle, replacement, FALSE, FALSE);
-}
-
-/**
- * Replace all instances of `needle' string with `replacement', inplace.
- *
- * @param s				the string we are modifying
- * @param needle		the element to replace
- * @param replacement	the replacement string
- *
- * @return the amount of replacements done.
- */
-size_t
-str_subst_all_str(str_t *s, const char *needle, const char *replacement)
-{
-	str_check(s);
-	g_assert(needle != NULL);
-	g_assert(replacement != NULL);
-
-	return str_subst_str_internal(s, needle, replacement, FALSE, TRUE);
-}
-
-/**
- * Replace first instance of `needle' string (case-insensitive) with
- * `replacement', inplace.
- *
- * @param s				the string we are modifying
- * @param needle		the element to replace
- * @param replacement	the replacement string
- *
- * @return the amount of replacements done.
- */
-size_t
-str_case_subst_first_str(str_t *s, const char *needle, const char *replacement)
-{
-	str_check(s);
-	g_assert(needle != NULL);
-	g_assert(replacement != NULL);
-
-	return str_subst_str_internal(s, needle, replacement, TRUE, FALSE);
-}
-
-/**
- * Replace all instances of `needle' string (case-insensitive) with
- * `replacement', inplace.
- *
- * @param s				the string we are modifying
- * @param needle		the element to replace
- * @param replacement	the replacement string
- *
- * @return the amount of replacements done.
- */
-size_t
-str_case_subst_all_str(str_t *s, const char *needle, const char *replacement)
-{
-	str_check(s);
-	g_assert(needle != NULL);
-	g_assert(replacement != NULL);
-
-	return str_subst_str_internal(s, needle, replacement, TRUE, TRUE);
 }
 
 /**

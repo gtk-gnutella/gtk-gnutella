@@ -1008,6 +1008,8 @@ src/lib/stats.h
 src/lib/stat-test.c
 src/lib/str.c
 src/lib/str.h
+src/lib/str_subst_str.c
+src/lib/str_subst_str.h
 src/lib/stringify.c
 src/lib/stringify.h
 src/lib/strpcpy.c
