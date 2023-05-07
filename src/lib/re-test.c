@@ -70,10 +70,11 @@
 
 static bool colorize;
 static bool optimize = TRUE;
-static bool byte_code;
+static bool byte_code = TRUE;
 static bool debug_byte_code;
 static bool list_groups;
 static bool once_match;
+static bool prune_tree;
 static bool compare;
 static bool switch_optimization;
 static bool switch_implementation;
@@ -88,10 +89,9 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-			"Usage: %s [-BCLOPRSTXcdghinos] [-D n] [-E pattern] [-G n]\n"
+			"Usage: %s [-CLOPRSTWXcdghinops] [-D n] [-E pattern] [-G n]\n"
 			"       [-M n] [-N loops] [-g pattern]\n"
-			"  -B : for use of byte-code interpreter for matching\n"
-			"  -C : check optimized versus non-optimized matching\n"
+			"  -C : force usage of the C regex matching engine\n"
 			"  -D : execute only dump test #n\n"
 			"  -E : examine pattern: compile and show it\n"
 			"  -G : execute only group test #n\n"
@@ -107,14 +107,16 @@ usage(void)
 			"  -R : use POSIX regex for comparison\n"
 			"  -S : show patterns, for debugging\n"
 			"  -T : time -g matches\n"
+			"  -W : switch optimized versus non-optimized matching\n"
 			"  -X : exchange matching implementations during comparisons\n"
-			"  -c : colorize matching strings for -g\n"
+			"  -c : colorize matching strings for -g and tests\n"
 			"  -d : request debugging during bytecode execution\n"
 			"  -g : grep pattern from stdin\n"
 			"  -h : prints this help message\n"
 			"  -i : compile case-insensitively for -E\n"
 			"  -n : compile with no sub-expression capture for -E, -M and -g\n"
 			"  -o : let -g match only once\n"
+			"  -p : prune regex tree (disables C matching engine)\n"
 			"  -s : single-line mode: let '.' match '\\n'\n"
 			, getprogname(), timing_loops);
 	exit(EXIT_FAILURE);
@@ -552,7 +554,7 @@ compile_test_pattern(const char *pattern, uint flags, uint eflags)
 {
 	re_regex_t *re;
 
-	if (0 == (eflags & RE_X_USE_BC)) {
+	if (eflags & RE_X_USE_C) {
 		if (use_pcre)
 			return compile_pcre_pattern(pattern, flags);
 		if (use_regex)
@@ -1620,10 +1622,8 @@ grep_pattern(const char *pattern, uint flags)
 	uint eflags = RE_X_MULTI_LINE;
 	uint eflags2;
 
-	if (byte_code) {
-		eflags |= RE_X_USE_BC;
-		if (debug_byte_code) eflags |= RE_X_DEBUG;
-	}
+	if (!byte_code)      eflags |= RE_X_USE_C;
+	if (debug_byte_code) eflags |= RE_X_DEBUG;
 
 	eflags2 = eflags;
 
@@ -1631,7 +1631,7 @@ grep_pattern(const char *pattern, uint flags)
 		rt = compile_test_pattern(pattern, flags, eflags);
 
 		if (switch_optimization)   invert_bit(&flags,   RE_F_NO_OPTIM);
-		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_C);
 
 		if (NULL != rt)
 			rt_plain = compile_test_pattern(pattern, flags, eflags2);
@@ -1685,7 +1685,7 @@ test_error_run(const struct errortest *e, size_t n)
 	re_regex_t *re;
 	re_error_t error;
 
-	re = re_compile(e->pattern, 0, &error);
+	re = re_compile(e->pattern, RE_F_KEEP_TREE, &error);
 	if (e->code == RE_E_OK && re != NULL)
 		goto done;
 	if (re != NULL) {
@@ -1901,6 +1901,9 @@ test_dump_run(const struct dumptest *d, size_t n, bool show, size_t maxlen)
 	}
 
 	flags |= RE_F_NO_SIMPLE;	/* Disable optimizations for testing */
+
+	if (!prune_tree)
+		flags |= RE_F_KEEP_TREE;
 
 	if (time_match)
 		statp = &stats;
@@ -2311,10 +2314,10 @@ substring(const char *text, ssize_t start, ssize_t end)
 static const char *
 engine_string(uint eflags)
 {
-	if (eflags & RE_X_USE_BC)
-		return "MI";
-	else
+	if (eflags & RE_X_USE_C)
 		return "C";
+	else
+		return "MI";
 }
 
 static void
@@ -2392,10 +2395,8 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 	re_exec_stats_t costats, *costatp = NULL;
 	uint eflags = RE_X_NO_MUST;
 
-	if (byte_code) {
-		eflags |= RE_X_USE_BC;
-		if (debug_byte_code) eflags |= RE_X_DEBUG;
-	}
+	if (!byte_code)      eflags |= RE_X_USE_C;
+	if (debug_byte_code) eflags |= RE_X_DEBUG;
 
 	if (time_match || switch_implementation) {
 		statp = &stats;
@@ -2488,7 +2489,7 @@ test_match_run(struct matchtest *m, size_t n, bool show, uint flags, size_t maxl
 		uint eflags2 = eflags;
 
 		if (switch_optimization)   invert_bit(&flags2,  RE_F_NO_OPTIM);
-		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_C);
 
 		re_free(re);
 		re = compile_stats(m->pattern, flags2, &error, costatp);
@@ -2890,17 +2891,15 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 {
 	re_regex_t *re;
 	re_error_t error;
-	uint flags = 0;
+	uint flags = RE_F_KEEP_TREE;
 	int match;
 	re_match_t vec[3];
 	re_exec_stats_t stats, *statp = NULL;
 	re_exec_stats_t costats, *costatp = NULL;
 	uint eflags = 0;
 
-	if (byte_code) {
-		eflags |= RE_X_USE_BC;
-		if (debug_byte_code) eflags |= RE_X_DEBUG;
-	}
+	if (!byte_code)      eflags |= RE_X_USE_C;
+	if (debug_byte_code) eflags |= RE_X_DEBUG;
 
 	if (time_match || switch_implementation) {
 		statp = &stats;
@@ -2980,7 +2979,7 @@ test_group_run(struct grouptest *g, size_t n, bool show, size_t maxlen)
 		uint eflags2 = eflags;
 
 		if (switch_optimization)   invert_bit(&flags2,  RE_F_NO_OPTIM);
-		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_BC);
+		if (switch_implementation) invert_bit(&eflags2, RE_X_USE_C);
 
 		re_free(re);
 		re = compile_stats(g->pattern, flags2, &error, costatp);
@@ -3098,23 +3097,19 @@ main(int argc, char **argv)
 	extern int optind;
 	extern char *optarg;
 	int c;
-	const char options[] = "BCD:E:G:LM:N:OPRSTXcdg:hinos";
+	const char options[] = "CD:E:G:LM:N:OPRSTWXcdg:hinops";
 	size_t dump_n = (size_t) -1;
 	size_t match_n = (size_t) -1;
 	size_t group_n = (size_t) -1;
 	const char *examine = NULL, *grep = NULL;
-	uint flags = 0;
+	uint flags = RE_F_KEEP_TREE;
 
 	progstart(argc, argv);
 
 	while ((c = getopt(argc, argv, options)) != EOF) {
 		switch (c) {
-		case 'B':			/* Use byte-code interpreter */
-			byte_code = TRUE;
-			break;
-		case 'C':			/* Compare optimized versus non-optimized */
-			compare = TRUE;
-			switch_optimization = TRUE;
+		case 'C':			/* Use C regex engine */
+			byte_code = FALSE;
 			break;
 		case 'D':			/* Dump only specified pattern */
 			dump_n = get_number(optarg, c);
@@ -3150,11 +3145,15 @@ main(int argc, char **argv)
 		case 'T':			/* time matches */
 			time_match = TRUE;
 			break;
+		case 'W':			/* sWitch optimized versus non-optimized to compare */
+			compare = TRUE;
+			switch_optimization = TRUE;
+			break;
 		case 'X':			/* Exchange implementations during comparisons */
 			compare = TRUE;
 			switch_implementation = TRUE;
 			break;
-		case 'c':			/* colorize matching strings for -g */
+		case 'c':			/* colorize matching strings for -g and for tests */
 			colorize = TRUE;
 			break;
 		case 'd':			/* request debugging byte-code execution */
@@ -3171,6 +3170,10 @@ main(int argc, char **argv)
 			break;
 		case 'o':			/* let -g only match once */
 			once_match = TRUE;
+			break;
+		case 'p':			/* prune regex tree */
+			prune_tree = TRUE;
+			flags &= ~RE_F_KEEP_TREE;
 			break;
 		case 's':			/* single line: makes '.' match '\n' */
 			flags |= RE_F_NEWLINE;

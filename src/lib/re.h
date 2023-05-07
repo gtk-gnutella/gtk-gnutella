@@ -84,10 +84,11 @@ typedef struct re_exec_stats {
 #define RE_F_ICASE		(1U << 0)	/**< Ignore case */
 #define RE_F_NOSUB		(1U << 1)	/**< No sub-expression captures */
 #define RE_F_NEWLINE	(1U << 2)	/**< Match-any (.) now also matches \n */
+#define RE_F_NO_OPTIM	(1U << 3)	/**< Disable optimizations */
 
 /* For debugging and testing */
-#define RE_F_NO_OPTIM	(1U << 29)	/**< Disable optimizations */
 #define RE_F_NO_SIMPLE	(1U << 30)	/**< Disable "simple regex" recognition */
+#define RE_F_KEEP_TREE	(1U << 31)	/**< Keep regex tree, for C matching engine */
 
 /**
  * Execution flags.
@@ -98,7 +99,7 @@ typedef struct re_exec_stats {
 /* For debugging and testing */
 #define RE_X_NO_MUST	(1U << 29)	/**< Disable "must" string processing */
 #define RE_X_DEBUG		(1U << 30)	/**< Enable debug mode (for byte-code) */
-#define RE_X_USE_BC		(1U << 31)	/**< Force byte-code matching */
+#define RE_X_USE_C		(1U << 31)	/**< Force usage of C matching engine */
 
 /**
  * Flags for `show'.

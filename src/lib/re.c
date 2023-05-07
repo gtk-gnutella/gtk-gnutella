@@ -643,6 +643,7 @@ enum re_regex_magic { RE_REGEX_MAGIC = 0x28d1a858 };
  */
 typedef union re_regex_intern {
 	re_elemvec_t *compiled;	/* Compiled regular expression */
+	const char *as_string;	/* If `compiled' tree was freed, stringified tree */
 	cpattern_t *cp;			/* Simple text too look for */
 	const char *anchored;	/* Anchored string to compare */
 } re_regex_intern_t;
@@ -759,6 +760,9 @@ struct re_regex {
 	} backrefs;
 	size_t group_count;			/* How many capturing groups are defined? */
 	size_t backref_count;		/* Amount of back-refs used in pattern */
+	size_t minlen;				/* Consolidated minimal matching text length */
+	size_t maxlen;				/* Consolidated maximal matching text length */
+	uint no_regex_tree:1;		/* Was regex element vector tree freed? */
 	uint is_empty:1;			/* Is pattern empty? */
 	uint is_simple:1;			/* Pattern is simple */
 	uint at_start:1;			/* Leading string at start */
@@ -6085,8 +6089,8 @@ re_coalesce_constants(re_regex_t *re)
  * Identify the previous constant element that must match before the END
  * marker in the element vector.
  *
- * @return element that must match, or NULL if we cannot find a suitable
- * element to check for.
+ * @return (cloned) element that must match, or NULL if we cannot find a
+ * suitable element to check for.
  */
 static const re_element_t *
 re_finalize_ending_element(const re_elemvec_t *ev)
@@ -6119,7 +6123,22 @@ re_finalize_ending_element(const re_elemvec_t *ev)
 	case RE_TYPE_NOT_S_CLASS:
 	case RE_TYPE_NOT_W_CLASS:
 	case RE_TYPE_NOT_POSIX_CLASS:
-		return e;
+		{
+			re_element_t *ne;
+
+			/*
+			 * Always clone the element instead of referencing it directly
+			 * in the element vector.  This simplifies things when we are
+			 * going to free-up the element vectors anyway (usual case) and
+			 * also avoids complex processing when we shrink the element vectors,
+			 * since vectors could be transparently moved around in memory when
+			 * they are shortened!
+			 */
+
+			WALLOC(ne);
+			re_element_copy(ne, e);
+			return ne;
+		}
 	}
 
 	return NULL;
@@ -10724,6 +10743,42 @@ re_free_lut(re_regex_t *re)
 		HFREE_NULL(re->backrefs.size_lut);
 }
 
+/**
+ * @return minimum text length we can match.
+ */
+static size_t
+re_get_length_min(const re_regex_t *re)
+{
+	re_regex_check(re);
+
+	if (re->is_empty)
+		return 0;
+	else if (re->is_simple) {
+		if (re->at_start || re->at_end) {
+			return vstrlen(re->u.anchored);
+		} else
+			return pattern_len(re->u.cp);
+	} else {
+		return re->u.compiled->minlen;
+	}
+}
+
+/**
+ * @return maximum text length we can match.
+ */
+static size_t
+re_get_length_max(const re_regex_t *re)
+{
+	re_regex_check(re);
+
+	if (re->is_empty || re->is_simple) {
+		return re_match_length_min(re);	/* Constant string, min == max  */
+	} else {
+		return re->u.compiled->maxlen;
+	}
+}
+
+
 /*
  * Macro used to steal a pointer, nullifying it so it does not get freed.
  */
@@ -10748,12 +10803,30 @@ re_parsed_ok(re_regex_t *re, re_parser_t *rp, uint32 cflags)
 	if (NULL == rp) {
 		re->u.compiled = NULL;
 	} else {
+		re->no_regex_tree = FALSE;
 		re->u.compiled = RE_STEAL(rp->root);
 		re->group_count = rp->subn;
 		if (rp->backrefs != NULL)
 			re_install_lut(re, rp);
 	}
 	re_finalize(re, cflags);
+	re->minlen = re_get_length_min(re);
+	re->maxlen = re_get_length_max(re);
+	if (0 == (cflags & RE_F_KEEP_TREE)) {
+		if (!re->is_simple && re->u.compiled != NULL) {
+			const char *as_string;
+			/*
+			 * Compute and save the stringified version of the compiled
+			 * regular expression now since we are not keeping the tree
+			 * around.
+			 */
+			as_string = re_dump_as_string(re);
+			re_elemvec_recursive_free(re->u.compiled);
+			re->u.compiled = NULL;
+			re->no_regex_tree = TRUE;
+			re->u.as_string = as_string;
+		}
+	}
 }
 
 /**
@@ -11542,6 +11615,9 @@ re_dump(const re_regex_t *re, ostream_t *os, uint flags)
 		} else {
 			ostream_puts(os, pattern_string(re->u.cp));
 		}
+	} else if (re->no_regex_tree) {
+		/* Uses version we computed when the tree was freed */
+		ostream_puts(os, re->u.as_string);
 	} else {
 		re_dump_elemvec(re->u.compiled, os);
 	}
@@ -11923,6 +11999,11 @@ re_show(const re_regex_t *re, ostream_t *os, uint flags)
 			HFREE_NULL(dump);
 		}
 
+		if (re->no_regex_tree && (flags & RE_SHOW_TREE)) {
+			ostream_puts(os,   "Tree    : <regex tree freed>\n");
+			flags &= ~RE_SHOW_TREE;
+		}
+
 		if (flags & RE_SHOW_TREE) {
 			struct re_show_ctx ctx;
 
@@ -12027,6 +12108,13 @@ re_show_as_string_ext(const re_regex_t *re, uint flags)
 
 static void re_mi_free_null(re_mi_code_t **code_ptr);
 
+static void
+re_element_free(re_element_t *e)
+{
+	re_element_cleanup(e);
+	WFREE(e);
+}
+
 /**
  * Free items that cannot remain after a recompilation.
  */
@@ -12041,7 +12129,16 @@ re_free_recompiled(re_regex_t *re)
 		else
 			pattern_free_null(&re->u.cp);
 	} else if (!re->is_empty) {
-		re_elemvec_recursive_free(re->u.compiled);
+		if (re->end != NULL) {
+			re_element_t *e = deconstify_pointer(re->end);
+			re_element_free(e);
+			re->end = NULL;
+		}
+		if (re->no_regex_tree) {
+			hfree(deconstify_char(re->u.as_string));
+		} else {
+			re_elemvec_recursive_free(re->u.compiled);
+		}
 	}
 
 	pattern_free_null(&re->must);
@@ -12181,6 +12278,7 @@ re_exec_ctx_check(const struct re_exec_ctx * const rec)
 #define RE_MI_ERR_GROUP		(-10)	/**< Invalid group number */
 #define RE_MI_ERR_ARANGE	(-11)	/**< Accumulator register out of range */
 #define RE_MI_ERR_BACKTRACK	(-12)	/**< Backtracking threshold reached */
+#define RE_MI_ERR_NO_TREE	(-13)	/**< Regex tree pruned, C engine unusable */
 
 /**
  * Return textual desscripton of re_execute*() error codes.
@@ -12208,7 +12306,7 @@ re_execute_strerror(int error)
 	case RE_MI_ERR_RANGE:		return "Instruction argument out of range";
 	case RE_MI_ERR_GROUP:		return "Invalid group number";
 	case RE_MI_ERR_ARANGE:		return "Accumulator register out of range";
-	case RE_MI_ERR_BACKTRACK:	return "Backtracking threshold reached";
+	case RE_MI_ERR_NO_TREE:		return "Regex tree pruned, C engine unusable";
 	}
 
 	return str_smsg("Unknown error: %d", error);
@@ -13446,7 +13544,7 @@ re_exec_match_maximal(struct re_exec_ctx *rec, const re_elemvec_t *ev, size_t n,
 	/*
 	 * Disabling because this causes wrong matching for:
 	 *
-	 * 	echo "abaaaaaabaa" | ./re-test -LBSC -cog "(a.*){2}b"
+	 * 	echo "abaaaaaabaa" | ./re-test -LSC -cog "(a.*){2}b"
 	 *
 	 * The generated byte-code correctly finds the right match, but
 	 * the C matcher will not due to this upper constraining.
@@ -16649,6 +16747,9 @@ re_exec_needs_engine(const re_regex_t *re)
 static int
 re_exec_match(struct re_exec_ctx *rec)
 {
+	if (rec->re->no_regex_tree)
+		return RE_MI_ERR_NO_TREE;
+
 	return re_exec_match_ev(rec, rec->re->u.compiled);
 }
 
@@ -25919,14 +26020,14 @@ re_mi_generate_trie_node(struct re_mi_gen_trie_ctx *mit, const trie_node_t *tn)
 		 * To see examples of code generation for various MATCH/ROUTE tries,
 		 * run these:
 		 *
-		 *    ./re-test -B -E "b|cd.|d"			// ROUTEX (eXact ROUTE)
-		 *    ./re-test -B -E "b|cd.|e"			// ROUTEX with DATA class
-		 *    ./re-test -B -E "b|c.|d"			// ROUTEX using XLOAD_A
-		 *    ./re-test -B -E "b|c.|d."			// ROUTEX using XLOAD_A
-		 *    ./re-test -B -E "b|cd|d"			// MATXHX (eXact MATCH)
-		 *    ./re-test -B -E "b|cd|cde|d"		// MATXH
-		 *    ./re-test -B -E "b|cd|cde|d."		// ROUTE
-		 *    ./re-test -B -E "b|cd.|cde|d."	// ROUTE (spot the difference?)
+		 *    ./re-test -E "b|cd.|d"		// ROUTEX (eXact ROUTE)
+		 *    ./re-test -E "b|cd.|e"		// ROUTEX with DATA class
+		 *    ./re-test -E "b|c.|d"			// ROUTEX using XLOAD_A
+		 *    ./re-test -E "b|c.|d."		// ROUTEX using XLOAD_A
+		 *    ./re-test -E "b|cd|d"			// MATXHX (eXact MATCH)
+		 *    ./re-test -E "b|cd|cde|d"		// MATXH
+		 *    ./re-test -E "b|cd|cde|d."	// ROUTE
+		 *    ./re-test -E "b|cd.|cde|d."	// ROUTE (spot the difference?)
 		 */
 
 		if (same_route) {
@@ -31231,7 +31332,8 @@ re_execute_stats(const re_regex_t *re, const char *string, size_t slen,
 			goto done;
 		}
 
-		if (eflags & RE_X_USE_BC) {
+		if (0 == (eflags & RE_X_USE_C)) {
+			/* Machine interpreter (bytecode matching engine) -- the default */
 			if (eflags & RE_X_DEBUG) {
 				re_regex_t recpy = *re;
 				recpy.bytecode = NULL;
@@ -31243,8 +31345,10 @@ re_execute_stats(const re_regex_t *re, const char *string, size_t slen,
 				r = re_mi_match(&ctx);
 			}
 		} else
+			/* C matching engine */
 			r = re_exec_match(&ctx);
 	} else {
+		/* String pattern, use regular string matching */
 		r = re_exec_match_directly(&ctx);
 	}
 
@@ -31254,7 +31358,7 @@ done:
 		stats->elapsed    = (size_t) tm_precise_elapsed_ns(&end, &start);
 		stats->stack_max  = ctx.max_stack;
 		stats->stack_used = ctx.max_stack_used;
-		stats->remi = stats->engine && booleanize(eflags & RE_X_USE_BC);
+		stats->remi = stats->engine && !booleanize(eflags & RE_X_USE_C);
 	}
 
 	if (r != +1)				/* `r' is an int, can be -1 on overflow */
@@ -31377,16 +31481,7 @@ re_match_length_min(const re_regex_t *re)
 {
 	re_regex_check(re);
 
-	if (re->is_empty)
-		return 0;
-	else if (re->is_simple) {
-		if (re->at_start || re->at_end) {
-			return vstrlen(re->u.anchored);
-		} else
-			return pattern_len(re->u.cp);
-	} else {
-		return re->u.compiled->minlen;
-	}
+	return re->minlen;
 }
 
 /**
@@ -31397,11 +31492,7 @@ re_match_length_max(const re_regex_t *re)
 {
 	re_regex_check(re);
 
-	if (re->is_empty || re->is_simple) {
-		return re_match_length_min(re);	/* Constant string, min == max  */
-	} else {
-		return re->u.compiled->maxlen;
-	}
+	return re->maxlen;
 }
 
 /**
