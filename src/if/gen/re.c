@@ -1,5 +1,5 @@
 /*
- * Generated on Sun Apr 23 09:28:25 2023 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun May  7 23:42:10 2023 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl re.lst
  */
@@ -37,7 +37,8 @@ static const char *re_error_names[] = {
 	"GROUP_CAPTURE_NEEDED",
 	"UNKNOWN_GROUP_REF",
 	"UNKNOWN_GROUP_TYPE",
-	"NO_REPEAT_ON_LOOK_AHEAD",
+	"NO_REPEAT_ON_LOOK_AROUND",
+	"LOOK_BEHIND_VARIABLE_WIDTH",
 	"END_SEEN",
 	"LATE_START",
 };
@@ -83,7 +84,8 @@ static const char *re_error_code_str[] = {
 	"Needs group capture when using back-references",
 	"Reference to an unknown capturing group",
 	"Unknown group type after leading '(?' sequence",
-	"Cannot use repetitions on look-ahead assertions",
+	"Cannot use repetitions on look-around assertions",
+	"Look-behind assertion must match a constant width",
 	"No character can follow a '$' end anchor",
 	"Start anchor '^' can only be given at the start",
 };

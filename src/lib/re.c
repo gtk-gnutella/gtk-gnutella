@@ -124,11 +124,19 @@
  * Hence the '+' modifier is just a convenience (syntactic sugar). But the
  * (?>) construct is required in full for alternatives: (?>foobar|foo).
  *
- * Finally, we support look-ahead groups, which are a required match (for
- * positive look-ahead, the opposite for negative look-ahead: pattern that
- * must not match) and whose matching is not really part of the result.
+ * LOOK-AROUND ASSERTIONS
+ *
+ * There are two types of look-around assertions:
+ *
+ * + look-ahead assertions, asserting on what must be coming next.
+ * + look-behind assertions, asserting on what must be present before.
+ *
  * They can be viewed as zero-width assertions, telling the matching engine
- * to backtrack if they are not successful.
+ * to backtrack if they are not successful.  But they are never considered
+ * as being part of the result.
+ *
+ * A look-ahead group is a required match (for positive look-ahead, the
+ * opposite for negative look-ahead: pattern that must not match).
  *
  * A positive look-ahead group looks like:
  *
@@ -138,14 +146,32 @@
  *
  * 	(?!pattern)
  *
- * For instance, the pattern a(?=,) would match the "a" character but
+ * For instance, the pattern "a(?=,)" would match the "a" character but
  * only if it is followed by a comma, and that comma would not become
  * part of the matched string.
  *
- * Conversely, the pattern a(?![,.;]) would match the "a" character but
+ * Conversely, the pattern "a(?![,.;])" would match the "a" character but
  * only if it is not followed by a comma, point or semi-colon character.
  * Since this text is not matched, it is of course not part of the matched
  * string!
+ *
+ * A look-behind group is a required match (for positive look-behind, the
+ * opposite for negative look-behind: pattern that must not match).
+ *
+ * A positive look-behind group looks like:
+ *
+ * 	(?<=pattern)
+ *
+ * and a negative look-behind group looks like:
+ *
+ * 	(?<!pattern)
+ *
+ * The pattern used for look-behind is a regular expression that MUST match
+ * a fixed length.  It can be "text", or "a." or "a|b", but not "a*" for
+ * instance.
+ *
+ * Thus the pattern "(?<!\s)a" would match the letter "a" but only if it is
+ * not preceded by "\s", i.e. some space character.
  *
  * Repetitions are forbidden on assertions, but inside the assertion one
  * may of course include groups, alternatives, etc. all with repetitions
@@ -397,6 +423,8 @@ typedef enum {
 	RE_TYPE_ATOMIC,			/* Sub-expression (atomic match, captured) */
 	RE_TYPE_AHEAD,			/* Positive look-ahead assertion */
 	RE_TYPE_NOT_AHEAD,		/* Negative look-ahead assertion */
+	RE_TYPE_BEHIND,			/* Positive look-behind assertion */
+	RE_TYPE_NOT_BEHIND,		/* Negative look-behind assertion */
 	RE_TYPE_CLASS,			/* Character class */
 	RE_TYPE_INV_CLASS,		/* Inverted character class */
 	RE_TYPE_CLASS_MM,		/* Character class, with min-max encoding */
@@ -1232,6 +1260,8 @@ re_type2str(re_elem_type_t t)
 	CASE(ATOMIC)
 	CASE(AHEAD)
 	CASE(NOT_AHEAD)
+	CASE(BEHIND)
+	CASE(NOT_BEHIND)
 	CASE(CLASS)
 	CASE(INV_CLASS)
 	CASE(CLASS_MM)
@@ -1488,6 +1518,42 @@ re_element_is_group(const re_element_t *e)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * Is element a look-ahead sub-expression?
+ */
+static bool
+re_element_is_look_ahead(const re_element_t *e)
+{
+	re_element_check(e);
+
+	switch (e->type) {
+	case RE_TYPE_AHEAD:
+	case RE_TYPE_NOT_AHEAD:
+		return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * Is element a look-behind sub-expression?
+ */
+static bool
+re_element_is_look_behind(const re_element_t *e)
+{
+	re_element_check(e);
+
+	switch (e->type) {
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		return TRUE;
 	}
 
@@ -1505,6 +1571,8 @@ re_element_is_look_around(const re_element_t *e)
 	switch (e->type) {
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		return TRUE;
 	}
 
@@ -1657,6 +1725,8 @@ re_element_is_shallow(const re_element_t *e)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_OR:
 	case RE_TYPE_MATCH:
 	case RE_TYPE_MATCHX:
@@ -3570,6 +3640,8 @@ re_element_shallow_equal(const re_element_t *e1, const re_element_t *e2)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_OR:
 	case RE_TYPE_MATCH:
 	case RE_TYPE_ROUTE:
@@ -3649,6 +3721,8 @@ re_element_deep_equal(const re_element_t *e1, const re_element_t *e2)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		return re_deep_equal(re_element_get_sub(e1), re_element_get_sub(e2));
 	case RE_TYPE_OR:
 		return re_or_deep_equal(e1, e2);
@@ -3863,6 +3937,8 @@ re_element_hash(const re_element_t *e)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		h += re_elemvec_hash(re_element_get_sub(e));
 		break;
 	case RE_TYPE_OR:
@@ -4482,7 +4558,19 @@ struct re_linearize_ctx {
 	const re_element_t *longest;/* Longest constant TEXT / CHAR we need */
 	const re_elemvec_t *end_ev;	/* First element vector with END anchor */
 	uint wildcard:1;			/* Any unbound wild card matching? */
+	/* Operations to be conducted by re_linearize_action() */
+	uint32 action_flags;		/* See RE_LIN_ACTION_XXX below */
 };
+
+/**
+ * Flags to raise processing during re_linearize_action().
+ */
+#define RE_LIN_ACTION_WILDCARD	(1U << 0)
+#define RE_LIN_ACTION_END		(1U << 1)
+#define RE_LIN_ACTION_MATCHLEN	(1U << 2)
+#define RE_LIN_ACTION_ADD_NEXT	(1U << 3)
+
+#define RE_LIN_ACTION_ALL		((uint32) -1)
 
 /**
  * Compute minimal and maximal matching lengths for vector.
@@ -4505,11 +4593,11 @@ re_compute_vector_length(re_elemvec_t *rev, size_t *min, size_t *max)
 		size_t len;
 
 		/*
-		 * We skip look-ahead assertions since they do not consume
+		 * We skip look-around assertions since they do not consume
 		 * input when matching.
 		 */
 
-		if (RE_TYPE_AHEAD == e->type || RE_TYPE_NOT_AHEAD == e->type)
+		if (re_element_is_look_around(e))
 			continue;
 
 		len = re_element_get_minlen(e);
@@ -4682,7 +4770,7 @@ re_linearize_push(const void *data, void *udata)
 	 * not even iterate on any element.
 	 */
 
-	if G_UNLIKELY(0 == rev->ecnt)
+	if G_UNLIKELY(0 == rev->ecnt && (ctx->action_flags & RE_LIN_ACTION_ADD_NEXT))
 		re_linearize_process(NULL, rev, ctx);
 
 	return TRUE;	/* Traverse element vector */
@@ -4879,7 +4967,6 @@ re_update_minlen(const struct re_linearize_ctx *ctx, re_element_t *e)
 		g_assert(0 == re_element_get_minlen(e));
 		break;
 	case RE_TYPE_BACKREF:
-		g_assert(0 == re_element_get_minlen(e));
 		/*
 		 * Look for the SUBN element this back-reference corresponds to, and
 		 * updates its min/max matching values to that of the group.
@@ -4942,6 +5029,8 @@ re_update_minlen(const struct re_linearize_ctx *ctx, re_element_t *e)
 		break;
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_SUB:
 	case RE_TYPE_SUBN:
 	case RE_TYPE_GROUP:
@@ -5092,9 +5181,14 @@ re_linearize_action(void *data, void *udata)
 
 	/* Dispatch the various processing on the node */
 
-	re_detect_wildcards(e, ctx);
-	re_detect_end(rev, e, ctx);
-	re_update_minlen(ctx, deconstify_pointer(e));
+	if (ctx->action_flags & RE_LIN_ACTION_WILDCARD)
+		re_detect_wildcards(e, ctx);
+
+	if (ctx->action_flags & RE_LIN_ACTION_END)
+		re_detect_end(rev, e, ctx);
+
+	if (ctx->action_flags & RE_LIN_ACTION_MATCHLEN)
+		re_update_minlen(ctx, deconstify_pointer(e));
 
 	/*
 	 * If element was the head of the `capturing' list, then we can pop
@@ -5110,7 +5204,8 @@ re_linearize_action(void *data, void *udata)
 	 * can change the address of the element we're iterating on here.
 	 */
 
-	re_linearize_process(e, rev, ctx);
+	if (ctx->action_flags & RE_LIN_ACTION_ADD_NEXT)
+		re_linearize_process(e, rev, ctx);
 }
 
 /**
@@ -8104,6 +8199,68 @@ re_optimize_or(re_regex_t *re)
 }
 
 /**
+ * Traverse the root element vector, recursively, performing the requested
+ * actions within re_linearize_action(), as specified by the "actions" parameter.
+ *
+ * When has_backref is TRUE, we also identify the capturing groups and track
+ * them so that we can later on determine the minlen/maxlen of each matching
+ * element (RE_LIN_ACTION_MATCHLEN).
+ *
+ * @param root		the root element vector
+ * @param actions	flags governing which actions to perform during traversal
+ * @param backref	if TRUE, then track capturing groups during traversal
+ * @param re		the regular expression (required for RE_LIN_ACTION_WILDCARD)
+ */
+static void
+re_linearize_actions(re_elemvec_t *root,
+	uint32 actions, bool backref, re_regex_t *re)
+{
+	struct re_linearize_ctx linearize_ctx;
+
+	re_elemvec_check(root);
+
+	ZERO(&linearize_ctx);
+
+	linearize_ctx.action_flags = actions;
+	linearize_ctx.re = re;		/* Can be NULL */
+
+	/*
+	 * When we have back-references, we can compute their min/max matching
+	 * lengths by keeping track of the SUBN element to which a given
+	 * back-reference refers.
+	 */
+
+	if (backref)
+		linearize_ctx.subn = htable_create(HASH_KEY_SELF, 0);
+
+	re_traverse_once(root,
+		FALSE,					/* pre_e */
+		re_linearize_entry,		/* enter */
+		re_linearize_action,	/* action */
+		FALSE,					/* pre_v */
+		re_linearize_push,		/* venter */
+		re_linearize_pop,		/* vaction */
+		&linearize_ctx);
+
+	/* Ensure callbacks have cleaned-up properly */
+	g_assert(NULL == linearize_ctx.stack);
+	g_assert(NULL == linearize_ctx.element);
+	g_assert(NULL == linearize_ctx.capturing);
+
+	htable_free_null(&linearize_ctx.subn);
+
+	/*
+	 * If we have only one single END marker in the pattern, parse its
+	 * element vector to locate what comes before the END, so that we
+	 * can pre-check that the text ends with that element right at
+	 * the beginning.
+	 */
+
+	if (1 == linearize_ctx.has_end)
+		re->end = re_finalize_ending_element(linearize_ctx.end_ev);
+}
+
+/**
  * Linearise the representation by adding NEXT nodes so that we can process
  * the elements linearly whatever the starting element (i.e.  there is no
  * requirement to start at the root element vector.
@@ -8130,34 +8287,11 @@ re_linearize(re_regex_t *re)
 	 * nodes that follow it.
 	 */
 
+	re_linearize_actions(re->u.compiled,
+		RE_LIN_ACTION_ALL, re->backref_count != 0, re);
+
 	ZERO(&linearize_ctx);
-
 	linearize_ctx.re = re;
-
-	/*
-	 * When we have back-references, we can compute their min/max matching
-	 * lengths by keeping track of the SUBN element to which a given
-	 * back-reference refers.
-	 */
-
-	if (re->backref_count != 0)
-		linearize_ctx.subn = htable_create(HASH_KEY_SELF, 0);
-
-	re_traverse_once(re->u.compiled,
-		FALSE,					/* pre_e */
-		re_linearize_entry,		/* enter */
-		re_linearize_action,	/* action */
-		FALSE,					/* pre_v */
-		re_linearize_push,		/* venter */
-		re_linearize_pop,		/* vaction */
-		&linearize_ctx);
-
-	/* Ensure callbacks have cleaned-up properly */
-	g_assert(NULL == linearize_ctx.stack);
-	g_assert(NULL == linearize_ctx.element);
-	g_assert(NULL == linearize_ctx.capturing);
-
-	htable_free_null(&linearize_ctx.subn);
 
 	/*
 	 * If patten has wildcard matching, it can involve a lot of backtracking
@@ -8190,16 +8324,6 @@ re_linearize(re_regex_t *re)
 	 */
 
 	re_foreach_elemvec(re->u.compiled, re_final_shrink, NULL);
-
-	/*
-	 * If we have only one single END marker in the pattern, parse its
-	 * element vector to locate what comes before the END, so that we
-	 * can pre-check that the text ends with that element right at
-	 * the beginning.
-	 */
-
-	if (1 == linearize_ctx.has_end)
-		re->end = re_finalize_ending_element(linearize_ctx.end_ev);
 }
 
 /**
@@ -8258,7 +8382,7 @@ re_handle_group(re_elemvec_t *ev, size_t n, re_element_t *e)
 	g_assert(n < ev->ecnt);
 
 	/*
-	 * A "simple" group must be non-capturing, and not a look-ahead
+	 * A "simple" group must be non-capturing, and not a look-around
 	 * assertion.
 	 */
 
@@ -8266,6 +8390,8 @@ re_handle_group(re_elemvec_t *ev, size_t n, re_element_t *e)
 	case RE_TYPE_SUBN:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		return;
 	}
 
@@ -8677,6 +8803,13 @@ re_fcmap_elemvec(struct re_compute_fcmap_ctx *ctx, const re_elemvec_t *ev)
 				WFREE_ARRAY(amap, RE_ALPHABET);
 			}
 			break;
+		case RE_TYPE_BEHIND:
+		case RE_TYPE_NOT_BEHIND:
+			/*
+			 * Look-behind assertions must come before current text hence
+			 * are irrelevant for computing the first-char map.
+			 */
+			break;
 		case RE_TYPE_ATOMIC:
 		case RE_TYPE_GROUP:
 		case RE_TYPE_SUB:
@@ -8744,23 +8877,23 @@ re_compute_first_char_map(re_regex_t *re)
 	 * If ev->minlen is zero, the pattern matches the empty string
 	 * and therefore could match anywhere.
 	 *
-	 * However, if we have a look-around assertion somewhere in the top
+	 * However, if we have a look-ahead assertion somewhere in the top
 	 * vector, then we could compute a useful FC map anyway.
 	 */
 
 	if (0 == ev->minlen) {
 		size_t i;
-		bool has_lookaround = FALSE;
+		bool has_lookahead = FALSE;
 
 		for (i = 0; i < ev->ecnt; i++) {
 			const re_element_t *e = &ev->elements[i];
-			if (re_element_is_look_around(e)) {
-				has_lookaround = TRUE;
+			if (re_element_is_look_ahead(e)) {
+				has_lookahead = TRUE;
 				break;
 			}
 		}
 
-		if (!has_lookaround)
+		if (!has_lookahead)
 			return;		/* Matches the empty string, could match anywhere */
 	}
 
@@ -9935,6 +10068,15 @@ re_parse_group(re_parser_t *rp)
 		case '>': type = RE_TYPE_ATOMIC;    break;
 		case '=': type = RE_TYPE_AHEAD;     break;
 		case '!': type = RE_TYPE_NOT_AHEAD; break;
+		case '<':
+			c = istream_getc(rp->is);
+			switch (c) {
+			case '=': type = RE_TYPE_BEHIND;     break;
+			case '!': type = RE_TYPE_NOT_BEHIND; break;
+			default:  goto unknown_group_type;
+			}
+			break;
+		unknown_group_type:
 		default:
 			return re_parse_error(rp, -1, RE_E_UNKNOWN_GROUP_TYPE);
 		}
@@ -9979,6 +10121,8 @@ re_parse_group(re_parser_t *rp)
 	switch (type) {
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		/* Append a RETURN at the end of the look-around element vector */
 		{
 			re_elemvec_t *ev = re_element_get_sub(e);
@@ -9987,6 +10131,30 @@ re_parse_group(re_parser_t *rp)
 		break;
 	default:
 		break;
+	}
+
+	/*
+	 * Specifically for look-behind assertions, the pattern must match
+	 * a constant-width string, namely its minlen and maxlen must be
+	 * identical (implying finite, since the minlen cannot be infinite).
+	 */
+
+	if (re_element_is_look_behind(e)) {
+		re_elemvec_t *ev = re_element_get_sub(e);
+
+		/*
+		 * Traverse the whole regular expression we have so far, to compute
+		 * the min/max matching length of all the elements.  If we have
+		 * capturing groups, then their length will also be computed, hence
+		 * we can allow backreferences in the look-behind provided it points
+		 * to a constant-width matching expression.
+		 */
+
+		re_linearize_actions(rp->root,
+			RE_LIN_ACTION_MATCHLEN, rp->subn != 0, NULL);
+
+		if (ev->minlen != ev->maxlen)
+			return re_parse_error(rp, -1, RE_E_LOOK_BEHIND_VARIABLE_WIDTH);
 	}
 
 	return TRUE;
@@ -10110,17 +10278,15 @@ re_install_repetition(re_parser_t *rp, re_repeat_type_t type, ...)
 
 done:
 	/*
-	 * Do not allow repetitions on look-ahead assertions.
+	 * Do not allow repetitions on look-around assertions.
 	 *
 	 * FIXME: maybe we could allow a fixed-count repetition?
 	 * We definitely do not want a variable repetition count because
 	 * we do not want to backtrack on look-ahead assertions!
 	 */
 
-	if (RE_TYPE_AHEAD == e->type || RE_TYPE_NOT_AHEAD == e->type) {
-		if (type != RE_N_ONCE)
-			return re_parse_error(rp, -1, RE_E_NO_REPEAT_ON_LOOK_AHEAD);
-	}
+	if (re_element_is_look_around(e) && type != RE_N_ONCE)
+		return re_parse_error(rp, -1, RE_E_NO_REPEAT_ON_LOOK_AROUND);
 
 	va_end(args);
 	return TRUE;
@@ -11248,10 +11414,12 @@ re_dump_group(const re_element_t *e, ostream_t *os)
 	ostream_putc(os, '(');
 	if (e->type != RE_TYPE_SUB && e->type != RE_TYPE_SUBN) {
 		ostream_putc(os, '?');
-		if (RE_TYPE_ATOMIC    == e->type) ostream_putc(os, '>');
-		if (RE_TYPE_GROUP     == e->type) ostream_putc(os, ':');
-		if (RE_TYPE_AHEAD     == e->type) ostream_putc(os, '=');
-		if (RE_TYPE_NOT_AHEAD == e->type) ostream_putc(os, '!');
+		if (RE_TYPE_ATOMIC     == e->type) ostream_putc(os, '>');
+		if (RE_TYPE_GROUP      == e->type) ostream_putc(os, ':');
+		if (RE_TYPE_AHEAD      == e->type) ostream_putc(os, '=');
+		if (RE_TYPE_NOT_AHEAD  == e->type) ostream_putc(os, '!');
+		if (RE_TYPE_BEHIND     == e->type) ostream_puts(os, "<=");
+		if (RE_TYPE_NOT_BEHIND == e->type) ostream_puts(os, "<!");
 	}
 
 	re_dump_elemvec(re_element_get_sub(e), os);
@@ -11461,6 +11629,8 @@ re_dump_internal_element(
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 		re_dump_group(e, os);
 		break;
 	case RE_TYPE_BACKREF:
@@ -13023,6 +13193,8 @@ next:
 		case RE_TYPE_START:
 		case RE_TYPE_END:
 		case RE_TYPE_NOT_AHEAD:
+		case RE_TYPE_BEHIND:
+		case RE_TYPE_NOT_BEHIND:
 		case RE_TYPE_BACKREF:
 		case RE_TYPE_OR:
 		case RE_TYPE_MATCH:
@@ -14593,7 +14765,7 @@ re_exec_match_lookaround(
 {
 	const uchar * volatile tp = rec->tp;
 	bool ok;
-	bool inverted = RE_TYPE_NOT_AHEAD == e->type;
+	bool volatile inverted;
 	jmp_buf env;
 	int ret;
 	PRIVLOG_DECLARE_LEVEL(indent);
@@ -14632,6 +14804,31 @@ re_exec_match_lookaround(
 		goto back;
 	}
 
+	inverted = RE_TYPE_NOT_BEHIND == e->type || RE_TYPE_NOT_AHEAD == e->type;
+
+	if (re_element_is_look_behind(e)) {
+		/*
+		 * We need to go back in the text position, using the constant width
+		 * of the look-behind assertion, and try to match from there.
+		 */
+
+		rec->tp -= e->minlen;
+
+		if (rec->tp < rec->text) {
+			/* Declare failure of look-behind if we go before match start */
+			ok = FALSE;
+			REX_DEBUG(RE_D_EXEC,
+				"%s(): %slook-behind with len=%u going before text start",
+				G_STRFUNC, inverted ? "negative " : "", e->minlen);
+			goto back;
+		}
+
+		REX_DEBUG(RE_D_EXEC,
+			"%s(): look-behind moved position %u byte%s before",
+			G_STRFUNC, PLURAL(e->minlen));
+
+	}
+
 	ok = re_exec_match_here(rec, re_element_get_sub(e), 0, FALSE);
 
 	/* FALL THROUGH */
@@ -14644,6 +14841,7 @@ back:
 	re_exec_log_where(rec);
 	REX_RETURN(bool, "%d", ok);
 }
+
 
 /**
  * Match given text at current position.
@@ -15982,6 +16180,8 @@ re_exec_matcher_get(const re_element_t *e)
 	case RE_TYPE_OR:           return re_exec_match_or_one;
 	case RE_TYPE_ANY:          return re_exec_match_char_any;
 	case RE_TYPE_ALL:          return re_exec_match_char_all;
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:    return re_exec_match_lookaround;
 	case RE_TYPE_MATCHX:
@@ -16305,6 +16505,8 @@ next:		/* Comes back here when we process NEXT nodes */
 		case RE_TYPE_NOT_BOUNDARY:
 		case RE_TYPE_AHEAD:
 		case RE_TYPE_NOT_AHEAD:
+		case RE_TYPE_BEHIND:
+		case RE_TYPE_NOT_BEHIND:
 		case RE_TYPE_NEXT:
 		case RE_TYPE_RETURN:
 		case RE_TYPE_MAX:
@@ -17343,6 +17545,18 @@ typedef enum {
 		 */
 	RE_OP_HWCL2 = 20,
 
+		/***
+		 *** NOTE: if we get opcode shortage, we can regroup the F_PUSH/F_POP
+		 *** below by using the same opcode and distinguishing between the
+		 *** PUSH/POP operations by using the X bit in the instruction.
+		 ***
+		 *** We could use the Z bit to indicate whether values are encoded
+		 *** on 1 or 2 bytes each, and then the FLG bits could be used to
+		 *** encode the type of things to push/pop, i.e. either WORD/GROUP/REF.
+		 ***
+		 *** That would free up 5 opcodes!
+		 */
+
 		/*
 		 * F_PUSH_TRACK amount nums -- pushes the listed TRACK reserved
 		 * word indices onto the FAIL stack.
@@ -17496,6 +17710,9 @@ typedef enum {
 
 		/*
 		 * SUB_TP n -- decrease TP by n
+		 *
+		 * Clears the C flag and sets it only if TP becomes less than the
+		 * text start (position where we started the overall matching attempt).
 		 *
 		 * Expect a CS-encoded unsigned constant with the same embedded
 		 * encoding mechanism as SET_A.
@@ -21740,6 +21957,8 @@ re_mi_element_is_simple(const re_element_t *e)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_OR:
 	case RE_TYPE_MATCH:
 	case RE_TYPE_ROUTE:
@@ -21797,6 +22016,8 @@ re_mi_element_is_cexable(const re_element_t *e)
 	case RE_TYPE_ATOMIC:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_OR:
 	case RE_TYPE_MATCH:
 	case RE_TYPE_MATCHX:
@@ -22465,6 +22686,8 @@ next:
 		case RE_TYPE_NOT_BOUNDARY:
 		case RE_TYPE_START:
 		case RE_TYPE_END:
+		case RE_TYPE_BEHIND:
+		case RE_TYPE_NOT_BEHIND:
 			continue;			/* Ignore */
 		case RE_TYPE_ANY:
 		case RE_TYPE_ALL:
@@ -22689,6 +22912,8 @@ re_mi_elem_map(uint8 *map, const re_element_t *e, bool first)
 	case RE_TYPE_START:
 	case RE_TYPE_END:
 	case RE_TYPE_BACKREF:
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
 	case RE_TYPE_AHEAD:
 	case RE_TYPE_NOT_AHEAD:       return FALSE;
 	case RE_TYPE_EMPTY:
@@ -22995,6 +23220,9 @@ re_mi_next_element_disjoint(const re_mi_element_t *mce,
 		case RE_TYPE_AHEAD:
 		case RE_TYPE_NOT_AHEAD:
 			return FALSE;		/* For now */
+		case RE_TYPE_BEHIND:
+		case RE_TYPE_NOT_BEHIND:
+			return FALSE;
 		case RE_TYPE_NEXT:
 			/*
 			 * We follow NEXT pointers when `next' is TRUE, or when the
@@ -25192,6 +25420,12 @@ re_mi_gen_last_is_mop(struct re_mi_gen_ctx *mig, re_mi_mop_t mop)
 }
 
 /**
+ * Callback signature for re_mi_generate_subcall() hooks.
+ */
+typedef void (*re_mi_subcall_cb_t)
+	(struct re_mi_gen_ctx *mig, const re_elemvec_t *ev);
+
+/**
  * Generate a subroutine call for handling the element vector or the element.
  *
  * This is the common code for re_mi_generate_call() and re_mi_generate_xcall().
@@ -25202,12 +25436,14 @@ re_mi_gen_last_is_mop(struct re_mi_gen_ctx *mig, re_mi_mop_t mop)
  * @param ev		the element vector to generate
  * @param e			the element to generate
  * @param op		the call OP to make (CALL or XCALL)
+ * @param precode	optional hook to generate leading code
  *
  * @return the position at which the CALL is made.
  */
 static uint
 re_mi_generate_subcall(struct re_mi_gen_ctx *mig,
-	const re_elemvec_t *ev, const re_element_t *e, re_mi_op_t op)
+	const re_elemvec_t *ev, const re_element_t *e, re_mi_op_t op,
+	re_mi_subcall_cb_t precode)
 {
 	const void *id;
 	uint position;
@@ -25300,6 +25536,12 @@ re_mi_generate_subcall(struct re_mi_gen_ctx *mig,
 
 	if (ev != NULL) {
 		GENX(debug, str_smsg("start of routine for %s", re_elemvec_info(ev)));
+		/*
+		 * Handle pre-code hook, if provided, to insert code before the
+		 * one for the element vector.
+		 */
+		if (precode != NULL)
+			(*precode)(mig, ev);
 		re_mi_generate_elemvec(mig, ev);
 		if (RE_OP_XCALL == op)
 			GEN(done);
@@ -25379,7 +25621,7 @@ static uint
 re_mi_generate_call(struct re_mi_gen_ctx *mig,
 	const re_elemvec_t *ev, const re_element_t *e)
 {
-	return re_mi_generate_subcall(mig, ev, e, RE_OP_CALL);
+	return re_mi_generate_subcall(mig, ev, e, RE_OP_CALL, NULL);
 }
 
 /**
@@ -25388,30 +25630,92 @@ re_mi_generate_call(struct re_mi_gen_ctx *mig,
  * @param mig		the generation context
  * @param ev		the element vector to generate
  * @param negated	whether return status should be negated
+ * @param set_z		whether to set Z flag to matching success
+ * @param precode	optional hook to generate leading code
  *
  * @return the position at which the XCALL is made.
  */
 static uint
 re_mi_generate_xcall(struct re_mi_gen_ctx *mig,
-	const re_elemvec_t *ev, bool negated)
+	const re_elemvec_t *ev, bool negated, bool set_z, re_mi_subcall_cb_t precode)
 {
 	uint position;
 
-	position = re_mi_generate_subcall(mig, ev, NULL, RE_OP_XCALL);
+	position = re_mi_generate_subcall(mig, ev, NULL, RE_OP_XCALL, precode);
 
-	if (negated) {
+	if (negated || set_z) {
 		re_mi_opcode_t op;
 		uint8 *pc = re_mi_seg_at(&mig->code->text, position);
 
 		/* Patch opcode lead byte to add the X bit */
 
 		op.code = *pc;
-		g_assert(!op.u.v.x);
-		op.u.v.x = TRUE;
+		if (negated) {
+			/* Patch opcode lead byte to add the X bit */
+			g_assert(!op.u.v.x);
+			op.u.v.x = TRUE;
+		}
+		if (set_z) {
+			/* Patch opcode lead byte to add the Z bit */
+			g_assert(!op.u.v.z);
+			op.u.v.z = TRUE;
+		}
 		*pc = op.code;
 	}
 
 	return position;
+}
+
+/*
+ * Pre-code hook for look-behind assertions.
+ */
+static void
+re_mi_generate_behind_precode(struct re_mi_gen_ctx *mig, const re_elemvec_t *ev)
+{
+	uint a;
+
+	g_assert(ev->minlen != 0);
+	g_assert(ev->minlen == ev->maxlen);		/* Enforced at compile-time */
+
+	/*
+	 * The code for a look-behind is the following:
+	 *
+	 *      XCALL <look>	; external call to the look-behind pattern
+	 *      ...
+	 * <look>:
+	 *      SUB_TP minlen	; go back "minlen" (also "maxlen") in text
+	 *      JMP_NC <A>      ; if TP is still before text start
+	 *      FAIL            ; sorry, not enough text before to match
+	 *      X				; the look-behind assertion itself
+	 *
+	 * We are only generating the part before X bere.
+	 */
+
+	GENX(sub_tp, ev->minlen);					/* SUB_TP minlen */
+	a = GEN_FORWARD_IF(NC, 8BITS);				/* JMP_NC <A> */
+	GEN(fail);									/* FAIL */
+	GEN_TARGET_HERE(a);							/* <A>: */
+}
+
+/**
+ * Generate code for a look-behind assertion.
+ *
+ * @param mig		the generation context
+ * @param ev		the element vector to generate
+ * @param negated	whether return status should be negated
+ */
+static void
+re_mi_generate_behind(struct re_mi_gen_ctx *mig,
+	const re_elemvec_t *ev, bool negated)
+{
+	/*
+	 * The leading part of the subroutine will be generated by the
+	 * re_mi_generate_behind_precode() hook, to move back the text pointer
+	 * and check that we have enough text to attempt a match.
+	 */
+
+	(void) re_mi_generate_xcall(mig, ev, negated, FALSE,
+				re_mi_generate_behind_precode);
 }
 
 /**
@@ -26630,7 +26934,17 @@ re_mi_generate_element_once(struct re_mi_gen_ctx *mig, const re_element_t *e)
 			re_elemvec_t *gev = re_element_get_sub(e);
 
 			re_elemvec_check(gev);
-			re_mi_generate_xcall(mig, gev, RE_TYPE_NOT_AHEAD == e->type);
+			re_mi_generate_xcall(mig, gev,
+					RE_TYPE_NOT_AHEAD == e->type, FALSE, NULL);
+		}
+		break;
+	case RE_TYPE_BEHIND:
+	case RE_TYPE_NOT_BEHIND:
+		{
+			re_elemvec_t *gev = re_element_get_sub(e);
+
+			re_elemvec_check(gev);
+			re_mi_generate_behind(mig, gev, RE_TYPE_NOT_BEHIND == e->type);
 		}
 		break;
 	case RE_TYPE_OR:
@@ -28135,10 +28449,10 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 					if (RE_OP_XCALL == inst.opcode) {
 						if (inst.x)
 							comment = str_smsg2("%s%s, negated",
-								comment, inst.z ? " ,test" : "");
+								comment, inst.z ? ", Z <- failure" : "");
 						else
 							comment = str_smsg2("%s%s",
-								comment, inst.z ? " ,test" : "");
+								comment, inst.z ? ", Z <- success" : "");
 					} else {
 						comment = str_smsg2("%s%s", comment, condition);
 					}
@@ -28273,6 +28587,8 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 					comment = str_smsg("A <- %zd, RET", value);
 				else if (RE_OP_NEED == inst.opcode)
 					comment = str_smsg("needs %zu character%s", PLURAL(value));
+				else if (RE_OP_SUB_TP == inst.opcode)
+					comment = str_smsg("TP <- TP - %zd, C <- TP < TP0", value);
 			}
 			goto ok;
 		case RE_OP_REPEAT:
@@ -28728,6 +29044,7 @@ re_bytecode_as_string(const re_regex_t *re, bool debug)
  *   RP      the Reserved-word Pointer (array of 32-bit words: our variables)
  *   IR      the Instruction Register (16-bit, copy of current instruction)
  *   D       the Direction register (either +1 or -1), the matching direction
+ *   TP0     the first Text Position (beginning of text against which we match)
  *
  * Registers that can be loaded / tested by the program:
  *
@@ -28741,8 +29058,8 @@ re_bytecode_as_string(const re_regex_t *re, bool debug)
  *      | unused |C|Z|
  *      +--------+-+-+
  *
- * Z = Zero bit, set during comparisons usually
- * C = Carry bit, used for conditional execution (CEX) and comparisons (LT_A.X)
+ * Z = Zero flag, set during comparisons usually
+ * C = Carry flag, used for conditional execution (CEX) and comparisons (LT_A.X)
  *
  * For efficiency reasons, the F register is not implemented as a bit field
  * but as an array of bytes.  This allows minimal overhead for accessing and
@@ -29596,8 +29913,10 @@ resume:
 
 				EMB_FOLLOWUP(n, cs);
 				tp -= n * dr;
+				CF = tp < tp_start;
 
-				REX_DEBUG(RE_D_MI_MATCH, "TP -= %zd, now TP=%u", n * dr, TP);
+				REX_DEBUG(RE_D_MI_MATCH, "TP -= %zd, now TP=%u, C <- %s",
+					n * dr, TP, bool_to_string(CF));
 			}
 			continue;
 
@@ -30439,7 +30758,7 @@ resume:
 							REX_DEBUG(RE_D_MI_MATCH, "i-matching '%c' with '%c'",
 								*p, c);
 							if (ascii_tolower(c) != *p++)
-								goto advance_upto
+								goto advance_upto;
 							REX_DEBUG(RE_D_MI_MATCH, "i-matched '%c'", c);
 							tp += dr;
 						}

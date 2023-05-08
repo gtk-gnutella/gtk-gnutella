@@ -1786,15 +1786,15 @@ test_compile_errors(void)
 		{ "(?:b",				4,	E(INCOMPLETE_GROUP) },
 		{ "(?:b))",				0,	E(OK) },
 		{ "b]",					0,	E(OK) },
-		{ "(?=foo)+",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?=foo)*",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?=foo)?",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?=foo){2}",			9,	E(NO_REPEAT_ON_LOOK_AHEAD) },
+		{ "(?=foo)+",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?=foo)*",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?=foo)?",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?=foo){2}",			9,	E(NO_REPEAT_ON_LOOK_AROUND ) },
 		/* 70 */
-		{ "(?!foo)+",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?!foo)*",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?!foo)?",			7,	E(NO_REPEAT_ON_LOOK_AHEAD) },
-		{ "(?!foo){2}",			9,	E(NO_REPEAT_ON_LOOK_AHEAD) },
+		{ "(?!foo)+",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?!foo)*",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?!foo)?",			7,	E(NO_REPEAT_ON_LOOK_AROUND ) },
+		{ "(?!foo){2}",			9,	E(NO_REPEAT_ON_LOOK_AROUND ) },
 		{ "(?=foo){1}",			0,	E(OK) },
 		{ "a*{3}",				2,	E(ORPHAN_REPETITION) },
 		{ "a*+{3}",				3,	E(ORPHAN_REPETITION) },
@@ -2806,6 +2806,13 @@ test_match(size_t n, bool show, uint flags)
 		{ y, 0,19, "re.+?assemble",				"rewind_and_assemble",	},
 		{ n, 0,19, "re.+?assembl.x",			"rewind_and_assemble",	},
 		{ Y, 0,19, "re.*?a[st]semble",			"rewind_and_ASSEMBLE",	},
+		{ y, 5, 2, "(?<=a)xb",					"xbxbaxb",				},
+		/* 260 */
+		{ y, 2, 2, "(?<=[ab])xb",				"xbxbaxb",				},
+		{ y, 3, 2, "(?<!a)xb",					"axbxbaxb",				},
+		{ n, X, X, "(?<![ab])xb",				"axbxbaxb",				},
+		{ y, 3, 2, "(?<![ac])xb",				"axbxbaxb",				},
+		{ y, 1, 2, "(?<![ac]d)xb",				"axbxbaxb",				},
 	};
 #undef n
 #undef y

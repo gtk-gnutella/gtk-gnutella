@@ -1,5 +1,5 @@
 /*
- * Generated on Sun Apr 23 09:28:25 2023 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Sun May  7 23:42:10 2023 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl re.lst
  */
@@ -8,7 +8,7 @@
 #define _if_gen_re_h_
 
 /*
- * Enum count: 25
+ * Enum count: 26
  */
 typedef enum {
 	RE_E_OK = 0,
@@ -33,7 +33,8 @@ typedef enum {
 	RE_E_GROUP_CAPTURE_NEEDED,
 	RE_E_UNKNOWN_GROUP_REF,
 	RE_E_UNKNOWN_GROUP_TYPE,
-	RE_E_NO_REPEAT_ON_LOOK_AHEAD,
+	RE_E_NO_REPEAT_ON_LOOK_AROUND,
+	RE_E_LOOK_BEHIND_VARIABLE_WIDTH,
 	RE_E_END_SEEN,
 	RE_E_LATE_START
 } re_error_code_t;
