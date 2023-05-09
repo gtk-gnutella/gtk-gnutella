@@ -56,6 +56,7 @@
 #include "re.h"
 #include "str.h"
 #include "str_subst_str.h"
+#include "str_subst_re.h"
 #include "stringify.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -89,7 +90,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-			"Usage: %s [-CLOPRSTWXcdghinops] [-D n] [-E pattern] [-G n]\n"
+			"Usage: %s [-CLOPRSTWXcdghinoprs] [-D n] [-E pattern] [-G n]\n"
 			"       [-M n] [-N loops] [-g pattern]\n"
 			"  -C : force usage of the C regex matching engine\n"
 			"  -D : execute only dump test #n\n"
@@ -117,6 +118,7 @@ usage(void)
 			"  -n : compile with no sub-expression capture for -E, -M and -g\n"
 			"  -o : let -g match only once\n"
 			"  -p : prune regex tree (disables C matching engine)\n"
+			"  -r : test the str_subst_re*() / str_match_re*() routines\n"
 			"  -s : single-line mode: let '.' match '\\n'\n"
 			, getprogname(), timing_loops);
 	exit(EXIT_FAILURE);
@@ -516,13 +518,45 @@ compile_regex_pattern(const char *pattern, uint flags)
 	 */
 
 	ps = str_new_from(pattern);
-	n += str_subst_all_str(ps, "(?:", "(");
+	str_subst_all_str(ps, "\\\\", "\001");		/* Escaped '\' is a true '\' */
+	n += str_subst_re_plain(ps, "(?<!\\\\)\\(\\?:", "(", "og");
+
+	/*
+	 * Handle \d and friends within a [].
+	 *
+	 * Without all the double escaping, the regex below to handle \d is:
+	 *
+	 *     (?<!\\)(\[[^\]]*?)\\d
+	 *
+	 * but since we are building a C string, the compiler needs the double
+	 * escaping (i.e. \\) each time we want a \ in the string.
+	 *
+	 * Note that \D in a [] is complex to handle: we can spot it, but to
+	 * actually do the replacement, we need to invert the class and that is
+	 * complex because we need to see whether it occurs in a regular or inverted
+	 * class already.
+	 *
+	 * For now, we don't handle \\D and friends in a [].
+	 */
+	while (str_subst_re(ps, "(?<!\\\\)(\\[[^\\]]*?)\\\\d", "${1}0-9", NULL))
+		n++;
+	while (str_subst_re(ps, "(?<!\\\\)(\\[[^\\]]*?)\\\\s", "$1 \\t", NULL))
+		n++;
+	while (str_subst_re(ps, "(?<!\\\\)(\\[[^\\]]*?)\\\\w", "${1}0-9a-zA-Z_", NULL))
+		n++;
+
+	/*
+	 * Now handle \d and \D, and friends, elsewhere.
+	 */
+
 	n += str_subst_all_str(ps, "\\d", "[0-9]");
 	n += str_subst_all_str(ps, "\\s", "[ \\t]");
 	n += str_subst_all_str(ps, "\\w", "[0-9a-zA-Z_]");
 	n += str_subst_all_str(ps, "\\D", "[^0-9]");
 	n += str_subst_all_str(ps, "\\S", "[^ \\t]");
 	n += str_subst_all_str(ps, "\\W", "[^0-9a-zA-Z_]");
+
+	str_subst_all_str(ps, "\001", "\\\\");		/* Restore escaped '\' */
 
 	if (n != 0) {
 		s_warning("%s(): applied %zu change%s to pattern: %s -> %s",
@@ -3098,18 +3132,150 @@ test_group(size_t n, bool show)
 	log_max_stats_summary();
 }
 
+static void
+count_re(const char *text, const char *pattern, size_t expected, const char *what)
+{
+	size_t n;
+	re_match_t pos;
+	str_t *s = str_new_from(text);
+
+	ZERO(&pos);
+	n = 0;
+	while (str_match_re(s, pattern, "c", &pos, 1))
+		n++;
+
+	s_info("%s(): found %zu %s%s", G_STRFUNC, n, what, plural(n));
+	g_assert_log(expected == n,
+		"%s(): expected=%zu, n=%zu", G_STRFUNC, expected, n);
+}
+
+static void
+count_rec(const char *text, const re_regex_t *re,
+	size_t expected, const char *what)
+{
+	size_t n;
+	re_match_t pos;
+	str_t *s = str_new_from(text);
+
+	ZERO(&pos);
+	n = 0;
+	while (str_match_rec(s, re, "c", &pos, 1))
+		n++;
+
+	s_info("%s(): found %zu %s%s", G_STRFUNC, n, what, plural(n));
+	g_assert_log(expected == n,
+		"%s(): expected=%zu, n=%zu", G_STRFUNC, expected, n);
+}
+
+static void
+test_str_subst_re(void)
+{
+	const char *text = "This is a set of words.";
+	re_regex_t *re;
+	str_match_t *m;
+	size_t cnt;
+	str_t *s = str_new_from(text);
+	str_t *t;
+
+	count_re(text, "\\w+", 6, "word");
+	count_re(text, "[A-Za-z]", 17, "letter");
+	count_re(text, "[[:punct:]]", 1, "punctuation character");
+	count_re(text, "[[:space:]]", 5, "space character");
+
+	re = re_compile("\\w+", 0, NULL);
+	g_assert(re != NULL);
+	count_rec(text, re, 6, "word");
+	re_free(re);
+
+	re = re_compile("[a-z]", RE_F_ICASE, NULL);
+	g_assert(re != NULL);
+	count_rec(text, re, 17, "letter");
+	re_free(re);
+
+	m = str_match_re_keep(s, "is not", "o");
+	g_assert(NULL == m);
+
+	m = str_match_re_keep(s, "\\s+is a\\s+", "o");
+	g_assert(NULL != m);
+
+#define CHECK(x, str) \
+	g_assert_log(0 == str_cmp_text(t, str), \
+		"expected \"%s\", got \"%s\"", str, str_2c(t))
+
+	t = str_new_at_match(m);
+	CHECK(t, " is a ");
+	str_destroy(t);
+
+	t = str_new_before_match(m);
+	CHECK(t, "This");
+	str_destroy(t);
+
+	t = str_new_after_match(m);
+	CHECK(t, "set of words.");
+	str_destroy(t);
+
+	t = str_new_using_match(m, "$0");
+	CHECK(t, " is a ");
+	str_destroy(t);
+
+	str_match_free_null(&m);
+	m = str_match_re_keep(s, "^(.*)\\s+is a\\s+(.*) WORDS", "io");
+	g_assert(NULL != m);
+
+	t = str_new_using_match(m, "\\$:$1+$2");
+	CHECK(t, "$:This+set of");
+	str_destroy(t);
+
+	t = str_new_using_match(m, "$'");
+	CHECK(t, ".");
+	str_destroy(t);
+
+	t = str_new_using_match(m, "plain text");
+	CHECK(t, "plain text");
+	str_destroy(t);
+
+	str_match_free_null(&m);
+
+	t = str_clone(s);
+	cnt = str_subst_re_plain(t, "\\w+\\s+", "x", "og");
+	CHECK(t, "xxxxxwords.");
+	g_assert(5 == cnt);
+
+	cnt = str_subst_re_plain(t, "w\\w+$", "", "o");
+	CHECK(t, "xxxxxwords.");
+	g_assert(0 == cnt);
+
+	cnt = str_subst_re_plain(t, "w\\w+\\.", "", "o");
+	CHECK(t, "xxxxx");
+	g_assert(1 == cnt);
+	str_destroy(t);
+
+	t = str_clone(s);
+	cnt = str_subst_re(t, "(\\w+)(\\s+)(\\w+)", "$3$2$1", "og");
+	g_assert(3 == cnt);
+	CHECK(t, "is This set a words of.");
+
+	cnt = str_subst_re(t, "\\.$", "???", "og");	/* spurious 'g' on purpose */
+	g_assert(1 == cnt);
+	CHECK(t, "is This set a words of???");
+	str_destroy(t);
+
+#undef CHECK
+}
+
 int
 main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
 	int c;
-	const char options[] = "CD:E:G:LM:N:OPRSTWXcdg:hinops";
+	const char options[] = "CD:E:G:LM:N:OPRSTWXcdg:hinoprs";
 	size_t dump_n = (size_t) -1;
 	size_t match_n = (size_t) -1;
 	size_t group_n = (size_t) -1;
 	const char *examine = NULL, *grep = NULL;
 	uint flags = RE_F_KEEP_TREE;
+	bool run_test_str_match_re = FALSE;
 
 	progstart(argc, argv);
 
@@ -3182,6 +3348,9 @@ main(int argc, char **argv)
 			prune_tree = TRUE;
 			flags &= ~RE_F_KEEP_TREE;
 			break;
+		case 'r':
+			run_test_str_match_re = TRUE;
+			break;
 		case 's':			/* single line: makes '.' match '\n' */
 			flags |= RE_F_NEWLINE;
 			break;
@@ -3192,6 +3361,11 @@ main(int argc, char **argv)
 			usage();
 			break;
 		}
+	}
+
+	if (run_test_str_match_re) {
+		test_str_subst_re();
+		exit(EXIT_SUCCESS);
 	}
 
 	if (use_pcre) {

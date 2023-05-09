@@ -239,6 +239,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	str_subst_str.c \
+	str_subst_re.c \
 	stringify.c \
 	strpcpy.c \
 	strtok.c \
