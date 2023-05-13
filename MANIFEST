@@ -880,6 +880,8 @@ src/lib/listener.h
 src/lib/list.h
 src/lib/log.c
 src/lib/log.h
+src/lib/lru_cache.c
+src/lib/lru_cache.h
 src/lib/magnet.c
 src/lib/magnet.h
 src/lib/malloc.c
@@ -963,12 +965,12 @@ src/lib/random.h
 src/lib/random-test.c
 src/lib/rbtree.c
 src/lib/rbtree.h
-src/lib/re-test.c
 src/lib/re.c
-src/lib/re.h
 src/lib/regex.c
 src/lib/regex.h
 src/lib/registers.h
+src/lib/re.h
+src/lib/re-test.c
 src/lib/ripening.c
 src/lib/ripening.h
 src/lib/rwlock.c

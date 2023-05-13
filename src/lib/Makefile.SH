@@ -57,11 +57,11 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-GLIB_LDFLAGS =  $glibldflags
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
 SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 COMMON_LIBS =  $libs
+GLIB_LDFLAGS =  $glibldflags
 DBUS_CFLAGS =  $dbuscflags
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
 GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
@@ -252,6 +252,7 @@ LSRC = \
 	listener.c \
 	log.c \
 	logfilter.c \
+	lru_cache.c \
 	magnet.c \
 	malloc.c \
 	map.c \
@@ -472,6 +473,7 @@ LOBJ = \
 	listener.o \
 	log.o \
 	logfilter.o \
+	lru_cache.o \
 	magnet.o \
 	malloc.o \
 	map.o \

@@ -180,6 +180,7 @@ LSRC = \
 	listener.c \
 	log.c \
 	logfilter.c \
+	lru_cache.c \
 	magnet.c \
 	malloc.c \
 	map.c \
