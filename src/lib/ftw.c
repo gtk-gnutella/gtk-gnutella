@@ -300,7 +300,7 @@ ftw_parent_close(struct ftw_ctx *fx, struct ftw_dir *dir)
 				}
 
 				if (pos > 0) {
-					str_t *sub = str_slice(&fx->spath, 0, pos - 1);
+					str_t *sub = str_slice(&fx->spath, 0, pos);
 					s_carp("%s(): cannot fully read \"%s\": %m",
 						G_STRFUNC, str_2c(sub));
 					str_destroy(sub);

@@ -1770,18 +1770,41 @@ str_rchr(const str_t *s, int c)
 }
 
 /**
+ * @return a new string holding the `len' bytes start at offset `start' in `s'.
+ */
+static str_t *
+str_substr_internal(const str_t *s, ssize_t start, size_t len)
+{
+	str_t *n;
+
+	g_assert(start >= 0);
+	g_assert(size_is_non_negative(len));
+
+	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
+	n->s_len = len;
+	memcpy(n->s_data, s->s_data + start, len);
+
+	return n;
+}
+
+/**
  * Generate a new string from the characters within the specified range
- * in the given string.  Range is inclusive on both sides.
+ * in the given string.
  *
  * A negative offset is interpreted starting from the end of the string,
  * with -1 being the last character.
+ *
+ * If `from' and `to' are identical, result will be an empty sting.
+ *
+ * @param s		the string to slice
+ * @param from	starting offset within string
+ * @param to	one character past end
  *
  * @return a new string object
  */
 str_t *
 str_slice(const str_t *s, ssize_t from, ssize_t to)
 {
-	str_t *n;
 	size_t len, start, end;
 
 	str_check(s);
@@ -1789,14 +1812,11 @@ str_slice(const str_t *s, ssize_t from, ssize_t to)
 	start = str_offset_safe(s, from);
 	end   = str_offset_safe(s, to);
 
-	len = start <= end ? end - start + 1 : 0;
+	len = start <= end ? end - start : 0;
 	if (0 == s->s_len)
 		len = 0;
-	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
-	n->s_len = len;
-	memcpy(n->s_data, s->s_data + start, len);
 
-	return n;
+	return str_substr_internal(s, start, len);
 }
 
 /**
@@ -1814,7 +1834,6 @@ str_slice(const str_t *s, ssize_t from, ssize_t to)
 str_t *
 str_substr(const str_t *s, ssize_t from, size_t length)
 {
-	str_t *n;
 	size_t len, start;
 
 	str_check(s);
@@ -1830,11 +1849,7 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 		len = start <= end ? end - start : 0;
 	}
 
-	n = str_new(len + 1);	/* Allow for trailing NUL in str_2c() */
-	n->s_len = len;
-	memcpy(n->s_data, s->s_data + start, len);
-
-	return n;
+	return str_substr_internal(s, start, len);
 }
 
 /**
