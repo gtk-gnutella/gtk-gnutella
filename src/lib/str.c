@@ -1660,6 +1660,74 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
 }
 
 /**
+ * Compares two string, as strcmp() would on C strings.
+ *
+ * @return 0 if strings are equal, -1 if a < b and +1 otherwise.
+ */
+int
+str_cmp(const str_t *a, const str_t *b)
+{
+	size_t la = str_len(a), lb = str_len(b);
+
+	if (la == lb) {
+		return memcmp(a->s_data, b->s_data, la);
+	} else if (la < lb) {
+		int c = memcmp(a->s_data, b->s_data, la);
+		if (0 != c)
+			return c;
+		return -1;		/* a is shorter than b */
+	} else {
+		int c = memcmp(a->s_data, b->s_data, lb);
+		if (0 != c)
+			return c;
+		return +1;		/* a is longer than b */
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compares string, with first `n' bytes of C string `text'.
+ *
+ * @return 0 if strings are equal, -1 if a < text and +1 otherwise.
+ */
+int
+str_cmp_text_len(const str_t *a, const char *text, size_t n)
+{
+	size_t la = str_len(a);
+
+	g_assert(text != NULL);
+	g_assert(size_is_non_negative(n));
+
+	if (la == n) {
+		return memcmp(a->s_data, text, n);
+	} else if (la < n) {
+		int c = memcmp(a->s_data, text, la);
+		if (0 != c)
+			return c;
+		return -1;		/* a is shorter than text */
+	} else {
+		int c = memcmp(a->s_data, text, n);
+		if (0 != c)
+			return c;
+		return +1;		/* a is longer than text */
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compares string, with C string `text'.
+ *
+ * @return 0 if strings are equal, -1 if a < text and +1 otherwise.
+ */
+int
+str_cmp_text(const str_t *s, const char *text)
+{
+	return str_cmp_text_len(s, text, vstrlen(text));
+}
+
+/**
  * Fetch character at given offset.  Read from the end of the string when
  * the offset is negative, -1 being the last character, 0 being the first.
  *
