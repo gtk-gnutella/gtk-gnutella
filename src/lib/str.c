@@ -1317,15 +1317,10 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 
 	/*
 	 * Replacement string was larger than the replaced spot. Insert
-	 * remaining characters after the spot we just superseded. If we're at
-	 * the end of the string, i.e. if idx is str->s_len, call str_ncat()
-	 * instead since str_instr() won't do anything when index is off bounds.
+	 * remaining characters after the spot we just superseded.
 	 */
 
-	if ((size_t) idx == str->s_len)
-		str_ncat(str, string, length);
-	else
-		str_instr(str, idx, string, length);
+	str_instr(str, idx, string, length);
 
 	return TRUE;
 }
