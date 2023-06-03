@@ -901,7 +901,6 @@ hash_list_moveto_head(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(size_is_positive(elist_count(&hl->list)));
 
 	hash_list_synchronize(hl);
 
@@ -930,7 +929,6 @@ hash_list_moveto_tail(hash_list_t *hl, const void *key)
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(size_is_positive(elist_count(&hl->list)));
 
 	hash_list_synchronize(hl);
 
