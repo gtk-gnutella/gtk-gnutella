@@ -463,10 +463,10 @@ str_private(const void *key, size_t szhint)
 
 	/*
 	 * A private string can be reclaimed when its thread exits, hence we
-	 * cannot use str_new_non_leaking() to allocate it.
+	 * cannot use str_new_not_leaking() to allocate it.
 	 */
 
-	(void) NOT_LEAKING(s);
+	(void) NOT_LEAKING_Z(s);
 	(void) NOT_LEAKING(s->s_data);
 
 	thread_private_add_extended(key, s, str_private_reclaim, NULL);
