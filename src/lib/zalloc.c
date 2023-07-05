@@ -957,13 +957,12 @@ zblock_log(const char *p, size_t size, void *leakset)
 		line = *(int *) q;
 	}
 
-#ifdef MALLOC_FRAMES
 	if (not_leaking != NULL && hash_table_lookup(not_leaking, uptr)) {
 		s_rawmsg("block %p from \"%s:%u\" marked as non-leaking",
 			uptr, file, line);
 		return;
 	}
-#endif
+
 #ifdef MALLOC_TIME
 	{
 		const time_t *t = const_ptr_add_offset(p, OVH_TIME_OFFSET);
