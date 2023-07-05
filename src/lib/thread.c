@@ -4922,7 +4922,24 @@ recheck:
 
 		handler = te->sigh[s - 1];
 
-		if G_UNLIKELY(TSIG_IGN == handler || TSIG_DFL == handler) {
+		if (TSIG_IGN == handler) {
+			THREAD_STATS_INCX(signals_ignored);
+			continue;
+		}
+
+		if (TSIG_DFL == handler) {
+			/*
+			 * Handle signals for which we have no explicit signal handler
+			 * installed by the thread.
+			 *
+			 * By default, the signal is ignored unless it is TSIG_TERM.
+			 */
+			switch (s) {
+			case TSIG_TERM:
+				thread_exit(NULL);
+				g_assert_not_reached();
+				break;
+			}
 			THREAD_STATS_INCX(signals_ignored);
 			continue;
 		}
