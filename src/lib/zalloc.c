@@ -659,12 +659,10 @@ zframe_dump(const void *ptr, const char *msg)
 		const_ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
 
 	s_warning("ZALLOC %p %s; %s frame is:", ptr, msg,
+		INVALID_FRAME_PTR == *p ? "invalid" :
 		zframe_is_free_frame(*p) ? "free" : "alloc");
 
-	if (INVALID_FRAME_PTR == *p) {
-		s_warning("%s(): invalid frame pointer, cannot dump stack frame",
-			G_STRFUNC);
-	} else {
+	if (INVALID_FRAME_PTR != *p) {
 		const struct stackatom *a = zframe_get_pointer(*p);
 		stacktrace_atom_decorate(stderr, a,
 			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
@@ -994,6 +992,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	}
 #endif
 
+	zframe_dump(uptr, "leaked");
 	leak_add(leakset, size, file, line);
 }
 
