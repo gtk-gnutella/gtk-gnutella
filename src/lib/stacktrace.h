@@ -37,7 +37,18 @@
 enum symbol_quality;
 
 #define STACKTRACE_DEPTH_MAX	128		/**< Maximum depth we can handle */
+
+/*
+ * Protect definition so that we can supersede this value from the compilation
+ * command line, for instance  by supplying "-DSTACKTRACE_DEPTH=20" to cc.
+ */
+#ifndef STACKTRACE_DEPTH
 #define STACKTRACE_DEPTH		10		/**< Typical fixed-size trace */
+#elif STACKTRACE_DEPTH > STACKTRACE_DEPTH_MAX
+/* Enforce maximum value */
+#undef STACKTRACE_DEPTH
+#define STACKTRACE_DEPTH		STACKTRACE_DEPTH_MAX
+#endif
 
 /**
  * A fixed stack trace.
