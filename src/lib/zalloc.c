@@ -658,7 +658,7 @@ zframe_dump(const void *ptr, const char *msg)
 	struct stackatom const * const *p =
 		const_ptr_add_offset(ptr, -OVH_LENGTH + OVH_FRAME_OFFSET);
 
-	s_warning("ZALLOC %p %s; %s frame is:", ptr, msg,
+	s_rawwarn("ZALLOC %p %s; %s frame is:", ptr, msg,
 		INVALID_FRAME_PTR == *p ? "invalid" :
 		zframe_is_free_frame(*p) ? "free" : "alloc");
 
@@ -959,7 +959,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 
 #ifdef MALLOC_FRAMES
 	if (not_leaking != NULL && hash_table_lookup(not_leaking, uptr)) {
-		s_message("block %p from \"%s:%u\" marked as non-leaking",
+		s_rawmsg("block %p from \"%s:%u\" marked as non-leaking",
 			uptr, file, line);
 		return;
 	}
@@ -974,7 +974,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 	ago[0] = '\0';
 #endif
 
-	s_warning("leaked %zu-byte block %p from \"%s:%u\"%s",
+	s_rawwarn("leaked %zu-byte block %p from \"%s:%u\"%s",
 		size, uptr, file, line, ago);
 
 #ifdef MALLOC_FRAMES
@@ -985,7 +985,7 @@ zblock_log(const char *p, size_t size, void *leakset)
 		if (f != INVALID_FRAME_PTR) {
 			leak_stack_add(leakset, size, f->ast);
 		} else {
-			s_warning("%s(): frame pointer suggests "
+			s_rawwarn("%s(): frame pointer suggests "
 				"%zu-byte block %p was freed?",
 				G_STRFUNC, size, uptr);
 		}
@@ -1933,7 +1933,7 @@ zdestroy_physical(zone_t *zone)
 	zone_check(zone);
 
 	if (zone->zn_cnt) {
-		s_warning("destroyed zone (%zu-byte blocks) still holds %u entr%s",
+		s_rawwarn("destroyed zone (%zu-byte blocks) still holds %u entr%s",
 			zone->zn_size, PLURAL_Y(zone->zn_cnt));
 #ifdef TRACK_ZALLOC
 		zdump_used(zone, z_leakset);
