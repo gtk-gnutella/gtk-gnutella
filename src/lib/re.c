@@ -17716,6 +17716,9 @@ typedef enum {
 		 *
 		 * Expect a CS-encoded unsigned constant with the same embedded
 		 * encoding mechanism as SET_A.
+		 *
+		 * When n == 1 and we don't need the C flag to check for the text start,
+		 * we can use DEC_TP instead which is faster to decode and execute.
 		 */
 	RE_OP_SUB_TP = 32,
 
@@ -17833,6 +17836,11 @@ typedef enum {
 		 * quickly swallow everything up to the next "b".
 		 */
 	RE_OP_UNTIL = 39,
+
+		/*
+		 * DEC_TP -- decrease TP by 1
+		 */
+	RE_OP_DEC_TP = 40,
 
 	RE_OP_MAX		/* 48 opcodes max */
 } re_mi_op_t;
@@ -18149,6 +18157,7 @@ re_mi_op2str(re_mi_op_t op)
 	CASE(XLOAD_A);
 	CASE(REPEAT);
 	CASE(SUB_TP);
+	CASE(DEC_TP);
 	CASE(ADD);
 	CASE(UPDATE_FPC);
 	CASE(REW_TP);
@@ -19257,6 +19266,13 @@ static void
 re_mi_gen_inst_sub_tp(struct re_mi_gen_ctx *mig, size_t n)
 {
 	re_mi_gen_xzflg_embedded(mig, RE_OP_SUB_TP, n);
+}
+
+/* DEC_TP instruction */
+static void
+re_mi_gen_inst_dec_tp(struct re_mi_gen_ctx *mig)
+{
+	GEN_OP(DEC_TP, X(0), Z(0), CS(0), FLG(0));
 }
 
 /* DROP_FAIL minimal instruction (possibly followed by F_DROP_WORD) */
@@ -24187,7 +24203,10 @@ re_mi_generate_upto(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 
 			/* Sub-optimal slow rewinding of TP */
 
-			GENX(sub_tp, minlen);				/* SUB_TP L */
+			if (1 == minlen)
+				GEN(dec_tp);					/* SUB_TP 1 */
+			else
+				GENX(sub_tp, minlen);			/* SUB_TP L */
 			GENX(lt_tp, t);						/* LT_TP #t */
 			GEN_BACKWARD_IF(NZ, r);				/* JMP_NZ <T> */
 
@@ -24981,7 +25000,10 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 
 			TRACK_RELEASE(i);
 			g = GEN_FAIL_JMP(8BITS);			/* FAIL_JMP <E> */
-			GENX(sub_tp, minlen);				/* SUB_TP L */
+			if (1 == minlen)
+				GEN(dec_tp);					/* SUB_TP 1 */
+			else
+				GENX(sub_tp, minlen);			/* SUB_TP L */
 			GEN_BACKWARD_JMP(c);				/* JMP <C> */
 			if (can_backtrack) {
 				GEN_TARGET_HERE(d);				/* <R>: really! */
@@ -27802,6 +27824,7 @@ static struct re_mi_op_desc {
 	{ OP(REW_TP),		ALIAS(REW),			TP_ARGS()		},
 	{ OP(EQ_ATTP),		ALIAS(EQ),			NO_ARGS()		},
 	{ OP(UNTIL),		PLAIN(),			X_ARGS(S,I)		},
+	{ OP(DEC_TP),		ALIAS(DEC),			NO_ARGS()		},
 
 #undef OP
 #undef PLAIN
@@ -28563,6 +28586,12 @@ re_mi_dump(struct re_mi_dump_ctx *dc)
 				case RE_OP_CS_8BITS:  p += entries;     break;
 				case RE_OP_CS_16BITS: p += entries * 2; break;
 				}
+			}
+			goto ok;
+		case RE_OP_DEC_TP:
+			if (show) {
+				STR_CAT(s, "TP");
+				comment = "TP <- TP - 1";
 			}
 			goto ok;
 		case RE_OP_F_DROP_WORD:
@@ -29904,6 +29933,11 @@ resume:
 				REX_DEBUG(RE_D_MI_MATCH, "A <- %d, RET", ar);
 				POP_PC();
 			}
+			continue;
+
+		case RE_OP_DEC_TP:
+			tp -= dr;
+			REX_DEBUG(RE_D_MI_MATCH, "TP -= %d, now TP=%u", dr, TP);
 			continue;
 
 		case RE_OP_SUB_TP:
