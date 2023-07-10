@@ -7999,19 +7999,33 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
 
-			/*
-			 * If crashing, it's interesting to learn about possible
-			 * out-of-order unlocking, because it may point to a true
-			 * bug in the crash handling, but let processing continue
-			 * to be able to dump useful information anyway.
-			 */
-
 			if (
 				!thread_is_crashing() &&
 				0 == atomic_int_get(&thread_locks_disabled)
 			) {
 				s_error("out-of-order %s release",
 					thread_lock_kind_to_string(kind));
+			} else {
+				const char *crashing = "";
+				const char *name = "";
+
+				/*
+				 * If crashing, it's interesting to learn about possible
+				 * out-of-order unlocking, because it may point to a true
+				 * bug in the crash handling, but let processing continue
+				 * to be able to dump useful information anyway.
+				 */
+
+				if (thread_in_crash_mode()) {
+					crashing = " in ";
+					name = thread_id_name(
+						atomic_int_get(&thread_crash_mode_stid));
+				}
+
+				s_rawcrit("releasing point (crashing=%s%s%s, locks_disabled=%s):",
+					bool_to_string(thread_in_crash_mode()), crashing, name,
+					bool_to_string(0 != atomic_int_get(&thread_locks_disabled))
+				);
 			}
 
 			return;
