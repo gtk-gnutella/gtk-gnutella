@@ -43,9 +43,15 @@
  * To avoid mistakes, the "volatile" attribute is made part of the typedef:
  * no access to the lock memory location should be optimized by the compiler,
  * or we might loop forever.
+ *
+ * Used to define this as a byte (uint8) but it does not work on Darwin ppc32,
+ * and we must make it an integer (uint) to get it working properly.  Was it
+ * structure alignment or simply the nature of atomic operations on this
+ * particular CPU architecture that made it fail to properly lock?
+ * 		--RAM, 2023-07-17
  */
 
-typedef volatile uint8 atomic_lock_t;
+typedef volatile uint atomic_lock_t;
 
 /*
  * Public interface.
