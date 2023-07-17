@@ -45,7 +45,11 @@
  * or we might loop forever.
  */
 
+#if defined(__APPLE__) && defined(__ppc__) /* Darwin PowerPC 32-bit ABI */
+typedef volatile uint32 atomic_lock_t;
+#else
 typedef volatile uint8 atomic_lock_t;
+#endif
 
 /*
  * Public interface.

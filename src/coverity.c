@@ -55,7 +55,13 @@ log_abort(void)
 }
 
 typedef unsigned char uint8;
-typedef volatile uint8 atomic_lock_t;
+typedef unsigned int uint32;
+
+#if defined(__APPLE__) && defined(__ppc__) /* Darwin PowerPC 32-bit ABI */
+    typedef volatile uint32 atomic_lock_t;
+#else
+    typedef volatile uint8 atomic_lock_t;
+#endif
 
 const bool TRUE = 1;
 const bool FALSE = 0;
