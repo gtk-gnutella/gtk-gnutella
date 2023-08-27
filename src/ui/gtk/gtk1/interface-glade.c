@@ -10173,7 +10173,7 @@ create_dlg_about (void)
   gtk_widget_show (label719);
   gtk_box_pack_start (GTK_BOX (vbox133), label719, FALSE, FALSE, 0);
 
-  label716 = gtk_label_new (_("Visit http://gtk-gnutella.sourceforge.net/."));
+  label716 = gtk_label_new (_("Visit https://gtk-gnutella.sourceforge.io/."));
   gtk_widget_set_name (label716, "label716");
   gtk_widget_ref (label716);
   gtk_object_set_data_full (GTK_OBJECT (dlg_about), "label716", label716,

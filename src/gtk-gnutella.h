@@ -44,7 +44,7 @@
 #define GTA_REVISION 		"stable"	/**< unstable, beta, stable */
 #define GTA_REVCHAR			""			/**< (u)nstable, (b)eta, "" -> stable */
 #define GTA_RELEASE			"2022-02-25"	/**< ISO 8601 format YYYY-MM-DD */
-#define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
+#define GTA_WEBSITE			"https://gtk-gnutella.sourceforge.io/"
 #define GTA_VENDOR_CODE		"GTKG"
 #define GTA_PRODUCT_NICK	"gtkg"
 #define GTA_SUPERVISOR_NICK	"gtkg-supervisor"
