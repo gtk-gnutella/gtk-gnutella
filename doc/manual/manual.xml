@@ -67,7 +67,7 @@ Document style
   text to update and expand the manual, but please feel free to
   contribute new sections and updates if you like.  Information on
   contributing can be found at <ulink
-  url="http://gtk-gnutella.sourceforge.net/"/></para>
+  url="https://gtk-gnutella.sourceforge.io/"/></para>
 
 </preface>
 
@@ -125,11 +125,11 @@ url="http://rpmfind.net/linux/rpm2html/search.php?query=gtk-gnutella">
 RPM find </ulink> and <ulink
 url="http://linuxappfinder.com/package/gtk-gnutella"> Linux App finder
 </ulink> have packages for some popular Linux distributions.  Also,
-the <ulink url="http://gtk-gnutella.sourceforge.net/"> gtk-gnutella
+the <ulink url="https://gtk-gnutella.sourceforge.io/"> gtk-gnutella
 </ulink> web site may contains some packages. </para>
 
 <para>A better way to get gtk-gnutella is to install it yourself. The
-<ulink url="http://gtk-gnutella.sourceforge.net/"> gtk-gnutella
+<ulink url="https://gtk-gnutella.sourceforge.io/"> gtk-gnutella
 </ulink> web site contains the source archive which allows you to
 compile gtk-gnutella yourself. You can also use the web site to check
 if your currently installed version is still the most recent version;

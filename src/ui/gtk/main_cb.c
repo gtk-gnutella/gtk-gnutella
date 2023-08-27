@@ -130,7 +130,7 @@ load_faq(void)
 			"<body>"
 			"<p>"
 			"The FAQ document could not be loaded. Please read the "
-			"<a href=\"http://gtk-gnutella.sourceforge.net/?page=faq\">"
+			"<a href=\"https://gtk-gnutella.sourceforge.io/?page=faq\">"
 			"FAQ online</a> instead."
 			"</p>"
 			"</body>"
