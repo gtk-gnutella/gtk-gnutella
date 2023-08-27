@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -50,10 +50,26 @@
 
 #include "compat_setjmp.h"
 
+#include "alloca.h"			/* For alloca_stack_direction() */
+#include "log.h"
 #include "signal.h"
 #include "thread.h"
 
 #include "override.h"		/* Must be the last header included */
+
+static void
+setjmp_fill_ctx(struct compat_jmpbuf_ctx *x,
+	enum setjmp_magic magic, const void *sp,
+	const char *file, uint line, const char *routine)
+{
+	x->magic     = magic;
+	x->stid      = thread_small_id();
+	x->sig_level = signal_thread_handler_level(x->stid);
+	x->sp        = &sp;
+	x->routine   = routine;
+	x->file      = file;
+	x->line      = line;
+}
 
 /**
  * Prepare for a setjmp().
@@ -62,13 +78,12 @@
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-setjmp_prep(jmp_buf env, const char *file, uint line)
+setjmp_prep(jmp_buf env,
+	const char *file, uint line, const char *routine)
 {
-	env->stid = thread_small_id();
-	env->sig_level = signal_thread_handler_level(env->stid);
-	env->magic = SETJMP_MAGIC;
-	env->file = file;
-	env->line = line;
+	int sp;
+
+	setjmp_fill_ctx(&env->x, SETJMP_MAGIC, &sp, file, line, routine);
 }
 
 /**
@@ -78,13 +93,13 @@ setjmp_prep(jmp_buf env, const char *file, uint line)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
+sigsetjmp_prep(sigjmp_buf env,
+	int savesigs,
+	const char *file, uint line, const char *routine)
 {
-	env->stid = thread_small_id();
-	env->sig_level = signal_thread_handler_level(env->stid);
-	env->magic = SIGSETJMP_MAGIC;
-	env->file = file;
-	env->line = line;
+	int sp;
+
+	setjmp_fill_ctx(&env->x, SIGSETJMP_MAGIC, &sp, file, line, routine);
 
 #ifndef HAS_SIGSETJMP
 	env->mask_saved = booleanize(savesigs);
@@ -101,6 +116,71 @@ sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
 #endif	/* !HAS_SIGSETJMP */
 }
 
+static void
+longjmp_validate(const char *caller,
+	const struct compat_jmpbuf_ctx *x,
+	enum setjmp_magic magic, const void *sp, uint stid, int val,
+	const char *file, uint line, const char *routine)
+{
+	if G_UNLIKELY(SETJMP_USED_MAGIC == x->magic) {
+		s_error(
+			"%s(): context was taken at %s:%u in %s() "
+			"and %slongjmp(%d) already called at %s:%u in %s() within %s",
+			caller, x->file, x->line, x->routine,
+			SIGSETJMP_MAGIC == magic ? "sig" : "",
+			x->used.arg, x->used.file, x->used.line, x->used.routine,
+			thread_safe_id_name(x->stid));
+	}
+
+	g_assert_log(magic == x->magic,
+		"%s(): magic=0x%x instead of 0x%x", caller, x->magic, magic);
+
+	if G_UNLIKELY(x->stid != stid) {
+		s_error(
+			"%s(): x->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u in %s()",
+			caller, x->stid, thread_safe_id_name(x->stid),
+			stid, thread_safe_id_name(stid), x->file, x->line, x->routine);
+	}
+
+	/*
+	 * See whether routine where (sig)setjmp() occurred has already returned.
+	 * We must still be deeper in the call stack at the time of longjmp(),
+	 * or the context is completely invalid.
+	 *
+	 * This is imperfect of couse, we could have grown the stack since we
+	 * returned and not be able to detect the situation where the context is
+	 * truly gone, but it will detect some blatant mistakes.
+	 *
+	 * We can't do this check when we are in a signal handler running on
+	 * an alternate signal stack, sorry.
+	 */
+
+	if G_UNLIKELY(
+		thread_stack_ptr_cmp(sp, x->sp) <= 0 &&
+		!thread_on_altstack()
+	) {
+		s_error(
+			"%s(): context, taken at %s:%u in %s(), already gone when "
+			"%slongjmp(%d) is called at %s:%u in %s() within %s "
+			"(SP was %p, now %p, stack growing %s)",
+			caller, x->file, x->line, x->routine,
+			SIGSETJMP_MAGIC == magic ? "sig" : "",
+			val, file, line, routine, thread_safe_id_name(x->stid),
+			x->sp, sp, alloca_stack_direction() < 0 ? "down" : "up");
+	}
+}
+
+static void
+longjmp_flag_used(struct compat_jmpbuf_ctx *x,
+	int val, const char *file, uint line, const char *routine)
+{
+	x->magic        = SETJMP_USED_MAGIC;
+	x->used.arg     = val;
+	x->used.file    = file;
+	x->used.line    = line;
+	x->used.routine = routine;
+}
+
 /**
  * Wrapper for the longjmp() call to restore the signal handler level.
  *
@@ -108,28 +188,20 @@ sigsetjmp_prep(sigjmp_buf env, int savesigs, const char *file, uint line)
  * The jmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_longjmp(jmp_buf env, int val)
+compat_longjmp(jmp_buf env, int val,
+	const char *file, uint line, const char *routine)
 {
 	uint stid = thread_small_id();
 
-	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u", env->file, env->line);
-
-	if G_UNLIKELY(SIGSETJMP_MAGIC == env->magic) {
-		g_error("%s(): using longjmp() after sigsetjmp() from %s:%u",
-			G_STRFUNC, env->file, env->line);
-	}
-
-	g_assert_log(SETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
-	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
-		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid), env->file, env->line);
+	longjmp_validate(G_STRFUNC,
+		&env->x, SETJMP_MAGIC, &stid, stid, val,
+		file, line, routine);
+	longjmp_flag_used(&env->x, val, file, line, routine);
 
-	signal_thread_handler_level_set(stid, env->sig_level);
-	env->magic = SETJMP_USED_MAGIC;
+	signal_thread_handler_level_set(stid, env->x.sig_level);
+
 	longjmp(env->buf, val);
 }
 
@@ -140,33 +212,25 @@ compat_longjmp(jmp_buf env, int val)
  * The sigjmp_buf type here is not the system one but the one we redefine.
  */
 void
-compat_siglongjmp(sigjmp_buf env, int val)
+compat_siglongjmp(sigjmp_buf env, int val,
+	const char *file, uint line, const char *routine)
 {
 	uint stid = thread_small_id();
 
-	g_assert_log(env->magic != SETJMP_USED_MAGIC,
-		"context was taken at %s:%u", env->file, env->line);
-
-	if G_UNLIKELY(SETJMP_MAGIC == env->magic) {
-		g_error("%s(): using siglongjmp() after setjmp() from %s:%u",
-			G_STRFUNC, env->file, env->line);
-	}
-
-	g_assert_log(SIGSETJMP_MAGIC == env->magic, "magic=0x%x", env->magic);
 	g_assert(val != 0);
 
-	g_assert_log(env->stid == stid,
-		"%s(): env->stid=%u {%s}, stid=%u {%s}, context taken at %s:%u",
-		G_STRFUNC, env->stid, thread_safe_id_name(env->stid),
-		stid, thread_safe_id_name(stid), env->file, env->line);
+	longjmp_validate(G_STRFUNC,
+		&env->x, SIGSETJMP_MAGIC, &stid, stid, val,
+		file, line, routine);
+	longjmp_flag_used(&env->x, val, file, line, routine);
 
 #ifndef HAS_SIGSETJMP
 	if (env->mask_saved)
 		sigprocmask(SIG_SETMASK, &env->mask, NULL);
 #endif	/* !HAS_SIGSETJMP */
 
-	signal_thread_handler_level_set(stid, env->sig_level);
-	env->magic = SETJMP_USED_MAGIC;
+	signal_thread_handler_level_set(stid, env->x.sig_level);
+
 	Siglongjmp(env->buf, val);		/* metaconfig symbol definition */
 }
 

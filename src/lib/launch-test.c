@@ -55,6 +55,8 @@
 #include "thread.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool verbose, reparenting;
 
@@ -249,14 +251,13 @@ test_launchve(void)
 		NULL
 	};
 
-	str_bprintf(pid_str, sizeof pid_str, "%lu", (ulong) getpid());
+	str_bprintf(ARYLEN(pid_str), "%lu", (ulong) getpid());
 
-	concat_strings(buf, sizeof buf, test, "x.plain",
-		verb, ppid, pid_str, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.plain", verb, ppid, pid_str, NULL_PTR);
 	p = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
 	test_child_expect(p, TRUE);
 
-	concat_strings(buf, sizeof buf, test, "x.quoted", verb, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.quoted", verb, NULL_PTR);
 	p = verbose_launch(NULL, progpath, "-X", buf,
 		qargs[0], qargs[1], qargs[2], qargs[3], qargs[4], qargs[5],
 		qargs[6], qargs[7], qargs[8], qargs[9], NULL_PTR);
@@ -264,18 +265,18 @@ test_launchve(void)
 
 	test = "t=env,";
 
-	concat_strings(buf, sizeof buf, test, verb, ",envp", NULL_PTR);
+	concat_strings(ARYLEN(buf), test, verb, ",envp", NULL_PTR);
 	p = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
 	test_child_expect(p, TRUE);
 
-	concat_strings(buf, sizeof buf, test, "x.vars", verb, ",envp", NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.vars", verb, ",envp", NULL_PTR);
 	p = verbose_launch(envp, progpath, "-X", buf, NULL_PTR);
 	test_child_expect(p, TRUE);
 
 	if (reparenting) {
 		test = "t=parent,";
 
-		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		concat_strings(ARYLEN(buf), test, verb, NULL_PTR);
 		p = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
 		test_child_expect(p, TRUE);
 	}
@@ -410,7 +411,7 @@ x_launchve_parent(const htable_t *xv)
 
 	(void) xv;
 
-	concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, verb, NULL_PTR);
 	pid = verbose_launch(NULL, progpath, "-X", buf, NULL_PTR);
 	emitz("sleeping %d secs", delay);
 	thread_sleep_ms(1000 * delay);
@@ -453,7 +454,7 @@ x_record(const char *value)
 
 	while ((tok = strtok_next(s, ","))) {
 		char *kv = h_strdup(tok);
-		char *eq = strstr(kv, "=");		/* What follows is the value */
+		char *eq = strchr(kv, '=');		/* What follows is the value */
 
 		if (NULL == eq) {
 			htable_insert(xv, kv, "y");	/* No value, assume "y" (for yes) */
@@ -517,7 +518,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hivz:X:";
 	int c;
 

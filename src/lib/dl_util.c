@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -131,7 +131,7 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 		 */
 
 		if (addr != last_addr) {
-			signal_handler_t old_sigsegv;
+			volatile signal_handler_t old_sigsegv;
 			int ret;
 
 			ZERO(&info);
@@ -146,13 +146,15 @@ dl_util_query(const void *addr, enum dl_addr_op op)
 			old_sigsegv = signal_catch(SIGSEGV, dl_util_got_signal);
 
 			if (Sigsetjmp(dl_util_env[stid], TRUE)) {
-				last_addr = NULL;
-				return NULL;
+				ret = 0;		/* Signal failure */
+				goto skip;		/* Skip call that triggered SIGSEGV */
 			}
 
 			ret = dladdr(deconstify_pointer(addr), &info);
-			signal_set(SIGSEGV, old_sigsegv);
+			/* FALL THROUGH */
 
+		skip:
+			signal_set(SIGSEGV, old_sigsegv);
 			if (0 == ret) {
 				last_addr = NULL;
 				return NULL;

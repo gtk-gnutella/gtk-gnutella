@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -278,7 +278,7 @@ revent_pmsg_free(pmsg_t *mb, void *arg)
 		if (*ops->debug > 4)
 			g_debug("DHT %s[%s] sent %s (%d bytes) to %s, RTT=%u",
 				ops->name, nid_to_string(&pmi->rid),
-				kmsg_infostr(pmsg_start(mb)),
+				kmsg_infostr(pmsg_phys_base(mb)),
 				pmsg_written_size(mb), knode_to_string(kn), kn->rtt);
 	} else {
 		knode_t *kn = pmi->kn;
@@ -304,7 +304,7 @@ revent_pmsg_free(pmsg_t *mb, void *arg)
 
 		g_assert(pmsg_written_size(mb) > GUID_RAW_SIZE);
 
-		muid = cast_to_guid_ptr(pmsg_start(mb));
+		muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 		dht_rpc_cancel(muid);
 
 		if (ops->rpc_cancelled)

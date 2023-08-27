@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -138,7 +138,7 @@ shell_exec_memory_dump(struct gnutella_shell *sh,
 		size_t i;
 
 		STATIC_ASSERT(sizeof data == sizeof valid);
-		read_memory(fd, addr, length, data, sizeof data, valid);
+		read_memory(fd, addr, length, ARYLEN(data), valid);
 
 		str_cpy(s, pointer_to_string(addr));
 		STR_CAT(s, "  ");
@@ -296,7 +296,7 @@ static enum shell_reply
 shell_exec_memory_show_options(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	show_vec_t v[3];
+	show_vec_t v[4];
 
 	shell_check(sh);
 	g_assert(argv);
@@ -306,8 +306,10 @@ shell_exec_memory_show_options(struct gnutella_shell *sh,
 	v[0].prefix = NULL;
 	v[1].cb = malloc_show_settings_log;
 	v[1].prefix = "malloc ";
-	v[2].cb = shell_vtable_settings_log;
-	v[2].prefix = NULL;
+	v[2].cb = zalloc_show_settings_log;
+	v[2].prefix = "zalloc ";
+	v[3].cb = shell_vtable_settings_log;
+	v[3].prefix = NULL;
 
 	return memory_run_showerv(sh, v, N_ITEMS(v));
 }
@@ -574,7 +576,7 @@ shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
 		shell_write(sh, ".\n");
 
 	shell_write_linef(sh, REPLY_READY, "Found %zu freelist%s in error",
-		errors, plural(errors));
+		PLURAL(errors));
 
 	return REPLY_READY;
 }

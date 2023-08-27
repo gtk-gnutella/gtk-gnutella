@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -97,7 +97,7 @@ uint parq_upload_lookup_queue_no(const struct upload *);
 bool parq_upload_lookup_quick(const struct upload *);
 bool parq_upload_lookup_frozen(const struct upload *);
 
-bool parq_upload_queued(struct upload *);
+bool parq_upload_queued(const struct upload *);
 bool parq_upload_remove(struct upload *, bool, bool);
 void parq_upload_collect_stats(const struct upload *);
 void parq_upload_upload_got_freed(struct upload *);

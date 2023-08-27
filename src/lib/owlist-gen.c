@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -94,7 +94,7 @@
  ***
  *** safety_assert(x)	either empty or g_assert(x)
  *** CHECK(l)			either eslist_check(l) or xslist_check(l)
- *** INVARIANT(l)		either eslist_invariant(l) or INVARIANT(l)
+ *** INVARIANT(l)		either eslist_invariant(l) or xslist_invariant(l)
  *** PREFIX				routine prefix, usually eslist_ or xslist_
  *** OWLIST_T			type of the list object (e.g. eslist_t)
  *** OWLINK_T			type of the chaining structure (e.g. slink_t)
@@ -108,6 +108,32 @@
 #ifndef OWLIST_T
 #error "this file is not meant to be compiled directly"
 #endif
+
+/**
+ * Check whether link is part of a list.
+ *
+ * @attention
+ * We are not verifying that the link is part of THIS list, simply that
+ * it looks like a valid link belonging to SOME list.
+ *
+ * @param list	the list
+ * @param lk	the link we wish to check
+ *
+ * @return whether link is part of a list.
+ */
+#define OWLIST_link_in_list	CAT2(PREFIX,link_in_list)
+static inline bool
+OWLIST_link_in_list(const OWLIST_T * const list, const OWLINK_T * const lk)
+{
+	g_assert(lk != NULL);
+
+	/*
+	 * Checking whether the next item is not NULL is not sufficient as the
+	 * list could contain just that single item.
+	 */
+
+	return NEXT(list, lk) != NULL || list->tail == lk;
+}
 
 /**
  * Discard list, making the list object invalid.
@@ -141,10 +167,68 @@ OWLIST_clear(OWLIST_T *list)
 	list->count = 0;
 }
 
+/*
+ * Mark link as being removed from the list by clearing its "next" pointer.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param lk 	the link we wish to clear the chaining pointer from
+ */
+#define OWLIST_link_mark_removed	CAT2(PREFIX,link_mark_removed)
+void
+OWLIST_link_mark_removed(const OWLIST_T *list, OWLINK_T *lk)
+{
+	CHECK(list);
+	g_assert(lk != NULL);
+
+	/*
+	 * We cannot assert:
+	 *
+	 *	OWLIST_link_in_list(list, lk);
+	 *
+	 * here because the calling routine may not really know the original
+	 * list where the pointer was.
+	 *
+	 * All it needs to supply is the NEW list to which it would like to
+	 * add the link, and of course the link pointer must be identical with
+	 * that of the list from which the data used to belong to!
+	 */
+
+	SET_NEXT(list, lk, NULL);
+}
+
+/**
+ * Mark data as being removed from the list by clearing its "next" pointer.
+ *
+ * This is required now that we have assertions for insertion and removal.
+ * It is meant to be used in a "foreach_remove()" callback when the item
+ * to-be-removed needs to be put in another list before returning TRUE.
+ *
+ * @param list 	the list to which the item can be linked
+ * @param data 	the data we wish to clear the chaining pointer from
+ */
+#define OWLIST_mark_removed	CAT2(PREFIX,mark_removed)
+void
+OWLIST_mark_removed(const OWLIST_T *list, void *data)
+{
+	OWLINK_T *lk;
+
+	CHECK(list);
+	g_assert(data != NULL);
+
+	lk = ptr_add_offset(data, list->offset);
+	OWLIST_link_mark_removed(list, lk);
+}
+
 #define OWLIST_link_append_internal	CAT2(PREFIX,link_append_internal)
 static inline void
 OWLIST_link_append_internal(OWLIST_T *list, OWLINK_T *lk)
 {
+	g_assert(!OWLIST_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->tail) {
 		g_assert(NULL == list->head);
 		g_assert(0 == list->count);
@@ -174,7 +258,6 @@ void
 OWLIST_link_append(OWLIST_T *list, OWLINK_T *lk)
 {
 	CHECK(list);
-	g_assert(lk != NULL);
 
 	OWLIST_link_append_internal(list, lk);
 }
@@ -201,6 +284,8 @@ OWLIST_append(OWLIST_T *list, void *data)
 static inline void
 OWLIST_link_prepend_internal(OWLIST_T *list, OWLINK_T *lk)
 {
+	g_assert(!OWLIST_link_in_list(list, lk));
+
 	if G_UNLIKELY(NULL == list->head) {
 		g_assert(NULL == list->tail);
 		g_assert(0 == list->count);
@@ -335,6 +420,7 @@ static inline void
 OWLIST_link_remove_after_internal(OWLIST_T *list, OWLINK_T *prevlk, OWLINK_T *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(OWLIST_link_in_list(list, lk));
 	INVARIANT(list);
 
 	if G_UNLIKELY(list->tail == lk)
@@ -404,6 +490,8 @@ static void
 OWLIST_link_insert_after_internal(OWLIST_T *list, OWLINK_T *siblk, OWLINK_T *lk)
 {
 	g_assert(size_is_positive(list->count));
+	g_assert(OWLIST_link_in_list(list, siblk));
+	g_assert(!OWLIST_link_in_list(list, lk));
 	INVARIANT(list);
 
 	if G_UNLIKELY(list->tail == siblk)
@@ -493,7 +581,10 @@ OWLIST_remove(OWLIST_T *list, void *data)
 /**
  * Remove data item following sibling, if any.
  *
- * @return the item removed, NULL if there was nother after sibling.
+ * As a special case, if `sibling' is NULL then this behaves like a shift,
+ * that is we remove the head item.
+ *
+ * @return the item removed, NULL if there was nothing after sibling.
  */
 #define OWLIST_remove_after	CAT2(PREFIX,remove_after)
 void *
@@ -503,10 +594,14 @@ OWLIST_remove_after(OWLIST_T *list, void *sibling)
 	void *data;
 
 	CHECK(list);
-	g_assert(sibling != NULL);
 
-	lk = ptr_add_offset(sibling, list->offset);
-	next = NEXT(list, lk);
+	if G_UNLIKELY(NULL == sibling) {
+		lk = NULL;
+		next = list->head;
+	} else {
+		lk = ptr_add_offset(sibling, list->offset);
+		next = NEXT(list, lk);
+	}
 
 	if G_UNLIKELY(NULL == next)
 		return NULL;		/* Nothing after, not an error */
@@ -793,7 +888,7 @@ OWLIST_sort_with_data(OWLIST_T *list, cmp_data_fn_t cmp, void *data)
 void
 OWLIST_sort(OWLIST_T *list, cmp_fn_t cmp)
 {
-	OWLIST_sort_internal(list, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_sort_internal(list, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -877,7 +972,8 @@ OWLIST_insert_sorted_with_data(OWLIST_T *list, void *item,
 void
 OWLIST_insert_sorted(OWLIST_T *list, void *item, cmp_fn_t cmp)
 {
-	OWLIST_insert_sorted_internal(list, item, (cmp_data_fn_t) cmp, NULL);
+	OWLIST_insert_sorted_internal(
+		list, item, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**

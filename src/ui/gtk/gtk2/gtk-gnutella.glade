@@ -2022,7 +2022,7 @@ Grace time remaining:</property>
 	<widget class="GtkLabel" id="label491">
 	  <property name="visible">True</property>
 	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">Meet us on #gtk-gnutella at irc.freenode.net.</property>
+	  <property name="label" translatable="yes">Meet us on #gtk-gnutella at libera.chat.</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_CENTER</property>
@@ -2059,8 +2059,8 @@ Grace time remaining:</property>
 	<widget class="GtkLabel" id="label892">
 	  <property name="visible">True</property>
 	  <property name="can_focus">True</property>
-	  <property name="label" translatable="yes">This product includes GeoIP data created by MaxMind, available from
-http://maxmind.com/</property>
+	  <property name="label" translatable="yes">This product includes IP2Location LITE data, available from
+https://lite.ip2location.com/</property>
 	  <property name="use_underline">False</property>
 	  <property name="use_markup">False</property>
 	  <property name="justify">GTK_JUSTIFY_CENTER</property>

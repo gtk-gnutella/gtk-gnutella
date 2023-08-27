@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -145,11 +145,11 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 	g_assert(0 == attr->head_remain);
 	g_assert(final || ((size_t) -1 != len && len > 0));
 
-	if (GNET_PROPERTY(tx_debug) > 9)
+	if (GNET_PROPERTY(tx_debug) > 9) {
 		g_debug("TX %s: %s chunk %zu byte%s",
 			G_STRFUNC, final ? "final" :
-			attr->first ? "first" :
-			"next", len, plural(len));
+			attr->first ? "first" : "next", PLURAL(len));
+	}
 
 	/*
 	 * Build the chunk header, committing on sending `len' bytes of data.
@@ -160,14 +160,12 @@ chunk_begin(txdrv_t *tx, size_t len, bool final)
 	 */
 
 	if (!attr->first)
-		hlen = str_bprintf(attr->head, sizeof attr->head, "\r\n");
+		hlen = str_bprintf(ARYLEN(attr->head), "\r\n");
 
 	if (final)
-		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
-			"0\r\n\r\n");
+		hlen += str_bprintf(ARYPOSLEN(attr->head, hlen), "0\r\n\r\n");
 	else
-		hlen += str_bprintf(&attr->head[hlen], sizeof attr->head - hlen,
-			"%lx\r\n", (ulong) len);
+		hlen += str_bprintf(ARYPOSLEN(attr->head, hlen), "%lx\r\n", (ulong) len);
 
 	attr->head_len = attr->head_remain = hlen;
 	attr->data_remain = len;

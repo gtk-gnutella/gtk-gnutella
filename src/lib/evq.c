@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -331,6 +331,8 @@ void
 evq_close(void)
 {
 	atomic_bool_set(&evq_run, FALSE);
+	if (THREAD_INVALID_ID == evq_thread_id)
+		return;
 	if (-1 != thread_kill(evq_thread_id, TSIG_TERM)) {
 		tm_t tmout;
 
@@ -344,7 +346,11 @@ evq_close(void)
 
 		tmout.tv_sec = 2;
 		tmout.tv_usec = 0;
-		thread_timed_wait(evq_thread_id, &tmout, NULL);
+
+		if (!thread_timed_wait(evq_thread_id, &tmout, NULL)) {
+			s_warning("%s(): signalled %s but it did not end yet",
+				G_STRFUNC, thread_id_name(evq_thread_id));
+		}
 	} else {
 		s_warning("%s(): could not signal evq thread: %m", G_STRFUNC);
 	}
@@ -406,7 +412,9 @@ evq_event_free(struct evq_event *eve)
 
 	if (evq_debugging(2)) {
 		s_debug("%s(): freeing %s%s(%p), refcnt=%d",
-			G_STRFUNC, eve->cancelable ? "cancelable " : "",
+			G_STRFUNC,
+			eve->cancelled ?  "cancelled " :
+			eve->cancelable ? "cancelable " : "",
 			stacktrace_function_name(eve->cb), eve->arg,
 			atomic_int_get(&eve->refcnt));
 	}
@@ -521,7 +529,7 @@ evq_release(struct evq *q)
  * This is invoked as a thread exit callback.
  */
 static void
-evq_free(void *value, void *arg)
+evq_free(const void *value, void *arg)
 {
 	struct evq *q = arg;
 
@@ -615,7 +623,7 @@ evq_local_dispatch(int sig)
 		(*eve->cb)(eve->arg);
 
 		/*
-		 * A cancellable event is not freed here, it will be freed when
+		 * A cancelable event is not freed here, it will be freed when
 		 * they call evq_cancel() on it and the reference count drops.
 		 * This is due to the fact that it was initially created with a
 		 * reference count of 3.
@@ -718,8 +726,6 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 */
 
 	if G_UNLIKELY(NULL == q) {
-		const char *tname = thread_id_name(eve->stid);
-
 		/*
 		 * Since thread_id_name() uses stacktrace_function_name() which
 		 * returns a pointer to static data, we need to call the former
@@ -733,26 +739,10 @@ evq_trampoline(cqueue_t *cq, void *obj)
 		 */
 
 		s_warning("%s(): queue gone in %s, cannot dispatch %s(%p)",
-			G_STRFUNC, tname, stacktrace_function_name(eve->cb), eve->arg);
+			G_STRFUNC, thread_id_name(id),
+			stacktrace_function_name(eve->cb), eve->arg);
 
-		evq_event_check(eve);	/* Since no queue locked, ensure still valid */
-
-		/*
-		 * Since this is probably a "foreign" event, we must acknoledge it
-		 * or the callout queue will think we do not own a reference to the
-		 * event and will forcefully free it.  However, the freeing call will
-		 * issue a cq_cancel(), so this is where the event will get freed.
-		 *
-		 * Not calling this would cause a double free on the callout queue
-		 * event, catastrophic since we cannot detect those in walloc()!
-		 */
-
-		cq_acknowledge(cq, eve->ev);
-
-		if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
-			evq_event_free(eve);
-
-		return;
+		goto drop;
 	}
 
 	/*
@@ -765,9 +755,7 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	if G_UNLIKELY(eve->qid != q->qid) {
 		s_warning("%s(): ignoring obsolete %s(%p) event",
 			G_STRFUNC, stacktrace_function_name(eve->cb), eve->arg);
-		cq_acknowledge(cq, eve->ev);
-		evq_event_free(eve);
-		return;
+		goto drop;
 	}
 
 	/*
@@ -793,10 +781,15 @@ evq_trampoline(cqueue_t *cq, void *obj)
 	 * An event could be concurrently cancelled by the registering thread
 	 * and at the same time dispatched by the callout queue.  In that case,
 	 * we must not do anything with the event.  See evq_cancel().
+	 *
+	 * @attention
+	 * The check below has the side effect of removing one reference to eve,
+	 * and this is the intention anyway: we need to decrease one reference.
 	 */
 
 	if G_UNLIKELY(2 == atomic_int_dec(&eve->refcnt) && eve->cancelable) {
 		mutex_unlock(&q->lock);
+		g_assert(eve->cancelled);	/* Necessary, since intial refcnt was 3 */
 		evq_event_free(eve);
 		goto done;
 	}
@@ -817,20 +810,53 @@ evq_trampoline(cqueue_t *cq, void *obj)
 			stacktrace_function_name(eve->cb), thread_id_name(id));
 	}
 
-	mutex_unlock(&q->lock);
-
 	/*
 	 * Signal the target thread that it has triggered events to dispatch.
+	 *
+	 * We're still under the queue mutex protection so that we can remove
+	 * the event from the list if we cannot signal.
 	 */
 
 	if (-1 == thread_kill(id, TSIG_EVQ)) {
 		s_critical_once_per(LOG_PERIOD_SECOND,
-			"%s(): cannot send TSIG_EVQ to %s: %m",
-			G_STRFUNC, thread_id_name(id));
+			"%s(): cannot send TSIG_EVQ to %s: %m -- will not launch %s(%p)",
+			G_STRFUNC, thread_id_name(id),
+			stacktrace_function_name(eve->cb), eve->arg);
+
+		elist_remove(&q->triggered, eve);
+		mutex_unlock(&q->lock);
+		goto unref;		/* cq_zero() already called at that point */
 	}
+
+	mutex_unlock(&q->lock);
 
 done:
 	evq_release(q);
+	return;
+
+drop:
+	evq_event_check(eve);	/* Since no queue locked, ensure still valid */
+
+	/*
+	 * Since this is probably a "foreign" event, we must acknoledge it
+	 * or the callout queue will think we do not own a reference to the
+	 * event and will forcefully free it.  However, the freeing call will
+	 * issue a cq_cancel(), so this is where the event will get freed.
+	 *
+	 * Not calling this would cause a double free on the callout queue
+	 * event, catastrophic since we cannot detect those in walloc()!
+	 */
+
+	cq_acknowledge(cq, eve->ev);
+
+	/* FALL THROUGH */
+
+unref:
+	if G_LIKELY(atomic_int_dec_is_zero(&eve->refcnt))
+		evq_event_free(eve);
+
+	if (q != NULL)
+		evq_release(q);
 }
 
 /**
@@ -930,7 +956,7 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 	eve->refcnt++;		/* Now about to be referenced by callout queue */
 
 	/*
-	 * If the event is cancellable, we need an extra reference to make sure
+	 * If the event is cancelable, we need an extra reference to make sure
 	 * we keep the object around until evq_cancel().
 	 *
 	 * A non-cancelable event has therefore an initial reference count of 2,
@@ -1062,7 +1088,7 @@ evq_cancel(evq_event_t **eve_ptr)
 		eve->cancelled = TRUE;
 
 		/*
-		 * A cancellable event has an inital reference count of 3.
+		 * A cancelable event has an inital reference count of 3.
 		 */
 
 		if G_LIKELY(3 == atomic_int_dec(&eve->refcnt)) {
@@ -1077,7 +1103,6 @@ evq_cancel(evq_event_t **eve_ptr)
 			 */
 
 			if (!triggered) {
-				g_assert(2 == eve->refcnt);
 				elist_remove(&q->events, eve);
 				evq_event_free(eve);
 			}
@@ -1089,7 +1114,13 @@ evq_cancel(evq_event_t **eve_ptr)
 			 * is still awaiting delivery in the triggered queue.
 			 */
 
-			if (0 == eve->refcnt)
+			g_soft_assert_log(triggered,
+				"%s(): refcnt=%d, %s(%p) in %s",
+				G_STRFUNC, eve->refcnt,
+				stacktrace_function_name(eve->cb), eve->arg,
+				thread_id_name(eve->stid));
+
+			if (0 == atomic_int_get(&eve->refcnt))
 				evq_event_free(eve);
 		}
 

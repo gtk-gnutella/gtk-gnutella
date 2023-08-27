@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -184,7 +184,7 @@ compat_memmem(const void *data, size_t data_size,
 		if (0 == memcmp(p, pattern, pattern_size)) {
 			break;
 		}
-		next = memchr(&p[1], pat[0], data_size - 1);
+		next = vmemchr(&p[1], pat[0], data_size - 1);
 		data_size -= next - p;
 	}
 	return deconstify_gchar(p);

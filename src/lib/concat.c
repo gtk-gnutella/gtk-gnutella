@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -38,6 +38,7 @@
 
 #include "concat.h"
 
+#include "cstr.h"
 #include "glib-missing.h"
 #include "unsigned.h"
 #include "walloc.h"
@@ -59,7 +60,7 @@ concat_strings_v(char *dst, size_t size, const char *s, va_list ap)
 		while (NULL != s) {
 			size_t len;
 
-			len = g_strlcpy(p, s, size);
+			len = cstr_lcpy(p, size, s);
 			ret = size_saturate_add(ret, len);
 			s = va_arg(ap, const char *);
 			size = size_saturate_sub(size, len);
@@ -71,7 +72,7 @@ concat_strings_v(char *dst, size_t size, const char *s, va_list ap)
 	}
 
 	while (NULL != s) {
-		ret = size_saturate_add(ret, strlen(s));
+		ret = size_saturate_add(ret, vstrlen(s));
 		s = va_arg(ap, const char *);
 	}
 

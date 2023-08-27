@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -37,8 +37,9 @@
 #include "common.h"
 
 #include "product.h"
+
+#include "cstr.h"
 #include "halloc.h"
-#include "glib-missing.h"
 #include "misc.h"
 #include "omalloc.h"
 #include "parse.h"
@@ -58,6 +59,7 @@ static struct product_info {
 	uint8 p_major;
 	uint8 p_minor;
 	uint8 p_patchlevel;
+	uint8 p_forced_name:1;
 } product_info;
 
 /**
@@ -67,6 +69,15 @@ const char *
 product_name(void)
 {
 	return product_info.p_name;
+}
+
+/**
+ * Was the product's name forced?
+ */
+bool
+product_has_forced_name(void)
+{
+	return product_info.p_forced_name;
 }
 
 /**
@@ -81,6 +92,16 @@ product_nickname(void)
 		return product_info.p_nickname;
 
 	return product_info.p_name;
+}
+
+/**
+ * Set the product's name, forcefully.
+ */
+void
+product_set_forced_name(const char *name)
+{
+	product_info.p_name = name;
+	product_info.p_forced_name = TRUE;
 }
 
 /**
@@ -227,12 +248,12 @@ product_build_full(void)
 		if (p != NULL) {
 			char *tmp;
 			char *q;
-			size_t len = strlen(p) + 2;		/* Leading '-', trailing NUL */
+			size_t len = vstrlen(p) + 2;	/* Leading '-', trailing NUL */
 
 			tmp = halloc(len);
-			g_strlcpy(tmp + 1, p, len - 1);
+			cstr_bcpy(tmp + 1, len - 1, p);
 			*tmp = '-';
-			q = strchr(tmp, ' ');
+			q = vstrchr(tmp, ' ');
 			if (q != NULL)
 				*q = '\0';		/* Truncate at first space */
 

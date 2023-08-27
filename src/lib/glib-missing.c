@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -88,7 +88,7 @@ strlcat(char *dst, const char *src, size_t dst_size)
 	g_assert(NULL != dst);
 	g_assert(NULL != src);
 
-	n = strlen(dst);
+	n = vstrlen(dst);
 	if (n < dst_size) {
 		dst_size -= n;
 	} else if (dst_size > 0) {
@@ -251,7 +251,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	if (retval < 0) {
 		/* Old versions of vsnprintf() */
 		dst[size - 1] = '\0';
-		retval = strlen(dst);
+		retval = vstrlen(dst);
 		truncated = (size - 1 == (size_t) retval) ? 1 : 0;
 	} else if ((size_t) retval >= size) {
 		/* New versions (compliant with C99) */
@@ -261,7 +261,7 @@ buf_vprintf(char *dst, size_t size, const char *fmt, va_list args)
 	}
 	if G_UNLIKELY(truncated != 0) {
 		s_minicarp("truncated %d byte%s when formatting into %zu-byte buffer "
-			"with \"%s\"", truncated, plural(truncated),
+			"with \"%s\"", PLURAL(truncated),
 			size, fmt);
 	}
 	return retval;

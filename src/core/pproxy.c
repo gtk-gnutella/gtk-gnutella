@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -66,6 +66,7 @@
 #include "lib/ascii.h"
 #include "lib/atoms.h"
 #include "lib/concat.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/getline.h"
 #include "lib/halloc.h"
@@ -125,17 +126,13 @@ pproxy_free_resources(struct pproxy *pp)
 static void
 send_pproxy_error_v(
 	struct pproxy *pp,
-	const char *ext,
 	int code,
 	const char *msg, va_list ap)
 {
 	char reason[1024];
-	char extra[1024];
-	http_extra_desc_t hev[1];
-	int hevcnt = 0;
 
 	if (msg) {
-		str_vbprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(ARYLEN(reason), msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -147,26 +144,8 @@ send_pproxy_error_v(
 		return;
 	}
 
-	extra[0] = '\0';
-
-	/*
-	 * If `ext' is not NULL, we have extra header information to propagate.
-	 */
-
-	if (ext) {
-		size_t extlen = clamp_strcpy(extra, sizeof extra, ext);
-
-		if ('\0' != ext[extlen]) {
-			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, strlen(ext));
-		} else {
-			hev[hevcnt].he_type = HTTP_EXTRA_LINE;
-			hev[hevcnt++].he_msg = extra;
-		}
-	}
-
 	http_send_status(HTTP_PUSH_PROXY, pp->socket, code, FALSE,
-			hevcnt ? hev : NULL, hevcnt, HTTP_ATOMIC_SEND, "%s", reason);
+			NULL, 0, HTTP_ATOMIC_SEND, "%s", reason);
 
 	pp->error_sent = code;
 }
@@ -181,7 +160,7 @@ send_pproxy_error(struct pproxy *pp, int code, const char *msg, ...)
 	va_list args;
 
 	va_start(args, msg);
-	send_pproxy_error_v(pp, NULL, code, msg, args);
+	send_pproxy_error_v(pp, code, msg, args);
 	va_end(args);
 }
 
@@ -197,11 +176,11 @@ pproxy_remove_v(struct pproxy *pp, const char *reason, va_list ap)
 	pproxy_check(pp);
 
 	if (reason) {
-		str_vbprintf(errbuf, sizeof errbuf , reason, ap);
+		str_vbprintf(ARYLEN(errbuf), reason, ap);
 		logreason = errbuf;
 	} else {
 		if (pp->error_sent) {
-			str_bprintf(errbuf, sizeof errbuf, "HTTP %d", pp->error_sent);
+			str_bprintf(ARYLEN(errbuf), "HTTP %d", pp->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -260,7 +239,7 @@ pproxy_error_remove(struct pproxy *pp, int code, const char *msg, ...)
 	va_start(args, msg);
 
 	VA_COPY(errargs, args);
-	send_pproxy_error_v(pp, NULL, code, msg, errargs);
+	send_pproxy_error_v(pp, code, msg, errargs);
 	va_end(errargs);
 
 	pproxy_remove_v(pp, msg, args);
@@ -379,7 +358,7 @@ get_params(struct pproxy *pp, const char *request,
 	 * but we accept it.
 	 */
 
-	p = strrchr(uri, ' ');
+	p = vstrrchr(uri, ' ');
 	if (p && is_strprefix(&p[1], "HTTP/"))
 		*p = '\0';
 
@@ -429,7 +408,7 @@ get_params(struct pproxy *pp, const char *request,
 	 * Determine how much data we have for the parameter.
 	 */
 
-	datalen = strlen(value);
+	datalen = vstrlen(value);
 
 	if (0 == strcmp(attr, "ServerId")) {
 		struct guid buf;
@@ -442,7 +421,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 26 && datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -467,7 +446,7 @@ get_params(struct pproxy *pp, const char *request,
 		if (datalen != 32) {
 			pproxy_error_remove(pp, 400, "Malformed push-proxy request: "
 				"wrong length for parameter \"%s\": %d byte%s",
-				attr, datalen, plural(datalen));
+				attr, PLURAL(datalen));
 			goto error;
 		}
 
@@ -653,7 +632,7 @@ validate_vendor(char *vendor, char *token, const host_addr_t addr)
 			char name[1024];
 
 			name[0] = '!';
-			g_strlcpy(&name[1], vendor, sizeof name - 1);
+			cstr_bcpy(ARYPOSLEN(name, 1), vendor);
 			result = atom_str_get(name);
 		} else
 			result = atom_str_get(vendor);
@@ -893,11 +872,11 @@ pproxy_request(struct pproxy *pp, header_t *header)
 			http_send_status(HTTP_PUSH_PROXY, pp->socket, 203, FALSE, NULL, 0,
 					HTTP_ATOMIC_SEND,
 					"Push-proxy: message sent through Gnutella "
-					"(via %zd node%s)", cnt, plural(cnt));
+					"(via %zd node%s)", PLURAL(cnt));
 
 			pp->error_sent = 203;
 			pproxy_remove(pp, "Push sent via Gnutella (%zd node%s) for GUID %s",
-					cnt, plural(cnt), guid_hex_str(pp->guid));
+					PLURAL(cnt), guid_hex_str(pp->guid));
 		}
 
 		pslist_free_null(&nodes);
@@ -1258,7 +1237,7 @@ cproxy_build_request(const struct http_async *ha,
 	addr_v4_buf[0] = '\0';
 	if (is_host_addr(addr)) {
 		has_ipv4 = TRUE;
-		concat_strings(addr_v4_buf, sizeof addr_v4_buf,
+		concat_strings(ARYLEN(addr_v4_buf),
 			"X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1272,7 +1251,7 @@ cproxy_build_request(const struct http_async *ha,
 		 * address, use the X-Node header instead. If they don't support
 		 * IPv6 we lose anyway.
 		 */
-		concat_strings(addr_v6_buf, sizeof addr_v6_buf,
+		concat_strings(ARYLEN(addr_v6_buf),
 			has_ipv4 ? "X-Node-IPv6: " : "X-Node: ",
 			host_addr_port_to_string(addr, GNET_PROPERTY(listen_port)),
 			"\r\n",
@@ -1448,7 +1427,7 @@ cproxy_http_request(struct cproxy *cp)
 	cproxy_check(cp);
 	g_assert(NULL == cp->udp_ev);
 
-	concat_strings(path, sizeof path,
+	concat_strings(ARYLEN(path),
 		"/gnutella/push-proxy?ServerId=", guid_base32_str(cp->guid),
 		tls_enabled() ? "&tls=true" : "",
 		NULL_PTR);

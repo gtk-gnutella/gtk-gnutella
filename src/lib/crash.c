@@ -83,6 +83,7 @@
 #include "compat_poll.h"
 #include "compat_usleep.h"
 #include "cq.h"
+#include "cstr.h"
 #include "eslist.h"
 #include "evq.h"
 #include "fast_assert.h"
@@ -110,6 +111,7 @@
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"
+#include "symbols.h"
 #include "thread.h"				/* For thread_name(), et al. */
 #include "timestamp.h"
 #include "tm.h"
@@ -121,8 +123,6 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define PARENT_STDOUT_FILENO	3
-#define PARENT_STDERR_FILENO	4
 #define CRASH_MSG_MAXLEN		3072	/**< Pre-allocated max length */
 #define CRASH_MSG_SAFELEN		512		/**< Failsafe static string */
 #define CRASH_MIN_ALIVE			600		/**< secs, minimum uptime for exec() */
@@ -147,8 +147,8 @@ enum crash_level {
 	CRASH_LVL_NONE = 0,				/**< No crash yet */
 	CRASH_LVL_BASIC,				/**< Basic crash level */
 	CRASH_LVL_OOM,					/**< Out of memory */
-	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_FAILURE,				/**< Assertion failure */
+	CRASH_LVL_DEADLOCKED,			/**< Application deadlocked */
 	CRASH_LVL_EXCEPTION,			/**< Asynchronous signal */
 	CRASH_LVL_RECURSIVE,			/**< Crashing again during crash handling */
 };
@@ -167,10 +167,13 @@ struct crash_vars {
 	const char *crashlog;	/**< Full path to the crash file */
 	const char *crashdir;	/**< Directory where crash logs are written */
 	const char *version;	/**< Program version string (NULL if unknown) */
+	const char *cc_date;	/**< Program compilation date (NULL if unknown) */
+	const char *cc_time;	/**< Program compilation time (NULL if unknown) */
 	const assertion_data *failure;	/**< Failed assertion, NULL if none */
 	const char *message;	/**< Additional error messsage, NULL if none */
 	const char *filename;	/**< Filename where error occurred, NULL if node */
 	const char *fail_name;	/**< Name of thread triggering assertion failure */
+	uint64 deadlock_mask;	/**< Has 1 bit set for each deadlocked thread */
 	unsigned fail_stid;		/**< ID of thread triggering assertion failure */
 	pid_t pid;				/**< Initial process ID */
 	pid_t ppid;				/**< Parent PID, when supervising */
@@ -398,7 +401,7 @@ crash_append_fmt_u(cursor_t *cursor, unsigned long v)
 	size_t len;
 
 	s = PRINT_NUMBER(buf, v);
-	len = strlen(s);
+	len = vstrlen(s);
 
 	if (cursor->size < len)
 		return;
@@ -440,6 +443,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 	tm_t tv;
 	time_t loc;
 	cursor_t cursor;
+	static bool done;
 
 	/* We need at least space for a NUL */
 	if (size < num_reserved)
@@ -453,12 +457,42 @@ crash_time_internal(char *buf, size_t size, bool raw)
 	 * thread_check_suspended() calls during time computation.
 	 */
 
-	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level) {
-		tm_current_time(&tv);			/* Get system value, no locks */
-		loc = tm_localtime_raw();
+	if G_UNLIKELY(raw || CRASH_LVL_NONE != crash_current_level || !done) {
+		static uint8 computing[THREAD_MAX];
+		int stid;
+
+		/*
+		 * In raw mode or when we're crashing, we cannot call thread_small_id()
+		 * to compute the thread ID because it calls thread_get_element()
+		 * which can take locks, and therefore there is a risk of recursing
+		 * indefinitely if logging is enabled in the locking code and we cannot
+		 * take the locks for some reason.
+		 *		--RAM, 2020-01-19
+		 */
+
+		stid = thread_safe_small_id();
+
+		/*
+		 * Avoid deadly recursions if logging from a memory layer,
+		 * since these routines call libc routines that can allocate
+		 * some memory.
+		 * 		--RAM, 2017-11-19
+		 */
+
+		if (stid >= 0 && !computing[stid]) {
+			computing[stid] = TRUE;
+			tm_current_time(&tv);			/* Get system value, no locks */
+			loc = tm_localtime_raw(&tv);
+			done = TRUE;					/* Can now use the other path */
+			computing[stid] = FALSE;
+		} else {
+			ZERO(&tm);
+			ZERO(&tv);
+			goto format;
+		}
 	} else {
 		tm_now_exact(&tv);
-		loc = tm_localtime();
+		loc = tm_localtime(&tv);
 	}
 
 	if (!off_time(loc, 0, &tm)) {
@@ -466,6 +500,7 @@ crash_time_internal(char *buf, size_t size, bool raw)
 		return;
 	}
 
+format:
 	crash_append_fmt_02u(&cursor, (TM_YEAR_ORIGIN + tm.tm_year) % 100);
 	crash_append_fmt_c(&cursor, '-');
 	crash_append_fmt_02u(&cursor, tm.tm_mon + 1);
@@ -583,7 +618,7 @@ crash_run_time(char *buf, size_t size)
 		return;
 
 	if (NULL == vars) {
-		g_strlcpy(buf, "0 s?", size);
+		cstr_lcpy(buf, size, "0 s?");
 		return;
 	}
 
@@ -630,8 +665,8 @@ crash_level_to_string(const enum crash_level level)
 	case CRASH_LVL_NONE:		return "none";
 	case CRASH_LVL_BASIC:		return "basic";
 	case CRASH_LVL_OOM:			return "OOM";
-	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_FAILURE:		return "failure";
+	case CRASH_LVL_DEADLOCKED:	return "deadlocked";
 	case CRASH_LVL_EXCEPTION:	return "exception";
 	case CRASH_LVL_RECURSIVE:	return "recursive";
 	}
@@ -710,7 +745,7 @@ crash_run_hook(int fd, callback_fn_t hook)
 
 	routine = stacktrace_function_name(hook);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -737,7 +772,7 @@ crash_run_hook(int fd, callback_fn_t hook)
 
 	routine = stacktrace_function_name(hook);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);					/* 0 */
 	print_str(" CRASH (pid=");				/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -799,7 +834,7 @@ crash_run_hooks(const char *logfile, int logfd)
 			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(6);
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);					/* 0 */
 			print_str(" WARNING: cannot reopen ");	/* 1 */
 			print_str(logfile);						/* 2 */
@@ -843,8 +878,8 @@ crash_message(const char *signame, bool trace, bool recursive)
 	char build_buf[ULONG_DEC_BUFLEN];
 	unsigned iov_prolog;
 
-	crash_time(time_buf, sizeof time_buf);
-	crash_run_time(runtime_buf, sizeof runtime_buf);
+	crash_time(ARYLEN(time_buf));
+	crash_run_time(ARYLEN(runtime_buf));
 
 	/* The following precedes each line */
 	print_str(time_buf);				/* 0 */
@@ -899,7 +934,7 @@ crash_decorating_stack(void)
 	if (!vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
 	print_str(PRINT_NUMBER(pid_buf, crash_getpid()));	/* 2 */
@@ -923,7 +958,7 @@ crash_end_of_line(bool forced)
 	if (!forced && !vars->invoke_inspector && !vars->closed)
 		crash_run_hooks(NULL, -1);
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 
 	print_str(time_buf);			/* 0 */
 	print_str(" CRASH (pid=");		/* 1 */
@@ -1002,7 +1037,7 @@ crash_logname(char *buf, size_t len, const char *pidstr)
 		char time_buf[ULONG_HEX_BUFLEN];
 		const char *time_str;
 
-		time_str = print_hex(time_buf, sizeof time_buf, vars->start_time);
+		time_str = print_hex(ARYLEN(time_buf), vars->start_time);
 		clamp_strcat(buf, len, time_str);
 	}
 
@@ -1026,7 +1061,7 @@ crash_logpath(char *buf, size_t len)
 	char filename[80];
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
-	crash_logname(filename, sizeof filename, pid_str);
+	crash_logname(ARYLEN(filename), pid_str);
 	if (vars != NULL && vars->crashdir != NULL) {
 		str_bprintf(buf, len,
 			"%s%c%s", vars->crashdir, G_DIR_SEPARATOR, filename);
@@ -1078,9 +1113,9 @@ crash_stack_print_decorated(int fd, size_t offset, bool in_child)
 		STACKTRACE_F_GDB | STACKTRACE_F_ADDRESS | STACKTRACE_F_NO_INDENT |
 		STACKTRACE_F_NUMBER | STACKTRACE_F_PATH;
 	volatile bool success = TRUE;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -1235,7 +1270,7 @@ crash_fork_timeout(int signo)
 	DECLARE_STR(2);
 	char time_buf[CRASH_TIME_BUFLEN];
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);
 	print_str(" (WARNING): fork() timed out, found a libc bug?\n");
 	flush_err_str();
@@ -1252,7 +1287,7 @@ crash_fork(void)
 {
 #ifdef HAS_FORK
 	pid_t pid;
-	signal_handler_t old_sigalrm;
+	volatile signal_handler_t old_sigalrm;
 #ifdef HAS_ALARM
 	unsigned remain;
 #endif
@@ -1326,13 +1361,15 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	char nbuf[ULONG_DEC_BUFLEN];
 	char lbuf[ULONG_DEC_BUFLEN];
 	char pbuf[ULONG_DEC_BUFLEN];
+	char u64buf[UINT64_HEX_BUFLEN];
+	char rtbuf[ULONG_DEC_BUFLEN];
 	time_delta_t t;
 	struct utsname u;
 	long cpucount = getcpucount();
-	DECLARE_STR(15);
+	DECLARE_STR(17);
 
-	crash_time_iso(tbuf, sizeof tbuf);
-	crash_run_time(rbuf, sizeof rbuf);
+	crash_time_iso(ARYLEN(tbuf));
+	crash_run_time(ARYLEN(rbuf));
 	t = delta_time(time(NULL), vars->start_time);
 
 	print_str("Operating-System: ");	/* 0 */
@@ -1370,15 +1407,26 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str(vars->version);		/* 4 */
 		print_str("\n");				/* 5 */
 	}
-	print_str("Run-Elapsed: ");			/* 6 */
-	print_str(rbuf);					/* 7 */
+	if (NULL != vars->cc_date) {
+		print_str("Compiled: ");		/* 6 */
+		print_str(vars->cc_date);		/* 7 */
+		if (NULL != vars->cc_time) {
+			print_str(", at ");			/* 8 */
+			print_str(vars->cc_time);	/* 9 */
+		}
+		print_str("\n");				/* 10 */
+	}
+	flush_str(clf);
+	rewind_str(0);
+	print_str("Run-Elapsed: ");			/* 0 */
+	print_str(rbuf);					/* 1 */
+	print_str("\n");					/* 2 */
+	print_str("Run-Seconds: ");			/* 3 */
+	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 4 */
+	print_str("\n");					/* 5 */
+	print_str("Crash-Signal: ");		/* 6 */
+	print_str(signal_name(signo));		/* 7 */
 	print_str("\n");					/* 8 */
-	print_str("Run-Seconds: ");			/* 9 */
-	print_str(PRINT_NUMBER(sbuf, MAX(t, 0)));	/* 10 */
-	print_str("\n");					/* 11 */
-	print_str("Crash-Signal: ");		/* 12 */
-	print_str(signal_name(signo));		/* 13 */
-	print_str("\n");					/* 14 */
 	flush_str(clf);
 	rewind_str(0);
 	print_str("Crash-PID: ");			/* 0 */
@@ -1417,8 +1465,7 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	print_str("\n");					/* 2 */
 	if (vars->failure != NULL) {
 		const assertion_data *failure = vars->failure;
-		unsigned line = failure->line & ~FAST_ASSERT_NOT_REACHED;
-		bool assertion = line == failure->line;
+		bool assertion = NULL != failure->expr;
 		if (assertion) {
 			print_str("Assertion-At: ");	/* 3 */
 		} else {
@@ -1426,21 +1473,20 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		}
 		print_str(failure->file);			/* 4 */
 		print_str(":");						/* 5 */
-		print_str(PRINT_NUMBER(lbuf, line));/* 6 */
+		print_str(PRINT_NUMBER(lbuf, failure->line));/* 6 */
 		print_str("\n");					/* 7 */
 		if (assertion) {
 			print_str("Assertion-Expr: ");	/* 8 */
 			print_str(failure->expr);		/* 9 */
 			print_str("\n");				/* 10 */
-		} else {
-			print_str("Routine-Name: ");	/* 8 */
-			print_str(failure->expr);		/* 9 */
-			print_str("()\n");				/* 10 */
 		}
+		print_str("Routine-Name: ");		/* 11 */
+		print_str(failure->routine);		/* 12 */
+		print_str("()\n");					/* 13 */
 		if (vars->message != NULL) {
-			print_str("Assertion-Info: ");	/* 11 */
-			print_str(vars->message);		/* 12 */
-			print_str("\n");				/* 13 */
+			print_str("Assertion-Info: ");	/* 14 */
+			print_str(vars->message);		/* 15 */
+			print_str("\n");				/* 16 */
 		}
 	} else if (vars->message != NULL) {
 		print_str("Error-Message: ");		/* 3 */
@@ -1452,6 +1498,9 @@ crash_log_write_header(int clf, int signo, const char *filename)
 		print_str(":");						/* 5 */
 		print_str(PRINT_NUMBER(lbuf, vars->lock_line));	/* 6 */
 		print_str("\n");					/* 7 */
+		print_str("Deadlock-Thread-Mask: 0x");						/* 8 */
+		print_str(print_hex(ARYLEN(u64buf), vars->deadlock_mask));	/* 9 */
+		print_str("\n");					/* 10 */
 	}
 	flush_str(clf);
 
@@ -1492,7 +1541,6 @@ crash_log_write_header(int clf, int signo, const char *filename)
 			print_str("; parent still there");		/* 2 */
 		}
 	} else if (t <= CRASH_MIN_ALIVE) {
-		char rtbuf[ULONG_DEC_BUFLEN];
 		print_str("; run time threshold of ");	/* 2 */
 		print_str(PRINT_NUMBER(rtbuf, CRASH_MIN_ALIVE));
 		print_str("s not reached");				/* 4 */
@@ -1503,21 +1551,35 @@ crash_log_write_header(int clf, int signo, const char *filename)
 	}
 	print_str("\n");					/* 5 */
 	{
-		enum stacktrace_sym_quality sq = stacktrace_quality();
-		if (STACKTRACE_SYM_GOOD != sq) {
-			const char *quality = stacktrace_quality_string(sq);
+		enum symbol_quality sq = stacktrace_quality();
+
+		if (SYMBOL_Q_GOOD != sq) {
+			const char *quality = symbol_quality_string(sq);
 			print_str("Stacktrace-Symbols: ");		/* 6 */
 			print_str(quality);						/* 7 */
 			print_str("\n");						/* 8 */
 		}
 	}
-
 	print_str("Stacktrace:\n");			/* 9 */
 	flush_str(clf);
 	crash_stack_print(clf, 3);
 
 	rewind_str(0);
-	print_str("\n");					/* 0 -- End of Header */
+	{
+		const struct symbol_load_info *uli = symbols_load_first();
+		if (uli != NULL) {
+			print_str("Symbols-Loaded: from ");		/* 0 */
+			print_str(uli->path);					/* 1 */
+			print_str(" via ");						/* 2 */
+			print_str(uli->method);					/* 3 */
+			print_str("\n");						/* 4 */
+		} else {
+			print_str("Symbols-Loaded: never");		/* 0 */
+			print_str("\n");						/* 1 */
+		}
+
+	}
+	print_str("\n");					/* 5 -- End of Header */
 	flush_str(clf);
 }
 
@@ -1555,11 +1617,11 @@ crash_generate_crashlog(int signo)
 	const mode_t mode = S_IRUSR | S_IWUSR;
 	const int flags = O_CREAT | O_TRUNC | O_EXCL | O_WRONLY;
 
-	crash_logpath(crashlog, sizeof crashlog);
+	crash_logpath(ARYLEN(crashlog));
 	clf = open(crashlog, flags, mode);
 	if (-1 == clf) {
 		char buf[256];
-		str_bprintf(buf, sizeof buf, "cannot create %s: %m", crashlog);
+		str_bprintf(ARYLEN(buf), "cannot create %s: %m", crashlog);
 		s_miniwarn("%s", buf);
 		return;
 	}
@@ -1574,7 +1636,7 @@ crash_generate_crashlog(int signo)
 		uint8 t = TRUE;
 		crash_set_var(logged, t);
 		if (vars->dumps_core) {
-			bool gotcwd = NULL != getcwd(crashlog, sizeof crashlog);
+			bool gotcwd = NULL != getcwd(ARYLEN(crashlog));
 			s_minimsg("core dumped in %s",
 				gotcwd ? crashlog : "current directory");
 		}
@@ -1598,7 +1660,7 @@ crash_logerr(const char *what, const char *pid_str, int fd, int fd2, int out)
 	char tbuf[CRASH_TIME_BUFLEN];
 	DECLARE_STR(10);
 
-	crash_time(tbuf, sizeof tbuf);
+	crash_time(ARYLEN(tbuf));
 	rewind_str(0);
 	print_str(tbuf);					/* 0 */
 	print_str(" CRASH (pid=");			/* 1 */
@@ -1635,6 +1697,7 @@ crash_invoke_inspector(int signo, const char *cwd)
 	bool could_fork = has_fork();
 	int fork_errno = 0;
 	int parent_stdout = STDOUT_FILENO;
+	int parent_stderr = STDERR_FILENO;
 	int spfd = -1;		/* set if we use spopenlp(), on Windows only */
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
@@ -1649,14 +1712,13 @@ retry_child:
 
 	if (has_fork()) {
 		/* In case fork() fails, make sure we leave stdout open */
-		if (PARENT_STDOUT_FILENO != dup(STDOUT_FILENO)) {
+		if (-1 == (parent_stdout = dup(STDOUT_FILENO))) {
 			stage = "parent's stdout duplication";
 			goto parent_failure;
 		}
-		parent_stdout = PARENT_STDOUT_FILENO;
 
 		/* Make sure child will get access to the stderr of its parent */
-		if (PARENT_STDERR_FILENO != dup(STDERR_FILENO)) {
+		if (-1 == (parent_stderr = dup(STDERR_FILENO))) {
 			stage = "parent's stderr duplication";
 			goto parent_failure;
 		}
@@ -1675,7 +1737,7 @@ retry_child:
 		DECLARE_STR(2);
 		char time_buf[CRASH_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" (WARNING): cannot fork() on this platform\n");
 		flush_err_str();
@@ -1696,7 +1758,7 @@ retry_child:
 			DECLARE_STR(6);
 			char time_buf[CRASH_TIME_BUFLEN];
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" (WARNING): fork() failed: ");
 			print_str(symbolic_errno(errno));
@@ -1741,7 +1803,7 @@ retry_child:
 			 * want to lose any information already present there.
 			 */
 
-			crash_logname(filename, sizeof filename, pid_str);
+			crash_logname(ARYLEN(filename), pid_str);
 
 			file_existed = retried_child || file_exists(filename);
 
@@ -1760,8 +1822,8 @@ retry_child:
 				const char quote_ch = '\'';
 				size_t max_argv0;
 
-				clamp_strcpy(cmd, sizeof cmd, "gdb -q -n -p ");
-				clamp_strcat(cmd, sizeof cmd, pid_str);
+				clamp_strcpy(ARYLEN(cmd), "gdb -q -n -p ");
+				clamp_strcat(ARYLEN(cmd), pid_str);
 
 				/**
 				 * The parameter -e argv0 is required on some platforms but
@@ -1769,14 +1831,14 @@ retry_child:
 				 * safely quoted as shell command.
 				 */
 
-				max_argv0 = (sizeof cmd) - (strlen(cmd) + strlen(" -se ''"));
+				max_argv0 = (sizeof cmd) - (vstrlen(cmd) + vstrlen(" -se ''"));
 				if (
-					NULL == strchr(vars->argv0, quote_ch) &&
-					strlen(vars->argv0) < max_argv0
+					NULL == vstrchr(vars->argv0, quote_ch) &&
+					vstrlen(vars->argv0) < max_argv0
 				) {
-					clamp_strcat(cmd, sizeof cmd, " -se '");
-					clamp_strcat(cmd, sizeof cmd, vars->argv0);
-					clamp_strcat(cmd, sizeof cmd, "'");
+					clamp_strcat(ARYLEN(cmd), " -se '");
+					clamp_strcat(ARYLEN(cmd), vars->argv0);
+					clamp_strcat(ARYLEN(cmd), "'");
 				}
 
 				/*
@@ -1803,8 +1865,8 @@ retry_child:
 					}
 				}
 
-				fd_set_close_on_exec(PARENT_STDERR_FILENO);
-				fd_set_close_on_exec(PARENT_STDOUT_FILENO);
+				fd_set_close_on_exec(parent_stderr);
+				fd_set_close_on_exec(parent_stdout);
 			}
 
 			if (could_fork) {
@@ -1883,9 +1945,8 @@ retry_child:
 						"gdb", "-q", "-n", "-p", pid_str, NULL_PTR);
 
 				if (-1 == spfd) {
-					crash_logerr("spopen() failed", pid_str,
+					crash_logerr("spopenlp() failed", pid_str,
 						STDERR_FILENO, clf, STDOUT_FILENO);
-					crash_stack_print_decorated(clf, 2, FALSE);
 				} else {
 					/* We'll wait for child and close the pipe ourselves */
 					pid = sppid(spfd, TRUE);
@@ -1928,7 +1989,7 @@ retry_child:
 			 */
 
 			if (!retried_child) {
-				log_force_fd(LOG_STDERR, PARENT_STDERR_FILENO);
+				log_force_fd(LOG_STDERR, parent_stderr);
 				log_set_disabled(LOG_STDOUT, TRUE);
 
 				thread_lock_dump_all(STDOUT_FILENO);
@@ -2001,7 +2062,7 @@ retry_child:
 			/* Log child failure */
 
 			crash_logerr(what, pid_str,
-				PARENT_STDERR_FILENO, STDOUT_FILENO, parent_stdout);
+				parent_stderr, STDOUT_FILENO, parent_stdout);
 
 			_exit(EXIT_FAILURE);
 		}
@@ -2026,7 +2087,7 @@ parent_process:
 		bool child_ok = FALSE;
 
 		if (has_fork()) {
-			crash_fd_close(PARENT_STDERR_FILENO);
+			crash_fd_close(parent_stderr);
 		}
 
 		/*
@@ -2064,7 +2125,7 @@ parent_process:
 		 * "Hangup detected on fd 0".
 		 */
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 
 		/* The following precedes each line */
 		print_str(time_buf);				/* 0 */
@@ -2164,7 +2225,7 @@ no_fork:
 			 * them and redirect a copy of the messages to the crash log.
 			 */
 
-			crash_logname(buf, sizeof buf, pid_str);
+			crash_logname(ARYLEN(buf), pid_str);
 			if (!could_fork)
 				crash_run_hooks(buf, -1);
 
@@ -2242,8 +2303,8 @@ no_fork:
 		if (has_fork()) {
 			if (
 				crash_fd_close(STDOUT_FILENO) ||
-				-1 == dup2(PARENT_STDOUT_FILENO, STDOUT_FILENO) ||
-				crash_fd_close(PARENT_STDOUT_FILENO)
+				-1 == dup2(parent_stdout, STDOUT_FILENO) ||
+				crash_fd_close(parent_stdout)
 			) {
 				stage = "stdout restore";
 				goto parent_failure;
@@ -2277,7 +2338,7 @@ parent_failure:
 		DECLARE_STR(6);
 		char time_buf[CRASH_TIME_BUFLEN];
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);					/* 0 */
 		print_str(" CRASH (pid=");				/* 1 */
 		print_str(pid_str);						/* 2 */
@@ -2477,8 +2538,7 @@ static once_flag_t disable_inited;
 static void
 crash_disable_init(void)
 {
-	crash_disabled = hash_table_new_fixed(
-		crash_disable_buffer, sizeof crash_disable_buffer);
+	crash_disabled = hash_table_new_fixed(ARYLEN(crash_disable_buffer));
 }
 
 /**
@@ -2655,8 +2715,8 @@ crash_mode(enum crash_level level, bool external)
 
 		/* FALL THROUGH */
 
-	case CRASH_LVL_FAILURE:
 	case CRASH_LVL_DEADLOCKED:
+	case CRASH_LVL_FAILURE:
 		/*
 		 * Put our main allocators in crash mode, which will limit risks if we
 		 * are crashing due to a data structure corruption or an assertion
@@ -2716,14 +2776,6 @@ done:
 		crash_oom_condition();
 
 	/*
-	 * Specifically for deadlock conditions, disable all locks, if not
-	 * already done above by the thread_crash_mode() call.
-	 */
-
-	if (CRASH_LVL_DEADLOCKED == level)
-		thread_lock_disable(FALSE);
-
-	/*
 	 * Activate crash mode.
 	 */
 
@@ -2749,7 +2801,7 @@ done:
 			char time_buf[CRASH_TIME_BUFLEN];
 			DECLARE_STR(2);
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" WARNING: formatting string held in read-only chunk\n");
 			flush_err_str();
@@ -2762,7 +2814,7 @@ done:
 			DECLARE_STR(2);
 
 			warned = TRUE;
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);
 			print_str(" WARNING: crashing before any crash_init() call\n");
 			flush_err_str();
@@ -2776,7 +2828,7 @@ done:
  * Report on emergency memory usage, once, if needed at all.
  */
 static void G_COLD
-crash_vmea_usage(void)
+crash_vmea_usage(const char *caller)
 {
 	static bool done;
 	size_t reserved;
@@ -2800,9 +2852,10 @@ crash_vmea_usage(void)
 			size_t nbf = vmea_freeings();
 			size_t allocated = vmea_allocated();
 
-			s_miniinfo("still using %'zu bytes out of the %'zu reserved, "
-				"after %zu emergency allocation%s and %zu freeing%s",
-				allocated, reserved, nba, plural(nba), nbf, plural(nbf));
+			s_miniinfo("%s(): still using %'zu bytes out of the %'zu reserved,"
+				" after %zu emergency allocation%s and %zu freeing%s",
+				caller, allocated, reserved,
+				PLURAL(nba), PLURAL(nbf));
 		}
 	}
 }
@@ -2848,7 +2901,7 @@ dump_core:
 
 				pid_str = PRINT_NUMBER(pid_buf, getpid());
 
-				crash_time(time_buf, sizeof time_buf);
+				crash_time(ARYLEN(time_buf));
 				print_str(time_buf);							/* 0 */
 				print_str(" (WARNING) core from child PID=");	/* 1 */
 				print_str(pid_str);								/* 2 */
@@ -2857,7 +2910,7 @@ dump_core:
 			}
 			break;
 		case -1:
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);								/* 0 */
 			print_str(" (WARNING) cannot fork() for core: ");	/* 1 */
 			print_str(symbolic_errno(errno));					/* 2 */
@@ -2888,7 +2941,7 @@ plain_exit:
 static void G_COLD
 crash_restart_notify(const char *caller, bool in_child)
 {
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+	crash_vmea_usage(caller);	/* Report on emergency memory usage */
 
 	if (NULL == vars) {
 		s_minicrit("%s(): no crash_init() yet!", caller);
@@ -2965,7 +3018,7 @@ crash_try_reexec(void)
 	 */
 
 	if (NULL != vars->cwd) {
-		bool gotcwd = NULL != getcwd(dir, sizeof dir);
+		bool gotcwd = NULL != getcwd(ARYLEN(dir));
 
 		if (-1 == chdir(vars->cwd)) {
 			s_miniwarn("%s(): cannot chdir() to \"%s\": %m",
@@ -2997,7 +3050,7 @@ crash_try_reexec(void)
 		s_minimsg("launching %s", str_2c(vars->logstr));
 	} else {
 		s_minimsg("launching %s with %d argument%s", vars->argv0,
-			vars->argc, plural(vars->argc));
+			PLURAL(vars->argc));
 	}
 
 	/*
@@ -3019,7 +3072,7 @@ crash_try_reexec(void)
 		char tbuf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(tbuf, sizeof tbuf);
+		crash_time(ARYLEN(tbuf));
 		print_str(tbuf);							/* 0 */
 		print_str(" (CRITICAL) exec() error: ");	/* 1 */
 		print_str(symbolic_errno(errno));			/* 2 */
@@ -3038,7 +3091,7 @@ crash_try_reexec(void)
 		if (log_stdout_is_distinct())
 			flush_str(STDOUT_FILENO);
 
-		if (NULL != getcwd(dir, sizeof dir)) {
+		if (NULL != getcwd(ARYLEN(dir))) {
 			rewind_str(1);
 			print_str(" (CRITICAL) current directory was: ");	/* 1 */
 			print_str(dir);										/* 2 */
@@ -3070,7 +3123,7 @@ crash_auto_restart(void)
 		char pid_buf[ULONG_DEC_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		parent = getppid();
 
@@ -3118,8 +3171,8 @@ crash_auto_restart(void)
 			char runtime_buf[CRASH_RUNTIME_BUFLEN];
 			DECLARE_STR(5);
 
-			crash_time(time_buf, sizeof time_buf);
-			crash_run_time(runtime_buf, sizeof runtime_buf);
+			crash_time(ARYLEN(time_buf));
+			crash_run_time(ARYLEN(runtime_buf));
 			print_str(time_buf);							/* 0 */
 			print_str(" (WARNING) not auto-restarting ");	/* 1 */
 			print_str("since process was only up for ");	/* 2 */
@@ -3137,8 +3190,8 @@ crash_auto_restart(void)
 		char runtime_buf[CRASH_RUNTIME_BUFLEN];
 		DECLARE_STR(6);
 
-		crash_time(time_buf, sizeof time_buf);
-		crash_run_time(runtime_buf, sizeof runtime_buf);
+		crash_time(ARYLEN(time_buf));
+		crash_run_time(ARYLEN(runtime_buf));
 		print_str(time_buf);					/* 0 */
 		print_str(" (INFO) ");					/* 1 */
 		if (vars->dumps_core) {
@@ -3170,7 +3223,7 @@ crash_auto_restart(void)
 			pid_t pid = crash_fork();
 			switch (pid) {
 			case -1:	/* fork() error */
-				crash_time(time_buf, sizeof time_buf);
+				crash_time(ARYLEN(time_buf));
 				print_str(time_buf);						/* 0 */
 				print_str(" (CRITICAL) fork() error: ");	/* 1 */
 				print_str(symbolic_errno(errno));			/* 2 */
@@ -3201,7 +3254,7 @@ crash_auto_restart(void)
 		/* The exec() failed, we may dump a core then */
 
 		if (vars->dumps_core) {
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);					/* 0 */
 			print_str(" (CRITICAL) ");				/* 1 */
 			print_str("core dump re-enabled");		/* 2 */
@@ -3290,13 +3343,14 @@ crash_handler_process(void *arg)
 	}
 
 the_end:
-	if (!v->in_child)
+	if (!v->in_child && vars->may_restart)
 		crash_auto_restart();
 	raise(SIGABRT);			/* This is the end of our road */
 
 	g_assert_not_reached();
 	return NULL;			/* Never used by caller! */
 }
+
 /**
  * The signal handler used to trap harmful signals.
  */
@@ -3306,10 +3360,12 @@ crash_handler(int signo)
 	struct crash_handler_ctx v;
 	unsigned i;
 
+	i = ATOMIC_INC(&crash_count);		/* Previous value */
+
 	ZERO(&v);
 	v.cwd = "";
-	v.recursive = ATOMIC_GET(&crash_count) > 0;
 	v.signo = signo;
+	v.recursive = i != 0;
 
 	/*
 	 * SIGBUS and SIGSEGV are configured by signal_set() to be reset to the
@@ -3321,15 +3377,16 @@ crash_handler(int signo)
 	 * the default handler normally leads to fatal error triggering a core dump.
 	 */
 
-	if (ATOMIC_INC(&crash_count) > 1) {
-		if (2 == ATOMIC_GET(&crash_count)) {
+	if (i > 1) {
+		/* This is at least the second recursive crash! */
+		if (2 == i) {
 			DECLARE_STR(1);
 
 			print_str("\nERROR: too many recursive crashes\n");
 			flush_err_str();
 			signal_set(signo, SIG_DFL);
 			raise(signo);
-		} else if (3 == ATOMIC_GET(&crash_count)) {
+		} else if (3 == i) {
 			raise(signo);
 		}
 		_exit(EXIT_FAILURE);	/* Die, die, die! */
@@ -3342,8 +3399,18 @@ crash_handler(int signo)
 	 * which would not otherwise be cleaned up by the kernel upon process exit.
 	 */
 
-	if (1 == ATOMIC_GET(&crash_count))
+	if (0 == i) {
+		/*
+		 * Cleanup will take locks, and removing system resources, such as
+		 * semaphores, could create panics in other threads that would lead
+		 * to a recursive crash.  Better enter thread crashing mode now,
+		 * which will suspend the other threads and disable locks if needed.
+		 * 		--RAM, 2020-04-03
+		 */
+
+		thread_crash_mode(FALSE);
 		signal_perform_cleanup();
+	}
 
 	/*
 	 * If we are in the child process, prevent any exec() or pausing.
@@ -3705,7 +3772,7 @@ crash_init(const char *argv0, const char *progname,
 
 	vars = &iv;
 
-	if (NULL == getcwd(dir, sizeof dir)) {
+	if (NULL == getcwd(ARYLEN(dir))) {
 		dir[0] = '\0';
 		s_miniwarn("%s(): cannot get current working directory: %m", G_STRFUNC);
 	}
@@ -3769,7 +3836,7 @@ crash_init(const char *argv0, const char *progname,
 		signal_set(signals[i], crash_handler);
 	}
 
-	vars = ck_copy(iv.mem, &iv, sizeof iv);
+	vars = ck_copy(iv.mem, VARLEN(iv));
 	ck_readonly(vars->mem);
 
 	/*
@@ -3883,7 +3950,7 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 	size_t size = 1;	/* Minimum is one byte for NUL */
 
 	pid_str = PRINT_NUMBER(pid_buf, crash_getpid());
-	crash_logname(filename, sizeof filename, pid_str);
+	crash_logname(ARYLEN(filename), pid_str);
 
 	if (NULL == dst) {
 		dst = deconstify_char("");
@@ -3892,19 +3959,19 @@ crashfile_name(char *dst, size_t dst_size, const char *pathname)
 
 	item = CRASHFILE_ENV;
 	clamp_strcpy(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = pathname;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = G_DIR_SEPARATOR_S;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	item = filename;
 	clamp_strcat(dst, dst_size, item);
-	size = size_saturate_add(size, strlen(item));
+	size = size_saturate_add(size, vstrlen(item));
 
 	return size;
 }
@@ -3924,7 +3991,7 @@ crash_setdir(const char *pathname)
 	g_assert(is_absolute_path(pathname));
 
 	if (
-		NULL != getcwd(dir, sizeof dir) &&
+		NULL != getcwd(ARYLEN(dir)) &&
 		(NULL == vars->cwd || 0 != strcmp(dir, vars->cwd))
 	) {
 		curdir = dir;
@@ -3991,6 +4058,40 @@ crash_setver(const char *version)
 	crash_set_var(version, value);
 
 	g_assert(NULL != vars->version);
+}
+
+/**
+ * Record program's compilation date string.
+ */
+void G_COLD
+crash_setccdate(const char *date)
+{
+	const char *value;
+
+	g_assert(NULL != vars->mem);
+	g_assert(NULL != date);
+
+	value = ostrdup_readonly(date);
+	crash_set_var(cc_date, value);
+
+	g_assert(NULL != vars->cc_date);
+}
+
+/**
+ * Record program's compilation time string.
+ */
+void G_COLD
+crash_setcctime(const char *timestr)
+{
+	const char *value;
+
+	g_assert(NULL != vars->mem);
+	g_assert(NULL != timestr);
+
+	value = ostrdup_readonly(timestr);
+	crash_set_var(cc_time, value);
+
+	g_assert(NULL != vars->cc_time);
 }
 
 /**
@@ -4103,6 +4204,7 @@ crash_dumper_add(const callback_fn_t dumper)
 		ci = ck_alloc(vars->hookmem, sizeof *ci);
 		if (NULL == ci)
 			s_error("%s(): too many dumpers registered", G_STRFUNC);
+		ZERO(ci);
 		ci->dumper = dumper;
 		eslist_append(vars->dumpers, ci);
 
@@ -4307,7 +4409,7 @@ crash_force_restart(cqueue_t *cq, void *unused)
 
 	cq_zero(cq, &crash_restart_ev);
 
-	crash_run_time(buf, sizeof buf);
+	crash_run_time(ARYLEN(buf));
 	s_miniwarn("%s(): forcing immediate restart after %s", G_STRFUNC, buf);
 	crash_reexec();		/* Does not return */
 }
@@ -4342,22 +4444,6 @@ crash_restart(const char *format, ...)
 	va_list args;
 
 	/*
-	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
-	 * to allow auto-restarts, then do nothing.
-	 */
-
-	if (NULL == vars || !vars->may_restart)
-		return;		/* Silently ignored */
-
-	/*
-	 * Since a callback could request asynchronous restarting, we need to
-	 * record the first time we enter here and ignore subsequent calls.
-	 */
-
-	if (0 != atomic_int_inc(&registered))
-		return;
-
-	/*
 	 * First log the condition, without allocating any memory, bypassing stdio.
 	 */
 
@@ -4373,6 +4459,22 @@ crash_restart(const char *format, ...)
 
 	if (crash_level() > CRASH_LVL_OOM)
 		return;
+
+	/*
+	 * Since a callback could request asynchronous restarting, we need to
+	 * record the first time we enter here and ignore subsequent calls.
+	 */
+
+	if (0 != atomic_int_inc(&registered))
+		return;
+
+	/*
+	 * If they did not call crash_init() yet or did not supply CRASH_F_RESTART
+	 * to allow auto-restarts, then do nothing.
+	 */
+
+	if (NULL == vars || !vars->may_restart)
+		return;		/* Silently ignored */
 
 	/*
 	 * If they did not have time to call crash_setmain(), we do not know
@@ -4425,7 +4527,7 @@ crash_restart(const char *format, ...)
 	 * If it does not, we attempt to re-exec ourselves anway.
 	 */
 
-	crash_run_time(buf, sizeof buf);
+	crash_run_time(ARYLEN(buf));
 	s_miniinfo("%s(): attempting auto-restart%s after %s...",
 		G_STRFUNC, has_callback ? " on clean shutdown" : "", buf);
 
@@ -4464,7 +4566,7 @@ crash_restarting(void)
 
 		cq_cancel(&crash_restart_ev);
 
-		crash_run_time(buf, sizeof buf);
+		crash_run_time(ARYLEN(buf));
 		s_miniinfo("%s(): auto-restart initiated after %s...", G_STRFUNC, buf);
 	}
 }
@@ -4525,7 +4627,7 @@ crash_oom(const char *format, ...)
 
 	s_minilog(flags, "%s(): process is out of memory, aborting...", G_STRFUNC);
 
-	crash_vmea_usage();		/* Report on emergency memory usage, if needed */
+	crash_vmea_usage(G_STRFUNC);	/* Report on emergency memory usage */
 
 	/*
 	 * Watch out for endless crash_oom() calls.
@@ -4754,9 +4856,13 @@ crash_dump_stacks(int fd)
 
 /**
  * Record that we are deadlocked.
+ *
+ * @param dump_stacks	whether to dump stacks to stderr
+ * @param file			source file name where lock was being taken
+ * @param line			line within file where lock was being taken
  */
 void G_COLD
-crash_deadlocked(const char *file, unsigned line)
+crash_deadlocked(bool dump_stacks, const char *file, unsigned line)
 {
 	crash_last_deadlock_file = file;
 
@@ -4772,7 +4878,30 @@ crash_deadlocked(const char *file, unsigned line)
 			crash_set_var(lock_line, line);
 		}
 
-		crash_dump_stacks(STDERR_FILENO);
+		if (dump_stacks)
+			crash_dump_stacks(STDERR_FILENO);
+	}
+}
+
+/**
+ * Record deadlock thread mask, with 1 bit set for each involved thread.
+ *
+ * When a crash occurs due to a detected deadlock from the thread layer, we
+ * compute this mask and emit it in the crashlog to make it easier to determine
+ * afterwards the set of involved threads in that deadlock.
+ *
+ * Indeed, the crashlog will contain (hopefully) the whole set of threads
+ * that had locks or where waiting for a lock, and some may not be part of
+ * the deadlock -- it may not always be obvious which of them where, especially
+ * when some threads hold many locks.
+ */
+void G_COLD
+crash_deadlocked_set_thread_mask(uint64 mask)
+{
+	if (vars != NULL) {
+		uint8 t = TRUE;
+		crash_set_var(deadlocked, t);
+		crash_set_var(deadlock_mask, mask);
 	}
 }
 
@@ -4839,7 +4968,7 @@ crash_assert_logv(const char * const fmt, va_list ap)
 	} else {
 		static char msg[CRASH_MSG_SAFELEN];
 
-		str_vbprintf(msg, sizeof msg, fmt, ap);
+		str_vbprintf(ARYLEN(msg), fmt, ap);
 		return msg;
 	}
 }
@@ -4880,7 +5009,7 @@ crash_set_error(const char * const msg)
 		ck_writable(vars->logck);
 		if (0 != str_len(vars->logstr))
 			str_ncat_safe(vars->logstr, ", ", 2);
-		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		str_ncat_safe(vars->logstr, msg, vstrlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
 		crash_set_var(message, m);
@@ -4905,7 +5034,7 @@ crash_append_error(const char * const msg)
 		 */
 
 		ck_writable(vars->logck);
-		str_ncat_safe(vars->logstr, msg, strlen(msg));
+		str_ncat_safe(vars->logstr, msg, vstrlen(msg));
 		m = str_2c(vars->logstr);
 		ck_readonly(vars->logck);
 		crash_set_var(message, m);
@@ -5000,7 +5129,7 @@ crash_directory_cleanup_cb(
 		if (delta_time(tm_time(), sb->st_mtime) >= CRASH_LOG_MAXAGE)
 			crash_directory_unlink(info->fpath);
 	} else if (
-		NULL != strstr(info->fbase, "core.") ||
+		NULL != vstrstr(info->fbase, "core.") ||
 		is_strsuffix(info->fbase, info->fbase_len, ".core") ||
 		0 == strcmp(info->fbase, "core")
 	) {

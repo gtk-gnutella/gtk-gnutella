@@ -1,3 +1,624 @@
+# v 1.2.2  2022-02-25  [stable]
+
+This is a maintenance release with major bug fixes.
+
+There were several shortcomings with bandwidth management: capping was not
+performed correctly and could overuse uploading bandwidth. Also when the DHT
+is turned off or on, we need to recompute proper bandwidth stealing.
+
+Corruption of the DHT disk databases could also lead to a crash.
+
+There was a critical old bug in the Dynamic Querying layer that affected
+Ultrapeers mostly: we could corrupt memory and/or crash when the current node
+was removed and we were processing a Dynamic Query for that node.  This is
+more likely to happen when running as an Ultrapeer but it could also affect
+nodes running as leaves, although the probability of that bug happening is
+much less in that case.
+
+Finally, it is best to not iterate on a global list that could get changed
+due to a node removal.  This was the case when sending pongs to neighbouring
+nodes, so we now take a private copy.
+
+Improvements:
+- Extended "props" shell command with -e (exact) and -i (ignore missing).
+- The "props" command now takes a set of properties, handled as one batch.
+
+Bug Fixes:
+- Properly recompute bandwidth stealing on DHT changes.
+- Avoid crashing in D-Bus lib when filename is improperly UTF-8 encoded.
+- DHT: protect against corrupted database.
+- bw_available(): fix invalid logic for I/O source capping.
+- pong_all_neighbours_but_one(): iterate on local list.
+- dq_node_removed(): must free dq object asynchronously.
+
+Under the Hood:
+- Update IRC network information: moved from freenode to libera.chat
+- Chunk size limiting for uploads accounts for bandwidth.
+- Reduce memory footprint for statx_t if no data kept.
+- CQ: defer freeing of dispatched event.
+- watchdog: be more verbose within critical messages.
+- node_parse(): signal to callers when we have BYE-ed the node.
+- cq_event_called(): use better diagnostic on assert failure.
+- dbus_util_send_message(): protect against invalid text.
+- prepare_entry(): ensure entry invariant remains true.
+- wd_expire(): do nothing if watchdog was asleep.
+
+# v 1.2.1  2021-07-12  [stable]
+
+This is a maintenance release with minor bug fixes.
+
+Note that our project IRC #gtk-gnutella channel is now on irc.libera.chat.
+
+When launching gtk-gnutella and there is a stale lockfile present, listing
+some PID, and it happens that there is already another process running
+under this PID, we abort, complaining that another gtk-gnutella is running.
+However, if the lockfile is really stale, and the PID listed in there has
+nothing to do with gtk-gnutella at the moment, the user will need to remove
+the stale lockfile.  Hence we show them the command to run, listing the
+full lockfile path so that it is easy to overcome this little inconvenience!
+
+When using hashtables for memory management, it was possible to trigger a
+resizing and, during the course of operations, have further memory used,
+requiring tracking of new items in the same hashtable we were in the
+process of resizing.  That led to double VMM freeing of the region used
+to store the data.
+
+Add properties to track bytes exchanged by schedulers.  These properties
+track the amount of bytes exchanged by session and are reset to 0 whenever
+a new user session starts.  It allows users to see the actual amount of
+data consumed by running gtk-gnutella sessions, programmatically via the
+shell interface.
+
+Add -t switch to shell "status" command: this displays the total amount
+of bandwidth consumed during the session for the different schedulers.
+
+Improvements:
+- Show command to clean stale lockfile.
+- Add properties to track bytes exchanged by schedulers.
+- Add -t switch to shell "status" command.
+- Make use of libera.chat instead of freenode.
+- Expiration time now increased from 1 to 2 years.
+- New --no-expire switch to disable GUI popup when expired.
+
+Bug Fixes:
+- pattern_prefix_period(): don't corrupt end-of-block.
+- Fix subtle recursive resizing bug.
+- Do not emit empty leading description in saved properties.
+- For time sync over UDP, write replying time later!
+- hash_table_resize(): clear last cached lookup!
+- ev_link(): insert events in the proper bucket!
+
+Under the Hood:
+- Updated GeoIP databases.
+- Ad bit_generic_count_set().
+- Add plural_child().
+- Add progstart_was_called().
+- Add H_STRFREEV_NULL().
+- Add syn=c to *.ht and *.ct files for vim.
+- Add hash_table_copy_foreach().
+- Add tm_precise_elapsed_ns() convenience routine.
+- Add thread_stack_size() to get configured stack size.
+- Add pattern_string() to get the string being looked for.
+- Add str_2c_from() to grab C string from a given offset.
+- Add eval_subst_atom().
+- Add stacktrace_caller_fast() and stack-test program.
+- Add thread_{un}suspend().
+- Add tmalloc_contains() for assertions.
+- Add public VMM validate/invalidate routines.
+- Add macros to ease printing for tmval and tmspec.
+- Add node_check() to node traversal loops.
+- Avoid branches in SIGN() as well.
+- Avoid regeneration of Geo DB if no data changes.
+- Bump python dependency for jhbuild on OSX.
+- Better clock skew computation.
+- Handle time-sync exchanges via UDP better.
+- Make use of travis cache feature for OSX builds.
+- Only include <sys/sysctl.h> if we actually need it.
+- Allow compilation with usemymalloc=n on 32-bit CPUs.
+- Let mem_test() run only once.
+- When no backtrace(), ensure we compile with a frame pointer.
+- Compile with -DTRACK_MALLOC -DREMAP_ZALLOC again.
+- Made -DTRACK_ZALLOC usable again.
+- Do not check stack at longjmp() if on altstack.
+- Do not trap hash_list_{new,free}() under REMAP_ZALLOC.
+- Ensure properties use xmalloc() for their values.
+- Wait until main() starts to allocate the signal chunk.
+- Made ascii_toupper() and ascii_tolower() avoid branching.
+- Trace saving time whithin property files.
+- Trace page (PA) and offset within page on SEGV.
+- Trace page protection on SEGV faults, if possible.
+- Trace how and where symbols were loaded in crash log.
+- Symbol quality definition moved to symbols!
+- Windows: handle freopen("a") specially to allow read sharing.
+- Windows: no need to dump stack again if no gdb.
+- mutex: supply more context on lock errors.
+- ostream: now also accepts str_t as output medium.
+- rwlock: added debug option to track wlock location.
+- random-test: added -a to benchmark all routines.
+- random-test: add -v to be verbose when -a is used.
+- VMM: added extra debugging tools / assertions.
+- VMM: trace new compile-time options.
+- clock: simplify code by using aging table.
+- xmalloc: avoid late page pool creation.
+- xmalloc: extended assertions to detect freelist corruption.
+- zalloc: avoid warnings when compiling with REMAP_ZALLOC.
+- zalloc: with ZONE_SAFE, ensure block tagging never changes!
+- malloc.c: enhanced and fixed some errors with multi-threading.
+- malloc.c: huge refactoring and cleanup.
+- aging_destroy(): remove periodic GC before cleanup.
+- bfd_util_init(): avoid warning on bfd_init() call.
+- clock_adjust(): removed MAX_SDEV.
+- clock_adjust(): stop pruning if we keep everything.
+- clock_update(): lowered required amount of data.
+- compat_setjmp(): protect against gone contexts.
+- crash_handler_process(): only call crash_auto_restart() if needed.
+- ev_free(): assert event is not linked in queue!
+- ev_unlink(): added list consistency assertions.
+- eval_subst(): remove the size limitation on the susbtituted string.
+- evq_close(): be silent if event queue not created.
+- fi_pick_rarest_chunk(): fixed assertion failure.
+- fi_pick_rarest_chunk(): log assertion values.
+- get_prop(): also trace failing property when ps is NULL.
+- ggept_filesize_encode(): can return 0 if given 0.
+- hash_compute_increment(): make it odd without branch.
+- main(): do not set a crash dir if not running for long.
+- name_to_single_host_addr(): use pslist_random().
+- ntp_send_probes(): comment updates, cleanup.
+- once_recursive(): avoid calling stacktrace_function_name().
+- progstart_duplicate(): added assertions.
+- prop_lock(): use macro for locking (hiding lock type).
+- rwlock_deadlocked(): trace write owner if known.
+- spinlock_loop(): document why no memory barrier.
+- statusbar_gui_push_v(): be safe if called early.
+- str_avail(): new implementation and semantics.
+- str_ichar() and str_istr() can now append.
+- strvec_cpy(): was failing when called with cnt=0.
+- thread_id_name_to_buf(): be nicer with negative IDs.
+- thread_lock_waiting_done(): cleanup when no problems.
+- tok_version_valid(): no longer run clock_update().
+- xcopy(): not defined as inlined routine when TRACK_MALLOC.
+
+# v 1.2.0  2020-07-09  [stable]
+
+This is an evolution release, hence the minor version bump.
+
+Several cases of bad input (from network) causing assertion failures were
+fixed.  In particular, bad DHT response after a security token lookup or
+invalid G2 input streams were fatal.
+
+There was also a critical bug, originating from a harmful code typo, which
+led gtk-gnutella to serve unvailable file chunks from partial files, as if
+they were available, resulting in unintended download corruption on the
+remote end!
+
+Thanks to Laurent Gil's efforts, it is now possible to run gtk-gnutella from a
+Docker container.  See https://github.com/angegar/gtk-gnutella-docker.
+Running within docker raised some issues about sbrk() and thread_self(),
+which were fixed.
+
+The computation of the build date was fixed, to avoid corner cases where
+gtk-gnutella would complain it was "old" when freshely compiled from
+up-to-date sources in a git tree whose "master" branch was only infrequently
+updated.
+
+The file selector was fixed, to avoid displaying grayed-out folders, a setup
+wich did not allow one to actually select directories in the preferences.
+
+Many improvements were done to allow smoother uploading for servents with
+more bandwidth than the recipients.  Instead of drastically limiting upload
+bandwidth (which was negatively impacting everyone), we are now monitoring
+and adjusting our uploading speed to avoid congestion on the remote end.
+When stalling happens, we also react quickly to reduce the available bandwidth
+of the connection, not that of all connections to whom we are uploading.
+
+We also no longer rely on MaxMind GeoIP for providing the IP -> country
+mappings.  Their distribution mode now requires a specific licence which seems
+totally incompatible with the gtk-gnutella's distribution mode.  Instead, we
+are now using IP2Location, and the GEO_LICENCE file now lists the conditions
+under which these data are re-distributed (gtk-gnutella transforms the data
+into a form that it can digest, so we are distributing a modified, derived
+work, not the original).
+
+If you are still using a version of gtk-gnutella earlier than the 1.1.x
+series, you are strongly encouraged to upgrade.  Starting from this release,
+we are now considering these versions too old to connect to.
+
+Improvements:
+- Let --compile-info show which malloc() is used.
+- It is now possible to run gtk-gnutella from a Docker container.
+- Added details in the README file about required packages to compile.
+- Use gradual bandwidth penalty when uploads are stalling.
+- Added upload bandwidth capping.
+- Forcefully reduce request chunk if b/w is limited.
+- Emit a Retry-After header on 416 replies.
+- On HTTP 416, emit a Last-Modified header.
+- Switched to IP2Location for mapping IPs to countries, dropping MaxMind GeoIP.
+- Upload tab now shows our own partial completion ratio, not just "(partial)".
+- Detect abuse from HTTP clients not reading payloads.
+- Enforce Retry-After softly.
+- Ban them when they abuse of the browse-host feature.
+- Smarter detection of duplicate incoming Gnutella connections.
+
+Bug Fixes:
+- [GTK2] Fixed file selector to avoid greyed-out folders.
+- [GTK2] Guarantee updating of properties when refresh button is clicked.
+- Added emergency path during startup should sbrk() fail.
+- Fixed instructions following build.sh run.
+- Fixed possible thread_self() instability at startup.
+- Fixed backward portability issue with the BFD library.
+- Fixed computation of build date.
+- Fix 2 harmful typos, affecting serving of partial files.
+- Regenrate Configure to fix gccversion usage bug.
+- Restored compilation of a standalone local shell.
+- Remove executable permissions on C source file!
+- Rename our ARC4 interface on systems with native arc4random().
+- Updated all files to fix obsolete FSF postal address.
+- Avoid banning hosts issuing legitimate upload requests.
+- Implement GNU extension malloc_usable_size() when using our malloc().
+- UHC: when hardwired list is exhausted, reload it.
+- Make Content-Range and Content-Length prioritary headers.
+- ban_allow(): was never returning BAN_FORCE.
+- download_reply(): reload available ranges after 416 if needed.
+- download_stop_switch(): forgot to remove passive queue indication.
+- gtk_gnutella_exit(): must close UPnP layer before HTTP.
+- http_send_status(): reworked to avoid undue header truncation.
+- node_g2_read(): fixed faulty assertion.
+- pb_token_found(): be more robust against unexpected input.
+- search_gui_close_search(): avoid crash when emptying search list twice.
+- update_available_ranges(): revisited range processing logic.
+- upload_416_extra(): was generating non-compliant headers.
+- vmm_dump_pmap_log(): fixed deadlock.
+- download_moved_with_bad_sha1(): always reset fileinfo.
+- file_info_reset(): also discard previous TTH info.
+
+Under the Hood:
+- Added temporary "xk" country code for Kosovo.
+- Added vmm_type_pointer() to determine region type.
+- Add lingering period for unreferenced file_descriptor objects.
+- Add shell command "show files -d" to list currently used file_descriptor.
+- Raise minimum b/w scheduling slot to 256 bytes per second.
+- Fixed HashGenericCat() in Jmakefile, leading to wrong .c dependency.
+- Fast assertions are a must for GTKG nowadays, always compile with them.
+- Do not post multiple randomness generation messages.
+- Split bit_generic routines into .ht and .ct.
+- Reserve file_object_close() for user code.
+- Made it possible to compile with TRACK_MALLOC again.
+- Improved "thread elements" shell command to trace callback function names.
+- Avoid VMM magazine allocation when running with TRACK_MALLOC.
+- Enhanced TRACK_MALLOC to be able to trap xalloc() as well.
+- Enhanced TRACK_MALLOC debugging power with MALLOC_CATCH_MALLOC.
+- Extended bool_to_string() to display value if not 0 or 1.
+- TEQ: optimize I/O events by posting them directly to I/O queue.
+- VMM pmap logging shows allocated size per fragment type.
+- Removed gone / probably gone logic for discovered threads.
+- Ensure thread_atexit() callbacks run in discovered threads.
+- Ensure walloc0() redirects to underlying zeroing routines, for statistics.
+- Simplified shell I/O condition management and logging.
+- Separate Gnutella and HTTP (upload) banning categories.
+- STATIC_ASSERT: use a more compact version for less verbose errors.
+- Made thread exit value read-only in thread_atexit() callbacks.
+- Emit thread mask in crash logs upon detected deadlock.
+- ADNS: the cache is now thread-safe and cached replies shuffled.
+- ADNS: added expiring periodic callback for cached DNS entries.
+- Added new "adns_debug" property for ADNS debugging.
+- Avoid g_memmove() which has been deprecated.
+- Added ripening_contains() and ripening_update() routines, not used yet.
+- Optimize ripening table when no value is kept.
+- Use aging table to track download mesh sending times.
+- Use 429 instead of 550 for "Too Many Requests".
+- Remind less often about banning status.
+- Let emulated alloca() cleanup when thread exits.
+- Ensure alloca_stack_direction_compute() is never inlined.
+- Smarter detection of duplicate incoming Gnet connections.
+- xmalloc: must "embed" xstrdup() and xstrndup().
+- xmalloc: simplified allocation entry points.
+- xmalloc: ensure stricter memory alignment when xmalloc() replaces malloc().
+- ban_delay(): fixed to return remaining ban time.
+- ban_force(): read incoming data before shutdown().
+- ban_vendor(): GTKG earlier than version 1.1 deemed too old.
+- bitcmp(): use memcmp() for byte comparison.
+- bool_to_string(): added carp trace to help spot the culprit.
+- cq_cancel(): fix logic to return TRUE if event was NULL.
+- crash_deadlocked(): no longer dump stacks.
+- crash_handler(): enter thread crash mode before signal cleanup.
+- crash_time_internal(): use thread_safe_small_id() in raw mode.
+- download_queue_delay_switch(): explicitly turn off queuing if switching.
+- download_queue_v(): explicitely reset passive queuing info.
+- download_reply(): Content-Length not necessary if Content-Range.
+- download_send_push_request(): trace server GUID.
+- erbtree_foreach(): added cheap safety assertion.
+- evq_trampoline(): cleanup event if cannot signal thread.
+- extract_retry_after(): ensure amount in seconds is the only value.
+- fi_pick_rarest_chunk(): be smarter about selected chunk.
+- fi_pick_rarest_chunk(): ensure first free chunk is available.
+- hcache_fill_caught_array(): fix array fill logic.
+- http_send_status(): ensure generated header has trailing CRLF.
+- local_shell_mainloop(): must flag "writable" on POLLHUP.
+- mingw_exception_log(): use static variables and be more careful.
+- natpmp_handle_discovery_reply(): trace inconsistent replies.
+- natpmp_handle_mapping_reply(): trace inconsistent replies.
+- parq_upload_send_queue(): tie PARQ upload queue and upload.
+- pcache_pong_received(): also validate changing ports.
+- rand31: avoid race condition during intial seeding.
+- random_pool_append(): ensure no endless recursion, ever!
+- send_pproxy_error_v(): remove dead code.
+- shell_handle_event(): always write() when having pending data.
+- shell_handle_event(): on exception, setup EOF/shutdown.
+- shell_write_data(): make sure to flush as much as possible.
+- sig_compute_pc_index(): be paranoid about optimization.
+- signal_name(): contort to avoid gcc-10 warning.
+- signal_trap_with(): avoid kernel signal desynchronisation.
+- signal_uncaught(): dump stack trace if harmful signal.
+- sorted_array_lookup(): sort array if they forgot to do it!
+- spinlock_deadlocked(): capture lock status early.
+- stacktrace_atom_lookup_and_store(): trace race conditions.
+- stacktrace_load_symbols(): do nothing if too early.
+- thread_create_full(): keep async exit callback separated.
+- thread_deadlock_check(): disable locks when deadlock is certain.
+- thread_deadlock_check(): only dump stacks of involved threads.
+- thread_stack_check_overflow(): also log used stack size.
+- upload_remove_v(): create better logging message.
+- vmm_malloc_inited(): now only called internally.
+- xmalloc_show_settings_log(): trace chosen memory alignment.
+- zgc_zalloc(): transformed some assertions into verbose ones.
+
+# v 1.1.15  2019-07-14  [stable]
+
+This release is a maintenance one fixing several minor bugs and two annoying
+ones:
+
+- The semi-reliable UDP layer could crash due to an assertion that started
+  to trigger with the introduction of an explicit flush before the message
+  times out for transmission.
+
+- Due to an overseen condition, we were not able to serve seeded files when
+  Partial File Sharing is enabled.  A seeded file is a completed file that
+  still lies in the downloaded directory but is not part of the library
+  directories.
+
+The OOB banning code for hosts that never claim their OOB hits was also
+revisited to prevent problems with hosts that query a popular file and then
+get submerged by hits and thus refrain to claim the additional hits.  We are
+now much more tolerant to avoid accidentally banning innocent hosts.
+
+On Windows, the disassembling of machine instructions was enhanced to further
+improve the ability to correctly issue symbolic stack traces when encountering
+assertion failures or during crashes.
+
+Finally, the Geo IP databases were refreshed.
+
+Improvements:
+- OOB: increased timeout for OOB hit delivery.
+- OOB: switch to unreliable notification if semi-reliable UDP fails.
+- OOB: raise the bar for banning after unclaimed OOB hits.
+- Dynamic Hits: let us forward hits that bear a small amount of results.
+- Count amount of banning we have to do for OOB querying hosts.
+
+Bug Fixes:
+- Rename statx struct to statistics to avoid name collision.
+- browse_host_read_html(): fixed English typo.
+- dl_util_query(): forgot to restore old signal handler.
+- file_info_restrict_range(): was not serving seeded files!
+- main(): do not let the supervisor process restart on crash!
+
+Under the Hood:
+- Added thread_stack_diff() to compare stack pointers.
+- Added PLURAL() macros.
+- Added clz64() to count leading zeroes on a 64-bit quantity.
+- Added OP_CTZ() and OP_CLZ() to work on op_t quantities.
+- Added pattern_memrchr() and pattern_strrchr() implementations.
+- Jumbo patch to use vstrrchr() instead of strrchr().
+- BIT_GENERIC_BIT() does not need the base argument.
+- Factorized prefix-matching from sorted array.
+- pattern.c: fix compiling with old gcc (version 4.4)
+- pattern.c: forgot to include "endian.h".
+- str: avoid "char" as parameter or return type, use "int".
+- Windows: if not a "registered product", leave logs in current dir.
+- Windows: enhanced stack unwinding.
+- Windows: added option to debug backtraces "on crash" only.
+- Windows: when backtracing, also parse another MOV instruction.
+- Windows backtrace: also parse "add xx,%esp".
+- compat_poll(): can now use poll() on Windows.
+- evq_close(): warn when EVQ is not terminated after 2 seconds.
+- file_info_moved(): no warning on file size if file still partial.
+- main(): set a different product nickname for supervisor.
+- mingw_analyze_prologue(): handle cases where no SP adjustment done.
+- mingw_exception(): also log symbolic thread name if available.
+- mingw_exception(): disable signals on stack overflow.
+- mingw_exception(): interpret exception information differently.
+- mingw_exception_log(): if PC looks invalid, try to intuit caller.
+- mingw_file_rotate(): preserve extension during renaming.
+- mingw_ftruncate(): it is OK if current offset is beyond truncation.
+- mingw_get_return_address(): enhanced scanning for prologue.
+- mingw_get_return_address(): validate next PC by checking CALL before.
+- mingw_get_return_address(): validate stack pointer before access.
+- mingw_thread_sig_deliver(): special-case signals for current thread.
+- pattern_compile(): must use WALLOC0() for allocating!
+- pattern_strstr_tiny(): fixed starting condition for aligned processing.
+- rwlock_upgrade_from(): don't wait for readers in pass-through mode.
+- rwlock_wait(): dump lock waiting queue when tracing sleeps.
+- rwlock_wait(): trace summary when logging contention / sleeping.
+- str_private(): declare non-leaking parts for TRACK_ZALLOC.
+- teq_monitor(): trace pending events as well.
+- thread-test: for interrupt tests, timeout if no interrupt received.
+- thread_backtrace_capture(): avoid recursion and disable signals.
+- thread_id_stack_used(): fixed for decreasing stacks.
+- ut_frag_pmsg_free(): be more robust, avoid internal assertion.
+- vmm_crashing_alloc(): better abort explicitly if no memory.
+- wmove(): make sure it's a no-op with TRACK_ZALLOC.
+
+# v 1.1.14  2018-10-04  [stable]
+
+This release mostly improves the core routines and fixes a few important bugs.
+
+Due to a bug in the usage of the RX buffers, we were not correctly parsing
+data returned in "chunked" transfer-encoding by HTTP/1.1 servers.  This
+affected the UPnP logic.
+
+The UPnP port unmapping done when the program shuts down was also not being
+able to complete successfully because we were preventing the HTTP connection
+from going on during the shutdown.  Not critical because there is a lifetime
+attached to all mappings, but always best to properly clean-up when leaving.
+
+The algorithm used to pick random chunks to download was also revisited to
+ensure a uniform selection within the whole file ranges that remain to be
+fetched.
+
+At startup time, the DHT code no longer expires keys when reloading data.
+This could create crashes during the operation, with no other remedy than
+to erase all the DHT database files manually to be able to recover!
+
+The background task layer was also causing crashes (at exit time though)
+because it was not recording whether it was running "user" code as opposed
+to "kernel" code.
+
+The SDBM code was also improved to allow concurrency and, in particular,
+a "loose" iteration scheme which does not need to grab the database lock
+during the whole iteration process.  It is also possible to perform a
+concurrent database rebuilding.
+
+The thread runtime now has an improved deadlock detection engine, based
+on a topological sort, that can definitely tell whether we are deadlocked.
+When the deadlock is detected, we can also have more information about
+the threads participating in that deadlock condition, to assist debugging.
+
+On Windows, a bug in our mingw_dlerror() emulation caused it to always
+fail once an error had been recorded, leading to un-decorated subsequent
+stack traces, which really do not help on that platform!
+
+There was also a concurrency bug in the processing of network queries.
+Every time the library was rescanned, it could trigger a crash due to
+a memory zone being declared private and was in fact shared between
+threads.  The crash occurred only when a query was received on the
+Gnutella network whilst the library was rescanned.
+
+The semi-reliable UDP layer TX side was revisited to maximize chances that
+reliable messages get through completely.
+
+The pattern matching code was revisited thoroughly.  A new algorithm (2-Way
+String Matching) now complements the Quick Search algorithm and an initial
+benchmarking is done to compare our own matching routines with native libc
+versions of strstr(), strlen(), strchr() and memchr().  The fastest routine
+is then selected, to ensure optimal performances.  There is also a unit-test
+program ensuring proper semantics for the pattern search flags.
+
+New Features:
+- Added UDP scheduler message statistics by priority.
+
+Improvements:
+- [GTK2] Catch column resize events to persist widths quickly.
+- Added "shutdown -x" to stop the program and continue session next time.
+- Added --resume-session option to request explicit continuation.
+- Improved pattern matching with new algorithm and runtime benchmarking.
+- Persist current_peermode to restart in same mode after crash.
+- Record compilation date and time for the crashlog.
+- When running with no GUI, relax mem requirements to become ultra.
+- Use minimum download chunk size to align requested download offsets.
+- Added statistics for OOB hit notifications we process.
+- Extensive improvements of the SDBM code to allow concurrency.
+- Semi-reliable UDP TX layer now sends messages more aggressively.
+- Reduce memory footprint of compiled patterns for short patterns.
+
+Bug Fixes:
+- No longer supply -lgthread-2.0 and -lresolv at link time.
+- DHT: do not expire keys when reloading data at startup.
+- Restored alphabetical listing of command options in the man page.
+- The --use-poll argument was not mentioned in the manual page.
+- UPnP: fixed XML logging.
+- UPnP: was not correctly unmapping ports on servent shutdown.
+- crash_time_internal(): protect against recursions in raw mode.
+- file_info_retrieve(): must restore proper mtime for seeded files!
+- filter_apply(): fixed suffix matching to allow whole match.
+- http_data_ind(): could not process chunked data!
+- iov_contiguous_size(): fixed destructive implementation.
+- pslist_last_count(): fixed off-by-one error.
+- recursive_scan_step_build_partial_table(): removed assertion.
+- statx_opx(): use fabs() on double.
+- word_vec_init(): zone cannot be private.
+- zgc_subzone_defragment(): fixed improper assertion.
+
+Under the Hood:
+- Added hidden --no-build-version option.
+- Added cstr_{b,f,l}cpy() routines to supplant g_strlcpy()
+- Added strpcpy() which returns pointer to last copied trailing NUL.
+- Added vmm_move() to move allocated VM regions to better places.
+- Added G_FALL_THROUGH and fixed fall-through in switch cases.
+- Added assertions in embedded lists for insertions / removals.
+- Added new _mark_removed() and _link_mark_removed() for lists.
+- Added is_ascii_ident() to check "\w" (word) in ASCII.
+- Added ULONG_SWAP().
+- Added op_roundup() and op_ptr_roundup() to round to upper aligned boundary.
+- Added stats datapoint iterators and ability to remove outliers.
+- Added G_FAST and G_NO_OPTIMIZE compilation directives.
+- Added support for case-insensitive pattern matching.
+- Added zone_info() to request zone allocation stats.
+- Added p[s]list_shift_data() to remove head when NULL is valid data.
+- Attempt relocation of hash tables arenas once in a while.
+- Always capture and display the routine name in assertions.
+- Disable parallel make execution in src/if.
+- Fixed indentation for "if" and "else" leading to gcc 7.x warnings.
+- Fixed logging fast assertion macros to allow just one string.
+- Declare property choices[] array static and const!
+- Optimize h_strnjoinv() with new strpcpy().
+- Optimize memory for the gnet property init_list[].
+- Optimized ctz64() to make it more obvious.
+- Protect events and subscribers with magic tags.
+- Removed http_buffer_t, completely obsoleted by pmsg_t.
+- Show zalloc settings at startup and in "memory show options".
+- Simplify code for read-lock upgrading and releasing.
+- Strings now hold persistent "truncated" flags, for formatting.
+- The watcher layer now auto-initializes.
+- Use the Mersenne Twister as an additional random source.
+- Use s_carp() instead of s_warning() for reporting "deep" important warnings.
+- Use new vstrstr(), vstrlen(), vmemchr() and vstrchr() for optimized runtime.
+- Windows: added ftruncate() emulation.
+- Windows: fixed stat() and fstat(), with proper st_dev and st_ino fields.
+- enamed hash_table_size() as hash_table_count() for consistency.
+- When log messages are truncated, signal it visually with trailing "+++".
+- VMM: use smarter core allocation under long-term strategy.
+- anti_window_shift_hack(): hide normal output if not debugging.
+- compat_longjmp(): record usage location and trace duplicate use.
+- crash_invoke_inspector(): do not hardwire parent stdout / stderr.
+- crash_restart(): always log the given message.
+- crash_setcctime(): avoid using "time" as parameter name.
+- crash_vmea_usage(): trace calling routine.
+- entropy_seed(): also initialize random "previous entropy".
+- fi_pick_chunk(): fixed selection of first chunk.
+- fi_pick_chunk(): revisited random chunk selection algorithm.
+- file_object_find(): loudly warn on file mismatch.
+- get_iconv_charset_alias(): do not copy trailing ' ' in charset name.
+- halloc_dump_stats_log(): was not logging realloc_via_xprealloc.
+- hrealloc(): use vmm_move() and attempt to optimize VM space.
+- log_handler(): emit stacktrace for glib, GTK or Pango warnings.
+- mingw_dladdr(): use win32 DLP layer to check for new libraries.
+- mingw_dlerror(): fixed to follow POSIX semantics.
+- mingw_fix_stat(): trap ERROR_NOT_READY errors correctly.
+- node_timer(): periodically try to move QRT arenas in VM space.
+- parse.h: remove NON_NULL_PARAM() on function with assertions.
+- rwlock_upgrade_from(): must only count read-locks from current thread.
+- s_logv(): default log message max length raised to 3500 bytes.
+- search_oob_pending_results(): randomly discard hits if too many.
+- search_request_preprocess(): warn if TCP query contains a "QK".
+- sequence_backward_iterator(): fixed case of one-way lists.
+- stacktrace_pretty_filepath(): move to latest /src/.
+- str_chr(): optimized to use vstrchr() if we can NUL-terminate.
+- str_destroy(): ensure we do not call on a thread-private string.
+- str_s2c(), str_2c(), str_dup(): handle already NUL-terminated strings.
+- str_s2c(): ensure we do not call on a thread-private string.
+- thread_suspend_others(): skip threads not marked as "valid".
+- timestamp: be paranoid and protect against invalid time_t inputs.
+- vmea_capacity(): changed semantics to report initial capacity.
+- vmm_mmap_anonymous(): identify foreign regions more quickly.
+- word_vec_make(): simplified code a bit.
+- wrealloc(): if size does not change, attempt a wmove().
+- xallocate(): be more aggressive when forcing VMM allocation.
+- xmalloc: allocate via standalone VMM regions if possible.
+- xmalloc: revisited plain VMM block allocation and freeing.
+- xmalloc: use checksums to validate chunk headers.
+- xreallocate(): ensure VMM space improves when reallocating.
+- zcreate(): flag created zones as "user" ones.
+- zgc(): only run for long-lived processes.
+
 # v 1.1.13  2017-10-22  [stable]
 
 This release primarily addresses issues that were left-over in 1.1.12.
@@ -9110,3 +9731,5 @@ Detailed changes:
 * v 0.1           2000.04.16
 
 - First release of gtk-gnutella :)
+
+# vi: set ts=4 sw=4 syn=text:

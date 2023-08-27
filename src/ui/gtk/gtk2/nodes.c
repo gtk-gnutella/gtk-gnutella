@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -142,6 +142,7 @@ add_column(GtkTreeView *tree, const gchar *title,
 			cell_data_func, udata, NULL);
 
     gtk_tree_view_append_column(GTK_TREE_VIEW(tree), column);
+	gui_column_map(column, tree);		/* Capture resize events */
 }
 
 struct node_data {
@@ -298,6 +299,8 @@ nodes_gui_create_treeview_nodes(void)
 	gtk_tree_selection_set_mode(gtk_tree_view_get_selection(tree),
 		GTK_SELECTION_MULTIPLE);
 
+	gui_parent_widths_saveto(tree, PROP_NODES_COL_WIDTHS);
+
 	for (i = 0; i < N_ITEMS(columns); i++)
 		add_column(tree, _(columns[i].title), cell_renderer_func,
 			GUINT_TO_POINTER(columns[i].id));
@@ -343,7 +346,7 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 	g_assert(data->node_id == info->node_id);
 
     if (guc_node_get_status(info->node_id, &status)) {
-		str_bprintf(data->version, sizeof data->version, "%u.%u",
+		str_bprintf(ARYLEN(data->version), "%u.%u",
 				info->proto_major, info->proto_minor);
 		atom_str_free_null(&data->user_agent);
 		data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
@@ -361,7 +364,7 @@ nodes_gui_update_node_flags(struct node_data *data, gnet_node_flags_t *flags)
 
 	g_assert(NULL != data);
 
-	concat_strings(data->flags, sizeof data->flags,
+	concat_strings(ARYLEN(data->flags),
 		"<tt>", guc_node_flags_to_string(flags), "</tt>", NULL_PTR);
 
 	ultra = NODE_P_ULTRA == flags->peermode || NODE_P_G2HUB == flags->peermode;
@@ -401,7 +404,7 @@ update_tooltip(GtkTreeView *tv, GtkTreePath *path)
 		guc_node_fill_info(data->node_id, &info);
 		g_assert(info.node_id == data->node_id);
 
-		str_bprintf(text, sizeof text,
+		str_bprintf(ARYLEN(text),
 			"%s %s\n"
 			"%s %s (%s)\n"
 			"%s %s (%s)\n"
@@ -537,10 +540,9 @@ nodes_gui_early_init(void)
 void
 nodes_gui_init(void)
 {
-	GtkTreeView *tv;
+	GtkTreeView *tv = treeview_nodes;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup( "treeview_nodes"));
-	treeview_nodes = tv;
+	g_assert(treeview_nodes != NULL);
 
 	tree_view_restore_widths(tv, PROP_NODES_COL_WIDTHS);
 	tree_view_restore_visibility(tv, PROP_NODES_COL_VISIBLE);
@@ -572,7 +574,6 @@ void
 nodes_gui_shutdown(void)
 {
 	tree_view_motion_clear_callback(&tvm_nodes);
-	tree_view_save_widths(treeview_nodes, PROP_NODES_COL_WIDTHS);
 	tree_view_save_visibility(treeview_nodes, PROP_NODES_COL_VISIBLE);
 
     guc_node_remove_node_added_listener(nodes_gui_node_added);
@@ -631,23 +632,20 @@ nodes_gui_remove_node(const struct nid *node_id)
 void
 nodes_gui_add_node(gnet_node_info_t *info)
 {
-	static const struct node_data zero_data;
 	struct node_data *data;
 	gnet_node_flags_t flags;
 
     g_return_if_fail(info);
 	g_return_if_fail(!htable_contains(nodes_handles, info->node_id));
 
-	WALLOC(data);
-	*data = zero_data;
-
+	WALLOC0(data);
 	data->node_id = nid_ref(info->node_id);
 	data->user_agent = info->vendor ? atom_str_get(info->vendor) : NULL;
 	data->country = info->country;
 	data->host_size = w_concat_strings(&data->host,
 						host_addr_port_to_string(info->addr, info->port),
 						NULL_PTR);
-	str_bprintf(data->version, sizeof data->version, "%u.%u",
+	str_bprintf(ARYLEN(data->version), "%u.%u",
 		info->proto_major, info->proto_minor);
 
 	guc_node_fill_flags(data->node_id, &flags);
@@ -705,7 +703,7 @@ update_row(const void *key, void *value, void *user_data)
 		size_t size;
 
 		s = nodes_gui_common_status_str(&status);
-		size = 1 + strlen(s);
+		size = 1 + vstrlen(s);
 		if (size > data->info_size) {
 			WFREE_NULL(data->info, data->info_size);
 			data->info = wcopy(s, size);
@@ -811,12 +809,10 @@ nodes_gui_node_flags_changed(const struct nid *node_id)
 void
 nodes_gui_remove_selected(void)
 {
-	GtkTreeView *treeview;
 	GtkTreeSelection *selection;
 	GSList *node_list = NULL;
 
-	treeview = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
-	selection = gtk_tree_view_get_selection(treeview);
+	selection = gtk_tree_view_get_selection(treeview_nodes);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_remove_selected_helper, &node_list);
 	guc_node_remove_nodes_by_id(node_list);
@@ -864,11 +860,9 @@ nodes_gui_reverse_lookup_selected_helper(GtkTreeModel *model,
 void
 nodes_gui_reverse_lookup_selected(void)
 {
-	GtkTreeView *tv;
 	GtkTreeSelection *selection;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
-	selection = gtk_tree_view_get_selection(tv);
+	selection = gtk_tree_view_get_selection(treeview_nodes);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_reverse_lookup_selected_helper, NULL);
 }
@@ -895,11 +889,9 @@ nodes_gui_browse_selected_helper(GtkTreeModel *model,
 void
 nodes_gui_browse_selected(void)
 {
-	GtkTreeView *tv;
 	GtkTreeSelection *selection;
 
-	tv = GTK_TREE_VIEW(gui_main_window_lookup("treeview_nodes"));
-	selection = gtk_tree_view_get_selection(tv);
+	selection = gtk_tree_view_get_selection(treeview_nodes);
 	gtk_tree_selection_selected_foreach(selection,
 		nodes_gui_browse_selected_helper, NULL);
 

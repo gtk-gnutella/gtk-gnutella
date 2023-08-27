@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -40,8 +40,8 @@
 
 #include "ascii.h"
 #include "buf.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"	/* For g_strlcat() with glib 1.x */
 #include "halloc.h"
 #include "mempcpy.h"
 #include "misc.h"
@@ -125,7 +125,7 @@ ipv4_to_string_buf(uint32 ipv4, char *dst, size_t size)
 	*p = '\0';
 
 	if (p0 != dst) {
-		g_strlcpy(dst, p0, size);
+		cstr_bcpy(dst, size, p0);
 	}
 	return p - p0;
 }
@@ -1206,7 +1206,7 @@ char_to_printf_escape(uchar c, char *esc, const char *safe_chars)
 	if (!safe_chars) {
 		safe_chars = "";
 	}
-	if (is_ascii_alnum(c) || (c < 0x80 && strchr(safe_chars, c))) {
+	if (is_ascii_alnum(c) || (c < 0x80 && vstrchr(safe_chars, c))) {
 		if (esc)
 			*esc = c;
 
@@ -1272,7 +1272,7 @@ lazy_string_to_printf_escape(const char *src)
 	}
 	*p = '\0';
 
-	memcpy(bd, &prev, sizeof prev);
+	memcpy(bd, &prev, sizeof prev);		/* No VARLEN(): memcpy() may be a macro */
 	return NOT_LEAKING(prev);
 }
 
@@ -1423,7 +1423,7 @@ compact_time(time_delta_t t)
 const char *
 compact_time2(time_delta_t t)
 {
-	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	buf_t *b = buf_private(G_STRFUNC, COMPACT_TIME_MAX_LEN);
 	char *p = buf_data(b);
 	size_t n, sz = buf_size(b);
 
@@ -1569,6 +1569,42 @@ time_locale_to_string_buf(time_t t, char *dst, size_t size)
 	dst[len] = '\0';
 
 	return len;
+}
+
+/**
+ * Convert boolean to string.
+ *
+ * When the value given is not simply TRUE or FALSE, show the actual value,
+ * which is of course TRUE.
+ *
+ * @param b		the boolean value
+ */
+const char *
+bool_to_string(bool v)
+{
+	if (0 == v)
+		return "FALSE";
+	else if (1 == v)
+		return "TRUE";
+	else {
+		/* Catch any boolean which is not simply 0 or 1 */
+		buf_t *b = buf_private(G_STRFUNC, INT_DEC_BUFLEN + sizeof("TRUE="));
+		char *p = buf_data(b);
+		size_t sz = buf_size(b);
+
+		/*
+		 * We carp to help find the source of the culprit, knowing that
+		 * if several booleans are logged in a single formatting call,
+		 * only the last value will actually be printed if several have
+		 * non TRUE or FALSE values (they all use the same private buffer
+		 * to hold the value).
+		 */
+
+		s_carp_once("%s(): actual boolean value is %d", G_STRFUNC, v);
+
+		str_bprintf(p, sz, "TRUE=%d", v);	/* Visual indication of weirdness */
+		return p;
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

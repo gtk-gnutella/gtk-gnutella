@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -135,6 +135,7 @@ buf_t *buf_new_embedded(size_t size);
 buf_t *buf_private(const void *key, size_t size);
 void buf_free_null(buf_t **b_ptr);
 
+buf_t *buf_grow(buf_t *b, size_t total);
 buf_t *buf_resize(buf_t *b, size_t size);
 buf_t *buf_private_resize(const void *key, size_t size);
 

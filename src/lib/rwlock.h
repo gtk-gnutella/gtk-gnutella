@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -75,6 +75,14 @@
 #define RWLOCK_READSPOT_DEBUG	/* Tracks first read lock point per thread */
 #endif
 
+/**
+ * Set RWLOCK_WRITER_DEBUG to track write-owner origin (filename and line)
+ * so that we can more easily spot which place took the write lock.
+ */
+#if 0
+#define RWLOCK_WRITER_DEBUG		/* Tracks write lock point */
+#endif
+
 #ifdef RWLOCK_READER_DEBUG
 #include "bit_array.h"
 #endif
@@ -112,6 +120,10 @@ typedef struct rwlock {
 #ifdef RWLOCK_READSPOT_DEBUG
 	struct { const char *file; unsigned line; } readspot[THREAD_MAX];
 #endif
+#ifdef RWLOCK_WRITER_DEBUG
+	const char *file;		/* Filename where write lock was acquired */
+	uint line;				/* Line number where write lock was acquired */
+#endif
 } rwlock_t;
 
 #ifdef RWLOCK_READER_DEBUG
@@ -126,6 +138,11 @@ typedef struct rwlock {
 #define RWLOCK_READSPOT_INIT
 #endif
 
+#ifdef RWLOCK_WRITER_DEBUG
+#define RWLOCK_WRITER_INIT	, NULL, 0
+#else
+#define RWLOCK_WRITER_INIT
+#endif
 
 /**
  * Static initialization value for a rwlock structure.
@@ -134,6 +151,7 @@ typedef struct rwlock {
 	{ RWLOCK_MAGIC, RWLOCK_WFREE, 0, 0, 0, 0, SPINLOCK_INIT, NULL, NULL	\
 		RWLOCK_READING_INIT		\
 		RWLOCK_READSPOT_INIT	\
+		RWLOCK_WRITER_INIT	\
 	}
 
 /*
@@ -162,6 +180,9 @@ void rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line);
 
 bool rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line);
 void rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line);
+bool rwlock_force_upgrade_from(rwlock_t *rw, const char *file, unsigned line);
+
+void rwlock_ungrab_from(rwlock_t *rw, bool w, const char *file, unsigned line);
 
 /*
  * Public interface.
@@ -186,10 +207,18 @@ void rwlock_crash_mode(void);
 #define rwlock_upgrade(x)	rwlock_upgrade_from((x), _WHERE_, __LINE__)
 #define rwlock_downgrade(x)	rwlock_downgrade_from((x), _WHERE_, __LINE__)
 
+#define rwlock_unlock(x,w)	rwlock_ungrab_from((x), (w), _WHERE_, __LINE__)
+
+#define rwlock_force_upgrade(x) \
+	rwlock_force_upgrade_from((x), _WHERE_, __LINE__)
+
 bool rwlock_is_owned(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_used(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_free(const rwlock_t *rw) NON_NULL_PARAM((1));
 bool rwlock_is_taken(const rwlock_t *rw) NON_NULL_PARAM((1));
+bool rwlock_is_busy(const rwlock_t *rw) NON_NULL_PARAM((1));
+
+unsigned rwlock_writers(const rwlock_t *rw);
 
 NON_NULL_PARAM((1, 2))
 void rwlock_not_owned(const rwlock_t *rw, const char *file, unsigned line);

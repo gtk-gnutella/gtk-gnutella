@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -268,7 +268,7 @@ whitelist_dns_cb(const host_addr_t *addrs, size_t n, void *udata)
 			if (GNET_PROPERTY(whitelist_debug) > 1) {
 				g_debug("WLIST DNS-resolved %s as %s (out of %zu result%s)",
 					item->host->name, host_addr_to_string(item->addr),
-					n, plural(n));
+					PLURAL(n));
 			}
 			if (!ctx->revalidate) {
 				whitelist_add(item);
@@ -339,7 +339,7 @@ whitelist_retrieve(void)
 		return;
 	}
 
-    while (fgets(line, sizeof line, f)) {
+    while (fgets(ARYLEN(line), f)) {
 		pslist_t *sl_addr, *sl;
 		const char *endptr, *start;
 		host_addr_t addr;
@@ -351,7 +351,7 @@ whitelist_retrieve(void)
 
         linenum++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s(): line %u too long, aborting", G_STRFUNC, linenum);
 			break;
 		}

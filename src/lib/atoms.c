@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -620,7 +620,7 @@ static atom_desc_t atoms[] = {
 static size_t
 str_xlen(const void *v)
 {
-	return strlen((const char *) v) + 1;
+	return vstrlen((const char *) v) + 1;
 }
 
 /**
@@ -1276,7 +1276,7 @@ atom_get_track(enum atom_type type, const void *key, const char *file, int line)
 		a->free = htable_create(HASH_KEY_STRING, 0);
 	}
 
-	str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
+	str_bprintf(ARYLEN(buf), "%s:%d", short_filename(file), line);
 
 	if (htable_lookup_extended(a->get, buf, &k, &v)) {
 		sp = (struct spot *) v;
@@ -1363,7 +1363,7 @@ atom_free_track(enum atom_type type, const void *key,
 	if (!freed) {
 		char buf[512];
 
-		str_bprintf(buf, sizeof(buf), "%s:%d", short_filename(file), line);
+		str_bprintf(ARYLEN(buf), "%s:%d", short_filename(file), line);
 
 		if (htable_lookup_extended(a->free, buf, NULL, &v)) {
 			sp = (struct spot *) v;
@@ -1425,7 +1425,7 @@ dump_tracking_table(const void *atom, htable_t *h, char *what)
 	size_t opcount = atom_track_count(h);
 
 	g_warning("all %zu %s spot%s (%zu operation%s) for %p:",
-		count, what, plural(count), opcount, plural(opcount), atom);
+		count, what, plural(count), PLURAL(opcount), atom);
 
 	htable_foreach(h, dump_tracking_entry, what);
 }

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,6 +47,16 @@
 #include "override.h"			/* Must be the last header included */
 
 static bool mutex_pass_through;
+static bool mutex_contention_trace;
+
+/**
+ * Set contention tracing for mutexes (here only managing failed try attempts).
+ */
+void
+mutex_set_contention_trace(bool on)
+{
+	mutex_contention_trace = on;
+}
 
 static inline void
 mutex_get_account(const mutex_t *m, const char *file, unsigned line,
@@ -103,7 +113,7 @@ mutex_crash_mode(void)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Invoked on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -111,20 +121,8 @@ static NO_INLINE void G_COLD
 mutex_deadlock(const volatile void *obj, unsigned count,
 	const char *file, unsigned line)
 {
-	const volatile mutex_t *m = obj;
-	unsigned stid;
-
-	mutex_check(m);
-
-	stid = thread_stid_from_thread(m->owner);
-
-#ifdef SPINLOCK_DEBUG
-	s_miniwarn("mutex %p already held (depth %zu) by %s:%u (%s)",
-		obj, m->depth, m->lock.file, m->lock.line, thread_safe_id_name(stid));
-#endif
-
-	s_minicarp("possible mutex deadlock #%u on %p at %s:%u",
-		count, obj, file, line);
+	(void) count;
+	thread_deadlock_check(obj, file, line);
 }
 
 /**
@@ -157,7 +155,7 @@ mutex_deadlocked(const volatile void *obj, unsigned elapsed,
 	if (-1U == stid)
 		s_miniwarn("unknown thread owner may explain deadlock");
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	thread_lock_deadlock(obj);
 	s_error("deadlocked on mutex %p (depth %zu, after %u secs) at %s:%u, "
 		"owned by %s", obj, m->depth, elapsed, file, line,
@@ -232,6 +230,21 @@ mutex_is_owned(const mutex_t *m)
 	 * This is mostly used during assertions, so we do not need to call
 	 * thread_current().  Use thread_self() for speed and safety, in case
 	 * something goes wrong in the thread-checking code.
+	 *
+	 * Furthermore, as we have discovered when investigating sbrk() failures
+	 * when running in a Docker container, we must not call thread_current()
+	 * since we have no assurance we're running in the main thread yet!  We
+	 * could very possibly run in an alternative thread from the dynamic loader.
+	 *
+	 * To that end, thread_current(), as used by mutex_thread(), has been fixed
+	 * so that it will always return thread_self() until we have started the
+	 * main thread and know for suce that its thread_self() will no longer change.
+	 *
+	 * Hence this code only needs to rely on the thread_self() value, regardless
+	 * of whether it was computed dynamically by mutex_thread() or through a
+	 * call to thread_current().
+	 *
+	 * 		--RAM, 2020-02-12
 	 */
 
 	return thread_eq(m->owner, thread_self());
@@ -339,6 +352,16 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 	}
 }
 
+/**
+ * Report failed non-blocking grab attempt if needed.
+ */
+static inline void
+mutex_try_contention(const mutex_t *m, const char *file, unsigned line)
+{
+	if G_UNLIKELY(mutex_contention_trace && !mutex_pass_through)
+		s_rawdebug("LOCK already busy for mutex %p at %s:%u", m, file, line);
+}
+
 #define MUTEX_GRAB												\
 	if (mutex_is_owned_by_fast(m, t)) {							\
 		mutex_recursive_get(m);									\
@@ -358,6 +381,7 @@ mutex_thread(const enum mutex_mode mode, const void **element)
 		thread_set(m->owner, t);							\
 		mutex_set_owner(m, file, line);						\
 	} else {												\
+		mutex_try_contention(m, file, line);				\
 		return FALSE;										\
 	}
 
@@ -528,17 +552,19 @@ mutex_log_error(const mutex_t *m, const char *file, unsigned line)
 	thread_t t = thread_current();
 
 #ifdef SPINLOCK_DEBUG
-	s_minierror("thread #%u expected to own mutex %p (%s) at %s:%u"
+	s_minierror("thread #%u expected to own mutex %p (%s%s) at %s:%u"
 		" (depth=%zu, owner=thread #%d [%lu] from %s:%u,"
 		" current/self=[%lu, %lu] #%d)",
 		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
+		spinlock_is_held(&m->lock) ? "" : " unlocked",
 		file, line, m->depth, thread_stid_from_thread(m->owner),
 		(ulong) m->owner, m->lock.file, m->lock.line,
 		(ulong) t, (ulong) thread_self(), thread_stid_from_thread(t));
 #else	/* !SPINLOCK_DEBUG */
-	s_minierror("thread #%u expected to own mutex %p (%s) at %s:%u"
+	s_minierror("thread #%u expected to own mutex %p (%s%s) at %s:%u"
 		" (depth=%zu, owner=thread #%d [%lu], current/self=[%lu, %lu] #%d)",
 		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
+		spinlock_is_held(&m->lock) ? "" : " unlocked",
 		file, line, m->depth, thread_stid_from_thread(m->owner),
 		(ulong) m->owner, (ulong) t, (ulong) thread_self(),
 		thread_stid_from_thread(t));

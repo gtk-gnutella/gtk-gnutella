@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -37,10 +37,12 @@
 #include "common.h"
 
 #include "watcher.h"
+
 #include "atoms.h"
 #include "cq.h"
 #include "halloc.h"
 #include "hikset.h"
+#include "once.h"
 #include "path.h"
 #include "walloc.h"
 
@@ -102,6 +104,9 @@ watcher_timer(void *unused_udata)
 {
 	(void) unused_udata;
 
+	if G_UNLIKELY(NULL == monitored)
+		return FALSE;	/* Stop calling, layer disabled */
+
 	hikset_foreach(monitored, watcher_check_mtime, NULL);
 
 	return TRUE;		/* Keep calling */
@@ -121,6 +126,11 @@ void
 watcher_register(const char *filename, watcher_cb_t cb, void *udata)
 {
 	struct monitored *m;
+
+	g_assert(filename != NULL);
+	g_assert(cb != NULL);
+
+	watcher_init();		/* Auto-initialization */
 
 	WALLOC0(m);
 	m->filename = atom_str_get(filename);
@@ -142,6 +152,9 @@ void
 watcher_register_path(const file_path_t *fp, watcher_cb_t cb, void *udata)
 {
 	char *path;
+
+	g_assert(fp != NULL);
+	g_assert(cb != NULL);
 
 	path = make_pathname(fp->dir, fp->name);
 	watcher_register(path, cb, udata);
@@ -166,6 +179,9 @@ watcher_unregister(const char *filename)
 {
 	struct monitored *m;
 
+	g_return_unless(monitored != NULL);
+	g_assert(filename != NULL);
+
 	m = hikset_lookup(monitored, filename);
 
 	g_assert(m != NULL);
@@ -183,9 +199,22 @@ watcher_unregister_path(const file_path_t *fp)
 {
 	char *path;
 
+	g_assert(fp != NULL);
+
 	path = make_pathname(fp->dir, fp->name);
 	watcher_unregister(path);
 	HFREE_NULL(path);
+}
+
+/**
+ * Configure the watcher layer, once.
+ */
+static void
+watcher_init_once(void)
+{
+	monitored = hikset_create(
+		offsetof(struct monitored, filename), HASH_KEY_STRING, 0);
+	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
 }
 
 /**
@@ -194,9 +223,9 @@ watcher_unregister_path(const file_path_t *fp)
 void
 watcher_init(void)
 {
-	monitored = hikset_create(
-		offsetof(struct monitored, filename), HASH_KEY_STRING, 0);
-	cq_periodic_main_add(MONITOR_PERIOD_MS, watcher_timer, NULL);
+	static once_flag_t watcher_inited;
+
+	ONCE_FLAG_RUN(watcher_inited, watcher_init_once);
 }
 
 /**

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -121,7 +121,9 @@ typedef struct lmutex {
 static inline bool
 mutex_is_valid(const volatile mutex_t * const m)
 {
-	return m != NULL && MUTEX_MAGIC == m->magic;
+	return m != NULL &&
+		MUTEX_MAGIC == m->magic &&
+		SPINLOCK_MAGIC == m->lock.magic;
 }
 
 /**
@@ -166,6 +168,8 @@ bool mutex_grab_swap_try_from(mutex_t *m, const void *plock,
 /*
  * Public interface.
  */
+
+void mutex_set_contention_trace(bool on);
 
 #define mutex_lock(x) \
 	mutex_grab_from((x), MUTEX_MODE_NORMAL, _WHERE_, __LINE__)

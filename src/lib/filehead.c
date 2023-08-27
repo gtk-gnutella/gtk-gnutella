@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -71,7 +71,7 @@ filehead_uint64(const char *path, bool missing, int *errptr)
 	if (-1 == fd)
 		goto error;
 
-	r = read(fd, data, sizeof data - 1); /* reserve one byte for NUL */
+	r = read(fd, ARYLEN(data) - 1); /* reserve one byte for NUL */
 
 	if ((ssize_t) -1 == r)
 		goto error_close;

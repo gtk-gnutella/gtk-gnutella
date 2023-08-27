@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -93,6 +93,8 @@ enum http_range_extract_status http_range_extract_first(
 const http_range_t *http_range_first(const http_rangeset_t *hrs);
 const http_range_t *http_range_next(const http_rangeset_t *hrs,
 	const http_range_t *r);
+const http_range_t *http_rangeset_lookup_over(const http_rangeset_t *hrs,
+	filesize_t start, filesize_t end, const http_range_t *r);
 
 int http_range_overlap_cmp(const void *a, const void *b);
 

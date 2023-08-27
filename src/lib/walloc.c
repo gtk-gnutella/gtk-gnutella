@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -59,6 +59,7 @@
 #include "tmalloc.h"
 #include "unsigned.h"
 #include "xmalloc.h"
+#include "vmm.h"			/* For vmm_pointer_is_better(), vmm_is_long_term() */
 #include "zalloc.h"
 
 #include "override.h"		/* Must be the last header included */
@@ -154,7 +155,8 @@ wzone_index(size_t rounded)
 	size_t idx;
 
 	g_assert(rounded == zalloc_round(rounded));
-	g_assert(size_is_positive(rounded) && rounded <= WALLOC_MAX);
+	g_assert_log(size_is_positive(rounded) && rounded <= WALLOC_MAX,
+		"%s(): rounded=%zu, walloc_max=%zu", G_STRFUNC, rounded, walloc_max);
 
 	STATIC_ASSERT(IS_POWER_OF_2(ZALLOC_ALIGNBYTES));
 	idx = rounded / ZALLOC_ALIGNBYTES;
@@ -221,8 +223,10 @@ walloc_get_zone(size_t rounded, bool allocate)
 		WALLOC_LOCK;
 
 		if (NULL == (zone = wzone[idx])) {
-			if (walloc_stopped)
+			if (walloc_stopped) {
+				WALLOC_UNLOCK;
 				return NULL;
+			}
 
 			if (!allocate)
 				s_error("missing %zu-byte zone", rounded);
@@ -268,6 +272,20 @@ walloc_raw(size_t size)
 }
 
 /**
+ * Same as walloc_raw(), but zeroes the allocated memory before returning.
+ */
+static void *
+walloc_raw0(size_t size)
+{
+	void *p = walloc_raw(size);
+
+	if (p != NULL)
+		memset(p, 0, size);
+
+	return p;
+}
+
+/**
  * Free a block allocated via walloc_raw().
  *
  * The size is used to find the zone from which the block was allocated, or
@@ -295,12 +313,14 @@ wfree_raw(void *ptr, size_t size)
 	zfree(zone, ptr);
 }
 
+#ifndef TRACK_ZALLOC
 /**
  * Get magazine depot for given rounded allocation size.
  *
  * @param rounded		rounded allocation size
  *
- * @return the magazine depot corresponding to the requested size.
+ * @return the magazine depot corresponding to the requested size or NULL if
+ * we cannot get a magazine yet or for this particular size.
  */
 static tmalloc_t *
 walloc_get_magazine(size_t rounded)
@@ -334,7 +354,7 @@ walloc_get_magazine(size_t rounded)
 
 		/*
 		 * Until thread_set_main() has been called, do not create magazines.
-		 * If they call walloc_limit() to limit walloc() to a small subset
+		 * If they call walloc_active_limit() to limit walloc() to a small subset
 		 * of already created zones, we do not want a large magazine depot
 		 * container to have already been created (these can be around 2 KiB).
 		 */
@@ -377,6 +397,23 @@ walloc_get_magazine(size_t rounded)
 			}
 
 			zsize = zone_size(zone);
+
+			/*
+			 * If the size of the zone we allocated is greater than the maximum
+			 * we want to allow through walloc(), we cannot use it.
+			 *
+			 * This can happen when zalloc() is configured with some additional
+			 * overhead in the blocks for debugging purposes: due to rounding,
+			 * the size of blocks used may be much larger than the maximum
+			 * we want to handle.
+			 * 		--RAM, 2018-07-04
+			 */
+
+			if G_UNLIKELY(zsize > WALLOC_MAX) {
+				depot = NULL;
+				goto done;
+			}
+
 			zidx = wzone_index(zsize);
 
 			if (zsize != rounded) {
@@ -388,7 +425,7 @@ walloc_get_magazine(size_t rounded)
 				}
 			}
 
-			str_bprintf(name, sizeof name, "walloc-%zu", zsize);
+			str_bprintf(ARYLEN(name), "walloc-%zu", zsize);
 			depot = wmagazine[idx] = wmagazine[zidx] =
 				tmalloc_create(name, zsize, walloc_raw, wfree_raw);
 		}
@@ -399,6 +436,35 @@ walloc_get_magazine(size_t rounded)
 
 	return depot;
 }
+#endif	/* !TRACK_ZALLOC */
+
+#ifdef TRACK_ZALLOC
+#define DEPOT_ALLOC(RAW, TMALLOC)						\
+	return RAW(size);
+#else	/* !TRACK_ZALLOC */
+#define DEPOT_ALLOC(RAW, TMALLOC)						\
+{														\
+	tmalloc_t *depot = walloc_get_magazine(rounded);	\
+														\
+	if G_UNLIKELY(NULL == depot)						\
+		return RAW(size);								\
+														\
+	return TMALLOC(depot);								\
+}
+#endif	/* TRACK_ZALLOC */
+
+#define DO_ALLOC(XMALLOC, RAW, TMALLOC)					\
+	size_t rounded = zalloc_round(size);				\
+														\
+	g_assert(size_is_positive(size));					\
+														\
+	if G_UNLIKELY(rounded > walloc_max) {				\
+		/* Too big for efficient zalloc() */			\
+		return XMALLOC(size);							\
+	}													\
+														\
+	DEPOT_ALLOC(RAW, TMALLOC)
+
 
 /**
  * Allocate memory from a magazine depot suitable for the given size, or
@@ -409,22 +475,7 @@ walloc_get_magazine(size_t rounded)
 void * G_HOT
 walloc(size_t size)
 {
-	tmalloc_t *depot;
-	size_t rounded = zalloc_round(size);
-
-	g_assert(size_is_positive(size));
-
-	if G_UNLIKELY(rounded > walloc_max) {
-		/* Too big for efficient zalloc() */
-		return xmalloc(size);
-	}
-
-	depot = walloc_get_magazine(rounded);
-
-	if G_UNLIKELY(NULL == depot)
-		return walloc_raw(size);
-
-	return tmalloc(depot);
+	DO_ALLOC(xmalloc, walloc_raw, tmalloc)
 }
 
 /**
@@ -433,12 +484,7 @@ walloc(size_t size)
 void *
 walloc0(size_t size)
 {
-	void *p = walloc(size);
-
-	if (p != NULL)
-		memset(p, 0, size);
-
-	return p;
+	DO_ALLOC(xmalloc0, walloc_raw0, tmalloc0)
 }
 
 /**
@@ -590,6 +636,32 @@ wfree_eslist(eslist_t *el, size_t size)
 	}
 }
 
+#ifndef TRACK_ZALLOC
+/*
+ * Check whether new pointer is at a better position in the VMM space than old.
+ *
+ * @param o		the old pointer
+ * @param n		the new pointer
+ *
+ * @return TRUE if moving the content from the old pointer to the new pointer
+ * makes sense in a long-term strategy memory management scheme.
+ */
+static bool
+walloc_ptr_is_better(const void *o, const void *n)
+{
+	if (!vmm_pointer_is_better(o, n))
+		return FALSE;
+
+	/*
+	 * Make sure pointers are not on the same VM page: we know `n' is better
+	 * than `o' but if it is in the same  page, we will gain nothing by moving
+	 * data to the new position from a zone perspective!
+	 */
+
+	return vmm_page_start(o) != vmm_page_start(n);
+}
+#endif	/* !TRACK_ZALLOC */
+
 /**
  * Move block around if that can serve memory compaction.
  * @return new location for block.
@@ -597,12 +669,49 @@ wfree_eslist(eslist_t *el, size_t size)
 void *
 wmove(void *ptr, size_t size)
 {
-	zone_t *zone = walloc_get_zone(zalloc_round(size), FALSE);
+	size_t rounded = zalloc_round(size);
+	zone_t *zone = walloc_get_zone(rounded, FALSE);
+	void *q, *r;
+	tmalloc_t *depot;
 
 	if G_UNLIKELY(NULL == zone)
 		return ptr;
 
-	return zmove(zone, ptr);
+#ifdef TRACK_ZALLOC
+	(void) q;
+	(void) r;
+	(void) depot;
+	return ptr;
+#else	/* !TRACK_ZALLOC */
+
+	q = zmove(zone, ptr);
+
+	if (q != ptr)
+		return q;		/* Zone was in GC mode, chose best already */
+
+	if (!vmm_is_long_term())
+		return q;		/* Don't bother if in short-term memory strategy */
+
+	/*
+	 * When zone is not in GC mode, or there was nothing obvious,
+	 * attempt to find a "better" pointer via tmalloc(), in case we
+	 * have something in one of the magazines or in the depot's trash,
+	 * something that still appears allocated to the zalloc() layer!
+	 * 		--RAM, 2017-11-21
+	 */
+
+	depot = walloc_get_magazine(rounded);
+
+	if G_UNLIKELY(NULL == depot)
+		return q;
+
+	r = tmalloc_smart(depot, walloc_ptr_is_better, q);
+
+	if G_LIKELY(NULL == r)
+		return q;
+
+	return zmoveto(zone, q, r);
+#endif	/* TRACK_ZALLOC */
 }
 
 /**
@@ -626,7 +735,7 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 		return walloc(new_size);
 
 	if (old_rounded == new_rounded)
-		return old;
+		return wmove(old, old_size);	/* Move around if interesting */
 
 	if G_UNLIKELY(new_rounded > walloc_max || old_rounded > walloc_max)
 		goto resize_block;
@@ -758,16 +867,13 @@ wrealloc_track(void *old, size_t old_size, size_t new_size,
 #endif	/* TRACK_ZALLOC */
 
 /**
- * Destroy all the zones we allocated so far.
+ * Reset all the thread magazines.
  */
-void
-wdestroy(void)
+static void
+wmagazine_reset_all(void)
 {
+#ifndef REMAP_ZALLOC
 	size_t i;
-
-	/*
-	 * Reset all the thread magazines.
-	 */
 
 	for (i = 0; i < WZONE_SIZE; i++) {
 		tmalloc_t *d = wmagazine[i];
@@ -778,6 +884,18 @@ wdestroy(void)
 				tmalloc_reset(d);
 		}
 	}
+#endif	/* !REMAP_ZALLOC */
+}
+
+/**
+ * Destroy all the zones we allocated so far.
+ */
+void
+wdestroy(void)
+{
+	size_t i;
+
+	wmagazine_reset_all();
 
 	/*
 	 * To limit race conditions with code that tests for "walloc_stopped"
@@ -836,6 +954,7 @@ walloc_active_limit(void)
 	size_t i, largest = 0;
 
 	thread_suspend_others(TRUE);
+	wmagazine_reset_all();		/* Free trash and magazine rounds */
 
 	WALLOC_LOCK;
 

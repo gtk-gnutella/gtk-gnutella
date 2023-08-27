@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -269,7 +269,7 @@ publisher_retry(struct publisher_entry *pe, int delay, const char *msg)
 	pd = get_pubdata(pe->sha1);
 	if (pd != NULL) {
 		pd->next_enqueue = time_advance(tm_time(), UNSIGNED(delay));
-		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+		dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 	}
 
 	pe->publish_ev = cq_insert(publish_cq, delay * 1000, handle_entry, pe);
@@ -302,7 +302,7 @@ publisher_hold(struct publisher_entry *pe, int delay, const char *msg)
 	pd = get_pubdata(pe->sha1);
 	if (pd != NULL) {
 		pd->expiration = 0;		/* Signals: do not care any more */
-		dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+		dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 	}
 
 	publisher_retry(pe, delay, msg);
@@ -481,8 +481,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 		if (pe->last_publish) {
 			time_delta_t elapsed = delta_time(tm_time(), pe->last_publish);
 
-			str_bprintf(after, sizeof after,
-				" after %s", compact_time(elapsed));
+			str_bprintf(ARYLEN(after), " after %s", compact_time(elapsed));
 
 			if (pd != NULL) {
 				if (expired)
@@ -492,7 +491,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			}
 		}
 
-		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(ARYLEN(retry), "%s", compact_time(delay));
 
 		g_debug("PUBLISHER SHA-1 %s %s%s\"%s\" %spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
@@ -503,10 +502,10 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 				"partial " : "",
 			(sf && sf != SHARE_REBUILDING) ? shared_file_name_nfc(sf) : "",
 			pe->last_publish ? "re" : "",
-			info->roots, plural(info->roots),
+			PLURAL(info->roots),
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pe->last_enqueued)),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -523,7 +522,7 @@ publisher_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 		if (pd != NULL) {
 			pd->expiration =
 				time_advance(pe->last_publish, DHT_VALUE_ALOC_EXPIRE);
-			dbmw_write(db_pubdata, pe->sha1, pd, sizeof *pd);
+			dbmw_write(db_pubdata, pe->sha1, PTRLEN(pd));
 		}
 	}
 
@@ -657,7 +656,7 @@ publisher_handle(struct publisher_entry *pe)
 			g_debug("PUBLISHER SHA-1 %s %s\"%s\" has %d download mesh "
 				"entr%s, skipped", sha1_to_string(pe->sha1),
 				is_partial ? "partial " : "", shared_file_name_nfc(sf),
-				alt_locs, plural_y(alt_locs));
+				PLURAL_Y(alt_locs));
 		}
 		publisher_hold(pe, PUBLISH_POPULAR, "popular file");
 		goto done;
@@ -780,7 +779,7 @@ publisher_add(const sha1_t *sha1)
 		new_pd.next_enqueue = 0;
 		new_pd.expiration = 0;
 
-		dbmw_write(db_pubdata, sha1, &new_pd, sizeof new_pd);
+		dbmw_write(db_pubdata, sha1, VARLEN(new_pd));
 
 		if (GNET_PROPERTY(publisher_debug) > 2) {
 			g_debug("PUBLISHER allocating new SHA-1 %s",
@@ -926,7 +925,7 @@ publisher_trim_pubdata(void)
 	if (GNET_PROPERTY(publisher_debug)) {
 		count = dbmw_count(db_pubdata);
 		g_debug("PUBLISHER scanning %u retrieved SHA1%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	dbmw_foreach_remove(db_pubdata, publisher_remove_expired, NULL);
@@ -935,7 +934,7 @@ publisher_trim_pubdata(void)
 
 	if (GNET_PROPERTY(publisher_debug)) {
 		g_debug("PUBLISHER kept information about %u SHA1%s",
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	if (!crash_was_restarted())

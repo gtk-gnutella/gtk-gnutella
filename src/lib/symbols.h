@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,6 +34,8 @@
 #ifndef _symbols_h_
 #define _symbols_h_
 
+#include "tm.h"		/* For tm_t */
+
 /**
  * An entry in the symbol table.
  */
@@ -45,18 +47,48 @@ struct symbol {
 struct symbols;
 typedef struct symbols symbols_t;
 
+/**
+ * Self-assessed stacktrace symbol quality.
+ */
+enum symbol_quality {
+	SYMBOL_Q_GOOD = 0,
+	SYMBOL_Q_STALE,
+	SYMBOL_Q_MISMATCH,
+	SYMBOL_Q_GARBAGE,
+
+	SYMBOL_Q_MAX
+};
+
+/**
+ * Give information about a symbol loading operation.
+ */
+struct symbol_load_info {
+	size_t count;					/**> Amount of symbols loaded */
+	size_t stripped;				/**> Amount of stripped symbols (dups) */
+	size_t offset;					/**> Offsetting done to get symbol */
+	const char *path;				/**> File from which symbols were loaded */
+	const char *method;				/**> How symbols were loaded */
+	enum symbol_quality quality;	/**> Self-assessed quality */
+	double secs;					/**> Time spent processing symbols */
+	tm_t when;						/**> When were symbols loaded? */
+};
+
 /*
  * Public interface.
  */
 
+const char *symbol_quality_string(const enum symbol_quality sq);
 void symbols_set_verbose(bool verbose);
+void symbols_load_foreach(cdata_fn_t cb, void *udata);
+const struct symbol_load_info *symbols_load_first(void);
 symbols_t *symbols_make(size_t capacity, bool once);
 void symbols_free_null(symbols_t **st_ptr);
 const char *symbols_name(const symbols_t *st, const void *pc, bool offset);
 const char *symbols_name_only(const symbols_t *st, const void *pc, bool offset);
+const char *symbols_name_light(const symbols_t *st, const void *pc, size_t *off);
 const void *symbols_addr(const symbols_t *st, const void *pc);
 void symbols_load_from(symbols_t *st, const char *path, const  char *lpath);
-enum stacktrace_sym_quality symbols_quality(const symbols_t *st);
+enum symbol_quality symbols_quality(const symbols_t *st);
 size_t symbols_count(const symbols_t *st);
 void symbols_mark_stale(symbols_t *st);
 size_t symbols_memory_size(const symbols_t *st);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -58,7 +58,7 @@ void bigint_init(bigint_t *bi, size_t len);
 void bigint_free(bigint_t *bi);
 void bigint_zero(bigint_t *bi);
 void bigint_copy(bigint_t *res, const bigint_t *other);
-gboolean bigint_is_zero(const bigint_t *bi);
+bool bigint_is_zero(const bigint_t *bi);
 int bigint_cmp(const bigint_t *bi1, const bigint_t *bi2);
 void bigint_set32(bigint_t *bi, uint32 val);
 void bigint_set64(bigint_t *bi, uint64 val);

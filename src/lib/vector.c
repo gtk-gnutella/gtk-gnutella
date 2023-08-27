@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -73,7 +73,7 @@ vector_iter_release(vector_iter_t **iter_ptr)
 }
 
 vector_t *
-vector_alloc(void *base, size_t element_size, size_t n)
+vector_alloc(const void *base, size_t element_size, size_t n)
 {
 	vector_t *vec;
 
@@ -98,7 +98,7 @@ vector_free(vector_t **vec_ptr)
  * Apply ``func'' to all the items in the vector.
  */
 void
-vector_foreach(const vector_t *v, GFunc func, void *data)
+vector_foreach(const vector_t *v, data_fn_t func, void *data)
 {
 	size_t i;
 

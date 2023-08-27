@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -384,11 +384,11 @@ gtk_cell_renderer_progress_render(
 	gdk_draw_rectangle(window, gc, TRUE, x + 2, y + 2, perc_w, h - 4);
 
 	val = cellprogress->priv->value;
-	str_bprintf(text, sizeof text, "%d", val);
+	str_bprintf(ARYLEN(text), "%d", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 	pango_layout_get_pixel_extents(layout, NULL, &logical_rect);
 	g_object_unref(G_OBJECT (layout));
-	str_bprintf(text, sizeof text, "%d %%", val);
+	str_bprintf(ARYLEN(text), "%d %%", val);
 	layout = gtk_widget_create_pango_layout(widget, text);
 
 	pos = (w - logical_rect.width) / 2;

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -103,7 +103,7 @@ thex_upload_uuid(const struct tth *tth)
 	const char *data;
 
 	data = tth->data;
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"uuid:%08x-%04x-%04x-%04x-%08x%04x",
 		peek_le32(&data[0]), peek_le16(&data[4]), peek_le16(&data[6]),
 		peek_le16(&data[8]), peek_le32(&data[10]), peek_le16(&data[14]));
@@ -120,7 +120,7 @@ thex_upload_prepare_xml(char **data_ptr, const struct tth *tth,
 	unsigned depth;
 
 	depth = tt_good_depth(filesize);
-	len = concat_strings(buf, sizeof buf,
+	len = concat_strings(ARYLEN(buf),
 		"<?xml version=\"1.0\" encoding=\"UTF-8\"?>\r\n"
 		"<!DOCTYPE hashtree S"	/* NOTE: HIDE FROM METACONFIG */
 			"YSTEM \""			THEX_DOCTYPE "\">\r\n"

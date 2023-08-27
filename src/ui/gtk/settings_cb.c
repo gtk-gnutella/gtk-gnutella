@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,7 +47,7 @@
 #include "if/gnet_property.h"
 #include "if/bridge/ui2c.h"
 
-#include "lib/glib-missing.h"	/* For g_strlcpy() */
+#include "lib/cstr.h"
 #include "lib/halloc.h"
 #include "lib/pslist.h"
 #include "lib/str.h"
@@ -361,7 +361,7 @@ on_entry_server_hostname_changed(GtkEditable *editable, gpointer unused_udata)
 	g_strstrip(text);
 	gtk_widget_set_sensitive(
         gui_dlg_prefs_lookup("checkbutton_give_server_hostname"),
-        strlen(text) > 3);		/* Minimum: "x.cx" */
+        vstrlen(text) > 3);		/* Minimum: "x.cx" */
 	G_FREE_NULL(text);
 }
 
@@ -510,7 +510,15 @@ on_button_dbg_property_refresh_clicked(GtkButton *unused_button,
 	(void) unused_udata;
 
 	tv = GTK_TREE_VIEW(gui_dlg_prefs_lookup("treeview_dbg_property"));
+	g_assert(GTK_IS_TREE_VIEW(tv));
+
 	model = gtk_tree_view_get_model(tv);
+	if (!model) {
+		on_entry_dbg_property_pattern_activate(NULL, NULL);
+		return;
+	}
+	g_assert(GTK_IS_TREE_MODEL(model));
+
 	gtk_tree_model_foreach(GTK_TREE_MODEL(model), refresh_property, NULL);
 }
 
@@ -951,7 +959,7 @@ void
 on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
 	gpointer unused_udata)
 {
-	static gchar old_pattern[1024];
+	static gchar old_pattern[1024] = { '\0' };
    	gchar *text;
 
 	(void) unused_editable;
@@ -962,10 +970,10 @@ on_entry_dbg_property_pattern_activate(GtkEditable *unused_editable,
         0, -1));
 	g_strstrip(text);
 
-	if (0 != strcmp(text, old_pattern)) {
+	if (0 != strcmp(text, old_pattern) || '\0' == text[0]) {
 		pslist_t *props;
 
-		g_strlcpy(old_pattern, text, sizeof old_pattern);
+		cstr_bcpy(ARYLEN(old_pattern), text);
 		props = gnet_prop_get_by_regex(text, NULL);
 		if (!props)
 			statusbar_gui_warning(10,

@@ -57,6 +57,8 @@
 #include "tm.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool debugging, pid_only;
 
@@ -233,16 +235,16 @@ test_lock_existence(const char *lock)
 	char args[64];
 	const char *test = "t=exists,";
 
-	str_bprintf(args, sizeof args, "%s", debugging ? ",debug" : "");
-	str_bcatf(args, sizeof args, "%s", pid_only ? ",pid" : "");
+	str_bprintf(ARYLEN(args), "%s", debugging ? ",debug" : "");
+	str_bcatf(ARYLEN(args), "%s", pid_only ? ",pid" : "");
 
 	verbose_unlink(lock);
 
-	concat_strings(buf, sizeof buf, test, "x.grab", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.grab", args, NULL_PTR);
 	p = verbose_launch(progpath, "-X", buf, lock, NULL_PTR);
 	test_child_expect(p, TRUE);
 
-	concat_strings(buf, sizeof buf, test, "pid,x.grab", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "pid,x.grab", args, NULL_PTR);
 	p = verbose_launch(progpath, "-X", buf, lock, NULL_PTR);
 	test_child_expect(p, TRUE);
 
@@ -254,11 +256,11 @@ test_lock_existence(const char *lock)
 
 	emitz("locked \"%s\" in %s mode", lock, pid_only ? "PID-only" : "default");
 
-	concat_strings(buf, sizeof buf, test, "x.fail", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.fail", args, NULL_PTR);
 	p = verbose_launch(progpath, "-X", buf, lock, NULL_PTR);
 	test_child_expect(p, TRUE);
 
-	concat_strings(buf, sizeof buf, test, "pid,x.fail", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "pid,x.fail", args, NULL_PTR);
 	p = verbose_launch(progpath, "-X", buf, lock, NULL_PTR);
 	test_child_expect(p, TRUE);
 
@@ -292,7 +294,7 @@ launch_and_wait(void)
 	tm_t start, end;
 	int status;
 
-	concat_strings(buf, sizeof buf, test, "x.nop", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.nop", args, NULL_PTR);
 	fd = spopenl(progpath, "r", NULL,
 			progpath, "-X", buf, "/dev/null", NULL_PTR);
 	g_assert_log(fd != -1, "%s(): spopenl() failed: %m", G_STRFUNC);
@@ -343,8 +345,8 @@ test_lock_concurrency(const char *lock)
 	double total_delay;
 	size_t i, locked;
 
-	str_bprintf(args, sizeof args, "%s", debugging ? ",debug" : "");
-	str_bcatf(args, sizeof args, "%s", pid_only ? ",pid" : "");
+	str_bprintf(ARYLEN(args), "%s", debugging ? ",debug" : "");
+	str_bcatf(ARYLEN(args), "%s", pid_only ? ",pid" : "");
 
 	verbose_unlink(lock);
 
@@ -358,7 +360,7 @@ test_lock_concurrency(const char *lock)
 	 */
 
 	total_delay = elapsed * LOCK_PROCS;
-	concat_strings(buf, sizeof buf, test, "x.lock", args, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.lock", args, NULL_PTR);
 
 	emitz("total delay will be %.3f secs", total_delay);
 
@@ -588,7 +590,7 @@ x_lock_concurrent(const htable_t *xv, const char *lock)
 
 		emitz("child ready, waiting for parent to unblock%s", "...");
 
-		IGNORE_RESULT(read(STDIN_FILENO, &b, sizeof b));
+		IGNORE_RESULT(read(STDIN_FILENO, VARLEN(b)));
 
 		fl = filelock_create(lock, &params);
 		b = fl != NULL;
@@ -603,7 +605,7 @@ x_lock_concurrent(const htable_t *xv, const char *lock)
 		x_check(is_a_fifo(STDIN_FILENO));
 
 		/* Wait for parent to close its writing end to unblock us */
-		IGNORE_RESULT(read(STDIN_FILENO, &b, sizeof b));
+		IGNORE_RESULT(read(STDIN_FILENO, VARLEN(b)));
 
 		exit(b * 100);	/* Only child that got lock will exit with 100 */
 	}
@@ -624,7 +626,7 @@ x_record(const char *value)
 
 	while ((tok = strtok_next(s, ","))) {
 		char *kv = h_strdup(tok);
-		char *eq = strstr(kv, "=");		/* What follows is the value */
+		char *eq = strchr(kv, '=');		/* What follows is the value */
 
 		if (NULL == eq) {
 			htable_insert(xv, kv, "y");	/* No value, assume "y" (for yes) */

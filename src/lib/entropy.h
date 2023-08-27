@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -43,6 +43,8 @@ uint32 entropy_minirand(void);
 void entropy_fill(void *buffer, size_t len);
 void entropy_delay(void);
 void entropy_aje_inited();
+
+uint32 entropy_nonce(void);
 
 void entropy_harvest_time(void);
 void entropy_harvest_single(const void *p, size_t len);

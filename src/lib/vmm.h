@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -70,23 +70,23 @@
 
 #ifdef TRACK_VMM
 void *vmm_alloc_track(size_t size, bool user_mem,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *vmm_alloc_track_not_leaking(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *vmm_core_alloc_track_not_leaking(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *vmm_alloc0_track(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *vmm_resize_track_not_leaking(void *p, size_t osize, size_t nsize,
-	const char *file, int line) WARN_UNUSED_RESULT;
+	const char *file, int line) WARN_UNUSED_RESULT G_NON_NULL;
 void vmm_free_track(void *p, size_t size, bool user_mem,
 	const char *file, int line);
 void vmm_shrink_track(void *p, size_t o, size_t n, bool user_mem,
 	const char *file, int line);
 void *vmm_resize_track(void *p, size_t o, size_t n,
-	const char *file, int line) WARN_UNUSED_RESULT;
+	const char *file, int line) WARN_UNUSED_RESULT G_NON_NULL;
 
-void *vmm_alloc_notrack(size_t size) G_MALLOC;
+void *vmm_alloc_notrack(size_t size) G_MALLOC G_NON_NULL;
 void vmm_free_notrack(void *p, size_t size);
 
 #else	/* !TRACK_VMM */
@@ -96,14 +96,15 @@ void vmm_free_notrack(void *p, size_t size);
 #endif	/* TRACK_VMM */
 
 #if defined(VMM_SOURCE) || !defined(TRACK_VMM)
-void *vmm_alloc(size_t size) G_MALLOC;
-void *vmm_core_alloc(size_t size) G_MALLOC;
-void *vmm_alloc0(size_t size) G_MALLOC;
+void *vmm_alloc(size_t size) G_MALLOC G_NON_NULL;
+void *vmm_core_alloc(size_t size) G_MALLOC G_NON_NULL;
+void *vmm_alloc0(size_t size) G_MALLOC G_NON_NULL;
 void vmm_free(void *p, size_t size);
 void vmm_core_free(void *p, size_t size);
 void vmm_shrink(void *p, size_t size, size_t new_size);
 void vmm_core_shrink(void *p, size_t size, size_t new_size);
-void *vmm_resize(void *p, size_t size, size_t new_size) WARN_UNUSED_RESULT;
+void *vmm_resize(void *p, size_t size, size_t new_size)
+	WARN_UNUSED_RESULT G_NON_NULL;
 #endif	/* VMM_SOURCE || !TRACK_VMM */
 
 #ifdef XMALLOC_SOURCE
@@ -119,6 +120,7 @@ enum vmm_strategy {
 };
 
 void vmm_set_strategy(enum vmm_strategy strategy);
+bool vmm_is_long_term(void) G_PURE;
 
 struct logagent;
 
@@ -127,12 +129,16 @@ size_t compat_pagesize(void) G_PURE;
 const void *vmm_page_start(const void *p) G_PURE;
 const void *vmm_page_next(const void *p) G_PURE;
 const void *vmm_trap_page(void);
+const char *vmm_type_pointer(const void *p);
 size_t vmm_page_count(size_t size) G_PURE;
 bool vmm_is_fragment(const void *base, size_t size);
 bool vmm_is_relocatable(const void *base, size_t size);
+bool vmm_pointer_is_better(const void *o, const void *n) G_PURE;
 bool vmm_is_native_pointer(const void *p);
 bool vmm_is_stack_pointer(const void *p, const void *top) G_PURE;
 bool vmm_grows_upwards(void) G_PURE;
+void *vmm_move(void *base, size_t size);
+void *vmm_core_move(void *base, size_t size);
 
 void set_vmm_debug(uint32 level);
 bool vmm_is_debugging(uint32 level) G_PURE;
@@ -142,7 +148,6 @@ bool vmm_is_extending(void);
 void vmm_init(void);
 bool vmm_is_inited(void);
 void vmm_memusage_init(void);
-void vmm_malloc_inited(void);
 void vmm_post_init(void);
 void vmm_pre_close(void);
 void vmm_stop_freeing(void);
@@ -167,6 +172,13 @@ void vmm_madvise_willneed(void *p, size_t size);
 void *vmm_mmap(void *addr, size_t length,
 	int prot, int flags, int fd, fileoffset_t offset);
 int vmm_munmap(void *addr, size_t length);
+
+/*
+ * These rely on the definition of some internal options in lib/vmm.c.
+ * By default, they are doing nothing.
+ */
+void vmm_validate(void *p, size_t size);
+void vmm_invalidate(void *p, size_t size);
 
 #define VMM_FREE_NULL(p, size) \
 G_STMT_START { \

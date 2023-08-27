@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -631,8 +631,8 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 		}
 	}
 
-	sf->name_nfc_len = strlen(sf->name_nfc);
-	sf->name_canonic_len = strlen(sf->name_canonic);
+	sf->name_nfc_len = vstrlen(sf->name_nfc);
+	sf->name_canonic_len = vstrlen(sf->name_canonic);
 
 	/*
 	 * Check for aliases.
@@ -655,7 +655,7 @@ shared_file_set_names(shared_file_t *sf, const char *filename)
 			sf->name_normal_len = 0;
 		} else {
 			sf->name_normal = atom_str_get(normalized);
-			sf->name_normal_len = strlen(sf->name_normal);
+			sf->name_normal_len = vstrlen(sf->name_normal);
 
 			if (GNET_PROPERTY(share_debug) > 5) {
 				if (0 == strcmp(sf->name_normal, sf->name_canonic)) {
@@ -1022,7 +1022,7 @@ parse_extensions(const char *str)
 
 		if (c) {
 
-			for (x = strchr(s, '\0'); x-- != s; /* NOTHING */) {
+			for (x = vstrchr(s, '\0'); x-- != s; /* NOTHING */) {
 				if ((c = *x) == '*' || c == '?' || is_ascii_blank(c))
 					*x = '\0';
 				else
@@ -1261,7 +1261,7 @@ shared_file_valid_extension(const char *filename)
 		return TRUE;
 	}
 
-	filename_ext = strrchr(filename, '.');
+	filename_ext = vstrrchr(filename, '.');
 	if (filename_ext) {
 		/*
 		 * Filenames without any extension are not shared, unless
@@ -1519,6 +1519,7 @@ struct recursive_scan {
 	shared_file_t **ftable;		/* cloned file_table, contains ref-counted sf */
 	search_table_t *search_tb;	/* the new search table */
 	search_table_t *partial_tb;	/* the new partial table */
+	size_t partial_files_count;	/* amount of partials in hset when we started */
 	uint64 files_scanned;		/* amount of files shared in the library */
 	uint64 bytes_scanned;		/* size of the library */
 	int idx;					/* iterating index */
@@ -2354,7 +2355,7 @@ recursive_scan_step_install_shared(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->search_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->search_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new search table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	/*
@@ -2596,6 +2597,7 @@ recursive_scan_step_load_partials(struct bgtask *bt, void *data, int ticks)
 
 		hset_lock(partial_files);
 		iter = hset_iter_new(partial_files);
+		ctx->partial_files_count = hset_count(partial_files);
 
 		while (hset_iter_next(iter, &item)) {
 			const shared_file_t *sf = item;
@@ -2633,7 +2635,17 @@ recursive_scan_step_build_partial_table(struct bgtask *bt,
 		const shared_file_t *sf = slist_iter_next(ctx->iter);
 
 		shared_file_check(sf);
-		g_assert(shared_file_is_partial(sf));
+
+		/*
+		 * Since file_info_upload_stop() calls shared_file_fileinfo_unref(),
+		 * we may end-up here with a partial file that had its sf->fi cleared
+		 * due a concurrent removal of the file from the GUI.  Hence if we
+		 * see that file as no longer being partial, skip it silently.
+		 * 		--RAM, 2017-10-31
+		 */
+
+		if (!shared_file_is_partial(sf))
+			continue;
 
 		st_insert_item(ctx->partial_tb, ST_SET_PLAIN, sf->name_canonic, sf);
 		if (sf->name_normal != NULL)
@@ -2676,7 +2688,7 @@ recursive_scan_step_install_partials(struct bgtask *bt, void *data, int ticks)
 		int pcnt = st_count(ctx->partial_tb, ST_SET_PLAIN);
 		int acnt = st_count(ctx->partial_tb, ST_SET_ALIAS);
 		g_debug("SHARE installing new partial table (%d item%s, %d alias%s)",
-			pcnt, plural(pcnt), acnt, plural_es(acnt));
+			PLURAL(pcnt), PLURAL_ES(acnt));
 	}
 
 	SHARED_LIBFILE_LOCK;
@@ -2799,8 +2811,8 @@ recursive_scan_step_update_qrp_partial(struct bgtask *bt, void *data, int ticks)
 		 * when inserting partial files.
 		 */
 
-		sf->file_index = scanned + (hset_count(partial_files) -
-			slist_length(ctx->partial_files));
+		sf->file_index = scanned + ctx->partial_files_count -
+			slist_length(ctx->partial_files);
 
 		qrp_add_file(sf, ctx->words);
 		shared_file_unref(&sf);
@@ -3352,9 +3364,15 @@ shared_file_set_sha1(shared_file_t *sf, const struct sha1 *sha1)
 			 * if we, for instance, access a hash table being resized by an
 			 * earlier call on the stack.
 			 *		--RAM, 2014-01-02
+			 *
+			 * Since SHA1 are atomic, we can also optimize by not duplicating
+			 * the event for a file.  Unlikely, but does not hurt to specify
+			 * the intent: only one such event is required to be processed if
+			 * another is currently pending.
+			 * 		--RAM, 2020-01-31
 			 */
 
-			teq_safe_post(THREAD_MAIN_ID, publisher_add_event,
+			teq_safe_post_unique(THREAD_MAIN_ID, publisher_add_event,
 				deconstify_pointer(sf->sha1));
 		}
 	}
@@ -4111,8 +4129,11 @@ share_add_partial(const shared_file_t *sf)
 
 	share_qrp_rebuild_if_needed();
 
-	if (GNET_PROPERTY(share_debug) > 1)
-		g_debug("SHARE added partial file \"%s\"", shared_file_path(sf));
+	if (GNET_PROPERTY(share_debug) > 1) {
+		g_debug("SHARE added %s file \"%s\"",
+			shared_file_is_finished(sf) ? "seeded" : "partial",
+			shared_file_path(sf));
+	}
 }
 
 /**

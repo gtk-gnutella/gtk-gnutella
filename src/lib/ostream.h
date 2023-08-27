@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -35,8 +35,10 @@
 #define _ostream_h_
 
 #include "common.h"
-#include "slist.h"
-#include "pmsg.h"
+
+struct slist;
+struct pmsg;
+struct str;
 
 struct ostream;
 typedef struct ostream ostream_t;
@@ -48,12 +50,13 @@ typedef struct ostream ostream_t;
 bool ostream_is_file(const ostream_t *os);
 bool ostream_is_memory(const ostream_t *os);
 ostream_t *ostream_open_memory(void);
-slist_t *ostream_close_memory(ostream_t *os);
+struct slist *ostream_close_memory(ostream_t *os);
 ostream_t *ostream_open_fd(int fd);
 ostream_t *ostream_open_file(FILE *f);
+ostream_t *ostream_open_str(struct str *s);
+ostream_t *ostream_open_pmsg(struct pmsg *mb);
 int ostream_close_file(ostream_t *os);
 bool ostream_has_ioerr(const ostream_t *os);
-ostream_t *ostream_open_pmsg(pmsg_t *mb);
 bool ostream_close(ostream_t *os);
 
 ssize_t ostream_write(ostream_t *os, const void *data, size_t len);

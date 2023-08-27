@@ -1,5 +1,5 @@
 # List of source files containing translatable strings.
-# Regenerated on Sun Oct 22 16:16:18 CEST 2017
+# Regenerated on Fri Feb 25 08:30:11 CET 2022
 
 src/core/ban.c
 src/core/downloads.c
@@ -52,8 +52,6 @@ src/ui/gtk/downloads_common.c
 src/ui/gtk/filter.c
 src/ui/gtk/filter_core.c
 src/ui/gtk/gnet_stats_common.c
-src/ui/gtk/gtk-missing.c
-src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/gtk1/callbacks.c
 src/ui/gtk/gtk1/interface-glade.t
 src/ui/gtk/gtk1/nodes.c
@@ -72,9 +70,11 @@ src/ui/gtk/gtk2/search.c
 src/ui/gtk/gtk2/search_cb.c
 src/ui/gtk/gtk2/search_stats.c
 src/ui/gtk/gtk2/support-glade.c
-src/ui/gtk/gtk2/upload_stats.c
 src/ui/gtk/gtk2/uploads.c
+src/ui/gtk/gtk2/upload_stats.c
 src/ui/gtk/gtkcolumnchooser.c
+src/ui/gtk/gtk-missing.c
+src/ui/gtk/gtk-shared/callbacks.c
 src/ui/gtk/hcache_common.c
 src/ui/gtk/icon.c
 src/ui/gtk/main.c

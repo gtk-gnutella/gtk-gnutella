@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -224,7 +224,7 @@ ntp_send_probe(const host_addr_t addr)
 	tm_now_exact(&now);
 	ntp_tm_serialize(m.transmit_timestamp, &now);
 
-	return 0 == urpc_send("NTP", addr, NTP_PORT, &m, sizeof m, NTP_WAIT_MS,
+	return 0 == urpc_send("NTP", addr, NTP_PORT, VARLEN(m), NTP_WAIT_MS,
 		ntp_received, NULL);
 }
 
@@ -234,9 +234,11 @@ ntp_send_probes(void)
 	static const struct {
 		const char *addr;
 	} hosts[] = {
+		/*
+		 * Skip this for now. We check replies only against 127.0.0.1 and ::1
+		 * anyway and there is also the minor DNS issue below.
+		 */
 #if 0
-		/* Skip this for now. We check replies only against 127.0.0.1 and ::1
-		 * anyway and there is also the minor DNS issue below. */
 		{ "localhost" },
 #endif
 		{ "::1"		  },
@@ -245,8 +247,13 @@ ntp_send_probes(void)
 	bool sent = FALSE;
 	uint i;
 
-	/* TODO:	The name_to_host_addr() could take a while which would
+	/*
+	 * TODO:	The name_to_host_addr() could take a while which would
 	 *			delay startup. Thus, use ADNS for this.
+	 *
+	 * Note that when we are only using IP addresses, there is no DNS
+	 * resolution going on at all here: name_to_single_host_addr() will
+	 * parse that IP address and return it.
 	 */
 
 	for (i = 0; i < N_ITEMS(hosts); i++) {

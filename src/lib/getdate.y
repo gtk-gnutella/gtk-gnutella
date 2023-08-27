@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 /*
@@ -756,9 +756,9 @@ static int LookupWord(char *buff)
     }
 
     /* See if we have an abbreviation for a month. */
-    if (strlen(buff) == 3)
+    if (vstrlen(buff) == 3)
 	abbrev = 1;
-    else if (strlen(buff) == 4 && buff[3] == '.') {
+    else if (vstrlen(buff) == 4 && buff[3] == '.') {
 	abbrev = 1;
 	buff[3] = '\0';
     } else
@@ -792,7 +792,7 @@ static int LookupWord(char *buff)
 	}
 
     /* Strip off any plural and try the units table again. */
-    i = strlen(buff) - 1;
+    i = vstrlen(buff) - 1;
     if (buff[i] == 's') {
 	buff[i] = '\0';
 	for (tp = UnitsTable; tp->name; tp++)

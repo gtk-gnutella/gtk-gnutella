@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -206,7 +206,7 @@ mq_udp_service(void *data)
 		int mb_size = pmsg_size(mb);
 		struct mq_udp_info *mi = pmsg_get_metadata(mb);
 
-		if (!pmsg_check(mb, q)) {
+		if (!pmsg_can_send(mb, q)) {
 			dropped++;
 			goto skip;
 		}
@@ -349,7 +349,7 @@ again:
 	if (q->qhead == NULL) {
 		ssize_t written;
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			written = tx_sendto(q->tx_drv, mb, to);
 		} else {
 			if (q->uops->msg_flowc != NULL)
@@ -366,7 +366,7 @@ again:
 		if ((size_t) written == size) {
 			if (GNET_PROPERTY(mq_udp_debug) > 5)
 				g_debug("MQ UDP sent %s",
-					gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)));
+					gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)));
 
 			goto cleanup;
 		}
@@ -389,7 +389,7 @@ again:
 
 	if (GNET_PROPERTY(mq_udp_debug) > 5)
 		g_debug("MQ UDP queued %s",
-			gmsg_infostr_full(pmsg_start(mb), pmsg_written_size(mb)));
+			gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)));
 
 	/*
 	 * Attach the destination information as metadata to the message, unless

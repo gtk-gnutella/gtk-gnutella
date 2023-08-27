@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -72,7 +72,7 @@ make_pathname(const char *dir, const char *file)
 	g_assert(dir);
 	g_assert(file);
 
-	n = strlen(dir);
+	n = vstrlen(dir);
 
 	if (G_DIR_SEPARATOR == file[0] || '/' == file[0])
 		sep = "";
@@ -80,7 +80,7 @@ make_pathname(const char *dir, const char *file)
 		sep = "";
 	else if (G_DIR_SEPARATOR != '/' && n > 0 && '/' == dir[n - 1])
 		sep = "";
-	else if (G_DIR_SEPARATOR != '/' && strchr(dir, G_DIR_SEPARATOR))
+	else if (G_DIR_SEPARATOR != '/' && vstrchr(dir, G_DIR_SEPARATOR))
 		sep = G_DIR_SEPARATOR_S;
 	else
 		sep = "/";
@@ -104,7 +104,7 @@ absolute_pathname(const char *file)
 	} else {
 		char buf[4096], *ret;
 
-		ret = getcwd(buf, sizeof buf);
+		ret = getcwd(ARYLEN(buf));
 		return ret ? make_pathname(ret, file) : NULL;
 	}
 }
@@ -174,14 +174,14 @@ filepath_basename(const char *pathname)
 
 	g_assert(pathname);
 
-	p = strrchr(pathname, '/');
+	p = vstrrchr(pathname, '/');
 	if (p) {
 		p++;
 	} else {
 		p = pathname;
 	}
 	if (G_DIR_SEPARATOR != '/') {
-		const char *q = strrchr(p, G_DIR_SEPARATOR);
+		const char *q = vstrrchr(p, G_DIR_SEPARATOR);
 		if (q)
 			p = &q[1];
 	}
@@ -193,7 +193,7 @@ filepath_directory_end(const char *pathname, char separator)
 {
 	const char *p;
 
-	p = strrchr(pathname, separator);
+	p = vstrrchr(pathname, separator);
 	if (p) {
 		while (p != pathname && is_dir_separator(p[-1])) {
 			p--;

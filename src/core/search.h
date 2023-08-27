@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -71,6 +71,15 @@
  * establish a firewalled-to-firewalled transfer using RUDP.
  */
 #define QUERY_FW2FW_FILE_INDEX	0x7FFFFFFD	/**< Magic index for fw-fw reqs */
+
+/**
+ * Generic file index used within PUSH requests to mean "any file".
+ * Nowadays, file indices are no longer really used to request files, everything
+ * is done via URNs with a SHA1 key, hence servents do not bother to use
+ * file indices, which may change every time a file is added to the library
+ * of shared files anyway.
+ */
+#define QUERY_GENERIC_FILE_INDEX 0
 
 /*
  * The version of GUESS we support.

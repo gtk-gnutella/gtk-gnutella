@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -324,7 +324,7 @@ retry:
 	line = 0;
 	added = 0;
 
-	while (fgets(tmp, sizeof(tmp), in)) {
+	while (fgets(ARYLEN(tmp), in)) {
 		line++;
 
 		if (tmp[0] == '#')		/* Skip comments */
@@ -356,7 +356,7 @@ retry:
 	} else {
 		if (GNET_PROPERTY(bootstrap_debug)) {
 			g_debug("%s(): loaded %u URL%s from \"%s/%s\"",
-				G_STRFUNC, added, plural(added), fpv[idx].dir, fpv[idx].name);
+				G_STRFUNC, PLURAL(added), fpv[idx].dir, fpv[idx].name);
 		}
 	}
 }
@@ -454,7 +454,7 @@ gwc_forget_url(const char *url)
 	 * filled from 0 and upwards.
 	 */
 
-	memset(url_tmp, 0, sizeof(url_tmp));
+	ZERO(&url_tmp);
 
 	if (count == MAX_GWC_URLS) {		/* Buffer was full */
 		for (i = gwc_url_slot;;) {
@@ -730,7 +730,7 @@ gwc_host_line(struct gwc_parse_context *ctx, const char *buf, size_t len)
 		}
 		return TRUE;
 	} else if ('U' == c) {
-		char *end = strchr(&buf[2], '|');
+		char *end = vstrchr(&buf[2], '|');
 		char *url;
 
 		if (NULL == end)
@@ -789,7 +789,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_message("BOOT got %d host%s from GWC %s",
-			ctx->processed, plural(ctx->processed), gwc_current_url);
+			PLURAL(ctx->processed), gwc_current_url);
 
 	/*
 	 * If we did not get enough addresses, try to feed the cache with ours.
@@ -806,7 +806,7 @@ gwc_host_eof(struct gwc_parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-gwc_host_data_ind(http_async_t *ha, char *data, int len)
+gwc_host_data_ind(http_async_t *ha, const char *data, int len)
 {
 	gwc_parse_dispatch_lines(ha, data, len, gwc_host_line, gwc_host_eof);
 }

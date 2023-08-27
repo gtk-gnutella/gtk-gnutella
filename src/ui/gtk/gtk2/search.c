@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -345,6 +345,7 @@ add_column(
 		NULL_PTR);
 
     gtk_tree_view_append_column(tv, column);
+	gui_column_map(column, tv);		/* Capture resize events */
 
 	return column;
 }
@@ -792,13 +793,11 @@ search_gui_cmp(GtkTreeModel *model, GtkTreeIter *iter1, GtkTreeIter *iter2,
 void
 search_gui_add_record(search_t *sch, record_t *rc, enum gui_color color)
 {
-	static const struct result_data zero_data;
 	struct result_data *data;
 
 	record_check(rc);
 
-	WALLOC(data);
-	*data = zero_data;
+	WALLOC0(data);
 	data->color = color;
 	data->record = rc;
 	data->sh = sch->search_handle;
@@ -1022,6 +1021,8 @@ add_list_columns(GtkTreeView *tv)
 
 	STATIC_ASSERT(SEARCH_LIST_VISIBLE_COLUMNS == N_ITEMS(columns));
 
+	gui_parent_widths_saveto(tv, PROP_SEARCH_LIST_COL_WIDTHS);
+
 	for (i = 0; i < N_ITEMS(columns); i++) {
 		GtkTreeViewColumn *column;
 
@@ -1164,9 +1165,6 @@ search_gui_init(void)
 void
 search_gui_shutdown(void)
 {
-	tree_view_save_widths(GTK_TREE_VIEW(tree_view_search),
-		PROP_SEARCH_LIST_COL_WIDTHS);
-
 	search_gui_common_shutdown();
 }
 
@@ -1187,7 +1185,6 @@ search_gui_remove_search(search_t *search)
 	if (search_gui_get_current_search() == search) {
 		GtkTreeView *tv = GTK_TREE_VIEW(search->tree);
 
-		tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 		tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 		tree_view_motion_clear_callback(&tvm_search);
 	}
@@ -1211,7 +1208,6 @@ search_gui_hide_search(struct search *search)
 	g_return_if_fail(search);
 
 	tv = GTK_TREE_VIEW(search->tree);
-	tree_view_save_widths(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 	tree_view_save_visibility(tv, PROP_SEARCH_RESULTS_COL_VISIBLE);
 	tree_view_motion_clear_callback(&tvm_search);
 }
@@ -1436,6 +1432,8 @@ search_gui_create_tree(void)
 	gtk_tree_view_set_rules_hint(tv, TRUE);
 	gtk_tree_view_set_search_equal_func(tv, search_by_regex, NULL, NULL);
 	tree_view_set_fixed_height_mode(tv, TRUE);
+
+	gui_parent_widths_saveto(tv, PROP_SEARCH_RESULTS_COL_WIDTHS);
 
       /* add columns to the tree view */
 	add_results_columns(tv);

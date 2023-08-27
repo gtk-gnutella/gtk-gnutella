@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -135,52 +135,52 @@ version_ext_str(const version_ext_t *vext, bool full)
 	bool has_extra = FALSE;
 	bool need_closing = FALSE;
 
-	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(ARYLEN(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(ARYPOSLEN(str, rw), ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%c", ver->tag);
 		if (ver->taglevel)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-%u", ver->build);
 
 	if (vext->commit_len != 0) {
 		static char digest[SHA1_BASE16_SIZE + 1];
 		size_t offset = MIN(vext->commit_len, SHA1_BASE16_SIZE);
 
-		sha1_to_base16_buf(&vext->commit, digest, sizeof digest);
+		sha1_to_base16_buf(&vext->commit, ARYLEN(digest));
 		digest[offset] = '\0';
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-g%s", digest);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-g%s", digest);
 	}
 
 	if (vext->dirty)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-dirty");
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-dirty");
 
 	if (ver->timestamp || (full && vext->osname != NULL)) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (");
+		rw += str_bprintf(ARYPOSLEN(str, rw), " (");
 		need_closing = TRUE;
 	}
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%d-%02d-%02d",
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%d-%02d-%02d",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 		has_extra = TRUE;
 	}
 
 	if (full && vext->osname != NULL) {
 		if (has_extra)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "; ");
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%s", vext->osname);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "; ");
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%s", vext->osname);
 	}
 
 	if (need_closing)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ")");
+		rw += str_bprintf(ARYPOSLEN(str, rw), ")");
 
 	return str;
 }
@@ -195,23 +195,23 @@ version_str(const version_t *ver)
 	static char str[80];
 	int rw;
 
-	rw = str_bprintf(str, sizeof(str), "%u.%u", ver->major, ver->minor);
+	rw = str_bprintf(ARYLEN(str), "%u.%u", ver->major, ver->minor);
 
 	if (ver->patchlevel)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, ".%u", ver->patchlevel);
+		rw += str_bprintf(ARYPOSLEN(str, rw), ".%u", ver->patchlevel);
 
 	if (ver->tag) {
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "%c", ver->tag);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "%c", ver->tag);
 		if (ver->taglevel)
-			rw += str_bprintf(&str[rw], sizeof(str)-rw, "%u", ver->taglevel);
+			rw += str_bprintf(ARYPOSLEN(str, rw), "%u", ver->taglevel);
 	}
 
 	if (ver->build)
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, "-%u", ver->build);
+		rw += str_bprintf(ARYPOSLEN(str, rw), "-%u", ver->build);
 
 	if (ver->timestamp) {
 		struct tm *tmp = localtime(&ver->timestamp);
-		rw += str_bprintf(&str[rw], sizeof(str)-rw, " (%d-%02d-%02d)",
+		rw += str_bprintf(ARYPOSLEN(str, rw), " (%d-%02d-%02d)",
 			tmp->tm_year + 1900, tmp->tm_mon + 1, tmp->tm_mday);
 	}
 
@@ -240,24 +240,22 @@ version_stamp(const char *str, version_t *ver)
 	 * being used starting 2004-03-02.
 	 */
 
-	p = strchr(str, '(');
+	p = vstrchr(str, '(');
 	if (p) {
 		const char *end;
 
 		p++;
-		end = strchr(p, ';');
+		end = vstrchr(p, ';');
 		if (end == NULL)
-			end = strchr(p, ')');		/* Only date present: short version */
+			end = vstrchr(p, ')');		/* Only date present: short version */
 		if (end) {
-			size_t size = end - p + 1;
-
 			/*
 			 * Using date2time() will allow us to possibly change the date
 			 * format in the future, without impacting the ability of older
 			 * servents to parse it.
 			 */
 
-			g_strlcpy(stamp, p, MIN(size, sizeof(stamp)));
+			clamp_strncpy(ARYLEN(stamp), p, end - p);
 			ver->timestamp = date2time(stamp, tm_time());
 
 			if (ver->timestamp == -1) {
@@ -313,10 +311,10 @@ version_ext_parse(const char *str, version_ext_t *vext)
 	 * the next ' ' or the end of the string.
 	 */
 
-	e = strchr(v, ' ');
+	e = vstrchr(v, ' ');
 	if (e != NULL) {
 		const char *d;
-		d = strchr(v, '-');
+		d = vstrchr(v, '-');
 		if (NULL == d || d > e) {
 			commit_len = e - v;		/* '-' before ' ' or no '-' at all */
 		} else {
@@ -324,11 +322,11 @@ version_ext_parse(const char *str, version_ext_t *vext)
 			e = d;
 		}
 	} else {
-		e = strchr(v, '-');
+		e = vstrchr(v, '-');
 		if (e != NULL) {
 			commit_len = e - v;
 		} else {
-			commit_len = strlen(v);
+			commit_len = vstrlen(v);
 		}
 	}
 
@@ -337,13 +335,11 @@ version_ext_parse(const char *str, version_ext_t *vext)
 
 	vext->commit_len = commit_len;
 
-	memset(commit, '0', sizeof commit - 1);
-	commit[SHA1_BASE16_SIZE] = '\0';
+	ZERO(&commit);
 	memcpy(commit, v, commit_len);
 
 	ZERO(&vext->commit);
-	(void) base16_decode(vext->commit.data, sizeof vext->commit,
-		commit, SHA1_BASE16_SIZE);
+	(void) base16_decode(VARLEN(vext->commit), commit, SHA1_BASE16_SIZE);
 
 	if (e != NULL && is_strprefix(e, "-dirty")) {
 		vext->dirty = TRUE;
@@ -582,21 +578,21 @@ version_new_found(const char *text, bool stable)
     static char last_dev[256] = "";
 	char s[1024];
 
-    if (stable)
-        utf8_strlcpy(last_stable, text, sizeof last_stable);
-    else
-        utf8_strlcpy(last_dev, text, sizeof last_dev);
+	if (stable)
+		utf8_strlcpy(last_stable, text, sizeof last_stable);
+	else
+		utf8_strlcpy(last_dev, text, sizeof last_dev);
 
 	if ('\0' != last_stable[0] && '\0' != last_dev[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer versions available: release %s / from git %s"),
 			last_stable, last_dev);
 	} else if ('\0' != last_stable[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer version available: release %s"),
 			last_stable);
 	} else if ('\0' != last_dev[0]) {
-		str_bprintf(s, sizeof s,
+		str_bprintf(ARYLEN(s),
 			_(" - Newer version available: from git %s"),
 			last_dev);
 	}
@@ -679,7 +675,7 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 			return FALSE;	/* Can't be correct */
 		}
 
-		error = tok_version_valid(str, token, strlen(token), addr);
+		error = tok_version_valid(str, token, vstrlen(token));
 
 		/*
 		 * Unfortunately, if our token has expired, we can no longer
@@ -789,23 +785,21 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 }
 
 /**
- * Generates the version string. This function does not require any
- * initialization, thus may be called very early e.g., for showing
- * version information if the executable was invoked with --version
- * as argument.
+ * Generates the version string.
+ *
+ * @param hide	if TRUE, hides build information
  *
  * @return A pointer to a static buffer holding the version string.
  */
-const char * G_COLD
-version_build_string(void)
+static const char * G_COLD
+version_build_internal(bool hide)
 {
 	static bool initialized;
 	static char buf[128];
+	static const char *sysname = "Unknown";
+	static const char *machine;
 
 	if (!initialized) {
-		const char *sysname = "Unknown";
-		const char *machine = NULL;
-
 		initialized = TRUE;
 
 #ifdef HAS_UNAME
@@ -820,28 +814,57 @@ version_build_string(void)
 			}
 		}
 #endif /* HAS_UNAME */
-
-		str_bprintf(buf, sizeof buf,
-			"%s/%s%s (%s; %s; %s%s%s)",
-			product_name(), product_version(),
-			product_build_full(), product_date(),
-			product_interface(),
-			sysname,
-			machine && machine[0] ? " " : "",
-			machine ? machine : "");
 	}
+
+	str_bprintf(ARYLEN(buf),
+		"%s/%s%s (%s; %s; %s%s%s)",
+		product_name(), product_version(),
+		hide ? "" : product_build_full(),
+	   	product_date(), product_interface(),
+		sysname,
+		machine && machine[0] ? " " : "",
+		machine ? machine : "");
+
+	return buf;
+}
+
+/**
+ * Generates the version string. This function does not require any
+ * initialization, thus may be called very early e.g., for showing
+ * version information if the executable was invoked with --version
+ * as argument.
+ *
+ * Regardless of whether they want to hide the build information,
+ * this always returns the true fully qualified version.  For instance,
+ * the crash log must always contain the real version, not the one we
+ * wish to otherwise advertize with no build information!
+ *
+ * @return A pointer to a static buffer holding the version string.
+ */
+const char * G_COLD
+version_build_string(void)
+{
+	static char buf[128];
+
+	if G_UNLIKELY('\0' == buf[0]) {
+		const char *v = version_build_internal(FALSE);
+		clamp_strcpy(ARYLEN(buf), v);
+	}
+
 	return buf;
 }
 
 /**
  * Initialize version string.
+ *
+ * @param hide	if TRUE, hide build information in version string
  */
 void G_COLD
-version_init(void)
+version_init(bool hide)
 {
 	time_t now;
 
-	version_string = ostrdup_readonly(version_build_string());
+	version_string = ostrdup_readonly(version_build_internal(hide));
 	now = tm_time();
 
 	{
@@ -850,11 +873,14 @@ version_init(void)
 
 		ok = version_parse(version_string, &our_version, &end);
 		g_assert(ok);
-		ok = version_ext_parse(end, &our_ext_version);
+		if (!hide)
+			ok = version_ext_parse(end, &our_ext_version);
 		g_assert(ok);
 	}
 
 	g_info("%s", version_string);
+	if (hide)
+		g_info("really running %s", version_build_string());
 
 	version_stamp(version_string, &our_version);
 	g_assert(our_version.timestamp != 0);
@@ -862,10 +888,10 @@ version_init(void)
 	{
 		char buf[128];
 
-		str_bprintf(buf, sizeof(buf),
+		str_bprintf(ARYLEN(buf),
 			"%s/%s%s (%s)",
 			product_name(), product_version(),
-			product_build_full(), product_date());
+			hide ? "" : product_build_full(), product_date());
 
 		version_short_string = ostrdup_readonly(buf);
 	}
@@ -1007,14 +1033,14 @@ version_string_dump_log(logagent_t *la, bool full)
 	log_info(la, "(libraries are using the system's malloc() implementation)");
 #endif
 
-	str_bprintf(buf, sizeof buf, "GLib %u.%u.%u",
+	str_bprintf(ARYLEN(buf), "GLib %u.%u.%u",
 			glib_major_version, glib_minor_version, glib_micro_version);
 	if (
 			GLIB_MAJOR_VERSION != glib_major_version ||
 			GLIB_MINOR_VERSION != glib_minor_version ||
 			GLIB_MICRO_VERSION != glib_micro_version
 	   ) {
-		str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+		str_bcatf(ARYLEN(buf), " (compiled against %u.%u.%u)",
 				GLIB_MAJOR_VERSION, GLIB_MINOR_VERSION, GLIB_MICRO_VERSION);
 	}
 	log_info(la, "%s", buf);

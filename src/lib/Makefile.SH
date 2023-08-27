@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
-: $X-Id$
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-36]
+: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
 
 case $CONFIG in
 '')
@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  random-test.c  sort-test.c  spopen-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  random-test.o  sort-test.o  spopen-test.o  thread-test.o
-GLIB_CFLAGS =  $glibcflags
-DBUS_CFLAGS =  $dbuscflags
 COMMON_LIBS =  $libs
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
+DBUS_CFLAGS =  $dbuscflags
+GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -75,7 +75,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id$
+# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -89,26 +89,32 @@ all:: .FORCE_DEPEND
 
 # $X-Id$
 
-bit_array.h: bit_array.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.t array >$@
+bit_array.h: bit_array.ht bit_generic.ht
+	$(TOP)/scripts/generic-cat bit_array.ht bit_generic.ht array >$@
 
-all:: bit_array.h
-depend:: bit_array.h
+bit_array.c: bit_generic.ct
+	$(TOP)/scripts/generic-cat /dev/null bit_generic.ct array >$@
+
+all:: bit_array.h bit_array.c
+depend:: bit_array.h bit_array.c
 local_realclean::
-	$(RM) bit_array.h
+	$(RM) bit_array.h bit_array.c
 
-bit_field.h: bit_field.ht bit_generic.t
-	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.t field >$@
+bit_field.h: bit_field.ht bit_generic.ht
+	$(TOP)/scripts/generic-cat bit_field.ht bit_generic.ht field >$@
 
-all:: bit_field.h
-depend:: bit_field.h
+bit_field.c: bit_generic.ct
+	$(TOP)/scripts/generic-cat /dev/null bit_generic.ct field >$@
+
+all:: bit_field.h bit_field.c
+depend:: bit_field.h bit_field.c
 local_realclean::
-	$(RM) bit_field.h
+	$(RM) bit_field.h bit_field.c
 
 htable.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht table ckeyval TABLE >$@
 
-htable.c: hgeneric.ht
+htable.c: hgeneric.ct
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct table ckeyval TABLE >$@
 
 all:: htable.h htable.c
@@ -119,7 +125,7 @@ local_realclean::
 hset.h: hgeneric.ht
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ht set cdata SET >$@
 
-hset.c: hgeneric.ht
+hset.c: hgeneric.ct
 	$(TOP)/scripts/generic-pp /dev/null hgeneric.ct set cdata SET >$@
 
 all:: hset.h hset.c
@@ -146,6 +152,9 @@ LSRC = \
 	bfd_util.c \
 	bg.c \
 	bigint.c \
+	bit_array.c \
+	bit_field.c \
+	bsearch.c \
 	bstr.c \
 	buf.c \
 	chi2.c \
@@ -170,6 +179,7 @@ LSRC = \
 	cq.c \
 	crash.c \
 	crc.c \
+	cstr.c \
 	dam.c \
 	dbmap.c \
 	dbmw.c \
@@ -227,6 +237,7 @@ LSRC = \
 	http_range.c \
 	idtable.c \
 	inputevt.c \
+	iovec.c \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
@@ -267,6 +278,7 @@ LSRC = \
 	progname.c \
 	prop.c \
 	pslist.c \
+	qlock.c \
 	rand31.c \
 	random.c \
 	rbtree.c \
@@ -289,6 +301,7 @@ LSRC = \
 	stats.c \
 	str.c \
 	stringify.c \
+	strpcpy.c \
 	strtok.c \
 	strvec.c \
 	symbols.c \
@@ -347,6 +360,9 @@ LOBJ = \
 	bfd_util.o \
 	bg.o \
 	bigint.o \
+	bit_array.o \
+	bit_field.o \
+	bsearch.o \
 	bstr.o \
 	buf.o \
 	chi2.o \
@@ -371,6 +387,7 @@ LOBJ = \
 	cq.o \
 	crash.o \
 	crc.o \
+	cstr.o \
 	dam.o \
 	dbmap.o \
 	dbmw.o \
@@ -428,6 +445,7 @@ LOBJ = \
 	http_range.o \
 	idtable.o \
 	inputevt.o \
+	iovec.o \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
@@ -468,6 +486,7 @@ LOBJ = \
 	progname.o \
 	prop.o \
 	pslist.o \
+	qlock.o \
 	rand31.o \
 	random.o \
 	rbtree.o \
@@ -490,6 +509,7 @@ LOBJ = \
 	stats.o \
 	str.o \
 	stringify.o \
+	strpcpy.o \
 	strtok.o \
 	strvec.o \
 	symbols.o \
@@ -658,6 +678,17 @@ launch-test:  launch-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  launch-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: pattern-test
+
+local_realclean::
+	$(RM) pattern-test$(_EXE)
+
+pattern-test:  pattern-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  pattern-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: random-test
 
 local_realclean::
@@ -690,6 +721,28 @@ spopen-test:  spopen-test.o  libshared.a
 	if test -f $@$(_EXE); then \
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  spopen-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: stack-test
+
+local_realclean::
+	$(RM) stack-test$(_EXE)
+
+stack-test:  stack-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  stack-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
+all:: stat-test
+
+local_realclean::
+	$(RM) stat-test$(_EXE)
+
+stat-test:  stat-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  stat-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
 all:: thread-test
 

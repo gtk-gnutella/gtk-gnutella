@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -171,7 +171,7 @@ spam_add_name_and_size(const char *name,
 	if (error) {
 		char buf[1024];
 
-		regerror(error, &item->pattern, buf, sizeof buf);
+		regerror(error, &item->pattern, ARYLEN(buf));
 		g_warning("%s(): regcomp() failed: %s", G_STRFUNC, buf);
 		regfree(&item->pattern);
 		WFREE(item);
@@ -221,14 +221,14 @@ spam_load(FILE *f)
 	item = zero_item;
 	bit_array_init(tag_used, NUM_SPAM_TAGS);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		spam_tag_t tag;
 
 		line_no++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
@@ -244,12 +244,12 @@ spam_load(FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');
+		sp = vstrchr(line, ' ');
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');
+			value = vstrchr(line, '\0');
 		}
 		tag_name = line;
 
@@ -276,7 +276,7 @@ spam_load(FILE *f)
 
 		case SPAM_TAG_SHA1:
 			{
-				if (strlen(value) != SHA1_BASE32_SIZE) {
+				if (vstrlen(value) != SHA1_BASE32_SIZE) {
 					item.damaged = TRUE;
 					g_warning("%s(): SHA-1 has wrong length.", G_STRFUNC);
 				} else {
@@ -423,7 +423,7 @@ spam_changed(const char *filename, void *unused_udata)
 		count = spam_load(f);
 		fclose(f);
 
-		str_bprintf(buf, sizeof(buf), "Reloaded %lu spam items.", count);
+		str_bprintf(ARYLEN(buf), "Reloaded %lu spam items.", count);
 		gcu_statusbar_message(buf);
 	}
 }

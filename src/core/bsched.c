@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -39,6 +39,7 @@
 #include "uploads.h"
 
 #include "if/core/wrap.h"		/* For wrapped_io_t */
+#include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
 #include "lib/compat_sendfile.h"
@@ -121,6 +122,7 @@ struct bsched {
 	plist_t *sources;			/**< List of bio_source_t */
 	pslist_t *stealers;			/**< List of bsched_t stealing bw */
 	char *name;					/**< Name, for tracing purposes */
+	property_t byte_count;		/**< Property used to count transferred bytes */
 	int count;					/**< Amount of sources */
 	uint type;					/**< Scheduling type */
 	uint flags;					/**< Processing flags */
@@ -159,7 +161,7 @@ static pslist_t *bws_in_list = NULL;
 static int64 bws_out_ema = 0;
 static int64 bws_in_ema = 0;
 
-#define BW_SLOT_MIN		64	 /**< Minimum bandwidth/slot for realloc */
+#define BW_SLOT_MIN		256	 /**< Minimum bandwidth/slot for realloc */
 
 #define BW_OUT_UP_MIN	8192 /**< Minimum out bandwidth for becoming ultra */
 #define BW_OUT_GNET_MIN	128	 /**< Minimum out bandwidth per Gnet connection */
@@ -189,14 +191,15 @@ bio_check(const bio_source_t * const bio)
 /**
  * Create a new bandwidth scheduler.
  *
- * @param `name' no brief description.
+ * @param `name' brief description.
+ * @param `account' property used to account for traffic
  * @param `type' refers to the scheduling model.  Only BS_T_STREAM for now.
  * @param `mode' refers to the nature of the sources: either reading or writing.
  * @param `bandwidth' is the expected bandwidth in bytes per second.
  * @param `period' is the scheduling period in ms.
  */
 static bsched_t *
-bsched_make(const char *name, uint type, uint32 mode,
+bsched_make(const char *name, property_t account, uint type, uint32 mode,
 	int64 bandwidth, uint period)
 {
 	bsched_t *bs;
@@ -213,6 +216,7 @@ bsched_make(const char *name, uint type, uint32 mode,
 
 	WALLOC0(bs);
 	bs->magic = BSCHED_MAGIC;
+	bs->byte_count = account;
 	bs->name = h_strdup(name);
 	bs->flags = mode;
 	bs->type = type;
@@ -385,6 +389,9 @@ bsched_reset_stealers(bsched_t *bs)
 static void G_COLD
 bsched_dht_cross_stealing(void)
 {
+	if (!GNET_PROPERTY(enable_dht))
+		return;
+
 	bsched_add_stealer(BSCHED_BWS_GOUT_UDP, BSCHED_BWS_DHT_OUT);
 	bsched_add_stealer(BSCHED_BWS_DHT_OUT, BSCHED_BWS_GOUT_UDP);
 }
@@ -392,7 +399,7 @@ bsched_dht_cross_stealing(void)
 /**
  * Allow cross-stealing of unused bandwidth between HTTP/gnet.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_http_gnet(void)
 {
 	pslist_t *iter;
@@ -442,7 +449,7 @@ bsched_config_steal_http_gnet(void)
 /**
  * Allow cross-stealing of unused bandwidth between TCP and UDP gnet only.
  */
-void G_COLD
+static void G_COLD
 bsched_config_steal_gnet(void)
 {
 	pslist_t *iter;
@@ -459,6 +466,32 @@ bsched_config_steal_gnet(void)
 	bsched_dht_cross_stealing();
 }
 
+/**
+ * Configure bandwidth stealing.
+ */
+void G_COLD
+bsched_config_stealing(void)
+{
+	if (GNET_PROPERTY(bw_allow_stealing))
+		bsched_config_steal_http_gnet();
+	else
+		bsched_config_steal_gnet();
+}
+
+/**
+ * Add `arycnt'  items from `ary' at the head of the `sl' list.
+ */
+static pslist_t *
+bssched_load_bws(pslist_t *sl, int *ary, size_t arycnt)
+{
+	size_t i;
+
+	for (i = 0; i < arycnt; i++)
+		sl = pslist_prepend(sl, uint_to_pointer(ary[i]));
+
+	return sl;
+}
+
 /*
  * This is called BEFORE settings_init(), bandwidth values are the default
  * values, not the configured ones.
@@ -466,106 +499,78 @@ bsched_config_steal_gnet(void)
 void G_COLD
 bsched_early_init(void)
 {
-	bws_set[BSCHED_BWS_OUT] = bsched_make("out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_http_out), 1000);
+	size_t i;
+	static int in[] = {
+		BSCHED_BWS_LOOPBACK_IN,
+		BSCHED_BWS_PRIVATE_IN,
+		BSCHED_BWS_GLIN,
+		BSCHED_BWS_GIN,
+		BSCHED_BWS_GIN_UDP,
+		BSCHED_BWS_IN,
+		BSCHED_BWS_DHT_IN,
+	};
+	static int out[] = {
+		BSCHED_BWS_LOOPBACK_OUT,
+		BSCHED_BWS_PRIVATE_OUT,
+		BSCHED_BWS_GLOUT,
+		BSCHED_BWS_GOUT,
+		BSCHED_BWS_GOUT_UDP,
+		BSCHED_BWS_OUT,
+		BSCHED_BWS_DHT_OUT,
+	};
 
-	bws_set[BSCHED_BWS_GOUT] = bsched_make("G TCP out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
+#define BS(x)	BSCHED_BWS_ ## x
+#define M(x)	BS_F_ ## x
+#define PCO(x)	PROP_BC_ ## x ## _OUT
+#define PCGO(x)	PROP_BC_GNET_ ## x ## _OUT
+#define PCI(x)	PROP_BC_ ## x ## _IN
+#define PCGI(x)	PROP_BC_GNET_ ## x ## _IN
+#define RD		M(READ)
+#define WR		M(WRITE)
 
-	bws_set[BSCHED_BWS_GOUT_UDP] = bsched_make("G UDP out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_out) / 2, 1000);
+	static struct bws_set_init {
+		int id;
+		const char *name;
+		uint32 mode;
+		property_t bc;
+	} schedulers[] = {
+		{ BS(OUT),			"out",			WR, PCO(HTTP)      },
+		{ BS(GOUT),			"G TCP out",	WR, PCGO(TCP_UP)   },
+		{ BS(GOUT_UDP),		"G UDP out",	WR, PCGO(UDP)      },
+		{ BS(GLOUT),		"GL out",		WR, PCGO(TCP_LEAF) },
+		{ BS(LOOPBACK_OUT),	"loopback out",	WR, PCO(LOOPBACK)  },
+		{ BS(PRIVATE_OUT),	"private out",	WR, PCO(PRIVATE)   },
+		{ BS(DHT_OUT),		"DHT out",		WR, PCO(DHT)       },
+		{ BS(IN),			"in",			RD, PCI(HTTP)      },
+		{ BS(GIN),			"G TCP in",		RD, PCGI(TCP_UP)   },
+		{ BS(GIN_UDP),		"G UDP in",		RD, PCGI(UDP)      },
+		{ BS(GLIN),			"GL in",		RD, PCGI(TCP_LEAF) },
+		{ BS(LOOPBACK_IN),	"loopback in",	RD, PCI(LOOPBACK)  },
+		{ BS(PRIVATE_IN),	"private in",	RD, PCI(PRIVATE)   },
+		{ BS(DHT_IN),		"DHT in",		RD, PCI(DHT)       },
+	};
 
-	bws_set[BSCHED_BWS_GLOUT] = bsched_make("GL out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_gnet_lout), 1000);
+#undef BS
+#undef M
+#undef PC
+#undef RD
+#undef WR
+#undef PCO
+#undef PCGO
+#undef PCI
+#undef PCGI
 
-	bws_set[BSCHED_BWS_IN] = bsched_make("in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_http_in), 1000);
+	bws_list = bssched_load_bws(NULL,     out, N_ITEMS(out));
+	bws_list = bssched_load_bws(bws_list, in,  N_ITEMS(in));
 
-	bws_set[BSCHED_BWS_GIN] = bsched_make("G TCP in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_in) / 2, 1000);
+	bws_out_list = bssched_load_bws(NULL, out, N_ITEMS(out));
+	bws_in_list  = bssched_load_bws(NULL, in,  N_ITEMS(in));
 
-	bws_set[BSCHED_BWS_GIN_UDP] = bsched_make("G UDP in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_GLIN] = bsched_make("GL in",
-		BS_T_STREAM, BS_F_READ, GNET_PROPERTY(bw_gnet_lin), 1000);
-
-	bws_set[BSCHED_BWS_LOOPBACK_OUT] = bsched_make("loopback out",
-		BS_T_STREAM, BS_F_WRITE, 0, 1000);
-
-	bws_set[BSCHED_BWS_LOOPBACK_IN] = bsched_make("loopback in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_PRIVATE_OUT] = bsched_make("private out",
-		BS_T_STREAM, BS_F_WRITE, 0, 1000);
-
-	bws_set[BSCHED_BWS_PRIVATE_IN] = bsched_make("private in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_set[BSCHED_BWS_DHT_OUT] = bsched_make("DHT out",
-		BS_T_STREAM, BS_F_WRITE, GNET_PROPERTY(bw_dht_out), 1000);
-
-	bws_set[BSCHED_BWS_DHT_IN] = bsched_make("DHT in",
-		BS_T_STREAM, BS_F_READ, 0, 1000);
-
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GLIN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GIN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GIN_UDP));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_DHT_IN));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GLOUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GOUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_OUT));
-	bws_list = pslist_prepend(bws_list,
-						uint_to_pointer(BSCHED_BWS_DHT_OUT));
-
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GLIN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GIN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_GIN_UDP));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_IN));
-	bws_in_list = pslist_prepend(bws_in_list,
-						uint_to_pointer(BSCHED_BWS_DHT_IN));
-
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_LOOPBACK_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_PRIVATE_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GLOUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GOUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_GOUT_UDP));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_OUT));
-	bws_out_list = pslist_prepend(bws_out_list,
-						uint_to_pointer(BSCHED_BWS_DHT_OUT));
+	for (i = 0; i < N_ITEMS(schedulers); i++) {
+		const struct bws_set_init *b = &schedulers[i];
+		bws_set[b->id] =
+			bsched_make(b->name, b->bc, BS_T_STREAM, b->mode, 0, 1000);
+	}
 }
 
 /**
@@ -861,7 +866,6 @@ static void
 bio_disable(bio_source_t *bio)
 {
 	bio_check(bio);
-	g_assert(bio->io_tag);
 	g_assert(bio->io_callback);		/* "passive" sources not concerned */
 	g_assert(0 == (bio->flags & BIO_F_PASSIVE));
 
@@ -1374,6 +1378,19 @@ bw_available(bio_source_t *bio, int len)
 		return 0;							/* No bandwidth available */
 
 	/*
+	 * If capping is in effect and we have already used our allowed share,
+	 * disable source to avoid it triggering again.
+	 */
+
+	if (
+		0 != bio->bw_cap && bio->io_tag &&
+		bio->bw_actual >= (int64) bio->bw_cap
+	) {
+		bio_disable(bio);
+		return 0;
+	}
+
+	/*
 	 * If uniform scheduling is on, disable source so that it does not
 	 * trigger again for this timeslice.
 	 */
@@ -1431,8 +1448,8 @@ bw_available(bio_source_t *bio, int len)
 
 	if (GNET_PROPERTY(bsched_debug) > 8)
 		g_debug("BSCHED %s: "
-			"[fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
-			G_STRFUNC, bio->wio->fd(bio->wio),
+			"\"%s\" [fd #%d] max=%s, stolen=%s, actual=%s => avail=%s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
 			int64_to_string(bs->bw_max),
 			int64_to_string2(bs->bw_stolen),
 			int64_to_string3(bs->bw_actual),
@@ -1518,15 +1535,34 @@ bw_available(bio_source_t *bio, int len)
 	 * Active sources are disabled, but we could face a passive one.
 	 */
 
-	if (used && (bs->flags & BS_F_UNIFORM_BW))
-		result = 0;
-	else if (bio->flags & BIO_F_FAVOUR)
-		result = available;
-	else if (0 != bio->bw_allocated) {
-		result = MAX(bio->bw_allocated, bs->bw_slot);
-		result = MIN(result, available);
-	} else
-		result = MIN(bs->bw_slot, available);
+	{
+		int64 bwslot = bs->bw_slot;
+
+		/*
+		 * The penalty factor exponentially decreases the amount of slot
+		 * bandwidth we allocate for the I/O source.  It enables us to
+		 * progressively adjust up or down the amount of allocated write
+		 * bandwidth we can give to "stalling" sources (those incapable
+		 * of withstanding the amount of writing we're using).
+		 * 		--RAM, 2020-05-26
+		 */
+
+		if (0 != bio->bw_penalty_factor) {
+			bwslot >>= bio->bw_penalty_factor;
+			if G_UNLIKELY(bwslot < BW_SLOT_MIN)
+				bwslot = BW_SLOT_MIN;
+		}
+
+		if (used && (bs->flags & BS_F_UNIFORM_BW))
+			result = 0;
+		else if (bio->flags & BIO_F_FAVOUR)
+			result = available;
+		else if (0 != bio->bw_allocated) {
+			result = MAX(bio->bw_allocated, bwslot);
+			result = MIN(result, available);
+		} else
+			result = MIN(bwslot, available);
+	}
 
 	available -= result;
 
@@ -1551,7 +1587,8 @@ bw_available(bio_source_t *bio, int len)
 	if (
 		result < len && available > 0 && bs->looped &&
 		(!used || bs->bw_last_capped > 0) &&
-		!(bs->flags & BS_F_UNIFORM_BW)
+		!(bs->flags & BS_F_UNIFORM_BW) &&
+		0 == bio->bw_penalty_factor
 	) {
 		int64 adj = len - result;
 		int64 nominal;
@@ -1607,6 +1644,31 @@ bw_available(bio_source_t *bio, int len)
 	}
 
 	/*
+	 * Now apply capping to avoid sending more than what we promised for
+	 * this I/O source.  Naturally, if we do cap at this stage, we'll
+	 * skip the cap-bandwidth tracking logic below.
+	 */
+
+	if (0 != bio->bw_cap) {
+		int64 remain = (int64) bio->bw_cap - bio->bw_actual;
+
+		if (remain <= 0)
+			result = 0;
+		else
+			result = MIN(result, remain);
+
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"bw_cap=%u, bw_actual=%s => result=%s",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio), bio->bw_cap,
+				int64_to_string(bio->bw_actual), int64_to_string2(result));
+		}
+
+		if (0 == result)
+			bio_disable(bio);		/* Avoid further triggering this timeslice */
+	}
+
+	/*
 	 * If we return less than the amount requested, we capped the bandwidth.
 	 *
 	 * Keep track of that bandwidth, because if we end-up having consumed
@@ -1615,8 +1677,26 @@ bw_available(bio_source_t *bio, int len)
 	 * enough" during the period.
 	 */
 
-	if (result < len)
+	if (result < len && 0 == bio->bw_penalty_factor && 0 == bio->bw_cap) {
 		bs->bw_capped += len - result;
+
+		if (GNET_PROPERTY(bsched_debug) > 8) {
+			g_debug("BSCHED %s: \"%s\" [fd #%d] "
+				"adding %s to bw_capped (now at %s)",
+				G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+				int64_to_string(len - result),
+				int64_to_string2(bs->bw_capped));
+		}
+	}
+
+	/* All computations now done, trace result if debugging */
+
+	if (GNET_PROPERTY(bsched_debug) > 5) {
+		g_debug("BSCHED %s: "
+			"\"%s\" [fd #%d] len=%d => returning %s",
+			G_STRFUNC, bs->name, bio->wio->fd(bio->wio),
+			len, int64_to_string(result));
+	}
 
 	/*
 	 * Since bandwidth computations are now done in 64-bit values but we can
@@ -1625,7 +1705,11 @@ bw_available(bio_source_t *bio, int len)
 	 * 		--RAM, 2017-08-15
 	 */
 
-	return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* For 32-bit systems */
+	if (MAX_INT_VAL(size_t) != MAX_INT_VAL(uint64)) {
+		return MIN(UNSIGNED(result), MAX_INT_VAL(size_t));	/* 32-bit system */
+	} else {
+		return UNSIGNED(result);							/* 64-bit system */
+	}
 }
 
 /**
@@ -1645,11 +1729,28 @@ bsched_bw_update(bsched_t *bs, ssize_t used, size_t requested)
 	g_assert(UNSIGNED(used) <= requested);
 
 	/*
-	 * Even when the scheduler is disabled, update the actual bandwidth used
-	 * for the statistics and the GUI display.
+	 * Even when the scheduler is disabled, update the actual bandwidth
+	 * used for the statistics and the GUI display.
 	 */
 
 	bs->bw_actual += used;
+
+	/*
+	 * Global byte counters are not displayed by the GUI on a permanent
+	 * basis but can be fetched in the properties and are persisted for
+	 * the session.
+	 */
+
+	{
+		property_t p = bs->byte_count;
+		uint64 value;
+
+		gnet_prop_lock(p);
+		gnet_prop_get_guint64_val(p, &value);
+		value += used;
+		gnet_prop_set_guint64_val(p, value);
+		gnet_prop_unlock(p);
+	}
 
 	if (!(bs->flags & BS_F_ENABLED))		/* Scheduler disabled */
 		return;								/* Nothing to update */
@@ -1720,6 +1821,93 @@ bio_add_allocated(bio_source_t *bio, unsigned bw)
 	bio->bw_allocated = uint_saturate_add(bio->bw_allocated, bw);
 
 	return bio->bw_allocated;
+}
+
+/**
+ * Add penalty (power of 2) `n' to the I/O source.
+ *
+ * @param bio	the I/O source
+ * @param n		how many additional power-of-2 shifts should we perform?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_add_penalty(bio_source_t *bio, uint8 n)
+{
+	uint np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor + n;
+	np = MIN(np, 62);		/* At most 62 shifts on a 64-bit system */
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Remove penalty (power of 2) `n' to the I/O source.
+ *
+ * If `n' is MAX_INT_VAL(uint8) or larger than the existing amount of penalty
+ * present, the penalty is reset to 0 (i.e. it can never become negative).
+ *
+ * @param bio	the I/O source
+ * @param n		how many power-of-2 shifts should we deduce from existing ones?
+ *
+ * @return new amount of penalty.
+ */
+uint8
+bio_remove_penalty(bio_source_t *bio, uint8 n)
+{
+	int np;
+
+	bio_check(bio);
+
+	np = bio->bw_penalty_factor - n;
+	np = MAX(np, 0);
+
+	return bio->bw_penalty_factor = np;
+}
+
+/**
+ * Get current amount of I/O penalty we have on the given source.
+ *
+ * This amount corresponds to the decimation factor we apply to the scheduler
+ * slot bandwidth, in powers of 2.  Hence a value of 0 tells us there is no
+ * penalty, 3 that the slot bandwidth is divided by 2^3 = 8, with a minimum
+ * bandwidth allowed to go through.
+ *
+ * Penalty is used to slow down our transmission rate on a given I/O source
+ * in the hope it will avoid congestion on the other side, if it cannot cope
+ * correctly with all the incoming traffic we're sending.
+ *
+ * Application code uses bio_add_penalty() and bio_remove_penalty() to control
+ * the amount of penalty being used.
+ */
+uint8
+bio_penalty(const bio_source_t *bio)
+{
+	bio_check(bio);
+
+	return bio->bw_penalty_factor;
+}
+
+/**
+ * Set b/w cap for I/O source: the max amount of data we can write per second.
+ *
+ * @param bio	the I/O source
+ * @param cap	the b/w cap, 0 meaning none
+ *
+ * @return the actual cap registered
+ */
+uint32
+bio_set_cap(bio_source_t *bio, uint32 cap)
+{
+	bio_check(bio);
+
+	if (cap != 0 && cap < BW_SLOT_MIN)
+		cap = BW_SLOT_MIN;
+
+	return bio->bw_cap = cap;
 }
 
 /**
@@ -1863,9 +2051,11 @@ bio_writev(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_writev(bio->wio, iov, iovcnt);
@@ -2036,11 +2226,13 @@ bio_sendfile(sendfile_ctx_t *ctx, bio_source_t *bio,
 		return -1;
 	}
 
-	amount = len > available ? available : len;
+	amount = MIN(len, available);
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 #if defined(HAS_MMAP) && !defined(HAS_SENDFILE)
 	{
@@ -2173,10 +2365,13 @@ bio_read(bio_source_t *bio, void *data, size_t len)
 		return -1;
 	}
 
-	amount = len > available ? available : len;
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	amount = MIN(len, available);
+
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	r = bio->wio->read(bio->wio, data, amount);
 	if (r > 0) {
@@ -2274,9 +2469,11 @@ bio_readv(bio_source_t *bio, iovec_t *iov, int iovcnt)
 	 *		--RAM, 17/03/2002
 	 */
 
-	if (GNET_PROPERTY(bsched_debug) > 7)
-		g_debug("BSCHED %s(fd=%d, len=%zu) available=%zu",
-			G_STRFUNC, bio->wio->fd(bio->wio), len, available);
+	if (GNET_PROPERTY(bsched_debug) > 7) {
+		const bsched_t *bs = bsched_get(bio->bws);
+		g_debug("BSCHED %s(fd=%d, len=%zu) \"%s\" available=%zu",
+			G_STRFUNC, bio->wio->fd(bio->wio), len, bs->name, available);
+	}
 
 	if (iovcnt > MAX_IOV_COUNT)
 		r = safe_readv(bio->wio, iov, iovcnt);
@@ -2838,7 +3035,7 @@ bsched_heartbeat(bsched_t *bs, tm_t *tv)
 			int64_to_string3(bs->count ? bs->bw_max / bs->count : 0),
 			int64_to_string4(
 				bs->count ? (bs->bw_max + bs->bw_capped) / bs->count : 0),
-			int64_to_string5(bs->bw_per_second), bs->count, plural(bs->count),
+			int64_to_string5(bs->bw_per_second), PLURAL(bs->count),
 			bs->bw_actual * 1000.0 / delay);
 	}
 
@@ -3005,7 +3202,7 @@ bsched_stealbeat(bsched_t *bs)
 				g_debug("BSCHED %s: \"%s\" giving %s bytes to \"%s\" "
 					"(%d favour%s)",
 					G_STRFUNC, bs->name, int64_to_string((int64) amount),
-					xbs->name, xbs->io_favours, plural(xbs->io_favours));
+					xbs->name, PLURAL(xbs->io_favours));
 		}
 	} else if (all_used_count == 0) {
 		PSLIST_FOREACH(bs->stealers, l) {

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2004, Christian Biere
+ * Copyright (c) 2012-2018, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -17,8 +18,20 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
+ */
+
+/**
+ * @ingroup lib
+ * @file
+ *
+ * I/O vector helping routines.
+ *
+ * @author Christian Biere
+ * @date 2004
+ * @author Raphael Manfredi
+ * @date 2012-2018
  */
 
 #ifndef _lib_iovec_h_
@@ -26,24 +39,9 @@
 
 #include "common.h"
 
-#include "xmalloc.h"
-
-/**
- * Allocates an array of "struct iov" elements.
- * @param n The desired array length in elements.
- */
-static inline iovec_t *
-iov_alloc_n(size_t n)
-{
-	iovec_t *iov;
-
-	if (n > (size_t) -1 / sizeof *iov) {
-		g_assert_not_reached(); /* We don't want to handle failed allocations */
-		return NULL;
-	}
-	XMALLOC0_ARRAY(iov, n);
-	return iov;
-}
+iovec_t *iov_alloc_n(size_t n);
+void iov_free(iovec_t *iov);
+size_t iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s);
 
 static inline iovec_t
 iov_get(void *base, size_t size)
@@ -55,15 +53,6 @@ iov_get(void *base, size_t size)
 	iovec_set_base(&iov, base);
 	iovec_set_len(&iov, size);
 	return iov;
-}
-
-/**
- * Free array of "struct iov" elements allocated via iov_alloc_n().
- */
-static inline void
-iov_free(iovec_t *iov)
-{
-	xfree(iov);
 }
 
 /**
@@ -108,7 +97,7 @@ iov_init_from_string_vector(iovec_t *iov, size_t iov_cnt,
 	n = MIN(iov_cnt, argc);
 	for (i = 0; i < n; i++) {
 		iovec_set_base(&iov[i], argv[i]);
-		iovec_set_len(&iov[i], argv[i] ? (1 + strlen(argv[i])) : 0);
+		iovec_set_len(&iov[i], argv[i] ? (1 + vstrlen(argv[i])) : 0);
 	}
 	return n;
 }
@@ -137,24 +126,24 @@ iov_is_contiguous(const iovec_t * const a, const iovec_t * const b)
 static inline size_t
 iov_contiguous_size(const iovec_t *iov, size_t iov_cnt)
 {
-	iovec_t iov0;
+	size_t len;
 	size_t i;
 
 	g_assert(iov);
 
-	iov0 = iov[0];
+	len = iovec_len(&iov[0]);
 
-	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov0, &iov[i]); i++) {
+	for (i = 1; i < iov_cnt && iov_is_contiguous(&iov[i - 1], &iov[i]); i++) {
 		size_t n = iovec_len(&iov[i]);
 
-		if (n >= (size_t) -1 - iovec_len(&iov0)) {
+		if (n >= (size_t) -1 - len) {
 			/* Abort if size would overflow */
-			iovec_set_len(&iov0, (size_t) -1);
+			len = (size_t) -1;
 			break;
 		}
-		iovec_set_len(&iov0, iovec_len(&iov0) + n);
+		len += n;
 	}
-	return iovec_len(&iov0);
+	return len;
 }
 
 /**
@@ -202,52 +191,6 @@ iov_calculate_size(const iovec_t *iov, size_t iov_cnt)
 		size += n;
 	}
 	return size;
-}
-
-/**
- * Scatters a NUL-terminated string over an array of struct iovec buffers. The
- * trailing buffer space is zero-filled. If the string is too long, it is
- * truncated, so that there is a terminating NUL in any case, except if the
- * buffer space is zero.
- *
- * @param iov An array of initialized memory buffers.
- * @param iov_cnt The array length of iov.
- * @return The amount of bytes copied excluding the terminating NUL.
- */
-static inline size_t
-iov_scatter_string(iovec_t *iov, size_t iov_cnt, const char *s)
-{
-	size_t i, len, avail, size;
-
-	g_assert(iov);
-	g_assert(s);
-
-	/* Reserve one byte for the trailing NUL */
-	size = iov_calculate_size(iov, iov_cnt);
-	len = strlen(s);
-	if (len >= size) {
-		len = size > 0 ? (size - 1) : 0;
-	}
-	avail = len;
-
-	for (i = 0; i < iov_cnt; i++) {
-		size_t n;
-
-		n = MIN(iovec_len(&iov[i]), avail);
-		memmove(iovec_base(&iov[i]), s, n);
-		avail -= n;
-		s += n;
-		if (0 == avail) {
-			iov_clear(&iov[i], n);
-			i++;
-			break;
-		}
-	}
-	while (i < iov_cnt) {
-		iov_clear(&iov[i], 0);
-		i++;
-	}
-	return len;
 }
 
 #endif /* _lib_iovec_h_ */

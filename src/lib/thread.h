@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -38,18 +38,35 @@
 #include "compat_gettid.h"		/* For systid_t */
 
 /**
- * Thread exiting callback, which will be invoked asynchronously in the
- * context of the main thread, NOT the thread which created that exiting thread.
+ * Thread exiting callback.
+ *
+ * When the thread was created with the THREAD_F_ASYNC_EXIT flag, the exit
+ * callback supplied to thread_create_full() will NOT be called within the
+ * thread exiting but from the main thread.
+ *
+ * Otherwise (by default), the exit callback is invoked synchronously, in
+ * the context of the exiting thread.  The thread result (the value of
+ * thread_exit() or the return of the main entry point of the thread) is
+ * to be considered informative only and should not be modified as a side
+ * effect of the exiting callback!
+ *
+ * Likewise, all exit callbacks registered via thread_atexit() will be
+ * invoked synchronously.
+ *
+ * @param result		the thread exit value (read-only)
+ * @param earg			the extra argument registered via thread_atexit()
  */
-typedef void (*thread_exit_t)(void *result, void *earg);
+typedef void (*thread_exit_t)(const void *result, void *earg);
 
 typedef unsigned long thread_t;
 typedef size_t thread_qid_t;		/* Quasi Thread ID */
 typedef unsigned int thread_key_t;	/* Local thread storage key */
 
 #define THREAD_MAX			64		/**< Max amount of threads we can track */
-#define THREAD_STACK_DFLT	(65536 * PTRSIZE)	/**< Default stack requested */
+#define THREAD_STACK_DFLT	(65536U * PTRSIZE)	/**< Default stack requested */
 #define THREAD_LOCAL_MAX	1024	/**< Max amount of thread-local keys */
+
+#define THREAD_SUSPEND_TIMEOUT	90	/**< secs: thread max suspension time */
 
 /**
  * Minimum thread stack requested: 24K on 32-bit systems, 32K on 64-bit ones.
@@ -117,6 +134,7 @@ enum thread_lock_kind {
 	THREAD_LOCK_SPINLOCK,
 	THREAD_LOCK_RLOCK,
 	THREAD_LOCK_WLOCK,
+	THREAD_LOCK_QLOCK,
 	THREAD_LOCK_MUTEX
 };
 
@@ -243,6 +261,8 @@ unsigned thread_by_name(const char *name);
 
 unsigned thread_count();
 unsigned thread_discovered_count(void);
+void thread_main_starting(void);
+bool thread_main_has_started(void);
 bool thread_is_single(void);
 bool thread_is_stack_pointer(const void *p, const void *top, unsigned *stid);
 void thread_exit_mode(void);
@@ -253,7 +273,11 @@ void thread_lock_disable(bool silent);
 size_t thread_stack_used(void);
 size_t thread_id_stack_used(uint stid, const void *sp);
 void thread_stack_check_overflow(const void *va);
+ssize_t thread_stack_diff(const void *sp) G_PURE;
 void thread_stack_check(void);
+
+void thread_suspend(int stid);
+void thread_unsuspend(int stid);
 
 size_t thread_suspend_others(bool lockwait);
 size_t thread_unsuspend_others(void);
@@ -293,6 +317,7 @@ size_t thread_id_lock_count(unsigned id);
 bool thread_lock_holds(const volatile void *lock);
 bool thread_lock_holds_as(const volatile void *, enum thread_lock_kind);
 size_t thread_lock_held_count(const void *lock);
+size_t thread_lock_held_count_as(const void *lock, enum thread_lock_kind kind);
 bool thread_lock_holds_from(const char *file);
 void thread_lock_deadlock(const volatile void *lock);
 void thread_lock_dump_all(int fd);
@@ -302,6 +327,7 @@ void thread_lock_contention(enum thread_lock_kind kind);
 const void *thread_lock_waiting_element(const void *lock,
 	enum thread_lock_kind kind, const char *file, unsigned line);
 void thread_lock_waiting_done(const void *element, const void *lock);
+void thread_deadlock_check(const volatile void *lock, const char *f, uint l);
 
 const void *thread_cond_waiting_element(struct cond **c);
 void thread_cond_waiting_done(const void *element);
@@ -347,6 +373,7 @@ int thread_kill(unsigned id, int signum);
 tsighandler_t thread_signal(int signum, tsighandler_t handler);
 int thread_sighandler_level(void);
 unsigned thread_sig_generation(void);
+size_t thread_stack_size(void);
 bool thread_signal_has_pending(size_t locks);
 bool thread_signal_process(void);
 bool thread_pause(void);
@@ -366,6 +393,8 @@ int thread_interrupt(uint id, process_fn_t cb, void *arg,
 	notify_data_fn_t completed, void *udata);
 
 void *thread_sp(void);
+int thread_stack_ptr_cmp(const void *a, const void *b);
+bool thread_on_altstack(void);
 
 void thread_cleanup_push_from(notify_fn_t cleanup, void *arg,
 	const char *routine, const char *file, unsigned line, const void *sp);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -260,7 +260,7 @@ assert_ochunk_valid(const struct ochunk *ck, const void *page,
 
 	g_assert_log(0 == ptr_cmp(&ck[1], end),
 		"%s(): chunk at %p (%zu bytes) not at the tail of page [%p, %p[",
-		caller, ck, sizeof *ck, page, end);
+		caller, PTRLEN(ck), page, end);
 	g_assert_log(ptr_cmp(ck->first, page) >= 0 && ptr_cmp(ck->first, end) < 0,
 		"%s(): chunk at %p lists first free byte at %p, not on page [%p, %p[",
 		caller, ck, ck->first, page, end);
@@ -748,7 +748,7 @@ omalloc_allocate(size_t size, size_t align, enum omalloc_mode mode,
 		size_t count = OMALLOC_RW == mode ?
 			ostats.objects_rw : ostats.objects_ro;
 		s_debug("OMALLOC allocated %zu page%s (%zu total for %zu %s object%s)",
-			pages, plural(pages),
+			PLURAL(pages),
 			OMALLOC_RW == mode ? ostats.pages_rw : ostats.pages_ro,
 			count, OMALLOC_RW == mode ? "read-write" : "read-only",
 			plural(count));
@@ -904,7 +904,7 @@ ostrdup(const char *str)
 	if (NULL == str)
 		return NULL;
 
-	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RW, str);
+	return omalloc_allocate(1 + vstrlen(str), 1, OMALLOC_RW, str);
 }
 
 /**
@@ -954,7 +954,7 @@ ostrdup_readonly(const char *str)
 	if (NULL == str)
 		return NULL;
 
-	return omalloc_allocate(1 + strlen(str), 1, OMALLOC_RO, str);
+	return omalloc_allocate(1 + vstrlen(str), 1, OMALLOC_RO, str);
 }
 
 /**
@@ -1027,22 +1027,22 @@ omalloc_close(void)
 	if (omalloc_debug) {
 		s_debug("omalloc() allocated %zu read-write object%s "
 			"spread on %zu page%s",
-			ostats.objects_rw, plural(ostats.objects_rw),
-			ostats.pages_rw, plural(ostats.pages_rw));
+			PLURAL(ostats.objects_rw),
+			PLURAL(ostats.pages_rw));
 		s_debug("omalloc() allocated %s read-write, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_rw, FALSE),
-			ostats.chunks_rw, plural(ostats.chunks_rw),
-			plural(ostats.chunks_rw));
+			PLURAL(ostats.chunks_rw),
+			1 == ostats.chunks_rw ? "s" : "");
 		s_debug("omalloc() allocated %zu read-only object%s "
 			"spread on %zu page%s",
-			ostats.objects_ro, plural(ostats.objects_ro),
-			ostats.pages_ro, plural(ostats.pages_ro));
+			PLURAL(ostats.objects_ro),
+			PLURAL(ostats.pages_ro));
 		s_debug("omalloc() allocated %s read-only, "
 			"%zu partial page%s remain%s",
 			short_size(ostats.memory_ro, FALSE),
-			ostats.chunks_ro, plural(ostats.chunks_ro),
-			plural(ostats.chunks_ro));
+			PLURAL(ostats.chunks_ro),
+			1 == ostats.chunks_ro ? "s" : "");
 	}
 }
 

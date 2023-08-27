@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,6 +34,7 @@
 #include "common.h"
 
 #include "ascii.h"
+#include "cstr.h"
 #include "atoms.h"
 #include "iso3166.h"
 #include "parse.h"
@@ -305,6 +306,7 @@ static const struct {
 	{ "vu", N_("Vanuatu") },
 	{ "wf", N_("Wallis and Futuna") },
 	{ "ws", N_("Samoa") },
+	{ "xk", N_("Kosovo") },			/* Temporary, not ISO 3166 yet */
 	{ "ye", N_("Yemen") },
 	{ "yt", N_("Mayotte") },
 	{ "za", N_("South Africa") },
@@ -387,8 +389,11 @@ iso3166_init(void)
 		iso3166_entry_t *entry;
 
 		entry = &iso3166_entries[i];
-		strncpy(entry->cc, iso3166_tab[i].cc, sizeof entry->cc);
-		entry->cc[sizeof entry->cc - 1] = '\0';		/* Paranoid */
+		if (!cstr_fcpy(ARYLEN(entry->cc), iso3166_tab[i].cc)) {
+			s_warning(
+				"%s(): entry #%zu long country code \"%s\" truncated to \"%s\"",
+				G_STRFUNC, i, iso3166_tab[i].cc, entry->cc);
+		}
 		entry->country = atom_str_get(_(iso3166_tab[i].country));
 
 		{

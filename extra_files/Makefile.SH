@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-224]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-258]
 : $X-Id$
 
 case $CONFIG in
@@ -165,26 +165,53 @@ local_deinstall::
 # Update the bogons and GeoIp databases
 #
 
-update: update_bogons update_geoip update_geoipv6
+update: update_bogons geo-ip.txt geo-ipv6.txt
 
 update_bogons:
 # Target disabled, site seems to be down definitively? -- RAM, 2009-01-16
 	: wget http://www.completewhois.com/bogons/data/bogons-cidr-all.txt \
 		-O bogons.txt
 
-update_geoip:
-	rm -f GeoIPCountryCSV.zip
-	wget http://www.maxmind.com/download/geoip/database/GeoIPCountryCSV.zip
-	rm -f GeoIPCountryWhois.csv
-	unzip GeoIPCountryCSV.zip
-	$(TOP)/scripts/geo-to-db.pl -c GeoIPCountryWhois.csv >geo-ip.txt
+URL4 = https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.CSV.ZIP
+URL6 = https://download.ip2location.com/lite/IP2LOCATION-LITE-DB1.IPV6.CSV.ZIP
+GEODB4 = IP2LOCATION-LITE-DB1.CSV
+GEODB6 = IP2LOCATION-LITE-DB1.IPV6.CSV
+TMP = tmp
 
-update_geoipv6:
-	rm -f GeoIPv6.csv.gz
-	wget http://geolite.maxmind.com/download/geoip/database/GeoIPv6.csv.gz
-	rm -f GeoIPv6.csv
-	gunzip GeoIPv6.csv.gz
-	$(TOP)/scripts/geo6-to-db.pl -g GeoIPv6.csv >geo-ipv6.txt
+.FORCE:
+
+$(GEODB4).ZIP: .FORCE
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL4); \
+	else touch $@; fi
+
+$(GEODB6).ZIP: .FORCE
+	@if test -f $(TOP)/.package; then \
+		wget -N $(URL6); \
+	else touch $@; fi
+
+geo-ip.txt: $(GEODB4).ZIP
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB4).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo-to-db.pl -ic $(GEODB4) >../geo-ip.txt); \
+	else touch $@; fi
+
+geo-ipv6.txt: $(GEODB6).ZIP
+	@if test -f $(TOP)/.package; then \
+		rm -rf $(TMP); \
+		mkdir $(TMP); \
+		(cd $(TMP); unzip ../$(GEODB6).ZIP); \
+		(cd $(TMP); \
+			../$(TOP)/scripts/geo6-to-db.pl -i $(GEODB6) >../geo-ipv6.txt); \
+	else touch $@; fi
+
+local_clean::
+	rm -rf $(TMP)
+	rm -f $(GEODB4).ZIP
+	rm -f $(GEODB6).ZIP
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

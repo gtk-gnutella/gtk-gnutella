@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013, Raphael Manfredi
+ * Copyright (c) 2011-2019, Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -65,8 +65,11 @@
 #include "crash.h"			/* For crash_hook_add(), crash_oom() */
 #include "dump_options.h"
 #include "elist.h"
+#include "endian.h"			/* For UINT32_ROTL() */
+#include "entropy.h"
 #include "erbtree.h"
 #include "evq.h"
+#include "hashing.h"
 #include "log.h"
 #include "mem.h"			/* For mem_is_valid_ptr() */
 #include "mempcpy.h"
@@ -88,12 +91,9 @@
 #include "vmm.h"
 #include "win32dlp.h"
 #include "xsort.h"
+#include "zalloc.h"			/* For zalloc_is_closing() */
 
 #include "override.h"		/* Must be the last header included */
-
-#ifdef USE_MY_MALLOC			/* metaconfig symbol */
-#define XMALLOC_IS_MALLOC		/* xmalloc() becomes malloc() */
-#endif
 
 #if 0
 #define XMALLOC_SORT_SAFETY		/* Adds expensive sort checking assertions */
@@ -105,40 +105,15 @@
 #define XMALLOC_CHUNK_SAFETY	/* Adds expensive thread chunk checking */
 #endif
 
-/*
- * The VMM layer is based on mmap() and falls back to posix_memalign()
- * or memalign().
- *
- * However, when trapping malloc() we also have to define posix_memalign(),
- * memalign() and valign() because glib 2.x can use these routines in its
- * slice allocator and the pointers returned by these functions must be
- * free()able.
- *
- * It follows that when mmap() is not available, we cannot trap malloc().
- */
-#if defined(HAS_MMAP) || defined(MINGW32)
-#define CAN_TRAP_MALLOC
-#endif
-#if defined(XMALLOC_IS_MALLOC) && !defined(CAN_TRAP_MALLOC)
-#undef XMALLOC_IS_MALLOC
-#endif
+/* XMALLOC_ALIGNBYTES is defined in "xmalloc.h" now, to be widely visible */
 
-/**
- * Memory alignment constraints.
- *
- * Glib-2.30.2 does masking on pointer values with 0x7, relying on the
- * assumption that the system's malloc() will return pointers aligned on
- * 8 bytes.
- *
- * To be able to work successfully on systems with such a glib, we have no
- * other option but to remain speachless... and comply with that assumption.
- */
-#define XMALLOC_ALIGNBYTES	MAX(8, MEM_ALIGNBYTES)	/* Forced thanks to glib */
 #define XMALLOC_MASK		(XMALLOC_ALIGNBYTES - 1)
 #define xmalloc_round(s) \
 	((size_t) (((unsigned long) (s) + XMALLOC_MASK) & ~XMALLOC_MASK))
 
-#if 8 == XMALLOC_ALIGNBYTES
+#if 4 == XMALLOC_ALIGNBYTES
+#define XMALLOC_ALIGNSHIFT		2
+#elif 8 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		3
 #elif 16 == XMALLOC_ALIGNBYTES
 #define XMALLOC_ALIGNSHIFT		4
@@ -305,6 +280,13 @@ struct xheader {
 #define XM_CPU_CACHELINE	64			/**< Bytes in cache line */
 #define XM_BUCKET_UNSORTED	(XM_CPU_CACHELINE / PTRSIZE)
 
+/*
+ * Any requested block with a size larger than XMALLOC_MAXSIZE will
+ * be allocated through the VMM layer (in an effort to limit virtual
+ * memory space fragmentation).
+ */
+#define XMALLOC_VIA_VMM(z)	((z) > XMALLOC_MAXSIZE)
+
 /**
  * Free list data structure for thread-specific allocations.
  *
@@ -379,6 +361,8 @@ struct xchunk {
 	unsigned xc_size;			/* Object size */
 	unsigned xc_stid;			/* Thread STID owning this page */
 	unsigned xc_capacity;		/* Amount of items we can allocate  */
+	uint32 xc_tag;				/* Tag value derived from above 3 fields */
+	uint32 xc_cksum;			/* Checksum of previous 4 header fields */
 	unsigned xc_count;			/* Free items held */
 	unsigned xc_free_offset;	/* Offset of first free item in page */
 	struct xchunkhead *xc_head;	/* Chunk header */
@@ -484,9 +468,11 @@ static struct xstats {
 	uint64 alloc_via_vmm;				/**< Allocations from VMM */
 	uint64 alloc_via_sbrk;				/**< Allocations from sbrk() */
 	uint64 alloc_via_thread_pool;		/**< Allocations from thread chunks */
+	AU64(alloc_forced_user_vmm);		/**< Allocations forced standalone VMM */
 	uint64 freeings;					/**< Total # of freeings */
 	AU64(freeings_in_handler);			/**< Freeings from sig handler */
 	AU64(free_sbrk_core);				/**< Freeing sbrk()-allocated core */
+	uint64 free_via_vmm;				/**< Standalone VMM block freed */
 	uint64 free_sbrk_core_released;		/**< Released sbrk()-allocated core */
 	uint64 free_vmm_core;				/**< Freeing VMM-allocated core */
 	AU64(free_coalesced_vmm);			/**< VMM-freeing of coalesced block */
@@ -495,10 +481,14 @@ static struct xstats {
 	uint64 sbrk_alloc_bytes;			/**< Bytes allocated from sbrk() */
 	uint64 sbrk_freed_bytes;			/**< Bytes released via sbrk() */
 	uint64 sbrk_wasted_bytes;			/**< Bytes wasted to align sbrk() */
-	uint64 vmm_alloc_pages;				/**< Pages allocated via VMM */
+	uint64 vmm_alloc_pages;				/**< Core pages allocated via VMM */
+	uint64 vmm_alloc_user_pages;		/**< User pages allocated via VMM */
 	uint64 vmm_split_pages;				/**< VMM pages that were split */
 	AU64(vmm_thread_pages);				/**< VMM pages for thread chunks */
-	uint64 vmm_freed_pages;				/**< Pages released via VMM */
+	uint64 vmm_freed_pages;				/**< Core pages released via VMM */
+	uint64 vmm_freed_user_pages;		/**< User pages released via VMM */
+	uint64 vmm_user_blocks;				/**< Standalone VMM blocks still present */
+	uint64 vmm_total_user_blocks;		/**< Total standalone VMM blocks created */
 	uint64 aligned_via_freelist;		/**< Aligned memory from freelist */
 	uint64 aligned_via_freelist_then_vmm;	/**< Aligned memory from VMM */
 	uint64 aligned_via_vmm;				/**< Idem, no freelist tried */
@@ -519,12 +509,14 @@ static struct xstats {
 	uint64 aligned_vmm_memory;			/**< Total memory used by aligned VMM */
 	AU64(reallocs);						/**< Total # of reallocations */
 	AU64(realloc_noop);					/**< Reallocs not doing anything */
-	uint64 realloc_inplace_vmm_shrinking;	/**< Reallocs with inplace shrink */
+	AU64(realloc_noop_same_vmm);		/**< Reallocs keeping VMM fragment */
+	AU64(realloc_vmm);					/**< Reallocating a VMM block */
+	AU64(realloc_vmm_moved);			/**< VMM relocation via a vmm_move() */
+	uint64 realloc_via_vmm_shrink;		/**< VMM region inplace shrinking */
+	uint64 realloc_via_vmm_move_shrink;	/**< Realloc with move + inplace shrink */
 	uint64 realloc_inplace_shrinking;		/**< Idem but from freelist */
 	uint64 realloc_inplace_extension;		/**< Reallocs not moving data */
 	uint64 realloc_coalescing_extension;	/**< Reallocs through coalescing */
-	AU64(realloc_relocate_vmm_fragment);	/**< Reallocs of moved fragments */
-	AU64(realloc_relocate_vmm_shrinked);	/**< Reallocs of moved fragments */
 	AU64(realloc_relocate_smart_attempts);	/**< Attempts to move pointer */
 	AU64(realloc_relocate_smart_success);	/**< Smart placement was OK */
 	AU64(realloc_regular_strategy);			/**< Regular resizing strategy */
@@ -708,6 +700,9 @@ xpages_pool_free(void *p, size_t len, bool fragment)
 static void
 xpages_pool_init(void)
 {
+	if (zalloc_is_closing())
+		return;		/* Too late to create a page pool! */
+
 	xpages_pool = pool_create("xmalloc thread chunks",
 		xmalloc_pagesize, xpages_pool_alloc, xpages_pool_free, NULL);
 }
@@ -759,10 +754,6 @@ xmalloc_vmm_inited(void)
 	xmalloc_vmm_is_up = TRUE;
 	safe_to_log = TRUE;
 	xmalloc_vmm_setup();
-
-#ifdef XMALLOC_IS_MALLOC
-	vmm_malloc_inited();
-#endif
 }
 
 /**
@@ -806,8 +797,10 @@ xmalloc_early_init(void)
 void G_COLD
 xmalloc_show_settings_log(logagent_t *la)
 {
-	log_info(la, "using %s", xmalloc_is_malloc() ?
-		"our own malloc() replacement" : "native malloc()");
+	log_info(la, "using %s (memory alignment: %u bytes)",
+		xmalloc_is_malloc() ?
+			"our own malloc() replacement" : "native malloc()",
+		XMALLOC_ALIGNBYTES);
 
 	/*
 	 * On Windows, we're performing dynamic patching of loaded libraries
@@ -853,7 +846,7 @@ xmalloc_round_blocksize(size_t len)
 	 * Blocks larger than XMALLOC_MAXSIZE are allocated via the VMM layer.
 	 */
 
-	if G_UNLIKELY(len > XMALLOC_MAXSIZE)
+	if G_UNLIKELY(XMALLOC_VIA_VMM(len))
 		return round_pagesize(len);
 
 	/*
@@ -919,9 +912,13 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 {
 	void *p;
 	bool locked;
+	static bool sbrk_failing;
 
 	g_assert(size_is_positive(len));
 	g_assert(xmalloc_round(len) == len);
+
+	if G_UNLIKELY(sbrk_failing)
+		goto emergency;
 
 	/*
 	 * Initialize the heap break point if not done so already.
@@ -1013,7 +1010,17 @@ bypass:
 	if ((void *) -1 == p) {
 		if (locked)
 			spinunlock_hidden(&xmalloc_sbrk_slk);
-		crash_oom("cannot allocate more core (%zu bytes): %m", len);
+
+		/*
+		 * The only time I've seen sbrk() failing is when running within
+		 * a Docker container.  Let's use some emergency setup to attempt
+		 * to initialize the VMM layer earlier than usual and pray it works.
+		 * 		--RAM, 2020-02-10
+		 */
+
+		sbrk_failing = TRUE;
+		s_rawwarn("sbrk() failed to allocate %zu bytes: %m", len);
+		goto emergency;
 	}
 
 	/*
@@ -1047,6 +1054,25 @@ bypass:
 	}
 
 	return p;
+
+emergency:
+	/*
+	 * We come here when sbrk() failed to allocate memory.
+	 */
+
+	if G_UNLIKELY(!ONCE_DONE(xmalloc_early_inited)) {
+		s_rawwarn("initializing VMM layer earlier than usual...");
+		once_flag_run(&xmalloc_early_inited, xmalloc_early_init);
+	}
+	{
+		int error = posix_memalign(&p, MEM_ALIGNBYTES, len);
+
+		if G_LIKELY(0 == error)
+			return p;
+
+		errno = error;
+		crash_oom("cannot allocate more core (%zu bytes): %m", len);
+	}
 }
 
 /**
@@ -1173,7 +1199,7 @@ xmalloc_freecore(void *ptr, size_t len)
 static bool
 xmalloc_is_valid_pointer(const void *p, bool locked)
 {
-	if (xmalloc_round(p) != pointer_to_ulong(p))
+	if (NULL == p || xmalloc_round(p) != pointer_to_ulong(p))
 		return FALSE;
 
 	if G_UNLIKELY(xmalloc_no_freeing)
@@ -1184,10 +1210,9 @@ xmalloc_is_valid_pointer(const void *p, bool locked)
 		 * Can't call vmm_is_native_pointer() if we hold a lock for fear
 		 * of creating a deadlock.
 		 */
-		return locked ||
-			vmm_is_native_pointer(p) || xmalloc_isheap(p, sizeof p);
+		return locked || vmm_is_native_pointer(p) || xmalloc_isheap(ARYLEN(p));
 	} else {
-		return xmalloc_isheap(p, sizeof p);
+		return xmalloc_isheap(ARYLEN(p));
 	}
 }
 
@@ -1206,14 +1231,14 @@ xmalloc_invalid_ptrstr(const void *p)
 		if (vmm_is_native_pointer(p)) {
 			return "valid VMM pointer!";		/* Should never happen */
 		} else {
-			if (xmalloc_isheap(p, sizeof p)) {
+			if (xmalloc_isheap(ARYLEN(p))) {
 				return "valid heap pointer!";	/* Should never happen */
 			} else {
 				return "neither VMM nor heap pointer";
 			}
 		}
 	} else {
-		if (xmalloc_isheap(p, sizeof p)) {
+		if (xmalloc_isheap(ARYLEN(p))) {
 			return "valid heap pointer!";		/* Should never happen */
 		} else {
 			return "not a heap pointer";
@@ -1234,9 +1259,12 @@ xmalloc_is_valid_length(const void *p, size_t len)
 	if (!size_is_positive(len))
 		return FALSE;
 
+	if G_UNLIKELY(XMALLOC_VIA_VMM(len))
+		return round_pagesize(len) == len;
+
 	rounded = xmalloc_round_blocksize(len);
 
-	if G_LIKELY(rounded == len || round_pagesize(rounded) == len)
+	if G_LIKELY(rounded == len)
 		return TRUE;
 
 	/*
@@ -1257,7 +1285,9 @@ xmalloc_is_valid_length(const void *p, size_t len)
 	 * block sizes.
 	 */
 
-	if (len > XMALLOC_FACTOR_MAXSIZE && len <= XMALLOC_MAXSIZE)
+	/* We already know len <= XMALLOC_MAXSIZE here */
+
+	if (len > XMALLOC_FACTOR_MAXSIZE)
 		return TRUE;
 
 	/*
@@ -1325,9 +1355,9 @@ static inline G_PURE size_t
 xfl_find_freelist_index(size_t len)
 {
 	g_assert_log(size_is_positive(len), "len=%zd", len);
-	g_assert(xmalloc_round_blocksize(len) == len);
-	g_assert(len <= XMALLOC_MAXSIZE);
-	g_assert(len >= XMALLOC_SPLIT_MIN);
+	g_assert_log(xmalloc_round_blocksize(len) == len, "len=%zu", len);
+	g_assert_log(!XMALLOC_VIA_VMM(len), "len=%zu", len);
+	g_assert_log(len >= XMALLOC_SPLIT_MIN, "len=%zu", len);
 
 	return (len <= XMALLOC_FACTOR_MAXSIZE) ?
 		(len >> XMALLOC_BUCKET_SHIFT) - 1 - XMALLOC_BUCKET_OFFSET :
@@ -1346,6 +1376,108 @@ xfl_find_freelist(size_t len)
 	idx = xfl_find_freelist_index(len);
 	return &xfreelist[idx];
 }
+
+#ifdef XMALLOC_SORT_SAFETY
+/**
+ * Verify that the freelist bucket is both valid AND sorted.
+ *
+ * @param caller	caller name
+ * @param fl		the freelist bucket
+ * @param low		first index expected to be sorted
+ * @param count		amount of items to check
+ * @param fmt		explaination message, printf()-like
+ * @param ...		variable printf arguments for message
+ */
+static void G_PRINTF(5, 6)
+assert_xfl_sorted(const char *caller,
+	const struct xfreelist *fl, size_t low, size_t count,
+	const char *fmt, ...)
+{
+	size_t i;
+	size_t high = size_saturate_add(low, count);
+	const char *prev;
+
+	assert_mutex_is_owned(&fl->lock);
+
+	g_assert_log(low <= fl->count,
+		"%s(): low=%zu, count=%zu, fl->count=%zu",
+		G_STRFUNC, low, count, fl->count);
+
+	/* Ensure freelist is valid */
+
+	for (i = 0; i < fl->count; i++) {
+		const void *p = fl->pointers[i];
+		const char *what = NULL;
+
+		if (NULL == p)
+			what = "NULL";
+		else if (0 != (pointer_to_ulong(p) & XMALLOC_MASK))
+			what = "unaligned";
+		else if (*(size_t *) p != fl->blocksize)
+			what = "corrupted";
+
+		if (what != NULL) {
+			s_warning("%s(): XM freelist #%zu (%zu-byte blocks) has "
+				"%s block %p at index %zu (cnt=%zu, cap=%zu)",
+				caller, xfl_index(fl), fl->blocksize,
+				what, p, i,
+				fl->count, fl->capacity);
+			goto corrupted;
+		}
+	}
+
+	if G_UNLIKELY(0 == fl->capacity) {
+		g_assert(NULL == fl->pointers);
+		return;
+	}
+
+	/* Ensure freelist is properly sorted from `low' to `count' */
+
+	for (prev = fl->pointers[low], i = low + 1; i < high;  i++) {
+		const char *cur = fl->pointers[i];
+
+		if (xm_ptr_cmp(prev, cur) >= 0) {
+			s_warning("%s(): XM freelist #%zu (%zu/%zu sorted) "
+				"items %zu-%zu unsorted: "
+				"breaks at item %zu (prev=%p, cur=%p)",
+				caller,
+				xfl_index(fl), fl->sorted, fl->count, low, high - 1, i,
+				prev, cur);
+
+			goto corrupted;
+		}
+
+		prev = cur;
+	}
+
+	return;
+
+corrupted:
+	{
+		va_list args;
+		char buf[80];
+
+		va_start(args, fmt);
+		str_vbprintf(ARYLEN(buf), fmt, args);
+		va_end(args);
+
+		s_info("%s(): XM freelist #%zu (%zu-byte blocks) dump of %zu entr%s:",
+			G_STRFUNC, xfl_index(fl), fl->blocksize, PLURAL_Y(fl->count));
+
+		for (i = 0; i < fl->count; i++) {
+			s_info("%8zu: %p%s",
+				i, fl->pointers[i], i < fl->sorted ? "" : " [U]");
+		}
+
+		s_error_from(_WHERE_, "%s(): freelist #%zu corrupted %s, "
+			"fl->pointers=%p (cap=%zu, cnt=%zu, sort=%zu)",
+			caller, xfl_index(fl), buf,
+			fl->pointers, fl->capacity, fl->count, fl->sorted);
+	}
+}
+#else
+#define assert_xfl_sorted(...)
+#endif	/* XMALLOC_SORT_SAFETY */
 
 /**
  * Replace the buckets's array of pointers.
@@ -1386,6 +1518,8 @@ xfl_replace_pointer_array(struct xfreelist *fl, void **array, size_t len)
 	fl->capacity = capacity;
 
 	g_assert(fl->capacity >= fl->count);	/* Still has room for all items */
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after replacement");
 
 	/*
 	 * Freelist bucket is now in a coherent state, we can unconditionally
@@ -1437,6 +1571,8 @@ xfl_shrink(struct xfreelist *fl)
 	g_assert(fl->count < fl->capacity);
 	g_assert(size_is_non_negative(fl->count));
 	g_assert(fl->shrinking);
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before");
 
 	old_ptr = fl->pointers;
 	old_size = sizeof(void *) * fl->capacity;
@@ -1674,8 +1810,7 @@ static void
 assert_valid_freelist_pointer(const struct xfreelist *fl, const void *p)
 {
 	(void) fl;
-	(void) p;
-	/* Disabled */
+	g_assert(p != NULL);
 }
 #endif	/* XMALLOC_PTR_SAFETY */
 
@@ -1691,6 +1826,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 	size_t i;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_valid_freelist_pointer(fl, p);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before removal");
 
 	g_assert(size_is_positive(fl->count));
 	g_assert(fl->count >= fl->sorted);
@@ -1715,6 +1852,8 @@ xfl_remove_selected(struct xfreelist *fl, void *p)
 	fl->pointers[i] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	if (i < fl->sorted)
 		fl->sorted--;
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after removal");
 
 	/*
 	 * Forbid any bucket shrinking as we could be in the middle of a bucket
@@ -1829,7 +1968,7 @@ xfl_bucket_alloc(const struct xfreelist *flb,
 
 	len = xmalloc_round_blocksize(size);
 
-	if (len <= XMALLOC_MAXSIZE) {
+	if (!XMALLOC_VIA_VMM(len)) {
 		p = xfl_freelist_alloc(flb, len, allocated);
 		if (p != NULL)
 			return p;
@@ -1863,6 +2002,7 @@ xfl_extend(struct xfreelist *fl)
 	size_t old_size, old_used, new_size = 0, allocated_size;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before");
 
 	g_assert(fl->extending);
 	g_assert_log(fl->count == fl->capacity || fl->expand,
@@ -1979,50 +2119,6 @@ xfl_ptr_cmp(const void *a, const void *b)
 	return xm_ptr_cmp(*ap, *bp);
 }
 
-#ifdef XMALLOC_SORT_SAFETY
-/**
- * Verify that the freelist bucket is sorted.
- *
- * @param fl		the freelist bucket
- * @param low		first index expected to be sorted
- * @param count		amount of items to check
- * @param fmt		explaination message, printf()-like
- * @param ...		variable printf arguments for message
- */
-static void G_PRINTF(4, 5)
-assert_xfl_sorted(const struct xfreelist *fl, size_t low, size_t count,
-	const char *fmt, ...)
-{
-	size_t i;
-	size_t high = size_saturate_add(low, count);
-	const char *prev = fl->pointers[low];
-
-	for (i = low + 1; i < high;  i++) {
-		const char *cur = fl->pointers[i];
-
-		if (xm_ptr_cmp(prev, cur) > 0) {
-			va_list args;
-			char buf[80];
-
-			va_start(args, fmt);
-			str_vbprintf(buf, sizeof buf, fmt, args);
-			va_end(args);
-
-			s_warning("XM freelist #%zu (%zu/%zu sorted) "
-				"items %zu-%zu unsorted %s: "
-				"breaks at item %zu",
-				xfl_index(fl), fl->sorted, fl->count, low, high - 1, buf, i);
-
-			s_error_from(_WHERE_, "freelist #%zu corrupted", xfl_index(fl));
-		}
-
-		prev = cur;
-	}
-}
-#else
-#define assert_xfl_sorted(...)
-#endif	/* XMALLOC_SORT_SAFETY */
-
 /**
  * Sort freelist bucket.
  */
@@ -2034,6 +2130,7 @@ xfl_sort(struct xfreelist *fl)
 	size_t x = fl->sorted;			/* Index of first unsorted item */
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, x, "sanity check");
 
 	/*
 	 * Items from 0 to fl->sorted are already fully sorted, so we only need
@@ -2056,7 +2153,7 @@ xfl_sort(struct xfreelist *fl)
 	if G_LIKELY(unsorted > 1) {
 		XSTATS_INCX(freelist_partial_sorting);
 		xqsort(&ary[x], unsorted, sizeof ary[0], xfl_ptr_cmp);
-		assert_xfl_sorted(fl, x, unsorted, "after xqsort");
+		assert_xfl_sorted(G_STRFUNC, fl, x, unsorted, "after partial xqsort");
 	}
 
 	/*
@@ -2075,10 +2172,10 @@ xfl_sort(struct xfreelist *fl)
 
 		XSTATS_INCX(freelist_full_sorting);
 		xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
-		assert_xfl_sorted(fl, 0, fl->count, "after full qsort");
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->count, "after full xqsort");
 	} else {
 		XSTATS_INCX(freelist_avoided_sorting);
-		assert_xfl_sorted(fl, 0, fl->count, "after nosort");
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->count, "after nosort");
 	}
 
 	fl->sorted = fl->count;		/* Fully sorted now */
@@ -2194,7 +2291,7 @@ xfl_lookup(struct xfreelist *fl, const void *p, size_t *low_ptr)
 		return -1;
 	}
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "on entry in xfl_lookup");
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "on entry");
 
 	unsorted = fl->count - fl->sorted;
 
@@ -2277,6 +2374,8 @@ xfl_delete_slot(struct xfreelist *fl, size_t idx)
 
 	fl->pointers[fl->count] = XM_INVALID_PTR;	/* Prevent accidental reuse */
 	xfl_count_decreased(fl, TRUE);
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "on exit");
 }
 
 /**
@@ -2314,7 +2413,7 @@ xfl_insert(struct xfreelist *fl, void *p, bool burst)
 
 	sorted = fl->count == fl->sorted;
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "before %ssorted %s xfl_insert",
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before %ssorted %s insert",
 		sorted ? "" : "un", burst ? "bursty" : "normal");
 
 	/*
@@ -2387,7 +2486,14 @@ plain_insert:
 	xmalloc_freelist_stamp++;		/* Let GC know it can run */
 	XSTATS_UNLOCK;
 
-	assert_xfl_sorted(fl, 0, fl->sorted, "after %ssorted %s xfl_insert @ %zu",
+	/*
+	 * To detect freelist corruptions, write the size of the block at the
+	 * beginning of the block itself.
+	 */
+
+	*(size_t *) p = fl->blocksize;
+
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after %ssorted %s @ %zu",
 		sorted ? "" : "un", burst ? "bursty" : "normal", idx);
 
 	/*
@@ -2415,13 +2521,6 @@ plain_insert:
 		}
 		spinunlock(&xfreebits_slk);
 	}
-
-	/*
-	 * To detect freelist corruptions, write the size of the block at the
-	 * beginning of the block itself.
-	 */
-
-	*(size_t *) p = fl->blocksize;
 
 	if (xmalloc_debugging(2)) {
 		s_debug("XM inserted block %p in %sfree list #%zu (%zu bytes)",
@@ -2487,7 +2586,7 @@ xfl_process_deferred(struct xfreelist *fl)
 	if (n != 0 && xmalloc_debugging(0)) {
 		s_minidbg("XM %s() handled %zu deferred block%s "
 			"in free list #%zu (%zu bytes)",
-			G_STRFUNC, n, plural(n), xfl_index(fl), fl->blocksize);
+			G_STRFUNC, PLURAL(n), xfl_index(fl), fl->blocksize);
 	}
 }
 
@@ -2495,7 +2594,7 @@ xfl_process_deferred(struct xfreelist *fl)
  * Defer insertion of the block in the specified freelist.
  *
  * This is called when we were unable to lock the freelist bucket prior to
- * calling xlf_insert() and we need to put the block in a temporary list
+ * calling xfl_insert() and we need to put the block in a temporary list
  * which will be processed when it is safe to do so.
  *
  * @param fl		the freelist bucket
@@ -2668,6 +2767,7 @@ xmalloc_freelist_setup(void)
 				void **ary = fl->pointers;
 				xqsort(ary, fl->count, sizeof ary[0], xfl_ptr_cmp);
 				fl->sorted = fl->count;
+				assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after sort");
 			}
 
 			mutex_unlock_hidden(&fl->lock);
@@ -2761,6 +2861,7 @@ xfl_select(struct xfreelist *fl)
 	void *p;
 
 	assert_mutex_is_owned(&fl->lock);
+	assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before selection");
 
 	g_assert(fl->count != 0);
 	g_assert_log(fl->count <= fl->capacity,
@@ -2787,6 +2888,13 @@ xfl_select(struct xfreelist *fl)
 
 	p = fl->pointers[fl->count - 1];
 
+	/*
+	 * Block must be valid: not NULL, properly aligned, and belong to that
+	 * freelist as indicated by its first word bearing the size of the bucket.
+	 */
+
+	assert_valid_freelist_pointer(fl, p);
+
 	if G_UNLIKELY(fl->count != fl->sorted) {
 		void **ary = fl->pointers;
 		size_t i = fl->count - 1, j = (fl->sorted != 0) ? fl->sorted - 1 : 0;
@@ -2809,6 +2917,8 @@ xfl_select(struct xfreelist *fl)
 
 			p = q;		/* Will use this pointer instead */
 			XSTATS_INCX(freelist_sorted_superseding);
+
+			assert_valid_freelist_pointer(fl, p);
 		}
 	}
 
@@ -2938,7 +3048,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 		 * the freelist, don't attempt any coalescing.
 		 */
 
-		if G_UNLIKELY(len >= XMALLOC_MAXSIZE) {
+		if G_UNLIKELY(len > XMALLOC_MAXSIZE) {
 			if (xmalloc_debugging(6)) {
 				s_debug("XM ignoring coalescing request for %zu-byte %p:"
 					" would be larger than maxsize", len, base);
@@ -2965,7 +3075,7 @@ xmalloc_freelist_coalesce(void **base_ptr, size_t *len_ptr,
 			if (xmalloc_debugging(6)) {
 				s_debug("XM ignoring coalescing request for %zu-byte %p:"
 					" target free list #%zu has only %zu item%s",
-					len, base, idx, fl->count, plural(fl->count));
+					len, base, idx, PLURAL(fl->count));
 			}
 			XSTATS_INCX(freelist_coalescing_ignored);
 			return FALSE;
@@ -3355,7 +3465,7 @@ xmalloc_freelist_add(void *p, size_t len, uint32 coalesce)
 					s_debug("XM freed %sembedded %zu page%s, "
 						"%s head, %s tail",
 						coalesced ? "coalesced " : "",
-						npages, plural(npages),
+						PLURAL(npages),
 						head_len != 0 ? "has" : "no",
 						tail_len != 0 ? "has" : "no");
 				} else {
@@ -3552,42 +3662,83 @@ xmalloc_is_malloc(void)
 }
 
 /**
+ * Compute checksum of the "constant" part of the chunk header.
+ */
+static inline uint32
+xmalloc_chunk_checksum(const struct xchunk *xck)
+{
+	return
+		xck->xc_stid +
+		UINT32_ROTL(xck->xc_size, 10) +
+		UINT32_ROTL(xck->xc_tag, 16) +
+		UINT32_ROTL(xck->xc_capacity, 20);
+}
+
+/**
+ * Compute tag (32-bit simple hash) for the chunk header.
+ */
+static inline uint32
+xmalloc_chunk_tag(const struct xchunk *xck)
+{
+	/*
+	 * We roughly know the data ranges for each of these variables,
+	 * all positive:
+	 *
+	 * 		xc_size <= XM_THREAD_MAXSIZE (512)
+	 * 		xc_stid < THREAD_MAX (64)
+	 *		xc_capacity <= 4096 / 8 = 512
+	 *
+	 * This makes the tag we compute below completely unique for a valid chunk,
+	 * with no collision possible.
+	 *
+	 * Now of course when computing the tag over a random buffer, where none
+	 * of the values are constrained, we can get a collision.
+	 */
+
+	return
+		UINT32_ROTL(xck->xc_size, 10) +
+		UINT32_ROTL(xck->xc_stid, 24) +
+		xck->xc_capacity;
+}
+
+/**
  * Validate that pointer is the start of what appears to be a valid chunk.
  */
-static bool
+static bool G_HOT
 xmalloc_chunk_is_valid(const struct xchunk *xck)
 {
-	const struct xchunkhead *ch;
+	/*
+	 * Collision avoidance is impossible, but we are trying to make them highly
+	 * unlikely -- if it happens, this will create a memory corruption at
+	 * runtime, but what are the actual chances?
+	 *
+	 * The start of the page must bear the chunk magic tag (32-bit value),
+	 * the computed tag must match what is being stored there (collisions
+	 * possible when dealing with random values) and the checksum (computed
+	 * again by mixing the same chunk values differently plus the tag) must
+	 * also match.
+	 *
+	 * At the tag level, 96 bits are "hashed" into 32 bits.  There are 2^(96-32)
+	 * collisions to be expected, i.e. 2^64 (amount of different values that
+	 * are going to hash to the same tag).
+	 *
+	 * To minimize the risk, we check that the values are within the expected
+	 * boundaries, without disrupting the execution flow with too many branches
+	 * (hence the summing of boolean values).
+	 */
 
-	if (XCHUNK_MAGIC != xck->magic)
-		return FALSE;
-
-	if (0 == xck->xc_size || xck->xc_size > XM_THREAD_MAXSIZE)
-		return FALSE;
-
-	if (xmalloc_round(xck->xc_size) != xck->xc_size)
-		return FALSE;
-
-	if (xck->xc_stid >= XM_THREAD_COUNT)
-		return FALSE;
-
-	if (xck->xc_count > xck->xc_capacity)
-		return FALSE;
-
-	ch = &xchunkhead[xch_find_chunkhead_index(xck->xc_size)][xck->xc_stid];
-	if (xck->xc_head != ch)
-		return FALSE;
-
-	if (xck->xc_capacity != (xmalloc_pagesize - sizeof *xck) / xck->xc_size)
-		return FALSE;
-
-	if (xck->xc_free_offset != 0 && xck->xc_free_offset < sizeof *xck)
-		return FALSE;
-
-	if (xck->xc_free_offset > xmalloc_pagesize - xck->xc_size)
-		return FALSE;
-
-	return TRUE;
+	return
+		XCHUNK_MAGIC == xck->magic &&		/* Fastest discriminent */
+		5 == (
+			/* All these boolean expressions must be TRUE(1) for a valid chunk */
+			(xck->xc_stid < XM_THREAD_COUNT) +
+			(xck->xc_size <= XM_THREAD_MAXSIZE) +
+			(xck->xc_size != 0) +
+			(xmalloc_round(xck->xc_size) == xck->xc_size) +
+			(xck->xc_capacity < 4096 / XMALLOC_ALIGNBYTES)	/* 4096 = page size */
+		) &&
+		xmalloc_chunk_tag(xck) == xck->xc_tag &&
+		xmalloc_chunk_checksum(xck) == xck->xc_cksum;
 }
 
 #ifdef XMALLOC_CHUNK_SAFETY
@@ -3678,7 +3829,7 @@ assert_chunk_freelist_valid(const struct xchunk *xck, unsigned stid, bool local)
 		"corrupted freelist in %zu-byte chunk %p for %s [#%u]: "
 		"expected %u free block%s, found %u",
 		xck->xc_head->blocksize, xck, thread_id_name(xck->xc_stid),
-		xck->xc_stid, free_count, plural(free_count), free_items);
+		xck->xc_stid, PLURAL(free_count), free_items);
 }
 #else
 #define assert_chunk_freelist_valid(x,s,l)
@@ -3751,12 +3902,23 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	else
 		xck = vmm_core_alloc(xmalloc_pagesize);
 
+	ZERO(xck);
 	xck->magic = XCHUNK_MAGIC;
 	xck->xc_head = deconstify_pointer(ch);
 	xck->xc_size = ch->blocksize;
 	xck->xc_stid = stid;
 	xck->xc_capacity = xck->xc_count = capacity;
 	xck->xc_free_offset = offset;
+
+	/*
+	 * This is used as a sanity check to validate that the chunk structure
+	 * is that of a valid chunk.
+	 */
+
+	xck->xc_tag = xmalloc_chunk_tag(xck);
+	xck->xc_cksum = xmalloc_chunk_checksum(xck);
+
+	g_assert(xmalloc_chunk_is_valid(xck));
 
 	xmalloc_chunk_cram(xck);
 	XSTATS_INCX(vmm_thread_pages);
@@ -3836,8 +3998,7 @@ xmalloc_chunk_find(struct xchunkhead *ch, unsigned stid)
 					"shared blocks have %F bytes overhead (%u per page), "
 					"currently has %zu chunk%s",
 					ch->blocksize, stid, (double) overhead / capacity,
-					capacity, elist_count(&ch->list),
-					plural(elist_count(&ch->list)));
+					capacity, PLURAL(elist_count(&ch->list)));
 			}
 			return NULL;
 		}
@@ -3978,7 +4139,10 @@ xmalloc_chunk_return(struct xchunk *xck, void *p, bool local)
 
 		if G_LIKELY(xpages_pool != NULL)
 			pfree(xpages_pool, xck);
-		else if (once_flag_run_safe(&xpages_pool_inited, xpages_pool_init))
+		else if (
+			once_flag_run_safe(&xpages_pool_inited, xpages_pool_init) &&
+			xpages_pool != NULL
+		)
 			pfree(xpages_pool, xck);
 		else
 			vmm_core_free(xck, xmalloc_pagesize);
@@ -4073,7 +4237,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 
 	if (xmalloc_debugging(0)) {
 		s_minidbg("XM starting handling deferred %zu block%s for %s",
-			xcr->count, plural(xcr->count), thread_id_name(stid));
+			PLURAL(xcr->count), thread_id_name(stid));
 	}
 
 	for (n = 0, p = xcr->head; p != NULL; p = next) {
@@ -4115,7 +4279,7 @@ xmalloc_thread_free_deferred(unsigned stid, bool local)
 
 	if (xmalloc_debugging(0)) {
 		s_debug("XM handled delayed free of %zu block%s (%zu bytes) in %s",
-			n, plural(n), size, thread_id_name(stid));
+			PLURAL(n), size, thread_id_name(stid));
 	}
 }
 
@@ -4271,7 +4435,7 @@ xmalloc_thread_ended(unsigned stid)
 
 		if (n != 0) {
 			s_info("XM dead thread #%u still holds %zu thread-private chunk%s",
-				stid, n , plural(n));
+				stid, PLURAL(n));
 		}
 	}
 }
@@ -4570,6 +4734,8 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 	size_t len;
 	void *p;
 	uint stid;
+	size_t vlen;		/* Length of virual memory allocated via VMM if needed */
+	bool via_vmm;		/* If TRUE, do a user-VMM allocation */
 
 	g_assert(size_is_non_negative(size));
 
@@ -4596,7 +4762,7 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 			if (len < xmalloc_pagesize) {
 				p = omalloc(len);
 			} else {
-				p = vmm_core_alloc(round_pagesize(len));
+				p = vmm_alloc(round_pagesize(len));
 			}
 			return xmalloc_block_setup(p, len);
 		}
@@ -4672,13 +4838,35 @@ xallocate(size_t size, bool can_vmm, bool can_thread)
 skip_pool:
 
 	/*
-	 * First try to allocate from the freelist when the length is less than
-	 * the maximum we handle there.
+	 * These early checks will determine whether we can afford to allocate
+	 * from the freelist, or whether we will be better forcing a VMM user
+	 * block to avoid memory fragmentation.
 	 */
 
 	len = xmalloc_round_blocksize(xmalloc_round(size) + XHEADER_SIZE);
+	vlen = round_pagesize(len);
+	via_vmm = XMALLOC_VIA_VMM(len);
 
-	if (len <= XMALLOC_MAXSIZE) {
+	/*
+	 * If we have a block smaller than the size for always choosing VMM,
+	 * look at whether the block will be split.  If not, then we can
+	 * live with the lost memory space and use VMM allocation.
+	 *		--RAM, 2017-11-03
+	 */
+
+	if (!via_vmm && !xmalloc_should_split(vlen, len)) {
+		if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
+			via_vmm = TRUE;
+			XSTATS_INCX(alloc_forced_user_vmm);
+		}
+	}
+
+	/*
+	 * First try to allocate from the freelist when the length is less than
+	 * the maximum we handle there and we do not want to force a VMM allocation.
+	 */
+
+	if G_LIKELY(!via_vmm) {
 		size_t allocated;
 
 		p = xmalloc_freelist_alloc(len, &allocated);
@@ -4697,47 +4885,71 @@ skip_pool:
 	}
 
 	/*
-	 * Need to allocate more core.
+	 * Need to allocate the user block via the VMM layer, if up; otherwise
+	 * from the heap.
 	 */
 
 	if G_LIKELY(xmalloc_vmm_is_up && can_vmm) {
-		size_t vlen;				/* Length of virual memory allocated */
-
 		/*
-		 * The VMM layer is up, use it for all core allocations.
+		 * The VMM layer is up, use it for all allocations.
+		 *
+		 * The VMM layer distinguishes between "user" memory and "core" memory.
+		 * The "user" memory is a standalone user block that will be deallocated
+		 * as a whole, the "core" memory is memory that can be fragmented,
+		 * split and reallocated before ending-up being freed.
 		 */
 
-		vlen = round_pagesize(len);
-		p = vmm_core_alloc(vlen);
+		if (via_vmm)
+			p = vmm_alloc(vlen);			/* That's a standalone user block */
+		else
+			p = vmm_core_alloc(vlen);		/* Parts of block will be core */
 
 		if (xmalloc_debugging(1)) {
-			s_debug("XM added %zu bytes of VMM core at %p", vlen, p);
+			s_debug("XM allocated %zu bytes via \"%s\" VMM at %p",
+				vlen, via_vmm ? "user" : "core", p);
 		}
 
 		G_PREFETCH_HI_W(p);			/* User is going to write in block */
 
-		if (xmalloc_should_split(vlen, len)) {
+		/*
+		 * Common statistics updates, whether we end-up allocating a block
+		 * as core or as user memory.
+		 */
+
+		XSTATS_LOCK;
+		xstats.allocations++;
+		xstats.alloc_via_vmm++;
+		xstats.user_blocks++;
+
+		/*
+		 * We no longer attempt to split the tail of large blocks, the ones
+		 * we allocate as standalone blocks: this tends to fragment memory over
+		 * the long run and is not efficient.
+		 *
+		 * Hence large blocks we allocate will be treated as user memory and
+		 * managed as such.
+		 *
+		 *		--RAM, 2017-11-02
+		 */
+
+		if (!via_vmm) {
+			/* Necessarily split, since we did not force user VMM allocation */
 			void *split = ptr_add_offset(p, len);
-			xmalloc_freelist_insert(split, vlen-len, FALSE, XM_COALESCE_AFTER);
-			XSTATS_LOCK;
-			xstats.allocations++;
-			xstats.vmm_alloc_pages += vmm_page_count(vlen);
-			xstats.alloc_via_vmm++;
-			xstats.user_blocks++;
 			xstats.vmm_split_pages++;
 			xstats.user_memory += len;
+			xstats.vmm_alloc_pages += vmm_page_count(vlen);
 			XSTATS_UNLOCK;
 			memusage_add(xstats.user_mem, len);
+			xmalloc_freelist_insert(split, vlen-len, FALSE, XM_COALESCE_AFTER);
 			return xmalloc_block_setup(p, len);
 		} else {
-			XSTATS_LOCK;
-			xstats.allocations++;
-			xstats.vmm_alloc_pages += vmm_page_count(vlen);
-			xstats.alloc_via_vmm++;
-			xstats.user_blocks++;
+			xstats.vmm_user_blocks++;	/* Counts standalone blocks */
+			xstats.vmm_total_user_blocks++;
+			xstats.vmm_alloc_user_pages += vmm_page_count(vlen);
 			xstats.user_memory += vlen;
 			XSTATS_UNLOCK;
 			memusage_add(xstats.user_mem, vlen);
+
 			return xmalloc_block_setup(p, vlen);
 		}
 	} else {
@@ -4868,9 +5080,9 @@ xcalloc(size_t nmemb, size_t size)
  * @return a pointer to the new string.
  */
 char *
-xstrdup(const char *str)
+e_xstrdup(const char *str)
 {
-	return str ? xcopy(str, 1 + strlen(str)) : NULL;
+	return str ? xcopy(str, 1 + vstrlen(str)) : NULL;
 }
 
 /**
@@ -4883,7 +5095,7 @@ xstrdup(const char *str)
  * @return a pointer to the new string.
  */
 char *
-xstrndup(const char *str, size_t n)
+e_xstrndup(const char *str, size_t n)
 {
 	size_t len;
 	char *res, *p;
@@ -4993,6 +5205,7 @@ void
 xfree(void *p)
 {
 	struct xheader *xh;
+	bool is_vmm;
 
 	/*
 	 * Some parts of the libc can call free() with a NULL pointer.
@@ -5053,6 +5266,54 @@ xfree(void *p)
 	memusage_remove(xstats.user_mem, xh->length);
 
 	/*
+	 * Detect whether we are freeing a standalone VMM region: that's a user
+	 * region and it can be quickly handled here and returned directly to
+	 * the VMM layer.
+	 * 		--RAM, 2017-11-02
+	 */
+
+	is_vmm = FALSE;
+
+	if G_UNLIKELY(
+		XMALLOC_VIA_VMM(xh->length) &&
+		!xmalloc_isheap(xh, xh->length)
+	) {
+		if (vmm_page_start(xh) != xh) {
+			s_error_from(_WHERE_,
+				"corrupted malloc header for pointer %p: bad lengh %zu "
+				"since block start %p is not page-aligned",
+				p, xh->length, xh);
+		}
+		is_vmm = TRUE;
+	}
+
+	/*
+	 * Blocks smallers than XMALLOC_MAXSIZE bytes may also be a standalone
+	 * VMM region if aligned on a page and the size is consistent.
+	 * 		--RAM, 2017-11-03
+	 */
+
+	if (
+		!is_vmm &&
+		round_pagesize(xh->length) == xh->length &&
+		vmm_page_start(xh) == xh &&
+		!xmalloc_isheap(xh, xh->length)
+	) {
+		is_vmm = TRUE;
+	}
+
+	if (is_vmm) {
+		XSTATS_LOCK;
+		xstats.vmm_freed_user_pages += vmm_page_count(xh->length);
+		xstats.free_via_vmm++;
+		xstats.vmm_user_blocks--;
+		XSTATS_UNLOCK;
+
+		vmm_free(xh, xh->length);
+		return;
+	}
+
+	/*
 	 * Because of FreeBSD, we do not run xmalloc_early_init() on the early
 	 * allocation path, when we handle sbrk() allocations.  However, when
 	 * the first free() starts to come around, it's safe to perform the early
@@ -5087,6 +5348,7 @@ xreallocate(void *p, size_t size, bool can_thread)
 	void *np;
 	unsigned stid;
 	struct xchunk *xck;
+	bool is_vmm;
 
 	if (NULL == p)
 		return xallocate(size, TRUE, can_thread);
@@ -5175,65 +5437,93 @@ xreallocate(void *p, size_t size, bool can_thread)
 	 * not located in the heap.
 	 */
 
+	is_vmm = FALSE;
+
+	if (XMALLOC_VIA_VMM(xh->length) && !xmalloc_isheap(xh, xh->length)) {
+		if (vmm_page_start(xh) != xh) {
+			s_error_from(_WHERE_,
+				"corrupted malloc header for pointer %p: bad lengh %zu "
+				"since block start %p is not page-aligned",
+				p, xh->length, xh);
+		}
+		is_vmm = TRUE;
+	}
+
 	if (
+		!is_vmm &&
 		round_pagesize(xh->length) == xh->length &&
 		vmm_page_start(xh) == xh &&
 		!xmalloc_isheap(xh, xh->length)
 	) {
+		is_vmm = TRUE;
+	}
+
+
+	if (is_vmm) {
 		newlen = round_pagesize(newlen);
+		XSTATS_INCX(realloc_vmm);
 
 		/*
 		 * If the size remains the same in the VMM space, we have nothing
 		 * to do unless we have a relocatable fragment.
 		 */
 
-		if (newlen == xh->length && vmm_is_relocatable(xh, xh->length)) {
-			XSTATS_INCX(realloc_relocate_vmm_fragment);
-			goto relocate_vmm;
+		if (newlen == xh->length) {
+			void *q = vmm_move(xh, xh->length);
+			if (q == xh) {
+				XSTATS_INCX(realloc_noop);
+				XSTATS_INCX(realloc_noop_same_vmm);
+				return p;
+			} else if (xmalloc_debugging(1)) {
+				struct xheader *nxh = q;
+				s_debug("XM relocated %zu-byte VMM region at %p to %p"
+					" (new pysical size is %zu bytes, user size is %zu)",
+					nxh->length, (void *) xh, q, newlen, size);
+			}
+			XSTATS_INCX(realloc_vmm_moved);
+			return ptr_add_offset(q, XHEADER_SIZE);
 		}
 
 		/*
-		 * If the new size is smaller than the original, yet remains larger
-		 * than a page size, we can call vmm_core_shrink() to shrink the block
-		 * inplace or relocate it.
+		 * If the new size is smaller than the original, we can attempt to
+		 * first move the block and then shrink it inplace.
+		 *
+		 * Note that if the block was allocated as a standalone VM region
+		 * but was smaller than XMALLOC_MAXSIZE, it remains a VM region
+		 * when shrinking: we will remove whole pages, and possibly lose
+		 * memory space.
 		 */
 
 		if (newlen < xh->length) {
-			if (vmm_is_relocatable(xh, newlen)) {
-				XSTATS_INCX(realloc_relocate_vmm_shrinked);
-				goto relocate_vmm;
-			}
-
+			size_t oldlen = xh->length;
+			void *q = vmm_move(xh, xh->length);
+			vmm_shrink(q, oldlen, newlen);
 			if (xmalloc_debugging(1)) {
-				s_debug("XM using vmm_core_shrink() on "
-					"%zu-byte block at %p (new size is %zu bytes)",
-					xh->length, (void *) xh, newlen);
+				struct xheader *nxh = q;
+				s_debug("XM relocated %zu-byte VMM region at %p to %p"
+					" (shrunk to new pysical size %zu bytes, user size is %zu)",
+					nxh->length, (void *) xh, q, newlen, size);
 			}
-
-			vmm_core_shrink(xh, xh->length, newlen);
 			XSTATS_LOCK;
-			xstats.realloc_inplace_vmm_shrinking++;
-			xstats.user_memory -= xh->length - newlen;
+			xstats.user_memory -= oldlen - newlen;
+			if (q != xh)
+				xstats.realloc_via_vmm_move_shrink++;
+			else
+				xstats.realloc_via_vmm_shrink++;
 			XSTATS_UNLOCK;
-			memusage_remove(xstats.user_mem, xh->length - newlen);
-			goto inplace;
+			memusage_remove(xstats.user_mem, oldlen - newlen);
+			return xmalloc_block_setup(q, newlen);
 		}
 
 		/*
-		 * If we have to extend the VMM region, we can skip all the coalescing
-		 * logic since we have to allocate a new region.
+		 * We either have to extend the VMM region, or change its nature from
+		 * a standalone VMM region to a freelist-managed block.
+		 *
+		 * We can skip all the coalescing logic since we have to allocate
+		 * a new region.
 		 */
 
-		if (newlen > xh->length)
-			goto skip_coalescing;
-
-		if (xmalloc_debugging(2)) {
-			s_debug("XM realloc of %p to %zu bytes can be a noop "
-				"(already %zu-byte long VMM region)", p, size, xh->length);
-		}
-
-		XSTATS_INCX(realloc_noop);
-		return p;
+		goto skip_coalescing;
 	}
 
 	/*
@@ -5600,30 +5890,6 @@ relocate:
 
 	return np;
 
-relocate_vmm:
-	{
-		void *q;
-
-		g_assert(xh->length >= newlen);
-
-		q = vmm_core_alloc(newlen);
-		np = xmalloc_block_setup(q, newlen);
-
-		XSTATS_LOCK;
-		xstats.vmm_alloc_pages += vmm_page_count(newlen);
-		xstats.user_memory -= xh->length - newlen;
-		XSTATS_UNLOCK;
-		memusage_remove(xstats.user_mem, xh->length - newlen);
-
-		if (xmalloc_debugging(1)) {
-			s_debug("XM relocated %zu-byte VMM region at %p to %p"
-				" (new pysical size is %zu bytes, user size is %zu)",
-				xh->length, (void *) xh, q, newlen, size);
-		}
-
-		goto relocate;
-	}
-
 inplace:
 	xh->length = newlen;
 	return p;
@@ -5888,9 +6154,9 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		xr->blocks = 1;
 
 		/*
-		 * Save length of first block to help the strategy should end-up with
-		 * two blocks being coalesced, with a length that does not fit the
-		 * freelist.
+		 * Save length of first block to help the strategy should we end-up
+		 * with two blocks being coalesced, and a length that does not fit
+		 * the freelist.
 		 */
 
 		xr->head = ptr_diff(end, start);	/* Necessarily fits */
@@ -5899,7 +6165,7 @@ xgc_block_add(erbtree_t *rbt, const void *start, size_t len,
 		g_assert_log(NULL == old,		/* Was not already present in tree */
 			"xr=[%p, %p[, old=[%p, %p[ (%u block%s)",
 			start, end, old->start, old->end,
-			old->blocks, plural(old->blocks));
+			PLURAL(old->blocks));
 	}
 }
 
@@ -5949,7 +6215,7 @@ xgc_block_is_freeable(size_t len, struct xgc_context *xgctx, bool commit)
 
 	g_assert(len >= XMALLOC_SPLIT_MIN);
 
-	if (len > XMALLOC_MAXSIZE)
+	if G_UNLIKELY(XMALLOC_VIA_VMM(len))
 		return FALSE;
 
 	/*
@@ -6116,7 +6382,7 @@ no_page_freeable:
 
 	len = ptr_diff(xr->end, xr->start);
 
-	if G_UNLIKELY(2 == xr->blocks && len <= XMALLOC_MAXSIZE) {
+	if G_UNLIKELY(2 == xr->blocks && !XMALLOC_VIA_VMM(len)) {
 		if (xmalloc_round_blocksize(len) != len) {
 			unsigned b1 = xr->head;	/* First block we added to range */
 			unsigned b2 = len - b1;	/* Second block */
@@ -6387,8 +6653,7 @@ xgc(void)
 
 	if (xmalloc_debugging(0) && 0 != deferred_buckets) {
 		s_debug("XM GC processed %zu bucket%s with %zu deferred block%s",
-			deferred_buckets, plural(deferred_buckets),
-			deferred_blocks, plural(deferred_blocks));
+			PLURAL(deferred_buckets), PLURAL(deferred_blocks));
 	}
 
 	/*
@@ -6418,6 +6683,8 @@ xgc(void)
 		g_assert_log(fl->count <= fl->capacity,
 			"count=%zu, capacity=%zu in freelist #%zu (%zu-byte block)",
 			fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
+
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before GC");
 	}
 
 	/*
@@ -6442,7 +6709,7 @@ xgc(void)
 		for (j = 0; j < fl->count; j++) {
 			const void *p = fl->pointers[j];
 
-			g_assert(p != NULL);		/* Or freelist corrupted */
+			assert_valid_freelist_pointer(fl, p);
 
 			blocks++;
 			xgc_block_add(&rbt, p, blksize, &xga);
@@ -6452,7 +6719,7 @@ xgc(void)
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
 		s_debug("XM GC freelist holds %zu block%s defining %zu range%s",
-			blocks, plural(blocks), ranges, plural(ranges));
+			PLURAL(blocks), PLURAL(ranges));
 	}
 
 	/*
@@ -6463,8 +6730,7 @@ xgc(void)
 
 	if (xmalloc_debugging(0)) {
 		size_t ranges = erbtree_count(&rbt);
-		s_debug("XM GC left with %zu range%s to process",
-			ranges, plural(ranges));
+		s_debug("XM GC left with %zu range%s to process", PLURAL(ranges));
 	}
 
 	if (0 == erbtree_count(&rbt))
@@ -6491,6 +6757,8 @@ xgc(void)
 
 		if (!xgctx.locked[i])
 			continue;
+
+		assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "before GC update");
 
 		blksize = fl->blocksize;		/* Actual physical block size */
 		old_count = fl->count;
@@ -6549,6 +6817,8 @@ xgc(void)
 				fl->count, fl->capacity, xfl_index(fl), fl->blocksize);
 
 			memcpy(fl->pointers, tmp, fl->count * sizeof fl->pointers[0]);
+
+			assert_xfl_sorted(G_STRFUNC, fl, 0, fl->sorted, "after GC update");
 		}
 	}
 
@@ -6604,7 +6874,7 @@ unlock:
 				"coalesced-blocks=%zu, freed-pages=%zu, next in %d sec%s",
 				(uint) real_elapsed, (uint) cpu_elapsed,
 				processed.coalesced, processed.pages,
-				increment, plural(increment));
+				PLURAL(increment));
 		}
 	}
 
@@ -6666,7 +6936,7 @@ xmalloc_post_init(void)
 
 		if (sbrk_alignment != 0)
 			s_info("addded %zu byte%s to heap base for %zu-byte alignment",
-				sbrk_alignment, plural(sbrk_alignment), xmalloc_round(1));
+				PLURAL(sbrk_alignment), xmalloc_round(1));
 	}
 
 	if (xmalloc_debugging(0)) {
@@ -6694,12 +6964,14 @@ xmalloc_stop_freeing(void)
 void
 xmalloc_stats_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	/*
 	 * Don't take locks to read the statistics, to enhance unpredictability.
 	 */
 
 	XSTATS_INCX(xmalloc_stats_digest);
-	SHA1_COMPUTE(xstats, digest);
+	SHA1_COMPUTE_NONCE(xstats, &n, digest);
 }
 
 /**
@@ -6760,8 +7032,10 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(alloc_via_vmm);
 	DUMP(alloc_via_sbrk);
 	DUMP(alloc_via_thread_pool);
+	DUMP64(alloc_forced_user_vmm);
 	DUMP(freeings);
 	DUMP64(freeings_in_handler);
+	DUMP(free_via_vmm);
 	DUMP64(free_sbrk_core);
 	DUMP(free_sbrk_core_released);
 	DUMP(free_vmm_core);
@@ -6772,9 +7046,12 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(sbrk_freed_bytes);
 	DUMP(sbrk_wasted_bytes);
 	DUMP(vmm_alloc_pages);
-	DUMP(vmm_split_pages);
-	DUMP64(vmm_thread_pages);
+	DUMP(vmm_alloc_user_pages);
 	DUMP(vmm_freed_pages);
+	DUMP(vmm_freed_user_pages);
+	DUMP64(vmm_thread_pages);
+	DUMP(vmm_user_blocks);
+	DUMP(vmm_total_user_blocks);
 	DUMP(aligned_via_freelist);
 	DUMP(aligned_via_freelist_then_vmm);
 	DUMP(aligned_via_vmm);
@@ -6795,12 +7072,14 @@ xmalloc_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(aligned_vmm_memory);
 	DUMP64(reallocs);
 	DUMP64(realloc_noop);
-	DUMP(realloc_inplace_vmm_shrinking);
+	DUMP64(realloc_noop_same_vmm);
+	DUMP64(realloc_vmm);
+	DUMP64(realloc_vmm_moved);
+	DUMP(realloc_via_vmm_shrink);
+	DUMP(realloc_via_vmm_move_shrink);
 	DUMP(realloc_inplace_shrinking);
 	DUMP(realloc_inplace_extension);
 	DUMP(realloc_coalescing_extension);
-	DUMP64(realloc_relocate_vmm_fragment);
-	DUMP64(realloc_relocate_vmm_shrinked);
 	DUMP64(realloc_relocate_smart_attempts);
 	DUMP64(realloc_relocate_smart_success);
 	DUMP64(realloc_regular_strategy);
@@ -6953,7 +7232,7 @@ xmalloc_dump_freelist_log(logagent_t *la)
 
 	log_info(la, "XM freelist holds %s bytes (%s) spread among %zu block%s",
 		uint64_to_string(bytes), short_size(bytes, FALSE),
-		blocks, plural(blocks));
+		PLURAL(blocks));
 
 	log_info(la, "XM freelist largest block is %zu bytes", largest);
 
@@ -6967,17 +7246,17 @@ xmalloc_dump_freelist_log(logagent_t *la)
 			"among %zu block%s", j,
 			uint64_to_string(tstats[j].freebytes),
 			short_size(tstats[j].freebytes, FALSE),
-			tstats[j].freeblocks, plural(tstats[j].freeblocks));
+			PLURAL(tstats[j].freeblocks));
 
 		pool = size_saturate_mult(tstats[j].chunks, xmalloc_pagesize);
 
 		log_info(la, "XM thread #%zu uses a pool of %zu bytes (%s, %zu page%s)",
 			j, pool, short_size(pool, FALSE),
-			tstats[j].chunks, plural(tstats[j].chunks));
+			PLURAL(tstats[j].chunks));
 
 		if (0 != tstats[j].shared) {
 			log_warning(la, "XM thread #%zu has %zu size%s requiring locking",
-				j, tstats[j].shared, plural(tstats[j].shared));
+				j, PLURAL(tstats[j].shared));
 		}
 	}
 }
@@ -6992,6 +7271,70 @@ xmalloc_dump_stats(void)
 	xmalloc_dump_stats_log(log_agent_stderr_get(), 0);
 	s_info("XM freelist status:");
 	xmalloc_dump_freelist_log(log_agent_stderr_get());
+}
+
+/*
+ * Identify whether address is that of an xmalloc() block.
+ *
+ * When tracking mallocs, there are a set of #define that remap all the xmalloc
+ * routines to the tracking malloc layer.
+ *
+ * However, whenever we encounter an unknown block, we need to absolutely make
+ * sure this is not from an accidental xmalloc(), which would indicate that we
+ * missed a #define somewhere...
+ *
+ * @param p		the address we're probing
+ * @param tid	if non-NULL, written with ID of thread, -1 if not a thread block
+ * @param len	if non-NULL, written with probable size of the block
+ *
+ * @return TRUE if block is surely an xmalloc() one, FALSE otherwise.
+ */
+bool
+xmalloc_block_info(const void *p, uint *tid, size_t *len)
+{
+	const struct xchunk *xck;
+	const struct xheader *xh;
+
+	/* No xmalloc block can be aligned to a page */
+
+	if (vmm_page_start(p) == p)
+		return FALSE;
+
+	/* Then, rule-out thread-private blocks */
+
+	xck = deconstify_pointer(vmm_page_start(p));
+	if (xmalloc_chunk_is_valid(xck)) {
+		if (tid != NULL)
+			*tid = xck->xc_stid;
+		if (len != NULL)
+			*len = xck->xc_size;
+		return TRUE;
+	}
+
+	/* Probe for a reasonable block size */
+
+	xh = const_ptr_add_offset(p, -XHEADER_SIZE);
+	if (xmalloc_is_valid_length(xh, xh->length))
+		goto probable_xmalloc;
+
+	/* Probe for a possible VMM allocation */
+
+	if (
+		vmm_page_start(xh) == xh &&
+		round_pagesize(xh->length) == xh->length &&
+		!xmalloc_isheap(xh, xh->length)
+	)
+		goto probable_xmalloc;
+
+	return FALSE;
+
+probable_xmalloc:
+	if (tid != NULL)
+		*tid = -1;
+	if (len != NULL)
+		*len = xh->length;
+
+	return TRUE;		/* Have to assume it's possible! */
 }
 
 #ifdef XMALLOC_IS_MALLOC
@@ -7357,7 +7700,7 @@ xa_insert_set(const void *p, size_t size)
 
 	XSTATS_LOCK;
 	xstats.aligned_overhead_bytes += sizeof *xs;
-	xstats.vmm_alloc_pages += vmm_page_count(size);
+	xstats.vmm_alloc_user_pages += vmm_page_count(size);
 	xstats.user_blocks++;
 	xstats.user_memory += size;
 	xstats.aligned_vmm_blocks++;
@@ -7768,12 +8111,12 @@ xalign_free(const void *p)
 			g_assert(0 != len);
 			xa_delete_slot(idx);
 			XMALLOC_XA_UNLOCK;
-			vmm_core_free(deconstify_pointer(p), len);
+			vmm_free(deconstify_pointer(p), len);
 
 			XSTATS_LOCK;
 			xstats.freeings++;		/* Not counted in xfree() */
 			xstats.aligned_freed++;
-			xstats.vmm_freed_pages += vmm_page_count(len);
+			xstats.vmm_freed_user_pages += vmm_page_count(len);
 			xstats.user_memory -= len;
 			xstats.user_blocks--;
 			xstats.aligned_vmm_blocks--;
@@ -7884,7 +8227,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	 */
 
 	if G_UNLIKELY(alignment == xmalloc_pagesize) {
-		p = vmm_core_alloc(size);	/* More than we need */
+		p = vmm_alloc(size);	/* More than we need, user block */
 		method = "VMM";
 
 		XSTATS_LOCK;
@@ -7906,7 +8249,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 		unsigned long addr;
 		void *end;
 
-		p = vmm_core_alloc(nalloc);	/* More than we need */
+		p = vmm_alloc(nalloc);	/* More than we need, user block */
 		method = "VMM";
 
 		XSTATS_LOCK;
@@ -7929,7 +8272,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		if ((addr & ~mask) == addr) {
 			end = ptr_add_offset(p, rsize);
-			vmm_core_free(end, size_saturate_sub(nalloc, rsize));
+			vmm_free(end, size_saturate_sub(nalloc, rsize));
 			truncation = TRUNCATION_AFTER;
 
 			if (xmalloc_debugging(2)) {
@@ -7961,7 +8304,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 			g_assert(ptr_cmp(q, p) > 0);
 
-			vmm_core_free(p, ptr_diff(q, p));				/* Beginning */
+			vmm_free(p, ptr_diff(q, p));				/* Beginning */
 			qend = ptr_add_offset(q, rsize);
 
 			if (xmalloc_debugging(2)) {
@@ -7970,7 +8313,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 			}
 
 			if (qend != end) {
-				vmm_core_free(qend, ptr_diff(end, qend));	/* End */
+				vmm_free(qend, ptr_diff(end, qend));	/* End */
 				truncation = TRUNCATION_BOTH;
 
 				if (xmalloc_debugging(2)) {
@@ -8001,7 +8344,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 	if (size >= xmalloc_pagesize) {
 		size_t rsize = round_pagesize(size);
 
-		p = vmm_core_alloc(rsize);		/* Necessarily aligned */
+		p = vmm_alloc(rsize);		/* Necessarily aligned */
 
 		/*
 		 * There is no xmalloc() header for this block, hence we need to
@@ -8146,7 +8489,7 @@ posix_memalign(void **memptr, size_t alignment, size_t size)
 
 		p = NULL;
 
-		if (len <= XMALLOC_MAXSIZE)
+		if (!XMALLOC_VIA_VMM(len))
 			p = xmalloc_freelist_alloc(len, &nalloc);
 
 		if (p != NULL) {
@@ -8462,12 +8805,11 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 						if (fl->count == fl->sorted) {
 							log_info(la,
 								"XM freelist #%u has %zu item%s fully sorted",
-								i, fl->count, plural(fl->count));
+								i, PLURAL(fl->count));
 						} else {
 							log_info(la,
 								"XM freelist #%u has %zu/%zu item%s sorted",
-								i, fl->sorted, fl->count,
-								plural(fl->sorted));
+								i, fl->sorted, PLURAL(fl->sorted));
 						}
 					}
 				}
@@ -8580,13 +8922,19 @@ xmalloc_crash_hook(void)
 void *
 e_xmalloc(size_t size)
 {
-	return malloc(size);
+	return xallocate(size, TRUE, TRUE);
 }
 
 void *
 e_xcalloc(size_t nmemb, size_t size)
 {
-	return calloc(nmemb, size);
+	void *p;
+	size_t len = size_saturate_mult(nmemb, size);
+
+	p = xallocate(len, TRUE, TRUE);
+	memset(p, 0, len);
+
+	return p;
 }
 
 void
@@ -8598,7 +8946,25 @@ e_xfree(void *p)
 void *
 e_xrealloc(void *p, size_t size)
 {
-	return realloc(p, size);
+	return xreallocate(p, size, TRUE);
+}
+
+/**
+ * This is a GNU extension.
+ *
+ * This function is not used by gtk-gnutella but needs to be provided when
+ * we remap malloc() because some libc routines may rely on it.  When malloc()
+ * is redefined, it is critical that this usage be trapped here since our block
+ * architecture is specific.
+ * 		--RAM, 2019-11-10
+ *
+ * @return the number of usable bytes in the block of allocated memory
+ * pointed to by `p'.  If `p' is NULL, 0 is returned.
+ */
+size_t
+malloc_usable_size(void *p)
+{
+	return xallocated(p);
 }
 
 /*
@@ -8619,7 +8985,7 @@ e_xrealloc(void *p, size_t size)
 char *
 strdup(const char *s)
 {
-	return xstrdup(s);
+	return e_xstrdup(s);
 }
 #endif	/* MINGW32 */
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -128,6 +128,53 @@ rwlock_set_contention_trace(bool on)
 {
 	rwlock_contention_trace = on;
 }
+
+#ifdef RWLOCK_WRITER_DEBUG
+/**
+ * Record that we got the writer lock.
+ */
+static void
+rwlock_writer_record(rwlock_t *rw, const char *file, unsigned line)
+{
+	rwlock_check(rw);
+
+	/*
+	 * Locking would be unnecessary since we have the write lock, but in
+	 * case of bugs, avoid race conditions whilst updating these fields.
+	 */
+
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = file;
+		rw->line = line;
+		RWLOCK_UNLOCK(rw);
+	}
+}
+
+/**
+ * Record that we lost the writer lock.
+ */
+static void
+rwlock_writer_clear(rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	/*
+	 * Locking would be unnecessary since we still have the write lock, but in
+	 * case of bugs, avoid race conditions whilst updating these fields.
+	 */
+
+	if (!rwlock_pass_through) {
+		RWLOCK_LOCK(rw);
+		rw->file = NULL;
+		rw->line = 0;
+		RWLOCK_UNLOCK(rw);
+	}
+}
+#else	/* !RWLOCK_WRITER_DEBUG */
+#define rwlock_writer_record(rw,f,l)
+#define rwlock_writer_clear(rw)
+#endif	/* RWLOCK_WRITER_DEBUG */
 
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 /**
@@ -462,7 +509,7 @@ rwlock_waiters_for_read(const rwlock_t *rw)
 }
 
 /**
- * Warn about possible deadlock condition.
+ * Called on possible deadlock condition.
  *
  * Don't inline to provide a suitable breakpoint.
  */
@@ -470,12 +517,9 @@ static NO_INLINE void G_COLD
 rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 	const char *file, unsigned line)
 {
-	rwlock_check(rw);
-
-	s_minicarp("possible deadlock #%u on rwlock (%c) %p (r:%u w:%u q:%u+%u)"
-		" at %s:%u",
-		count, reading ? 'R' : 'W', rw, rw->readers, rw->writers,
-		rw->waiters - rw->write_waiters, rw->write_waiters, file, line);
+	(void) reading;
+	(void) count;
+	thread_deadlock_check(rw, file, line);
 }
 
 /*
@@ -484,23 +528,42 @@ rwlock_deadlock(const rwlock_t *rw, bool reading, unsigned count,
 static void
 rwlock_wait_queue_dump(const rwlock_t *rw)
 {
-	const struct rwlock_waiting *wc = rw->wait_head;
+	rwlock_t *rww = deconstify_pointer(rw);
+	const struct rwlock_waiting *wc;
+
+	RWLOCK_LOCK(rww);
+
+	wc = rw->wait_head;
 
 	/*
 	 * This routine can be called during crashes, use raw logging.
+	 *
+	 * Also since we are locking the lock, and this lock is a spinlock,
+	 * we must make sure there will be minimal locking done by the
+	 * logging routines to avoid a deadlock.
 	 */
 
 	if (wc != NULL) {
 		s_rawinfo("waiting queue for rwlock %p (%u item%s):",
-			rw, rw->waiters, plural(rw->waiters));
+			rw, PLURAL(rw->waiters));
 	} else {
 		s_rawwarn("waiting queue for rwlock %p is empty?", rw);
 	}
 
+#ifdef RWLOCK_WRITER_DEBUG
+	if (RWLOCK_WFREE != rw->owner) {
+		s_rawinfo("(rwlock %p write-locked by %s from %s:%u)",
+			rw, thread_safe_id_name(rw->owner), rw->file, rw->line);
+	} else if (rw->file != NULL) {
+		s_rawinfo("(rwlock %p was last write-locked from %s:%u)",
+			rw, rw->file, rw->line);
+	}
+#else	/* !RWLOCK_WRITER_DEBUG */
 	if (RWLOCK_WFREE != rw->owner) {
 		s_rawinfo("(rwlock %p write-locked by %s)",
 			rw, thread_safe_id_name(rw->owner));
 	}
+#endif	/* RWLOCK_WRITER_DEBUG */
 
 #if defined(RWLOCK_READER_DEBUG) || defined(RWLOCK_READSPOT_DEBUG)
 	{
@@ -539,6 +602,8 @@ rwlock_wait_queue_dump(const rwlock_t *rw)
 			wc->reading ? "read" : "write", rw);
 		wc = wc->next;
 	}
+
+	RWLOCK_UNLOCK(rww);
 }
 
 /**
@@ -556,10 +621,19 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 		rw->waiters - rw->write_waiters, rw->write_waiters,
 		file, line);
 
+#ifdef RWLOCK_WRITER_DEBUG
+	if (rw->file != NULL) {
+		s_rawinfo("rwlock (%c) %p %s %s:%u",
+			reading ? 'R' : 'W', rw,
+			rw->writers != 0 ? "owned by " : "traced to",
+			rw->file, rw->line);
+	}
+#endif
+
 	atomic_mb();
 	rwlock_check(rw);
 
-	crash_deadlocked(file, line);	/* Will not return if concurrent call */
+	crash_deadlocked(TRUE, file, line);
 	rwlock_wait_queue_dump(rw);
 	thread_lock_deadlock(rw);
 
@@ -606,8 +680,11 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	thread_lock_contention(reading ? THREAD_LOCK_RLOCK : THREAD_LOCK_WLOCK);
 
 	if G_UNLIKELY(rwlock_contention_trace) {
-		s_rawinfo("LOCK contention for %s-lock %p at %s:%u",
-			reading ? "read" : "write", rw, file, line);
+		s_rawinfo("LOCK contention for %s-lock %p (r:%u w:%u q:%u+%u) at %s:%u",
+			reading ? "read" : "write", rw,
+			rw->readers, rw->writers,
+			rw->waiters - rw->write_waiters, rw->write_waiters,
+			file, line);
 	}
 
 	/*
@@ -727,14 +804,20 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 			thread_yield();
 		} else {
 			if G_UNLIKELY(rwlock_sleep_trace) {
-				s_rawinfo("LOCK sleeping for %s-lock %p at %s:%u",
-					reading ? "read" : "write", rw, file, line);
+				s_rawinfo(
+					"LOCK sleeping for %s-lock %p (r:%u w:%u q:%u+%u) at %s:%u",
+					reading ? "read" : "write", rw,
+					rw->readers, rw->writers,
+					rw->waiters - rw->write_waiters, rw->write_waiters,
+					file, line);
+				rwlock_wait_queue_dump(rw);
 			}
 
 			compat_usleep_nocancel(RWLOCK_DELAY);
 
+			/* To timestamp end of sleep */
 			if G_UNLIKELY(rwlock_sleep_trace)
-				s_rawinfo("LOCK sleep done");	/* To timestamp end of sleep */
+				s_rawinfo("LOCK sleep done for %p", rw);
 		}
 	}
 }
@@ -886,14 +969,14 @@ rwlock_destroy(rwlock_t *rw)
 		if (need_carp) {
 			s_carp("destroying %srwlock %p with %u reader%s, "
 				"%u writer%s, %u read-waiter%s and %u write-waiter%s",
-				owned ? "owned " : "", rw, rw->readers, plural(rw->readers),
-				rw->writers, plural(rw->writers),
-				rwait, plural(rwait),
-				rw->write_waiters, plural(rw->write_waiters));
+				owned ? "owned " : "", rw, PLURAL(rw->readers),
+				PLURAL(rw->writers), PLURAL(rwait), PLURAL(rw->write_waiters));
 		}
 
-		if (owned)
+		if (owned) {
+			rwlock_writer_clear(rw);
 			rwlock_write_unaccount(rw);
+		}
 	}
 
 	rw->magic = RWLOCK_DESTROYED;		/* Now invalid */
@@ -954,6 +1037,7 @@ rwlock_is_used(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	if (0 != rw->readers || 0 != rw->writers)
 		return TRUE;
 
@@ -966,6 +1050,18 @@ rwlock_is_used(const rwlock_t *rw)
 }
 
 /**
+ * Check whether write lock is used.
+ */
+bool
+rwlock_is_busy(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	atomic_mb();
+	return 0 != rw->writers;
+}
+
+/**
  * Check whether lock is free.
  */
 bool
@@ -973,6 +1069,7 @@ rwlock_is_free(const rwlock_t *rw)
 {
 	rwlock_check(rw);
 
+	atomic_mb();
 	return 0 == rw->readers && 0 == rw->writers;
 }
 
@@ -1131,13 +1228,17 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		rwlock_wait_grant(rw, &wc, file, line);
 
+		rwlock_writer_record(rw, file, line);
+
 		if (account)
 			rwlock_write_account(rw, file, line);
 
 		g_assert(1 == rw->writers || rwlock_pass_through);
 	}
-	else if (account) {
-		rwlock_write_account(rw, file, line);
+	else {
+		rwlock_writer_record(rw, file, line);
+		if (account)
+			rwlock_write_account(rw, file, line);
 	}
 }
 
@@ -1234,7 +1335,10 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		g_assert(rw->readers != 0 || rwlock_pass_through);
 		rwlock_readers_record(rw, file, line);
 		rwlock_read_account(rw, file, line);
+	} else if G_UNLIKELY(rwlock_contention_trace) {
+		s_rawinfo("LOCK contention for read-lock %p at %s:%u", rw, file, line);
 	}
+
 
 	return got;
 }
@@ -1321,8 +1425,12 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	}
 	RWLOCK_UNLOCK(rw);
 
-	if (got)
+	if G_LIKELY(got) {
+		rwlock_writer_record(rw, file, line);
 		rwlock_write_account(rw, file, line);
+	} else if G_UNLIKELY(rwlock_contention_trace) {
+		s_rawinfo("LOCK contention for write-lock %p at %s:%u", rw, file, line);
+	}
 
 	return got;
 }
@@ -1345,8 +1453,28 @@ rwlock_wungrab_from(rwlock_t *rw, const char *file, unsigned line)
 		"attempting to release unowned write-lock %p at %s:%u",
 		rw, file, line);
 
-	rwlock_wungrab(rw);
+	rwlock_writer_clear(rw);
 	rwlock_write_unaccount(rw);
+	rwlock_wungrab(rw);
+}
+
+/**
+ * Convenience routine to read/write unlock based on parameter.
+ *
+ * See leading comment of rwlock_force_upgrade_from() for a usage pattern.
+ *
+ * @param rw		the read-write lock
+ * @param wlock		if TRUE, write-unlock, otherwise read-unlock
+ * @param file		file where we're releasing the lock
+ * @param line		line where we're releasing the lock
+ */
+void
+rwlock_ungrab_from(rwlock_t *rw, bool wlock, const char *file, unsigned line)
+{
+	if (wlock)
+		rwlock_wungrab_from(rw, file, line);
+	else
+		rwlock_rungrab_from(rw, file, line);
 }
 
 /**
@@ -1364,19 +1492,20 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 	bool got;
 	unsigned stid = thread_small_id();
 	size_t count;
+	bool need_wait;
 
 	rwlock_check(rw);
 	g_assert_log(rw->readers != 0,
 		"attempting to release read-lock %p with no readers at %s:%u",
 		rw, file, line);
 
-	count = thread_lock_held_count(rw);
+	count = thread_lock_held_count_as(rw, THREAD_LOCK_RLOCK);
 
 	g_assert_log(count != 0,
 		"attempting to upgrade non-held read-lock %p at %s:%u",
 		rw, file, line);
 
-	g_assert(count <= rw->readers);
+	g_assert(count <= rw->readers || rwlock_pass_through);
 
 	/*
 	 * When nobody is owning the write lock we can wait for all the readers
@@ -1413,17 +1542,23 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 			got = FALSE;
 		}
 	}
+	need_wait = got && count != rw->readers;
 	RWLOCK_UNLOCK(rw);
 
-	if G_UNLIKELY(!got)
+	if G_UNLIKELY(!got) {
+		if G_UNLIKELY(rwlock_contention_trace) {
+			s_rawinfo("LOCK cannot upgrade read-lock %p at %s:%u",
+				rw, file, line);
+		}
 		return FALSE;
+	}
 
 	/*
 	 * We just ended a spinlock, acting as a memory barrier, so we can
 	 * immediately check for readers.
 	 */
 
-	if G_UNLIKELY(count != rw->readers)
+	if G_UNLIKELY(need_wait && !rwlock_pass_through)
 		rwlock_wait_readers(rw, count, file, line);
 
 	/*
@@ -1477,6 +1612,69 @@ rwlock_downgrade_from(rwlock_t *rw, const char *file, unsigned line)
 
 	rwlock_readers_record(rw, file, line);
 	rwlock_downgrade_account(rw, file, line);
+}
+
+/**
+ * Force upgrading of read-lock to a write-lock.
+ *
+ * If we cannot just upgrade the lock without releasing the read-lock, then
+ * force the upgrading by first releasing the read-lock and then waiting for
+ * the write lock.  Compared to plain upgrading, the latter is non-atomic and
+ * other writers can come in-between and change the data we inspected under
+ * the read-lock we had.
+ *
+ * The typical usage will be as follows:
+ *
+ *  wlock = FALSE;          // flags whether we already have the write-lock
+ *  rwlock_rlock(&lock);
+ * retry:
+ *  ... some data probing under lock protection ...
+ *  ... decided we need to modify data and must write-lock ...
+ *  if (!wlock) {
+ * 	    wlock = TRUE;
+ * 	    if (!rwlock_force_upgrade(&lock))
+ * 		    goto retry;		// was not atomic, retry your tests first
+ *  }
+ *  ... write locked, can modify data probed earlier ...
+ *  rwlock_unlock(&lock, wlock);	// release read or write lock as needed
+ *
+ * @param rw		the read-write lock
+ * @param file		file where we're attempting to get the lock
+ * @param line		line where we're attempting to get the lock
+ *
+ * @return TRUE if we got an atomic upgrade, FALSE if the read-lock was released
+ * before being able to get the write-lock.
+ */
+bool
+rwlock_force_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
+{
+	if (rwlock_upgrade_from(rw, file, line))
+		return TRUE;
+
+	/*
+	 * Cannot upgrade atomically: release read-lock and request a write-lock.
+	 */
+
+	rwlock_rungrab_from(rw, file, line);
+	rwlock_wgrab_from(rw, file, line);
+
+	return FALSE;	/* Upgrade was non-atomic, i.e. "forced" */
+}
+
+/**
+ * How many writers are registered currently?
+ *
+ * When a thread owns the lock, this can be used to know the recursive
+ * depth of the lock.
+ *
+ * @return amount of writers for lock.
+ */
+unsigned
+rwlock_writers(const rwlock_t *rw)
+{
+	rwlock_check(rw);
+
+	return rw->writers;
 }
 
 /**

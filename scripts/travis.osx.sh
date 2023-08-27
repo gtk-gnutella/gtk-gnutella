@@ -1,20 +1,31 @@
 #!/bin/sh
 bold=$(tput bold)
 normal=$(tput sgr0)
+export PATH="/Users/travis/.new_local/bin:/Library/Frameworks/Python.framework/Versions/3.8/bin:$PATH"
 
 case "$1" in
 'before_install')
-	brew remove --force $(brew list) --ignore-dependencies
+	pushd `brew --prefix`
+	sudo rm -rf Cellar && find -L . -type l -exec rm -- {} +
+	popd
 
-	[ -n "${OBJECTSTORE_URL}" ] && mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.gz | tar -zx  -C ~/gtk-gnutella || echo "Nothing prebuild"
-	curl https://git.gnome.org/browse/gtk-osx/plain/gtk-osx-build-setup.sh | sh
+	curl -s https://www.python.org/ftp/python/3.8.7/python-3.8.7-macosx10.9.pkg -o python.pkg && sudo installer -pkg python.pkg -target /
+	python3 --version
+	python3 -m pip install --upgrade pip &&	python3 -m pip install virtualenv
+
+	virtualenv -p python3 /Users/travis/.new_local
+	source /Users/travis/.new_local/bin/activate
+	python3 -m pip install pipenv
+
+	[ ! -f ~/gtk-gnutella/jhbuild-state ] && [ -n "${OBJECTSTORE_URL}" ] && mkdir -p ~/gtk-gnutella && curl ${OBJECTSTORE_URL}gtk-gnutella-jhbuild.tar.gz | tar -zx  -C ~/gtk-gnutella || echo "Nothing prebuild"
+	curl https://gitlab.gnome.org/GNOME/gtk-osx/raw/master/gtk-osx-setup.sh | sh
 	cp -v osx/jhbuildrc-gtk-gnutella  ~/.jhbuildrc-gtk-gnutella && cp -v osx/gtk-gnutella.modules ~/gtk-gnutella.modules
 	git clone https://github.com/jralls/gtk-mac-bundler.git
 	;;
 	
 'install')
 	export JHB=gtk-gnutella
-	export PATH=$PATH:~/.local/bin/
+	export PATH=$PATH:~/.new_local/bin/
 
 	jhb_actions_all=("bootstrap" "meta-gtk-osx-bootstrap" "meta-gtk-osx-core" "build")
 	jhb_actions=("${jhb_actions_all[@]}")
@@ -50,13 +61,9 @@ case "$1" in
 	done
 
 	# All actions were already done, update only required
-	if [ ${#jhb_actions[@]} -eq 0 ]
-	then
-		jhbuild --no-interact ${jhb_actions_all[@]} 2>&1 | tee "jhbuild-update.log" | grep -e "\*\*\*" -e "Making"
-		[ -n "${OBJECTSTORE_URL}" ] && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T jhbuild-update.log
-		[ -n "${OBJECTSTORE_URL}" ] && tar -zcf gtk-gnutella-jhbuild.tar.gz -C ~/gtk-gnutella jhbuild-state inst source && curl -X PUT --user ${OBJECTSTORE_USER}:${OBJECTSTORE_SECRET} ${OBJECTSTORE_URL} -T gtk-gnutella-jhbuild.tar.gz || echo "Unable to save jhbuild build state ${jhbuild_action}."
-	fi
-	
+	jhbuild --no-interact ${jhb_actions_all[@]} 2>&1 | tee "jhbuild-update.log" | grep -e "\*\*\*" -e "Making"
+	# Not pushing to objectstore, using travis cache.
+
 	pushd gtk-mac-bundler
 	make install
 	popd

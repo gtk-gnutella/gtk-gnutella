@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -563,7 +563,7 @@ dq_pmsg_free(pmsg_t *mb, void *arg)
 				nid_to_string(&dq->qid),
 				node_id_self(dq->node_id) ? "local " : "",
 				(int) (tm_time() - dq->start),
-				dq->up_sent, plural(dq->up_sent),
+				PLURAL(dq->up_sent),
 				dq->horizon, dq->results);
 		}
 	}
@@ -602,7 +602,7 @@ dq_pmsg_by_ttl(dquery_t *dq, int ttl)
 	t = dq->mb;					/* Our "template" */
 	len = pmsg_size(t);
 	db = pdata_new(len);
-	memcpy(pdata_start(db), pmsg_start(t), len);
+	memcpy(pdata_start(db), pmsg_phys_base(t), len);
 
 	/*
 	 * Patch the TTL in the new data buffer.
@@ -641,12 +641,12 @@ dq_fill_probe_up(dquery_t *dq, gnutella_node_t **nv, int ncount)
 	dquery_check(dq);
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
-		gnutella_node_t *n;
+		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (i >= ncount)
 			break;
-
-		n = sl->data;
 
 		/*
 		 * Dont bother sending anything to transient nodes, we're going
@@ -758,16 +758,16 @@ dq_fill_next_up(dquery_t *dq, struct next_up *nv, int ncount)
 	 */
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
+		gnutella_node_t *n = sl->data;
 		struct next_up *nup, *old_nup;
-		gnutella_node_t *n;
 		const void *knid;
 		void *ttlv;
 		bool found;
 
+		node_check(n);
+
 		if (i >= ncount)
 			break;
-
-		n = sl->data;
 
 		/*
 		 * Dont bother sending anything to transient nodes, we're going
@@ -859,7 +859,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	pslist_t *nodes;
 
 	dquery_check(dq);
-	head = cast_to_constpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_phys_base(dq->mb));
 
 	/*
 	 * NB: In order to avoid qrt_build_query_target() selecting neighbouring
@@ -873,7 +873,7 @@ dq_sendto_leaves(dquery_t *dq, gnutella_node_t *source)
 	if (GNET_PROPERTY(dq_debug) > 4)
 		g_debug("DQ QRP %s (%d word%s%s) forwarded to %zd/%d leaves",
 			gmsg_infostr_full(head, pmsg_written_size(dq->mb)),
-			qhvec_count(dq->qhv), plural(qhvec_count(dq->qhv)),
+			PLURAL(qhvec_count(dq->qhv)),
 			qhvec_has_urn(dq->qhv) ? " + URN" : "",
 			pslist_length(nodes), GNET_PROPERTY(node_leaf_count));
 
@@ -1007,7 +1007,7 @@ dq_free(dquery_t *dq)
 		bool found;
 
 		found = htable_lookup_extended(by_muid,
-				gnutella_header_get_muid(pmsg_start(dq->mb)), &key, &value);
+				gnutella_header_get_muid(pmsg_phys_base(dq->mb)), &key, &value);
 
 		if (found) {		/* Could be missing if a MUID conflict occurred */
 			if (value == dq) {	/* Make sure it's for us in case of conflicts */
@@ -1072,6 +1072,8 @@ dq_expired(cqueue_t *cq, void *obj)
 	cq_cancel(&dq->results_ev);
 	dq_terminate(dq);
 }
+
+static void dq_install_results_expired(dquery_t *dq, int delay);
 
 /**
  * Callout queue callback invoked when the result timer has expired.
@@ -1141,7 +1143,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug(
 				"DQ[%s] terminating unguided & unrouted (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
+				nid_to_string(&dq->qid), PLURAL(dq->up_sent));
 		dq_terminate(dq);
 		return;
 	}
@@ -1204,7 +1206,7 @@ dq_results_expired(cqueue_t *cq, void *obj)
 	 */
 
 	vmsg_send_qstat_req(n,
-		dq->lmuid ? dq->lmuid : gnutella_header_get_muid(pmsg_start(dq->mb)));
+		dq->lmuid ? dq->lmuid : gnutella_header_get_muid(pmsg_phys_base(dq->mb)));
 
 	/*
 	 * Compute the timout using the available ping-pong round-trip
@@ -1219,7 +1221,84 @@ dq_results_expired(cqueue_t *cq, void *obj)
 		g_debug("DQ[%s] status reply timeout set to %d s",
 			nid_to_string(&dq->qid), timeout / 1000);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
+}
+
+/**
+ * Install a new expiration callback for results.
+ */
+static void
+dq_install_results_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+	g_assert(NULL == dq->results_ev);	/* Since we are about to supersede it */
+
+	/*
+	 * If the query has been marked as lingering, then we do not care
+	 * any more about this callback since we are just waiting for results
+	 * to come from already-sent queries, before destroying this dq object.
+	 */
+
+	if G_UNLIKELY(DQ_F_LINGER & dq->flags)
+		return;
+
+	dq->results_ev = cq_main_insert(delay, dq_results_expired, dq);
+}
+
+/**
+ * Install a new expiration callback for the query.
+ */
+static void
+dq_install_query_expired(dquery_t *dq, int delay)
+{
+	dquery_check(dq);
+
+	if (dq->expire_ev != NULL)
+		cq_resched(dq->expire_ev, delay);
+	else
+		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
+}
+
+/**
+ * Flag query as lingering.
+ */
+static void
+dq_flag_lingering(dquery_t *dq)
+{
+	dq->flags &= ~DQ_F_WAITING;
+	dq->flags |= DQ_F_LINGER;
+	dq->stop = tm_time();
+}
+
+/**
+ * Asynchronously free query.
+ */
+static void
+dq_async_free(dquery_t *dq)
+{
+	dquery_check(dq);
+
+	/*
+	 * Flagging the query as lingering ensures dq_expired() will
+	 * immediately free the query.
+	 */
+
+	if (0 == (DQ_F_LINGER & dq->flags)) {
+		cq_cancel(&dq->results_ev);
+		dq_flag_lingering(dq);
+	}
+
+	/*
+	 * This lets us free the query "later", not within this calling
+	 * stack frame.  It allows code to still refer to the `dq' object
+	 * for a while, within the same calling stack.
+	 *
+	 * That is because gtk-gnutella runs the callout queue in its main
+	 * thread, ensuring the trigger cannot happen until we return to
+	 * the main I/O loop.
+	 */
+
+	dq_install_query_expired(dq, 1);
 }
 
 /**
@@ -1230,6 +1309,7 @@ dq_terminate(dquery_t *dq)
 {
 	int delay;
 
+	dquery_check(dq);
 	g_assert(!(dq->flags & DQ_F_LINGER));
 	g_assert(dq->results_ev == NULL);
 
@@ -1243,20 +1323,14 @@ dq_terminate(dquery_t *dq)
 
 	delay = (dq->flags & DQ_F_USR_CANCELLED) ? 1 : DQ_LINGER_TIMEOUT;
 
-	if (dq->expire_ev != NULL)
-		cq_resched(dq->expire_ev, delay);
-	else
-		dq->expire_ev = cq_main_insert(delay, dq_expired, dq);
-
-	dq->flags &= ~DQ_F_WAITING;
-	dq->flags |= DQ_F_LINGER;
-	dq->stop = tm_time();
+	dq_flag_lingering(dq);
+	dq_install_query_expired(dq, delay);
 
 	if (GNET_PROPERTY(dq_debug) > 19)
-		g_debug("DQ[%s] (%d secs) node #%s lingering: "
+		g_debug("DQ[%s] (%d secs) node #%s lingering (%d ms): "
 			"ttl=%d, queried=%d, horizon=%d, results=%d",
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
-			nid_to_string2(dq->node_id),
+			nid_to_string2(dq->node_id), delay,
 			dq->ttl, dq->up_sent, dq->horizon, dq->results);
 }
 
@@ -1482,8 +1556,8 @@ dq_send_next(dquery_t *dq)
 		if (GNET_PROPERTY(dq_debug) > 19)
 			g_debug("DQ[%s] waiting for %u ms (pending=%u)",
 				nid_to_string(&dq->qid), dq->result_timeout, dq->pending);
-		dq->results_ev = cq_main_insert(
-			dq->result_timeout, dq_results_expired, dq);
+
+		dq_install_results_expired(dq, dq->result_timeout);
 		return;
 	}
 
@@ -1494,7 +1568,7 @@ dq_send_next(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] still %d UP%s to query (results %sso far: %u)",
-			nid_to_string(&dq->qid), found, plural(found),
+			nid_to_string(&dq->qid), PLURAL(found),
 			(dq->flags & DQ_F_GOT_GUIDANCE) ? "reported kept " : "", results);
 
 	if (found == 0)
@@ -1603,7 +1677,7 @@ dq_send_next(dquery_t *dq)
 			nid_to_string(&dq->qid), (int) (tm_time() - dq->start),
 			timeout, dq->pending);
 
-	dq->results_ev = cq_main_insert(timeout, dq_results_expired, dq);
+	dq_install_results_expired(dq, timeout);
 	return;
 
 terminate:
@@ -1633,7 +1707,7 @@ dq_send_probe(dquery_t *dq)
 
 	if (GNET_PROPERTY(dq_debug) > 19)
 		g_debug("DQ[%s] found %d UP%s to probe",
-			nid_to_string(&dq->qid), found, plural(found));
+			nid_to_string(&dq->qid), PLURAL(found));
 
 	/*
 	 * If we don't find any suitable UP holding that content, then
@@ -1681,9 +1755,8 @@ dq_send_probe(dquery_t *dq)
 	 * assse how popular the query is.
 	 */
 
-	dq->results_ev = cq_main_insert(
-		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout),
-		dq_results_expired, dq);
+	dq_install_results_expired(dq,
+		MIN(found, DQ_PROBE_UP) * (DQ_PROBE_TIMEOUT + dq->result_timeout));
 
 cleanup:
 	WFREE_ARRAY(nv, ncount);
@@ -1752,7 +1825,7 @@ dq_common_init(dquery_t *dq)
 	 * Record the MUID of this query, warning if a conflict occurs.
 	 */
 
-	head = cast_to_constpointer(pmsg_start(dq->mb));
+	head = cast_to_constpointer(pmsg_phys_base(dq->mb));
 	muid = gnutella_header_get_muid(head);
 
 	if (htable_lookup_extended(by_muid, muid, NULL, &value)) {
@@ -1791,7 +1864,7 @@ dq_common_init(dquery_t *dq)
 		const void *packet;
 		uint16 flags;
 
-		packet = pmsg_start(dq->mb);
+		packet = pmsg_phys_base(dq->mb);
 		flags = gnutella_msg_search_get_flags(packet);
 
 		g_debug("DQ[%s] created for node #%s: TTL=%d max_results=%d "
@@ -1799,8 +1872,8 @@ dq_common_init(dquery_t *dq)
 			"MUID=%s%s%s q=\"%s\" flags=0x%x (%s%s%s%s%s%s%s)",
 			nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
 			dq->ttl, dq->max_results,
-			(dq->flags & DQ_F_LEAF_GUIDED) ? "yes" : "no",
-			(dq->flags & DQ_F_ROUTING_HITS) ? "yes" : "no",
+			bool_to_string(0 != (dq->flags & DQ_F_LEAF_GUIDED)),
+			bool_to_string(0 != (dq->flags & DQ_F_ROUTING_HITS)),
 			guid_hex_str(gnutella_header_get_muid(head)),
 			dq->lmuid ? " leaf-MUID=" : "",
 			dq->lmuid ? data_hex_str(dq->lmuid->v, GUID_RAW_SIZE): "",
@@ -2084,13 +2157,13 @@ dq_launch_net(
 	if (GNET_PROPERTY(search_muid_track_amount) > 0) {
 		const void *packet;
 
-		packet = pmsg_start(dq->mb);
+		packet = pmsg_phys_base(dq->mb);
 		record_query_string(gnutella_header_get_muid(packet),
 			gnutella_msg_search_get_text(packet), sri->media_types);
 	}
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
-		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		const char *qstr = gnutella_msg_search_get_text(pmsg_phys_base(dq->mb));
 		char *safe_qstr = hex_escape(qstr, FALSE);
 		g_debug("DQ %s #%s (%s leaf-guidance) %s%squeries \"%s\" "
 			"for %u hits",
@@ -2178,9 +2251,9 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 	dq->flags = DQ_F_ROUTING_HITS | DQ_F_LOCAL;		/* We get our own hits! */
 
 	if (GNET_PROPERTY(dq_debug) > 1) {
-		const char *qstr = gnutella_msg_search_get_text(pmsg_start(dq->mb));
+		const char *qstr = gnutella_msg_search_get_text(pmsg_phys_base(dq->mb));
 		char *safe_qstr = hex_escape(qstr, FALSE);
-		uint16 qflags = gnutella_msg_search_get_flags(pmsg_start(dq->mb));
+		uint16 qflags = gnutella_msg_search_get_flags(pmsg_phys_base(dq->mb));
 		g_debug("DQ local %squeries \"%s\" for %u hits",
 			(qflags & QUERY_F_OOB_REPLY) ?  "OOB-" : "",
 			safe_qstr, dq->max_results);
@@ -2199,7 +2272,7 @@ dq_launch_local(gnet_search_t handle, pmsg_t *mb, query_hashvec_t *qhv)
 ignore:
 	if (GNET_PROPERTY(dq_debug))
 		g_warning("ignoring local dynamic query \"%s\": %s",
-			gnutella_msg_search_get_text(pmsg_start(mb)), msg);
+			gnutella_msg_search_get_text(pmsg_phys_base(mb)), msg);
 
 	pmsg_free(mb);
 	qhvec_free(qhv);
@@ -2229,11 +2302,18 @@ dq_node_removed(const struct nid *node_id)
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminated by node #%s removal (queried %u UP%s)",
 				nid_to_string(&dq->qid), nid_to_string2(dq->node_id),
-				dq->up_sent, plural(dq->up_sent));
+				PLURAL(dq->up_sent));
 
 		/* Don't remove query from the table in dq_free() */
 		dq->flags |= DQ_F_ID_CLEANING;
-		dq_free(dq);
+
+		/*
+		 * Must defer freeing, in case we are called synchronously whilst we are
+		 * within the DQ processing code for this particular object.
+		 * 		--RAM, 2022-02-11
+		 */
+
+		dq_async_free(dq);
 	}
 
 	g_assert(!htable_contains(by_node_id, node_id));
@@ -2488,7 +2568,7 @@ dq_got_query_status(const struct guid *muid,
 	if (kept == 0xffff) {
 		if (GNET_PROPERTY(dq_debug) > 1)
 			g_debug("DQ[%s] terminating at user's request (queried %u UP%s)",
-				nid_to_string(&dq->qid), dq->up_sent, plural(dq->up_sent));
+				nid_to_string(&dq->qid), PLURAL(dq->up_sent));
 
 		dq->flags |= DQ_F_USR_CANCELLED;
 
@@ -2655,7 +2735,7 @@ free_query_list(const void *key, void *value, void *unused_udata)
 
 	(void) unused_udata;
 	g_warning("remained %d un-freed dynamic quer%s for node #%u",
-		count, plural_y(count), GPOINTER_TO_UINT(key));
+		PLURAL_Y(count), GPOINTER_TO_UINT(key));
 
 	PSLIST_FOREACH(list, sl) {
 		dquery_t *dq = sl->data;

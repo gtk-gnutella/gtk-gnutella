@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -62,30 +62,30 @@ print_download_info(gnet_fi_t handle, void *udata)
 	g_return_if_fail(info);
 	guc_fi_get_status(handle, &status);
 
-	str_bprintf(buf, sizeof buf, "ID: %s", guid_to_string(info->guid));
+	str_bprintf(ARYLEN(buf), "ID: %s", guid_to_string(info->guid));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 
-	str_bprintf(buf, sizeof buf, "Filename: \"%s\"", info->filename);
+	str_bprintf(ARYLEN(buf), "Filename: \"%s\"", info->filename);
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 
-	str_bprintf(buf, sizeof buf, "Hash: %s",
+	str_bprintf(ARYLEN(buf), "Hash: %s",
 		info->sha1 ? sha1_to_urn_string(info->sha1) : "<none>");
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 
-	str_bprintf(buf, sizeof buf, "Status: %s",
+	str_bprintf(ARYLEN(buf), "Status: %s",
 		file_info_status_to_string(&status));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 
-	str_bprintf(buf, sizeof buf, "Size: %s",
+	str_bprintf(ARYLEN(buf), "Size: %s",
 		compact_size(status.size, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);
 	shell_write(sh, "\n");	/* Terminate line */
 
-	str_bprintf(buf, sizeof buf, "Done: %u%% (%s)",
+	str_bprintf(ARYLEN(buf), "Done: %u%% (%s)",
 		filesize_per_100(status.size, status.done),
 		compact_size(status.done, GNET_PROPERTY(display_metric_units)));
 	shell_write(sh, buf);

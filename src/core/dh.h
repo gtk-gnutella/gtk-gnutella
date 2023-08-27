@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -50,7 +50,7 @@ void dh_got_results(const struct guid *muid, int count);
 void dh_timer(time_t now);
 void dh_route(
 	struct gnutella_node *src, struct gnutella_node *dest, int count);
-bool dh_would_route(const struct guid *muid, struct gnutella_node *dest);
+bool dh_would_route(const struct guid *m, struct gnutella_node *d, int cnt);
 
 #endif	/* _core_dh_h_ */
 

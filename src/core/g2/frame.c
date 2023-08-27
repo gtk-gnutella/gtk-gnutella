@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -626,7 +626,7 @@ g2_frame_recursive_serialize(struct frame_sctx *sctx, const g2_tree_t *root)
 	payload = g2_tree_node_payload(root, &paylen);
 	child = g2_tree_first_child(root);
 	name = g2_tree_name(root);
-	namelen = strlen(name);
+	namelen = vstrlen(name);
 
 	g_assert(size_is_non_negative(namelen));
 	g_assert(namelen != 0);

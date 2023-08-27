@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -30,6 +30,7 @@
 
 #include "if/gui_property.h"
 
+void settings_gui_early_init(void);
 void settings_gui_init(void);
 void settings_gui_restore_panes(void);
 const gchar *settings_gui_config_dir(void);

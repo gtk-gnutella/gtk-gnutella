@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -103,9 +103,16 @@ plist_cell_free(void *cell)
 	WFREE(l);
 }
 
+static void
+plist_free_all(void *l)
+{
+	wfree_pslist(l, sizeof(plist_t));
+}
+
 static pcell_alloc_t plist_default_alloc = {
 	plist_cell_alloc,		/* pcell_alloc */
 	plist_cell_free,		/* pcell_free */
+	plist_free_all,			/* pcell_listfree */
 };
 
 /**
@@ -153,6 +160,55 @@ plist_free_1_null(plist_t **l_ptr)
 /**
  * Free all the cell elements in the list, but do not touch the held data.
  *
+ * @param pl		the head of the list
+ * @param ca		the cell allocator
+ *
+ * @return NULL as a convenience.
+ */
+plist_t *
+plist_free_ext(plist_t *pl, const pcell_alloc_t *ca)
+{
+	if G_UNLIKELY(NULL == pl)
+		return NULL;
+
+	g_assert(ca != NULL);
+
+	if G_UNLIKELY(NULL == ca->pcell_listfree) {
+		plist_t *l = pl;
+
+		g_assert(ca->pcell_free != NULL);
+
+		/*
+		 * When they have not configured a dedicated callback for that,
+		 * do it manually, one item at a time.
+		 */
+
+		while (l != NULL) {
+			plist_t *next = l->next;
+			ca->pcell_free(l);
+			l = next;
+		}
+	} else {
+		/*
+		 * To be extremely fast, use a specialized freeing routine that will
+		 * limit the amount of overhead to process all the entries in the list.
+		 *
+		 * Note that we pass a pslist_t because the data field will not be
+		 * used and only the next field will be followed, which is at the same
+		 * place in a pslist_t.
+		 */
+
+		STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
+
+		ca->pcell_listfree(pl);
+	}
+
+	return NULL;
+}
+
+/**
+ * Free all the cell elements in the list, but do not touch the held data.
+ *
  * To be able to free the items in the list, use plist_free_full().
  *
  * @param pl		the head of the list
@@ -162,22 +218,7 @@ plist_free_1_null(plist_t **l_ptr)
 plist_t *
 plist_free(plist_t *pl)
 {
-	if G_UNLIKELY(NULL == pl)
-		return NULL;
-
-	/*
-	 * To be extremely fast, use a specialized freeing routine that will
-	 * limit the amount of overhead to process all the entries in the list.
-	 *
-	 * Note that we pass a pslist_t because the data field will not be
-	 * used and only the next field will be followed, which is at the same
-	 * place in a pslist_t.
-	 */
-
-	STATIC_ASSERT(offsetof(pslist_t, next) == offsetof(plist_t, next));
-
-	wfree_pslist((pslist_t *) pl, sizeof *pl);
-	return NULL;
+	return plist_free_ext(pl, &plist_default_alloc);
 }
 
 /**
@@ -190,6 +231,20 @@ plist_free_null(plist_t **pl_ptr)
 
 	if (pl != NULL) {
 		plist_free(pl);
+		*pl_ptr = NULL;
+	}
+}
+
+/**
+ * Free plist and nullify pointer holding it.
+ */
+void
+plist_free_null_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
+{
+	plist_t *pl = *pl_ptr;
+
+	if (pl != NULL) {
+		plist_free_ext(pl, ca);
 		*pl_ptr = NULL;
 	}
 }
@@ -281,8 +336,12 @@ plist_first(const plist_t *pl)
 plist_t *
 plist_append_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl = ca->pcell_alloc();
+	plist_t *nl;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_alloc != NULL);
+
+	nl = ca->pcell_alloc();
 	nl->next = NULL;
 	nl->data = data;
 
@@ -325,8 +384,12 @@ plist_append(plist_t *pl, void *data)
 plist_t *
 plist_prepend_ext(plist_t *pl, void *data, const pcell_alloc_t *ca)
 {
-	plist_t *nl = ca->pcell_alloc();
+	plist_t *nl;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_alloc != NULL);
+
+	nl = ca->pcell_alloc();
 	nl->next = pl;
 	nl->data = data;
 
@@ -514,6 +577,9 @@ plist_remove_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	plist_t *l;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
 	for (l = pl; l != NULL; l = l->next) {
 		if G_UNLIKELY(l->data == data) {
 			pl = plist_remove_link_internal(pl, l);
@@ -552,6 +618,9 @@ plist_t *
 plist_remove_all_ext(plist_t *pl, const void *data, const pcell_alloc_t *ca)
 {
 	plist_t *l, *next;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	for (l = pl; l != NULL; l = next) {
 		next = l->next;
@@ -608,6 +677,9 @@ plist_t *
 plist_delete_link_ext(plist_t *pl, plist_t *cell, const pcell_alloc_t *ca)
 {
 	plist_t *np;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
 
 	np = plist_remove_link_internal(pl, cell);
 	ca->pcell_free(cell);
@@ -897,6 +969,9 @@ plist_foreach_remove_ext(plist_t *pl, data_rm_fn_t cbr, void *data,
 {
 	plist_t *l, *next, *prev;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
 	for (l = pl, prev = NULL; l != NULL; l = next) {
 		next = l->next;
 		if ((*cbr)(l->data, data)) {
@@ -999,7 +1074,8 @@ plist_insert_sorted_internal(plist_t *pl, void *data,
 plist_t *
 plist_insert_sorted(plist_t *pl, void *data, cmp_fn_t cmp)
 {
-	return plist_insert_sorted_internal(pl, data, (cmp_data_fn_t) cmp, NULL);
+	return plist_insert_sorted_internal(
+		pl, data, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1127,7 +1203,7 @@ plist_sort_with_data(plist_t *pl, cmp_data_fn_t cmp, void *data)
 plist_t *
 plist_sort(plist_t *pl, cmp_fn_t cmp)
 {
-	return plist_sort_internal(pl, (cmp_data_fn_t) cmp, NULL);
+	return plist_sort_internal(pl, func_cast(cmp_data_fn_t, cmp), NULL);
 }
 
 /**
@@ -1230,6 +1306,9 @@ plist_shift_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
 	plist_t *pl = *pl_ptr, *nl;
 	void *data;
 
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
 	if G_UNLIKELY(NULL == pl)
 		return NULL;
 
@@ -1256,6 +1335,41 @@ plist_shift_ext(plist_t **pl_ptr, const pcell_alloc_t *ca)
 /**
  * Remove head of list.
  *
+ * This is the routine to be used when the list can contain NULL data, to avoid
+ * warnings and simplify user code.
+ *
+ * @param pl_ptr	pointer to the head of the list
+ * @param d_ptr		pointer where data is written
+ * @param ca		cell allocator
+ *
+ * @return TRUE if we fetched data, FALSE if the list was empty.
+ */
+bool
+plist_shift_data_ext(plist_t **pl_ptr, void **d_ptr, const pcell_alloc_t *ca)
+{
+	plist_t *pl = *pl_ptr, *nl;
+
+	g_assert(ca != NULL);
+	g_assert(ca->pcell_free != NULL);
+
+	if G_UNLIKELY(NULL == pl)
+		return FALSE;
+
+	*d_ptr = pl->data;
+	nl = pl->next;
+	if (nl != NULL)
+		nl->prev = NULL;
+	g_assert(NULL == pl->prev);		/* Was at the head of the list */
+	ca->pcell_free(pl);
+
+	*pl_ptr = nl;
+	return TRUE;
+
+}
+
+/**
+ * Remove head of list.
+ *
  * @param pl_ptr		pointer to the head of the list
  *
  * @return the data item at the head of the list, NULL if the list was empty.
@@ -1264,6 +1378,23 @@ void *
 plist_shift(plist_t **pl_ptr)
 {
 	return plist_shift_ext(pl_ptr, &plist_default_alloc);
+}
+
+/**
+ * Remove head of list.
+ *
+ * This is the routine to be used when the list can contain NULL data, to avoid
+ * warnings and simplify user code.
+ *
+ * @param pl_ptr	pointer to the head of the list
+ * @param d_ptr		pointer where data is written
+ *
+ * @return TRUE if we fetched data, FALSE if the list was empty.
+ */
+bool
+plist_shift_data(plist_t **pl_ptr, void **d_ptr)
+{
+	return plist_shift_data_ext(pl_ptr, d_ptr, &plist_default_alloc);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

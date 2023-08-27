@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -68,6 +68,7 @@
 #include "cq.h"
 #include "dump_options.h"
 #include "elist.h"
+#include "entropy.h"
 #include "eslist.h"
 #include "evq.h"
 #include "hashlist.h"
@@ -495,6 +496,7 @@ palloc(pool_t *p)
 		obj = eslist_shift(&p->buffers);
 		POOL_UNLOCK(p);
 		POOL_STATS_INCX(p, alloc_pool);
+		g_assert(obj != NULL);
 	} else {
 		/*
 		 * No such luck, allocate a new buffer.
@@ -504,6 +506,7 @@ palloc(pool_t *p)
 		POOL_UNLOCK(p);
 		POOL_STATS_INCX(p, alloc_core);
 		obj = p->alloc(p->size);
+		g_assert(obj != NULL);
 	}
 
 	return obj;
@@ -560,6 +563,7 @@ pfree(pool_t *p, void *obj)
 		p->dealloc(obj, p->size, TRUE);
 		POOL_STATS_INCX(p, free_fragments);
 	} else {
+		*(void **) obj = NULL;		/* Clear "slink_t" for eslist_prepend() */
 		eslist_prepend(&p->buffers, obj);
 		if G_UNLIKELY(p->allocated < eslist_count(&p->buffers))
 			p->allocated = eslist_count(&p->buffers);
@@ -617,7 +621,7 @@ pool_reclaim_garbage(pool_t *p)
 		if (palloc_debug > 1) {
 			size_t n = eslist_count(&p->buffers);
 			s_debug("PGC not collecting %zu block%s from \"%s\": "
-				"recent allocation burst", n, plural(n), p->name);
+				"recent allocation burst", PLURAL(n), p->name);
 		}
 		goto reset;
 	}
@@ -670,7 +674,7 @@ pool_reclaim_garbage(pool_t *p)
 			size_t n = eslist_count(&p->buffers);
 			s_debug("PGC not collecting %zu block%s from \"%s\": "
 				"allocation count %zu currently below or at target of %zu",
-				n, plural(n), p->name, p->allocated, threshold);
+				PLURAL(n), p->name, p->allocated, threshold);
 		}
 		goto reset;
 	}
@@ -710,7 +714,7 @@ reset:
 		/* Reading p->allocated without the pool's lock, but we don't care */
 		s_debug("PGC \"%s\": collecting %zu block%s "
 			"(%zu spurious, %zu allocated)",
-			p->name, collecting, plural(collecting), spurious, p->allocated);
+			p->name, PLURAL(collecting), spurious, p->allocated);
 	}
 
 	while (NULL != (b = eslist_shift(&to_remove))) {
@@ -873,9 +877,10 @@ void
 palloc_stats_digest(sha1_t *digest)
 {
 	pool_info_t stats;
+	uint32 n = entropy_nonce();
 
 	palloc_all_stats(&stats);
-	SHA1_COMPUTE(stats, digest);
+	SHA1_COMPUTE_NONCE(stats, &n, digest);
 }
 
 /**

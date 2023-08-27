@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -83,6 +83,7 @@ void pslist_free_null(pslist_t **pl_ptr);
 pslist_t *pslist_free_full(pslist_t *pl, free_fn_t fn);
 void pslist_free_full_null(pslist_t **pl_ptr, free_fn_t fn);
 pslist_t *pslist_last(const pslist_t *pl) WARN_UNUSED_RESULT;
+pslist_t *pslist_last_count(const pslist_t *, size_t *) WARN_UNUSED_RESULT;
 pslist_t *pslist_append(pslist_t *pl, void *data);
 pslist_t *pslist_prepend(pslist_t *pl, void *data) WARN_UNUSED_RESULT;
 pslist_t *pslist_insert_before(pslist_t *pl,
@@ -118,6 +119,7 @@ pslist_t *pslist_shuffle(pslist_t *pl) WARN_UNUSED_RESULT;
 pslist_t *pslist_shuffle_with(random_fn_t rf, pslist_t *pl) WARN_UNUSED_RESULT;
 pslist_t *pslist_random(const pslist_t *pl);
 void *pslist_shift(pslist_t **pl_ptr) NON_NULL_PARAM((1));
+bool pslist_shift_data(pslist_t **pl_ptr, void **d_ptr) NON_NULL_PARAM((1));
 
 struct pcell_allocator;
 
@@ -132,6 +134,10 @@ pslist_t *pslist_delete_link_ext(pslist_t *pl,
 pslist_t *pslist_foreach_remove_ext(pslist_t *pl,
 	data_rm_fn_t cbr, void *data, const struct pcell_allocator *ca);
 void *pslist_shift_ext(pslist_t **pl_ptr, const struct pcell_allocator *ca);
+bool pslist_shift_data_ext(pslist_t **pl_ptr, void **d_ptr,
+		const struct pcell_allocator *ca);
+pslist_t *pslist_free_ext(pslist_t *pl, const struct pcell_allocator *ca);
+void pslist_free_null_ext(pslist_t **pl_ptr, const struct pcell_allocator *ca);
 
 static inline pslist_t * WARN_UNUSED_RESULT
 pslist_prepend_const(pslist_t *pl, const void *data)

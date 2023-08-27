@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-203]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
 : $X-Id$
 
 case $CONFIG in
@@ -53,10 +53,10 @@ SED = $sed
 
 SUBDIRS = g2
 USRINC = $usrinc
-SOURCES =   \$(SRC)
 OBJECTS =   \$(OBJ)
-SOCKER_CFLAGS =  $sockercflags
 GLIB_CFLAGS =  $glibcflags
+SOCKER_CFLAGS =  $sockercflags
+SOURCES =   \$(SRC)
 GNUTLS_CFLAGS =  $gnutlscflags
 
 ########################################################################
@@ -408,6 +408,22 @@ local_depend::
 	cp Makefile Makefile.bak
 	cp Makefile.new Makefile
 	$(RM) Makefile.new
+
+!NO!SUBS!
+case "$d_windows" in
+undef)
+	$spitshell >>Makefile <<'!NO!SUBS!'
+all:: gtkg-shell
+
+gtkg-shell: local_shell.c
+	$(CC) -o $@ -DLOCAL_SHELL_STANDALONE $<
+
+local_clean::
+	$(RM) gtkg-shell
+!NO!SUBS!
+	;;
+esac
+$spitshell >>Makefile <<'!NO!SUBS!'
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

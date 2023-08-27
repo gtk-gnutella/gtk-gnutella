@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -294,7 +294,7 @@ hostiles_load(FILE *f, hostiles_t which)
 
 	hostile_db[which] = iprange_new();
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		linenum++;
 
 		/*
@@ -302,7 +302,7 @@ hostiles_load(FILE *f, hostiles_t which)
 		 * Otherwise, lines which contain only spaces would cause a warning.
 		 */
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s: line %d too long, aborting", G_STRFUNC, linenum);
 			break;
 		}
@@ -366,7 +366,7 @@ hostiles_changed(const char *filename, void *udata)
 	count = hostiles_load(f, which);
 	fclose(f);
 
-	str_bprintf(buf, sizeof(buf), "Reloaded %d hostile IP addresses.", count);
+	str_bprintf(ARYLEN(buf), "Reloaded %d hostile IP addresses.", count);
 	gcu_statusbar_message(buf);
 
 	node_kill_hostiles();
@@ -538,8 +538,7 @@ hostiles_dynamic_expire4(bool forced)
 		if (!forced && GNET_PROPERTY(ban_debug) > 0) {
 			char buf[HOST_ADDR_BUFLEN];
 
-			host_addr_to_string_buf(host_addr_get_ipv4(entry->ipv4),
-				buf, sizeof buf);
+			host_addr_to_string_buf(host_addr_get_ipv4(entry->ipv4), ARYLEN(buf));
 			g_info("removing dynamically caught hostile: %s (%s)",
 				buf, hostiles_flags_to_string(entry->he4_flags));
 		}
@@ -604,8 +603,7 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 
 			if (added != 0) {
 				char buf[HOST_ADDR_BUFLEN];
-				host_addr_to_string_buf(host_addr_get_ipv4(ipv4),
-					buf, sizeof buf);
+				host_addr_to_string_buf(host_addr_get_ipv4(ipv4), ARYLEN(buf));
 				g_info("dynamically added hostile flags: %s (%s)", buf,
 					hostiles_flags_to_string(added));
 			}
@@ -626,7 +624,7 @@ hostiles_dynamic_add_ipv4(uint32 ipv4, hostiles_flags_t flags)
 		if (GNET_PROPERTY(ban_debug)) {
 			char buf[HOST_ADDR_BUFLEN];
 
-			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), buf, sizeof buf);
+			host_addr_to_string_buf(host_addr_get_ipv4(ipv4), ARYLEN(buf));
 			g_info("dynamically caught hostile: %s (%s)", buf,
 				hostiles_flags_to_string(flags));
 		}
@@ -924,7 +922,7 @@ hostiles_spam_add(const host_addr_t addr, uint16 port)
 		sd->last_time = tm_time();
 	}
 
-	dbmw_write(db_spam, &host, sd, sizeof *sd);
+	dbmw_write(db_spam, &host, PTRLEN(sd));
 }
 
 /**
@@ -948,12 +946,11 @@ spam_remove_port(struct spamdata *sd, const host_addr_t addr, uint16 port)
 
 			if (GNET_PROPERTY(spam_debug) > 5) {
 				g_debug("SPAM removing port %u for host %s (%u port%s remain)",
-					port, host_addr_to_string(addr), sd->ports,
-					plural(sd->ports));
+					port, host_addr_to_string(addr), PLURAL(sd->ports));
 			}
 
 			gnet_host_set(&host, addr, 0);
-			dbmw_write(db_spam, &host, sd, sizeof *sd);
+			dbmw_write(db_spam, &host, PTRLEN(sd));
 			break;
 		}
 	}

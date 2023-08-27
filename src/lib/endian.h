@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -91,6 +91,17 @@
 	(IS_CONSTANT(x_) ? UINT64_SWAP_CONSTANT(x_) : __builtin_bswap64(x_))
 #else
 #define UINT64_SWAP(x_) UINT64_SWAP_CONSTANT(x_)
+#endif
+
+/**
+ * ULONG_SWAP() byte-swaps an unsigned long.
+ */
+#if PTRSIZE == 8
+#define ULONG_SWAP(w)	UINT64_SWAP(w)
+#elif PTRSIZE == 4
+#define ULONG_SWAP(w)	UINT32_SWAP(w)
+#else
+#error "unexpected pointer size"
 #endif
 
 /**

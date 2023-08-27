@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -41,7 +41,7 @@
 #include "if/core/sockets.h"
 
 #include "lib/ascii.h"
-#include "lib/glib-missing.h"
+#include "lib/misc.h"			/* For clamp_strcpy() */
 #include "lib/parse.h"
 
 #include "lib/override.h"		/* Must be the last header included */
@@ -73,12 +73,8 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	switch (endptr[0]) {
 	case ':':
 		{
-			size_t n;
-
 		    endptr++;
-			n = endptr - host;
-			n = MIN(n, sizeof host_buf);
-			g_strlcpy(host_buf, host, n);
+			clamp_strncpy(ARYLEN(host_buf), host, endptr - host);
 			host = host_buf;
 			port_str = endptr;
 		}

@@ -45,6 +45,11 @@ extern const datum nullitem;
 #define DBM_F_SAFE		(1 << 1)	/* activate keycheck during iteration */
 #define DBM_F_SKIP		(1 << 2)	/* skip unreadable keys/values */
 
+/*
+ * flags to sdbm_loose_foreach*() routines.
+ */
+#define DBM_F_ALLKEYS	(1 << 3)	/* ensure we iterate on all keys */
+
 typedef void (*sdbm_cb_t)(const datum key, const datum value, void *arg);
 typedef bool (*sdbm_cbr_t)(const datum key, const datum value, void *arg);
 
@@ -87,11 +92,15 @@ bool sdbm_get_wdelay(const DBM *) G_PURE;
 int sdbm_set_volatile(DBM *db, bool yes);
 bool sdbm_is_volatile(const DBM *) G_PURE;
 bool sdbm_shrink(DBM *db);
+ssize_t sdbm_count(const DBM *db);
+ssize_t sdbm_delta(const DBM *db);
+void sdbm_delta_reset(DBM *db);
 int sdbm_clear(DBM *db);
 void sdbm_unlink(DBM *);
 int sdbm_rename(DBM *, const char *);
 int sdbm_rename_files(DBM *, const char *, const char *, const char *);
 int sdbm_rebuild(DBM *);
+int sdbm_rebuild_async(DBM *);
 size_t sdbm_foreach(DBM *db, int flags, sdbm_cb_t cb, void *arg);
 size_t sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg);
 
@@ -101,12 +110,55 @@ size_t sdbm_foreach_remove(DBM *db, int flags, sdbm_cbr_t cb, void *arg);
 void sdbm_thread_safe(DBM *db);
 void sdbm_lock(DBM *db);
 void sdbm_unlock(DBM *db);
+bool sdbm_is_thread_safe(const DBM *db);
+bool sdbm_is_locked(const DBM *db);
+DBM *sdbm_ref(const DBM *db);
+void sdbm_unref(DBM **db_ptr);
+int sdbm_refcnt(const DBM *db);
 
 /*
  * Internal routines with clean semantics that can be used by user code.
  * These are not documented.
  */
-bool sdbm_internal_chkpage(const char *);
+bool sdbm_chkpage(const char *);
+void sdbm_warn_if_not_separate(const DBM *db, const char *caller);
+
+/*
+ * Loose iteration support.
+ */
+
+struct sdbm_loose_stats {
+	size_t pages;			/* Pages seen in database */
+	size_t restarted;		/* Pages that required some restarting */
+	size_t locked;			/* Pages whose traversal was done with a lock */
+	size_t avoided;			/* Avoided (duplicate) keys on restarts */
+	size_t traversals;		/* All traversals made (including all restarts) */
+	size_t empty;			/* Empty pages seen */
+	size_t deletions;		/* Requested item deletions */
+	size_t deletion_errors;	/* Deletion errors */
+	size_t deletion_refused;/* Deletions refused due to concurrent update */
+	size_t kept;			/* Kept items */
+	size_t items;			/* Callbacks invoked */
+	size_t big_keys;		/* Big keys seen */
+	size_t big_values;		/* Big values seen */
+	size_t thread_yields;	/* Amount of thread voluntary yields */
+	size_t thread_sleeps;	/* Amount of thread voluntary sleeps */
+};
+
+size_t sdbm_loose_foreach(DBM *, int, sdbm_cb_t, void *);
+size_t sdbm_loose_foreach_remove(DBM *, int, sdbm_cbr_t, void *);
+
+/*
+ * Undocumented calls (not listed in sdbm.3) -- RAM, 2015-09-23
+ */
+
+size_t sdbm_loose_foreach_stats(DBM *, int, sdbm_cb_t, void *,
+	struct sdbm_loose_stats *);
+size_t sdbm_loose_foreach_remove_stats(DBM *, int, sdbm_cbr_t, void *,
+	struct sdbm_loose_stats *);
+
+void sdbm_free_null(DBM **);
+void sdbm_close_internal(DBM *, bool, bool);
 
 #endif /* _sdbm_h_ */
 

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -176,14 +176,12 @@ upload_stats_add(const char *pathname, filesize_t size, const char *name,
 	uint32 attempts, uint32 complete, uint64 ul_bytes,
 	time_t rtime, time_t dtime, const struct sha1 *sha1)
 {
-	static const struct ul_stats zero_stats;
 	struct ul_stats *s;
 
 	g_assert(pathname != NULL);
 	g_assert(name != NULL);
 
-	WALLOC(s);
-	*s = zero_stats;
+	WALLOC0(s);
 	s->pathname = atom_str_get(pathname);
 	s->filename = atom_str_get(name);
 	s->size = size;
@@ -225,7 +223,7 @@ upload_stats_load_history(void)
 		goto done;
 
 	/* parse, insert names into ul_stats_clist */
-	while (fgets(line, sizeof line, upload_stats_file)) {
+	while (fgets(ARYLEN(line), upload_stats_file)) {
 		static const struct ul_stats zero_item;
 		struct ul_stats item;
 		struct sha1 sha1_buf;
@@ -234,7 +232,7 @@ upload_stats_load_history(void)
 
 		lineno++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			g_warning("%s: line %u too long, aborting", G_STRFUNC, lineno);
 			break;
 		}
@@ -242,7 +240,7 @@ upload_stats_load_history(void)
 		if (file_line_is_skipable(line))
 			continue;
 
-		p = strchr(line, '\t');
+		p = vstrchr(line, '\t');
 		if (NULL == p)
 			goto corrupted;
 
@@ -367,8 +365,8 @@ upload_stats_dump_item(void *p, void *user_data)
 	}
 	escaped = url_escape_cntrl(pathname);
 
-	time_t_to_string_buf(s->rtime, rtime_buf, sizeof rtime_buf);
-	time_t_to_string_buf(s->dtime, dtime_buf, sizeof dtime_buf);
+	time_t_to_string_buf(s->rtime, ARYLEN(rtime_buf));
+	time_t_to_string_buf(s->dtime, ARYLEN(dtime_buf));
 
 	fprintf(out, "%s\t%s\t%u\t%u\t%lu\t%lu\t%s\t%s\t%s\n",
 		escaped,

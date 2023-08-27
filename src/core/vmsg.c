@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -216,10 +216,10 @@ vmsg_infostr(const void *data, size_t size)
 	version = gnutella_vendor_get_version(data);
 
 	if (!find_message(&vmsg, vc, id, version))
-		str_bprintf(msg, sizeof msg , "%s/%uv%u",
+		str_bprintf(ARYLEN(msg) , "%s/%uv%u",
 			vendor_code_to_string(vc.u32), id, version);
 	else
-		str_bprintf(msg, sizeof msg, "%s/%uv%u '%s'",
+		str_bprintf(ARYLEN(msg), "%s/%uv%u '%s'",
 			vendor_code_to_string(vc.u32), id, version, vmsg.name);
 
 	return msg;
@@ -233,7 +233,8 @@ vmsg_send_reply(gnutella_node_t *n, pmsg_t *mb)
 {
 	if (GNET_PROPERTY(vmsg_debug) > 2 || GNET_PROPERTY(log_vmsg_tx)) {
 		g_debug("VMSG sending %s to %s",
-			gmsg_infostr_full(pmsg_start(mb), pmsg_size(mb)), node_infostr(n));
+			gmsg_infostr_full(pmsg_phys_base(mb), pmsg_written_size(mb)),
+			node_infostr(n));
 	}
 
 	if (NODE_IS_UDP(n))
@@ -555,7 +556,7 @@ handle_features_supported(gnutella_node_t *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u extra feature%s",
-			node_infostr(n), count, plural(count));
+			node_infostr(n), PLURAL(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_FEATURE_SIZE + sizeof count))
 		return;
@@ -1345,10 +1346,10 @@ vmsg_send_oob_reply_ack(gnutella_node_t *n,
 	) {
 		char buf[17];
 		if (token->data)
-			bin_to_hex_buf(token->data, token->size, buf, sizeof buf);
+			bin_to_hex_buf(token->data, token->size, ARYLEN(buf));
 		g_debug("VMSG sent %s to %s for %u hit%s%s%s",
 			gmsg_infostr_full(v_tmp, msgsize),
-			node_infostr(n), want, plural(want),
+			node_infostr(n), PLURAL(want),
 			token->data ? ", token=0x" : "", token->data ? buf : "");
 	}
 }
@@ -1440,7 +1441,7 @@ handle_time_sync_reply(gnutella_node_t *n,
 static bool
 vmsg_time_sync_req_stamp(const pmsg_t *mb, const void *unused_q)
 {
-	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
+	struct guid *muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 	tm_t old, now;
 
 	(void) unused_q;
@@ -1510,7 +1511,7 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 	*payload = ntp ? 0x1 : 0x0;				/* bit0 indicates NTP */
 
 	mb = gmsg_to_ctrl_pmsg(v_tmp, msgsize);	/* Send as quickly as possible */
-	muid = cast_to_guid_ptr(pmsg_start(mb));
+	muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 
 	/*
 	 * The first 8 bytes of the MUID are used to store the time at which
@@ -1528,9 +1529,9 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 	 */
 
 	if (NODE_IS_UDP(n))
-		pmsg_set_hook(mb, vmsg_time_sync_req_stamp_udp);
+		pmsg_set_transmit_hook(mb, vmsg_time_sync_req_stamp_udp);
 	else
-		pmsg_set_check(mb, vmsg_time_sync_req_stamp);
+		pmsg_set_send_callback(mb, vmsg_time_sync_req_stamp);
 
 	poke_be32(&muid->v[0], sent->tv_sec);
 	poke_be32(&muid->v[4], sent->tv_usec);
@@ -1545,7 +1546,7 @@ vmsg_send_time_sync_req(gnutella_node_t *n, bool ntp, tm_t *sent)
 static bool
 vmsg_time_sync_reply_stamp(const pmsg_t *mb, const void *unused_q)
 {
-	struct guid *muid = cast_to_guid_ptr(pmsg_start(mb));
+	struct guid *muid = cast_to_guid_ptr(pmsg_phys_base(mb));
 	tm_t now;
 
 	(void) unused_q;
@@ -1559,6 +1560,15 @@ vmsg_time_sync_reply_stamp(const pmsg_t *mb, const void *unused_q)
 	poke_be32(&muid->v[12], now.tv_usec);
 
 	return TRUE;
+}
+
+/**
+ * Same as vmsg_time_sync_reply_stamp() but for UDP messages.
+ */
+static bool
+vmsg_time_sync_reply_stamp_udp(const pmsg_t *mb)
+{
+	return vmsg_time_sync_reply_stamp(mb, NULL);
 }
 
 /**
@@ -1592,7 +1602,7 @@ vmsg_send_time_sync_reply(gnutella_node_t *n, bool ntp, tm_t *got)
 	payload = poke_be32(payload, got->tv_usec);
 
 	mb = gmsg_to_ctrl_pmsg(v_tmp, msgsize);	/* Send as quickly as possible */
-	muid = pmsg_start(mb);					/* MUID of the reply */
+	muid = pmsg_phys_base(mb);				/* MUID of the reply */
 
 	/*
 	 * Propagate first half of the MUID, which is the time at which
@@ -1606,7 +1616,21 @@ vmsg_send_time_sync_reply(gnutella_node_t *n, bool ntp, tm_t *got)
 	/* First half of MUID */
 	memcpy(muid, gnutella_header_get_muid(&n->header), 8);
 
-	pmsg_set_check(mb, vmsg_time_sync_reply_stamp);
+	/*
+	 * When replying over UDP, we set a transmit hook so that our timestamp
+	 * is written as late as possible in the UDP TX scheduler, invoked when
+	 * the message is about to be actually sent.
+	 *
+	 * Otherwise, with TCP, we are less precise in that we write the
+	 * timestamp when the message is popped from the message queue and
+	 * given to the kernel, but we do not know how much buffering is going
+	 * on already for that TCP connection!
+	 */
+
+	if (NODE_IS_UDP(n))
+		pmsg_set_transmit_hook(mb, vmsg_time_sync_reply_stamp_udp);
+	else
+		pmsg_set_send_callback(mb, vmsg_time_sync_reply_stamp);
 
 	vmsg_send_reply(n, mb);
 }
@@ -1666,7 +1690,7 @@ void
 vmsg_send_udp_crawler_pong(gnutella_node_t *n, pmsg_t *mb)
 {
 	uint32 msgsize;
-	uint32 paysize = pmsg_size(mb);
+	uint32 paysize = pmsg_written_size(mb);
 	char *payload;
 
 	g_assert(NODE_IS_UDP(n));
@@ -1677,7 +1701,7 @@ vmsg_send_udp_crawler_pong(gnutella_node_t *n, pmsg_t *mb)
 	gnutella_header_set_muid(v_tmp_header,
 		gnutella_header_get_muid(&n->header));
 
-	memcpy(payload, pmsg_start(mb), paysize);
+	memcpy(payload, pmsg_phys_base(mb), paysize);
 
 	udp_send_msg(n, v_tmp, msgsize);
 
@@ -1816,7 +1840,7 @@ vmsg_send_node_info_ans(gnutella_node_t *n, const rnode_info_t *ri)
 		char uptime[sizeof(uint64)];
 		uint len;
 
-		len = ggept_du_encode(ri->ggep_du, uptime, sizeof uptime);
+		len = ggept_du_encode(ri->ggep_du, ARYLEN(uptime));
 		ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 	}
 
@@ -1833,7 +1857,7 @@ vmsg_send_node_info_ans(gnutella_node_t *n, const rnode_info_t *ri)
 
 	if (ri->answer_flags & RNODE_RQ_GGEP_UA) {
 		ggep_stream_pack(&gs, GGEP_NAME(UA), ri->ggep_ua,
-			strlen(ri->ggep_ua), GGEP_W_DEFLATE);
+			vstrlen(ri->ggep_ua), GGEP_W_DEFLATE);
 	}
 
 	if (ri->answer_flags & RNODE_RQ_GGEP_GGEP) {
@@ -1900,7 +1924,7 @@ latest_svn_release_changed(property_t prop)
 		return FALSE;
 
 	gnet_prop_get_string(PROP_LATEST_SVN_RELEASE_SIGNATURE, hex, sizeof hex);
-	hex_length = strlen(hex);
+	hex_length = vstrlen(hex);
 	if (hex_length > 0 && hex_length / 2 < sizeof data) {
 		struct array signature;
 		uint32 revision;
@@ -2162,7 +2186,7 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 		&v_tmp[sizeof(v_tmp)] - &payload[paysize]);
 
 	if (VMSG_HEAD_CODE_NOT_FOUND == code) {
-		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(C), VARLEN(code), 0))
 			goto failure;
 	} else {
 		uint8 queue;
@@ -2170,18 +2194,18 @@ vmsg_send_head_pong_v2(gnutella_node_t *n, const struct sha1 *sha1,
 
 		code |= GNET_PROPERTY(is_firewalled) ? VMSG_HEAD_STATUS_FIREWALLED : 0;
 
-		if (!ggep_stream_pack(&gs, GGEP_NAME(C), &code, sizeof code, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(C), VARLEN(code), 0))
 			goto failure;
 
 		queue = head_pong_queue_status();
-		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), &queue, sizeof queue, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(Q), VARLEN(queue), 0))
 			goto failure;
 
 		if (!ggep_stream_pack(&gs, GGEP_NAME(V), GTA_VENDOR_CODE, 4, 0))
 			goto failure;
 
 		caps = tls_enabled() ? VMSG_HEAD_F_TLS : 0;
-		if (!ggep_stream_pack(&gs, GGEP_NAME(F), &caps, sizeof caps, 0))
+		if (!ggep_stream_pack(&gs, GGEP_NAME(F), VARLEN(caps), 0))
 			goto failure;
 
 		/* Optional alternate locations */
@@ -2475,7 +2499,7 @@ vmsg_send_head_ping(const struct sha1 *sha1, host_addr_t addr, uint16 port,
 		 * Only running IPv6, let them know we're not interested in IPv4.
 		 */
 
-		(void) ggep_stream_pack(&gs, GGEP_NAME(I6), &b, sizeof b, 0);
+		(void) ggep_stream_pack(&gs, GGEP_NAME(I6), VARLEN(b), 0);
 	}
 
 	ggep_len = ggep_stream_close(&gs);
@@ -2581,7 +2605,7 @@ handle_head_ping(gnutella_node_t *n,
 		 * ASCII not binary, so GGEP_MAGIC (0xc3) should not appear
 		 * in it.
 		 */
-		p = memchr(&payload[1], GGEP_MAGIC, size - 1);
+		p = vmemchr(&payload[1], GGEP_MAGIC, size - 1);
 		if (p != NULL) {
 			extvec_t exv[MAX_EXTVEC];
 			int i, exvcnt;
@@ -3219,7 +3243,7 @@ handle_messages_supported(gnutella_node_t *n,
 
 	if (GNET_PROPERTY(vmsg_debug) > 1)
 		g_debug("VMSG %s supports %u vendor message%s",
-			node_infostr(n), count, plural(count));
+			node_infostr(n), PLURAL(count));
 
 	if (VMSG_SHORT_SIZE(n, vmsg, size, count * VMS_ITEM_SIZE + sizeof count))
 		return;
@@ -3426,7 +3450,7 @@ vmsg_features_add(struct vmsg_features *vmf, const char *name, uint16 version)
 	g_assert(vmf->pos <= vmf->size);
 	g_return_if_fail(vmf->size - vmf->pos >= 6);
 	g_return_if_fail(name);
-	g_return_if_fail(4 == strlen(name));
+	g_return_if_fail(4 == vstrlen(name));
 
 	/*
 	 * First 2 bytes is the number of entries in the vector.

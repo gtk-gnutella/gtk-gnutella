@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -57,6 +57,7 @@
 #define DH_POPULAR_HITS	500		/**< Query deemed popular after that many hits */
 #define DH_MAX_HITS		1000	/**< Maximum hits after which we heavily drop */
 #define DH_THRESH_HITS	10		/**< We have no hits if less than that */
+#define DH_RESULTS_LOW	3		/**< Small amount of results in query hit */
 
 /**
  * Information about query hits received.
@@ -245,7 +246,7 @@ dh_pmsg_free(pmsg_t *mb, void *arg)
 
 	g_assert(pmsg_is_extended(mb));
 
-	muid = gnutella_header_get_muid(pmsg_start(mb));
+	muid = gnutella_header_get_muid(pmsg_phys_base(mb));
 	dh = dh_locate(muid);
 
 	if (dh == NULL)
@@ -281,9 +282,14 @@ cleanup:
  * Based on the information we have on the query hits we already
  * seen or enqueued, determine whether we're going to drop this
  * message on the floor or forward it.
+ *
+ * @param dh		the dynamic hit object
+ * @param mq		the target message queue
+ * @param count		amount of results in the query hit message
+ * @param test		if TRUE, test only, for logging purposes
  */
 static enum dh_drop
-dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
+dh_can_forward(dqhit_t *dh, mqueue_t *mq, int count, bool test)
 {
 	const char *teststr = test ? "[test] " : "";
 
@@ -361,6 +367,22 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 	}
 
 	/*
+	 * We're not flow controlled, so forward all the hits that are
+	 * small enough, that is, which contain only a small amount of hits,
+	 * even if the query is otherwise popular.
+	 *
+	 * Indeed, this represents a highly targeted query, and it needs to
+	 * be rewarded somehow.
+	 */
+
+	if (count <= DH_RESULTS_LOW) {
+		if (GNET_PROPERTY(dh_debug) > 18)
+			g_debug("DH %shit has only %d result%s with %u hit%s already sent",
+				teststr, PLURAL(count), PLURAL(dh->hits_sent));
+		goto forward;
+	}
+
+	/*
 	 * If we sent more than DH_POPULAR_HITS and have DH_MIN_HITS queued,
 	 * don't add more and throttle.
 	 */
@@ -383,7 +405,8 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 	if (
 		dh->hits_sent < DH_MAX_HITS &&
 		dh->hits_queued > (DH_MIN_HITS / 2) &&
-		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS) {
+		(dh->hits_queued + dh->hits_sent) >= DH_MAX_HITS
+	) {
 		if (GNET_PROPERTY(dh_debug) > 19)
 			g_debug("DH %senough queued, nearing max, throttling", teststr);
 		return DH_DROP_THROTTLE;
@@ -400,6 +423,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 		return DH_DROP_THROTTLE;
 	}
 
+forward:
 	/*
 	 * Transient nodes are going to go away soon, results should not be
 	 * forwarded to them since they may not be relayed in time anyway or
@@ -421,7 +445,7 @@ dh_can_forward(dqhit_t *dh, mqueue_t *mq, bool test)
 	}
 
 	if (GNET_PROPERTY(dh_debug) > 19)
-		g_debug("DH %sforwarding", teststr);
+		g_debug("DH %sforwarding %d result%s", teststr, PLURAL(count));
 
 	return DH_FORWARD;
 }
@@ -453,7 +477,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	if (GNET_PROPERTY(dh_debug) > 19) {
 		g_debug("DH #%s got %d hit%s: "
 			"msg=%u, hits_recv=%u, hits_sent=%u, hits_queued=%u",
-			guid_hex_str(muid), count, plural(count),
+			guid_hex_str(muid), PLURAL(count),
 			dh->msg_recv, dh->hits_recv, dh->hits_sent,
 			dh->hits_queued);
 	}
@@ -464,7 +488,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 	 * Can we forward the message?
 	 */
 
-	switch (dh_can_forward(dh, mq, FALSE)) {
+	switch (dh_can_forward(dh, mq, count, FALSE)) {
 	case DH_DROP_FC:
 		goto drop_flow_control;
 	case DH_DROP_THROTTLE:
@@ -508,7 +532,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(guess_server_debug) > 19) {
 			g_debug("GUESS sending %d hit%s (%s) for #%s to %s",
-				count, plural(count),
+				PLURAL(count),
 				NODE_CAN_SR_UDP(dest) ? "reliably" :
 				NODE_CAN_INFLATE(dest) ? "possibly deflated" : "uncompressed",
 				guid_hex_str(muid), node_infostr(dest));
@@ -526,7 +550,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 			mb = gmsg_split_to_deflated_pmsg(&src->header, src->data,
 					src->size + GTA_HEADER_SIZE);
 
-			if (gnutella_header_get_ttl(pmsg_start(mb)) & GTA_UDP_DEFLATED)
+			if (gnutella_header_get_ttl(pmsg_phys_base(mb)) & GTA_UDP_DEFLATED)
 				gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 		} else {
 			mb = gmsg_split_to_pmsg(&src->header, src->data,
@@ -547,7 +571,7 @@ dh_route(gnutella_node_t *src, gnutella_node_t *dest, int count)
 
 		if (GNET_PROPERTY(dh_debug) > 19) {
 			g_debug("DH enqueued %d hit%s for #%s to %s",
-				count, plural(count), guid_hex_str(muid),
+				PLURAL(count), guid_hex_str(muid),
 				node_infostr(dest));
 		}
 	}
@@ -574,9 +598,13 @@ drop_transient:
 
 /**
  * If we had to route hits to the specified node destination, would we?
+ *
+ * @param muid		query MUID
+ * @param dest		destination node, where we would route hits
+ * @param count		amount of results in the query hit
  */
 bool
-dh_would_route(const struct guid *muid, gnutella_node_t *dest)
+dh_would_route(const struct guid *muid, gnutella_node_t *dest, int count)
 {
 	dqhit_t *dh;
 
@@ -588,7 +616,7 @@ dh_would_route(const struct guid *muid, gnutella_node_t *dest)
 	if (dh == NULL)
 		return TRUE;		/* Unknown, no hits yet => would route */
 
-	return DH_FORWARD == dh_can_forward(dh, dest->outq, TRUE);
+	return DH_FORWARD == dh_can_forward(dh, dest->outq, count, TRUE);
 }
 
 /**

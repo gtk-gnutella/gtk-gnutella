@@ -1,9 +1,7 @@
 /*
- * $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
- *
  * Copyright (c) 2008, Raphael Manfredi
  *
- * Jmakefile for the DHT part.
+ * Jmakefile for SDBM.
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -21,18 +19,20 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
-;# $Id: Jmakefile 11185 2006-06-25 22:00:15Z cbiere $
-
 SRC = \
 	big.c \
+	chkpage.c \
 	hash.c \
+	loose.c \
 	lru.c \
 	pair.c \
-	sdbm.c
+	rebuild.c \
+	sdbm.c \
+	tmp.c
 
 OBJ = \
 |expand f!$(SRC)!
@@ -95,11 +95,18 @@ LDFLAGS =
 LIBS = -L. -lsdbm -L../lib -lshared $(GLIB_LDFLAGS) $(COMMON_LIBS)
 
 dbu dbe dbt: libsdbm.a
-RemoteTargetDependency(dbu, ../lib, libshared.a)
-RemoteTargetDependency(dbe, ../lib, libshared.a)
-RemoteTargetDependency(dbt, ../lib, libshared.a)
+RemoteTargetDependency(dba dbu dbe dbt, ../lib, libshared.a)
 
 NormalProgramTarget(dba, $(DBA_SRC), $(DBA_OBJ))
 NormalProgramTarget(dbu, $(DBU_SRC), $(DBU_OBJ))
 NormalProgramTarget(dbe, $(DBE_SRC), $(DBE_OBJ))
 NormalProgramTarget(dbt, $(DBT_SRC), $(DBT_OBJ))
+
+;#
+;# Tests
+;#
+
+sdbm-test: dbt
+
+test: sdbm-test
+	time ./sdbm-test

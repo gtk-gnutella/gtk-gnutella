@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -264,8 +264,7 @@ soap_process_reply(soap_rpc_t *sr)
 
 	if (GNET_PROPERTY(soap_debug) > 2) {
 		g_debug("SOAP \"%s\" at \"%s\": processing reply (%zu byte%s) HTTP %d",
-			sr->action, sr->url, sr->reply_len,
-			plural(sr->reply_len), sr->http_code);
+			sr->action, sr->url, PLURAL(sr->reply_len), sr->http_code);
 	}
 
 	/*
@@ -532,7 +531,7 @@ soap_header_ind(http_async_t *ha, header_t *header,
  * The EOF condition is indicated by data being NULL.
  */
 static void
-soap_data_ind(http_async_t *ha, char *data, int len)
+soap_data_ind(http_async_t *ha, const char *data, int len)
 {
 	soap_rpc_t *sr = http_async_get_opaque(ha);
 	size_t new_length;
@@ -827,8 +826,8 @@ soap_rpc_launch(cqueue_t *cq, void *obj)
 	 */
 
 	post.content_type = SOAP_CONTENT_TYPE;
-	post.data = pmsg_start(sr->mb);
-	post.datalen = pmsg_size(sr->mb);
+	post.data = pmsg_phys_base(sr->mb);
+	post.datalen = pmsg_written_size(sr->mb);
 	post.data_free = NULL;
 	post.data_free_arg = NULL;
 

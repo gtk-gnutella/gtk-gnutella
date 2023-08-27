@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -116,11 +116,11 @@ shell_exec_help(struct gnutella_shell *sh, int argc, const char *argv[])
 			shell_write(sh, name);
 
 			{
-				size_t len = strlen(name);
+				size_t len = vstrlen(name);
 				char pad[10];
 
 				if (len < sizeof pad) {
-					memset(pad, ' ', sizeof pad);
+					MEMSET(&pad, ' ');
 					pad[sizeof pad - len] = '\0';
 					shell_write(sh, pad);
 				}

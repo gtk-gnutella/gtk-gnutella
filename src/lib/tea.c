@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -266,9 +266,9 @@ tea_test(void)
 	STATIC_ASSERT(sizeof in == sizeof recovered);
 
 	random_bytes(key.v, TEA_KEY_SIZE);
-	random_bytes(in, sizeof in);
-	tea_encrypt(&key, out, in, sizeof in);
-	tea_decrypt(&key, recovered, out, sizeof out);
+	random_bytes(ARYLEN(in));
+	tea_encrypt(&key, out, ARYLEN(in));
+	tea_decrypt(&key, recovered, ARYLEN(out));
 
 	if (0 != memcmp(in, recovered, sizeof in))
 		g_error("TEA implementation tests FAILED");

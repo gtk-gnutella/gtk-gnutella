@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -144,9 +144,9 @@ xxtea_test(void)
 
 		for (j = 0; j < 10; j++) {
 			random_bytes(key.v, XXTEA_KEY_SIZE);
-			random_bytes(&value, sizeof value);
+			random_bytes(ARYLEN(value));
 
-			xxtea_encrypt(&key, encrypted, value, sizeof value);
+			xxtea_encrypt(&key, encrypted, ARYLEN(value));
 			if (0 != memcmp(value, encrypted, sizeof value)) {
 				randomized = TRUE;
 				break;
@@ -156,7 +156,7 @@ xxtea_test(void)
 		if (!randomized)
 			g_error("no luck with random numbers in %s()", G_STRFUNC);
 
-		xxtea_decrypt(&key, decrypted, encrypted, sizeof encrypted);
+		xxtea_decrypt(&key, decrypted, ARYLEN(encrypted));
 		if (0 != memcmp(value, decrypted, sizeof value))
 			g_error("XXTEA implementation tests FAILED");
 	}
@@ -165,9 +165,9 @@ xxtea_test(void)
 	STATIC_ASSERT(sizeof in == sizeof recovered);
 
 	random_bytes(key.v, XXTEA_KEY_SIZE);
-	random_bytes(in, sizeof in);
-	xxtea_encrypt(&key, out, in, sizeof in);
-	xxtea_decrypt(&key, recovered, out, sizeof out);
+	random_bytes(ARYLEN(in));
+	xxtea_encrypt(&key, out, ARYLEN(in));
+	xxtea_decrypt(&key, recovered, ARYLEN(out));
 
 	if (0 != memcmp(in, recovered, sizeof in))
 		g_error("XXTEA implementation tests FAILED");

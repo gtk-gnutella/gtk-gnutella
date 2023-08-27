@@ -298,7 +298,7 @@ N_("Maximum size:");
 N_("Maximum size\n" "allowed");
 N_("Maximum");
 N_("Measured HTTP latency:");
-N_("Meet us on #gtk-gnutella at irc.freenode.net.");
+N_("Meet us on #gtk-gnutella at irc.libera.chat.");
 N_("Min/Max:");
 N_("Minimum chunk size");
 N_("Minimum file size");

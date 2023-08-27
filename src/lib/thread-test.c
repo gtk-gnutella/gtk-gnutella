@@ -52,7 +52,9 @@
 #include "mutex.h"
 #include "once.h"
 #include "parse.h"
+#include "path.h"
 #include "progname.h"
+#include "qlock.h"
 #include "random.h"
 #include "rwlock.h"
 #include "semaphore.h"
@@ -73,6 +75,8 @@
 #include "xmalloc.h"
 #include "zalloc.h"
 
+#include "override.h"
+
 #define STACK_SIZE		16384
 
 static char allocator = 'r';		/* For -X tests, random mix by default */
@@ -90,7 +94,8 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSVWX] [-a type] [-b size] [-c CPU]\n"
+		"Usage: %s [-hejsvwxABCDEFHIKMNOPQRSUVWX]\n"
+		"       [-a type] [-b size] [-c CPU]\n"
 		"       [-f count] [-n count] [-r percent] [-t ms] [-T msecs]\n"
 		"       [-z fn1,fn2...]\n"
 		"  -a : allocator to exlusively test via -X (see below for type)\n"
@@ -124,7 +129,8 @@ usage(void)
 		"  -Q : test asynchronous queue\n"
 		"  -R : test the read-write lock layer\n"
 		"  -S : test semaphore layer\n"
-		"  -T : test condition layer via tennis session for specified msecs\n"
+		"  -T : test condition layer via tennis session for specified secs\n"
+		"  -U : test the queuing lock layer\n"
 		"  -V : test thread event queue (TEQ)\n"
 		"  -W : test local event queue (EVQ)\n"
 		"  -X : exercise concurrent memory allocation\n"
@@ -204,7 +210,7 @@ emit_zap(const char *caller, const char *fmt, ...)
 static char *names[] = { "one", "two", "three", "four", "five" };
 
 static void
-exit_callback(void *result, void *arg)
+exit_callback(const void *result, void *arg)
 {
 	char *name = arg;
 	long length = pointer_to_long(result);
@@ -362,7 +368,7 @@ posix_worker(void *unused_arg)
 	(void) unused_arg;
 
 	thread_current_info(&info);
-	thread_info_to_string_buf(&info, name, sizeof name);
+	thread_info_to_string_buf(&info, ARYLEN(name));
 
 	emit("POSIX thread worker starting...");
 	emit("POSIX worker: %s", name);
@@ -374,7 +380,7 @@ posix_worker(void *unused_arg)
 
 		g_assert_log(thread_small_id() == stid,
 			"current STID=%u, prev=%u %s", thread_small_id(), stid,
-			thread_info_to_string_buf(&info, name, sizeof name));
+			thread_info_to_string_buf(&info, ARYLEN(name)));
 
 		p = xmalloc(100);
 		compat_sleep_ms(100);
@@ -384,7 +390,7 @@ posix_worker(void *unused_arg)
 
 		g_assert_log(thread_small_id() == stid,
 			"current STID=%u, prev=%u %s", thread_small_id(), stid,
-			thread_info_to_string_buf(&info, name, sizeof name));
+			thread_info_to_string_buf(&info, ARYLEN(name)));
 	}
 
 	return NULL;
@@ -408,11 +414,26 @@ posix_threads(void *unused_arg)
 	return posix_worker(NULL);
 }
 
+static void
+pexit_callback(const void *result, void *earg)
+{
+	unsigned stid = pointer_to_uint(earg);
+
+	(void) result;
+	emit("POSIX thread #%u exiting", stid);
+}
+
 static void *
 posix_exiting_thread(void *unused_arg)
 {
+	unsigned stid = thread_small_id();
 	void *p;
+
 	(void) unused_arg;
+
+	emit("POSIX thread #%u starting", stid);
+
+	thread_atexit(pexit_callback, uint_to_pointer(stid));
 
 	p = xmalloc(100);
 	compat_sleep_ms(100);
@@ -798,8 +819,7 @@ player_stats(int n)
 	stats = &game_stats[n];
 
 	emit("%s played %d times (%d spurious event%s, %d timeout%s)",
-		name[n], stats->play, stats->spurious, plural(stats->spurious),
-		stats->timeout, plural(stats->timeout));
+		name[n], stats->play, PLURAL(stats->spurious), PLURAL(stats->timeout));
 }
 
 static void
@@ -913,10 +933,8 @@ test_condition(unsigned play_time, bool emulated, bool monitor, bool noise)
 	for (i = 0; i < (int) N_ITEMS(name); i++) {
 		player_stats(i);
 	}
-	if (monitor) {
-		emit("main got %u notification%s",
-			notifications, plural(notifications));
-	}
+	if (monitor)
+		emit("main got %u notification%s", PLURAL(notifications));
 }
 
 static spinlock_t locks[] = { SPINLOCK_INIT, SPINLOCK_INIT };
@@ -965,7 +983,7 @@ fork_forker(void *arg)
 
 	running = thread_count();
 	emit("%s() forking with %u running thread%s, STID=%u", G_STRFUNC,
-		running, plural(running), thread_small_id());
+		PLURAL(running), thread_small_id());
 
 	thread_lock_dump_all(STDOUT_FILENO);
 
@@ -1001,10 +1019,10 @@ test_fork(bool safe)
 
 	TESTING(G_STRFUNC);
 
-	emit("--- testing thread_fork(%s)", safe ? "TRUE" : "FALSE");
+	emit("--- testing thread_fork(%s)", bool_to_string(safe));
 
 	running = thread_count();
-	emit("starting with %u running thread%s", running, plural(running));
+	emit("starting with %u running thread%s", PLURAL(running));
 
 	l1 = thread_create(fork_locker, int_to_pointer(0), THREAD_F_PANIC, 8192);
 	l2 = thread_create(fork_locker, int_to_pointer(1), THREAD_F_PANIC, 8192);
@@ -1021,9 +1039,9 @@ test_fork(bool safe)
 		s_error("final thread_join() failed: %m");
 
 	running = thread_count();
-	emit("ending with %u running thread%s", running, plural(running));
+	emit("ending with %u running thread%s", PLURAL(running));
 
-	emit("--- test of thread_fork(%s) done!", safe ? "TRUE" : "FALSE");
+	emit("--- test of thread_fork(%s) done!", bool_to_string(safe));
 }
 
 static int
@@ -1048,6 +1066,13 @@ overflow_handler(int unused_sig)
 	(void) unused_sig;
 
 	s_rawdebug("stack overflow signal properly caught!");
+
+	s_rawinfo("signal_on_altstack(() = %s",
+		bool_to_string(signal_on_altstack()));
+	s_rawinfo("thread_on_altstack(() = %s",
+		bool_to_string(thread_on_altstack()));
+
+	g_assert(signal_on_altstack() == thread_on_altstack());
 }
 
 static void *
@@ -1145,6 +1170,32 @@ test_aqueue(bool emulated)
 	emit("%s() all done.", G_STRFUNC);
 }
 
+static qlock_t qsync_plain = QLOCK_PLAIN_INIT;
+static qlock_t qsync_recursive = QLOCK_RECURSIVE_INIT;
+
+static void *
+test_qthreads(void *arg)
+{
+	const char *tname = thread_name();
+	qlock_t *q = arg;
+
+	s_info("%s - starting concurrent qlock tests", tname);
+
+	qlock_lock(q);
+	s_info("%s - has read lock", tname);
+	compat_sleep_ms(100);
+
+	s_info("%s - rotating lock", tname);
+	qlock_rotate(q);
+	s_info("%s - has lock back", tname);
+	compat_sleep_ms(100);
+
+	s_info("%s - releasing lock", tname);
+	qlock_unlock(q);
+
+	return NULL;
+}
+
 static rwlock_t rwsync = RWLOCK_INIT;
 
 static void *
@@ -1185,6 +1236,66 @@ test_rwthreads(void *unused_arg)
 	s_info("%s - exiting", tname);
 
 	return NULL;
+}
+
+static void
+test_qlock(void)
+{
+	int t[3];
+	qlock_t qr = QLOCK_RECURSIVE_INIT, qp = QLOCK_PLAIN_INIT;
+	unsigned i, j;
+
+	s_info("%s starting, will be launching %s()", thread_name(),
+		stacktrace_function_name(test_qthreads));
+
+	/* The mono-threaded "cannot fail" sequence */
+
+	printf("%s(): mono-threaded tests...\n", G_STRFUNC);
+	fflush(stdout);
+
+	if (!qlock_lock_try(&qr))
+		s_error("cannot lock recursive lock");
+
+	if (!qlock_lock_try(&qp))
+		s_error("cannot lock plain lock");
+
+	if (qlock_lock_try(&qp))
+		s_error("can lock plain lock multiple times");
+
+	if (!qlock_lock_try(&qr))
+		s_error("cannot lock recursive lock multiple times");
+
+	qlock_unlock(&qr);
+	qlock_unlock(&qp);
+	qlock_unlock(&qr);
+
+	printf("%s(): mono-threaded tests succeded.\n", G_STRFUNC);
+	fflush(stdout);
+
+	/* Now for multi-threaded tests.... */
+
+	for (j = 0; j < 2; j++) {
+		qlock_t *qlocks[] = { &qsync_plain, &qsync_recursive };
+		qlock_t *q = qlocks[j];
+
+		printf("%s(): multi-threaded tests with %s...\n",
+			G_STRFUNC, qlock_type(q));
+		fflush(stdout);
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			t[i] = thread_create(test_qthreads, q, 0, 0);
+			if (-1 == t[i])
+				s_error("%s() cannot create thread %u: %m", G_STRFUNC, i);
+		}
+
+		for (i = 0; i < N_ITEMS(t); i++) {
+			thread_join(t[i], NULL);
+		}
+
+		printf("%s(): multi-threaded tests with %s done.\n",
+			G_STRFUNC, qlock_type(q));
+		fflush(stdout);
+	}
 }
 
 static void
@@ -1976,7 +2087,7 @@ test_memory(unsigned repeat, bool posix, int percentage)
 
 	TESTING(G_STRFUNC);
 
-	emit("%s() detected %ld CPU%s%s", G_STRFUNC, cpus, plural(cpus),
+	emit("%s() detected %ld CPU%s%s", G_STRFUNC, PLURAL(cpus),
 		0 == cpu_count ? "" : " (forced by -c)");
 
 	if (randomize_free)
@@ -2222,7 +2333,7 @@ test_evq(unsigned repeat)
 
 static int interrupt_count;
 static int interrupt_acks;
-static volatile bool interrupt_seen_2;
+static volatile bool interrupt_seen_2, interrupt_processed_2;
 
 static void *
 intr_process(void *arg)
@@ -2242,8 +2353,9 @@ intr_process(void *arg)
 			s_carp("%s(): UNSAFE interrupt trace", G_STRFUNC);
 		break;
 	case 2:
-		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
 		interrupt_seen_2 = TRUE;
+		s_carp("%s(): showing %strace", G_STRFUNC, unsafe ? "UNSAFE " : "");
+		interrupt_processed_2 = TRUE;
 		atomic_mb();
 		break;
 	case 4:
@@ -2303,13 +2415,29 @@ test_interrupts(void)
 
 		/* Signalled thread needs to have seen interrupt #2 before continuing */
 		if (i > 2 && !interrupt_seen_2) {
+			size_t j;
 			s_message("%s(): waiting for interrupt #2 to be seen", G_STRFUNC);
-			while (!interrupt_seen_2) {
+			/* Wait about 10 seconds */
+			for (j = 0; !interrupt_seen_2 && j < 100; j++) {
 				thread_sleep_ms(100);
 			}
+			if (!interrupt_seen_2)
+				s_error("%s(): timeout waiting for interrupt #2", G_STRFUNC);
+		}
+		if (i > 2 && !interrupt_processed_2) {
+			size_t j;
+			s_message("%s(): waiting for interrupt #2 processing", G_STRFUNC);
+			/* Wait about 30 seconds for the stack unwinding and formatting */
+			for (j = 0; !interrupt_processed_2 && j < 300; j++) {
+				thread_sleep_ms(100);
+			}
+			if (!interrupt_processed_2)
+				s_error("%s(): timeout for interrupt #2 processing", G_STRFUNC);
+			s_message("%s(): all done for interrupt #2", G_STRFUNC);
 		}
 
-		s_message("%s(): sending interrupt #%d", G_STRFUNC, i);
+		s_message("%s(): sending interrupt #%d to %s",
+			G_STRFUNC, i, thread_id_name(t));
 
 		/* Interrupt #1 will be acknowledged */
 		if (1 == i) {
@@ -2377,9 +2505,9 @@ main(int argc, char **argv)
 	bool inter = FALSE, forking = FALSE, aqueue = FALSE, rwlock = FALSE;
 	bool signals = FALSE, barrier = FALSE, overflow = FALSE, memory = FALSE;
 	bool stats = FALSE, teq = FALSE, cancel = FALSE, dam = FALSE, evq = FALSE;
-	bool interrupts = FALSE;
+	bool interrupts = FALSE, qlock = FALSE;
 	unsigned repeat = 1, play_time = 0;
-	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:VWX";
+	const char options[] = "a:b:c:ef:hjn:r:st:vwxz:ABCDEFHIKMNOPQRST:UVWX";
 
 	progstart(argc, argv);
 	thread_set_main(TRUE);		/* We're the main thread, we can block */
@@ -2438,6 +2566,9 @@ main(int argc, char **argv)
 		case 'T':			/* test condition layer */
 			play_time = get_number(optarg, c);
 			play_tennis = TRUE;
+			break;
+		case 'U':			/* test qlock */
+			qlock = TRUE;
 			break;
 		case 'V':			/* test thread event queue */
 			teq = TRUE;
@@ -2524,6 +2655,9 @@ main(int argc, char **argv)
 	if (rwlock)
 		test_rwlock();
 
+	if (qlock)
+		test_qlock();
+
 	if (sem)
 		test_semaphore(emulated);
 
@@ -2580,10 +2714,8 @@ main(int argc, char **argv)
 			allocator = 'r';
 			break;
 		}
-		if (allocator_bsize != 0) {
-			emit("Using blocks of %lu byte%s", (ulong) allocator_bsize,
-				plural(allocator_bsize));
-		}
+		if (allocator_bsize != 0)
+			emit("Using blocks of %lu byte%s", (ulong) PLURAL(allocator_bsize));
 		if (posix)
 			emit("Adding (discovered) POSIX threads");
 		if (percentage)

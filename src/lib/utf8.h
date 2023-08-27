@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -81,9 +81,9 @@ size_t utf8_strcpy_max(char *dst, size_t dst_size,
 uint32 utf8_decode_char_fast(const char *s, uint *retlen)
 	NON_NULL_PARAM((1,2));
 int utf8_to_iso8859(char *s, int len, bool space);
-size_t utf8_strlower(char *dst, const char *src, size_t size);
+size_t utf8_strlower(char *dst, size_t size, const char *src);
 char *utf8_strlower_copy(const char *src);
-size_t utf8_strupper(char *dst, const char *src, size_t size);
+size_t utf8_strupper(char *dst, size_t size, const char *src);
 char *utf8_strupper_copy(const char *src);
 char *utf8_canonize(const char *src);
 char *utf8_normalize(const char *src, uni_norm_t norm);
@@ -107,8 +107,8 @@ bool utf32_canonical_sorted(const uint32 *src);
 bool utf32_is_decomposed(const uint32 *src, bool nfkd);
 size_t utf32_decompose_nfd(const uint32 *in, uint32 *out, size_t size);
 size_t utf32_decompose_nfkd(const uint32 *in, uint32 *out, size_t size);
-size_t utf32_strlower(uint32 *dst, const uint32 *src, size_t size);
-size_t utf32_strupper(uint32 *dst, const uint32 *src, size_t size);
+size_t utf32_strlower(uint32 *dst, size_t size, const uint32 *src);
+size_t utf32_strupper(uint32 *dst, size_t size, const uint32 *src);
 uint32 utf32_be_decode_char_buffer(const char *s, size_t len, uint *retlen)
 	NON_NULL_PARAM((1,3));
 uint32 utf32_le_decode_char_buffer(const char *s, size_t len, uint *retlen)

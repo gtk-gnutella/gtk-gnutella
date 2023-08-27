@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,7 +47,7 @@
  * so that we can write more efficicient is_ascii_*() routines.
  */
 const uint16
-ascii_ctype[] =
+ascii_ctype[256] =
 {
 	/*   0 */	A_CTRL,
 	/*   1 */	A_CTRL,
@@ -97,16 +97,16 @@ ascii_ctype[] =
 	/*  45 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  46 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  47 */	A_GRAPH | A_PRINT | A_PUNCT,
-	/*  48 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  49 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  50 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  51 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  52 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  53 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  54 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  55 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  56 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
-	/*  57 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT,
+	/*  48 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  49 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  50 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  51 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  52 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  53 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  54 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  55 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  56 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  57 */	A_DIGIT | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
 	/*  58 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  59 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  60 */	A_GRAPH | A_PRINT | A_PUNCT,
@@ -114,64 +114,64 @@ ascii_ctype[] =
 	/*  62 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  63 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  64 */	A_GRAPH | A_PRINT | A_PUNCT,
-	/*  65 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  66 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  67 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  68 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  69 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  70 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  71 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  72 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  73 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  74 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  75 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  76 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  77 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  78 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  79 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  80 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  81 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  82 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  83 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  84 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  85 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  86 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  87 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  88 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  89 */	A_UPPER | A_GRAPH | A_PRINT,
-	/*  90 */	A_UPPER | A_GRAPH | A_PRINT,
+	/*  65 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  66 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  67 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  68 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  69 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  70 */	A_UPPER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  71 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  72 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  73 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  74 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  75 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  76 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  77 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  78 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  79 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  80 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  81 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  82 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  83 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  84 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  85 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  86 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  87 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  88 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  89 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
+	/*  90 */	A_UPPER | A_GRAPH | A_PRINT | A_IDENT,
 	/*  91 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  92 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  93 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/*  94 */	A_GRAPH | A_PRINT | A_PUNCT,
-	/*  95 */	A_GRAPH | A_PRINT | A_PUNCT,
+	/*  95 */	A_GRAPH | A_PRINT | A_PUNCT | A_IDENT,
 	/*  96 */	A_GRAPH | A_PRINT | A_PUNCT,
-	/*  97 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  98 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/*  99 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/* 100 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/* 101 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/* 102 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT,
-	/* 103 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 104 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 105 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 106 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 107 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 108 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 109 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 110 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 111 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 112 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 113 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 114 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 115 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 116 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 117 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 118 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 119 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 120 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 121 */	A_LOWER | A_GRAPH | A_PRINT,
-	/* 122 */	A_LOWER | A_GRAPH | A_PRINT,
+	/*  97 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  98 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/*  99 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/* 100 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/* 101 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/* 102 */	A_LOWER | A_HEXA | A_GRAPH | A_PRINT | A_IDENT,
+	/* 103 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 104 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 105 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 106 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 107 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 108 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 109 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 110 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 111 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 112 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 113 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 114 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 115 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 116 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 117 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 118 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 119 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 120 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 121 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
+	/* 122 */	A_LOWER | A_GRAPH | A_PRINT | A_IDENT,
 	/* 123 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/* 124 */	A_GRAPH | A_PRINT | A_PUNCT,
 	/* 125 */	A_GRAPH | A_PRINT | A_PUNCT,
@@ -189,7 +189,7 @@ ascii_strlower(char *dst, const char *src)
 {
 	int c;
 
-	STATIC_ASSERT(128 == N_ITEMS(ascii_ctype));
+	STATIC_ASSERT(256 == N_ITEMS(ascii_ctype));
 
 	if (dst != src)
 		do {
@@ -255,59 +255,6 @@ ascii_strncasecmp(const char *s1, const char *s2, size_t len)
 	return a - b;
 }
 
-
-/**
- * Same as strstr() but case-insensitive with respect to ASCII characters.
- */
-char *
-ascii_strcasestr(const char *haystack, const char *needle)
-{
-	uint32 delta[256];
-	size_t nlen = strlen(needle);
-	uint32 *pd = delta;
-	size_t i;
-	const char *n;
-	uint32 haylen = strlen(haystack);
-	const char *end = haystack + haylen;
-	char *tp;
-
-	/*
-	 * Initialize Sunday's algorithm, lower-casing the needle.
-	 */
-
-	nlen++;		/* Avoid increasing within the loop */
-
-	for (i = 0; i < 256; i++)
-		*pd++ = nlen;
-
-	nlen--;		/* Restore original pattern length */
-
-	for (n = needle, i = 0; i < nlen; i++) {
-		uchar c = *n++;
-		delta[ascii_tolower(c)] = nlen - i;
-	}
-
-	/*
-	 * Now run Sunday's algorithm.
-	 */
-
-	for (tp = *(char **) &haystack; tp + nlen <= end; /* empty */) {
-		const char *t;
-		uchar c;
-
-		for (n = needle, t = tp, i = 0; i < nlen; n++, t++, i++)
-			if (ascii_tolower((uchar) *n) != ascii_tolower((uchar) *t))
-				break;
-
-		if (i == nlen)						/* Got a match! */
-			return tp;
-
-		c = *(tp + nlen);
-		tp += delta[ascii_tolower(c)];	/* Continue search there */
-	}
-
-	return NULL;		/* Not found */
-}
 
 /**
  * ASCII case-insensitive string hashing function.
@@ -415,7 +362,7 @@ ascii_chomp_trailing_spaces(char *str, size_t len)
 	g_assert(str != NULL);
 
 	if (0 == len) {
-		len = strlen(str);
+		len = vstrlen(str);
 		if (0 == len)
 			return 0;
 	}

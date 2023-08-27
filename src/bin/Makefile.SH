@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-195]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -52,11 +52,11 @@ SED = $sed
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-GLIB_LDFLAGS =  $glibldflags
-SOURCES =   sha1sum.c
+COMMON_LIBS =  $libs
 OBJECTS =   sha1sum.o
 GLIB_CFLAGS =  $glibcflags
-COMMON_LIBS =  $libs
+SOURCES =   sha1sum.c
+GLIB_LDFLAGS =  $glibldflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -68,7 +68,7 @@ COMMON_LIBS =  $libs
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit

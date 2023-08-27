@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -49,7 +49,7 @@ enum {
 	FI_F_BAD_BITPRINT	= 1 << 9,	/**< SHA1 + TTH combination is bad */
 	FI_F_UNLINKED		= 1 << 8,	/**< Removed from disk */
 	FI_F_FETCH_TTH		= 1 << 7,	/**< Tigertree data is being downloaded */
-	FI_F_STRIPPED		= 1 << 6,	/**< Fileinfo trailler has been stripped */
+	FI_F_STRIPPED		= 1 << 6,	/**< Fileinfo trailer has been stripped */
 	FI_F_SEEDING		= 1 << 5,	/**< Seeding after successful download */
 	FI_F_PAUSED			= 1 << 4,	/**< Paused by user */
 	FI_F_MARK			= 1 << 3,	/**< Marked during traversal */

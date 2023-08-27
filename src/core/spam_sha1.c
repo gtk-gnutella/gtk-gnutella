@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -199,13 +199,13 @@ spam_sha1_load(FILE *f)
 	spam_lut_create();
 	sha1_lut.state = SPAM_LOADING;
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const struct sha1 *sha1;
 		size_t len;
 
 		line_no++;
 
-		if (!file_line_chomp_tail(line, sizeof line, &len)) {
+		if (!file_line_chomp_tail(ARYLEN(line), &len)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
@@ -275,7 +275,7 @@ spam_sha1_changed(const char *filename, void *unused_udata)
 		count = spam_sha1_load(f);
 		fclose(f);
 
-		str_bprintf(buf, sizeof(buf), "Reloaded %lu spam SHA-1 items.", count);
+		str_bprintf(ARYLEN(buf), "Reloaded %lu spam SHA-1 items.", count);
 		gcu_statusbar_message(buf);
 	}
 }

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -37,7 +37,6 @@
 #include "common.h"
 
 #include "eslist.h"
-#include "malloc.h"
 #include "pslist.h"
 
 /**
@@ -65,7 +64,7 @@
 #define walloc(s)			g_malloc(s)
 #define walloc0(s)			g_malloc0(s)
 
-static inline void *
+static inline void * G_MALLOC G_NON_NULL
 wcopy(const void *p, size_t size)
 {
 	return g_memdup(p, size);
@@ -111,7 +110,7 @@ wfree0(void *p, size_t size)
 	g_free(p);
 }
 
-static inline void *
+static inline void * WARN_UNUSED_RESULT G_NON_NULL
 wrealloc(void *p, size_t o, size_t n)
 {
 	(void) o;
@@ -127,20 +126,19 @@ wmove(void *p, size_t n)
 
 #else	/* !REMAP_ZALLOC */
 
-void *walloc(size_t size) G_MALLOC;
-void *walloc0(size_t size) G_MALLOC;
+void *walloc(size_t size) G_MALLOC G_NON_NULL;
+void *walloc0(size_t size) G_MALLOC G_NON_NULL;
 void wfree(void *ptr, size_t size);
 void wfree0(void *ptr, size_t size);
-void *wrealloc(void *old, size_t old_size, size_t new_size) G_MALLOC;
-void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT;
+void *wrealloc(void *old, size_t old_size, size_t new_size)
+	WARN_UNUSED_RESULT G_NON_NULL;
+void *wmove(void *ptr, size_t size) WARN_UNUSED_RESULT G_NON_NULL;
 void wfree_pslist(pslist_t *pl, size_t size);
 void wfree_eslist(eslist_t *el, size_t size);
 
 /* Don't define both an inline routine and a macro... */
 #ifndef TRACK_ZALLOC
-static inline void *wcopy(const void *ptr, size_t size) G_MALLOC;
-
-static inline void *
+static inline void * G_MALLOC G_NON_NULL
 wcopy(const void *ptr, size_t size)
 {
 	void *cp = walloc(size);
@@ -158,11 +156,14 @@ wcopy(const void *ptr, size_t size)
 #define walloc0(s)			walloc0_track(s, _WHERE_, __LINE__)
 #define wrealloc(p,o,n)		wrealloc_track(p, o, n, _WHERE_, __LINE__)
 
-void *walloc_track(size_t size, const char *file, int line);
-void *walloc0_track(size_t size, const char *file, int line);
-void *wcopy_track(const void *, size_t size, const char *file, int line);
+void *walloc_track(size_t size, const char *file, int line)
+	G_MALLOC G_NON_NULL;
+void *walloc0_track(size_t size, const char *file, int line)
+	G_MALLOC G_NON_NULL;
+void *wcopy_track(const void *, size_t size, const char *file, int line)
+	G_MALLOC G_NON_NULL;
 void *wrealloc_track(void *old, size_t old_size, size_t new_size,
-	const char *file, int line);
+	const char *file, int line) WARN_UNUSED_RESULT G_NON_NULL;
 
 #endif	/* TRACK_ZALLOC */
 

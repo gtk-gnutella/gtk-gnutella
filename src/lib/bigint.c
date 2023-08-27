@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -161,7 +161,7 @@ bigint_zero(bigint_t *bi)
 /**
  * Is big integer zero?
  */
-gboolean
+bool
 bigint_is_zero(const bigint_t *bi)
 {
 	const struct bigint *b = BIGINT(bi);
@@ -666,7 +666,7 @@ bigint_to_uint64(const bigint_t *bi)
 	if G_UNLIKELY(b->len < sizeof(uint64)) {
 		uint8 buf[sizeof(uint64)];
 
-		memset(buf, 0, sizeof buf);
+		ZERO(&buf);
 		memcpy(&buf[sizeof(uint64) - b->len], &b->v[0], b->len);
 		return peek_be64(buf);
 	} else {

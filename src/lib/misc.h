@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -89,7 +89,7 @@ g_strip_context(const char *id, const char *val)
 {
 	const char *s;
 
-	s = id != val ? NULL : strchr(id, '|');
+	s = id != val ? NULL : vstrchr(id, '|');
 	return s ? ++s : val;
 }
 #endif /* GLib < 2.4.0 */
@@ -120,6 +120,7 @@ const char *local_hostname(void);
 const char *short_frequency(uint64 freq);
 const char *short_size(uint64 size, bool metric);
 const char *short_size2(uint64 size, bool metric);
+const char *short_size3(uint64 size, bool metric);
 const char *short_html_size(uint64 size, bool metric);
 const char *short_kb_size(uint64 size, bool metric);
 const char *short_kb_size2(uint64 size, bool metric);
@@ -131,6 +132,7 @@ const char *compact_size2(uint64 size, bool metric);
 const char *compact_rate(uint64 rate, bool metric);
 const char *compact_kb_size(uint32 size, bool metric);
 const char *nice_size(uint64 size, bool metric);
+char *long_value(char *buf, size_t size, uint64 v, bool metric);
 char *short_value(char *buf, size_t size, uint64 v, bool metric);
 char *compact_value(char *buf, size_t size, uint64 v, bool metric);
 
@@ -139,6 +141,7 @@ size_t short_kb_size_to_buf(uint64 size, bool metric, char *, size_t);
 size_t short_size_to_string_buf(uint64 size, bool metric, char *, size_t);
 
 short_string_t short_rate_get_string(uint64 rate, bool metric);
+short_string_t long_value_get_string(uint64 value, bool metric);
 
 /*
  * SHA1<->base32 string conversion
@@ -258,7 +261,7 @@ dir_entry_namelen(const struct dirent *dir_entry)
 		return dir_entry->d_namlen;
 #endif	/* HAS_DIRENT_D_NAMLEN */
 
-	return strlen(dir_entry->d_name);
+	return vstrlen(dir_entry->d_name);
 }
 #endif	/* MINGW32 */
 
@@ -284,7 +287,8 @@ size_t common_leading_bits(
 float force_range(float value, float min, float max);
 const char *short_filename(const char *fullname);
 char *data_hex_str(const char *data, size_t len);
-char *xml_indent(const char *text);
+char *xml_indent(const char *text, size_t *lenp);
+char *xml_indent_buf(const void *buf, size_t len, size_t *lenp);
 pslist_t *dirlist_parse(const char *dirs);
 char *dirlist_to_string(const pslist_t *pl_dirs);
 
@@ -321,30 +325,7 @@ size_t clamp_strlen(const char *src, size_t src_size);
 static inline size_t
 strsize(const char *src)
 {
-	return strlen(src) + 1;
-}
-
-/**
- * An strcpy() that returns the length of the copied string.
- */
-static inline size_t
-strcpy_len(char *dest, const char *src)
-{
-	const char *p = src;
-	char *q = dest;
-	int c;
-
-	g_assert(dest != NULL);
-
-	if (NULL == src)
-		return 0;
-
-	while ((c = *p++))
-		*q++ = c;
-
-	*q = '\0';
-
-	return q - dest;
+	return vstrlen(src) + 1;
 }
 
 /**

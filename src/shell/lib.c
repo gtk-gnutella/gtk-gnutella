@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -74,7 +74,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 
 		cq_info_check(cqi);
 
-		len = strlen(cqi->name);
+		len = vstrlen(cqi->name);
 		maxlen = MAX(len, maxlen);
 	}
 
@@ -97,7 +97,7 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 		str_catf(s, "%10zu ", cqi->heartbeat_count);
 		str_catf(s, "%10zu ", cqi->triggered_count);
 		str_catf(s, "\"%s\"%*s", cqi->name,
-			(int) (maxlen - strlen(cqi->name)), "");
+			(int) (maxlen - vstrlen(cqi->name)), "");
 		if (cqi->parent != NULL)
 			str_catf(s, " (%s)", cqi->parent);
 		str_putc(s, '\n');
@@ -111,12 +111,27 @@ shell_exec_lib_show_callout(struct gnutella_shell *sh,
 	return REPLY_READY;
 }
 
+static int
+file_object_descriptor_by_refcnt(const void *a, const void *b)
+{
+	const file_object_descriptor_info_t *fda = a, *fdb = b;
+
+	file_object_descriptor_info_check(fda);
+	file_object_descriptor_info_check(fdb);
+
+	if (fda->refcnt != fdb->refcnt)
+		return fda->refcnt < fdb->refcnt ? -1 : +1;
+
+	return CMP(fda->linger, fdb->linger);
+}
+
 static enum shell_reply
 shell_exec_lib_show_files(struct gnutella_shell *sh,
 	int argc, const char *argv[])
 {
-	const char *opt_w, *opt_u;
+	const char *opt_d, *opt_w, *opt_u;
 	const option_t options[] = {
+		{ "d", &opt_d },
 		{ "u", &opt_u },
 		{ "w", &opt_w },
 	};
@@ -134,7 +149,14 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 	if (parsed < 0)
 		return REPLY_ERROR;
 
-	info = file_object_info_list();
+	if (opt_d) {
+		opt_u = opt_w = NULL;		/* -d is exclusive, disables all others */
+		info = file_object_descriptor_info_list();
+		info = pslist_sort(info, file_object_descriptor_by_refcnt);
+	} else {
+		info = file_object_info_list();
+	}
+
 	s = str_new(80);
 
 	/*
@@ -152,7 +174,9 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 	 * Compute how much room we need to display the opening locations.
 	 */
 
-	if (opt_w != NULL) {
+	if (opt_d != NULL) {
+		STR_CPY(s, "Refs How  Keep Path\n");
+	} else if (opt_w != NULL) {
 		PSLIST_FOREACH(info, sl) {
 			file_object_info_t *foi = sl->data;
 			size_t len;
@@ -175,7 +199,7 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 			 * no need to adjust that amount.
 			 */
 
-			len = strlen(p) + BIT_DEC_BUFLEN(1 + highest_bit_set(foi->line));
+			len = vstrlen(p) + BIT_DEC_BUFLEN(1 + highest_bit_set(foi->line));
 			maxlen = MAX(len, maxlen);
 		}
 
@@ -194,29 +218,50 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 	f = str_new(80);
 
 	PSLIST_FOREACH(info, sl) {
-		file_object_info_t *foi = sl->data;
+		if (opt_d) {
+			file_object_descriptor_info_t *fdi = sl->data;
 
-		file_object_info_check(foi);
+			file_object_descriptor_info_check(fdi);
 
-		str_printf(s, "%4d ", foi->refcnt);
-		if (NULL == opt_u) {
-			str_catf(s, "%3s ", O_RDONLY == foi->mode ? "RO" :
-				O_WRONLY == foi->mode ? "WO" :
-				O_RDWR == foi->mode ? "RW" : "??");
+			str_printf(s, "%4d ", fdi->refcnt);
+			str_catf(s, "%3s", O_RDONLY == fdi->mode ? "RO" :
+				O_WRONLY == fdi->mode ? "WO" :
+				O_RDWR == fdi->mode ? "RW" : "??");
+			/*
+			 * fdi->linger is expected to be 0 if fdi->refcnt != 0 but
+			 * trace the former anyway if it's not 0, to spot possible
+			 * inconsistency.
+			 */
+			if (0 != fdi->refcnt && 0 == fdi->linger)
+				STR_CAT(s, "       ");
+			else
+				str_catf(s, "%6s ", compact_time(fdi->linger));
+			str_cat(s, fdi->path);
 		} else {
-			if (hset_contains(seen, foi->path))
-				continue;
-			hset_insert(seen, foi->path);
+			file_object_info_t *foi = sl->data;
+
+			file_object_info_check(foi);
+
+			str_printf(s, "%4d ", foi->refcnt);
+			if (NULL == opt_u) {
+				str_catf(s, "%3s ", O_RDONLY == foi->mode ? "RO" :
+					O_WRONLY == foi->mode ? "WO" :
+					O_RDWR == foi->mode ? "RW" : "??");
+			} else {
+				if (hset_contains(seen, foi->path))
+					continue;
+				hset_insert(seen, foi->path);
+			}
+			if (opt_w != NULL) {
+				const char *p;
+				p = is_strprefix(foi->file, "src/");
+				if (NULL == p)
+					p = foi->file;
+				str_printf(f, "%s:%d", p, foi->line);
+				str_catf(s, "%*s ", (int) -maxlen, str_2c(f));
+			}
+			str_cat(s, foi->path);
 		}
-		if (opt_w != NULL) {
-			const char *p;
-			p = is_strprefix(foi->file, "src/");
-			if (NULL == p)
-				p = foi->file;
-			str_printf(f, "%s:%d", p, foi->line);
-			str_catf(s, "%*s ", (int) -maxlen, str_2c(f));
-		}
-		str_cat(s, foi->path);
 		str_putc(s, '\n');
 		shell_write(sh, str_2c(s));
 	}
@@ -224,7 +269,10 @@ shell_exec_lib_show_files(struct gnutella_shell *sh,
 	hset_free_null(&seen);
 	str_destroy_null(&f);
 	str_destroy_null(&s);
-	file_object_info_list_free_nulll(&info);
+	if (opt_d)
+		file_object_descriptor_info_list_free_null(&info);
+	else
+		file_object_info_list_free_null(&info);
 	shell_write(sh, ".\n");
 
 	return REPLY_READY;
@@ -298,7 +346,7 @@ shell_help_lib(int argc, const char *argv[])
 			if (2 == argc) {
 				return
 					"lib show callout      # display callout queues\n"
-					"lib show files [-uw]  # display open files\n";
+					"lib show files [-duw] # display open files\n";
 			} else {
 				if (0 == ascii_strcasecmp(argv[2], "callout")) {
 					return "lib show callout\n"
@@ -307,6 +355,7 @@ shell_help_lib(int argc, const char *argv[])
 				if (0 == ascii_strcasecmp(argv[2], "files")) {
 					return "lib show files [-uw]\n"
 						"display open files\n"
+						"-d: show cached file descriptors (exclusive option)\n"
 						"-u: show one entry per file path "
 							"(ignoring -w if supplied)\n"
 						"-w: show where files were opened\n";

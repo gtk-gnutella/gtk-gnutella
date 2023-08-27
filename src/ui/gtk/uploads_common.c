@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -112,7 +112,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 	        filesize_t requested = data->range_end - data->range_start + 1;
 			size_t rw;
 
-			rw = str_bprintf(tmpstr, sizeof(tmpstr),
+			rw = str_bprintf(ARYLEN(tmpstr),
 				"%s (%s in %s) %s %s#%u", _("Completed"),
 				short_rate(requested / MAX(x, 1), show_metric_units()),
 				short_time(x),
@@ -121,7 +121,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 				u->reqnum);
 
 			if (u->error_count)
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_(" E=%u"), u->error_count);
 		}
         break;
@@ -130,23 +130,36 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 		{
 			/* Time Remaining at the current rate, in seconds  */
 			filesize_t tr = (data->range_end + 1 - u->pos) / MAX(1, u->avg_bps);
-			gdouble p = uploads_gui_progress(u, data);
+			double p = uploads_gui_progress(u, data);
 			time_t now = tm_time();
-			gboolean stalled = delta_time(now, data->last_update) > IO_STALLED;
-			gchar pbuf[32];
+			bool stalled = delta_time(now, data->last_update) > IO_STALLED;
+			char pbuf[32];
+			char dbuf[32];
+			char cbuf[32];
 			size_t rw;
 
-			str_bprintf(pbuf, sizeof pbuf, "%5.02f%% ", p * 100.0);
-			rw = str_bprintf(tmpstr, sizeof tmpstr, _("%s(%s) TR: %s %s#%u"),
+			if (u->bw_penalty != 0)
+				str_bprintf(ARYLEN(dbuf), " [/%u]", 1U << u->bw_penalty);
+
+			if (u->bw_cap != 0) {
+				str_bprintf(ARYLEN(cbuf), " [<%s]",
+					short_rate(u->bw_cap, show_metric_units()));
+			}
+
+			str_bprintf(ARYLEN(pbuf), "%5.02f%% ", p * 100.0);
+			rw = str_bprintf(ARYLEN(tmpstr),
+				_("%s(%s)%s%s TR: %s %s#%u"),
 				p > 1.0 ? pbuf : "",
 				stalled ? _("stalled")
 					: short_rate(u->bps, show_metric_units()),
+				u->bw_penalty != 0 ? dbuf : "",
+				u->bw_cap != 0 ? cbuf : "",
 				short_time(tr),
 				u->parq_quick ? _("(quick) ") : "",
 				u->reqnum);
 
 			if (u->error_count)
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_(" E=%u"), u->error_count);
 		}
 		break;
@@ -156,11 +169,11 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 
     case GTA_UL_EXPECTING:
 		if (u->error_count)
-			str_bprintf(tmpstr, sizeof(tmpstr),
+			str_bprintf(ARYLEN(tmpstr),
 				_("%s %s#%u E=%u"), _("Waiting for further request..."),
 				u->parq_quick ? _("(quick) ") : "", u->reqnum, u->error_count);
 		else
-			str_bprintf(tmpstr, sizeof(tmpstr),
+			str_bprintf(ARYLEN(tmpstr),
 				"%s %s#%u", _("Waiting for further request..."),
 				u->parq_quick ? _("(quick) ") : "", u->reqnum);
 		break;
@@ -199,13 +212,12 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 			queued = u->parq_position > available;
 
 			if (u->parq_retry > 0) {
-				str_bprintf(tbuf, sizeof tbuf,
-							" %s,", short_time(u->parq_retry));
+				str_bprintf(ARYLEN(tbuf), " %s,", short_time(u->parq_retry));
 			} else {
 				tbuf[0] = '\0';
 			}
 
-			rw = str_bprintf(tmpstr, sizeof tmpstr,
+			rw = str_bprintf(ARYLEN(tmpstr),
 						_("%s [%d] (slot %d/%d)%s %s %s"),
 						u->parq_frozen ? _("Frozen") :
 						queued ? _("Queued") : _("Waiting"),
@@ -217,7 +229,7 @@ uploads_gui_status_str(const gnet_upload_status_t *u,
 						short_time(u->parq_lifetime));
 
 			if (u->error_count)
-				rw += str_bprintf(&tmpstr[rw], sizeof(tmpstr)-rw,
+				rw += str_bprintf(ARYPOSLEN(tmpstr, rw),
 					_(" E=%u"), u->error_count);
 		}
 		break;
@@ -305,7 +317,7 @@ uploads_gui_host_string(const gnet_upload_info_t *u)
 		peer = NULL;
 	}
 
-	concat_strings(buf, sizeof buf,
+	concat_strings(ARYLEN(buf),
 		host_addr_to_string(u->addr),
 		u->encrypted ? (u->tls_upgraded ? " (e) " : " (E) ") : "",
 		u->g2 ? " [G2] " : "",

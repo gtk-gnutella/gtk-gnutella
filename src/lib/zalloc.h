@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,6 +47,17 @@
 
 struct zone;
 typedef struct zone zone_t;
+
+/*
+ * Zone information.
+ */
+typedef struct zoneinfo {
+	size_t blocksize;		/**< Size of blocks in zone (for user allocation) */
+	size_t blocks;			/**< Total amount of blocks in zone */
+	size_t used;			/**< Amount of blocks currently used */
+	size_t chunks;			/**< Amount of memory chunks (# of subzones) */
+	size_t chunksize;		/**< Size of a memory chunk */
+} zone_info_t;
 
 /*
  * Memory allocation routines.
@@ -79,9 +90,10 @@ struct pslist;
 struct eslist;
 struct sha1;
 
-void *zalloc(zone_t *) G_MALLOC;
+void *zalloc(zone_t *) G_MALLOC G_NON_NULL;
 void zfree(zone_t *, void *);
-void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT;
+void *zmove(zone_t *zone, void *p) WARN_UNUSED_RESULT G_NON_NULL;
+void *zmoveto(zone_t *zone, void *o, void *n) G_NON_NULL;
 void zfree_pslist(zone_t *, struct pslist *);
 void zfree_eslist(zone_t *zone, struct eslist *el);
 void zgc(bool overloaded);
@@ -100,6 +112,11 @@ void zalloc_dump_stats(void);
 void zalloc_dump_usage_log(struct logagent *la, unsigned options);
 void zalloc_dump_stats_log(struct logagent *la, unsigned options);
 void zalloc_dump_zones_log(struct logagent *la);
+void zalloc_show_settings(void);
+void zalloc_show_settings_log(struct logagent *la);
+bool zalloc_is_closing(void);
+
+void zone_info(const zone_t *, zone_info_t *);
 
 enum zalloc_stack_ctrl {
 	ZALLOC_SA_SET = 0,		/**< Turn stack accounting on/off */
@@ -121,6 +138,8 @@ void *zalloc_track(zone_t *z, const char *file, int line);
 #if defined(TRACK_ZALLOC) || defined(MALLOC_STATS)
 void zalloc_shift_pointer(const void *allocated, const void *used);
 #endif
+
+bool zalloc_zone_info(const void *p, size_t *size);
 
 #endif /* _zalloc_h_ */
 

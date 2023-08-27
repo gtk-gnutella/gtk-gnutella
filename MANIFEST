@@ -27,6 +27,7 @@ U/packages/remotectrl.U
 U/packages/xmlconfig.U
 U/specific/d_headless.U
 U/specific/gtkgversion.U
+U/specific/Framepointer.U
 build.sh
 config_h.SH                  Produces config.h
 cygwin/dirs
@@ -674,7 +675,9 @@ src/lib/bigint.c
 src/lib/bigint.h
 src/lib/bit_array.ht
 src/lib/bit_field.ht
-src/lib/bit_generic.t
+src/lib/bit_generic.ht
+src/lib/bit_generic.ct
+src/lib/bsearch.c
 src/lib/bsearch.h
 src/lib/bstr.c
 src/lib/bstr.h
@@ -724,6 +727,8 @@ src/lib/crash.c
 src/lib/crash.h
 src/lib/crc.c
 src/lib/crc.h
+src/lib/cstr.c
+src/lib/cstr.h
 src/lib/dam.c
 src/lib/dam.h
 src/lib/dbmap.c
@@ -847,6 +852,7 @@ src/lib/idtable.c
 src/lib/idtable.h
 src/lib/inputevt.c
 src/lib/inputevt.h
+src/lib/iovec.c
 src/lib/iovec.h
 src/lib/iprange.c
 src/lib/iprange.h
@@ -917,6 +923,7 @@ src/lib/path.c
 src/lib/path.h
 src/lib/patricia.c
 src/lib/patricia.h
+src/lib/pattern-test.c
 src/lib/pattern.c
 src/lib/pattern.h
 src/lib/pcell.h
@@ -934,6 +941,8 @@ src/lib/prop.c
 src/lib/prop.h
 src/lib/pslist.c
 src/lib/pslist.h
+src/lib/qlock.c
+src/lib/qlock.h
 src/lib/rand31.c
 src/lib/rand31.h
 src/lib/random-test.c
@@ -975,14 +984,18 @@ src/lib/spinlock.h
 src/lib/spopen-test.c
 src/lib/spopen.c
 src/lib/spopen.h
+src/lib/stack-test.c
 src/lib/stacktrace.c
 src/lib/stacktrace.h
+src/lib/stat-test.c
 src/lib/stats.c
 src/lib/stats.h
 src/lib/str.c
 src/lib/str.h
 src/lib/stringify.c
 src/lib/stringify.h
+src/lib/strpcpy.c
+src/lib/strpcpy.h
 src/lib/strtok.c
 src/lib/strtok.h
 src/lib/strvec.c
@@ -1073,6 +1086,7 @@ src/sdbm/README.too
 src/sdbm/biblio
 src/sdbm/big.c
 src/sdbm/big.h
+src/sdbm/chkpage.c
 src/sdbm/dba.c
 src/sdbm/dbd.c
 src/sdbm/dbe.1
@@ -1080,6 +1094,7 @@ src/sdbm/dbe.c
 src/sdbm/dbt.c
 src/sdbm/dbu.c
 src/sdbm/hash.c
+src/sdbm/loose.c
 src/sdbm/lru.c
 src/sdbm/lru.h
 src/sdbm/makefile.sdbm
@@ -1087,9 +1102,13 @@ src/sdbm/pair.c
 src/sdbm/pair.h
 src/sdbm/private.h
 src/sdbm/readme.ms
+src/sdbm/rebuild.c
+src/sdbm/sdbm-test
 src/sdbm/sdbm.3
 src/sdbm/sdbm.c
 src/sdbm/sdbm.h
+src/sdbm/tmp.c
+src/sdbm/tmp.h
 src/sdbm/tune.h
 src/sdbm/util.c
 src/shell/Jmakefile

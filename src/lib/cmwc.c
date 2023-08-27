@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -160,7 +160,7 @@ cmwc_seed_with(random_fn_t rf, cmwc_state_t *cs)
 	if (NULL == rf)
 		rf = entropy_random;
 
-	random_bytes_with(rf, &cs->Q, sizeof cs->Q);
+	random_bytes_with(rf, VARLEN(cs->Q));
 	cs->c = random_upto(rf, CMWC_MULT - 1);
 	cs->i = CMWC_STATE_SIZE - 1;
 	cmwc_state_discard(cs);
@@ -271,7 +271,7 @@ cmwc_state_merge_random(cmwc_state_t *cs, const void *data, size_t len)
 			buf[i] = ((char *) data)[i];
 		}
 
-		cmwc_state_patch(cs, buf, sizeof buf);
+		cmwc_state_patch(cs, ARYLEN(buf));
 	}
 
 	/*
@@ -288,7 +288,7 @@ cmwc_state_merge_random(cmwc_state_t *cs, const void *data, size_t len)
 static uint64
 cmwc_rand64_internal(cmwc_state_t *cs)
 {
-	return ((uint64) cmwc_rand_internal(cs) << 32) | cmwc_rand_internal(cs);
+	return UINT64_VALUE(cmwc_rand_internal(cs), cmwc_rand_internal(cs));
 }
 
 /**

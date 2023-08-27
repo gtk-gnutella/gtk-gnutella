@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Japanese (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -542,9 +542,6 @@ msgstr "ピアの数が多すぎます (最大 %d 基)"
 msgid "Sent shielded indication"
 msgstr "保護ノードである事を知らせました"
 
-msgid "Not an ultra node"
-msgstr "ウルトラピアではありません"
-
 msgid "Unknown error"
 msgstr "不明なエラー"
 
@@ -593,6 +590,9 @@ msgstr ""
 
 msgid "Servent Shutdown"
 msgstr "サーバントが停止します"
+
+msgid "Already connected"
+msgstr "既に接続しています"
 
 msgid "Not a network member"
 msgstr "ネットワークのメンバーではありません"
@@ -657,9 +657,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr "擬似DHTピア"
-
-msgid "Already connected"
-msgstr "既に接続しています"
 
 msgid "Limited connection"
 msgstr "制限接続"
@@ -743,6 +740,10 @@ msgstr ""
 msgid "Another gtk-gnutella is running as PID %lu"
 msgstr ""
 
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
+msgstr ""
+
 msgid "Cannot proceed without valid configuration directory"
 msgstr "適当な設定フォルダが無いと先に進めません"
 
@@ -754,9 +755,6 @@ msgstr "IPv6 UDPソケットの作成に失敗しました"
 
 msgid "Failed to create local socket"
 msgstr "ローカルソケットの作成に失敗しました"
-
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
 msgid "Read error"
 msgstr "読込エラー"
@@ -804,6 +802,9 @@ msgstr ""
 msgid "Bad Request"
 msgstr ""
 
+msgid "Library being rebuilt"
+msgstr ""
+
 msgid "Header too large"
 msgstr ""
 
@@ -829,9 +830,6 @@ msgid "URN Not Found (urn:sha1)"
 msgstr ""
 
 msgid "SHA1 is being recomputed"
-msgstr ""
-
-msgid "Library being rebuilt"
 msgstr ""
 
 msgid "Malformed URN in /uri-res/N2R request"
@@ -1089,17 +1087,60 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "要求のないローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "要求のないローカル生成OOBヒット"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "一部要求されているローカル生成OOBヒット"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "一部要求されているローカル生成OOBヒット"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "受信した偽のOOBヒット要求"
 
 msgid "Unrequested OOB hits received"
 msgstr "リクエストしていないOOBヒットの受信数"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr ""
@@ -1317,6 +1358,78 @@ msgstr ""
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "有効性が無いため圧縮されないUDPメッセージ"
 
+msgid "UDP scheduler directly sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message dropped: port=0"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no socket"
+msgstr ""
+
+msgid "UDP scheduler message dropped: I/O error"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no longer needed"
+msgstr ""
+
 msgid "Ambiguous UDP messages received"
 msgstr ""
 
@@ -1344,13 +1457,135 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr "受信した圧縮UDPメッセージ"
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr ""
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr ""
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent"
@@ -1359,10 +1594,31 @@ msgstr ""
 msgid "Semi-reliable UDP fragments resent"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments sent"
+msgstr ""
+
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+#, fuzzy
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr ""
 
 msgid "Semi-reliable UDP total acknowledgments received"
@@ -1373,6 +1629,10 @@ msgstr ""
 
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
+msgstr "受信した圧縮UDPメッセージ"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr ""
@@ -1404,6 +1664,9 @@ msgstr ""
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr ""
 
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr ""
 
@@ -1425,6 +1688,10 @@ msgstr ""
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr "受信した圧縮UDPメッセージ"
+
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr ""
 
@@ -1443,6 +1710,93 @@ msgstr ""
 msgid "Semi-reliable UDP empty messages received"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr "受信した圧縮UDPメッセージ"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
+msgstr ""
+
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr ""
 
@@ -1453,6 +1807,22 @@ msgid "Semi-reliable UDP extended acknowledgments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr "受信した圧縮UDPメッセージ"
+
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr ""
+
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
 msgstr ""
 
 msgid "Semi-reliable UDP EARs received"
@@ -4630,6 +5000,68 @@ msgstr "受信した検索クエリーの数を表示するかどうかを選択
 msgid "Defines whether lock sleeps should be traced."
 msgstr "受信した検索クエリーの数を表示するかどうかを選択します。"
 
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
+
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "DHT ユーザー参照キューのデバッグレベルです。"
+
+#, fuzzy
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr "ピア外への HTTP トラフィックの帯域幅の上限です。"
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr "ピア外への HTTP トラフィックの帯域幅の上限です。"
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr "ピア内への HTTP トラフィックの帯域幅の上限です。"
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr "ピア内への HTTP トラフィックの帯域幅の上限です。"
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
+msgstr ""
+
 msgid "disable"
 msgstr "表示しない"
 
@@ -5898,6 +6330,9 @@ msgstr "仏領ワリス・フツナ諸島"
 msgid "Samoa"
 msgstr "サモア独立国"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "イエメン共和国"
 
@@ -5950,6 +6385,8 @@ msgstr ""
 msgid "%us"
 msgstr ""
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "ja"
 
@@ -7425,8 +7862,8 @@ msgstr "最大"
 msgid "Measured HTTP latency:"
 msgstr "計測HTTP待ち時間:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "irc.freenode.net の #gtk-gnutella でお会いしましょう。"
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "irc.libera.chat の #gtk-gnutella でお会いしましょう。"
 
 msgid "Min/Max:"
 msgstr "最小/最大:"
@@ -8634,6 +9071,18 @@ msgstr "クリップボードへコピー"
 msgid "_Remove filter"
 msgstr "フィルターを削除(_R)"
 
+#, fuzzy
+msgid "Meet us on #gtk-gnutella at libera.chat."
+msgstr "irc.libera.chat の #gtk-gnutella でお会いしましょう。"
+
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"このプロダクトは MaxMind が作成した GeoIP データを含んでいます。\n"
+"http://maxmind.com/ から取得できます。"
+
 msgid "_Close"
 msgstr "閉じる(_C)"
 
@@ -9404,8 +9853,8 @@ msgstr ""
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR: %s %s #%u"
 
 msgid "stalled"
@@ -9445,6 +9894,12 @@ msgstr "QUEUE送信、折り返し接続中..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE送信完了、ヘッダーを待受中..."
+
+#~ msgid "Not an ultra node"
+#~ msgstr "ウルトラピアではありません"
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr "TCP がファイアウォール内にある場合はリーフとしてのみ動作します"
 
 #~ msgid "< 1s"
 #~ msgstr "1秒未満"

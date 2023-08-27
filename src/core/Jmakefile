@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -168,3 +168,21 @@ LinkGenInterface(msg_drop.c)
 RemoteTargetDependency(libcore.a, $(IF), $(GNET_PROPS))
 NormalLibraryTarget(core, $(SRC), $(OBJ))
 DependTarget()
+
+/*
+ * Ensure we can always compile the local shell as a standalone binary.
+ *
+ * We skip compilation on Windows platforms because the binary requires
+ * more than the simple libc and we just compile the local shell to catch
+ * mistakes through the Travis CI or local UNIX compilations.
+ */
+
+|case d_windows in undef
+all:: gtkg-shell
+
+gtkg-shell: local_shell.c
+	$(CC) -o $@ -DLOCAL_SHELL_STANDALONE $<
+
+local_clean::
+	$(RM) gtkg-shell
+-case

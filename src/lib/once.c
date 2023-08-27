@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -118,6 +118,7 @@ once_cell_free(void *cell)
 static pcell_alloc_t once_cell_allocator = {
 	once_cell_alloc,	/* pcell_alloc */
 	once_cell_free,		/* pcell_free */
+	NULL,				/* pcell_listfree -- not needed here */
 };
 
 /**
@@ -126,8 +127,8 @@ static pcell_alloc_t once_cell_allocator = {
 static void
 once_init(void)
 {
-	once_running = hash_table_new_fixed(once_buffer, sizeof once_buffer);
-	balloc_init(sizeof(pslist_t), once_cells, sizeof once_cells);
+	once_running = hash_table_new_fixed(ARYLEN(once_buffer));
+	balloc_init(sizeof(pslist_t), ARYLEN(once_cells));
 }
 
 static void
@@ -185,14 +186,16 @@ once_too_deep(const char *caller, int id, once_fn_t routine, const char *name)
 static void G_NORETURN
 once_recursive(const char *caller, int id, once_fn_t routine, const char *name)
 {
+	/* Avoid calling stacktrace_function_name() here */
+	(void) routine;		/* For now, we trust G_STRFUNC, hence `name' */
+
 	s_minilog(G_LOG_LEVEL_WARNING | G_LOG_FLAG_FATAL,
-		"%s(): recursive attempt to initialize routine %s(), aka. %s() in %s",
-		caller, stacktrace_function_name(routine), name,
-		thread_safe_id_name(id));
+		"%s(): recursive attempt to initialize routine %s() in %s",
+		caller, name, thread_safe_id_name(id));
 
 	once_backtrace(id);
 
-	s_minierror("%s(): recursive initialization request", caller);
+	s_minierror("%s(): recursive initialization request for %s()", caller, name);
 }
 
 /**
@@ -283,7 +286,7 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 			}
 			once_recursive(G_STRFUNC, id, routine, name);
 			s_minierror("%s(): recursive attempt to initialize routine %s()",
-				G_STRFUNC, stacktrace_function_name(routine));
+				G_STRFUNC, name);
 		}
 
 		for (n = 0; n < ONCE_LOOP_MAX && ONCE_F_PROGRESS == *flag; n++) {
@@ -294,8 +297,7 @@ once_flag_run_internal(once_flag_t *flag, once_fn_t routine,
 
 		if (ONCE_F_PROGRESS == *flag) {
 			s_warning("%s(): timeout waiting for completion of %s() by %s",
-				G_STRFUNC, stacktrace_function_name(routine),
-				thread_id_name(stid));
+				G_STRFUNC, name, thread_id_name(stid));
 			thread_lock_dump_all(STDERR_FILENO);
 			s_minierror("%s(): %s timed out", G_STRFUNC, thread_name());
 		}

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -351,7 +351,7 @@ ghc_host_eof(struct parse_context *ctx)
 	 * Provide GUI feedback.
 	 */
 
-	str_bprintf(msg, sizeof(msg),
+	str_bprintf(ARYLEN(msg),
 		NG_("Got %d host from %s", "Got %d hosts from %s", ctx->processed),
 		ctx->processed, http_async_url(ghc_ctx.ha));
 
@@ -359,7 +359,7 @@ ghc_host_eof(struct parse_context *ctx)
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("BOOT GHC got %d host%s from %s",
-			ctx->processed, plural(ctx->processed), http_async_url(ghc_ctx.ha));
+			PLURAL(ctx->processed), http_async_url(ghc_ctx.ha));
 
 	ghc_ctx.ha = NULL;
 	ghc_connecting = FALSE;
@@ -369,7 +369,7 @@ ghc_host_eof(struct parse_context *ctx)
  * Populate callback: more data available.
  */
 static void
-ghc_data_ind(struct http_async *handle, char *data, int len)
+ghc_data_ind(struct http_async *handle, const char *data, int len)
 {
 	parse_dispatch_lines(handle, data, len, ghc_host_line, ghc_host_eof);
 }
@@ -413,7 +413,7 @@ ghc_pick(void)
 	{
 		char msg[256];
 
-		str_bprintf(msg, sizeof msg, _("Bootstrapping from %s"), url);
+		str_bprintf(ARYLEN(msg), _("Bootstrapping from %s"), url);
 		gcu_statusbar_message(msg);
 	}
 

@@ -64,7 +64,7 @@ warning(const char *msg, ...)
 	char buf[128];
 
 	va_start(args, msg);
-	str_vbprintf(buf, sizeof buf, msg, args);
+	str_vbprintf(ARYLEN(buf), msg, args);
 	va_end(args);
 
 	fprintf(stderr, "%s: WARNING: %s\n", getprogname(), buf);
@@ -74,11 +74,12 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-24eghluxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
+		"Usage: %s [-24aeghluvxABGMPQSTW] [-b mask] [-c items] [-m min]\n"
 		"       [-p period] [-s skip] [-t amount] [-C val] [-D count]\n"
 		"       [-F upper] [-R seed] [-U upper] [-X upper]\n"
 		"  -2 : test entropy_minirand() instead of rand31()\n"
 		"  -4 : test arc4random() instead of rand31()\n"
+		"  -a : used with -t (and -l) to benchmark all routines in sequence\n"
 		"  -b : bit mask to apply on random values (focus on some bits)\n"
 		"  -c : sets item count to remember, for period computation\n"
 		"  -e : test entropy_random() instead of rand31()\n"
@@ -90,6 +91,7 @@ usage(void)
 		"  -s : skip that amount of initial random values\n"
 		"  -t : benchmark generation of specified amount of random values\n"
 		"  -u : test rand31_u32() instead of rand31()\n"
+		"  -v : use verbose benchmarking when -a is used\n"
 		"  -x : disable caching (pre-computing) of AJE random numbers\n"
 		"  -A : test aje_rand(), the Fortuna-like PRNG, instead of rand31()\n"
 		"  -B : count '1' occurrences of each bit\n"
@@ -263,7 +265,7 @@ compute_period(size_t count, random_fn_t fn, unsigned mask, unsigned min_period)
 		if (0 == (n & 0xfff)) {
 			int bits = highest_bit_set64(n);
 			printf("Period %s (%d bit%s)\r",
-				uint64_to_string(n), bits, plural(bits));
+				uint64_to_string(n), PLURAL(bits));
 			fflush(stdout);
 		}
 	}
@@ -443,7 +445,7 @@ retry:
 }
 
 static void
-timeit(random_fn_t fn, unsigned amount, const char *name)
+timeit(random_fn_t fn, unsigned amount, const char *name, bool verbose)
 {
 	tm_t start, end;
 	double ustart, uend;
@@ -457,10 +459,11 @@ timeit(random_fn_t fn, unsigned amount, const char *name)
 	tm_cputime(&uend, NULL);
 	tm_now_exact(&end);
 
-	printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
-		name, tm_elapsed_f(&end, &start), uend - ustart);
-
-	fflush(stdout);
+	if (verbose) {
+		printf("%s() initialization took %.3gs (CPU=%.3gs)\n",
+			name, tm_elapsed_f(&end, &start), uend - ustart);
+		fflush(stdout);
+	}
 
 	tm_now_exact(&start);
 	tm_cputime(&ustart, NULL);
@@ -480,9 +483,13 @@ again:
 		double elapsed = tm_elapsed_f(&end, &start);
 		double cpu = uend - ustart;
 
-		printf("Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
-			name, generated, elapsed, cpu, generated / elapsed);
-
+		if (verbose) {
+			printf(
+				"Calling %s() %u times took %.3gs (CPU=%.3gs), %g numbers/s\n",
+				name, generated, elapsed, cpu, generated / elapsed);
+		} else {
+			printf("%25s(): %12g numbers/s\n", name, generated / elapsed);
+		}
 	}
 }
 
@@ -539,7 +546,7 @@ add_entropy(void *p)
 			v[i] = rand31_u32();
 		}
 
-		random_add(v, sizeof v);
+		random_add(ARYLEN(v));
 	}
 
 	return NULL;
@@ -557,6 +564,39 @@ start_generate_thread(bool verbose)
 		printf("Started entropy generation thread.\n");
 }
 
+#define FN(x)	{ #x, (random_fn_t) x }
+
+struct random_function {
+	const char *name;
+	random_fn_t fn;
+};
+
+static struct random_function random_global[] = {
+	FN(aje_rand),
+	FN(aje_rand_strong),
+	FN(arc4random),
+	FN(cmwc_rand),
+	FN(entropy_minirand),
+	FN(entropy_random),
+	FN(mt_rand),
+	FN(rand31),
+	FN(rand31_u32),
+	FN(random_strong),
+	FN(shuffle_thread_rand),
+	FN(well_rand),
+};
+
+static struct random_function random_threaded[] = {
+	FN(aje_thread_rand),
+	FN(aje_thread_rand_strong),
+	FN(arc4_thread_rand),
+	FN(cmwc_thread_rand),
+	FN(mt_thread_rand),
+	FN(well_thread_rand),
+};
+
+#undef FN
+
 int
 main(int argc, char **argv)
 {
@@ -570,11 +610,11 @@ main(int argc, char **argv)
 	unsigned mask = (unsigned) -1;
 	unsigned rseed = 0, cval = 0, skip = 0, dumpcnt = 0, benchmark = 0, chi = 0;
 	bool cperiod = FALSE, countval = FALSE, countbits = FALSE, dumpraw = FALSE;
-	bool generate = FALSE, no_precompute = FALSE;
+	bool all = FALSE, generate = FALSE, no_precompute = FALSE, verbose = FALSE;
 	random_fn_t fn = (random_fn_t) rand31;
 	bool test_local = FALSE;
 	const char *fnname = "rand31";
-	const char options[] = "24b:c:eghlm:p:s:t:uxABC:D:F:GMPQR:STU:WX:";
+	const char options[] = "24ab:c:eghlm:p:s:t:uvxABC:D:F:GMPQR:STU:WX:";
 
 #define SET_RANDOM(x)	\
 G_STMT_START {			\
@@ -613,6 +653,9 @@ G_STMT_START {			\
 				SET_RANDOM(arc4random);
 			}
 			break;
+		case 'a':			/* with -t, benchmark all routines */
+			all = TRUE;
+			break;
 		case 'b':			/* bitmask to apply to random values */
 			mask = get_number(optarg, c);
 			break;
@@ -641,6 +684,9 @@ G_STMT_START {			\
 			break;
 		case 'u':			/* check rand31_u32() instead */
 			SET_RANDOM(rand31_u32);
+			break;
+		case 'v':			/* verbose benchmarking */
+			verbose = TRUE;
 			break;
 		case 'x':			/* disable AJE caching (already handled before) */
 			break;
@@ -732,6 +778,12 @@ G_STMT_START {			\
 
 	printf("Testing %s()\n", fnname);
 
+	if (is_strprefix(fnname, "rand31")) {
+		rand31_set_seed(rseed);
+		printf("Initial random seed is %s\n",
+			uint32_to_gstring(rand31_initial_seed()));
+	}
+
 	if (fp.max != 0) {
 		fp.rf = fn;
 		fn = rand_fp;
@@ -747,13 +799,23 @@ G_STMT_START {			\
 			uniform.max, fnname);
 	}
 
-	if (benchmark != 0)
-		timeit(fn, benchmark, fnname);
-
-	if (is_strprefix(fnname, "rand31")) {
-		rand31_set_seed(rseed);
-		printf("Initial random seed is %s\n",
-			uint32_to_gstring(rand31_initial_seed()));
+	if (benchmark != 0) {
+		if (all) {
+			size_t n, i;
+			struct random_function *afn;
+			if (test_local) {
+				n = N_ITEMS(random_threaded);
+				afn = random_threaded;
+			} else {
+				n = N_ITEMS(random_global);
+				afn = random_global;
+			}
+			for (i = 0; i < n; i++) {
+				timeit(afn[i].fn, benchmark, afn[i].name, verbose);
+			}
+		} else {
+			timeit(fn, benchmark, fnname, TRUE);
+		}
 	}
 
 	if (skip != 0)
@@ -771,7 +833,7 @@ G_STMT_START {			\
 	if (countval) {
 		unsigned n = count_values(fn, period, mask, cval);
 		printf("Found %u occurence%s of %u (mask 0x%x) within period of %s\n",
-			n, plural(n), cval & mask, mask, uint64_to_string(period));
+			PLURAL(n), cval & mask, mask, uint64_to_string(period));
 	}
 
 	if (countbits) {

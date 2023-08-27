@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -384,7 +384,7 @@ aje_rekey(aje_state_t *as)
 	for (i = 0; i < AJE_CIPHER_KEYLEN; i+= AJE_CIPHER_BLOCKLEN) {
 		size_t r;		/* Remaining bytes to fill the key */
 
-		aje_counter_encrypt(as, buf, sizeof buf);
+		aje_counter_encrypt(as, ARYLEN(buf));
 		r = AJE_CIPHER_KEYLEN - i;
 		memcpy(&key[i], buf, MIN(r, sizeof buf));
 	}
@@ -573,7 +573,7 @@ aje_spread(aje_state_t *as)
 
 	STATIC_ASSERT(sizeof as->counter == sizeof buf);
 
-	aje_counter_encrypt(as, buf, sizeof buf);
+	aje_counter_encrypt(as, ARYLEN(buf));
 	memcpy(as->counter, buf, sizeof buf);
 
 	/*
@@ -584,7 +584,7 @@ aje_spread(aje_state_t *as)
 		size_t j;
 
 		for (j = 0; j < 2; j++) {
-			aje_counter_encrypt(as, buf, sizeof buf);
+			aje_counter_encrypt(as, ARYLEN(buf));
 			SHA1_INPUT(&as->pool[i], buf);
 		}
 	}
@@ -643,7 +643,7 @@ aje_extract(aje_state_t *as, void *dest, size_t len)
 			block_nr = 0;
 		}
 
-		aje_counter_encrypt(as, buf, sizeof buf);
+		aje_counter_encrypt(as, ARYLEN(buf));
 		n = MIN(len, sizeof buf);
 		p = mempcpy(p, buf, n);
 		len -= n;
@@ -691,8 +691,8 @@ aje_init(aje_state_t *as)
 	 * state.
 	 */
 
-	entropy_fill(&as->key, sizeof as->key);
-	entropy_fill(&as->counter, sizeof as->counter);
+	entropy_fill(ARYLEN(as->key));
+	entropy_fill(ARYLEN(as->counter));
 
 	/*
 	 * Throw an initial amount of entropy into the pools, randomly spread.
@@ -704,14 +704,14 @@ aje_init(aje_state_t *as)
 	ZERO(&buf);
 #endif
 
-	aje_add_entropy(as, buf, sizeof buf);
+	aje_add_entropy(as, ARYLEN(buf));
 
 	for (i = 0; i < 8; i++) {
-		entropy_fill(buf, sizeof buf);
-		aje_add_entropy(as, buf, sizeof buf);
+		entropy_fill(ARYLEN(buf));
+		aje_add_entropy(as, ARYLEN(buf));
 
-		random_bytes_with(entropy_minirand, buf, sizeof buf);
-		aje_add_entropy(as, buf, sizeof buf);
+		random_bytes_with(entropy_minirand, ARYLEN(buf));
+		aje_add_entropy(as, ARYLEN(buf));
 	}
 
 	/*
@@ -781,7 +781,7 @@ aje_refresh(aje_state_t *as)
 {
 	aje_check(as);
 
-	aje_extract(as, as->vec, sizeof as->vec);
+	aje_extract(as, ARYLEN(as->vec));
 	as->sp = N_ITEMS(as->vec);
 }
 
@@ -835,7 +835,7 @@ aje_rand64_internal(register aje_state_t *as)
 
 	rn2 = as->vec[--as->sp];
 
-	return ((uint64) rn1 << 32) | (uint64) rn2;
+	return UINT64_VALUE(rn1, rn2);
 }
 
 /**
@@ -888,7 +888,7 @@ aje_rand_strong(void)
 {
 	uint32 v;
 
-	aje_random_bytes(&v, sizeof v);
+	aje_random_bytes(VARLEN(v));
 	return v;
 }
 
@@ -904,7 +904,7 @@ aje_rand64_strong(void)
 {
 	uint64 v;
 
-	aje_random_bytes(&v, sizeof v);
+	aje_random_bytes(VARLEN(v));
 	return v;
 }
 
@@ -1023,7 +1023,7 @@ aje_thread_rand_strong(void)
 {
 	uint32 v;
 
-	aje_thread_random_bytes(&v, sizeof v);
+	aje_thread_random_bytes(VARLEN(v));
 	return v;
 }
 
@@ -1039,7 +1039,7 @@ aje_thread_rand64_strong(void)
 {
 	uint64 v;
 
-	aje_thread_random_bytes(&v, sizeof v);
+	aje_thread_random_bytes(VARLEN(v));
 	return v;
 }
 

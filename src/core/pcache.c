@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -220,7 +220,7 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 		spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
 		spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
-		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+		ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), VARLEN(spp), 0);
 		g_assert(ok);
 
 		/*
@@ -233,8 +233,8 @@ build_ping_msg(const struct guid *muid, uint8 ttl, bool uhc, uint32 *size)
 
 			ok = ok &&
 				ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
-				ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
-				ggep_stream_write(&gs, &meta->version_ua, 1) &&
+				ggep_stream_write(&gs, ARYLEN(meta->vendor)) &&
+				ggep_stream_write(&gs, VARLEN(meta->version_ua)) &&
 				ggep_stream_end(&gs);
 			g_assert(ok);
 		}
@@ -323,7 +323,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 			spp |= settings_running_ipv6() ? SCP_F_IPV6 : 0;
 			spp |= settings_running_ipv6_only() ? SCP_F_NO_IPV4 : 0;
 
-			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), &spp, sizeof spp, 0);
+			ok = ggep_stream_pack(&gs, GGEP_NAME(SCP), VARLEN(spp), 0);
 			g_assert(ok);
 		} else if (!intro || !settings_is_ultra()) {
 			/*
@@ -353,7 +353,7 @@ build_guess_ping_msg(const struct guid *muid, bool qk, bool intro, bool scp,
 		char buf[3];
 		poke_u8(&buf[0], (SEARCH_GUESS_MAJOR << 4) | SEARCH_GUESS_MINOR);
 		poke_le16(&buf[1], socket_listen_port());
-		ggep_stream_pack(&gs, GGEP_NAME(GUE), buf, sizeof buf, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(GUE), ARYLEN(buf), 0);
 	}
 
 	sz += ggep_stream_close(&gs);
@@ -458,8 +458,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	 */
 
 	if (ipv6_ready_has_no_ipv4(ipv4) && host_addr_is_ipv6(info->addr)) {
-		ggep_stream_pack(&gs, GGEP_NAME(6),
-			info->addr.addr.ipv6, sizeof info->addr.addr.ipv6, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(6), ARYLEN(info->addr.addr.ipv6), 0);
 		ipv6_included = TRUE;
 	}
 
@@ -470,8 +469,8 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 	if (meta != NULL) {
 		if (meta->flags & PONG_META_HAS_VC) {	/* Vendor code */
 			(void) (ggep_stream_begin(&gs, GGEP_NAME(VC), 0) &&
-			ggep_stream_write(&gs, meta->vendor, sizeof meta->vendor) &&
-			ggep_stream_write(&gs, &meta->version_ua, 1) &&
+			ggep_stream_write(&gs, ARYLEN(meta->vendor)) &&
+			ggep_stream_write(&gs, VARLEN(meta->version_ua)) &&
 			ggep_stream_end(&gs));
 		}
 
@@ -506,7 +505,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 			uint32 value = MIN(meta->daily_uptime, 86400);
 			uint len;
 
-			len = ggept_du_encode(value, uptime, sizeof uptime);
+			len = ggept_du_encode(value, ARYLEN(uptime));
 			ggep_stream_pack(&gs, GGEP_NAME(DU), uptime, len, 0);
 		}
 
@@ -648,7 +647,7 @@ build_pong_msg(host_addr_t sender_addr, uint16 sender_port,
 		sectoken_t tok;
 
 		search_query_key_generate(&tok, sender_addr, sender_port);
-		ggep_stream_pack(&gs, GGEP_NAME(QK), tok.v, sizeof tok.v, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(QK), ARYLEN(tok.v), 0);
 	}
 
 	sz += ggep_stream_close(&gs);
@@ -956,6 +955,8 @@ send_neighbouring_info(gnutella_node_t *n)
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		gnutella_node_t *cn = sl->data;
 		struct pong_info info;
+
+		node_check(cn);
 
 		if (!NODE_IS_WRITABLE(cn))
 			continue;
@@ -1383,8 +1384,8 @@ found:
 	*port = last_port = cp->info.port;
 
 	if (GNET_PROPERTY(pcache_debug) > 8)
-		g_debug("returning recent %s PONG %s",
-			host_type_to_string(type),
+		g_debug("%s(): returning recent %s PONG %s",
+			G_STRFUNC, host_type_to_string(type),
 			host_addr_port_to_string(cp->info.addr, cp->info.port));
 
 	return TRUE;
@@ -1532,8 +1533,8 @@ pcache_expire(void)
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 4)
-		g_debug("Pong CACHE expired (%d entr%s, %d in reserve)",
-			entries, plural_y(entries), hcache_size(HOST_ANY));
+		g_debug("%s(): Pong CACHE expired (%d entr%s, %d in reserve)",
+			G_STRFUNC, entries, plural_y(entries), hcache_size(HOST_ANY));
 }
 
 /**
@@ -1574,7 +1575,7 @@ ping_all_neighbours(void)
 	time_t now = tm_time();
 
 	if (GNET_PROPERTY(pcache_debug))
-		g_debug("PCACHE attempting to ping all neighbours");
+		g_debug("%s(): PCACHE attempting to ping all neighbours", G_STRFUNC);
 
 	/*
 	 * Because nowadays the network has a higher outdegree for ultrapeers,
@@ -1589,6 +1590,8 @@ ping_all_neighbours(void)
 
 	PSLIST_FOREACH(node_all_ultranodes(), sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		if (!NODE_IS_WRITABLE(n) || NODE_IS_LEAF(n))
 			continue;
@@ -1628,8 +1631,8 @@ ping_all_neighbours(void)
 			n->next_ping = time_advance(now, OLD_PING_PERIOD);
 
 		if (GNET_PROPERTY(pcache_debug) > 1)
-			g_debug("PCACHE pinging \"%s\" %s",
-				(n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
+			g_debug("%s(): PCACHE pinging \"%s\" %s",
+				G_STRFUNC, (n->attrs & NODE_A_PONG_CACHING) ? "new" : "old",
 				host_addr_port_to_string(n->addr, n->port));
 
 		send_ping(n, GNET_PROPERTY(my_ttl));
@@ -1715,8 +1718,10 @@ setup_pong_demultiplexing(gnutella_node_t *n, uint8 ttl)
 		uchar amount = (uchar) (remains / (MAX_CACHE_HOPS + 1 - h));
 		n->pong_needed[h] = amount;
 		remains -= amount;
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_needed[%d] = %d, remains = %d", h, amount, remains);
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug("%s(): pong_needed[%d] = %d, remains = %d",
+				G_STRFUNC, h, amount, remains);
+		}
 	}
 
 	g_assert(remains == 0);
@@ -1845,7 +1850,7 @@ static void
 send_demultiplexed_pongs(gnutella_node_t *n)
 {
 	enum ping_flag flags;
-	uint h, ttl;
+	uint h, ttl, ping_ttl;
 
 	/*
 	 * Look whether the "ping" they sent bore the "SCP" extension, meaning
@@ -1864,7 +1869,9 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	 * array and compute `n->pong_missing'.
 	 */
 
-	setup_pong_demultiplexing(n, gnutella_header_get_ttl(&n->header));
+	ping_ttl = gnutella_header_get_ttl(&n->header);	/* TTL of received PING */
+
+	setup_pong_demultiplexing(n, ping_ttl);
 
 	if (n->pong_missing == 0)
 		return;
@@ -1880,11 +1887,8 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	ttl = gnutella_header_get_hops(&n->header) + 1U;
 	ttl = MIN(ttl, GNET_PROPERTY(max_ttl));
 
-	for (h = 0; n->pong_missing; h++) {
+	for (h = 0; n->pong_missing && h < ping_ttl; h++) {
 		struct cache_line *cl;
-
-		if (h >= gnutella_header_get_ttl(&n->header))
-			break;
 
 		cl = &pong_cache[CACHE_HOP_IDX(h)];
 		if (cl->pongs) {
@@ -1899,11 +1903,8 @@ send_demultiplexed_pongs(gnutella_node_t *n)
 	 * did not already send.
 	 */
 
-	for (h = 0; n->pong_missing; h++) {
+	for (h = 0; n->pong_missing && h < ping_ttl; h++) {
 		struct cache_line *cl;
-
-		if (h >= gnutella_header_get_ttl(&n->header))
-			break;
 
 		cl = &pong_cache[CACHE_HOP_IDX(h)];
 		if (cl->pongs) {
@@ -1923,10 +1924,15 @@ pong_all_neighbours_but_one(
 	gnutella_node_t *n, struct cached_pong *cp, host_type_t ptype,
 	uint8 hops, uint8 ttl)
 {
+	pslist_t *to_pong = NULL;
 	const pslist_t *sl;
+
+	g_assert(hops < 255);
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
 
 		if (cn == n)
 			continue;
@@ -1953,8 +1959,23 @@ pong_all_neighbours_but_one(
 		if (NODE_IS_LEAF(cn) && ptype != HOST_ULTRA)
 			continue;
 
+		to_pong = pslist_prepend(to_pong, cn);
+	}
+
+	PSLIST_FOREACH(to_pong, sl) {
+		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
+
 		cn->pong_missing--;
 		cn->pong_needed[hops]--;
+
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug(
+				"%s(): sending cached pong %s (hops=%d, TTL=%d) to %s missing=%d",
+				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
+				hops, ttl, node_addr(cn), cn->pong_missing);
+		}
 
 		/*
 		 * When sending a cached pong, don't forget that its cached hop count
@@ -1963,17 +1984,11 @@ pong_all_neighbours_but_one(
 		 * it, so we must increase the hop count.
 		 */
 
-		g_assert(hops < 255);
-
 		send_pong(cn, FALSE, PING_F_NONE,
 			hops + 1, ttl, &cn->ping_guid, &cp->info, cp->meta);
-
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_all: sent cached pong %s (hops=%d, TTL=%d) to %s "
-				"missing=%d",
-				host_addr_port_to_string(cp->info.addr, cp->info.port),
-				hops, ttl, node_addr(cn), cn->pong_missing);
 	}
+
+	pslist_free_null(&to_pong);
 }
 
 /**
@@ -1984,13 +1999,15 @@ static void
 pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 {
 	const pslist_t *sl;
-	unsigned leaves;
+	unsigned leaves = 0;
 	gnutella_node_t *leaf = NULL;
 
 	g_assert(settings_is_ultra());
 
-	for (sl = node_all_gnet_nodes(), leaves = 0; sl; sl = pslist_next(sl)) {
+	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *cn = sl->data;
+
+		node_check(cn);
 
 		if (cn->pong_missing)	/* A job for pong_all_neighbours_but_one() */
 			continue;
@@ -2026,10 +2043,11 @@ pong_random_leaf(struct cached_pong *cp, uint8 hops, uint8 ttl)
 		send_pong(leaf, FALSE, PING_F_NONE, hops + 1, ttl, &leaf->ping_guid,
 			&cp->info, cp->meta);
 
-		if (GNET_PROPERTY(pcache_debug) > 7)
-			g_debug("pong_random_leaf: sent pong %s (hops=%d, TTL=%d) to %s",
-				host_addr_port_to_string(cp->info.addr, cp->info.port),
+		if (GNET_PROPERTY(pcache_debug) > 7) {
+			g_debug("%s(): sent pong %s (hops=%d, TTL=%d) to %s",
+				G_STRFUNC, host_addr_port_to_string(cp->info.addr, cp->info.port),
 				hops, ttl, node_addr(leaf));
+		}
 	}
 }
 
@@ -2187,7 +2205,7 @@ pong_extract_metadata(gnutella_node_t *n)
 				paylen = ext_paylen(e);
 				g_warning("%s: unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, plural(paylen));
+					PLURAL(paylen));
 			}
 			break;
 		}
@@ -2254,8 +2272,10 @@ pcache_udp_ping_received(gnutella_node_t *n)
 		guid_eq(GNET_PROPERTY(servent_guid),
 			gnutella_header_get_muid(&n->header))
 	) {
-		if (GNET_PROPERTY(udp_debug) > 19)
-			g_debug("UDP got unsolicited PING matching our GUID!");
+		if (GNET_PROPERTY(udp_debug) > 19) {
+			g_debug("%s(): UDP got unsolicited PING matching our GUID from %s!",
+				G_STRFUNC, node_infostr(n));
+		}
 		inet_udp_got_unsolicited_incoming();
 		return;
 	}
@@ -2312,8 +2332,8 @@ pcache_udp_ping_received(gnutella_node_t *n)
 	}
 
 	if (is_uhc && GNET_PROPERTY(log_uhc_pings_rx)) {
-		g_debug("UDP UHC got %s from %s%s",
-			gmsg_infostr_full_split(n->header, n->data, n->size),
+		g_debug("%s(): UDP UHC got %s from %s%s",
+			G_STRFUNC, gmsg_infostr_full_split(n->header, n->data, n->size),
 			node_infostr(n), throttled ? " (throttled)" : "");
 	}
 }
@@ -2574,7 +2594,7 @@ pcache_udp_pong_received(gnutella_node_t *n)
 						"bad length for GGEP \"%s\" "
 						"(%d byte%s, not multiple of %d)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, plural(paylen), len);
+						PLURAL(paylen), len);
 				}
 			} else {
 				switch (e->ext_token) {
@@ -2625,7 +2645,7 @@ pcache_udp_pong_received(gnutella_node_t *n)
 				paylen = ext_paylen(e);
 				g_warning("%s (UDP): unhandled GGEP \"%s\" (%d byte%s)",
 					gmsg_node_infostr(n), ext_ggep_id_str(e),
-					paylen, plural(paylen));
+					PLURAL(paylen));
 			}
 			break;
 		}
@@ -2657,6 +2677,26 @@ pcache_udp_pong_received(gnutella_node_t *n)
 }
 
 /**
+ * Signals that host sends us alien IP informaion via pongs and therefore it
+ * is most probably firewalled.
+ */
+static void
+pcache_alien_ip(gnutella_node_t *n, host_addr_t addr, uint16 port)
+{
+	node_check(n);
+
+	if (0 != (n->flags & NODE_F_ALIEN_IP))
+		return;		/* Already flagged as such */
+
+	if (GNET_PROPERTY(pcache_debug) || GNET_PROPERTY(node_debug)) {
+		g_warning("%s(): %s sent us a pong for itself with alien IP %s",
+			G_STRFUNC, node_infostr(n), host_addr_port_to_string(addr, port));
+	}
+
+	n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
+}
+
+/**
  * Called when a pong is received from a node.
  *
  * Here needs brief description for the following list:
@@ -2680,6 +2720,8 @@ pcache_pong_received(gnutella_node_t *n)
 	host_type_t ptype;
 	host_addr_t addr;
 	pong_meta_t *meta;
+
+	node_check(n);
 
 	n->n_pong_received++;
 
@@ -2730,16 +2772,16 @@ pcache_pong_received(gnutella_node_t *n)
 
 		if (swapped_count > PCACHE_MAX_FILES) {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
-				g_warning("%s sent us a pong with "
+				g_warning("%s(): %s sent us a pong with "
 					"large file count %u (0x%x), dropped",
-					node_infostr(n), files_count, files_count);
+					G_STRFUNC, node_infostr(n), files_count, files_count);
 			n->rx_dropped++;
 			goto done;
 		} else {
 			if (GNET_PROPERTY(pcache_debug) && host_addr_equiv(addr, n->addr))
-				g_warning("%s sent us a pong with suspect file count %u "
+				g_warning("%s(): %s sent us a pong with suspect file count %u "
 					"(fixed to %u)",
-					node_infostr(n), files_count, swapped_count);
+					G_STRFUNC, node_infostr(n), files_count, swapped_count);
 			files_count = swapped_count;
 			fixed = TRUE;
 		}
@@ -2765,15 +2807,27 @@ pcache_pong_received(gnutella_node_t *n)
 		 * may help us fill this gap.
 		 */
 
-		if (!is_host_addr(n->gnet_addr) && (n->flags & NODE_F_INCOMING)) {
-			if (host_addr_equiv(addr, n->addr)) {
-				n->gnet_addr = addr;	/* Signals: we have figured it out */
-				n->gnet_port = port;
-			} else if (!(n->flags & NODE_F_ALIEN_IP)) {
-				if (GNET_PROPERTY(pcache_debug)) g_warning(
-					"%s sent us a pong for itself with alien IP %s",
-					node_infostr(n), host_addr_to_string(addr));
-				n->flags |= NODE_F_ALIEN_IP;	/* Probably firewalled */
+		if (0 != (n->flags & NODE_F_INCOMING)) {
+			if (!is_host_addr(n->gnet_addr)) {
+				/* Neither gnet_addr nor gnet_port known */
+				if (host_addr_equiv(addr, n->addr)) {
+					n->gnet_addr = addr;	/* Signals: we have figured it out */
+					n->gnet_port = port;
+				} else {
+					pcache_alien_ip(n, addr, port);
+				}
+			} else {
+				/* gnet_addr was already known, check address and port */
+				if (host_addr_equiv(addr, n->gnet_addr)) {
+					if (GTA_PORT == n->gnet_port || 0 == n->gnet_port) {
+						/* GTA_PORT is a default value we set initially */
+						n->gnet_port = port;
+					} else if (n->gnet_port != port) {
+						pcache_alien_ip(n, addr, port);
+					}
+				} else {
+					pcache_alien_ip(n, addr, port);
+				}
 			}
 		}
 
@@ -2803,8 +2857,9 @@ pcache_pong_received(gnutella_node_t *n)
 			!host_addr_equiv(addr, n->gnet_pong_addr)
 		) {
 			if (GNET_PROPERTY(pcache_debug) && n->n_ping_sent > 2) {
-				g_warning("%s sent us a pong for new IP %s (used %s before)",
-					node_infostr(n),
+				g_warning(
+					"%s(): %s sent us a pong for new IP %s (used %s before)",
+					G_STRFUNC, node_infostr(n),
 					host_addr_port_to_string(addr, port),
 					host_addr_to_string(n->gnet_pong_addr));
 			}
@@ -2862,8 +2917,8 @@ pcache_pong_received(gnutella_node_t *n)
 		unsigned ratio = random_value(100);
 		if (ratio >= OLD_CACHE_RATIO) {
 			if (GNET_PROPERTY(pcache_debug) > 7)
-				g_debug("NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s",
-					host_addr_port_to_string(addr, port),
+				g_debug("%s(): NOT CACHED pong %s (hops=%d, TTL=%d) from OLD %s",
+					G_STRFUNC, host_addr_port_to_string(addr, port),
 					gnutella_header_get_hops(&n->header),
 					gnutella_header_get_ttl(&n->header),
 					node_addr(n));
@@ -2899,8 +2954,8 @@ pcache_pong_received(gnutella_node_t *n)
 	}
 
 	if (GNET_PROPERTY(pcache_debug) > 6)
-		g_debug("CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",
-			ptype == HOST_ULTRA ? "ultra" : "normal",
+		g_debug("%s(): CACHED %s pong %s (hops=%d, TTL=%d) from %s %s",
+			G_STRFUNC, ptype == HOST_ULTRA ? "ultra" : "normal",
 			host_addr_port_to_string(addr, port),
 			gnutella_header_get_hops(&n->header),
 			gnutella_header_get_ttl(&n->header),

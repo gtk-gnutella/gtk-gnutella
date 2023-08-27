@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2015 Raphael Manfredi
+ * Copyright (c) 2015, 2016 Raphael Manfredi
  *
  * The fcntl() logic implemented here for locking is:
  * Copyright (c) 2005 Christian Biere
@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -58,7 +58,7 @@
  * cannot be turned off.
  *
  * @author Raphael Manfredi
- * @date 2015
+ * @date 2015-2016
  */
 
 #include "common.h"
@@ -66,6 +66,7 @@
 #include "filelock.h"
 
 #include "compat_misc.h"
+#include "compat_sleep_ms.h"
 #include "compat_usleep.h"
 #include "elist.h"
 #include "fd.h"
@@ -79,11 +80,14 @@
 #include "spinlock.h"
 #include "str.h"
 #include "stringify.h"
+#include "thread.h"
 #include "timestamp.h"
 #include "tm.h"
 #include "xmalloc.h"
 
 #include "override.h"		/* Must be the last header included */
+
+#define FILELOCK_WAIT_MS	5	/* Time to sleep when waiting for lock */
 
 static const mode_t FILELOCK_MODE = S_IRUSR | S_IWUSR; 	/* 0600 */
 
@@ -297,7 +301,7 @@ filelock_read_pid(int fd)
 		return 0;
 	}
 
-	r = read(fd, buf, sizeof buf - 1);
+	r = read(fd, ARYLEN(buf) - 1);
 
 	if ((ssize_t) -1 == r) {
 		s_carp("%s(): cannot read from fd #%d: %m", G_STRFUNC, fd);
@@ -335,7 +339,7 @@ filelock_write_pid(int fd, pid_t ourpid)
 	ssize_t r;
 	char buf[ULONG_DEC_BUFLEN + 1];		/* +1 for "\n", since NUL is included */
 
-	w = str_bprintf(buf, sizeof buf, "%ld\n", (ulong) ourpid);
+	w = str_bprintf(ARYLEN(buf), "%ld\n", (ulong) ourpid);
 
 	/*
 	 * Since we don't expect any errors from the system calls, we trace
@@ -357,13 +361,13 @@ filelock_write_pid(int fd, pid_t ourpid)
 
 	if ((ssize_t) -1 == r) {
 		s_carp("%s(): cannot write %zu byte%s to fd #%d: %m",
-			G_STRFUNC, w, plural(w), fd);
+			G_STRFUNC, PLURAL(w), fd);
 		return -1;
 	}
 
 	if (UNSIGNED(r) != w) {
 		s_carp("%s(): could only write %zd byte%s out of %zu to fd #%d",
-			G_STRFUNC, r, plural(r), w, fd);
+			G_STRFUNC, PLURAL(r), w, fd);
 		errno = ENOSPC;		/* Assume it's a filesystem space problem */
 		return -1;
 	}
@@ -451,7 +455,7 @@ filelock_usleep(const filelock_params_t *p, const char *caller)
 	uint us = 100 + random_value(4900);
 
 	if (filelock_is_debug(p)) {
-		s_debug("%s(): sleeping for %u usec%s", caller, us, plural(us));
+		s_debug("%s(): sleeping for %u usec%s", caller, PLURAL(us));
 	}
 
 	compat_usleep(us);
@@ -720,7 +724,7 @@ opened:
 			if (filelock_is_debug(p)) {
 				time_delta_t age = delta_time(tm_time(), buf_fd.st_mtime);
 				s_debug("%s(): file \"%s\" recent: %d sec%s old, retrying...",
-					G_STRFUNC, path, (int) age, plural(age));
+					G_STRFUNC, path, (int) PLURAL(age));
 			}
 			goto restart;
 		}
@@ -757,7 +761,7 @@ opened:
 			if (filelock_is_debug(p)) {
 				time_delta_t age = delta_time(tm_time(), buf_fd.st_mtime);
 				s_debug("%s(): file \"%s\" is %d sec%s old, retrying...",
-					G_STRFUNC, path, (int) age, plural(age));
+					G_STRFUNC, path, (int) PLURAL(age));
 			}
 			if (-1 == unlink(path)) {
 				if (ENOENT == errno) {
@@ -842,6 +846,10 @@ locked:
 	 *
 	 * We use our malloc() layer here on purpose, because the locks can be
 	 * disposed of very late when auto-cleaning triggers.
+	 *
+	 * Note that for fcntl() locks, the file descriptor needs to be kept
+	 * around as closing it would release the advisory locks we took for
+	 * that file.
 	 */
 
 	once_flag_run(&filelock_inited, filelock_init_once);
@@ -891,6 +899,86 @@ filelock_pid(const char *path)
 	fd_close(&fd);
 
 	return pid;
+}
+
+/**
+ * Create a lockfile, with an absolute time limit before aborting.
+ *
+ * See filelock_create() for a description of the filelock_params_t semantics.
+ *
+ * @param path		the path to the lockfile (copied)
+ * @param p			(optional) custom locking parameters
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return a lockfile object on success, NULL on error with errno set.
+ *
+ * In addition to the codes returned by filelock_create(), this routine sets
+ * errno to:
+ *
+ * ETIMEDOUT if we could not get the lock within the time we were given.
+ */
+filelock_t *
+filelock_create_until(
+	const char *path, const filelock_params_t *p, const tm_t *end)
+{
+	while (NULL == end || tm_remaining_ms(end) > 0) {
+		long remain;
+
+		filelock_t *fl = filelock_create(path, p);
+
+		if (fl != NULL)
+			return fl;
+
+		remain = tm_remaining_ms(end);
+		if (remain <= 0)
+			break;
+
+		/*
+		 * We're using compat_sleep_ms() instead of thread_sleep_ms() because
+		 * we cannot guarantee that the calling thread holds no locks at this
+		 * time.
+		 */
+
+		if (remain > 2 * FILELOCK_WAIT_MS)
+			compat_sleep_ms(FILELOCK_WAIT_MS);
+		else if (remain > 1)
+			compat_sleep_ms(1);
+		else
+			thread_yield();
+	}
+
+	errno = ETIMEDOUT;
+	return NULL;
+}
+
+/**
+ * Create a lockfile, with a timeout.
+ *
+ * See filelock_create() for a description of the filelock_params_t semantics.
+ *
+ * @param path		the path to the lockfile (copied)
+ * @param p			(optional) custom locking parameters
+ * @param timeout	how long to wait for (NULL means no limit)
+ *
+ * @return a lockfile object on success, NULL on error with errno set.
+ *
+ * In addition to the codes returned by filelock_create(), this routine sets
+ * errno to:
+ *
+ * ETIMEDOUT if we could not get the lock within the time we were given.
+ */
+filelock_t *
+filelock_timed_create(
+	const char *path, const filelock_params_t *p, const tm_t *timeout)
+{
+	tm_t end;
+
+	if (timeout != NULL) {
+		tm_now_exact(&end);
+		tm_add(&end, timeout);
+	}
+
+	return filelock_create_until(path, p, NULL == timeout ? NULL : &end);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

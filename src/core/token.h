@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -70,7 +70,7 @@ const char *tok_strerror(tok_error_t errnum);
 char *tok_version(void);
 char *tok_short_version(void);
 tok_error_t tok_version_valid(
-	const char *version, const char *tokenb64, int len, host_addr_t addr);
+	const char *version, const char *tokenb64, int len);
 bool tok_is_ancient(time_t now);
 
 #endif	/* _core_token_h_ */

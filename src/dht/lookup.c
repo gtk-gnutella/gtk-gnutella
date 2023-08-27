@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -56,6 +56,7 @@
 
 #include "lib/bstr.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/hashlist.h"
 #include "lib/host_addr.h"
 #include "lib/htable.h"
@@ -359,7 +360,7 @@ lookup_type_to_string(const nlookup_t *nl)
 	case LOOKUP_REFRESH:	what = "refresh"; break;
 	case LOOKUP_TOKEN:		what = "token"; break;
 	case LOOKUP_VALUE:
-		str_bprintf(buf, sizeof buf, "\"%s\" value",
+		str_bprintf(ARYLEN(buf), "\"%s\" value",
 			dht_value_type_to_string(nl->u.fv.vtype));
 		return buf;
 	}
@@ -669,7 +670,7 @@ log_patricia_dump(nlookup_t *nl, patricia_t *pt, const char *what, uint level)
 
 	count = patricia_count(pt);
 	g_debug("DHT LOOKUP[%s] %s contains %zu item%s:",
-		nid_to_string(&nl->lid), what, count, plural(count));
+		nid_to_string(&nl->lid), what, PLURAL(count));
 
 	iter = patricia_metric_iterator_lazy(pt, nl->kuid, FALSE);
 
@@ -707,7 +708,7 @@ lookup_final_stats(const nlookup_t *nl)
 			tm_elapsed_f(&end, &nl->start),
 			nl->hops, (unsigned) patricia_count(nl->path),
 			nl->bw_incoming, nl->bw_outgoing,
-			nl->rpc_replies, plural_y(nl->rpc_replies));
+			PLURAL_Y(nl->rpc_replies));
 
 	/*
 	 * Optional statistics callback, added via lookup_ctrl_stats() after
@@ -847,7 +848,7 @@ lookup_cleanup_ball(nlookup_t *nl)
 		g_debug("DHT LOOKUP[%s] %s lookup "
 			"cleaning up ball (%u item%s), path has %u",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
-			(unsigned) bcount, plural(bcount), (unsigned) pcount);
+			(unsigned) PLURAL(bcount), (unsigned) pcount);
 	}
 
 	patricia_foreach_remove(nl->ball, remove_if_in_shortlist, nl);
@@ -855,7 +856,7 @@ lookup_cleanup_ball(nlookup_t *nl)
 	if (GNET_PROPERTY(dht_lookup_debug) > 2) {
 		size_t bcount = patricia_count(nl->ball);
 		g_debug("DHT LOOKUP[%s] ball now down to %u item%s",
-			nid_to_string(&nl->lid), (unsigned) bcount, plural(bcount));
+			nid_to_string(&nl->lid), (unsigned) PLURAL(bcount));
 	}
 }
 
@@ -890,7 +891,7 @@ lookup_value_terminate(nlookup_t *nl,
 			"for %s with %d value%s",
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
-			kuid_to_hex_string(nl->kuid), vcnt, plural(vcnt));
+			kuid_to_hex_string(nl->kuid), PLURAL(vcnt));
 
 	/*
 	 * If we were unable to collect any value, abort as if we had not
@@ -952,7 +953,7 @@ lookup_value_terminate(nlookup_t *nl,
 				"not caching %d \"%s\" value%s for %s: local=%s, path size=%zu",
 				nid_to_string(&nl->lid),
 				vcnt, dht_value_type_to_string(nl->u.fv.vtype), plural(vcnt),
-				kuid_to_hex_string(nl->kuid), local ? "y" : "n", count);
+				kuid_to_hex_string(nl->kuid), bool_to_string(local), count);
 		}
 	}
 
@@ -1198,8 +1199,8 @@ lookup_value_append(nlookup_t *nl, float load,
 	if (GNET_PROPERTY(dht_lookup_debug) > 3)
 		g_debug("DHT LOOKUP[%s] "
 			"merging %d value%s and %d secondary key%s from %s",
-			nid_to_string(&nl->lid), vcnt, plural(vcnt),
-			scnt, plural(scnt), knode_to_string(kn));
+			nid_to_string(&nl->lid), PLURAL(vcnt),
+			PLURAL(scnt), knode_to_string(kn));
 
 	/*
 	 * Make room in the global DHT value vector to be able to hold all
@@ -1402,7 +1403,7 @@ lookup_value_done(nlookup_t *nl)
 				g_debug("DHT LOOKUP[%s] "
 					"now fetching %d secondary key%s from %s",
 					nid_to_string(&nl->lid),
-					sk->scnt, plural(sk->scnt), knode_to_string(sk->kn));
+					PLURAL(sk->scnt), knode_to_string(sk->kn));
 			}
 
 			fv->rpc_timeouts = 0;
@@ -1423,7 +1424,7 @@ lookup_value_done(nlookup_t *nl)
 				"%sgiving a chance to %d pending FIND_VALUE RPC%s",
 				nid_to_string(&nl->lid),
 				NULL == fv->delay_ev ? "" : "already ",
-				nl->rpc_pending, plural(nl->rpc_pending));
+				PLURAL(nl->rpc_pending));
 
 		lookup_value_delay(nl);
 		return;
@@ -1432,7 +1433,7 @@ lookup_value_done(nlookup_t *nl)
 	if (GNET_PROPERTY(dht_lookup_debug) > 1)
 		g_debug("DHT LOOKUP[%s] "
 			"ending value fetch with %d pending FIND_VALUE RPC%s",
-			nid_to_string(&nl->lid), nl->rpc_pending, plural(nl->rpc_pending));
+			nid_to_string(&nl->lid), PLURAL(nl->rpc_pending));
 
 	load = fv->load / fv->nodes;
 	vvec = fv->vvec;
@@ -1469,7 +1470,7 @@ lookup_value_expired(cqueue_t *cq, void *obj)
 			nid_to_string(&nl->lid), lookup_type_to_string(nl),
 			dht_value_type_to_string(nl->u.fv.vtype),
 			kuid_to_hex_string(nl->kuid),
-			tm_elapsed_f(&now, &fv->start), remain, plural(remain));
+			tm_elapsed_f(&now, &fv->start), PLURAL(remain));
 	}
 
 	lookup_value_done(nl);
@@ -1544,7 +1545,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (NULL == v) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "cannot parse DHT value %d/%u",
+				str_bprintf(ARYLEN(msg), "cannot parse DHT value %d/%u",
 					i + 1, expanded);
 			}
 			reason = msg;
@@ -1593,7 +1594,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 				"secondary keys: reached end of message after %u expanded "
 				"value%s",
 				nid_to_string(&nl->lid), knode_to_string(kn),
-				expanded, plural(expanded));
+				PLURAL(expanded));
 		}
 		seckeys = 0;
 	}
@@ -1606,7 +1607,7 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 
 		if (!bstr_read(bs, tmp.v, KUID_RAW_SIZE)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "cannot read secondary key %d/%u",
+				str_bprintf(ARYLEN(msg), "cannot read secondary key %d/%u",
 					i + 1, seckeys);
 			}
 			reason = msg;
@@ -1630,8 +1631,8 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 		g_warning("DHT LOOKUP[%s] the FIND_VALUE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
 			 nid_to_string(&nl->lid),
-			 (ulong) len, plural(len), knode_to_string(kn),
-			 (ulong) unparsed, plural(unparsed));
+			 (ulong) PLURAL(len), knode_to_string(kn),
+			 (ulong) PLURAL(unparsed));
 	}
 
 	/*
@@ -1662,9 +1663,9 @@ lookup_value_found(nlookup_t *nl, const knode_t *kn,
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_debug("DHT LOOKUP[%s] (remote load = %g) "
 			"got %d value%s of type %s and %d secondary key%s from %s",
-			nid_to_string(&nl->lid), load, vcnt, plural(vcnt),
+			nid_to_string(&nl->lid), load, PLURAL(vcnt),
 			dht_value_type_to_string(type),
-			scnt, plural(scnt), knode_to_string(kn));
+			PLURAL(scnt), knode_to_string(kn));
 
 	bstr_free(&bs);
 
@@ -1732,7 +1733,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 len, plural(len), knode_to_string(kn),
+			 PLURAL(len), knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	/* FALL THROUGH */
@@ -1791,7 +1792,7 @@ lookup_completed(nlookup_t *nl)
 			nid_to_string(&nl->lid),
 			(nl->flags & NL_F_ACTV_PROTECT) ? "actively protected " :
 			(nl->flags & NL_F_PASV_PROTECT) ? "passively protected " : "",
-			(ulong) path_len, plural(path_len),
+			(ulong) PLURAL(path_len),
 			closest ? knode_to_string(closest) : "unknown");
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
@@ -2528,9 +2529,8 @@ done:
 		g_debug("DHT LOOKUP[%s] after counter-measures: path holds %u node%s, "
 			"K-L divergence is %g (%u node%s in window, stripped %u)",
 			nid_to_string(&nl->lid),
-			(unsigned) patricia_count(nl->path),
-			plural(patricia_count(nl->path)), dkl,
-			(unsigned) nodes, plural(nodes), (unsigned) stripped);
+			(unsigned) PLURAL(patricia_count(nl->path)), dkl,
+			(unsigned) PLURAL(nodes), (unsigned) stripped);
 	}
 
 	/*
@@ -2787,7 +2787,7 @@ lookup_node_is_safe(nlookup_t *nl, const knode_t *kn,
 	if (lookup_c_class_get_count(nl, kn) >= NL_MAX_IN_NET) {
 		const char *msg = "reached class-C net quota";
 		if (len != 0)
-			g_strlcpy(buf, msg, len);
+			cstr_bcpy(buf, len, msg);
 		gnr_stat = GNR_DHT_LOOKUP_REJECTED_NODE_ON_NET_QUOTA;
 		goto unsafe;
 	} else if (
@@ -3034,7 +3034,7 @@ lookup_handle_reply(
 
 		if (NULL == cn) {
 			if (GNET_PROPERTY(dht_lookup_debug))
-				str_bprintf(msg, sizeof msg, "cannot parse contact #%d", n);
+				str_bprintf(ARYLEN(msg), "cannot parse contact #%d", n);
 			reason = msg;
 			goto bad;
 		}
@@ -3053,8 +3053,7 @@ lookup_handle_reply(
 
 		if (kuid_eq(get_our_kuid(), cn->id)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg,
-					"%s bears our KUID", knode_to_string(cn));
+				str_bprintf(ARYLEN(msg), "%s bears our KUID", knode_to_string(cn));
 			}
 			goto skip;
 		}
@@ -3066,7 +3065,7 @@ lookup_handle_reply(
 
 		if (!lookup_node_is_safe(nl, cn, unsafe, unsafe_len)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg, "unsafe %s: %s",
+				str_bprintf(ARYLEN(msg), "unsafe %s: %s",
 					knode_to_string(cn), unsafe);
 			}
 			goto skip;
@@ -3093,7 +3092,7 @@ lookup_handle_reply(
 
 		if (!knode_is_usable(cn)) {
 			if (GNET_PROPERTY(dht_lookup_debug)) {
-				str_bprintf(msg, sizeof msg,
+				str_bprintf(ARYLEN(msg),
 					"%s has unusable address", knode_to_string(cn));
 			}
 			goto skip;
@@ -3153,7 +3152,7 @@ lookup_handle_reply(
 					map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						str_bprintf(msg, sizeof msg,
+						str_bprintf(ARYLEN(msg),
 							"%s already queried, RPC pending, alternate IP %s",
 							knode_to_string(xn),
 							host_addr_port_to_string(cn->addr, cn->port));
@@ -3162,14 +3161,14 @@ lookup_handle_reply(
 					lookup_fix_contact(nl, xn, cn);
 
 					if (GNET_PROPERTY(dht_lookup_debug)) {
-						str_bprintf(msg, sizeof msg,
+						str_bprintf(ARYLEN(msg),
 							"for now, fixed as %s and re-added to shortlist",
 							host_addr_port_to_string(cn->addr, cn->port));
 					}
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s was already queried", knode_to_string(xn));
 				}
 			}
@@ -3222,14 +3221,14 @@ lookup_handle_reply(
 				map_insert(nl->alternate, cn->id, knode_refcnt_inc(cn));
 
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s still in our shorlist, recorded alternate IP %s",
 						knode_to_string(cn),
 						host_addr_port_to_string(cn->addr, cn->port));
 				}
 			} else {
 				if (GNET_PROPERTY(dht_lookup_debug)) {
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"%s is still in our shortlist", knode_to_string(cn));
 				}
 			}
@@ -3272,8 +3271,8 @@ lookup_handle_reply(
 		g_warning("DHT LOOKUP[%s] the FIND_NODE_RESPONSE payload (%lu byte%s) "
 			"from %s has %lu byte%s of unparsed trailing data (ignored)",
 			 nid_to_string(&nl->lid),
-			 (ulong) len, plural(len), knode_to_string(kn),
-			 (ulong) unparsed, plural(unparsed));
+			 (ulong) PLURAL(len), knode_to_string(kn),
+			 (ulong) PLURAL(unparsed));
 	}
 
 	/*
@@ -3340,7 +3339,7 @@ lookup_handle_reply(
 
 		if (GNET_PROPERTY(dht_lookup_debug) > 4) {
 			char buf[80];
-			bin_to_hex_buf(token->v, token->length, buf, sizeof buf);
+			bin_to_hex_buf(token->v, token->length, ARYLEN(buf));
 			g_debug("DHT LOOKUP[%s] collected %u-byte token \"%s\" for %s",
 				nid_to_string(&nl->lid),
 				token->length, buf, knode_to_string(kn));
@@ -3367,7 +3366,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_NODE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s: %s",
-			 len, plural(len), knode_to_string(kn),
+			 PLURAL(len), knode_to_string(kn),
 			 reason, bstr_error(bs));
 
 	if (token != NULL)
@@ -3555,7 +3554,7 @@ lk_rpc_cancelled(void *obj, uint32 hop)
 		if (GNET_PROPERTY(dht_lookup_debug) > 1)
 			g_debug("DHT LOOKUP[%s] not iterating (has %d RPC%s pending)",
 				nid_to_string(&nl->lid),
-				nl->rpc_pending, plural(nl->rpc_pending));
+				PLURAL(nl->rpc_pending));
 	}
 }
 
@@ -3682,7 +3681,7 @@ lk_handle_reply(void *obj, const knode_t *kn,
 				"bounded parallelism (path has %u items, %d RPC%s pending)",
 				nid_to_string(&nl->lid),
 				(unsigned) patricia_count(nl->path),
-				nl->rpc_pending, plural(nl->rpc_pending));
+				PLURAL(nl->rpc_pending));
 		}
 		nl->mode = LOOKUP_BOUNDED;
 	}
@@ -3709,7 +3708,7 @@ lk_handle_reply(void *obj, const knode_t *kn,
 				g_debug("DHT LOOKUP[%s] ending due to amount of nodes sharing "
 					"%u common leading bit%s",
 					nid_to_string(&nl->lid),
-					(unsigned) nl->u.fn.bits, plural(nl->u.fn.bits));
+					(unsigned) PLURAL(nl->u.fn.bits));
 			}
 			lookup_completed(nl);
 			return FALSE;			/* Do not iterate */
@@ -3850,7 +3849,7 @@ lk_iterate(void *obj, enum dht_rpc_ret type, uint32 hop)
 				nid_to_string(&nl->lid),
 				DHT_RPC_TIMEOUT == type ?
 					"timeout" : "reply from previous hop",
-				nl->rpc_pending, plural(nl->rpc_pending));
+				PLURAL(nl->rpc_pending));
 		}
 	} else {
 		lookup_iterate_if_possible(nl);
@@ -4039,7 +4038,7 @@ lookup_iterate(nlookup_t *nl)
 			if (GNET_PROPERTY(dht_lookup_debug) > 2)
 				g_debug("DHT LOOKUP[%s] not iterating yet (%d RPC%s pending)",
 					nid_to_string(&nl->lid),
-					nl->rpc_pending, plural(nl->rpc_pending));
+					PLURAL(nl->rpc_pending));
 			return;
 		}
 	}
@@ -4053,7 +4052,7 @@ lookup_iterate(nlookup_t *nl)
 			"(%s parallelism: sending %d RPC%s at most, %d outstanding)",
 			nid_to_string(&nl->lid), nl->hops,
 			lookup_parallelism_mode_to_string(nl->mode),
-			alpha, plural(alpha), nl->rpc_pending);
+			PLURAL(alpha), nl->rpc_pending);
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 4)
 		log_status(nl);
@@ -4662,7 +4661,7 @@ lookup_value_handle_reply(nlookup_t *nl,
 
 	if (expanded != 1) {
 		if (GNET_PROPERTY(dht_lookup_debug))
-			str_bprintf(msg, sizeof msg, "expected 1 value, got %u", expanded);
+			str_bprintf(ARYLEN(msg), "expected 1 value, got %u", expanded);
 		reason = msg;
 		goto bad;
 	}
@@ -4732,7 +4731,7 @@ bad:
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT improper FIND_VALUE_RESPONSE payload (%zu byte%s) "
 			"from %s: %s%s%s",
-			 len, plural(len), knode_to_string(kn), reason,
+			 PLURAL(len), knode_to_string(kn), reason,
 			 bstr_has_error(bs) ? ": " : "",
 			 bstr_has_error(bs) ? bstr_error(bs) : "");
 
@@ -4980,14 +4979,14 @@ lookup_value_iterate(nlookup_t *nl)
 		if (GNET_PROPERTY(dht_lookup_debug) > 2)
 			g_debug("DHT LOOKUP[%s] not iterating (%d pending value RPC%s)",
 				nid_to_string(&nl->lid),
-				fv->rpc_pending, plural(fv->rpc_pending));
+				PLURAL(fv->rpc_pending));
 		return;
 	}
 
 	if (GNET_PROPERTY(dht_lookup_debug) > 2)
 		g_debug("DHT LOOKUP[%s] "
 			"iterating in value fetch mode with %d node%s, %s secondary keys",
-			nid_to_string(&nl->lid), fv->nodes, plural(fv->nodes),
+			nid_to_string(&nl->lid), PLURAL(fv->nodes),
 			sk ? "with" : "without");
 
 	/*

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -403,8 +403,7 @@ bstr_trailing_error(bstr_t *bs)
 		bs->ok = FALSE;
 		if (bs->flags & BSTR_F_ERROR) {
 			alloc_error(bs);
-			str_printf(bs->error, "has %zu trailing unread byte%s",
-				n, plural(n));
+			str_printf(bs->error, "has %zu trailing unread byte%s", PLURAL(n));
 		} else {
 			bs->flags |= BSTR_F_TRAILING;
 		}

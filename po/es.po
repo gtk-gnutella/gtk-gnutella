@@ -9,7 +9,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
-"POT-Creation-Date: 2017-10-22 16:16+0200\n"
+"POT-Creation-Date: 2021-07-12 21:45+0200\n"
 "PO-Revision-Date: 2016-02-15 08:28+0000\n"
 "Last-Translator: Jeroen Asselman <jeroen@asselman.com>\n"
 "Language-Team: Spanish (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
@@ -551,9 +551,6 @@ msgstr "Demasiados nodos (%d max)"
 msgid "Sent shielded indication"
 msgstr "Enviado indicador de escudo"
 
-msgid "Not an ultra node"
-msgstr "No es un nodo ultra"
-
 msgid "Unknown error"
 msgstr "Error desconocido"
 
@@ -602,6 +599,9 @@ msgstr ""
 
 msgid "Servent Shutdown"
 msgstr "Nodo Cerrado"
+
+msgid "Already connected"
+msgstr "Ya está conectado"
 
 msgid "Not a network member"
 msgstr "No es miembro de la red"
@@ -666,9 +666,6 @@ msgstr ""
 
 msgid "Pseudo DHT node"
 msgstr ""
-
-msgid "Already connected"
-msgstr "Ya está conectado"
 
 msgid "Limited connection"
 msgstr "Conexión limitada"
@@ -752,6 +749,10 @@ msgstr ""
 msgid "Another gtk-gnutella is running as PID %lu"
 msgstr ""
 
+#, c-format
+msgid "If PID %lu is not a gtk-gnutella process, run:"
+msgstr ""
+
 msgid "Cannot proceed without valid configuration directory"
 msgstr "No se puede continuar sin una configuración de directorio válida"
 
@@ -763,10 +764,6 @@ msgstr "Fallo al crear socket UDP IPv6"
 
 msgid "Failed to create local socket"
 msgstr "Fallo al crear socket local"
-
-msgid "Can only run as a leaf when TCP-firewalled"
-msgstr ""
-"Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
 
 msgid "Read error"
 msgstr "Error de lectura"
@@ -815,6 +812,9 @@ msgstr "No se indicó una razón"
 msgid "Bad Request"
 msgstr "Solicitud errónea"
 
+msgid "Library being rebuilt"
+msgstr "La biblioteca se está recompilando"
+
 msgid "Header too large"
 msgstr "Encabezado demasiado grande"
 
@@ -841,9 +841,6 @@ msgstr "URN no encontrado (urn:sha1)"
 
 msgid "SHA1 is being recomputed"
 msgstr "El SHA1 se está recalculando"
-
-msgid "Library being rebuilt"
-msgstr "La biblioteca se está recompilando"
 
 msgid "Malformed URN in /uri-res/N2R request"
 msgstr ""
@@ -1100,17 +1097,60 @@ msgstr ""
 msgid "OOB hits ignored due to unsecure promise from known secure host"
 msgstr ""
 
+msgid "OOB hits we claimed after notification"
+msgstr ""
+
+msgid "OOB hits subset that we claimed securely"
+msgstr ""
+
+msgid "OOB hit-notifications discarded due to popularity"
+msgstr ""
+
+msgid "OOB hit-notifications processed under tight bandwidth"
+msgstr ""
+
+msgid "Notifications sent for local OOB hits"
+msgstr ""
+
+msgid "Notifications reliably sent for local OOB hits"
+msgstr ""
+
+#, fuzzy
+msgid "Claimed locally-generated OOB hits"
+msgstr "Hits OOB generados localmente no reclamados"
+
+#, fuzzy
+msgid "Claimed locally-generated reliable OOB hits"
+msgstr "Hits OOB generados localmente no reclamados"
+
 msgid "Unclaimed locally-generated OOB hits"
+msgstr "Hits OOB generados localmente no reclamados"
+
+#, fuzzy
+msgid "Unclaimed locally-generated reliable OOB hits"
 msgstr "Hits OOB generados localmente no reclamados"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Hits OOB generados localmente parcialmente reclamados"
+
+#, fuzzy
+msgid "Partially claimed locally-generated reliable OOB hits"
+msgstr "Hits OOB generados localmente parcialmente reclamados"
+
+msgid "Expired delivery for local OOB hits"
+msgstr ""
+
+msgid "Expired delivery for local reliable OOB hits"
+msgstr ""
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Reclamos de Hits OOB espurios recibidos"
 
 msgid "Unrequested OOB hits received"
 msgstr "Hits OOB no solicitados recibidos"
+
+msgid "OOB querying hosts banned for some time"
+msgstr ""
 
 msgid "Received query hits for untracked queries"
 msgstr ""
@@ -1329,6 +1369,78 @@ msgstr ""
 msgid "Uncompressed UDP messages due to no gain"
 msgstr "Mensajes UDP no comprimidos debido a falta de ganancia"
 
+msgid "UDP scheduler directly sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler directly sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler flow controlled (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message enqueued (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message finally sent (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_DATA)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_CONTROL)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_URGENT)"
+msgstr ""
+
+msgid "UDP scheduler message timeout (P_HIGHEST)"
+msgstr ""
+
+msgid "UDP scheduler message dropped: port=0"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no socket"
+msgstr ""
+
+msgid "UDP scheduler message dropped: I/O error"
+msgstr ""
+
+msgid "UDP scheduler message dropped: no longer needed"
+msgstr ""
+
 msgid "Ambiguous UDP messages received"
 msgstr ""
 
@@ -1356,13 +1468,135 @@ msgstr ""
 msgid "Semi-reliable UDP total messages partially sent due to clogging"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages flushed before lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP TX messages currently lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
 msgid "Semi-reliable UDP reliable messages given for transmission"
 msgstr ""
 
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr ""
 
-msgid "Semi-reliable UDP reliable messages not fully acknowledged"
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages partially acknowledged"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments sent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 1 fragment unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 2 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 3 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 4 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 5 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 6 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 7 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 8 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 9 fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable TX with 10+ fragments unsent"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP unreliable TX with 1 fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 2 fragments"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable TX with 3+ fragments"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent"
@@ -1371,10 +1605,31 @@ msgstr ""
 msgid "Semi-reliable UDP fragments resent"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP fragments sent whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP fragments resent whilst lingering"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable fragments sent"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable fragments sent"
+msgstr ""
+
 msgid "Semi-reliable UDP fragment sendings avoided"
 msgstr ""
 
 msgid "Semi-reliable UDP fragments sent too many times"
+msgstr ""
+
+#, fuzzy
+msgid ""
+"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr ""
 
 msgid "Semi-reliable UDP total acknowledgments received"
@@ -1385,6 +1640,10 @@ msgstr ""
 
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP acknowledgments received whilst lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr ""
@@ -1416,6 +1675,9 @@ msgstr ""
 msgid "Semi-reliable UDP too many EARs sent"
 msgstr ""
 
+msgid "Semi-reliable UDP EAR not resent whilst lingering"
+msgstr ""
+
 msgid "Semi-reliable UDP EAR negative acknowledgments received"
 msgstr ""
 
@@ -1437,6 +1699,10 @@ msgstr ""
 msgid "Semi-reliable UDP fragments received whilst lingering"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP RX messages currently lingering"
+msgstr "Mensajes UDP comprimidos recibidos"
+
 msgid "Semi-reliable UDP messages expired before re-assembly"
 msgstr ""
 
@@ -1455,6 +1721,93 @@ msgstr ""
 msgid "Semi-reliable UDP empty messages received"
 msgstr ""
 
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 1-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 2-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 3-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 4-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 5-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages received"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP unreliable RX 1-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages received"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 3-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 4-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP reliable RX 5-frag messages expired"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 6-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 7-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 8-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 9-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+#, fuzzy
+msgid "Semi-reliable UDP reliable RX 10+-frag messages expired"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP unreliable RX 2-frag messages expired"
+msgstr ""
+
+msgid "Semi-reliable UDP unreliable RX 3+-frag messages expired"
+msgstr ""
+
 msgid "Semi-reliable UDP total acknowledgments sent"
 msgstr ""
 
@@ -1465,6 +1818,22 @@ msgid "Semi-reliable UDP extended acknowledgments sent"
 msgstr ""
 
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
+msgstr ""
+
+msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+msgstr ""
+
+msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
+msgstr ""
+
+#, fuzzy
+msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
+msgstr "Mensajes UDP comprimidos recibidos"
+
+msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
+msgstr ""
+
+msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
 msgstr ""
 
 msgid "Semi-reliable UDP EARs received"
@@ -4773,6 +5142,68 @@ msgid "Defines whether lock sleeps should be traced."
 msgstr ""
 "Define cuáles intercambios de encabezados Gnutella  deberán ser trazados."
 
+msgid "If TRUE, then gtk-gnutella runs without a GUI interface."
+msgstr ""
+
+msgid ""
+"Whether OOB hit indications should be sent reliably over UDP when remote "
+"querying end has indicated support for semi-reliable UDP"
+msgstr ""
+
+#, fuzzy
+msgid "Debug level for the ADNS (asynchronous DNS) thread."
+msgstr "Nivel de depuración para búsquedas en cola de usuarios DHT."
+
+#, fuzzy
+msgid "Total outgoing HTTP traffic in bytes for this session."
+msgstr "Ancho de banda límite para tráfico HTTP saliente, en bytes/seg."
+
+msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total outgoing DHT traffic in bytes for this session."
+msgstr "Ancho de banda límite para tráfico HTTP saliente, en bytes/seg."
+
+msgid ""
+"Total outgoing traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total outgoing traffic in bytes on the private addresses for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming HTTP traffic in bytes for this session."
+msgstr "Ancho de banda límite para tráfico HTTP entrante, en bytes/seg."
+
+msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
+msgstr ""
+
+msgid "Total incoming Gnutella UDP traffic in bytes for this session."
+msgstr ""
+
+#, fuzzy
+msgid "Total incoming DHT traffic in bytes for this session."
+msgstr "Ancho de banda límite para tráfico HTTP entrante, en bytes/seg."
+
+msgid ""
+"Total incoming traffic in bytes on the loopback address for this session."
+msgstr ""
+
+msgid ""
+"Total incoming traffic in bytes on the private addresses for this session."
+msgstr ""
+
 msgid "disable"
 msgstr "desactivar"
 
@@ -6062,6 +6493,9 @@ msgstr "Wallis y Futuna"
 msgid "Samoa"
 msgstr "Samoa"
 
+msgid "Kosovo"
+msgstr ""
+
 msgid "Yemen"
 msgstr "Yemen"
 
@@ -6116,6 +6550,8 @@ msgstr "%um %us"
 msgid "%us"
 msgstr "%us"
 
+#. TRANSLATORS: Put the two-letter ISO 639 code here.
+#.
 msgid "locale_get_language|en"
 msgstr "es"
 
@@ -7608,8 +8044,8 @@ msgstr "Máximo"
 msgid "Measured HTTP latency:"
 msgstr "Latencia HTTP medida:"
 
-msgid "Meet us on #gtk-gnutella at irc.freenode.net."
-msgstr "Conózcanos en #gtk-gnutella en irc.freenode.net."
+msgid "Meet us on #gtk-gnutella at irc.libera.chat."
+msgstr "Conózcanos en #gtk-gnutella en irc.libera.chat."
 
 msgid "Min/Max:"
 msgstr "Mín/Máx:"
@@ -8821,6 +9257,18 @@ msgstr "Copiar al portapapeles"
 msgid "_Remove filter"
 msgstr "_Borrar filtro"
 
+#, fuzzy
+msgid "Meet us on #gtk-gnutella at libera.chat."
+msgstr "Conózcanos en #gtk-gnutella en irc.libera.chat."
+
+#, fuzzy
+msgid ""
+"This product includes IP2Location LITE data, available from\n"
+"https://lite.ip2location.com/"
+msgstr ""
+"Este producto incluye datos GeoIP creados por MaxMind, disponibles en\n"
+"http://maxmind.com/"
+
 msgid "_Close"
 msgstr "_Cerrar"
 
@@ -9613,8 +10061,8 @@ msgstr "(rápido) "
 msgid " E=%u"
 msgstr " E=%u"
 
-#, c-format
-msgid "%s(%s) TR: %s %s#%u"
+#, fuzzy, c-format
+msgid "%s(%s)%s%s TR: %s %s#%u"
 msgstr "%s(%s) TR: %s %s#%u"
 
 msgid "stalled"
@@ -9654,6 +10102,13 @@ msgstr "Enviando QUEUE, reconectando..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE enviado, esperando las cabeceras"
+
+#~ msgid "Not an ultra node"
+#~ msgstr "No es un nodo ultra"
+
+#~ msgid "Can only run as a leaf when TCP-firewalled"
+#~ msgstr ""
+#~ "Sólo se puede ejecutar en modo hoja cuando se está tras uncortafuegos TCP"
 
 #~ msgid "Unauthorized"
 #~ msgstr "No autorizado"

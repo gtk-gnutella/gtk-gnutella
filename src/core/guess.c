@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -1139,7 +1139,7 @@ guess_host_set_flags(const gnet_host_t *h, uint32 flags)
 	if (qk != NULL) {
 		if ((qk->flags & flags) != flags) {
 			qk->flags |= flags;
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 		}
 	}
 }
@@ -1157,7 +1157,7 @@ guess_host_clear_flags(const gnet_host_t *h, uint32 flags)
 	if (qk != NULL) {
 		if (qk->flags & flags) {
 			qk->flags &= ~flags;
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 		}
 	}
 }
@@ -1177,7 +1177,7 @@ guess_host_set_v2(const gnet_host_t *h)
 			qk->flags |= GUESS_F_PONG_IPP;
 			guess_02_hosts++;
 			gnet_stats_inc_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 			guess_cache_add(&guess_02_cache, h);
 		}
 	}
@@ -1198,7 +1198,7 @@ guess_host_clear_v2(const gnet_host_t *h)
 			qk->flags &= ~GUESS_F_PONG_IPP;
 			guess_02_hosts--;
 			gnet_stats_dec_general(GNR_GUESS_CACHED_02_HOSTS_HELD);
-			dbmw_write(db_qkdata, h, qk, sizeof *qk);
+			dbmw_write(db_qkdata, h, PTRLEN(qk));
 			guess_cache_remove(&guess_02_cache, h);
 		}
 	}
@@ -1268,7 +1268,7 @@ guess_traffic_from(const gnet_host_t *h, uint32 flags)
 
 	qk->last_seen = tm_time();
 	qk->timeouts = 0;
-	dbmw_write(db_qkdata, h, qk, sizeof *qk);
+	dbmw_write(db_qkdata, h, PTRLEN(qk));
 }
 
 /**
@@ -1296,7 +1296,7 @@ guess_timeout_from(const gnet_host_t *h)
 	if (qk != NULL) {
 		qk->last_timeout = tm_time();
 		qk->timeouts++;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1325,7 +1325,7 @@ guess_timeout_reset(const gnet_host_t *h, struct qkdata *qk)
 			g_debug("GUESS resetting timeouts for %s", gnet_host_to_string(h));
 		}
 		qk->timeouts = 0;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1353,10 +1353,10 @@ guess_record_g2(const gnet_host_t *h)
 		guess_g2_hosts++;
 		gnet_stats_inc_general(GNR_GUESS_CACHED_G2_HOSTS_HELD);
 
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	} else if (!(qk->flags & GUESS_F_G2)) {
 		qk->flags |= GUESS_F_G2;
-		dbmw_write(db_qkdata, h, qk, sizeof *qk);
+		dbmw_write(db_qkdata, h, PTRLEN(qk));
 	}
 }
 
@@ -1595,8 +1595,7 @@ guess_defer(guess_t *gq, const gnet_host_t *host, time_t earliest)
 		delay = MIN(delay, GUESS_TIMEOUT_DELAY);	/* Set upper boundary */
 		delay = MAX(delay, 0);
 
-		ripening_insert(guess_deferred, delay,
-			atom_host_get(host), int_to_pointer(1));
+		ripening_insert_key(guess_deferred, delay, atom_host_get(host));
 
 		if (GNET_PROPERTY(guess_client_debug) > 3) {
 			g_debug("GUESS deferring %s for next %s",
@@ -1894,7 +1893,7 @@ guess_record_qk(const gnet_host_t *h, const void *buf, size_t len, bool g2)
 	 * data in the DBMW cache through free_qkdata().
 	 */
 
-	dbmw_write(db_qkdata, h, &new_qk, sizeof new_qk);
+	dbmw_write(db_qkdata, h, VARLEN(new_qk));
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS got %u-byte query key from %s%s",
@@ -2206,7 +2205,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 						g_warning("GUESS QUERY[%s] G2 %s requests "
 							"%u sec%s querying delay, capping to %d",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra),
+							gnet_host_to_string(host), PLURAL(ra),
 							GUESS_TIMEOUT_DELAY);
 					}
 					ra = GUESS_TIMEOUT_DELAY;
@@ -2240,7 +2239,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 						g_debug("GUESS QUERY[%s] G2 %s requests "
 							"%u sec%s querying delay (%s)",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
-							gnet_host_to_string(host), ra, plural(ra),
+							gnet_host_to_string(host), PLURAL(ra),
 							qk != NULL ? timestamp_to_string(qk->retry_after) :
 								"not held in cache");
 					}
@@ -2287,7 +2286,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 							"G2 %s queried (%u lea%s) via %s",
 							NULL == gq ? "?" : nid_to_string(&gq->gid),
 							host_addr_port_to_string(addr, port),
-							lc, plural_f(lc), gnet_host_to_string(host));
+							PLURAL_F(lc), gnet_host_to_string(host));
 					}
 
 					if (NULL == gq) {
@@ -2382,8 +2381,7 @@ guess_handle_qa(guess_t *gq, const gnet_host_t *host, const g2_tree_t *t)
 			g_assert(delay > 0);
 
 			ripening_remove_using(guess_deferred, host, gnet_host_free_atom2);
-			ripening_insert(guess_deferred, delay,
-				atom_host_get(host), int_to_pointer(1));
+			ripening_insert_key(guess_deferred, delay, atom_host_get(host));
 
 			if (GNET_PROPERTY(guess_client_debug)) {
 				g_message("GUESS deferring %s again for next %s (adding %s)",
@@ -4003,7 +4001,7 @@ guess_load_more_hosts(guess_t *gq)
 
 	if (GNET_PROPERTY(guess_client_debug) > 4) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s in the pool%s",
-			nid_to_string(&gq->gid), added, plural(added),
+			nid_to_string(&gq->gid), PLURAL(added),
 			(gq->flags & GQ_F_POOL_LOAD) ? " (pool load pending)" : "");
 	}
 }
@@ -4047,7 +4045,7 @@ next:
 
 	if (GNET_PROPERTY(guess_client_debug) > 1) {
 		g_debug("GUESS QUERY[%s] loaded %zu more host%s from disk pool",
-			nid_to_string(&gq->gid), ctx.loaded, plural(ctx.loaded));
+			nid_to_string(&gq->gid), PLURAL(ctx.loaded));
 	}
 
 	guess_stats_fire(gq);
@@ -4066,7 +4064,7 @@ done:
 	if (GNET_PROPERTY(guess_client_debug) && count != 0) {
 		g_debug("GUESS %s() took %u ms for %u load%s",
 			G_STRFUNC, (unsigned) tm_elapsed_ms(&end, &start),
-			count, plural(count));
+			PLURAL(count));
 	}
 
 	return TRUE;				/* Keep calling */
@@ -4208,7 +4206,7 @@ guess_pmsg_free(pmsg_t *mb, void *arg)
 			gnet_stats_inc_general(GNR_GUESS_ULTRA_QUERIED);
 			if (GNET_PROPERTY(guess_client_debug) > 4) {
 				g_debug("GUESS QUERY[%s] sent %s to %s",
-					nid_to_string(&gq->gid), gmsg_infostr(pmsg_start(mb)),
+					nid_to_string(&gq->gid), gmsg_infostr(pmsg_phys_base(mb)),
 					gnet_host_to_string(pmi->host));
 			}
 		}
@@ -4716,7 +4714,7 @@ guess_query_dump(const guess_t *gq, const gnutella_node_t *n, const pmsg_t *mb)
 	str_t *s = str_private(G_STRFUNC, 80);
 
 	str_printf(s, "GUESS query \"%s\" to %s", gq->query, node_infostr(n));
-	dump_hex(stderr, str_2c(s), pmsg_start(mb), pmsg_written_size(mb));
+	dump_hex(stderr, str_2c(s), pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 /**
@@ -5137,8 +5135,7 @@ guess_iterate(guess_t *gq)
 		if (alpha <= 0) {
 			if (GNET_PROPERTY(guess_client_debug) > 2) {
 				g_debug("GUESS QUERY[%s] not iterating yet (%d RPC%s pending)",
-					nid_to_string(&gq->gid), gq->rpc_pending,
-					plural(gq->rpc_pending));
+					nid_to_string(&gq->gid), PLURAL(gq->rpc_pending));
 			}
 			return;
 		}
@@ -5155,7 +5152,7 @@ guess_iterate(guess_t *gq)
 			nid_to_string(&gq->gid), tm_elapsed_f(&now, &gq->start),
 			gq->hops, gq->query_acks, hash_list_length(gq->pool),
 			hset_count(gq->deferred), guess_mode_to_string(gq->mode),
-			alpha, plural(alpha), gq->rpc_pending);
+			PLURAL(alpha), gq->rpc_pending);
 	}
 
 	gq->flags |= GQ_F_SENDING;		/* Proctect against syncrhonous UDP drops */
@@ -5901,8 +5898,8 @@ guess_init(void)
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
 	guess_old_muids =
 		aging_make(GUESS_MUID_LINGER, guid_hash, guid_eq, guid_free_atom2);
-	guess_deferred =
-		ripening_make(gnet_host_hash, gnet_host_equal, guess_host_available);
+	guess_deferred = ripening_make(FALSE,
+		gnet_host_hash, gnet_host_equal, guess_host_available);
 
 	guess_load_link_cache();
 	guess_check_link_cache();

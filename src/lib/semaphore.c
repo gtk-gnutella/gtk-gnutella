@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -54,7 +54,9 @@
 #include <sys/ipc.h>
 #endif
 #ifdef I_SYS_SEM
+#define _GNU_SOURCE		/* For semtimedop() */
 #include <sys/sem.h>
+#undef _GNU_SOURCE
 #endif
 
 #include "semaphore.h"
@@ -381,7 +383,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 			 * The "surplus" indicates how many tokens were released in excess
 			 * compared to the desired total.  Even if there are threads for
 			 * which we reserved tokens (by awakening them) we need to attempt
-			 * grabbing the semaphore if there enough surplus.  Otherwise we
+			 * grabbing the semaphore if there is enough surplus.  Otherwise we
 			 * could hang in there, waiting for a release that may no longer
 			 * come.
 			 */
@@ -405,7 +407,7 @@ semaphore_emulate(semaphore_t *s, int amount, const tm_t *timeout, bool block)
 		 * semaphore was locked and we determined whether we had enough
 		 * tokens to proceed.
 		 *
-		 * Since time has elapsed since we made that decision, it is possible
+		 * Given time has elapsed since we made that decision, it is possible
 		 * that we could have been context-switched whilst another thread
 		 * released semaphore tokens and saw we were listed as waiting for
 		 * more tokens, thereby attempting to unblock us.
@@ -652,7 +654,7 @@ semaphore_allocate(uint *num)
 
 	if (capacity != SEMAPHORE_BATCH_AMOUNT) {
 		s_message("%s(): was only able to allocate %u semaphore%s in array",
-			G_STRFUNC, capacity, plural(capacity));
+			G_STRFUNC, PLURAL(capacity));
 	}
 
 	sb->capacity = capacity;
@@ -757,7 +759,7 @@ semaphore_destroy(semaphore_t **s_ptr)
 #endif
 		if (s->waiting != 0) {
 			s_carp("%s(): freeing semaphore with %u waiting thread%s",
-				G_STRFUNC, s->waiting, plural(s->waiting));
+				G_STRFUNC, PLURAL(s->waiting));
 		}
 		spinlock_destroy(&s->lock);
 		s->magic = 0;
@@ -857,7 +859,7 @@ semaphore_acquire_internal(semaphore_t *s, int amount, const tm_t *timeout,
 			/* Warn about our emulation, once per semaphore object */
 			atomic_uint_inc(&s->num);
 			s_carp("%s(): emulating semop(-%d), %d token%s available in %p",
-				G_STRFUNC, amount, s->tokens, plural(s->tokens), s);
+				G_STRFUNC, amount, PLURAL(s->tokens), s);
 		}
 #endif	/* !EMULATE_SEM */
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -372,8 +372,11 @@ natpmp_handle_discovery_reply(
 	uint32 ip;
 	host_addr_t wan_ip;
 	natpmp_t *np;
+	uint8 expected_code;
 
 	natpmp_rpc_check(rd);
+
+	expected_code = NATPMP_REPLY_OFF + rd->op;
 
 	/**
 	 * A NAT gateway will reply with the following message:
@@ -411,8 +414,8 @@ natpmp_handle_discovery_reply(
 			version, code, result, natpmp_strerror(result));
 	}
 
-	if (version != NATPMP_VERSION || code != NATPMP_REPLY_OFF + rd->op)
-		goto error;
+	if (version != NATPMP_VERSION || code != expected_code)
+		goto inconsistent;
 
 	if (NATPMP_E_OK != result)
 		goto failed;
@@ -460,15 +463,24 @@ failed:
 
 error:
 	if (GNET_PROPERTY(natpmp_debug)) {
-		if (bstr_has_error(bs)) {
-			g_warning("NATPMP parsing error while processing discovery reply "
-				"(%zu byte%s): %s",
-				len, plural(len), bstr_error(bs));
-		} else {
-			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, plural(len));
-		}
+		g_warning("NATPMP parsing error while processing discovery reply "
+			"(%zu byte%s): %s",
+			PLURAL(len), bstr_error(bs));
 	}
+	goto cleanup;
+
+inconsistent:
+	if (GNET_PROPERTY(natpmp_debug)) {
+		g_warning("NATPMP inconsistent discovery reply (%zu byte%s) from %s: "
+			"version=%u %c= %u, code=%u %c= %u, result_code=%u (%s)",
+			PLURAL(len), host_addr_to_string(rd->gateway),
+			version, NATPMP_VERSION == version ? '=' : '!', NATPMP_VERSION,
+			code, code == expected_code ? '=' : '!', expected_code,
+			result, natpmp_strerror(result));
+	}
+	/* FALL THROUGH */
+
+cleanup:
 	bstr_free(&bs);
 	return FALSE;
 }
@@ -494,8 +506,11 @@ natpmp_handle_mapping_reply(
 	uint16 result = 0;
 	uint16 port;
 	uint32 lifetime;
+	uint8 expected_code;
 
 	natpmp_rpc_check(rd);
+
+	expected_code = NATPMP_REPLY_OFF + rd->op;
 
 	/*
 	 * We expect the following reply to a mapping request:
@@ -532,8 +547,8 @@ natpmp_handle_mapping_reply(
 			version, code, result, natpmp_strerror(result));
 	}
 
-	if (version != NATPMP_VERSION || code != NATPMP_REPLY_OFF + rd->op)
-		goto error;
+	if (version != NATPMP_VERSION || code != expected_code)
+		goto inconsistent;
 
 	if (NATPMP_E_OK != result)
 		goto failed;
@@ -578,14 +593,25 @@ failed:
 error:
 	if (GNET_PROPERTY(natpmp_debug)) {
 		if (bstr_has_error(bs)) {
-			g_warning("NATPMP parsing error while processing discovery reply "
+			g_warning("NATPMP parsing error while processing mapping reply "
 				"(%zu byte%s): %s",
-				len, plural(len), bstr_error(bs));
-		} else {
-			g_warning("NATPMP inconsistent discovery reply (%zu byte%s)",
-				len, plural(len));
+				PLURAL(len), bstr_error(bs));
 		}
 	}
+	goto cleanup;
+
+inconsistent:
+	if (GNET_PROPERTY(natpmp_debug)) {
+		g_warning("NATPMP inconsistent mapping reply (%zu byte%s) from %s: "
+			"version=%u %c= %u, code=%u %c= %u, result_code=%u (%s)",
+			PLURAL(len), host_addr_to_string(rd->gateway),
+			version, NATPMP_VERSION == version ? '=' : '!', NATPMP_VERSION,
+			code, code == expected_code ? '=' : '!', expected_code,
+			result, natpmp_strerror(result));
+	}
+	/* FALL THROUGH */
+
+cleanup:
 	bstr_free(&bs);
 	return FALSE;
 }
@@ -606,7 +632,7 @@ natpmp_rpc_reply(enum urpc_ret type, host_addr_t addr, uint16 port,
 			URPC_TIMEOUT == type ? "timeout" :
 			URPC_ABORT == type ? "aborted" : "got reply",
 			natpmp_op_to_string(rd->op), rd->count,
-			(unsigned long) len, plural(len),
+			(unsigned long) PLURAL(len),
 			host_addr_port_to_string(addr, port));
 	}
 
@@ -678,7 +704,7 @@ natpmp_rpc_iterate(cqueue_t *unused_cq, void *obj)
 		goto finished;
 
 	ret = urpc_send("NAT-PMP", rd->gateway, NATPMP_SRV_PORT,
-			pmsg_start(rd->mb), pmsg_size(rd->mb), rd->timeout,
+			pmsg_phys_base(rd->mb), pmsg_written_size(rd->mb), rd->timeout,
 			natpmp_rpc_reply, rd);
 
 	if (0 != ret) {

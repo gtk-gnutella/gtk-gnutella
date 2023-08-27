@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -82,6 +82,7 @@
 #include "lib/bstr.h"
 #include "lib/cq.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
 #include "lib/hashing.h"
@@ -611,7 +612,7 @@ size_t
 dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 {
 	if (type == DHT_VT_BINARY) {
-		return g_strlcpy(buf, "BIN.", size);
+		return cstr_bcpy(buf, size, "BIN.");
 	} else {
 		char tmp[5];
 		size_t i;
@@ -623,7 +624,7 @@ dht_value_type_to_string_buf(uint32 type, char *buf, size_t size)
 				tmp[i] = '.';
 		}
 		tmp[4] = '\0';
-		return g_strlcpy(buf, tmp, size);
+		return cstr_bcpy(buf, size, tmp);
 	}
 }
 
@@ -637,7 +638,7 @@ dht_value_type_to_string(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -651,7 +652,7 @@ dht_value_type_to_string2(uint32 type)
 {
 	static char buf[5];
 
-	dht_value_type_to_string_buf(type, buf, sizeof buf);
+	dht_value_type_to_string_buf(type, ARYLEN(buf));
 	return buf;
 }
 
@@ -668,13 +669,13 @@ dht_value_to_string(const dht_value_t *v)
 	char kuid[KUID_RAW_SIZE * 2 + 1];
 	char type[5];
 
-	bin_to_hex_buf(v->id, KUID_RAW_SIZE, kuid, sizeof kuid);
-	knode_to_string_buf(v->creator, knode, sizeof knode);
-	dht_value_type_to_string_buf(v->type, type, sizeof type);
+	bin_to_hex_buf(v->id, KUID_RAW_SIZE, ARYLEN(kuid));
+	knode_to_string_buf(v->creator, ARYLEN(knode));
+	dht_value_type_to_string_buf(v->type, ARYLEN(type));
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"value pk=%s as %s v%u.%u (%u byte%s) created by %s",
-		kuid, type, v->major, v->minor, v->length, plural(v->length),
+		kuid, type, v->major, v->minor, PLURAL(v->length),
 		knode);
 
 	return buf;
@@ -876,7 +877,7 @@ kuid_pair_was_expired(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return FALSE;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	return dbmw_exists(db_expired, buf);
 }
 
@@ -907,7 +908,7 @@ kuid_pair_has_expired(const kuid_t *key, const kuid_t *skey)
 	if (!keys_within_kball(key))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_write(db_expired, buf, NULL, 0);
 }
 
@@ -929,7 +930,7 @@ kuid_pair_was_republished(const kuid_t *key, const kuid_t *skey)
 	if (DBMAP_MAP == dbmw_map_type(db_expired))
 		return;
 
-	kuid_pair_fill(buf, sizeof buf, key, skey);
+	kuid_pair_fill(ARYLEN(buf), key, skey);
 	dbmw_delete(db_expired, buf);
 }
 
@@ -960,6 +961,28 @@ get_valuedata(uint64 dbkey)
 }
 
 /**
+ * Physically remove the entry, updating the statistics.
+ *
+ * @param dbkey			the 64-bit DB key
+ * @param vd			the valuedata object
+ */
+static void
+delete_valuedata_at_key(uint64 dbkey, const struct valuedata *vd)
+{
+	g_assert(values_managed > 0);
+
+	values_managed--;
+	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
+	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
+	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
+
+	keys_remove_value(&vd->id, &vd->cid, dbkey);
+
+	dbmw_delete(db_rawdata, &dbkey);
+	dbmw_delete(db_valuedata, &dbkey);
+}
+
+/**
  * Delete valuedata from the database.
  *
  * @param dbkey			the 64-bit DB key
@@ -970,24 +993,14 @@ delete_valuedata(uint64 dbkey, bool has_expired)
 {
 	const struct valuedata *vd;
 
-	g_assert(values_managed > 0);
-
 	vd = get_valuedata(dbkey);
 	if (NULL == vd)
 		return;			/* I/O error or corrupted data */
 
-	values_managed--;
-	acct_net_update(values_per_class_c, vd->addr, NET_CLASS_C_MASK, -1);
-	acct_net_update(values_per_ip, vd->addr, NET_IPv4_MASK, -1);
-	gnet_stats_dec_general(GNR_DHT_VALUES_HELD);
-
 	if (has_expired)
 		kuid_pair_has_expired(&vd->id, &vd->cid);
 
-	keys_remove_value(&vd->id, &vd->cid, dbkey);
-
-	dbmw_delete(db_rawdata, &dbkey);
-	dbmw_delete(db_valuedata, &dbkey);
+	delete_valuedata_at_key(dbkey, vd);
 }
 
 /**
@@ -1209,7 +1222,7 @@ validate_load(const dht_value_t *v)
 	bool full;
 	bool loaded;
 
-	keys_get_status(v->id, &full, &loaded);
+	keys_get_status(v->id, &full, &loaded, TRUE);
 
 	if (full && loaded)
 		return STORE_SC_FULL_LOADED;
@@ -1712,8 +1725,27 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
 		}
 
-		g_assert(data);
-		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
+		if (length != vd->length) {
+			/*
+			 * Our bookkeeping is faulty, or the data has been corrupted.
+			 */
+
+			s_critical(
+				"DBMW \"%s\" inconsistent length %u for %s in DB (expected %zu) "
+				"for key %s, published %s ago by %s -- "
+				"%s() aborted and data cleared",
+				dbmw_name(db_rawdata), vd->length,
+				dht_value_type_to_string(vd->type), length,
+				kuid_to_hex_string(&vd->id),
+				compact_time(delta_time(tm_time(), vd->publish)),
+				host_addr_port_to_string(vd->addr, vd->port),
+				G_STRFUNC
+			);
+
+			delete_valuedata_at_key(dbkey, vd);
+			return STORE_SC_DB_IO;		/* I/O error or corrupted DB */
+		}
+
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
 
 		if (0 != memcmp(data, v->data, v->length)) {
@@ -1741,7 +1773,7 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		dbmw_write(db_rawdata, &dbkey, deconstify_pointer(v->data), v->length);
 	}
 
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	return STORE_SC_OK;
 
@@ -1754,7 +1786,7 @@ mismatch:
 			kuid_to_hex_string(&vd->id), kuid_to_hex_string2(&vd->cid),
 			dht_value_type_to_string(vd->type),
 			vd->value_major, vd->value_minor,
-			vd->length, plural(vd->length),
+			PLURAL(vd->length),
 			vd->original ? "original" : "copy");
 	}
 
@@ -1794,7 +1826,7 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 	if (GNET_PROPERTY(dht_storage_debug) > 1) {
 		g_debug("DHT STORE %s as %s v%u.%u (%u byte%s) created by %s (%s)",
 			kuid_to_hex_string(v->id), dht_value_type_to_string(v->type),
-			v->major, v->minor, v->length, plural(v->length),
+			v->major, v->minor, PLURAL(v->length),
 			knode_to_string(v->creator),
 			kuid_eq(v->creator->id, kn->id) ? "original" : "copy");
 
@@ -1911,7 +1943,7 @@ values_get(uint64 dbkey, dht_value_type_t type)
 	 */
 
 	vd->n_requests++;
-	dbmw_write(db_valuedata, &dbkey, vd, sizeof *vd);
+	dbmw_write(db_valuedata, &dbkey, PTRLEN(vd));
 
 	if (vd->length) {
 		size_t length;
@@ -1926,8 +1958,26 @@ values_get(uint64 dbkey, dht_value_type_t type)
 			return NULL;		/* I/O error or corrupted DB */
 		}
 
-		g_assert(data);
-		g_assert(length == vd->length);		/* Or our bookkeeping is faulty */
+		if (length != vd->length) {
+			/*
+			 * Our bookkeeping is faulty, or the data has been corrupted.
+			 */
+
+			s_critical(
+				"DBMW \"%s\" inconsistent length %u for %s in DB (expected %zu) "
+				"for key %s, published %s ago by %s -- "
+				"%s() aborted and data cleared",
+				dbmw_name(db_rawdata), vd->length,
+				dht_value_type_to_string(vd->type), length,
+				kuid_to_hex_string(&vd->id),
+				compact_time(delta_time(tm_time(), vd->publish)),
+				host_addr_port_to_string(vd->addr, vd->port),
+				G_STRFUNC
+			);
+
+			delete_valuedata_at_key(dbkey, vd);
+			return NULL;
+		}
 
 		vdata = wcopy(data, length);
 	}
@@ -2000,9 +2050,15 @@ values_reload(void *key, void *value, size_t u_len, void *data)
 	/*
 	 * Ensure key is not full.  If the database is corrupted, then we may
 	 * attempt to load more values than the key can hold.
+	 *
+	 * NOTE: we do not allow key expiration to kick-in whilst we reload
+	 * values from the database.  That could create re-entrant queries on
+	 * the databases we are iterating over currently, and create assertion
+	 * failures.
+	 * 		--RAM, 2018-04-08
 	 */
 
-	keys_get_status(&vd->id, &full, &loaded);
+	keys_get_status(&vd->id, &full, &loaded, FALSE);
 
 	if (full) {
 		g_warning("DHT VALUE ignoring persisted value pk=%s, sk=%s: full key!",
@@ -2133,7 +2189,7 @@ values_init_data(const hset_t *dbkeys)
 
 	if (GNET_PROPERTY(dht_values_debug)) {
 		g_debug("DHT VALUES attempting to reload %zu value%s out of %zu",
-			hset_count(dbkeys), plural(hset_count(dbkeys)),
+			PLURAL(hset_count(dbkeys)),
 			dbmw_count(db_valuedata));
 	}
 
@@ -2165,8 +2221,8 @@ values_init_data(const hset_t *dbkeys)
 		dbmw_count(db_rawdata), dbmw_count(db_valuedata));
 
 	if (GNET_PROPERTY(dht_values_debug)) {
-		g_debug("DHT VALUES reloaded %zu value%s", dbmw_count(db_valuedata),
-			plural(dbmw_count(db_valuedata)));
+		g_debug("DHT VALUES reloaded %zu value%s",
+			PLURAL(dbmw_count(db_valuedata)));
 	}
 
 	/*

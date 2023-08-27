@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -51,6 +51,7 @@
 #include "buf.h"
 #include "erbtree.h"
 #include "eslist.h"
+#include "log.h"
 #include "misc.h"
 #include "parse.h"
 #include "str.h"
@@ -82,13 +83,13 @@
 #ifdef HTTP_RANGE_DEBUGGING
 #define HTTP_RANGE_DEBUG(l, msg, ...) G_STMT_START {	\
 	if (http_range_debugging(l)) {						\
-		g_debug("%s(): " msg, G_STRFUNC, __VA_ARGS__);	\
+		s_debug("%s(): " msg, G_STRFUNC, __VA_ARGS__);	\
 	}													\
 } G_STMT_END
 
 #define HTTP_RANGE_PRINT(l, msg) G_STMT_START {	\
 	if (http_range_debugging(l)) {				\
-		g_debug("%s(): " msg, G_STRFUNC);		\
+		s_debug("%s(): " msg, G_STRFUNC);		\
 	}											\
 } G_STMT_END
 #else
@@ -461,6 +462,28 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 		return NULL;
 
 	/*
+	 * Range `hri' MUST overlap with `range' defined by [start, end].
+	 *
+	 * We already know that start <= end, since this is a pre-condition.
+	 *
+	 * We first assert that hri is a valid interval, which implies that
+	 * hri>start <= hri->end naturally.
+	 *
+	 * And then we need to ensure that the two ranges overlap, that is
+	 * we both have:
+	 *
+	 * 	start <= hri->end
+	 * 	hri->start <= end
+	 */
+
+	http_range_item_check(hri);
+	g_assert_log(start <= hri->end && hri->start <= end,
+		"%s(): given range [%zu, %zu] not overlapping with found [%zu, %zu]",
+		G_STRFUNC,
+		(size_t) start, (size_t) end,
+		(size_t) hri->start, (size_t) hri->end);
+
+	/*
 	 * Move to the earliest overlapping range.
 	 */
 
@@ -479,9 +502,62 @@ http_rangeset_lookup_first(const http_rangeset_t *hrs,
 			break;			/* Not overlapping */
 
 		hri = prange;		/* Update earliest overlapping range */
+
+		/*
+		 * Same assertions as above, but this time we already know that
+		 * hri->end >= start due to the comparison we just did between
+		 * prange->end and start.
+		 *
+		 * Also since we called http_range_item_check() on prange, we know
+		 * due to the above assignment that hri->start <= hri->end.
+		 */
+
+		g_assert_log(hri->start <= end,
+			"%s(): given range [%zu, %zu] not overlapping with found [%zu, %zu]",
+			G_STRFUNC,
+			(size_t) start, (size_t) end,
+			(size_t) hri->start, (size_t) hri->end);
 	}
 
 	return HTTP_RANGE(hri);
+}
+
+/**
+ * Iterate along all the ranges (ordered by increasing starting point)
+ * overlapping with the specified boundaries.
+ *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
+ * @param hrs		the HTTP range set
+ * @param start		start of HTTP range
+ * @param end		end (last byte) of HTTP range
+ * @param r			previous return, NULL if starting iteration
+ *
+ * @return next HTTP range if a match is found, NULL if no more overlapping range.
+ */
+const http_range_t *
+http_rangeset_lookup_over(const http_rangeset_t *hrs,
+	filesize_t start, filesize_t end, const http_range_t *r)
+{
+	const http_range_t *rn;
+
+	http_rangeset_check(hrs);
+
+	if (NULL == r)
+		return http_rangeset_lookup_first(hrs, start, end);
+
+	rn = http_range_next(hrs, r);
+
+	if (NULL == rn)
+		return NULL;
+
+	if (rn->start > end)
+		return NULL;
+
+	return rn;
 }
 
 /**
@@ -979,6 +1055,11 @@ http_range_first(const http_rangeset_t *hrs)
 /**
  * Continue iteration over the list of HTTP ranges.
  *
+ * @note
+ * It is critical that the `r' parameter be the output of a previous iteration,
+ * as returned by this layer.  The type is misleading, because we're casting
+ * away our internal representation into a simpler structure.
+ *
  * @param hrs		the HTTP range set
  * @param r			the previous HTTP range iterated over
  *
@@ -993,6 +1074,7 @@ http_range_next(const http_rangeset_t *hrs, const http_range_t *r)
 
 	http_rangeset_check(hrs);
 
+	/* Ensure that the `r' they gave us is really our internal structure */
 	hitem = (const struct http_range_item *) r;
 	http_range_item_check(hitem);
 
@@ -1046,7 +1128,7 @@ http_range_parser_add_range(const char *where,
 		return TRUE;
 	case HTTP_RANGE_OVERLAP:
 		if (http_range_debugging(0)) {
-			g_warning("%s(): weird %s header from <%s>, offset %zu "
+			s_warning("%s(): weird %s header from <%s>, offset %zu "
 				"(overlapping range #%zu %s-%s): %s",
 				where, field, vendor, offset, count,
 				filesize_to_string(start), filesize_to_string(end),
@@ -1055,7 +1137,7 @@ http_range_parser_add_range(const char *where,
 		break;
 	case HTTP_RANGE_DUPLICATE:
 		if (http_range_debugging(0)) {
-			g_warning("%s(): weird %s header from <%s>, offset %zu "
+			s_warning("%s(): weird %s header from <%s>, offset %zu "
 				"(duplicate range #%zu %s-%s): %s",
 				where, field, vendor, offset, count,
 				filesize_to_string(start), filesize_to_string(end),
@@ -1110,14 +1192,14 @@ http_range_parser(
 		c = *str;
 		if (!is_ascii_space(c) && c != '=') {
 			if (http_range_debugging(0)) {
-				g_warning("%s(): improper %s header from <%s>: %s",
+				s_warning("%s(): improper %s header from <%s>: %s",
 					G_STRFUNC, field, vendor, value);
 			}
 			return FALSE;
 		}
 	} else {
 		if (http_range_debugging(0)) {
-			g_warning("%s(): improper %s header from <%s> (not bytes?): %s",
+			s_warning("%s(): improper %s header from <%s> (not bytes?): %s",
 				G_STRFUNC, field, vendor, value);
 		}
 		return FALSE;
@@ -1132,7 +1214,7 @@ http_range_parser(
 		if ('=' == c) {
 			if (request) {
 				if (http_range_debugging(0)) {
-					g_warning("%s(): improper %s header from <%s> "
+					s_warning("%s(): improper %s header from <%s> "
 						"(multiple '='): %s", G_STRFUNC, field, vendor, value);
 				}
 				return FALSE;
@@ -1167,7 +1249,7 @@ http_range_parser(
 
 			if (!minus_seen) {
 				if (http_range_debugging(0)) {
-					g_warning("%s(): weird %s header from <%s>, offset %zu "
+					s_warning("%s(): weird %s header from <%s>, offset %zu "
 						"(no range?): %s",
 						G_STRFUNC, field, vendor, (str - value) - 1, value);
 				}
@@ -1177,7 +1259,7 @@ http_range_parser(
 			if (HTTP_OFFSET_MAX == start && !has_end) {
 				/* Bad negative range */
 				if (http_range_debugging(0)) {
-					g_warning("%s(): weird %s header from <%s>, offset %zu "
+					s_warning("%s(): weird %s header from <%s>, offset %zu "
 						"(incomplete negative range): %s",
 						G_STRFUNC, field, vendor, (str - value) - 1, value);
 				}
@@ -1186,7 +1268,7 @@ http_range_parser(
 
 			if (start > end) {
 				if (http_range_debugging(0)) {
-					g_warning("%s(): weird %s header from <%s>, offset %zu "
+					s_warning("%s(): weird %s header from <%s>, offset %zu "
 						"(swapped range?): %s",
 						G_STRFUNC, field, vendor, (str - value) - 1, value);
 				}
@@ -1215,7 +1297,7 @@ http_range_parser(
 		if ('-' == c) {
 			if (minus_seen) {
 				if (http_range_debugging(0)) {
-					g_warning("%s(): weird %s header from <%s>, "
+					s_warning("%s(): weird %s header from <%s>, "
 						"offset %zu (spurious '-'): %s",
 						G_STRFUNC, field, vendor, (str - value) - 1, value);
 				}
@@ -1225,7 +1307,7 @@ http_range_parser(
 			if (!has_start) {		/* Negative range */
 				if (!request) {
 					if (http_range_debugging(0)) {
-						g_warning("%s(): weird %s header from <%s>, offset %zu "
+						s_warning("%s(): weird %s header from <%s>, offset %zu "
 							"(negative range in reply): %s",
 							G_STRFUNC, field, vendor, (str - value) - 1, value);
 					}
@@ -1249,7 +1331,7 @@ http_range_parser(
 
 			if (has_end) {
 				if (http_range_debugging(0)) {
-					g_warning("%s(): weird %s header from <%s>, offset %zu "
+					s_warning("%s(): weird %s header from <%s>, offset %zu "
 						"(spurious boundary %s): %s",
 						G_STRFUNC, field, vendor, (str - value) - 1,
 						uint64_to_string(val), value);
@@ -1269,7 +1351,7 @@ http_range_parser(
 			if (has_start) {
 				if (!minus_seen) {
 					if (http_range_debugging(0)) {
-						g_warning("%s(): weird %s header from <%s>, offset %zu "
+						s_warning("%s(): weird %s header from <%s>, offset %zu "
 							"(no '-' before boundary %s): %s",
 							G_STRFUNC, field, vendor, (str - value) - 1,
 							uint64_to_string(val), value);
@@ -1291,7 +1373,7 @@ http_range_parser(
 		}
 
 		if (http_range_debugging(0)) {
-			g_warning("%s(): weird %s header from <%s>, offset %zu "
+			s_warning("%s(): weird %s header from <%s>, offset %zu "
 				"(unexpected char '%c'): %s",
 				G_STRFUNC, field, vendor, (str - value) - 1, c, value);
 		}
@@ -1315,7 +1397,7 @@ http_range_parser(
 	if (minus_seen) {
 		if (HTTP_OFFSET_MAX == start && !has_end) {	/* Bad negative range */
 			if (http_range_debugging(0)) {
-				g_warning("%s(): weird %s header from <%s>, offset %zu "
+				s_warning("%s(): weird %s header from <%s>, offset %zu "
 					"(incomplete trailing negative range): %s",
 					G_STRFUNC, field, vendor, (str - value) - 1, value);
 			}
@@ -1324,7 +1406,7 @@ http_range_parser(
 
 		if (start > end) {
 			if (http_range_debugging(0)) {
-				g_warning("%s(): weird %s header from <%s>, offset %zu "
+				s_warning("%s(): weird %s header from <%s>, offset %zu "
 					"(swapped trailing range?): %s",
 					G_STRFUNC, field, vendor, (str - value) - 1, value);
 			}
@@ -1346,7 +1428,7 @@ http_range_parser(
 final:
 
 	if (http_range_debugging(0) && 0 == count) {
-		g_warning("%s(): retained no ranges in %s header from <%s>: %s",
+		s_warning("%s(): retained no ranges in %s header from <%s>: %s",
 			G_STRFUNC, field, vendor, value);
 	}
 
@@ -1376,8 +1458,8 @@ http_rangeset_to_string(const http_rangeset_t *hrs)
 		if (0 != str_len(s))
 			str_cat_len(s, comma, CONST_STRLEN(comma));
 
-		slen = uint64_to_string_buf(hri->start, sbuf, sizeof sbuf);
-		elen = uint64_to_string_buf(hri->end, ebuf, sizeof ebuf);
+		slen = uint64_to_string_buf(hri->start, ARYLEN(sbuf));
+		elen = uint64_to_string_buf(hri->end,   ARYLEN(ebuf));
 
 		str_cat_len(s, sbuf, slen);
 		str_putc(s, '-');
@@ -1785,7 +1867,7 @@ http_range_test(void)
 	g_assert(1 == http_rangeset_count(hrs_even));
 
 	http_rangeset_free_null(&hrs_even);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_even = HTTP_RANGE_TEST_LOAD(hrtest_even);
 	http_rangeset_merge(hrs_even, hrs_odd);
@@ -1796,7 +1878,7 @@ http_range_test(void)
 
 	http_rangeset_free_null(&hrs_even);
 	http_rangeset_free_null(&hrs_odd);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_even = HTTP_RANGE_TEST_LOAD(hrtest_even);
 	hrs_odd = HTTP_RANGE_TEST_LOAD(hrtest_odd);
@@ -1810,7 +1892,7 @@ http_range_test(void)
 	g_assert(1 == http_rangeset_count(hrs_odd));
 
 	http_rangeset_free_null(&hrs_odd);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_odd = HTTP_RANGE_TEST_LOAD(hrtest_odd);
 	http_rangeset_merge(hrs_odd, hrs_even);
@@ -1821,7 +1903,7 @@ http_range_test(void)
 
 	http_rangeset_free_null(&hrs_even);
 	http_rangeset_free_null(&hrs_odd);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_even = HTTP_RANGE_TEST_LOAD(hrtest_even);
 	hrs_over = HTTP_RANGE_TEST_LOAD(hrtest_overlap);
@@ -1835,7 +1917,7 @@ http_range_test(void)
 	g_assert(1 == http_rangeset_count(hrs_over));
 
 	http_rangeset_free_null(&hrs_over);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_over = HTTP_RANGE_TEST_LOAD(hrtest_overlap);
 
@@ -1849,7 +1931,7 @@ http_range_test(void)
 
 	http_rangeset_free_null(&hrs_even);
 	http_rangeset_free_null(&hrs_over);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_even = HTTP_RANGE_TEST_LOAD(hrtest_even);
 	hrs_odd = HTTP_RANGE_TEST_LOAD(hrtest_odd);
@@ -1869,7 +1951,7 @@ http_range_test(void)
 	http_rangeset_free_null(&hrs_even);
 	http_rangeset_free_null(&hrs_odd);
 	http_rangeset_free_null(&hrs_over);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_partial = HTTP_RANGE_TEST_LOAD(hrtest_partial);
 	hrs_added = HTTP_RANGE_TEST_LOAD(hrtest_added);
@@ -1884,7 +1966,7 @@ http_range_test(void)
 	g_assert(http_rangeset_equal(hrs_partial, hrs_result));
 
 	http_rangeset_free_null(&hrs_partial);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_partial = HTTP_RANGE_TEST_LOAD(hrtest_partial);
 
@@ -1895,7 +1977,7 @@ http_range_test(void)
 	http_rangeset_free_null(&hrs_partial);
 	http_rangeset_free_null(&hrs_added);
 	http_rangeset_free_null(&hrs_result);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	hrs_result = HTTP_RANGE_TEST_LOAD(hrtest_result);
 	s = str_new(0);
@@ -1914,7 +1996,7 @@ http_range_test(void)
 		g_assert(hrtest_result[0].end == end);
 	}
 
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 
 	{
 		http_rangeset_t *hrs;
@@ -1929,7 +2011,7 @@ http_range_test(void)
 
 	str_destroy_null(&s);
 	http_rangeset_free_null(&hrs_result);
-	g_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
+	s_info("%s(): test #%-2u OK at %s", G_STRFUNC, test++, G_STRLOC);
 }
 #else	/* !HTTP_RANGE_TESTING */
 void G_COLD

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -198,6 +198,12 @@ void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
  * cost to the locking / unlocking process.
  */
 
+#define spinlock_direct_full(x,w,l) G_STMT_START {	\
+	(x)->lock = 1;									\
+	(x)->file = (w);								\
+	(x)->line = (l);								\
+} G_STMT_END
+
 #define spinlock_direct(x) G_STMT_START {	\
 	(x)->lock = 1;							\
 	(x)->file = _WHERE_;					\
@@ -209,6 +215,10 @@ void spinlock_raw_from(spinlock_t *s, const char *file, unsigned line);
 } G_STMT_END
 
 #else	/* !SPINLOCK_DEBUG */
+
+#define spinlock_direct_full(x,w,l) G_STMT_START {	\
+	(x)->lock = 1;									\
+}
 
 #define spinlock_direct(x) G_STMT_START {	\
 	(x)->lock = 1;							\

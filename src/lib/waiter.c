@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -72,9 +72,11 @@
 #include "common.h"
 
 #include "waiter.h"
+
 #include "elist.h"
 #include "fd.h"
 #include "spinlock.h"
+#include "stringify.h"			/* For PLURAL_CHILD() */
 #include "thread.h"				/* For thread_assert_no_locks() */
 #include "walloc.h"
 
@@ -525,7 +527,7 @@ waiter_ack(waiter_t *w)
 		G_STRFUNC, w, mw,
 		mw->m_notified ? 'y' : 'n',
 		mw->m_blocking ? 'y' : 'n',
-		mw->children, 1 == mw->children ? "" : "ren",
+		PLURAL_CHILD(mw->children),
 		elist_count(&mw->idle), elist_count(&mw->active));
 
 	if (w->notified) {

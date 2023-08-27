@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2010-2016 Raphael Manfredi
+ * Copyright (c) 2010-2018 Raphael Manfredi
  * Copyright (c) 2003-2009 Chrisian Biere
  * Copyright (c) 2001-2003 Richard Eckart
  *
@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,7 +34,7 @@
  * @author Christian Biere
  * @date 2003-2009
  * @author Raphael Manfredi
- * @date 2010-2016
+ * @date 2010-2018
  */
 
 #ifndef _gcc_h_
@@ -327,6 +327,49 @@
 #define G_IGNORE(x) G_PRAGMA(GCC diagnostic ignored #x)
 #else
 #define G_IGNORE(x)
+#endif
+
+/**
+ * G_FALL_THROUGH can be used to disable the fall-through warning in case
+ * statements.
+ */
+#if HAS_GCC(7, 0)
+#define G_FALL_THROUGH	__attribute__((fallthrough));
+#else
+#define G_FALL_THROUGH
+#endif
+
+/**
+ * G_FAST can be used to tag a function for extreme optimizations.
+ */
+#if HAS_GCC(4, 4)
+#define G_FAST	__attribute__((optimize(3)))
+#else
+#define G_FAST
+#endif
+
+/**
+ * G_NO_OPTIMIZE can be used to turn-off optimizations for a function.
+ */
+#if HAS_GCC(4, 4)
+#define G_NO_OPTIMIZE	__attribute__((optimize(0)))
+#else
+#define G_NO_OPTIMIZE
+#endif
+
+/**
+ * G_NON_NULL can be used to specify that a function returns a non-NULL pointer.
+ *
+ * FIXME
+ * This is not working currently (2018-12-09) with gcc-6.3, probably because
+ * G_NON_NULL is not correctly tagging all the routines that cannot return NULL.
+ * The symptom is that these routines start to return NULL pointers, precisely,
+ * causing a crash!  To be investigated, but for now disabling this tagging.
+ */
+#if 0 && HAS_GCC(5, 1)
+#define G_NON_NULL	__attribute__((returns_nonnull))
+#else
+#define G_NON_NULL
 #endif
 
 #endif	/* _gcc.h_ */

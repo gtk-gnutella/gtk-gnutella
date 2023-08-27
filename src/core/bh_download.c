@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -345,7 +345,7 @@ browse_data_g2_process(struct browse_ctx *bc)
 	if (G2_MSG_QH2 != g2_msg_name_type(g2_tree_name(t))) {
 		if (GNET_PROPERTY(download_debug) || GNET_PROPERTY(log_dropped_g2)) {
 			g_debug("BROWSE %s(): ignoring unexpected /%s (%u byte%s) from %s",
-				G_STRFUNC, g2_tree_name(t), bc->size, plural(bc->size),
+				G_STRFUNC, g2_tree_name(t), PLURAL(bc->size),
 				gnet_host_to_string(&bc->host));
 			if (GNET_PROPERTY(log_bad_g2))
 				g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN | G2FMT_O_PAYLOAD);

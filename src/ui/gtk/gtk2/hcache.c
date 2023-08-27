@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -73,6 +73,8 @@ add_column(GtkTreeView *treeview,
 		"sizing", GTK_TREE_VIEW_COLUMN_FIXED,
 		NULL_PTR);
 	gtk_tree_view_append_column(treeview, column);
+
+	gui_column_map(column, treeview);	/* Capture resize events */
 }
 
 /***
@@ -108,6 +110,8 @@ hcache_gui_init(void)
             (-1));
 	}
 
+	gui_parent_widths_saveto(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
+
 	for (n = 0; (guint) n < N_ITEMS(hcache_col_labels); n++) {
 		add_column(treeview_hcache, n, (gfloat) (n != 0),
 			_(hcache_col_labels[n].text));
@@ -123,7 +127,7 @@ hcache_gui_init(void)
 void
 hcache_gui_shutdown(void)
 {
-    tree_view_save_widths(treeview_hcache, PROP_HCACHE_COL_WIDTHS);
+	/* Nothing to do now */
 }
 
 void

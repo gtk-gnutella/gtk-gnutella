@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -189,7 +189,7 @@ smsg_query_text(const smsg_t *sb, const gnutella_node_t *n)
 {
 	return (n != NULL && NODE_TALKS_G2(n)) ?
 		g2_msg_search_get_text(sb->mb) :
-		gnutella_msg_search_get_text(pmsg_start(sb->mb));
+		gnutella_msg_search_get_text(pmsg_phys_base(sb->mb));
 }
 
 /***
@@ -445,7 +445,7 @@ retry:
 
 		if (GNET_PROPERTY(sq_debug) > 2) {
 			g_debug("%s(): GLOBAL sq, queuing \"%s\" (%u left, %d sent)",
-				G_STRFUNC, gnutella_msg_search_get_text(pmsg_start(sb->mb)),
+				G_STRFUNC, gnutella_msg_search_get_text(pmsg_phys_base(sb->mb)),
 				sq->count, sq->n_sent);
 		}
 

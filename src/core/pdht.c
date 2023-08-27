@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -438,7 +438,7 @@ pdht_publish_done(void *arg,
 		g_debug("PDHT ending %s%s publish for %s (%u publish%s): %s",
 			(pp->flags & PDHT_F_BACKGROUND) ? "background " : "",
 			pdht_type_to_string(pp->type), kuid_to_string(pp->id),
-			info->published, plural_es(info->published),
+			PLURAL_ES(info->published),
 			publish_strerror(code));
 	}
 
@@ -615,8 +615,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		char buf[sizeof(uint64)];
 		int len;
 
-		len = ggept_filesize_encode(shared_file_size(sf), buf, sizeof buf);
-		g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
+		len = ggept_filesize_encode(shared_file_size(sf), ARYLEN(buf));
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(length), buf, len, 0);
 	}
 
@@ -627,8 +626,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 			char buf[sizeof(uint64)];
 			int len;
 
-			len = ggept_filesize_encode(fi->done, buf, sizeof buf);
-			g_assert(len > 0 && UNSIGNED(len) <= sizeof buf);
+			len = ggept_filesize_encode(fi->done, ARYLEN(buf));
 			ok = ok && ggep_stream_pack(&gs, GGEP_NAME(avail), buf, len, 0);
 		}
 	}
@@ -638,7 +636,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	if (tls_enabled()) {
@@ -647,8 +645,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 
 	tth = shared_file_tth(sf);
 	if (tth != NULL) {
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(ttroot),
-			tth->data, sizeof tth->data, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(ttroot), ARYLEN(tth->data), 0);
 	}
 
 	if (
@@ -658,7 +655,7 @@ pdht_get_aloc(const shared_file_t *sf, const kuid_t *key)
 	) {
 		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(HNAME),
 			GNET_PROPERTY(server_hostname),
-			strlen(GNET_PROPERTY(server_hostname)), 0);
+			vstrlen(GNET_PROPERTY(server_hostname)), 0);
 	}
 
 	ggep_len = ggep_stream_close(&gs);
@@ -726,18 +723,18 @@ pdht_get_prox(const kuid_t *key)
 
 	/* "features" emitted as a little-endian integer with no trailing 0s */
 	ok = ok &&
-		ggep_stream_pack(&gs, GGEP_NAME(features), &zero, sizeof zero, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(features), VARLEN(zero), 0);
 
 	/* "fwt_version" emitted as a little-endian integer with no trailing 0s */
 	ok = ok &&
-		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), &zero, sizeof zero, 0);
+		ggep_stream_pack(&gs, GGEP_NAME(fwt_version), VARLEN(zero), 0);
 
 	{
 		char buf[sizeof(uint16)];
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	ok = ok && pdht_proxy.proxies_count > 0;
@@ -774,7 +771,7 @@ pdht_get_prox(const kuid_t *key)
 				continue;
 			}
 
-			ok = ok && ggep_stream_write(&gs, &len, sizeof len);
+			ok = ok && ggep_stream_write(&gs, VARLEN(len));
 			ok = ok && ggep_stream_write(&gs, proxy, len);
 
 			if (
@@ -861,7 +858,7 @@ pdht_get_nope(const guid_t *guid, const kuid_t *key)
 		uint16 port = socket_listen_port();
 
 		poke_be16(buf, port);
-		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), buf, sizeof buf, 0);
+		ok = ok && ggep_stream_pack(&gs, GGEP_NAME(port), ARYLEN(buf), 0);
 	}
 
 	if (tls_enabled()) {
@@ -934,7 +931,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 			if (GNET_PROPERTY(publisher_debug) > 1) {
 				size_t roots = lookup_result_path_length(rs);
 				g_debug("PDHT ALOC found %zu publish root%s for %s \"%s\"",
-					roots, plural(roots),
+					PLURAL(roots),
 					shared_file_is_partial(sf) ? "partial" : "shared",
 					shared_file_name_nfc(sf));
 			}
@@ -966,7 +963,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
 			g_debug("PDHT NOPE found %zu publish root%s for %s",
-				roots, plural(roots), guid_hex_str(pp->u.nope.guid));
+				PLURAL(roots), guid_hex_str(pp->u.nope.guid));
 		}
 
 		value = pdht_get_nope(pp->u.nope.guid, pp->id);
@@ -974,7 +971,7 @@ pdht_roots_found(const kuid_t *kuid, const lookup_rs_t *rs, void *arg)
 	case PDHT_T_PROX:
 		if (GNET_PROPERTY(publisher_debug) > 1) {
 			size_t roots = lookup_result_path_length(rs);
-			g_debug("PDHT PROX found %zu publish root%s", roots, plural(roots));
+			g_debug("PDHT PROX found %zu publish root%s", PLURAL(roots));
 		}
 
 		value = pdht_get_prox(pp->id);
@@ -1330,7 +1327,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 				late = "late, ";
 		}
 
-		str_bprintf(retry, sizeof retry, "%s", compact_time(delay));
+		str_bprintf(ARYLEN(retry), "%s", compact_time(delay));
 
 		g_debug("PDHT PROX %s%spublished to %u node%s%s: %s"
 			" (%stook %s, total %u node%s, proba %.3f%%, retry in %s,"
@@ -1340,7 +1337,7 @@ pdht_prox_done(void *u_arg, pdht_error_t code, const pdht_info_t *info)
 			info->roots, 1 == info->roots ? "" : "s",
 			after, pdht_strerror(code), late,
 			compact_time(delta_time(tm_time(), pdht_proxy.last_enqueued)),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0, retry,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");
@@ -1424,7 +1421,7 @@ pdht_prox_fill_vector(gnet_host_t *vec, size_t vecsize)
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX using %zu push-prox%s for local node (%sfirewalled)",
-			i, plural_y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
+			PLURAL_Y(i), GNET_PROPERTY(is_firewalled) ? "" : "not ");
 	}
 
 	return i;
@@ -1489,8 +1486,7 @@ pdht_prox_publish(bool force)
 
 	if (GNET_PROPERTY(publisher_debug) > 1) {
 		g_debug("PDHT PROX list of %u push-prox%s %schanged, %s (%s)",
-			(unsigned) pdht_proxy.proxies_count,
-			plural_y(pdht_proxy.proxies_count),
+			(unsigned) PLURAL_Y(pdht_proxy.proxies_count),
 			changed ? "" : "un",
 			publishing ?  "publishing" : "ignoring",
 			force ? "forced" : "on change only");
@@ -1707,9 +1703,9 @@ pdht_nope_done(void *arg, pdht_error_t code, const pdht_info_t *info)
 			" %s bg, path %u) [%s]",
 			info->was_bg ? "[bg] " : "",
 			guid_hex_str(node_guid(n)), node_addr(n), node_vendor(n),
-			info->roots, plural(info->roots),
+			PLURAL(info->roots),
 			pdht_strerror(code),
-			info->all_roots, plural(info->all_roots),
+			PLURAL(info->all_roots),
 			info->presence * 100.0,
 			info->can_bg ? "can" : "no", info->path_len,
 			accepted ? "OK" : "INCOMPLETE");

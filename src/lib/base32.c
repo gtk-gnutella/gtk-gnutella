@@ -184,7 +184,7 @@ base32_decode(void *dst, size_t size, const char *data, size_t len)
 		for (i = 0; i < N_ITEMS(base32_map); i++) {
 			const char *x;
 
-			x = memchr(base32_alphabet, ascii_toupper(i),
+			x = vmemchr(base32_alphabet, ascii_toupper(i),
 					   sizeof base32_alphabet);
 			base32_map[i] = x ? (x - base32_alphabet) : (unsigned char) -1;
 		}

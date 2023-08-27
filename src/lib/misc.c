@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -46,6 +46,7 @@
 #include "buf.h"
 #include "compat_misc.h"
 #include "concat.h"
+#include "cstr.h"
 #include "endian.h"
 #include "entropy.h"
 #include "halloc.h"
@@ -151,8 +152,8 @@ is_strsuffix(const char *str, size_t len, const char *suffix)
 	g_assert(NULL != str);
 	g_assert(NULL != suffix);
 
-	len = (size_t)-1 == len ? strlen(str) : len;
-	suffix_len = strlen(suffix);
+	len = (size_t)-1 == len ? vstrlen(str) : len;
+	suffix_len = vstrlen(suffix);
 
 	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
@@ -181,8 +182,8 @@ is_strcasesuffix(const char *str, size_t len, const char *suffix)
 	g_assert(NULL != str);
 	g_assert(NULL != suffix);
 
-	len = (size_t)-1 == len ? strlen(str) : len;
-	suffix_len = strlen(suffix);
+	len = (size_t)-1 == len ? vstrlen(str) : len;
+	suffix_len = vstrlen(suffix);
 
 	if (suffix_len <= len) {
 		const char *p = &str[len - suffix_len];
@@ -383,7 +384,7 @@ size_t
 strchomp(char *str, size_t len)
 {
 	if (len == 0) {
-		len = strlen(str);
+		len = vstrlen(str);
 		if (len == 0)
 			return 0;
 	}
@@ -471,16 +472,7 @@ is_same_file(const char *pathname_a, const char *pathname_b)
 	if (stat(pathname_b, &sb_b))
 		return -1;
 
-	/*
-	 * On Windows there is no concept of inode number.
-	 */
-
-#ifdef MINGW32
-	return sb_a.st_dev == sb_b.st_dev &&
-		mingw_same_file_id(pathname_a, pathname_b);
-#else
 	return sb_a.st_dev == sb_b.st_dev && sb_a.st_ino == sb_b.st_ino;
-#endif
 }
 
 /**
@@ -666,10 +658,9 @@ short_size_to_string_buf(uint64 size, bool metric, char *dst, size_t len)
 	}
 }
 
-const char *
-short_size(uint64 size, bool metric)
+static const char *
+short_size_b(uint64 size, bool metric, buf_t *b)
 {
-	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
 	char *p = buf_data(b);
 	size_t n, sz = buf_size(b);
 
@@ -679,15 +670,24 @@ short_size(uint64 size, bool metric)
 }
 
 const char *
+short_size(uint64 size, bool metric)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	return short_size_b(size, metric, b);
+}
+
+const char *
 short_size2(uint64 size, bool metric)
 {
 	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
-	char *p = buf_data(b);
-	size_t n, sz = buf_size(b);
+	return short_size_b(size, metric, b);
+}
 
-	n = short_size_to_string_buf(size, metric, p, sz);
-	g_assert(n < sz);
-	return p;
+const char *
+short_size3(uint64 size, bool metric)
+{
+	buf_t *b = buf_private(G_STRFUNC, SIZE_FIELD_MAX);
+	return short_size_b(size, metric, b);
 }
 
 const char *
@@ -859,7 +859,7 @@ nice_size(uint64 size, bool metric)
 	str_t *s = str_private(G_STRFUNC, SIZE_FIELD_MAX);
 	char bytes[UINT64_DEC_BUFLEN];
 
-	uint64_to_string_buf(size, bytes, sizeof bytes);
+	uint64_to_string_buf(size, ARYLEN(bytes));
 	str_printf(s, _("%s (%s bytes)"), short_size(size, metric), bytes);
 	return str_2c(s);
 }
@@ -898,13 +898,45 @@ short_value(char *buf, size_t size, uint64 v, bool metric)
 	return buf;
 }
 
+char *
+long_value(char *buf, size_t size, uint64 v, bool metric)
+{
+	if (v < kilo(metric)) {
+		str_bprintf(buf, size, "%u ", (uint) v);
+	} else {
+		uint q, r;
+		char c;
+
+		c = norm_size_scale(v, &q, &r, metric);
+		r = (r * 1000) / kilo(metric);
+		str_bprintf(buf, size, "%u.%03u %c%s", q, r, c, metric ? "" : "i");
+	}
+
+	return buf;
+}
+
+static size_t
+long_value_to_string_buf(uint64 value, bool metric, char *dst, size_t size)
+{
+	long_value(dst, size, value, metric);
+	return clamp_strcat(dst, size, "B");
+}
+
+short_string_t
+long_value_get_string(uint64 value, bool metric)
+{
+	short_string_t buf;
+	long_value_to_string_buf(value, metric, ARYLEN(buf.str));
+	return buf;
+}
+
 const char *
 compact_size(uint64 size, bool metric)
 {
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, size, metric);
+	compact_value(ARYLEN(buf), size, metric);
 	str_printf(s, "%sB", buf);
 	return str_2c(s);
 }
@@ -915,7 +947,7 @@ compact_size2(uint64 size, bool metric)
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, size, metric);
+	compact_value(ARYLEN(buf), size, metric);
 	str_printf(s, "%sB", buf);
 	return str_2c(s);
 }
@@ -926,7 +958,7 @@ compact_rate(uint64 rate, bool metric)
 	char buf[SIZE_FIELD_MAX];
 	str_t *s = str_private(G_STRFUNC, sizeof buf);
 
-	compact_value(buf, sizeof buf, rate, metric);
+	compact_value(ARYLEN(buf), rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
 	str_printf(s, "%s%s", buf, _("B/s"));
 	return str_2c(s);
@@ -937,14 +969,14 @@ short_rate_to_string_buf(uint64 rate, bool metric, char *dst, size_t size)
 {
 	short_value(dst, size, rate, metric);
 	/* TRANSLATORS: Don't translate 'B', just 's' is allowed. */
-	return g_strlcat(dst, _("B/s"), size);
+	return clamp_strcat(dst, size, _("B/s"));
 }
 
 short_string_t
 short_rate_get_string(uint64 rate, bool metric)
 {
 	short_string_t buf;
-	short_rate_to_string_buf(rate, metric, buf.str, sizeof buf.str);
+	short_rate_to_string_buf(rate, metric, ARYLEN(buf.str));
 	return buf;
 }
 
@@ -993,7 +1025,7 @@ guid_to_string_buf(const guid_t *guid, char *dst, size_t size)
 {
 	if G_UNLIKELY(NULL == guid) {
 		/* Our constant string is 32-byte long */
-		return g_strlcpy(dst, "<------ null GUID pointer ----->", size);
+		return cstr_bcpy(dst, size, "<------ null GUID pointer ----->");
 	}
 
 	return bin_to_hex_buf(guid->v, GUID_RAW_SIZE, dst, size);
@@ -1113,7 +1145,7 @@ hex2int_init(void)
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[0]); i++) {
 		static const char hexa[] = "0123456789abcdef";
-		const char *p = i ? strchr(hexa, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(hexa, ascii_tolower(i)): NULL;
 
 		char2int_tabs[0][i] = p ? (p - hexa) : -1;
 	}
@@ -1161,7 +1193,7 @@ dec2int_init(void)
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[1]); i++) {
 		static const char deca[] = "0123456789";
-		const char *p = i ? strchr(deca, i): NULL;
+		const char *p = i ? vstrchr(deca, i): NULL;
 
 		char2int_tabs[1][i] = p ? (p - deca) : -1;
 	}
@@ -1197,7 +1229,7 @@ alnum2int_init(void)
 	/* Initialize alnum2int_tab */
 
 	for (i = 0; i < N_ITEMS(char2int_tabs[2]); i++) {
-		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(abc, ascii_tolower(i)): NULL;
 
 		char2int_tabs[2][i] = p ? (p - abc) : -1;
 	}
@@ -1205,7 +1237,7 @@ alnum2int_init(void)
 	/* Check consistency of alnum2int_tab */
 
 	for (i = 0; i <= (uchar) -1; i++) {
-		const char *p = i ? strchr(abc, ascii_tolower(i)): NULL;
+		const char *p = i ? vstrchr(abc, ascii_tolower(i)): NULL;
 		int v = p ? (p - abc) : -1;
 
 		g_assert(alnum2int_inline(i) == v);
@@ -1227,7 +1259,7 @@ hex_to_guid(const char *hexguid, guid_t *guid)
 {
 	size_t ret;
 
-	ret = base16_decode(guid->v, sizeof guid->v, hexguid, GUID_HEX_SIZE);
+	ret = base16_decode(PTRLEN(guid), hexguid, GUID_HEX_SIZE);
 	return GUID_RAW_SIZE == ret;
 }
 
@@ -1261,7 +1293,7 @@ base32_to_guid(const char *base32, guid_t *guid)
 	g_assert(base32 != NULL);
 	g_assert(guid != NULL);
 
-	ret = base32_decode(guid, sizeof *guid, base32, GUID_BASE32_SIZE);
+	ret = base32_decode(PTRLEN(guid), base32, GUID_BASE32_SIZE);
 	return (size_t) 0 + GUID_RAW_SIZE == ret ? guid : NULL;
 }
 
@@ -1282,7 +1314,7 @@ sha1_to_base32_buf(const struct sha1 *sha1, char *dst, size_t size)
 		size_t len;
 		size_t offset;
 
-		len = base32_encode(dst, size, sha1->data, sizeof sha1->data);
+		len = base32_encode(dst, size, PTRLEN(sha1));
 		g_assert(len <= size);
 		offset = len < size ? len : size - 1;
 		dst[offset] = '\0';
@@ -1325,7 +1357,7 @@ sha1_to_base16_buf(const struct sha1 *sha1, char *dst, size_t size)
 		size_t len;
 		size_t offset;
 
-		len = base16_encode(dst, size, sha1->data, sizeof sha1->data);
+		len = base16_encode(dst, size, PTRLEN(sha1));
 		g_assert(len <= size);
 		offset = len < size ? len : size - 1;
 		dst[offset] = '\0';
@@ -1426,22 +1458,22 @@ bitprint_to_urn_string(const struct sha1 *sha1, const struct tth *tth)
 		char *p = buf;
 
 		p = mempcpy(p, prefix, CONST_STRLEN(prefix));
-		base32_encode(p, end - p, sha1->data, sizeof sha1->data);
+		base32_encode(p, end - p, PTRLEN(sha1));
 		p += SHA1_BASE32_SIZE;
 
 		*p++ = '.';
 
-		base32_encode(p, end - p, tth->data, sizeof tth->data);
+		base32_encode(p, end - p, PTRLEN(tth));
 		p += TTH_BASE32_SIZE;
 		*p = '\0';
 		g_assert(ptr_diff(p, buf) <= sizeof buf);
 
-		buf_copyin(b, buf, sizeof buf);
+		buf_copyin(b, ARYLEN(buf));
 	} else {
 		char buf[CONST_STRLEN("urn:sha1:") + SHA1_BASE32_SIZE + 1];
 
-		sha1_to_urn_string_buf(sha1, buf, sizeof buf);
-		buf_copyin(b, buf, sizeof buf);
+		sha1_to_urn_string_buf(sha1, ARYLEN(buf));
+		buf_copyin(b, ARYLEN(buf));
 	}
 
 	return buf_data(b);
@@ -1465,7 +1497,7 @@ base32_sha1(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(s, sizeof *s, base32, SHA1_BASE32_SIZE);
+	len = base32_decode(PTRLEN(s), base32, SHA1_BASE32_SIZE);
 	return SHA1_RAW_SIZE == len ? s : NULL;
 }
 
@@ -1483,7 +1515,7 @@ tth_base32(const struct tth *tth)
 
 	g_assert(tth != NULL);
 
-	n = 1 + base32_encode(p, sz, tth->data, sizeof tth->data);
+	n = 1 + base32_encode(p, sz, PTRLEN(tth));
 	p[MAX(n, sz) - 1] = '\0';
 	return p;
 }
@@ -1506,7 +1538,7 @@ base32_tth(const char *base32)
 
 	g_assert(base32 != NULL);
 
-	len = base32_decode(t, sizeof *t, base32, TTH_BASE32_SIZE);
+	len = base32_decode(PTRLEN(t), base32, TTH_BASE32_SIZE);
 	return TTH_RAW_SIZE == len ? t : NULL;
 }
 
@@ -1524,7 +1556,7 @@ tth_to_base32_buf(const struct tth *tth, char *dst, size_t size)
 {
 	g_assert(tth);
 	if (size > 0) {
-		size_t n = 1 + base32_encode(dst, size, tth->data, sizeof tth->data);
+		size_t n = 1 + base32_encode(dst, size, PTRLEN(tth));
 		dst[MIN(n, size) - 1] = '\0';
 	}
 	return dst;
@@ -1774,8 +1806,7 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 
 	WFREE_ARRAY(xiov, iovcnt);
 
-	fprintf(out, "----------------- (%u byte%s).\n",
-		(unsigned) length, plural(length));
+	fprintf(out, "----------------- (%u byte%s).\n", (uint) PLURAL(length));
 	fflush(out);
 }
 
@@ -2243,24 +2274,23 @@ int G_HOT
 bitcmp(const void *s1, const void *s2, size_t n)
 {
 	int i, bytes, remain;
-	const uint8 *p1 = s1, *p2 = s2;
+	const uint8 *p1, *p2;
 	uint8 mask, c1, c2;
 
 	bytes = n / 8;				/* First bytes to compare */
 
-	for (i = 0; i < bytes; i++) {
-		c1 = *p1++;
-		c2 = *p2++;
-		if (c1 != c2)
-			return c1 < c2 ? -1 : +1;
-	}
+	i = memcmp(s1, s2, bytes);
+	if (i != 0)
+		return i;
 
 	remain = n - 8 * bytes;		/* Bits in next byte */
 
-	if (0 == remain)
+	if G_UNLIKELY(0 == remain)
 		return 0;
 
 	mask = (uint8) -1 << (8 - remain);
+	p1   = const_ptr_add_offset(s1, bytes);
+	p2   = const_ptr_add_offset(s2, bytes);
 
 	c1 = *p1 & mask;
 	c2 = *p2 & mask;
@@ -2281,7 +2311,7 @@ normalize_dir_separators(char *pathname)
 
 	if (G_DIR_SEPARATOR != '/') {
 		while (pathname) {
-			pathname = strchr(pathname, G_DIR_SEPARATOR);
+			pathname = vstrchr(pathname, G_DIR_SEPARATOR);
 			if (pathname) {
 				*pathname++ = '/';
 			}
@@ -2302,7 +2332,7 @@ dirlist_cat(str_t *str, const char *dir)
 	if (str_len(str) > 0) {
 		str_putc(str, G_SEARCHPATH_SEPARATOR);
 	}
-	if (strchr(dir, G_SEARCHPATH_SEPARATOR)) {
+	if (vstrchr(dir, G_SEARCHPATH_SEPARATOR)) {
 		const char *p;
 
 		for (p = dir; '\0' != *p; p++) {
@@ -2594,24 +2624,61 @@ english_strerror(int errnum)
 }
 
 /**
- * Adds some lexical indendation to XML-like text.
+ * Adds some lexical indendation to XML-like text within buffer.
  *
  * The input text is assumed to be "flat" and well-formed. If these assumptions
  * fail, the output might look worse than the input.
  *
- * @param text		the string to format.
+ * @param buf		the buffer start
+ * @param len		size of buffer in bytes
+ * @param lenp		if non-NULL, where length of returned string is written.
  *
  * @return a newly allocated string which must be freed via hfree().
  */
 char *
-xml_indent(const char *text)
+xml_indent_buf(const void *buf, size_t len, size_t *lenp)
 {
-	const char *p, *q;
+	const char *text = buf, *p, *q, *end;
 	bool quoted, is_special, is_end, is_start, is_singleton, has_cdata;
 	guint i, depth = 0;
 	str_t *s;
 
-	s = str_new(0);
+	end = const_ptr_add_offset(buf, len);	/* Physical end */
+
+	/*
+	 * Ensure text ends-up with a '>', or we cannot have well-formed XML.
+	 */
+
+	if G_UNLIKELY(0 == len) {
+		g_carp("%s(): given empty text", G_STRFUNC);
+		goto duptext;
+	} else {
+		uchar c;
+
+		q = &text[len - 1];
+
+		/* Ignore trailing spaces (includes \r, \n, \t) */
+
+		while (is_ascii_space(*q))
+			q--;
+
+		c = *q;
+		end = q + 1;		/* Won't parse past that point */
+
+		if G_UNLIKELY(c != '>') {
+			g_carp("%s(): %zu-byte text does not end-up with '>' "
+				"but '%c' (%s%d) at offset %zu",
+				G_STRFUNC, len, is_ascii_print(c) ? c : '?',
+				is_ascii_print(c) ? "" : "non-printable ", c, q - text);
+			goto duptext;
+		}
+	}
+
+	/*
+	 * OK, could be well-formed XML...
+	 */
+
+	s = str_new(len + (len >> 2));		/* Add 25% for extra formatting */
 	q = text;
 
 	quoted = FALSE;
@@ -2621,7 +2688,7 @@ xml_indent(const char *text)
 	is_singleton = FALSE;
 	has_cdata = FALSE;
 
-	for (;;) {
+	while (q < end) {
 		bool had_cdata;
 
 		p = q;
@@ -2629,13 +2696,14 @@ xml_indent(const char *text)
 		 * Find the start of the tag and append the text between the
 		 * previous and the current tag.
 		 */
-		for (/* NOTHING */; '<' != *p && '\0' != *p; p++) {
+		for (/* NOTHING */; '<' != *p && '\0' != *p && p < end; p++) {
 			if (is_ascii_space(*p) && is_ascii_space(p[1]))
 				continue;
 			if (has_cdata && '&' == *p) {
 				const char *endptr;
 				guint32 uc;
 
+				/* FIXME: could read beyond buffer if malformed */
 				uc = html_decode_entity(p, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '<' != uc && '>' != uc) {
 					str_putc(s, uc);
@@ -2649,12 +2717,16 @@ xml_indent(const char *text)
 			break;
 
 		/* Find the end of the tag */
-		q = strchr(p, '>');
-		if (!q)
-			q = strchr(p, '\0');
+		q = vmemchr(p, '>', end - p);
+		if (NULL == q)
+			q = end;
 
-		is_special = '?' == p[1] || '!' == p[1];
-		is_end = '/' == p[1];
+		if (p + 1 < end) {
+			is_special = '?' == p[1] || '!' == p[1];
+			is_end = '/' == p[1];
+		} else {
+			is_special = is_end = FALSE;
+		}
 		is_start = !(is_special || is_end);
 		is_singleton = is_start && '>' == *q && '/' == q[-1];
 		had_cdata = has_cdata;
@@ -2670,7 +2742,7 @@ xml_indent(const char *text)
 		}
 
 		quoted = FALSE;
-		for (q = p; '\0' != *q; q++) {
+		for (q = p; q < end; q++) {
 
 			if (!quoted && is_ascii_space(*q) && is_ascii_space(q[1]))
 				continue;
@@ -2690,6 +2762,7 @@ xml_indent(const char *text)
 				const char *endptr;
 				guint32 uc;
 
+				/* FIXME: could read beyond buffer if malformed */
 				uc = html_decode_entity(q, &endptr);
 				if (uc > 0x00 && uc <= 0xff && '"' != uc) {
 					str_putc(s, uc);
@@ -2708,8 +2781,8 @@ xml_indent(const char *text)
 			}
 		}
 		if (is_start && !is_singleton) {
-			const char *next = strchr(q, '<');
-			has_cdata = next && '/' == next[1];
+			const char *next = vmemchr(q, '<', end - q);
+			has_cdata = next != NULL && next + 1 < end && '/' == next[1];
 			depth++;
 		}
 	}
@@ -2719,7 +2792,37 @@ xml_indent(const char *text)
 	if ('\n' != str_at(s, -1))
 		str_putc(s, '\n');
 
+	g_assert_log('>' == str_at(s, -2),
+		"%s(): antepenultimate char is %d, expected '>' (%d)",
+		G_STRFUNC, str_at(s, -2), '>');
+
+	if (lenp != NULL)
+		*lenp = str_len(s);
+
 	return str_s2c_null(&s);
+
+duptext:
+	if (lenp != NULL)
+		*lenp = end - text;
+
+	return h_strndup(text, end - text);	/* May have no trailing NUL */
+}
+
+/**
+ * Adds some lexical indendation to XML-like text string.
+ *
+ * The input text is assumed to be "flat" and well-formed. If these assumptions
+ * fail, the output might look worse than the input.
+ *
+ * @param text		the string to format.
+ * @param lenp		if non-NULL, where length of returned string is written.
+ *
+ * @return a newly allocated string which must be freed via hfree().
+ */
+char *
+xml_indent(const char *text, size_t *lenp)
+{
+	return xml_indent_buf(text, vstrlen(text), lenp);
 }
 
 /**

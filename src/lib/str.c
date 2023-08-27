@@ -25,7 +25,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -80,6 +80,8 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 #define STR_FOREIGN_PTR		(1 << 0)	/**< We don't own the pointer */
 #define STR_OBJECT			(1 << 1)	/**< Object created, not a structure */
 #define STR_THREAD			(1 << 2)	/**< String is thread-private */
+#define STR_TRUNCATED		(1 << 3)	/**< Truncation occurred at tail */
+#define STR_SILENT_TRUNCATE	(1 << 4)	/**< No verbose report on truncation */
 
 /**
  * @return length of string.
@@ -102,6 +104,32 @@ str_len(const str_t *s)
 	}
 
 	return s->s_len;
+}
+
+/**
+ * Check the available room we have in string to add new bytes to it.
+ *
+ * A dynamic string that can be resized has no limits, but a string for
+ * which we do not own the data pointer cannot be resized and is therefore
+ * constrained.
+ *
+ * @return amount of available room in string.
+ */
+size_t
+str_avail(const str_t *s)
+{
+	str_check(s);
+
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
+		size_t avail = s->s_size - s->s_len;
+		if ('\0' == s->s_data[s->s_len - 1])
+			avail++;		/* Already NUL-terminated */
+		if (avail <= 1)
+			return 0;		/* Must leave room for tailing NUL */
+		return avail - 1;	/* Trailing NUL accounted */
+	}
+
+	return MAX_INT_VAL(size_t);		/* No limits but virtual memory */
 }
 
 /**
@@ -285,7 +313,7 @@ str_new_from(const char *string)
 	} else {
 		size_t len;
 
-		len = strlen(string);
+		len = vstrlen(string);
 		s = str_new(len + 1 + (len / 4));
 		str_cat_len(s, string, len);
 	}
@@ -303,11 +331,11 @@ str_new_from(const char *string)
  *
  * @param str	pointer to existing (and initialized) string object
  * @param ptr	start of fix-sized buffer where string data will be held
- * @param len	length of existing string, computed if (size_t) -1
  * @param size	size of buffer starting at ptr (0 sets it to `len + 1')
+ * @param len	length of existing string, computed if (size_t) -1
  */
 void
-str_foreign(str_t *str, char *ptr, size_t len, size_t size)
+str_foreign(str_t *str, char *ptr, size_t size, size_t len)
 {
 	str_check(str);
 
@@ -319,7 +347,7 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
 		str_free(str);
 
 	if ((size_t) -1 == len)
-		len = (0 == size) ? strlen(ptr) : clamp_strlen(ptr, size);
+		len = (0 == size) ? vstrlen(ptr) : clamp_strlen(ptr, size);
 
 	if (0 == size)
 		size = len + 1;			/* Must include hidden NUL in foreign string */
@@ -339,15 +367,16 @@ str_foreign(str_t *str, char *ptr, size_t len, size_t size)
  *    str_t str;
  *    char data[80];
  *
- *    str_new_buffer(&str, data, 0, sizeof data);
+ *    str_new_buffer(&str, data, sizeof data, 0);	// full
+ *    str_new_buffer(&str, ARYLEN(data), 0);		// convenient
  *
  * @param str	pointer to uninitialized existing string object
  * @param ptr	start of fix-sized buffer where string data will be held
- * @param len	length of existing string, computed if (size_t) -1
  * @param size	size (positive) of buffer starting at ptr
+ * @param len	length of existing string, computed if (size_t) -1
  */
 void
-str_new_buffer(str_t *str, char *ptr, size_t len, size_t size)
+str_new_buffer(str_t *str, char *ptr, size_t size, size_t len)
 {
 	g_assert(str != NULL);
 	g_assert(ptr != NULL);
@@ -432,6 +461,14 @@ str_private(const void *key, size_t szhint)
 	s = str_new(szhint);
 	s->s_flags |= STR_THREAD;	/* Prevents plain str_free() on that string */
 
+	/*
+	 * A private string can be reclaimed when its thread exits, hence we
+	 * cannot use str_new_non_leaking() to allocate it.
+	 */
+
+	(void) NOT_LEAKING(s);
+	(void) NOT_LEAKING(s->s_data);
+
 	thread_private_add_extended(key, s, str_private_reclaim, NULL);
 
 	return s;
@@ -450,7 +487,7 @@ str_make(char *ptr, size_t len)
 	g_assert(size_is_non_negative(len + 1));
 
 	if ((size_t) -1 == len)
-		len = strlen(ptr);					/* Can still be zero, but it's OK */
+		len = vstrlen(ptr);					/* Can still be zero, but it's OK */
 
 	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
@@ -464,7 +501,7 @@ str_make(char *ptr, size_t len)
  * Creates a clone of the str_t object.
  */
 str_t *
-str_clone(str_t *str)
+str_clone(const str_t *str)
 {
 	size_t len;
 	str_t *n;
@@ -526,6 +563,9 @@ str_destroy(str_t *str)
 {
 	str_check(str);
 
+	g_assert_log(!(str->s_flags & STR_THREAD),
+		"%s(): called on thread-private string object", G_STRFUNC);
+
 	g_assert_log(str->s_flags & STR_OBJECT,
 		"%s(): called on \"static\" string object", G_STRFUNC);
 
@@ -545,6 +585,37 @@ str_destroy_null(str_t **s_ptr)
 		str_destroy(s);
 		*s_ptr = NULL;
 	}
+}
+
+/**
+ * @return whether string was truncated.
+ */
+bool
+str_is_truncated(const struct str * const s)
+{
+	str_check(s);
+
+	return booleanize(s->s_flags & STR_TRUNCATED);
+}
+
+/**
+ * Configure string "silent truncation" attribute on formatting.
+ *
+ * When turned on, any truncation from a formatting instruction would
+ * still flag the string as being truncated but will not loudly report
+ * that truncation occurred.
+ *
+ * This is useful when code is handling the truncation explicitly through
+ * calls to str_is_truncated() by avoiding the additional noise that will
+ * also report truncation.
+ */
+void
+str_set_silent_truncation(struct str * const s, bool on)
+{
+	if (on)
+		s->s_flags |= STR_SILENT_TRUNCATE;
+	else
+		s->s_flags &= ~STR_SILENT_TRUNCATE;
 }
 
 /**
@@ -700,18 +771,48 @@ str_2c(str_t *str)
 
 	len = str->s_len;
 
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		return str->s_data;			/* Already NUL-terminated explicitly */
+
 	if (len == str->s_size) {
 		if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
-			len--;						/* Truncate the string */
+			len--;					/* Truncate the string */
 			str->s_len = len;
 		} else {
-			str_grow(str, len + 1);		/* Allow room for trailing NUL */
+			str_grow(str, len + 1);	/* Allow room for trailing NUL */
 		}
 	}
 
 	str->s_data[len] = '\0';		/* Don't increment str->s_len */
 
 	return str->s_data;
+}
+
+/**
+ * Like str_2c() but starts at given offset.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s		the string
+ * @param idx	starting index
+ */
+char *
+str_2c_from(str_t *s, ssize_t idx)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (idx < 0)						/* Stands for chars before end */
+		idx += len;
+
+	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+		return "";		/* Empty string! */
+
+	return str_2c(s) + idx;		/* NUL-terminated string */
 }
 
 /**
@@ -736,16 +837,22 @@ str_s2c(str_t *str)
 
 	str_check(str);
 
-	if G_UNLIKELY(!(str->s_flags & STR_OBJECT))
-		s_error("%s() called on \"static\" string object", G_STRFUNC);
+	g_assert_log(!(str->s_flags & STR_THREAD),
+		"%s(): called on thread-private string object", G_STRFUNC);
+
+	g_assert_log((str->s_flags & STR_OBJECT),
+		"%s() called on \"static\" string object", G_STRFUNC);
 
 	len = str->s_len;
 
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		len--;						/* Already NUL-terminated! */
+
 	if G_UNLIKELY(str->s_flags & STR_FOREIGN_PTR) {
 		if (len == str->s_size)
-			len--;						/* Truncate the string */
+			len--;					/* Truncate the string */
 	} else {
-		str_resize(str, len + 1);		/* Ensure string fits neatly */
+		str_resize(str, len + 1);	/* Ensure string fits neatly */
 	}
 
 	cstr = str->s_data;
@@ -784,7 +891,7 @@ str_s2c_null(str_t **s_ptr)
  * use str_s2c() to dispose of it whilst retaining its arena.
  */
 char *
-str_dup(str_t *str)
+str_dup(const str_t *str)
 {
 	size_t len;
 	char *sdup, *p;
@@ -792,6 +899,10 @@ str_dup(str_t *str)
 	str_check(str);
 
 	len = str->s_len;
+
+	if G_UNLIKELY(len != 0 && '\0' == str->s_data[len - 1])
+		len--;			/* Already NUL-terminated! */
+
 	sdup = halloc(len + 1);
 	p = mempcpy(sdup, str->s_data, len);
 	*p = '\0';
@@ -803,12 +914,12 @@ str_dup(str_t *str)
  * Append a character to the string (NUL allowed).
  */
 void
-str_putc(str_t *str, char c)
+str_putc(str_t *str, int c)
 {
 	str_check(str);
 
  	str_makeroom(str, 1);
-	str->s_data[str->s_len++] = c;
+	str->s_data[str->s_len++] = (uchar) c;
 }
 
 /**
@@ -820,6 +931,7 @@ str_reset(str_t *str)
 	str_check(str);
 
 	str->s_len = 0;
+	str->s_flags &= ~STR_TRUNCATED;
 }
 
 /**
@@ -831,8 +943,8 @@ str_cpy(str_t *str, const char *string)
 {
 	str_check(str);
 
-	str->s_len = 0;
-	str_cat_len(str, string, strlen(string));
+	str_reset(str);
+	str_cat_len(str, string, vstrlen(string));
 }
 
 /**
@@ -848,7 +960,7 @@ str_cpy_len(str_t *str, const char *string, size_t len)
 {
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 	str_cat_len(str, string, len);
 }
 
@@ -862,7 +974,7 @@ str_cat(str_t *str, const char *string)
 	str_check(str);
 	g_assert(string != NULL);
 
-	str_cat_len(str, string, strlen(string));
+	str_cat_len(str, string, vstrlen(string));
 }
 
 /**
@@ -990,6 +1102,8 @@ str_shift(str_t *str, size_t n)
 	if G_UNLIKELY(0 == n)
 		return;
 
+	str->s_flags &= ~STR_TRUNCATED;
+
 	if (n >= str->s_len) {
 		str->s_len = 0;
 		return;
@@ -1005,10 +1119,13 @@ str_shift(str_t *str, size_t n)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, and so on.
  *
+ * As a convenience, act as str_putc() if index equals string length.
+ * This allows us to treat str_ichar(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
-str_ichar(str_t *str, ssize_t idx, char c)
+str_ichar(str_t *str, ssize_t idx, int c)
 {
 	size_t len;
 
@@ -1019,12 +1136,17 @@ str_ichar(str_t *str, ssize_t idx, char c)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)		/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)		/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_putc(str, c);
+		return TRUE;
+	}
 
 	str_makeroom(str, 1);
 	memmove(str->s_data + idx + 1, str->s_data + idx, len - idx);
-	str->s_data[idx] = c;
+	str->s_data[idx] = (uchar) c;
 	str->s_len++;
 
 	return TRUE;
@@ -1035,6 +1157,9 @@ str_ichar(str_t *str, ssize_t idx, char c)
  * If index is negative, insert from the end of the string, i.e. -1 means
  * before the last character, etc...
  *
+ * As a convenience, act as str_cat() if index equals string length.
+ * This allows us to treat str_istr(s, 0, ...) nicely even if s is empty.
+ *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
 bool
@@ -1043,11 +1168,14 @@ str_istr(str_t *str, ssize_t idx, const char *string)
 	str_check(str);
 	g_assert(string != NULL);
 
-	return str_instr(str, idx, string, strlen(string));
+	return str_instr(str, idx, string, vstrlen(string));
 }
 
 /**
  * Same as str_istr, only the first `n' chars of string are inserted.
+ *
+ * As a convenience, act as str_cat_len() if index equals string length.
+ * This allows us to treat str_instr(s, 0, ...) nicely even if s is empty.
  *
  * @return TRUE if insertion took place, FALSE if it was ignored.
  */
@@ -1068,8 +1196,13 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	if (idx < 0)						/* Stands for chars before end */
 		idx += len;
 
-	if G_UNLIKELY(idx < 0 || (size_t) idx >= len)	/* Off string */
+	if G_UNLIKELY(idx < 0 || (size_t) idx > len)	/* Off string */
 		return FALSE;
+
+	if G_UNLIKELY((size_t) idx == len) {
+		str_cat_len(str, string, n);
+		return TRUE;
+	}
 
 	str_makeroom(str, n);
 	memmove(str->s_data + idx + n, str->s_data + idx, len - idx);
@@ -1103,6 +1236,8 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 	if (idx < 0 || (size_t) idx >= len)			/* Off string */
 		return;
 
+	str->s_flags &= ~STR_TRUNCATED;
+
 	if (n >= (len - idx)) {				/* A mere truncation till end */
 		str->s_len = idx;
 		return;
@@ -1118,9 +1253,14 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * it is interpreted as an offset relative to the end of the string, i.e. -1
  * is the last character.
  *
- * If the amount is greater than the characters held in the string after the
- * starting position, it is silently truncated down to the amount of bytes
- * held until the end of the string.
+ * If "amount" is greater than the number of characters held in the string
+ * after the starting index, then "amount"  is silently truncated down to the
+ * actual amount of bytes held until the end of the original string.
+ *
+ * @param str		the string in which we wish to replace some parts
+ * @param idx		starting index (inclusive) of substring to replace
+ * @param amount	length of substring to replace in "str"
+ * @param string	replacement string
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
@@ -1134,7 +1274,7 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	g_assert(size_is_non_negative(amount));
 	g_assert(string != NULL);
 
-	length = strlen(string);
+	length = vstrlen(string);
 	len = str->s_len;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -1205,21 +1345,23 @@ str_chomp(str_t *s)
 
 	if (len >= 2 && s->s_data[len - 2] == '\r' && s->s_data[len - 1] == '\n') {
 		s->s_len -= 2;
+		s->s_flags &= ~STR_TRUNCATED;
 	} else if (
 		len >= 1 && (s->s_data[len - 1] == '\r' || s->s_data[len - 1] == '\n')
 	) {
 		s->s_len--;
+		s->s_flags &= ~STR_TRUNCATED;
 	}
 }
 
 /**
  * Remove penultimate character of string and return it.
  */
-char
+int
 str_chop(str_t *s)
 {
 	size_t len;
-	char c;
+	int c;
 
 	str_check(s);
 
@@ -1228,10 +1370,40 @@ str_chop(str_t *s)
 	if G_UNLIKELY(0 == len)
 		return '\0';
 
-	c = s->s_data[len - 1];
+	c = (uchar) s->s_data[len - 1];
 	s->s_len--;
+	s->s_flags &= ~STR_TRUNCATED;
 
 	return c;
+}
+
+/**
+ * Strip trailing NULs in string.
+ *
+ * @return new string length.
+ */
+size_t
+str_strip_trailing_nuls(str_t *s)
+{
+	size_t len;
+
+	str_check(s);
+
+	len = s->s_len;
+
+	while (len != 0) {
+		if ('\0' != s->s_data[len - 1])
+			break;
+		len--;
+	}
+
+	if (len != s->s_len) {
+		/* We removed some NULs */
+		s->s_len = len;
+		s->s_flags &= ~STR_TRUNCATED;
+	}
+
+	return len;
 }
 
 /**
@@ -1386,8 +1558,8 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
  * @return NUL if offset is not within the string range, but NUL may be a
  * valid string character when dealing with binary strings.
  */
-char
-str_at(str_t *s, ssize_t offset)
+int
+str_at(const str_t *s, ssize_t offset)
 {
 	size_t len;
 
@@ -1396,10 +1568,10 @@ str_at(str_t *s, ssize_t offset)
 	len = s->s_len;
 
 	if (offset >= 0) {
-		return UNSIGNED(offset) >= len ? '\0' : s->s_data[offset];
+		return UNSIGNED(offset) >= len ? '\0' : (uchar) s->s_data[offset];
 	} else {
 		size_t pos = len + offset;
-		return pos >= len ? '\0' : s->s_data[pos];
+		return pos >= len ? '\0' : (uchar) s->s_data[pos];
 	}
 }
 
@@ -1408,7 +1580,7 @@ str_at(str_t *s, ssize_t offset)
  * char in front of them.
  */
 void
-str_escape(str_t *str, char c, char e)
+str_escape(str_t *str, int c, int e)
 {
 	size_t len;
 	size_t idx;
@@ -1421,7 +1593,7 @@ str_escape(str_t *str, char c, char e)
 		return;
 
 	for (idx = 0; idx < len; idx++) {
-		if (str->s_data[idx] != c)
+		if ((uchar) str->s_data[idx] != c)
 			continue;
 		str_ichar(str, idx, e);			/* Insert escape char in front */
 		idx++;							/* Skip escaped char */
@@ -1497,6 +1669,7 @@ str_chr_at(const str_t *s, int c, ssize_t offset)
 	size_t len, i;
 	ssize_t pos;
 	const char *p;
+	bool nul;
 
 	str_check(s);
 
@@ -1505,13 +1678,37 @@ str_chr_at(const str_t *s, int c, ssize_t offset)
 	if (pos < 0)
 		i = 0;
 	else if (UNSIGNED(pos) >= len)
-		return -1;
+		goto not_found;
+
+	/*
+	 * If we can NUL-terminate the string without truncating or resizing,
+	 * then we can use vstrchr() which will be more efficient than our
+	 * naive lookup one char at a time.
+	 * 		--RAM, 2018-10-01
+	 */
+
+	nul = FALSE;
+
+	if ('\0' == s->s_data[len - 1])
+		nul = TRUE;
+	else if (len < s->s_size) {
+		s->s_data[len] = '\0';		/* NUL-terminate it */
+		nul = TRUE;
+	}
+
+	if (nul) {
+		const char *r = vstrchr(s->s_data + i, c);
+		if (NULL == r)
+			goto not_found;
+		return ptr_diff(r, s->s_data);
+	}
 
 	for (p = s->s_data + i; i < len; i++) {
 		if G_UNLIKELY(*p++ == c)
 			return i;
 	}
 
+not_found:
 	return -1;
 }
 
@@ -1638,6 +1835,59 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 	memcpy(n->s_data, s->s_data + start, len);
 
 	return n;
+}
+
+/**
+ * Check whether string has given suffix of known length.
+ *
+ * If it has the suffix and "idx" is non-NULL, the starting offset of the
+ * suffix within the string is written into it for convenience.
+ *
+ * @param s			the string we're checking for suffix present
+ * @param suffix	the suffix string to check
+ * @param len		length of suffix string
+ * @param idx		if non-NULL, written with starting offset of found suffix
+ *
+ * @return TRUE if suffix was found.
+ */
+bool
+str_has_suffix_len(const str_t *s, const char *suffix, size_t len, size_t *idx)
+{
+	str_check(s);
+	g_assert(suffix != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if (len <= s->s_len) {
+		const char *p = &s->s_data[s->s_len - len];
+
+		if (0 == memcmp(p, suffix, len)) {
+			if (idx != NULL)
+				*idx = s->s_len - len;
+			return TRUE;
+		}
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether string has given suffix.
+ *
+ * If it has the suffix and "idx" is non-NULL, the starting offset of the
+ * suffix within the string is written into it for convenience.
+ *
+ * @param s			the string we're checking for suffix present
+ * @param suffix	the suffix string to check
+ * @param idx		if non-NULL, written with starting offset of found suffix
+ *
+ * @return TRUE if suffix was found.
+ */
+bool
+str_has_suffix(const str_t *s, const char *suffix, size_t *idx)
+{
+	g_assert(suffix != NULL);
+
+	return str_has_suffix_len(s, suffix, vstrlen(suffix), idx);
 }
 
 /**
@@ -1881,9 +2131,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			 */
 
 			if (asked_dragon) {
-				mlen = float_dragon(m, sizeof m, nv, &e);
+				mlen = float_dragon(ARYLEN(m), nv, &e);
 			} else {
-				mlen = float_fixed(m, sizeof m, nv, asked, &e);
+				mlen = float_fixed(ARYLEN(m), nv, asked, &e);
 			}
 
 			g_assert(size_is_positive(mlen));
@@ -1891,7 +2141,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 			if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 				char buf[32];
-				gm_snprintf(buf, sizeof buf, "%g", nv);
+				gm_snprintf(ARYLEN(buf), "%g", nv);
 				s_debug("%s with \"%%%c\": m=\"%.*s\" "
 					"(len=%zu, asked=%s), e=%d "
 					"[precis=%zu, digits=%zu, alt=%s]",
@@ -1976,7 +2226,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 					start = v; 			/* Starting index */
 					non_zero = alt || 0 == digits;
 
-					rlen = str_fround(m, mlen, v, r, sizeof r);
+					rlen = str_fround(m, mlen, v, ARYLEN(r));
 
 					do {
 						if (1 == v && (alt || start != 1))
@@ -2066,7 +2316,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 					}
 
 					/* Rounding for the precision digit */
-					rlen = str_fround(m, mlen, i, r, sizeof r);
+					rlen = str_fround(m, mlen, i, ARYLEN(r));
 
 					/* Don't emit if we're down to printing 0.0 */
 					if (0 == azeros || azeros < precis) {
@@ -2118,7 +2368,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 						if (i < precis)
 							fzeros = precis - i;
 
-						rlen = str_fround(m, mlen, i, r, sizeof r);
+						rlen = str_fround(m, mlen, i, ARYLEN(r));
 
 						i = rlen - 1;
 						d++;		/* Extra carry digit in r[] */
@@ -2179,7 +2429,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 		if G_UNLIKELY(format_verbose && 1 == format_recursion) {
 			char buf[32];
-			gm_snprintf(buf, sizeof buf, "%g", nv);
+			gm_snprintf(ARYLEN(buf), "%g", nv);
 			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
 				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
 				"a=%zu, f=%zu>",
@@ -2466,7 +2716,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
 
-	fmtlen = strlen(fmt);
+	fmtlen = vstrlen(fmt);
 	origlen = str->s_len;
 
 	/*
@@ -2483,7 +2733,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 		size_t len;
 		processed++;
 		s = s ? s : nullstr;
-		len = strlen(s);
+		len = vstrlen(s);
 		if (!str_ncat_safe(str, s, len > maxlen ? maxlen : len) || len > maxlen)
 			goto clamped;
 		goto done;
@@ -2681,10 +2931,10 @@ G_STMT_START {									\
 				const char *s = english_strerror(errno);
 				size_t len;
 
-				len = strlen(e);
+				len = vstrlen(e);
 				STR_APPEND(e, len);
 				STR_APPEND(" (", 2);
-				len = strlen(s);
+				len = vstrlen(s);
 				STR_APPEND(s, len);
 				STR_APPEND(")", 1);
 			}
@@ -2699,7 +2949,7 @@ G_STMT_START {									\
 				/* String may not be NUL-terminated */
 				elen = clamp_strlen(eptr, precis);
 			} else {
-				elen = strlen(eptr);
+				elen = vstrlen(eptr);
 			}
 			/* FALL THROUGH */
 
@@ -3007,7 +3257,9 @@ done:
 	return str->s_len - origlen;
 
 clamped:
-	{
+	str->s_flags |= STR_TRUNCATED;
+
+	if (0 == (str->s_flags & STR_SILENT_TRUNCATE)) {
 #define TKEY	func_to_pointer(str_vncatf)
 
 		bool recursion = thread_private_get(TKEY) != NULL;
@@ -3019,6 +3271,12 @@ clamped:
 		 *
 		 * Hence the use of a thread-private variable to record recursions
 		 * before invoking s_minicarp().
+		 *
+		 * As of today, the logging code sets the silent truncation flag
+		 * when logging, so this protection against recursion would not
+		 * be required any more, but I'm leaving it in as a paranoid
+		 * precaution: robustness of the logging layer is key!
+		 * 		--RAM, 2018-09-25
 		 */
 
 		if (!recursion && tests_completed) {
@@ -3028,7 +3286,7 @@ clamped:
 				"(%zu arg%s processed)",
 				str->s_size, maxlen, str->s_len - origlen,
 				str->s_size - str->s_len,
-				fmt, processed, plural(processed));
+				fmt, PLURAL(processed));
 			thread_private_remove(TKEY);
 		}
 	}
@@ -3064,7 +3322,7 @@ str_vprintf(str_t *str, const char *fmt, va_list args)
 {
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 	return str_vncatf(str, INT_MAX, fmt, args);
 }
 
@@ -3114,7 +3372,7 @@ str_printf(str_t *str, const char *fmt, ...)
 
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(str, INT_MAX, fmt, args);
@@ -3135,7 +3393,7 @@ str_nprintf(str_t *str, size_t n, const char *fmt, ...)
 
 	str_check(str);
 
-	str->s_len = 0;
+	str_reset(str);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(str, n, fmt, args);
@@ -3178,7 +3436,7 @@ str_vcmsg(const char *fmt, va_list args)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 
 	return str_dup(str[stid]);
@@ -3198,7 +3456,7 @@ str_cmsg(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
@@ -3223,7 +3481,7 @@ str_smsg(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
@@ -3244,7 +3502,7 @@ str_smsg2(const char *fmt, ...)
 	if G_UNLIKELY(NULL == str[stid])
 		str[stid] = str_new_not_leaking(0);
 
-	str[stid]->s_len = 0;
+	str_reset(str[stid]);
 	va_start(args, fmt);
 	str_vncatf(str[stid], INT_MAX, fmt, args);
 	va_end(args);
@@ -3263,7 +3521,7 @@ str_bprintf(char *dst, size_t size, const char *fmt, ...)
 	va_list args;
 	size_t formatted;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(&str, size - 1, fmt, args);
@@ -3284,7 +3542,7 @@ str_vbprintf(char *dst, size_t size, const char *fmt, va_list args)
 	str_t str;
 	size_t formatted;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	formatted = str_vncatf(&str, size - 1, fmt, args);
 	str_putc(&str, '\0');
@@ -3304,7 +3562,7 @@ str_bcatf(char *dst, size_t size, const char *fmt, ...)
 	size_t len, formatted;
 
 	len = clamp_strlen(dst, size);
-	str_new_buffer(&str, dst, len, size);
+	str_new_buffer(&str, dst, size, len);
 
 	va_start(args, fmt);
 	formatted = str_vncatf(&str, size - len - 1, fmt, args);
@@ -3326,7 +3584,7 @@ str_vbcatf(char *dst, size_t size, const char *fmt, va_list args)
 	size_t len, formatted;
 
 	len = clamp_strlen(dst, size);
-	str_new_buffer(&str, dst, len, size);
+	str_new_buffer(&str, dst, size, len);
 
 	formatted = str_vncatf(&str, size - len - 1, fmt, args);
 	str_putc(&str, '\0');
@@ -3347,7 +3605,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
 	str_t str;
 	va_list args;
 
-	str_new_buffer(&str, dst, 0, size);
+	str_new_buffer(&str, dst, size, 0);
 
 	va_start(args, fmt);
 	str_vncatf(&str, size - 1, fmt, args);
@@ -3363,7 +3621,7 @@ str_tprintf(char *dst, size_t size, const char *fmt, ...)
  * 3 digits, whereas our str_vncatf() routine uses 2 digits.
  *
  * This routine normalizes exponents to 2 digits, for the purpose of
- * avoiding spurious discrepancies reports when issues a verbose str_test().
+ * avoiding spurious discrepancies reports when running a verbose str_test().
  */
 static void G_COLD
 str_test_fix_exponent(char *std)
@@ -3765,7 +4023,7 @@ str_test(bool verbose)
 #define TEST(what, vfmt) G_STMT_START {							\
 	unsigned i;													\
 																\
-	for (i = 0; i < N_ITEMS(test_##what##s); i++) {		\
+	for (i = 0; i < N_ITEMS(test_##what##s); i++) {				\
 		char buf[MLEN];											\
 		const struct t##what *t = &test_##what##s[i];			\
 																\
@@ -3782,19 +4040,19 @@ str_test(bool verbose)
 		g_assert_log(0 == strcmp(buf, t->result),				\
 			"%s test #%u/%zu fmt=\"%s\", len=%zu, "				\
 			"returned=\"%s\", expected=\"%s\"",					\
-			#what, i + 1, N_ITEMS(test_##what##s),			\
+			#what, i + 1, N_ITEMS(test_##what##s),				\
 			t->fmt, t->buflen, buf, t->result);					\
 																\
 		if (t->std) {											\
 			char std[MLEN];										\
 			char value[MLEN];									\
 			/* Avoid truncation warning in logs */				\
-			gm_snprintf_unchecked(std, sizeof std,				\
+			gm_snprintf_unchecked(ARYLEN(std),					\
 				t->fmt, t->value);								\
 			std[t->buflen - 1] = '\0';	/* Truncate here */		\
 			if (0 == ptr_cmp(&test_##what##s, &test_doubles))	\
 				str_test_fix_exponent(std);						\
-			gm_snprintf(value, sizeof value, vfmt, t->value);	\
+			gm_snprintf(ARYLEN(value), vfmt, t->value);			\
 			if (0 != strcmp(std, buf)) {						\
 				discrepancies++;								\
 				if (verbose) g_message(							\
@@ -3803,7 +4061,7 @@ str_test(bool verbose)
 					"\"%s\" with snprintf() but "				\
 					"\"%s\" with str_vncatf()",					\
 					#what, value,								\
-					i + 1, N_ITEMS(test_##what##s),		\
+					i + 1, N_ITEMS(test_##what##s),				\
 					t->fmt, std, buf);							\
 			}													\
 		}														\
@@ -3837,8 +4095,8 @@ str_test(bool verbose)
 
 		STATIC_ASSERT(sizeof vsnp == sizeof ours);
 
-		vsn_count = gm_snprintf(vsnp, sizeof vsnp, FORMAT, ARGS);
-		our_count = str_bprintf(ours, sizeof ours, FORMAT, ARGS);
+		vsn_count = gm_snprintf(ARYLEN(vsnp), FORMAT, ARGS);
+		our_count = str_bprintf(ARYLEN(ours), FORMAT, ARGS);
 
 		g_assert_log(0 == strcmp(vsnp, ours),
 			"vsnprintf() returned \"%s\", str_vncatf() returned \"%s\"",
@@ -3846,7 +4104,7 @@ str_test(bool verbose)
 		g_assert_log(vsn_count == our_count,
 			"vsnprintf() returned %zu, str_vncatf() returned %zu",
 			vsn_count, our_count);
-		g_assert(strlen(vsnp) == vsn_count);	/* Consistency check */
+		g_assert(vstrlen(vsnp) == vsn_count);	/* Consistency check */
 		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
 	}
 

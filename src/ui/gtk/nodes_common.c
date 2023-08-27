@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,6 +47,7 @@
 #include "if/gui_property_priv.h"
 
 #include "lib/ascii.h"
+#include "lib/cstr.h"
 #include "lib/parse.h"
 #include "lib/random.h"
 #include "lib/str.h"
@@ -92,7 +93,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			size_t slen = 0;
 
 			if (!GUI_PROPERTY(node_show_detailed_info)) {
-				str_bprintf(gui_tmp, sizeof(gui_tmp),
+				str_bprintf(ARYLEN(gui_tmp),
 					"TX=%u RX=%u Q=%u,%u%% %s",
 					n->sent, n->received,
 					n->mqueue_count, n->mqueue_percent_used,
@@ -103,11 +104,10 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (n->tx_compressed && GUI_PROPERTY(show_gnet_info_txc))
-				slen += str_bprintf(gui_tmp, sizeof(gui_tmp), "TXc=%u,%d%%",
+				slen += str_bprintf(ARYLEN(gui_tmp), "TXc=%u,%d%%",
 						n->sent, (int) (n->tx_compression_ratio * 100.0));
 			else
-				slen += str_bprintf(gui_tmp, sizeof(gui_tmp), "TX=%u",
-						n->sent);
+				slen += str_bprintf(ARYLEN(gui_tmp), "TX=%u", n->sent);
 
 			if (
 				GUI_PROPERTY(show_gnet_info_tx_speed) ||
@@ -115,30 +115,28 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" (" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " (" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_wire)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					"%s", compact_size(n->tx_written, show_metric_units()));
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
+						"%s", compact_size(n->tx_written, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (GUI_PROPERTY(show_gnet_info_tx_speed))
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->tx_bps, show_metric_units()));
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* '(' */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* '(' */ ")");
 			}
 
 			if (n->rx_compressed && GUI_PROPERTY(show_gnet_info_rxc))
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 					" RXc=%u,%d%%",
 					n->received, (int) (n->rx_compression_ratio * 100.0));
 			else
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 					" RX=%u", n->received);
 
 			if (
@@ -147,22 +145,20 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" (" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " (" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_rx_wire)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%s", compact_size(n->rx_given, show_metric_units()));
 					is_first = FALSE;
 				}
 
 				if (GUI_PROPERTY(show_gnet_info_rx_speed))
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%s%s", is_first ? "" : ", ",
 						compact_rate(n->rx_bps, show_metric_units()));
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* '(' */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* '(' */ ")");
 			}
 
 			if (
@@ -173,30 +169,28 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" Query(" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " Query(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_gen_queries)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"Gen=%u", n->squeue_sent);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_sq_queries)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%sQ=%u", is_first ? "" : ", ", n->squeue_count);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_tx_queries)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%sTX=%u", is_first ? "" : ", ", n->tx_queries);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_queries))
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%sRX=%u", is_first ? "" : ", ", n->rx_queries);
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* '(' */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* '(' */ ")");
 			}
 
 			if (
@@ -205,20 +199,18 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" QHit(" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " QHit(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_hits)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"TX=%u", n->tx_qhits);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_hits))
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%sRX=%u", is_first ? "" : ", ", n->rx_qhits);
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* '(' */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* '(' */ ")");
 			}
 
 			if (
@@ -227,20 +219,18 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" Drop(" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " Drop(" /* ')' */);
 
 				if (GUI_PROPERTY(show_gnet_info_tx_dropped)) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"TX=%u", n->tx_dropped);
 					is_first = FALSE;
 				}
 				if (GUI_PROPERTY(show_gnet_info_rx_dropped))
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%sRX=%u", is_first ? "" : ", ", n->rx_dropped);
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* '(' */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* '(' */ ")");
 			}
 
 			if (
@@ -249,14 +239,13 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			) {
 				gboolean is_first = TRUE;
 
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					" Lib(" /* ')' */);
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), " Lib(" /* ')' */);
 
 				if (
 					GUI_PROPERTY(show_gnet_info_shared_size) &&
 					n->gnet_info_known
 				) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%s",
 						compact_kb_size(n->gnet_files_count
 							? n->gnet_kbytes_count : 0, show_metric_units()));
@@ -266,21 +255,21 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 					GUI_PROPERTY(show_gnet_info_shared_files) &&
 					n->gnet_info_known
 				) {
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						"%s#=%u", is_first ? "" : ", ", n->gnet_files_count);
 				}
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 					/* '(' */ "%s)", n->gnet_info_known ? "" : "?");
 			}
 
 			if (GUI_PROPERTY(show_gnet_info_qrp_stats)) {
 				if (n->has_qrp)
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						" QRP=%u%%",
 						(guint) (n->qrp_efficiency * 100.0));
 
 				if (n->qrt_slots != 0)
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						" QRT(%s, g=%u, f=%u%%, t=%u%%, e=%u%%)",
 						compact_size(n->qrt_slots, show_metric_units()),
 						n->qrt_generation,
@@ -289,25 +278,24 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 			}
 
 			if (GUI_PROPERTY(show_gnet_info_dbw))
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 				" Dup=%u Bad=%u W=%u H=%u S=%u E=%u",
 				n->n_dups, n->n_bad, n->n_weird,
 				n->n_hostile, n->n_spam, n->n_evil);
 
 			if (GUI_PROPERTY(show_gnet_info_rt)) {
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 				" RT(avg=%u, last=%u", n->rt_avg, n->rt_last);	/* ) */
 				if (n->tcp_rtt)
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						", tcp=%u", n->tcp_rtt);
 				if (n->udp_rtt)
-					slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+					slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 						", udp=%u", n->udp_rtt);
-				slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
-					/* ( */ ")");
+				slen += str_bprintf(ARYPOSLEN(gui_tmp, slen), /* ( */ ")");
 			}
 
-			slen += str_bprintf(&gui_tmp[slen], sizeof(gui_tmp)-slen,
+			slen += str_bprintf(ARYPOSLEN(gui_tmp, slen),
 				" Q=%u,%u%% %s",
 				n->mqueue_count, n->mqueue_percent_used,
 				n->in_tx_swift_control ? " [SW]" :
@@ -322,7 +310,7 @@ nodes_gui_common_status_str(const gnet_node_status_t *n)
 
 	case GTA_NODE_SHUTDOWN:
 		{
-			str_bprintf(gui_tmp, sizeof(gui_tmp),
+			str_bprintf(ARYLEN(gui_tmp),
 				_("Closing: %s [Stop in %us] RX=%u Q=%u,%u%%"),
 				n->message, n->shutdown_remain, n->received,
 				n->mqueue_count, n->mqueue_percent_used);
@@ -477,7 +465,7 @@ nodes_gui_common_connect_by_name(const gchar *line)
 
 				g_assert(n > hostname_len);
 				p = halloc(n);
-				g_strlcpy(p, hostname, n);
+				cstr_lcpy(p, n, hostname);
 				hostname = p;
 			}
 
@@ -502,10 +490,10 @@ nodes_gui_is_visible(void)
 void
 nodes_gui_timer(time_t now)
 {
-    static time_t last_update;
+	static time_t last_update;
 
-    if (last_update == now)
-        return;
+	if (last_update == now)
+		return;
 
 	/*
 	 * Usually don't perform updates if nobody is watching.  However,
@@ -519,7 +507,7 @@ nodes_gui_timer(time_t now)
 		nodes_gui_is_visible() ||
 		delta_time(now, last_update) >= UPDATE_MIN
 	) {
-    	last_update = now;
+		last_update = now;
 		nodes_gui_update_display(now);
 	}
 }

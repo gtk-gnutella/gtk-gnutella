@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -182,8 +182,8 @@ cache_entry_print(FILE *f, const char *filename,
 	g_return_if_fail(sha1);
 	g_return_if_fail(size > 0);
 
-	uint64_to_string_buf(size, size_buf, sizeof size_buf);
-	uint64_to_string_buf(mtime, mtime_buf, sizeof mtime_buf);
+	uint64_to_string_buf(size, ARYLEN(size_buf));
+	uint64_to_string_buf(mtime, ARYLEN(mtime_buf));
 
 	fprintf(f, "%s\t%s\t%s\t%s\n", bitprint_to_urn_string(sha1, tth),
 		size_buf, mtime_buf, filename);
@@ -320,7 +320,7 @@ parse_and_append_cache_entry(char *line)
 		if (
 			*p != '\t' ||
 			(p - sha1_digest_ascii) != SHA1_BASE32_SIZE ||
-			SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
+			SHA1_RAW_SIZE != base32_decode(VARLEN(sha1),
 								sha1_digest_ascii, SHA1_BASE32_SIZE)
 		) {
 			goto failure;
@@ -351,7 +351,7 @@ parse_and_append_cache_entry(char *line)
 
 	/* p is now supposed to point to the file name */
 
-	if (strchr(p, '\t') != NULL)
+	if (vstrchr(p, '\t') != NULL)
 		goto failure;
 
 	/*
@@ -368,6 +368,9 @@ parse_and_append_cache_entry(char *line)
 
 		if (!S_ISREG(st.st_mode))
 			return;		/* Not a regular file */
+
+		if (UNSIGNED(st.st_size) != size)
+			return;		/* File was modified */
 
 		if (delta_time(st.st_mtime, mtime) > 0)
 			return;		/* File was modified */
@@ -399,10 +402,10 @@ sha1_read_cache(void)
 		for (;;) {
 			char buffer[4096];
 
-			if (NULL == fgets(buffer, sizeof buffer, f))
+			if (NULL == fgets(ARYLEN(buffer), f))
 				break;
 
-			if (!file_line_chomp_tail(buffer, sizeof buffer, NULL)) {
+			if (!file_line_chomp_tail(ARYLEN(buffer), NULL)) {
 				truncated = TRUE;
 			} else if (truncated) {
 				truncated = FALSE;
@@ -687,6 +690,28 @@ sha1_is_cached(const shared_file_t *sf)
 	return cached && cached_entry_up_to_date(cached, sf);
 }
 
+/**
+ * Quickly check whether file changed since we cached its SHA1 / TTH.
+ *
+ * This is used when attempting to resume a seeded file, to quickly check
+ * whether it has been changing since the last time we checked it.
+ *
+ * @param path		full path to file we wish to check
+ * @param size		file size on disk
+ * @param mtime		mtime in the file's i-node on disk
+ *
+ * @return TRUE if cache is up-to-date.
+ */
+bool
+huge_cached_is_uptodate(const char *path, filesize_t size, time_t mtime)
+{
+	const struct sha1_cache_entry *cached = hikset_lookup(sha1_cache, path);
+
+	if (NULL == cached)
+		return FALSE;
+
+	return cached->size == size && cached->mtime == mtime;
+}
 
 /**
  * External interface to call for getting the hash for a shared_file.
@@ -708,10 +733,19 @@ request_sha1(shared_file_t *sf)
 		cached->shared = TRUE;
 		shared_file_set_sha1(sf, cached->sha1);
 		shared_file_set_tth(sf, cached->tth);
-		if (NULL == cached->tth || !shared_file_tth_is_available(sf))
-			request_tigertree(sf, NULL == cached->tth);
-	} else {
 
+		if (NULL == cached->tth || !shared_file_tth_is_available(sf)) {
+			if (GNET_PROPERTY(share_debug) > 1) {
+				if (NULL == cached->tth)
+					g_debug("no known TTH entry for \"%s\"", shared_file_path(sf));
+				else
+					g_debug("no TTH %s entry cached for \"%s\"",
+						tth_base32(cached->tth), shared_file_path(sf));
+			}
+
+			request_tigertree(sf, NULL == cached->tth);
+		}
+	} else {
 		if (GNET_PROPERTY(share_debug) > 1) {
 			if (cached)
 				g_debug("cached SHA1 entry for \"%s\" outdated: "
@@ -778,21 +812,21 @@ huge_sha1_extract32(const char *buf, size_t len, struct sha1 *sha1,
 	if (len != SHA1_BASE32_SIZE || huge_improbable_sha1(buf, len))
 		goto bad;
 
-	if (SHA1_RAW_SIZE != base32_decode(sha1, sizeof *sha1, buf, len))
+	if (SHA1_RAW_SIZE != base32_decode(PTRLEN(sha1), buf, len))
 		goto bad;
 
 	/*
 	 * Make sure the decoded value in `sha1' is "valid".
 	 */
 
-	if (huge_improbable_sha1(sha1->data, sizeof sha1->data)) {
+	if (huge_improbable_sha1(ARYLEN(sha1->data))) {
 		if (GNET_PROPERTY(share_debug)) {
 			if (is_printable(buf, len)) {
 				g_warning("%s has improbable SHA1 (len=%lu): %.*s, hex: %s",
 					gmsg_node_infostr(n),
 					(unsigned long) len,
 					(int) MIN(len, (size_t) INT_MAX),
-					buf, data_hex_str(sha1->data, sizeof sha1->data));
+					buf, data_hex_str(ARYLEN(sha1->data)));
 			} else
 				goto bad;		/* SHA1 should be printable originally */
 		}
@@ -827,7 +861,7 @@ huge_tth_extract32(const char *buf, size_t len, struct tth *tth,
 	if (len != TTH_BASE32_SIZE)
 		goto bad;
 
-	if (TTH_RAW_SIZE != base32_decode(tth, sizeof *tth, buf, len))
+	if (TTH_RAW_SIZE != base32_decode(PTRLEN(tth), buf, len))
 		goto bad;
 
 	return TRUE;
@@ -877,7 +911,7 @@ huge_is_pure_xalt(const char *value, size_t len)
 	if (string_to_host_addr(value, NULL, &addr))
 		return TRUE;
 
-	if (pattern_qsearch(has_http_urls, value, len, 0, qs_any))
+	if (pattern_search(has_http_urls, value, len, 0, qs_any))
 		return FALSE;
 
 	return TRUE;
@@ -1039,7 +1073,7 @@ huge_init(void)
 	sha1_cache = hikset_create(		/* Keys are atoms */
 		offsetof(struct sha1_cache_entry, file_name), HASH_KEY_SELF, 0);
 	sha1_read_cache();
-	has_http_urls = pattern_compile("http://");
+	has_http_urls = pattern_compile("http://", FALSE);
 }
 
 /**

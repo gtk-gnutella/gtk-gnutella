@@ -100,10 +100,13 @@
 #define S_IRWXG _S_IREAD
 #define S_IRWXO _S_IREAD
 
-#define S_IROTH 0
-#define S_IWOTH 0
-#define S_ISUID 0
-#define S_ISGID 0
+/* Unsupported on Windows, assign them an unused mode_t bit */
+#define S_IROTH (1U << 31)
+#define S_IWOTH (1U << 31)
+#define S_IXOTH (1U << 31)
+#define S_ISUID (1U << 31)
+#define S_ISGID (1U << 31)
+#define S_ISVTX (1U << 31)
 
 #define MAP_PRIVATE 0	/* FIXME */
 
@@ -194,6 +197,7 @@
 #define write mingw_write
 #define writev mingw_writev
 #define truncate mingw_truncate
+#define ftruncate mingw_ftruncate
 #define recv mingw_recv
 #define sendto mingw_sendto
 #define recvfrom mingw_recvfrom
@@ -241,7 +245,6 @@ struct msghdr {
 };
 
 typedef __int64 fileoffset_t;
-typedef struct _stati64 filestat_t;
 
 struct passwd {
 	char *pw_name;                /* Username.  */
@@ -322,6 +325,37 @@ gid_t mingw_getegid(void);
 #define getegid() mingw_getegid()
 
 #define GID_NOBODY	((gid_t) -2)
+
+/*
+ * stat() and fstat() emulation.
+ */
+
+/*
+ * We have to redefine the stat structure to be able to store a meaningful
+ * st_ino field: we need 64-bit at least to store our synthetized inode numbers.
+ */
+
+#define ino_t	uint64			/* Need large inode numbers on Windows */
+
+typedef ushort nlink_t;
+typedef uint32 blksize_t;
+typedef uint64 blkcnt_t;
+
+typedef struct mingw_stat {
+	dev_t st_dev;
+	ino_t st_ino;
+	mode_t st_mode;
+	nlink_t st_nlink;
+	uid_t st_uid;
+	gid_t st_gid;
+	dev_t st_rdev;
+	fileoffset_t st_size;
+	blksize_t st_blksize;
+	blkcnt_t st_blocks;
+	time_t st_atime;
+	time_t st_mtime;
+	time_t st_ctime;
+} filestat_t;
 
 /*
  * getrlimit() emulation.
@@ -543,6 +577,7 @@ int mingw_unlink(const char *pathname);
 fileoffset_t mingw_lseek(int fd, fileoffset_t offset, int whence);
 int mingw_rename(const char *oldpathname, const char *newpathname);
 int mingw_truncate(const char *pathname, fileoffset_t len);
+int mingw_ftruncate(int fd, fileoffset_t len);
 int mingw_mkdir(const char *pathname, mode_t mode);
 int mingw_rmdir(const char *pathname);
 int mingw_access(const char *pathname, int mode);
@@ -838,7 +873,6 @@ void mingw_close(void);
 
 const char *mingw_filename_nearby(const char *file);
 bool mingw_stdin_pending(bool fifo);
-bool mingw_same_file_id(const char *pathname_a, const char *pathname_b);
 
 const char *dir_entry_filename(const void *dirent);
 size_t dir_entry_namelen(const void *dirent);

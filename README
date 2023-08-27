@@ -1,7 +1,7 @@
                          gtk-gnutella
 
-               Copyright (c) 2000-2001, Yann Grossel
-             Copyright (c) 2001-2016, Raphael Manfredi
+               Copyright (c) 2000-2001 Yann Grossel
+             Copyright (c) 2001-2020 Raphael Manfredi
 
 ------------------------------------------------------------------------
     This program is free software; you can redistribute it and/or modify
@@ -17,7 +17,7 @@
     You should have received a copy of the GNU General Public License
     along with this program; if not, write to the Free Software
     Foundation, Inc.:
-        59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+        51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 ------------------------------------------------------------------------
 
 This software is currently maintained by Raphael_Manfredi@pobox.com.
@@ -71,8 +71,8 @@ The Project Page is:
 Open Discussion Forums, try:
     http://www.gnutellaforums.com/
 
-There is an IRC channel for gtk-gnutella on http://www.freenode.net:
-    irc.freenode.net #gtk-gnutella
+There is an IRC channel for gtk-gnutella on https://libera.chat:
+    irc.libera.chat #gtk-gnutella
 
 Mailing lists
 
@@ -86,10 +86,26 @@ Installation
 To install one of the precompiled packages, consult your distribution's 
 documentation.  
 
-To compile gtk-gnutella:  
+To compile gtk-gnutella, first make sure the following packages are installed:
+
+    make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+so if you never compiled a C++ source code or if you have freshly installed your GNU/Linux OS you should run:
+
+    $ sudo apt install make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+or log as super user and run:
+
+    $ su -
+    # apt install make g++ libglib2.0-dev zlib1g-dev libgtk2.0-dev
+
+When all required packages are installed, run:
 
     ./build.sh
-    make install
+
+At the end, build.sh will output the command to run to install gtk-gnutella.
+Usually it will be "make install" but it could be "gmake install" on some
+systems where "make" is not the default.
 
 The build.sh shell script is a wrapper for Configure. There should almost never
 be a need to invoke Configure manually.  The `Configure' shell script attempts

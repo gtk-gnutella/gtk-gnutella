@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2010 Jeroen Asselman & Raphael Manfredi
- * Copyright (c) 2012, 2013-2015 Raphael Manfredi
+ * Copyright (c) 2012, 2013-2018 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -31,7 +31,7 @@
  * @author Jeroen Asselman
  * @date 2010
  * @author Raphael Manfredi
- * @date 2010-2015
+ * @date 2010-2018
  */
 
 #include "common.h"
@@ -68,10 +68,12 @@
 #include "ascii.h"				/* For is_ascii_alpha() */
 #include "atomic.h"
 #include "buf.h"
+#include "compat_pio.h"			/* For compat_pio_lock() */
 #include "compat_sleep_ms.h"
 #include "constants.h"
 #include "cq.h"
 #include "crash.h"
+#include "cstr.h"
 #include "debug.h"
 #include "dl_util.h"
 #include "dualhash.h"
@@ -120,7 +122,42 @@
 #define MINGW_STARTUP_LOGDIR	"C:/cygwin/tmp"
 #endif
 #if 0
-#define MINGW_BACKTRACE_DEBUG	/**< Trace our own backtracing */
+#define MINGW_BACKTRACE_DEBUG	/**< Always trace our own backtracing */
+#endif
+
+/*
+ * We leave on this by default.
+ *
+ * It will compile the backtrace debugging code but it will be de-activated
+ * until there is a crash happening (a Windows exception, not an assertion
+ * failure).
+ *
+ * This is important until we can perfectly produce execution stacks on
+ * exceptions.  Currently, assertion failres are OK, because this is
+ * triggering mostly gcc-compiled code, which we more or less manage to
+ * backtrace properly.  But Windows exception involve standard DLL that
+ * were compiled using Windows calling conventions, and were produced
+ * by a different compiler.  Our prologue analysis may not be working
+ * correctly on those calls.
+ *
+ * So, for now, leave a trace of what happened during crashes so that we
+ * can debug / improve the ability to properly backtrace routines.
+ *
+ * Note that the debugging logs we are leaving behind are rotated, so
+ * they will eventually be deleted when no crashes occur.
+ *
+ * 		--RAM, 2018-10-12
+ */
+#if 1
+#define MINGW_BACKTRACE_DEBUG_ON_CRASH
+#endif
+
+#if defined(MINGW_BACKTRACE_DEBUG_ON_CRASH) && !defined(MINGW_BACKTRACE_DEBUG)
+/* MINGW_BACKTRACE_DEBUG_ON_CRASH depends on MINGW_BACKTRACE_DEBUG code! */
+#define MINGW_BACKTRACE_DEBUG
+#elif defined(MINGW_BACKTRACE_DEBUG_ON_CRASH) && defined(MINGW_BACKTRACE_DEBUG)
+/* If they set MINGW_BACKTRACE_DEBUG earlier, always trace! */
+#undef MINGW_BACKTRACE_DEBUG_ON_CRASH
 #endif
 
 #undef signal
@@ -188,6 +225,7 @@
 static HINSTANCE libws2_32;
 static once_flag_t mingw_socket_inited;
 static bool mingw_vmm_inited;
+static bool mingw_early_inited;
 
 static void mingw_stdio_reset(bool console);
 
@@ -202,8 +240,23 @@ typedef struct processor_power_information {
 
 extern bool vmm_is_debugging(uint32 level);
 
-typedef int (*WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
-WSAPoll_func_t WSAPoll = NULL;
+typedef int (WINAPI *WSAPoll_func_t)(WSAPOLLFD fdarray[], ULONG nfds, INT timeout);
+static WSAPoll_func_t WSAPoll;
+
+/*
+ * Support for GetFileInformationByHandleEx() only comes with VISTA.
+ */
+
+static once_flag_t mingw_gfibhe_inited;
+typedef BOOL (WINAPI *GetFileInformationByHandleEx_t)(HANDLE, int, LPVOID, DWORD);
+static GetFileInformationByHandleEx_t GetFileInformationByHandleEx;
+
+#define FileNameInfo 2
+
+typedef struct _FILE_NAME_INFO {
+	DWORD FileNameLength;
+	WCHAR FileName[1];
+} FILE_NAME_INFO;
 
 #ifdef MINGW_STARTUP_DEBUG
 static FILE *mingw_debug_lf;
@@ -224,11 +277,11 @@ getlog(bool initial)
 	 * necessary.
 	 */
 
-	str_bprintf(buf, sizeof buf, "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
+	str_bprintf(ARYLEN(buf), "%s/%s", MINGW_STARTUP_LOGDIR, getprogname());
 	exe = is_strcasesuffix(buf, (size_t) -1, ".exe");
 	if (exe != NULL)
 		*exe = '\0';
-	clamp_strcat(buf, sizeof buf, "-log.txt");
+	clamp_strcat(ARYLEN(buf), "-log.txt");
 
 	mingw_debug_lf = fopen(buf, initial ? "wb" : "ab");
 }
@@ -351,7 +404,7 @@ get_native_path(const char *pathname, int *error)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN);
 	}
@@ -391,7 +444,7 @@ get_native_path(const char *pathname, int *error)
 		is_ascii_alpha(npath[1]) &&
 		(is_dir_separator(npath[2]) || '\0' == npath[2])
 	) {
-		size_t plen = strlen(npath);
+		size_t plen = vstrlen(npath);
 
 		if (pathsz <= plen) {
 			s_rawwarn("%s(): path is %zu-byte long", G_STRFUNC, plen);
@@ -476,7 +529,7 @@ pncs_convert(pncs_t *pncs, const char *pathname)
 
 	if (signal_in_unsafe_handler()) {
 		static char buf[MAX_PATH_LEN * sizeof(wchar_t)];
-		b = buf_init(&bs, buf, sizeof buf);
+		b = buf_init(&bs, ARYLEN(buf));
 	} else {
 		b = buf_private(G_STRFUNC, MAX_PATH_LEN * sizeof(wchar_t));
 	}
@@ -606,7 +659,6 @@ mingw_win2posix(int error)
 	case ERROR_INVALID_FUNCTION:
 		return ENOSYS;
 	case ERROR_FILE_NOT_FOUND:
-		return ENOFILE;
 	case ERROR_PATH_NOT_FOUND:
 		return ENOENT;
 	case ERROR_TOO_MANY_OPEN_FILES:
@@ -641,6 +693,7 @@ mingw_win2posix(int error)
 		return EPIPE;
 	case ERROR_INVALID_NAME:		/* Invalid syntax in filename */
 	case ERROR_INVALID_PARAMETER:	/* Invalid function parameter */
+	case ERROR_BAD_PATHNAME:		/* Invalid pathname */
 		return EINVAL;
 	case ERROR_DIRECTORY:			/* "Directory name is invalid" */
 		return ENOTDIR;				/* Seems the closest mapping */
@@ -668,14 +721,18 @@ mingw_win2posix(int error)
 		return ENOFILE;
 	case ERROR_BAD_UNIT:
 	case ERROR_BAD_DEVICE:
+	case ERROR_NOT_READY:		/* No disk "in" the letter drive */
 		return ENODEV;
-	case ERROR_NOT_READY:
 	case ERROR_BAD_COMMAND:
 	case ERROR_CRC:
 	case ERROR_BAD_LENGTH:
 	case ERROR_SEEK:
 	case ERROR_NOT_DOS_DISK:
 	case ERROR_SECTOR_NOT_FOUND:
+	case ERROR_GEN_FAILURE:
+	case ERROR_WRONG_DISK:
+	case ERROR_SHARING_BUFFER_EXCEEDED:
+	case ERROR_DEVICE_REMOVED:
 		return EIO;
 	case ERROR_OUT_OF_PAPER:
 		return ENOSPC;
@@ -683,10 +740,6 @@ mingw_win2posix(int error)
 	case ERROR_READ_FAULT:
 	case ERROR_NOACCESS:		/* Invalid access to memory location */
 		return EFAULT;
-	case ERROR_GEN_FAILURE:
-	case ERROR_WRONG_DISK:
-	case ERROR_SHARING_BUFFER_EXCEEDED:
-		return EIO;
 	case ERROR_HANDLE_EOF:
 		return 0;			/* EOF must be treated as a read of 0 bytes */
 	case ERROR_HANDLE_DISK_FULL:
@@ -933,9 +986,6 @@ mingw_thread_add_sig(uint32 *dest, int signum)
 		merged = current = *dest;
 		merged |= tsig_mask(signum);
 
-		if (merged == current)
-			break;
-
 		if (atomic_uint_xchg_if_eq(dest, current, merged))
 			break;
 	}
@@ -958,9 +1008,6 @@ mingw_thread_del_sig(uint32 *dest, int signum)
 		atomic_mb();
 		cleared = current = *dest;
 		cleared &= ~tsig_mask(signum);
-
-		if (cleared == current)
-			break;
 
 		if (atomic_uint_xchg_if_eq(dest, current, cleared))
 			break;
@@ -1095,6 +1142,20 @@ mingw_thread_sig_deliver(struct mingw_thread *mt)
 	 * We have signals to deliver.
 	 */
 
+	if (thread_small_id() == mt->stid) {
+		/*
+		 * Must not go through the trampoline if signals are for the current
+		 * thread: suspending ourselves would not do us much good!
+		 * Handle them synchronously.
+		 */
+		mingw_sig_handle(mt);
+		return 0;
+	}
+
+	/*
+	 * Get lock protecting the mt->c thread context.
+	 */
+
 	if (!atomic_acquire(&mt->lock))
 		return 0;		/* Busy with another signal dispatch */
 
@@ -1116,7 +1177,7 @@ mingw_thread_sig_deliver(struct mingw_thread *mt)
 	ZERO(&mt->c);
 	mt->c.ContextFlags = CONTEXT_FULL;
 
-	if (!GetThreadContext(mt->h ,&mt->c)) {
+	if (!GetThreadContext(mt->h, &mt->c)) {
 		what = "GetThreadContext";
 		errno = mingw_last_error();
 		goto failed;
@@ -1901,7 +1962,7 @@ mingw_launch_init_once(void)
 }
 
 /*
- * Create escpaed command-line string from argv[].
+ * Create escaped command-line string from argv[].
  *
  * Just like mingw_execve(), we need to properly enclose in double-quotes
  * all the arguments with embedded spaces or the constructed argv[] array
@@ -2077,7 +2138,7 @@ mingw_environment_block(char * const envp[], int *flags)
 
 		if (environ[0] != NULL) {
 			char *p = environ[0];
-			char *q = strstr(p, "=");
+			char *q = vstrchr(p, '=');
 
 			/*
 			 * If there is a NUL byte before '=' or the '=' sign is indeed
@@ -2908,7 +2969,7 @@ get_special(int which, char *what)
 	ret = SHGetFolderPathW(NULL, which, NULL, 0, pathname);
 
 	if (E_INVALIDARG != ret) {
-		size_t conv = utf16_to_utf8(pathname, utf8_path, sizeof utf8_path);
+		size_t conv = utf16_to_utf8(pathname, ARYLEN(utf8_path));
 		if (conv > sizeof utf8_path) {
 			s_warning("cannot convert %s path from UTF-16 to UTF-8", what);
 			ret = E_INVALIDARG;
@@ -2918,7 +2979,7 @@ get_special(int which, char *what)
 	if (E_INVALIDARG == ret) {
 		s_carp("%s: could not get the %s directory", G_STRFUNC, what);
 		/* ASCII is valid UTF-8 */
-		g_strlcpy(utf8_path, G_DIR_SEPARATOR_S, sizeof utf8_path);
+		cstr_bcpy(ARYLEN(utf8_path), G_DIR_SEPARATOR_S);
 	}
 
 	result = constant_str(utf8_path);
@@ -3099,9 +3160,20 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 {
 	const char *personal;
 
-	personal = mingw_get_personal_path();
+	/*
+	 * If we have a forced name, we're not a "registered" product
+	 * that is meant to leave traces on the system, but we're a test
+	 * program most probably.  Use the current directory for logging.
+	 * 		--RAM, 2018-10-11
+	 */
 
-	g_strlcpy(dest, personal, size);
+	if (product_has_forced_name()) {
+		cstr_bcpy(dest, size, ".");
+		goto local_dir;
+	}
+
+	personal = mingw_get_personal_path();
+	cstr_bcpy(dest, size, personal);
 
 	STARTUP_DEBUG("%s(): #1 dest=%s", G_STRFUNC, dest);
 
@@ -3116,6 +3188,9 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	if (path_does_not_exist(dest))
 		mingw_mkdir(dest, S_IRUSR | S_IWUSR | S_IXUSR);
 
+	/* FALL THROUGH */
+
+local_dir:
 	clamp_strcat(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
 
@@ -3127,7 +3202,7 @@ mingw_build_personal_path(const char *file, char *dest, size_t size)
 	return dest;
 
 fallback:
-	g_strlcpy(dest, G_DIR_SEPARATOR_S, size);
+	cstr_bcpy(dest, size, G_DIR_SEPARATOR_S);
 	clamp_strcat(dest, size, file);
 	STARTUP_DEBUG("%s(): returning fallback dest=%s", G_STRFUNC, dest);
 	return dest;
@@ -3143,9 +3218,9 @@ mingw_getstdout_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stdout", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stdout", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3158,9 +3233,9 @@ mingw_getstderr_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.stderr", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.stderr", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3173,9 +3248,9 @@ mingw_get_supervisor_log_path(void)
 	static char pathname[MAX_PATH];
 	char buf[128];
 
-	str_bprintf(buf, sizeof buf, "%s.super", product_nickname());
+	str_bprintf(ARYLEN(buf), "%s.super", product_nickname());
 
-	return mingw_build_personal_path(buf, pathname, sizeof pathname);
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
 }
 
 /**
@@ -3378,16 +3453,281 @@ mingw_pipe(int fd[2])
 	return res;
 }
 
+static void
+mingw_copy_stat_struct(const struct _stati64 *nbuf, filestat_t *buf)
+{
+#define C(x)	buf->st_ ## x = nbuf->st_ ## x
+
+	C(dev);
+	C(ino);
+	C(mode);
+	C(nlink);
+	C(uid);
+	C(gid);
+	C(rdev);
+	C(size);
+	C(atime);
+	C(mtime);
+	C(ctime);
+
+	/*
+	 * Fake these on Windows.
+	 *
+	 * These are not even present in the _stati64 structure, but some C code
+	 * may depend on these fields being set properly, so compute some meaningful
+	 * values.
+	 */
+
+	buf->st_blksize = 131072;				/* magic "random" number */
+	buf->st_blocks = nbuf->st_size >> 9;	/* # of 512B blocks allocated */
+	if (nbuf->st_size & ((1 << 9) - 1))		/* partial trailing block? */
+		buf->st_blocks++;
+
+#undef C
+}
+
+/**
+ * Initialize the GetFileInformationByHandleEx pointer, once, by probing
+ * the kernel libraray.
+ *
+ * Indeed, the GetFileInformationByHandleEx() routine is only available
+ * starting with VISTA, which comes between XP and WIN7.
+ */
+static void
+mingw_gfibhe_init(void)
+{
+	HMODULE kernel32 = LoadLibrary("kernel32.dll");
+
+	if (kernel32 != NULL) {
+		GetFileInformationByHandleEx = (GetFileInformationByHandleEx_t)
+			GetProcAddress(kernel32, "GetFileInformationByHandleEx");
+	}
+}
+
+static bool
+mingw_fix_statbuf(HANDLE h,
+	const struct _stati64 *nbuf, bool is_fstat,
+	filestat_t *buf)
+{
+	BY_HANDLE_FILE_INFORMATION fi;
+	bool ok;
+	DWORD type = GetFileType(h);
+
+	mingw_copy_stat_struct(nbuf, buf);
+
+	/*
+	 * We only know how to fix the buffer for disk files and pipes.
+	 */
+
+	if G_UNLIKELY(FILE_TYPE_PIPE == type) {
+		DWORD pending;
+
+		if (PeekNamedPipe(h, NULL, 0, NULL, &pending, NULL))
+			buf->st_size = pending;
+
+		/* Silenetly ignore errors on PeekNamedPipe() */
+
+		return TRUE;
+	}
+
+	if (FILE_TYPE_DISK != type)
+		return TRUE;
+
+	ok = 0 != GetFileInformationByHandle(h, &fi);
+
+	if (ok) {
+		buf->st_dev = (uint) fi.dwVolumeSerialNumber;
+		buf->st_ino = UINT64_VALUE(fi.nFileIndexHigh, fi.nFileIndexLow);
+
+		/*
+		 * This computation sometimes yields the wrong results: for a file
+		 * on a remote SMB share with 2 links, it sometimes gives back 2,
+		 * but sometimes it returns 1.
+		 *
+		 * Hence disabling it, as we disabled the code further below that
+		 * attempts to correct it for fstat() calls.
+		 * 		--RAM, 2018-05-13
+		 */
+
+#if 0
+		buf->st_nlink = MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+#endif
+	}
+
+	/*
+	 * Always clear the trailing bits in mode that cannot be set on Windows
+	 * (the 6 trailing bits corresponding to "other" permissions) and that we
+	 * cannot check for.
+	 *
+	 * Our runtime remaps S_IxGRP to S_IxUSR and S_IxOTH tests are meaningless.
+	 * Hence it does not make sense to keep these trailing bits.
+	 */
+
+	buf->st_mode &= ~0x3f;
+
+	/*
+	 * If coming from fstat(), then we need to query for the underlying
+	 * file name to check whether it is an executable, in order to restore
+	 * the executable bits in the mode.
+	 *
+	 * Unfortunately, GetFileInformationByHandleEx() is not available on XP:
+	 * it starts with VISTA, hence the contorsions below since we are compiling
+	 * on Windows XP and therefore do not have the right compile-time support.
+	 */
+
+	if (is_fstat && S_ISREG(buf->st_mode)) {
+		ONCE_FLAG_RUN(mingw_gfibhe_inited, mingw_gfibhe_init);
+
+		if (GetFileInformationByHandleEx != NULL) {
+			size_t len = MAX_PATH_LEN * sizeof(wchar_t) + sizeof(FILE_NAME_INFO);
+			void *b = walloc0(len);
+			FILE_NAME_INFO *fni = NULL;
+
+			if (GetFileInformationByHandleEx(h, FileNameInfo, b, len))
+				fni = b;
+
+			/*
+			 * Look for an "executable" extension in the file name.
+			 */
+
+			if (fni != NULL) {
+				size_t len8;		/* UTF-8 length */
+				char *n8;			/* UTF-8 file name */
+
+				/* Convert back the UTF-16 into UTF-8 */
+
+				len8 = 1 + utf16_to_utf8(fni->FileName, NULL, 0);
+				n8 = walloc(len8);
+				(void) utf16_to_utf8(fni->FileName, n8, len8);
+
+				/* Assume case-independance for extensions */
+
+				if (
+					is_strcasesuffix(n8, len8 - 1, ".exe") ||
+					is_strcasesuffix(n8, len8 - 1, ".bat") ||
+					is_strcasesuffix(n8, len8 - 1, ".com") ||
+					is_strcasesuffix(n8, len8 - 1, ".cmd")
+				)
+					buf->st_mode |= S_IXUSR;
+
+				wfree(n8, len8);
+			}
+
+			/*
+			 * Compute the proper number of links by stat()-ing the file.
+			 *
+			 * FIXME:
+			 * Unfortunately, this is unreliable and can return a
+			 * different value from time to time when dealing with
+			 * files on a remote volume shared by SMB.
+			 * This is disturbing...
+			 *
+			 * On Windows, regardless of NTFS supporting links, it seems
+			 * that the st_nlink value is unreliable.
+			 *
+			 * Therefore, disabling this code for now.
+			 * 		--RAM, 2018-05-13
+			 */
+
+#if 0	/* Disabled because results are unreliable */
+			if (fni != NULL) {
+				HANDLE dh;
+
+				dh = CreateFileW(fni->FileName, FILE_READ_ATTRIBUTES,
+						FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+						NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+				if (
+					INVALID_HANDLE_VALUE != dh &&
+					GetFileInformationByHandle(dh, &fi)
+				) {
+					buf->st_nlink =
+						MIN(fi.nNumberOfLinks, MAX_UINT_VALUE(buf->st_nlink));
+				}
+
+				CloseHandle(dh);
+			}
+#endif	/* Disabled because results are unreliable */
+
+			wfree(b, len);
+		}
+	}
+
+	return ok;
+}
+
+static bool
+mingw_fix_fstat(HANDLE h, const struct _stati64 *nbuf, filestat_t *buf)
+{
+	return mingw_fix_statbuf(h, nbuf, TRUE, buf);
+}
+
+/*
+ * Attempt to fix the stat() buffer by post-processing the returned information
+ * from the MinGW runtime.
+ *
+ * @return 0 if OK, -1 on error with errno set, 1 if we could not fix the
+ * status but otherwise should not report any error to the user.
+ */
+static int
+mingw_fix_stat(const wchar_t *pathname,
+	const struct _stati64 *nbuf, filestat_t *buf)
+{
+	HANDLE h;
+	bool ok;
+
+	/*
+	 * The given pathname is expected to already be UTF-16.
+	 *
+	 * We need FILE_FLAG_BACKUP_SEMANTICS to be able to obtain a handle
+	 * on a directory.
+	 */
+
+	h = CreateFileW(pathname, FILE_READ_ATTRIBUTES,
+			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_EXISTING, FILE_FLAG_BACKUP_SEMANTICS, NULL);
+
+	if (INVALID_HANDLE_VALUE == h) {
+		int error = GetLastError();
+
+		/*
+		 * Trap ERROR_NOT_READY errors, for instance when attempting
+		 * to stat "D:/" and it is a CDROM device holding nothing.
+		 */
+
+		if (ERROR_NOT_READY == error) {
+			errno = ENODEV;
+			return -1;
+		}
+
+		/*
+		 * Let them know the error code before failing, so that we may
+		 * diagnose what to do: ignore, fix, etc...
+		 */
+
+		s_warning("%s(): got Windows error code %d", G_STRFUNC, error);
+		return 1;	/* Don't let the stat() call fail, but complain loudly */
+	}
+
+	ok = mingw_fix_statbuf(h, nbuf, FALSE, buf);
+	CloseHandle(h);
+
+	return ok ? 0 : 1;
+}
+
 int
 mingw_stat(const char *pathname, filestat_t *buf)
 {
 	pncs_t pncs;
 	int res;
+	size_t len;
+	const char exe[] = ".exe";
+	struct _stati64 nbuf;
 
 	if (pncs_convert(&pncs, pathname))
 		return -1;
 
-	res = _wstati64(pncs.utf16, buf);
+	res = _wstati64(pncs.utf16, &nbuf);
 	if (-1 == res) {
 		errno = mingw_last_error();
 
@@ -3400,8 +3740,10 @@ mingw_stat(const char *pathname, filestat_t *buf)
 		 */
 
 		if (ENOENT == errno) {
-			size_t len = strlen(pathname);
-			const char *p = &pathname[len - 1];
+			const char *p;
+		   
+			len = vstrlen(pathname);
+			p = &pathname[len - 1];
 
 			if (len <= 1)
 				goto nofix;		/* A simple "/" would have worked */
@@ -3411,7 +3753,7 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			else if ('.' == *p && '/' == p[-1])
 				len -= 2;
 			else
-				goto nofix;
+				goto exefix;	/* See whether we try to stat() an executable */
 
 			/*
 			 * In a signal handler, don't allocate memory.
@@ -3420,32 +3762,105 @@ mingw_stat(const char *pathname, filestat_t *buf)
 			if (signal_in_unsafe_handler()) {
 				static char path[MAX_PATH_LEN];
 
-				clamp_strncpy(path, sizeof path, pathname, len);
+				clamp_strncpy(ARYLEN(path), pathname, len);
 				if (0 == pncs_convert(&pncs, path))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 			} else {
 				char *fixed;
 
 				fixed = h_strndup(pathname, len);
 				if (0 == pncs_convert(&pncs, fixed))
-					res = _wstati64(pncs.utf16, buf);
+					res = _wstati64(pncs.utf16, &nbuf);
 				hfree(fixed);
 			}
 		}
 	}
 
+	/* FALL THROUGH */
+
 nofix:
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res) {
+		int fix = mingw_fix_stat(pncs.utf16, &nbuf, buf);
+
+		switch (fix) {
+		case 0:		/* OK */
+		default:
+			break;
+		case 1:		/* Could not fix */
+			s_carp("%s(): cannot fix information correctly for \"%s\"",
+				G_STRFUNC, pathname);
+			break;
+		case -1:	/* Report error, errno was set */
+			res = -1;
+			break;
+		}
+	}
+
 	return res;
+
+exefix:
+	/*
+	 * Maybe the are stat()ing "foo" but "foo.exe" exists?
+	 *
+	 * In which case we want to transparently succeed by stat()ing the
+	 * executable instead!
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (is_strsuffix(pathname, len, exe))
+		goto nofix;		/* Already had the trailing .exe in path */
+
+	/*
+	 * In a signal handler, don't allocate memory.
+	 */
+
+	if (signal_in_unsafe_handler()) {
+		static char path[MAX_PATH_LEN];
+
+		clamp_strncpy(ARYLEN(path), pathname, len);
+		clamp_strcat(ARYLEN(path), exe);
+		if (0 == pncs_convert(&pncs, path))
+			res = _wstati64(pncs.utf16, &nbuf);
+	} else {
+		char *fixed;
+
+		fixed = h_strconcat(pathname, exe, NULL);
+		if (0 == pncs_convert(&pncs, fixed))
+			res = _wstati64(pncs.utf16, &nbuf);
+		hfree(fixed);
+	}
+
+	goto nofix;
 }
 
 int
 mingw_fstat(int fd, filestat_t *buf)
 {
 	int res;
+	struct _stati64 nbuf;
 
-	res = _fstati64(fd, buf);
+	res = _fstati64(fd, &nbuf);
 	if (-1 == res)
 		errno = mingw_last_error();
+
+	/*
+	 * Unfortunately, the MinGW runtime does not fill-in any useful information
+	 * for st_dev and st_ino, so we use Windows calls to supply the missing
+	 * information in a consistent way.
+	 * 		--RAM, 2018-05-12
+	 */
+
+	if (-1 != res && !mingw_fix_fstat((HANDLE) _get_osfhandle(fd), &nbuf, buf)) {
+		s_carp("%s(): cannot fix information correctly for fd #%d",
+			G_STRFUNC, fd);
+	}
 
 	return res;
 }
@@ -3753,27 +4168,89 @@ int
 mingw_truncate(const char *pathname, fileoffset_t len)
 {
 	int fd;
-	fileoffset_t offset;
 
 	fd = mingw_open(pathname, O_RDWR);
 	if (-1 == fd)
 		return -1;
 
-	offset = mingw_lseek(fd, len, SEEK_SET);
-	if ((fileoffset_t)-1 == offset || offset != len) {
+	if (-1 == mingw_ftruncate(fd, len)) {
 		int saved_errno = errno;
 		fd_close(&fd);
 		errno = saved_errno;
 		return -1;
 	}
-	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
-		int saved_errno = mingw_last_error();
-		fd_close(&fd);
-		errno = saved_errno;
-		return -1;
-	}
+
 	fd_close(&fd);
 	return 0;
+}
+
+int
+mingw_ftruncate(int fd, fileoffset_t len)
+{
+	fileoffset_t offset, current;
+
+	if (-1 == fd) {
+		errno = EBADF;
+		return -1;
+	}
+
+	/*
+	 * This emulation is NOT atomic and any concurrent thread trying to
+	 * pread() or pwrite() on that file could get an inconsistent result
+	 * due to the file offset changing underneath.
+	 *
+	 * Because we know that no call below can enter the compat_pio.c logic,
+	 * we use the same locks as the compatibility routines to ensure we
+	 * are at least consistent with our own emulations.
+	 *
+	 * Of course, concurrent threads accessing the file being ftruncate()-ed
+	 * without using compat_pread(), compat_pwrite() or their vectorized
+	 * friends to perform their I/Os would face a multi-threaded design bug!
+	 */
+
+	compat_pio_lock(fd);
+
+	current = mingw_lseek(fd, 0, SEEK_CUR);
+	if ((fileoffset_t) -1 == current)
+		goto failed;
+
+	if (current != len) {
+		offset = mingw_lseek(fd, len, SEEK_SET);
+		if ((fileoffset_t) -1 == offset || offset != len)
+			goto failed;
+	} else {
+		offset = len;
+	}
+
+	if (!SetEndOfFile((HANDLE) _get_osfhandle(fd))) {
+		int saved_errno = mingw_last_error();
+		if (offset != current)
+			(void) mingw_lseek(fd, current, SEEK_SET);
+		errno = saved_errno;
+		goto failed;
+	}
+
+	/*
+	 * Note that this can reset the offset beyond the truncation point.
+	 * But ftruncate() must not change the file offset to preserve the
+	 * POSIX semantics.
+	 *
+	 * We used to warn when current > len but we no longer do because
+	 * this does not indicate an application bug.  No harm will come if
+	 * one issues a write() after truncation, if that is what they want.
+	 * 		--RAM, 2018-10-08
+	 */
+
+	if (offset != current)
+		(void) mingw_lseek(fd, current, SEEK_SET);
+
+	compat_pio_unlock(fd);
+
+	return 0;
+
+failed:
+	compat_pio_unlock(fd);
+	return -1;
 }
 
 /***
@@ -3984,7 +4461,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 
 	thread_in_syscall_set(TRUE);
 
-	r = bind(ls, (struct sockaddr *) &laddr, sizeof laddr);
+	r = bind(ls, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 	r = listen(ls, 1);
@@ -4009,7 +4486,7 @@ socketpair(int domain, int type, int protocol, socket_fd_t sv[2])
 	 * of 1 and the connection will happen "immediately".
 	 */
 
-	r = connect(cs, (struct sockaddr *) &laddr, sizeof laddr);
+	r = connect(cs, (struct sockaddr *) VARLEN(laddr));
 	if (-1 == r)
 		goto failed;
 
@@ -4284,7 +4761,7 @@ mingw_mem_committed(void)
 {
 	PROCESS_MEMORY_COUNTERS c;
 
-	if (GetProcessMemoryInfo(GetCurrentProcess(), &c, sizeof c))
+	if (GetProcessMemoryInfo(GetCurrentProcess(), VARLEN(c)))
 		return c.PagefileUsage;
 
 	errno = mingw_last_error();
@@ -4695,7 +5172,7 @@ mingw_log_meminfo(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("VirtualQuery() failed for %p: %m", p);
@@ -4724,7 +5201,7 @@ mingw_memstart(const void *p)
 
 	ZERO(&mbi);
 
-	res = VirtualQuery(p, &mbi, sizeof mbi);
+	res = VirtualQuery(p, VARLEN(mbi));
 	if (0 == res) {
 		errno = mingw_last_error();
 		s_rawwarn("%s(): VirtualQuery() failed for %p: %m", G_STRFUNC, p);
@@ -4848,8 +5325,8 @@ mingw_fopen(const char *pathname, const char *mode)
 	wchar_t wmode[32];
 	FILE *res;
 
-	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+	if (NULL == vstrchr(mode, 'b')) {
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -4874,19 +5351,88 @@ mingw_fopen(const char *pathname, const char *mode)
 	return res;
 }
 
+/**
+ * Special version of freopen() to be used when re-opening files for writing.
+ *
+ * Blindly using freopen() opens the file with exclusive access, which
+ * prevents opening the file to inspect it whilst the program runs.
+ *
+ * So we use a different strategy by going deeper into the Windows API to
+ * open the file with shared access, and then we just change the file
+ * descriptor of the file structure to use our new descriptor.
+ *
+ * @param wpathname		the wpathname.utf16 is the wide-char pathname
+ * @param flags			O_XXX read/write/trunc/append flags
+ * @param file			the existing FILE we want to redirect to wpathname
+ *
+ * @return TRUE on success.
+ */
+static bool
+mingw_write_redirect(pncs_t wpathname, int flags, FILE *file)
+{
+	HANDLE h;
+	int fd, r;
+	DWORD mode = 0;
+
+	/* Assert they are flags, not values we cannot combine */
+	STATIC_ASSERT(3 == (O_RDWR | O_WRONLY | O_RDONLY));
+
+	if (flags & (O_RDWR | O_WRONLY))
+		mode |= GENERIC_WRITE;
+
+	if (flags & (O_RDWR | O_RDONLY))
+		mode |= GENERIC_READ;
+
+	if (flags & O_APPEND)
+		mode |= FILE_APPEND_DATA;
+
+	h = CreateFileW(wpathname.utf16, mode,
+			FILE_SHARE_READ | FILE_SHARE_WRITE,
+			NULL, OPEN_ALWAYS, FILE_ATTRIBUTE_NORMAL, NULL);
+
+	if (INVALID_HANDLE_VALUE == h)
+		return FALSE;
+
+	if (flags & O_TRUNC)
+		SetEndOfFile(h);
+
+	/*
+	 * According to MSDN, the only flags interesting here are O_APPEND and
+	 * O_RDONLY.  Limit to those then.
+	 */
+
+	fd = _open_osfhandle((intptr_t) h, flags & (O_APPEND | O_RDONLY));
+	if (-1 == fd) {
+		CloseHandle(h);
+		return FALSE;
+	}
+
+	r = mingw_dup2(fd, fileno(file));	/* replaces old fd in `file' */
+	close(fd);
+
+	if (-1 == r) {
+		/* Should already be taken care of by close(fd) if dup2() failed */
+		CloseHandle(h);
+		return FALSE;
+	}
+
+	return TRUE;
+}
+
 FILE *
 mingw_freopen(const char *pathname, const char *mode, FILE *file)
 {
 	pncs_t wpathname;
 	char bin_mode[14];
 	wchar_t wmode[32];
+	int flags = 0;
 	FILE *res;
 
 	if (pncs_convert(&wpathname, pathname))
 		return NULL;
 
-	if (NULL == strchr(mode, 'b')) {
-		int l = clamp_strcpy(bin_mode, sizeof bin_mode - 2, mode);
+	if (NULL == vstrchr(mode, 'b')) {
+		int l = clamp_strcpy(ARYLEN(bin_mode) - 2, mode);
 		bin_mode[l++] = 'b';
 		bin_mode[l] = '\0';
 		mode = bin_mode;
@@ -4901,9 +5447,52 @@ mingw_freopen(const char *pathname, const char *mode, FILE *file)
 		return NULL;
 	}
 
-	res = _wfreopen(wpathname.utf16, wmode, file);
-	if (NULL == res)
-		errno = mingw_last_error();
+	/*
+	 * Analyze the reopen flags to determine how the file will be
+	 * written to, in case we have to handle it manually.
+	 */
+
+	if (NULL != vstrchr(mode, 'a')) {
+		if (NULL != vstrstr(mode, "a+"))
+			flags |= O_RDWR | O_APPEND;
+		else
+			flags |= O_WRONLY | O_APPEND;
+	}
+
+	if (NULL != vstrchr(mode, 'w')) {
+		if (NULL != vstrstr(mode, "w+"))
+			flags |= O_RDWR | O_TRUNC;
+		else
+			flags |= O_WRONLY | O_TRUNC;
+	}
+
+	if (NULL != vstrchr(mode, 'r')) {
+		if (NULL != vstrstr(mode, "r+"))
+			flags |= O_RDWR;
+		else
+			flags |= O_RDONLY;
+	}
+
+	/*
+	 * Handle re-opening for writing specially to avoid exclusive access
+	 * preventing concurrent reads.
+	 */
+
+	if (flags & (O_WRONLY | O_RDWR)) {
+		/* Writing to file, use special version */
+		if (mingw_write_redirect(wpathname, flags, file)) {
+			res = file;
+		} else {
+			errno = mingw_last_error();
+			res = NULL;
+		}
+	} else {
+		/* No writing, let the default Windows behaviour apply */
+		res = _wfreopen(wpathname.utf16, wmode, file);
+		if (NULL == res)
+			errno = mingw_last_error();
+	}
+
 	return res;
 }
 
@@ -5065,7 +5654,7 @@ mingw_filetime_to_timeval(const FILETIME *ft, struct timeval *tv, uint64 offset)
 	 * the LowPart and HighPart members into the FILETIME structure.
 	 */
 
-	v = (ft->dwLowDateTime | ((ft->dwHighDateTime + (uint64) 0) << 32)) / 10;
+	v = UINT64_VALUE(ft->dwHighDateTime, ft->dwLowDateTime) / 10;
 	v -= offset;
 	tv->tv_usec = v % TM_MILLION;
 	v /= TM_MILLION;
@@ -5432,7 +6021,7 @@ mingw_uname(struct utsname *buf)
 
 	ZERO(buf);
 
-	g_strlcpy(buf->sysname, "Windows", sizeof buf->sysname);
+	cstr_bcpy(ARYLEN(buf->sysname), "Windows");
 
 	switch (mingw_proc_arch()) {
 	case PROCESSOR_ARCHITECTURE_AMD64:	cpu = "x64"; break;
@@ -5440,13 +6029,13 @@ mingw_uname(struct utsname *buf)
 	case PROCESSOR_ARCHITECTURE_INTEL:	cpu = "x86"; break;
 	default:							cpu = "unknown"; break;
 	}
-	g_strlcpy(buf->machine, cpu, sizeof buf->machine);
+	cstr_bcpy(ARYLEN(buf->machine), cpu);
 
 	osvi.dwOSVersionInfoSize = sizeof osvi;
 	if (GetVersionEx(&osvi)) {
-		str_bprintf(buf->release, sizeof buf->release, "%u.%u",
+		str_bprintf(ARYLEN(buf->release), "%u.%u",
 			(unsigned) osvi.dwMajorVersion, (unsigned) osvi.dwMinorVersion);
-		str_bprintf(buf->version, sizeof buf->version, "%u %s",
+		str_bprintf(ARYLEN(buf->version), "%u %s",
 			(unsigned) osvi.dwBuildNumber, osvi.szCSDVersion);
 	}
 
@@ -5742,7 +6331,7 @@ mingw_filename_nearby(const char *filename)
 		bool error = FALSE;
 		size_t pathsz = buf_size(b);
 
-		if (0 == GetModuleFileNameW(NULL, wpathname, sizeof wpathname)) {
+		if (0 == GetModuleFileNameW(NULL, ARYLEN(wpathname))) {
 			error = TRUE;
 			errno = mingw_last_error();
 			s_warning("cannot locate my executable: %m");
@@ -5755,7 +6344,7 @@ mingw_filename_nearby(const char *filename)
 		}
 
 		if (error)
-			g_strlcpy(pathname, G_DIR_SEPARATOR_S, buf_size(b));
+			cstr_bcpy(pathname, buf_size(b), G_DIR_SEPARATOR_S);
 
 		offset = filepath_basename(pathname) - pathname;
 	}
@@ -5797,57 +6386,6 @@ bool
 mingw_stdin_pending(bool fifo)
 {
 	return fifo ? mingw_fifo_pending(STDIN_FILENO) : booleanize(_kbhit());
-}
-
-/**
- * Get file ID.
- *
- * @return TRUE on success.
- */
-static bool
-mingw_get_file_id(const char *pathname, uint64 *id)
-{
-	HANDLE h;
-	BY_HANDLE_FILE_INFORMATION fi;
-	bool ok;
-	pncs_t pncs;
-
-	if (pncs_convert(&pncs, pathname))
-		return FALSE;
-
-	h = CreateFileW(pncs.utf16, 0,
-			FILE_SHARE_DELETE | FILE_SHARE_READ | FILE_SHARE_WRITE,
-			NULL, OPEN_EXISTING, 0, NULL);
-
-	if (INVALID_HANDLE_VALUE == h)
-		return FALSE;
-
-	ok = 0 != GetFileInformationByHandle(h, &fi);
-	CloseHandle(h);
-
-	if (!ok)
-		return FALSE;
-
-	*id = (uint64) fi.nFileIndexHigh << 32 | (uint64) fi.nFileIndexLow;
-
-	return TRUE;
-}
-
-/**
- * Are the two files sharing the same file ID?
- */
-bool
-mingw_same_file_id(const char *pathname_a, const char *pathname_b)
-{
-	uint64 ia, ib;
-
-	if (!mingw_get_file_id(pathname_a, &ia))
-		return FALSE;
-
-	if (!mingw_get_file_id(pathname_b, &ib))
-		return FALSE;
-
-	return ia == ib;
 }
 
 /**
@@ -6458,13 +6996,41 @@ mingw_init(void)
 
 #ifdef MINGW_BACKTRACE_DEBUG
 #define BACKTRACE_DEBUG(lvl, ...)	\
-	if ((lvl) & MINGW_BACKTRACE_FLAGS) s_minidbg(__VA_ARGS__)
-#define mingw_backtrace_debug()	1
-#else
+	if ((lvl) & mingw_backtrace_flags) mingw_debug_log(__VA_ARGS__)
+#define BACKTRACE_ENTRY 									\
+G_STMT_START {												\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_entering(G_STRFUNC);					\
+} G_STMT_END
+#define BACKTRACE_RETURN_VOID								\
+G_STMT_START {												\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_leaving(G_STRFUNC, G_STRLOC, "%s", "");	\
+	return;													\
+} G_STMT_END
+#define BACKTRACE_RETURN(fmt, val)							\
+G_STMT_START {												\
+	if (mingw_backtrace_debug())							\
+		mingw_debug_leaving(G_STRFUNC, G_STRLOC, (fmt), (val));	\
+	return val;												\
+} G_STMT_END
+#define BACKTRACE_LOG_LOCK		mutex_lock(&mingw_debuglog.lock)
+#define BACKTRACE_LOG_UNLOCK	mutex_unlock(&mingw_debuglog.lock)
+#define mingw_backtrace_debug()	(mingw_backtrace_flags != 0)
+#define mingw_debug_file		mingw_debuglog.lf
+#else	/* !MINGW_BACKTRACE_DEBUG */
 #define BACKTRACE_DEBUG(...)
+#define BACKTRACE_ENTRY
+#define BACKTRACE_RETURN_VOID		return
+#define BACKTRACE_RETURN(fmt, val)	return val
+#define BACKTRACE_LOG_LOCK
+#define BACKTRACE_LOG_UNLOCK
 #define mingw_backtrace_debug()	0
+#define mingw_debug_log(...)
+#define mingw_debug_file		stderr
 #endif	/* MINGW_BACKTRACE_DEBUG */
 
+#define MINGW_SP_INSPECT			3
 #define MINGW_MAX_ROUTINE_LENGTH	0x2000
 #define MINGW_FORWARD_SCAN			32
 #define MINGW_SP_ALIGN				4
@@ -6479,12 +7045,37 @@ mingw_init(void)
 #define BACK_F_OTHER		(1 << 4)
 #define BACK_F_DUMP			(1 << 5)
 #define BACK_F_RESULT		(1 << 6)
+#define BACK_F_PC			(1 << 7)
 
 #define BACK_F_ALL \
 	(BACK_F_NAME | BACK_F_PROLOGUE | BACK_F_RA | BACK_F_DRIVER | \
-		BACK_F_OTHER | BACK_F_DUMP | BACK_F_RESULT)
+		BACK_F_OTHER | BACK_F_DUMP | BACK_F_RESULT | BACK_F_PC)
 
+/* Now that we have a separate logfile for backtracing, be more verbose */
+#if 0
 #define MINGW_BACKTRACE_FLAGS	(BACK_F_DRIVER | BACK_F_RESULT | BACK_F_NAME)
+#else
+#define MINGW_BACKTRACE_FLAGS	BACK_F_ALL
+#endif
+
+/*
+ * When MINGW_BACKTRACE_DEBUG_ON_CRASH is set, we turn off the debugging
+ * initially, and only turn it on when an exception is raised.
+ */
+#ifdef MINGW_BACKTRACE_DEBUG_ON_CRASH
+#define MINGW_BACKTRACE_FLAGS_INIT	0	/* No debug initially */
+#else
+#define MINGW_BACKTRACE_FLAGS_INIT	MINGW_BACKTRACE_FLAGS
+#endif
+
+static uint32 mingw_backtrace_flags = MINGW_BACKTRACE_FLAGS_INIT;
+
+static inline void
+mingw_activate_backtrace_debug(void)
+{
+	/* This has no effect if not compiled with MINGW_BACKTRACE_DEBUG */
+	mingw_backtrace_flags = MINGW_BACKTRACE_FLAGS;
+}
 
 static inline bool
 valid_ptr(const void * const p)
@@ -6508,8 +7099,11 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_RET_FAR		0xcb
 #define OPCODE_RET_NEAR_POP	0xc2	/* Plus pop immediate 16-bit amount */
 #define OPCODE_RET_FAR_POP	0xca	/* Plus pop immediate 16-bit amount */
+#define OPCODE_LEAVE		0xc9	/* Set ESP to EBP, then pop EBP */
 #define OPCODE_NOP			0x90
-#define OPCODE_CALL			0xe8
+#define OPCODE_CALL_NEAR	0xe8	/* Call near, relative 16 or 32 bits */
+#define OPCODE_CALL_FAR		0x9a	/* Call far, absolute 16 or 32 bits */
+#define OPCODE_CALL_IND		0xff	/* Call indirect near/far */
 #define OPCODE_PUSH_EAX		0x50
 #define OPCODE_PUSH_ECX		0x51
 #define OPCODE_PUSH_EDX		0x52
@@ -6521,7 +7115,8 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPCODE_SUB_1		0x29	/* Substraction between registers */
 #define OPCODE_SUB_2		0x81	/* Need further probing for real opcode */
 #define OPCODE_SUB_3		0x83	/* Need further probing for real opcode */
-#define OPCODE_MOV_REG		0x89	/* Move one register to another */
+#define OPCODE_MOV_REG		0x89	/* Move one register to R/M word */
+#define OPCODE_MOV_REGI		0x8b	/* Move R/M word to register */
 #define OPCODE_MOV_IMM_EAX	0xb8	/* Move immediate value to register EAX */
 #define OPCODE_MOV_IMM_ECX	0xb9
 #define OPCODE_MOV_IMM_EDX	0xba
@@ -6551,9 +7146,13 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPMODE_OPCODE		0x38	/* Mask to extract extra opcode info */
 #define OPMODE_REG_SRC_MASK	0x38	/* Mask to extract source register */
 #define OPMODE_REG_DST_MASK	0x07	/* Mask to extract destination register */
-#define OPMODE_SUB			5		/* Extra opcode indicating a SUB */
+#define OPMODE_RM_MASK		0x07	/* Mask to extract R/M part */
+#define OPMODE_ADD			0		/* Extra opcode indicating an ADD after 0x83 */
+#define OPMODE_SUB			5		/* Extra opcode indicating a SUB after 0x83 */
+#define OPMODE_ADD_ESP		0xc4	/* Byte after leading opcode for ADD ESP */
 #define OPMODE_SUB_ESP		0xec	/* Byte after leading opcode for SUB ESP */
-#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOVL to move ESP to EBP */
+#define OPMODE_REG_ESP_EBP	0xe5	/* Byte after MOV_REG to move ESP to EBP */
+#define OPMODE_REG_EBP_ESP	0xec	/* Byte after MOV_REGI to move ESP to EBP */
 
 /*
  * x86 register numbers, as encoded in instructions.
@@ -6566,6 +7165,26 @@ valid_stack_ptr(const void * const p, const void *top)
 #define OPREG_EBP			5
 #define OPREG_ESI			6
 #define OPREG_EDI			7
+
+/*
+ * The MOD-REG-R/M byte specifies instruction operands and their
+ * addressing mode.  It is architected as:
+ *
+ *      7 6  5 4 3  2 1 0
+ *    +----+------+------+
+ *    |MOD |  REG |  R/M |
+ *    +----+------+------+
+ *
+ * MOD:
+ * 00   register indirect mode with no displacement (R/M = 100b) or
+ *      displacement only (R/M = 101b)
+ * 01   1-byte signed displacement follows
+ * 10   4-byte signed displacement follows
+ * 11   register addressing mode
+ *
+ * REG  encodes the register (0-7) as listed above (0=EAX, 7=EDI)
+ *      for 2-operand instructions.
+ */
 
 static inline uint8
 mingw_op_mod_code(uint8 mbyte)
@@ -6585,6 +7204,18 @@ mingw_op_dst_register(uint8 mbyte)
 	return mbyte & OPMODE_REG_DST_MASK;
 }
 
+static inline uint8
+mingw_op_extra(uint8 mbyte)
+{
+	return (mbyte & OPMODE_OPCODE) >> 3;
+}
+
+static inline uint8
+mingw_op_rm_code(uint8 mbyte)
+{
+	return mbyte & OPMODE_RM_MASK;
+}
+
 #define MINGW_TEXT_OFFSET	0x1000	/* Text offset after mapping base */
 
 #define MINGW_ROUTINE_ALIGN	4
@@ -6595,6 +7226,10 @@ mingw_op_dst_register(uint8 mbyte)
 
 /**
  * Expected unwinding stack frame, if present and maintained by routines.
+ *
+ * As the stack grows down on Windows, this structure reflects the initial
+ * PUSH of EIP on the stack by the CALL instruction, followed by the PUSH
+ * of the EBP register upon routine entry.
  */
 struct stackframe {
 	struct stackframe *next;
@@ -6602,6 +7237,145 @@ struct stackframe {
 };
 
 #ifdef MINGW_BACKTRACE_DEBUG
+static struct mingw_debuglog {
+	int level[THREAD_MAX];	/* Indent level, per thread */
+	FILE *lf;				/* Logfile */
+	bool rotated;			/* Did we rotate the old debug logfiles? */
+	mutex_t lock;			/* Protect concurrent writes */
+} mingw_debuglog = {
+	.lock = MUTEX_INIT,
+};
+
+/**
+ * Return default logfile for backtracing debug.
+ */
+static const char *
+mingw_getbacktrace_path(void)
+{
+	static char pathname[MAX_PATH];
+	char buf[128];
+
+	str_bprintf(ARYLEN(buf), "%s.backtrace.log", product_nickname());
+
+	return mingw_build_personal_path(buf, ARYLEN(pathname));
+}
+
+/**
+ * Emit log to debuglog.
+ */
+static void
+mingw_debug_logv(const char *fmt, va_list args)
+{
+	FILE *lf;
+	char time_buf[CRASH_TIME_BUFLEN];
+	char logstr[512];
+	int i;
+	uint stid = thread_small_id();
+
+	/*
+	 * Until mingw_early_init() has completed, minimal service!
+	 * Indeed, we are still in the early initializations, and we
+	 * do not want to recurse into that path by allocating
+	 * memory via halloc() for instance.
+	 */
+
+	if (!mingw_debuglog.rotated && mingw_early_inited) {
+		BACKTRACE_LOG_LOCK;
+		if (!mingw_debuglog.rotated) {
+			const char *path = mingw_getbacktrace_path();
+			if (mingw_debuglog.lf != NULL) {
+				fclose(mingw_debuglog.lf);
+				mingw_debuglog.lf = NULL;
+			}
+			mingw_debuglog.rotated = TRUE;
+			mingw_file_rotate(path, MINGW_TRACEFILE_KEEP);
+		}
+		BACKTRACE_LOG_UNLOCK;
+	}
+
+	/*
+	 * Open logfile the first time.
+	 */
+
+	if G_UNLIKELY(NULL == mingw_debuglog.lf) {
+		BACKTRACE_LOG_LOCK;
+		if (NULL == mingw_debuglog.lf) {
+			const char *path = mingw_getbacktrace_path();
+			mingw_debuglog.lf = fopen(path, "ab");
+			if (NULL == mingw_debuglog.lf && mingw_early_inited)
+				s_warning("%s(): cannot open %s", G_STRFUNC, path);
+		}
+		BACKTRACE_LOG_UNLOCK;
+	}
+
+	crash_time_raw(ARYLEN(time_buf));
+	log_vbprintf(ARYLEN(logstr), fmt, args);
+
+	BACKTRACE_LOG_LOCK;
+
+	lf = mingw_debuglog.lf;
+	if G_UNLIKELY(NULL == lf)
+		goto done;
+
+	fprintf(lf, "%s: [%d] ", time_buf, stid);
+
+	for (i = 0; i < mingw_debuglog.level[stid]; i++) {
+		fputs("| ", lf);
+	}
+
+	fputs(logstr, lf);
+	fputc('\n', lf);
+	fflush(lf);
+
+done:
+	BACKTRACE_LOG_UNLOCK;
+}
+
+static void G_PRINTF(1, 2)
+mingw_debug_log(const char *fmt, ...)
+{
+	va_list args;
+
+	va_start(args, fmt);
+	mingw_debug_logv(fmt, args);
+	va_end(args);
+}
+
+/**
+ * Log routine entry.
+ */
+static void
+mingw_debug_entering(const char *routine)
+{
+	uint stid = thread_small_id();
+
+	mingw_debug_log("+> %s()", routine);
+	mingw_debuglog.level[stid]++;
+}
+
+static void G_PRINTF(3, 4)
+mingw_debug_leaving(const char *routine, const char *loc, const char *fmt, ...)
+{
+	char result[128];
+	va_list args;
+	uint stid = thread_small_id();
+
+	if (mingw_debuglog.level[stid] > 0) {
+		mingw_debuglog.level[stid]--;
+	} else {
+		mingw_debug_log(
+			"WARNING: indent level was 0 when leaving %s()", routine);
+	}
+
+	va_start(args, fmt);
+	log_vbprintf(ARYLEN(result), fmt, args);
+	if (result[0] != '\0')
+		mingw_debug_log("+< %s() = %s at %s", routine, result, loc);
+	else
+		mingw_debug_log("+< %s() at %s", routine, loc);
+	va_end(args);
+}
+
 /**
  * @return opcode leading mnemonic string.
  */
@@ -6609,6 +7383,8 @@ static const char *
 mingw_opcode_name(uint8 opcode)
 {
 	switch (opcode) {
+	case OPCODE_LEAVE:
+		return "LEAVE";
 	case OPCODE_RET_NEAR:
 	case OPCODE_RET_FAR:
 	case OPCODE_RET_NEAR_POP:
@@ -6616,7 +7392,9 @@ mingw_opcode_name(uint8 opcode)
 		return "RET";
 	case OPCODE_NOP:
 		return "NOP";
-	case OPCODE_CALL:
+	case OPCODE_CALL_NEAR:
+	case OPCODE_CALL_FAR:
+	case OPCODE_CALL_IND:
 		return "CALL";
 	case OPCODE_PUSH_EAX:
 	case OPCODE_PUSH_EBX:
@@ -6627,7 +7405,8 @@ mingw_opcode_name(uint8 opcode)
 	case OPCODE_PUSH_ESI:
 	case OPCODE_PUSH_EDI:
 		return "PUSH";
-	case OPCODE_MOV_REG:
+	case OPCODE_MOV_REG:		/* Used by gcc in "mov %esp,%ebp" */
+	case OPCODE_MOV_REGI:		/* Used by MS compiler in "mov %esp,%ebp" */
 	case OPCODE_MOV_IMM_EAX:
 	case OPCODE_MOV_IMM_EBX:
 	case OPCODE_MOV_IMM_ECX:
@@ -6658,6 +7437,22 @@ mingw_opcode_name(uint8 opcode)
 	}
 }
 #endif /* MINGW_BACKTRACE_DEBUG */
+
+/**
+ * Wraps stacktrace_routine_name() to fake it until we performed the early init.
+ */
+static const char *
+mingw_routine_name(const void *pc)
+{
+	static char buf[POINTER_BUFLEN];
+
+	if G_UNLIKELY(!mingw_early_inited) {
+		str_bprintf(ARYLEN(buf), "%p", pc);
+		return buf;
+	}
+
+	return stacktrace_routine_name(pc, TRUE);
+}
 
 /**
  * Computes the length taken by the versatile LEA instruction.
@@ -6731,27 +7526,66 @@ mingw_opcode_lea_length(const uint8 *op)
 
 /**
  * Is the SUB opcode pointed at by ``op'' targetting ESP?
+ *
+ * FIXME: !!HACK ALERT!!
+ * 	Instead of just passing "op", we're passing *op as `ov' to the routine.
+ * 	why? because when, at the caller level, *op=0x81, it sometimes reads as 0x0
+ * 	here, causing the fall to the "code not reached" section. incredible!
+ *		--RAM, 2018-10-13
  */
 static bool
-mingw_opcode_is_sub_esp(const uint8 *op)
+mingw_opcode_is_sub_esp(const uint8 *op, uint8 ov)
 {
-	const uint8 *p = op;
-	uint8 mbyte = p[1];
+	uint8 mbyte = op[1];
 
+	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_OTHER,
-		"%s: op=0x%x, next=0x%x", G_STRFUNC, *op, mbyte);
+		"%s: at %p, op=0x%x, ov=%x, next=0x%x", G_STRFUNC, op, op[0], ov, mbyte);
 
-	switch (*op) {
+	switch (ov) {			/* See !!HACK ALERT!! above */
 	case OPCODE_SUB_1:
-		return OPREG_ESP == mingw_op_dst_register(mbyte);
+		BACKTRACE_RETURN("%d", OPREG_ESP == mingw_op_dst_register(mbyte));
 	case OPCODE_SUB_2:
 	case OPCODE_SUB_3:
 		{
 			uint8 code = mingw_op_src_register(mbyte);
 			uint8 mode = mingw_op_mod_code(mbyte);
-			if (code != OPMODE_SUB || mode != 3)
-				return FALSE;	/* Not a SUB opcode targeting a register */
-			return OPREG_ESP == mingw_op_dst_register(mbyte);
+			int32 value;
+
+			if (mode != 3)
+				BACKTRACE_RETURN("%d", FALSE);	/* Not targetting a register */
+			if (OPREG_ESP != mingw_op_dst_register(mbyte))
+				BACKTRACE_RETURN("%d", FALSE);	/* Not targetting ESP */
+
+			/*
+			 * The immediate value that follows is a 32-bit for SUB_2 and
+			 * 8-bit for SUB_3.  These are signed.
+			 */
+
+			if (OPCODE_SUB_3 == ov) {
+				int8 v = op[2];
+				value = v;
+				BACKTRACE_DEBUG(BACK_F_OTHER,
+					"%s: read byte at %p = 0x%x as %d -> %d",
+					G_STRFUNC, &op[2], op[2], v, value);
+			} else {
+				value = peek_le32(&op[2]);
+			}
+
+			BACKTRACE_DEBUG(BACK_F_OTHER,
+				"%s: at %p, subvalue=%d for op=0x%x (code=%u %s)",
+				G_STRFUNC, op, value, op[0], code,
+				OPMODE_SUB == code ? "SUB" :
+				OPMODE_ADD == code ? "ADD" :
+				"???");
+
+			if (OPMODE_SUB == code)
+				BACKTRACE_RETURN("%d", value >= 0);
+
+			if (OPMODE_ADD == code)
+				BACKTRACE_RETURN("%d", value < 0);
+
+			BACKTRACE_RETURN("%d", FALSE);
 		}
 	}
 
@@ -6769,7 +7603,7 @@ mingw_opcode_is_sub_esp(const uint8 *op)
  *
  * @param start		initial program counter
  * @param max		absolute maximum PC value
- * @param at_start		known to be at the starting point of the routine
+ * @param at_start	known to be at the starting point of the routine
  * @param has_frame	set to TRUE if we saw a frame linking at the beginning
  * @param savings	indicates leading register savings done by the routine
  *
@@ -6787,15 +7621,19 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 	bool saved_ebp = FALSE, mov_immediate_eax = FALSE;
 	size_t pushes = 0, calls = 0;
 
+	BACKTRACE_ENTRY;
+
 	maxscan = const_ptr_add_offset(start, MINGW_FORWARD_SCAN);
 	if (ptr_cmp(maxscan, max) > 0)
 		maxscan = max;
 
 	if (mingw_backtrace_debug() && (BACK_F_DUMP & MINGW_BACKTRACE_FLAGS)) {
-		s_minidbg("%s: next %zu bytes after pc=%p%s",
+		BACKTRACE_LOG_LOCK;
+		mingw_debug_log("%s: next %zu bytes after pc=%p%s",
 			G_STRFUNC, 1 + ptr_diff(maxscan, p),
 			p, at_start ? " (known start)" : "");
-		dump_hex(stderr, "", p, 1 + ptr_diff(maxscan, p));
+		dump_hex(mingw_debug_file, "", p, 1 + ptr_diff(maxscan, p));
+		BACKTRACE_LOG_UNLOCK;
 	}
 
 	for (p = start; ptr_cmp(p, maxscan) <= 0; p++) {
@@ -6804,7 +7642,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 		unsigned fill = 0;
 
 		if (!valid_ptr(p))
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 
 		switch ((op = *p)) {
 		case OPCODE_NONE_1:
@@ -6838,7 +7676,8 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 * When using the Windows call API, the EBP register is saved
 			 * immediately at entry, but more registers can be saved as well
 			 * before the ESP is altered (so the EBP value immediately follows
-			 * the return PC pushed on the stack by the CALL instruction).
+			 * the return PC pushed on the stack by the CALL instruction,
+			 * establishing the "stackframe" structure).
 			 */
 			first_opcode = p + 1;	/* Expects the MOV operation to follow */
 			if (0 == pushes)
@@ -6866,11 +7705,36 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			p += 4;				/* Skip immediate value */
 			break;
 		case OPCODE_MOV_REG:
+			/*
+			 * This is the MOV variant used by gcc.
+			 *
+			 *            REG ESP EBP
+			 * MOD byte is 11 100 101
+			 *
+			 * This performs a "mov %esp,%ebp" i.e. it sets ESP with the
+			 * value of EBP.
+			 */
 			if (OPMODE_REG_ESP_EBP == p[1])
 				saved_ebp = saved_ebp || p == first_opcode;
-			p += 1;				/* Skip mode byte */
+			p += 1;				/* Skip mod byte */
 			break;
-		case OPCODE_CALL:
+		case OPCODE_MOV_REGI:
+			/*
+			 * This is the MOV variant used by Microsoft compilers.
+			 *
+			 *            REG EBP ESP
+			 * MOD byte is 11 101 100
+			 *
+			 * Encoding is inverted in mod byte, hence "REGI" for inverted.
+			 * However since the semantics of this opcode is inverted,
+			 * this performs a "mov %esp,%ebp", i.e. it sets ESP with the
+			 * value of EBP.
+			 */
+			if (OPMODE_REG_EBP_ESP == p[1])
+				saved_ebp = saved_ebp || p == first_opcode;
+			p += 1;				/* Skip mod byte */
+			break;
+		case OPCODE_CALL_NEAR:
 			/*
 			 * Stackframe link created, no stack adjustment
 			 *
@@ -6889,7 +7753,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			 */
 			calls++;
 			if (saved_ebp && !(1 == calls && mov_immediate_eax))
-				return MINGW_EMPTY_STACKFRAME;
+				BACKTRACE_RETURN("%p", MINGW_EMPTY_STACKFRAME);
 			p += 4;				/* Skip offset */
 			break;
 		case OPCODE_XOR_1:
@@ -6904,14 +7768,14 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 				}
 			}
 			/* XOR REG, REG is the only instruction we allow in the prologue */
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 		case OPCODE_SUB_1:
 		case OPCODE_SUB_2:
 		case OPCODE_SUB_3:
-			if (mingw_opcode_is_sub_esp(p)) {
+			if (mingw_opcode_is_sub_esp(p, op)) {
 				*has_frame = saved_ebp;
 				*savings = pushes;
-				return p;
+				BACKTRACE_RETURN("%p", p);
 			}
 			switch (*p) {
 			case OPCODE_SUB_1:
@@ -6935,7 +7799,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 				fill = 1;
 				goto filler;
 			}
-			return NULL;
+			BACKTRACE_RETURN("%p", NULL);
 		}
 
 		continue;
@@ -6949,7 +7813,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 
 		BACKTRACE_DEBUG(BACK_F_OTHER,
 			"%s: ignoring %s filler (%u byte%s) at %p", G_STRFUNC,
-			mingw_opcode_name(op), fill, plural(fill), p);
+			mingw_opcode_name(op), PLURAL(fill), p);
 
 		first_opcode = p + fill;
 		p += (fill - 1);
@@ -6958,8 +7822,10 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
 			maxscan = window;
 	}
 
-	return NULL;
+	BACKTRACE_RETURN("%p", NULL);
 }
+
+static int mingw_inspect_stack(const void *sp, int words, const void *start);
 
 /**
  * Parse beginning of routine to know how many registers are saved, whether
@@ -6967,6 +7833,7 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
  *
  * @param pc			starting point
  * @param max			maximum PC we accept to scan forward
+ * @param sp			known stack pointer
  * @param at_start		known to be at the starting point of the routine
  * @param has_frame		set to TRUE if we saw a frame linking at the beginning
  * @param savings		indicates leading register savings done by the routine
@@ -6975,13 +7842,20 @@ mingw_find_esp_subtract(const void *start, const void *max, bool at_start,
  * @return TRUE if ``pc'' pointed to a recognized function prologue.
  */
 static bool
-mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
-	bool *has_frame, size_t *savings, unsigned *offset)
+mingw_analyze_prologue(const void *pc, const void *max, const void *sp,
+	bool at_start, bool *has_frame, size_t *savings, unsigned *offset)
 {
 	const uint8 *sub;
+	int32 subvalue;
+
+	BACKTRACE_ENTRY;
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"starting at PC=%p, max=%p%s, at_start=%s",
+		pc, max, ptr_cmp(pc, max) >= 0 ? " (already over!)" : "",
+		bool_to_string(at_start));
 
 	if (ptr_cmp(pc, max) >= 0)
-		return FALSE;
+		BACKTRACE_RETURN("%d", FALSE);
 
 	sub = mingw_find_esp_subtract(pc, max, at_start, has_frame, savings);
 
@@ -6990,7 +7864,7 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 			"%s: no SUB operation at pc=%p, %s frame",
 			G_STRFUNC, pc, *has_frame ? "with" : "no");
 		*offset = 0;
-		return TRUE;
+		BACKTRACE_RETURN("%d", TRUE);
 	} else if (sub != NULL) {
 		uint8 op;
 
@@ -7018,27 +7892,79 @@ mingw_analyze_prologue(const void *pc, const void *max, bool at_start,
 
 			op = *(sub - 10);
 			if (op != OPCODE_MOV_IMM_EAX)
-				return FALSE;
+				BACKTRACE_RETURN("%d", FALSE);
 
-			*offset = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
+			subvalue = peek_le32(sub - 9);	/* Read immediate offset of MOVL */
 			goto check_offset;
 		case OPCODE_SUB_2:
 			/* subl    $220, %esp */
-			g_assert(OPMODE_SUB_ESP == sub[1]);
-			*offset = peek_le32(sub + 2);
+			if (OPMODE_SUB_ESP == sub[1])
+				subvalue = peek_le32(sub + 2);
+			else if (OPMODE_ADD_ESP == sub[1])
+				subvalue = -peek_le32(sub + 2);
+			else
+				g_assert_not_reached();
 			goto check_offset;
 		case OPCODE_SUB_3:
 			/* subl    $28, %esp */
-			g_assert(OPMODE_SUB_ESP == sub[1]);
-			*offset = peek_u8(sub + 2);
+			{
+				int8 val = peek_u8(&sub[2]);
+
+				if (OPMODE_SUB_ESP == sub[1])
+					subvalue = val;
+				else if (OPMODE_ADD_ESP == sub[1])
+					subvalue = -val;
+				else
+					g_assert_not_reached();
+			}
 			goto check_offset;
 		}
 		g_assert_not_reached();
 	}
 
-	return FALSE;
+	/*
+	 * Maybe this routine does not need to adjust the stack pointer if
+	 * it has no local variables.  Inspect the stack to see if there is
+	 * a return address that fits and use the computed offset.
+	 *
+	 * We are only retaining positive offsets for now: since the stack
+	 * grows down, a negative offset would mean the stack pointer is
+	 * not right.
+	 */
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: no SUB found, analyzing stack (%s frame)",
+		G_STRFUNC, *has_frame ? "has" : "no");
+
+	{
+		int calloff = mingw_inspect_stack(sp, MINGW_SP_INSPECT, pc);
+
+		if (calloff == INT_MAX) {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: no valid PC candidate on the stack", G_STRFUNC);
+		} else if (calloff < 0) {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: ignoring negative offset %d", G_STRFUNC, calloff);
+		} else {
+			BACKTRACE_DEBUG(BACK_F_PROLOGUE | BACK_F_PC,
+				"%s: using offset %d", G_STRFUNC, calloff);
+			*offset = calloff * sizeof(int32);
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+
+		/* FALL THROUGH */
+	}
+
+	BACKTRACE_RETURN("%d", FALSE);
 
 check_offset:
+
+	*offset = subvalue;
+
+	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
+		"%s: offset is %u at pc=%p, opcode=0x%x, mod=0x%x, subvalue=%d",
+		G_STRFUNC, *offset, sub, sub[0], sub[1], subvalue);
+
 	/*
 	 * Offsets must be a multiple of 4.  Otherwise, we're not parsing
 	 * the opcodes correctly, or rather they are not what we think
@@ -7046,14 +7972,228 @@ check_offset:
 	 */
 
 	if (0 == (*offset & 3))
-		return TRUE;
+		BACKTRACE_RETURN("%d", TRUE);
 
 	BACKTRACE_DEBUG(BACK_F_PROLOGUE,
 		"%s: offset was %u, not a multiple of 4 bytes, "
 		"pc=%p, opcode=0x%x, mod=0x%x",
 		G_STRFUNC, *offset, sub, sub[0], sub[1]);
 
-	return FALSE;
+	BACKTRACE_RETURN("%d", FALSE);
+}
+
+/**
+ * Check whether there is a call instruction before the given PC address.
+ *
+ * @param pc		supposed returned address
+ * @param target	call target, if we can determine it (otherwise set to NULL)
+ *
+ * @return TRUE if we found a call instruction, with `target' set if possible.
+ */
+static bool
+mingw_has_call_before(const void *pc, void **target)
+{
+	const uint8 *p;
+
+	BACKTRACE_ENTRY;
+
+	if (target != NULL)
+		*target = NULL;		/* Assume we can't determine target */
+
+	if (!valid_ptr(pc))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	/*
+	 * The only possible call at this offset is an indirect register
+	 * call, like "call *%eax", which would be coded "FF D0" or
+	 * "call *(%edx)" which would be coded "FF 12"..
+	 */
+
+	p = const_ptr_add_offset(pc, -2);
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+
+		/*
+		 * Since FF is a versatile prefix, we need to look at the REG
+		 * in the MOD-REG-R/M byte that follows and see a 2 there
+		 * (the CALL instruction is FF/2).  Since we are only at -2
+		 * this cannot be a far call (FF/3): we would need more bytes
+		 * between FF and the supposed return address!
+		 */
+
+		if (2 == mingw_op_extra(nb) && (0 == mod || 3 == mod)) {
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect near call found at -2");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Here the only possible call is an indirect register call with an
+	 * offset, such as "call *0x28(%eax)" which would be coded "FF 50 28".
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+
+		/*
+		 * Same logic as above, we need to validate this is an FF/2
+		 * instruction.
+		 */
+		if (2 == mingw_op_extra(nb) && 1 == mod) {
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect near call found at -3");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	/*
+	 * Move back 1 byte for a register indirect FF/3 call, followed by
+	 * 2 bytes.
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+
+		if (3 == mingw_op_extra(nb)) {
+			/* Don't know how to disassemble those, really, accept as-is */
+			BACKTRACE_DEBUG(BACK_F_PC, "indirect far call found at -4");
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+	}
+
+	/*
+	 * Move back 1 byte for a near-call with immediate 32-bit signed
+	 * offset, such as "E8 28 43 FD FF"
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_NEAR == peek_u8(p)) {
+		int offset = peek_le32(p + 1);
+		void *dest = deconstify_pointer(const_ptr_add_offset(pc, offset));
+		if (target != NULL)
+			*target = dest;
+		BACKTRACE_DEBUG(BACK_F_PC,
+			"immediate near call found at -5, offset %d relative to PC=%p"
+			" -> %p (%s)",
+			offset, pc, dest, mingw_routine_name(dest));
+		BACKTRACE_RETURN("%d", TRUE);
+	}
+
+	/*
+	 * Move back 1 byte for a far FF/2 call.
+	 */
+
+	p--;
+	if (!valid_ptr(p))
+		BACKTRACE_RETURN("%d", FALSE);
+
+	if (OPCODE_CALL_IND == peek_u8(p)) {
+		uint8 nb = peek_u8(p+ 1);	/* Necessarily valid pointer */
+		uint8 mod = mingw_op_mod_code(nb);
+		uint8 rm = mingw_op_rm_code(nb);
+		uint32 *loc = ulong_to_pointer(peek_le32(p + 2));
+
+		if (2 == mingw_op_extra(nb) && 0 == mod && 5 == rm) {
+			BACKTRACE_DEBUG(BACK_F_PC,
+				"indirect far call found at -6 in %p", loc);
+			/* Only dereference if aligned and readable */
+			if (0 == (pointer_to_ulong(loc) & 0x3) && valid_ptr(loc)) {
+				void *dest = ulong_to_pointer(*loc);
+				if (target != NULL)
+					*target = dest;
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"call destination stored in %p is %p (%s)",
+					loc, dest, mingw_routine_name(dest));
+			}
+			BACKTRACE_RETURN("%d", TRUE);
+		}
+		/* FALL THROUGH */
+	}
+
+	BACKTRACE_DEBUG(BACK_F_PC,
+		"no CALL found in previous 6 bytes %02x %02x %02x %02x %02x %02x from %p",
+		peek_u8(p), peek_u8(p + 1), peek_u8(p+2),
+		peek_u8(p + 3), peek_u8(p + 4), peek_u8(p + 5), pc);
+
+	BACKTRACE_RETURN("%d", FALSE);
+}
+
+/**
+ * Inspect `words' 32-bit words before and after the given stack pointer.
+ *
+ * @param sp		the stack pointer
+ * @param words		how many words to scan around sp
+ * @param start		known routine start
+ *
+ * @return the best offset that yields a call, INT_MAX if no call found.
+ */
+static int
+mingw_inspect_stack(const void *sp, int words, const void *start)
+{
+	int i;
+	int match = INT_MAX;
+
+	BACKTRACE_ENTRY;
+
+	BACKTRACE_DEBUG(BACK_F_PC, "inspecting %d word%s around SP=%p",
+		PLURAL(words), sp);
+
+	for (i = 0; i < 2 * words + 1; i++) {
+		int off;
+		const void *p;
+
+		if (0 == i)
+			off = 0;			/* First attempt: at the supplied SP */
+		else if (i <= words)	/* -1, -2, ... -words */
+			off = -i;
+		else
+			off = i - words;	/* 1, 2, ... words */
+
+		p = const_ptr_add_offset(sp, off * sizeof(int32));
+
+		if (valid_ptr(p)) {
+			void *target;
+			const void *v = ulong_to_pointer(peek_le32(p));
+			bool has_call = mingw_has_call_before(v, &target);
+			if (has_call && target != NULL) {
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"SP[%d] = %p (%s) has CALL to %p (our %sstart is %p)",
+					off, v, mingw_routine_name(v), target,
+					target == start ? "*matching* " : "", start);
+				if (target == start)
+					match = off;		/* Always record perfect match! */
+			} else {
+				BACKTRACE_DEBUG(BACK_F_PC,
+					"SP[%d] = %p (%s)%s",
+					off, v, mingw_routine_name(v),
+					has_call ? " has CALL" : "");
+				if (has_call && INT_MAX == match)
+					match = off;		/* Record first match */
+			}
+		} else {
+			BACKTRACE_DEBUG(BACK_F_PC,
+				"SP[%d] is an invalid pointer (%p)?", off, p);
+		}
+	}
+
+	BACKTRACE_RETURN("%d", match);
 }
 
 /**
@@ -7082,11 +8222,13 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 {
 	const void *pc = *next_pc;
 	const void *sp = *next_sp;
+	const void *start = NULL;
 	const uint8 *p;
 	unsigned offset = 0;
 	bool has_frame = FALSE;
 	size_t savings = 0;
 
+	BACKTRACE_ENTRY;
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: pc=%p, sp=%p", G_STRFUNC, pc, sp);
 
 	/*
@@ -7103,10 +8245,14 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	if (p != NULL && valid_ptr(p)) {
 		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
 			"%s: known routine start for pc=%p is %p (%s)",
-			G_STRFUNC, pc, p, stacktrace_routine_name(p, TRUE));
+			G_STRFUNC, pc, p, mingw_routine_name(p));
 
-		if (mingw_analyze_prologue(p, pc, TRUE, &has_frame, &savings, &offset))
+		if (
+			mingw_analyze_prologue(p, pc, sp, TRUE, &has_frame, &savings, &offset)
+		) {
+			start = p;
 			goto found_offset;
+		}
 
 		BACKTRACE_DEBUG(BACK_F_RA,
 			"%s: %p does not seem to be a valid prologue, scanning",
@@ -7114,20 +8260,27 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 	} else {
 		BACKTRACE_DEBUG(BACK_F_NAME | BACK_F_RA,
 			"%s: pc=%p falls in %s from %s", G_STRFUNC, pc,
-			stacktrace_routine_name(pc, TRUE), dl_util_get_path(pc));
+			mingw_routine_name(pc), dl_util_get_path(pc));
 	}
 
+	BACKTRACE_DEBUG(BACK_F_RA,
+		"%s: scanning backwards from %p to find prologue",
+		G_STRFUNC, pc);
+
 	/*
-	 * Scan backwards to find a previous RET / JMP / NOP / LEA instruction.
+	 * Scan backwards to find a previous RET / JMP / NOP / LEA instruction,
+	 * that could mark the end of a previous routine.
+	 *
+	 * We also look for a "push %ebp; mov %esp,%ebp" sequence that would
+	 * definitely indicate the start of a routine.
 	 */
 
 	for (p = pc; ptr_diff(pc, p) < MINGW_MAX_ROUTINE_LENGTH; /* empty */) {
 		uint8 op, pop;
-
-		const uint8 *next;
+		const uint8 *next = p;
 
 		if (!valid_ptr(p) || !valid_ptr(p - 1))
-			return FALSE;
+			BACKTRACE_RETURN("%d", FALSE);
 
 		/*
 		 * Because this is a CISC processor, single-byte opcodes could actually
@@ -7137,7 +8290,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		 */
 
 		pop = *(p - 1);
-		if (OPCODE_MOV_REG == pop) {
+		if (OPCODE_MOV_REG == pop || OPCODE_MOV_REGI == pop) {
 			BACKTRACE_DEBUG(BACK_F_RA,
 				"%s: skipping %s operation at pc=%p, opcode=0x%x (after a MOV)",
 				G_STRFUNC, mingw_opcode_name(*p), p, *p);
@@ -7145,6 +8298,54 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		}
 
 		switch ((op = *p)) {
+		case OPCODE_PUSH_EBP:
+			/*
+			 * To maximize chances of this being a valid routine start,
+			 * we look for at least 3 bytes (including the PUSH we just
+			 * scanned).
+			 */
+			switch (p[1]) {
+			case OPCODE_MOV_REG:
+				if (OPMODE_REG_ESP_EBP == p[2]) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; MOV EBP,ESP sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				break;
+			case OPCODE_MOV_REGI:
+				if (OPMODE_REG_EBP_ESP == p[2]) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; MOV EBP,ESP sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				break;
+			/* Only look for callee-saved registers */
+			case OPCODE_PUSH_EBX:
+			case OPCODE_PUSH_ESI:
+			case OPCODE_PUSH_EDI:
+				/* Only look for callee-saved registers */
+				if (p[2] >= OPCODE_PUSH_EBX && p[2] <= OPCODE_PUSH_EDI) {
+					BACKTRACE_DEBUG(BACK_F_RA,
+						"%s: found PUSH EBP; PUSH; PUSH sequence at pc=%p",
+						G_STRFUNC, p);
+					goto analyze;
+				}
+				switch (p[2]) {
+				case OPCODE_SUB_1:
+				case OPCODE_SUB_2:
+				case OPCODE_SUB_3:
+					if (mingw_opcode_is_sub_esp(&p[2], p[2])) {
+						BACKTRACE_DEBUG(BACK_F_RA,
+							"%s: found PUSH EBP; PUSH; SUB ESP sequence at pc=%p",
+							G_STRFUNC, p);
+						goto analyze;
+					}
+				}
+				break;
+			}
+			goto next;
 		case OPCODE_LEA:
 			next = p + mingw_opcode_lea_length(p);
 			break;
@@ -7171,6 +8372,7 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 			"%s: found %s operation at pc=%p, opcode=0x%x",
 			G_STRFUNC, mingw_opcode_name(op), p, op);
 
+	analyze:
 		/*
 		 * Could have found a byte that is part of a longer opcode, since
 		 * the x86 has variable-length instructions.
@@ -7179,22 +8381,24 @@ mingw_get_return_address(const void **next_pc, const void **next_sp,
 		 */
 
 		if (
-			mingw_analyze_prologue(next, pc, FALSE,
+			mingw_analyze_prologue(next, pc, sp, FALSE,
 				&has_frame, &savings, &offset)
-		)
+		) {
+			start = next;
 			goto found_offset;
+		}
 
 	next:
 		p--;
 	}
 
-	return FALSE;
+	BACKTRACE_RETURN("%d", FALSE);
 
 found_offset:
 	g_assert(0 == (offset & 3));	/* Multiple of 4 */
 
 	BACKTRACE_DEBUG(BACK_F_RA, "%s: offset = %u, %zu leading push%s",
-		G_STRFUNC, offset, savings, plural_es(savings));
+		G_STRFUNC, offset, PLURAL_ES(savings));
 
 	/*
 	 * We found that the current routine decreased the stack pointer by
@@ -7221,10 +8425,42 @@ found_offset:
 	offset += 4 * savings;
 	sp = const_ptr_add_offset(sp, offset);
 
+	/*
+	 * Look around SP to find a next PC that makes sense, i.e. a place which
+	 * was preceded by a call.
+	 *
+	 * If we don't find any, calloff will be INT_MAX.  If all went well and
+	 * we figured the initial SP displacement at the beginning of the routine,
+	 * we should get a calloff of 0, meaning: the current SP pointer holds
+	 * a return address that is indeed preceded by a CALL, making it a valid
+	 * return address.
+	 * 		--RAM, 2018-10-11
+	 */
+
+	{
+		int calloff = mingw_inspect_stack(sp, MINGW_SP_INSPECT, start);
+
+		if (INT_MAX != calloff && 0 != calloff) {
+			int off = calloff * sizeof(int32);
+			BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+				"adjusting SP by %+d bytes to get a probable return address",
+				off);
+			sp = const_ptr_add_offset(sp, off);
+		}
+	}
+
 	if (has_frame) {
 		const void *sf, *fp;
 		g_assert(savings >= 1);
 		sf = const_ptr_add_offset(sp, -4);
+
+		if (!valid_ptr(sf)) {
+			BACKTRACE_DEBUG(BACK_F_RA,
+				"%s: invalid stack frame location %p", G_STRFUNC, sf);
+			*next_sf = NULL;
+			goto next_pc;
+		}
+
 		fp = ulong_to_pointer(peek_le32(sf));
 		if (ptr_cmp(fp, sp) <= 0) {
 			BACKTRACE_DEBUG(BACK_F_RA,
@@ -7240,12 +8476,37 @@ found_offset:
 		*next_sf = NULL;
 	}
 
+next_pc:
+	if (NULL == *next_sf)
+		has_frame = FALSE;
+
+	if (!valid_ptr(sp)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid SP %p (bad pointer)", G_STRFUNC, sp);
+		BACKTRACE_RETURN("%d", FALSE);
+	}
+
 	*next_pc = ulong_to_pointer(peek_le32(sp));	/* Pushed return address */
 
-	if (!valid_ptr(*next_pc))
-		return FALSE;
+	if (!valid_ptr(*next_pc)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid PC %p on stack (not a valid pointer)",
+			G_STRFUNC, *next_pc);
+		BACKTRACE_RETURN("%d", FALSE);
+	}
+
+	if (!mingw_has_call_before(*next_pc, NULL)) {
+		BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+			"%s: invalid SP %p: no CALL before SP[0] = %p",
+			G_STRFUNC, sp, *next_pc);
+		BACKTRACE_RETURN("%d", FALSE);
+	}
 
 	*next_sp = const_ptr_add_offset(sp, 4);	/* After popping return address */
+
+	BACKTRACE_DEBUG(BACK_F_PC | BACK_F_RA,
+		"%s: next PC=%p (%s), next SP=%p (after popping PC)",
+		G_STRFUNC, *next_pc, mingw_routine_name(*next_pc), *next_sp);
 
 	if (
 		mingw_backtrace_debug() &&
@@ -7253,12 +8514,13 @@ found_offset:
 		has_frame
 	) {
 		const struct stackframe *sf = *next_sf;
-		s_minidbg("%s: next frame at %p "
+		(void) sf;		/* Suppress warning if not debugging */
+		mingw_debug_log("%s: next frame at %p "
 			"(contains next=%p, ra=%p), computed ra=%p",
 			G_STRFUNC, sf, sf->next, sf->ret, *next_pc);
 	}
 
-	return TRUE;
+	BACKTRACE_RETURN("%d", TRUE);
 }
 
 /**
@@ -7275,7 +8537,9 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 {
 	int i = 0;
 	const struct stackframe *sf;
-	const void *sp, *pc, *top;
+	const void *sp, *pc, *top, *prev_sp;
+
+	BACKTRACE_ENTRY;
 
 	/*
 	 * We used to rely on StackWalk() here, but we no longer do because
@@ -7328,14 +8592,20 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 
 	if (0 == skip--) {
 		BACKTRACE_DEBUG(BACK_F_RESULT,
-			"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
+			"%s: pushing %p (%s) at i=%d upon entry",
+			G_STRFUNC, pc, mingw_routine_name(pc), i);
 		buffer[i++] = deconstify_pointer(pc);
+	} else {
+		BACKTRACE_DEBUG(BACK_F_RESULT,
+			"%s: skipping %p (%s); %d more to skip upon entry",
+			G_STRFUNC, pc, mingw_routine_name(pc), skip);
 	}
 
 	if (!valid_stack_ptr(sp, sp))
-		goto done;
+		BACKTRACE_RETURN("%d", i);
 
-	top = sp;
+	prev_sp = top = sp;
+	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: stack top is %p", G_STRFUNC, top);
 
 	while (i < size) {
 		const void *next = NULL;
@@ -7343,11 +8613,25 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		BACKTRACE_DEBUG(BACK_F_DRIVER,
 			"%s: i=%d, sp=%p, sf=%p, pc=%p", G_STRFUNC, i, sp, sf, pc);
 
-		if (!valid_ptr(pc) || !valid_stack_ptr(sp, top))
+		if (!valid_ptr(pc)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: invalid PC, stop!", G_STRFUNC);
 			break;
+		}
 
-		if (!valid_stack_ptr(sf, top) || ptr_cmp(sf, sp) <= 0)
+		if (!valid_stack_ptr(sp, top)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: invalid SP, stop!", G_STRFUNC);
+			break;
+		}
+
+		if (sf != NULL && !valid_stack_ptr(sf, top)) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER,
+				"%s: clearing sf=%p (top of stack is %p)", G_STRFUNC, sf, top);
 			sf = NULL;
+		} else if (sf != NULL && ptr_cmp(sf, sp) <= 0) {
+			BACKTRACE_DEBUG(BACK_F_DRIVER,
+				"%s: clearing sf=%p (\"above\" sp=%p)", G_STRFUNC, sf, sp);
+			sf = NULL;
+		}
 
 		if (!mingw_get_return_address(&pc, &sp, &next)) {
 			if (sf != NULL) {
@@ -7355,18 +8639,50 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 					"%s: trying to follow sf=%p", G_STRFUNC, sf);
 
 				next = sf->next;
-				if (!valid_ptr(sf->ret))
+				if (!valid_ptr(sf->ret)) {
+					BACKTRACE_DEBUG(BACK_F_DRIVER,
+						"%s: invalid PC=%p in frame", G_STRFUNC, sf->ret);
 					break;
+				}
 
 				pc = sf->ret;
 				sp = &sf[1];	/* After popping returned value */
+
+				/*
+				 * When debugging, spot PC in frames that are definitely
+				 * invalid due to lack of CALL instruction preceding them!
+				 */
+
+				if (mingw_backtrace_debug()) {
+					void *target;
+
+					BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+						"%s: candidate PC=%p", G_STRFUNC, pc);
+
+					if (!mingw_has_call_before(pc, &target)) {
+						BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+							"%s: WARNING: no CALL found before PC=%p",
+							G_STRFUNC, pc);
+					} else {
+						BACKTRACE_DEBUG(BACK_F_DRIVER | BACK_F_PC,
+							"%s: has CALL before PC=%p, target=%p (%s)",
+							G_STRFUNC, pc, target, NULL == target ?
+								"unknown target" : mingw_routine_name(target));
+					}
+				}
 
 				BACKTRACE_DEBUG(BACK_F_DRIVER,
 					"%s: following frame: next sf=%p, pc=%p, rebuilt sp=%p",
 					G_STRFUNC, next, pc, sp);
 
-				if (!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
+				if (
+						next != NULL &&
+						(!valid_stack_ptr(next, top) || ptr_cmp(next, sf) <= 0)
+				) {
+					BACKTRACE_DEBUG(BACK_F_DRIVER,
+						"%s: clearing inconsistent next sf=%p", G_STRFUNC, next);
 					next = NULL;
+				}
 			} else {
 				BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: out of frames", G_STRFUNC);
 				break;
@@ -7404,18 +8720,47 @@ mingw_stack_unwind(void **buffer, int size, CONTEXT *c, int skip)
 		}
 
 		if (skip-- <= 0) {
+			/*
+			 * Detect loops, since we can now adjust the SP negatively.
+			 */
+
+			if (
+				i > 0 && deconstify_pointer(pc) == buffer[i-1] &&
+				ptr_cmp(prev_sp, sp) >= 0
+			) {
+				BACKTRACE_DEBUG(BACK_F_RESULT,
+					"%s: stuck at %p (%s) at i=%d: previous SP=%p, current SP=%p",
+					G_STRFUNC, pc, mingw_routine_name(pc), i, prev_sp, sp);
+				break;
+			}
+
 			BACKTRACE_DEBUG(BACK_F_RESULT,
-				"%s: pushing %p at i=%d", G_STRFUNC, pc, i);
+				"%s: pushing %p (%s) at i=%d",
+				G_STRFUNC, pc, mingw_routine_name(pc), i);
 			buffer[i++] = deconstify_pointer(pc);
+		} else {
+			BACKTRACE_DEBUG(BACK_F_RESULT,
+				"%s: skipping %p (%s); %d more to skip",
+				G_STRFUNC, pc, mingw_routine_name(pc), skip);
 		}
 
 		sf = next;
+		prev_sp = sp;
 	}
 
-done:
-	BACKTRACE_DEBUG(BACK_F_DRIVER, "%s: returning %d", G_STRFUNC, i);
+	if (mingw_backtrace_debug()) {
+		int j;
 
-	return i;
+		BACKTRACE_DEBUG(BACK_F_RESULT,
+			"stack returned has %d element%s:", PLURAL(i));
+
+		for (j = 0; j < i; j++) {
+			BACKTRACE_DEBUG(BACK_F_RESULT,
+				"#%d: %p (%s)", j, buffer[j], mingw_routine_name(buffer[j]));
+		}
+	}
+
+	BACKTRACE_RETURN("%d", i);
 }
 
 /**
@@ -7457,11 +8802,21 @@ static int mingw_dl_error;
 /**
  * Return a human readable string describing the most recent error
  * that occurred.
+ *
+ * It returns NULL if no errors have occurred since initialization
+ * or since it was last called.
  */
 const char *
 mingw_dlerror(void)
 {
-	return g_strerror(mingw_dl_error);
+	int e = mingw_dl_error;
+
+	if (0 == e)
+		return NULL;
+
+	mingw_dl_error = 0;
+
+	return g_strerror(e);
 }
 
 /**
@@ -7480,7 +8835,9 @@ mingw_dlerror(void)
 int
 mingw_dladdr(void *addr, Dl_info *info)
 {
-	static time_t last_init;
+	static uint64 loaded_library_count;
+	static bool initialized;
+	static bool reload_symbols;
 	static wchar_t wpath[MAX_PATH_LEN];
 	static char buffer[sizeof(IMAGEHLP_SYMBOL) + 256];
 	static mutex_t dladdr_lk = MUTEX_INIT;
@@ -7489,30 +8846,35 @@ mingw_dladdr(void *addr, Dl_info *info)
 	char *path = buf_data(b);
 	size_t pathsz = buf_size(b);
 	buf_t *name = buf_private("mingw_dladdr:name", 255);
-	time_t now;
+	uint64 current_loaded_library_count;
+	int error = 0;
 	HANDLE process = NULL;
 	IMAGEHLP_SYMBOL *symbol = (IMAGEHLP_SYMBOL *) buffer;
 	DWORD disp = 0;
 
 	/*
-	 * Do not issue a SymInitialize() too often, yet let us do one from time
-	 * to time in case we loaded a new DLL since last time.
-	 *
-	 * Unfortunately, MinGW does not provide SymRefreshModuleList() to
-	 * refresh the module list, so we have to SymCleanup() and SymInitialize()
-	 * periodically.
-	 *
-	 * When called during a crash, do not attempt to refresh the symbols via
-	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 * When we detect we have a changed loaded_library_count, we need to
+	 * reload the symbols.
 	 */
 
-	now = tm_time();
+	current_loaded_library_count = win32dlp_loaded_library_count();
 
-	if (
-		0 == last_init ||
-		(delta_time(now, last_init) > 60 && !signal_in_exception())
-	) {
-		static bool initialized;
+	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
+	if (current_loaded_library_count != loaded_library_count) {
+		loaded_library_count = current_loaded_library_count;
+		reload_symbols = TRUE;
+	}
+	spinunlock_hidden(&dladdr_slk);
+
+	/*
+	 * When called during a crash, do not attempt to refresh the symbols via
+	 * a SymCleanup() / SymInitialize(): use the symbols we already have.
+	 *
+	 * However, if we never initialized them, then do so regardless of whether
+	 * we are crashing.
+	 */
+
+	if (!initialized || (reload_symbols && !signal_in_exception())) {
 		static bool first_init;
 		static spinlock_t dladdr_first_slk = SPINLOCK_INIT;
 		bool is_first = FALSE;
@@ -7537,22 +8899,23 @@ mingw_dladdr(void *addr, Dl_info *info)
 			SymCleanup(process);
 
 		if (!SymInitialize(process, NULL, TRUE)) {
-			mingw_dl_error = GetLastError();
-			s_warning("SymInitialize() failed: error = %d (%s)",
-				mingw_dl_error, mingw_dlerror());
+			error = mingw_dl_error = GetLastError();
+			s_warning("%s(): SymInitialize() failed: error = %d (%s)",
+				G_STRFUNC, mingw_dl_error, g_strerror(error));
 		} else {
+			spinlock_hidden(&dladdr_slk);
 			initialized = TRUE;
-			mingw_dl_error = 0;
+			reload_symbols = FALSE;
+			spinunlock_hidden(&dladdr_slk);
 		}
 
-		last_init = now;
 		mutex_unlock_fast(&dladdr_lk);
 	}
 
 skip_init:
 	ZERO(info);
 
-	if (0 != mingw_dl_error)
+	if (0 != error)
 		return 0;		/* Signals error */
 
 	if (NULL == addr)
@@ -7582,7 +8945,7 @@ skip_init:
 
 	spinlock_hidden(&dladdr_slk);	/* Protect access to static vars */
 
-	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, wpath, sizeof wpath)) {
+	if (GetModuleFileNameW((HINSTANCE) info->dli_fbase, ARYLEN(wpath))) {
 		size_t conv = utf16_to_utf8(wpath, path, pathsz);
 		if (conv <= pathsz)
 			info->dli_fname = path;		/* Thread-private buffer */
@@ -7597,7 +8960,7 @@ skip_init:
 	 */
 
 	if (SymGetSymFromAddr(process, pointer_to_ulong(addr), &disp, symbol)) {
-		g_strlcpy(buf_data(name), symbol->Name, buf_size(name));
+		cstr_bcpy(buf_data(name), buf_size(name), symbol->Name);
 		info->dli_sname = buf_data(name);	/* Thread-private buffer */
 		info->dli_saddr = ptr_add_offset(addr, -disp);
 	}
@@ -7657,7 +9020,7 @@ mingw_crash_record(int code, const void *pc,
 	char data[256];
 	str_t s;
 
-	str_new_buffer(&s, data, 0, sizeof data);
+	str_new_buffer(&s, ARYLEN(data), 0);
 	str_printf(&s, "%s at PC=%p", mingw_exception_to_string(code), pc);
 
 	if (routine != NULL)
@@ -7673,20 +9036,66 @@ mingw_crash_record(int code, const void *pc,
  * Log reported exception.
  */
 static void G_COLD
-mingw_exception_log(int stid, uint code, const void *pc)
+mingw_exception_log(int stid, uint code,
+	const void *pc, const void *sp, const struct stackframe *sf)
 {
-	DECLARE_STR(13);
-	char time_buf[CRASH_TIME_BUFLEN];
-	char buf[ULONG_DEC_BUFLEN];
-	const char *s, *name, *file = NULL;
+	/* All variables declared static to avoid taking up stack space */
+	STATIC_DECLARE_STR(15);
+	static char time_buf[CRASH_TIME_BUFLEN];
+	static char buf[ULONG_DEC_BUFLEN];
+	static char pc_buf[POINTER_BUFLEN];
+	static char caller_buf[POINTER_BUFLEN];
+	static const char *s, *name, *file = NULL;
+	static const void *caller_pc = NULL;
 
-	crash_time(time_buf, sizeof time_buf);
-	name = stacktrace_routine_name(pc, EXCEPTION_STACK_OVERFLOW != code);
-	if (is_strprefix(name, "0x"))
-		name = NULL;
+	crash_time_raw(ARYLEN(time_buf));
+	name = stacktrace_routine_name_light(pc, NULL);
 
 	if (!stacktrace_pc_within_our_text(pc) && EXCEPTION_STACK_OVERFLOW != code)
 		file = dl_util_get_path(pc);
+
+	/*
+	 * If we did not get a valid name and file, then the PC is garbage.
+	 * Try to intuit our caller from the stackframe pointer given.
+	 */
+
+	if (NULL == name && NULL == file) {
+		if (valid_stack_ptr(sf, sf) && valid_ptr(sf->ret)) {
+			caller_pc = sf->ret;
+
+			/*
+			 * Look at the stackframe return address.
+			 */
+
+			if (stacktrace_pc_within_our_text(caller_pc)) {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
+				file = dl_util_get_path(caller_pc);
+			}
+
+			if (NULL == name && NULL == file)
+				caller_pc = NULL;
+		}
+
+		/*
+		 * Perhaps the caller PC is just on the stack, in case they
+		 * de-referenced an invalid function pointer?
+		 */
+
+		if (NULL == caller_pc && valid_stack_ptr(sp, sp)) {
+			/* Grab the pushed return address at the top of the stack */
+			caller_pc = ulong_to_pointer(peek_le32(sp));
+
+			if (stacktrace_pc_within_our_text(caller_pc)) {
+				name = stacktrace_routine_name_light(caller_pc, NULL);
+			} else if (EXCEPTION_STACK_OVERFLOW != code) {
+				file = dl_util_get_path(caller_pc);
+			}
+
+			if (NULL == name && NULL == file)
+				caller_pc = NULL;
+		}
+	}
 
 	print_str(time_buf);								/* 0 */
 	print_str(" (CRITICAL-");							/* 1 */
@@ -7695,19 +9104,25 @@ mingw_exception_log(int stid, uint code, const void *pc)
 	s = PRINT_NUMBER(buf, stid);
 	print_str(s);										/* 2 */
 	print_str("): received exception at PC=");			/* 3 */
-	print_str(pointer_to_string(pc));					/* 4 */
+	pointer_to_string_buf(pc, ARYLEN(pc_buf));
+	print_str(pc_buf);									/* 4 */
+	if (caller_pc != NULL) {
+		pointer_to_string_buf(caller_pc, ARYLEN(caller_buf));
+		print_str(" probably called from PC=");			/* 5 */
+		print_str(caller_buf);							/* 6 */
+	}
 	if (name != NULL) {
-		print_str(" (");								/* 5 */
-		print_str(name);								/* 6 */
-		print_str(")");									/* 7 */
+		print_str(" (");								/* 7 */
+		print_str(name);								/* 8 */
+		print_str(")");									/* 9 */
 	}
 	if (file != NULL) {
-		print_str(" from ");							/* 8 */
-		print_str(file);								/* 9 */
+		print_str(" from ");							/* 10 */
+		print_str(file);								/* 11 */
 	}
-	print_str(": ");									/* 10 */
-	print_str(mingw_exception_to_string(code));			/* 11 */
-	print_str("\n");									/* 12 */
+	print_str(": ");									/* 12 */
+	print_str(mingw_exception_to_string(code));			/* 13 */
+	print_str("\n");									/* 14 */
 
 	FLUSH_ERR_STR();
 
@@ -7741,7 +9156,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 		va = ulong_to_pointer(er->ExceptionInformation[1]);
 	}
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 
 	print_str(time_buf);				/* 0 */
 	print_str(" (CRITICAL-");			/* 1 */
@@ -7764,7 +9179,7 @@ mingw_memory_fault_log(int stid, const EXCEPTION_RECORD *er)
 	{
 		char data[80];
 
-		str_bprintf(data, sizeof data, "; %s fault at VA=%p", prot, va);
+		str_bprintf(ARYLEN(data), "; %s fault at VA=%p", prot, va);
 		crash_append_error(data);
 	}
 }
@@ -7778,27 +9193,58 @@ static uint8 mingw_excpt[THREAD_MAX];
 static LONG WINAPI G_COLD
 mingw_exception(EXCEPTION_POINTERS *ei)
 {
-	EXCEPTION_RECORD *er;
+	EXCEPTION_RECORD *er, *en;
 	int stid, signo = 0;
-	const void *sp;
+	const void *sp, *pc;
+	const struct stackframe *sf;
 
 	signal_crashing();
+	mingw_activate_backtrace_debug();
 
 	er = ei->ExceptionRecord;
 	sp = ulong_to_pointer(ei->ContextRecord->Esp);
+	pc = ulong_to_pointer(ei->ContextRecord->Eip);
+	sf = ulong_to_pointer(ei->ContextRecord->Ebp);
 
 	stid = thread_safe_small_id_sp(sp);		/* Should be safe to execute */
 	if (stid >= 0 && stid < THREAD_MAX)
 		mingw_excpt[stid]++;
 
-	s_rawwarn("%s in thread #%d at pc=%p, sp=%p, current sp=%p "
+	/*
+	 * Immediately disable interrupt procesing for the faulty thread if we
+	 * are facing a stack overflow: handling them would require more stack
+	 * space.
+	 *
+	 * The only operating-system signal we allow is for abort purposes.
+	 */
+
+	if (EXCEPTION_STACK_OVERFLOW == er->ExceptionCode) {
+		if (stid >= 0 && stid < THREAD_MAX)
+			mingw_threads[stid].sig_mask = ~tsig_mask(SIGABRT);
+	}
+
+	s_rawwarn("%s in thread #%d (%s) at PC=%p, saved pc=%p, sp=%p, current sp=%p "
 		"[depth=%u, count=%d]",
 		mingw_exception_to_string(er->ExceptionCode),
-		stid, er->ExceptionAddress, sp, thread_sp(),
+		stid, thread_safe_id_name(stid), er->ExceptionAddress,
+		pc, sp, thread_sp(),
 		(stid >= 0 && stid < THREAD_MAX) ? mingw_excpt[stid] : 0,
 		signal_in_exception());
 
-	mingw_exception_log(stid, er->ExceptionCode, er->ExceptionAddress);
+	if (EXCEPTION_STACK_OVERFLOW == er->ExceptionCode)
+		s_rawwarn("stack used: %'zu bytes", thread_id_stack_used(stid, sp));
+
+	/*
+	 * Dump nested exception records, if any.
+	 */
+
+	for (en = er->ExceptionRecord; en; en = en->ExceptionRecord) {
+		s_rawwarn("caused by %s at PC=%p",
+			mingw_exception_to_string(en->ExceptionCode),
+			en->ExceptionAddress);
+	}
+
+	mingw_exception_log(stid, er->ExceptionCode, pc, sp, sf);
 
 	switch (er->ExceptionCode) {
 	case EXCEPTION_BREAKPOINT:
@@ -8092,27 +9538,60 @@ mingw_stdio_reset(bool console)
 void G_COLD
 mingw_file_rotate(const char *pathname, int keep)
 {
-	static char npath[MAX_PATH_LEN];
-	int i;
+	static char npath[MAX_PATH_LEN];	/* Avoid using too much stack space */
+	int i, len;
+	const char *dot;
+
+	/*
+	 * Figure out the extension of the pathname, so that we can progate
+	 * it during renaming.
+	 *
+	 * For instance, "x.stdout" will become "x.0.stdout".
+	 *
+	 * This allows Windows to properly open the ".stdout" files once we
+	 * have registered how such an extension should be opened.
+	 */
+
+	dot = vstrrchr(pathname, '.');
+	len = NULL == dot ? (int) vstrlen(pathname) : dot - pathname;
+	g_assert(len >= 0);
+
+	if (NULL == dot)
+		dot = &pathname[len];	/* Points to trailing NUL -> empty string */
 
 	if (keep > 0) {
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, keep - 1);
+		str_bprintf(ARYLEN(npath), "%.*s.%d%s", len, pathname, keep - 1, dot);
 		if (-1 != mingw_unlink(npath))
 			STARTUP_DEBUG("removed file \"%s\"", npath);
 	}
 
 	for (i = keep - 1; i > 0; i--) {
 		static char opath[MAX_PATH_LEN];
-		str_bprintf(opath, sizeof opath, "%s.%d", pathname, i - 1);
-		str_bprintf(npath, sizeof npath, "%s.%d", pathname, i);
+		str_bprintf(ARYLEN(opath), "%.*s.%d%s", len, pathname, i - 1, dot);
+		str_bprintf(ARYLEN(npath), "%.*s.%d%s", len, pathname, i, dot);
 		if (-1 != mingw_rename(opath, npath))
 			STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", opath, npath);
 	}
 
-	str_bprintf(npath, sizeof npath, "%s.0", pathname);
+	str_bprintf(ARYLEN(npath), "%.*s.0%s", len, pathname, dot);
 
 	if (-1 != mingw_rename(pathname, npath))
 		STARTUP_DEBUG("file \"%s\" renamed as \"%s\"", pathname, npath);
+
+	/*
+	 * Temporary: up to 1.1.14, we were renaming file without processing
+	 * the extension, by simply appending a ".digit" to the file names.
+	 * Clean those up if they exist!
+	 *
+	 * FIXME:
+	 * This code will be safe to delete after 1.1.15 is released.
+	 */
+
+	for (i = 0; i < keep; i++) {
+		str_bprintf(ARYLEN(npath), "%s.%d", pathname, keep);
+		if (-1 != mingw_unlink(npath))
+			STARTUP_DEBUG("removed obsolete file \"%s\"", npath);
+	}
 }
 
 void G_COLD
@@ -8179,7 +9658,7 @@ mingw_early_init(void)
 				STARTUP_DEBUG("stdout file will be %s", pathname);
 				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stdout files rotated");
-				if (NULL != freopen(pathname, "ab", stdout)) {
+				if (NULL != mingw_freopen(pathname, "ab", stdout)) {
 					log_set(LOG_STDOUT, pathname);
 					STARTUP_DEBUG("stdout (unbuffered) reopened");
 				} else {
@@ -8190,7 +9669,7 @@ mingw_early_init(void)
 				STARTUP_DEBUG("stderr file will be %s", pathname);
 				mingw_file_rotate(pathname, MINGW_TRACEFILE_KEEP);
 				STARTUP_DEBUG("stderr files rotated");
-				if (NULL != freopen(pathname, "ab", stderr)) {
+				if (NULL != mingw_freopen(pathname, "ab", stderr)) {
 					log_set(LOG_STDERR, pathname);
 					STARTUP_DEBUG("stderr (unbuffered) reopened");
 				} else {
@@ -8221,6 +9700,7 @@ mingw_early_init(void)
 	win32dlp_init(mingw_vmm.reserved, mingw_vmm.size);
 
 	closelog();
+	mingw_early_inited = TRUE;
 }
 
 void
@@ -8238,7 +9718,7 @@ mingw_close(void)
 
 		if (0 != cnt) {
 			s_warning("%s(): still has %zu child process%s unwaited for",
-				G_STRFUNC, cnt, plural_es(cnt));
+				G_STRFUNC, PLURAL_ES(cnt));
 		}
 	}
 }

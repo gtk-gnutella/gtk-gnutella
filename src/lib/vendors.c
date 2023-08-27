@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -37,8 +37,8 @@
 
 #include "ascii.h"
 #include "buf.h"
+#include "cstr.h"
 #include "endian.h"
-#include "glib-missing.h"	/* For g_strlcpy() */
 #include "misc.h"
 #include "override.h"	/* Must be the last header included */
 
@@ -168,8 +168,8 @@ find_vendor(uint32 code)
 bool
 is_vendor_known(vendor_code_t code)
 {
-    if (code.u32 == T_0000)
-        return FALSE;
+	if (code.u32 == T_0000)
+		return FALSE;
 
 	return find_vendor(code.u32) != NULL;
 }
@@ -203,7 +203,7 @@ size_t
 vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 {
     if (code == 0) {
-		return g_strlcpy(buf, "null", size);
+		return cstr_bcpy(buf, size, "null");
 	} else {
 		char temp[5];
 		size_t i;
@@ -215,7 +215,7 @@ vendor_code_to_string_buf(uint32 code, char *buf, size_t size)
 				temp[i] = '.';
 		}
 		temp[4] = '\0';
-		return g_strlcpy(buf, temp, size);
+		return cstr_bcpy(buf, size, temp);
 	}
 }
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -221,7 +221,7 @@ aq_free(aqueue_t *aq)
 	if G_UNLIKELY(0 != eslist_count(&aq->queue)) {
 		size_t count = eslist_count(&aq->queue);
 		s_carp("%s() freeing asynchronous queue still holding %zu item%s",
-			G_STRFUNC, count, plural(count));
+			G_STRFUNC, PLURAL(count));
 	}
 
 	eslist_foreach(&aq->queue, aq_free_item, NULL);

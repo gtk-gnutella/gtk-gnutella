@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -48,30 +48,49 @@ typedef enum frequency_type {
     FREQ_UPDATES
 } frequency_t;
 
+enum subscriber_magic { SUBSCRIBER_MAGIC = 0x2184e261 };
+
 struct subscriber {
-    callback_fn_t       cb;
+	enum subscriber_magic magic;
     enum frequency_type f_type;
-    uint32              f_interval;
-    time_t              last_call;
+    uint32 f_interval;
+    time_t last_call;
+    callback_fn_t cb;
 };
 
+static inline void
+subscriber_check(const struct subscriber * const s)
+{
+	g_assert(s != NULL);
+	g_assert(SUBSCRIBER_MAGIC == s->magic);
+}
+
+enum event_magic { EVENT_MAGIC = 0x6a7563c2 };
+
 typedef struct event {
+	enum event_magic magic;
+    uint32 triggered_count;
     const char *name;
-    uint32     triggered_count;
-    pslist_t   *subscribers;
-	mutex_t    lock;
-	bool       destroyed;
+    pslist_t *subscribers;
+	mutex_t lock;
 } event_t;
 
-struct event *event_new(const char *name);
+static inline void
+event_check(const struct event * const evt)
+{
+	g_assert(evt != NULL);
+	g_assert(EVENT_MAGIC == evt->magic);
+}
 
-void event_destroy(struct event *evt);
+event_t *event_new(const char *name);
+
+void event_destroy(event_t *evt);
 void event_add_subscriber(
-    struct event *evt, callback_fn_t cb, frequency_t t, uint32 interval);
-void event_remove_subscriber(struct event *evt, callback_fn_t cb);
+    event_t *evt, callback_fn_t cb, frequency_t t, uint32 interval);
+void event_remove_subscriber(event_t *evt, callback_fn_t cb);
 
-uint event_subscriber_count(struct event *evt);
-bool event_subscriber_active(struct event *evt);
+size_t event_subscriber_count(const event_t *evt);
+bool event_subscriber_active(const event_t *evt);
 
 /*
  * T_VETO:   breaks trigger chain as soon as a subscriber returns
@@ -92,12 +111,14 @@ bool event_subscriber_active(struct event *evt);
 		bool t;																\
 	} vars_;																\
 																			\
+	event_check(ev);														\
 	mutex_lock(&(ev)->lock);												\
 	vars_.evt = (ev);														\
 	vars_.now = (time_t) -1;												\
 	vars_.sl = vars_.evt->subscribers;										\
 	for (/* NOTHING */; vars_.sl; vars_.sl = pslist_next(vars_.sl)) {		\
 		vars_.s = vars_.sl->data;											\
+		subscriber_check(vars_.s);											\
 		vars_.t = 0 == vars_.s->f_interval;									\
 		if (!vars_.t) {														\
 			switch (vars_.s->f_type) {							 			\

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -92,6 +92,7 @@
 #include "constants.h"			/* For constant_str() */
 #include "cq.h"
 #include "crash.h"				/* For crash_hook_add(), print_str() et al. */
+#include "cstr.h"
 #include "dam.h"
 #include "dump_options.h"
 #include "entropy.h"
@@ -99,7 +100,6 @@
 #include "evq.h"
 #include "fd.h"					/* For fd_close() */
 #include "gentime.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "hashing.h"			/* For binary_hash() */
 #include "hashtable.h"
 #include "log.h"
@@ -110,6 +110,7 @@
 #include "once.h"
 #include "pow2.h"
 #include "pslist.h"
+#include "qlock.h"
 #include "rwlock.h"
 #include "semaphore.h"			/* For semaphore_kernel_usage() */
 #include "sha1.h"
@@ -162,7 +163,6 @@
 #define THREAD_SUSPEND_LOOP			100
 #define THREAD_SUSPEND_DELAY		2000	/* us */
 #define THREAD_SUSPEND_PAUSING		1000000	/* us, 1 sec */
-#define THREAD_SUSPEND_TIMEOUT		30		/* seconds */
 
 /**
  * Amount of stack frames we keep when we capture a backtrace on blocking
@@ -195,8 +195,11 @@ struct thread_backtrace {
 /**
  * This is the maximum amount of time we allow the main thread to block, even
  * if it is configured as non-blocking.
+ *
+ * We need to have a large-enough delay to allow qlocks to block the main
+ * thread if they need to wait for a lock.
  */
-#define THREAD_MAIN_DELAY_MS		5000	/* ms */
+#define THREAD_MAIN_DELAY_MS		20000	/* ms */
 
 /**
  * A recorded lock.
@@ -403,8 +406,8 @@ struct thread_element {
 	tsigset_t sig_pending;			/**< Signals pending delivery */
 	unsigned signalled;				/**< Unblocking signal events sent */
 	unsigned sig_generation;		/**< Signal reception generation number */
-	int in_signal_handler;			/**< Counts signal handler nesting */
 	bool sig_disabled;				/**< Cheap way of disabling all signals */
+	int in_signal_handler;			/**< Counts signal handler nesting */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
 	uint created:1;					/**< Whether thread created by ourselves */
@@ -422,19 +425,16 @@ struct thread_element {
 	uint join_requested:1;			/**< Whether thread_join() was requested */
 	uint join_pending:1;			/**< Whether thread exited, pending join */
 	uint reusable:1;				/**< Whether element is reusable */
-	uint async_exit:1;				/**< Whether exit callback done in main */
 	uint main_thread:1;				/**< Whether this is the main thread */
 	uint cancelled:1;				/**< Whether thread has been cancelled */
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
-	uint gone:1;					/**< Discovered thread is gone */
 	uint atomic_name:1;				/**< Whether name is an atomic string */
 	uint stack_overflow:1;			/**< Stack overflow was detected */
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
 	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
-	bool add_monitoring;			/**< Must reinstall thread monitoring */
-	bool gone_seen;					/**< Flagged activity from gone thread */
+	uint in_backtrace:1;			/**< Records thread backtracing */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock_stack waits;	/**< Locks on which thread is waiting */
@@ -443,6 +443,7 @@ struct thread_element {
 	dam_t *termination;				/**< Waiters on thread termination */
 	spinlock_t lock;				/**< Protects concurrent updates */
 	eslist_t exit_list;				/**< List of exit callbacks to invoke */
+	eslist_t async_exit_list;		/**< Async exit callbacks (from main) */
 	eslist_t cleanup_list;			/**< List of cleanup callbacks to invoke */
 	eslist_t interrupt_list;		/**< List of interrupts to invoke */
 	eslist_t interrupt_ack_list;	/**< List of interrupts to invoke */
@@ -490,15 +491,20 @@ static struct thread_stats {
 	AU64(locks_mutex_tracked);		/* Amount of tacked mutexes */
 	AU64(locks_rlock_tracked);		/* Amount of tracked read-locks */
 	AU64(locks_wlock_tracked);		/* Amount of tracked write-locks */
+	AU64(locks_qlock_tracked);		/* Amount of tracked queuing locks */
 	AU64(locks_spinlock_contention);/* Amount of contentions on spinlocks */
 	AU64(locks_mutex_contention);	/* Amount of contentions on mutex */
 	AU64(locks_rlock_contention);	/* Amount of contentions on read-locks */
 	AU64(locks_wlock_contention);	/* Amount of contentions on write-locks */
+	AU64(locks_qlock_contention);	/* Amount of contentions on queuing locks */
 	AU64(locks_spinlock_sleep);		/* Amount of sleeps done on spinlocks */
 	AU64(locks_mutex_sleep);		/* Amount of sleeps done on mutexes */
 	AU64(locks_rlock_sleep);		/* Amount of sleeps done on read-locks */
 	AU64(locks_wlock_sleep);		/* Amount of sleeps done on write-locks */
+	AU64(locks_qlock_sleep);		/* Amount of sleeps done on queuing locks */
 	AU64(locks_nested_sleeps);		/* Amount of nested sleeps done on locks */
+	AU64(locks_deadlock_checks);	/* Amount of deadlock checks performed */
+	AU64(locks_recursive_backtrace);/* Did we recursively attempt backtrace? */
 	AU64(cond_waitings);			/* Amount of condition variable waitings */
 	AU64(cond_nested_waitings);		/* Nested condition variable waitings */
 	AU64(signals_posted);			/* Amount of signals posted to threads */
@@ -641,6 +647,7 @@ static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 static int thread_locks_disabled;		/* Whether locks were disabled */
 static uint thread_suspend_depth;		/* Maintains suspension depth */
+static bool thread_main_started;		/* Has user's main thread started? */
 
 static mutex_t thread_insert_mtx = MUTEX_INIT;
 static mutex_t thread_suspend_mtx = MUTEX_INIT;
@@ -733,7 +740,7 @@ thread_sig_pending(const struct thread_element *te)
  * Compare two stack pointers according to the stack growth direction.
  * A pointer is larger than another if it is further away from the base.
  */
-static inline int
+int
 thread_stack_ptr_cmp(const void *a, const void *b)
 {
 	return thread_sp_direction > 0 ? ptr_cmp(a, b) : ptr_cmp(b, a);
@@ -805,12 +812,41 @@ thread_backtrace_capture(
 	struct thread_element *te, enum thread_backtrace_type type)
 {
 	struct thread_backtrace *bt = &te->btrace;
+	bool sig_disabled;
 
 	g_assert(type != THREAD_BT_ANY);
+
+	/*
+	 * If we already called stacktrace_unwind() and recurse here,
+	 * then avoid another level of recursion.  We have room for
+	 * one backtrace anyway.
+	 */
+
+	if G_UNLIKELY(te->in_backtrace) {
+		THREAD_STATS_INCX(locks_recursive_backtrace);
+		return;
+	}
+
+	te->in_backtrace = TRUE;
+
+	/*
+	 * During this stack capture, let's avoid being disrupted by a
+	 * thread signal because this could increase the chance of
+	 * recursing, in case the signal handling causes us to request
+	 * locks that are already busy .
+	 */
+
+	sig_disabled = te->sig_disabled;
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = TRUE;	/* Prevents any signal delivery */
 
 	tm_now_exact(&bt->stamp);
 	bt->type = type;
 	bt->count = stacktrace_unwind(bt->frames, N_ITEMS(bt->frames), 2);
+
+	te->in_backtrace = FALSE;
+	if G_LIKELY(!sig_disabled)
+		te->sig_disabled = FALSE;	/* Restore signal delivery */
 }
 
 /**
@@ -870,9 +906,9 @@ thread_backtrace_dump_type_fd(int fd,
 
 	tm_now_exact_raw(&now);
 	elapsed = tm_elapsed_ms(&now, &bt->stamp);
-	compact_time_ms_to_buf(elapsed, delta, sizeof delta);
+	compact_time_ms_to_buf(elapsed, ARYLEN(delta));
 
-	str_new_buffer(s, attributes, 0, sizeof attributes);
+	str_new_buffer(s, ARYLEN(attributes), 0);
 	if (te->reusable) {
 		if (te->cancelled) STR_CAT(s, "cancelled");
 		else               STR_CAT(s, "terminated");
@@ -1220,32 +1256,6 @@ thread_monitor_exit(struct thread_element *te)
 }
 
 /**
- * A discovered thread was marked as "gone" and yet we are seeing some
- * activity for it.
- */
-static void
-thread_element_mark_gone_seen(struct thread_element *te)
-{
-	/*
-	 * We cannot lock the thread element because we are on the
-	 * thread_small_id() execution path, which cannot take locks since
-	 * we could be interrupted by an operating system signal and the
-	 * first thing the signal handler will do is call thread_small_id()!
-	 *
-	 * On this execution path, speed is important so we cannot create a
-	 * critical section to block signals.  Hence we use atomic operations,
-	 * which means the "gone_seen" and "add_monitoring" fields must be
-	 * individual fields and not part of a bit field!
-	 */
-
-	if G_UNLIKELY(te->gone && !te->gone_seen) {
-		te->gone_seen = TRUE;
-		te->add_monitoring = TRUE;	/* Still active, must monitor exit again! */
-		atomic_mb();
-	}
-}
-
-/**
  * A discovered thread (outside of "main") was seen running.
  */
 static void
@@ -1261,21 +1271,6 @@ thread_element_mark_running(struct thread_element *te)
 	 */
 
 	te->last_seen = tm_time_raw();
-
-	/*
-	 * Loudly warn if the thread element is marked as gone.
-	 * It means that thread_will_exit() was called, we marked the
-	 * discovered thread as being gone and yet the same thread
-	 * is still being active.
-	 */
-
-	if G_UNLIKELY(te->gone) {
-		thread_element_mark_gone_seen(te);
-	} else if G_UNLIKELY(te->add_monitoring) {
-		/* No longer flagged as "gone", re-install monitoring */
-		te->add_monitoring = FALSE;
-		thread_monitor_exit(te);
-	}
 }
 
 /**
@@ -1414,7 +1409,7 @@ thread_element_name_to_buf(const struct thread_element *te,
 			symbolic = te->entry_name;
 
 		if (NULL == symbolic) {
-			pointer_to_string_buf(te->entry, name, sizeof name);
+			pointer_to_string_buf(te->entry, ARYLEN(name));
 			symbolic = name;
 		}
 
@@ -1614,9 +1609,6 @@ thread_element_update_qid_range(struct thread_element *te, thread_qid_t qid)
 			bad_lo, bad_hi, qid, te->low_qid, te->high_qid);
 	}
 
-	if G_UNLIKELY(te->gone)
-		thread_element_mark_gone_seen(te);
-
 	thread_stack_update(te);
 
 	/*
@@ -1744,7 +1736,7 @@ thread_private_clear_warn(struct thread_element *te)
 
 	if G_UNLIKELY(cnt != 0) {
 		s_miniwarn("cleared %zu thread-private variable%s in %s thread #%u",
-			cnt, plural(cnt),
+			PLURAL(cnt),
 			te->created ? "created" : te->discovered ? "discovered" : "bad",
 			te->stid);
 	}
@@ -1859,7 +1851,7 @@ thread_local_clear_warn(struct thread_element *te)
 
 	if G_UNLIKELY(cnt != 0) {
 		s_miniwarn("cleared %zu thread-local variable%s in %s thread #%u",
-			cnt, plural(cnt),
+			PLURAL(cnt),
 			te->created ? "created" : te->discovered ? "discovered" : "bad",
 			te->stid);
 	}
@@ -1982,95 +1974,6 @@ thread_gone(struct thread_element *te)
 	xmalloc_thread_ended(te->stid);
 
 	thread_element_mark_reusable(te);
-}
-
-/**
- * Callout queue callback invoked when discovered thread is surely gone.
- */
-static void
-thread_surely_gone(cqueue_t *cq, void *data)
-{
-	struct thread_element *te = data;
-	bool problem;
-	size_t locks;
-
-	thread_element_check(te);
-
-	cq_event(cq);
-
-	THREAD_LOCK(te);
-
-	if (!te->valid || !te->exit_started || !te->discovered) {
-		bool is_valid = te->valid;
-		THREAD_UNLOCK(te);
-		if (is_valid) {
-			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-				G_STRFUNC, te->stid, thread_element_name(te));
-		}
-		return;
-	}
-
-	problem = te->gone_seen;
-	locks = thread_element_lock_count(te);
-	if (problem || locks != 0) {
-		te->gone = FALSE;			/* Will not reuse it after all */
-		te->exit_started = FALSE;	/* And definitely not exiting */
-	}
-	THREAD_UNLOCK(te);
-
-	if (locks != 0) {
-		s_warning("%s(): %s still holding %zu lock%s, not reusing its ID",
-			G_STRFUNC, thread_element_name(te), locks, plural(locks));
-	} else if (problem) {
-		s_warning("%s(): seen some activity for %s, not reusing its ID",
-			G_STRFUNC, thread_element_name(te));
-	} else {
-		thread_gone(te);
-		te->discovered = FALSE;
-		atomic_uint_dec(&thread_discovered);
-	}
-}
-
-/**
- * Callout queue callback invoked when discovered thread is probably gone.
- */
-static void
-thread_probably_gone(cqueue_t *cq, void *data)
-{
-	struct thread_element *te = data;
-
-	thread_element_check(te);
-
-	cq_event(cq);
-
-	THREAD_LOCK(te);
-
-	if (!te->valid || !te->exit_started || !te->discovered) {
-		bool is_valid = te->valid;
-		THREAD_UNLOCK(te);
-		if (is_valid) {
-			s_warning("%s(): ID #%u seems to be already re-assigned to new %s",
-				G_STRFUNC, te->stid, thread_element_name(te));
-		}
-		return;
-	}
-
-	/*
-	 * We flag the discovered thread as gone, which will give us a loud
-	 * warning if we see a QID cache hit for that thread again.
-	 */
-
-	te->gone = TRUE;
-	te->gone_seen = FALSE;
-
-	THREAD_UNLOCK(te);
-
-	/*
-	 * Now after some safety period has elapsed, mark the element as
-	 * being truly gone.
-	 */
-
-	evq_raw_insert(THREAD_GRACE_TIME, thread_surely_gone, te);
 }
 
 /**
@@ -2348,9 +2251,6 @@ thread_element_reset(struct thread_element *te)
 	te->cancelled = FALSE;
 	te->cancelable = TRUE;
 	te->exit_started = FALSE;
-	te->gone = FALSE;
-	te->gone_seen = FALSE;
-	te->add_monitoring = FALSE;
 	te->stack_overflow = FALSE;
 	te->in_syscall = FALSE;
 	te->sig_disabled = FALSE;
@@ -2362,6 +2262,7 @@ thread_element_reset(struct thread_element *te)
 	te->div = NULL;
 	ZERO(&te->sigh);
 	eslist_clear(&te->exit_list);
+	eslist_clear(&te->async_exit_list);
 	eslist_clear(&te->cleanup_list);
 	slist_free(&te->cond_stack);
 	ZERO(&te->btrace);
@@ -2664,6 +2565,227 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 }
 
 /**
+ * Warn about remaining cleanup callback.
+ */
+static bool
+thread_cleanup_warn(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	struct thread_element *te = value;
+
+	thread_element_check(te);
+
+	s_warning("%s exiting with pending cleanup callback %s(%p) "
+		"registered by %s() at %s:%u",
+		thread_element_name(te), stacktrace_function_name(c->cleanup_cb),
+		c->data, c->routine, c->file, c->line);
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+/**
+ * Execute cleanup callback.
+ */
+static bool
+thread_cleanup_handle(void *data, void *value)
+{
+	struct thread_cleanup_cb *c = data;
+	const void *sp = value;
+
+	if (thread_stack_ptr_cmp(sp, c->sp) < 0) {
+		s_critical("ignoring obsolete cleanup callback %s(%p) for %s, "
+			"registered by %s() at %s:%u: "
+			"registration SP=%p, exit SP=%p, current SP=%p",
+			stacktrace_function_name(c->cleanup_cb), c->data, thread_name(),
+			c->routine, c->file, c->line, c->sp, sp, &sp);
+	} else {
+		(*c->cleanup_cb)(c->data);
+	}
+
+	xfree(c);
+	return TRUE;		/* Remove it from list */
+}
+
+struct thread_exit_context {
+	thread_exit_t cb;
+	void *arg;
+	void *value;
+};
+
+/**
+ * Invoked from the main thread to notify that a thread exited.
+ */
+static void
+thread_exit_notify(cqueue_t *cq, void *obj)
+{
+	struct thread_exit_context *ctx = obj;
+
+	cq_event(cq);
+
+	(*ctx->cb)(ctx->value, ctx->arg);
+	WFREE(ctx);
+}
+
+/**
+ * Asynchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_async_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+	struct thread_exit_context *ctx;
+
+	WALLOC(ctx);
+	ctx->value = value;
+	ctx->cb = e->exit_cb;
+	ctx->arg = e->exit_arg;
+	xfree(e);
+	cq_main_insert(1, thread_exit_notify, ctx);
+
+	return TRUE;
+}
+
+/**
+ * Synchronously invoke thread exit callback.
+ */
+static bool
+thread_exit_sync_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+
+	(*e->exit_cb)(value, e->exit_arg);
+	xfree(e);
+
+	return TRUE;
+}
+
+/**
+ * Free a thread exit callback, not running it.
+ */
+static bool
+thread_exit_free_cb(void *data, void *value)
+{
+	struct thread_exit_cb *e = data;
+	struct thread_element *te = value;
+
+	s_critical("%s(): not running exit callback %s(%p) for %s",
+		G_STRFUNC, stacktrace_function_name(e->exit_cb), e->exit_arg,
+		thread_element_name(te));
+
+	xfree(e);
+
+	return TRUE;
+}
+
+/**
+ * Common exit cleanup when a created or discovered thread exits.
+ *
+ * @param te		the exiting thread
+ * @param sp		exiting stack pointer: when NULL, this is an implicit exit
+ * @param result	the exit value, NULL for discovered threads
+ */
+static void
+thread_common_exit(struct thread_element *te, const void *sp, void *result)
+{
+	size_t lock_count;
+
+	thread_element_check(te);
+	g_assert(te->exit_started);
+
+	/*
+	 * When exiting explicitly, via thread_exit() or through a cancellation
+	 * request, we run the registered cleanup callbacks, otherwise they
+	 * are discarded with a warning (it is an error to return from the main
+	 * entry point with pending cleanup callbacks).
+	 *
+	 * Running of the cleanup routine must be done before clearing all
+	 * the thread-private and thread-local variables registered by the thread
+	 * since the callbacks may use such values.
+	 */
+
+	lock_count = thread_element_lock_count(te);	/* Can be non-zero here */
+
+	if (NULL == sp) {
+		/* Implicit exit, returning from main entry point */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_warn, te);
+	} else {
+		/* Explicit exit or cancellation */
+		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_handle,
+			deconstify_pointer(sp));
+	}
+
+	/*
+	 * Now that all the cleanup handlers have been run, there must not
+	 * be any lock remaining.
+	 */
+
+	if (0 != thread_element_lock_count(te)) {
+		size_t cnt = thread_element_lock_count(te);
+		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
+			G_STRFUNC, thread_element_name(te), PLURAL(cnt), lock_count);
+		thread_lock_dump(te);
+		s_error("thread exiting without clearing its locks");
+	}
+
+	/*
+	 * Are we still running in the exiting thread?
+	 *
+	 * If yes and it has synchronous exit routines, we need to dispatch
+	 * them now to perform cleanup.
+	 *
+	 * Otherwise, we'll have to drop the synchronous exit callbacks, loudly
+	 * warning about that condition and each of them.  Indeed, they may expect
+	 * to be run from the dying thread, to be able to cleanup local/private
+	 * variables for instance.
+	 */
+
+	if (te->created || thread_small_id() == te->stid) {
+		/*
+		 * Invoke any registered exit notification callback, before
+		 * thread variables are cleared (since callbacks may use still
+		 * want to use them).
+		 */
+
+		eslist_foreach_remove(&te->exit_list,
+			thread_exit_sync_cb, result);
+
+		eslist_foreach_remove(&te->async_exit_list,
+			thread_exit_async_cb, result);
+	} else {
+		g_assert(te->discovered);
+
+		if (0 != eslist_count(&te->exit_list)) {
+			s_critical("%s(): had %zu synchronous exit callback%s in %s",
+				G_STRFUNC, PLURAL(eslist_count(&te->exit_list)),
+				thread_element_name(te));
+
+			eslist_foreach_remove(&te->exit_list, thread_exit_free_cb, te);
+		}
+
+		/*
+		 * The asynchronous exit callbacks we can run, since they do not
+		 * expect to be run from within the exiting thread!
+		 * However we cannot supply the thread exit value, so we give NULL.
+		 */
+
+		eslist_foreach_remove(&te->async_exit_list, thread_exit_async_cb, NULL);
+	}
+
+	/*
+	 * When a thread exits, all its thread-private and thread-local variables
+	 * are reclaimed.
+	 *
+	 * The keys are constants (static strings, pointers to static objects for
+	 * thread-private, opaque constants for thread-local) but values are
+	 * dynamically allocated and can have a free routine attached.
+	 */
+
+	thread_private_clear(te);
+	thread_local_clear(te);
+}
+
+/**
  * Callback invoked when the special monitoring key we set in each discovered
  * thread is reclaimed by the pthread runtime, which will happen when the thread
  * is exiting.
@@ -2680,21 +2802,8 @@ thread_will_exit(void *arg)
 
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
 
-	/*
-	 * Since the thread was discovered, we wait a little bit to reuse its
-	 * thread element: we cannot know for sure that this is the last activity
-	 * we will see for that dying thread (other cleanup could involve freeing
-	 * allocated objects).
-	 *
-	 * We have to pray for the holding time to be large enough or we will mark
-	 * the thread reusable too soon!  The consequence is that we could
-	 * re-discover the same thread on its exit path, but this time there will
-	 * be no usable hook to let us know the thread has died, possibly leading
-	 * to a thread element leak if we cannot determine for sure that the thread
-	 * is dead.
-	 */
-
-	evq_raw_insert(THREAD_HOLD_TIME, thread_probably_gone, te);
+	thread_common_exit(te, NULL, NULL);
+	thread_gone(te);
 }
 
 /**
@@ -2707,8 +2816,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	assert_mutex_is_owned(&thread_insert_mtx);
 	g_assert_log(0 == thread_element_lock_count(te),
 		"discovered thread #%u already holds %zu lock%s",
-		te->stid, thread_element_lock_count(te),
-		plural(thread_element_lock_count(te)));
+		te->stid, PLURAL(thread_element_lock_count(te)));
 
 	THREAD_STATS_INC(discovered);
 	thread_cleanup(te);
@@ -2786,6 +2894,7 @@ thread_init_element(struct thread_element *te)
 
 	spinlock_init(&te->lock);
 	eslist_init(&te->exit_list, offsetof(struct thread_exit_cb, lnk));
+	eslist_init(&te->async_exit_list, offsetof(struct thread_exit_cb, lnk));
 	eslist_init(&te->cleanup_list, offsetof(struct thread_cleanup_cb, lnk));
 	eslist_init(&te->interrupt_list, interrupt_offset);
 	eslist_init(&te->interrupt_ack_list, interrupt_offset);
@@ -3901,6 +4010,49 @@ found:
 }
 
 /**
+ * Called when we are certain we are running in the main thread.
+ */
+void
+thread_main_starting(void)
+{
+	struct thread_element *te = thread_get_element();
+
+	g_assert(THREAD_MAIN_ID == te->stid);	/* Running in the main thread */
+
+	/*
+	 * This signals thread_element_set() that it can now start to return
+	 * the internal te->tid from elements, including for what we think is
+	 * the main thread, because thread_self() for the main thread is stable
+	 * and is known.
+	 */
+
+	thread_main_started = TRUE;
+
+	/*
+	 * Force update of the thread_self() component, since we may have
+	 * initialized a wrong value earlier, when called possibly in other
+	 * foreign threads, for instance from the dynamic loader.
+	 *
+	 * 		--RAM, 2020-02-12
+	 */
+
+	thread_set(te->tid, thread_self());
+	thread_stack_init_shape(te, &te);
+}
+
+/**
+ * Has main thread started?
+ *
+ * If this routine returns FALSE, then we're still in the early C runtime
+ * bootsrapping (dynamic library loader, for instance).
+ */
+bool
+thread_main_has_started(void)
+{
+	return thread_main_started;
+}
+
+/**
  * Signal handler for TSIG_DIVERT.
  */
 static void
@@ -3953,9 +4105,12 @@ thread_id_stack_used(uint stid,  const void *sp)
 	if (NULL == te || !te->valid)
 		return 0;
 
-	base = ulong_to_pointer(te->low_qid << thread_pageshift);
-	if (thread_sp_direction < 0)
+	if (thread_sp_direction < 0) {
+		base = ulong_to_pointer(te->high_qid << thread_pageshift);
 		base = ptr_add_offset(base, (1 << thread_pageshift));
+	} else {
+		base = ulong_to_pointer(te->low_qid << thread_pageshift);
+	}
 
 	return thread_stack_ptr_offset(base, sp);
 }
@@ -3969,6 +4124,28 @@ thread_stack_used(void)
 	struct thread_element *te = thread_get_element();
 
 	return thread_id_stack_used(te->stid, &te);
+}
+
+/**
+ * How much more stack did we use or release since `sp'?
+ *
+ * If the returned value is positive, we consumed more stack, else
+ * we released some.
+ *
+ * There is no verfication that `sp' belongs to the current execution
+ * stack, for execution speed.
+ *
+ * @param sp	starting point
+ *
+ * @return thread stack consumed / released since starting point.
+ */
+ssize_t
+thread_stack_diff(const void *sp)
+{
+	if (thread_sp_direction < 0)
+		return ptr_diff(sp, &sp);
+	else
+		return ptr_diff(&sp, sp);
 }
 
 /**
@@ -4105,12 +4282,15 @@ thread_stack_check_overflow(const void *va)
 	 */
 
 	if (extra_stack) {
-		s_rawcrit("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name_raw(te));
+		/* This will cause stack unwinding by the logging layer */
+		s_rawcrit("stack (%zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_element_name_raw(te),
+			thread_id_stack_used(te->stid, va));
 	} else {
 		/* Don't attempt to unwind the stack, that costs stack space! */
-		s_rawwarn("stack (%zu bytes) overflowing for %s",
-			te->stack_size, thread_element_name_raw(te));
+		s_rawwarn("stack (%zu bytes) overflowing for %s (used %'zu bytes)",
+			te->stack_size, thread_element_name_raw(te),
+			thread_id_stack_used(te->stid, va));
 	}
 
 	thread_stack_overflow(te);
@@ -4409,8 +4589,15 @@ thread_id_name_to_buf(unsigned id,
 {
 	const struct thread_element *te;
 
+	/*
+	 * This will catch negative IDs as well, coming from
+	 * thread_safe_small_id() for instance, which become
+	 * large numbers in our unsigned argument.
+	 */
+
 	if (id >= THREAD_MAX) {
-		str_bprintf(b, len, "<invalid thread ID %u>", id);
+		/* Note the %d to print -1 and -2 nicely and the cast */
+		str_bprintf(b, len, "<invalid thread ID %d>", (int) id);
 		return b;
 	}
 
@@ -4559,6 +4746,9 @@ thread_wait_others(const struct thread_element *te)
 			struct thread_element *xte = threads[j];
 
 			if G_UNLIKELY(xte == te)
+				continue;
+
+			if (!xte->valid)
 				continue;
 
 			if (xte->suspended || 0 == thread_element_lock_count(xte))
@@ -4717,8 +4907,7 @@ recheck:
 		g_assert_log(0 == thread_element_lock_count(te),
 			"%s(): handler %s() for signal #%d left %zu lock%s in %s%s%s",
 			G_STRFUNC, stacktrace_function_name(handler), s,
-			thread_element_lock_count(te),
-			plural(thread_element_lock_count(te)),
+			PLURAL(thread_element_lock_count(te)),
 			thread_element_name(te),
 			thread_get_element() == te ? "" : " -- BUG: running in %s",
 			thread_get_element() == te ? "" : thread_name());
@@ -4774,7 +4963,7 @@ thread_signal_check_element(struct thread_element *te)
 int
 thread_sighandler_level(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->in_signal_handler;
 }
@@ -4795,9 +4984,22 @@ thread_sighandler_level(void)
 unsigned
 thread_sig_generation(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->sig_generation;
+}
+
+/**
+ * Get the known stack size for the thread.
+ *
+ * @return the stack size for created threads, 0 for discovered ones.
+ */
+size_t
+thread_stack_size(void)
+{
+	const struct thread_element *te = thread_get_element();
+
+	return te->stack_size;
 }
 
 /**
@@ -4876,7 +5078,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 			delayed |= thread_suspend_self(te);
 		else if (thread_in_crash_mode()) {
 			s_rawwarn("suspending %s which holds %zu lock%s",
-				thread_element_name_raw(te), cnt, plural(cnt));
+				thread_element_name_raw(te), PLURAL(cnt));
 
 			delayed |= thread_suspend_loop(te);	/* Unconditional */
 		}
@@ -5004,7 +5206,55 @@ thread_lock_disable(bool silent)
 			spinlock_crash_mode();	/* Can now grab any spinlock or mutex */
 		mutex_crash_mode();			/* Allow release of all mutexes */
 		rwlock_crash_mode();
+		qlock_crash_mode();
 	}
+}
+
+/**
+ * Suspend specific thread, without waiting for it to clear its locks.
+ *
+ * @param stid	the thread to suspend
+ */
+void
+thread_suspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to suspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	atomic_int_inc(&xte->suspend);
+}
+
+/**
+ * Unsuspend specific thread.
+ *
+ * @param stid	the thread to unsuspend
+ */
+void
+thread_unsuspend(int stid)
+{
+	struct thread_element *xte;
+
+	g_assert(UNSIGNED(stid) < THREAD_MAX);
+
+	if (thread_small_id() == UNSIGNED(stid))
+		return;		/* Does not mean anything to unsuspend ourselves */
+
+	xte = threads[stid];
+	if (!xte->valid)
+		return;
+
+	/* Note: done without a lock on "xte" using an atomic operation */
+	if (atomic_int_dec(&xte->suspend) <= 0)
+		s_error("%s(): %s was not suspended", G_STRFUNC, thread_id_name(stid));
 }
 
 /**
@@ -5087,6 +5337,9 @@ thread_suspend_others(bool lockwait)
 				continue;
 			}
 
+			if (!xte->valid)
+				continue;
+
 			/* Note: done without a lock on "xte" using an atomic operation */
 			atomic_int_inc(&xte->suspend);
 			n++;
@@ -5130,6 +5383,9 @@ thread_suspend_others(bool lockwait)
 			s_rawwarn("%s(): corrupted thread element #%zu", G_STRFUNC, i);
 			continue;
 		}
+
+		if (!xte->valid)
+			continue;
 
 		if (lockwait) {
 			THREAD_LOCK(xte);
@@ -5179,7 +5435,7 @@ thread_suspend_others(bool lockwait)
 
 	if (lockwait && busy_skipped != 0) {
 		s_carp("%s() found %u busy thread%s already marked suspended!",
-			G_STRFUNC, busy_skipped, plural(busy_skipped));
+			G_STRFUNC, PLURAL(busy_skipped));
 	}
 
 	/*
@@ -5197,7 +5453,7 @@ thread_suspend_others(bool lockwait)
 		size_t cnt = thread_element_lock_count(te);
 		if (0 != cnt) {
 			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
-				G_STRFUNC, busy, plural(busy), cnt, plural(cnt));
+				G_STRFUNC, PLURAL(busy), PLURAL(cnt));
 			thread_lock_dump(te);
 		}
 		thread_wait_others(te);
@@ -5528,7 +5784,19 @@ thread_element_set(struct thread_element *te, const void **element)
 	if (element != NULL)
 		*element = te;
 
-	return te->tid;
+	/*
+	 * If the main thread has not started yet, we may very well be running
+	 * in alternative threads without knowing it, and think that we are
+	 * in the main thread just because this is the first one we discovered.
+	 *
+	 * Use thread_self() instead of any cached TID until we know better.
+	 * This is important for the mutex locks, especially those which we assert
+	 * as being held and which rely on a stable TID to perform this check.
+	 *
+	 * 		--RAM, 2020-02-12
+	 */
+
+	return G_LIKELY(thread_main_started) ? te->tid : thread_self();
 }
 
 /**
@@ -6429,6 +6697,7 @@ thread_lock_kind_to_string(const enum thread_lock_kind kind)
 	case THREAD_LOCK_SPINLOCK:	return "spinlock";
 	case THREAD_LOCK_RLOCK:		return "rwlock (R)";
 	case THREAD_LOCK_WLOCK:		return "rwlock (W)";
+	case THREAD_LOCK_QLOCK:		return "qlock";
 	case THREAD_LOCK_MUTEX:		return "mutex";
 	}
 
@@ -6501,7 +6770,7 @@ thread_lock_waiting_dump_fd(int fd, const struct thread_element *te)
 		print_str(thread_element_name_raw(te));	/* 0 */
 		print_str(" waiting for ");				/* 1 */
 
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 		type = thread_lock_kind_to_string(l->kind);
 
 		print_str(type);					/* 2 */
@@ -6617,7 +6886,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		bool waited_for;
 
 		type = thread_lock_kind_to_string(l->kind);
-		pointer_to_string_buf(l->lock, buf, sizeof buf);
+		pointer_to_string_buf(l->lock, ARYLEN(buf));
 
 		rewind_str(0);
 
@@ -6651,7 +6920,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_SPINLOCK:
 			{
 				const spinlock_t *s = l->lock;
-				if (!mem_is_valid_range(s, sizeof *s)) {
+				if (!mem_is_valid_range(PTRLEN(s))) {
 					print_str(" FREED");			/* 7 */
 				} else if (SPINLOCK_MAGIC != s->magic) {
 					if (SPINLOCK_DESTROYED == s->magic)
@@ -6676,7 +6945,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				char qwbuf[UINT_DEC_BUFLEN];
 				const char *r, *w, *qr, *qw;
 
-				if (!mem_is_valid_range(rw, sizeof *rw)) {
+				if (!mem_is_valid_range(PTRLEN(rw))) {
 					print_str(" FREED");			/* 7 */
 				} else if (RWLOCK_MAGIC != rw->magic) {
 					if (RWLOCK_DESTROYED == rw->magic)
@@ -6708,10 +6977,55 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				const qlock_t *q = l->lock;
+
+				if (!mem_is_valid_range(q, sizeof *q)) {
+					print_str(" FREED");			/* 7 */
+				} else if (!qlock_magic_is_good(q)) {
+					if (QLOCK_DESTROYED == q->magic)
+						print_str(" DESTROYED");	/* 7 */
+					else
+						print_str(" BAD_MAGIC");	/* 7 */
+				} else {
+					if (QLOCK_RECURSIVE_MAGIC == q->magic)
+						print_str(" recursive");	/* 7 */
+					else
+						print_str(" plain");	/* 7 */
+					if (0 == q->held)
+						print_str(" UNLOCKED");	/* 8 */
+					else if (q->held != 1)
+						print_str(" BAD_LOCK");	/* 8 */
+					if (q->stid != te->stid)
+						print_str(" BAD_STID");	/* 9 */
+
+					print_str(" from ");		/* 10 */
+					lnum = PRINT_NUMBER(line, l->line);
+					print_str(l->file);			/* 11 */
+					print_str(":");				/* 12 */
+					print_str(lnum);			/* 13 */
+
+					if (QLOCK_RECURSIVE_MAGIC == q->magic) {
+						if (0 == q->depth) {
+							print_str(" BAD_DEPTH");	/* 14 */
+						} else {
+							char depth[ULONG_DEC_BUFLEN];
+							const char *dnum;
+
+							dnum = PRINT_NUMBER(depth, q->depth);
+							print_str(" (depth=");		/* 15 */
+							print_str(dnum);			/* 16 */
+							print_str(")");				/* 17 */
+						}
+					}
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				const mutex_t *m = l->lock;
-				if (!mem_is_valid_range(m, sizeof *m)) {
+				if (!mem_is_valid_range(PTRLEN(m))) {
 					print_str(" FREED");			/* 7 */
 				} else if (MUTEX_MAGIC != m->magic) {
 					if (MUTEX_DESTROYED == m->magic)
@@ -6870,6 +7184,12 @@ thread_lock_release(const void *lock, enum thread_lock_kind kind)
 			rwlock_wungrab(w);
 		}
 		return TRUE;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			return qlock_ungrab(q);
+		}
+		g_assert_not_reached();
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7000,6 +7320,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		case THREAD_LOCK_WLOCK:
 			THREAD_STATS_INCX(locks_wlock_sleep);
 			break;
+		case THREAD_LOCK_QLOCK:
+			THREAD_STATS_INCX(locks_qlock_sleep);
+			break;
 		}
 	}
 
@@ -7028,6 +7351,9 @@ thread_lock_contention(enum thread_lock_kind kind)
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_contention);
 		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_contention);
+		break;
 	}
 }
 
@@ -7042,9 +7368,6 @@ thread_lock_waiting_done(const void *element, const void *lock)
 	struct thread_lock_stack *tls;
 
 	thread_element_check(te);
-
-	if G_UNLIKELY(thread_lock_is_problematic())
-		goto done;
 
 	tls = &te->waits;
 
@@ -7070,6 +7393,9 @@ thread_lock_waiting_done(const void *element, const void *lock)
 			s_rawcrit("%s(): was waiting for %s %p at %s:%u but given lock %p",
 				G_STRFUNC, thread_lock_kind_to_string(l->kind), l->lock,
 				l->file, l->line, lock);
+
+			if G_UNLIKELY(thread_lock_is_problematic())
+				goto done;
 
 			/*
 			 * Make sure the lock is not present in the waiting stack, or
@@ -7107,7 +7433,7 @@ done:
  * Record that current thread is waiting on the specified condition variable.
  *
  * This is used to allow signals to be delivered to threads whilst they
- * are aslept, waiting in the condition variable.
+ * are asleep, waiting in the condition variable.
  *
  * @return the thread element as an opaque pointer that can be given back
  * to thread_cond_waiting_done() to skip the thread lookup.
@@ -7229,6 +7555,13 @@ thread_lock_reacquire(
 			rwlock_wgrab(w, file, line, FALSE);
 		}
 		goto done;
+	case THREAD_LOCK_QLOCK:
+		{
+			qlock_t *q = deconstify_pointer(lock);
+			qlock_grab(q, file, line);
+			g_assert(QLOCK_PLAIN_MAGIC == q->magic || 1 == q->depth);
+		}
+		goto done;
 	case THREAD_LOCK_MUTEX:
 		{
 			mutex_t *m = deconstify_pointer(lock);
@@ -7287,6 +7620,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 		break;
 	case THREAD_LOCK_WLOCK:
 		THREAD_STATS_INCX(locks_wlock_tracked);
+		break;
+	case THREAD_LOCK_QLOCK:
+		THREAD_STATS_INCX(locks_qlock_tracked);
 		break;
 	}
 
@@ -7734,6 +8070,23 @@ thread_lock_holds(const volatile void *lock)
 size_t
 thread_lock_held_count(const void *lock)
 {
+	return thread_lock_held_count_as(lock, THREAD_LOCK_ANY);
+}
+
+/**
+ * Counts how many times current thread holds lock of a given kind.
+ *
+ * When the kind of lock is THREAD_LOCK_ANY, we do not care about the lock
+ * kind: we simply look whether the lock address is registered.
+ *
+ * @param lock		the address of a lock we record (mutex, spinlock, etc...)
+ * @param kind		kind of lock (useful for multiform locks like rwlocks)
+ *
+ * @return amount of times a lock is held by the current thread.
+ */
+size_t
+thread_lock_held_count_as(const void *lock, enum thread_lock_kind kind)
+{
 	struct thread_element *te = thread_get_element();
 	struct thread_lock_stack *tls;
 	unsigned i;
@@ -7747,8 +8100,10 @@ thread_lock_held_count(const void *lock)
 	for (i = 0; i < tls->count; i++) {
 		const struct thread_lock *l = &tls->arena[i];
 
-		if G_UNLIKELY(l->lock == lock)
-			count++;
+		if G_UNLIKELY(l->lock == lock) {
+			if (THREAD_LOCK_ANY == kind || l->kind == kind)
+				count++;
+		}
 	}
 
 	return count;
@@ -7836,7 +8191,7 @@ thread_assert_no_locks(const char *routine)
 
 	if G_UNLIKELY(0 != cnt) {
 		s_warning("%s(): %s currently holds %zu lock%s",
-			routine, thread_element_name(te), cnt, plural(cnt));
+			routine, thread_element_name(te), PLURAL(cnt));
 		thread_lock_dump(te);
 		s_error("%s() expected no locks, found %zu held", routine, cnt);
 	}
@@ -7846,7 +8201,7 @@ thread_assert_no_locks(const char *routine)
  * Find who owns a lock, and what kind of lock it is.
  *
  * @param lock		the lock address
- * @param kind		where type of lock is written, if owner found
+ * @param kind		where type of lock is written, if owner found and non-NULL
  *
  * @return thread owning a lock, NULL if we can't find it.
  */
@@ -7870,7 +8225,8 @@ thread_lock_owner(const volatile void *lock, enum thread_lock_kind *kind)
 			const struct thread_lock *l = &tls->arena[j];
 
 			if (l->lock == lock) {
-				*kind = l->kind;
+				if (kind != NULL)
+					*kind = l->kind;
 				return te;
 			}
 		}
@@ -7899,6 +8255,11 @@ thread_is_crashing(void)
 
 /**
  * Enter thread crashing mode.
+ *
+ * If any of the other threads is known to hold a lock, then all locks are
+ * disabled, regardless of disable_locks.
+ *
+ * @param disable_locks		if TRUE, disable all locks
  */
 void
 thread_crash_mode(bool disable_locks)
@@ -7929,7 +8290,7 @@ thread_crash_mode(bool disable_locks)
 	 * during our crash handling.
 	 */
 
-	if (0 != thread_others_lock_count() || disable_locks)
+	if (disable_locks || 0 != thread_others_lock_count())
 		thread_lock_disable(FALSE);
 }
 
@@ -8015,7 +8376,7 @@ thread_lock_deadlock(const volatile void *lock)
 		char buf[128];
 		const char *name = thread_element_name_raw(towner);
 
-		g_strlcpy(buf, name, sizeof buf);
+		cstr_lcpy(ARYLEN(buf), name);
 
 		s_rawwarn("%s deadlocked whilst waiting on %s %p, owned by %s",
 			thread_element_name_raw(te),
@@ -8073,7 +8434,7 @@ thread_element_clear_locks(struct thread_element *te)
 				spinlock_t *s = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(s, sizeof *s) &&
+					mem_is_valid_range(PTRLEN(s)) &&
 					SPINLOCK_MAGIC == s->magic &&
 					1 == s->lock
 				) {
@@ -8088,7 +8449,7 @@ thread_element_clear_locks(struct thread_element *te)
 				rwlock_t *rw = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(rw, sizeof *rw) &&
+					mem_is_valid_range(PTRLEN(rw)) &&
 					RWLOCK_MAGIC == rw->magic &&
 					(0 != rw->readers || 0 != rw->writers || 0 != rw->waiters)
 				) {
@@ -8097,12 +8458,26 @@ thread_element_clear_locks(struct thread_element *te)
 				}
 			}
 			break;
+		case THREAD_LOCK_QLOCK:
+			{
+				qlock_t *q = deconstify_pointer(l->lock);
+
+				if (
+					mem_is_valid_range(q, sizeof *q) &&
+					qlock_magic_is_good(q) &&
+					1 == q->held
+				) {
+					unlocked = TRUE;
+					qlock_reset(q);
+				}
+			}
+			break;
 		case THREAD_LOCK_MUTEX:
 			{
 				mutex_t *m = deconstify_pointer(l->lock);
 
 				if (
-					mem_is_valid_range(m, sizeof *m) &&
+					mem_is_valid_range(PTRLEN(m)) &&
 					MUTEX_MAGIC == m->magic &&
 					1 == m->lock.lock
 				) {
@@ -8118,9 +8493,9 @@ thread_element_clear_locks(struct thread_element *te)
 			char buf[POINTER_BUFLEN];
 			DECLARE_STR(10);
 
-			pointer_to_string_buf(l->lock, buf, sizeof buf);
+			pointer_to_string_buf(l->lock, ARYLEN(buf));
 
-			crash_time(time_buf, sizeof time_buf);
+			crash_time(ARYLEN(time_buf));
 			print_str(time_buf);				/* 0 */
 			print_str(" WARNING: unlocked ");	/* 1 */
 			print_str(type);					/* 2 */
@@ -8229,7 +8604,7 @@ thread_forked(void)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(4);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);								/* 0 */
 		print_str(" WARNING: ");							/* 1 */
 		print_str(G_STRFUNC);								/* 2 */
@@ -8550,8 +8925,17 @@ thread_was_in_syscall(int *stid)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
- * The main thread cannot block itself either since it runs the callout queue.
+ * The thread should not be holding any locks since it could cause deadlocks.
+ *
+ * The main thread cannot block itself either when it runs the callout queue,
+ * and this is determined by the thread_main_is_blockable() call, whith blocking
+ * state for the main thread determined very early with a call to the
+ * thread_set_main() routine (before the callout queue could be setup): by
+ * default, the main thread is assumed to not be "blockable".
+ *
+ * This constraint on the main thread is not as strict as it seems, because
+ * we can still allow some amount of blocking, as long as it is limited in
+ * time, otherwise qlocks would not be usable by the main thread!
  *
  * When this routine returns, the thread has been either successfully unblocked
  * and is resuming its execution normally or the timeout expired.
@@ -8800,9 +9184,21 @@ retry:
 		bool limited_blocking = FALSE;
 
 		atomic_uint_dec(&te->signalled);	/* Consumed one signaling byte */
+
 		te->timed_blocked = FALSE;
 		te->blocked = FALSE;
 		te->unblocked = FALSE;
+
+		/*
+		 * For qlock support, which can request blocking even though the
+		 * thread already holds some locks, we need to check that we do
+		 * not have any locks.  If we do, this implicitly blocks all signals.
+		 *		--RAM, 2016-06-19
+		 */
+
+		if (0 != thread_element_lock_count(te))
+			goto check_unblocked;
+
 		THREAD_UNLOCK(te);
 
 		/*
@@ -8838,13 +9234,15 @@ retry:
 		}
 
 		THREAD_LOCK(te);
+
+	check_unblocked:
 		/*
 		 * Since we reset te->blocked to FALSE earlier before dispatching
 		 * the signals, we need to recheck for the event count now to see
 		 * whether we've been unblocked already, since a concurrent unblock
 		 * would not have sent any byte on the pipe / socketpair.
 		 *
-		 * This time we do not count blocking race, as there was none: we
+		 * This time we do not count a blocking race, as there was none: we
 		 * were blocked earlier and got awoken by a signal.
 		 */
 
@@ -8943,8 +9341,13 @@ thread_block_self(unsigned events)
  * Block execution of current thread until a thread_unblock() is posted to it
  * or until the timeout expires.
  *
- * The thread must not be holding any locks since it could cause deadlocks.
- * The main thread cannot block itself either since it runs the callout queue.
+ * When no timeout is specified, the thread must not be holding any locks
+ * since it could cause deadlocks.  If a timeout is specified, it must be
+ * strictly less than THREAD_SUSPEND_TIMEOUT seconds when locks are already
+ * held.
+ *
+ * The main thread cannot block itself either for too long since it runs the
+ * callout queue, but that is up to thread_element_block_until() to check.
  *
  * When this routine returns, the thread has either been successfully unblocked
  * and is resuming its execution normally or the timeout expired.
@@ -8963,7 +9366,8 @@ thread_timed_block_self(unsigned events, const tm_t *tmout)
 	struct thread_element *te = thread_get_element();
 	tm_t end;
 
-	thread_assert_no_locks(G_STRFUNC);
+	if (NULL == tmout || tmout->tv_sec > THREAD_SUSPEND_TIMEOUT)
+		thread_assert_no_locks(G_STRFUNC);
 
 	if (tmout != NULL) {
 		tm_now_exact(&end);
@@ -9301,7 +9705,7 @@ thread_launch_trampoline(void *arg)
  * In case PTHREAD_STACK_MIN is not defined by <pthread.h>.
  */
 #ifndef PTHREAD_STACK_MIN
-#define PTHREAD_STACK_MIN 0
+#define PTHREAD_STACK_MIN 1024U
 #endif
 
 /**
@@ -9333,12 +9737,7 @@ thread_launch(struct thread_element *te,
 	pthread_attr_init(&attr);
 
 	if (stack != 0) {
-		/* Avoid compiler warning when PTHREAD_STACK_MIN == 0 */
-#if PTHREAD_STACK_MIN != 0
 		stacksize = MAX(PTHREAD_STACK_MIN, stack);
-#else
-		stacksize = stack;
-#endif
 		stacksize = MAX(stacksize, THREAD_STACK_MIN);
 	} else {
 		stacksize = MAX(THREAD_STACK_DFLT, PTHREAD_STACK_MIN);
@@ -9347,14 +9746,13 @@ thread_launch(struct thread_element *te,
 	stacksize = round_pagesize(stacksize);	/* In case they supply odd values */
 
 	te->detached = booleanize(flags & THREAD_F_DETACH);
-	te->async_exit = booleanize(flags & THREAD_F_ASYNC_EXIT);
 	te->cancelable = !booleanize(flags & THREAD_F_NO_CANCEL);
 
 	te->created = TRUE;				/* This is a thread we created */
 	te->creating = TRUE;			/* Still in the process of being created */
 	te->stack_size = stacksize;
 	te->argument = arg;
-	te->entry = (func_ptr_t) routine;
+	te->entry = func_cast(func_ptr_t, routine);
 	te->suspend = 0;				/* New thread cannot be suspended already */
 
 	/*
@@ -9602,14 +10000,36 @@ thread_create_full(process_fn_t routine, void *arg, uint flags, size_t stack,
 
 	if (exited != NULL) {
 		struct thread_exit_cb *e;
+		eslist_t *es;
 
 		XMALLOC0(e);
 		e->exit_cb = exited;
 		e->exit_arg = earg;
 
-		g_assert(0 == eslist_count(&te->exit_list));
+		/*
+		 * Whether the exit callback will be invoked from within the
+		 * context of the exiting thread (i.e. synchronously) or within
+		 * the main thread, once the thread is gone, is determined by
+		 * the presence of the THREAD_F_ASYNC_EXIT flag.
+		 *
+		 * Despite the fact that there is one callback given here from
+		 * the interface, we nonetheless manage the asynchronous exit
+		 * callback in a list just like the other synchronous exit callbacks.
+		 * Indeed, maybe there will be the need for a thread_async_atexit()
+		 * routine to register callbacks in the main thread AFTER the thread
+		 * was created, at which time we will need this list.
+		 * 		--RAM, 2020-03-20
+		 */
 
-		eslist_prepend(&te->exit_list, e);
+		es = (flags & THREAD_F_ASYNC_EXIT) ?
+			&te->async_exit_list : &te->exit_list;
+
+		g_assert_log(0 == eslist_count(es),
+			"%s(): count in %s list is %zu",
+			G_STRFUNC, (flags & THREAD_F_ASYNC_EXIT) ? "async" : "sync",
+			eslist_count(es));
+
+		eslist_prepend(es, e);
 	}
 
 	ret = thread_launch(te, routine, arg, flags, stack);
@@ -9631,102 +10051,6 @@ error:
 	return -1;
 }
 
-struct thread_exit_context {
-	thread_exit_t cb;
-	void *arg;
-	void *value;
-};
-
-/**
- * Invoked from the main thread to notify that a thread exited.
- */
-static void
-thread_exit_notify(cqueue_t *cq, void *obj)
-{
-	struct thread_exit_context *ctx = obj;
-
-	cq_event(cq);
-
-	(*ctx->cb)(ctx->value, ctx->arg);
-	WFREE(ctx);
-}
-
-/**
- * Asynchronously invoke thread exit callback.
- */
-static bool
-thread_exit_async_cb(void *data, void *value)
-{
-	struct thread_exit_cb *e = data;
-	struct thread_exit_context *ctx;
-
-	WALLOC(ctx);
-	ctx->value = value;
-	ctx->cb = e->exit_cb;
-	ctx->arg = e->exit_arg;
-	xfree(e);
-	cq_main_insert(1, thread_exit_notify, ctx);
-
-	return TRUE;
-}
-
-/**
- * Synchronously invoke thread exit callback.
- */
-static bool
-thread_exit_sync_cb(void *data, void *value)
-{
-	struct thread_exit_cb *e = data;
-
-	(*e->exit_cb)(value, e->exit_arg);
-	xfree(e);
-
-	return TRUE;
-}
-
-/**
- * Warn about remaining cleanup callback.
- */
-static bool
-thread_cleanup_warn(void *data, void *value)
-{
-	struct thread_cleanup_cb *c = data;
-	struct thread_element *te = value;
-
-	thread_element_check(te);
-
-	s_warning("%s exiting with pending cleanup callback %s(%p) "
-		"registered by %s() at %s:%u",
-		thread_element_name(te), stacktrace_function_name(c->cleanup_cb),
-		c->data, c->routine, c->file, c->line);
-
-	xfree(c);
-	return TRUE;		/* Remove it from list */
-}
-
-/**
- * Execute cleanup callback.
- */
-static bool
-thread_cleanup_handle(void *data, void *value)
-{
-	struct thread_cleanup_cb *c = data;
-	const void *sp = value;
-
-	if (thread_stack_ptr_cmp(sp, c->sp) < 0) {
-		s_critical("ignoring obsolete cleanup callback %s(%p) for %s, "
-			"registered by %s() at %s:%u: "
-			"registration SP=%p, exit SP=%p, current SP=%p",
-			stacktrace_function_name(c->cleanup_cb), c->data, thread_name(),
-			c->routine, c->file, c->line, c->sp, sp, &sp);
-	} else {
-		(*c->cleanup_cb)(c->data);
-	}
-
-	xfree(c);
-	return TRUE;		/* Remove it from list */
-}
-
 /**
  * Exit from current thread.
  *
@@ -9746,7 +10070,6 @@ thread_exit_internal(void *value, const void *sp)
 {
 	struct thread_element *te = thread_get_element();
 	tsigset_t set;
-	size_t lock_count;
 
 	g_assert(pthread_equal(te->ptid, pthread_self()));
 	g_assert(thread_eq(te->tid, thread_self()));
@@ -9781,60 +10104,7 @@ thread_exit_internal(void *value, const void *sp)
 			G_STRFUNC, thread_element_name(te));
 	}
 
-	/*
-	 * When exiting explicitly, via thread_exit() or through a cancellation
-	 * request, we run the registered cleanup callbacks, otherwise they
-	 * are discarded with a warning (it is an error to return from the main
-	 * entry point with pending cleanup callbacks).
-	 *
-	 * Running of the cleanup routine must be done before clearing all
-	 * the thread-private and thread-local variables registered by the thread
-	 * since the callbacks may use such values.
-	 */
-
-	lock_count = thread_element_lock_count(te);	/* Can be non-zero here */
-
-	if (NULL == sp) {
-		/* Implicit exit, returning from main entry point */
-		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_warn, te);
-	} else {
-		/* Explicit exit or cancellation */
-		eslist_foreach_remove(&te->cleanup_list, thread_cleanup_handle,
-			deconstify_pointer(sp));
-	}
-
-	/*
-	 * Now that all the cleanup handlers have been run, there must not
-	 * be any lock remaining.
-	 */
-
-	if (0 != thread_element_lock_count(te)) {
-		size_t cnt = thread_element_lock_count(te);
-		s_warning("%s() called by %s with %zu lock%s still held (%zu on entry)",
-			G_STRFUNC, thread_element_name(te), cnt, plural(cnt), lock_count);
-		thread_lock_dump(te);
-		s_error("thread exiting without clearing its locks");
-	}
-
-	/*
-	 * Invoke any registered exit notification callback, before thread
-	 * variables are cleared (since callbacks may use still want to use them).
-	 */
-
-	eslist_foreach_remove(&te->exit_list,
-		te->async_exit ? thread_exit_async_cb : thread_exit_sync_cb, value);
-
-	/*
-	 * When a thread exits, all its thread-private and thread-local variables
-	 * are reclaimed.
-	 *
-	 * The keys are constants (static strings, pointers to static objects for
-	 * thread-private, opaque constants for thread-local) but values are
-	 * dynamically allocated and can have a free routine attached.
-	 */
-
-	thread_private_clear(te);
-	thread_local_clear(te);
+	thread_common_exit(te, sp, value);
 
 	/*
 	 * If there are waiters (via thread_wait() and friends) looking after
@@ -9975,7 +10245,7 @@ thread_exit(void *value)
 bool
 thread_is_exiting(void)
 {
-	struct thread_element *te = thread_get_element();
+	const struct thread_element *te = thread_get_element();
 
 	return te->exit_started;
 }
@@ -11088,6 +11358,18 @@ done:
 }
 
 /**
+ * Is current thread running on its alternate signal stack?
+ */
+bool
+thread_on_altstack(void)
+{
+	struct thread_element *te = thread_get_element();
+	thread_qid_t qid = thread_quasi_id_fast(&te);;
+
+	return qid >= te->low_sig_qid && qid <= te->high_sig_qid;
+}
+
+/**
  * Block thread until a signal is received or until we are explicitly unblocked.
  *
  * @note
@@ -11221,7 +11503,7 @@ thread_sigblock(tsigset_t mask)
 	g_assert_log(0 == thread_element_lock_count(te),
 		"%s(): %s has %zu lock%s",
 		G_STRFUNC, thread_element_name(te),
-		thread_element_lock_count(te), plural(thread_element_lock_count(te)));
+		PLURAL(thread_element_lock_count(te)));
 
 	/*
 	 * Make sure the main thread never attempts to block itself if it
@@ -11817,6 +12099,266 @@ thread_interrupt(uint id, process_fn_t cb, void *arg,
 }
 
 /**
+ * Intuit lock type based on lock object, for logging purposes.
+ *
+ * This relies on the presence of a known magic number at the beginning
+ * of each lock structure.
+ *
+ * @param lock		the lock object
+ *
+ * @return string with textual description of the lock.
+ */
+static const char *
+thread_intuited_lock_type(const volatile void *lock)
+{
+	const volatile struct { int value; } *magic = lock;
+
+	switch (magic->value) {
+	case MUTEX_MAGIC:			return "mutex";
+	case SPINLOCK_MAGIC:		return "spinlock";
+	case RWLOCK_MAGIC:			return "rwlock";
+	case QLOCK_PLAIN_MAGIC:		return "plain qlock";
+	case QLOCK_RECURSIVE_MAGIC:	return "recursive qlock";
+	case MUTEX_DESTROYED:		return "destroyed mutex";
+	case SPINLOCK_DESTROYED:	return "destroyed spinlock";
+	case RWLOCK_DESTROYED:		return "destroyed rwlock";
+	case QLOCK_DESTROYED:		return "destroyed qlock";
+	}
+
+	return "UNKNOWN";
+}
+
+/**
+ * Perform deadlock detection for registered locks (i.e. those not hidden).
+ *
+ * Formal detection is costly and is run in one thread with all the others
+ * being asked to suspend (so that we can get a frozen picture of the locks
+ * being held and waited for).
+ *
+ * The idea is to perform a topological sort of an oriented graph Ti -> Tj,
+ * where the edge between Ti and Tj means that thread #j is waiting for a
+ * lock currently owned by thread #i.  It follows that Ti must run before
+ * Tj can, so the arrow direction represents a partial ordering of threads,
+ * with a -> b meaning that a is "greater" than b and must therefore run first.
+ *
+ * If we cannot achieve a proper topological sort of the resulting graph, it
+ * means there is a deadlock and then we can dump all the lock information for
+ * the threads involved with the deadlock, which will be part of at least one
+ * cycle.
+ *
+ * Because the deadlock detection code can run in the presence of a deadlock,
+ * its code must rely on as little layers as possible, given that low-level
+ * layers such as memory allocators are using locks and could be already part
+ * of a deadlock situation.
+ *
+ * When a deadlock condition is detected, we abort execution after dumping
+ * some relevant information.
+ *
+ * @param lock		the lock being waited for by the current thread
+ * @param file		file where lock is being grabbed from
+ * @param line		line within the file
+ */
+void
+thread_deadlock_check(const volatile void *lock, const char *file, uint line)
+{
+	static spinlock_t thread_deadlock_slk = SPINLOCK_INIT;
+	struct {
+		uint value[THREAD_MAX];			/* item is the small ID of thread */
+		uint count;						/* amount of outsiders stored */
+	} outsiders;
+	uint64 precursors[THREAD_MAX];		/* value is a bitmask of threads */
+	uint64 involved_mask;				/* mask of involved threads */
+	uint involved;						/* threads involved in deadlock */
+	int i;
+	bool deadlock = FALSE;
+
+	/* Need room in an uint64 to have one bit per possible thread */
+	STATIC_ASSERT(THREAD_MAX <= 8 * sizeof(uint64));
+
+	THREAD_STATS_INCX(locks_deadlock_checks);
+
+	/*
+	 * Request that other threads be suspended and then grab the spinlock.
+	 *
+	 * This ensures that other threads will stop their processing and that
+	 * no two threads which would detect a possible deadlock at the same time
+	 * can perform the check.
+	 */
+
+	thread_suspend_others(FALSE);		/* Advisory, don't wait for them */
+
+	ZERO(&outsiders);
+	ZERO(&precursors);
+
+	spinlock_raw(&thread_deadlock_slk);
+
+	/*
+	 * Build the precursors and the outsiders.
+	 *
+	 * If there exists a Ti -> Tj relationship, then pred(Tj) = Ti.
+	 *
+	 * Outsiders are Ti elements which have no precursors and are stored
+	 * in the outsiders structure.
+	 *
+	 * Precursors of a thread are stored as a bit in precursors[]. For
+	 * instance, if thread #4 is a predecessor of the current item, then
+	 * its bit #4 is set to 1.  If precursors[i] is 0, then Ti has no
+	 * precursors and is therefore an outsider.
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		struct thread_element *te = threads[i];
+		struct thread_lock_stack *tlocks =  &te->locks;
+		struct thread_lock_stack *twaits =  &te->waits;
+		uint64 mask;
+		size_t j;
+
+		if (NULL == te)
+			continue;
+
+		/*
+		 * Threads waiting for no locks are necessarily outsiders: they
+		 * have no precursor and can run without constraint.
+		 *
+		 * An outsider with no locks held is not influencing the cycle
+		 * detection and is therefore irrelevant for our computation: we
+		 * simply skip it.
+		 */
+
+		if (0 == twaits->count) {
+			if (0 != tlocks->count) {
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+			continue;
+		}
+
+		/*
+		 * This thread is waiting for some locks.  Usually it will wait for
+		 * just one, but because it can invoke code whilst it is waiting and
+		 * that code can also require locks, it can create a stack of waited
+		 * locks.
+		 *
+		 * Calling thread_lock_owner(), which performs a linear probe of all
+		 * the locks registered by all the threads is sub-optimal.
+		 *
+		 * However, since the deadlock detection code is only invoked when we
+		 * are stuck waiting on a low-level lock such as a spinlock or a mutex,
+		 * we are probably alreay stuck waiting and having "slow" code check
+		 * whether we are indeed deadlocked is not a problem.
+		 */
+
+		mask = 0;
+
+		for (j = 0; j < twaits->count; j++) {
+			struct thread_element *towner;
+
+			towner = thread_lock_owner(twaits->arena[j].lock, NULL);
+			if (towner != NULL)
+				mask |= (uint64) 1U << towner->stid;
+		}
+
+		precursors[i] = mask;		/* Set of precursors for thread #i */
+
+		if (0 == mask) {
+			g_assert(outsiders.count < N_ITEMS(outsiders.value));
+			outsiders.value[outsiders.count++] = i;
+		}
+	}
+
+	/*
+	 * Now remove all the outsiders, updating the precursors as we remove
+	 * them by clearing their corresponding bit in each entry.
+	 */
+
+	while (outsiders.count != 0) {
+		uint removed = outsiders.value[--outsiders.count];
+		uint64 mask = ~((uint64) 1U << removed);
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			if (0 == precursors[i])
+				continue;			/* Already an outsider */
+			precursors[i] &= mask;
+			if (0 == precursors[i]) {
+				/* Becomes a new outsider */
+				g_assert(outsiders.count < N_ITEMS(outsiders.value));
+				outsiders.value[outsiders.count++] = i;
+			}
+		}
+	}
+
+	/*
+	 * The topological sort is completed.  If there are entries in
+	 * precursors[] with a non-zero value, it means there are cycles
+	 * and therefore we have a deadlock situation!
+	 */
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i]) {
+			deadlock = TRUE;
+			break;
+		}
+	}
+
+	if (!deadlock) {
+		spinunlock_raw(&thread_deadlock_slk);
+		thread_unsuspend_others();
+		return;
+	}
+
+	/*
+	 * Deadlock found!
+	 */
+
+	s_rawwarn("deadlock found whilst waiting on %s %p at %s:%u",
+		thread_intuited_lock_type(lock), lock, file, line);
+
+	/*
+	 * Before dumping important information, make sure we're disabling locks
+	 * since we're about to crash and we're already deadlocked.
+	 *
+	 * Calling crash_deadlocked() will indirectly cause all locks to be
+	 * disabled, but we do not request thread stack dumping at this stage
+	 * since we'll only dump the stacks of the threads involved in the
+	 * deadlock later on.
+	 */
+
+	crash_deadlocked(FALSE, file, line);
+	involved = 0;
+	involved_mask = 0;
+
+	s_miniinfo("dumping lock stack of involved threads:");
+
+	for (i = 0; i < THREAD_MAX; i++) {
+		if (0 != precursors[i]) {
+			const struct thread_element *te = threads[i];
+
+			/*
+			 * Thread may be present here because it is waiting also on
+			 * the same lock as the one we're dead-locking on, but if
+			 * it holds no locks currently, it is not part of the
+			 * deadlock condition.  Skip it.
+			 */
+
+			if (0 == te->locks.count)
+				continue;		/* Hold no locks, not part of deadlock */
+
+			involved++;
+			involved_mask |= (uint64) 1U << i;
+			thread_lock_dump(threads[i]);
+		}
+	}
+
+	crash_deadlocked_set_thread_mask(involved_mask);
+
+	s_miniinfo("end of involved %u thread%s.", PLURAL(involved));
+
+	thread_lock_deadlock(lock);
+	s_error("found %u thread%s deadlocked on %s %p at %s:%u",
+		PLURAL(involved), thread_intuited_lock_type(lock), lock, file, line);
+}
+
+/**
  * Copy information from the internal thread_element to the public thread_info.
  */
 static void
@@ -11843,7 +12385,7 @@ thread_info_copy(thread_info_t *info, struct thread_element *te)
 	info->stack_base = te->stack_base;
 	info->stack_size = te->stack_size;
 	info->locks = thread_element_lock_count(te);
-	info->private_vars = NULL == te->pht ? 0 : hash_table_size(te->pht);
+	info->private_vars = NULL == te->pht ? 0 : hash_table_count(te->pht);
 	info->local_vars = thread_local_count(te);
 	info->entry = te->entry;
 	info->exit_value = te->join_pending ? te->exit_value : NULL;
@@ -11926,9 +12468,9 @@ thread_info_to_string_buf(const thread_info_t *info, char buf[], size_t len)
 	} else {
 		char entry[128];
 		if (info->main_thread) {
-			str_bprintf(entry, sizeof entry, " main()");
+			str_bprintf(ARYLEN(entry), " main()");
 		} else if (info->entry != NULL) {
-			str_bprintf(entry, sizeof entry, " %s()",
+			str_bprintf(ARYLEN(entry), " %s()",
 				stacktrace_function_name(info->entry));
 		} else {
 			entry[0] = '\0';
@@ -11958,13 +12500,14 @@ void
 thread_stats_digest(sha1_t *digest)
 {
 	struct thread_stats t;
+	uint32 n = entropy_nonce();
 
 	THREAD_STATS_INCX(thread_stats_digest);
 
 	atomic_mb();
 	t = thread_stats;			/* Struct copy */
 
-	SHA1_COMPUTE(t, digest);
+	SHA1_COMPUTE_NONCE(t, &n, digest);
 }
 
 /**
@@ -12018,15 +12561,20 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(locks_mutex_tracked);
 	DUMP64(locks_rlock_tracked);
 	DUMP64(locks_wlock_tracked);
+	DUMP64(locks_qlock_tracked);
 	DUMP64(locks_spinlock_contention);
 	DUMP64(locks_mutex_contention);
 	DUMP64(locks_rlock_contention);
 	DUMP64(locks_wlock_contention);
+	DUMP64(locks_qlock_contention);
 	DUMP64(locks_spinlock_sleep);
 	DUMP64(locks_mutex_sleep);
 	DUMP64(locks_rlock_sleep);
 	DUMP64(locks_wlock_sleep);
+	DUMP64(locks_qlock_sleep);
 	DUMP64(locks_nested_sleeps);
+	DUMP64(locks_deadlock_checks);
+	DUMP64(locks_recursive_backtrace);
 	DUMP64(cond_waitings);
 	DUMP64(cond_nested_waitings);
 	DUMP64(signals_posted);
@@ -12100,6 +12648,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	struct thread_element *te = threads[stid];
 	uint i;
 	bool locked;
+	slink_t *sl;
 
 	if (NULL == te) {
 		log_warning(la, "THREAD NULL element #%u", stid);
@@ -12119,6 +12668,9 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	log_info(la, "THREAD --- begin element #%u%s ---",
 		stid, locked ? "" : " (UNLOCKED)");
 
+#define DUMPB(field) \
+	log_info(la, "THREAD %19s = %s", #field, bool_to_string(te->field))
+
 #define DUMPF(fmt, field) \
 	log_info(la, "THREAD %19s = " fmt, #field, te->field)
 
@@ -12128,8 +12680,8 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 #define DUMPL(fmt, name, ...) \
 	log_info(la, "THREAD %19s = " fmt, name, __VA_ARGS__)
 
-	DUMPF("%d",  valid);
-	DUMPF("%d",  reusable);
+	DUMPB(valid);
+	DUMPB(reusable);
 	DUMPF("%lu", tid);
 	DUMPF("%zu", last_qid);
 	DUMPF("%zu", low_qid);
@@ -12147,11 +12699,11 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPV("%s",  entry, stacktrace_function_name(te->entry));
 	DUMPF("%p",  argument);
 	DUMPF("%s",  entry_name);
-	DUMPF("%d",  suspend);
-	DUMPF("%d",  pending);
+	DUMPB(suspend);
+	DUMPB(pending);
 	DUMPL("{ %d, %d }", "wfd[]", te->wfd[0], te->wfd[1]);
-	DUMPF("%d",  join_requested);
-	DUMPF("%d",  join_pending);
+	DUMPB(join_requested);
+	DUMPB(join_pending);
 	DUMPF("%u",  joining_id);
 	DUMPF("%u",  unblock_events);
 	DUMPF("%p",  exit_value);
@@ -12160,36 +12712,32 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPF("%u",  signalled);
 	DUMPF("%u",  sig_generation);
 	DUMPF("%d",  in_signal_handler);
-	DUMPF("%d",  sig_disabled);
+	DUMPB(sig_disabled);
 	DUMPF("%d",  sleep_interruptible);
-	DUMPF("%d",  created);
-	DUMPF("%d",  discovered);
-	DUMPF("%d",  running);
-	DUMPF("%d",  deadlocked);
-	DUMPF("%d",  creating);
-	DUMPF("%d",  exiting);
-	DUMPF("%d",  suspended);
-	DUMPF("%d",  blocked);
-	DUMPF("%d",  timed_blocked);
-	DUMPF("%d",  unblocked);
-	DUMPF("%d",  detached);
-	DUMPF("%d",  async_exit);
-	DUMPF("%d",  main_thread);
-	DUMPF("%d",  cancelled);
-	DUMPF("%d",  cancelable);
-	DUMPF("%d",  sleeping);
-	DUMPF("%d",  exit_started);
-	DUMPF("%d",  in_syscall);
-	DUMPF("%d",  gone);
-	DUMPF("%d",  gone_seen);
-	DUMPF("%d",  add_monitoring);
-	DUMPF("%d",  cancl);
+	DUMPB(created);
+	DUMPB(discovered);
+	DUMPB(running);
+	DUMPB(deadlocked);
+	DUMPB(creating);
+	DUMPB(exiting);
+	DUMPB(suspended);
+	DUMPB(blocked);
+	DUMPB(timed_blocked);
+	DUMPB(unblocked);
+	DUMPB(detached);
+	DUMPB(main_thread);
+	DUMPB(cancelled);
+	DUMPB(cancelable);
+	DUMPB(sleeping);
+	DUMPB(exit_started);
+	DUMPB(in_syscall);
+	DUMPL("%sABLE",  "cancl", THREAD_CANCEL_ENABLE == te->cancl ? "EN" : "DIS");
 	DUMPF("%zu", locks.count);
 	for (i = te->locks.count; i != 0; i--) {
 		const struct thread_lock *l = &te->locks.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "lock[%03u]", i);
+		str_bprintf(ARYLEN(buf), "lock[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12198,7 +12746,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		const struct thread_lock *l = &te->waits.arena[i - 1];
 		char buf[10];
 
-		str_bprintf(buf, sizeof buf, "wait[%03u]", i);
+		str_bprintf(ARYLEN(buf), "wait[%03u]", i);
 		DUMPL("%s %p at %s:%u", buf,
 			thread_lock_kind_to_string(l->kind), l->lock, l->file, l->line);
 	}
@@ -12206,8 +12754,38 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 	DUMPL("%p, count=%u",  "cond_stack",
 		te->cond_stack,
 		NULL == te->cond_stack ? 0 : slist_length(te->cond_stack));
-	DUMPL("%zu", "exit_list count", eslist_count(&te->exit_list));
-	DUMPL("%zu", "cleanup_list count", eslist_count(&te->cleanup_list));
+	DUMPL("%zu item%s", "exit_list", PLURAL(eslist_count(&te->exit_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->exit_list, sl) {
+		struct thread_exit_cb *ecb = eslist_data(&te->exit_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("exit[]")];
+
+		str_bprintf(ARYLEN(buf), "exit[%02u]", i++);
+		DUMPL("%s(%p)", buf,
+			stacktrace_function_name(ecb->exit_cb), ecb->exit_arg);
+	}
+	DUMPL("%zu item%s", "async_exit_list",
+		PLURAL(eslist_count(&te->async_exit_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->async_exit_list, sl) {
+		struct thread_exit_cb *ecb = eslist_data(&te->async_exit_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("async_exit[]")];
+
+		str_bprintf(ARYLEN(buf), "async_exit[%02u]", i++);
+		DUMPL("%s(%p)", buf,
+			stacktrace_function_name(ecb->exit_cb), ecb->exit_arg);
+	}
+	DUMPL("%zu item%s", "cleanup_list", PLURAL(eslist_count(&te->cleanup_list)));
+	i = 0;
+	ESLIST_FOREACH(&te->cleanup_list, sl) {
+		struct thread_cleanup_cb *ccb = eslist_data(&te->cleanup_list, sl);
+		char buf[SIZE_T_DEC_BUFLEN + sizeof("cleanup[]")];
+
+		str_bprintf(ARYLEN(buf), "cleanup[%02u]", i++);
+		DUMPL("%s(%p)\n%24sfrom %s() at \"%s\":%u", buf,
+			stacktrace_function_name(ccb->cleanup_cb), ccb->data,
+			"", ccb->routine, ccb->file, ccb->line);
+	}
 	DUMPL("%s",  "btrace.type",
 		thread_backtrace_type_to_string(te->btrace.type));
 	DUMPF("%zu",  btrace.count);
@@ -12223,7 +12801,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		if (NULL != te->sigh[i]) {
 			char buf[10];
 
-			str_bprintf(buf, sizeof buf, "sigh[%02u]", i);
+			str_bprintf(ARYLEN(buf), "sigh[%02u]", i+1); /* Show sig number */
 			if (TSIG_IGN == te->sigh[i]) {
 				DUMPL("%s", buf, "IGN");
 			} else {
@@ -12232,6 +12810,7 @@ thread_dump_thread_element_log(logagent_t *la, unsigned options, unsigned stid)
 		}
 	}
 
+#undef DUMPB
 #undef DUMPL
 #undef DUMPV
 #undef DUMPF

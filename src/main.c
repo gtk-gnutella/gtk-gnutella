@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -140,6 +140,7 @@
 #include "lib/mem.h"
 #include "lib/mime_type.h"
 #include "lib/misc.h"
+#include "lib/mtwist.h"
 #include "lib/offtime.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -254,7 +255,9 @@ enum main_arg {
 	main_arg_log_stdout,
 	main_arg_log_supervise,
 	main_arg_minimized,
+	main_arg_no_build_version,
 	main_arg_no_dbus,
+	main_arg_no_expire,
 	main_arg_no_halloc,
 	main_arg_no_restart,
 	main_arg_no_supervise,
@@ -262,6 +265,7 @@ enum main_arg {
 	main_arg_pause_on_crash,
 	main_arg_ping,
 	main_arg_restart_on_crash,
+	main_arg_resume_session,
 	main_arg_shell,
 	main_arg_topless,
 	main_arg_use_poll,
@@ -318,7 +322,13 @@ static struct option {
 #else
 	OPTION(minimized,		NONE, "Start with minimized main window."),
 #endif	/* USE_TOPLESS */
+	OPTION(no_build_version,NONE, NULL),	/* hidden option */
 	OPTION(no_dbus,			NONE, "Disable D-BUS notifications."),
+#ifdef USE_TOPLESS
+	OPTION(no_expire,		NONE, NULL),	/* accept but hide */
+#else
+	OPTION(no_expire,		NONE, "Disable expired popup notifications."),
+#endif
 #ifdef USE_HALLOC
 	OPTION(no_halloc,		NONE, "Disable malloc() replacement."),
 #else
@@ -330,6 +340,7 @@ static struct option {
 	OPTION(pause_on_crash, 	NONE, "Pause the process on crash."),
 	OPTION(ping,			NONE, "Check whether gtk-gnutella is running."),
 	OPTION(restart_on_crash,NONE, "Force auto-restarts on crash."),
+	OPTION(resume_session,	NONE, "Request resuming of previous session."),
 	OPTION(shell,			NONE, "Access the local shell interface."),
 #ifdef USE_TOPLESS
 	OPTION(topless,			NONE, NULL),	/* accept but hide */
@@ -459,14 +470,14 @@ gtk_version_string(void)
 	static char buf[80];
 
 	if ('\0' == buf[0]) {
-		str_bprintf(buf, sizeof buf, "Gtk+ %u.%u.%u",
+		str_bprintf(ARYLEN(buf), "Gtk+ %u.%u.%u",
 				gtk_major_version, gtk_minor_version, gtk_micro_version);
 		if (
 				GTK_MAJOR_VERSION != gtk_major_version ||
 				GTK_MINOR_VERSION != gtk_minor_version ||
 				GTK_MICRO_VERSION != gtk_micro_version
 		   ) {
-			str_bcatf(buf, sizeof buf, " (compiled against %u.%u.%u)",
+			str_bcatf(ARYLEN(buf), " (compiled against %u.%u.%u)",
 					GTK_MAJOR_VERSION, GTK_MINOR_VERSION, GTK_MICRO_VERSION);
 		}
 	}
@@ -719,7 +730,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(file_info_store_if_dirty);	/* In case downloads had buffered data */
 	DO(parq_close);
 	DO(pproxy_close);
-	DO(http_close);
 	DO(uhc_close);
 	DO(ghc_close);
 	DO(gwc_close);
@@ -807,9 +817,19 @@ gtk_gnutella_exit(int exit_code)
 	/*
 	 * If auto-restart was requested, flag that in the properties so that
 	 * we'll know about that request when we restart.
+	 *
+	 * A session extension (OEXTEND) works similarily to a restart (ORESTART),
+	 * excepted that we do not re-launch immediately: the session will be
+	 * continued the next time GTKG is launched.
+	 *
+	 * Continuing a session lets one resume seeding of files, for instance.
+	 * In effect, crash_was_restarted() will return TRUE in the new process.
 	 */
 
-	if (shutdown_user_flags & GTKG_SHUTDOWN_ORESTART) {
+	if (
+		shutdown_user_flags &
+			(GTKG_SHUTDOWN_ORESTART | GTKG_SHUTDOWN_OEXTEND)
+	) {
 		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
 	}
 
@@ -917,6 +937,7 @@ gtk_gnutella_exit(int exit_code)
 
 	DO(socket_closedown);
 	DO(upnp_close);
+	DO(http_close);			/* UPnP layer uses HTTP, close UPnP before */
 	DO(ntp_close);
 	DO(gdht_close);
 	DO(sq_close);
@@ -952,7 +973,6 @@ gtk_gnutella_exit(int exit_code)
 	DO(watcher_close);
 	DO(tsync_close);
 	DO(word_vec_close);
-	DO(pattern_close);
 	DO(pmsg_close);
 	DO(gmsg_close);
 	DO(g2_build_close);
@@ -1037,10 +1057,15 @@ gtk_gnutella_exit(int exit_code)
 	if (debugging(0)) {
 		unsigned n = thread_count() - 1;
 		if (n != 0)
-			g_info("suspending other %u thread%s", n, plural(n));
+			g_info("suspending other %u thread%s", PLURAL(n));
 	}
 
-	thread_suspend_others(FALSE);
+	{
+		size_t n = thread_suspend_others(FALSE);
+
+		if (debugging(0))
+			g_info("suspended %zu thread%s", PLURAL(n));
+	}
 
 	/*
 	 * Now we won't be dispatching any more TEQ events, which happen mostly
@@ -1051,7 +1076,7 @@ gtk_gnutella_exit(int exit_code)
 	 * off the thread element for a while).
 	 */
 
-	DO(file_object_close);
+	DO(file_object_shutdown);
 	DO(settings_close);		/* Must come after hcache_close() */
 	DO(cq_close);
 
@@ -1080,6 +1105,8 @@ quick_restart:
 			g_info("gtk-gnutella will now restart itself...");
 			crash_restarting_done();
 			crash_reexec();
+		} else if (shutdown_user_flags & GTKG_SHUTDOWN_OEXTEND) {
+			g_info("gtk-gnutella will resume current session next time.");
 		}
 	}
 
@@ -1202,7 +1229,7 @@ option_pretty_print(FILE *f, const struct option *o)
 		break;
 	}
 
-	pad = strlen(name) + strlen(arg);
+	pad = vstrlen(name) + vstrlen(arg);
 	if (pad < 24) {
 		pad = 24 - pad;
 	} else {
@@ -1246,30 +1273,15 @@ option_name_prefix(const void *key, const void *item)
 }
 
 static void G_NORETURN
-option_ambiguous(const char *name, struct option *item)
+option_ambiguous(const char *name, pslist_t *list)
 {
-	struct option *min = item, *max = item, *o;
-	struct option *end = &options[N_ITEMS(options)];
+	pslist_t *sl;
 
 	fprintf(stderr, "%s: ambiguous option --%s\n", getprogname(), name);
 	fprintf(stderr, "Could mean either of:\n");
 
-	for (o = item - 1; ptr_cmp(o, options) >= 0; o--) {
-		if (option_strprefix(o->name, name))
-			min = o;
-		else
-			break;
-	}
-
-	for (o = item + 1; ptr_cmp(o, end) < 0; o++) {
-		if (option_strprefix(o->name, name))
-			max = o;
-		else
-			break;
-	}
-
-	for (o = min; ptr_cmp(o, max) <= 0; o++) {
-		option_pretty_print(stderr, o);
+	PSLIST_FOREACH(list, sl) {
+		option_pretty_print(stderr, sl->data);
 	}
 
 	exit(EXIT_FAILURE);
@@ -1291,31 +1303,30 @@ option_ambiguous(const char *name, struct option *item)
 static struct option *
 option_find(const char *name, bool fatal)
 {
-	struct option *item;
+	void *item;
+	bsearch_status_t status;
+	pslist_t *matching;
 
-	item = bsearch(name,
-		options, N_ITEMS(options), sizeof options[0], option_name_prefix);
+	status = BSEARCH_PREFIX(name, options, option_name_prefix, &item);
 
-	if (NULL == item)
+	switch (status) {
+	case BSEARCH_NONE:
 		return NULL;
-
-	if (ptr_cmp(item, options) > 0) {
-		if (option_strprefix((item - 1)->name, name))
-			goto ambiguous;
+	case BSEARCH_SINGLE:
+		return item;
+	case BSEARCH_MULTI:
+		goto ambiguous;
 	}
 
-	if (ptr_cmp(item, options + N_ITEMS(options) - 1) < 0) {
-		if (option_strprefix((item + 1)->name, name))
-			goto ambiguous;
-	}
-
-	return item;		/* Must be unique match since array is sorted */
+	g_assert_not_reached();
 
 ambiguous:
 	if (!fatal)
 		return NULL;
 
-	option_ambiguous(name, item);
+	matching = BSEARCH_MATCHING(name, options, option_name_prefix, item);
+	option_ambiguous(name, matching);
+	g_assert_not_reached();
 }
 
 static void G_NORETURN
@@ -1769,9 +1780,16 @@ main_timer(void *unused_data)
 	return TRUE;
 }
 
+static void
+mtwist_randomness(sha1_t *digest)
+{
+	random_bytes_with(mt_thread_rand, PTRLEN(digest));
+}
+
 typedef void (*digest_collector_cb_t)(sha1_t *digest);
 
 static digest_collector_cb_t random_source[] = {
+	mtwist_randomness,
 	random_stats_digest,
 	halloc_stats_digest,
 	palloc_stats_digest,
@@ -1925,6 +1943,12 @@ handle_compile_info_argument(void)
 	printf("ipv6=enabled\n");
 #else
 	printf("ipv6=disabled\n");
+#endif	/* HAS_IPV6 */
+
+#ifdef USE_MY_MALLOC
+	printf("use_my_malloc=yes\n");
+#else
+	printf("use_my_malloc=no\n");
 #endif	/* HAS_IPV6 */
 
 	printf("largefile-support=%s\n",
@@ -2117,7 +2141,7 @@ main_supervise(void)
 		children++;
 		aging_record(ag, ulong_to_pointer(children));
 		setproctitle("supervisor, %lu child%s launched",
-			children, 1 == children ? "" : "ren");
+			PLURAL_CHILD(children));
 
 		s_info("launched child #%lu as PID %lu", children, (ulong) pid);
 
@@ -2134,7 +2158,7 @@ main_supervise(void)
 
 		if (0 == status) {
 			s_info("supervisor exiting, launched %lu child%s over %s",
-				children, 1 == children ? "" : "ren",
+				PLURAL_CHILD(children),
 				short_time_ascii(delta_time(end, progstart_time().tv_sec)));
 			exit(EXIT_SUCCESS);
 		}
@@ -2146,7 +2170,7 @@ main_supervise(void)
 
 done:
 	s_info("supervisor exiting on failure, launched %lu child%s over %s",
-		children, 1 == children ? "" : "ren",
+		PLURAL_CHILD(children),
 		short_time_ascii(delta_time(tm_time_exact(), progstart_time().tv_sec)));
 
 	exit(EXIT_FAILURE);
@@ -2176,6 +2200,14 @@ int
 main(int argc, char **argv)
 {
 	size_t str_discrepancies;
+	int dflt_pattern = PATTERN_INIT_PROGRESS | PATTERN_INIT_SELECTED;
+	bool supervisor = FALSE;
+
+	/*
+	 * On Windows, the code path used for a GUI-launched application requires
+	 * that the product information be filled, to be able to derive proper
+	 * destination for log paths, since there is no console attached.
+	 */
 
 	product_init(GTA_PRODUCT_NAME,
 		GTA_VERSION, GTA_SUBVERSION, GTA_PATCHLEVEL, GTA_REVCHAR,
@@ -2184,13 +2216,24 @@ main(int argc, char **argv)
 	product_set_website(GTA_WEBSITE);
 
 	/*
-	 * On Windows, the code path used for a GUI-launched application requires
-	 * that the product information be filled, to be able to derive proper
-	 * destination for log paths, since there is no console attached.
+	 * We pre-handle arguments to spot whether we're going to be running
+	 * aa supervisor.  If we do, then set a different nickname so that
+	 * the stderr/stdout logs do not clash with those of the child process
+	 * on Windows.
+	 */
+
+	prehandle_arguments(argv);
+
+	if (!OPT(no_supervise) && !OPT(child)) {
+		supervisor = TRUE;
+		product_set_nickname(GTA_SUPERVISOR_NICK);
+	}
+
+	/*
+	 * Here we go, progstart() kicks memory allocation in.
 	 */
 
 	progstart(argc, argv);
-	prehandle_arguments(argv);
 	product_set_interface(OPT(topless) ? "Topless" : GTA_INTERFACE);
 
 	if (compat_is_superuser()) {
@@ -2204,7 +2247,7 @@ main(int argc, char **argv)
 
 	/* Disable walloc() and halloc() if we're going to supervise */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
+	if (supervisor) {
 		(void) walloc_active_limit();
 		(void) halloc_disable();
 	}
@@ -2257,7 +2300,6 @@ main(int argc, char **argv)
 	signal_init();
 	halloc_init(!OPT(no_halloc));
 	malloc_init_vtable();
-	vmm_malloc_inited();
 	zinit();
 	walloc_init();
 
@@ -2309,12 +2351,16 @@ main(int argc, char **argv)
 		 * Regardless of the core dumping condition, saying --no-restart will
 		 * prevent restarts and saying --restart-on-crash will enable them,
 		 * given that supplying both is forbidden.
+		 *
+		 * The supervisor process does not get to auto-restart when it crashes!
 		 */
 
-		if (crash_coredumps_disabled()) {
-			flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
-		} else {
-			flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+		if (!supervisor) {
+			if (crash_coredumps_disabled()) {
+				flags |= OPT(no_restart) ? 0 : CRASH_F_RESTART;
+			} else {
+				flags |= OPT(restart_on_crash) ? CRASH_F_RESTART : 0;
+			}
 		}
 
 		/*
@@ -2348,19 +2394,20 @@ main(int argc, char **argv)
 	 * --daemonize switch is used.
 	 *
 	 * It can only be called after settings_early_init() since this
-	 * is where the crash directory is initialized.
+	 * is where the config directory is initialized.
 	 */
 
 	settings_early_init();
-	crash_setdir(settings_crash_dir());
 	handle_arguments();		/* Returning from here means we're good to go */
+
+	crash_setdir(settings_crash_dir());
 	stacktrace_post_init();	/* And for possibly (hopefully) a long time */
 
 	/*
 	 * If we are the supervisor process, go supervise and never return here.
 	 */
 
-	if (!OPT(no_supervise) && !OPT(child)) {
+	if (supervisor) {
 		main_supervise();
 		g_assert_not_reached();
 	}
@@ -2386,10 +2433,13 @@ main(int argc, char **argv)
 	cq_init(callout_queue_idle, GNET_PROPERTY_PTR(cq_debug));
 	vmm_memusage_init();	/* After callouut queue is up */
 	zalloc_memusage_init();
-	version_init();
+	version_init(OPT(no_build_version));
 	xmalloc_show_settings();
 	malloc_show_settings();
-	crash_setver(version_get_string());
+	zalloc_show_settings();
+	crash_setver(version_build_string());	/* Wants true full version */
+	crash_setccdate(__DATE__);
+	crash_setcctime(__TIME__);
 	crash_post_init();		/* Done with crash initialization */
 
 	/* Our regular inits */
@@ -2423,9 +2473,18 @@ main(int argc, char **argv)
 	STATIC_ASSERT(UNSIGNED(-1) > 0);
 	STATIC_ASSERT(IS_POWER_OF_2(MEM_ALIGNBYTES));
 
+	STATIC_ASSERT(MAX_UINT_VALUE(uint64) == MAX_INT_VAL(uint64));
+	STATIC_ASSERT(MAX_INT_VALUE(int64) == MAX_INT_VAL(int64));
+	STATIC_ASSERT(MIN_INT_VALUE(int64) == MIN_INT_VAL(int64));
+
+	STATIC_ASSERT(MAX_UINT_VALUE(uint32) == MAX_INT_VAL(uint32));
+	STATIC_ASSERT(MAX_INT_VALUE(int32) == MAX_INT_VAL(int32));
+	STATIC_ASSERT(MIN_INT_VALUE(int32) == MIN_INT_VAL(int32));
+
 	mem_test();
 	random_init();
-	vsort_init(1);
+	vsort_init(isatty(STDERR_FILENO) ? 0 : 1);
+	pattern_init(isatty(STDERR_FILENO) ? 0 : dflt_pattern);
 	htable_test();
 	wq_init();
 	inputevt_init(OPT(use_poll));
@@ -2447,10 +2506,6 @@ main(int argc, char **argv)
 	vendor_init();
 	mime_type_init();
 
-	if (!running_topless) {
-		main_gui_early_init(argc, argv, OPT(no_xshm));
-	}
-
 	bg_init();
 	upnp_init();
 	udp_init();
@@ -2458,12 +2513,11 @@ main(int argc, char **argv)
 	g2_rpc_init();
 	vmsg_init();
 	tsync_init();
-	watcher_init();
 	ctl_init();
 	hcache_init();			/* before settings_init() */
 	bsched_early_init();	/* before settings_init() */
 	ipp_cache_init();		/* before settings_init() */
-	settings_init();
+	settings_init(OPT(resume_session));
 
 	/*
 	 * From now on, settings_init() was called so properties have been loaded.
@@ -2482,6 +2536,18 @@ main(int argc, char **argv)
 		str_test(TRUE);
 	}
 
+	/*
+	 * Unfortunately we need to early-init the GUI, if any requested,
+	 * before loading back the upload statistics.
+	 */
+
+	if (!running_topless) {
+		main_gui_early_init(argc, argv, OPT(no_xshm));
+		main_gui_disable_ancient(OPT(no_expire));
+	}
+
+	upload_stats_load_history();	/* Loads the upload statistics */
+
 	map_test();
 	ipp_cache_load_all();
 	tls_global_init();
@@ -2498,7 +2564,6 @@ main(int argc, char **argv)
 	verify_tth_init();
 	move_init();
 	ignore_init();
-	pattern_init();
 	word_vec_init();
 
 	file_info_init();
@@ -2573,6 +2638,9 @@ main(int argc, char **argv)
 	http_test();
 	vxml_test();
 	g2_tree_test();
+
+	if (OPT(topless))
+		gnet_prop_set_boolean_val(PROP_RUNNING_TOPLESS, TRUE);
 
 	if (running_topless) {
 		topless_main_run();

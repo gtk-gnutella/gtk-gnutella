@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -85,11 +85,9 @@ struct html_context {
 static struct html_context *
 html_context_alloc(void)
 {
-	static const struct html_context zero_html_context;
 	struct html_context *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_context;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -108,11 +106,9 @@ html_context_free(struct html_context **ctx_ptr)
 static struct html_view *
 html_view_alloc(void)
 {
-	static const struct html_view zero_html_view;
 	struct html_view *ctx;
 
-	WALLOC(ctx);
-	*ctx = zero_html_view;
+	WALLOC0(ctx);
 	return ctx;
 }
 
@@ -176,6 +172,7 @@ utf8_char(guint32 codepoint)
 	unsigned len;
 
 	STATIC_ASSERT(sizeof buf.str > 4);
+
 	len = utf8_encode(codepoint, buf.str);
 	buf.str[len] = '\0';
 	return buf;
@@ -196,6 +193,9 @@ html_output_tag(struct html_output *output, const struct array *tag)
 	gboolean closing;
 	GtkTextBuffer *buffer;
 
+	/* Since we don't ZERO the whole short_string_t in utf8_char() */
+	G_IGNORE_PUSH(-Wmaybe-uninitialized);
+
 	if (!special.initialized) {
 
 		special.initialized = TRUE;
@@ -204,10 +204,11 @@ html_output_tag(struct html_output *output, const struct array *tag)
 		special.soft_hyphen = utf8_char(0x00AD);
 		special.nbsp = utf8_char(0x00A0);
 		special.em_dash = utf8_char(0x2014);
-		concat_strings(special.list_item_prefix.str,
-			sizeof special.list_item_prefix.str,
+		concat_strings(ARYLEN(special.list_item_prefix.str),
 			" ", special.bullet.str, " ", NULL_PTR);
 	}
+
+	G_IGNORE_POP;
 
 	style = NULL;
 	text = NULL;
@@ -299,7 +300,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 
 			value = html_get_attribute(tag, HTML_ATTR_ALT);
 			if (value.data) {
-				str_bprintf(alt, sizeof alt, "\n[image alt=\"%.*s\"]\n",
+				str_bprintf(ARYLEN(alt), "\n[image alt=\"%.*s\"]\n",
 					(int)value.size, value.data);
 				text = alt;
 			}
@@ -316,7 +317,7 @@ html_output_tag(struct html_output *output, const struct array *tag)
 					gtk_text_buffer_insert_pixbuf(buffer, &iter, pixbuf);
 				} else {
 					static gchar msg[1024];
-					str_bprintf(msg, sizeof msg,
+					str_bprintf(ARYLEN(msg),
 						"\n[Image not found (\"%s\")]\n", filename);
 					text = msg;
 				}

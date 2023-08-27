@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -150,7 +150,7 @@ again:
 		 * Honour hops-flow, and ensure there is a route for possible replies.
 		 */
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			/* send the message */
 			l = plist_prev(l);
 			iovsize--;
@@ -355,7 +355,7 @@ again:
 
 	q->putq_entered++;
 
-	mbs = pmsg_start(mb);
+	mbs = pmsg_phys_base(mb);
 	prioritary = pmsg_prio(mb) != PMSG_P_DATA;
 
 	if (q->uops->msg_queued != NULL)
@@ -368,7 +368,7 @@ again:
 	if (q->qhead == NULL) {
 		ssize_t written;
 
-		if (pmsg_check(mb, q)) {
+		if (pmsg_can_send(mb, q)) {
 			if (prioritary)
 				node_flushq(q->node);
 

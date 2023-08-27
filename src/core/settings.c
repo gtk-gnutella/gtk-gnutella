@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -45,6 +45,7 @@
 #include "ctl.h"
 #include "downloads.h"
 #include "dump.h"
+#include "fileinfo.h"			/* For file_info_set_minchunksize() */
 #include "guess.h"
 #include "hcache.h"
 #include "hosts.h"
@@ -58,7 +59,6 @@
 #include "sockets.h"
 #include "tx.h"					/* For tx_debug_set_addrs() */
 #include "udp.h"				/* For udp_received() */
-#include "upload_stats.h"
 
 #include "upnp/upnp.h"
 
@@ -72,6 +72,7 @@
 
 #include "xml/vxml.h"
 
+#include "lib/adns.h"
 #include "lib/aje.h"
 #include "lib/bg.h"
 #include "lib/bit_array.h"
@@ -96,11 +97,13 @@
 #include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
+#include "lib/mutex.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
 #include "lib/path.h"
 #include "lib/pslist.h"
+#include "lib/qlock.h"
 #include "lib/random.h"
 #include "lib/rwlock.h"
 #include "lib/sha1.h"
@@ -414,6 +417,23 @@ settings_unique_usage(const char *path, const char *lockfile,
 }
 
 /**
+ * Log shell command that can be used to remove the lockfile if needed.
+ */
+static void
+settings_log_rm_lockfile(const char *lockfile)
+{
+	char *file;
+
+	g_assert(lockfile != NULL);
+	g_assert(config_dir != NULL);
+
+	file = make_pathname(config_dir, lockfile);
+	g_message("rm %s", file);
+
+	HFREE_NULL(file);
+}
+
+/**
  * Tries to ensure that the current process is the only running instance
  * gtk-gnutella for the current value of GTK_GNUTELLA_DIR.
  *
@@ -462,8 +482,8 @@ settings_init_session_id(void)
 	 * sufficiently random to be used as-is.
 	 */
 
-	random_bytes(&id, sizeof id);
-	gnet_prop_set_storage(PROP_SESSION_ID, &id, sizeof id);
+	random_bytes(VARLEN(id));
+	gnet_prop_set_storage(PROP_SESSION_ID, VARLEN(id));
 }
 
 /**
@@ -541,7 +561,7 @@ settings_random_reload(void)
 		ssize_t cleared;
 
 		if (debugging(0))
-			g_info("loaded %zd random byte%s from %s", got, plural(got), file);
+			g_info("loaded %zd random byte%s from %s", PLURAL(got), file);
 
 		/*
 		 * We clear the random bytes we load since they entered the entropy
@@ -553,7 +573,7 @@ settings_random_reload(void)
 		cleared = frand_clear(file, got);
 		if (cleared != got) {
 			g_warning("could not clear leading %zd byte%s from %s: %m",
-				got, plural(got), file);
+				PLURAL(got), file);
 		}
 	}
 
@@ -576,9 +596,9 @@ settings_random_save(bool verbose)
 		g_warning("could not save random data into %s: %m", file);
 	} else if (saved != SETTINGS_RANDOM_SEED) {
 		g_warning("saved only %zd random byte%s into %s, expected %d: %m",
-			saved, plural(saved), file, SETTINGS_RANDOM_SEED);
+			PLURAL(saved), file, SETTINGS_RANDOM_SEED);
 	} else if (verbose) {
-		g_info("saved %zd random byte%s into %s", saved, plural(saved), file);
+		g_info("saved %zd random byte%s into %s", PLURAL(saved), file);
 	}
 
 	HFREE_NULL(file);
@@ -620,12 +640,42 @@ settings_unique_instance(bool is_supervisor)
 			_("Another gtk-gnutella supervisor is running as PID %lu") :
 			_("Another gtk-gnutella is running as PID %lu"),
 			(ulong) lpid);
+		g_message(_("If PID %lu is not a gtk-gnutella process, run:"),
+			(ulong) lpid);
+		settings_log_rm_lockfile(lock);
 		exit(EXIT_FAILURE);
 	}
 }
 
+/**
+ * Cleanup properties upon start-up before initializing the callbacks.
+ */
+static void G_COLD
+settings_cleanup(void)
+{
+	/*
+	 * We now persist "current_peermode" to be able to restart in the
+	 * same mode after a crash.  However if we are not resuming the
+	 * session, or if the configured peermode is not "automatic", then
+	 * reset "current_peermode" to its default value, discarding the
+	 * persisted value.
+	 * 		--RAM, 2017-10-28
+	 */
+
+	if (
+			!crash_was_restarted() ||
+			GNET_PROPERTY(configured_peermode) != NODE_P_AUTO
+	)
+		gnet_prop_reset(PROP_CURRENT_PEERMODE);
+}
+
+/*
+ * Initialize program settings, restoring the ones previsously set.
+ *
+ * @param resume	if TRUE, request that previous session be resumed
+ */
 void G_COLD
-settings_init(void)
+settings_init(bool resume)
 {
 	uint64 memory = getphysmemsize();
 	uint64 amount = memory / 1024;
@@ -633,7 +683,7 @@ settings_init(void)
 	long cpus = getcpucount();
 	uint max_fd;
 	time_t session_start = 0;
-
+	bool clear_bytecount = !resume;
 	settings_init_running = TRUE;
 
 #if defined(HAS_GETRLIMIT) && defined(RLIMIT_AS)
@@ -655,6 +705,8 @@ settings_init(void)
 
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MIN, cpufreq_min());
 	gnet_prop_set_guint64_val(PROP_CPU_FREQ_MAX, cpufreq_max());
+
+	gnet_prop_set_timestamp_val(PROP_START_STAMP, tm_time());
 
 	memset(deconstify_pointer(GNET_PROPERTY(servent_guid)), 0, GUID_RAW_SIZE);
 
@@ -699,7 +751,21 @@ settings_init(void)
 	 * we're being auto-restarted / manually relaunched after a crash.
 	 */
 
-	if (GNET_PROPERTY(clean_shutdown)) {
+	if (!GNET_PROPERTY(clean_shutdown)) {
+		uint32 pid = GNET_PROPERTY(pid);
+		g_warning("restarting after abnormal termination (pid was %u)", pid);
+		clear_bytecount = FALSE;
+		if (resume)
+			g_info("implicitly resuming the previous session anyway");
+		crash_exited(pid);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else if (resume) {
+		g_info("honoring user request to resume previous session");
+		gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, TRUE);
+		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
+		session_start = GNET_PROPERTY(session_start_stamp);
+	} else {
 		bool auto_restart = GNET_PROPERTY(user_auto_restart);
 		/*
 		 * An (explicit) auto-restart is an implicit continuation of the
@@ -712,18 +778,38 @@ settings_init(void)
 		if (auto_restart) {
 			g_info("restarting session as requested");
 			session_start = GNET_PROPERTY(session_start_stamp);
+			clear_bytecount = FALSE;
 		}
-	} else {
-		uint32 pid = GNET_PROPERTY(pid);
-		g_warning("restarting after abnormal termination (pid was %u)", pid);
-		crash_exited(pid);
-		gnet_prop_set_boolean_val(PROP_CLEAN_RESTART, FALSE);
-		session_start = GNET_PROPERTY(session_start_stamp);
 	}
 
 	gnet_prop_set_boolean_val(PROP_CLEAN_SHUTDOWN, FALSE);
 	gnet_prop_set_boolean_val(PROP_USER_AUTO_RESTART, FALSE);
 	gnet_prop_set_guint32_val(PROP_PID, (uint32) getpid());
+
+	if (clear_bytecount) {
+		uint i;
+		property_t bytecount[] = {
+			PROP_BC_HTTP_OUT,
+			PROP_BC_GNET_TCP_UP_OUT,
+			PROP_BC_GNET_TCP_LEAF_OUT,
+			PROP_BC_GNET_UDP_OUT,
+			PROP_BC_DHT_OUT,
+			PROP_BC_LOOPBACK_OUT,
+			PROP_BC_PRIVATE_OUT,
+			PROP_BC_HTTP_IN,
+			PROP_BC_GNET_TCP_UP_IN,
+			PROP_BC_GNET_TCP_LEAF_IN,
+			PROP_BC_GNET_UDP_IN,
+			PROP_BC_DHT_IN,
+			PROP_BC_LOOPBACK_IN,
+			PROP_BC_PRIVATE_IN,
+		};
+		for (i = 0; i < N_ITEMS(bytecount); i++) {
+			gnet_prop_set_guint64_val(bytecount[i], 0);
+		}
+	} else {
+		g_info("preserving session traffic counters");
+	}
 
 	/*
 	 * On explicit auto-restart, or restart after a crash, we have propagated
@@ -749,7 +835,7 @@ settings_init(void)
 	if (debugging(0)) {
 		g_info("stdio %s handle file descriptors larger than 256",
 			fd_need_non_stdio() ? "cannot" : "can");
-		g_info("detected %ld CPU%s", cpus, plural(cpus));
+		g_info("detected %ld CPU%s", PLURAL(cpus));
 		g_info("detected amount of physical RAM: %s",
 			short_size(memory, GNET_PROPERTY(display_metric_units)));
 		g_info("process can use at maximum: %s",
@@ -791,8 +877,6 @@ settings_init(void)
 		}
 	}
 
-	upload_stats_load_history();	/* Loads the upload statistics */
-
 	/* watch for filter_file defaults */
 
 	if (GNET_PROPERTY(hard_ttl_limit) < GNET_PROPERTY(max_ttl)) {
@@ -816,13 +900,14 @@ settings_init(void)
 	{
 		sha1_t buf;		/* 160 bits */
 
-		gnet_prop_get_storage(PROP_RANDOMNESS, &buf, sizeof buf);
-		random_add(&buf, sizeof buf);
+		gnet_prop_get_storage(PROP_RANDOMNESS, VARLEN(buf));
+		random_add(VARLEN(buf));
 	}
 
 	settings_init_session_id();
 	settings_update_downtime();
 	settings_update_firewalled();
+	settings_cleanup();
 	settings_callbacks_init();
 	settings_handle_upgrades();
 	settings_init_running = FALSE;
@@ -848,7 +933,7 @@ settings_gen_randomness(void *unused)
 	g_assert(thread_is_main());
 
 	aje_random_bytes(&buf, SHA1_RAW_SIZE);
-	gnet_prop_set_storage(PROP_RANDOMNESS, &buf, sizeof buf);
+	gnet_prop_set_storage(PROP_RANDOMNESS, VARLEN(buf));
 }
 
 /**
@@ -865,9 +950,14 @@ settings_add_randomness(void)
 	 * to the global random pool, we need to funnel back the generation to
 	 * the main thread, using a "safe" event in case some callbacks are attached
 	 * to the change of the "randomness" property.
+	 *
+	 * To avoid overwhelming the queue with such events, we do not repost
+	 * if there is already such an event present.  We're just generating
+	 * randmoness, hence some events may be "lost".
+	 * 		--RAM, 2020-01-31
 	 */
 
-	teq_safe_post(THREAD_MAIN_ID, settings_gen_randomness, NULL);
+	teq_safe_post_unique(THREAD_MAIN_ID, settings_gen_randomness, NULL);
 }
 
 /**
@@ -1798,6 +1888,8 @@ enable_dht_changed(property_t prop)
 		dht_close(FALSE);
 	}
 
+	bsched_config_stealing();
+
 	return FALSE;
 }
 
@@ -1810,7 +1902,7 @@ enable_g2_changed(property_t prop)
 	node_update_g2(enabled);
 
 	/*
-	 * As soon as either GUESS of G2 querying is enabled, we have to start
+	 * As soon as either GUESS or G2 querying is enabled, we have to start
 	 * the GUESS layer.
 	 */
 
@@ -2221,10 +2313,10 @@ bw_switch(property_t prop, bsched_bws_t bs)
     bool val;
 
     gnet_prop_get_boolean_val(prop, &val);
-    if (val)
-        bsched_enable(bs);
-    else
-        bsched_disable(bs);
+	if (val)
+		bsched_enable(bs);
+	else
+		bsched_disable(bs);
 	return FALSE;
 }
 
@@ -2406,7 +2498,7 @@ save_file_path_changed(property_t prop)
 	path = gnet_prop_get_string(prop, NULL, 0);
 
 	if (GNET_PROPERTY(lockfile_debug)) {
-		g_debug("save_file_path_change(): path=\"%s\"\n\told_path=\"%s\"",
+		g_debug("save_file_path_change(): path=\"%s\", old_path=\"%s\"",
 			NULL_STRING(path), NULL_STRING(old_path));
 	}
 
@@ -2585,244 +2677,69 @@ bw_dht_out_changed(property_t prop)
     return FALSE;
 }
 
-static bool
-bw_allow_stealing_changed(property_t prop)
+static void
+bw_allow_stealing_set(bool unused_val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
-	if (val)
-		bsched_config_steal_http_gnet();
-	else
-		bsched_config_steal_gnet();
-
-	return FALSE;
+	(void) unused_val;
+	bsched_config_stealing();
 }
 
-static bool
-node_online_mode_changed(property_t prop)
+static void
+lock_sleep_trace_set(bool val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	node_set_online_mode(val);
-
-    return FALSE;
-}
-
-static bool
-zalloc_always_gc_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	set_zalloc_always_gc(val);
-
-    return FALSE;
-}
-
-static bool
-zalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_zalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-bg_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	bg_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-dbstore_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	dbstore_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-evq_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	evq_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-inputevt_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	inputevt_set_debug(val);
-
-    return FALSE;
-}
-
-static bool
-inputevt_trace_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-	inputevt_set_trace(val);
-
-    return FALSE;
-}
-
-static bool
-lock_sleep_trace_changed(property_t prop)
-{
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
 	spinlock_set_sleep_trace(val);
 	rwlock_set_sleep_trace(val);
-
-    return FALSE;
+	qlock_set_sleep_trace(val);
 }
 
-static bool
-lock_contention_trace_changed(property_t prop)
+static void
+lock_contention_trace_set(bool val)
 {
-	bool val;
-
-	gnet_prop_get_boolean_val(prop, &val);
-
 	spinlock_set_contention_trace(val);
+	mutex_set_contention_trace(val);
 	rwlock_set_contention_trace(val);
-
-    return FALSE;
+	qlock_set_contention_trace(val);
 }
 
-static bool
-http_range_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_http_range_debug(val);
-
-    return FALSE;
+/**
+ * Generates callback routine to be invoked when property changes.
+ *
+ * @param x		the property name that changed
+ * @param type	the property type
+ * @param cb	the callback to invoke with the new property value
+ */
+#define SETTINGS_CB(x, type, cb) \
+static bool x ## _changed(property_t prop) {	\
+	type val;									\
+	gnet_prop_get_ ## type ## _val(prop, &val);	\
+	cb(val);									\
+	return FALSE;								\
 }
 
-static bool
-omalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_omalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-palloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_palloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-tm_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_tm_debug(val);
-
-    return FALSE;
-}
-
-static bool
-vmm_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_vmm_debug(val);
-
-    return FALSE;
-}
-
-static bool
-vxml_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_vxml_debug(val);
-
-    return FALSE;
-}
-
-static bool
-xmalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_xmalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-tmalloc_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_tmalloc_debug(val);
-
-    return FALSE;
-}
-
-static bool
-lib_debug_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_library_debug(val);
-
-    return FALSE;
-}
-
-static bool
-lib_stats_changed(property_t prop)
-{
-	uint32 val;
-
-	gnet_prop_get_guint32_val(prop, &val);
-	set_library_stats(val);
-
-    return FALSE;
-}
+SETTINGS_CB(adns_debug,				uint32,	set_adns_debug)
+SETTINGS_CB(bg_debug,				uint32,	bg_set_debug)
+SETTINGS_CB(bw_allow_stealing,		bool,	bw_allow_stealing_set)
+SETTINGS_CB(configured_dht_mode,	uint32,	dht_configured_mode_changed)
+SETTINGS_CB(dbstore_debug,			uint32,	dbstore_set_debug)
+SETTINGS_CB(dl_minchunksize,		uint32,	file_info_set_minchunksize)
+SETTINGS_CB(evq_debug,				uint32,	evq_set_debug)
+SETTINGS_CB(http_range_debug,		uint32,	set_http_range_debug)
+SETTINGS_CB(inputevt_debug,			uint32,	inputevt_set_debug)
+SETTINGS_CB(inputevt_trace,			bool,	inputevt_set_trace)
+SETTINGS_CB(lib_debug,				uint32,	set_library_debug)
+SETTINGS_CB(lib_stats,				uint32,	set_library_stats)
+SETTINGS_CB(lock_contention_trace,	bool,	lock_contention_trace_set)
+SETTINGS_CB(lock_sleep_trace,		bool,	lock_sleep_trace_set)
+SETTINGS_CB(node_online_mode,		bool, 	node_set_online_mode)
+SETTINGS_CB(omalloc_debug,			uint32,	set_omalloc_debug)
+SETTINGS_CB(palloc_debug,			uint32,	set_palloc_debug)
+SETTINGS_CB(tm_debug,				uint32,	set_tm_debug)
+SETTINGS_CB(tmalloc_debug,			uint32,	set_tmalloc_debug)
+SETTINGS_CB(vmm_debug,				uint32,	set_vmm_debug)
+SETTINGS_CB(vxml_debug,				uint32,	set_vxml_debug)
+SETTINGS_CB(xmalloc_debug,			uint32,	set_xmalloc_debug)
+SETTINGS_CB(zalloc_always_gc,		bool, 	set_zalloc_always_gc)
+SETTINGS_CB(zalloc_debug,			uint32,	set_zalloc_debug)
 
 static bool
 forced_local_ip_changed(property_t prop)
@@ -2891,52 +2808,17 @@ static bool
 configured_peermode_changed(property_t prop)
 {
     uint32 val;
-	bool forced = FALSE;
 
     gnet_prop_get_guint32_val(prop, &val);
 
-	/* XXX: The following is disabled because it is too restrictive and
-	 *		annoying in LAN. If a user doesn't use the default "auto"
-	 *		mode, it can be assumed that he knows what he's doing. Also,
-	 *		while it's sub-optimal it's not absolutely required for an
-	 *		ultrapeer to accept incoming connections (from external hosts).
-	 *
-	 *		--cbiere, 2005-05-14
-	 */
-#if 0
 	/*
-	 * We don't allow them to be anything but a leaf node if they are
-	 * firewalled.  We even restrict the "normal" mode, which is to be
-	 * avoided anyway, and will be removed in a future release.
-	 *		--RAM, 2004-09-19
+	 * Keep current peer mode if the configured peermode is NODE_P_AUTO.
 	 */
 
-	switch (val) {
-	case NODE_P_NORMAL:
-	case NODE_P_ULTRA:
-		if (GNET_PROPERTY(is_firewalled)) {
-			val = NODE_P_AUTO;
-			forced = TRUE;
-			g_warning("must run as a leaf when TCP-firewalled");
-			gcu_statusbar_warning(
-				_("Can only run as a leaf when TCP-firewalled"));
-		}
-		break;
-	default:
-		break;
-	}
-#endif
+	if (val != NODE_P_AUTO)
+		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
 
-	if (val == NODE_P_AUTO) {
-		if (connected_nodes() > 0)		/* Already connected */
-			return forced;				/* Keep our current operating mode */
-		val = NODE_P_LEAF;				/* Force leaf mode */
-		/* FALL THROUGH */
-	}
-
-	gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, val);
-
-    return forced;
+    return FALSE;
 }
 
 static bool
@@ -2948,17 +2830,6 @@ current_peermode_changed(property_t prop)
 	bsched_set_peermode(GNET_PROPERTY(current_peermode));
 
     return FALSE;
-}
-
-static bool
-configured_dht_mode_changed(property_t prop)
-{
-    uint32 val;
-
-    gnet_prop_get_guint32_val(prop, &val);
-	dht_configured_mode_changed(val);
-
-	return FALSE;
 }
 
 static bool
@@ -3050,7 +2921,7 @@ file_descriptor_x_changed(property_t prop)
 
 	if (*ev == NULL) {
 		*ev = cq_main_insert(RESET_PROP_TM,
-			reset_property_cb, GUINT_TO_POINTER(prop));
+			reset_property_cb, uint_to_pointer(prop));
 	} else {
 		cq_resched(*ev, RESET_PROP_TM);
 	}
@@ -3315,6 +3186,11 @@ static prop_map_t property_map[] = {
         TRUE
     },
     {
+        PROP_ADNS_DEBUG,
+        adns_debug_changed,
+        TRUE
+	},
+    {
         PROP_LOCK_SLEEP_TRACE,
         lock_sleep_trace_changed,
         TRUE
@@ -3407,6 +3283,11 @@ static prop_map_t property_map[] = {
 	{
 		PROP_DHT_CONFIGURED_MODE,
 		configured_dht_mode_changed,
+		TRUE,
+	},
+	{
+		PROP_DL_MINCHUNKSIZE,
+		dl_minchunksize_changed,
 		TRUE,
 	},
 	{
@@ -3522,7 +3403,7 @@ static prop_map_t property_map[] = {
 
 #define PROPERTY_MAP_SIZE N_ITEMS(property_map)
 
-static bool init_list[GNET_PROPERTY_NUM];
+static uint8 init_list[GNET_PROPERTY_NUM];
 
 static void G_COLD
 settings_callbacks_init(void)

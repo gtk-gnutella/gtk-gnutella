@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -67,8 +67,8 @@ typedef struct version_ext {
  * Banning periods for our versions.
  */
 
-#define VERSION_ANCIENT_WARN	(86400*365)		/**< 1 year */
-#define VERSION_ANCIENT_BAN		(86400*365)		/**< 1 year */
+#define VERSION_ANCIENT_WARN	(86400*366*2)	/**< 2 years + epsilon */
+#define VERSION_ANCIENT_BAN		(86400*366*2)	/**< 2 years + epsilon */
 
 #define VERSION_ANCIENT_REMIND	(86400*30)		/**< 30 days */
 #define VERSION_ANCIENT_GRACE	(86400*20)		/**< 20 days */
@@ -77,7 +77,7 @@ typedef struct version_ext {
  * Public interface.
  */
 
-void version_init(void);
+void version_init(bool hide);
 void version_close(void);
 void version_ancient_warn(void);
 bool version_check(const char *str, const char *token, const host_addr_t);

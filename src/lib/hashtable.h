@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -77,7 +77,7 @@ hash_table_t *hash_table_once_new_full_real(hash_fn_t hash, eq_fn_t eq);
 void hash_table_destroy_real(hash_table_t *ht);
 #endif /* MALLOC_SOURCE || VMM_SOURCE || THREAD_SOURCE */
 
-size_t hash_table_size(const hash_table_t *ht);
+size_t hash_table_count(const hash_table_t *ht);
 size_t hash_table_capacity(const hash_table_t *ht);
 size_t hash_table_buckets(const hash_table_t *ht);
 size_t hash_table_memory(const hash_table_t *ht);
@@ -92,6 +92,7 @@ bool hash_table_contains(const hash_table_t *ht, const void *key);
 bool hash_table_remove(hash_table_t *ht, const void *key);
 bool hash_table_remove_no_resize(hash_table_t *ht, const void *key);
 void hash_table_foreach(const hash_table_t *ht, ckeyval_fn_t func, void *data);
+void hash_table_copy_foreach(const hash_table_t *ht, ckeyval_fn_t fn, void *d);
 size_t hash_table_foreach_remove(hash_table_t *ht,
 	ckeyval_rm_fn_t func, void *data);
 

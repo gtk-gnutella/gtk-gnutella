@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -56,6 +56,8 @@ typedef struct gnet_upload_status {
 	time_t last_update;
 	uint reqnum;			/**< Count of uploaded chunks */
 	uint error_count;		/**< Number of errors */
+	uint bw_penalty;		/**< Current bandwidth penalty */
+	uint32 bw_cap;			/**< Bandwidth cap for current request */
 
 	bool parq_quick;
 	bool parq_frozen;
@@ -75,6 +77,7 @@ typedef struct gnet_upload_info {
 	filesize_t file_size;	/**< Size of requested file */
 	filesize_t range_start;	/**< First byte to send, inclusive */
 	filesize_t range_end;	/**< Last byte to send, inclusive */
+	filesize_t available;	/**< Amount available for upload */
 
 	const char *name;		/**< Name of requested file (converted to UTF-8) */
 	const char *user_agent;	/**< Remote user agent (converted to UTF-8) */
@@ -84,6 +87,7 @@ typedef struct gnet_upload_info {
 
 	bool push;				/**< Whether we're pushing or not */
 	bool partial;			/**< Whether it's a partial file */
+	bool shrunk_chunk;		/**< Whether chunk was shrunk due to b/w concerns */
 	bool encrypted; 		/**< Whether the connection is (TLS) encrypted */
 	bool tls_upgraded; 		/**< Whether a TLS upgrade was requested */
 	bool g2;				/**< Whether requested from a G2 host */

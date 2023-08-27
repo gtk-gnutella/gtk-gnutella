@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -61,10 +61,10 @@ void tokenizer_check_sorted(const char *name,
 void tokenizer_check_sorted_with(const char *name,
 	const tokenizer_t *tvec, size_t tcnt, strcmp_fn_t cmp);
 
-#define TOKENIZE(s, vec)	tokenizer_lookup((s), (vec), N_ITEMS((vec)))
+#define TOKENIZE(s, vec)	tokenizer_lookup((s), (vec), N_ITEMS(vec))
 
 #define TOKENIZE_WITH(s, c, vec) \
-	tokenizer_lookup_with((s), (c), (vec), N_ITEMS((vec)))
+	tokenizer_lookup_with((s), (c), (vec), N_ITEMS(vec))
 
 #define TOKENIZE_CHECK_SORTED(vec) \
 	tokenizer_check_sorted(STRINGIFY(vec), (vec), N_ITEMS((vec)))

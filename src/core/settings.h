@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -58,7 +58,7 @@ bool is_my_address_and_port(const host_addr_t addr, uint16 port);
 void settings_early_init(void);
 void settings_unique_instance(bool is_supervisor);
 bool settings_is_unique_instance(void);
-void settings_init(void);
+void settings_init(bool resume);
 void settings_save_if_dirty(void);
 void settings_random_save(bool verbose);
 void settings_shutdown(void);

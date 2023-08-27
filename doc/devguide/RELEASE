@@ -93,11 +93,11 @@ Release steps
    This will generate a directory gtk-gnutella-0.97.1 and include the
    proper version file.
 
-10. Create the tar.bz2 and detached ASCII signature
+10. Create the tar.xz and detached ASCII signature
 
 	tar -cvf gtk-gnutella-0.92.1.tar gtk-gnutella-0.92.1
-	bzip2 -v9 gtk-gnutella-0.92.1.tar
-	pgp -sba gtk-gnutella-0.92.1.tar.bz2
+	xz -v9 gtk-gnutella-0.92.1.tar
+	pgp -sba gtk-gnutella-0.92.1.tar.xz
 
 11. Move into the directory.
 
@@ -121,11 +121,7 @@ Release steps
 15. Upload the files to sourceforge using scp, or use the web interface
     to upload the files through HTTP.
 
-	scp gtk-gnutella-0.96.9.tar.bz2 gtk-gnutella-0.96.9.tar.bz2.asc \
-		USER@frs.sourceforge.net:\
-		/home/frs/project/g/gt/gtk-gnutella/gtk-gnutella/0.96.9/
-
-16. Click on the file information for the .bz2 file, and make it the new
+16. Click on the file information for the .xz file, and make it the new
     default download.
 
 17. Go back to the Summary page and check if the project details are

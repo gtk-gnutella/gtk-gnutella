@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -252,6 +252,27 @@ hash_arena_size(size_t items, bool has_values)
 }
 
 /**
+ * Update pointers within the allocated arena.
+ */
+static void
+hash_update_arena_pointers(struct hash *h, void *arena)
+{
+	struct hkeys *hk = &h->kset;
+
+	g_assert(arena != NULL);
+
+	hk->keys = arena;
+	arena = ptr_add_offset(arena, hk->size * sizeof(void *));
+	if (hk->has_values) {
+		(*h->ops->set_values)(h, arena);
+		arena = ptr_add_offset(arena, hk->size * sizeof(void *));
+	}
+	hk->hashes = arena;
+
+	hk->relocate = 0;
+}
+
+/**
  * Allocate arena for the hash.
  *
  * @param hk		the keyset structure
@@ -288,14 +309,51 @@ hash_arena_allocate(struct hash *h, size_t bits)
 	else
 		arena = walloc(size);
 
-	hk->keys = arena;
-	arena = ptr_add_offset(arena, hk->size * sizeof(void *));
-	if (hk->has_values) {
-		(*h->ops->set_values)(h, arena);
-		arena = ptr_add_offset(arena, hk->size * sizeof(void *));
-	}
-	hk->hashes = arena;
+	hash_update_arena_pointers(h, arena);
 	memset(hk->hashes, 0, hk->size * sizeof(unsigned));
+}
+
+/**
+ * Attempt to relocate the hash arena to a better VM position.
+ */
+static void
+hash_arena_relocate(struct hash *h)
+{
+	struct hkeys *hk = &h->kset;
+	size_t size;
+	void *arena;
+
+	hash_check(h);
+
+	/*
+	 * If we're in the process of an iteration, make sure we do not
+	 * relocate as that would perturb the iteration pointers: we wish
+	 * to avoid pointer arithmetic in the loops.
+	 */
+
+	if G_UNLIKELY(0 != h->refcnt)
+		return;
+
+	/*
+	 * Attempt relocation of the arena, but only once in a while.
+	 * We use a rotating counter and attempt the computations only when
+	 * it rolls-back to 0.
+	 * 		--RAM, 2017-10-30
+	 */
+
+	if G_LIKELY(0 != ++hk->relocate)
+		return;
+
+	size = hash_arena_size(hk->size, hk->has_values);
+
+	if (size < compat_pagesize() && !hk->raw_memory)
+		return;		/* Not allocated via VMM */
+
+	arena = vmm_move(hk->keys, size);
+	if G_LIKELY(arena == hk->keys)
+		return;		/* Not moved */
+
+	hash_update_arena_pointers(h, arena);
 }
 
 /**
@@ -473,7 +531,7 @@ hash_compute_increment(const struct hkeys *hk, const void *key, unsigned hv)
 
 	hv2 += hash_offset_secondary;
 
-	return (hv2 & 0x1) ? hv2 : ~hv2;	/* Ensure it is an odd number */
+	return hv2 + !(hv2 & 0x1); 		/* Ensure it is an odd number */
 }
 
 /**
@@ -683,6 +741,7 @@ hash_resize_min(struct hash *h)
 		memset(h->kset.hashes, 0,
 			(1U << HASH_MIN_BITS) * sizeof h->kset.hashes[0]);
 		h->kset.tombs = 0;
+		h->kset.relocate = 0;
 		h->kset.resize = FALSE;
 		return FALSE;
 	} else {
@@ -780,6 +839,7 @@ size_computed:
 		keys, h->kset.items, mode);
 
 	hash_arena_size_free(old_keys, old_arena_size, h->kset.raw_memory);
+	h->kset.relocate = 0;
 }
 
 /**
@@ -901,6 +961,8 @@ hash_resize_as_needed(struct hash *h)
 		}
 	}
 
+	hash_arena_relocate(h);
+
 	return FALSE;
 }
 
@@ -998,6 +1060,8 @@ hash_lookup_key(struct hash *h, const void *key)
 			kept = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
 			g_assert(kept);		/* Since key existed before resizing */
 		}
+	} else {
+		hash_arena_relocate(h);
 	}
 
 no_resize:

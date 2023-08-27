@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -810,9 +810,9 @@ kbucket_to_string(const struct kbucket *kb)
 
 	g_assert(kb);
 
-	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, kuid, sizeof kuid);
+	bin_to_hex_buf((char *) &kb->prefix, KUID_RAW_SIZE, ARYLEN(kuid));
 
-	str_bprintf(buf, sizeof buf, "k-bucket %s (%sdepth %d%s%s)"
+	str_bprintf(ARYLEN(buf), "k-bucket %s (%sdepth %d%s%s)"
 			" [good: %u, stale: %u, pending: %u]",
 		kuid, kb->frozen_depth ? "frozen " : "",
 		kb->depth, kb->ours ? ", ours" : "",
@@ -1122,7 +1122,7 @@ dht_allocate_new_kuid_if_needed(void)
 	 * of the previously interrupted run.
 	 */
 
-	gnet_prop_get_storage(PROP_KUID, buf.v, sizeof buf.v);
+	gnet_prop_get_storage(PROP_KUID, VARLEN(buf));
 
 	if (
 		kuid_is_blank(&buf) ||
@@ -1130,7 +1130,7 @@ dht_allocate_new_kuid_if_needed(void)
 	) {
 		if (GNET_PROPERTY(dht_debug)) g_debug("generating new DHT node ID");
 		kuid_random_fill(&buf);
-		gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+		gnet_prop_set_storage(PROP_KUID, VARLEN(buf));
 	}
 
 	our_kuid = kuid_get_atom(&buf);
@@ -1307,7 +1307,7 @@ completion_iterate(struct bootstrap *b)
 
 	if (GNET_PROPERTY(dht_debug))
 		g_warning("DHT completing bootstrap with KUID %s (%d bit%s)",
-			kuid_to_hex_string(&b->id), b->bits, plural(b->bits));
+			kuid_to_hex_string(&b->id), PLURAL(b->bits));
 }
 
 /**
@@ -1332,7 +1332,7 @@ bootstrap_completion_status(
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(dht_lookup_debug))
 		g_debug("DHT bootstrap with ID %s (%d bit%s) done: %s",
-			kuid_to_hex_string(kuid), b->bits, plural(b->bits),
+			kuid_to_hex_string(kuid), PLURAL(b->bits),
 			lookup_strerror(error));
 
 	/*
@@ -1463,7 +1463,7 @@ bootstrap_status(const kuid_t *kuid, lookup_error_t error, void *unused_arg)
 		kuid_t id;
 		bool started;
 
-		random_bytes(id.v, sizeof id.v);
+		random_bytes(VARLEN(id));
 
 		if (GNET_PROPERTY(dht_debug))
 			g_debug("DHT improving bootstrap with random KUID is %s",
@@ -1635,7 +1635,7 @@ dht_reset_kuid(void)
 {
 	kuid_t buf;
 	kuid_zero(&buf);
-	gnet_prop_set_storage(PROP_KUID, buf.v, sizeof buf.v);
+	gnet_prop_set_storage(PROP_KUID, VARLEN(buf));
 }
 
 /**
@@ -3029,7 +3029,7 @@ dht_merge_siblings(struct kbucket *kb, bool forced)
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT merging %s%s with its sibling (total of %u good node%s)",
 			forced ? "(forced) " : "",
-			kbucket_to_string(kb), good_nodes, plural(good_nodes));
+			kbucket_to_string(kb), PLURAL(good_nodes));
 	}
 
 	/*
@@ -3257,7 +3257,7 @@ bucket_stale_check(cqueue_t *cq, void *obj)
 	if (to_remove != NULL && GNET_PROPERTY(dht_debug)) {
 		unsigned count = pslist_length(to_remove);
 		g_debug("DHT selected %u stale node%s to remove (likely dead)",
-			count, plural(count));
+			PLURAL(count));
 	}
 
 	PSLIST_FOREACH(to_remove, sl) {
@@ -3327,7 +3327,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT missing %u good node%s in %s",
-				missing, plural(missing), kbucket_to_string(kb));
+				PLURAL(missing), kbucket_to_string(kb));
 		}
 
 		do {
@@ -3343,7 +3343,7 @@ bucket_alive_check(cqueue_t *cq, void *obj)
 			uint promoted = K_BUCKET_GOOD - good_and_stale - missing;
 			if (promoted) {
 				g_debug("DHT promoted %u pending node%s in %s",
-					promoted, plural(promoted), kbucket_to_string(kb));
+					PLURAL(promoted), kbucket_to_string(kb));
 			}
 		}
 	}
@@ -3591,7 +3591,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		bool saturated = FALSE;
 
 		kuid_xor_distance(&dix, id, kuid);
-		bigint_use(&dist, dix.v, sizeof dix.v);
+		bigint_use(&dist, VARLEN(dix));
 		bigint_copy(&tmp, &dist);	/* Result has 168 bits, not 160 */
 
 		/*
@@ -3638,7 +3638,7 @@ dht_compute_size_estimate_1(patricia_t *pt, const kuid_t *kuid, int amount)
 		double s = bigint_to_double(&sq);
 
 		g_debug("DHT target KUID is %s (%d node%s wanted, %u used)",
-			kuid_to_hex_string(kuid), amount, plural(amount),
+			kuid_to_hex_string(kuid), PLURAL(amount),
 			(unsigned) (i - 1));
 		g_debug("DHT dsum is %s = %F", bigint_to_hex_string(&dsum), ds);
 		g_debug("DHT squares is %s = %F (%d)",
@@ -3766,7 +3766,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT target KUID is %s (%u node%s in path, retained %u)",
-			kuid_to_hex_string(kuid), (unsigned) count, plural(count),
+			kuid_to_hex_string(kuid), (unsigned) PLURAL(count),
 			(unsigned) retained);
 	}
 
@@ -3824,7 +3824,7 @@ dht_compute_size_estimate_2(patricia_t *pt, const kuid_t *kuid)
 
 	if (GNET_PROPERTY(dht_debug)) {
 		g_debug("DHT average common prefix is %f bits over %zu node%s",
-			bits, retained, plural(retained));
+			bits, PLURAL(retained));
 	}
 
 	return estimate;
@@ -3881,7 +3881,7 @@ dht_compute_size_estimate_3(patricia_t *pt, const kuid_t *kuid)
 			kuid_t di;
 			bigint_t dist;
 			kuid_xor_distance(&di, &prev, id); /* Between consecutive IDs */
-			bigint_use(&dist, di.v, sizeof di.v);
+			bigint_use(&dist, VARLEN(di));
 			bigint_add(&accum, &dist);
 			intervals++;
 			kuid_xor_distance(&di, &first, id);	/* With first ID */
@@ -4110,8 +4110,8 @@ update_cached_size_estimate(void)
 			"(%d point%s, skipped %d), k-ball furthest: %d bit%s",
 			uint64_to_string(stats.average.estimate),
 			uint64_to_string2(avg_stderr),
-			count, plural(count), n + 1 - count,
-			stats.kball_furthest, plural(stats.kball_furthest));
+			PLURAL(count), n + 1 - count,
+			PLURAL(stats.kball_furthest));
 		if (n > 1) {
 			g_debug(
 				"DHT collected average is %.0f (%d points), avg_stderr = %g",
@@ -4330,7 +4330,7 @@ dht_get_size_estimate(void)
 	if G_UNLIKELY(0 == stats.average.computed)
 		dht_update_size_estimate();
 
-	bigint_use(&size, size_estimate.v, sizeof size_estimate.v);
+	bigint_use(&size, VARLEN(size_estimate));
 	bigint_set64(&size, stats.average.estimate);
 
 	return &size_estimate;
@@ -4722,7 +4722,7 @@ dht_fill_random(gnet_host_t *hvec, int hcnt)
 		struct kbucket *kb;
 		knode_t *kn;
 
-		random_bytes(id.v, sizeof id.v);
+		random_bytes(VARLEN(id));
 		kb = dht_find_bucket(&id);
 		kn = hash_list_random(list_for(kb, KNODE_GOOD));
 
@@ -5288,7 +5288,7 @@ dht_ipp_extract(const gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(dht_debug) || GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d DHT host%s in DHTIPP pong from %s",
-			cnt, plural(cnt), node_addr(n));
+			PLURAL(cnt), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
 		host_addr_t ha;
@@ -5367,8 +5367,8 @@ dht_route_parse(FILE *f)
 	uint16 port;
 	kuid_t kuid;
 	vendor_code_t vcode;
-	time_t seen;
-	time_t ctim;
+	time_t seen = (time_t) -1;
+	time_t ctim = (time_t) -1;
 	uint32 major, minor;
 
 	g_return_if_fail(f);
@@ -5376,7 +5376,7 @@ dht_route_parse(FILE *f)
 	bit_array_init(tag_used, NUM_DHT_ROUTE_TAGS);
 	nodes = patricia_create(KUID_RAW_BITSIZE);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		dht_route_tag_t tag;
@@ -5395,7 +5395,7 @@ dht_route_parse(FILE *f)
 
 		line_no++;
 
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * Line was too long or the file was corrupted or manually
 			 * edited without consideration for the advertised format.
@@ -5409,12 +5409,12 @@ dht_route_parse(FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');		/* End of tag, normally */
+		sp = vstrchr(line, ' ');		/* End of tag, normally */
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');		/* Tag without a value */
+			value = vstrchr(line, '\0');	/* Tag without a value */
 		}
 		tag_name = line;
 
@@ -5430,14 +5430,14 @@ dht_route_parse(FILE *f)
 		switch (tag) {
 		case DHT_ROUTE_TAG_KUID:
 			if (
-				KUID_RAW_SIZE * 2 != strlen(value) ||
-				KUID_RAW_SIZE != base16_decode(&kuid, sizeof kuid,
+				KUID_RAW_SIZE * 2 != vstrlen(value) ||
+				KUID_RAW_SIZE != base16_decode(VARLEN(kuid),
 					value, KUID_RAW_SIZE * 2)
 			)
 				goto damaged;
 			break;
 		case DHT_ROUTE_TAG_VNDR:
-			if (4 == strlen(value))
+			if (4 == vstrlen(value))
 				vcode.u32 = peek_be32(value);
 			else
 				goto damaged;
@@ -5456,6 +5456,7 @@ dht_route_parse(FILE *f)
 			ctim = date2time(value, tm_time());
 			if ((time_t) -1 == ctim)
 				goto damaged;
+			break;
 		case DHT_ROUTE_TAG_SEEN:
 			seen = date2time(value, tm_time());
 			if ((time_t) -1 == seen)

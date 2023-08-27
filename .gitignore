@@ -22,6 +22,7 @@ gtk-gnutella.nsh
 /gtk-gnutella.spec
 /config.sh.old
 /install
+/src/tags
 
 # Files that can be left over by metaconfig
 /Obsolete
@@ -54,6 +55,11 @@ src/lib/filelock-test
 src/lib/launch-test
 src/lib/spopen-test
 
+# Miscellaneous tests
+src/lib/pattern-test
+src/lib/stack-test
+src/lib/stat-test
+
 # This file is used to hardwire the result of scripts/git-version.sh
 /version
 
@@ -62,9 +68,10 @@ src/lib/spopen-test
 /src/revision.h
 
 src/bin/sha1sum
+src/core/gtkg-shell
 
-/src/lib/bit_array.h
-/src/lib/bit_field.h
+/src/lib/bit_array.[ch]
+/src/lib/bit_field.[ch]
 /src/lib/htable.[ch]
 /src/lib/hset.[ch]
 

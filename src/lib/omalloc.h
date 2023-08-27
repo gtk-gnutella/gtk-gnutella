@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -34,15 +34,15 @@
 #ifndef _omalloc_h_
 #define _omalloc_h_
 
-void *omalloc(size_t size) G_MALLOC;
-void *omalloc0(size_t size) G_MALLOC;
+void *omalloc(size_t size) G_MALLOC G_NON_NULL;
+void *omalloc0(size_t size) G_MALLOC G_NON_NULL;
 char *ostrdup(const char *str) G_MALLOC;
 char *ostrndup(const char *str, size_t n) G_MALLOC;
 const char *ostrdup_readonly(const char *str) G_MALLOC;
 const void *ocopy_readonly(const void *p, size_t size) G_MALLOC;
 const char *ostrndup_readonly(const char *str, size_t n) G_MALLOC;
 
-static inline void * G_MALLOC
+static inline void * G_MALLOC G_NON_NULL
 ocopy(const void *p, size_t size)
 {
 	void *cp = omalloc(size);

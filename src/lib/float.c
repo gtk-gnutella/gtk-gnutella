@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -556,7 +556,7 @@ float_decompose(double v, int *sign, int *ep)
 	dc.value = v;
 	*sign = dc.d.s;
 	e = dc.d.e;
-	f = ((uint64) dc.d.mh << 32) | (uint32) dc.d.ml;
+	f = UINT64_VALUE(dc.d.mh, dc.d.ml);
 
 	if (e != 0) {
 		*ep = e - bias - bitstoright;

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -146,7 +146,7 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 
 		if (0 == strcmp(arg, "--")) {		/* End of options */
 			if (current) {					/* This option lacks its argument */
-				str_bprintf(error_string, sizeof error_string,
+				str_bprintf(ARYLEN(error_string),
 					"missing value for -%c", current->letter[0]);
 				return -1;
 			}
@@ -182,15 +182,13 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 			int flags;
 
 			if (UNSIGNED(c) >= N_ITEMS(options)) {
-				str_bprintf(error_string, sizeof error_string,
-					"invalid non-ASCII switch");
+				str_bprintf(ARYLEN(error_string), "invalid non-ASCII switch");
 				return -1;
 			}
 
 			flags = options[c];
 			if (!(flags & OPTION_F_VALID)) {
-				str_bprintf(error_string, sizeof error_string,
-					"invalid -%c switch", c);
+				str_bprintf(ARYLEN(error_string), "invalid -%c switch", c);
 				return -1;
 			}
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -77,7 +77,7 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 	 * Prepare call to inflate().
 	 */
 
-	inz->next_in = deconstify_pointer(pmsg_read_base(mb));
+	inz->next_in = deconstify_pointer(pmsg_start(mb));
 	inz->avail_in = old_size = pmsg_size(mb);
 
 	if (old_size == 0)
@@ -117,11 +117,11 @@ inflate_data(rxdrv_t *rx, pmsg_t *mb)
 			size_t n = MIN(UNSIGNED(old_size), (sizeof data - 1) / 2);
 			size_t m;
 
-			m = base16_encode(data, sizeof data - 1, pmsg_read_base(mb), n);
+			m = base16_encode(data, sizeof data - 1, pmsg_start(mb), n);
 			g_assert(m < sizeof data);
 			data[m] = '\0';
 
-			str_catf(s, " [first %zu hex byte%s: %s]", m/2, plural(m/2), data);
+			str_catf(s, " [first %zu hex byte%s: %s]", PLURAL(m/2), data);
 		}
 
 		errno = EIO;

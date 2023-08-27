@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -48,7 +48,7 @@ void keys_close(void);
 
 bool keys_exists(const kuid_t *key);
 bool keys_is_store_loaded(const kuid_t *id);
-void keys_get_status(const kuid_t *id, bool *full, bool *loaded);
+void keys_get_status(const kuid_t *id, bool *full, bool *loaded, bool can_expire);
 uint64 keys_has(const kuid_t *id, const kuid_t *cid, bool store);
 void keys_add_value(const kuid_t *id, const kuid_t *cid,
 	uint64 dbkey, time_t expire);

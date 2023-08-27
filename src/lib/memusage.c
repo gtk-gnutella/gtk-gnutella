@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -617,10 +617,10 @@ memusage_sort_frames(const memusage_t *mu, bool periodic,
 	 * until we have a stable count.
 	 */
 
-	count = hash_table_size(ht);
+	count = hash_table_count(ht);
 	XMALLOC_ARRAY(fill->array, count);
-	while (hash_table_size(ht) != count) {
-		count = hash_table_size(ht);
+	while (hash_table_count(ht) != count) {
+		count = hash_table_count(ht);
 		XREALLOC_ARRAY(fill->array, count);
 	}
 	fill->capacity = count;
@@ -655,12 +655,11 @@ memusage_sorted_frame_dump_log(logagent_t *la, const memusage_t *mu,
 	size_t all_count;
 
 	log_info(la, "Decreasing list of %zu %s%s for %s (%zu recursion%s):",
-		count, what, plural(count), name, recurses, plural(recurses));
+		count, what, plural(count), name, PLURAL(recurses));
 
-	all_count = hash_table_size(all);
+	all_count = hash_table_count(all);
 
-	log_info(la, "Totaling %zu distinct stackrame%s",
-		all_count, plural(all_count));
+	log_info(la, "Totaling %zu distinct stackrame%s", PLURAL(all_count));
 
 	event = (0 == mu->width) ? "size" : "calls";
 

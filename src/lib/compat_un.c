@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -276,10 +276,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	if (sun->bound)
 		goto already_bound;
 
-	if (
-		clamp_strlen(saddr->sun_path, sizeof saddr->sun_path) >=
-			sizeof saddr->sun_path
-	)
+	if (clamp_strlen(ARYLEN(saddr->sun_path)) >= sizeof saddr->sun_path)
 		goto name_too_long;
 
 	/*
@@ -291,7 +288,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 		socket_addr_t addr;
 		socklen_t len;
 
-		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, &enable, sizeof enable);
+		setsockopt(sd, SOL_SOCKET, SO_REUSEADDR, VARLEN(enable));
 
 		len = socket_addr_set(&addr, ipv4_loopback, 0);
 		if (-1 == bind(sd, socket_addr_get_const_sockaddr(&addr), len))
@@ -326,9 +323,9 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 	 * Generate the random cookies and save the socket file path.
 	 */
 
-	random_bytes(sun->u.l.client_cookie, sizeof sun->u.l.client_cookie);
-	random_bytes(sun->u.l.server_cookie, sizeof sun->u.l.server_cookie);
-	clamp_strcpy(sun->path, sizeof sun->path, saddr->sun_path);
+	random_bytes(ARYLEN(sun->u.l.client_cookie));
+	random_bytes(ARYLEN(sun->u.l.server_cookie));
+	clamp_strcpy(ARYLEN(sun->path), saddr->sun_path);
 
 	/*
 	 * Generate the file, using the following format.
@@ -348,7 +345,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	{
 		const char *port_str = uint32_to_string(port);
-		size_t port_len = strlen(port_str);
+		size_t port_len = vstrlen(port_str);
 
 		rw = write(fd, port_str, port_len);
 		if ((ssize_t) -1 == rw)
@@ -361,7 +358,7 @@ compat_bind(int sd, const struct sockaddr *my_addr, socklen_t addrlen)
 
 	{
 		const char *type = sun->stream ? " s " : " d ";
-		size_t type_len = strlen(type);
+		size_t type_len = vstrlen(type);
 
 		rw = write(fd, type, type_len);
 		if ((ssize_t) -1 == rw)
@@ -555,7 +552,7 @@ compat_accept(int sd, struct sockaddr *addr, socklen_t *addrlen)
 		struct sock_un *asun;
 
 		asun = sock_un_alloc();
-		clamp_strcpy(asun->path, sizeof asun->path, sun->path);
+		clamp_strcpy(ARYLEN(asun->path), sun->path);
 		asun->connected = TRUE;
 		asun->u.a.lsun = sock_un_refcnt_inc(sun);
 
@@ -646,10 +643,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		return -1;
 	}
 
-	if (
-		clamp_strlen(saddr->sun_path, sizeof saddr->sun_path) ==
-			sizeof saddr->sun_path
-	) {
+	if (clamp_strlen(ARYLEN(saddr->sun_path)) == sizeof saddr->sun_path) {
 		errno = EINVAL;
 		return -1;
 	}
@@ -670,7 +664,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 		int c;
 		size_t i;
 
-		rw = read(fd, buf, sizeof buf);
+		rw = read(fd, ARYLEN(buf));
 		if ((ssize_t) -1 == rw)
 			goto io_error;
 		fd_close(&fd);
@@ -746,7 +740,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	 * Connection succeeded, send the client cookies to the server.
 	 */
 
-	rw = s_write(sd, client, sizeof client);
+	rw = s_write(sd, ARYLEN(client));
 
 	if (rw != sizeof client)
 		return -1;
@@ -761,7 +755,7 @@ compat_connect(int sd, const struct sockaddr *addr, socklen_t addrlen)
 	{
 		uint32 value;
 
-		if (sizeof value != s_read(sd, &value, sizeof value))
+		if (sizeof value != s_read(sd, VARLEN(value)))
 			return -1;
 
 		if (value != server[0])
@@ -878,7 +872,7 @@ compat_getsockname(int sd, struct sockaddr *addr, socklen_t *addrlen)
 	g_assert(!sun->listening);
 
 	saddr->sun_family = AF_LOCAL;
-	clamp_strcpy(saddr->sun_path, sizeof saddr->sun_path, sun->path);
+	clamp_strcpy(ARYLEN(saddr->sun_path), sun->path);
 
 	return 0;		/* OK */
 
@@ -928,7 +922,7 @@ compat_accept_check(int sd, bool *error)
 
 	g_assert(suna->pos < sizeof suna->buf);
 
-	rw = s_read(sd, &suna->buf[suna->pos], sizeof suna->buf - suna->pos);
+	rw = s_read(sd, ARYPOSLEN(suna->buf, suna->pos));
 
 	if (rw <= 0) {
 		*error = TRUE;

@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -71,6 +71,7 @@
 #include "lib/base32.h"
 #include "lib/concat.h"
 #include "lib/crash.h"
+#include "lib/cstr.h"
 #include "lib/eclist.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
@@ -89,6 +90,7 @@
 #include "lib/mempcpy.h"
 #include "lib/parse.h"
 #include "lib/path.h"
+#include "lib/pow2.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
 #include "lib/rbtree.h"
@@ -126,6 +128,8 @@
  */
 #define FI_OFFSET_BOUNDARY		((filesize_t) 128 * 1024)
 #define FI_OFFSET_ALIGNMASK		(FI_OFFSET_BOUNDARY - 1)
+
+static uint32 file_info_align_mask = FI_OFFSET_ALIGNMASK;
 
 enum dl_file_chunk_magic { DL_FILE_CHUNK_MAGIC = 0x563b483d };
 
@@ -237,6 +241,31 @@ enum dl_file_info_field {
 
 #define FI_STORE_DELAY		60	/**< Max delay (secs) for flushing fileinfo */
 #define FI_TRAILER_INT		6	/**< Amount of uint32 in the trailer */
+
+/**
+ * Update the minimum download chunksize.
+ *
+ * We use this information to try to force the start of downloaded chunks on
+ * a natural boundary, compatible with that minimum chunk size.
+ */
+void
+file_info_set_minchunksize(uint32 val)
+{
+	if (is_pow2(val)) {
+		if (val <= FI_OFFSET_BOUNDARY)
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		else
+			file_info_align_mask = val - 1;
+	} else {
+		uint32 p2 = next_pow2(val);
+
+		if (p2 <= 2 * FI_OFFSET_BOUNDARY) {
+			file_info_align_mask = FI_OFFSET_ALIGNMASK;
+		} else {
+			file_info_align_mask = p2 / 2 - 1;
+		}
+	}
+}
 
 /**
  * The swarming trailer is built within a memory buffer first, to avoid having
@@ -407,6 +436,7 @@ static void
 TBUF_PUT_UINT32(uint32 x)
 {
 	TBUF_CHECK(sizeof x);
+	/* Can't use VARLEN(x) in case mempcpy() is a macro with 3 args declared */
 	tbuf.wptr = mempcpy(tbuf.wptr, &x, sizeof x);
 }
 
@@ -433,7 +463,7 @@ static void
 WRITE_CHAR(uint8 val, uint32 *checksum)
 {
 	TBUF_PUT_CHAR(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -441,7 +471,7 @@ WRITE_UINT32(uint32 val, uint32 *checksum)
 {
 	val = htonl(val);
 	TBUF_PUT_UINT32(val);
-	file_info_checksum(checksum, &val, sizeof val);
+	file_info_checksum(checksum, VARLEN(val));
 }
 
 static void
@@ -459,7 +489,7 @@ static WARN_UNUSED_RESULT bool
 READ_CHAR(uint8 *val, uint32 *checksum)
 {
 	if (TBUF_GETCHAR(val)) {
-		file_info_checksum(checksum, val, sizeof *val);
+		file_info_checksum(checksum, PTRLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -473,7 +503,7 @@ READ_UINT32(uint32 *val_ptr, uint32 *checksum)
 
 	if (TBUF_GET_UINT32(&val)) {
 		*val_ptr = ntohl(val);
-		file_info_checksum(checksum, &val, sizeof val);
+		file_info_checksum(checksum, VARLEN(val));
 		return TRUE;
 	} else {
 		return FALSE;
@@ -622,11 +652,9 @@ tbuf_read(int fd, size_t len)
 static struct dl_file_chunk *
 dl_file_chunk_alloc(void)
 {
-	static const struct dl_file_chunk zero_fc;
 	struct dl_file_chunk *fc;
 
-	WALLOC(fc);
-	*fc = zero_fc;
+	WALLOC0(fc);
 	fc->magic = DL_FILE_CHUNK_MAGIC;
 	return fc;
 }
@@ -784,7 +812,7 @@ file_info_fd_store_binary(fileinfo_t *fi, const file_object_t *fo)
 		FIELD_ADD(FILE_INFO_FIELD_CHA1, SHA1_RAW_SIZE, fi->cha1, &checksum);
 
 	PSLIST_FOREACH(fi->alias, sl) {
-		size_t len = strlen(sl->data);		/* Do not store the trailing NUL */
+		size_t len = vstrlen(sl->data);		/* Do not store the trailing NUL */
 		g_assert(len <= INT_MAX);
 		if (len < FI_MAX_FIELD_LEN)
 			FIELD_ADD(FILE_INFO_FIELD_ALIAS, len, sl->data, &checksum);
@@ -880,7 +908,7 @@ file_info_store_binary(fileinfo_t *fi, bool force)
 
 	if (fo != NULL) {
 		file_info_fd_store_binary(fi, fo);
-		file_object_release(&fo);
+		file_object_close(&fo);
 	}
 }
 
@@ -1078,7 +1106,7 @@ file_info_strip_binary_from_file(fileinfo_t *fi, const char *pathname)
 	if (dfi->size != fi->size || dfi->done != fi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(dfi->done), "/",
 			filesize_to_string2(dfi->size), NULL_PTR);
 		g_warning("could not chop fileinfo trailer off \"%s\": file was "
@@ -1419,7 +1447,7 @@ file_info_get_trailer(int fd, struct trailer *tb, filestat_t *sb,
 		return FALSE;
 	}
 
-	r = read(fd, tr, sizeof tr);
+	r = read(fd, ARYLEN(tr));
 	if ((ssize_t) -1 == r) {
 		g_warning("%s(): error reading trailer in \"%s\": %m", G_STRFUNC, name);
 		return FALSE;
@@ -2018,13 +2046,13 @@ G_STMT_START {				\
 			goto eof;
 
 		if (0 == tmpuint) {
-			str_bprintf(tmp, sizeof tmp, "field #%d has zero size", field);
+			str_bprintf(ARYLEN(tmp), "field #%d has zero size", field);
 			BAILOUT(tmp);
 			/* NOT REACHED */
 		}
 
 		if (tmpuint > FI_MAX_FIELD_LEN) {
-			str_bprintf(tmp, sizeof tmp,
+			str_bprintf(ARYLEN(tmp),
 				"field #%d is too large (%u bytes) ", field, (uint) tmpuint);
 			BAILOUT(tmp);
 			/* NOT REACHED */
@@ -2131,10 +2159,10 @@ G_STMT_START {				\
 					g_assert(version >= 6);
 					hi = ntohl(tmpchunk[0]);
 					lo = ntohl(tmpchunk[1]);
-					fc->from = (hi << 32) | lo;
+					fc->from = UINT64_VALUE(hi, lo);
 					hi = ntohl(tmpchunk[2]);
 					lo = ntohl(tmpchunk[3]);
-					fc->to = (hi << 32) | lo;
+					fc->to = UINT64_VALUE(hi, lo);
 					fc->status = ntohl(tmpchunk[4]);
 				}
 
@@ -2948,7 +2976,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (GNET_PROPERTY(fileinfo_debug) > 3) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_debug("CONFLICT found same SHA1 %s in \"%s\" "
@@ -2960,7 +2988,7 @@ file_info_got_sha1(fileinfo_t *fi, const struct sha1 *sha1)
 	if (fi->done && xfi->done) {
 		char buf[64];
 
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			filesize_to_string(xfi->done), "/",
 			filesize_to_string2(xfi->size), NULL_PTR);
 		g_warning("found same SHA1 %s in \"%s\" (%s bytes done) and \"%s\" "
@@ -2995,7 +3023,7 @@ extract_guid(const char *s)
 {
 	struct guid guid;
 
-	if (strlen(s) < GUID_HEX_SIZE)
+	if (vstrlen(s) < GUID_HEX_SIZE)
 		return NULL;
 
 	if (!hex_to_guid(s, &guid))
@@ -3013,10 +3041,10 @@ extract_sha1(const char *s)
 {
 	struct sha1 sha1;
 
-	if (strlen(s) < SHA1_BASE32_SIZE)
+	if (vstrlen(s) < SHA1_BASE32_SIZE)
 		return NULL;
 
-	if (SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1, s, SHA1_BASE32_SIZE))
+	if (SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), s, SHA1_BASE32_SIZE))
 		return NULL;
 
 	return atom_sha1_get(&sha1);
@@ -3027,10 +3055,10 @@ extract_tth(const char *s)
 {
 	struct tth tth;
 
-	if (strlen(s) < TTH_BASE32_SIZE)
+	if (vstrlen(s) < TTH_BASE32_SIZE)
 		return NULL;
 
-	if (TTH_RAW_SIZE != base32_decode(&tth, sizeof tth, s, TTH_BASE32_SIZE))
+	if (TTH_RAW_SIZE != base32_decode(VARLEN(tth), s, TTH_BASE32_SIZE))
 		return NULL;
 
 	return atom_tth_get(&tth);
@@ -3178,7 +3206,7 @@ file_info_retrieve(void)
 	if (!f)
 		return;
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		int error;
 		bool truncated = FALSE, damaged;
 		const char *ep;
@@ -3195,7 +3223,7 @@ file_info_retrieve(void)
 		 * we'll be re-synchronized on the real end of the line.
 		 */
 
-		truncated = !file_line_chomp_tail(line, sizeof line, NULL);
+		truncated = !file_line_chomp_tail(ARYLEN(line), NULL);
 
 		if (last_was_truncated) {
 			last_was_truncated = truncated;
@@ -3261,6 +3289,8 @@ file_info_retrieve(void)
 
 			if (FI_F_SEEDING & fi->flags) {
 				if (crash_was_restarted()) {
+					filestat_t sb;
+
 					if (NULL == fi->sha1) {
 						g_warning("%s(): missing SHA1 for seeded file %s",
 							G_STRFUNC, fi->pathname);
@@ -3271,6 +3301,38 @@ file_info_retrieve(void)
 						g_warning("%s(): missing previously seeded file %s",
 							G_STRFUNC, fi->pathname);
 						goto reset;		/* User probably removed the file */
+					}
+
+					if (-1 == stat(fi->pathname, &sb)) {
+						g_warning("%s(): cannot stat seeded file %s: %m",
+							G_STRFUNC, fi->pathname);
+						goto reset;
+					}
+
+					/*
+					 * FIXME:
+					 * Would need to check that the file is still accurate if
+					 * the timestamp was changed since last modification.
+					 * For now just warn.
+					 * 		--RAM, 2017-10-23
+					 */
+
+					if (sb.st_mtime != fi->modified) {
+						bool accepted = huge_cached_is_uptodate(
+								fi->pathname, sb.st_size, sb.st_mtime);
+
+						g_warning("%s(): modified seeded file %s: "
+							"last modified=%lu, file mtime=%lu; %s",
+							G_STRFUNC, fi->pathname,
+							(ulong) fi->modified, (ulong) sb.st_mtime,
+							accepted ? "resetting!" : "discarding!");
+
+						if (!accepted)
+							goto reset;
+
+						/* This stamp is necessary to be able to upload! */
+						fi->modified = sb.st_mtime;
+						fi->stamp = fi->modified;	/* Persist new value */
 					}
 
 					if (fi->tth != NULL)
@@ -3532,7 +3594,7 @@ file_info_retrieve(void)
 			old_filename = NULL;
 		}
 
-		value = strchr(line, ' ');
+		value = vstrchr(line, ' ');
 		if (!value) {
 			if (*line)
 				g_warning("ignoring fileinfo line: \"%s\"", line);
@@ -3653,6 +3715,7 @@ file_info_retrieve(void)
 			v = parse_uint64(value, &ep, 10, &error);
 			damaged = error || '\0' != *ep;
 			fi->stamp = v;
+			fi->modified = v;		/* Until we know better */
 			break;
 		case FI_TAG_CTIM:
 			v = parse_uint64(value, &ep, 10, &error);
@@ -4044,13 +4107,26 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 		if (-1 == stat(fi->pathname, &sb)) {
 			g_warning("%s(): cannot stat() shared file \"%s\": %m",
 				G_STRFUNC, fi->pathname);
-		} else if (fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0) {
-			g_warning("%s(): wrong size for shared file \"%s\": "
-				"expected %s, got %s",
-				G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
-				filesize_to_string2(sb.st_size));
 		} else {
 			mtime = sb.st_mtime;
+
+			/*
+			 * This routine can also be called when a partial file is being
+			 * renamed through the GUI, hence we must not warn if the partial
+			 * file size on the disk does not match the internal file
+			 * information: the fileinfo trailer is still present on the disk!
+			 * 		--RAM, 2019-05-26
+			 */
+
+			if (
+					(FI_F_STRIPPED & fi->flags) &&
+					fi->size + (fileoffset_t) 0 != sb.st_size + (filesize_t) 0
+			) {
+				g_warning("%s(): wrong size for shared file \"%s\": "
+					"expected %s, got %s",
+					G_STRFUNC, fi->pathname, filesize_to_string(fi->size),
+					filesize_to_string2(sb.st_size));
+			}
 		}
 
 		/*
@@ -4071,7 +4147,8 @@ file_info_moved(fileinfo_t *fi, const char *pathname)
 
 		shared_file_set_modification_time(fi->sf, mtime);	/* Sets sf->mtime */
 		fi->modified = mtime;
-	}
+		fi->stamp = mtime;		/* Persisted as "TIME" in fileinfo ASCII DB */
+ 	}
 
 	fi_event_trigger(fi, EV_FI_INFO_CHANGED);
 	file_info_changed(fi);
@@ -4804,6 +4881,10 @@ file_info_reset(fileinfo_t *fi)
 
 	atom_sha1_free_null(&fi->cha1);
 
+	/* Better forget old TTH, could be invalid */
+	atom_tth_free_null(&fi->tth);
+	fi_tigertree_free(fi);
+
 	/* File possibly shared */
 	file_info_upload_stop(fi, N_("File info being reset"));
 
@@ -5020,6 +5101,24 @@ fi_busy_count(fileinfo_t *fi, const struct download *d)
 }
 
 /**
+ * Log available chunk list.
+ */
+static void
+fi_available_log(const fileinfo_t *fi)
+{
+	const struct dl_avail_chunk *fa;
+
+	g_debug("%s(): available chunks for %s", G_STRFUNC, fi->pathname);
+
+	ESLIST_FOREACH_DATA(&fi->available, fa) {
+		g_debug("%s(): [%s, %s] (%zu source%s)",
+			G_STRFUNC,
+			filesize_to_string(fa->from), filesize_to_string2(fa->to - 1),
+			PLURAL(fa->sources));
+	}
+}
+
+/**
  * Compares two offered ranges so that two ranges are equal when they overlap.
  */
 static int
@@ -5037,6 +5136,29 @@ fi_chunk_overlap_cmp(const void *a, const void *b)
 }
 
 /**
+ * Wrapper around http_rangeset_lookup_over() to simplify code logic in
+ * fi_pick_rarest_chunk().
+ *
+ * If `offered' is NULL, then we return the supplied `dflt' the first time,
+ * i.e. when `r' is NULL, and NULL the second time: in effect we are "iterating"
+ * over one single chunk, the supplied `dflt'.
+ *
+ * Otherwise we perform a regular iteration to identify all the offered chunks
+ * that overlap with the `fa' "available chunk range".
+ */
+static const http_range_t *
+fi_rangeset_lookup_over(const http_rangeset_t *offered,
+	const struct dl_avail_chunk *fa, const http_range_t *dflt,
+	const http_range_t *r)
+{
+	if (NULL == offered)
+		return NULL == r ? dflt : NULL;
+
+	return http_rangeset_lookup_over(offered, fa->from, fa->to - 1, r);
+}
+
+
+/**
  * Select a chunk randomly among the rarest chunks offered on the network.
  *
  * If no download source is provided, then we assume we can pick any missing
@@ -5050,7 +5172,8 @@ fi_chunk_overlap_cmp(const void *a, const void *b)
  * @param d			the possibly partial download source (may be NULL)
  * @param size		the targeted chunk size
  *
- * @return the picked chunk among the fileinfo's chunklist.
+ * @return the picked chunk among the fileinfo's chunklist, or NULL if we
+ * determine we have nothing available remotely.
  */
 static const struct dl_file_chunk *
 fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
@@ -5061,6 +5184,8 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	const struct dl_file_chunk *first, *candidate = NULL;
 	uint32 rarest_count = 0;
 	const struct dl_avail_chunk *rarest = NULL, *fa;
+	http_range_t r_dflt = { 0, 0 };
+	const http_range_t *server_range = NULL;
 
 	file_info_check(fi);
 	g_assert(0 != eslist_count(&fi->chunklist));
@@ -5070,6 +5195,16 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 
 	if (!fi->file_size_known)
 		return first;
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
+		fi_available_log(fi);
+
+	/*
+	 * The `offered' set contains the HTTP ranges offered by the source,
+	 * if any given.  If NULL, it means the source covers the whole file.
+	 */
+
+	offered = NULL == d ? NULL : d->ranges;
 
 	if (GNET_PROPERTY(pfsp_first_chunk) > 0) {
 		/*
@@ -5081,8 +5216,14 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				break;
 
 			if (DL_CHUNK_EMPTY == fc->status) {
+				if (
+					offered != NULL &&
+					!http_rangeset_contains(offered, fc->from, fc->to - 1)
+				)
+					continue;	/* Not offered by remote host */
+
 				if (GNET_PROPERTY(download_debug)) {
-					g_debug("%s(): less than %u bytes, using first chunk",
+					g_debug("%s(): less than %u bytes, using early empty chunk",
 						G_STRFUNC, GNET_PROPERTY(pfsp_first_chunk));
 				}
 
@@ -5095,13 +5236,9 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	/*
 	 * The `missing' red-black tree contains the file chunks that are still
 	 * empty and need to be downloaded.
-	 *
-	 * The `offered' set contains the HTTP ranges offered by the source,
-	 * if any given.  If NULL, it means the source covers the whole file.
 	 */
 
 	missing = rbtree_create(fi_chunk_overlap_cmp);
-	offered = NULL == d ? NULL : d->ranges;
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 		dl_file_chunk_check(fc);
@@ -5118,42 +5255,100 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	 */
 
 	ESLIST_FOREACH_DATA(&fi->available, fa) {
-		struct dl_file_chunk *dfc;
-		struct dl_file_chunk crange;
+		const http_range_t *r = NULL;
 
 		dl_avail_chunk_check(fa);
 
 		/*
 		 * If we have already found a candidate and this chunk has more
-		 * sources, we're done.
+		 * sources, we're done (since fi->available is sorted by increasing
+		 * source count).
 		 */
 
 		if (rarest != NULL && fa->sources > rarest->sources)
 			break;
 
-		if (
-			offered != NULL &&
-			!http_rangeset_contains(offered, fa->from, fa->to - 1)
-		)
-			continue;		/* Range not offered */
+		/*
+		 * Look for the offered ranges overlapping with the overall available
+		 * chunks for this file.  Since `offered' can be NULL, we prepare a
+		 * default chunk to process and then blindly "iterate" through the
+		 * wrapper fi_rangeset_lookup_over() so that the processing logic below
+		 * does not depend on whether `offered' was NULL.
+		 */
 
-		crange.from = fa->from;
-		crange.to = fa->to;
+		if (NULL == offered) {
+			/* The chunk we wish to return from fi_rangeset_lookup_over() */
+			r_dflt.start = fa->from;
+			r_dflt.end = fa->to - 1;
+		} else if (!http_rangeset_contains(offered, fa->from, fa->to - 1))
+			continue;		/* Range not offered by source*/
 
-		dfc = rbtree_lookup(missing, &crange);
+		while (NULL != (r = fi_rangeset_lookup_over(offered, fa, &r_dflt, r))) {
+			struct dl_file_chunk *dfc;
+			struct dl_file_chunk crange;
+			filesize_t start, end;
 
-		if (dfc != NULL) {
-			/* Rare range overlaps with missing range */
+			crange.from = r->start;
+			crange.to = r->end + 1;
+
+			dfc = rbtree_lookup(missing, &crange);
+
+			if (NULL == dfc)
+				continue;	/* Rare range not overlapping with missing range */
 
 			if (
 				GNET_PROPERTY(fileinfo_debug) > 2 ||
 				GNET_PROPERTY(download_debug) > 1
 			) {
-				g_debug("%s(): possible rarest candidate #%u for \"%s\" is "
-					"[%s, %s] (%zu source%s)",
-					G_STRFUNC, rarest_count + 1, fi->pathname,
-					filesize_to_string(fa->from), filesize_to_string2(fa->to),
-					fa->sources, plural(fa->sources));
+				g_debug("%s(): possible rarest %schunk #%u for \"%s\" "
+					"is [%s, %s] (%zu source%s)",
+					G_STRFUNC,
+					NULL == offered ? "" : "offered ",
+					rarest_count + 1, fi->pathname,
+					filesize_to_string(r->start), filesize_to_string2(r->end),
+					PLURAL(fa->sources));
+			}
+
+			/*
+			 * [start, end] is the intersection of the rarest chunk we are
+			 * currently considering (`fa') and the candidate `dfc'.
+			 *
+			 * Since the upper range `to' is not part of the interval, we
+			 * have no overlap between the two when start >= end.
+			 *
+			 * It is necessary to check for overlapping here, because we
+			 * could have this setup:
+			 *
+			 * rarest chunk (fa)  :        [-----]
+			 * server range (r):               [-----]
+			 * missing chunk (dfc):                [------]
+			 *
+			 * We know `r' and `fa' intersect, as `r' and `dfc' do,
+			 * but we need to ensure `fa' and `dfc' do as well!  In the
+			 * graphic above, they do not!
+			 *
+			 * Forgetting to check that condition led to assertion failures
+			 * later because we want `rarest' and `candidate' to overlap!
+			 * 		--RAM, 2020-12-12
+			 */
+
+			start = MAX(fa->from, dfc->from);
+			end   = MIN(fa->to,   dfc->to);
+
+			if (start >= end) {
+				if (
+					GNET_PROPERTY(fileinfo_debug) > 2 ||
+					GNET_PROPERTY(download_debug) > 1
+				) {
+					g_debug("%s(): but download empty chunk [%s, %s] is not "
+						"intersecting with rarest [%s, %s]",
+						G_STRFUNC,
+						filesize_to_string(dfc->from),
+						filesize_to_string2(dfc->to),
+						filesize_to_string3(fa->from),
+						fileoffset_t_to_string(fa->to));
+				}
+				continue;
 			}
 
 			/*
@@ -5174,15 +5369,20 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 
 			rarest = fa;
 			candidate = dfc;
+			server_range = r;
 
 			/*
 			 * If we're not a PFSP server, we retain the first candidate we see.
 			 */
 
 			if (!GNET_PROPERTY(pfsp_server))
-				break;
+				goto selected;
 		}
 	}
+
+	/* FALL THROUGH */
+
+selected:
 
 	/*
 	 * If we have a candidate, then randomly pick the starting point in the
@@ -5203,7 +5403,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 		 */
 
 		start = MAX(rarest->from, candidate->from);
-		end = MIN(rarest->to, candidate->to);
+		end   = MIN(rarest->to,   candidate->to);
 
 		if (
 			GNET_PROPERTY(fileinfo_debug) > 2 ||
@@ -5213,10 +5413,50 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				"[%s, %s] (%zu source%s)",
 				G_STRFUNC, fi->pathname,
 				filesize_to_string(start), filesize_to_string2(end),
-				rarest->sources, plural(rarest->sources));
+				PLURAL(rarest->sources));
 		}
 
-		g_assert(start < end);		/* Because the two MUST overlap */
+		/* Because the two MUST overlap */
+		g_assert_log(start < end,
+			"%s(): intersection of rarest [%'zu, %'zu] and "
+			"candidate [%'zu, %'zu] "
+			"gave [start = %'zu, end = %'zu]",
+			G_STRFUNC,
+			(size_t) rarest->from, (size_t) rarest->to,
+			(size_t) candidate->from, (size_t) candidate->to,
+			(size_t) start, (size_t) end);
+
+		/*
+		 * Intersect with offered chunk if we have a list.
+		 */
+
+		if (offered != NULL) {
+			start = MAX(start, server_range->start);
+			end = MIN(end, server_range->end + 1);
+
+			if (
+				GNET_PROPERTY(fileinfo_debug) > 2 ||
+				GNET_PROPERTY(download_debug) > 1
+			) {
+				g_debug("%s(): after intersection with offered from %s, "
+					"becomes [%s, %s]",
+					G_STRFUNC, download_host_info(d),
+					filesize_to_string(start), filesize_to_string2(end));
+			}
+
+			if (end <= start) {
+				if (
+					GNET_PROPERTY(fileinfo_debug) ||
+					GNET_PROPERTY(download_debug)
+				) {
+					g_debug("%s(): null intersection, nothing available at %s",
+						G_STRFUNC, download_host_info(d));
+				}
+
+				candidate = NULL;		/* Signals: nothing! */
+				goto nothing;
+			}
+		}
 
 		if (end - start > size && GNET_PROPERTY(pfsp_server)) {
 			filesize_t offset, length;
@@ -5224,7 +5464,7 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 			length = end - start;
 			length -= size;
 			offset = start + get_random_file_offset(length);
-			offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
+			offset &= ~file_info_align_mask;	/* Align on natural boundary */
 			offset = MAX(offset, start);
 
 			g_assert(offset >= candidate->from && offset <= candidate->to);
@@ -5259,9 +5499,9 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 				GNET_PROPERTY(fileinfo_debug) > 2 ||
 				GNET_PROPERTY(download_debug) > 1
 			) {
-				g_debug("%s(): selected chunk is [%s, %s]",
+				g_debug("%s(): selected chunk is [%s, %s] (status %d)",
 					G_STRFUNC, filesize_to_string(nfc->from),
-					filesize_to_string2(nfc->to));
+					filesize_to_string2(nfc->to), nfc->status);
 			}
 		}
 	}
@@ -5274,14 +5514,23 @@ fi_pick_rarest_chunk(fileinfo_t *fi, const download_t *d, filesize_t size)
 	if (NULL == candidate)
 		candidate = first;
 
+	/* FALL THROUGH */
+
+nothing:
 	rbtree_free_null(&missing);
+
+	/* FALL THROUGH */
 
 done:
 	if (GNET_PROPERTY(fileinfo_debug) || GNET_PROPERTY(download_debug)) {
-		g_debug("%s(): returning [%s, %s] (%u) for \"%s\"",
-			G_STRFUNC, filesize_to_string(candidate->from),
-			filesize_to_string2(candidate->to), candidate->status,
-			fi->pathname);
+		if (candidate != NULL) {
+			g_debug("%s(): returning [%s, %s] (status %d) for \"%s\"",
+				G_STRFUNC, filesize_to_string(candidate->from),
+				filesize_to_string2(candidate->to), candidate->status,
+				fi->pathname);
+		} else {
+			g_debug("%s(): returning NULL for \"%s\"", G_STRFUNC, fi->pathname);
+		}
 	}
 
 	return candidate;
@@ -5296,12 +5545,15 @@ done:
  * We also strive to get the latest "pfsp_last_chunk" bytes of the file as
  * well, since some file formats store important information at the tail of
  * the file as well, so we can select some of the latest chunks.
+ *
+ * @return the selected chunk (which may not be necessarily EMPTY)
  */
 static const struct dl_file_chunk *
 fi_pick_chunk(fileinfo_t *fi)
 {
-	filesize_t offset = 0;
+	filesize_t offset = 0, empty = 0;
 	slink_t *sl;
+	const struct dl_file_chunk *candidate = NULL;
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
@@ -5310,18 +5562,19 @@ fi_pick_chunk(fileinfo_t *fi)
 		const struct dl_file_chunk *fc;
 
 		/*
-		 * Check whether first chunk is at least "pfsp_first_chunk" bytes
+		 * Check whether first chunks cover at least "pfsp_first_chunk" bytes
 		 * long.  If not, return that first chunk.
 		 */
 
-		fc = eslist_head(&fi->chunklist);		/* First chunk */
-		dl_file_chunk_check(fc);
+		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
+			dl_file_chunk_check(fc);
 
-		if (
-			DL_CHUNK_DONE != fc->status ||
-			fc->to < GNET_PROPERTY(pfsp_first_chunk)
-		)
-			return fc;
+			if (fc->from >= GNET_PROPERTY(pfsp_first_chunk))
+				break;	/* Already past the first "pfsp_first_chunk" bytes */
+
+			if (DL_CHUNK_EMPTY == fc->status)
+				return fc;
+		}
 	}
 
 	if (GNET_PROPERTY(pfsp_last_chunk) > 0) {
@@ -5341,31 +5594,26 @@ fi_pick_chunk(fileinfo_t *fi)
 		ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 			dl_file_chunk_check(fc);
 
-			if (DL_CHUNK_DONE == fc->status)
+			if (DL_CHUNK_EMPTY != fc->status)
 				continue;
 
-			if (fc->from < last_chunk_offset && fc->to <= last_chunk_offset)
+			if (fc->to <= last_chunk_offset)
 				continue;
 
 			offset = fc->from < last_chunk_offset
 				? last_chunk_offset
 				: fc->from;
-			break;
+			candidate = fc;
+			goto selected;
 		}
 	}
 
 	/*
-	 * Only choose a random offset if the default value of "0" was not
-	 * forced to something else above.
-	 */
-
-	if (0 == offset) {
-		offset = get_random_file_offset(fi->size);
-		offset &= ~FI_OFFSET_ALIGNMASK;		/* Align on natural boundary */
-	}
-
-	/*
-	 * Pick the first chunk whose start is after the offset.
+	 * Pick a random empty chunk.
+	 *
+	 * To avoid any bias, we compute the amount of data belonging to empty
+	 * chunks, pick a random number in that range and then select the chunk
+	 * where this random number falls into.
 	 */
 
 	ESLIST_FOREACH(&fi->chunklist, sl) {
@@ -5373,58 +5621,122 @@ fi_pick_chunk(fileinfo_t *fi)
 
 		dl_file_chunk_check(fc);
 
-		if (fc->from >= offset)
-			return fc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-		/*
-		 * If offset lies within a free chunk, it will get split below.
-		 * So exit without selecting anything yet.
-		 */
-
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset)
-			break;
+		empty += fc->to - fc->from;		/* Sums "empty" data */
 	}
 
 	/*
-	 * If we have not picked anything, it means we have encountered a big chunk
-	 * and the selected offset lies within that chunk.
-	 * Be smarter and break-up any free chunk into two at the selected offset.
+	 * If there are no empty chunks, then return the head of the list.
+	 *
+	 * It does not matter that the chunk be not empty, our caller only uses
+	 * our returned value as a starting point to iterate (in a circular manner)
+	 * over the list of chunks.
 	 */
 
+	if G_UNLIKELY(0 == empty)
+		return eslist_head(&fi->chunklist);
+
+	/*
+	 * The random offset chosen among the amount of empty data is going to
+	 * become the point within that set of data we miss where we would want
+	 * to start downloading.
+	 *
+	 * To find the chunk to which that point belong, we need to iterate
+	 * again over the list of chunks, decreasing the offset until we reach
+	 * an offset whose value falls within the length of the current chunk.
+	 */
+
+	offset = get_random_file_offset(empty);
+
 	ESLIST_FOREACH(&fi->chunklist, sl) {
-		struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		const struct dl_file_chunk *fc = eslist_data(&fi->chunklist, sl);
+		filesize_t len;
 
 		dl_file_chunk_check(fc);
 
-		if (DL_CHUNK_EMPTY == fc->status && fc->to - 1 > offset) {
-			struct dl_file_chunk *nfc;
+		if (DL_CHUNK_EMPTY != fc->status)
+			continue;
 
-			g_assert(fc->from < offset);	/* Or we'd have cloned above */
-			g_assert(fc->download == NULL);	/* Chunk is empty */
+		len = fc->to - fc->from;
+
+		if (offset < len) {
+			filesize_t aligned;
 
 			/*
-			 * fc was [from, to[.  It becomes [from, offset[.
-			 * nfc is [offset, to[ and is inserted after fc.
+			 * Found our chunk.
 			 */
 
-			nfc = dl_file_chunk_alloc();
-			nfc->from = offset;
-			nfc->to = fc->to;
-			nfc->status = DL_CHUNK_EMPTY;
-			fc->to = nfc->from;
+			offset += fc->from;			/* Absolute file offset */
 
-			eslist_insert_after(&fi->chunklist, fc, nfc);
-			return nfc;
+			/*
+			 * Try to align the starting offset to a natural boundary.
+			 *
+	 		 * The aim of the alignment is to avoid having too many small empty
+			 * chunks in the list (chunks of a few bytes), which would
+			 * necessarily happen after a while if we kept the random offsets
+			 * as-is.
+			 *
+			 * If we cannot align (alignment falls before the beginning of
+			 * the chunk) then start at the beginning of the chunk to avoid
+			 * creating a small gap between the start of the chunk and the place
+			 * where we will start downloading (gap which is necessarily smaller
+			 * than our alignment requirement).
+			 */
+
+			aligned = offset & ~file_info_align_mask;
+			offset = MAX(aligned, fc->from);
+
+			candidate = fc;
+			goto selected;
 		}
+
+		offset -= len;		/* Skipping over this empty chunk */
+	}
+
+	g_assert_not_reached();	/* Must have found the randomly selected chunk */
+
+selected:
+	/*
+	 * We come here with "candidate" set to the selected chunk and "offset"
+	 * set to the value where we need to start requesting within that chunk.
+	 */
+
+	dl_file_chunk_check(candidate);
+	g_assert(DL_CHUNK_EMPTY == candidate->status);
+	g_assert(offset >= candidate->from && offset < candidate->to);
+	g_assert(NULL == candidate->download);	/* Chunk is empty */
+
+	/*
+	 * If the offset is not at the start of the chunk, split the chunk at
+	 * the specified offset.
+	 */
+
+	if (offset != candidate->from) {
+		struct dl_file_chunk *fc, *nfc;
+
+		/*
+		 * candidate was [from, to[.  It becomes [from, offset[.
+		 * nfc is [offset, to[ and is inserted after candidate, then
+		 * becomes the candidate.
+		 */
+
+		fc = deconstify_pointer(candidate);
+
+		nfc = dl_file_chunk_alloc();
+		nfc->from = offset;
+		nfc->to = fc->to;
+		nfc->status = DL_CHUNK_EMPTY;
+		fc->to = nfc->from;
+
+		eslist_insert_after(&fi->chunklist, fc, nfc);
+		candidate = nfc;
 	}
 
 	g_assert(file_info_check_chunklist(fi, TRUE));
 
-	/*
-	 * If still no luck, never mind.  Use first chunk.
-	 */
-
-	return eslist_head(&fi->chunklist);
+	return candidate;
 }
 
 /**
@@ -5962,6 +6274,8 @@ file_info_find_hole(const struct download *d, filesize_t *from, filesize_t *to)
 			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
 	}
 
+	g_assert(chunk != NULL);
+
 	/*
 	 * Iteration is done using a "circular" list illusion, to be able to
 	 * nicely iterate even if we don't start from the head.
@@ -6073,6 +6387,8 @@ file_info_find_available_hole(
 	if (eslist_count(&fi->available) > 1) {
 		chunksize = fi_chunksize(fi);
 		chunk = fi_pick_rarest_chunk(fi, d, chunksize);
+		if (NULL == chunk)
+			return FALSE;
 	} else {
 		chunk = GNET_PROPERTY(pfsp_server) ?
 			fi_pick_chunk(fi) : eslist_head(&fi->chunklist);
@@ -6356,7 +6672,7 @@ file_info_scandir(const char *dir)
 }
 
 /**
- * Callback for hash table iterator. Used by file_info_completed_orphans().
+ * Callback for hash table iterator. Used by file_info_spot_completed_orphans().
  */
 static void
 fi_spot_completed_kv(void *val, void *unused_x)
@@ -6369,7 +6685,7 @@ fi_spot_completed_kv(void *val, void *unused_x)
 	if (fi->refcount)
 		return;				/* Attached to a download */
 
-	if (FI_F_SEEDING && fi->flags)
+	if (FI_F_SEEDING & fi->flags)
 		return;				/* Completed file being seeded */
 
 	/*
@@ -7236,7 +7552,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		if (DL_CHUNK_DONE != fc->status)
 			continue;
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -7323,7 +7639,7 @@ file_info_available_ranges(const fileinfo_t *fi, char *buf, size_t size)
 		dl_file_chunk_check(fc);
 		g_assert(DL_CHUNK_DONE == fc->status);
 
-		str_bprintf(range, sizeof range, "%s%s-%s",
+		str_bprintf(ARYLEN(range), "%s%s-%s",
 			is_first ? "bytes " : "",
 			filesize_to_string(fc->from), filesize_to_string2(fc->to - 1));
 
@@ -7381,6 +7697,22 @@ file_info_restrict_range(fileinfo_t *fi, filesize_t start, filesize_t *end)
 
 	file_info_check(fi);
 	g_assert(file_info_check_chunklist(fi, TRUE));
+
+	/*
+	 * When file is seeded, the chunklist has been disposed of but we can
+	 * satisfy any request that falls within the file boundaries!
+	 */
+
+	if (FI_F_SEEDING & fi->flags) {
+		if (*end >= fi->size)
+			*end = fi->size - 1;	/* Cannot go beyond end of file! */
+		return TRUE;				/* Completed file being seeded */
+	}
+
+	/*
+	 * Look for a suitable chunk, relying on the fact that completed chunks
+	 * have been coalesced together.
+	 */
 
 	ESLIST_FOREACH_DATA(&fi->chunklist, fc) {
 		dl_file_chunk_check(fc);
@@ -7719,7 +8051,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	if (!fi->file_size_known)
 		return;
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 4 || GNET_PROPERTY(download_debug))
 		g_debug("%s(): updating available for %s", G_STRFUNC, fi->pathname);
 
 	/*
@@ -7782,8 +8114,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 
 	if (GNET_PROPERTY(fileinfo_debug) > 5) {
 		g_debug("- collected %zu range%s out of %zu source%s:",
-			rbtree_count(rbt), plural(rbtree_count(rbt)),
-			sources, plural(sources));
+			PLURAL(rbtree_count(rbt)), PLURAL(sources));
 
 		iter = rbtree_iter_new(rbt);
 		while (rbtree_iter_next(iter, &item)) {
@@ -7791,7 +8122,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 			g_debug("   [%s, %s] (%.2f%%) %zu source%s",
 				filesize_to_string(ac->from), filesize_to_string2(ac->to),
 				100.0 * (ac->to - ac->from) / (0 == fi->size ? 1 : fi->size),
-				ac->sources, plural(ac->sources));
+				PLURAL(ac->sources));
 		}
 		rbtree_iter_release(&iter);
 	}
@@ -7857,7 +8188,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 		iter = rbtree_iter_new(arbt);
 
 		g_debug("- identified %zu available range%s over file:",
-			rbtree_count(arbt), plural(rbtree_count(arbt)));
+			PLURAL(rbtree_count(arbt)));
 
 		while (rbtree_iter_next(iter, &item)) {
 			const struct dl_avail_chunk *avc = item;
@@ -7866,7 +8197,7 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 
 			g_debug("   [%s, %s] %zu source%s",
 				filesize_to_string(avc->from), filesize_to_string2(avc->to),
-				avc->sources, plural(avc->sources));
+				PLURAL(avc->sources));
 
 			available += avc->to - avc->from;	/* For logging */
 		}
@@ -7910,6 +8241,9 @@ fi_update_rarest_chunks(fileinfo_t *fi)
 	 */
 
 	eslist_sort(&fi->available, fi_avail_source_cmp);
+
+	if (GNET_PROPERTY(fileinfo_debug) > 5)
+		fi_available_log(fi);
 }
 
 /**
@@ -7945,7 +8279,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 
 	fi_update_rarest_chunks(fi);
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
+	if (GNET_PROPERTY(fileinfo_debug) > 5 || GNET_PROPERTY(download_debug) > 1)
 		g_debug("%s(): updating ranges for %s", G_STRFUNC, fi->pathname);
 
 	/*
@@ -7977,8 +8311,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			download_is_active(src)
 		) {
 			if (GNET_PROPERTY(fileinfo_debug) > 5)
-				g_debug("- %s:%d replied (%s, flags=0x%x), ",
-					host_addr_to_string(src->server->key->addr),
+				g_debug("%s(): - %s:%d replied (%s, flags=0x%x), ",
+					G_STRFUNC, host_addr_to_string(src->server->key->addr),
 					src->server->key->port,
 					download_status_to_string(src), src->flags);
 
@@ -7988,7 +8322,7 @@ fi_update_seen_on_network(gnet_src_t srcid)
 				 */
 
 				if (GNET_PROPERTY(fileinfo_debug) > 5)
-					g_debug("   whole file is now available");
+					g_debug("%s():   whole file is now available", G_STRFUNC);
 
 				http_rangeset_clear(hrs);
 				http_rangeset_insert(hrs, 0, fi->size - 1);
@@ -7999,8 +8333,8 @@ fi_update_seen_on_network(gnet_src_t srcid)
 			} else {
 				/* Merge in the new ranges */
 				if (GNET_PROPERTY(fileinfo_debug) > 5) {
-					g_debug("   ranges available: %s",
-						http_rangeset_to_string(src->ranges));
+					g_debug("%s():   ranges available: %s",
+						G_STRFUNC, http_rangeset_to_string(src->ranges));
 				}
 
 				http_rangeset_merge(hrs, src->ranges);
@@ -8015,13 +8349,18 @@ fi_update_seen_on_network(gnet_src_t srcid)
 		}
 	}
 
-	if (GNET_PROPERTY(fileinfo_debug) > 5)
-		g_debug("=> final ranges: %s", http_rangeset_to_string(hrs));
+	if (GNET_PROPERTY(fileinfo_debug) > 5 || GNET_PROPERTY(download_debug) > 1) {
+		g_debug("%s(): => final ranges (%s / %s = %.3f%%): %s",
+			G_STRFUNC, filesize_to_string(http_rangeset_length(hrs)),
+			filesize_to_string2(fi->size),
+			0 == fi->size ? 100.0 : http_rangeset_length(hrs) * 100.0 / fi->size,
+			http_rangeset_to_string(hrs));
+	}
 
 	/*
 	 * Trigger a changed ranges event so that others can use the updated info.
 	 */
-	fi_event_trigger(d->file_info, EV_FI_RANGES_CHANGED);
+	fi_event_trigger(fi, EV_FI_RANGES_CHANGED);
 }
 
 struct file_info_foreach {
@@ -8067,15 +8406,14 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		} else {
 			secs = 0;
 		}
-        str_bprintf(buf, sizeof buf, _("Downloading (TR: %s)"),
+        str_bprintf(ARYLEN(buf), _("Downloading (TR: %s)"),
 			secs ? short_time(secs) : "-");
 		goto dht_status;
     } else if (status->seeding) {
 		return _("Seeding");
     } else if (status->verifying) {
 		if (status->vrfy_hashed > 0) {
-			str_bprintf(buf, sizeof buf,
-					"%s %s (%.1f%%)",
+			str_bprintf(ARYLEN(buf), "%s %s (%.1f%%)",
 					status->tth_check ?
 						_("Computing TTH") : _("Computing SHA1"),
 					short_size(status->vrfy_hashed,
@@ -8091,7 +8429,7 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 
 		msg_sha1[0] = '\0';
 		if (status->has_sha1) {
-			str_bprintf(msg_sha1, sizeof msg_sha1, "%s %s",
+			str_bprintf(ARYLEN(msg_sha1), "%s %s",
 				_("SHA1"),
 				status->sha1_matched ? _("OK") :
 				status->sha1_failed ? _("failed") : _("not computed yet"));
@@ -8100,63 +8438,60 @@ file_info_status_to_string(const gnet_fi_status_t *status)
 		msg_copy[0] = '\0';
 		if (status->moving) {
 			if (0 == status->copied) {
-				str_bprintf(msg_copy, sizeof msg_copy, "%s",
-					_("Waiting for moving..."));
+				str_bprintf(ARYLEN(msg_copy), "%s", _("Waiting for moving..."));
 			} else if (status->copied > 0 && status->copied < status->size) {
-				str_bprintf(msg_copy, sizeof msg_copy,
-					"%s %s (%.1f%%)", _("Moving"),
+				str_bprintf(ARYLEN(msg_copy), "%s %s (%.1f%%)",
+					_("Moving"),
 					short_size(status->copied,
-						GNET_PROPERTY(display_metric_units)),
+					   	GNET_PROPERTY(display_metric_units)),
 					(1.0 * status->copied / status->size) * 100.0);
 			}
 		}
 
-		concat_strings(buf, sizeof buf, _("Finished"),
+		concat_strings(ARYLEN(buf), _("Finished"),
 			'\0' != msg_sha1[0] ? "; " : "", msg_sha1,
 			'\0' != msg_copy[0] ? "; " : "", msg_copy,
 			NULL_PTR);
 
 		return buf;
     } else if (0 == status->lifecount) {
-		g_strlcpy(buf, _("No sources"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("No sources"));
 		goto dht_status;
     } else if (status->active_queued || status->passive_queued) {
-        str_bprintf(buf, sizeof buf,
+        str_bprintf(ARYLEN(buf),
             _("Queued (%u active, %u passive)"),
             status->active_queued, status->passive_queued);
 		goto dht_status;
     } else if (status->paused) {
         return _("Paused");
     } else {
-		g_strlcpy(buf, _("Waiting"), sizeof buf);
+		cstr_bcpy(ARYLEN(buf), _("Waiting"));
 		/* FALL THROUGH */
     }
 
 dht_status:
 	{
-		size_t w = strlen(buf);
+		size_t w = vstrlen(buf);
 
 		if (status->dht_lookup_running) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Querying DHT"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Querying DHT"));
 		} else if (status->dht_lookup_pending) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
-			w += str_bprintf(&buf[w], sizeof buf - w,
-				_("Pending DHT query"));
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), _("Pending DHT query"));
 		}
 
 		if (status->dht_lookups != 0) {
-			w += str_bprintf(&buf[w], sizeof buf - w, "; ");
+			w += str_bprintf(ARYPOSLEN(buf, w), "; ");
 			if (status->dht_values != 0) {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_(
 						"%u/%u successful DHT lookup",
 						"%u/%u successful DHT lookups",
 						status->dht_lookups),
 					status->dht_values, status->dht_lookups);
 			} else {
-				w += str_bprintf(&buf[w], sizeof buf - w,
+				w += str_bprintf(ARYPOSLEN(buf, w),
 					NG_("%u DHT lookup", "%u DHT lookups", status->dht_lookups),
 					status->dht_lookups);
 			}

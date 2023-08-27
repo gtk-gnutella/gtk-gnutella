@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -112,6 +112,7 @@ typedef struct {
 #include "compat_poll.h"
 #include "fd.h"
 #include "glib-missing.h"	/* For g_main_context_get_poll_func() with GTK1 */
+#include "halloc.h"
 #include "hashlist.h"
 #include "htable.h"
 #include "log.h"			/* For s_error() */
@@ -1098,7 +1099,7 @@ inputevt_timer(struct poll_ctx *ctx)
 
 		if (inputevt_debug > 2) {
 			unsigned long count = plist_length(list);
-			s_debug("%s(): %lu fake event%s", G_STRFUNC, count, plural(count));
+			s_debug("%s(): %lu fake event%s", G_STRFUNC, PLURAL(count));
 		}
 
 		CTX_UNLOCK(ctx);
@@ -1755,8 +1756,8 @@ inputevt_close(void)
 	inputevt_purge_removed(ctx);
 	htable_free_null(&ctx->ht);
 	hash_list_free(&ctx->readable);
-	G_FREE_NULL(ctx->used_poll_idx);
-	G_FREE_NULL(ctx->used_event_id);
+	HFREE_NULL(ctx->used_poll_idx);
+	HFREE_NULL(ctx->used_event_id);
 	XFREE_NULL(ctx->relay);
 	XFREE_NULL(ctx->pfd_arr);
 	fd_close(&ctx->master_fd);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -425,7 +425,7 @@ guid_is_gtkg(const guid_t *guid, uint8 *majp, uint8 *minp, bool *relp)
 bool
 guid_is_requery(const guid_t *guid)
 {
-	return (peek_u8(&guid->v[15]) & GUID_REQUERY) ? TRUE : FALSE;
+	return booleanize(peek_u8(&guid->v[15]) & GUID_REQUERY);
 }
 
 /**
@@ -726,7 +726,7 @@ guid_add_banned(const guid_t *guid)
 		gd->last_time = tm_time();
 	}
 
-	dbmw_write(db_guid, guid, gd, sizeof *gd);
+	dbmw_write(db_guid, guid, PTRLEN(gd));
 }
 
 /**

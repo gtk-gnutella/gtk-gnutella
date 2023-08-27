@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -50,6 +50,7 @@ typedef struct {
 
 void file_register_fd_reclaimer(reclaim_fd_t callback);
 bool file_exists(const char *pathname);
+bool file_is_empty(const char *pathname);
 
 char *file_locate_from_path(const char *argv0);
 char *file_program_path(const char *argv0);

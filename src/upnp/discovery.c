@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -253,7 +253,7 @@ upnp_dscv_updated(struct upnp_mcb *mcb)
 		if (GNET_PROPERTY(upnp_debug) > 3) {
 			size_t count = pslist_length(mcb->devices);
 			g_message("UPNP discovery completed: kept %zu device%s",
-				count, plural(count));
+				PLURAL(count));
 		}
 
 		/*
@@ -425,16 +425,17 @@ upnp_dscv_scpd_result(char *data, size_t len, int code,
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP SCPD fetch \"%s\" returned %zu byte%s for %s",
-			upnp_service_scpd_url(usd), len, plural(len),
+			upnp_service_scpd_url(usd), PLURAL(len),
 			upnp_service_to_string(usd));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
-			char *xml = xml_indent(data);
+			size_t xlen;
+			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -590,6 +591,7 @@ upnp_dscv_got_ctrl_reply(int code, void *value, size_t size, void *arg)
 	} else {
 		if (upnp_dscv_next_ctrl(ucd_ctx))
 			return;
+		WFREE(ucd_ctx);
 	}
 
 done:
@@ -599,6 +601,10 @@ done:
 /**
  * Launch next argumentless control probe on discovered device, as listed
  * in the upnp_dscv_probes[] array.
+ *
+ * Upon success, the `ucd_ctx' paramater is busy (it will be perused when the
+ * RPC reply comes back or times out.  If no RPC was launched or we could not
+ * initiate it, FALSE will be returned and the `ucd_ctx' parameter can be freed.
  *
  * @return TRUE if we can launch the action, FALSE otherwise.
  */
@@ -633,7 +639,6 @@ upnp_dscv_next_ctrl(struct upnp_ctrl_context *ucd_ctx)
 		if (GNET_PROPERTY(upnp_debug))
 			g_warning("UPNP cannot control \"%s\", discarding",
 				ucd_ctx->ud->desc_url);
-		WFREE(ucd_ctx);
 		return FALSE;		/* Cannot interact with it */
 	}
 
@@ -658,7 +663,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	mcb = dctx->mcb;
 	ud = dctx->ud;
-	WFREE_NULL(dctx, sizeof *dctx);
+	WFREE_TYPE_NULL(dctx);
 
 	upnp_mcb_check(mcb);
 	upnp_dscv_check(ud);
@@ -676,15 +681,16 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 
 	if (GNET_PROPERTY(upnp_debug) > 5) {
 		g_debug("UPNP probe of \"%s\" returned %zu byte%s",
-			ud->desc_url, len, plural(len));
+			ud->desc_url, PLURAL(len));
 		if (GNET_PROPERTY(upnp_debug) > 8) {
 			g_debug("UPNP got HTTP %u:", code);
 			header_dump(stderr, header, "----");
 		}
 		if (len > 1U && GNET_PROPERTY(upnp_debug) > 9) {
-			char *xml = xml_indent(data);
+			size_t xlen;
+			char *xml = xml_indent_buf(data, len, &xlen);
 			g_debug("UPNP HTTP payload start:");
-			fwrite(xml, strlen(xml), 1, stderr);
+			IGNORE_RESULT(write(STDERR_FILENO, xml, xlen));
 			g_debug("UPNP HTTP payload end (%zu bytes).", len);
 			HFREE_NULL(xml);
 		}
@@ -709,7 +715,7 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ud->major = 1;
 		ud->minor = 0;
 	} else {
-		const char *p = strstr(buf, "UPnP/");
+		const char *p = vstrstr(buf, "UPnP/");
 		bool ok = FALSE;
 
 		if (p != NULL) {
@@ -807,8 +813,10 @@ upnp_dscv_probed(char *data, size_t len, int code, header_t *header, void *arg)
 		ucd_ctx->usd = usd;
 		ucd_ctx->probe_idx = 0;
 
-		if (!upnp_dscv_next_ctrl(ucd_ctx))
+		if (!upnp_dscv_next_ctrl(ucd_ctx)) {
+			WFREE(ucd_ctx);
 			goto remove_device;
+		}
 	}
 
 done:
@@ -1000,7 +1008,7 @@ upnp_msearch_send(struct gnutella_socket *s, host_addr_t addr,
 	 * it's best to adhere to the examples to maximize the success rate.
 	 */
 
-	len = str_bprintf(req, sizeof req,
+	len = str_bprintf(ARYLEN(req),
 		"M-SEARCH * HTTP/1.1\r\n"
 		"HOST: " UPNP_MCAST_ADDR ":" STRINGIFY(UPNP_PORT) "\r\n"
 		"USER-AGENT: %s\r\n"
@@ -1057,7 +1065,7 @@ upnp_dscv_timeout(cqueue_t *cq, void *obj)
 
 	if (GNET_PROPERTY(upnp_debug)) {
 		g_warning("UPNP discovery timed out after %u repl%s",
-			mcb->replies, plural_y(mcb->replies));
+			PLURAL_Y(mcb->replies));
 	}
 
 	(*mcb->cb)(NULL, mcb->arg);		/* Signals timeout */

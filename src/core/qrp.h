@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -97,6 +97,7 @@ struct routing_table *qrt_get_table(void);
 struct routing_table *qrt_ref(struct routing_table *);
 void qrt_unref(struct routing_table *);
 void qrt_get_info(const struct routing_table *, qrt_info_t *qi);
+void qrt_arena_relocate(struct routing_table *rt);
 
 struct query_hashvec *qhvec_alloc(uint size);
 void qhvec_free(struct query_hashvec *qhvec);

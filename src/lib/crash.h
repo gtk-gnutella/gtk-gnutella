@@ -79,6 +79,11 @@
 	unsigned print_str_iov_cnt_ = 0; \
 	iovec_t print_str_iov_[(num_iov)]
 
+/* When stack space is a dire resource, use static declarations */
+#define STATIC_DECLARE_STR(num_iov) \
+	static unsigned print_str_iov_cnt_ = 0; \
+	static iovec_t print_str_iov_[(num_iov)]
+
 #define TRUNCATION_STR	"TRUNCATION AT " _WHERE_ ":" STRINGIFY(__LINE__) "\n"
 
 #define print_str(text) \
@@ -124,7 +129,7 @@ G_STMT_START { \
 		print_str_iov_cnt_ = (i); \
 } G_STMT_END
 
-#define getpos_str(i) (print_str_iov_cnt_)
+#define getpos_str() (print_str_iov_cnt_)
 
 /**
  * Print an "unsigned long" as decimal NUL-terminated string into supplied
@@ -228,12 +233,15 @@ void crash_handler(int signo);
 void crash_abort(void) G_NORETURN;
 void crash_setdir(const char *dir);
 void crash_setver(const char *version);
+void crash_setccdate(const char *date);
+void crash_setcctime(const char *time);
 void crash_setnumbers(uint8 major, uint8 minor, uint8 patchlevel);
 void crash_setbuild(unsigned build);
 void crash_setmain(void);
 void crash_oom(const char *format, ...) G_NORETURN G_PRINTF(1, 2);
 void crash_oom_condition(void);
-void crash_deadlocked(const char *file, unsigned line);
+void crash_deadlocked(bool dump_stacks, const char *file, unsigned line);
+void crash_deadlocked_set_thread_mask(uint64 mask);
 void crash_assert_failure(const struct assertion_data *a);
 const char *crash_assert_logv(const char * const fmt, va_list ap);
 void crash_set_filename(const char * const filename);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,6 +47,7 @@ enum shutdown_mode {
 #define GTKG_SHUTDOWN_OFAST		(1U << 0) /**< BYE sent to supporting nodes */
 #define GTKG_SHUTDOWN_ORESTART	(1U << 1) /**< Restart gtk-gnutella */
 #define GTKG_SHUTDOWN_OCRASH	(1U << 2) /**< Crash restart */
+#define GTKG_SHUTDOWN_OEXTEND	(1U << 3) /**< Extend session at next launch */
 
 void gtk_gnutella_exit(int n);
 void gtk_gnutella_request_shutdown(enum shutdown_mode mode, unsigned flags);

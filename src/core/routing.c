@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -109,13 +109,13 @@ routing_udp_node_check(const struct routing_udp_node * const un)
  * their liftime.
  */
 struct message {
-	struct guid muid;			/**< Message UID */
-	struct message **slot;		/**< Place where we're referenced from */
-	pslist_t *routes;            /**< route_data from where the message came */
+	struct guid muid;		/**< Message UID */
+	struct message **slot;	/**< Place where we're referenced from */
+	pslist_t *routes;		/**< route_data from where the message came */
 	pslist_t *ttls;			/**< For broadcasted messages: TTL by route */
-	uint8 function;				/**< Type of the message */
-	uint8 ttl;					/**< Max TTL we saw for this message */
-	uint8 chunk_idx;			/**< Index of chunk holding the slot */
+	uint8 function;			/**< Type of the message */
+	uint8 ttl;				/**< Max TTL we saw for this message */
+	uint8 chunk_idx;		/**< Index of chunk holding the slot */
 };
 
 /**
@@ -626,7 +626,7 @@ routing_log_extra(struct route_log *route_log, const char *fmt, ...)
 
 	buf = route_log->extra;
 	buflen = sizeof(route_log->extra);
-	len = strlen(route_log->extra);
+	len = vstrlen(route_log->extra);
 
 	/*
 	 * If there was already a message recorded, append "; " before
@@ -664,29 +664,28 @@ route_string(struct route_dest *dest,
 
 	switch (dest->type) {
 	case ROUTE_NONE:
-		str_bprintf(msg, sizeof msg, routed ? "stops here" : "registered");
+		str_bprintf(ARYLEN(msg), routed ? "stops here" : "registered");
 		break;
 	case ROUTE_LEAVES:
-		str_bprintf(msg, sizeof msg, "all leaves");
+		str_bprintf(ARYLEN(msg), "all leaves");
 		break;
 	case ROUTE_ONE:
-		str_bprintf(msg, sizeof msg, "%s %s",
+		str_bprintf(ARYLEN(msg), "%s %s",
 			node_type(dest->ur.u_node), node_addr(dest->ur.u_node));
 		break;
 	case ROUTE_ALL_BUT_ONE:
-		str_bprintf(msg, sizeof msg, "all %sbut %s",
+		str_bprintf(ARYLEN(msg), "all %sbut %s",
 			dest->duplicate ? "ultras " : "",	/* Won't be sent to leaves */
 			host_addr_to_string(origin_addr));
 		break;
 	case ROUTE_MULTI:
 		{
 			int count = pslist_length(dest->ur.u_nodes);
-			str_bprintf(msg, sizeof msg, "selected %u node%s",
-				count, plural(count));
+			str_bprintf(ARYLEN(msg), "selected %u node%s", PLURAL(count));
 		}
 		break;
 	default:
-		str_bprintf(msg, sizeof msg, "** BUG ** UNKNOWN ROUTE");
+		str_bprintf(ARYLEN(msg), "** BUG ** UNKNOWN ROUTE");
 		break;
 	}
 
@@ -940,6 +939,8 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 	 * reuse the old structure, which will be rehashed after being updated.
 	 */
 
+	g_assert(entryp == entry->slot);	/* Invariant we ensure */
+
 	clean_entry(entry);
 
 	/*
@@ -949,8 +950,11 @@ prepare_entry(struct message **entryp, unsigned chunk_idx)
 	{
 		struct message *nentry = WMOVE(entry);
 
-		if (nentry != entry)
+		if (nentry != entry) {
 			entry = *entryp = nentry;
+			/* PARANOID: move is not supposed to alter data but... */
+			g_assert(entryp == entry->slot);
+		}
 	}
 
 done:
@@ -1464,7 +1468,7 @@ message_hash_func2(const void *key)
 void
 gnet_reset_guid(void)
 {
-	gnet_prop_set_storage(PROP_SERVENT_GUID, &blank_guid, sizeof blank_guid);
+	gnet_prop_set_storage(PROP_SERVENT_GUID, VARLEN(blank_guid));
 }
 
 /**
@@ -1494,7 +1498,7 @@ routing_init(void)
 		struct guid guid;
 		const char *hex = banned_push[i];
 
-		g_assert(strlen(hex) == 2 * sizeof guid);
+		g_assert(vstrlen(hex) == 2 * sizeof guid);
 
 		(void) hex_to_guid(hex, &guid);
 		hset_insert(ht_banned_push, atom_guid_get(&guid));
@@ -1509,7 +1513,7 @@ routing_init(void)
 	 * of the previously interrupted run.
 	 */
 
-	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid_buf, sizeof guid_buf);
+	gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(guid_buf));
 
 	if (
 		guid_is_blank(&guid_buf) ||
@@ -1522,7 +1526,7 @@ routing_init(void)
 			 */
 		} while (is_banned_push(&guid_buf));
 
-		gnet_prop_set_storage(PROP_SERVENT_GUID, &guid_buf, sizeof guid_buf);
+		gnet_prop_set_storage(PROP_SERVENT_GUID, VARLEN(guid_buf));
 		g_assert(guid_is_gtkg(&guid_buf, NULL, NULL, NULL));
 	}
 
@@ -2311,7 +2315,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 			if (GNET_PROPERTY(log_gnutella_routing)) {
 				unsigned count = pslist_length(m->routes);
 				routing_log_extra(route_log, "%u remaining route%s",
-					count, plural(count));
+					PLURAL(count));
 			}
 
 			if (GNET_PROPERTY(log_dup_gnutella_other_node)) {
@@ -2319,7 +2323,7 @@ handle_duplicate(struct route_log *route_log, gnutella_node_t **node,
 				gmsg_log_duplicate(sender,
 					"from %s: %sother node, %u route%s (dups=%u)",
 					node_infostr(sender), oob ? "OOB, " : "",
-					count, plural(count), sender->n_dups);
+					PLURAL(count), sender->n_dups);
 			}
 		}
 	}
@@ -3216,18 +3220,14 @@ routing_close(void)
 	hset_free_null(&ht_banned_push);
 
 	cnt = htable_count(ht_proxyfied);
-	if (cnt != 0) {
-		g_warning("push-proxification table still holds %u node%s",
-			cnt, plural(cnt));
-	}
+	if (cnt != 0)
+		g_warning("push-proxification table still holds %u node%s", PLURAL(cnt));
 
 	htable_free_null(&ht_proxyfied);
 
 	cnt = htable_count(ht_starving_guid);
-	if (cnt != 0) {
-		g_warning("starving GUID table still holds %u entr%s",
-			cnt, plural_y(cnt));
-	}
+	if (cnt != 0)
+		g_warning("starving GUID table still holds %u entr%s", PLURAL_Y(cnt));
 
 	htable_free_null(&ht_starving_guid);
 	aging_destroy(&at_udp_routes);

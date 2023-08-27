@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -132,6 +132,11 @@ typedef void (*keyval_fn_t)(void *key, void *value, void *data);
 typedef void (*ckeyval_fn_t)(const void *key, void *value, void *data);
 typedef bool (*keyval_rm_fn_t)(void *key, void *value, void *data);
 typedef bool (*ckeyval_rm_fn_t)(const void *key, void *value, void *data);
+
+/* Iterator callbacks for simple data containers */
+
+typedef void (*double_data_fn_t)(double data, void *udata);
+typedef bool (*double_data_rm_fn_t)(double data, void *udata);
 
 /* Allocator routine signatures, with or without allocating context */
 

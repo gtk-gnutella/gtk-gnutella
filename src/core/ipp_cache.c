@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -452,7 +452,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 	bit_array_init(tag_used, NUM_IPP_CACHE_TAGS);
 	bit_array_clear_range(tag_used, 0, NUM_IPP_CACHE_TAGS - 1U);
 
-	while (fgets(line, sizeof line, f)) {
+	while (fgets(ARYLEN(line), f)) {
 		const char *tag_name, *value;
 		char *sp;
 		bool damaged;
@@ -461,7 +461,7 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		line_no++;
 
 		damaged = FALSE;
-		if (!file_line_chomp_tail(line, sizeof line, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(line), NULL)) {
 			/*
 			 * If the line is too long or unterminated the file is either
 			 * corrupt or was manually edited without respecting the
@@ -477,12 +477,12 @@ ipp_cache_parse(ipp_cache_t *ic, FILE *f)
 		if (file_line_is_skipable(line))
 			continue;
 
-		sp = strchr(line, ' ');
+		sp = vstrchr(line, ' ');
 		if (sp) {
 			*sp = '\0';
 			value = &sp[1];
 		} else {
-			value = strchr(line, '\0');
+			value = vstrchr(line, '\0');
 		}
 		tag_name = line;
 

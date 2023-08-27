@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -133,7 +133,7 @@ fd_socket_close(const void *data, void *udata)
 static void
 fd_preserved_allocate(void)
 {
-	fd_preserved = hset_create(HASH_KEY_SELF, 0);
+	fd_preserved = NOT_LEAKING(hset_create(HASH_KEY_SELF, 0));
 	hset_thread_safe(fd_preserved);
 }
 

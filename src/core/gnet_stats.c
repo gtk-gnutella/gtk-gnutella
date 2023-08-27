@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -183,8 +183,10 @@ gnet_stats_init(void)
 static void
 gnet_stats_digest(sha1_t *digest, gnet_stats_t *stats)
 {
+	uint32 n = entropy_nonce();
+
 	stats->general[GNR_STATS_DIGEST]++;		/* Ensure ever-changing SHA1 */
-	SHA1_COMPUTE(*stats, digest);
+	SHA1_COMPUTE_NONCE(*stats, &n, digest);
 }
 
 /**
@@ -219,8 +221,10 @@ gnet_stats_udp_digest(sha1_t *digest)
 void
 gnet_stats_general_digest(sha1_t *digest)
 {
+	uint32 n = entropy_nonce();
+
 	gnet_stats_inc_general(GNR_STATS_DIGEST);
-	SHA1_COMPUTE(gnet_stats.general, digest);
+	SHA1_COMPUTE_NONCE(gnet_stats.general, &n, digest);
 }
 
 /**

@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -428,8 +428,7 @@ quicksort(void *const pbase, size_t total_elems, size_t size,
 			 * However, because we may have guessed wrong, insertsort() monitors
 			 * pathological cases and can bail out (when we hand out more than
 			 * MAX_THRESH items). Hence we must monitor the result and continue
-			 * as if we hadn't called insertsort() when it returns a non-NULL
-			 * pointer.
+			 * as if we hadn't called insertsort() when it returns FALSE.
 			 *
 			 * This works because insertsort() processes its input from left
 			 * to right and therefore will not disrupt the "left/right"
@@ -471,11 +470,6 @@ quicksort(void *const pbase, size_t total_elems, size_t size,
 			 * left and right partitions are below the threshold size.  If so,
 			 * insertsort one or both.  Otherwise, push the larger partition's
 			 * bounds on the stack and continue quicksorting the smaller one.
-			 *
-			 * Change by Raphael Manfredi: immediately do the insertsort of
-			 * the small partitions instead of waiting for the end of quicksort
-			 * to benefit from the locality of reference, at the expense of
-			 * more setup costs.
 			 */
 
 			if G_UNLIKELY(lsize - size <= max_thresh) {

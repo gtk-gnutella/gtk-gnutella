@@ -20,7 +20,7 @@
 ;#  You should have received a copy of the GNU General Public License
 ;#  along with gtk-gnutella; if not, write to the Free Software
 ;#  Foundation, Inc.:
-;#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+;#      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 ;#----------------------------------------------------------------------
 ;#
 ;# This file is a the header of the generated bit_field.h file.
@@ -50,6 +50,8 @@
 
 #include "common.h"
 
+#include "pow2.h"
+
 /*
  * Functions for handling arrays of bits. On BSD systems, the macros from
  * <bitstring.h> could be used for better efficiency.
@@ -59,9 +61,12 @@
 
 typedef uint8 bit_field_t;
 
-#define BIT_FIELD_BITSHIFT 3
-#define BIT_FIELD_BITSIZE (8 * sizeof(bit_field_t))
-#define BIT_FIELD_BITMASK (BIT_FIELD_BITSIZE - 1)
-#define BIT_FIELD_WORD(base, i) base[(i) >> BIT_FIELD_BITSHIFT]
-#define BIT_FIELD_BIT(base, i) (1UL << ((i) & BIT_FIELD_BITMASK)) 
+#define BIT_FIELD_BITSHIFT		3
+#define BIT_FIELD_BITSIZE		(8 * sizeof(bit_field_t))
+#define BIT_FIELD_BITMASK		(BIT_FIELD_BITSIZE - 1)
+#define BIT_FIELD_IDX(i)		((i) >> BIT_FIELD_BITSHIFT)
+#define BIT_FIELD_WORD(base, i)	base[BIT_FIELD_IDX(i)]
+#define BIT_FIELD_BIT(i)		(1UL << ((i) & BIT_FIELD_BITMASK))
+#define BIT_FIELD_SETCOUNT(w)	bits_set(w)
 
+;# vi: set ts=4 sw=4 syn=c cindent:

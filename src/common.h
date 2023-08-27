@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -147,7 +147,9 @@
 #endif
 
 #ifdef I_STRING
+#define _GNU_SOURCE			/* For memrchr() if it exists */
 #include <string.h>
+#undef _GNU_SOURCE
 #else
 #include <strings.h>
 #endif
@@ -249,6 +251,27 @@
 
 #define MIN_INT_VAL(t) \
 	((t) -MAX_INT_VAL(t) - 1)
+
+/*
+ * These macros computes the maximum/minimum signed/unsigned value of the
+ * given variable.
+ *
+ * We cannot determine whether the variable can hold a signed or unsigned value,
+ * hence we MAX_UINT_VALUE() is for unsigned variables and MAX_INT_VALUE() for
+ * signed ones.
+ *
+ * There is no MIN_UINT_VALUE(), because that value is 0...
+ *
+ * Note that the macros can also work when the argument is a type.
+ */
+
+#define MAX_UINT_VALUE(v)									\
+	(sizeof(v) >= sizeof(uint64) ?							\
+		(uint64) -1 :										\
+		((uint64) 1 << (sizeof(v) * CHAR_BIT)) - 1)
+
+#define MAX_INT_VALUE(v)	(MAX_UINT_VALUE(v) >> 1)
+#define MIN_INT_VALUE(v)	(-(int64) MAX_INT_VALUE(v) - 1)
 
 /*
  * For pedantic lint checks, define USE_LINT. We override some definitions
@@ -361,17 +384,30 @@ typedef int socket_fd_t;
 #include "lib/regex.h"
 #endif	/* HAS_REGCOMP */
 
+#define SRC_PREFIX	"src/"		/**< Common prefix to remove in filenames */
+
+/*
+ * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
+ * on the resulting string before perusing it to remove the common prefix
+ * defined by SRC_PREFIX.
+ */
+#ifdef CURDIR					/* Set by makefile */
+#define _WHERE_	STRINGIFY(CURDIR) "/" __FILE__
+#else
+#define _WHERE_	__FILE__
+#endif
+
 #ifdef USE_GLIB2
 #undef G_STRLOC			/* Want our version */
 #undef G_STRFUNC		/* Version from glib uses __PRETTY_FUNCTION__ */
 #endif	/* USE_GLIB2 */
 
 /*
- * G_STRLOC is the current source location (file:line).
+ * G_STRLOC is the current source location (path/file:line).
  * G_STRFUNC is the name of the current function, or location if unavailable.
  */
 
-#define G_STRLOC __FILE__ ":" STRINGIFY(__LINE__)
+#define G_STRLOC _WHERE_ ":" STRINGIFY(__LINE__)
 
 #if defined (__STDC_VERSION__) && (__STDC_VERSION__ >= 19901L)
 #define G_STRFUNC (__func__)
@@ -486,19 +522,6 @@ typedef int socket_fd_t;
  * Other common macros.
  */
 
-#define SRC_PREFIX	"src/"		/**< Common prefix to remove in filenames */
-
-/*
- * Sources should use _WHERE_ instead of __FILE__ and call short_filename()
- * on the resulting string before perusing it to remove the common prefix
- * defined by SRC_PREFIX.
- */
-#ifdef CURDIR					/* Set by makefile */
-#define _WHERE_	STRINGIFY(CURDIR) "/" __FILE__
-#else
-#define _WHERE_	__FILE__
-#endif
-
 /*
  * PACKAGE_EXTRA_SOURCE_DIR is set to $srcdir/extra_files when not compiling an
  * official build so it's not required to install these files for testing.
@@ -521,7 +544,7 @@ typedef int socket_fd_t;
 /**
  * SIGN() returns the sign of an integer value.
  */
-#define SIGN(x) (G_UNLIKELY((x) == 0) ? 0 : (x) > 0 ? 1 : (-1))
+#define SIGN(x) CMP((x), 0)
 
 /**
  * Byte-wise swap two items of specified size.
@@ -545,13 +568,16 @@ typedef int socket_fd_t;
  * However, this can only be used for static conditions which can be verified
  * at compile-time.
  *
+ * As of today, we switched to a more compact version for the macro, its main
+ * advantage being the less verbose error message it triggers at compile-time
+ * when 'x' is FALSE.  I saw this in the source of the rlang R package, and it
+ * seems to be derived from a similar macro in the linux kernel.
+ * 		--RAM, 2020-04-09
+ *
  * @attention
- * N.B.: The trick is using a switch case, if the term is false
- *	 there are two cases for zero - which is invalid C. This cannot be
- *	 used outside a function.
+ * This cannot be used outside of a function.
  */
-#define STATIC_ASSERT(x) \
-	do { switch (0) { case ((x) ? 1 : 0): case 0: break; } } while(0)
+#define STATIC_ASSERT(x)	((void) sizeof(char[1 - 2*!(x)]))
 
 #define MAX_HOSTLEN			256		/**< Max length for FQDN host */
 
@@ -656,9 +682,37 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 	((uint32) (uchar) ((d) & 0xffU)))
 
 /**
+ * Composes an unsigned 64-bit value from high and low 32-bit parts.
+ */
+#define UINT64_VALUE(h,l)	(((uint64) (h) << 32) | (uint64) (l))
+
+/**
  * Zero memory used by structure pointed at.
  */
 #define ZERO(x)		memset((x), 0, sizeof *(x))
+
+/**
+ * Set all bytes within structure to specified value.
+ * MEMSET(&var, 0) is equivalent to ZERO(&var).
+ */
+#define MEMSET(x,v)	memset((x), (v), sizeof *(x))
+
+/**
+ * Generate argument list for the address of array `x' and its size, so that we
+ * can process the content of that variable.
+ *
+ * For instance, an array would be "char buf[12]" and we would use ARYLEN(buf).
+ */
+#define ARYLEN(x)		(x), sizeof(x)
+
+/*
+ * Generates argument list for the address within array at a specified offset
+ * followed by the length of the remaining space within that array, in bytes.
+ *
+ * For instance, with "size_t buf[12]", an ARYPOSLEN(buf, 1) would generate
+ * the two arguments: &buf[1], sizeof buf - 1 * sizeof buf[0]
+ */
+#define ARYPOSLEN(x,y)	&(x)[y], sizeof(x) - (y) * sizeof((x)[0])
 
 /**
  * Generate argument list for the address of `x' and its size, so that we can
@@ -719,6 +773,7 @@ ngettext_(const char *msg1, const char *msg2, ulong n)
 #include "lib/fast_assert.h"
 #include "lib/exit.h"		/* Transparent exit() trapping */
 #include "lib/glog.h"
+#include "lib/pattern.h"	/* For vstrstr(), vstrchr(), etc... */
 
 #endif /* _common_h_ */
 

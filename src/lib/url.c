@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -273,7 +273,7 @@ url_fix_escape(const char *url)
 			buf[0] = ESCAPE_CHAR;
 			buf[1] = hex_alphabet[c >> 4];
 			buf[2] = hex_alphabet[c & 0xf];
-			str_cat_len(s, buf, sizeof buf);
+			str_cat_len(s, ARYLEN(buf));
 		}
 	}
 
@@ -519,7 +519,7 @@ url_safe_char(char c, url_policy_t p)
     	if (
 			!is_ascii_lower(c) &&
 			!is_ascii_digit(c) &&
-			NULL == strchr("/._-~", c)
+			NULL == vstrchr("/._-~", c)
 		) {
       		/* Unsafe character in GWC URL; rejected */
       		return FALSE;
@@ -737,7 +737,7 @@ url_normalize(char *url, url_policy_t pol)
 	if (q != uri) {
 		size_t len;
 
-		len = strlen(uri);
+		len = vstrlen(uri);
 		memmove(q, uri, len);
 		q[len] = '\0';
 	}
@@ -830,7 +830,7 @@ url_absolute_within(const char *base, const char *relative)
 	if (is_strprefix(relative, "#")) {
 		char *p;
 
-		if (NULL == (p = strchr(base, '#'))) {
+		if (NULL == (p = vstrchr(base, '#'))) {
 			return h_strconcat(base, relative, NULL_PTR);
 		} else {
 			/* Replace the fragment */
@@ -848,7 +848,7 @@ url_absolute_within(const char *base, const char *relative)
 		dbase = h_strdup(base);
 		p = is_strprefix(dbase, http_prefix);
 		g_assert(p != NULL);		/* base was absolute */
-		p = strchr(p, '/');
+		p = vstrchr(p, '/');
 
 		if (NULL == p) {
 			/* base was "http://host" with no trailing path */
@@ -867,7 +867,7 @@ url_absolute_within(const char *base, const char *relative)
 		 */
 
 		dbase = h_strdup(base);
-		p = strrchr(dbase, '/');
+		p = vstrrchr(dbase, '/');
 		g_assert(p != NULL);		/* base was absolute */
 		*(++p) = '\0';				/* truncate string after last '/' */
 

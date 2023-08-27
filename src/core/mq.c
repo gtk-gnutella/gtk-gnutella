@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -196,12 +196,11 @@ mq_info(const mqueue_t *q)
 	static char buf[160];
 
 	if (q->magic != MQ_MAGIC) {
-		str_bprintf(buf, sizeof(buf),
-			"queue %p INVALID (bad magic)", (void *) q);
+		str_bprintf(ARYLEN(buf), "queue %p INVALID (bad magic)", q);
 	} else {
 		bool udp = NODE_USES_UDP(q->node);
 
-		str_bprintf(buf, sizeof(buf),
+		str_bprintf(ARYLEN(buf),
 			"queue %p [%s %s node %s%s%s%s%s] (%d item%s, %d byte%s)",
 			(void *) q, udp ? "UDP" : "TCP",
 			NODE_IS_ULTRA(q->node) ? "ultra" :
@@ -210,8 +209,7 @@ mq_info(const mqueue_t *q)
 			(q->flags & MQ_DISCARD) ? " DISCARD" : "",
 			(q->flags & MQ_SWIFT) ? " SWIFT" : "",
 			(q->flags & MQ_WARNZONE) ? " WARNZONE" : "",
-			q->count, plural(q->count),
-			q->size, plural(q->size)
+			PLURAL(q->count), PLURAL(q->size)
 		);
 	}
 
@@ -749,7 +747,7 @@ qlink_cmp(const void *a, const void *b, void *data)
 
 	if (pmsg_prio(m1) == pmsg_prio(m2)) {
 		const mqueue_t *q = data;
-		return q->uops->msg_cmp(pmsg_start(m1), pmsg_start(m2));
+		return q->uops->msg_cmp(pmsg_phys_base(m1), pmsg_phys_base(m2));
 	} else
 		return pmsg_prio(m1) < pmsg_prio(m2) ? -1 : +1;
 }
@@ -1136,14 +1134,14 @@ make_room_internal(mqueue_t *q,
 			continue;
 
 		cmb = item->data;
-		cmb_start = pmsg_start(cmb);
+		cmb_start = pmsg_phys_base(cmb);
 
 		/*
 		 * Any partially written message, however unimportant, cannot be
 		 * removed or we'd break the flow of messages.
 		 */
 
-		if (pmsg_read_base(cmb) != cmb_start)	/* Started to write it  */
+		if (pmsg_start(cmb) != cmb_start)	/* Started to write it  */
 			continue;
 
 		/*
@@ -1258,7 +1256,7 @@ make_room_internal(mqueue_t *q,
 static bool
 make_room(mqueue_t *q, const pmsg_t *mb, int needed, int *offset)
 {
-	const char *header = pmsg_start(mb);
+	const char *header = pmsg_phys_base(mb);
 	uint prio = pmsg_prio(mb);
 	size_t msglen = pmsg_written_size(mb);
 
@@ -1299,7 +1297,7 @@ mq_puthere(mqueue_t *q, pmsg_t *mb, int msize)
 	if (
 		(q->flags & MQ_FLOWC) &&
 		has_normal_prio &&
-		gmsg_can_drop(pmsg_start(mb), msize) &&
+		gmsg_can_drop(pmsg_phys_base(mb), msize) &&
 		((make_room_called = TRUE)) &&			/* Call make_room() once only */
 		!make_room(q, mb, msize, &qlink_offset)
 	) {

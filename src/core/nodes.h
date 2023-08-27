@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -185,6 +185,7 @@ typedef struct gnutella_node {
 	time_t shutdown_date;		/**< When we entered in shutdown mode */
 	time_t up_date;				/**< When remote server started (0 if unknown) */
 	time_t leaf_flowc_start;	/**< Time when leaf flow-controlled queries */
+	time_t last_qrt_move;		/**< Time when we last attempted a QRT move */
 	time_delta_t shutdown_delay; /**< How long we can stay in shutdown mode */
 
 	const char *remove_msg;		/**< Reason of removing */
@@ -201,7 +202,7 @@ typedef struct gnutella_node {
 
 	struct route_data *routing_data;		/**< for gnet message routing */
 	struct routing_table *sent_query_table;	/**< query table sent to node */
-	struct routing_table *recv_query_table;	/**< query table recved from node */
+	struct routing_table *recv_query_table;	/**< query table received from node */
 	struct qrt_update *qrt_update;			/**< query routing update handle */
 	struct qrt_receive *qrt_receive;		/**< query routing reception */
 	qrt_info_t *qrt_info;		/**< Info about received query table */
@@ -714,6 +715,7 @@ bool node_dht_above_low_watermark(void);
 void node_udp_disable(void);
 void node_udp_process(gnutella_node_t *n, const struct gnutella_socket *s,
 	const void *data, size_t len);
+gnutella_node_t *node_udp_get(const gnutella_node_t *n);
 gnutella_node_t *node_udp_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_udp_sr_get_addr_port(const host_addr_t addr, uint16 port);
 gnutella_node_t *node_dht_get_addr_port(const host_addr_t addr, uint16 port);

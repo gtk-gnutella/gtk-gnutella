@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -42,12 +42,12 @@
 #include "progname.h"
 
 #include "iovec.h"
-#include "malloc.h"				/* For real_malloc() */
 #include "mem.h"
 #include "misc.h"				/* For is_strcasesuffix() */
 #include "mutex.h"
 #include "once.h"
 #include "path.h"
+#include "product.h"
 #include "strvec.h"
 #include "tm.h"
 #include "vmm.h"
@@ -88,15 +88,41 @@ progstart(int argc, char * const *argv)
 
 	g_return_unless(NULL == progname_argv);	/* Should be called once only! */
 
+#ifdef MINGW32
+	mingw_early_init();			/* Must be done as early as possible! */
+#endif	/* MINGW32 */
+
+	thread_main_starting();		/* We are now certain we're the main thread */
+
 	progname_argc = argc;
 	progname_argv = deconstify_pointer(argv);
 
 	progname_info.name = filepath_basename(argv[0]);
 	tm_current_time(&progname_info.start);
 
-#ifdef MINGW32
-	mingw_early_init();
-#endif	/* MINGW32 */
+#ifdef TRACK_MALLOC
+	/*
+	 * When using TRACK_MALLOC, this needs to be done early to configure
+	 * the tracking hash tables.
+	 */
+
+	malloc_init_tracking();
+#endif
+
+	/*
+	 * Ensure we have a valid product name configured, otherwise use
+	 * the executable basename.  A valid product name is required on
+	 * Windows to initialize the path where we are going to store
+	 * the logs.
+	 *
+	 * However, if we have to do this here (meaning there is not product
+	 * registration done before calling progstart), force the usage of
+	 * the current directory for the logs by flagging that the name
+	 * was forced.
+	 */
+
+	if (NULL == product_name())
+		product_set_forced_name(progname_info.name);
 
 	/*
 	 * Because fd_preserve() can allocate memory and we are going to call
@@ -145,13 +171,22 @@ progstart(int argc, char * const *argv)
 }
 
 /**
+ * Was progstart() called?
+ */
+bool
+progstart_was_called(void)
+{
+	return progname_info.name != NULL;
+}
+
+/**
  * Ensure progstart() was called.
  */
 static void
 progstart_called(const char *routine)
 {
-	g_assert_log(progname_info.name != NULL,
-		"%s(): must not be called before progstart()", routine);
+	if (!progstart_was_called())
+		s_error("%s(): must not be called before progstart()", routine);
 }
 
 /**
@@ -166,7 +201,8 @@ progstart_time(void)
 }
 
 /**
- * Duplicate the original main() arguments + environment into read-only.
+ * Duplicate the original main() arguments + environment into a read-only
+ * memory segment.
  */
 static void
 progstart_duplicate(void)
@@ -183,6 +219,8 @@ progstart_duplicate(void)
 	arg_count = progname_argc;
 	arg_size = strvec_size(progname_argv);
 
+	/* +2 for the trailing NULL entries of both argv[] and envp[] */
+
 	len = total_size = (arg_count + env_count + 2) * sizeof(char *) +
 		env_size + arg_size;
 
@@ -191,10 +229,17 @@ progstart_duplicate(void)
 	envp = ptr_add_offset(argv, (arg_count + 1) * sizeof(char *));
 	q = ptr_add_offset(envp, (env_count + 1) * sizeof(char *));
 
-	q = strvec_cpy(argv, progname_argv, arg_count, q, &len);
-	q = strvec_cpy(envp, environ, env_count, q, &len);
+	len -= ptr_diff(q, p);	/* Amount available for strings */
 
-	g_assert(ptr_diff(q, p) == total_size);
+	q = strvec_cpy(argv, progname_argv, arg_count, q, &len);
+	g_assert(q != NULL);
+
+	q = strvec_cpy(envp, environ, env_count, q, &len);
+	g_assert(q != NULL);
+
+	g_assert_log(ptr_diff(q, p) == total_size,
+		"%s(): ptr_diff=%zd, total_size=%zu, len=%zd",
+		G_STRFUNC, ptr_diff(q, p), total_size, len);
 
 	if (-1 == mprotect(p, total_size, PROT_READ))
 		s_warning("%s(): cannot protect memory as read-only: %m", G_STRFUNC);
@@ -213,7 +258,7 @@ progstart_duplicate(void)
  * argument pointers and progstart_dup() must be called as soon as possible,
  * before alteration of the argument list or the passed environment.
  *
- * @param argv_ptr	where the allocated argment vector is returned
+ * @param argv_ptr	where the allocated argument vector is returned
  * @param envp_ptr	where the allocated environment is returned
  *
  * @return the amount of entries in the returned argv[]
@@ -387,7 +432,7 @@ progname_args_copy_environ(void)
 	progname_args_clearenv();
 
 	for (i = 0; env[i] != NULL; i++) {
-		char *eq = strchr(env[i], '=');
+		char *eq = vstrchr(env[i], '=');
 		int r;
 
 		if (eq != NULL) {

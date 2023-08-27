@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -210,8 +210,10 @@
 #define TX_UT_BAN_FREQ		300		/* 5-minute ban if cannot reach host */
 #define TX_UT_GOOD_FREQ		900		/* Remember good hosts for 15 minutes */
 #define TX_UT_REQUEUE_DELAY	5000	/* Time to requeue message after drop */
+#define TX_UT_ALPHA			3		/* Initial parallelism */
 
 #define TX_UT_EXPIRE_MS		(60*1000)	/* Expiration time for packets, in ms */
+#define TX_UT_LINGER_MS		(45*1000)	/* Lingering time for packets, in ms */
 #define TX_UT_SEQNO_COUNT	(1U << 16)	/* Amount of 16-bit sequence IDs */
 #define TX_UT_SEQNO_THRESH	1024		/* Sequence ID freeing threshold */
 
@@ -331,6 +333,8 @@ struct ut_msg {
 	unsigned expecting_ack:1;		/* Expecting ACK to continue */
 	unsigned ear_pending:1;			/* Sent EAR to lower layer, waiting CONF */
 	unsigned cautious:1;			/* Cautious TX: only sent last fragment */
+	unsigned lingering:1;			/* Set when lingering after TX expiration */
+	unsigned flushed:1;				/* Whether fragment flush was requested */
 };
 
 static void
@@ -372,8 +376,9 @@ ut_pmsg_info_check(const struct ut_pmsg_info * const pmi)
 	g_assert(UT_PMI_MAGIC == pmi->magic);
 }
 
-static hevset_t *ut_mset;		/* Alive mesages */
+static hevset_t *ut_mset;			/* Alive mesages */
 static unsigned ut_mset_refcnt;
+static unsigned tx_ut_lingering;	/* TX lingering messages */
 
 static bool ut_frag_free(struct ut_frag *uf, bool free_message);
 static void ut_frag_send(const struct ut_frag *uf);
@@ -509,6 +514,7 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 {
 	unsigned i;
 	struct attr *attr;
+	size_t n;
 
 	ut_msg_check(um);
 	ut_attr_check(um->attr);
@@ -521,8 +527,78 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			nid_to_string(&um->mid), G_STRFUNC,
 			um->fragsent == um->fragcnt ? "sent" : "dropped",
 			pmsg_size(um->mb), um->seqno, um->fragsent,
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->reliable ? "ack'ed" : "sent", gnet_host_to_string(um->to));
+	}
+
+	/*
+	 * We keep stats about how many fragments each message had, whether
+	 * it was sent or not.
+	 *
+	 * The expectation is that large messages are sent reliably, so we have
+	 * more cases for reliable messages.
+	 */
+
+	g_assert(um->fragcnt != 0);
+
+	n = um->fragcnt - 1;
+
+	if (um->reliable) {
+		if (um->fragcnt == um->fragsent) {
+			static gnr_stats_t s[] = {
+				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_6_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_7_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_8_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_9_FRAGS_SENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_SENT,
+			};
+
+			n = MIN(n, N_ITEMS(s) - 1);
+			gnet_stats_inc_general(s[n]);
+		} else {
+			static gnr_stats_t s[] = {
+				GNR_UDP_SR_TX_MSG_RELIABLE_1_FRAG_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_2_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_3_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_4_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_5_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_6_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_7_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_8_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_9_FRAGS_UNSENT,
+				GNR_UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_UNSENT,
+			};
+
+			n = MIN(n, N_ITEMS(s) - 1);
+			gnet_stats_inc_general(s[n]);
+		}
+	} else {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_1_FRAG,
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS,
+			GNR_UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS,
+		};
+
+		n = MIN(n, N_ITEMS(s) - 1);
+		gnet_stats_inc_general(s[n]);
+	}
+
+	/*
+	 * We have to deal with this here and not in ut_um_lingered() because
+	 * as soon as the message is fully acknowledged whilst lingering,
+	 * ut_msg_free() is called so we do not go through ut_um_lingered() to
+	 * cleanup the count.
+	 */
+
+	if (um->lingering) {
+		tx_ut_lingering--;
+		gnet_stats_set_general(
+			GNR_UDP_SR_TX_MESSAGES_LINGER_COUNT, tx_ut_lingering);
 	}
 
 	/*
@@ -546,8 +622,17 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 		if (attr->cb->msg_account != NULL)
 			(*attr->cb->msg_account)(attr->tx->owner, um->mb, um->to);
 
-		if (um->reliable)
+		if (um->reliable) {
 			gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_SENT);
+			if (um->lingering) {
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT);
+			}
+			if (um->flushed) {
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_SENT);
+			}
+		}
 		if (um->deflated)
 			gnet_stats_inc_general(GNR_UDP_TX_COMPRESSED);
 	} else {
@@ -556,8 +641,16 @@ ut_msg_free(struct ut_msg *um, bool free_sequence)
 			(*attr->cb->add_tx_dropped)(attr->tx->owner, 1);
 
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_UNSENT);
-		if (um->reliable)
+		if (um->reliable) {
 			gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MESSAGES_UNSENT);
+			if (0 == um->fragsent)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_NO_ACK);
+			else
+				gnet_stats_inc_general(GNR_UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK);
+			if (um->flushed)
+				gnet_stats_inc_general(
+					GNR_UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_UNSENT);
+		}
 	}
 
 	/*
@@ -688,8 +781,25 @@ ut_sending_delay(unsigned txcnt)
 static int
 ut_frag_delay(const struct ut_frag *uf)
 {
+	struct ut_msg *um;
+
 	ut_frag_check(uf);
 	g_assert(uf->txcnt != 0);
+
+	um = uf->msg;
+	ut_msg_check(um);
+
+	/*
+	 * If we are cautious for this message (we do not know whether the remote
+	 * host is up), we're only sending the last fragment.
+	 * Use a linear delay of 1 second plus 3 seconds per sending attempt,
+	 * instead of an exponential-type one. At least until it's been sent 3 times.
+	 * The retries are therefore 4 sec, 7 secs, 10 secs before jumping to 22.5.
+	 * 		--RAM, 2018-05-22
+	 */
+
+	if G_UNLIKELY(um->cautious && uf->txcnt <= 3)
+		return 1000 + 3000 * uf->txcnt;
 
 	return ut_sending_delay(uf->txcnt);
 }
@@ -707,7 +817,7 @@ ut_to_banned(const struct attr *attr, const gnet_host_t *to)
 		if (tx_ut_debugging(TX_UT_DBG_MSG, NULL)) {
 			time_delta_t age = aging_age(attr->ban, to);
 			g_debug("TX UT: %s: dropping message to %s, banned since %ld sec%s",
-				G_STRFUNC, gnet_host_to_string(to), (long) age, plural(age));
+				G_STRFUNC, gnet_host_to_string(to), (long) PLURAL(age));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_BANNED);
 		return TRUE;
@@ -772,8 +882,19 @@ ut_send_remaining(struct ut_msg *um)
 	for (i = 0; i < um->fragcnt; i++) {
 		struct ut_frag *uf = um->fragments[i];
 
-		if (uf != NULL)
+		if (uf != NULL) {
+			/*
+			 * If somehow the fragment was already scheduled for resending,
+			 * remove it from the list and clear the flag indicating it is
+			 * being part of that list.
+			 */
+			if (uf->resend) {
+				elist_remove(&um->resend, uf);
+				uf->resend = FALSE;
+			}
+			cq_cancel(&uf->resend_ev);
 			ut_frag_send(uf);
+		}
 	}
 }
 
@@ -818,14 +939,17 @@ ut_resend_iterate(cqueue_t *cq, void *obj)
 	 * resend timeout.
 	 */
 
-	if (um->pending != 0 && um->pending >= um->alpha)
+	g_assert(um->alpha != 0);
+
+	if (um->pending >= um->alpha)
 		return;
 
 	/*
 	 * We're getting ACKs for our fragments, send more.
 	 */
 
-	um->alpha++;
+	if (um->alpha < um->fragcnt)
+		um->alpha++;
 
 	while (um->pending < um->alpha) {
 		struct ut_frag *uf = elist_shift(&um->resend);
@@ -856,6 +980,55 @@ ut_resend_async(struct ut_msg *um)
 }
 
 /**
+ * Force (re)sending of all the un-acknowledged fragments.
+ */
+static void
+ut_send_unacknowleged(struct ut_msg *um)
+{
+	size_t i;
+
+	ut_msg_check(um);
+
+	for (i = 0; i < um->fragcnt; i++) {
+		struct ut_frag *uf = um->fragments[i];
+
+		if (uf != NULL) {
+			/* Fragment still present means not ACK-ed yet */
+			ut_frag_check(uf);
+			g_assert(uf->msg == um);
+
+			if (!uf->resend) {
+				uf->resend = TRUE;
+				if (uf->pending) {
+					uf->pending = FALSE;		/* Awaiting retransmit */
+					um->pending--;
+				}
+				elist_prepend(&um->resend, uf);
+			}
+
+			/*
+			 * Since the fragment is now part of the um->resend list, we must
+			 * make sure it has no resend_ev on ACK timeout.  Indeed, we will
+			 * iterate over the list and resend this fragment.  It would break
+			 * the pre-condition of ut_frag_send() if it had already a resend
+			 * event registered.
+			 *
+			 * If, by chance, we get the ACK for this fragment before we were
+			 * able to resend it, then ut_frag_free() will remove it from the
+			 * um->resend list.
+			 *
+			 * 		--RAM, 2018-07-22
+			 */
+
+			cq_cancel(&uf->resend_ev);
+		}
+	}
+
+	um->flushed = TRUE;
+	ut_resend_async(um);
+}
+
+/**
  * Callout queue callback invoked when no acknowledgment was received.
  */
 static void
@@ -878,6 +1051,24 @@ ut_ear_resend(cqueue_t *cq, void *obj)
 	}
 
 	/*
+	 * If we are already lingering, do not resend an EAR.
+	 */
+
+	if (um->lingering) {
+		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, um->to)) {
+			g_debug("TX UT[%s]: %s: EAR unsent for %s whilst lingering "
+				"(send count: %u) "
+				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent)",
+				nid_to_string(&um->mid), G_STRFUNC,
+				gnet_host_to_string(um->to), um->ears,
+				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
+				PLURAL(um->fragcnt));
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_LINGER_UNSENT);
+		return;
+	}
+
+	/*
 	 * If we already sent too many EARs, give up on the whole message.
 	 */
 
@@ -888,7 +1079,7 @@ ut_ear_resend(cqueue_t *cq, void *obj)
 				nid_to_string(&um->mid), G_STRFUNC,
 				gnet_host_to_string(um->to), um->ears,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt));
+				PLURAL(um->fragcnt));
 		}
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EARS_OVERSENT);
 		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
@@ -922,25 +1113,47 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 	cq_zero(cq, &uf->resend_ev);	/* Callback triggered */
 	um = uf->msg;
 
+	/*
+	 * If fragment was marked as "pending ACK", then it was resent and the
+	 * acknowledgment did not come in the allocated time.
+	 */
+
+	if (uf->pending) {				/* Was pending ACK */
+		/*
+		 * Decrease the amount of pending messages, but also decrease
+		 * parallelism for the next batch, if not already lingering.
+		 */
+
+		um->pending--;
+		if (!um->lingering) {
+			if (um->alpha > 1)
+				um->alpha--;		/* Decrease sending parallelism */
+		}
+	}
+
+	/*
+	 * If already lingering, do not resend this fragment.
+	 */
+
+	if (um->lingering) {
+		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
+			g_debug("TX UT[%s]: %s: lingering started, "
+				"not resending fragment #%u/%u seq=0x%04x to %s (TX count %u)",
+				nid_to_string(&um->mid), G_STRFUNC,
+				uf->fragno + 1, um->fragcnt, um->seqno,
+				gnet_host_to_string(um->to), uf->txcnt);
+		}
+		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_UNSENT);
+		ut_resend_async(um);	/* Keep sending pending fragments though */
+		return;
+	}
+
 	if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, uf->msg->to)) {
 		g_debug("TX UT[%s]: %s: will resend fragment #%u/%u seq=0x%04x to %s "
 			"retransmit #%u",
 			nid_to_string(&um->mid), G_STRFUNC,
 			uf->fragno + 1, um->fragcnt, um->seqno,
 			gnet_host_to_string(um->to), uf->txcnt);
-	}
-
-	/*
-	 * If fragment was marked as "pending ACK", then it was resent and the
-	 * acknowledgment did not come in the allocated time.
-	 *
-	 * Decrease the amount of pending messages, but also decrease parallelism
-	 * for the next batch.
-	 */
-
-	if (uf->pending) {				/* Was pending ACK */
-		um->pending--;
-		um->alpha /= 2;				/* Decrease sending parallelism */
 	}
 
 	/*
@@ -954,22 +1167,29 @@ ut_frag_resend(cqueue_t *cq, void *obj)
 
 	/*
 	 * If we sent the fragment too many times already, give up on the whole
-	 * message.
+	 * message if we got no acknowledgment at all yet.
 	 */
 
 	if (uf->txcnt >= TX_UT_SEND_MAX) {
+		bool give_up = 0 == um->fragsent;
+
 		if (tx_ut_debugging(TX_UT_DBG_FRAG | TX_UT_DBG_TIMEOUT, um->to)) {
 			g_debug("TX UT[%s]: %s: fragment #%u for %s already sent %u times "
-				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent) -- giving up",
+				"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s sent) -- %s",
 				nid_to_string(&um->mid), G_STRFUNC, uf->fragno + 1,
 				gnet_host_to_string(um->to), uf->txcnt,
 				udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-				um->fragcnt, plural(um->fragcnt));
+				PLURAL(um->fragcnt),
+				give_up ? "giving up" : "continuing");
 		}
 
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT);
-		ut_msg_free(um, TRUE);
-		return;
+
+		if (give_up) {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_OVERSENT_GIVEUP);
+			ut_msg_free(um, TRUE);
+			return;
+		}
 	}
 
 	/*
@@ -1020,7 +1240,7 @@ ut_frag_hook(const pmsg_t *mb)
 
 do_not_send:
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, NULL == um ? NULL : um->to)) {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 		uint16 seqno = udp_reliable_header_get_seqno(pdu);
 
@@ -1092,12 +1312,17 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		uf->txcnt++;
 		um->fragtx++;
 		gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_SENT);
+		if (um->lingering)
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_SENT);
 		if (uf->txcnt > 1) {
 			um->fragtx2++;
 			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_RESENT);
+			if (um->lingering)
+				gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_LINGER_RESENT);
 		}
 
 		if (um->reliable) {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_RELIABLE_SENT);
 			if (tx_ut_debugging(TX_UT_DBG_TIMEOUT, um->to)) {
 				g_debug("TX UT[%s]: %s: fragment #%u/%u seq=0x%04x tx=%d to %s "
 					"will be resent in %d ms",
@@ -1105,9 +1330,30 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 					uf->fragno + 1, um->fragcnt, um->seqno, uf->txcnt,
 					gnet_host_to_string(um->to), ut_frag_delay(uf));
 			}
-			g_assert(NULL == uf->resend_ev);
-			uf->resend_ev = cq_main_insert(ut_frag_delay(uf),
-				ut_frag_resend, uf);
+
+			/*
+			 * We now explicitly cancel any pending uf->resend_ev event
+			 * instead of simply asserting there is no such event registered.
+			 *
+			 * With the introduction of explicit flush before the message
+			 * times out for transmission, it could be possible that a single
+			 * fragment is enqueued several times for transmission, and
+			 * that would cause an assertion failure here when both instances
+			 * get sent and try to install the ut_frag_resend() callout
+			 * when this callback fires on them.
+			 *
+			 * Aim for robustness by not asserting something that is only
+			 * an internal property at some given time and could become false
+			 * due to the TX logic being refactored, without damaging our
+			 * operations  The only thing we want is avoid duplicate processing
+			 * if a previous uf->resend_ev was scheduled.  So simply cancel any
+			 * previous event we find.
+			 * 		--RAM, 2018-11-08
+			 */
+
+			cq_cancel(&uf->resend_ev);
+			uf->resend_ev =
+				cq_main_insert(ut_frag_delay(uf), ut_frag_resend, uf);
 
 			/*
 			 * If this is the first fragment being sent, reschedule the
@@ -1123,6 +1369,7 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 			if (1 == um->fragtx)
 				cq_resched(um->expire_ev, TX_UT_EXPIRE_MS);
 		} else {
+			gnet_stats_inc_general(GNR_UDP_SR_TX_FRAGMENTS_UNRELIABLE_SENT);
 			ut_frag_free(uf, TRUE);
 		}
 	} else {
@@ -1139,8 +1386,9 @@ ut_frag_pmsg_free(pmsg_t *mb, void *arg)
 		 *		--RAM, 2015-10-02
 		 */
 
-		g_assert(NULL == uf->resend_ev);
-		uf->resend_ev = cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
+		cq_cancel(&uf->resend_ev);		/* Same rationale as above */
+		uf->resend_ev =
+			cq_main_insert(TX_UT_REQUEUE_DELAY, ut_frag_resend, uf);
 	}
 
 	/* FALL THROUGH */
@@ -1173,7 +1421,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 		pmi->attempts++;
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
-			const void *pdu = pmsg_start(mb);
+			const void *pdu = pmsg_phys_base(mb);
 			udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 			uint16 seqno = udp_reliable_header_get_seqno(pdu);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
@@ -1225,7 +1473,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 
 			return;
 		} else {
-			const void *pdu = pmsg_start(mb);
+			const void *pdu = pmsg_phys_base(mb);
 			uint8 flags = udp_reliable_header_get_flags(pdu);
 
 			if (flags & (UDP_RF_CUMULATIVE_ACK | UDP_RF_EXTENDED_ACK))
@@ -1234,7 +1482,7 @@ ut_ack_pmsg_free(pmsg_t *mb, void *arg)
 				gnet_stats_inc_general(GNR_UDP_SR_TX_PLAIN_ACKS_DROPPED);
 		}
 	} else {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		uint8 flags = udp_reliable_header_get_flags(pdu);
 
 		if (tx_ut_debugging(TX_UT_DBG_ACK, pmi->to)) {
@@ -1356,7 +1604,7 @@ ut_frag_send(const struct ut_frag *uf)
 			0 == uf->txcnt ? "" : "re",
 			uf->fragno + 1, pmsg_size(mb), prio,
 			gnet_host_to_string(um->to),
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag));
 	}
 
@@ -1404,7 +1652,7 @@ ut_ack_send(pmsg_t *mb)
 	ut_attr_check(attr);
 
 	if (tx_ut_debugging(TX_UT_DBG_SEND, pmi->to)) {
-		const void *pdu = pmsg_start(mb);
+		const void *pdu = pmsg_phys_base(mb);
 		udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 		uint16 seqno = udp_reliable_header_get_seqno(pdu);
 		uint8 fragno = udp_reliable_header_get_part(pdu);
@@ -1478,7 +1726,7 @@ ut_pending_send(struct attr *attr)
 			ut_pmsg_info_check(pmi);
 
 			if (tx_ut_debugging(TX_UT_DBG_SEND, pmi->to)) {
-				const void *pdu = pmsg_start(mb);
+				const void *pdu = pmsg_phys_base(mb);
 				udp_tag_t tag = udp_reliable_header_get_tag(pdu);
 				uint16 seqno = udp_reliable_header_get_seqno(pdu);
 				uint8 fragno = udp_reliable_header_get_part(pdu);
@@ -1633,7 +1881,7 @@ ut_frag_create(const struct attr *attr, unsigned fragno,
 	 * when we pmsg_clone() it before sending.
 	 */
 
-	pmsg_set_hook(mb, ut_frag_hook);
+	pmsg_set_transmit_hook(mb, ut_frag_hook);
 
 	if (tx_ut_debugging(TX_UT_DBG_FRAG, um->to)) {
 		g_debug("TX UT[%s]: %s: created %d-byte %s fragment (#%u/%u) to %s",
@@ -1698,15 +1946,16 @@ ut_deflate(const struct attr *attr, const void **pdu, size_t *pdulen)
 }
 
 /**
- * Callout queue callback invoked when the whole packet has expired.
+ * Callout queue callback invoked when the whole packet has finished lingering.
  */
 static void
-ut_um_expired(cqueue_t *cq, void *obj)
+ut_um_lingered(cqueue_t *cq, void *obj)
 {
 	struct ut_msg *um = obj;
 
 	ut_msg_check(um);
 	g_assert(um->expire_ev != NULL);
+	g_assert(um->lingering);
 
 	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
 
@@ -1718,25 +1967,12 @@ ut_um_expired(cqueue_t *cq, void *obj)
 			nid_to_string(&um->mid), G_STRFUNC,
 			gnet_host_to_string(um->to),
 			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
-			um->fragcnt, plural(um->fragcnt),
+			PLURAL(um->fragcnt),
 			um->reliable ? "ack-ed" : "sent",
 			um->fragtx, um->fragtx2,
-			um->pending, plural(um->pending),
-			elist_count(&um->resend), plural(elist_count(&um->resend)));
+			PLURAL(um->pending),
+			PLURAL(elist_count(&um->resend)));
 	}
-
-	/*
-	 * If we were unable to transmit all the fragments of the message at
-	 * least once, count it as a clogged UDP output queue.
-	 *
-	 * Otherwise, further messages to that host will be dropped for a while,
-	 * the remote party being probably unresponsive, dead, or clogged.
-	 */
-
-	if (um->fragtx - um->fragtx2 < um->fragcnt)
-		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_CLOGGING);
-	else
-		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
 
 	/*
 	 * Because all the fragments we enqueue have a pre-TX hook, we can simply
@@ -1745,6 +1981,87 @@ ut_um_expired(cqueue_t *cq, void *obj)
 	 */
 
 	ut_msg_free(um, TRUE);
+}
+
+/**
+ * Callout queue callback invoked when the whole packet has expired.
+ */
+static void
+ut_um_expired(cqueue_t *cq, void *obj)
+{
+	struct ut_msg *um = obj;
+
+	ut_msg_check(um);
+	g_assert(um->expire_ev != NULL);
+	g_assert(!um->lingering);
+
+	cq_zero(cq, &um->expire_ev);	/* Indicates that callback has fired */
+
+	if (tx_ut_debugging(TX_UT_DBG_MSG | TX_UT_DBG_TIMEOUT, um->to)) {
+		g_debug("TX UT[%s]: %s: message for %s expired "
+			"(tag=\"%s\", seq=0x%04x, %u/%u fragment%s %s, "
+			"%u transmitted with %u re-transmissions, %u pending ACK%s, "
+			"%zu fragment%s pending TX)",
+			nid_to_string(&um->mid), G_STRFUNC,
+			gnet_host_to_string(um->to),
+			udp_tag_to_string(um->attr->tag), um->seqno, um->fragsent,
+			PLURAL(um->fragcnt),
+			um->reliable ? "ack-ed" : "sent",
+			um->fragtx, um->fragtx2,
+			PLURAL(um->pending),
+			PLURAL(elist_count(&um->resend)));
+	}
+
+	/*
+	 * If we were unable to transmit all the fragments of the message at
+	 * least once, count it as a clogged UDP output queue.
+	 *
+	 * Otherwise, if we were not able to get at least 50% of the fragments
+	 * of a reliable message ACK-ed, further messages to that host will be
+	 * dropped for a while, the remote party being probably unresponsive,
+	 * dead, or clogged.
+	 */
+
+	if (um->fragtx - um->fragtx2 < um->fragcnt)
+		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_CLOGGING);
+	else if (um->reliable && um->fragsent < um->fragcnt / 2)
+		ut_to_ban(um->attr, um->to);	/* Drop messages for a while */
+
+	/*
+	 * Before entering lingering time, and provided the lower layer is not in
+	 * flow-control mode and that at least 50% of the fragments were acknowledged
+	 * for a reliable message, resend all the fragments for which an ACK was
+	 * still not received.
+	 * 		--RAM, 2018-05-22
+	 */
+
+	um->alpha = um->fragcnt;		/* Send everything if needed */
+
+	if (um->reliable && um->fragsent >= um->fragcnt / 2) {
+		gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_LINGER_FLUSH);
+		ut_send_unacknowleged(um);
+	}
+
+	/*
+	 * We're going to linger for a while, with the message still allocated
+	 * but "inactive": during lingering, we are simply dealing with ACK
+	 * reception.
+	 *
+	 * Lingering is done in order to:
+	 * - give a little extra time for ACKs to come back, so that we finally
+	 * 	 know whether the message was fully sent or not.
+	 * - prevent the reuse of the sequence ID too soon after the message was
+	 *   expired for transmission.
+	 *
+	 * 		--RAM, 2018-05-22
+	 */
+
+	um->expire_ev = cq_main_insert(TX_UT_LINGER_MS, ut_um_lingered, um);
+	um->lingering = TRUE;
+
+	tx_ut_lingering++;
+	gnet_stats_set_general(
+		GNR_UDP_SR_TX_MESSAGES_LINGER_COUNT, tx_ut_lingering);
 }
 
 /**
@@ -1787,7 +2104,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	 */
 
 	pdulen = pmsg_size(mb);
-	pdu = pmsg_read_base(mb);
+	pdu = pmsg_start(mb);
 
 	if (pdulen > 5 && !pmsg_is_compressed(mb))
 		deflated = ut_deflate(attr, &pdu, &pdulen);
@@ -1816,6 +2133,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 	um->mid = ut_msg_id_create();
 	um->attr = attr;
 	um->deflated = booleanize(deflated);
+	um->alpha = TX_UT_ALPHA;
 	elist_init(&um->resend, offsetof(struct ut_frag, lk));
 
 	um->fragcnt = pdulen / TX_UT_MTU;
@@ -1879,7 +2197,7 @@ ut_msg_create(struct attr *attr, pmsg_t *mb, const gnet_host_t *to)
 			nid_to_string(&um->mid), G_STRFUNC, pdulen,
 			um->reliable ? "reliable" : "unreliable",
 			deflated ? "deflated" : "plain", pmsg_size(mb),
-			gnet_host_to_string(to), um->fragcnt, plural(um->fragcnt),
+			gnet_host_to_string(to), PLURAL(um->fragcnt),
 			um->seqno, udp_tag_to_string(attr->tag), pmsg_prio(mb));
 	}
 
@@ -2025,6 +2343,9 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED);
 	if (ack->received != 0)
 		gnet_stats_inc_general(GNR_UDP_SR_TX_EXTENDED_ACKS_RECEIVED);
+
+	if (um->lingering)
+		gnet_stats_inc_general(GNR_UDP_SR_TX_LINGER_ACKS_RECEIVED);
 
 	/*
 	 * Got something back, so remote host is alive.
@@ -2217,7 +2538,7 @@ ut_got_ack(txdrv_t *tx, const gnet_host_t *from, const struct ut_ack *ack)
 			g_debug("TX UT: %s: got first ACK (seq=0x%04x) from %s, "
 				"flushing remaining %u fragment%s",
 				G_STRFUNC, ack->seqno, gnet_host_to_string(from),
-				um->fragcnt - 1, plural(um->fragcnt - 1));
+				PLURAL(um->fragcnt - 1));
 		}
 
 		ut_send_remaining(um);
@@ -2234,8 +2555,20 @@ ear_nack:
 	 * the pending fragments.
 	 */
 
-	if (um->expecting_ack)
-		ut_resend_async(um);
+	if (um->expecting_ack) {
+		if (ack->ear) {
+			/*
+			 * We got a signal that the remote RX stack is up but did not
+			 * get any of our fragments.  Time to flush all un-ACKed fragments.
+			 */
+			gnet_stats_inc_general(GNR_UDP_SR_TX_MESSAGES_EAR_FLUSH);
+			ut_to_flag_good(attr, um->to);	/* Remote RX stack is there */
+			um->alpha = um->fragcnt;		/* Maximum parallelism... */
+			ut_send_unacknowleged(um);
+		} else {
+			ut_resend_async(um);
+		}
+	}
 
 	um->expecting_ack = FALSE;
 

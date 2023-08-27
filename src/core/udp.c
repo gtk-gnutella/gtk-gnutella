@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -328,7 +328,7 @@ log:
 		g_warning("UDP got invalid %sGnutella packet (%zu byte%s) "
 			"\"%s\" %sfrom %s%s: %s",
 			socket_udp_is_old(s) ? "OLD " : "",
-			len, plural(len),
+			PLURAL(len),
 			len >= GTA_HEADER_SIZE ?
 				gmsg_infostr_full_split(header, payload, len - GTA_HEADER_SIZE)
 				: "<incomplete Gnutella header>",
@@ -1075,7 +1075,7 @@ rudp:
 		if (GNET_PROPERTY(udp_debug)) {
 			g_warning("UDP %sdatagram (%zu byte%s) received from bogus IP %s",
 				truncated ? "truncated " : "",
-				len, plural(len),
+				PLURAL(len),
 				host_addr_to_string(s->addr));
 		}
 		gnet_stats_inc_general(GNR_UDP_BOGUS_SOURCE_IP);
@@ -1099,7 +1099,7 @@ rudp:
 			g_warning("UDP %sdatagram (%zu byte%s) received from "
 				"shunned IP %s (%s) -- dropped",
 				truncated ? "truncated " : "",
-				len, plural(len),
+				PLURAL(len),
 				host_addr_to_string(s->addr), hostiles_flags_to_string(hflags));
 		}
 		gnet_stats_inc_general(GNR_UDP_SHUNNED_SOURCE_IP);

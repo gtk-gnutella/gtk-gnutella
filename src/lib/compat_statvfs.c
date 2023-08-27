@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -80,7 +80,7 @@ compat_statvfs(const char *path, struct statvfs *buf)
 	buf->f_files   = sfs.f_files;
 	buf->f_ffree   = sfs.f_ffree;
 	buf->f_favail  = sfs.f_ffree;
-	buf->f_fsid    = binary_hash(&sfs.f_fsid, sizeof sfs.f_fsid);
+	buf->f_fsid    = binary_hash(VARLEN(sfs.f_fsid));
 	buf->f_flag    = 0;
 	buf->f_namemax = sfs.f_namelen;
 

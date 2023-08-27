@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -237,14 +237,12 @@ host_timer(void)
 	if (GNET_PROPERTY(host_debug)) {
 		if (missing > 0) {
 			g_debug("%s(): missing %d host%s%s", G_STRFUNC,
-				missing, plural(missing),
-				empty_cache ? " [empty caches]" : "");
+				PLURAL(missing), empty_cache ? " [empty caches]" : "");
 		}
 
 		if (g2_missing > 0) {
 			g_debug("%s(): missing %d G2 host%s%s", G_STRFUNC,
-				g2_missing, plural(g2_missing),
-				empty_g2_cache ? " [empty caches]" : "");
+				PLURAL(g2_missing), empty_g2_cache ? " [empty caches]" : "");
 		}
 	}
 
@@ -499,8 +497,8 @@ parse_netmasks(const char *str)
 
 	free_networks();
 
-    if (!masks)
-        return;
+	if (!masks)
+		return;
 
 	for (i = 0; masks[i]; i++)
 		/* just count */ ;
@@ -516,10 +514,10 @@ parse_netmasks(const char *str)
 
 	for (i = 0; masks[i]; i++) {
 		/* Network is of the form ip/mask or ip/bits */
-		if ((p = strchr(masks[i], '/')) && *p) {
+		if ((p = vstrchr(masks[i], '/')) && *p) {
 			*p++ = '\0';
 
-			if (strchr(p, '.')) {
+			if (vstrchr(p, '.')) {
 				/* get the network address from the user */
 				if (!string_to_ip_strict(p, &local_networks[i].mask, NULL))
 					g_warning("%s(): invalid netmask: \"%s\"", G_STRFUNC, p);

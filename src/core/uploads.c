@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -85,6 +85,7 @@
 #include "lib/atoms.h"
 #include "lib/concat.h"
 #include "lib/cq.h"
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/entropy.h"
 #include "lib/file.h"
@@ -95,20 +96,22 @@
 #include "lib/hashing.h"
 #include "lib/header.h"
 #include "lib/hstrfn.h"
-#include "lib/htable.h"
 #include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
 #include "lib/listener.h"
 #include "lib/misc.h"			/* For english_strerror() */
 #include "lib/parse.h"
+#include "lib/pow2.h"
 #include "lib/product.h"
 #include "lib/pslist.h"
+#include "lib/ripening.h"
 #include "lib/str.h"
 #include "lib/stringify.h"
 #include "lib/strtok.h"
 #include "lib/timestamp.h"
 #include "lib/tm.h"
+#include "lib/unsigned.h"
 #include "lib/url.h"
 #include "lib/urn.h"
 #include "lib/utf8.h"
@@ -122,18 +125,25 @@
 #define BW_OUT_MIN		1024		/**< Minimum bandwidth to enable uploads */
 #define IO_PRE_STALL	10			/**< Pre-stalling warning */
 #define IO_RTT_STALL	15			/**< Watch for RTT larger than that */
+#define IO_RTT_CAP		5			/**< Initiate b/w cap if RTT larger */
 #define IO_STALLED		30			/**< Stalling condition */
 #define IO_STALL_WATCH	300			/**< Watchdog period for stall monitoring */
 #define IO_LONG_TIMEOUT	160			/**< Longer timeouting condition */
+#define TX_DURATION		20			/**< Aimed max TX duration for request (s) */
+#define TX_MIN_CHUNK	(16*1024)	/**< Min chunk size we wish to keep */
+#define TX_FIRST_STALL	(128*1024)	/**< Capped first request for stalling hosts */
+#define TX_FIRST_CHUNK	(512*1024)	/**< Capped first request for other hosts */
 #define STALL_CLEAR		600			/**< Decrease stall counter every 10 min */
 #define MAX_ERRORS		10			/**< Max # of errors before we close */
 #define PUSH_REPLY_MAX	5			/**< Answer to up to 5 pushes per IP... */
 #define PUSH_REPLY_FREQ	30			/**< ...in an interval of 30 secs */
 #define PUSH_BAN_FREQ	500			/**< 5-minute ban if cannot reach host */
 #define ALT_LOC_SIZE	160			/**< Size of X-Alt under b/w pressure */
+#define RANGES_SIZE		120			/**< Minimal size of X-Available-Ranges */
 #define UPLOAD_MAX_SINK (16 * 1024)	/**< Maximum length of data to sink */
 #define BROWSING_THRESH	3600		/**< secs: at most once per hour! */
 #define BROWSING_ABUSE	3			/**< More than that in an hour is abusing! */
+#define ONE_DAY			(24*3600)	/**< Seconds in a day */
 
 static pslist_t *list_uploads;
 static watchdog_t *early_stall_wd;	/**< Monitor early stalling events */
@@ -146,6 +156,9 @@ static idtable_t *upload_handle_map;
 
 static const char no_reason[] = "<no reason>"; /* Don't translate this */
 static const char ALLOW[]     = "Allow: GET, HEAD\r\n";
+
+static cpattern_t *pat_http;
+static cpattern_t *pat_applewebkit;
 
 static inline struct upload *
 cast_to_upload(void *p)
@@ -175,24 +188,25 @@ upload_free_handle(gnet_upload_t n)
 }
 
 /**
- * This structure is the key used in the mesh_info hash table to record
+ * Record association between a SHA1 and a remote IP address.
+ *
+ * This structure is the key used in the mesh_info aging table to record
  * when we last sent mesh information to some IP about a given file
  * (identified by its SHA1).
+ *
+ * It is also meant to be used to register Retry-After time, for insertion in
+ * a ripening table (each item having a different expiration time, we cannot
+ * use an aging table in that case).
  */
-struct mesh_info_key {
+struct upload_tag_key {
 	host_addr_t addr;				/**< Remote host IP address */
 	const struct sha1 *sha1;		/**< SHA1 atom */
 };
 
-struct mesh_info_val {
-	uint32 stamp;					/**< When we last sent the mesh */
-	cevent_t *cq_ev;				/**< Scheduled cleanup callout event */
-};
+/* Keep mesh info about uploaders for that long (unit: s) */
+#define MESH_INFO_TIMEOUT	(PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)
 
-/* Keep mesh info about uploaders for that long (unit: ms) */
-#define MESH_INFO_TIMEOUT	((PARQ_MAX_UL_RETRY_DELAY + PARQ_GRACE_TIME)*1000)
-
-static htable_t *mesh_info;
+static aging_table_t *mesh_info;		/**< Tracks when we last sent mesh info */
 static aging_table_t *push_requests;	/**< Throttle push requests */
 static aging_table_t *push_conn_failed;	/**< Throttle unreacheable hosts */
 
@@ -201,6 +215,11 @@ static aging_table_t *stalling_uploads;
 static aging_table_t *early_stalling_uploads;
 
 static aging_table_t *browsing_reqs;	/**< Throttle browsing requests */
+
+/* Enfore Retry-After */
+static ripening_table_t *retry_after;	/**< Tracks known delays per IP + SHA1 */
+
+#define RETRY_AFTER_ENFORCE_MAX		3600	/* seconds */
 
 static const char stall_first[] = "stall first";
 static const char stall_again[] = "stall again";
@@ -293,13 +312,13 @@ upload_fire_upload_info_changed(struct upload *u)
  ***/
 
 /***
- *** Upload mesh info tracking.
+ *** Upload mesh information tracking.
  ***/
 
-static struct mesh_info_key *
-mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
+static struct upload_tag_key *
+upload_tag_key_make(const host_addr_t addr, const struct sha1 *sha1)
 {
-	struct mesh_info_key *mik;
+	struct upload_tag_key *mik;
 
 	WALLOC(mik);
 	mik->addr = addr;
@@ -309,97 +328,55 @@ mi_key_make(const host_addr_t addr, const struct sha1 *sha1)
 }
 
 static void
-mi_key_free(struct mesh_info_key *mik)
+upload_tag_key_free(void *p)
 {
-	g_assert(mik);
+	struct upload_tag_key *mik = p;
+
+	g_assert(mik != NULL);
 
 	atom_sha1_free(mik->sha1);
 	WFREE(mik);
 }
 
-static uint
-mi_key_hash(const void *key)
+static void
+upload_tag_key_free2(void *p, void *unused)
 {
-	const struct mesh_info_key *mik = key;
+	struct upload_tag_key *mik = p;
+
+	(void) unused;
+
+	if (GNET_PROPERTY(upload_debug) > 4) {
+		g_debug("upload MESH info (%s/%s) discarded",
+			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
+	}
+
+	upload_tag_key_free(p);
+}
+
+static void
+upload_tag_key_free2_silent(void *p, void *unused)
+{
+	(void) unused;
+	upload_tag_key_free(p);
+}
+
+static uint
+upload_tag_key_hash(const void *key)
+{
+	const struct upload_tag_key *mik = key;
 
 	return sha1_hash(mik->sha1) ^ host_addr_hash(mik->addr);
 }
 
-static uint
-mi_key_hash2(const void *key)
-{
-	const struct mesh_info_key *mik = key;
-
-	return binary_hash2(mik->sha1, SHA1_RAW_SIZE) ^ host_addr_hash2(mik->addr);
-}
-
 static int
-mi_key_eq(const void *a, const void *b)
+upload_tag_key_eq(const void *a, const void *b)
 {
-	const struct mesh_info_key *mika = a, *mikb = b;
+	const struct upload_tag_key *mika = a, *mikb = b;
+
+	/* The SHA1 being an atom, we use == instead of sha1_eq() */
 
 	return host_addr_equiv(mika->addr, mikb->addr) &&
 		sha1_eq(mika->sha1, mikb->sha1);
-}
-
-static struct mesh_info_val *
-mi_val_make(uint32 stamp)
-{
-	struct mesh_info_val *miv;
-
-	WALLOC(miv);
-	miv->stamp = stamp;
-	miv->cq_ev = NULL;
-
-	return miv;
-}
-
-static void
-mi_val_free(struct mesh_info_val *miv)
-{
-	g_assert(miv);
-
-	cq_cancel(&miv->cq_ev);
-	WFREE(miv);
-}
-
-/**
- * Hash table iterator callback.
- */
-static void
-mi_free_kv(const void *key, void *value, void *unused_udata)
-{
-	(void) unused_udata;
-	mi_key_free(deconstify_pointer(key));
-	mi_val_free(value);
-}
-
-/**
- * Callout queue callback invoked to clear the entry.
- */
-static void
-mi_clean(cqueue_t *cq, void *obj)
-{
-	struct mesh_info_key *mik = obj;
-	struct mesh_info_val *miv;
-	const void *key;
-	void *value;
-	bool found;
-
-	found = htable_lookup_extended(mesh_info, mik, &key, &value);
-	miv = value;
-
-	g_assert(found);
-	g_assert(obj == key);
-	g_assert(miv->cq_ev);
-
-	if (GNET_PROPERTY(upload_debug) > 4)
-		g_debug("upload MESH info (%s/%s) discarded",
-			host_addr_to_string(mik->addr), sha1_base32(mik->sha1));
-
-	htable_remove(mesh_info, mik);
-	cq_zero(cq, &miv->cq_ev);
-	mi_free_kv(key, value, NULL);
 }
 
 /**
@@ -407,54 +384,38 @@ mi_clean(cqueue_t *cq, void *obj)
  * If we don't remember sending it, return 0.
  * Always records `now' as the time we sent mesh information.
  */
-static uint32
-mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
+static uint
+upload_mi_get_stamp(const host_addr_t addr, const struct sha1 *sha1, time_t now)
 {
-	struct mesh_info_key mikey;
-	struct mesh_info_val *miv;
-	struct mesh_info_key *mik;
+	struct upload_tag_key mikey, *mik;
+	uint stamp;
 
 	mikey.addr = addr;
 	mikey.sha1 = sha1;
 
-	miv = htable_lookup(mesh_info, &mikey);
+	/* Update stamp if key already exists */
 
-	/*
-	 * If we have an entry, reschedule the cleanup in MESH_INFO_TIMEOUT.
-	 * Then return the timestamp.
-	 */
+	stamp = pointer_to_uint(
+		aging_replace_revitalise(mesh_info, &mikey, uint_to_pointer(now)));
 
-	if (miv) {
-		uint32 oldstamp;
-
-		g_assert(miv->cq_ev);
-		cq_resched(miv->cq_ev, MESH_INFO_TIMEOUT);
-
-		oldstamp = miv->stamp;
-		miv->stamp = (uint32) now;
-
-		if (GNET_PROPERTY(upload_debug) > 4)
+	if (stamp != 0) {
+		if (GNET_PROPERTY(upload_debug) > 4) {
 			g_debug("upload MESH info (%s/%s) has stamp=%u",
-				host_addr_to_string(addr), sha1_base32(sha1), oldstamp);
-
-		return oldstamp;
+				host_addr_to_string(addr), sha1_base32(sha1), stamp);
+		}
+		return stamp;		/* Previously sent stamp */
 	}
 
-	/*
-	 * Create new entry.
-	 */
+	/* Create new entry since key was missing */
 
-	mik = mi_key_make(addr, sha1);
-	miv = mi_val_make((uint32) now);
-	miv->cq_ev = cq_main_insert(MESH_INFO_TIMEOUT, mi_clean, mik);
-
-	htable_insert(mesh_info, mik, miv);
+	mik = upload_tag_key_make(addr, sha1);
+	aging_insert(mesh_info, mik, uint_to_pointer(now));
 
 	if (GNET_PROPERTY(upload_debug) > 4)
 		g_debug("new upload MESH info (%s/%s) stamp=%u",
 			host_addr_to_string(addr), sha1_base32(sha1), (uint32) now);
 
-	return 0;			/* Don't remember sending info about this file */
+	return 0;			/* Don't remember sending info about this file yet */
 }
 
 /**
@@ -484,8 +445,8 @@ upload_host_info(const struct upload *u)
 
 	upload_check(u);
 
-	host_addr_to_string_buf(u->addr, host, sizeof host);
-	concat_strings(info, sizeof info,
+	host_addr_to_string_buf(u->addr, ARYLEN(host));
+	concat_strings(ARYLEN(info),
 		"<", host, " \'", upload_vendor_str(u), "\'>",
 		NULL_PTR);
 	return info;
@@ -648,7 +609,16 @@ upload_new_early_stalling(const struct upload *u)
 
 	aging_record(early_stalling_uploads, WCOPY(&u->addr));
 
-	upload_early_stall();
+	/*
+	 * We need to have at least two remote hosts early stallling at the same
+	 * time to start counter-measures.  Otherwise, we rely on the new
+	 * bandwidth decimation feature on early stalling conditions to hopefully
+	 * take care of the problem.
+	 * 		--RAM, 2020-05-26
+	 */
+
+	if (aging_count(early_stalling_uploads) > 1)
+		upload_early_stall();
 }
 
 /**
@@ -706,6 +676,158 @@ upload_new_stalling(const struct upload *u)
 }
 
 /**
+ * Bandwidth capping requests.
+ *
+ * The purpose of b/w capping is to prevent stalling conditions when
+ * sending chunks to the remote host.  If we have a lot of bandwidth but
+ * the remote host has less and has many connections, its bandwdith could
+ * be saturating, slowing down our transmission.
+ *
+ * If we do nothing, what happens usually is that we fill the large TX
+ * send buffer on our side and then, when we think we are done sending, we
+ * wait for the follow-up request.  If the remote host does not do HTTP
+ * request pipelining like gtk-gnutella does, then we will not get the
+ * reply until the whole TX buffer is flushed.  That can take a while, and
+ * during this time we have no feedback from the kernel because it has
+ * space in the TX buffer so we are not flow-controlled.
+ *
+ * Eventually, this can lead to a follow-up request timeout and we will
+ * close the connection, thinking the remote side is lost.
+ *
+ * Therefore, what we do is try to adapt to the actual transfer rate we
+ * can witness between the two hosts (us and them).  This is the job of the
+ * upload_update_bw_cap() routine, and it tries to cut down bandwidth, but
+ * not too severely or we will converge to 1 KiB/s or less very quickly if
+ * transfers start to stall.
+ *
+ * Hopefully this new adaptative strategy will allow us to serve more requests
+ * when we have more bandwidth than they have.  If we have less bandwidth, then
+ * we will be limited by the b/w scheduler normally.
+ *
+ * 		--RAM, 2020-05-27
+ */
+enum upload_bw_cap {
+	UL_BW_CAP_CLEAR = 0,
+	UL_BW_CAP_UP,
+	UL_BW_CAP_DOWN,
+};
+
+/*
+ * Recompute bandwidth cap for the follow-up request.
+ *
+ * @param u		the upload
+ * @param cmd	requested b/w cap adjustment
+ */
+static void
+upload_update_bw_cap(struct upload *u, enum upload_bw_cap cmd)
+{
+	const char *what = "reset";
+	time_delta_t elapsed;
+	filesize_t fspeed;
+	uint32 speed;
+
+	upload_check(u);
+
+	elapsed = delta_time(tm_time(), u->last_start);
+	if G_UNLIKELY(0 == u->last_start)
+		elapsed = 0;		/* First time, no previous request */
+
+	/*
+	 * Compute speed of last request, overall, by using brute overall timing.
+	 *
+	 * We substract 1 second from the total elapsed time to get a more
+	 * optimistic speed.
+	 *
+	 * If no elapsed time or it is too small, assume it was all sent instantly.
+	 */
+
+	if (elapsed > 2)
+		fspeed = u->last_sent / (elapsed - 1);
+	else
+		fspeed = u->last_sent;
+
+	if (fspeed > MAX_INT_VAL(uint32))
+		fspeed = MAX_INT_VAL(uint32);
+
+	/*
+	 * We aim to remain at 12.5% above the measured speed otherwise we may
+	 * be dragged down to lower and lower speeds, and due to the b/w scheduler
+	 * doing its job, the measured speed will be always what we had set for,
+	 * modulo the delays we get during follow-ups which may be due to us or
+	 * to them, and that we do not know!
+	 */
+
+	speed = uint32_saturate_add(fspeed, fspeed / 8);
+
+	if (UL_BW_CAP_CLEAR == cmd) {
+		u->bw_cap = 0;
+	} else if (0 != u->bw_cap) {
+		if (UL_BW_CAP_DOWN == cmd) {
+			uint32 pct = u->bw_cap / 5;		/* 20% decrement */
+			uint32 ncap = u->bw_cap - pct;
+			if (ncap >= speed) {
+				if (ncap - speed > pct) {
+					/* Large difference, better cut-down TX rate */
+					u->bw_cap = speed;
+					what = "cut-down";
+				} else {
+					u->bw_cap = ncap;
+					what = "lowered";
+				}
+			} else if (u->bw_cap >= speed){
+				u->bw_cap = speed;		/* Don't lower too much */
+				what = "decreased";
+			} else {
+				u->bw_cap = speed;		/* Need to stay optimist */
+				what = "increased";
+			}
+		} else if (UL_BW_CAP_UP == cmd) {
+			uint32 pct = u->bw_cap / 4;		/* 25% increment */
+			if (u->bw_cap >= u->last_sent) {
+				/* Request was smaller than b/w, be careful! */
+				if (u->bw_cap - pct < speed) {
+					what = "kept";
+				} else {
+					/* This is actually a reduction! */
+					u->bw_cap = speed;
+					what = "forced";
+				}
+			} else {
+				uint32 ncap = uint32_saturate_add(u->bw_cap, pct);
+				u->bw_cap = ncap;
+				what = "raised";
+			}
+		} else
+			g_assert_not_reached();
+	} else {
+		/* First time, regardless of UL_BW_CAP_DOWN or UL_BW_CAP_UP */
+		if (elapsed > 2) {
+			u->bw_cap = speed;
+			what = "set";
+		} else {
+			what = "kept";
+		}
+	}
+
+	if (GNET_PROPERTY(upload_debug) > 1) {
+		char buf[SIZE_FIELD_MAX];
+
+		if (UL_BW_CAP_CLEAR == cmd)
+			elapsed = 0;
+
+		short_size_to_string_buf(speed, FALSE, ARYLEN(buf));
+
+		g_debug(
+			"UL b/w cap %s to %s/s%s for host %s (%s) request #%u, "
+			"T=%s for %s, speed ~ %s/s",
+			what, short_size(u->bw_cap, FALSE),
+			0 == u->bw_cap ? " (none)" : "",
+			host_addr_to_string(u->addr), upload_vendor_str(u), u->reqnum,
+			short_time_ascii(elapsed), short_size2(u->last_sent, FALSE), buf);
+	}
+}
+
+/**
  * Invoked when we spot a large round trip time between the end of the previous
  * request and the followup from the remote client.
  */
@@ -714,17 +836,22 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 {
 	bool ignore = FALSE;
 
+	upload_check(u);
+
 	/*
-	 * If IP has been stalling recently, then ignore.
+	 * If bandwidth capping was used or IP has been stalling recently,
+	 * then ignore.
 	 */
 
-	if (aging_lookup_revitalise(stalling_uploads, &u->addr))
+	if (0 != u->bw_cap || aging_lookup_revitalise(stalling_uploads, &u->addr))
 		ignore = TRUE;
 
 	if (GNET_PROPERTY(upload_debug)) {
-		g_debug("UL host %s (%s) took %s to send follow-up after request #%u%s",
+		g_debug(
+			"UL host %s (%s) took %s to send follow-up after request #%u (%s)%s",
 			host_addr_to_string(u->addr), upload_vendor_str(u),
-			compact_time(d), u->reqnum, ignore ? " (IGNORED)" : "");
+			compact_time(d), u->reqnum, short_size(u->last_sent, FALSE),
+			ignore ? " (IGNORED)" : "");
 	}
 
 	entropy_harvest_small(VARLEN(u), VARLEN(u->addr), NULL);
@@ -734,10 +861,20 @@ upload_large_followup_rtt(const struct upload *u, time_delta_t d)
 
 	aging_insert(stalling_uploads, WCOPY(&u->addr), STALL_FIRST);
 
-	if (d >= IO_STALLED) {
-		upload_stall();
-	} else {
-		upload_early_stall();
+	/*
+	 * We need to have at least two remote hosts stallling at the same
+	 * time to start counter-measures.  Otherwise, we rely on the new
+	 * bandwidth decimation feature on stalling conditions to hopefully
+	 * take care of the problem.
+	 * 		--RAM, 2020-05-26
+	 */
+
+	if (aging_count(stalling_uploads) > 1) {
+		if (d >= IO_STALLED) {
+			upload_stall();
+		} else {
+			upload_early_stall();
+		}
 	}
 }
 
@@ -773,9 +910,15 @@ upload_timer(time_t now)
 
 		/*
 		 * Detect frequent stalling conditions on sending.
+		 *
+		 * We not only want UPLOAD_IS_SENDING() but also u->bio != NULL
+		 * otherwise we are facing a cloned upload whose HTTP status
+		 * header has not been sent back yet, hence we are not within a
+		 * data transfer!
+		 * 		--RAM, 2020-05-26
 		 */
 
-		if (!UPLOAD_IS_SENDING(u))
+		if (!UPLOAD_IS_SENDING(u) || NULL == u->bio)
 			goto not_sending;		/* Avoid deep nesting level */
 
 		if (delta_time(now, u->last_update) > IO_STALLED) {
@@ -793,6 +936,8 @@ upload_timer(time_t now)
 
 			if (!(u->flags & UPLOAD_F_STALLED)) {
 				u->flags |= UPLOAD_F_STALLED;
+				bio_add_penalty(u->bio, 1);		/* Reduce write bandwidth */
+
 				if (!skip)
 					upload_new_stalling(u);
 
@@ -867,14 +1012,35 @@ upload_timer(time_t now)
 					socket_cork(u->socket, FALSE);
 					socket_tos_normal(u->socket); /* Have ACKs come faster */
 				}
-				if (!(u->flags & UPLOAD_F_EARLY_STALL)) {
-					upload_new_early_stalling(u);
-					u->flags |= UPLOAD_F_EARLY_STALL;
-				} else {
-					wd_kick(early_stall_wd);
+				if (u->bio != NULL) {		/* Within chunk serving */
+					if (!(u->flags & UPLOAD_F_EARLY_STALL)) {
+						upload_new_early_stalling(u);
+						/* Reduce write bandwidth by a factor of 2^2 = 4 */
+						bio_add_penalty(u->bio, 2);
+						u->flags |= UPLOAD_F_EARLY_STALL;
+					} else {
+						wd_kick(early_stall_wd);
+					}
 				}
-			} else
-				u->flags &= ~UPLOAD_F_EARLY_STALL;
+			} else if (u->bio != NULL) {
+				/*
+				 * When clearing the early stalling condition, we re-increase
+				 * the write bandwidth but less than what we had decreased
+				 * before. The net effect is that bandwidth returns to half
+				 * what it was before the early stalling condition, until this
+				 * request is completed.  More stalling will continue to add
+				 * some penalty until we can write less but more often to the
+				 * remote host.  This should smooth out traffic by adapting
+				 * to the available end-to-end bandwidth.
+				 * 		--RAM, 2020-05-26
+				 */
+
+				if (u->flags & UPLOAD_F_EARLY_STALL) {
+					/* Re-increase bandwidth by a factor of 2^1 = 2 */
+					bio_remove_penalty(u->bio, 1);
+					u->flags &= ~UPLOAD_F_EARLY_STALL;
+				}
+			}
 		}
 	}
 
@@ -901,11 +1067,9 @@ upload_timer(time_t now)
 struct upload *
 upload_alloc(void)
 {
-	static const struct upload zero_upload;
 	struct upload *u;
 
-	WALLOC(u);
-	*u = zero_upload;
+	WALLOC0(u);
 	u->magic = UPLOAD_MAGIC;
 	return u;
 }
@@ -1007,6 +1171,7 @@ upload_create(struct gnutella_socket *s, bool push)
     u->upload_handle = upload_new_handle(u);
 	u->socket = s;
     u->addr = s->addr;
+    u->port = s->port;
 	u->country = gip_country(u->addr);
 	u->push = push;
 	u->status = push ? GTA_UL_PUSH_RECEIVED : GTA_UL_HEADERS;
@@ -1088,8 +1253,9 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 	uint32 file_index, flags = 0;
 	uint16 port;
 	const char *info;
-	const char *file_name = "<invalid file index>";
+	const char *file_name = "<any file index>";
 	int push_count;
+	bool emit_warning;
 
 	if (NODE_TALKS_G2(n)) {
 		const char *payload;
@@ -1235,7 +1401,7 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 					size_t paylen = ext_paylen(e);
 					g_warning("%s (PUSH): unhandled GGEP \"%s\" (%zu byte%s)",
 						gmsg_node_infostr(n), ext_ggep_id_str(e),
-						paylen, plural(paylen));
+						PLURAL(paylen));
 				}
 				break;
 			}
@@ -1253,36 +1419,41 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 	 *		--RAM. 18/07/2003
 	 */
 
-	if (file_index == QUERY_FW2FW_FILE_INDEX) {
+	emit_warning = TRUE;
+
+	if (QUERY_FW2FW_FILE_INDEX == file_index) {
 		file_name = "<RUDP connection request>";
-		if (GNET_PROPERTY(upload_debug))
-			g_warning(
-				"PUSH request (hops=%d, ttl=%d) for RUDP connection request",
-				gnutella_header_get_hops(&n->header),
-				gnutella_header_get_ttl(&n->header));
+	} else if (QUERY_GENERIC_FILE_INDEX == file_index) {
+		file_name = "<generic file index>";
+		emit_warning = FALSE;
 	} else {
 		shared_file_t *req_file;
 
 		req_file = shared_file(file_index);
 		if (req_file == SHARE_REBUILDING) {
-			file_name = "<rebuilding library>";
-			if (GNET_PROPERTY(upload_debug))
-				g_warning(
-					"PUSH request (hops=%d, ttl=%d) whilst rebuilding library",
-					gnutella_header_get_hops(&n->header),
-					gnutella_header_get_ttl(&n->header));
+			file_name = "<whilst rebuilding library>";
 		} else if (req_file == NULL) {
 			file_name = "<invalid file index>";
-			if (GNET_PROPERTY(upload_debug))
-				g_warning(
-					"PUSH request (hops=%d, ttl=%d) for invalid file index %u",
-					gnutella_header_get_hops(&n->header),
-					gnutella_header_get_ttl(&n->header),
-					file_index);
 		} else {
 			file_name = shared_file_name_nfc(req_file);
+			emit_warning = FALSE;
 		}
 		shared_file_unref(&req_file);
+	}
+
+	if (
+		(emit_warning && GNET_PROPERTY(upload_debug)) ||
+		 GNET_PROPERTY(upload_debug) > 1
+	) {
+		GLogLevelFlags lf =
+			emit_warning ? G_LOG_LEVEL_WARNING : G_LOG_LEVEL_DEBUG;
+		gl_log(G_LOG_DOMAIN, lf,
+			"%s(): PUSH request (hops=%d, ttl=%d) via %s for %s on remote %s",
+			G_STRFUNC,
+			gnutella_header_get_hops(&n->header),
+			gnutella_header_get_ttl(&n->header),
+			node_infostr(n), file_name,
+			host_addr_port_to_string(ha, port));
 	}
 
 connect_to_host:
@@ -1298,11 +1469,16 @@ connect_to_host:
 	 */
 
 	if (!host_is_valid(ha, port) && !node_is_connected(ha, port, TRUE)) {
-		if (GNET_PROPERTY(upload_debug)) g_warning(
-			"PUSH request (hops=%d, ttl=%d) from invalid address %s",
-			gnutella_header_get_hops(&n->header),
-			gnutella_header_get_ttl(&n->header),
-			host_addr_port_to_string(ha, port));
+		if (GNET_PROPERTY(upload_debug)) {
+			g_warning(
+				"%s(): PUSH request (hops=%d, ttl=%d) for %s via %s "
+				"bearing invalid address %s",
+				G_STRFUNC,
+				gnutella_header_get_hops(&n->header),
+				gnutella_header_get_ttl(&n->header),
+				node_infostr(n), file_name,
+				host_addr_port_to_string(ha, port));
+		}
 		return;
 	}
 
@@ -1324,7 +1500,7 @@ connect_to_host:
 					gnutella_header_get_ttl(&n->header),
 					NODE_TALKS_G2(n) ? "G2 " : "",
 					host_addr_port_to_string(ha, port),
-					(long) age, plural(age), file_name);
+					(long) PLURAL(age), file_name);
 			}
 			return;
 		}
@@ -1388,7 +1564,7 @@ upload_free_resources(struct upload *u)
 	parq_upload_upload_got_freed(u);
 
 	atom_str_free_null(&u->name);
-	file_object_release(&u->file);
+	file_object_close(&u->file);
 
 #ifdef HAS_MMAP
 	if (u->sendfile_ctx.map) {
@@ -1424,7 +1600,7 @@ upload_free_resources(struct upload *u)
 	shared_file_unref(&u->sf);
 	shared_file_unref(&u->thex);
 	HFREE_NULL(u->request);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
 	HFREE_NULL(u->sending_error);
 
     upload_free_handle(u->upload_handle);
@@ -1468,6 +1644,8 @@ upload_clone(struct upload *u)
 		cu->flags &= ~UPLOAD_F_WAS_PLAIN;
 
     cu->upload_handle = upload_new_handle(cu); /* fetch new handle */
+	cu->last_sent = u->sent;			/* Bytes sent in previous request */
+	cu->last_start = u->start_date;		/* Remember previous request start */
 	cu->bio = NULL;						/* Recreated on each transfer */
 	cu->sf = NULL;						/* File re-opened each time */
 	cu->file = NULL;					/* File re-opened each time */
@@ -1479,6 +1657,8 @@ upload_clone(struct upload *u)
 	cu->sent = 0;
 	cu->hevcnt = 0;
 	cu->error_sent = 0;
+	cu->http_status = 0;
+	cu->http_status_sent = FALSE;
 	cu->sending_error = NULL;			/* Freed by the parent upload */
 
 	socket_change_owner(cu->socket, cu);	/* Takes ownership of socket */
@@ -1580,6 +1760,8 @@ upload_send_http_status(struct upload *u,
 	http_send_status_cb_t unsent, void *unsent_arg,
 	const char *msg)
 {
+	bool flushed;
+
 	upload_check(u);
 	g_assert(msg != NULL);
 
@@ -1591,8 +1773,43 @@ upload_send_http_status(struct upload *u,
 		return TRUE;
 	}
 
-	return http_send_status(HTTP_UPLOAD, u->socket, code, keep_alive,
-				u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
+	u->http_status = code;
+
+	flushed = http_send_status(HTTP_UPLOAD,
+		u->socket, code, keep_alive,
+		u->hev, u->hevcnt, unsent, unsent_arg, "%s", msg);
+
+	if (flushed)
+		u->http_status_sent = TRUE;		/* For logging */
+
+	return flushed;
+}
+
+/**
+ * Record that we're sending a Retry-After for this resource (as identified
+ * by u->sf), and penalize the remote host if another request comes before.
+ */
+static void
+upload_enforce_retry_after(const struct upload *u, time_delta_t delay)
+{
+	const struct sha1 *sha1;
+	struct upload_tag_key *tk;
+
+	upload_check(u);
+	g_assert(u->sf != NULL);
+
+	delay -= 2;		/* Grace time for their computation errors, etc. */
+	if (delay <= 0)
+		return;
+
+	sha1 = sha1_hash_available(u->sf) ? shared_file_sha1(u->sf) : NULL;
+	if (NULL == sha1)
+		return;		/* Not possible to enforce without a SHA1 */
+
+	delay = MIN(RETRY_AFTER_ENFORCE_MAX, delay);
+
+	tk = upload_tag_key_make(u->addr, sha1);
+	ripening_insert_key(retry_after, delay, tk);
 }
 
 /**
@@ -1624,7 +1841,7 @@ upload_http_xhost_add(char *buf, size_t size,
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Host header back: only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -1693,7 +1910,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 	)
 		return 0;
 
-	gnet_prop_get_storage(PROP_SERVENT_GUID, &guid, sizeof guid);
+	gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(guid));
 
 	rw = concat_strings(buf, size,
 			"X-GUID: ", guid_hex_str(&guid), "\r\n",
@@ -1701,7 +1918,7 @@ upload_xguid_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (rw >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-GUID header back: only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return rw < size ? rw : 0;
@@ -1750,7 +1967,7 @@ upload_gnutella_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Gnutella-Content-URN header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -1798,23 +2015,92 @@ upload_thex_uri_add(char *buf, size_t size, void *arg, uint32 flags)
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send X-Thex-URI header back: only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
 }
 
 /**
- * This routine is called by http_send_status() to generate the
- * SHA1-specific headers (added to the HTTP status) into `buf'.
+ * This routine is called by http_send_status() on 416 errors to generate a
+ * Retry-After header (added to the HTTP headers) into `buf'.
+ *
+ * @param buf		where the callback can generate extra data.
+ * @param size		the size of buf in bytes.
+ * @param arg		user-supplied data.
+ * @param flags		extra flags passed by callback invoker
+ *
+ * @return the amount of bytes written to buf.
  */
 static size_t
-upload_http_content_urn_add(char *buf, size_t size, void *arg,
-	uint32 flags)
+upload_retry_after(char *buf, size_t size, void *arg, uint32 flags)
+{
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
+	time_delta_t after;
+	char ra[32];
+	size_t len;
+
+	upload_check(u);
+	g_return_val_if_fail(u->sf != NULL, 0);
+	(void) flags;
+
+	/*
+	 * The HTTP Retry-After is normally defined for 503 errors, but we also
+	 * bend the protocol and return it as well for 416: partial files where
+	 * the requested range is not available yet.
+	 *
+	 * Remote gtk-gnutella (and maybe other modern servents) will parse it
+	 * and honour it for this particular file request, to avoid hammering.
+	 * Of course, this is only to be used when there has been no updating
+	 * on the file for some time.
+	 *
+	 * As a safety precaution, we compute the time since the last file
+	 * modification and set a timeout to half that time, capped to 1 day.
+	 * We do not send any Retry-After if there as been a recent modification
+	 * on the file (i.e. the file is currently being downloaded).
+	 */
+
+	after = delta_time(tm_time(), shared_file_modification_time(u->sf)) / 2;
+	after = MIN(after, ONE_DAY);
+
+	if (after < 60)		/* Was updated this last minute */
+		return 0;		/* No header generated */
+
+	len = str_bprintf(ARYLEN(ra), "Retry-After: %s\r\n", int64_to_string(after));
+
+	if (len >= size && GNET_PROPERTY(upload_debug)) {
+		g_warning("U/L cannot send Retry-After header back: "
+			"only %u byte%s left",
+			(unsigned) PLURAL(size));
+	}
+
+	if (len >= size)
+		return 0;
+
+	upload_enforce_retry_after(u, after);
+	cstr_bcpy(buf, size, ra);		/* Will loudly warn if failing */
+
+	return len;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * SHA1-specific headers (added to the HTTP status) into `buf'.
+ *
+ * @param buf		where the callback can generate extra data.
+ * @param size		the size of buf in bytes.
+ * @param arg		user-supplied data.
+ * @param flags		extra flags passed by callback invoker
+ *
+ * @return the amount of bytes written to buf.
+ */
+static size_t
+upload_http_content_urn_add(char *buf, size_t size, void *arg, uint32 flags)
 {
 	const struct sha1 *sha1;
 	size_t rw = 0, mesh_len;
-	struct upload_http_cb *a = arg;
+	const struct upload_http_cb *a = arg;
 	struct upload *u = a->u;
 	time_t last_sent;
 	bool need_content_urn;
@@ -1838,7 +2124,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	if (u->last_dmesh) {
 		last_sent = u->last_dmesh;
 	} else {
-		last_sent = mi_get_stamp(u->addr, sha1, tm_time());
+		last_sent = upload_mi_get_stamp(u->addr, sha1, tm_time());
 	}
 
 	/*
@@ -1877,7 +2163,7 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	 * The X-Thex-URI line is never sent on follow-up requests.
 	 */
 
-	if (!u->is_followup)
+	if (!u->is_followup && !(flags & HTTP_CBF_SMALL_REPLY))
 		rw += upload_thex_uri_add(&buf[rw], size - rw, arg, flags);
 
 	/*
@@ -1886,10 +2172,11 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 	 *
 	 * However, we're not going to include the available ranges when we
 	 * are returning a 503 "busy" or "queued" indication, or any 4xx indication
-	 * since the data will be stale by the time it is needed.  We only dump
-	 * them when explicitly requested to do so.  Otherwise, we let them know
-	 * about the amount of data we have for the file, so that they know we
-	 * hold only a fraction of it.
+	 * (but 416) since the data will be stale by the time it is needed.
+	 *
+	 * We only dump them when explicitly requested to do so.
+	 * Otherwise, we let them know about the amount of data we have for the
+	 * file, so that they know we hold only a fraction of it.
 	 */
 
 	if (
@@ -1912,13 +2199,17 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 		 * want to leave size for alt-locs and yet there are none to emit!
 		 */
 
-		mesh_len = dmesh_alternate_location(sha1,
-					alt_locs, sizeof alt_locs, u->addr,
-					last_sent, u->user_agent, NULL, FALSE,
-					u->fwalt ? u->guid : NULL, u->net);
+		if (flags & HTTP_CBF_SMALL_REPLY)
+			mesh_len = 0;
+		else {
+			mesh_len = dmesh_alternate_location(sha1,
+						ARYLEN(alt_locs), u->addr,
+						last_sent, u->user_agent, NULL, FALSE,
+						u->fwalt ? u->guid : NULL, u->net);
+		}
 
 		if (size - rw > mesh_len) {
-			size_t len;
+			size_t len, avail;
 
 			/*
 			 * Emit the X-Available-Ranges: header if file is partial and we're
@@ -1926,12 +2217,21 @@ upload_http_content_urn_add(char *buf, size_t size, void *arg,
 			 * X-Available header.
 			 */
 
+			avail = size - rw - mesh_len;
+
+			if (flags & HTTP_CBF_RETRY_PRIO) {
+				avail = MIN(avail, RANGES_SIZE);
+			} else if (flags & HTTP_CBF_SMALL_REPLY) {
+				avail /= 2;
+				avail = MAX(avail, RANGES_SIZE);
+			}
+
 			if (flags & HTTP_CBF_BUSY_SIGNAL) {
 				len = file_info_available(shared_file_fileinfo(u->sf),
-						&buf[rw], size - rw - mesh_len);
+						&buf[rw], avail);
 			} else {
 				len = file_info_available_ranges(shared_file_fileinfo(u->sf),
-						&buf[rw], size - rw - mesh_len);
+						&buf[rw], avail);
 			}
 			rw += len;
 		}
@@ -1988,14 +2288,14 @@ upload_416_extra(char *buf, size_t size, void *arg, uint32 unused_flags)
 	(void) unused_flags;
 	upload_check(u);
 
-	uint64_to_string_buf(u->file_size, fsize, sizeof fsize);
+	uint64_to_string_buf(u->file_size, ARYLEN(fsize));
 	len = concat_strings(buf, size,
-			"Content-Range: bytes */", fsize, NULL_PTR);
+			"Content-Range: bytes */", fsize, "\r\n", NULL_PTR);
 
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	/* Don't emit a truncated header */
@@ -2006,8 +2306,8 @@ static size_t
 upload_http_content_length_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
@@ -2020,7 +2320,7 @@ upload_http_content_length_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Length header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -2030,8 +2330,8 @@ static size_t
 upload_http_content_type_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
@@ -2048,7 +2348,7 @@ upload_http_content_type_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Type header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -2058,7 +2358,7 @@ static size_t
 upload_http_last_modified_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
+	const struct upload_http_cb *a = arg;
 	size_t len;
 
 	(void) unused_flags;
@@ -2070,7 +2370,7 @@ upload_http_last_modified_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Last-Modified header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -2080,8 +2380,8 @@ static size_t
 upload_http_content_range_add(char *buf, size_t size,
 	void *arg, uint32 unused_flags)
 {
-	struct upload_http_cb *a = arg;
-	struct upload *u = a->u;
+	const struct upload_http_cb *a = arg;
+	const struct upload *u = a->u;
 	size_t len;
 
 	(void) unused_flags;
@@ -2101,7 +2401,7 @@ upload_http_content_range_add(char *buf, size_t size,
 	if (len >= size && GNET_PROPERTY(upload_debug)) {
 		g_warning("U/L cannot send Content-Range header back: "
 			"only %u byte%s left",
-			(unsigned) size, plural(size));
+			(unsigned) PLURAL(size));
 	}
 
 	return len < size ? len : 0;
@@ -2117,10 +2417,42 @@ upload_http_status(char *buf, size_t size, void *arg, uint32 flags)
 {
 	size_t rw = 0;
 
-	rw += upload_http_content_length_add(&buf[rw], size - rw, arg, flags);
-	rw += upload_http_content_range_add(&buf[rw], size - rw, arg, flags);
 	rw += upload_http_last_modified_add(&buf[rw], size - rw, arg, flags);
 	rw += upload_http_content_type_add(&buf[rw], size - rw, arg, flags);
+	return rw;
+}
+
+/**
+ * This routine is called by http_send_status() to generate the
+ * mandatory upload-specific headers into `buf'.
+ *
+ * This is for prioritary headers that must be generated or the downloading
+ * host will not be able to process the incoming data properly.
+ */
+static size_t
+upload_http_status_mandatory(char *buf, size_t size, void *arg, uint32 flags)
+{
+	size_t rw = 0;
+
+	/*
+	 * When there is not enough room in the header to include all the
+	 * information added by the callbacks, a second pass is made with
+	 * just the prioritary headers.  The http_send_status() routine
+	 * indicates that with the HTTP_CBF_RETRY_PRIO flag set.
+	 *
+	 * In that case, we do not generate the Content-Length header if
+	 * we managed (and required) a Content-Range header.  We'll know
+	 * about that by monitring the returned value: a 0 indicates that
+	 * the callback could not (or did not need to) generate the header.
+	 *
+	 * 		--RAM, 2020-06-03
+	 */
+
+	rw += upload_http_content_range_add(&buf[rw], size - rw, arg, flags);
+
+	if (0 == (HTTP_CBF_RETRY_PRIO & flags) || 0 == rw)
+		rw += upload_http_content_length_add(&buf[rw], size - rw, arg, flags);
+
 	return rw;
 }
 
@@ -2136,6 +2468,28 @@ upload_http_extra_callback_add(struct upload *u,
 	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
 
 	http_extra_callback_set(&u->hev[u->hevcnt], callback, user_arg);
+	u->hevcnt++;
+}
+
+/**
+ * Record additional header-generation prioritary callback to invoke when
+ * we generate the HTTP status.
+ *
+ * A prioritary callback is noramlly always emitted in the HTTP status but
+ * others can have their output dropped when the header size becomes too large.
+ *
+ * Use that for mandatory headers that need to be sent back or the remote host
+ * will not be able to properly parse the reply (e.g. the Content-Range header
+ * when a partial request is made).
+ */
+static void
+upload_http_extra_prio_callback_add(struct upload *u,
+	http_status_cb_t callback, void *user_arg)
+{
+	upload_check(u);
+	g_return_if_fail(u->hevcnt < N_ITEMS(u->hev));
+
+	http_extra_prio_callback_set(&u->hev[u->hevcnt], callback, user_arg);
 	u->hevcnt++;
 }
 
@@ -2217,7 +2571,6 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 {
 	char reason[1024];
 	char extra[1024];
-	size_t slen = 0;
 
 	upload_check(u);
 
@@ -2240,7 +2593,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	}
 
 	if (msg && no_reason != msg) {
-		str_vbprintf(reason, sizeof reason, msg, ap);
+		str_vbprintf(ARYLEN(reason), msg, ap);
 	} else
 		reason[0] = '\0';
 
@@ -2258,13 +2611,11 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 	 */
 
 	if (ext) {
-		slen = g_strlcpy(extra, ext, sizeof(extra));
-
-		if (slen < sizeof(extra)) {
+		if (cstr_fcpy(ARYLEN(extra), ext)) {
 			upload_http_extra_line_add(u, extra);
 		} else {
 			g_warning("%s: ignoring too large extra header (%zu bytes)",
-				G_STRFUNC, slen);
+				G_STRFUNC, vstrlen(ext));
 		}
 	}
 
@@ -2311,7 +2662,7 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 				char *uri;
 
 				uri = url_escape(u->name);
-				if (html_escape(uri, href, sizeof href) >= sizeof href) {
+				if (html_escape(uri, ARYLEN(href)) >= sizeof href) {
 					/* If the escaped href is too long, leave it out. They
 				 	 * might get an ugly filename but at least the URI
 				 	 * works. */
@@ -2321,9 +2672,9 @@ send_upload_error_v(struct upload *u, const char *ext, int code,
 					HFREE_NULL(uri);
 			}
 
-			str_bprintf(index_href, sizeof index_href,
+			str_bprintf(ARYLEN(index_href),
 				"/get/%lu/", (ulong) u->file_index);
-			str_bprintf(buf, sizeof buf,
+			str_bprintf(ARYLEN(buf),
 				"<!DOCTYPE html PUBLIC \"-//W3C//DTD HTML 4.01//EN\">"
 				"<html>"
 				"<head>"
@@ -2505,11 +2856,11 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	VA_COPY(apcopy, ap);
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, reason, ap);
+		str_vbprintf(ARYLEN(errbuf), reason, ap);
 		logreason = errbuf;
 	} else {
 		if (u->error_sent) {
-			str_bprintf(errbuf, sizeof(errbuf), "HTTP %d", u->error_sent);
+			str_bprintf(ARYLEN(errbuf), "HTTP %d", u->error_sent);
 			logreason = errbuf;
 		} else {
 			errbuf[0] = '\0';
@@ -2518,22 +2869,40 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	}
 
 	if (!UPLOAD_IS_COMPLETE(u) && GNET_PROPERTY(upload_debug) > 1) {
-		if (u->name) {
-			g_debug(
-				"ending upload of \"%s\" [%s bytes out] from %s (%s): %s",
-				u->name,
-				uint64_to_string(u->sent),
-				host_addr_to_string(u->addr),
-				upload_vendor_str(u),
-				logreason);
-		} else {
-			g_debug(
-				"ending upload [%s bytes out] from %s (%s): %s",
-				uint64_to_string(u->sent),
-				host_addr_to_string(u->addr),
-				upload_vendor_str(u),
-				logreason);
-		}
+		str_t *s = str_new(128);
+
+		str_catf(s, "ending %supload ", u->push ? "pushed " : "");
+		if (u->name != NULL)
+			str_catf(s, "of %s \"%s\" ", u->head_only ? "HEAD" : "GET", u->name);
+		str_catf(s, "[%s bytes out, %s total] request #%u [%sHTTP %03d] ",
+			uint64_to_string(u->sent),
+			uint64_to_string2(u->total_sent),
+			u->reqnum, u->http_status_sent ? "" : "unsent ", u->http_status);
+		if (u->push)
+			str_catf(s, "to %s", host_addr_port_to_string(u->addr, u->port));
+		else
+			str_catf(s, "from %s", host_addr_to_string(u->addr));
+		if (u->user_agent != NULL)
+			str_catf(s, " (%s)", u->user_agent);
+		str_catf(s, ": %s", logreason);
+		g_debug("%s", str_2c(s));
+		str_destroy(s);
+	}
+
+	/*
+	 * Check for obvious abuse: a servent requesting some chunk and
+	 * then not even bothering to get the output back.
+	 * 		--RAM, 2020-06-06
+	 */
+
+	if (
+		0 == u->sent &&				/* No payload sent back for this request */
+		0 == u->total_sent &&		/* And never sent any payload yet */
+		(u->http_status >= 200 && u->http_status < 300) &&	/* 2xx status code */
+		!u->head_only &&			/* Not a HEAD request */
+		u->http_status_sent			/* And header was sent back */
+	) {
+		ban_penalty(BAN_CAT_HTTP, u->addr, "Not reading HTTP payloads");
 	}
 
 	/*
@@ -2585,7 +2954,7 @@ upload_remove_v(struct upload *u, const char *reason, va_list ap)
 	 */
 
 	if (reason != NULL && no_reason != reason) {
-		str_vbprintf(errbuf, sizeof errbuf, _(reason), apcopy);
+		str_vbprintf(ARYLEN(errbuf), _(reason), apcopy);
 		logreason = errbuf;
 	} else {
 		logreason = NULL;
@@ -2679,6 +3048,19 @@ upload_error_remove_ext(struct upload *u, const char *ext, int code,
 }
 
 /**
+ * Signal that we cannot serve request because the library is being rebuilt.
+ */
+static void
+upload_error_library_rebuilt(struct upload *u)
+{
+	upload_check(u);
+
+	ban_legit(BAN_CAT_HTTP, u->addr);
+	/* Retry-able by user, hence 503 */
+	upload_error_remove(u, 503, N_("Library being rebuilt"));
+}
+
+/**
  * This is used for HTTP/1.1 persistent connections.
  *
  * Move the upload back to a waiting state, until a new HTTP request comes
@@ -2691,7 +3073,7 @@ upload_wait_new_request(struct upload *u)
 	 * File will be re-opened each time a new request is made.
 	 */
 
-	file_object_release(&u->file);	/* expect_http_header() expects this */
+	file_object_close(&u->file);	/* expect_http_header() expects this */
  	socket_tos_normal(u->socket);
 	expect_http_header(u, GTA_UL_EXPECTING);
 }
@@ -2813,7 +3195,7 @@ upload_request_handle_user_agent(struct upload *u, const header_t *header)
 		if (faked) {
 			char name[1024];
 
-			concat_strings(name, sizeof name, "!", user_agent, NULL_PTR);
+			concat_strings(ARYLEN(name), "!", user_agent, NULL_PTR);
 			u->user_agent = atom_str_get(name);
 		} else
 			u->user_agent = atom_str_get(user_agent);
@@ -3044,10 +3426,9 @@ upload_connect_conf(struct upload *u)
 	guid = cast_to_guid_ptr_const(GNET_PROPERTY(servent_guid));
 
 	if (u->g2) {
-		rw = str_bprintf(giv, sizeof giv, "PUSH guid:%s\r\n\r\n",
-				guid_hex_str(guid));
+		rw = str_bprintf(ARYLEN(giv), "PUSH guid:%s\r\n\r\n", guid_hex_str(guid));
 	} else {
-		rw = str_bprintf(giv, sizeof giv, "GIV %lu:%s/file\n\n",
+		rw = str_bprintf(ARYLEN(giv), "GIV %lu:%s/file\n\n",
 				(ulong) u->file_index, guid_hex_str(guid));
 	}
 
@@ -3412,7 +3793,7 @@ get_file_to_upload_from_index(struct upload *u, const header_t *header,
 
 			escaped = url_escape(shared_file_name_nfc(sfn));
 
-			str_bprintf(location, sizeof(location),
+			str_bprintf(ARYLEN(location),
 				"Location: /get/%lu/%s\r\n",
 				(ulong) shared_file_index(sfn), escaped);
 
@@ -3517,8 +3898,7 @@ not_found:
 	return -1;
 
 library_rebuilt:
-	/* Retry-able by user, hence 503 */
-	upload_error_remove(u, 503, N_("Library being rebuilt"));
+	upload_error_library_rebuilt(u);
 	return -1;
 }
 
@@ -3560,7 +3940,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3597,8 +3977,7 @@ get_file_to_upload_from_urn(struct upload *u, const header_t *header,
 	}
 
 	if (sf == SHARE_REBUILDING) {
-		/* Retry-able by user, hence 503 */
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
+		upload_error_library_rebuilt(u);
 		return -1;
 	}
 
@@ -3654,7 +4033,7 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 
 	u->n2r = TRUE;		/* Remember we saw an N2R request */
 
-	if (urn_get_bitprint(uri, strlen(uri), &sha1, &tth_buf)) {
+	if (urn_get_bitprint(uri, vstrlen(uri), &sha1, &tth_buf)) {
 		tth = &tth_buf;
 	} else if (urn_get_sha1(uri, &sha1)) {
 		tth = NULL;
@@ -3668,9 +4047,8 @@ get_thex_file_to_upload_from_urn(struct upload *u, const char *uri)
 
 	sf = shared_file_by_sha1(&sha1);
 	if (SHARE_REBUILDING == sf) {
-		/* Retry-able by user, hence 503 */
 		atom_str_change(&u->name, bitprint_to_urn_string(&sha1, tth));
-		upload_error_remove(u, 503, N_("Library being rebuilt"));
+		upload_error_library_rebuilt(u);
 		return -1;
 	}
 	if (sf == NULL) {
@@ -3755,8 +4133,8 @@ get_file_to_upload(struct upload *u, const header_t *header,
 	upload_check(u);
 	g_assert(NULL == u->sf);
 
-    if (u->name == NULL)
-        u->name = atom_str_get(uri);
+	if (u->name == NULL)
+		u->name = atom_str_get(uri);
 
 	if (NULL != (endptr = is_strprefix(uri, "/get/"))) {
 		uint32 idx;
@@ -3767,7 +4145,7 @@ get_file_to_upload(struct upload *u, const header_t *header,
 			!error &&
 			'/' == endptr[0] &&
 			'\0' != endptr[1] &&
-			NULL == strchr(&endptr[1], '/')
+			NULL == vstrchr(&endptr[1], '/')
 		) {
 			endptr = deconstify_char(&endptr[1]);
 			return get_file_to_upload_from_index(u, header, endptr, idx);
@@ -3849,9 +4227,13 @@ select_encoding(const header_t *header)
 	if (buf) {
 		if (strtok_has(buf, ",", "deflate")) {
 			const char *ua;
+			size_t ulen;
 
-			ua = header_get(header, "User-Agent");
-			if (NULL == ua || NULL == strstr(ua, "AppleWebKit"))
+			ua = header_get_extended(header, "User-Agent", &ulen);
+			if (
+				NULL == ua ||
+				NULL == pattern_strstrlen(ua, ulen, pat_applewebkit)
+			)
 				return BH_F_DEFLATE;
 		}
 
@@ -3979,7 +4361,7 @@ extract_fw_node_info(struct upload *u, const header_t *header)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* End at first "pptsl=" indication (remaining are push-proxies) */
@@ -4099,10 +4481,11 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	count = aging_saw_another(browsing_reqs, &u->addr, host_addr_wcopy);
 
 	if (count > 1) {
-		send_upload_error(u, 403, "Cannot Browse Too Often");
+		send_upload_error(u, 429, "Cannot Browse Too Often");
 		if (count >= BROWSING_ABUSE) {
 			(void) aging_lookup_revitalise(browsing_reqs, &u->addr);
 			upload_remove(u, N_("Browsing abuse detected"));
+			ban_record(BAN_CAT_HTTP, u->addr, "Browsing abuse");
 		} else {
 			upload_remove(u, N_("Browsing throttled"));
 		}
@@ -4124,7 +4507,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 		static const char fmt[] = "Location: http://%s:%u/\r\n";
 		static char location[sizeof fmt + UINT16_DEC_BUFLEN + MAX_HOSTLEN];
 
-		str_bprintf(location, sizeof location, fmt,
+		str_bprintf(ARYLEN(location), fmt,
 			GNET_PROPERTY(server_hostname), GNET_PROPERTY(listen_port));
 		upload_http_extra_line_add(u, location);
 		upload_send_http_status(u, FALSE, 301, HTTP_ATOMIC_SEND, "Redirecting");
@@ -4156,7 +4539,7 @@ prepare_browse_host_upload(struct upload *u, header_t *header,
 	{
 		static char lm_buf[64];
 
-		str_bprintf(lm_buf, sizeof lm_buf, "Last-Modified: %s\r\n",
+		str_bprintf(ARYLEN(lm_buf), "Last-Modified: %s\r\n",
 		   timestamp_rfc1123_to_string(GNET_PROPERTY(library_rescan_finished)));
 		upload_http_extra_line_add(u, lm_buf);
 	}
@@ -4358,6 +4741,33 @@ upload_http_status_sent(struct upload *u)
 
 		u->bio = bsched_source_add(bsched_out_select_by_addr(u->addr),
 					&u->socket->wio, BIO_F_WRITE, upload_writable, u);
+
+		/*
+		 * Decimate max bandwidth by additional amount of power of 2 in
+		 * case the address is known to be stalling.
+		 * 		--RAM, 2020-05-26
+		 */
+
+		if (u->flags & (UPLOAD_F_STALLED|UPLOAD_F_EARLY_STALL))
+			bio_add_penalty(u->bio, 1);
+
+		if (aging_lookup(early_stalling_uploads, &u->addr))
+			bio_add_penalty(u->bio, 1);
+
+		if (aging_lookup(stalling_uploads, &u->addr))
+			bio_add_penalty(u->bio, 2);
+
+		/*
+		 * In addition to b/w penalty, set-up b/w capping: the maximum
+		 * amount of data we shall write per second.  This is computed
+		 * dynamically at each follow-up request and allows us to avoid
+		 * overwhelming the remote host with more data it can consume.
+		 * 		--RAM, 2020-05-27
+		 */
+
+		if (0 != u->bw_cap)
+			u->bw_cap = bio_set_cap(u->bio, u->bw_cap);
+
 		upload_stats_file_begin(u->sf);
 	}
 }
@@ -4370,7 +4780,7 @@ static void
 upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 {
 	struct upload *u = data;
-	http_buffer_t *r;
+	pmsg_t *r;
 	gnutella_socket_t *s;
 	int rw;
 	const char *base;
@@ -4384,7 +4794,7 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 	r = u->reply;
 
 	g_assert(s->gdk_tag);		/* I/O callback is still registered */
-	http_buffer_check(r);
+	pmsg_check(r);
 
 	if G_UNLIKELY(cond & INPUT_EVENT_EXCEPTION) {
 		socket_eof(s);
@@ -4392,23 +4802,22 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 		return;
 	}
 
-	rw = http_buffer_unread(r);			/* Data we still have to send */
-	base = http_buffer_read_base(r);	/* And where unsent data start */
+	rw = pmsg_size(r);			/* Data we still have to send */
+	base = pmsg_start(r);		/* And where unsent data start */
 
 	sent = bws_write(BSCHED_BWS_OUT, &s->wio, base, rw);
 	if ((ssize_t) -1 == sent) {
 		upload_remove(u, "%s: %s", msg, g_strerror(errno));
 		return;
 	} else if (sent < rw) {
-		http_buffer_add_read(r, sent);
+		pmsg_discard(r, sent);	/* Move start past the data we sent */
 		u->last_update = tm_time();
 		return;
 	} else {
 		if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
-			g_debug("----Sent HTTP status completely to %s (%u bytes):",
-				host_addr_to_string(s->addr), http_buffer_length(r));
-			dump_string(stderr,
-				http_buffer_base(r), http_buffer_length(r), "----");
+			g_debug("----Sent HTTP status completely to %s (%zu bytes):",
+				host_addr_to_string(s->addr), pmsg_phys_len(r));
+			dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
 		}
 	}
 
@@ -4418,14 +4827,15 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 
 	if (GNET_PROPERTY(upload_debug)) {
 		int code =
-			http_status_parse(http_buffer_base(r), "HTTP", NULL, NULL, NULL);
+			http_status_parse(pmsg_phys_base(r), "HTTP", NULL, NULL, NULL);
 
-		g_debug("flushed partially written HTTP %d status to %s (%u bytes)",
-			code, host_addr_to_string(s->addr), http_buffer_length(r));
+		g_debug("flushed partially written HTTP %d status to %s (%zu bytes)",
+			code, host_addr_to_string(s->addr), pmsg_phys_len(r));
 	}
 
 	socket_evt_clear(s);
-	http_buffer_free_null(&u->reply);
+	pmsg_free_null(&u->reply);
+	u->http_status_sent = TRUE;			/* For logging */
 
 	upload_http_status_sent(u);
 }
@@ -4447,7 +4857,7 @@ upload_http_status_partially_sent(
 	upload_check(u);
 	g_assert(NULL == u->reply);
 
-	u->reply = http_buffer_alloc(data, len, sent);
+	u->reply = http_pmsg_alloc(data, len, sent);
 	u->last_update = tm_time();
 
 	/*
@@ -4458,7 +4868,7 @@ upload_http_status_partially_sent(
 		int code = http_status_parse(data, "HTTP", NULL, NULL, NULL);;
 
 		g_debug("partially sent %zu byte%s for HTTP %d status to %s (%zu bytes)",
-			sent, plural(sent), code, host_addr_to_string(u->addr), len);
+			PLURAL(sent), code, host_addr_to_string(u->addr), len);
 	}
 
 	/*
@@ -4471,6 +4881,30 @@ upload_http_status_partially_sent(
 }
 
 /**
+ * Compute maximum output bandwidth, as configured in settings or for a given
+ * upload (upload-specific bw capping).
+ */
+static uint64
+upload_max_out_bw(const struct upload *u)
+{
+	uint64 cap = MAX_INT_VAL(uint64);
+
+	upload_check(u);
+
+	/* We aim for the maximum possible speed for our estimates */
+
+	if (GNET_PROPERTY(bws_out_enabled))
+		cap = GNET_PROPERTY(bw_http_out);	/* Only true if upload is alone */
+
+	/* If we decided to cap bandwidth, then enforce it for this upload */
+
+	if (u->bw_cap != 0)
+		cap = MIN(cap, u->bw_cap);
+
+	return cap;
+}
+
+/**
  * Handle request for a shared file.
  *
  * @return TRUE if we're going to actually serve the request.
@@ -4478,7 +4912,7 @@ upload_http_status_partially_sent(
 static bool
 upload_request_for_shared_file(struct upload *u, const header_t *header)
 {
-	filesize_t range_skip = 0, range_end = 0;
+	filesize_t range_skip = 0, range_end = 0, max_chunk_size, requested;
 	bool range_unavailable = FALSE;
 	const struct sha1 *sha1 = NULL;
 	const char *buf;
@@ -4501,7 +4935,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	 *		--RAM, 31/12/2001
 	 */
 
-	if (u->push && idx != u->file_index && GNET_PROPERTY(upload_debug)) {
+	if (
+		u->push && idx != u->file_index &&
+		GNET_PROPERTY(upload_debug) &&
+		0 != strcmp(u->name, shared_file_name_nfc(u->sf))
+	) {
 		g_warning("host %s sent PUSH for %u (%s), now requesting %u (%s)",
 				host_addr_to_string(u->addr), u->file_index, u->name, idx,
 				shared_file_name_nfc(u->sf));
@@ -4549,6 +4987,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		u->sha1 = atom_sha1_get(sha1);
 	}
 	atom_str_change(&u->name, shared_file_name_nfc(u->sf));
+
 	/* NULL unless partially shared file */
 	u->file_info = shared_file_fileinfo(u->sf);
 
@@ -4557,6 +4996,21 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	if (!u->head_only && upload_is_already_downloading(u)) {
 		upload_send_error(u, 409, N_("Already downloading this file"));
 		return FALSE;
+	}
+
+	/*
+	 * Enforcing Retry-After, not applicable of course to follow-up requests,
+	 * but applicable to HEAD requests!
+	 */
+
+	if (u->sha1 != NULL && !u->is_followup) {
+		struct upload_tag_key key;
+
+		key.addr = u->addr;
+		key.sha1 = u->sha1;
+
+		if (ripening_contains(retry_after, &key))
+			ban_penalty(BAN_CAT_HTTP, u->addr, "Not honouring Retry-After");
 	}
 
 	/*
@@ -4633,7 +5087,11 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	if (range_skip >= u->file_size || range_end >= u->file_size) {
 		u->cb_416_arg.u = u;
+		u->cb_416_arg.mtime = shared_file_modification_time(u->sf);
 		upload_http_extra_callback_add(u, upload_416_extra, &u->cb_416_arg);
+		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_416_arg);
+		upload_http_extra_callback_add(u,
+			upload_http_last_modified_add, &u->cb_416_arg);
 		upload_send_error(u, 416, N_("Requested range not satisfiable"));
 		return FALSE;
 	}
@@ -4650,8 +5108,12 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		g_assert(GNET_PROPERTY(pfsp_server) || GNET_PROPERTY(pfsp_rare_server));
 
 		u->cb_sha1_arg.u = u;
-		upload_http_extra_callback_add(u,
+		u->cb_sha1_arg.mtime = shared_file_modification_time(u->sf);
+		upload_http_extra_prio_callback_add(u,
 			upload_http_content_urn_add, &u->cb_sha1_arg);
+		upload_http_extra_callback_add(u, upload_retry_after, &u->cb_sha1_arg);
+		upload_http_extra_callback_add(u,
+			upload_http_last_modified_add, &u->cb_sha1_arg);
 
 		/* Same for HEAD or GET */
 		upload_send_error(u, 416, N_("Requested range not available yet"));
@@ -4721,22 +5183,22 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 		if (!parq_upload_queued(u)) {
 			time_t expire = parq_banned_source_expire(u->addr);
-			char retry_after[80];
+			char after[80];
 			time_delta_t delay = delta_time(expire, now);
 
 			if (delay <= 0)
 				delay = 60;		/* Let them retry in a minute, only */
 
+			upload_enforce_retry_after(u, delay);
 
-			str_bprintf(retry_after, sizeof(retry_after),
-				"Retry-After: %u\r\n", (unsigned) delay);
+			str_bprintf(ARYLEN(after), "Retry-After: %u\r\n", (unsigned) delay);
 
 			/*
 			 * Looks like upload got removed from PARQ queue. For now this
 			 * only happens when a client got banned. Bye bye!
 			 *		-- JA, 19/05/'03
 			 */
-			upload_error_remove_ext(u, retry_after, 403,
+			upload_error_remove_ext(u, after, 429,
 				N_("%s not honoured; removed from PARQ queue"),
 				u->was_actively_queued ?
 					N_("Minimum retry delay") :
@@ -4810,12 +5272,106 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 	}
 
 	/*
+	 * Bandwidth capping:
+	 *
+	 * - if the remote host is known to have been stalling, then limit its
+	 *   first chunk to a maximum of TX_FIRST_STALL bytes, so that we can measure
+	 *   the apparent b/w we're getting.  For other hosts, limit to the
+	 *   reasonable TX_FIRST_CHUNK to avoid them requesting the whole file
+	 *   without us getting to measure the apparent bandwidth we have on that
+	 *   connection.
+	 *
+	 * - otherwise, for follow-up requests, we have already computed the b/w
+	 *   cap we're going to enforce in u->bw_cap.  Compute a suitable chunk
+	 *   size so that the transfer takes about TX_DURATION seconds.
+	 *
+	 * The rationale is that we want to avoid stalling uploads, so we're
+	 * monitoring the apparent bandwidth available with the remote host, whilst
+	 * ensuring that we do rather frequent adjustments.  Should the b/w drop
+	 * to a ridiculous level below 1 KiB/s and the remote end were to request
+	 * a 1 MiB chunk, it would mean the next b/w adjustment would only occur
+	 * in 1024 seconds, more than 17 minutes!  That is way too long to be able
+	 * to react to b/w fluctuations.
+	 *
+	 * All chunk sizes are aligned to a power-of-two and we ensure a minimal
+	 * size of TX_MIN_CHUNK to avoid the problem of getting so small a size that
+	 * the HTTP header overhead associated with the response becomes bigger
+	 * than the data we send back!
+	 *
+	 * 		--RAM, 2020-06-01
+	 */
+
+	if (u->head_only)		/* No capping for HEAD requests */
+		goto head_request;	/* Avoid indenting too much code below */
+
+	requested = range_end - range_skip + 1;
+	max_chunk_size = 0;		/* Signals: no adjustment necessary */
+
+	/* Common logic: adjust to send chunk within, at most, TX_DURATION seconds */
+
+	{
+		ulong output_bw = upload_max_out_bw(u);
+		ulong maxsize = uint64_saturate_mult(TX_DURATION, output_bw);
+
+		if (requested > maxsize) {
+			max_chunk_size = next_pow2_64(maxsize);
+			if (max_chunk_size > maxsize)		/* Not a power of 2 */
+				max_chunk_size >>= 1;			/* Drop to previous power */
+			if (max_chunk_size != 0)			/* Enforce minimum */
+				max_chunk_size = MAX(max_chunk_size, TX_MIN_CHUNK);
+		}
+	}
+
+	/* If no adjustment was deemed necessary, be careful on first request */
+
+	if (0 == max_chunk_size && !u->is_followup) {
+		if (
+			aging_lookup(stalling_uploads, &u->addr) ||
+			aging_lookup(early_stalling_uploads, &u->addr)
+		) {
+			/* First request on stalling host */
+			max_chunk_size = TX_FIRST_STALL;
+		} else {
+			/* First request for other hosts */
+			max_chunk_size = TX_FIRST_CHUNK;
+		}
+	}
+
+	/*
+	 * Adjust their request if they end-up asking for more than we are willing
+	 * to serve them right now.
+	 */
+
+	if (max_chunk_size != 0 && max_chunk_size < requested) {
+		if (GNET_PROPERTY(upload_debug) > 1) {
+			g_debug(
+				"UL b/w cap is %s/s for host %s (%s), %s/s max overall: "
+				"%srequest #%u capped to %s",
+				short_size(u->bw_cap, FALSE),
+				host_addr_to_string(u->addr), upload_vendor_str(u),
+				GNET_PROPERTY(bws_out_enabled) ?
+					short_size2(GNET_PROPERTY(bw_http_out), FALSE) : "unlimited",
+				u->is_followup ? "" : "initial ",
+				u->reqnum, short_size3(max_chunk_size, FALSE));
+		}
+
+		u->end = range_end = range_skip + max_chunk_size - 1;
+		u->shrunk_chunk = TRUE;
+		requested = max_chunk_size;
+	} else {
+		u->shrunk_chunk = FALSE;
+	}
+
+	/*
 	 * Keep track of the amount they requested, for possible greed limit
 	 * someday.
 	 */
 
-	u->total_requested += range_end - range_skip + 1;
+	u->total_requested += requested;
 
+	/* FALL THROUGH */
+
+head_request:
 	g_assert(NULL == u->file);		/* File opened each time */
 
 	/*
@@ -4831,6 +5387,18 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	if (!u->head_only)
 		parq_upload_busy(u, u->parq_ul);
+
+	/*
+	 * If it's not a HEAD request but a new request, then mark the
+	 * connection legitimate so that it does not count against the
+	 * banning limits for that host.  This allows them to initiate
+	 * several download requests, as long as they have the upload
+	 * slots or the active queue slots.
+	 * 		--RAM, 2020-06-03
+	 */
+
+	if (!u->head_only && !u->is_followup && !u->was_actively_queued)
+		ban_legit(BAN_CAT_HTTP, u->addr);
 
 	/*
 	 * PARQ ID, emitted if needed.
@@ -4855,6 +5423,12 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 
 	u->cb_status_arg.u = u;
 	u->cb_status_arg.mtime = shared_file_modification_time(u->sf);
+
+	/* Necessary headers */
+	upload_http_extra_prio_callback_add(u,
+		upload_http_status_mandatory, &u->cb_status_arg);
+
+	/* Send these headers provided everything fits in the reply */
 	upload_http_extra_callback_add(u,
 		upload_http_status, &u->cb_status_arg);
 
@@ -4880,8 +5454,8 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 		size_t len, size = sizeof cd_buf;
 		char *p = cd_buf;
 
-		len = g_strlcpy(p,
-				"Content-Disposition: inline; filename*=\"utf-8'en'", size);
+		len = cstr_lcpy(p, size,
+				"Content-Disposition: inline; filename*=\"utf-8'en'");
 		g_assert(len < sizeof cd_buf);
 
 		p += len;
@@ -4894,7 +5468,7 @@ upload_request_for_shared_file(struct upload *u, const header_t *header)
 			p += len;
 			size -= len;
 			if (size > CONST_STRLEN(term)) {
-				(void) g_strlcpy(p, term, size);
+				cstr_bcpy(p, size, term);
 				upload_http_extra_line_add(u, cd_buf);
 			}
 		}
@@ -4997,8 +5571,7 @@ upload_set_tos(struct upload *u)
 }
 
 static char *
-upload_parse_uri(header_t *header, const char *uri,
-	char *host, size_t host_size)
+upload_parse_uri(header_t *header, const char *uri, char *host, size_t host_size)
 {
 	const char *ep;
 
@@ -5023,7 +5596,7 @@ upload_parse_uri(header_t *header, const char *uri,
 			return NULL;
 		}
 
-		g_strlcpy(host, h, 1 + len);
+		clamp_strncpy(host, host_size, h, len + 1);
 		if (':' == *ep) {
 			uint32 v;
 			int error;
@@ -5041,7 +5614,7 @@ upload_parse_uri(header_t *header, const char *uri,
 		const char *value;
 
 		if (header && NULL != (value = header_get(header, "Host"))) {
-			g_strlcpy(host, value, host_size);
+			cstr_bcpy(host, host_size, value);
 		}
 	}
 	return deconstify_char(uri);
@@ -5052,7 +5625,7 @@ remove_trailing_http_tag(char *request)
 {
 	char *endptr;
 
-	endptr = strstr(request, " HTTP/");
+	endptr = pattern_strstr(request, pat_http);
 	if (endptr) {
 		while (request != endptr && is_ascii_blank(*(endptr - 1))) {
 			endptr--;
@@ -5194,7 +5767,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			upload_http_extra_line_add(u, content_encoding);
 		}
 
-		str_bprintf(name, sizeof name,
+		str_bprintf(ARYLEN(name),
 				_("<Browse Host %sRequest> [%s%s%s]"),
 				(flags & BH_F_G2) ? "G2 " : "",
 				(flags & BH_F_HTML) ? "HTML" : _("query hits"),
@@ -5223,7 +5796,7 @@ upload_request_special(struct upload *u, const header_t *header)
 			u->skip = 0;
 			u->end = u->file_size - 1;
 			u->cb_length_arg.u = u;
-			upload_http_extra_callback_add(u,
+			upload_http_extra_prio_callback_add(u,
 				upload_http_content_length_add, &u->cb_length_arg);
 		}
 	}
@@ -5273,7 +5846,7 @@ upload_tls_upgrade(struct upload *u, notify_fn_t upgraded)
 	 * upgrading the socket on its side.
 	 */
 
-	str_bprintf(buf, sizeof buf, "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
+	str_bprintf(ARYLEN(buf), "Upgrade: TLS/1.0, HTTP/%d.%d\r\n",
 		u->http_major, u->http_minor);
 
 	upload_http_extra_line_add(u, buf);
@@ -5559,10 +6132,30 @@ upload_request(struct upload *u, header_t *header)
 
 	if (u->is_followup) {
 		time_delta_t d = delta_time(now, u->last_update);
-		if (d > IO_RTT_STALL) {
+
+		if (d > IO_RTT_STALL)
 			upload_large_followup_rtt(u, d);
+
+		/*
+		 * If the reply comes quickly, we are likely sending at the right
+		 * rate (or the remote side is using HTTP request pipelining), so
+		 * try to raise our b/w cap if possible.
+		 *
+		 * If we have to wait for the follow-up request, we're probably
+		 * sending too much at a time and it takes time for TCP to flush
+		 * its buffers.  Therefore, attempt to reduce our b/w cap.
+		 */
+
+		if (d > IO_RTT_CAP) {
+			upload_update_bw_cap(u, UL_BW_CAP_DOWN);
+		} else {
+			upload_update_bw_cap(u, UL_BW_CAP_UP);
 		}
+
 		entropy_harvest_single(VARLEN(d));
+	} else {
+		/* Ensure no cap on first request */
+		upload_update_bw_cap(u, UL_BW_CAP_CLEAR);
 	}
 
 	/*
@@ -5642,7 +6235,7 @@ upload_request(struct upload *u, header_t *header)
 	 * thereby ruling out the HTTP/0.9 requests.
 	 */
 
-	if (!upload_http_version(u, u->request, strlen(u->request))) {
+	if (!upload_http_version(u, u->request, vstrlen(u->request))) {
 		upload_error_remove(u, 500, N_("Unknown/Missing Protocol Tag"));
 		return;
 	}
@@ -5667,7 +6260,7 @@ upload_request(struct upload *u, header_t *header)
 		const char *msg = ban_vendor(u->user_agent);
 
 		if (msg != NULL) {
-			ban_record(u->addr, msg);
+			ban_record(BAN_CAT_HTTP, u->addr, msg);
 			upload_error_remove(u, 403, "%s", msg);
 			return;
 		}
@@ -5759,7 +6352,7 @@ upload_request(struct upload *u, header_t *header)
 
 	/* Extract the host and path from an absolute URI */
 
-	uri = upload_parse_uri(header, uri, host, sizeof host);
+	uri = upload_parse_uri(header, uri, ARYLEN(host));
 	if (NULL == uri) {
 		upload_send_error(u, 400, N_("Bad URI"));
 		return;
@@ -5825,7 +6418,7 @@ upload_request(struct upload *u, header_t *header)
 		}
 	}
 
-	search = strchr(uri, '?');
+	search = vstrchr(uri, '?');
 	if (search) {
 		*search++ = '\0';
 		/*
@@ -6176,6 +6769,7 @@ upload_writable(void *obj, int unused_source, inputevt_cond_t cond)
 
 	u->last_update = tm_time();
 	u->sent += written;
+	u->total_sent += written;
 	if (u->file_info) {
 		fi_increase_uploaded(u->file_info, written);
 	}
@@ -6311,6 +6905,7 @@ upload_special_writable(void *obj)
 
 	u->last_update = tm_time();
 	u->sent += written;
+	u->total_sent += written;
 }
 
 /**
@@ -6368,15 +6963,14 @@ upload_is_enabled(void)
  * Computes the maximum amount of uploads per IP.
  *
  * This is dynamic in order to forcefully limit uploads to 1 when the IP
- * address is known to be causing stalls.
+ * address is known to be causing stalls, recently.
  */
 uint
 upload_max_by_addr(host_addr_t addr)
 {
-	if (
-		aging_lookup(early_stalling_uploads, &addr) ||
-		aging_lookup(stalling_uploads, &addr)
-	)
+	time_delta_t d = aging_age(stalling_uploads, &addr);
+
+	if (d != (time_delta_t) -1 && d < STALL_CLEAR / 3)
 		return 1;
 
 	return GNET_PROPERTY(max_uploads_ip);
@@ -6388,7 +6982,12 @@ upload_max_by_addr(host_addr_t addr)
 void G_COLD
 upload_init(void)
 {
-	mesh_info = htable_create_any(mi_key_hash, mi_key_hash2, mi_key_eq);
+	pat_http        = PATTERN_COMPILE_CONST(" HTTP/");
+	pat_applewebkit = PATTERN_COMPILE_CONST("AppleWebKit");
+
+	mesh_info = aging_make(MESH_INFO_TIMEOUT,
+						upload_tag_key_hash, upload_tag_key_eq,
+						upload_tag_key_free2);
 	stalling_uploads = aging_make(STALL_CLEAR,
 						host_addr_hash_func, host_addr_eq_func,
 						wfree_host_addr);
@@ -6402,6 +7001,9 @@ upload_init(void)
 		host_addr_hash_func, host_addr_eq_func, wfree_host_addr);
 	push_conn_failed = aging_make(PUSH_BAN_FREQ,
 		gnet_host_hash, gnet_host_equal, gnet_host_free_atom2);
+
+	retry_after = ripening_make(FALSE,
+		upload_tag_key_hash, upload_tag_key_eq, upload_tag_key_free2_silent);
 
 	header_features_add_guarded(FEATURES_UPLOADS, "browse",
 		BH_VERSION_MAJOR, BH_VERSION_MINOR,
@@ -6445,30 +7047,29 @@ upload_close(void)
     idtable_destroy(upload_handle_map);
     upload_handle_map = NULL;
 
-	htable_foreach(mesh_info, mi_free_kv, NULL);
-	htable_free_null(&mesh_info);
-
+	aging_destroy(&mesh_info);
 	aging_destroy(&stalling_uploads);
 	aging_destroy(&early_stalling_uploads);
 	aging_destroy(&browsing_reqs);
 	aging_destroy(&push_requests);
 	aging_destroy(&push_conn_failed);
+	ripening_destroy(&retry_after);
 	wd_free_null(&early_stall_wd);
 	wd_free_null(&stall_wd);
+	pattern_free_null(&pat_http);
+	pattern_free_null(&pat_applewebkit);
 }
 
 gnet_upload_info_t *
 upload_get_info(gnet_upload_t uh)
 {
-    static const gnet_upload_info_t zero_info;
     gnet_upload_info_t *info;
     struct upload *u;
 
     u = upload_find_by_handle(uh);
 	g_return_val_if_fail(u, NULL);
 
-    WALLOC(info);
-	*info = zero_info;
+    WALLOC0(info);
 
 	if (u->sf) {
    		info->name = atom_str_get(shared_file_name_nfc(u->sf));
@@ -6492,8 +7093,10 @@ upload_get_info(gnet_upload_t uh)
 	info->g2            = booleanize(u->flags & UPLOAD_F_G2);
 	info->tls_upgraded  = u->tls_upgraded;
 	info->partial       = u->file_info != NULL;
+	info->available     = info->partial ? u->file_info->done : u->file_size;
 	info->gnet_addr     = u->gnet_addr;
 	info->gnet_port     = u->gnet_port;
+	info->shrunk_chunk  = u->shrunk_chunk;
 
     return info;
 }
@@ -6524,23 +7127,28 @@ upload_get_status(gnet_upload_t uh, gnet_upload_status_t *si)
     si->last_update = u->last_update;
 	si->reqnum      = u->reqnum;
 	si->error_count = u->error_count;
+	si->bw_cap      = u->bw_cap;
 
 	si->parq_queue_no = parq_upload_lookup_queue_no(u);
 	si->parq_position = parq_upload_lookup_position(u);
-	si->parq_size = parq_upload_lookup_size(u);
+	si->parq_size     = parq_upload_lookup_size(u);
 	si->parq_lifetime = MAX(0, delta_time(parq_upload_lifetime(u), now));
-	si->parq_retry = MAX(0, delta_time(parq_upload_retry(u), now));
-	si->parq_quick = parq_upload_lookup_quick(u);
-	si->parq_frozen = parq_upload_lookup_frozen(u);
+	si->parq_retry    = MAX(0, delta_time(parq_upload_retry(u), now));
+	si->parq_quick    = parq_upload_lookup_quick(u);
+	si->parq_frozen   = parq_upload_lookup_frozen(u);
 
     if (u->bio) {
         si->bps = bio_bps(u->bio);
 		si->avg_bps = bio_avg_bps(u->bio);
+		si->bw_penalty = bio_penalty(u->bio);
+	} else
+		si->bw_penalty = 0;
+
+	if (u->last_update != u->start_date) {
+		si->avg_bps = (u->pos - u->skip) /
+			delta_time(u->last_update, u->start_date);
 	}
 
-    if (u->last_update != u->start_date)
-        si->avg_bps = (u->pos - u->skip) /
-			delta_time(u->last_update, u->start_date);
 	if (0 == si->avg_bps)
         si->avg_bps++;
 }

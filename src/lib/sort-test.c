@@ -416,7 +416,7 @@ dump_unsorted(const void *copy, size_t cnt, size_t isize, size_t failed)
 		size_t n;
 		const char *cur = const_ptr_add_offset(copy, i * isize);
 
-		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		n = base16_encode(ARYLEN(buf) - 1, cur, MIN(isize, DUMP_BYTES));
 		buf[n] = '\0';
 		printf("%6lu %s%s%s\n", (ulong) i, buf,
 			isize > DUMP_BYTES ? "..." : "",
@@ -468,7 +468,7 @@ array_mismatch(const htable_t *ht, const void *key, const void *array,
 		size_t n;
 		const char *cur = const_ptr_add_offset(array, i * isize);
 
-		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		n = base16_encode(ARYLEN(buf) - 1, cur, MIN(isize, DUMP_BYTES));
 		buf[n] = '\0';
 		printf("%6lu %s%s%s\n", (ulong) i, buf,
 			isize > DUMP_BYTES ? "..." : "",
@@ -482,7 +482,7 @@ array_mismatch(const htable_t *ht, const void *key, const void *array,
 		size_t n;
 		const char *cur = const_ptr_add_offset(copy, i * isize);
 
-		n = base16_encode(buf, sizeof buf - 1, cur, MIN(isize, DUMP_BYTES));
+		n = base16_encode(ARYLEN(buf) - 1, cur, MIN(isize, DUMP_BYTES));
 		buf[n] = '\0';
 		printf("%6lu %s%s%s\n", (ulong) i, buf,
 			isize > DUMP_BYTES ? "..." : "",
@@ -723,7 +723,7 @@ run_degenerative(enum degenerative how, size_t cnt, size_t isize,
 	char buf[80];
 	void *array;
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%zu %s item%s of %zu bytes",
 		cnt, degenerative_to_string(how), plural(cnt), isize);
 
@@ -739,44 +739,39 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	void *array;
 	void *copy;
 
-	str_bprintf(buf, sizeof buf, "%zu item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf), "%zu item%s of %zu bytes", PLURAL(cnt), isize);
 
 	array = generate_array(cnt, isize);
 	copy = xcopy(array, cnt * isize);
 
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf, "%zu sorted item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf), "%zu sorted item%s of %zu bytes",
+		PLURAL(cnt), isize);
 
 	xsort(array, cnt, isize, get_cmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf,
-		"%zu almost sorted item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf),
+		"%zu almost sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf,
-		"%zu reverse-sorted item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf),
+		"%zu reverse-sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	xsort(array, cnt, isize, get_revcmp_routine(isize));
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf,
-		"%zu almost rev-sorted item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf),
+		"%zu almost rev-sorted item%s of %zu bytes", PLURAL(cnt), isize);
 
 	perturb_sorted_array(array, cnt, isize);
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf,
-		"%zu sorted 3/4-1/4 item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf),
+		"%zu sorted 3/4-1/4 item%s of %zu bytes", PLURAL(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 
@@ -791,9 +786,8 @@ test(size_t cnt, size_t isize, bool chrono, size_t loops)
 	}
 	run(array, cnt, isize, chrono, loops, buf);
 
-	str_bprintf(buf, sizeof buf,
-		"%zu sorted n-8 item%s of %zu bytes",
-		cnt, plural(cnt), isize);
+	str_bprintf(ARYLEN(buf),
+		"%zu sorted n-8 item%s of %zu bytes", PLURAL(cnt), isize);
 
 	memcpy(array, copy, cnt * isize);
 

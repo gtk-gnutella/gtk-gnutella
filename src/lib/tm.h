@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -50,6 +50,11 @@ typedef struct tmval {
 
 #define TM_ZERO		{ 0L, 0L }
 
+/*
+ * For printing a tmval structure, as "%ld:%ld" for instance.
+ */
+#define TM_LONG(x)	(x).tv_sec, (x).tv_usec
+
 /**
  * Copies the timeval fields into our internal tmval structure.
  *
@@ -79,6 +84,11 @@ typedef struct tmspec {
 } tm_nano_t;
 
 #define TM_NANO_ZERO	{ 0L, 0L }
+
+/*
+ * For printing a tmspec structure, as "%ld:%ld" for instance.
+ */
+#define TM_NANO_LONG(x)	(x).tv_sec, (x).tv_nsec
 
 /**
  * Copies the timespec fields into our internal tmspec structure.
@@ -252,6 +262,18 @@ tm_precise_elapsed_f(const tm_nano_t *t1, const tm_nano_t *t0)
 	return tmn2f(&elapsed);
 }
 
+/**
+ * Computes the elapsed time (t1 - t0) and return duration in nanoseconds.
+ */
+static inline long
+tm_precise_elapsed_ns(const tm_nano_t *t1, const tm_nano_t *t0)
+{
+	tm_nano_t elapsed;
+
+	tm_precise_elapsed(&elapsed, t1, t0);
+	return tmn2ns(&elapsed);
+}
+
 extern tm_t tm_cached_now;			/* Currently cached time */
 
 /**
@@ -281,9 +303,9 @@ tm_time_raw(void)
 	return (time_t) tm_cached_now.tv_sec;
 }
 
-time_t tm_localtime(void);
+time_t tm_localtime(const tm_t *);
 time_t tm_localtime_exact(void);
-time_t tm_localtime_raw(void);
+time_t tm_localtime_raw(const tm_t *);
 
 time_t tm_relative_time(void);
 

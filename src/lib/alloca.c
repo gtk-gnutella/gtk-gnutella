@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -53,7 +53,7 @@
  *
  * @return +1 if stack is growing in the virtual address space, -1 otherwise.
  */
-static int
+static int NO_INLINE
 alloca_stack_direction_compute(void)
 {
 	static void *old_sp;
@@ -184,6 +184,29 @@ alloca_new_stack(void)
 }
 
 /**
+ * Cleaning callback for thread-private value.
+ *
+ * This is automatically invoked by the thread runtime when the thread
+ * is terminated.
+ */
+static void
+alloca_free_stack(void *data, void *unused_user_data)
+{
+	struct alloca_stack *as = data;
+
+	alloca_stack_check(as);
+	(void) unused_user_data;
+
+	/*
+	 * Do NOT use ck_destroy_null() below because the structure was allocated
+	 * within the chunk itself -- see alloca_new_stack().
+	 */
+
+	as->magic = 0;
+	ck_destroy(as->stack);	/* Can no longer access `as' after this */
+}
+
+/**
  * Get the thread-private alloca() stack.
  */
 static struct alloca_stack *
@@ -207,7 +230,9 @@ alloca_get_stack(void)
 
 	if G_UNLIKELY(NULL == as) {
 		as = alloca_new_stack();
-		thread_private_add(func_to_pointer(alloca_get_stack), as);
+		thread_private_add_extended(
+			func_to_pointer(alloca_get_stack), as,
+			alloca_free_stack, NULL);
 	}
 
 	return as;
@@ -374,7 +399,7 @@ alloca_emulate(size_t len)
 	ah->header.prev = as->last;
 	as->last = ah;
 
-	return ptr_add_offset(ah, sizeof *ah);
+	return ptr_add_offset(PTRLEN(ah));
 }
 
 #endif	/* EMULATE_ALLOCA */

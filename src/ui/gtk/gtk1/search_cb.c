@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -110,7 +110,7 @@ search_set_xml_metadata(const record_t *rc)
 {
 	char *indented;
 
-	indented = (rc && rc->xml) ? xml_indent(rc->xml) : NULL;
+	indented = (rc && rc->xml) ? xml_indent(rc->xml, NULL) : NULL;
 	set_text_buffer(gui_main_window_lookup("text_result_info_xml"),
 		EMPTY_STRING(indented));
 	HFREE_NULL(indented);

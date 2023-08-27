@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -40,7 +40,7 @@
 #include "atomic.h"
 #include "crash.h"				/* For print_str() and crash_time_raw() */
 #include "log.h"
-#include "misc.h"				/* For CONST_STRLEN() */
+#include "misc.h"				/* For CONST_STRLEN() and short_filename() */
 #include "stacktrace.h"
 #include "str.h"
 #include "stringify.h"			/* For UINT_DEC_BUFLEN */
@@ -61,7 +61,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	char line_buf[ULONG_DEC_BUFLEN];
 	char time_buf[CRASH_TIME_BUFLEN];
 	char prefix[UINT_DEC_BUFLEN + CONST_STRLEN(" (WARNING-): ")];
-	unsigned stid, line;
+	unsigned stid;
 	bool assertion;
 	DECLARE_STR(16);
 
@@ -76,7 +76,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	 *		--RAM, 2016-01-02
 	 */
 
-	crash_time_raw(time_buf, sizeof time_buf);
+	crash_time_raw(ARYLEN(time_buf));
 	stid = thread_safe_small_id();
 
 	/*
@@ -92,7 +92,7 @@ assertion_message(const assertion_data * const data, int fatal)
 	if (0 == stid) {
 		print_str(fatal ? " (FATAL): " : " (WARNING): ");
 	} else {
-		str_bprintf(prefix, sizeof prefix, " (%s-%u): ",
+		str_bprintf(ARYLEN(prefix), " (%s-%u): ",
 			fatal ? "FATAL" : "WARNING", stid);
 		print_str(prefix);
 	}
@@ -104,19 +104,18 @@ assertion_message(const assertion_data * const data, int fatal)
 	 *		--RAM, 2013-10-28
 	 */
 
-	line = data->line & ~FAST_ASSERT_NOT_REACHED;
-	assertion = line == data->line;
+	assertion = NULL != data->expr;
 
 	if (assertion) {
-		print_str("Assertion failure at ");
+		print_str("Assertion failure in ");
 	} else {
 		print_str("Code should not have been reached in ");
-		print_str(data->expr);		/* Routine name */
-		print_str("() at ");
 	}
-	print_str(data->file);
+	print_str(data->routine);
+	print_str("() at ");
+	print_str(short_filename(data->file));
 	print_str(":");
-	print_str(PRINT_NUMBER(line_buf, line));
+	print_str(PRINT_NUMBER(line_buf, data->line));
 	if (assertion) {
 		print_str(": \"");
 		print_str(data->expr);
@@ -296,13 +295,13 @@ assertion_warning_log(const assertion_data * const data,
 		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time_raw(time_buf, sizeof time_buf);
+		crash_time_raw(ARYLEN(time_buf));
 
 		print_str(time_buf);
 		if (0 == stid) {
 			print_str(" (WARNING): ");
 		} else {
-			str_bprintf(prefix, sizeof prefix, " (WARNING-%u): ", stid);
+			str_bprintf(ARYLEN(prefix), " (WARNING-%u): ", stid);
 			print_str(prefix);
 		}
 		print_str(str_2c(str));
@@ -363,13 +362,13 @@ assertion_failure_log(const assertion_data * const data,
 		unsigned stid = thread_safe_small_id();
 		DECLARE_STR(4);
 
-		crash_time_raw(time_buf, sizeof time_buf);
+		crash_time_raw(ARYLEN(time_buf));
 
 		print_str(time_buf);
 		if (0 == stid) {
 			print_str(" (FATAL): ");
 		} else {
-			str_bprintf(prefix, sizeof prefix, " (FATAL-%u): ", stid);
+			str_bprintf(ARYLEN(prefix), " (FATAL-%u): ", stid);
 			print_str(prefix);
 		}
 		print_str(msg);

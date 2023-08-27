@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -246,7 +246,7 @@ record_token(void *key, void *value, void *unused_u)
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 4 && td.token != NULL) {
 		char buf[80];
-		bin_to_hex_buf(td.token, td.length, buf, sizeof buf);
+		bin_to_hex_buf(td.token, td.length, ARYLEN(buf));
 		g_debug("DHT TCACHE adding security token for %s: %u-byte \"%s\"",
 			kuid_to_hex_string(id), td.length, buf);
 	}
@@ -259,7 +259,7 @@ record_token(void *key, void *value, void *unused_u)
 	if (!dbmw_exists(db_tokdata, id->v))
 		gnet_stats_inc_general(GNR_DHT_CACHED_TOKENS_HELD);
 
-	dbmw_write(db_tokdata, id->v, &td, sizeof td);
+	dbmw_write(db_tokdata, id->v, VARLEN(td));
 
 	if (GNET_PROPERTY(dht_tcache_debug_flags) & DBG_DSF_USR1) {
 		g_debug("DHT TCACHE %s: stats=%s, count=%zu, id=%s",
@@ -316,7 +316,7 @@ tcache_get(const kuid_t *id,
 
 	if (GNET_PROPERTY(dht_tcache_debug) > 4) {
 		char buf[80];
-		bin_to_hex_buf(td->token, td->length, buf, sizeof buf);
+		bin_to_hex_buf(td->token, td->length, ARYLEN(buf));
 		g_debug("DHT TCACHE security token for %s is %u-byte \"%s\" (%s)",
 			kuid_to_hex_string(id), td->length, buf,
 			compact_time(delta_time(tm_time(), td->last_update)));

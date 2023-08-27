@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -209,7 +209,7 @@ upnp_ctrl_extract_fault(xnode_t *fault, int *code, const char **error)
 		 * We're only handling "Client" errors.
 		 */
 
-		name = strrchr(value, ':');
+		name = vstrrchr(value, ':');
 		if (NULL == name) {
 			parse_error = "no ':' in fault code name";
 			goto error;
@@ -593,7 +593,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 	{
 		char ns[256];
 
-		str_bprintf(ns, sizeof ns, "%s%s:%u",
+		str_bprintf(ARYLEN(ns), "%s%s:%u",
 			UPNP_NS_BASE,
 			upnp_service_type_to_string(upnp_service_type(usd)),
 			upnp_service_version(usd));
@@ -642,7 +642,7 @@ upnp_ctrl_launch(const upnp_service_t *usd, const char *action,
 		if (host_addr_net(upnp_get_local_addr()) == NET_TYPE_NONE)
 			options |= SOAP_RPC_O_LOCAL_ADDR;
 
-		str_bprintf(action_uri, sizeof action_uri, "%s#%s",
+		str_bprintf(ARYLEN(action_uri), "%s#%s",
 			xnode_element_ns(root), action);
 
 		ucd->action = atom_str_get(action_uri);
@@ -980,7 +980,7 @@ upnp_ctrl_GetSpecificPortMappingEntry(const upnp_service_t *usd,
 	char buf[UINT16_DEC_BUFLEN];
 	const char *protocol;
 
-	int32_to_string_buf(port, buf, sizeof buf);
+	int32_to_string_buf(port, ARYLEN(buf));
 	protocol = upnp_map_proto_to_string(proto);
 
 	argv[0] = nv_pair_make_static_str(ARG_REMOTE_HOST, EMPTY);	/* Wildcard */
@@ -1028,11 +1028,11 @@ upnp_ctrl_AddPortMapping(const upnp_service_t *usd,
 	g_assert(ext_port != 0);
 	g_assert(int_port != 0);
 
-	int32_to_string_buf(ext_port, ext_port_buf, sizeof ext_port_buf);
-	int32_to_string_buf(int_port, int_port_buf, sizeof int_port_buf);
-	host_addr_to_string_buf(int_addr, int_addr_buf, sizeof int_addr_buf);
+	int32_to_string_buf(ext_port, ARYLEN(ext_port_buf));
+	int32_to_string_buf(int_port, ARYLEN(int_port_buf));
+	host_addr_to_string_buf(int_addr, ARYLEN(int_addr_buf));
 	protocol = upnp_map_proto_to_string(proto);
-	int32_to_string_buf(lease, lease_buf, sizeof lease_buf);
+	int32_to_string_buf(lease, ARYLEN(lease_buf));
 	description = str_smsg("%s (%s)", desc, protocol);
 
 	argv[0] = nv_pair_make_static_str(ARG_REMOTE_HOST, EMPTY);	/* Wildcard */
@@ -1083,7 +1083,7 @@ upnp_ctrl_DeletePortMapping(const upnp_service_t *usd,
 	char buf[UINT16_DEC_BUFLEN];
 	const char *protocol;
 
-	int32_to_string_buf(port, buf, sizeof buf);
+	int32_to_string_buf(port, ARYLEN(buf));
 	protocol = upnp_map_proto_to_string(proto);
 
 	argv[0] = nv_pair_make_static_str(ARG_REMOTE_HOST, EMPTY);	/* Wildcard */

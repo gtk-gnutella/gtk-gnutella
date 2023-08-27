@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -57,7 +57,7 @@
 enum ripening_magic { RIPENING_MAGIC = 0x0e42bcf9 };
 
 /**
- * A description of the free routine to apply to a removed value.
+ * A description of the free routine to apply to a removed key/value pair.
  *
  * The free routine is of course a way to free-up the dynamically allocated
  * keys and values but it is also a hook for the application to know that the
@@ -69,6 +69,9 @@ enum ripening_magic { RIPENING_MAGIC = 0x0e42bcf9 };
  *
  * Only one of `kvfree' or `kvfree_d' must be set to non-NULL.  The `arg'
  * value is ignored if `kvfree_d' is NULL.
+ *
+ * Free routines must be prepared to get NULL arguments for either key or value,
+ * meaning it must ignore it.
  */
 struct ripening_hook {
 	free_keyval_fn_t kvfree;		/**< Freeing callback for key/value pairs */
@@ -82,6 +85,10 @@ struct ripening_hook {
  * The hash set is the central piece, but we also have a freeing callback,
  * since the entries expire automatically after some time has elapsed and
  * a red-black tree to sort out entries by expiration time.
+ *
+ * It is possible for the ripening container to only handle keys, in which case
+ * there will be no value stored and each time a value would be necessary (e.g.
+ * in a freeing callback), it will be given as NULL.
  */
 struct ripening {
 	enum ripening_magic magic;	/**< Magic number */
@@ -89,6 +96,7 @@ struct ripening {
 	cevent_t *expire_ev;		/**< The installed expiration event */
 	mutex_t *lock;				/**< Optional thread-safe lock */
 	struct ripening_hook *hook;	/**< Global freeing hooks defined */
+	uint has_value:1;			/**< Whether table will contain values */
 	erbtree_t tree;				/**< Items in table, by increasing time */
 };
 
@@ -99,8 +107,8 @@ ripening_check(const ripening_table_t * const rt)
 	g_assert(RIPENING_MAGIC == rt->magic);
 }
 
-/**
- * We wrap the values we insert in the table, since each value must keep
+/*
+ * We wrap the entries we insert in the table, since each entry must keep
  * track of its expiration time.
  *
  * Because the structure (inserted in the table) refers to the key, we can use
@@ -108,13 +116,32 @@ ripening_check(const ripening_table_t * const rt)
  *
  * All the items are also tracked in a red-back tree, sorted by increasing
  * expiration time (the time by which the items "fall off" the structure).
+ *
+ * By default, the ripening_key structure does not contain any value.  When
+ * the ripening table contains key/value pairs and not just keys, then the
+ * structure used will be ripening_keyval.
  */
-struct ripening_value {
-	void *value;			/**< The value they inserted in the table */
-	void *key;				/**< The associated key object */
-	time_t expire;			/**< Maturation time */
+
+#define RIPENING_ENTRY_COMMON	\
+	void *key;				/**< The associated key object */ \
+	time_t expire;			/**< Maturation time */ \
 	rbnode_t node;			/**< Embedded node to sort items */
+
+struct ripening_key {
+	RIPENING_ENTRY_COMMON
 };
+
+struct ripening_keyval {
+	RIPENING_ENTRY_COMMON
+	void *value;			/**< The value they inserted in the table */
+};
+
+/**
+ * Given a "ripening_key" structure, extract the value associated with the
+ * key if the table has values, or return NULL.
+ */
+#define RIPENING_VALUE(rt, rk)	\
+	((rt)->has_value ? ((struct ripening_keyval *) (rk))->value : NULL)
 
 /*
  * Thread-safe synchronization support.
@@ -152,14 +179,32 @@ struct ripening_value {
 } G_STMT_END
 
 /**
+ * Apply freeing hooks to given key and value.
+ *
+ * @param key	the key to free, NULL if none
+ * @param value	the value to free, NULL if none
+ * @param hook	the ripening hooks containing freeing callbacks
+ */
+static void
+ripening_run_free_hook(void *key, void *value, const struct ripening_hook *hook)
+{
+	g_assert(hook != NULL);
+
+	if (hook->kvfree != NULL)
+		(*hook->kvfree)(key, value);
+	else if (hook->kvfree_d != NULL)
+		(*hook->kvfree_d)(key, value, hook->arg);
+}
+
+/**
  * Free keys and values from the ripening table, using specified freeing hooks.
  */
 static void
-ripening_free_hook(void *value, void *data, const struct ripening_hook *hook)
+ripening_free_hook(
+	ripening_table_t *rt,
+	struct ripening_key *rkey,
+	const struct ripening_hook *hook)
 {
-	struct ripening_value *rval = value;
-	ripening_table_t *rt = data;
-
 	ripening_check(rt);
 	assert_ripening_locked(rt);
 
@@ -170,28 +215,32 @@ ripening_free_hook(void *value, void *data, const struct ripening_hook *hook)
 	 * a clean state.
 	 */
 
-	erbtree_remove(&rt->tree, &rval->node);
+	erbtree_remove(&rt->tree, &rkey->node);
 
 	if (NULL == hook)
 		hook = rt->hook;
 
-	if (hook != NULL) {
-		if (hook->kvfree != NULL)
-			(*hook->kvfree)(rval->key, rval->value);
-		else if (hook->kvfree_d != NULL)
-			(*hook->kvfree_d)(rval->key, rval->value, hook->arg);
-	}
+	if (hook != NULL)
+		ripening_run_free_hook(rkey->key, RIPENING_VALUE(rt, rkey), hook);
 
-	WFREE(rval);
+	if (rt->has_value)
+		wfree(rkey, sizeof(struct ripening_keyval));
+	else
+		wfree(rkey, sizeof(struct ripening_key));
 }
 
 /**
+ * Hikset iterating callback.
+ *
  * Free keys and values from the ripening table, using default freeing hooks.
+ *
+ * @param value		the ripening_key or ripening_keyval structure
+ * @param data		the ripening table
  */
 static void
 ripening_free(void *value, void *data)
 {
-	return ripening_free_hook(value, data, NULL);
+	return ripening_free_hook(data, value, NULL);
 }
 
 /**
@@ -202,7 +251,7 @@ ripening_gc(cqueue_t *cq, void *obj)
 {
 	ripening_table_t *rt = obj;
 	time_t now = tm_time();
-	struct ripening_value *rval;
+	struct ripening_key *rkey;
 
 	ripening_check(rt);
 
@@ -212,11 +261,11 @@ ripening_gc(cqueue_t *cq, void *obj)
 
 	cq_zero(cq, &rt->expire_ev);
 
-	while (NULL != (rval = erbtree_head(&rt->tree))) {
-		if (delta_time(now, rval->expire) < 0)
+	while (NULL != (rkey = erbtree_head(&rt->tree))) {
+		if (delta_time(now, rkey->expire) < 0)
 			break;			/* Tree is sorted, oldest items first */
-		hikset_remove(rt->table, rval->key);
-		ripening_free(rval, rt);
+		hikset_remove(rt->table, rkey->key);
+		ripening_free(rkey, rt);
 	}
 
 	/*
@@ -224,8 +273,8 @@ ripening_gc(cqueue_t *cq, void *obj)
 	 * until that item expires and create a corresponding callout event.
 	 */
 
-	if (rval != NULL) {
-		time_delta_t delta = delta_time(rval->expire, now);
+	if (rkey != NULL) {
+		time_delta_t delta = delta_time(rkey->expire, now);
 		g_assert(delta > 0);		/* Checked in the above loop */
 
 		/*
@@ -255,7 +304,7 @@ ripening_gc(cqueue_t *cq, void *obj)
 static int
 ripening_cmp(const void *a, const void *b)
 {
-	const struct ripening_value *ra = a, *rb = b;
+	const struct ripening_key *ra = a, *rb = b;
 
 	if G_UNLIKELY(ra->expire == rb->expire) {
 		/* Artificial ordering of items: keys CANNOT be equal */
@@ -269,6 +318,7 @@ ripening_cmp(const void *a, const void *b)
  * Create new ripening container, where keys/values expire and need to be freed
  * automatically when they fall off the structure or are explicitly removed.
  *
+ * @param values	whether table will hold values
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
  * @param hook		the freeing hooks to use by default
@@ -276,18 +326,20 @@ ripening_cmp(const void *a, const void *b)
  * @return opaque handle to the container.
  */
 static ripening_table_t *
-ripening_make_hook(hash_fn_t hash, eq_fn_t eq, struct ripening_hook *hook)
+ripening_make_hook(
+	bool values, hash_fn_t hash, eq_fn_t eq, struct ripening_hook *hook)
 {
 	ripening_table_t *rt;
 
 	WALLOC0(rt);
 	rt->magic = RIPENING_MAGIC;
 	rt->hook = hook;				/* Can be NULL */
+	rt->has_value = booleanize(values);
 	rt->table = hikset_create_any(
-		offsetof(struct ripening_value, key),
+		offsetof(struct ripening_key, key),
 		NULL == hash ? pointer_hash : hash, eq);
 	erbtree_init(&rt->tree, ripening_cmp,
-		offsetof(struct ripening_value, node));
+		offsetof(struct ripening_key, node));
 
 	ripening_check(rt);
 	return rt;
@@ -303,6 +355,7 @@ ripening_make_hook(hash_fn_t hash, eq_fn_t eq, struct ripening_hook *hook)
  * Contrary to an "aging table" which will remove objects after a fixed period
  * of time, a ripening table has a per-item expiration time (the maturity).
  *
+ * @param values	whether table will hold values
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
  * @param kvfree	the key/value pair freeing callback, NULL if none.
@@ -310,7 +363,7 @@ ripening_make_hook(hash_fn_t hash, eq_fn_t eq, struct ripening_hook *hook)
  * @return opaque handle to the container.
  */
 ripening_table_t *
-ripening_make(hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
+ripening_make(bool values, hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
 {
 	struct ripening_hook *hook = NULL;
 
@@ -319,7 +372,7 @@ ripening_make(hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
 		hook->kvfree = kvfree;
 	}
 
-	return ripening_make_hook(hash, eq, hook);
+	return ripening_make_hook(values, hash, eq, hook);
 }
 
 /**
@@ -336,8 +389,12 @@ ripening_make(hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
  * recorded takes an extra user-supplied argument.  Because the freeing callback
  * can be superseded at removal time, it is acceptable to have a NULL `kvfree'
  * given here, to simply record the default argument, but this means that no
- * callback will be invoked when items fall off the table.
+ * callback will be invoked when items fall off the table, or during
+ * ripening_insert() and ripening_update().  If keys and/or values are dynamically
+ * allocated or reference-counted, then it is not advised to have no freeing
+ * callback at all!
  *
+ * @param values	whether table will hold values
  * @param hash		the hashing function for the keys in the hash table
  * @param eq		the equality function for the keys in the hash table
  * @param kvfree	the key/value pair freeing callback, NULL if none.
@@ -346,7 +403,7 @@ ripening_make(hash_fn_t hash, eq_fn_t eq, free_keyval_fn_t kvfree)
  * @return opaque handle to the container.
  */
 ripening_table_t *
-ripening_make_data(hash_fn_t hash, eq_fn_t eq,
+ripening_make_data(bool values, hash_fn_t hash, eq_fn_t eq,
 	free_keyval_data_fn_t kvfree, void *data)
 {
 	struct ripening_hook *hook = NULL;
@@ -357,7 +414,7 @@ ripening_make_data(hash_fn_t hash, eq_fn_t eq,
 		hook->arg = data;
 	}
 
-	return ripening_make_hook(hash, eq, hook);
+	return ripening_make_hook(values, hash, eq, hook);
 }
 
 /**
@@ -440,20 +497,54 @@ ripening_unlock(ripening_table_t *rt)
 }
 
 /**
- * Lookup value in table.
+ * Check whether key is present in table.
+ *
+ * @param rt	the ripening table
+ * @param key	the key we are looking for
+ *
+ * @return registered value for key; NULL if not found.
  */
-void *
-ripening_lookup(const ripening_table_t *rt, const void *key)
+bool
+ripening_contains(const ripening_table_t *rt, const void *key)
 {
-	struct ripening_value *rval;
-	void *data;
+	bool present;
 
 	ripening_check(rt);
 
 	ripening_synchronize(rt);
 
-	rval = hikset_lookup(rt->table, key);
-	data = rval == NULL ? NULL : rval->value;
+	present = hikset_contains(rt->table, key);
+
+	ripening_return(rt, present);
+}
+
+/**
+ * Lookup value in table.
+ *
+ * @param rt	the ripening table
+ * @param key	the key we are looking for
+ *
+ * @return registered value for key; NULL if not found.
+ *
+ * @note
+ * If NULL values can be stored in the ripening table, then one must
+ * use ripening_contains() to be able to accurately determine key presence.
+ * When the table only holds keys, then ripening_lookup() makes no sense and
+ * only ripening_contains() must be called.
+ */
+void *
+ripening_lookup(const ripening_table_t *rt, const void *key)
+{
+	struct ripening_key *rkey;
+	void *data;
+
+	ripening_check(rt);
+	g_assert(rt->has_value);	/* Use ripening_contains() if no value */
+
+	ripening_synchronize(rt);
+
+	rkey = hikset_lookup(rt->table, key);
+	data = NULL == rkey ? NULL : RIPENING_VALUE(rt, rkey);
 
 	ripening_return(rt, data);
 }
@@ -464,15 +555,15 @@ ripening_lookup(const ripening_table_t *rt, const void *key)
 time_t
 ripening_time(const ripening_table_t *rt, const void *key)
 {
-	struct ripening_value *rval;
+	struct ripening_key *rkey;
 	time_t when;
 
 	ripening_check(rt);
 
 	ripening_synchronize(rt);
 
-	rval = hikset_lookup(rt->table, key);
-	when = NULL == rval ? 0 : rval->expire;
+	rkey = hikset_lookup(rt->table, key);
+	when = NULL == rkey ? 0 : rkey->expire;
 
 	ripening_return(rt, when);
 }
@@ -486,7 +577,7 @@ static bool
 ripening_remove_hook(ripening_table_t *rt, const void *key,
 	const struct ripening_hook *hook)
 {
-	struct ripening_value *rval;
+	struct ripening_key *rkey;
 	void *ovalue;
 	bool found;
 
@@ -497,10 +588,10 @@ ripening_remove_hook(ripening_table_t *rt, const void *key,
 		goto done;
 	}
 
-	rval = ovalue;
+	rkey = ovalue;
 
-	hikset_remove(rt->table, rval->key);
-	ripening_free_hook(rval, rt, hook);
+	hikset_remove(rt->table, rkey->key);
+	ripening_free_hook(rt, rkey, hook);
 
 	/*
 	 * After removal, we cancel the timeout event if the set is empty, but
@@ -612,109 +703,246 @@ ripening_remove_using_free(ripening_table_t *rt,
 }
 
 /**
- * Add value to the table.
- *
- * If it was already present, its maturation time is reset to the specified
- * ripening delay.
- *
- * The key argument is freed immediately if there is a free routine for
- * keys and the key was present in the table.
- *
- * The previous value is freed and replaced by the new one if there is
- * an insertion conflict and the key pointers are different.
+ * Recompute proper expiration time for entry and for the the ripening_gc()
+ * callback at the table level.
  *
  * @param rt		the ripening table
- * @param delay		the ripening delay (seconds until maturation)
- * @param key		the key to insert
- * @param value		the value to insert
+ * @param rkey		the ripening table entry we just inserted / updated
+ * @param existed	TRUE if entry existed before, else it is a new one
+ * @param expire	new expiration time for entry
  */
-void
-ripening_insert(ripening_table_t *rt, uint delay, const void *key, void *value)
+static void
+ripening_set_expire(ripening_table_t *rt,
+	struct ripening_key *rkey, bool existed, time_t expire)
 {
-	bool found;
-	void *ovalue;
-	time_t now = tm_time(), old;
 	time_delta_t delta;
-	struct ripening_value *rval;
+	time_t old;
 
 	ripening_check(rt);
-
-	ripening_synchronize(rt);
+	assert_ripening_locked(rt);
 
 	/*
 	 * Compute the previous expiration time of the first value in the table.
 	 */
 
 	if (rt->expire_ev != NULL) {
-		rval = erbtree_head(&rt->tree);
-		g_assert(rval != NULL);
-		old = rval->expire;
+		const struct ripening_key *rv = erbtree_head(&rt->tree);
+		g_assert(rv != NULL);
+		old = rv->expire;
 	} else {
 		old = 0;
 	}
 
-	found = hikset_lookup_extended(rt->table, key, &ovalue);
-	if (found) {
-		rval = ovalue;
-
-		if (rval->key != key && rt->hook != NULL) {
-			const struct ripening_hook *hook = rt->hook;
-
-			/*
-			 * We discard the new and keep the old key instead.
-			 * That way, we don't have to update the hash table.
-			 */
-
-			if (hook->kvfree != NULL) {
-				(*hook->kvfree)(deconstify_pointer(key), rval->value);
-			} else if (hook->kvfree_d != NULL) {
-				(*hook->kvfree_d)(
-					deconstify_pointer(key), rval->value, hook->arg);
-			}
-		}
-
+	if (existed) {
 		/*
-		 * Value existed for this key, reset its maturation time.
+		 * Since maturation time changes, we have to remove the node
+		 * and re-insert it later so that it is positionned at the
+		 * right position in the tree (ordered by expiration time).
 		 *
-		 * We assume the maturation time will change, hence we blindly
-		 * remove the node from the red-black tree to re-insert it later
-		 * with the new time, hence at a different position.
+		 * If the entry existed and the maturation time did not change;
+		 * we would not have been called at all!
 		 */
 
-		erbtree_remove(&rt->tree, &rval->node);
-		rval->value = value;
-	} else {
-		WALLOC0(rval);
-		rval->value = value;
-		rval->key = deconstify_pointer(key);
-		hikset_insert(rt->table, rval);
+		erbtree_remove(&rt->tree, &rkey->node);
 	}
 
-	rval->expire = time_advance(now, delay);
-	erbtree_insert(&rt->tree, &rval->node);
+	rkey->expire = expire;
+	erbtree_insert(&rt->tree, &rkey->node);
 
 	/*
-	 * Set or update the timeout event.
+	 * Set or update the timeout event at the table level.
 	 */
 
-	if (0 == old || delta_time(rval->expire, old) < 0)
-		old = rval->expire;		/* Earliest expiration time */
+	if (0 == old || delta_time(rkey->expire, old) < 0)
+		old = rkey->expire;		/* Earliest expiration time */
 
-	delta = delta_time(old, now);
-	delta = delta <= 0 ? 1 : delta * 1000;
+	delta = delta_time(old, tm_time());
+	delta = delta <= 0 ? 1 : delta * 1000;	/* callout queue time in ms */
 
 	if (rt->expire_ev != NULL) {
 		if (cq_resched(rt->expire_ev, delta))
-			goto done;
+			return;
 		cq_cancel(&rt->expire_ev);		/* Already expired, free event */
 	}
 
 	g_assert(NULL == rt->expire_ev);
 
 	rt->expire_ev = cq_main_insert(delta, ripening_gc, rt);
+}
 
+/**
+ * Add or update value to the table.
+ *
+ * This is factorized code for ripening_insert() and ripening_update().
+ *
+ * @param rt		the ripening table
+ * @param update	if TRUE we're doing an update, otherwise this is an insert
+ * @param delay		the ripening delay (seconds until maturation)
+ * @param key		the key to insert
+ * @param value		the value to insert
+ *
+ * @return TRUE if key existed already.
+ */
+static bool
+ripening_add_kv(
+	ripening_table_t *rt, bool update, uint delay, const void *key, void *value)
+{
+	bool found;
+	void *ovalue;
+	time_t new_expire;
+	struct ripening_key *rkey;
+
+	ripening_check(rt);
+	g_assert(implies(!rt->has_value, NULL == value));
+
+	ripening_synchronize(rt);
+
+	new_expire = time_advance(tm_time(), delay);
+	found = hikset_lookup_extended(rt->table, key, &ovalue);
+
+	if (update && !found)
+		goto done;
+
+	if (found) {
+		rkey = ovalue;
+
+		if (rt->hook != NULL) {
+			void *k = NULL, *v = NULL;
+
+			/* Free old value if pointers differ */
+			if (value != RIPENING_VALUE(rt, rkey))
+				v = RIPENING_VALUE(rt, rkey);
+
+			/*
+			 * For keys, we discard the new and keep the old one instead.
+			 * That way, we don't have to update the hash table.
+			 */
+
+			if (!update && key != rkey->key)
+				k = deconstify_pointer(key);	/* Free new key */
+
+			/*
+			 * FIXME:
+			 * Callback invocation is not a sign that the value has
+			 * matured.  Perhaps we need a different set of callbacks,
+			 * invoked only when the key/value pair expired?
+			 * See comment in ripening_free_hook() as well which could
+			 * lead to problems when the callbacks attempt to interact
+			 * with the table to re-insert the value for instance.
+			 * 		--RAM, 2020-06-05
+			 */
+
+			ripening_run_free_hook(k, v, rt->hook);
+		}
+
+		if (rt->has_value) {
+			/* Value may be different */
+			((struct ripening_keyval *) rkey)->value = value;
+		}
+
+		if (rkey->expire == new_expire)
+			goto done;			/* No change in maturation time */
+	} else {
+		g_assert(!update);		/* Inserting new value */
+
+		if (rt->has_value) {
+			struct ripening_keyval *rval;
+
+			WALLOC0(rval);
+			rval->value = value;
+			rkey = (struct ripening_key *) rval;
+		} else {
+			WALLOC0(rkey);
+		}
+
+		rkey->key = deconstify_pointer(key);
+		hikset_insert(rt->table, rkey);
+	}
+
+	ripening_set_expire(rt, rkey, found, new_expire);
+
+	/* FALL THROUGH */
 done:
-	ripening_return_void(rt);
+	ripening_return(rt, found);
+}
+
+/**
+ * Add key/value to the table.
+ *
+ * If key was already present, its maturation time is reset to the specified
+ * ripening delay, if it changes.
+ *
+ * The key argument is freed immediately if there is a free routine for
+ * keys and the key was present in the table.
+ *
+ * The previous value is freed and replaced by the new one if its address
+ * is different (when the key is present and there is a free routine defined).
+ *
+ * @param rt		the ripening table
+ * @param delay		the ripening delay (seconds until maturation)
+ * @param key		the key to insert
+ * @param value		the value to insert
+ *
+ * @return TRUE if key existed already.
+ */
+bool
+ripening_insert(ripening_table_t *rt, uint delay, const void *key, void *value)
+{
+	ripening_check(rt);
+	g_assert(rt->has_value);
+
+	return ripening_add_kv(rt, FALSE, delay, key, value);
+}
+
+/**
+ * Add key to the table, which must not be configured to hold values.
+ *
+ * If key was already present, its maturation time is reset to the specified
+ * ripening delay, if it changes.
+ *
+ * The key argument is freed immediately if there is a free routine for
+ * keys and the key was present in the table.
+ *
+ * @param rt		the ripening table
+ * @param delay		the ripening delay (seconds until maturation)
+ * @param key		the key to insert
+ *
+ * @return TRUE if key existed already.
+ */
+bool
+ripening_insert_key(ripening_table_t *rt, uint delay, const void *key)
+{
+	ripening_check(rt);
+	g_assert(!rt->has_value);
+
+	return ripening_add_kv(rt, FALSE, delay, key, NULL);
+}
+
+/**
+ * Update value or delay for given key in the table.
+ *
+ * If the key is not present, nothing is done and we return FALSE.
+ *
+ * The given key is not perused after the call, nor freed here.  It can
+ * therefore be a transient value on the calling stack if needed.
+ *
+ * The previous value is freed and replaced by the new one when the
+ * the value pointers are different.
+ *
+ * @param rt		the ripening table
+ * @param delay		the ripening delay (seconds until maturation)
+ * @param key		the key to insert
+ * @param value		the value to insert
+ *
+ * @return TRUE if key existed already and therefore its value was updated.
+ */
+bool
+ripening_update(ripening_table_t *rt, uint delay, const void *key, void *value)
+{
+	ripening_check(rt);
+	g_assert(rt->has_value);
+
+	return ripening_add_kv(rt, TRUE, delay, key, value);
 }
 
 /**

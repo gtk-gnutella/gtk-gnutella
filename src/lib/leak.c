@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -82,6 +82,7 @@ leak_init(void)
 	struct leak_set *ls;
 
 	XMALLOC0(ls);
+	(void) NOT_LEAKING(ls);
 	ls->magic = LEAK_SET_MAGIC;
 	ls->places = htable_create_real(HASH_KEY_STRING, 0);	/* No walloc() */
 	ls->stacks = htable_create_any_real(stack_hash, NULL, stack_eq);
@@ -156,8 +157,7 @@ leak_add(leak_set_t *ls, size_t size, const char *file, int line)
 	g_assert(file);
 	g_assert(line >= 0);
 
-	concat_strings(key, sizeof key,
-		file, ":", uint64_to_string(line), NULL_PTR);
+	concat_strings(ARYLEN(key), file, ":", uint64_to_string(line), NULL_PTR);
 	found = htable_lookup_extended(ls->places, key, NULL, &v);
 
 	if (found) {
@@ -304,7 +304,7 @@ leak_dump(const leak_set_t *ls)
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
 		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
-			l->lr->size, l->lr->count, plural(l->lr->count), avg, plural(avg));
+			l->lr->size, PLURAL(l->lr->count), PLURAL(avg));
 		stacktrace_atom_decorate(stderr, l->u.sa,
 			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 	}
@@ -342,8 +342,8 @@ leaks_by_place:
 		struct leak *l = &filler.leaks[i];
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
 		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from \"%s\"",
-			l->lr->size, l->lr->count, plural(l->lr->count),
-			avg, plural(avg), l->u.place);
+			l->lr->size, PLURAL(l->lr->count),
+			PLURAL(avg), l->u.place);
 	}
 
 	xfree(filler.leaks);

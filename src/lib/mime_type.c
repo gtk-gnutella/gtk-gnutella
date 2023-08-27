@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -274,7 +274,7 @@ mime_type_from_filename(const char *filename)
 	const char *extension;
 
 	g_return_val_if_fail(filename, MIME_TYPE_APPLICATION_OCTET_STREAM);
-	extension = strrchr(filename, '.');
+	extension = vstrrchr(filename, '.');
 	return mime_type_from_extension(extension ? &extension[1] : NULL);
 }
 

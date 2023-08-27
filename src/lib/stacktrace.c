@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -92,8 +92,9 @@ static const char *program_path;	/**< Absolute program path (ro string) */
 static time_t program_mtime;		/**< Last modification time of executable */
 static bool stacktrace_crashing;	/**< Use simple stack traces if set */
 static bool symbols_loaded;
-static symbols_t *symbols;
+static symbols_t *stacktrace_symbols;
 static bool stacktrace_inited;
+static bfd_env_t *stacktrace_be;	/**< BFD environment for symbolic info */
 
 static mutex_t stacktrace_sym_mtx  = MUTEX_INIT;
 static once_flag_t stacktrace_atom_inited;
@@ -103,7 +104,8 @@ static once_flag_t stacktrace_atom_inited;
 static struct {
 	struct stacktrace circular[STACKTRACE_CIRCULAR_LEN];
 	unsigned idx;
-	bool dirty;
+	bool dirty:1;			/**< Have unflushed entries */
+	bool superseded:1;		/**< Have superseded unflushed entries */
 } stacktrace_atom_buffer;
 
 static hash_table_t *stack_atoms;
@@ -127,10 +129,8 @@ static hash_table_t *stack_atoms;
  */
 static size_t stack_auto_offset;
 
-#ifndef MINGW32
 static void *getreturnaddr(size_t level);
 static void *getframeaddr(size_t level);
-#endif
 
 /**
  * Limit stacktraces to simple stacks, avoiding the BFD library or the
@@ -188,7 +188,6 @@ stack_is_our_text(const void *pc)
 #endif
 }
 
-#ifndef MINGW32
 /**
  * Unwind current stack into supplied stacktrace array.
  *
@@ -208,12 +207,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 {
     size_t i;
 	void *frame;
-
-	/*
-	 * Adjust the offset according to the auto-tunings.
-	 */
-
-	offset = size_saturate_add(offset, stack_auto_offset);
 
 	/*
 	 * Go carefully to stack frame "offset", in case the stack is
@@ -247,7 +240,6 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
 
 	return i - offset;
 }
-#endif	/* !MINGW32 */
 
 /**
  * Unwind current stack into supplied stacktrace array.
@@ -265,13 +257,29 @@ stacktrace_gcc_unwind(void *stack[], size_t count, size_t offset)
  */
 NO_INLINE size_t
 stacktrace_unwind(void *stack[], size_t count, size_t offset)
+{
+	size_t idx;
+
+	/*
+	 * Apply the auto-configured extra offset, computed initially
+	 * by stacktrace_auto_tune() for this stacktrace_unwind() routine.
+	 *
+	 * We do this here so that all the mis-indented code blocks below
+	 * can share the value and do not need to do the adjustment (or
+	 * worse, forget to do it).
+	 */
+
+	idx = size_saturate_add(offset, stack_auto_offset);
+	g_assert(size_is_non_negative(idx));
+
+/* Indentation wrong on the remaining, on purpose */
 #ifdef HAS_BACKTRACE
 {
 	static uint8 in_unwind[THREAD_MAX];
 	void *trace[STACKTRACE_DEPTH_MAX + 5];	/* +5 to leave room for offsets */
 	int depth;
     size_t amount;		/* Amount of entries we can copy in result */
-	size_t i, idx;
+	size_t i;
 	int id = thread_safe_small_id();
 	static bool called;
 
@@ -307,7 +315,7 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 		 * address it reaches, there is no need to post-process the result.
 		 */
 
-		i = stacktrace_gcc_unwind(stack, count, offset + 1);
+		i = stacktrace_gcc_unwind(stack, count, idx + 1);
 		goto done;
 	}
 
@@ -343,10 +351,6 @@ stacktrace_unwind(void *stack[], size_t count, size_t offset)
 	if (id >= 0)
 		in_unwind[id] = FALSE;
 
-	idx = size_saturate_add(offset, stack_auto_offset);
-
-	g_assert(size_is_non_negative(idx));
-
 	if (UNSIGNED(depth) <= idx)
 		return 0;
 
@@ -366,7 +370,7 @@ done:
 }
 #elif defined(MINGW32)
 {
-	return mingw_backtrace(stack, count, offset + stack_auto_offset);
+	return mingw_backtrace(stack, count, idx);
 }
 #else	/* !HAS_BACKTRACE */
 {
@@ -374,9 +378,11 @@ done:
 	 * Don't increase offset, this is tail recursion and it can be optimized
 	 * away.  At worst we'll see this call in the stack.
 	 */
-	return stacktrace_gcc_unwind(stack, count, offset);
+	return stacktrace_gcc_unwind(stack, count, idx);
 }
 #endif	/* HAS_BACKTRACE */
+/* End of wrong indentation */
+}
 
 static sigjmp_buf stacktrace_safe_env[THREAD_MAX];
 
@@ -412,9 +418,9 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 {
 	volatile size_t n;
 	int stid;
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	/*
@@ -468,27 +474,11 @@ stacktrace_safe_unwind(void *stack[], size_t count, size_t offset)
 /**
  * Return self-assessed symbol quality.
  */
-enum stacktrace_sym_quality
+enum symbol_quality
 stacktrace_quality(void)
 {
-	return NULL == symbols ? STACKTRACE_SYM_GOOD : symbols_quality(symbols);
-}
-
-/**
- * Return string version of the self-assessed symbol quality.
- */
-const char *
-stacktrace_quality_string(const enum stacktrace_sym_quality sq)
-{
-	switch (sq) {
-	case STACKTRACE_SYM_GOOD:		return "good";
-	case STACKTRACE_SYM_STALE:		return "stale";
-	case STACKTRACE_SYM_MISMATCH:	return "mismatch";
-	case STACKTRACE_SYM_GARBAGE:	return "garbage";
-	case STACKTRACE_SYM_MAX:		break;
-	}
-
-	return "UNKNOWN";
+	return NULL == stacktrace_symbols ?
+		SYMBOL_Q_GOOD : symbols_quality(stacktrace_symbols);
 }
 
 /**
@@ -554,13 +544,13 @@ stacktrace_get_symbols(const char *path, const char *lpath, bool stale)
 
 	STACKTRACE_SYM_LOCK;
 
-	if (NULL == symbols)
-		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	if (NULL == stacktrace_symbols)
+		stacktrace_symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
-	symbols_load_from(symbols, path, lpath != NULL ? lpath : path);
+	symbols_load_from(stacktrace_symbols, path, lpath != NULL ? lpath : path);
 
 	if (stale)
-		symbols_mark_stale(symbols);
+		symbols_mark_stale(stacktrace_symbols);
 
 	STACKTRACE_SYM_UNLOCK;
 }
@@ -587,8 +577,8 @@ stacktrace_init(const char *argv0, bool deferred)
 
 	stacktrace_inited = TRUE;
 	path = file_program_path(argv0);
-	if (NULL == symbols)
-		symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
+	if (NULL == stacktrace_symbols)
+		stacktrace_symbols = symbols_make(STACKTRACE_DLFT_SYMBOLS, TRUE);
 
 	if (NULL == path) {
 		s_warning("cannot find \"%s\" in PATH, not loading symbols", argv0);
@@ -644,10 +634,11 @@ stacktrace_memory_used(void)
 {
 	size_t res;
 
-	res = NULL == symbols ? 0 : symbols_memory_size(symbols);
-	if (stack_atoms != NULL) {
+	res = NULL == stacktrace_symbols ?
+		0 : symbols_memory_size(stacktrace_symbols);
+
+	if (stack_atoms != NULL)
 		res += hash_table_arena_memory(stack_atoms);
-	}
 
 	return res;
 }
@@ -658,7 +649,7 @@ stacktrace_memory_used(void)
 void G_COLD
 stacktrace_close(void)
 {
-	symbols_free_null(&symbols);
+	symbols_free_null(&stacktrace_symbols);
 	if (stack_atoms != NULL) {
 		hash_table_destroy_real(stack_atoms);	/* Does not free keys/values */
 		stack_atoms = NULL;
@@ -673,6 +664,14 @@ stacktrace_load_symbols(void)
 {
 	static spinlock_t sym_load_slk = SPINLOCK_INIT;
 	bool stale = FALSE;
+
+	/*
+	 * If we are called before the main thread has started, then bail out
+	 * as dl_util_get_path() will probably not be able to work correctly.
+	 */
+
+	if (!thread_main_has_started())
+		return;
 
 	/*
 	 * Don't use the once_flag_run() mechanism here since this can be used
@@ -837,7 +836,7 @@ stack_sym_trylock(const char *caller)
 				warning[stid] = TRUE;
 
 				s_rawwarn("%s(): not waiting, %s holds %zu lock%s",
-					caller, thread_safe_name(), cnt, plural(cnt));
+					caller, thread_safe_name(), PLURAL(cnt));
 				thread_lock_dump_if_any(STDERR_FILENO, stid);
 
 				warning[stid] = FALSE;
@@ -880,7 +879,7 @@ stack_print(FILE *f, void * const *stack, size_t count)
 	}
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 
 		if (!valid_ptr(stack[i]))
 			break;
@@ -926,7 +925,7 @@ stack_log(logagent_t *la, void * const *stack, size_t count)
 	}
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 
 		if (!valid_ptr(stack[i]))
 			break;
@@ -968,7 +967,7 @@ stack_safe_print(int fd, int stid, void * const *stack, size_t count)
 		locked = FALSE;
 
 	for (i = 0; i < count; i++) {
-		const char *where = symbols_name(symbols, stack[i], TRUE);
+		const char *where = symbols_name(stacktrace_symbols, stack[i], TRUE);
 		char sbuf[UINT_DEC_BUFLEN];
 		const char *snum;
 		DECLARE_STR(6);
@@ -1015,7 +1014,7 @@ stacktrace_pretty_filepath(const char *filepath)
 	const char *q;
 	const char *start;
 
-	p = strrchr(filepath, G_DIR_SEPARATOR);
+	p = vstrrchr(filepath, G_DIR_SEPARATOR);
 	if (p != NULL)
 		p++;
 	else
@@ -1035,8 +1034,13 @@ stacktrace_pretty_filepath(const char *filepath)
 	start = filepath;
 
 	if (is_absolute_path(filepath)) {
-		const char *src = strstr(filepath, "/src/");
-		start = (NULL == src) ? p : &src[CONST_STRLEN("/src/")];
+		const char *src = vstrstr(filepath, "/" SRC_PREFIX);
+		start = (NULL == src) ? p : &src[CONST_STRLEN("/" SRC_PREFIX)];
+
+		/* Move to the latest "/src/" location in path */
+
+		while (NULL != (src = vstrstr(start, "/" SRC_PREFIX)))
+			start = &src[CONST_STRLEN("/" SRC_PREFIX)];
 	}
 
 	/*
@@ -1048,13 +1052,13 @@ stacktrace_pretty_filepath(const char *filepath)
 
 	for (q = p - 1; q > start; q--) {
 		if ('/' == *q) {
-			if (is_strprefix(q, "/src/"))
+			if (is_strprefix(q, "/" SRC_PREFIX))
 				return p;
 			p = q + 1;
 		}
 	}
 
-	return is_strprefix(start, "src/") ? p : start;
+	return is_strprefix(start, SRC_PREFIX) ? p : start;
 }
 
 enum sxfiletype {
@@ -1144,7 +1148,7 @@ static void
 stack_print_decorated_to(struct sxfile *xf,
 	void * const *stack, size_t count, int flags)
 {
-	static bfd_env_t *be;
+	bfd_env_t *be = stacktrace_be;		/* Local shortcut of global variable */
 	size_t i;
 	static char buf[512];
 	static char name[256];
@@ -1193,9 +1197,9 @@ stack_print_decorated_to(struct sxfile *xf,
 	 */
 
 	if (NULL == be)
-		be = bfd_util_init();
+		be = stacktrace_be = bfd_util_init();
 
-	str_new_buffer(&s, buf, 0, sizeof buf);
+	str_new_buffer(&s, ARYLEN(buf), 0);
 
 	/*
 	 * Compute leading thread ID, shown only when not in the main thread.
@@ -1204,7 +1208,7 @@ stack_print_decorated_to(struct sxfile *xf,
 	if (flags & STACKTRACE_F_THREAD) {
 		unsigned stid = thread_safe_small_id();
 		if (stid != 0)
-			str_bprintf(tid, sizeof tid, "[%u] ", stid);
+			str_bprintf(ARYLEN(tid), "[%u] ", stid);
 		else
 			tid[0] = 0;
 	} else {
@@ -1309,8 +1313,9 @@ stack_print_decorated_to(struct sxfile *xf,
 		 * and there are symbols present in the executable that we could load.
 		 */
 
-		if (!located && symbols != NULL) {
-			const char *sym = symbols_name_only(symbols, pc, !gdb_like);
+		if (!located && stacktrace_symbols != NULL) {
+			const char *sym =
+				symbols_name_only(stacktrace_symbols, pc, !gdb_like);
 
 			if (sym != NULL) {
 				loc.function = sym;
@@ -1346,15 +1351,15 @@ stack_print_decorated_to(struct sxfile *xf,
 				 */
 
 				if (gdb_like)
-					str_bprintf(name, sizeof name, "%s", sym);
+					str_bprintf(ARYLEN(name), "%s", sym);
 				else if (0 == disp)
-					str_bprintf(name, sizeof name, "<%s>", sym);
+					str_bprintf(ARYLEN(name), "<%s>", sym);
 				else
-					str_bprintf(name, sizeof name, "<%s%+ld>", sym, disp);
+					str_bprintf(ARYLEN(name), "<%s%+ld>", sym, disp);
 				sym = name;
 			} else {
-				if (symbols != NULL) {
-					sym = symbols_name(symbols, pc, !gdb_like);
+				if (stacktrace_symbols != NULL) {
+					sym = symbols_name(stacktrace_symbols, pc, !gdb_like);
 					if (flags & STACKTRACE_F_MAIN_STOP) {
 						reached_main = 0 == strcmp(sym, "main") ||
 							(!gdb_like && is_strprefix(sym, "main+"));
@@ -1371,7 +1376,7 @@ stack_print_decorated_to(struct sxfile *xf,
 			if (flags & STACKTRACE_F_MAIN_STOP)
 				reached_main = 0 == strcmp(loc.function, "main");
 
-			str_bprintf(name, sizeof name, "%s()", loc.function);
+			str_bprintf(ARYLEN(name), "%s()", loc.function);
 			has_parens = TRUE;
 			loc.function = name;
 		}
@@ -1566,7 +1571,56 @@ stacktrace_caller(size_t n)
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
+
+	return n < count ? stack[n] : NULL;
+}
+
+/**
+ * Faster version of the n-th caller in the stack.
+ *
+ * This attemps to use internal GCC unwinding (following frame pointers)
+ * and if we cannot determine that information, we go back to regular
+ * unwinding (which may be more CPU-intensive, especially on Windows).
+ */
+const void *
+stacktrace_caller_fast(size_t n)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	g_assert(size_is_non_negative(n));
+	g_assert(n <= STACKTRACE_DEPTH_MAX);
+
+	/*
+	 * Quick version following stack frames.
+	 *
+	 * If the first entry is not for this current call, then the output
+	 * is probably wrong (frame pointers not available) so move to the
+	 * "full version" which hopefully can decompile stacks without
+	 * frame pointers.
+	 */
+
+	count = stacktrace_gcc_unwind(stack, MIN(n+2, N_ITEMS(stack)), 0);
+
+	if (0 == count)
+		goto full;
+
+	if (ptr_cmp(stack[0], stacktrace_caller_fast) < 0)
+		goto full;		/* Falls before this routine */
+
+	/* 100 is an arbitrary magic distance (about 25 RISC instructions) */
+
+	if (ptr_diff(stack[0], stacktrace_caller_fast) > 100)
+		goto full;		/* Too far ahead from this routine start */
+
+	if (n + 1 < count)
+		return stack[n+1];
+
+full:
+	/* Full version -- output identical to above if no backtrace() support */
+
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
 
 	return n < count ? stack[n] : NULL;
 }
@@ -1585,33 +1639,36 @@ stacktrace_caller_name(size_t n)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
-	bool in_sigh = signal_in_unsafe_handler();
-	const char *name;
 
 	g_assert(size_is_non_negative(n));
 	g_assert(n <= STACKTRACE_DEPTH_MAX);
 
-	count = stacktrace_unwind(stack, N_ITEMS(stack), 1);
+	count = stacktrace_unwind(stack, MIN(n+1, N_ITEMS(stack)), 1);
 	if (n >= count)
 		return "";
 
-	if (!in_sigh)
-		stacktrace_load_symbols();
+	return stacktrace_routine_name(stack[n], FALSE);
+}
 
-	if (NULL == symbols)
-		return "??";
+/**
+ * Return symbolic name of the routine to which a PC belongs, in a light way.
+ *
+ * This routine should be used when crashing and it is critical to gather
+ * information in a light way, for fear that more correct and accurate ways
+ * would lead to a subsequent crash.
+ *
+ * @param pc		the PC we're looking for
+ * @param offset	if non-NULL, written with offset within routine
+ *
+ * @return pointer to static data, NULL if symbols were not loaded.
+ */
+const char *
+stacktrace_routine_name_light(const void *pc, size_t *offset)
+{
+	if (NULL == stacktrace_symbols)
+		return NULL;
 
-	name = symbols_name(symbols, stack[n], FALSE);
-
-	/*
-	 * Avoid all memory allocation if we are in a signal handler or
-	 * crashing (where normally we are supposed to be running mono-threaded).
-	 */
-
-	if (!in_sigh && !thread_in_crash_mode())
-		name = constant_str(name);
-
-	return name;
+	return symbols_name_light(stacktrace_symbols, pc, offset);
 }
 
 /**
@@ -1633,7 +1690,8 @@ stacktrace_routine_name(const void *pc, bool offset)
 	if (!in_sigh)
 		stacktrace_load_symbols();
 
-	name = NULL == symbols ? NULL : symbols_name_only(symbols, pc, offset);
+	name = NULL == stacktrace_symbols ?
+		NULL : symbols_name_only(stacktrace_symbols, pc, offset);
 
 	/*
 	 * This routine can be called from a signal handler.  We assume it will
@@ -1665,9 +1723,17 @@ stacktrace_routine_name(const void *pc, bool offset)
 
 	if (NULL == name) {
 		static char buf[POINTER_BUFLEN];
-		str_bprintf(buf, sizeof buf, "%p", pc);
-		name = (in_sigh || thread_in_crash_mode()) ? buf : constant_str(buf);
+		str_bprintf(ARYLEN(buf), "%p", pc);
+		name = buf;
 	}
+
+	/*
+	 * Avoid all memory allocation if we are in a signal handler or
+	 * crashing (where normally we are supposed to be running mono-threaded).
+	 */
+
+	if (!in_sigh && !thread_in_crash_mode())
+		name = constant_str(name);
 
 	return name;
 }
@@ -1685,7 +1751,7 @@ stacktrace_routine_start(const void *pc)
 	if (!signal_in_unsafe_handler())
 		stacktrace_load_symbols();
 
-	return symbols_addr(symbols, pc);
+	return symbols_addr(stacktrace_symbols, pc);
 }
 
 /**
@@ -1708,7 +1774,8 @@ static bool
 stacktrace_got_symbols(void)
 {
 	stacktrace_load_symbols();
-	return symbols != NULL && 0 != symbols_count(symbols);
+	return stacktrace_symbols != NULL &&
+		0 != symbols_count(stacktrace_symbols);
 }
 
 /**
@@ -1925,7 +1992,7 @@ stacktrace_got_signal(int signo)
 
 	stid = thread_small_id();
 
-	crash_time(time_buf, sizeof time_buf);
+	crash_time(ARYLEN(time_buf));
 	print_str(time_buf);
 	print_str(" WARNING: got ");
 	print_str(signal_name(signo));
@@ -1952,9 +2019,9 @@ void G_COLD
 stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 {
 	static volatile sig_atomic_t printing[THREAD_MAX];
-	signal_handler_t old_sigsegv;
+	volatile signal_handler_t old_sigsegv;
 #ifdef SIGBUS
-	signal_handler_t old_sigbus;
+	volatile signal_handler_t old_sigbus;
 #endif
 
 	if (printing[stid]) {
@@ -1962,7 +2029,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char sbuf[UINT_DEC_BUFLEN];
 		DECLARE_STR(7);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);						/* 0 */
 		print_str(" (WARNING");						/* 1 */
 		if (stid != 0) {
@@ -1995,7 +2062,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" WARNING: truncated stack printing\n");
 		flush_str(fd);
@@ -2006,7 +2073,7 @@ stacktrace_cautious_print(int fd, int stid, void *stack[], size_t count)
 		char time_buf[CRASH_TIME_BUFLEN];
 		DECLARE_STR(2);
 
-		crash_time(time_buf, sizeof time_buf);
+		crash_time(ARYLEN(time_buf));
 		print_str(time_buf);
 		print_str(" WARNING: corrupted stack\n");
 		flush_str(fd);
@@ -2177,14 +2244,30 @@ insert:
 	i %= STACKTRACE_CIRCULAR_LEN;
 
 	stacktrace_atom_buffer.dirty = TRUE;
+	atomic_mb();
+
+	if (
+		stacktrace_atom_buffer.circular[i].len != 0 &&
+		!stacktrace_atom_buffer.superseded
+	) {
+		/* Warn only once until we are able to flush the circular buffer */
+		stacktrace_atom_buffer.superseded = TRUE;
+		s_rawwarn("%s(): circular buffer full, superseding entries", G_STRFUNC);
+	}
+
 	stacktrace_atom_buffer.circular[i].len = 0;		/* Invalid */
 	atomic_mb();
 
 	memcpy(&stacktrace_atom_buffer.circular[i].stack,
 		&st->stack, len * sizeof st->stack[0]);
-
-	stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
 	atomic_mb();
+
+	if G_UNLIKELY(stacktrace_atom_buffer.circular[i].len != 0) {
+		s_rawwarn("%s(): concurrent update on slot #%u", G_STRFUNC, i);
+	} else {
+		stacktrace_atom_buffer.circular[i].len = len;	/* Now valid */
+		atomic_mb();
+	}
 
 	return FALSE;
 }
@@ -2235,7 +2318,7 @@ stacktrace_atom_record(const struct stacktrace *st, size_t len)
 	}
 	local.len = len;
 
-	result = ocopy_readonly(&local, sizeof local);
+	result = ocopy_readonly(VARLEN(local));
 
 	if (!hash_table_insert(stack_atoms, result, result))
 		g_error("cannot record stack trace atom");
@@ -2357,8 +2440,11 @@ stacktrace_atom_circular_flush(void)
 		stacktrace_atom_insert(&cst, cst.len);
 	}
 
-	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx)
-		stacktrace_atom_buffer.dirty = FALSE;	/* Flushed everything */
+	if (atomic_uint_get(&stacktrace_atom_buffer.idx) == original_idx) {
+		/* Flushed everything */
+		stacktrace_atom_buffer.dirty = FALSE;
+		stacktrace_atom_buffer.superseded = FALSE;
+	}
 }
 
 /**
@@ -2473,9 +2559,17 @@ stacktrace_caller_known(size_t offset)
  * at run-time.  See stacktrace_auto_tune().
  */
 
-#ifndef MINGW32
-
 #if HAS_GCC(3, 0)
+
+/*
+ * __builtin_xxx_address() with non-zero argument is unsafe.
+ *
+ * Warnings are emitted starting with GCC 6.1.
+ */
+#if HAS_GCC(6, 1)
+G_IGNORE_PUSH(-Wframe-address);
+#endif
+
 static void *
 getreturnaddr(size_t level)
 {
@@ -2757,6 +2851,11 @@ getframeaddr(size_t level)
     default:	return NULL;
     }
 }
+
+#if HAS_GCC(6, 1)
+G_IGNORE_POP;
+#endif
+
 #else	/* !GCC >= 3.0 */
 static void *
 getreturnaddr(size_t level)
@@ -2772,7 +2871,5 @@ getframeaddr(size_t level)
 	return NULL;
 }
 #endif	/* GCC >= 3.0 */
-
-#endif	/* !MINGW32 */
 
 /* vi: set ts=4 sw=4 cindent:  */

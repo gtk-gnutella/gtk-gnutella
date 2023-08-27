@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,19 +47,29 @@ void *h_private(const void *key, void *p);
 #ifndef TRACK_MALLOC
 char *h_strdup(const char *str) G_MALLOC;
 char *h_strndup(const char *str, size_t n) G_MALLOC;
-char *h_strjoinv(const char *separator, char * const *str_ary);
-char *h_strnjoinv(const char *separator, size_t seplen, char * const *str_ary);
+char *h_strjoinv(const char *separator, char * const *str_ary) G_NON_NULL;
+char *h_strnjoinv(const char *sep, size_t seplen, char * const *ary) G_NON_NULL;
 void h_strfreev(char **str_array);
-char *h_strconcat(const char *str1, ...) G_MALLOC G_NULL_TERMINATED;
-char *h_strconcat_v(const char *first, va_list ap) G_MALLOC;
-char *h_strdup_printf(const char *format, ...) G_PRINTF(1, 2);
-char *h_strdup_vprintf(const char *format, va_list ap) G_PRINTF(1, 0);
+char *h_strconcat(const char *str1, ...) G_MALLOC G_NULL_TERMINATED G_NON_NULL;
+char *h_strconcat_v(const char *first, va_list ap) G_MALLOC G_NON_NULL;
+char *h_strdup_printf(const char *format, ...) G_PRINTF(1, 2) G_NON_NULL;
+char *h_strdup_vprintf(const char *format, va_list ap) G_PRINTF(1, 0) G_NON_NULL;
 char *h_strdup_len_vprintf(const char *format, va_list ap, size_t *len)
-	G_PRINTF(1, 0);
+	G_PRINTF(1, 0) G_NON_NULL;
 #endif	/* !TRACK_MALLOC */
 
-char **h_strsplit(const char *str, const char *delim, size_t max_tokens);
-char **h_strsplit_set(const char *str, const char *delim, size_t max_tokens);
+char **h_strsplit(const char *str, const char *delim, size_t max_tokens)
+	G_NON_NULL;
+char **h_strsplit_set(const char *str, const char *delim, size_t max_tokens)
+	G_NON_NULL;
+
+#define H_STRFREEV_NULL(p)	\
+G_STMT_START {				\
+	if (p != NULL) {		\
+		h_strfreev(p);		\
+		p = NULL;			\
+	}						\
+} G_STMT_END
 
 #endif	/* _hstrfn_h_ */
 

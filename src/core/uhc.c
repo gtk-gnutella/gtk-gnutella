@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -109,7 +109,6 @@ static const struct {
 	/* Peers */
 	{ "1.uhc.gtk-gnutella.nl:19104" },
 	{ "2.uhc.gtk-gnutella.nl:4876" },
-	{ "uhc.gtk-gnutella.nl:15749" },
 	{ "useast.gnutella.dyslexicfish.net:15321" },
 	{ "uswest.gnutella.dyslexicfish.net:18037" },
 	{ "uk.gnutella.dyslexicfish.net:41481" },
@@ -286,6 +285,37 @@ found:
 }
 
 /**
+ * Re-initialize UHC list from hardwired set.
+ */
+static void G_COLD
+uhc_hardwired_reload(void)
+{
+	uint i;
+
+	g_return_if_fail(NULL != uhc_list);
+
+	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
+		const char *host, *ep, *uhc;
+		uint16 port;
+
+		uhc = boot_hosts[i].uhc;
+
+		/* Some consistency checks */
+		uhc_get_host_port(uhc, &host, &port);
+		g_assert(NULL != host);
+		g_assert(0 != port);
+
+		ep = is_strprefix(uhc, host);
+		g_assert(NULL != ep);
+		g_assert(':' == ep[0]);
+
+		uhc_list_append(uhc);
+	}
+
+	hash_list_shuffle(uhc_list);
+}
+
+/**
  * Pick host at random among the host array.
  *
  * @return TRUE if OK.
@@ -300,7 +330,12 @@ uhc_pick(void)
 	if (NULL == uhc) {
 		if (GNET_PROPERTY(bootstrap_debug))
 			g_warning("BOOT ran out of UHCs, switching to GHCs");
+
 		ghc_get_hosts();
+
+		if (0 == hash_list_count(uhc_list))
+			uhc_hardwired_reload();		/* For next time */
+
 		goto finish;
 	}
 
@@ -315,9 +350,10 @@ uhc_pick(void)
 	{
 		char msg[256];
 
-		str_bprintf(msg, sizeof msg, _("Looking for UDP host cache %s"), uhc);
+		str_bprintf(ARYLEN(msg), _("Looking for UDP host cache %s"), uhc);
 		gcu_statusbar_message(msg);
 	}
+
 	success = TRUE;
 
 finish:
@@ -349,11 +385,14 @@ uhc_try_next(void)
 	if (string_to_host_addr(uhc_ctx.host, NULL, &addr)) {
 		uhc_ctx.addr = addr;
 
-		if (GNET_PROPERTY(bootstrap_debug))
-			g_debug("BOOT UDP host cache \"%s\"", uhc_ctx.host);
+		if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_debug("BOOT UDP pinging host cache \"%s\"", uhc_ctx.host);
 
 		uhc_send_ping();
 	} else {
+		if (GNET_PROPERTY(bootstrap_debug) > 1)
+			g_debug("BOOT UDP reolving host cache \"%s\"", uhc_ctx.host);
+
 		(void) adns_resolve(uhc_ctx.host, settings_dns_net(),
 					uhc_host_resolved, NULL);
 	}
@@ -399,7 +438,7 @@ uhc_send_ping(void)
 		{
 			char msg[256];
 
-			str_bprintf(msg, sizeof msg,
+			str_bprintf(ARYLEN(msg),
 				_("Sent ping to UDP host cache %s:%u"),
 				uhc_ctx.host, uhc_ctx.port);
 			gcu_statusbar_message(msg);
@@ -497,7 +536,7 @@ uhc_host_resolved(const host_addr_t *addrs, size_t n, void *uu_udata)
 		uhc_ctx.addr = addrs[0];
 	}
 
-	if (GNET_PROPERTY(bootstrap_debug))
+	if (GNET_PROPERTY(bootstrap_debug) > 1)
 		g_debug("BOOT UDP host cache \"%s\" resolved to %s",
 			uhc_ctx.host, host_addr_to_string(uhc_ctx.addr));
 
@@ -573,7 +612,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug))
 		g_debug("extracting %d host%s in UDP IPP pong #%s from %s",
-			cnt, plural(cnt),
+			PLURAL(cnt),
 			guid_hex_str(gnutella_header_get_muid(&n->header)), node_addr(n));
 
 	for (i = 0, p = payload; i < cnt; i++, p = const_ptr_add_offset(p, len)) {
@@ -604,7 +643,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 
 	if (GNET_PROPERTY(bootstrap_debug)) {
 		g_debug("BOOT UDP cache \"%s\" replied: got %d host%s from %s",
-			uhc_ctx.host, cnt, plural(cnt), node_addr(n));
+			uhc_ctx.host, PLURAL(cnt), node_addr(n));
 	}
 
 	/*
@@ -617,7 +656,7 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 		cq_cancel(&uhc_ctx.timeout_ev);
 		uhc_connecting = FALSE;
 
-		str_bprintf(msg, sizeof(msg),
+		str_bprintf(ARYLEN(msg),
 			NG_("Got %d host from UDP host cache %s",
 				"Got %d hosts from UDP host cache %s",
 				cnt),
@@ -635,30 +674,10 @@ uhc_ipp_extract(gnutella_node_t *n, const char *payload, int paylen,
 void G_COLD
 uhc_init(void)
 {
-	uint i;
-
 	g_return_if_fail(NULL == uhc_list);
+
 	uhc_list = hash_list_new(uhc_hash, uhc_equal);
-
-	for (i = 0; i < N_ITEMS(boot_hosts); i++) {
-		const char *host, *ep, *uhc;
-		uint16 port;
-
-		uhc = boot_hosts[i].uhc;
-
-		/* Some consistency checks */
-		uhc_get_host_port(uhc, &host, &port);
-		g_assert(NULL != host);
-		g_assert(0 != port);
-
-		ep = is_strprefix(uhc, host);
-		g_assert(NULL != ep);
-		g_assert(':' == ep[0]);
-
-		uhc_list_append(uhc);
-	}
-
-	hash_list_shuffle(uhc_list);
+	uhc_hardwired_reload();
 }
 
 /**

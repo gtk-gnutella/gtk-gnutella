@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -203,12 +203,6 @@ strvec_cpy(char **dstv, char *const *strv, size_t cnt, void *mem, size_t *len)
 	g_assert(size_is_non_negative(*len));
 
 	avail = *len;
-
-	if G_UNLIKELY(0 == avail)
-		return NULL;
-
-	if G_UNLIKELY(0 == cnt)
-		return mem;
 
 	for (i = 0; i < cnt; i++) {
 		size_t n = strsize(strv[i]);

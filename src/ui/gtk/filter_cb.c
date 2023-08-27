@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -300,30 +300,30 @@ void
 on_button_filter_reset_all_clicked(GtkButton *unused_button,
 	gpointer unused_udata)
 {
-    gint row;
-    GtkCTree *ctree;
-    GtkCList *clist;
+	gint row;
+	GtkCTree *ctree;
+	GtkCList *clist;
 
 	(void) unused_button;
 	(void) unused_udata;
 
-    if (gui_filter_dialog() == NULL)
-        return;
+	if (gui_filter_dialog() == NULL)
+		return;
 
-    ctree = GTK_CTREE(gui_filter_dialog_lookup("ctree_filter_filters"));
-    clist = GTK_CLIST(ctree);
+	ctree = GTK_CTREE(gui_filter_dialog_lookup("ctree_filter_filters"));
+	clist = GTK_CLIST(ctree);
 
-    for (row = 0; row < clist->rows; row++) {
-        filter_t *filter;
-        GtkCTreeNode *node;
+	for (row = 0; row < clist->rows; row++) {
+		filter_t *filter;
+		GtkCTreeNode *node;
 
-        node = gtk_ctree_node_nth(ctree, row);
-        filter = gtk_ctree_node_get_row_data(ctree, node);
-        if (filter == NULL)
-            continue;
+		node = gtk_ctree_node_nth(ctree, row);
+		filter = gtk_ctree_node_get_row_data(ctree, node);
+		if (filter == NULL)
+			continue;
 
-        filter_reset_stats(filter);
-    }
+		filter_reset_stats(filter);
+	}
 }
 
 void
@@ -750,8 +750,8 @@ on_button_filter_reset_all_clicked(GtkButton *unused_button,
 	(void) unused_button;
 	(void) unused_udata;
 
-    if (gui_filter_dialog() == NULL)
-        return;
+	if (gui_filter_dialog() == NULL)
+		return;
 
 	gtk_tree_model_foreach(gtk_tree_view_get_model(GTK_TREE_VIEW(
 		gui_filter_dialog_lookup("treeview_filter_filters"))),

@@ -50,10 +50,25 @@ OOB_HITS_IGNORED_ON_SPAMMER_HIT
 	"OOB hits ignored due to identified spamming address"
 OOB_HITS_IGNORED_ON_UNSECURE_HIT
 	"OOB hits ignored due to unsecure promise from known secure host"
+OOB_HITS_CLAIMED			"OOB hits we claimed after notification"
+OOB_HITS_SECURELY_CLAIMED	"OOB hits subset that we claimed securely"
+OOB_HITS_THROTTLED			"OOB hit-notifications discarded due to popularity"
+OOB_HITS_TIGHT_BANDWIDTH
+	"OOB hit-notifications processed under tight bandwidth"
+NOTIFIED_OOB_HITS			"Notifications sent for local OOB hits"
+RELIABLY_NOTIFIED_OOB_HITS	"Notifications reliably sent for local OOB hits"
+CLAIMED_OOB_HITS			"Claimed locally-generated OOB hits"
+CLAIMED_RELIABLE_OOB_HITS	"Claimed locally-generated reliable OOB hits"
 UNCLAIMED_OOB_HITS			"Unclaimed locally-generated OOB hits"
+UNCLAIMED_RELIABLE_OOB_HITS	"Unclaimed locally-generated reliable OOB hits"
 PARTIALLY_CLAIMED_OOB_HITS	"Partially claimed locally-generated OOB hits"
+PARTIALLY_CLAIMED_RELIABLE_OOB_HITS
+	"Partially claimed locally-generated reliable OOB hits"
+EXPIRED_OOB_HITS			"Expired delivery for local OOB hits"
+EXPIRED_RELIABLE_OOB_HITS	"Expired delivery for local reliable OOB hits"
 SPURIOUS_OOB_HIT_CLAIM		"Spurious OOB hit claiming received"
 UNREQUESTED_OOB_HITS		"Unrequested OOB hits received"
+BANNED_OOB_QUERYING_HOST	"OOB querying hosts banned for some time"
 QUERY_HIT_FOR_UNTRACKED_QUERY	"Received query hits for untracked queries"
 QUERY_TRACKED_MUIDS			"Tracked query MUIDs"
 QUERY_COMPACT_COUNT			"Compacted queries"
@@ -129,6 +144,43 @@ UDP_RX_COMPRESSED			"Compressed UDP messages received"
 UDP_COMPRESSION_ATTEMPTS	"Candidates for UDP message compression"
 UDP_LARGER_HENCE_NOT_COMPRESSED
 	"Uncompressed UDP messages due to no gain"
+UDP_SCHED_DIRECTLY_SENT_PRIO_DATA
+	"UDP scheduler directly sent (P_DATA)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_CONTROL
+	"UDP scheduler directly sent (P_CONTROL)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_URGENT
+	"UDP scheduler directly sent (P_URGENT)"
+UDP_SCHED_DIRECTLY_SENT_PRIO_HIGHEST
+	"UDP scheduler directly sent (P_HIGHEST)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_DATA
+	"UDP scheduler flow controlled (P_DATA)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_CONTROL
+	"UDP scheduler flow controlled (P_CONTROL)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_URGENT
+	"UDP scheduler flow controlled (P_URGENT)"
+UDP_SCHED_FLOW_CONTROLLED_PRIO_HIGHEST
+	"UDP scheduler flow controlled (P_HIGHEST)"
+UDP_SCHED_ENQUEUED_PRIO_DATA		"UDP scheduler message enqueued (P_DATA)"
+UDP_SCHED_ENQUEUED_PRIO_CONTROL		"UDP scheduler message enqueued (P_CONTROL)"
+UDP_SCHED_ENQUEUED_PRIO_URGENT		"UDP scheduler message enqueued (P_URGENT)"
+UDP_SCHED_ENQUEUED_PRIO_HIGHEST		"UDP scheduler message enqueued (P_HIGHEST)"
+UDP_SCHED_FINALLY_SENT_PRIO_DATA
+	"UDP scheduler message finally sent (P_DATA)"
+UDP_SCHED_FINALLY_SENT_PRIO_CONTROL
+	"UDP scheduler message finally sent (P_CONTROL)"
+UDP_SCHED_FINALLY_SENT_PRIO_URGENT
+	"UDP scheduler message finally sent (P_URGENT)"
+UDP_SCHED_FINALLY_SENT_PRIO_HIGHEST
+	"UDP scheduler message finally sent (P_HIGHEST)"
+UDP_SCHED_TIMED_OUT_PRIO_DATA		"UDP scheduler message timeout (P_DATA)"
+UDP_SCHED_TIMED_OUT_PRIO_CONTROL	"UDP scheduler message timeout (P_CONTROL)"
+UDP_SCHED_TIMED_OUT_PRIO_URGENT		"UDP scheduler message timeout (P_URGENT)"
+UDP_SCHED_TIMED_OUT_PRIO_HIGHEST	"UDP scheduler message timeout (P_HIGHEST)"
+UDP_SCHED_DROP_ZERO_PORT			"UDP scheduler message dropped: port=0"
+UDP_SCHED_DROP_NO_SOCKET			"UDP scheduler message dropped: no socket"
+UDP_SCHED_DROP_IO_ERROR				"UDP scheduler message dropped: I/O error"
+UDP_SCHED_DROP_NO_LONGER_NEEDED
+	"UDP scheduler message dropped: no longer needed"
 UDP_AMBIGUOUS				"Ambiguous UDP messages received"
 UDP_AMBIGUOUS_DEEPER_INSPECTION	"Ambiguous UDP messages inspected more deeply"
 UDP_AMBIGUOUS_AS_SEMI_RELIABLE
@@ -143,24 +195,98 @@ UDP_SR_TX_MESSAGES_GOOD
 	"Semi-reliable UDP total messages sent to known responsive hosts"
 UDP_SR_TX_MESSAGES_CLOGGING
 	"Semi-reliable UDP total messages partially sent due to clogging"
+UDP_SR_TX_MESSAGES_EAR_FLUSH
+	"Semi-reliable UDP reliable messages flushed after EAR negative ACK"
+UDP_SR_TX_MESSAGES_LINGER_FLUSH
+	"Semi-reliable UDP reliable messages flushed before lingering"
+UDP_SR_TX_MESSAGES_LINGER_COUNT
+	"Semi-reliable UDP TX messages currently lingering"
 UDP_SR_TX_RELIABLE_MESSAGES_GIVEN
 	"Semi-reliable UDP reliable messages given for transmission"
 UDP_SR_TX_RELIABLE_MESSAGES_SENT
 	"Semi-reliable UDP reliable messages correctly transmited"
+UDP_SR_TX_RELIABLE_MESSAGES_LINGER_SENT
+	"Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
+UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_SENT
+	"Semi-reliable UDP reliable messages fully acknowledged after flush"
 UDP_SR_TX_RELIABLE_MESSAGES_UNSENT
-	"Semi-reliable UDP reliable messages not fully acknowledged"
+	"Semi-reliable UDP reliable messages not fully sent"
+UDP_SR_TX_RELIABLE_MESSAGES_FLUSHED_UNSENT
+	"Semi-reliable UDP reliable messages not fully sent despite flush"
+UDP_SR_TX_RELIABLE_MSG_PARTIAL_ACK
+	"Semi-reliable UDP reliable messages partially acknowledged"
+UDP_SR_TX_RELIABLE_MSG_NO_ACK
+	"Semi-reliable UDP reliable messages with no acknowledgment at all"
+UDP_SR_TX_MSG_RELIABLE_1_FRAG_SENT
+	"Semi-reliable UDP reliable TX with 1 fragment sent"
+UDP_SR_TX_MSG_RELIABLE_2_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 2 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_3_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 3 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_4_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 4 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_5_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 5 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_6_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 6 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_7_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 7 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_8_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 8 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_9_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 9 fragments sent"
+UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_SENT
+	"Semi-reliable UDP reliable TX with 10+ fragments sent"
+UDP_SR_TX_MSG_RELIABLE_1_FRAG_UNSENT
+	"Semi-reliable UDP reliable TX with 1 fragment unsent"
+UDP_SR_TX_MSG_RELIABLE_2_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 2 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_3_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 3 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_4_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 4 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_5_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 5 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_6_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 6 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_7_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 7 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_8_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 8 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_9_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 9 fragments unsent"
+UDP_SR_TX_MSG_RELIABLE_10PLUS_FRAGS_UNSENT
+	"Semi-reliable UDP reliable TX with 10+ fragments unsent"
+UDP_SR_TX_MSG_UNRELIABLE_1_FRAG
+	"Semi-reliable UDP unreliable TX with 1 fragment"
+UDP_SR_TX_MSG_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable TX with 2 fragments"
+UDP_SR_TX_MSG_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable TX with 3+ fragments"
 UDP_SR_TX_FRAGMENTS_SENT	"Semi-reliable UDP fragments sent"
 UDP_SR_TX_FRAGMENTS_RESENT	"Semi-reliable UDP fragments resent"
+UDP_SR_TX_FRAGMENTS_LINGER_SENT
+	"Semi-reliable UDP fragments sent whilst lingering"
+UDP_SR_TX_FRAGMENTS_LINGER_RESENT
+	"Semi-reliable UDP fragments resent whilst lingering"
+UDP_SR_TX_FRAGMENTS_RELIABLE_SENT	"Semi-reliable UDP reliable fragments sent"
+UDP_SR_TX_FRAGMENTS_UNRELIABLE_SENT	"Semi-reliable UDP unreliable fragments sent"
 UDP_SR_TX_FRAGMENTS_SENDING_AVOIDED
 	"Semi-reliable UDP fragment sendings avoided"
 UDP_SR_TX_FRAGMENTS_OVERSENT
 	"Semi-reliable UDP fragments sent too many times"
+UDP_SR_TX_FRAGMENTS_OVERSENT_GIVEUP
+	"Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
+UDP_SR_TX_FRAGMENTS_LINGER_UNSENT
+	"Semi-reliable UDP fragments not resent whilst lingering"
 UDP_SR_TX_TOTAL_ACKS_RECEIVED
 	"Semi-reliable UDP total acknowledgments received"
 UDP_SR_TX_CUMULATIVE_ACKS_RECEIVED
 	"Semi-reliable UDP cumulative acknowledgments received"
 UDP_SR_TX_EXTENDED_ACKS_RECEIVED
 	"Semi-reliable UDP extended acknowledgments received"
+UDP_SR_TX_LINGER_ACKS_RECEIVED
+	"Semi-reliable UDP acknowledgments received whilst lingering"
 UDP_SR_TX_SPURIOUS_ACKS_RECEIVED
 	"Semi-reliable UDP spurious acknowledgments received"
 UDP_SR_TX_INVALID_ACKS_RECEIVED
@@ -179,6 +305,8 @@ UDP_SR_TX_EXTENDED_ACKS_SENT
 	"Semi-reliable UDP extended acknowledgments transmitted"
 UDP_SR_TX_EARS_SENT			"Semi-reliable UDP EARs sent"
 UDP_SR_TX_EARS_OVERSENT		"Semi-reliable UDP too many EARs sent"
+UDP_SR_TX_EARS_LINGER_UNSENT
+	"Semi-reliable UDP EAR not resent whilst lingering"
 UDP_SR_TX_EAR_NACKS_RECEIVED
 	"Semi-reliable UDP EAR negative acknowledgments received"
 UDP_SR_TX_EAR_FOLLOWED_BY_ACKS
@@ -193,6 +321,8 @@ UDP_SR_RX_FRAGMENTS_DROPPED
 	"Semi-reliable UDP dropped received fragments"
 UDP_SR_RX_FRAGMENTS_LINGERING
 	"Semi-reliable UDP fragments received whilst lingering"
+UDP_SR_RX_MESSAGES_LINGER_COUNT
+	"Semi-reliable UDP RX messages currently lingering"
 UDP_SR_RX_MESSAGES_EXPIRED
 	"Semi-reliable UDP messages expired before re-assembly"
 UDP_SR_RX_MESSAGES_RECEIVED
@@ -204,12 +334,70 @@ UDP_SR_RX_MESSAGES_INFLATION_ERROR
 UDP_SR_RX_MESSAGES_UNRELIABLE
 	"Semi-reliable UDP unreliable messages received"
 UDP_SR_RX_MESSAGES_EMPTY	"Semi-reliable UDP empty messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_1_FRAG
+	"Semi-reliable UDP reliable RX 1-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_2_FRAGS
+	"Semi-reliable UDP reliable RX 2-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_3_FRAGS
+	"Semi-reliable UDP reliable RX 3-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_4_FRAGS
+	"Semi-reliable UDP reliable RX 4-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_5_FRAGS
+	"Semi-reliable UDP reliable RX 5-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_6_FRAGS
+	"Semi-reliable UDP reliable RX 6-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_7_FRAGS
+	"Semi-reliable UDP reliable RX 7-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_8_FRAGS
+	"Semi-reliable UDP reliable RX 8-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_9_FRAGS
+	"Semi-reliable UDP reliable RX 9-frag messages received"
+UDP_SR_RX_MSG_OK_RELIABLE_10PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 10+-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_1_FRAG
+	"Semi-reliable UDP unreliable RX 1-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable RX 2-frag messages received"
+UDP_SR_RX_MSG_OK_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable RX 3+-frag messages received"
+UDP_SR_RX_MSG_EXP_RELIABLE_2_FRAGS
+	"Semi-reliable UDP reliable RX 2-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_3_FRAGS
+	"Semi-reliable UDP reliable RX 3-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_4_FRAGS
+	"Semi-reliable UDP reliable RX 4-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_5_FRAGS
+	"Semi-reliable UDP reliable RX 5-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_6_FRAGS
+	"Semi-reliable UDP reliable RX 6-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_7_FRAGS
+	"Semi-reliable UDP reliable RX 7-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_8_FRAGS
+	"Semi-reliable UDP reliable RX 8-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_9_FRAGS
+	"Semi-reliable UDP reliable RX 9-frag messages expired"
+UDP_SR_RX_MSG_EXP_RELIABLE_10PLUS_FRAGS
+	"Semi-reliable UDP reliable RX 10+-frag messages expired"
+UDP_SR_RX_MSG_EXP_UNRELIABLE_2_FRAGS
+	"Semi-reliable UDP unreliable RX 2-frag messages expired"
+UDP_SR_RX_MSG_EXP_UNRELIABLE_3PLUS_FRAGS
+	"Semi-reliable UDP unreliable RX 3+-frag messages expired"
 UDP_SR_RX_TOTAL_ACKS_SENT	"Semi-reliable UDP total acknowledgments sent"
 UDP_SR_RX_CUMULATIVE_ACKS_SENT
 	"Semi-reliable UDP cumulative acknowledgments sent"
 UDP_SR_RX_EXTENDED_ACKS_SENT
 	"Semi-reliable UDP extended acknowledgments sent"
 UDP_SR_RX_AVOIDED_ACKS		"Semi-reliable UDP avoided acknowledgment sendings"
+UDP_SR_RX_FLUSHED_ACKS
+	"Semi-reliable UDP flushing pending ACKs on duplicate fragment"
+UDP_SR_RX_RESENDING_ACKS_ON_EAR
+	"Semi-reliable UDP re-acknowledging received fragments after EAR"
+UDP_SR_RX_RESENDING_ACKS_ON_DUP
+	"Semi-reliable UDP re-acknowledging received fragments after duplicate"
+UDP_SR_RX_RESENDING_ACKS_BEFORE_EXPIRE
+	"Semi-reliable UDP re-acknowledging received fragments before expiration"
+UDP_SR_RX_RESENT_ACKS
+	"Semi-reliable UDP resent ACKs during re-acknowledging"
 UDP_SR_RX_EARS_RECEIVED		"Semi-reliable UDP EARs received"
 UDP_SR_RX_EARS_FOR_UNKNOWN_MESSAGE
 	"Semi-reliable UDP EARs received for unknown message"

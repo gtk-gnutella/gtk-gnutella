@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -818,7 +818,7 @@ dht_rpc_answer(const guid_t *muid,
 			g_debug("DHT RPC %s #%s invoking %s(REPLY, %s, %zu byte%s, %p)",
 				op_to_string(rcb->op), guid_to_string(rcb->muid),
 				stacktrace_function_name(rcb->cb), kmsg_name(function),
-				len, plural(len), rcb->arg);
+				PLURAL(len), rcb->arg);
 		}
 		(*rcb->cb)(DHT_RPC_REPLY, rn, n, function, payload, len, rcb->arg);
 	}
@@ -876,8 +876,7 @@ dht_lazy_rpc_ping(knode_t *kn)
 	if (knode_rpc_pending(kn)) {
 		if (GNET_PROPERTY(dht_debug)) {
 			g_debug("DHT not sending any alive ping to %s (%u pending RPC%s)",
-				knode_to_string(kn), kn->rpc_pending,
-				plural(kn->rpc_pending));
+				knode_to_string(kn), PLURAL(kn->rpc_pending));
 		}
 		gnet_stats_inc_general(GNR_DHT_ALIVE_PINGS_AVOIDED);
 		return FALSE;
@@ -974,7 +973,7 @@ dht_rpc_store(knode_t *kn, pmsg_t *mb,
 	 * We therefore need to patch the MUID before cloning the message.
 	 */
 
-	kademlia_header_set_muid((void *) pmsg_start(mb), muid);
+	kademlia_header_set_muid((void *) pmsg_phys_base(mb), muid);
 
 	smb = mfree != NULL ? pmsg_clone_extend(mb, mfree, marg) : pmsg_clone(mb);
 	kmsg_send_mb(kn, smb);

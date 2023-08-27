@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -170,11 +170,24 @@ highest_bit_set64(uint64 n)
 int
 ctz64(uint64 n)
 {
-	if G_LIKELY(n <= 0xffffffffU)
+	if G_LIKELY(n == (uint32) n)
 		return ctz(n);
 	else {
-		int v = ctz(n & 0xffffffffU);
+		int v = ctz((uint32) n);
 		return (-1 == v) ? 32 + ctz(n >> 32) : v;
+	}
+}
+
+/**
+ * Count leading zeroes in a 64-bit number, 64 for zero.
+ */
+int
+clz64(uint64 n)
+{
+	if G_LIKELY(n == (uint32) n)
+		return 32 + clz((uint32) n);
+	else {
+		return clz((uint32) (n >> 32));
 	}
 }
 

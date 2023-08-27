@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -50,6 +50,7 @@ size_t progname_args_size(void);
 struct tmval;
 
 void progstart(int argc, char * const *argv);
+bool progstart_was_called(void);
 struct tmval progstart_time(void);
 int progstart_dup(const char ***argv_ptr, const char ***envp_ptr);
 const char *progstart_arg(int n);

@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -934,7 +934,11 @@ erbtree_foreach_recursive(
 void
 erbtree_foreach(const erbtree_t *tree, data_fn_t cb, void *data)
 {
+	size_t old_cnt;
+
 	erbtree_check(tree);
+
+	old_cnt = tree->count;	/* To "verify" that tree was not altered */
 
 	/*
 	 * Since there is no tree modification during traversal, we can hardwire
@@ -951,6 +955,15 @@ erbtree_foreach(const erbtree_t *tree, data_fn_t cb, void *data)
 
 		erbtree_foreach_recursive(tree->root, &args);
 	}
+
+	/*
+	 * High-level verification that the tree was not accidentally modified
+	 * by the processing callbacks.
+	 */
+
+	g_assert_log(old_cnt == tree->count,
+		"%s(): tree was modified by %s(%p), old_cnt = %zu, tree->count = %zu",
+		G_STRFUNC, stacktrace_function_name(cb), data, old_cnt, tree->count);
 }
 
 /**

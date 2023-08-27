@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -314,6 +314,8 @@ elist_contains(const elist_t *list, const void *p)
 void elist_init(elist_t *list, size_t offset);
 void elist_discard(elist_t *list);
 void elist_clear(elist_t *list);
+void elist_mark_removed(const elist_t *list, void *data);
+void elist_link_mark_removed(const elist_t *list, link_t *lk);
 void elist_wfree(elist_t *list, size_t size);
 
 void elist_foreach(const elist_t *list, data_fn_t cb, void *data);

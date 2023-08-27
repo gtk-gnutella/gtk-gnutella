@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -350,7 +350,7 @@ target_to_string(filter_t *target)
 		htable_insert(target_map, target, value);
 	}
 
-    str_bprintf(buf, sizeof buf, "0x%x", GPOINTER_TO_UINT(value));
+    str_bprintf(ARYLEN(buf), "0x%x", GPOINTER_TO_UINT(value));
 
 	return buf;
 }
@@ -784,10 +784,10 @@ rule_to_xml(xnode_t *parent, rule_t *r)
 		{
 			char buf[UINT64_DEC_BUFLEN];
 
-			uint64_to_string_buf(r->u.size.lower, buf, sizeof buf);
+			uint64_to_string_buf(r->u.size.lower, ARYLEN(buf));
         	newxml = xml_new_empty_child(parent, NODE_RULE_SIZE);
         	xnode_prop_printf(newxml, TAG_RULE_SIZE_LOWER, "%s", buf);
-			uint64_to_string_buf(r->u.size.upper, buf, sizeof buf);
+			uint64_to_string_buf(r->u.size.upper, ARYLEN(buf));
         	xnode_prop_printf(newxml, TAG_RULE_SIZE_UPPER, "%s", buf);
 		}
         break;
@@ -1507,7 +1507,7 @@ xml_to_sha1_rule(xnode_t *xn, void *data)
 
     buf = xnode_prop_get(xn, TAG_RULE_SHA1_HASH);
     if (buf != NULL) {
-		sha1 = strlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
+		sha1 = vstrlen(buf) == SHA1_BASE32_SIZE ? base32_sha1(buf) : NULL;
 		if (!sha1) {
         	g_warning("%s(): improperly encoded SHA1: \"%s\"", G_STRFUNC, buf);
 			goto failure;

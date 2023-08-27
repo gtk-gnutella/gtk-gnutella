@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -416,10 +416,10 @@ tls_generate_self_signed_cert(const char *file, const char *keyfile)
 	{
 		guid_t *guid = (guid_t *) GNET_PROPERTY_PTR(servent_guid);
 
-		if (TRY(gnutls_x509_crt_set_subject_key_id)(crt, guid, sizeof *guid))
+		if (TRY(gnutls_x509_crt_set_subject_key_id)(crt, PTRLEN(guid)))
 			goto failed;
 
-		if (TRY(gnutls_x509_crt_set_authority_key_id)(crt, guid, sizeof *guid))
+		if (TRY(gnutls_x509_crt_set_authority_key_id)(crt, PTRLEN(guid)))
 			goto failed;
 	}
 
@@ -661,7 +661,7 @@ tls_pull(gnutls_transport_ptr_t ptr, void *buf, size_t size)
 		if (GNET_PROPERTY(tls_debug) > 1) {
 			g_debug("%s(): host=%s still has %zu buffered byte%s",
 				G_STRFUNC, host_addr_port_to_string(s->addr, s->port),
-				s->pos, plural(s->pos));
+				PLURAL(s->pos));
 		}
 
 		avail = MIN(avail, size);	/* Can't read more than they request */
@@ -1456,7 +1456,7 @@ tls_version_string(void)
 		const char *current = gnutls_check_version(NULL);
 		int differ = strcmp(current, LIBGNUTLS_VERSION);
 
-		concat_strings(buf, sizeof buf, "GnuTLS ", current,
+		concat_strings(ARYLEN(buf), "GnuTLS ", current,
 			differ ? " (compiled against " : "",
 			differ ? LIBGNUTLS_VERSION : "",
 			differ ? ")" : "",

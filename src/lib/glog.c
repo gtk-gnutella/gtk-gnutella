@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -72,12 +72,6 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 
 	G_IGNORE_POP;
 
-	/*
-	 * This call is thread-unsafe by construction, and supposed to be called
-	 * only from the main thread.  This is why it's OK to have a global
-	 * ``logging'' variable.
-	 */
-
 	logging[stid] = TRUE;
 
 	if G_UNLIKELY(NULL == msg[stid])
@@ -96,7 +90,8 @@ gl_logv(const char *domain, GLogLevelFlags flags, const char *fmt, va_list args)
 /**
  * Log message.
  */
-void gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
+void
+gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
 {
 	va_list args;
 
@@ -110,7 +105,8 @@ void gl_log(const char *domain, GLogLevelFlags flags, const char *format, ...)
  *
  * This routine does not return.
  */
-void gl_error(const char *domain, const char *format, ...)
+void
+gl_error(const char *domain, const char *format, ...)
 {
 	va_list args;
 

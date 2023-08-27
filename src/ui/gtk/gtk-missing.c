@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -297,7 +297,7 @@ gtk_entry_printf(GtkEntry *entry, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        str_vbprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(ARYLEN(buf), format, args);
     else
         buf[0] = '\0';
 
@@ -319,7 +319,7 @@ void gtk_label_printf(GtkLabel *label, const gchar *format, ...)
     va_start(args, format);
 
     if (format != NULL)
-        str_vbprintf(buf, sizeof(buf), format, args);
+        str_vbprintf(ARYLEN(buf), format, args);
     else
         buf[0] = '\0';
 
@@ -730,7 +730,7 @@ tree_view_motion_clear_callback(tree_view_motion_t **ptr)
 		g_source_remove(tvm->timeout_id);
 		g_object_unref(tvm->tv);
 		tvm->tv = NULL;
-		WFREE_NULL(tvm, sizeof *tvm);
+		WFREE_TYPE_NULL(tvm);
 		*ptr = NULL;
 	}
 }

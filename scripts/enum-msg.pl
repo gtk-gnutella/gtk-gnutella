@@ -21,7 +21,7 @@
 #  You should have received a copy of the GNU General Public License
 #  along with gtk-gnutella; if not, write to the Free Software
 #  Foundation, Inc.:
-#      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
 #----------------------------------------------------------------------
 #
 #
@@ -207,7 +207,7 @@ EOC
 const char *
 $e2sym($enum x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS($symbolic)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS($symbolic)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid $enum code: %d", (int) x);
 		return str_2c(s);
@@ -253,7 +253,7 @@ EOC
 const char *
 $e2txt($enum x)
 {
-	if G_UNLIKELY(UNSIGNED(x) >= G_N_ELEMENTS($etext)) {
+	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS($etext)) {
 		str_t *s = str_private(G_STRFUNC, 80);
 		str_printf(s, "Invalid $enum code: %d", (int) x);
 		return str_2c(s);

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -204,7 +204,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 	if (dw != NULL && dbstore_debug > 0) {
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE opened DBMW \"%s\" (%u key%s) from %s",
-			dbmw_name(dw), (unsigned) count, plural(count), base);
+			dbmw_name(dw), (unsigned) PLURAL(count), base);
 	}
 
 	/*
@@ -218,7 +218,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (dbstore_debug > 0) {
 			g_debug("DBSTORE loading DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, plural(count), base);
+				dbmw_name(dw), (unsigned) PLURAL(count), base);
 		}
 
 		dram = dbstore_create_internal(name, NULL, NULL, 0,
@@ -226,7 +226,7 @@ dbstore_open(const char *name, const char *dir, const char *base,
 
 		if (!dbmw_copy(dw, dram)) {
 			g_warning("DBSTORE could not load DBMW \"%s\" (%u key%s) from %s",
-				dbmw_name(dw), (unsigned) count, plural(count), base);
+				dbmw_name(dw), (unsigned) PLURAL(count), base);
 		}
 
 		dbmw_destroy(dw, TRUE);
@@ -250,7 +250,7 @@ dbstore_sync(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u SDBM page%s in DBMW \"%s\"",
-			(unsigned) n, plural(n), dbmw_name(dw));
+			(unsigned) PLURAL(n), dbmw_name(dw));
 	}
 }
 
@@ -268,7 +268,7 @@ dbstore_flush(dbmw_t *dw)
 			dbmw_name(dw));
 	} else if (n && dbstore_debug > 1) {
 		g_debug("DBSTORE flushed %u dirty value%s in DBMW \"%s\"",
-			(unsigned) n, plural(n), dbmw_name(dw));
+			(unsigned) PLURAL(n), dbmw_name(dw));
 	}
 }
 
@@ -308,7 +308,7 @@ dbstore_close(dbmw_t *dw, const char *dir, const char *base)
 		size_t count = dbmw_count(dw);
 		g_debug("DBSTORE %ssucessfully persisted DBMW \"%s\" (%u key%s)",
 			ok ? "" : "un", dbmw_name(dw),
-			(unsigned) count, plural(count));
+			(unsigned) PLURAL(count));
 	}
 
 	dbmw_destroy(dw, TRUE);

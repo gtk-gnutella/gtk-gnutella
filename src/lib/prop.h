@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -322,6 +322,8 @@ struct pslist *prop_get_by_regex(prop_set_t *ps,
 void prop_set_from_string(prop_set_t *ps, property_t prop, const char *val,
 	bool saved_only);
 
+void prop_reset(prop_set_t *ps, property_t prop);
+
 /*
  * Checks if a property is part of a property set.
  */
@@ -334,9 +336,9 @@ prop_in_range(const prop_set_t *ps, property_t prop)
 static inline prop_def_t *
 get_prop(prop_set_t *ps, property_t prop, const char *loc)
 {
-	if (!ps)
-		g_error("%s: ps != NULL failed", loc);
-	if (!prop_in_range(ps, prop))
+	if G_UNLIKELY(NULL == ps)
+		g_error("%s: ps != NULL failed for property %u", loc, prop);
+	if G_UNLIKELY(!prop_in_range(ps, prop))
 		g_error("%s: unknown property %u", loc, (uint) prop);
 	return &ps->props[prop - ps->offset];
 }

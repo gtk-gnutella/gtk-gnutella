@@ -43,6 +43,7 @@ sdbm_hash(const char *s, size_t len)
 	 */
 
 #define HASHC	n = (uint8) *s++ + 65599UL * n
+#define HASHX	HASHC; G_FALL_THROUGH
 
 	if (len > 0) {
 #ifdef DUFF
@@ -50,10 +51,10 @@ sdbm_hash(const char *s, size_t len)
 
 		switch(len & (8 - 1)) {
 		case 0:	do {
-			HASHC;	case 7:	HASHC;
-		case 6:	HASHC;	case 5:	HASHC;
-		case 4:	HASHC;	case 3:	HASHC;
-		case 2:	HASHC;	case 1:	HASHC;
+			HASHX;	case 7:	HASHX;
+		case 6:	HASHX;	case 5:	HASHX;
+		case 4:	HASHX;	case 3:	HASHX;
+		case 2:	HASHX;	case 1:	HASHC;
 			} while (--loop > 0);
 		}
 

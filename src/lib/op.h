@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -35,10 +35,37 @@
 #ifndef _op_h_
 #define _op_h_
 
+#include "pow2.h"
+
 #define op_t	unsigned long int
 #define OPSIZ	(sizeof(op_t))
 
 #define op_aligned(x)	(0 == ((op_t) (x) & (OPSIZ - 1)))
+#define op_roundup(x)	(((x) + OPSIZ - 1) & ~(OPSIZ - 1))
+
+#define op_ptr_roundup(x)	(void *) (((size_t) (x) + OPSIZ - 1) & ~(OPSIZ - 1))
+
+/*
+ * How do we count trailing zeros in op_t?
+ */
+#if LONGSIZE == 8
+#define OP_CTZ(x)	ctz64(x)
+#elif LONGSIZE == 4
+#define OP_CTZ(x)	ctz(x)
+#else
+#error "unexpected long size"
+#endif
+
+/*
+ * How do we count leading zeros in op_t?
+ */
+#if LONGSIZE == 8
+#define OP_CLZ(x)	clz64(x)
+#elif LONGSIZE == 4
+#define OP_CLZ(x)	clz(x)
+#else
+#error "unexpected long size"
+#endif
 
 #endif /* _op_h_ */
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -55,6 +55,8 @@ bool mem_is_writable(const void *p);
 bool mem_is_writable_range(const void *p, size_t len);
 
 void mem_test(void);
+bool mem_validity_testable(void);
+bool mem_protection_testable(void);
 
 /*
  * Convenience aliases, for symetry with mem_is_writable().

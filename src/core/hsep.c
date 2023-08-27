@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -106,6 +106,7 @@
 #include "if/gnet_property.h"
 #include "if/gnet_property_priv.h"
 
+#include "lib/cstr.h"
 #include "lib/endian.h"
 #include "lib/glib-missing.h"
 #include "lib/override.h"
@@ -217,6 +218,8 @@ hsep_sanity_check(void)
 
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
+
+		node_check(n);
 
 		/* also consider unestablished connections here */
 
@@ -391,6 +394,8 @@ hsep_reset(void)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 
+		node_check(n);
+
 		/* also consider unestablished connections here */
 
 		if (!(n->attrs & NODE_A_CAN_HSEP))
@@ -424,7 +429,6 @@ hsep_reset(void)
 void
 hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 {
-	static const hsep_ctx_t zero_hsep;
 	time_t now = tm_time();
 	uint i;
 
@@ -434,8 +438,7 @@ hsep_connection_init(gnutella_node_t *n, uint8 major, uint8 minor)
 		printf("HSEP: Initializing node %s\n",
 			host_addr_port_to_string(n->addr, n->port));
 
-	WALLOC(n->hsep);
-	*n->hsep = zero_hsep; /* Initializes everything to 0 */
+	WALLOC0(n->hsep);
 	n->hsep->last_sent = now;
 	n->hsep->major = major;
 	n->hsep->minor = minor;
@@ -480,6 +483,8 @@ hsep_timer(time_t now)
 	PSLIST_FOREACH(node_all_gnet_nodes(), sl) {
 		gnutella_node_t *n = sl->data;
 		int diff;
+
+		node_check(n);
 
 		/* only consider established connections here */
 		if (!NODE_IS_ESTABLISHED(n))
@@ -652,7 +657,7 @@ hsep_process_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Received %d triple%s from node %s (msg #%u): ",
-			max, plural(max),
+			PLURAL(max),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_received + 1);
 	}
@@ -808,7 +813,7 @@ hsep_send_msg(gnutella_node_t *n, time_t now)
 
 	if (GNET_PROPERTY(hsep_debug) > 1) {
 		printf("HSEP: Sending %d triple%s to node %s (msg #%u): ",
-			opttriples, plural(opttriples),
+			PLURAL(opttriples),
 			host_addr_port_to_string(n->addr, n->port),
 			hsep->msgs_sent + 1);
 	}
@@ -987,6 +992,8 @@ hsep_get_non_hsep_triple(hsep_triple *tripledest)
 		gnutella_node_t *n = sl->data;
 		gnet_node_status_t status;
 
+		node_check(n);
+
 		if ((!NODE_IS_ESTABLISHED(n)) || n->attrs & NODE_A_CAN_HSEP)
 			continue;
 
@@ -1030,7 +1037,7 @@ hsep_get_static_str(int row, int column)
 			static char buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_NODES] + other[0][HSEP_IDX_NODES];
-			uint64_to_string_buf(v, buf, sizeof buf);
+			uint64_to_string_buf(v, ARYLEN(buf));
 			ret = buf;
 		}
 		break;
@@ -1040,7 +1047,7 @@ hsep_get_static_str(int row, int column)
 			static char buf[UINT64_DEC_BUFLEN];
 
 			v = hsep_table[row][HSEP_IDX_FILES] + other[0][HSEP_IDX_FILES];
-			uint64_to_string_buf(v, buf, sizeof buf);
+			uint64_to_string_buf(v, ARYLEN(buf));
 			ret = buf;
 		}
 		break;
@@ -1052,9 +1059,8 @@ hsep_get_static_str(int row, int column)
 			/* Make a copy because concurrent usage of short_kb_size()
 	 	 	 * could be hard to discover. */
 			v = hsep_table[row][HSEP_IDX_KIB] + other[0][HSEP_IDX_KIB];
-			g_strlcpy(buf,
-				short_kb_size(v, GNET_PROPERTY(display_metric_units)),
-				sizeof buf);
+			cstr_bcpy(ARYLEN(buf),
+				short_kb_size(v, GNET_PROPERTY(display_metric_units)));
   			ret = buf;
 		}
 		break;

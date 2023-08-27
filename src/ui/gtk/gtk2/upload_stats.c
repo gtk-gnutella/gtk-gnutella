@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -151,7 +151,7 @@ cell_renderer_func(GtkTreeViewColumn *column,
 		text = uint64_to_string(data->us->attempts);
 		break;
 	case c_us_norm:
-		str_bprintf(buf, sizeof buf, "%1.3f", data->us->norm);
+		str_bprintf(ARYLEN(buf), "%1.3f", data->us->norm);
 		text = buf;
 		break;
 	case c_us_rtime:
@@ -387,6 +387,8 @@ upload_stats_gui_init_intern(gboolean intern)
 		gtk_tree_view_set_model(upload_stats_treeview, model);
 		g_object_unref(model);
 
+		gui_parent_widths_saveto(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
+
 		for (i = 0; i < N_ITEMS(columns); i++) {
 			GtkTreeViewColumn *column;
 
@@ -399,6 +401,9 @@ upload_stats_gui_init_intern(gboolean intern)
 
 			column_sort_tristate_register(column,
 				on_uploads_stats_treeview_column_clicked, NULL);
+
+			/* Capture resize events */
+			gui_column_map(column, upload_stats_treeview);
 		}
 
 		gui_signal_connect(upload_stats_treeview,
@@ -542,7 +547,6 @@ upload_stats_gui_clear_model(void)
 void
 upload_stats_gui_shutdown(void)
 {
-	tree_view_save_widths(upload_stats_treeview, PROP_UL_STATS_COL_WIDTHS);
 	tree_view_save_visibility(upload_stats_treeview, PROP_UL_STATS_COL_VISIBLE);
 	upload_stats_gui_clear_all();
 }

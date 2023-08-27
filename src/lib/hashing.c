@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -58,7 +58,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define rotl(x, k) (((x) << (k)) | ((x) >> (32 - (k))))
+#define rotl(x, k) UINT32_ROTL(x, k)	/* Shortcut for this file */
 
 /**
  * Hashing of pointers.
@@ -134,7 +134,7 @@ integer_hash2(ulong v)
 /**
  * Hash `len' bytes starting from `data'.
  */
-unsigned G_HOT
+unsigned G_HOT G_FAST
 binary_hash(const void *data, size_t len)
 {
 	const unsigned char *key = data;
@@ -170,7 +170,7 @@ binary_hash(const void *data, size_t len)
 /**
  * Alternate hashing of `len' bytes starting from `data'.
  */
-unsigned G_HOT
+unsigned G_HOT G_FAST
 binary_hash2(const void *data, size_t len)
 {
 	const unsigned char *key = data;
@@ -272,7 +272,7 @@ string_eq(const void *a, const void *b)
  * This is the Murmur3 hashing algorithm which exhibits good distribution
  * properties leading to fewer collisions in hash tables.
  */
-unsigned G_HOT
+unsigned G_HOT G_FAST
 universal_hash(const void *data, size_t len)
 {
 	uint32 k, hash = len * GOLDEN_RATIO_32;		/* Initial hash by RAM */
@@ -307,8 +307,8 @@ universal_hash(const void *data, size_t len)
 	k = 0;
 
 	switch (remain) {
-	case 3: k ^= *(p + 2) << 16;
-	case 2: k ^= *(p + 1) << 8;
+	case 3: k ^= *(p + 2) << 16;	G_FALL_THROUGH
+	case 2: k ^= *(p + 1) << 8;		G_FALL_THROUGH
 	case 1: k ^= *p;
 			k *= HASH_M3_C1; k = rotl(k, 15); k *= HASH_M3_C2;
 			hash ^= k;
@@ -404,6 +404,7 @@ universal_mix_hash(const void *data, size_t len)
 		/* FALL THROUGH */
 	case 2:
 		a += ((uint32) p[1]) << 8;
+		/* FALL THROUGH */
 	case 1:
 		a += p[0];
 		break;
@@ -418,7 +419,7 @@ universal_mix_hash(const void *data, size_t len)
 /**
  * Alternate string hashing routine, using Bob Jenkins's hash algorithm.
  */
-unsigned G_HOT
+unsigned G_HOT G_FAST
 string_mix_hash(const void *s)
 {
 	const uint8 *p = s;

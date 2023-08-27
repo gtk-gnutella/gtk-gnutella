@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -47,6 +47,7 @@
 typedef struct pcell_allocator {
 	void *(*pcell_alloc)(void);		/**< Return new zeroed cell for the list */
 	void (*pcell_free)(void *);		/**< Dispose of cell */
+	void (*pcell_listfree)(void *);	/**< Dispose all cells starting there */
 } pcell_alloc_t;
 
 #endif	/* _pcell_h_ */

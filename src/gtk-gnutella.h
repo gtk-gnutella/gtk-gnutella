@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2009, Raphael Manfredi
+ * Copyright (c) 2009-2020 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -27,7 +27,7 @@
  * Gtk-gnutella version and other configuration parameters.
  *
  * @author Raphael Manfredi
- * @date 2009
+ * @date 2009-2020
  */
 
 #ifndef _gtk_gnutella_h_
@@ -39,14 +39,15 @@
 
 #define GTA_PRODUCT_NAME	"gtk-gnutella"	/**< Normally "gtk-gnutella" */
 #define GTA_VERSION			1			/**< major version */
-#define GTA_SUBVERSION 		1			/**< minor version */
-#define GTA_PATCHLEVEL 		13			/**< patch level or teeny version */
+#define GTA_SUBVERSION 		2			/**< minor version */
+#define GTA_PATCHLEVEL 		2			/**< patch level or teeny version */
 #define GTA_REVISION 		"stable"	/**< unstable, beta, stable */
 #define GTA_REVCHAR			""			/**< (u)nstable, (b)eta, "" -> stable */
-#define GTA_RELEASE			"2017-10-22"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE			"2022-02-25"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE			"http://gtk-gnutella.sourceforge.net/"
 #define GTA_VENDOR_CODE		"GTKG"
 #define GTA_PRODUCT_NICK	"gtkg"
+#define GTA_SUPERVISOR_NICK	"gtkg-supervisor"
 
 #if defined(USE_GTK1)
 #define GTA_INTERFACE		"GTK1"

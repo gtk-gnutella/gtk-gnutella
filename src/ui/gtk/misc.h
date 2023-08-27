@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -64,6 +64,14 @@ void paned_restore_position(GtkPaned *paned, property_t prop);
 
 typedef GtkMenu *(*widget_popup_menu_cb)(void);
 void widget_add_popup_menu(GtkWidget *, widget_popup_menu_cb);
+
+void gui_parent_widths_saveto(const void *parent, property_t prop);
+void gui_parent_forget(const void *parent);
+void gui_column_map(const void *column, const void *parent);
+void gui_column_resized(void *column);
+
+void misc_gui_early_init(void);
+void misc_gui_shutdown(void);
 
 #endif /* _gtk_misc_h_ */
 

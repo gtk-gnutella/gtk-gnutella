@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -94,7 +94,7 @@ ap_make(struct guid *muid)
 {
 	struct alive_ping *ap;
 
-	WALLOC(ap);
+	WALLOC0(ap);
 
 	ap->muid = NULL == muid ? NULL : atom_guid_get(muid);
 	tm_now_exact(&ap->sent);
@@ -155,7 +155,7 @@ alive_free(alive_t *a)
 {
 	alive_check(a);
 
-	eslist_foreach(&a->pings, (data_fn_t) ap_clear, NULL);
+	eslist_foreach(&a->pings, func_cast(data_fn_t, ap_clear), NULL);
 	eslist_wfree(&a->pings, sizeof(struct alive_ping));
 	eslist_discard(&a->pings);
 	a->magic = 0;
@@ -188,7 +188,7 @@ alive_ping_can_send(const pmsg_t *mb, const void *q)
 {
 	const gnutella_node_t *n = mq_node(q);
 	alive_t *a = n->alive_pings;
-	const struct guid *muid = cast_to_guid_ptr_const(pmsg_start(mb));
+	const struct guid *muid = cast_to_guid_ptr_const(pmsg_phys_base(mb));
 
 	g_assert(gnutella_header_get_function(muid) == GTA_MSG_INIT);
 
@@ -235,7 +235,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 				g_debug("ALIVE sent ping to %s", node_infostr(n));
 			} else {
 				g_debug("ALIVE sent ping #%s to %s",
-					guid_hex_str(cast_to_guid_ptr_const(pmsg_start(mb))),
+					guid_hex_str(cast_to_guid_ptr_const(pmsg_phys_base(mb))),
 					node_infostr(n));
 			}
 		}
@@ -245,7 +245,7 @@ alive_pmsg_free(pmsg_t *mb, void *arg)
 
 		g_assert(a->node == n);
 
-		muid = NODE_TALKS_G2(n) ? NULL : cast_to_guid_ptr(pmsg_start(mb));
+		muid = NODE_TALKS_G2(n) ? NULL : cast_to_guid_ptr(pmsg_phys_base(mb));
 
 		if (GNET_PROPERTY(alive_debug)) {
 			if (NODE_TALKS_G2(n)) {
@@ -307,7 +307,7 @@ alive_send_ping(alive_t *a)
 		g_assert(size == sizeof(*m));	/* No trailing GGEP extension */
 
 		mb = gmsg_to_ctrl_pmsg_extend(m, size, alive_pmsg_free, a->node);
-		pmsg_set_check(mb, alive_ping_can_send);
+		pmsg_set_send_callback(mb, alive_ping_can_send);
 
 		gmsg_mb_sendto_one(a->node, mb);
 	}

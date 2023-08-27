@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -83,7 +83,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			size_t len;
 
 			bgtask_info_check(bi);
-			len = strlen(bi->tname);
+			len = vstrlen(bi->tname);
 			maxlen = MAX(len, maxlen);
 		}
 
@@ -142,7 +142,7 @@ shell_exec_task_list(struct gnutella_shell *sh,
 			str_catf(s, "%2d:%-5d ", bi->step, bi->seqno);
 			str_catf(s, "%9s ", compact_time_ms(bi->wtime));
 			str_catf(s, "\"%s\"%*s(%s)", bi->tname,
-				(int) (maxlen - strlen(bi->tname)), "", bi->sname);
+				(int) (maxlen - vstrlen(bi->tname)), "", bi->sname);
 		}
 		str_putc(s, '\n');
 		shell_write(sh, str_2c(s));

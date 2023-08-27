@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -182,7 +182,7 @@ ggept_gtkgv_osname_encode(const char *sysname)
 
 	if (is_running_on_mingw())
 		result = 6;
-	else if (strstr(sysname, "BSD"))
+	else if (vstrstr(sysname, "BSD"))
 		result = 2;
 	else
 		result = 1;
@@ -386,7 +386,7 @@ ggept_gtkgv_build(void *buf, size_t len)
 	 * package invariably accounts for.
 	 */
 
-	str_new_buffer(&s, buf, 0, len);
+	str_new_buffer(&s, buf, len, 0);
 
 	flags = GTKGV_F_GIT | GTKGV_F_OS;
 	if (version_is_dirty())
@@ -653,7 +653,7 @@ ggept_ipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	const gnet_host_t *evec, size_t ecnt,
 	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -677,7 +677,7 @@ ggept_status_t
 ggept_dhtipp_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	bool add_ipv6, bool no_ipv4)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -717,7 +717,7 @@ ggept_push_pack(ggep_stream_t *gs, const sequence_t *hseq, size_t max,
 ggept_status_t
 ggept_a_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -740,7 +740,7 @@ ggept_status_t
 ggept_alt_pack(ggep_stream_t *gs, const gnet_host_t *hvec, size_t hcnt,
 	unsigned flags)
 {
-	vector_t v = vector_create(deconstify_pointer(hvec), sizeof *hvec, hcnt);
+	vector_t v = vector_create(PTRLEN(hvec), hcnt);
 	sequence_t hseq;
 
 	sequence_fill_from_vector(&hseq, &v);
@@ -1033,9 +1033,16 @@ ggept_gtkg_ipv6_extract(const extvec_t *exv, host_addr_t *addr)
 uint
 ggept_filesize_encode(uint64 filesize, char *data, size_t len)
 {
-	g_assert(len >= 8);
+	int vlen;
 
-	return vlint_encode(filesize, data);
+	g_assert(len >= sizeof(uint64));
+
+	vlen = vlint_encode(filesize, data);
+
+	/* Ensure no overflow in buffer! */
+	g_assert(vlen >= 0 && UNSIGNED(vlen) <= len);
+
+	return vlen;
 }
 
 /**

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -83,6 +83,7 @@ void signal_unblock(int signo);
 void signal_abort(void);
 size_t signal_stack_allocate(void **base_ptr);
 bool signal_stack_free(void **base_ptr);
+bool signal_on_altstack(void);
 
 void signal_crashing(void);
 void signal_uncrashing(void);

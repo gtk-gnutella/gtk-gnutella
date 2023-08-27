@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -226,11 +226,18 @@ aging_destroy(aging_table_t **ag_ptr)
 	if (ag) {
 		aging_check(ag);
 
+		/*
+		 * Need to do this before calling aging_synchronize() in case
+		 * tha callout queue is in a concurrent thread and is about to
+		 * invoke the periodic callback!
+		 */
+
+		cq_periodic_remove(&ag->gc_ev);
+
 		aging_synchronize(ag);
 
 		hikset_foreach(ag->table, aging_free, ag);
 		hikset_free_null(&ag->table);
-		cq_periodic_remove(&ag->gc_ev);
 
 		if (ag->lock != NULL) {
 			mutex_destroy(ag->lock);
@@ -443,7 +450,7 @@ aging_insert(aging_table_t *ag, const void *key, void *value)
 		aval->last_insert = now;
 		elist_moveto_tail(&ag->list, aval);
 	} else {
-		WALLOC(aval);
+		WALLOC0(aval);
 		aval->value = value;
 		aval->key = deconstify_pointer(key);
 		aval->last_insert = now;

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -63,6 +63,7 @@
 #include "udp_sched.h"
 
 #include "bsched.h"
+#include "gnet_stats.h"
 #include "inet.h"
 #include "sockets.h"
 #include "tx.h"
@@ -253,6 +254,7 @@ udp_tx_desc_flag_release(struct udp_tx_desc *txd, udp_sched_t *us)
 	udp_tx_desc_check(txd);
 	udp_sched_check(us);
 
+	eslist_mark_removed(&us->tx_released, txd);		/* For assertions */
 	eslist_append(&us->tx_released, txd);
 }
 
@@ -310,8 +312,23 @@ udp_tx_desc_expired(void *data, void *udata)
 	udp_tx_desc_check(txd);
 
 	if (delta_time(tm_time(), txd->expire) > 0) {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SCHED_TIMED_OUT_PRIO_DATA,
+			GNR_UDP_SCHED_TIMED_OUT_PRIO_CONTROL,
+			GNR_UDP_SCHED_TIMED_OUT_PRIO_URGENT,
+			GNR_UDP_SCHED_TIMED_OUT_PRIO_HIGHEST,
+		};
+		uint8 prio = pmsg_prio(txd->mb);
+
+		STATIC_ASSERT(PMSG_P_COUNT == N_ITEMS(s));
+
+		g_assert_log(prio < PMSG_P_COUNT,
+			"%s(): prio=%u", G_STRFUNC, prio);
+
 		udp_sched_log(1, "%p: expiring mb=%p (%d bytes) prio=%u",
-			us, txd->mb, pmsg_size(txd->mb), pmsg_prio(txd->mb));
+			us, txd->mb, pmsg_size(txd->mb), prio);
+
+		gnet_stats_inc_general(s[prio]);
 
 		if (txd->cb->add_tx_dropped != NULL)
 			(*txd->cb->add_tx_dropped)(txd->tx->owner, 1);	/* Dropped in TX */
@@ -435,15 +452,19 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	int len = pmsg_size(mb);
 	bio_source_t *bio = NULL;
 
-	if (0 == gnet_host_get_port(to))
+	if (0 == gnet_host_get_port(to)) {
+		gnet_stats_inc_general(GNR_UDP_SCHED_DROP_ZERO_PORT);
 		return TRUE;
+	}
 
 	/*
 	 * Check whether message still needs to be sent.
 	 */
 
-	if (!pmsg_hook_check(mb))
+	if (!pmsg_can_transmit(mb)) {
+		gnet_stats_inc_general(GNR_UDP_SCHED_DROP_NO_LONGER_NEEDED);
 		return TRUE;			/* Dropped */
+	}
 
 	/*
 	 * Select the proper I/O source depending on the network address type.
@@ -468,7 +489,8 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 
 	if (NULL == bio) {
 		udp_sched_log(4, "%p: discarding mb=%p (%d bytes) to %s",
-			us, mb, pmsg_size(mb), gnet_host_to_string(to));
+			us, mb, pmsg_written_size(mb), gnet_host_to_string(to));
+		gnet_stats_inc_general(GNR_UDP_SCHED_DROP_NO_SOCKET);
 		return udp_tx_drop(tx, cb);		/* TRUE, for "sent" */
 	}
 
@@ -476,28 +498,46 @@ udp_sched_mb_sendto(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 * OK, proceed if we have bandwidth.
 	 */
 
-	r = bio_sendto(bio, to, pmsg_start(mb), len);
+	r = bio_sendto(bio, to, pmsg_phys_base(mb), len);
 
 	if (r < 0) {		/* Error, or no bandwidth */
 		if (udp_sched_write_error(us, to, mb, G_STRFUNC)) {
 			udp_sched_log(4, "%p: dropped mb=%p (%d bytes): %m",
-				us, mb, pmsg_size(mb));
+				us, mb, pmsg_written_size(mb));
+			gnet_stats_inc_general(GNR_UDP_SCHED_DROP_IO_ERROR);
 			return udp_tx_drop(tx, cb);	/* TRUE, for "sent" */
 		}
 		udp_sched_log(3, "%p: no bandwidth for mb=%p (%d bytes)",
-			us, mb, pmsg_size(mb));
+			us, mb, pmsg_written_size(mb));
 		us->used_all = TRUE;
 		return FALSE;
 	}
 
 	if (r != len) {
+		/* This should never happen with UDP/IP since datagrams are atomic */
 		g_warning("%s: partial UDP write (%zd bytes) to %s "
 			"for %d-byte datagram",
 			G_STRFUNC, r, gnet_host_to_string(to), len);
 	} else {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SCHED_FINALLY_SENT_PRIO_DATA,
+			GNR_UDP_SCHED_FINALLY_SENT_PRIO_CONTROL,
+			GNR_UDP_SCHED_FINALLY_SENT_PRIO_URGENT,
+			GNR_UDP_SCHED_FINALLY_SENT_PRIO_HIGHEST,
+		};
+		uint prio = pmsg_prio(mb);
+
+		STATIC_ASSERT(PMSG_P_COUNT == N_ITEMS(s));
+
+		g_assert_log(prio < PMSG_P_COUNT,
+			"%s(): prio=%u", G_STRFUNC, prio);
+
 		udp_sched_log(5, "%p: sent mb=%p (%d bytes) prio=%u",
-			us, mb, pmsg_size(mb), pmsg_prio(mb));
+			us, mb, pmsg_size(mb), prio);
+
 		pmsg_mark_sent(mb);
+		gnet_stats_inc_general(s[prio]);
+
 		if (cb->msg_account != NULL)
 			(*cb->msg_account)(tx->owner, mb);
 
@@ -597,13 +637,29 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	uint prio;
 
 	len = pmsg_size(mb);
+	prio = pmsg_prio(mb);
+
+
+	g_assert_log(prio < PMSG_P_COUNT,
+		"%s(): prio=%u", G_STRFUNC, prio);
 
 	/*
 	 * Try to send immediately if we have bandwidth.
 	 */
 
-	if (!us->used_all && udp_sched_mb_sendto(us, mb, to, tx, cb))
+	if (!us->used_all && udp_sched_mb_sendto(us, mb, to, tx, cb)) {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SCHED_DIRECTLY_SENT_PRIO_DATA,
+			GNR_UDP_SCHED_DIRECTLY_SENT_PRIO_CONTROL,
+			GNR_UDP_SCHED_DIRECTLY_SENT_PRIO_URGENT,
+			GNR_UDP_SCHED_DIRECTLY_SENT_PRIO_HIGHEST,
+		};
+
+		STATIC_ASSERT(PMSG_P_COUNT == N_ITEMS(s));
+
+		gnet_stats_inc_general(s[prio]);
 		return len;		/*  Message "sent" */
+	}
 
 	/*
 	 * If we already have enough data enqueued, flow-control the upper
@@ -616,12 +672,20 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 *		--RAM, 2012-10-12
 	 */
 
-	prio = pmsg_prio(mb);
-
 	if (
 		PMSG_P_HIGHEST != prio &&
 		us->buffered >= UDP_SCHED_FACTOR * udp_sched_bw_per_second(us)
 	) {
+		static gnr_stats_t s[] = {
+			GNR_UDP_SCHED_FLOW_CONTROLLED_PRIO_DATA,
+			GNR_UDP_SCHED_FLOW_CONTROLLED_PRIO_CONTROL,
+			GNR_UDP_SCHED_FLOW_CONTROLLED_PRIO_URGENT,
+			GNR_UDP_SCHED_FLOW_CONTROLLED_PRIO_HIGHEST,	/* Cannot happen */
+		};
+
+		STATIC_ASSERT(PMSG_P_COUNT == N_ITEMS(s));
+
+		gnet_stats_inc_general(s[prio]);
 		udp_sched_log(1, "%p: flow-controlled", us);
 		us->flow_controlled = TRUE;
 		return 0;		/* Flow control upper layers */
@@ -643,6 +707,7 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 	 */
 
 	txd = palloc(us->txpool);
+	ZERO(txd);
 	txd->magic = UDP_TX_DESC_MAGIC;
 	txd->mb = pmsg_ref(mb);		/* Take ownership of message */
 	txd->to = atom_host_get(to);
@@ -652,6 +717,19 @@ udp_sched_send(udp_sched_t *us, pmsg_t *mb, const gnet_host_t *to,
 
 	udp_sched_log(4, "%p: queuing mb=%p (%d bytes) prio=%u",
 		us, mb, pmsg_size(mb), pmsg_prio(mb));
+
+	{
+		static gnr_stats_t s[] = {
+			GNR_UDP_SCHED_ENQUEUED_PRIO_DATA,
+			GNR_UDP_SCHED_ENQUEUED_PRIO_CONTROL,
+			GNR_UDP_SCHED_ENQUEUED_PRIO_URGENT,
+			GNR_UDP_SCHED_ENQUEUED_PRIO_HIGHEST,
+		};
+
+		STATIC_ASSERT(PMSG_P_COUNT == N_ITEMS(s));
+
+		gnet_stats_inc_general(s[prio]);
+	}
 
 	/*
 	 * The queue used is a LIFO to avoid buffering delaying all the messages.

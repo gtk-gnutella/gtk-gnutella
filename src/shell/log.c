@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -64,7 +64,7 @@ shell_exec_log_cwd(struct gnutella_shell *sh,
 	if (argc != 1)
 		return REPLY_ERROR;
 
-	if (NULL == getcwd(path, sizeof path)) {
+	if (NULL == getcwd(ARYLEN(path))) {
 		shell_set_msg(sh, _("Cannot determine current working directory"));
 		return REPLY_ERROR;
 	}

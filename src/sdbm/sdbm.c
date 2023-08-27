@@ -14,8 +14,10 @@
 #include "pair.h"
 #include "lru.h"
 #include "big.h"
+#include "tmp.h"
 #include "private.h"
 
+#include "lib/atomic.h"
 #include "lib/compat_misc.h"
 #include "lib/compat_pio.h"
 #include "lib/debug.h"
@@ -25,10 +27,8 @@
 #include "lib/hstrfn.h"
 #include "lib/log.h"
 #include "lib/misc.h"
-#include "lib/mutex.h"
 #include "lib/pow2.h"
-#include "lib/random.h"
-#include "lib/str.h"
+#include "lib/qlock.h"
 #include "lib/stringify.h"
 #include "lib/thread.h"
 #include "lib/vmm.h"
@@ -36,6 +36,8 @@
 #include "lib/xmalloc.h"
 
 #include "lib/override.h"		/* Must be the last header included */
+
+#define SDBM_COUNT_PAGES	128	/* Amount of pages read by sdbm_count() */
 
 const datum nullitem = {0, 0};
 
@@ -48,63 +50,6 @@ static bool getpage(DBM *, long);
 static datum getnext(DBM *);
 static bool makroom(DBM *, long, size_t);
 static void validpage(DBM *, long);
-
-/*
- * Thread-safety macros.
- */
-
-#ifdef THREADS
-
-#define sdbm_synchronize(s) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);	\
-		mutex_lock(ws->lock);					\
-	}											\
-} G_STMT_END
-
-#define sdbm_unsynchronize(s) G_STMT_START {	\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		DBM *ws = deconstify_pointer(s);	\
-		mutex_unlock(ws->lock);					\
-	}											\
-} G_STMT_END
-
-#define sdbm_return(s, v) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		mutex_unlock((s)->lock);				\
-	return v;									\
-} G_STMT_END
-
-#define sdbm_return_datum(s, v) G_STMT_START {	\
-	datum *rv = &(v);							\
-	if G_UNLIKELY((s)->lock != NULL) { 			\
-		rv = sdbm_thread_datum((s), &(v));		\
-		mutex_unlock((s)->lock);				\
-	}											\
-	return *rv;									\
-} G_STMT_END
-
-#define sdbm_return_void(s) G_STMT_START {		\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		mutex_unlock((s)->lock);				\
-	return;										\
-} G_STMT_END
-
-#define assert_sdbm_locked(s) G_STMT_START {	\
-	if G_UNLIKELY((s)->lock != NULL) 			\
-		assert_mutex_is_owned((s)->lock);		\
-} G_STMT_END
-
-#else	/* !THREADS */
-
-#define sdbm_synchronize(s)
-#define sdbm_unsynchronize(s)
-#define sdbm_return(s, v)			return v
-#define sdbm_return_datum(s, v)		return v
-#define sdbm_return_void(s)			return
-#define assert_sdbm_locked(s)
-
-#endif	/* THREADS */
 
 static inline int
 bad(const datum item)
@@ -285,9 +230,26 @@ sdbm_alloc(void)
 
 #ifdef THREADS
 	db->iterid = THREAD_INVALID_ID;
-#endif
+	db->refcnt = 1;
+#endif	/* THREADS */
 
 	return db;
+}
+
+static void
+sdbm_returns_free_null(struct dbm_returns **dr_ptr)
+{
+	struct dbm_returns *dr = *dr_ptr;
+
+	if (dr != NULL) {
+		int i;
+
+		for (i = 0; i < THREAD_MAX; i++) {
+			sdbm_return_free(&dr[i]);
+		}
+		xfree(dr);
+		*dr_ptr = NULL;
+	}
 }
 
 static void
@@ -296,25 +258,17 @@ sdbm_free(DBM *db)
 	sdbm_check(db);
 
 #ifdef THREADS
-	if (db->returned != NULL) {
-		int i;
-
-		for (i = 0; i < THREAD_MAX; i++) {
-			struct dbm_returns *r = &db->returned[i];
-
-			if (r->len != 0)
-				XFREE_NULL(r->value.dptr);	/* Free thread-private data copy */
-		}
-
-		XFREE_NULL(db->returned);
-	}
+	sdbm_returns_free_null(&db->returned);
 #endif
 
 	db->magic = 0;
 	WFREE(db);
 }
 
-static void
+/**
+ * Call sdbm_free() and nullify pointed-at DBM descriptor.
+ */
+void
 sdbm_free_null(DBM **db_ptr)
 {
 	DBM *db = *db_ptr;
@@ -483,6 +437,12 @@ success:
 	compat_fadvise_random(db->pagf, 0, 0);
 	compat_fadvise_random(db->dirf, 0, 0);
 
+	/*
+	 * Cleanup database by removing temporary files left over during rebuilds.
+	 */
+
+	tmp_clean(db);
+
 	return db;
 }
 
@@ -499,7 +459,7 @@ sdbm_thread_safe(DBM *db)
 	g_assert(NULL == db->lock);
 
 	WALLOC0(db->lock);
-	mutex_init(db->lock);
+	qlock_recursive_init(db->lock);
 	XMALLOC0_ARRAY(db->returned, THREAD_MAX);
 }
 
@@ -519,7 +479,7 @@ sdbm_lock(DBM *db)
 	g_assert_log(db->lock != NULL,
 		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
 
-	mutex_lock(db->lock);
+	qlock_lock(db->lock);
 }
 
 /*
@@ -535,37 +495,133 @@ sdbm_unlock(DBM *db)
 	g_assert_log(db->lock != NULL,
 		"%s(): SDBM \"%s\" not marked thread-safe", G_STRFUNC, sdbm_name(db));
 
-	mutex_unlock(db->lock);
+	qlock_unlock(db->lock);
 }
 
 /**
- * Allocate a thread-private datum to be returned to the thread.
- *
- * Although the value returned is thread-private, its lifespan is limited to
- * the next call made to the SDBM API by the thread.
- *
- * A thread-private datum contains a copy of the data returned to the thread,
- * since we cannot point into the internal SDBM data structures like the LRU
- * page cache: any concurrent access could make the data stale.
- *
- * @param v		a pointer to the datum returned by the function
- *
- * @return a pointer to the thread-private datum with data from ``d'' copied.
+ * @return whether the database was marked thread-safe.
  */
-static datum *
-sdbm_thread_datum(DBM *db, datum *v)
+bool
+sdbm_is_thread_safe(const DBM *db)
+{
+	sdbm_check(db);
+
+	return db->lock != NULL;
+}
+
+/**
+ * Check whether the current thread has locked the database.
+ *
+ * If the database has not been marked thread-safe already, this predicate
+ * returns FALSE.
+ *
+ * @return whether the database was locked by the current thread.
+ */
+bool
+sdbm_is_locked(const DBM *db)
+{
+	sdbm_check(db);
+
+	if (NULL == db->lock)
+		return FALSE;
+
+	/*
+	 * Lock is recursive and therefore it has a owning thread.
+	 */
+
+	return qlock_is_owned(db->lock);
+}
+
+/**
+ * Add one more reference to the database.
+ *
+ * When the DBM descriptor is shared among various threads, each referencing
+ * thread must call this routine to increase the reference count, preventing
+ * disappearing of the descriptor until the last reference is gone.
+ *
+ * @return its argument, for convenience.
+ */
+DBM *
+sdbm_ref(const DBM *db)
+{
+	DBM *wdb = deconstify_pointer(db);
+
+	sdbm_check(db);
+
+	if G_UNLIKELY(NULL == db->lock) {
+		s_carp_once("%s(): sdbm \"%s\" is not thread-safe yet!",
+			G_STRFUNC, sdbm_name(db));
+	}
+
+	atomic_int_inc(&wdb->refcnt);
+	return wdb;
+}
+
+/**
+ * Remove one reference to the database, closing it when there are no more
+ * references left.  The pointer itself is nullified, regardless.
+ */
+void
+sdbm_unref(DBM **db_ptr)
+{
+	DBM *db;
+
+	g_assert(db_ptr != NULL);
+
+	if (NULL != (db = *db_ptr)) {
+		sdbm_check(db);
+		g_assert(db->refcnt > 0);
+
+		if (atomic_int_dec_is_zero(&db->refcnt))
+			sdbm_close(db);
+
+		*db_ptr = NULL;
+	}
+}
+
+/**
+ * @return amount of references made to the database.
+ */
+int
+sdbm_refcnt(const DBM *db)
+{
+	sdbm_check(db);
+
+	return atomic_int_get(&db->refcnt);
+}
+
+/**
+ * Free memory used by a "dbm_returns" structure, if any.
+ */
+void
+sdbm_return_free(struct dbm_returns *r)
+{
+	g_assert(r != NULL);
+
+	if (r->len != 0)
+		xfree(r->value.dptr);	/* Free thread-private data copy */
+
+	ZERO(r);
+}
+
+/**
+ * Copy a datum into a "dbm_returns" structure, resizing its buffer as needed.
+ *
+ * When v->dsize is 0, `r' can be NULL since we're not using it!
+ *
+ * @param v		a pointer to the datum we need to create a copy for
+ * @param r		the "struct dbm_returns" keeping track of allocated memory
+ *
+ * @return a pointer to the copied datum.
+ */
+datum *
+sdbm_datum_copy(datum *v, struct dbm_returns *r)
 {
 	datum *d;
 	static datum zerosized;
 
-	sdbm_check(db);
-	g_assert(db->returned != NULL);
-
 	if (v->dsize != 0) {
-		uint stid = thread_small_id();
-		struct dbm_returns *r = &db->returned[stid];
-
-		g_assert(stid < THREAD_MAX);
+		g_assert(r != NULL);
 
 		/*
 		 * Until we reach XMALLOC_MAXSIZE, we keep growing the data buffer,
@@ -607,6 +663,53 @@ sdbm_thread_datum(DBM *db, datum *v)
 
 	return d;
 }
+
+/**
+ * Allocate a thread-private datum to be returned to the thread.
+ *
+ * @param db	the database object
+ * @param v		a pointer to the datum we need to create a copy for
+ * @param dr	array of datum per thread where we can save the datum copy
+ *
+ * @return a pointer to a thread-private datum.
+ */
+static datum *
+sdbm_thread_datum_copy(DBM *db, datum *v, struct dbm_returns *dr)
+{
+	struct dbm_returns *r = NULL;
+
+	sdbm_check(db);
+	g_assert(dr != NULL);
+
+	if (v->dsize != 0) {
+		uint stid = thread_small_id();
+		g_assert(stid < THREAD_MAX);
+		r = &dr[stid];
+	}
+
+	return sdbm_datum_copy(v, r);
+}
+
+/**
+ * Allocate a thread-private datum to be returned to the thread.
+ *
+ * Although the value returned is thread-private, its lifespan is limited to
+ * the next call made to the SDBM API by the thread.
+ *
+ * A thread-private datum contains a copy of the data returned to the thread,
+ * since we cannot point into the internal SDBM data structures like the LRU
+ * page cache: any concurrent access could make the data stale.
+ *
+ * @param db	the database object
+ * @param v		a pointer to the datum returned by the function
+ *
+ * @return a pointer to the thread-private datum with data from ``d'' copied.
+ */
+static datum *
+sdbm_thread_datum(DBM *db, datum *v)
+{
+	return sdbm_thread_datum_copy(db, v, db->returned);
+}
 #endif	/* THREADS */
 
 static void
@@ -620,13 +723,13 @@ log_sdbmstats(DBM *db)
 		sdbm_name(db), db->dirread, db->dirwrite, db->dirwdelayed);
 	s_info("sdbm: \"%s\" page blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->pagbno_hit * 100.0 / MAX(db->pagfetch, 1),
-		db->pagfetch, plural(db->pagfetch));
+		PLURAL(db->pagfetch));
 	s_info("sdbm: \"%s\" dir blocknum hits = %.2f%% on %lu request%s",
 		sdbm_name(db), db->dirbno_hit * 100.0 / MAX(db->dirfetch, 1),
-		db->dirfetch, plural(db->dirfetch));
+		PLURAL(db->dirfetch));
 	s_info("sdbm: \"%s\" inplace value writes = %.2f%% on %lu occurence%s",
 		sdbm_name(db), db->repl_inplace * 100.0 / MAX(db->repl_stores, 1),
-		db->repl_stores, plural(db->repl_stores));
+		PLURAL(db->repl_stores));
 }
 
 static void
@@ -640,11 +743,11 @@ log_sdbm_warnings(DBM *db)
 	}
 	if (db->bad_pages) {
 		s_warning("sdbm: \"%s\" read %lu corrupted page%s (zero-ed on the fly)",
-			sdbm_name(db), db->bad_pages, plural(db->bad_pages));
+			sdbm_name(db), PLURAL(db->bad_pages));
 	}
 	if (db->removed_keys) {
 		s_warning("sdbm: \"%s\" removed %lu key%s not belonging to their page",
-			sdbm_name(db), db->removed_keys, plural(db->removed_keys));
+			sdbm_name(db), PLURAL(db->removed_keys));
 	}
 	if (db->read_errors || db->write_errors) {
 		s_warning("sdbm: \"%s\" "
@@ -655,12 +758,12 @@ log_sdbm_warnings(DBM *db)
 	}
 	if (db->spl_corrupt) {
 		s_warning("sdbm: \"%s\" %lu failed page split%s could not be undone",
-			sdbm_name(db), db->spl_corrupt, plural(db->spl_corrupt));
+			sdbm_name(db), PLURAL(db->spl_corrupt));
 	}
 #ifdef BIGDATA
 	if (db->bad_bigkeys) {
 		s_warning("sdbm: \"%s\" encountered %lu bad big key%s",
-			sdbm_name(db), db->bad_bigkeys, plural(db->bad_bigkeys));
+			sdbm_name(db), PLURAL(db->bad_bigkeys));
 	}
 #endif
 }
@@ -690,8 +793,6 @@ fetch_pagbuf(DBM *db, long pagnum)
 	 */
 
 	if (pagnum != db->pagbno) {
-		ssize_t got;
-
 #ifdef LRU
 		{
 			bool loaded;
@@ -705,45 +806,21 @@ fetch_pagbuf(DBM *db, long pagnum)
 				db->pagbno = pagnum;
 				return TRUE;
 			}
+
+			/* FALL THROUGH -- new page in LRU cache, need to read it */
 		}
-#endif
+#endif	/* LRU */
 
-		/*
-		 * Note: here we assume a "hole" is read as 0s.
-		 *
-		 * On DOS / Windows machines, we explicitly write 0s at the end of
-		 * the file each time we extend it past the old tail, so there are
-		 * no holes on these systems.  See makroom().
-		 */
-
-		db->pagread++;
-		got = compat_pread(db->pagf, db->pagbuf, DBM_PBLKSIZ, OFF_PAG(pagnum));
-		if G_UNLIKELY(got < 0) {
-			s_critical("sdbm: \"%s\": cannot read page #%ld: %m",
-				sdbm_name(db), pagnum);
-			ioerr(db, FALSE);
+		if (readpag(db, db->pagbuf, pagnum)) {
+			db->pagbno = pagnum;
+			return TRUE;
+		} else {
 			db->pagbno = -1;
 			return FALSE;
 		}
-		if G_UNLIKELY(got < DBM_PBLKSIZ) {
-			if (got > 0)
-				s_critical("sdbm: \"%s\": partial read (%u bytes) of page #%ld",
-					sdbm_name(db), (unsigned) got, pagnum);
-			memset(db->pagbuf + got, 0, DBM_PBLKSIZ - got);
-		}
-		if G_UNLIKELY(!sdbm_internal_chkpage(db->pagbuf)) {
-			s_critical("sdbm: \"%s\": corrupted page #%ld, clearing",
-				sdbm_name(db), pagnum);
-			memset(db->pagbuf, 0, DBM_PBLKSIZ);
-			db->bad_pages++;
-		}
-		db->pagbno = pagnum;
-
-		debug(("pag read: %ld\n", pagnum));
-	} else {
-		db->pagbno_hit++;
 	}
 
+	db->pagbno_hit++;
 	return TRUE;
 }
 
@@ -834,24 +911,41 @@ sdbm_unlink_file(const char *name, const char *path)
  * @param clearfiles	whether to unlink files after close
  * @param destroy		whether to destroy the object
  */
-static void
+void
 sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 {
 	sdbm_check(db);
 	assert_sdbm_locked(db);
+
+#ifdef THREADS
+	g_assert_log(db->refcnt >= 0 && (!destroy || db->refcnt <= 1),
+		"%s(): db->refcnt=%d, destroy=%c",
+		G_STRFUNC, db->refcnt, destroy ? 'y' : 'n');
+#endif
 
 #ifdef LRU
 	if (is_valid_fd(db->pagf))
 		lru_close(db);
 #else
 	WFREE_NULL(db->pagbuf, DBM_PBLKSIZ);
-#endif
+#endif	/* LRU */
+
 	WFREE_NULL(db->dirbuf, DBM_DBLKSIZ);
 	fd_forget_and_close(&db->dirf);
 	fd_forget_and_close(&db->pagf);
+
 #ifdef BIGDATA
-	big_free(db);
+	if (destroy)
+		big_free(db);
+	else
+		big_close(db);
 #endif
+
+	if (db->rdb != NULL) {
+		sdbm_unlink(db->rdb);
+		db->rdb = NULL;
+	}
+
 	if (common_stats) {
 		log_sdbmstats(db);
 	}
@@ -863,7 +957,7 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 #ifdef BIGDATA
 		if (db->datname != NULL && file_exists(db->datname))
 			sdbm_unlink_file(sdbm_name(db), db->datname);
-#endif
+#endif	/* BIGDATA */
 	}
 
 	HFREE_NULL(db->name);
@@ -875,11 +969,57 @@ sdbm_close_internal(DBM *db, bool clearfiles, bool destroy)
 
 	if (destroy) {
 		if (db->lock != NULL) {
-			mutex_destroy(db->lock);
+			qlock_destroy(db->lock);
 			WFREE(db->lock);
 		}
 		sdbm_free(db);
 	}
+}
+
+/**
+ * Make sure we're not releasing resources that are still being referenced.
+ * Must be called with the database locked.
+ *
+ * @return TRUE if the object can be reclaimed, FALSE if there are still
+ * references on it (but with the reference count already decreased by one).
+ */
+static bool
+sdbm_can_release(DBM *db, const char *caller, const char *what)
+{
+	assert_sdbm_locked(db);
+
+	/*
+	 * When there are more than 1 reference to the DB, simply remove one
+	 * reference but defer freeing of the object, after loudly complaining!
+	 *
+	 * Indeed, the proper way to address multiple references is to use
+	 * sdbm_ref() when taking them and sdbm_unref() when removing them,
+	 * with sdbm_close() being implicitly called when the last reference
+	 * is gone.
+	 *
+	 * This leniance of sdbm_close() will ease the transition from a singly
+	 * to a multiply referenced database in older code, whilst properly
+	 * flagging the culprit with a loud warning and a stack trace.
+	 *		--RAM, 2015-10-18
+	 */
+
+#ifdef THREADS
+	/* When coming from sdbm_unref(), refcnt will be 0 due to decrementing */
+	g_assert(db->refcnt >= 0);
+	if (db->refcnt >= 2) {
+		s_carp("%s(): attempting to %s SDBM \"%s\" (still has %d ref%s)",
+			caller, what, sdbm_name(db), PLURAL(db->refcnt));
+
+		atomic_int_dec(&db->refcnt);
+		g_assert(db->refcnt >= 0);
+		return FALSE;
+	}
+#else	/* !THREADS */
+	(void) caller;
+	(void) what;
+#endif	/* THREADS */
+
+	return TRUE;
 }
 
 /**
@@ -892,6 +1032,12 @@ sdbm_unlink(DBM *db)
 		return;
 
 	sdbm_synchronize(db);
+
+	if (!sdbm_can_release(db, G_STRFUNC, "unlink")) {
+		sdbm_unsynchronize(db);
+		return;
+	}
+
 	sdbm_close_internal(db, TRUE, TRUE);
 }
 
@@ -912,11 +1058,24 @@ sdbm_close(DBM *db)
 
 	sdbm_synchronize(db);
 
+	if (!sdbm_can_release(db, G_STRFUNC, "close")) {
+		/*
+		 * At least sync the database in case they close and forget it,
+		 * when the database is not marked volatile.
+		 */
+
+		if (!db->is_volatile)
+			sdbm_sync(db);
+
+		sdbm_unsynchronize(db);
+		return;
+	}
+
 #ifdef LRU
 	clearfiles = db->is_volatile;
 #else
 	clearfiles = FALSE;
-#endif
+#endif	/* LRU */
 
 	/*
 	 * If we keep the files around, flush the database to ensure there
@@ -1033,10 +1192,22 @@ sdbm_delete(DBM *db, datum key)
 		ioerr(db, FALSE);
 		goto done;
 	}
+
 	if (!delpair(db, db->pagbuf, key)) {
 		errno = 0;
 		goto done;
 	}
+
+	db->delta--;		/* Removing one key/pair */
+
+	/*
+	 * If concurrently rebuilding, make sure we replicate the deletion
+	 * to the database being rebuilt.  We may not have the key there yet
+	 * though, so we do not choke on errors.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL)
+		sdbm_delete(db->rdb, key);
 
 	/*
 	 * update the page file
@@ -1046,6 +1217,8 @@ sdbm_delete(DBM *db, datum key)
 		goto done;
 
 	status = 0;
+
+	/* FALL THROUGH */
 
 done:
 	sdbm_return(db, status);
@@ -1140,6 +1313,7 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 			} else {
 				if G_UNLIKELY(!delipair(db, db->pagbuf, idx, TRUE))
 					return -1;
+				db->delta--;		/* Removed one key/pair for now */
 			}
 		}
 	}
@@ -1154,7 +1328,7 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	 * if we do not have enough room, we have to split.
 	 */
 
-	need_split = !fitpair(db->pagbuf, need);
+	need_split = !fitpair(db, db->pagbuf, need);
 
 	if G_UNLIKELY(need_split && !makroom(db, hash, need))
 		return -1;
@@ -1170,7 +1344,18 @@ storepair(DBM *db, datum key, datum val, int flags, bool *existed)
 	if G_UNLIKELY(!putpair(db, db->pagbuf, key, val))
 		result = -1;
 
+	db->delta++;		/* Added one key/pair */
+
 inserted:
+	/*
+	 * If concurrently rebuilding, make sure we replicate the insertion
+	 * to the database being rebuilt.  We need to force DBM_REPLACE because
+	 * we do not know whether the key already exists in the copy and the
+	 * rebuilt database needs to hold the freshest copy of the data.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL)
+		storepair(db->rdb, key, val, DBM_REPLACE, NULL);
 
 	/*
 	 * After a split, we force a physical flush of the page even if they
@@ -1411,7 +1596,7 @@ makroom(DBM *db, long int hash, size_t need)
 		 * see if we have enough room now
 		 */
 
-		fits = fitpair(pag, need);
+		fits = fitpair(db, pag, need);
 
 		/*
 		 * If the incoming pair still does not fit in the current page,
@@ -1591,11 +1776,70 @@ iteration_done(DBM *db, bool completed)
 	return nullitem;
 }
 
+/**
+ * Assert that we must own the DB lock.
+ */
+static void
+sdbm_must_be_locked(const DBM *db, const char *caller)
+{
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		/* We must own the lock! */
+		if G_UNLIKELY(!sdbm_is_locked(db)) {
+			s_error("%s(): no DB lock in thread-safe mode for SDBM \"%s\"",
+				caller, sdbm_name(db));
+		}
+	}
+#else
+	(void) db;
+	(void) caller;
+#endif	/* THREADS */
+}
+
+/**
+ * Check whether we are facing concurrent iteration over the database.
+ *
+ * @return TRUE if there is a concurrent iteration in progress.
+ */
+static bool
+sdbm_in_concurrent_iteration(const DBM *db, const char *caller)
+{
+#ifdef THREADS
+	if G_UNLIKELY(db->lock != NULL) {
+		uint stid = thread_small_id();
+
+		/* Since DBM_ITERATING must be set... */
+		g_soft_assert(db->iterid != THREAD_INVALID_ID);
+
+		if G_UNLIKELY(db->iterid != stid) {
+			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
+				"with %s from %s",
+				caller, sdbm_name(db),
+				thread_id_name(db->iterid), thread_name());
+			return TRUE;
+		}
+	}
+#else
+	(void) db;
+	(void) caller;
+#endif	/* THREADS */
+
+	return FALSE;
+}
+
 /*
  * the sdbm_firstkey() and sdbm_nextkey() routines will break if
  * deletions aren't taken into account. (ndbm bug)
  */
 
+/**
+ * Start iterating over the database by fetching its first key.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked!
+ *
+ * @return the first key in the database.
+ */
 datum
 sdbm_firstkey(DBM *db)
 {
@@ -1605,30 +1849,18 @@ sdbm_firstkey(DBM *db)
 		errno = EINVAL;
 		return nullitem;
 	}
+
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
-
-	if G_UNLIKELY(db->flags & DBM_BROKEN) {
-		errno = ESTALE;
-		value = nullitem;
-		goto done;
-	}
-
-	if G_UNLIKELY(db->flags & DBM_ITERATING) {
-		s_critical("recursive iteration on SDBM database \"%s\"",
-			sdbm_name(db));
-	}
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 #ifdef THREADS
 	if G_UNLIKELY(db->lock != NULL) {
 		uint stid = thread_small_id();
 
-		if G_UNLIKELY(db->iterid != THREAD_INVALID_ID && db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
+		if G_UNLIKELY(
+			db->iterid != THREAD_INVALID_ID &&
+			sdbm_in_concurrent_iteration(db, G_STRFUNC)
+		) {
 			errno = EPERM;
 			value = nullitem;
 			goto done;
@@ -1637,6 +1869,17 @@ sdbm_firstkey(DBM *db)
 		db->iterid = stid;
 	}
 #endif	/* THREADS */
+
+	if G_UNLIKELY(db->flags & DBM_BROKEN) {
+		errno = ESTALE;
+		value = nullitem;
+		goto done;
+	}
+
+	if G_UNLIKELY(db->flags & DBM_ITERATING) {
+		s_critical("%s(): recursive iteration on SDBM database \"%s\"",
+			G_STRFUNC, sdbm_name(db));
+	}
 
 	db->flags |= DBM_ITERATING;
 	db->pagtail = lseek(db->pagf, 0L, SEEK_END);
@@ -1686,8 +1929,10 @@ sdbm_firstkey(DBM *db)
 
 	value = getnext(db);
 
+	/* FALL THROUGH */
+
 done:
-	sdbm_return_datum(db, value);
+	return value;
 }
 
 /**
@@ -1716,57 +1961,46 @@ sdbm_firstkey_safe(DBM *db)
 	return sdbm_firstkey(db);
 }
 
+/**
+ * Continue iterating over the database by fetching its next key.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked!
+ *
+ * @return the next key in the database.
+ */
 datum
 sdbm_nextkey(DBM *db)
 {
-	datum value;
-
 	if G_UNLIKELY(db == NULL) {
 		errno = EINVAL;
-		return nullitem;
+		goto error;
 	}
 
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	if G_UNLIKELY(db->flags & DBM_BROKEN) {
 		errno = ESTALE;
-		value = nullitem;
-		goto done;
+		goto error;
 	}
 
 	if G_UNLIKELY(!(db->flags & DBM_ITERATING)) {
 		s_critical("%s() called outside of any key iteration over SDBM \"%s\"",
 			G_STRFUNC, sdbm_name(db));
 		errno = ENOENT;
-		value = nullitem;
-		goto done;
+		goto error;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			value = nullitem;
-			goto done;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		goto error;
 	}
-#endif	/* THREADS */
 
-	value = getnext(db);
+	return getnext(db);
 
-done:
-	sdbm_return_datum(db, value);
+error:
+	return nullitem;
 }
 
 /**
@@ -1776,8 +2010,7 @@ void
 sdbm_endkey(DBM *db)
 {
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	/*
 	 * Loudly warn if this is called outside of an iteration.
@@ -1788,22 +2021,8 @@ sdbm_endkey(DBM *db)
 			G_STRFUNC, sdbm_name(db));
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			goto done;
-		}
-	}
-#endif	/* THREADS */
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC))
+		return;
 
 	/*
 	 * When starting an iteration with sdbm_firstkey_safe() and encountering
@@ -1812,9 +2031,6 @@ sdbm_endkey(DBM *db)
 	 */
 
 	(void) iteration_done(db, FALSE);		/* Iteration was interrupted */
-
-done:
-	sdbm_return_void(db);
 }
 
 /**
@@ -1933,6 +2149,7 @@ validpage(DBM *db, long pagb)
 				"on page #%ld", sdbm_name(db),
 				corrupted, n / 2, plural_y(corrupted), pagb);
 		}
+		db->delta -= removed + corrupted;		/* Deleted entries */
 #ifdef LRU
 		(void) force_flush_pagbuf(db, !db->is_volatile);
 #else
@@ -2093,8 +2310,7 @@ sdbm_deletekey(DBM *db)
 		return -1;
 	}
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	if G_UNLIKELY(db->flags & DBM_RDONLY) {
 		errno = EPERM;
@@ -2119,33 +2335,36 @@ sdbm_deletekey(DBM *db)
 		goto no_entry;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			goto done;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		goto done;
 	}
-#endif	/* THREADS */
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
 	if G_UNLIKELY(0 == db->keyptr)
 		goto no_entry;
 
+	/*
+	 * If concurrently rebuilding, make sure we replicate the deletion
+	 * to the database being rebuilt.  We may not have the key there yet
+	 * though, so we do not choke on errors.
+	 */
+
+	if G_UNLIKELY(db->rdb != NULL) {
+		datum key = getnkey(db, db->pagbuf, db->keyptr);
+		sdbm_delete(db->rdb, key);
+	}
+
+	/*
+	 * Delete key number ``db->keyptr'' on the current page.
+	 */
+
 	if G_UNLIKELY(!delnpair(db, db->pagbuf, db->keyptr))
 		goto done;
 
 	db->keyptr--;
+	db->delta--;		/* Removing one key/pair */
 
 	/*
 	 * update the page file
@@ -2156,17 +2375,22 @@ sdbm_deletekey(DBM *db)
 
 	status = 0;
 
+	/* FALL THROUGH */
+
 done:
-	sdbm_return(db, status);
+	return status;
 
 no_entry:
 	errno = ENOENT;
-	goto done;
+	return -1;
 }
 
 /**
- * Return current value during key iteration.
+ * Fetch current value during key iteration.
  * Must not be called outside of a key iteration loop.
+ *
+ * @attention
+ * In thread-safe mode, the database MUST be already locked.
  */
 datum
 sdbm_value(DBM *db)
@@ -2179,8 +2403,7 @@ sdbm_value(DBM *db)
 	}
 
 	sdbm_check(db);
-
-	sdbm_synchronize(db);
+	sdbm_must_be_locked(db, G_STRFUNC);
 
 	/*
 	 * Loudly warn if this is called outside of an iteration.
@@ -2192,24 +2415,11 @@ sdbm_value(DBM *db)
 		goto no_entry;
 	}
 
-#ifdef THREADS
-	if G_UNLIKELY(db->lock != NULL) {
-		uint stid = thread_small_id();
-
-		/* Since DBM_ITERATING is set... */
-		g_soft_assert(db->iterid != THREAD_INVALID_ID);
-
-		if G_UNLIKELY(db->iterid != stid) {
-			s_critical("%s(): concurrent iteration on SDBM database \"%s\" "
-				"with %s from %s",
-				G_STRFUNC, sdbm_name(db),
-				thread_id_name(db->iterid), thread_name());
-			errno = EPERM;
-			val = nullitem;
-			goto done;
-		}
+	if (sdbm_in_concurrent_iteration(db, G_STRFUNC)) {
+		errno = EPERM;
+		val = nullitem;
+		goto done;
 	}
-#endif	/* THREADS */
 
 	g_assert(db->pagbno == db->blkptr);	/* No page change since last time */
 
@@ -2221,7 +2431,13 @@ sdbm_value(DBM *db)
 		goto no_entry;
 
 done:
-	sdbm_return_datum(db, val);
+	/*
+	 * Since it is unlikely that sdbm_value() will be used at all when
+	 * iterating over a thread-safe database, we do not need to make a
+	 * private copy of the datum.
+	 */
+
+	return val;
 
 no_entry:
 	errno = ENOENT;
@@ -2379,6 +2595,113 @@ done:
 }
 
 /**
+ * Get algebraic count of added and deleted pairs since counter was last reset.
+ *
+ * Combined with an initial count of items, established through sdbm_count(),
+ * this lets the application determine exactly how many items are held in the
+ * database without having to re-count physically.
+ *
+ * The algebraic count is initially 0 after a sdbm_open() and can be reset to
+ * 0 at any time via sdbm_delta_reset().
+ *
+ * @return net value of "added - removed", where "added" is the amount of pairs
+ * added to the database and "removed" is the amount of deleted pairs.
+ */
+ssize_t
+sdbm_delta(const DBM *db)
+{
+	ssize_t delta;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+	delta = db->delta;
+	sdbm_unsynchronize(db);
+
+	return delta;
+}
+
+/**
+ * Reset the algebraic count of additions and deletions in the database to 0.
+ */
+void
+sdbm_delta_reset(DBM *db)
+{
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+	db->delta = 0;
+	sdbm_unsynchronize(db);
+}
+
+/**
+ * Count how many entries (key/value pairs) are stored in the database.
+ *
+ * @return the amount of entries held, or -1 on I/O error.
+ */
+ssize_t
+sdbm_count(const DBM *db)
+{
+	ssize_t count = 0;
+	size_t len;
+	void *buf;
+
+	sdbm_check(db);
+
+	sdbm_synchronize(db);
+
+#ifdef LRU
+	if (-1 == flush_dirtypag(db)) {
+		count = (ssize_t) -1;
+		goto done;
+	}
+#endif
+
+	if (-1 == seek_to_filepos(db->pagf, 0)) {
+		count = (ssize_t) -1;
+		goto done;
+	}
+
+	len = SDBM_COUNT_PAGES * DBM_PBLKSIZ;
+	buf = vmm_alloc(len);
+	compat_fadvise_sequential(db->pagf, 0, 0);
+
+	for (;;) {
+		void *pag;
+		ssize_t r;
+		size_t n;
+		bool finished;
+
+		r = read(db->pagf, buf, len);
+
+		if G_UNLIKELY(-1 == r) {
+			count = (ssize_t) -1;
+			goto abort;
+		}
+
+		n = r / DBM_PBLKSIZ;		/* Amount of pages fully read */
+		finished = n != SDBM_COUNT_PAGES;
+
+		for (pag = buf; n != 0; n--, pag = ptr_add_offset(pag, DBM_PBLKSIZ)) {
+			if (sdbm_chkpage(pag))
+				count += paircount(pag);
+		}
+
+		if G_UNLIKELY(finished)
+			break;
+	}
+
+abort:
+	vmm_free(buf, len);
+	compat_fadvise_random(db->pagf, 0, 0);
+
+	/* FALL THROUGH */
+
+done:
+	sdbm_return(db, count);
+}
+
+/**
  * Shrink .pag (and .dat files) on disk to remove needlessly allocated blocks.
  *
  * @return TRUE if we were able to successfully shrink the files.
@@ -2445,7 +2768,7 @@ sdbm_shrink(DBM *db)
 		/* FALLTHROUGH */
 #endif
 
-		r = compat_pread(db->pagf, &count, sizeof count, offset);
+		r = compat_pread(db->pagf, VARLEN(count), offset);
 		if G_UNLIKELY(-1 == r || r != sizeof count)
 			return FALSE;
 
@@ -2654,10 +2977,12 @@ sdbm_rename_files(DBM *db,
 		goto emergency_restore;
 	}
 
-	if (NULL == datname || !dat_opened)
+	if (NULL == datname)
 		goto rename_ok;
 
 	if (-1 == rename(db->datname, datname)) {
+		if (!dat_opened && ENOENT == errno)
+			goto rename_ok;		/* No .dat file present */
 		error = errno;
 		s_critical("sdbm: \"%s\": cannot rename \"%s\" as \"%s\": %m",
 			sdbm_name(db), db->datname, datname);
@@ -2820,176 +3145,6 @@ error:
 }
 
 /**
- * Rebuild database from scratch, thereby compacting it on disk since only
- * the required pages will be allocated.
- *
- * @return 0 if OK, -1 on failure.
- */
-int
-sdbm_rebuild(DBM *db)
-{
-	DBM *ndb;
-	char ext[10];
-	char *dirname, *pagname, *datname;
-	int error = 0, result;
-	long cache;
-	datum key;
-	unsigned items = 0, skipped = 0, duplicate = 0;
-
-	sdbm_check(db);
-
-	sdbm_synchronize(db);
-
-	if (sdbm_rdonly(db)) {
-		errno = EPERM;
-		goto failed;
-	}
-	if (sdbm_error(db)) {
-		errno = EIO;		/* Already got an error reported */
-		goto failed;
-	}
-	if (db->flags & DBM_ITERATING) {
-		errno = EBUSY;		/* Already iterating */
-		goto failed;
-	}
-	if G_UNLIKELY(db->flags & DBM_BROKEN) {
-		errno = ESTALE;		/* Already broken handle */
-		goto failed;
-	}
-
-	str_bprintf(ext, sizeof ext, ".%08x", random_u32());
-	dirname = h_strconcat(db->dirname, ext, (void *) 0);
-	pagname = h_strconcat(db->pagname, ext, (void *) 0);
-	datname = NULL == db->datname ? NULL :
-		h_strconcat(db->datname, ext, (void *) 0);
-
-	ndb = sdbm_prep(dirname, pagname, datname,
-		db->openflags | O_CREAT | O_EXCL, db->openmode);
-
-	if (NULL == ndb) {
-		error = errno;
-		goto error;
-	}
-
-	/*
-	 * Propagates attributes to the new database: cache size, write delay,
-	 * volatile status.
-	 */
-
-	sdbm_set_name(ndb, db->name);
-	cache = sdbm_get_cache(db);
-
-	if (sdbm_is_volatile(db))	sdbm_set_volatile(ndb, TRUE);
-	if (sdbm_get_wdelay(db))	sdbm_set_wdelay(ndb, TRUE);
-	if (cache != 0)				sdbm_set_cache(ndb, cache);
-
-	/*
-	 * Copy all the keys/values from the database to the new database.
-	 */
-
-	for (key = sdbm_firstkey_safe(db); key.dptr; key = sdbm_nextkey(db)) {
-		datum value = sdbm_value(db);
-
-		items++;
-
-		if (NULL == value.dptr) {
-			if (sdbm_error(db))
-				sdbm_clearerr(db);
-			skipped++;				/* Unreadable value skipped */
-			continue;
-		}
-
-		if (0 != sdbm_store(ndb, key, value, DBM_INSERT)) {
-			if (sdbm_error(db))
-				sdbm_clearerr(db);
-			if (EEXIST == errno) {
-				/* Duplicate key, that's bad, but we can survive */
-				duplicate++;
-				skipped++;
-				continue;
-			}
-			/* Other errors are fatal */
-			error = errno;
-			sdbm_endkey(db);		/* Finish iteration */
-			break;
-		}
-	}
-
-	if (error != 0)
-		goto error;
-
-	/*
-	 * At this point, the database was successfully copied over.
-	 */
-
-	HFREE_NULL(dirname);
-	HFREE_NULL(pagname);
-	HFREE_NULL(datname);
-
-	dirname = h_strdup(db->dirname);
-	pagname = h_strdup(db->pagname);
-	datname = h_strdup(db->datname);
-
-#ifdef THREADS
-	ndb->lock = db->lock;
-#endif
-	sdbm_close_internal(db, TRUE, FALSE);		/* Keep object around */
-	*db = *ndb;									/* struct copy */
-#ifdef THREADS
-	ndb->lock = NULL;							/* was copied over */
-#endif
-	sdbm_free_null(&ndb);
-
-	/*
-	 * The original object is now the new database, we only need to rename
-	 * the files to let the rebuilt database be fully operational.
-	 */
-
-	if (-1 == sdbm_rename_files(db, dirname, pagname, datname))
-		error = errno;
-
-	/* FALL THROUGH */
-
-error:
-	HFREE_NULL(dirname);
-	HFREE_NULL(pagname);
-	HFREE_NULL(datname);
-
-	if (ndb != NULL) {
-		sdbm_unlink(ndb);
-	}
-
-	if (0 != error) {
-		errno = error;
-		goto failed;
-	}
-
-	/*
-	 * Loudly warn if we skipped some values during the rebuilding process.
-	 *
-	 * The values we skipped were unreadable, corrupted, or otherwise not
-	 * something we could repair, so there was no point in refusing to
-	 * rebuild the database.
-	 */
-
-	if (skipped != 0) {
-		s_critical("sdbm: \"%s\": had to skip %u/%u item%s (%u duplicate%s)"
-			" during rebuild",
-			sdbm_name(db), skipped, items, 1 == skipped ? "" : "s",
-			duplicate, 1 == duplicate ? "" : "s");
-	}
-
-	result = 0;		/* OK, we rebuilt the database */
-
-done:
-	sdbm_return(db, result);
-
-failed:
-	result = -1;
-	goto done;
-}
-
-/**
  * Clear the whole database, discarding all the data.
  *
  * @return 0 on success, -1 on failure with errno set.
@@ -3015,6 +3170,9 @@ sdbm_clear(DBM *db)
 		errno = ESTALE;
 		goto error;
 	}
+	if G_UNLIKELY(db->rdb != NULL)
+		sdbm_clear(db->rdb);		/* Also clear rebuilt DB */
+	db->delta = 0;
 	if G_UNLIKELY(-1 == ftruncate(db->pagf, 0))
 		goto error;
 	db->pagbno = -1;
@@ -3269,6 +3427,41 @@ sdbm_datfno(DBM *db)
 #endif
 
 	sdbm_return(db, fno);
+}
+
+/*
+ * Warn if caller is not in a "separate thread".
+ *
+ * We are in a separate thread if the database is thread-safe and is
+ * referenced by more than one thread.
+ *
+ * Since the purpose of running in a separate thread is to avoid locking
+ * the database for a long period of time, we also loudly warn if the
+ * database is already locked.
+ *
+ * @param db		the database we want to check
+ * @param caller	calling routine, for logging
+ */
+void
+sdbm_warn_if_not_separate(const DBM *db, const char *caller)
+{
+	sdbm_check(db);
+
+	if G_UNLIKELY(!sdbm_is_thread_safe(db)) {
+		s_carp("%s(): processing thread-unsafe SDBM \"%s\"",
+			caller, sdbm_name(db));
+		return;
+	}
+
+	if G_UNLIKELY(1 == sdbm_refcnt(db)) {
+		s_carp("%s(): processing a single-referenced SDBM \"%s\"",
+			caller, sdbm_name(db));
+	}
+
+	if G_UNLIKELY(sdbm_is_locked(db)) {
+		s_carp("%s(): processing already locked SDBM \"%s\" (depth=%zu)",
+			caller, sdbm_name(db), qlock_depth(db->lock));
+	}
 }
 
 /* vi: set ts=4 sw=4 cindent: */

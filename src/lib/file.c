@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -69,11 +69,24 @@ static reclaim_fd_t reclaim_fd = NULL;
 bool
 file_exists(const char *pathname)
 {
-  	filestat_t st;
+	filestat_t st;
 
-    g_assert(pathname != NULL);
+	g_assert(pathname != NULL);
 
-    return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
+	return 0 == stat(pathname, &st) && S_ISREG(st.st_mode);
+}
+
+/**
+ * Check whether file is empty.
+ */
+bool
+file_is_empty(const char *pathname)
+{
+	filestat_t st;
+
+	g_assert(pathname != NULL);
+
+	return 0 == stat(pathname, &st) && 0 == st.st_size;
 }
 
 /**
@@ -110,7 +123,7 @@ file_locate_from_path(const char *argv0)
 		if (!already_done) {
 			s_warning("can't locate \"%s\" in PATH: name contains '%c' already",
 				argv0,
-				strchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
+				vstrchr(argv0, G_DIR_SEPARATOR) != NULL ? G_DIR_SEPARATOR : '/');
 		}
 		result = h_strdup(argv0);
 		goto done;
@@ -159,7 +172,7 @@ file_locate_from_path(const char *argv0)
 
 		if ('\0' == *dir)
 			dir = ".";
-		concat_strings(filepath, sizeof filepath,
+		concat_strings(ARYLEN(filepath),
 			dir, G_DIR_SEPARATOR_S, argv0, ext, NULL_PTR);
 
 		if (-1 != stat(filepath, &buf)) {
@@ -192,9 +205,9 @@ file_program_path(const char *argv0)
 	char filepath[MAX_PATH_LEN + 1];
 
 	if (is_running_on_mingw() && !is_strsuffix(argv0, (size_t) -1, ".exe")) {
-		concat_strings(filepath, sizeof filepath, argv0, ".exe", NULL_PTR);
+		concat_strings(ARYLEN(filepath), argv0, ".exe", NULL_PTR);
 	} else {
-		clamp_strcpy(filepath, sizeof filepath, argv0);
+		clamp_strcpy(ARYLEN(filepath), argv0);
 	}
 
 	if (-1 == stat(filepath, &buf)) {
@@ -344,7 +357,7 @@ open_failed:
 			s_debug("[%s] retrieving from \"%s\"%s", what, path, instead);
 		} else if (instead == instead_str) {
 			s_debug("[%s] unable to retrieve: tried %d alternate location%s",
-				what, fvcnt, plural(fvcnt));
+				what, PLURAL(fvcnt));
 		} else {
 			s_debug("[%s] unable to retrieve: no alternate locations known",
 				what);
@@ -571,7 +584,7 @@ do_open(const char *path, int flags, int mode,
 	int fd;
 
 	if (absolute && !is_absolute_path(path)) {
-		s_warning("%s(): can't open absolute \"%s\": relative path",
+		s_carp("%s(): can't open absolute \"%s\": relative path",
 			G_STRFUNC, path);
 		errno = EPERM;
 		return -1;
@@ -630,7 +643,7 @@ do_open(const char *path, int flags, int mode,
 
 	if (!missing || errno != ENOENT) {
 		if (!silent || errno != EACCES) {
-			s_warning("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
+			s_carp("%s(): can't %s file \"%s\": %m", G_STRFUNC, what, path);
 		}
 	}
 
@@ -733,6 +746,7 @@ do_fopen(const char *path, const char *mode, bool missing)
 	const char *what;
 
 	if (!is_absolute_path(path)) {
+		s_carp("%s(): will not open relative path \"%s\"", G_STRFUNC, path);
 		errno = EPERM;
 		return NULL;
 	}
@@ -768,7 +782,7 @@ do_fopen(const char *path, const char *mode, bool missing)
 	}
 
 	if (!missing || errno != ENOENT)
-		s_warning("can't %s file \"%s\": %m", what, path);
+		s_carp("can't %s file \"%s\": %m", what, path);
 
 	return NULL;
 }
@@ -814,7 +828,7 @@ file_sync_fclose(FILE *f)
 	fd = fileno(f);
 
 	if (-1 == fd_fdatasync(fd))
-		s_warning("cannot flush data blocks to disk for fd=%d: %m", fd);
+		s_carp("cannot flush data blocks to disk for fd=%d: %m", fd);
 
 	return fclose(f) | ret;		/* Report error if fflush() failed */
 }

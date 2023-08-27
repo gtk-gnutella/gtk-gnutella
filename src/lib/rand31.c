@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -183,33 +183,33 @@ rand31_random_seed(void)
 	seed += integer_hash_fast(getppid());
 	seed += integer_hash_fast(getuid());
 	seed += integer_hash_fast(getgid());
-	seed += binary_hash(&now, sizeof now);
-	seed += binary_hash(&cpu, sizeof cpu);
+	seed += binary_hash(VARLEN(now));
+	seed += binary_hash(VARLEN(cpu));
 	seed += pointer_hash_fast(&now);
 	entropy_delay();
 	tm_precise_time(&now);
 	nsecs += now.tv_nsec;
-	seed += binary_hash(&now, sizeof now);
+	seed += binary_hash(VARLEN(now));
 	seed += integer_hash_fast(nsecs);
 	ZERO(&env);			/* Avoid uninitialized memory reads */
 	if (Setjmp(env)) {
 		g_assert_not_reached(); /* We never longjmp() */
 	}
-	seed += binary_hash(env, sizeof env);
-	seed += binary_hash(garbage, sizeof garbage);
-	discard = binary_hash2(env, sizeof env);
-	discard ^= binary_hash2(&now, sizeof now);
+	seed += binary_hash(ARYLEN(env));
+	seed += binary_hash(ARYLEN(garbage));
+	discard = binary_hash2(ARYLEN(env));
+	discard ^= binary_hash2(VARLEN(now));
 	discard += getpid();
 	discard += time(NULL);
 	cpu = tm_cputime(NULL, NULL);
-	discard += binary_hash2(&cpu, sizeof cpu);
+	discard += binary_hash2(VARLEN(cpu));
 	tm_precise_time(&now);
-	seed += binary_hash2(&now, sizeof now);
+	seed += binary_hash2(VARLEN(now));
 	nsecs += now.tv_nsec;
 	n = nsecs % 31;
 	discard = UINT32_ROTL(discard, n);
 	tm_precise_time(&now);
-	seed += binary_hash2(&now, sizeof now);
+	seed += binary_hash2(VARLEN(now));
 	nsecs += now.tv_nsec;
 	entropy_delay();
 	tm_precise_time(&now);
@@ -240,7 +240,7 @@ rand31_random_seed(void)
  *
  * Using a seed of 0 computes a new random seed.
  *
- * This routine can safely be called without any thread lock.
+ * This routine must be called without any rand31 lock.
  */
 static void
 rand31_do_seed(unsigned seed)
@@ -248,11 +248,14 @@ rand31_do_seed(unsigned seed)
 	while (seed >= RAND31_MOD)
 		seed -= RAND31_MOD;
 
-	rand31_first_seed = rand31_seed =
-		rand31_is_zero(seed) ? rand31_random_seed() : seed;
+	RAND31_LOCK;
 
-	atomic_mb();
-	atomic_int_inc(&rand31_seeded);
+	if (0 == atomic_int_inc(&rand31_seeded)) {
+		rand31_first_seed = rand31_seed =
+			rand31_is_zero(seed) ? rand31_random_seed() : seed;
+	}
+
+	RAND31_UNLOCK;
 }
 
 /**
@@ -341,10 +344,7 @@ rand31_set_seed(unsigned seed)
 	unsigned s;
 
 	s = rand31_is_zero(seed) ? rand31_random_seed() : seed;
-
-	RAND31_LOCK;
 	rand31_do_seed(s);
-	RAND31_UNLOCK;
 }
 
 /**

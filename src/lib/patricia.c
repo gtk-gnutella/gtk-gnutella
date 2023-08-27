@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -2681,7 +2681,7 @@ test_keys(uint32 keys[], size_t nkeys)
 		char target[4];
 		bool removed;
 
-		random_bytes(target, sizeof target);
+		random_bytes(ARYLEN(target));
 		found = patricia_closest_extended(pt, target, &key, NULL);
 		g_assert(found);
 		g_assert(key);
@@ -2904,7 +2904,7 @@ patricia_test(void)
 		int j;
 
 		for (j = 0; j < 10; j++) {
-			random_bytes(&keys[i], sizeof keys[i]);
+			random_bytes(VARLEN(keys[i]));
 			if (!patricia_contains(pt, &keys[i]) && keys[i] != 0)
 				break;
 		}

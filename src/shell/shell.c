@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -58,6 +58,7 @@
 #include "lib/hstrfn.h"
 #include "lib/htable.h"
 #include "lib/inputevt.h"
+#include "lib/iovec.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
 #include "lib/random.h"
@@ -91,6 +92,7 @@ struct gnutella_shell {
 	enum shell_magic magic;
 	struct shell_pending pending;
 	struct gnutella_socket *socket;
+	inputevt_cond_t cond;	/** Current I/O event condition */
 	slist_t *output;
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
@@ -120,7 +122,7 @@ static htable_t *shell_cmds;
 
 static bool shell_interpret_line(struct gnutella_shell *sh, const char *line);
 static void shell_interpret_data(struct gnutella_shell *sh);
-static void shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
+static bool shell_handle_event(struct gnutella_shell *, inputevt_cond_t);
 
 static inline bool
 shell_has_pending_output(struct gnutella_shell *sh)
@@ -143,6 +145,7 @@ shell_new(struct gnutella_socket *s)
 	sh->magic = SHELL_MAGIC;
 	sh->socket = s;
 	sh->output = slist_new();
+	sh->cond = INPUT_EVENT_NONE;
 	slist_thread_safe(sh->output);
 	spinlock_init(&sh->lock);
 
@@ -176,7 +179,39 @@ static void
 shell_handle_data(void *data, int unused_source, inputevt_cond_t cond)
 {
 	(void) unused_source;
-	shell_handle_event(data, cond);
+
+	(void) shell_handle_event(data, cond);
+}
+
+/**
+ * Change I/O event condition on shell, if needed.
+ */
+static void
+shell_evt_set(struct gnutella_shell *sh, inputevt_cond_t cond)
+{
+	shell_check(sh);
+
+	if (G_LIKELY(sh->cond == cond))
+		return;
+
+	SHELL_LOCK(sh);
+
+	if (G_LIKELY(sh->cond == cond)) {
+		SHELL_UNLOCK(sh);
+		return;
+	}
+
+	socket_evt_clear(sh->socket);
+
+	if (INPUT_EVENT_NONE != cond)
+		socket_evt_set(sh->socket, cond, shell_handle_data, sh);
+
+	sh->cond = cond;
+
+	SHELL_UNLOCK(sh);
+
+	if (GNET_PROPERTY(shell_debug) > 1)
+		s_debug("%s(%p): %s", G_STRFUNC, sh, inputevt_cond_to_string(cond));
 }
 
 static void
@@ -195,12 +230,10 @@ shell_destroy(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 
-	if (GNET_PROPERTY(shell_debug)) {
-		s_debug("%s(%p)", G_STRFUNC, sh);
-	}
+	if (GNET_PROPERTY(shell_debug))
+		s_debug("%s(%p) async=%s", G_STRFUNC, sh, bool_to_string(sh->async));
 
 	elist_remove(&shells, sh);
-	socket_evt_clear(sh->socket);
 	shell_discard_output(sh);
 	socket_free_null(&sh->socket);
 	shell_free(sh);
@@ -273,36 +306,28 @@ shell_shutdown(struct gnutella_shell *sh)
 {
 	shell_check(sh);
 
+	if (GNET_PROPERTY(shell_debug) > 1)
+		s_debug("%s(%p) async=%s", G_STRFUNC, sh, bool_to_string(sh->async));
+
 	sh->shutdown = TRUE;
 	atomic_mb();
-	socket_evt_clear(sh->socket);
+	shell_evt_set(sh, INPUT_EVENT_NONE);
 }
 
 static void
 shell_eof(struct gnutella_shell *sh)
 {
+	inputevt_cond_t ev = INPUT_EVENT_NONE;
+
 	shell_check(sh);
 
 	sh->eof = TRUE;
 	atomic_mb();
 
-	SHELL_LOCK(sh);
+	if (shell_has_pending_output(sh))
+		ev = INPUT_EVENT_WX;
 
-	socket_evt_clear(sh->socket);
-
-	if (shell_has_pending_output(sh)) {
-		if (GNET_PROPERTY(shell_debug) > 1) {
-			s_debug("%s(%p): keeping INPUT_EVENT_WX", G_STRFUNC, sh);
-		}
-
-		socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
-	} else {
-		if (GNET_PROPERTY(shell_debug) > 1) {
-			s_debug("%s(%p): cleared all events", G_STRFUNC, sh);
-		}
-	}
-
-	SHELL_UNLOCK(sh);
+	shell_evt_set(sh, ev);
 }
 
 /**
@@ -542,6 +567,17 @@ shell_parse_command(struct gnutella_shell *sh,
 
 	g_assert(NULL == argv || NULL == argv[argc]);
 
+	if (GNET_PROPERTY(shell_debug)) {
+		if (NULL == argv) {
+			s_debug("%s(%p): empty command", G_STRFUNC, sh);
+		} else {
+			char *cmd = h_strjoinv(" ", (char **) argv);
+			s_debug("%s(%p): got \"%s\"", G_STRFUNC, sh, cmd);
+			HFREE_NULL(cmd);
+		}
+	}
+
+
 	*argv_ptr = argv;
 	*argc_ptr = argc;
 	return ok;
@@ -616,8 +652,7 @@ shell_pending_flush(struct gnutella_shell *sh, bool last)
 	if (sh->pending.msg != NULL) {
 		char buf[5];
 
-		str_bprintf(buf, sizeof buf, "%03d%c",
-			sh->pending.code, last ? ' ' : '-');
+		str_bprintf(ARYLEN(buf), "%03d%c", sh->pending.code, last ? ' ' : '-');
 		shell_write(sh, buf);
 		shell_write(sh, sh->pending.msg);
 		shell_write(sh, "\n");
@@ -694,16 +729,26 @@ shell_resume_processing(void *p)
 	struct shell_async_args *args = p;
 	struct gnutella_shell *sh = args->sh;
 	const char *line = args->next;
+	bool ok;
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): resuming in main after %s()",
-			G_STRFUNC, sh, stacktrace_function_name(args->handler));
+		s_debug("%s(%p): resuming in main after %s()%s",
+			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+			sh->shutdown ? " [\"shutdown\" on]" : "");
 	}
 
 	WFREE(args);
 	sh->last_update = tm_time();
 	sh->async = FALSE;
-	shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
+
+	ok = shell_handle_event(sh, INPUT_EVENT_NONE);	/* Ensure we can read/write */
+
+	if (!ok) {
+		if (GNET_PROPERTY(shell_debug) > 1) {
+			s_debug("%s(%p): shell was destroyed", G_STRFUNC, sh);
+		}
+		return;
+	}
 
 	/*
 	 * Once the line is fully interpreted and we're no longer running any
@@ -844,7 +889,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 				 */
 
 				sh->async = TRUE;
-				socket_evt_clear(sh->socket);
+				shell_evt_set(sh, INPUT_EVENT_NONE);
 
 				if (
 					-1 == thread_create(shell_async_handler, args,
@@ -852,9 +897,12 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 							THREAD_F_NO_CANCEL | THREAD_F_WARN,
 						SHELL_STACK_SIZE)
 				) {
+					bool ok;
+
 					WFREE(args);
 					sh->async = FALSE;
-					shell_handle_event(sh, INPUT_EVENT_NONE);
+					ok = shell_handle_event(sh, INPUT_EVENT_NONE);
+					g_assert(ok);
 					goto synchronous;
 				}
 
@@ -867,7 +915,7 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 			shell_post_handle(sh, reply_code);
 		} else {
 			char buf[80];
-			str_bprintf(buf, sizeof buf, _("Unknown command: \"%s\""), argv[0]);
+			str_bprintf(ARYLEN(buf), _("Unknown command: \"%s\""), argv[0]);
 			shell_set_msg(sh, buf);
 			reply_code = REPLY_ERROR;
 		}
@@ -897,44 +945,45 @@ shell_write_data(struct gnutella_shell *sh)
 	s = sh->socket;
 	socket_check(s);
 
-	sh->last_update = tm_time();
+	while (shell_has_pending_output(sh)) {
+		sh->last_update = tm_time();
 
-	slist_lock(sh->output);
-	iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
-	slist_unlock(sh->output);
-
-	g_assert(iov != NULL);
-
-	written = s->wio.writev(&s->wio, iov, iov_cnt);
-
-	if (GNET_PROPERTY(shell_debug) > 2) {
-		s_debug("%s(%p): wrote %zd byte%s",
-			G_STRFUNC, sh, written, plural(written));
-	}
-
-	switch (written) {
-	case (ssize_t) -1:
-		if (is_temporary_error(errno))
-			goto done;
-
-		s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
-		shell_shutdown(sh);
-		break;
-
-	case 0:
-		shell_discard_output(sh);
-		shell_shutdown(sh);
-		break;
-
-	default:
 		slist_lock(sh->output);
-		pmsg_slist_discard(sh->output, written);
+		iov = pmsg_slist_to_iovec(sh->output, &iov_cnt, NULL);
 		slist_unlock(sh->output);
-	}
 
-done:
-	HFREE_NULL(iov);
-	return;
+		g_assert(iov != NULL);
+
+		written = s->wio.writev(&s->wio, iov, iov_cnt);
+
+		if (GNET_PROPERTY(shell_debug) > 2) {
+			s_debug("%s(%p): wrote %zd byte%s (out of %zu)",
+				G_STRFUNC, sh, PLURAL(written),
+				iov_calculate_size(iov, iov_cnt));
+		}
+
+		HFREE_NULL(iov);
+
+		switch (written) {
+		case (ssize_t) -1:
+			if (is_temporary_error(errno)) {
+				if (GNET_PROPERTY(shell_debug) > 2)
+					s_debug("%s(%p): temporary write error: %m", G_STRFUNC, sh);
+				return;
+			}
+			s_warning("%s(%p): writev() failed: %m", G_STRFUNC, sh);
+			/* FALL THROUGH */
+		case 0:
+			shell_discard_output(sh);
+			shell_shutdown(sh);
+			return;
+		default:
+			slist_lock(sh->output);
+			pmsg_slist_discard(sh->output, written);
+			slist_unlock(sh->output);
+			break;
+		}
+	}
 }
 
 /**
@@ -1000,7 +1049,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
 		s_debug("%s(%p): %zu byte%s in socket buffer",
-			G_STRFUNC, sh, s->pos, plural(s->pos));
+			G_STRFUNC, sh, PLURAL(s->pos));
 	}
 
 	while (s->pos > 0) {
@@ -1045,7 +1094,7 @@ shell_interpret_data(struct gnutella_shell *sh)
 
 done:
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): finished normally (setting INPUT_EVENT_RW)",
+		s_debug("%s(%p): finished normally (setting INPUT_EVENT_RWX)",
 			G_STRFUNC, sh);
 	}
 
@@ -1054,8 +1103,7 @@ done:
 	 * shell in a single thread at this point, with no concurrent shell thread.
 	 */
 
-	socket_evt_clear(sh->socket);
-	socket_evt_set(sh->socket, INPUT_EVENT_RW, shell_handle_data, sh);
+	shell_evt_set(sh, INPUT_EVENT_RWX);
 }
 
 /**
@@ -1108,62 +1156,72 @@ shell_read_data(struct gnutella_shell *sh)
 	shell_interpret_data(sh);
 }
 
-static void
+/**
+ * Handle event condition on the shell's socket.
+ *
+ * @return TRUE if we can continue, FALSE if the shell was destroyed
+ * and the `sh' object is therefore invalid!
+ */
+static bool
 shell_handle_event(struct gnutella_shell *sh, inputevt_cond_t cond)
 {
+	inputevt_cond_t ev = INPUT_EVENT_NONE;
+
 	shell_check(sh);
 
-	if (cond & INPUT_EVENT_EXCEPTION) {
-		s_warning ("%s(%p): got input exception", G_STRFUNC, sh);
-		goto destroy;
+	if (GNET_PROPERTY(shell_debug) > 3) {
+		s_debug("%s(%p): got %c%c%c events, shutdown=%s, eof=%s",
+			G_STRFUNC, sh,
+			(cond & INPUT_EVENT_R) ? 'r' : '-',
+			(cond & INPUT_EVENT_W) ? 'w' : '-',
+			(cond & INPUT_EVENT_EXCEPTION) ? 'x' : '-',
+			bool_to_string(sh->shutdown),
+			bool_to_string(sh->eof));
 	}
 
-	if (
-		(cond & INPUT_EVENT_W) &&
-		!sh->shutdown && shell_has_pending_output(sh)
-	) {
-		shell_write_data(sh);
+	if (cond & INPUT_EVENT_EXCEPTION) {
+		s_warning ("%s(%p): got %c%c exception", G_STRFUNC, sh,
+			(cond & INPUT_EVENT_R) ? 'r' : '-',
+			(cond & INPUT_EVENT_W) ? 'w' : '-');
+		if (cond & INPUT_EVENT_R)
+			shell_eof(sh);
+		if (cond & INPUT_EVENT_W)
+			shell_shutdown(sh);
 	}
+
+	if ((cond & INPUT_EVENT_W) && shell_has_pending_output(sh))
+		shell_write_data(sh);
 
 	if ((cond & INPUT_EVENT_R) && !(sh->shutdown || sh->eof)) {
 		g_assert(!sh->async);
 		shell_read_data(sh);
 	}
 
-	SHELL_LOCK(sh);
-
 	if (!shell_has_pending_output(sh)) {
-		if (sh->shutdown || sh->exiting) {
-			SHELL_UNLOCK(sh);
+		if (sh->shutdown || sh->exiting)
 			goto destroy;
-		}
-
-		if (GNET_PROPERTY(shell_debug) > 1) {
-			s_debug("%s(%p): clearing INPUT_EVENT_WX", G_STRFUNC, sh);
-		}
-
-		socket_evt_clear(sh->socket);
 
 		if (!sh->async) {
-			if (sh->eof) {
-				SHELL_UNLOCK(sh);
+			if (sh->eof)
 				goto destroy;
-			}
-			if (GNET_PROPERTY(shell_debug) > 1) {
-				s_debug("%s(%p): setting INPUT_EVENT_RX", G_STRFUNC, sh);
-			}
-			socket_evt_set(sh->socket, INPUT_EVENT_RX, shell_handle_data, sh);
+			ev = INPUT_EVENT_RX;
 		}
+
+		shell_evt_set(sh, ev);
 	}
 
-	SHELL_UNLOCK(sh);
-	return;
+	if (!sh->shutdown)
+		return TRUE;
+
+	/* FALL THROUGH */
 
 destroy:
 	if (sh->async)
 		shell_shutdown(sh);
 	else
 		shell_destroy(sh);
+
+	return FALSE;		/* Cannot continue processing */
 }
 
 static void
@@ -1174,16 +1232,7 @@ shell_evt_writable(struct gnutella_shell *sh)
 	if G_UNLIKELY(sh->shutdown)
 		return;
 
-	SHELL_LOCK(sh);
-
-	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): setting INPUT_EVENT_WX", G_STRFUNC, sh);
-	}
-
-	socket_evt_clear(sh->socket);
-	socket_evt_set(sh->socket, INPUT_EVENT_WX, shell_handle_data, sh);
-
-	SHELL_UNLOCK(sh);
+	shell_evt_set(sh, INPUT_EVENT_WX);
 }
 
 void
@@ -1204,7 +1253,7 @@ shell_write(struct gnutella_shell *sh, const char *text)
 	if (sh->shutdown)
 		return;
 
-	len = strlen(text);
+	len = vstrlen(text);
 	g_return_if_fail(len < (size_t) -1);
 
 	if (len > 0) {
@@ -1321,7 +1370,7 @@ shell_auth_cookie(void)
 	if (!initialized) {
 		uint32 noise[64];
 
-		random_strong_bytes(noise, sizeof noise);
+		random_key_bytes(ARYLEN(noise));
 		SHA1_COMPUTE(noise, &cookie);
 		shell_dump_cookie(&cookie);
 		initialized = TRUE;
@@ -1355,7 +1404,7 @@ shell_auth(struct gnutella_shell *sh, const char *str)
 	cookie = shell_auth_cookie();
 	if (
 		tok_helo && 0 == strcmp("HELO", tok_helo) &&
-		tok_cookie && SHA1_BASE32_SIZE == strlen(tok_cookie) &&
+		tok_cookie && SHA1_BASE32_SIZE == vstrlen(tok_cookie) &&
 		0 == memcmp_diff(sha1_base32(cookie), tok_cookie, SHA1_BASE32_SIZE)
 	) {
 		ok = TRUE;
@@ -1462,7 +1511,7 @@ shell_add(struct gnutella_socket *s)
 	}
 
 	/* We don't read anymore on shutdown, but be paranoid just in case. */
-	shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
+	(void) shell_handle_event(sh, sh->shutdown ? INPUT_EVENT_W : INPUT_EVENT_RW);
 }
 
 void

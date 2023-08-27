@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -98,7 +98,7 @@ monitor_gui_add(query_type_t type, const gchar *item,
 
 		/* If the query is empty and we have a SHA1 extension,
 	 	 * we print a urn:sha1-query instead. */
-		concat_strings(buf, sizeof buf,
+		concat_strings(ARYLEN(buf),
 			QUERY_SHA1 == type ? "urn:sha1:" : "", item, NULL_PTR);
 
 		s = lazy_unknown_to_utf8_normalized(buf, UNI_NORM_GUI, &charset_ptr);

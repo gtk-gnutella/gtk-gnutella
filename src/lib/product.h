@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -44,6 +44,7 @@ void product_init(const char *name,
 	const char *build);
 
 const char *product_name(void) G_PURE;
+bool product_has_forced_name(void) G_PURE;
 const char *product_nickname(void) G_PURE;
 const char *product_date(void) G_PURE;
 const char *product_version(void) G_PURE;
@@ -57,6 +58,7 @@ const char *product_interface(void);
 const char *product_website(void);
 uint32 product_build(void);
 
+void product_set_forced_name(const char *name);
 void product_set_nickname(const char *nickname);
 void product_set_interface(const char *iface);
 void product_set_website(const char *web);

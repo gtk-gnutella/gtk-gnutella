@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -55,7 +55,7 @@ print_upload_info(struct gnutella_shell *sh,
 	g_return_if_fail(sh);
 	g_return_if_fail(info);
 
-	str_bprintf(buf, sizeof buf, "%-3.3s %-16.40s %s %s@%s %s%s%s",
+	str_bprintf(ARYLEN(buf), "%-3.3s %-16.40s %s %s@%s %s%s%s",
 		info->encrypted ? "(E)" : "",
 		host_addr_to_string(info->addr),
 		iso3166_country_cc(info->country),

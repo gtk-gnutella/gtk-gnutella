@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -150,11 +150,10 @@ gui_init_window_title(void)
 	const char *revision = product_revision();
 
 	if (revision[0] != '\0') {
-		str_bprintf(title, sizeof(title), "gtk-gnutella %s %s",
+		str_bprintf(ARYLEN(title), "gtk-gnutella %s %s",
 			product_version(), revision);
 	} else {
-		str_bprintf(title, sizeof(title), "gtk-gnutella %s",
-			product_version());
+		str_bprintf(ARYLEN(title), "gtk-gnutella %s", product_version());
 	}
 
 	gtk_window_set_title(GTK_WINDOW(gui_main_window()), title);
@@ -835,6 +834,20 @@ void main_gui_init_osx()
 }
 #endif
 
+static bool opt_ancien_is_disabled = FALSE;
+
+bool
+main_gui_ancient_is_disabled(void)
+{
+	return opt_ancien_is_disabled;
+}
+
+void
+main_gui_disable_ancient(bool v)
+{
+	opt_ancien_is_disabled = v;
+}
+
 /**
  * Some setup of the gui side which I wanted out of main.c but must be done
  * before the backend can be initialized since the core code is not free of
@@ -878,6 +891,17 @@ main_gui_early_init(gint argc, gchar **argv, gboolean disable_xshm)
 #ifdef MINGW32
 	add_pixmap_directory(mingw_filename_nearby(pixmaps));
 #endif
+
+	/*
+	 * We need to initialize the GUI properties early (create the set)
+	 * to be able to process and validate properties given when creating
+	 * things that need to be saved within a GUI property (e.g. column
+	 * widths).
+	 * 		--RAM, 2017-10-26
+	 */
+
+	settings_gui_early_init();
+	misc_gui_early_init();			/* For column resize events capture */
 
     gui_main_window_set(create_main_window());
 	gui_init_main_window();
@@ -1169,6 +1193,7 @@ main_gui_shutdown(void)
 	gnet_stats_gui_shutdown();
     hcache_gui_shutdown();
     statusbar_gui_shutdown();
+	misc_gui_shutdown();
 }
 
 /* vi: set ts=4 sw=4 cindent: */

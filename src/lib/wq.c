@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -346,7 +346,7 @@ wq_notify(hash_list_t *hl, void *data)
 		if (i++ >= count) {
 			/* Something is odd, let them know about the calling stack */
 			s_critical("stopping after processing %zu item%s (list now has %u)",
-				count, plural(count), hash_list_length(hl));
+				PLURAL(count), hash_list_length(hl));
 		}
 
 		status = (*we->cb)(we->arg, data);

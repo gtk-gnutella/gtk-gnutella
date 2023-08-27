@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -43,7 +43,8 @@ struct gnutella_socket;
  * Known banning categories.
  */
 typedef enum {
-	BAN_CAT_SOCKET = 0,		/**< Socket connection */
+	BAN_CAT_GNUTELLA = 0,	/**< Gnutella connections */
+	BAN_CAT_HTTP,			/**< HTTP requests */
 	BAN_CAT_OOB_CLAIM,		/**< OOB hit claims */
 
 	BAN_CAT_COUNT			/**< Total amount of banning categories */
@@ -63,14 +64,17 @@ typedef enum {
 void ban_init(void);
 void ban_close(void);
 ban_type_t ban_allow(const ban_category_t cat, const host_addr_t addr);
-void ban_record(const host_addr_t addr, const char *msg);
-void ban_force(struct gnutella_socket *s);
+void ban_legit(const ban_category_t cat, const host_addr_t addr);
+void ban_penalty(ban_category_t cat, const host_addr_t addr, const char *msg);
+void ban_record(ban_category_t cat, const host_addr_t addr, const char *msg);
+void ban_force(ban_category_t cat, struct gnutella_socket *s);
 int ban_delay(const ban_category_t cat, const host_addr_t addr);
-const char *ban_message(const host_addr_t addr);
+const char *ban_message(ban_category_t cat, const host_addr_t addr);
 bool ban_is_banned(const ban_category_t cat, const host_addr_t addr);
 void ban_max_recompute(void);
 
 const char *ban_vendor(const char *vendor);
+const char *ban_category_string(const ban_category_t cat);
 
 #endif	/* _core_ban_h_ */
 

@@ -18,7 +18,7 @@
 ?S:d_glib:
 ?S:	This variable is set if compiling against GLib works.
 ?S:.
-?T:modver version
+?T:modver version x l
 : how can we find information about GLib?
 echo " "
 echo "Checking how we can gather information about GLib..." >&4
@@ -52,6 +52,21 @@ case "$version" in
 	version=`$glibconfig $modver | head -1`
 	;;
 esac
+
+?X: Remove usless libraries (which we use no symbols from in gtk-gnutella...)
+case "$glibversion" in
+2)
+	x=
+	for l in $glibldflags; do
+		case "$l" in
+		-lgthread-2.0) ;;
+		*) x="$x $l";;
+		esac
+	done
+	glibldflags=$x
+	;;
+esac
+
 ?X:
 ?X: check that we've got the version they asked for
 ?X:

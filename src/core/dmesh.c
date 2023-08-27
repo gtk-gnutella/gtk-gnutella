@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -252,7 +252,7 @@ dmesh_fill_info(dmesh_urlinfo_t *info,
 	info->idx = idx;
 
 	if (sha1) {
-		concat_strings(urn, sizeof urn, urnsha1, sha1_base32(sha1), NULL_PTR);
+		concat_strings(ARYLEN(urn), urnsha1, sha1_base32(sha1), NULL_PTR);
 		info->name = urn;
 	} else {
 		info->name = name;
@@ -1041,7 +1041,7 @@ dmesh_raw_add(const struct sha1 *sha1, const dmesh_urlinfo_t *info,
 		dme->good = FALSE;
 		dme->fw_entry = FALSE;
 
-		entropy_harvest_many(name, strlen(name),
+		entropy_harvest_many(name, vstrlen(name),
 			VARLEN(dme), PTRLEN(sha1), NULL);
 
 		if (GNET_PROPERTY(dmesh_debug) > 1)
@@ -1567,7 +1567,7 @@ dmesh_urlinfo_to_string_buf(const dmesh_urlinfo_t *info, char *buf,
 		 */
 
 		if (quoting != NULL)
-			*quoting = NULL != strchr(info->name, ',');
+			*quoting = NULL != vstrchr(info->name, ',');
 	}
 
 	return rw < maxslen ? rw : (size_t) -1;
@@ -1581,7 +1581,7 @@ dmesh_urlinfo_to_string(const dmesh_urlinfo_t *info)
 {
 	static char urlstr[1024];
 
-	(void) dmesh_urlinfo_to_string_buf(info, urlstr, sizeof urlstr, NULL);
+	(void) dmesh_urlinfo_to_string_buf(info, ARYLEN(urlstr), NULL);
 
 	return urlstr;
 }
@@ -1635,7 +1635,7 @@ dmesh_fwinfo_to_string(const dmesh_fwinfo_t *info)
 {
 	static char fwstr[1024];
 
-	(void) dmesh_fwinfo_to_string_buf(info, fwstr, sizeof fwstr);
+	(void) dmesh_fwinfo_to_string_buf(info, ARYLEN(fwstr));
 
 	return fwstr;
 }
@@ -1704,7 +1704,7 @@ dmesh_entry_url_stamp(const struct dmesh_entry *dme, char *buf, size_t size)
 		if (rw + 2 >= size)		/* Not enough room for 2 quotes */
 			return (size_t) -1;
 
-		g_memmove(buf + 1, buf, rw);
+		memmove(buf + 1, buf, rw);
 		buf[0] = '"';
 		buf[++rw] = '"';
 		buf[++rw] = '\0';
@@ -1765,9 +1765,9 @@ dmesh_entry_to_string(const struct dmesh_entry *dme)
 	static char str[1024];
 
 	if (dme->fw_entry) {
-		dmesh_entry_fw_stamp(dme, str, sizeof str);
+		dmesh_entry_fw_stamp(dme, ARYLEN(str));
 	} else {
-		dmesh_entry_url_stamp(dme, str, sizeof str);
+		dmesh_entry_url_stamp(dme, ARYLEN(str));
 	}
 
 	return str;
@@ -2110,10 +2110,10 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		ourselves.good = TRUE;
 		ourselves.fw_entry = FALSE;
 
-		url_len = dmesh_entry_compact(&ourselves, url, sizeof url);
+		url_len = dmesh_entry_compact(&ourselves, ARYLEN(url));
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
 
-		if (!header_fmt_value_fits(fmt, url_len + strlen(tls_hex)))
+		if (!header_fmt_value_fits(fmt, url_len + vstrlen(tls_hex)))
 			goto nomore;
 
 		if (tls_enabled()) {
@@ -2225,7 +2225,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 
 		g_assert(delta_time(dme->inserted, last_sent) > 0);
 
-		url_len = dmesh_entry_compact(dme, url, sizeof url);
+		url_len = dmesh_entry_compact(dme, ARYLEN(url));
 
 		/* Buffer was large enough */
 		g_assert((size_t) -1 != url_len && url_len < sizeof url);
@@ -2266,8 +2266,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		size_t url_len;
 		guid_t servent_guid;
 
-		gnet_prop_get_storage(PROP_SERVENT_GUID,
-			&servent_guid, sizeof servent_guid);
+		gnet_prop_get_storage(PROP_SERVENT_GUID, VARLEN(servent_guid));
 
 		/*
 		 * Since we're firewalled, we necessarily emit X-FW-Node-Info and
@@ -2275,7 +2274,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 		 * that information and we can simply emit our GUID.
 		 */
 
-		url_len = dmesh_fwalt_string(url, sizeof url,
+		url_len = dmesh_fwalt_string(ARYLEN(url),
 			&servent_guid, ipv4_unspecified, 0, NULL, net);
 
 		g_assert(url_len < sizeof url);
@@ -2336,7 +2335,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 				&proxies)
 		) {
 			size_t url_len;
-			url_len = dmesh_fwalt_string(url, sizeof url,
+			url_len = dmesh_fwalt_string(ARYLEN(url),
 				dme->e.fwh.guid, servent_addr, servent_port, proxies, net);
 			sequence_release(&proxies);
 
@@ -2357,7 +2356,7 @@ dmesh_alternate_location(const struct sha1 *sha1,
 				proxies = NULL;
 			}
 
-			url_len = dmesh_fwalt_string(url, sizeof url,
+			url_len = dmesh_fwalt_string(ARYLEN(url),
 				dme->e.fwh.guid, ipv4_unspecified, 0, proxies, net);
 			sequence_release(&proxies);
 
@@ -2849,7 +2848,7 @@ dmesh_collect_locations(const sha1_t *sha1, const char *value,
 				 *		--RAM, 2015-03-07
 				 */
 
-				if (NULL != (d = strrchr(date, ' ')))
+				if (NULL != (d = vstrrchr(date, ' ')))
 					stamp = date2time(++d, now);	/* Skip the space */
 
 				if ((time_t) -1 == stamp) {
@@ -3041,7 +3040,7 @@ dmesh_collect_fw_host(const struct sha1 *sha1, const char *value)
 		}
 
 		/* Skip "options", stated as "word/x.y" */
-		if (strstr(tok, "/"))
+		if (vstrchr(tok, '/'))
 			continue;
 
 		/* Skip first "pptls=" indication */
@@ -3373,8 +3372,8 @@ dmesh_retrieve(void)
 	 * blank line are attached sources for this SHA1.
 	 */
 
-	while (fgets(tmp, sizeof tmp, f)) {
-		if (!file_line_chomp_tail(tmp, sizeof tmp, NULL)) {
+	while (fgets(ARYLEN(tmp), f)) {
+		if (!file_line_chomp_tail(ARYLEN(tmp), NULL)) {
 			truncated = TRUE;
 			continue;
 		}
@@ -3407,9 +3406,8 @@ dmesh_retrieve(void)
 			}
 		} else {
 			if (
-				strlen(tmp) < SHA1_BASE32_SIZE ||
-				SHA1_RAW_SIZE != base32_decode(&sha1, sizeof sha1,
-									tmp, SHA1_BASE32_SIZE)
+				vstrlen(tmp) < SHA1_BASE32_SIZE ||
+				SHA1_RAW_SIZE != base32_decode(VARLEN(sha1), tmp, SHA1_BASE32_SIZE)
 			) {
 				g_warning("%s: bad base32 SHA1 '%.32s' at line #%d, ignoring",
 					G_STRFUNC, tmp, line);
@@ -3488,10 +3486,10 @@ dmesh_ban_retrieve(void)
 	 * Lines starting with a # are skipped.
 	 */
 
-	while (fgets(tmp, sizeof tmp, in)) {
+	while (fgets(ARYLEN(tmp), in)) {
 		line++;
 
-		if (!file_line_chomp_tail(tmp, sizeof tmp, NULL)) {
+		if (!file_line_chomp_tail(ARYLEN(tmp), NULL)) {
 			g_warning("%s: line %u too long, aborting", G_STRFUNC, line);
 			break;
 		}

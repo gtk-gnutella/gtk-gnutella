@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -103,7 +103,7 @@ void g2_msg_log_dropped_data(const void *data, size_t len, const char *fmt, ...)
 static inline const char *
 g2_msg_infostr_mb(const pmsg_t *mb)
 {
-	return g2_msg_infostr(pmsg_start(mb), pmsg_written_size(mb));
+	return g2_msg_infostr(pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 /**
@@ -112,7 +112,7 @@ g2_msg_infostr_mb(const pmsg_t *mb)
 static inline enum g2_msg
 g2_msg_type_mb(const pmsg_t *mb)
 {
-	return g2_msg_type(pmsg_start(mb), pmsg_written_size(mb));
+	return g2_msg_type(pmsg_phys_base(mb), pmsg_written_size(mb));
 }
 
 #endif /* _core_g2_msg_h_ */

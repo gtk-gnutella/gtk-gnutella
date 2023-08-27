@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -391,7 +391,7 @@ hash_list_append(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);
@@ -414,7 +414,7 @@ hash_list_prepend(hash_list_t *hl, const void *key)
 
 	hash_list_check(hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);
@@ -453,7 +453,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 	} else {
 		struct hash_list_item *item;
 
-		WALLOC(item);
+		WALLOC0(item);
 		item->key = key;
 
 		/* Inserting ``item'' before ``lk'' */
@@ -468,7 +468,7 @@ hash_list_insert_sorted(hash_list_t *hl, const void *key, cmp_fn_t func)
 static int
 sort_wrapper(const void *a, const void *b, void *data)
 {
-	cmp_fn_t func = (cmp_fn_t) cast_pointer_to_func(data);
+	cmp_fn_t func = func_cast(cmp_fn_t, cast_pointer_to_func(data));
 	const struct hash_list_item *ha = a;
 	const struct hash_list_item *hb = b;
 
@@ -655,7 +655,7 @@ hash_list_insert_position(hash_list_t *hl, const void *key, void *position)
 	hash_list_position_check(pt);
 	g_assert(pt->hl == hl);
 
-	WALLOC(item);
+	WALLOC0(item);
 	item->key = key;
 
 	hash_list_synchronize(hl);

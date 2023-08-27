@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -73,18 +73,16 @@ print_node_info(struct gnutella_shell *sh, const gnutella_node_t *n)
 
 		vendor = node_vendor(n);
 		escaped = hex_escape(vendor, TRUE);
-		clamp_strcpy(vendor_escaped, sizeof vendor_escaped, escaped);
+		clamp_strcpy(ARYLEN(vendor_escaped), escaped);
 		if (escaped != vendor) {
 			HFREE_NULL(escaped);
 		}
 	}
 
-	clamp_strcpy(uptime_buf, sizeof uptime_buf,
-		up > 0 ? compact_time(up) : "?");
-	clamp_strcpy(contime_buf, sizeof contime_buf,
-		con > 0 ? compact_time(con) : "?");
+	clamp_strcpy(ARYLEN(uptime_buf), up > 0 ? compact_time(up) : "?");
+	clamp_strcpy(ARYLEN(contime_buf), con > 0 ? compact_time(con) : "?");
 
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"%-21.45s %s %2.2s %6.6s %6.6s %.56s",
 		node_gnet_addr(n),
 		node_flags_to_string(&flags),
@@ -117,6 +115,7 @@ shell_exec_nodes(struct gnutella_shell *sh, int argc, const char *argv[])
 
 	PSLIST_FOREACH(node_all_nodes(), sl) {
 		const gnutella_node_t *n = sl->data;
+		node_check(n);
 		print_node_info(sh, n);
 	}
 	shell_write(sh, ".\n");	/* Terminate message body */

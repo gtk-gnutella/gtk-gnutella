@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -42,6 +42,7 @@
 
 #include "lib/host_addr.h"
 #include "lib/header.h"
+#include "lib/pmsg.h"
 
 #define HTTP_PORT		80		/**< Registered HTTP port */
 
@@ -56,9 +57,10 @@ typedef enum {
  */
 
 typedef enum {
-	HTTP_EXTRA_LINE,
-	HTTP_EXTRA_CALLBACK,
-	HTTP_EXTRA_BODY
+	HTTP_EXTRA_LINE,				/**< Extra header line */
+	HTTP_EXTRA_CALLBACK,			/**< User callback generating lines */
+	HTTP_EXTRA_PRIO_CALLBACK,		/**< Prioritary user callback */
+	HTTP_EXTRA_BODY					/**< Payload to include in reply */
 } http_extra_type_t;
 
 /**
@@ -144,6 +146,19 @@ http_extra_callback_set(http_extra_desc_t *he,
 }
 
 static inline void
+http_extra_prio_callback_set(http_extra_desc_t *he,
+	http_status_cb_t callback, void *user_arg)
+{
+	/*
+	 * We try to include prioritary callbacks, even when the generated header
+	 * including all the callbacks is too large.
+	 */
+	he->he_type = HTTP_EXTRA_PRIO_CALLBACK;
+	he->he_cb = callback;
+	he->he_arg = user_arg;
+}
+
+static inline void
 http_extra_line_set(http_extra_desc_t *he, const char *msg)
 {
 	he->he_type = HTTP_EXTRA_LINE;
@@ -172,6 +187,7 @@ http_extra_callback_matches(http_extra_desc_t *he, http_status_cb_t callback)
 #define HTTP_CBF_BW_SATURATED	(1 << 1)	/**< Bandwidth is saturated */
 #define HTTP_CBF_BUSY_SIGNAL	(1 << 2)	/**< Sending back a 503 "busy" */
 #define HTTP_CBF_SHOW_RANGES	(1 << 3)	/**< Show available ranges */
+#define HTTP_CBF_RETRY_PRIO		(1 << 4)	/**< Retrying, mandatory info only! */
 
 struct header;
 struct http_async;
@@ -189,7 +205,7 @@ typedef bool (*http_header_cb_t)(
 /**
  * Callback used from asynchronous request to indicate that data is available.
  */
-typedef void (*http_data_cb_t)(http_async_t *, char *data, int len);
+typedef void (*http_data_cb_t)(http_async_t *, const char *data, int len);
 
 typedef enum {				/**< Type of error reported by http_error_cb_t */
 	HTTP_ASYNC_SYSERR,		/**< System error, value is errno */
@@ -247,34 +263,6 @@ extern http_url_error_t http_url_errno;
 typedef void (*http_state_change_t)(http_async_t *, http_state_t newstate);
 
 /**
- * HTTP data buffered when it cannot be sent out immediately.
- */
-
-enum http_buffer_magic { HTTP_BUFFER_MAGIC = 0x5613d362U };
-
-typedef struct http_buffer {
-	enum http_buffer_magic magic;
-	char *hb_arena;				/**< The whole thing */
-	char *hb_rptr;				/**< Reading pointer within arena */
-	char *hb_end;				/**< First char after buffer */
-	int hb_len;					/**< Total arena length */
-} http_buffer_t;
-
-#define http_buffer_base(hb)		((hb)->hb_arena)
-#define http_buffer_length(hb)		((hb)->hb_len)
-#define http_buffer_read_base(hb)	((hb)->hb_rptr)
-#define http_buffer_unread(hb)		((hb)->hb_end - (hb)->hb_rptr)
-
-#define http_buffer_add_read(hb,tx)	do { (hb)->hb_rptr += (tx); } while (0)
-
-static inline void
-http_buffer_check(const http_buffer_t * const b)
-{
-	g_assert(b != NULL);
-	g_assert(HTTP_BUFFER_MAGIC == b->magic);
-}
-
-/**
  * Callback used when http_async_wget() completes.
  *
  * @param data		the retrieved data, NULL on error, freed with hfree().
@@ -308,6 +296,8 @@ typedef void (*http_send_status_cb_t)(
  * Public interface
  */
 
+pmsg_t *http_pmsg_alloc(const char *buf, size_t len, size_t written);
+
 void http_timer(time_t now);
 
 bool http_send_status(http_layer_t layer, struct gnutella_socket *s,
@@ -325,9 +315,6 @@ int http_status_parse(const char *line,
 
 bool http_extract_version(
 	const char *request, size_t len, uint *major, uint *minor);
-
-http_buffer_t *http_buffer_alloc(const char *buf, size_t len, size_t written);
-void http_buffer_free_null(http_buffer_t **b_ptr);
 
 int
 http_content_range_parse(const char *buf,

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -62,349 +62,6 @@
  * Keys are generated through "od -x /dev/random".
  * There can be up to 2^5 = 32 keys per version.
  */
-
-static const char *keys_100_0[] = {
-	"b6e8 a799 db61 cbe8 ce60 1438 a3c0 31ab",
-	"6f8c 91be f9df b352 cce4 a837 ce3b 73a2",
-	"2c61 cb7b e7c7 613f b020 17ac cad1 899f",
-	"bda1 e42e 8d26 f98a bb37 8b3a fe33 9de2",
-	"612a 8eea af18 3792 aec1 42dd d242 53c7",
-	"7ebf 027a c5a3 8cf2 19d7 17ae 1ac3 4d48",
-	"de52 5dc9 1130 059e a7e3 5994 bd17 99a4",
-	"f27e 75d7 b23f 20b7 ba72 bde7 6b05 6513",
-	"377f 9f2a 049e 8410 57fb edf9 e67e 80e0",
-	"48cc 202c eaf1 a7eb 0ae9 d2b1 1f40 a333",
-	"05b4 e02f 8369 8712 e31a 3a2f 8f9b 8a65",
-	"0290 e4a5 bcb8 795e 31e7 5cd3 e73a 3a0b",
-	"7781 c375 0d49 d4d5 175a 7c69 fcf6 d345",
-	"c2be 1fb2 1056 6ea7 0299 d8f7 8cfa bdd8",
-	"91b1 e043 eb64 4ed4 b195 0967 623c 5532",
-	"cf11 65f8 2688 9e26 b0b4 c75a 2eec 4ca9",
-	"e9a3 ec87 e160 2783 0de9 df46 b1b5 952f",
-	"ce27 deba 3d8b a62f 1940 77b7 4a54 e281",
-	"30ac 305f 1ec6 cf78 8e76 d47b 4a1b d291",
-	"4b4e 899d c18c 4b71 c621 a6e3 6740 4993",
-	"0094 fcab 5cd6 5b5f 91e9 9829 5fdd 930b",
-	"3d6f 2ec5 f111 f18b fe59 1aa8 7cd6 b444",
-	"b88f 9d67 d687 3355 0ada 0631 3b6d 6a3d",
-	"41f2 d33f d88a f371 6c11 feaa 83c2 f964",
-	"a525 93a8 ade7 49fa 3e76 bcf2 ccc8 f043",
-	"df6d b945 a6ff 14f6 2963 1795 ea92 266d",
-	"7271 5313 f59d f0da 343d b348 2089 c717",
-	"0ce6 7dd0 5a41 7f37 a7fd 1a81 c77e 2f89",
-	"c14b 2928 a554 d0db d921 45ce 91b7 7dd8",
-};
-
-static const char *keys_100_1[] = {
-	"d8d4 9d20 bfdb b0c4 16a0 5295 be08 1b85",
-	"0644 874b 1c69 38e6 4d9a aef7 6290 ca51",
-	"32ca 7a16 e87c ae50 43cd b55f e8df 55de",
-	"769e 0046 b99a 1377 b955 8969 f643 9169",
-	"6f17 f2fa cec5 8276 9ac0 04bc c834 d339",
-	"4e81 3e42 ff1f 9d55 b201 a3eb a521 3ea9",
-	"319f c22f 1a55 9e8c 646c 6275 0beb 166b",
-	"2907 4301 9ea6 bb77 ad8e 1772 e0e0 67b7",
-	"0a65 44ed 2016 5889 39d1 93f7 c998 fdf8",
-	"291f f564 1853 eb1d c242 6918 361d 56c1",
-	"69fe 41b6 cf04 0e28 2d7e 1d1b be21 a88e",
-	"0819 a7e0 f5c6 c596 0524 d826 3e39 8e12",
-	"bd56 2ece ca17 966f 4bcc 34c9 770d 0227",
-	"44b8 2e27 fba9 88c5 a693 1f6d 7219 7dd4",
-	"5ab2 1203 ac8e a0e8 d493 27c1 9da8 f6ff",
-	"1aab 5cdb a0ea 3a04 9c7a c72b 00c8 0ba9",
-	"9fc8 0038 a170 b822 3e9c a53f 1eb2 4f44",
-	"bd8c 2065 f363 ccdb 5976 36b5 0066 e02c",
-	"07df 6ea9 4b11 3fe2 138a 89d7 6439 457d",
-	"363c 5617 e66b 2a99 a33e f868 e694 9bd3",
-	"8cb4 7d83 8e67 55f8 8890 2762 f374 951d",
-	"99d6 00ef ec4d 8f80 5fb0 71c3 8967 c64e",
-	"26f0 b2cc bff1 8ea8 f39d 5cd8 4873 adce",
-	"953c 3fb1 4f9c 6390 9657 1596 2a31 e287",
-	"c596 de71 7e6e a5a6 7727 6db4 90f8 338f",
-	"8d33 5aa8 36ec 8117 e0fb c02e 296b a65a",
-	"c40a 619a b29d d17e 6100 e982 4dca 364e",
-	"75e4 4d2d 3533 d462 6846 52be d9d7 c12d",
-	"c831 6dc0 2434 f793 4ae2 ba68 37c6 ae9c",
-};
-
-static const char *keys_101_0[] = {
-	"0e52 1f9e 9175 3956 c50c ea12 2c04 8571",
-	"6935 29db 10f5 2457 9f50 7db6 5835 6706",
-	"c584 2380 e246 5ab5 5869 5cad 717d 1b66",
-	"2f6f 8f86 35a5 3b45 a082 c980 bbd3 b11b",
-	"e19f 2759 ce8a 20db 5d63 6144 8b3d 9ca3",
-	"8768 9271 bd23 80be ff99 036a b29c fc0b",
-	"b907 d822 b334 6d60 6abf aba1 d27a d813",
-	"88d9 096a 5caf b555 08b6 d0aa 8bca ca3d",
-	"f385 2ffb 2e4c 3c67 5c4c 654f 5566 bb3a",
-	"c5cf 6783 e701 5c8f ea15 d6d4 6bd9 aba9",
-	"e761 a010 c248 1d55 baeb a273 a745 e8f8",
-	"c427 5bd7 a45d a5e6 79b9 d454 5ad4 51ad",
-	"665a 811f 57d6 fbf4 0d6c e5f8 278d 1e52",
-	"a31b 4b67 741f f021 cf3f 9c8c d001 7128",
-	"5758 7c97 7b7d f10d c985 af97 477f 44b6",
-	"a319 d8ad 5e65 6920 e548 05c8 715c 3fe5",
-	"7683 61c1 1b54 581d 185e 6675 d325 fa72",
-	"7136 394a b039 c5ee a361 28df 157d 6d39",
-	"321a 6d8a 7d4f deb0 e41c 67df 2d46 616e",
-	"f55e a8be ae4a 8f43 20de 89bf e39f 7b90",
-	"76e0 bd5e f08f 5ee1 9d45 aa9f 4c25 c9fb",
-	"fdf7 8827 d862 284a e929 194f 8e40 292e",
-	"a85b e9bd 8de0 c4ee 3397 cc7b cf9b a2e0",
-	"48b2 22d5 993a 53f5 1c41 2211 f8ab 8aeb",
-	"9b16 317b 42d1 a718 f330 a0d8 7a4e 2df1",
-	"8fd2 ac5e 7e4a 3451 d101 43d3 d2bf c943",
-	"a708 ad13 754d 6735 b9f3 137f a7e4 63d1",
-	"21d8 66c6 dbc3 49e7 3141 e11b f869 95bf",
-};
-
-static const char *keys_101_1[] = {
-	"b5c5 bd25 df65 7faa 1216 956c 2558 c058",
-	"3530 cf03 72fa 7ccc 7eda aaa5 7e78 1da3",
-	"5a7d 2588 20d9 cfc4 c9ff b40c 237a a652",
-	"f8cb 44b2 cd14 725b 9a95 ac71 62a2 45e6",
-	"a5d5 2775 6bbb 0ccc 0d80 9ecd 0e7e 100a",
-	"916a d1d1 1b04 2696 8ce8 dd7e 6322 f423",
-	"01e9 13df 3323 dace 35ca a05b 84fd 1be6",
-	"1ce5 854f ef94 a460 de7d cc0b 0a80 37de",
-	"bee6 411d 02dc 2419 554c 2076 bd62 668f",
-	"fcdf f558 3924 a001 d92b 5619 6ec7 9995",
-	"fa96 d817 60e0 7a99 7161 085d 182b 1085",
-	"e3cd 6301 5750 f263 c260 6ce3 6c2a 6634",
-	"8298 0b87 8215 6f6f d270 d811 8d75 21eb",
-	"2675 df59 4f9b 8680 efdd a2dc 605f 3b60",
-	"d45e 32d4 d5a8 248d ae95 9df9 87c2 213c",
-	"5562 ebb4 2c0e 8ee1 990e 16c1 e856 be61",
-	"10f7 cc2a 1e9a 82b0 508b 8658 a687 2b5d",
-	"b562 070c 4abf d10e ed89 68f2 f924 e9c7",
-	"581b f25a 67f1 e35d 1bf3 aec7 de88 48c1",
-	"8b7a e5fa 4221 528b ebb3 d25f d5ae 17d8",
-	"514c ec66 e6b3 9b32 3a93 d336 6711 96a0",
-	"bf33 db03 5267 e9b8 2736 e1d2 95d7 14aa",
-	"d5f2 035a ed75 6698 43f0 330a 8d5d 5771",
-	"9c6c 232a 8b37 3b45 d192 aa19 2f0a 5855",
-	"dd5c e4ec 4b5e 63c2 48eb 5a50 d622 0e82",
-	"ad1e ecbe eb9b 3762 d1b7 ba31 27cf e585",
-	"b3ce b544 82a7 711b d8e9 36c4 2152 269d",
-	"2547 4731 9fbd 4c83 e58a aa5b f401 c0e8",
-};
-
-static const char *keys_101_2[] = {
-	"5475 43e8 a2ca 1404 f2d9 df56 2feb 70eb",
-	"53ab ae62 458a e08a c3fc 49e0 f94e 7aff",
-	"6493 d9ac 61e7 9a3a e1ab abc7 95f6 2072",
-	"6f79 2aac e10c ebdb 1e9f e9c3 0df9 4b2b",
-	"78db 1395 8bea 63a3 933f 1760 7860 d480",
-	"e4d2 40a9 a4a3 fc73 5dfa 3f56 15f7 254a",
-	"70f6 3795 1a4e 7e32 74bc bfc6 366c b889",
-	"fc10 b6c8 1f52 3134 531b 62e0 150b 6101",
-	"02ab c0b8 1bd2 6cea 3fd0 c191 ecc4 0262",
-	"e41b 3732 d070 ae4b ac4b c36b 176f 0a03",
-	"0de1 e1bb 4dd0 81a1 5365 cf5c d358 d7ba",
-	"c0bc b0fd 762b 773a a85b 21c8 2af0 f797",
-	"405d 4997 01db e436 ba6e 2222 cc28 9b6d",
-	"2ab5 245e aaee d65d 92f0 c65a b08c d636",
-	"ff11 3970 246c ee6e a00d 4ebd 54c0 ca31",
-	"c5a9 63a7 28da b2d2 8d3b a63e 0957 cf7a",
-	"d4f0 a55a 0ea6 100c 7062 cd93 a886 e802",
-	"49c9 76e6 f907 5b02 46de 70f9 236e 828d",
-	"d1f6 91e2 7f5a e8d8 2ebe 754e 2041 31cc",
-	"4467 80bb 0874 6e60 d3a2 d12f 37cd eb8b",
-	"9a5a 6ddb 440b f584 8a7d fdd0 a026 8c05",
-	"635d 9f51 d228 70bf bdba 995f f360 4171",
-	"e7a7 b9d3 a02c b0e6 a66d 9aef aeb4 187d",
-	"989c 1c07 ebc0 a635 4a4f 2bf5 305c cb0f",
-	"790d 7a2c c570 3856 8d79 6909 3479 85de",
-	"373b 7f3e c464 de1e a6c9 a0b0 c810 20b0",
-	"de00 19a9 8674 2c20 789f f688 d721 2a23",
-	"e351 701b 3cac f6d3 37b3 7052 2b64 f64c",
-};
-
-static const char *keys_101_3[] = {
-	"be45 6d2e b759 55b8 0616 85b4 6efe 829e",
-	"4003 5f01 b4a2 3026 23ef 6bbf d221 955c",
-	"8e58 304c 6aa7 7ffb 0a5a 89f7 3384 3735",
-	"1176 4ef2 e01d 5256 0d98 92e4 3bdd 6d59",
-	"d2e3 d4db 4752 263f bfc5 ecc5 2268 ee26",
-	"b349 5c28 6217 57da 0c18 6372 fa89 99f7",
-	"7f87 fce2 7d76 5b5b 863a 2bbd 1db9 b3bf",
-	"b161 dca9 e137 c304 fbae 867e b816 68b3",
-	"d8ac b802 e14d ad55 14fa 2c91 6b01 fd40",
-	"a10e c052 1e95 627c 70b9 0975 38d9 82c5",
-	"338e 9ad5 4949 c9ca a87b 7ee1 abe9 780b",
-	"9179 88e8 82ed e94e 2bc9 dd04 a6ca fae7",
-	"856b b3a8 2f28 9b4d 7e96 4675 4d42 2096",
-	"8b1f eac3 1c28 023c 757d 539c 493c 7935",
-	"b222 4f2b 6d93 a501 0f8c 3e95 614d 84cf",
-	"b7de 80b5 a08d d9e5 c9fa 530a 96ee c1cb",
-	"7c52 4279 bcfb c2fb 65eb 7a75 13c3 0b7a",
-	"c6b9 14cc 0738 b907 372b 5f16 e6c6 46d6",
-	"a392 0388 295a 0eba 3546 2c0d 3fdf 8fb8",
-	"9d2a 0362 60fb 3881 ef6e 3261 094f 2cdd",
-	"f1ea 482e 8b57 d3b6 8d71 15fb 9e2b 4d93",
-	"cf84 15c5 00c8 7232 e35b 707c e21e be62",
-	"a79f 219f adda bf80 e00b cef9 5991 6674",
-	"cdf9 0894 103e 9f32 fe12 3779 671b c4ee",
-	"3553 c1f0 2c52 ed5d 8933 28b2 2e82 5bdf",
-	"16ef 4da0 76b0 10eb cb8e 4c73 dead a6c6",
-	"c4c9 c157 2f92 8df7 bf67 70cb e8a8 1e41",
-	"ec54 de4b 6290 152e 3e4f 3a7e 225b d9bf",
-};
-
-static const char *keys_101_4[] = {
-	"58fc e374 b0bb 6513 e300 bbc2 d6fe c15d",
-	"aa0c 2ec1 4704 284e 6342 12cc 05aa 678f",
-	"ec54 b643 d0d7 631e b76c 0d71 4c5b 7476",
-	"766e 1c8f a71c 03d6 c611 6e29 b0e5 97fe",
-	"e4b0 0719 1e4a b4d4 5f91 fa95 91c4 a9e2",
-	"ad25 ef5e d04a bb02 5c9d dfeb 3d0b a088",
-	"7058 eea1 6f08 e792 b904 87ed 6702 968d",
-	"b1a7 1ba5 0eee da59 c434 36a7 904c d43f",
-	"c44f 63dd e8eb d380 2859 f4d0 2a5e 5500",
-	"e2e2 4b89 1a6b c2d2 9e1b 22eb de4e 41a4",
-	"0fd1 6eb7 fd7c 6b4b c021 b5b5 c913 0553",
-	"a41a e6ef 8da3 d109 f253 1a10 139d 39ce",
-	"721e da21 b10c 43a6 ecce ab57 6b73 e231",
-	"14a3 0b58 ca81 053a 8fe0 cce4 c8c6 7f1b",
-	"2be9 a5e3 a3ad 1990 058f d116 d3eb 9f5c",
-	"622b c7d9 247d f8a8 fb4d 963a 8797 ee18",
-	"b12d 9e6a eb8e 5df8 0b3c 57f6 52c6 5b43",
-	"6233 2f0a 8e46 c3a9 526b 6b56 92e3 3c12",
-	"8db5 5af8 9527 ea2b 1f22 8a70 bcc8 621a",
-	"e55a 223d 23f7 ed62 c381 3f7c b151 9d28",
-	"92b5 626f d69f c011 ade4 ac57 d8ea 2e37",
-	"7881 c4b7 cf45 8484 e735 f6f0 71a8 1ffe",
-	"7788 755d aeb5 f875 be16 6587 1dd0 3e01",
-	"fe56 c9c3 b194 da09 bbf8 25be 5f2b e2da",
-	"c2f3 f1ff 580b efa4 1e0c 30dd 7478 fc20",
-	"73b1 97b0 dc00 f43d 8327 9c56 0369 51a8",
-	"60a0 3f09 e110 1812 3dde 75e8 6402 f5f0",
-	"c0c9 b75a df8f 784b 2ff3 7a25 f175 03f5",
-};
-
-static const char *keys_101_5[] = {
-	"2b70 9d92 a693 86c1 a5b3 a55b c55e 48a9",
-	"e118 e30a f9ef 1a31 5e22 c8cb 9cc4 d3f8",
-	"75af 1193 e9b3 64d7 6150 2531 6f07 e23a",
-	"2920 8768 b211 a247 2f78 7456 dd24 9849",
-	"25fc a295 fcb2 3147 13d4 4210 ee2b 45f5",
-	"e76d 1a8a 929c 4382 8aee 4e56 fe65 d9dc",
-	"d4a8 405c 9f07 09f8 ae6b e8e4 783e 0328",
-	"6b3a fdbd 50ec f9f4 1ee1 7e49 df0b 49e0",
-	"d11a a613 be62 2a55 ed82 5a28 d4e9 0763",
-	"45f8 cb52 ddad 22e7 f9b7 0124 d0e8 bbe3",
-	"0ed3 8f13 62e1 b68c 83ea 9824 d919 8776",
-	"f331 1edb c576 dd92 b12d 7b6f 2064 6b36",
-	"5db1 a911 77b0 9c20 3350 5001 8856 0b9c",
-	"08d6 b62b 8c35 a7d4 dfba a18e faee efee",
-	"d7f4 4df4 dfdb 7ef3 2dff bc45 614c 527e",
-	"66dd 661d eef6 3c4d cc36 464e 9c13 a847",
-	"c2b6 2207 773a 6d01 8d84 ad4c 5ae0 07c4",
-	"4b58 8da5 3fa5 128f 5d73 b019 cb0b 46ca",
-	"6aab 3555 605b 5b93 e093 3db9 bc1e 631a",
-	"9b10 ec1d ac5b 5e39 6e97 33e3 3a02 1c04",
-	"95b5 b829 3533 4897 c2b3 24a3 0c31 3354",
-	"7310 5672 717c 10f1 6dd1 90e5 c533 4b80",
-	"b0a7 5c33 01dc 042e fd9e 4f00 ca27 4426",
-	"b450 430b 9e63 a101 e05f dfb6 7e45 10cf",
-	"ab14 6c74 2781 1e6f b558 0970 c7ed 50dc",
-	"fe89 9f1d 8a2e 10d6 1cc1 1094 8177 c3fc",
-	"b1c3 3046 2613 c585 a1fa 8701 6573 a37a",
-	"ca0e 8b49 2c8b 961a 9244 bcff 122d be09",
-};
-
-static const char *keys_101_6[] = {
-	"cf46 9775 89cb 1e4c 0759 782a 9e10 e247",
-	"284d 5536 1f38 6c13 2126 edea 88b5 bda2",
-	"557e 0a96 fcc8 9a9a 13d8 318c 9e70 1146",
-	"8ff9 f0b7 54c2 8778 518d b63a 5439 1871",
-	"7403 cf6d c8a2 3450 9907 a6da bcca e8b5",
-	"678e 0731 3b49 ae9d 391b b08b 44c7 2017",
-	"a6bd 0a6a 6810 ab1d dc8b 8c16 a569 7382",
-	"c6d9 e370 2c69 3d37 4c23 fe8c 75b2 7be8",
-	"4037 846c 1285 9b6c 3bdd e181 03ba eee6",
-	"2314 bc87 25fb 9c7e d157 97c2 2162 3142",
-	"1942 d882 5b81 912d 62a3 4911 85db 4f3f",
-	"5790 62e5 8d93 6356 0834 6702 f2fe 6526",
-	"d0fe fc39 a6bd 568f 654c a1a5 780e 974b",
-	"dd10 e11c 5e63 ec6b 06b3 9fe1 173f c04f",
-	"b7b7 a969 e4e2 e900 3276 7478 a145 ebd6",
-	"9f91 382e cd2f 367c 28f6 dd41 d95a c089",
-	"5a96 a120 c008 702a 5657 8e13 af17 ba3b",
-	"c585 944d 96e5 e85c ff21 7fb7 855d 7902",
-	"5b8b 4752 7b9a 4280 cbf8 5561 5900 58a9",
-	"8a89 db36 0c73 ff68 38d0 3d9b a3da 37d4",
-	"3278 6ce0 e520 badb adc8 4f7e 39af 382e",
-	"8dfe aea3 1438 88c6 1033 1a7b c8b1 4733",
-	"21c1 a537 3b0c ed60 f4a0 71b4 760d 26ac",
-	"be79 dca9 0dfc 6ba7 3eb6 9fdc 0072 eb87",
-	"fc72 ae20 cb31 8ba1 5c91 5666 3623 16d4",
-	"a7b2 db48 42ae b6ea 2ad9 45a8 2da8 99ed",
-	"4274 7dc8 3b36 67c0 4b98 07e7 161f dc2e",
-	"e113 e05c f75d b6f8 61f8 62d6 be68 c138",
-};
-
-static const char *keys_101_7[] = {
-	"0d3c 02a2 5e56 5f39 609b 7c85 e272 1946",
-	"f854 c268 4afb 5c4b dacc 15ba 28af f140",
-	"db35 3ea8 0ee9 e3de 54ab 7cd5 3aee 1678",
-	"a5ee c97c a65c 80ed eab0 5016 259d 7d0b",
-	"1924 abc5 eeba 420b 8519 e792 1f0d b066",
-	"104c 2d53 18cb 479b 32ff a21d 8b8e 932c",
-	"bb49 419c efac 3a45 e9b5 ca2a ccd1 11a6",
-	"4d54 3aa7 c2f8 2c05 655a 8dff 82c2 a413",
-	"a845 4771 9c15 b101 b4fb c8a9 cff1 9f5a",
-	"7fb8 1f13 f6dc b1bd a78f f97e 0280 21d8",
-	"7ac2 b366 c007 0f08 c767 f33e e820 a60e",
-	"2aba 8da6 35da 0e57 d63e f082 adb4 bcf6",
-	"50bb 9dd2 b9d3 9643 836f b825 d91c c8b1",
-	"1d74 f303 a08c 2c0e bbdb 787b 82d1 1ec8",
-	"0518 0d55 4bd9 c226 6126 bde8 ddd5 49c6",
-	"17fa 7242 7d8b a5e2 ef7f fc53 471e c6a8",
-	"f661 ddd6 9cad ea22 0ce2 7365 6a8e f0b3",
-	"6947 1c7b eaf4 c15b 1ca4 2d7f 3432 6a00",
-	"da13 d844 2f5f 1da8 36e1 7a30 6e5f 2153",
-	"cc7f bf19 58ca 9a9f d83c b7c5 83de a1d2",
-	"c53d cfcd 5c3c 9aac d956 fd41 f355 a401",
-	"bf8c db79 352c 7d2b 4070 c82f 5fe3 aeed",
-	"a9db 8e75 c3c7 ba9d 8d57 56cc f933 80d0",
-	"f7a2 0627 6d71 5e34 b4c0 3430 73c6 061f",
-	"607a 89c4 9f7d 306c a42a 268a 0cab d32d",
-	"8254 5734 1ba1 da50 07d6 0a99 2219 8a2a",
-	"ebbc 6e73 663c 18ef f93e c9a0 e420 6231",
-	"ed20 5683 365b 1481 f1be ad4c 5e5f 3a76",
-};
-
-static const char *keys_101_8[] = {
-	"b841 e964 b9bb d36a cfed 48fa 82d8 8b39",
-	"c4ec 3dfc 8d64 14d0 e2b2 631d b00e 2822",
-	"cc4b f15f ad23 d370 ad7f b35c 655b d997",
-	"8ac3 199e e48d 18bc 1031 3a82 5cff 2e95",
-	"9772 121f 5d38 673f e217 401e f5dd 778d",
-	"3e79 2f5f e996 c44d 7c70 1531 f2be 42ce",
-	"3700 dc67 4644 7fb1 c673 2e06 e1ad 4715",
-	"a933 22f5 3f8f db8c d51c ff14 bd5e 211b",
-	"326f 5d87 185e 9e57 5808 1465 cd22 785a",
-	"290d 2617 d178 710d 4a32 3893 6720 d1c7",
-	"93a4 f75b d71c 633e bd54 85eb b5f5 dc5c",
-	"7683 9fce 1b67 9b00 53b0 6967 2e81 de72",
-	"01ab db4f 7835 fb94 f266 2a67 6565 086f",
-	"b139 e53b 2f1f c8a4 0f39 3a22 1961 674d",
-	"97e3 2231 1063 f2fc 299f e743 4b6f 5c50",
-	"e44a 5024 28c6 55e1 8110 51be 7e76 9cb4",
-	"a116 536a 739c d813 f87c 9986 33da 37b1",
-	"7add de37 e523 e423 3e71 25b6 e69f 62e7",
-	"f7c0 fa9e b05b a953 4a65 9e41 d576 1929",
-	"5f31 dec1 254a 57d0 74ab 96d1 6ff5 28f3",
-	"dd3a 6f81 7e55 536e dbc8 7561 a4e4 11f2",
-	"e3fc e69b 96bc 706a b35f fa5a 2ee9 6681",
-	"5f69 115a e6cf 05ba ef32 17ad 03e2 9545",
-	"317a 300c ccad 524e b740 9103 77a6 98ae",
-	"d475 28e5 9fc0 4cd4 7865 b72a 12c9 d0d0",
-	"96e6 b914 cf60 2826 8d0b f074 29af 7d41",
-	"d733 1588 0df3 7421 e961 28d1 024a 166c",
-	"645a f525 9f98 7838 5beb eb45 06b4 dd52",
-};
 
 static const char *keys_101_9[] = {
 	"0e6f 2f6d 8da7 cb51 2a7d eb89 0922 9cd6",
@@ -563,6 +220,165 @@ static const char *keys_101_13[] = {
 	"8b47 06db fb68 bd69 e6aa bf2a 3b08 53f8",
 };
 
+static const char *keys_101_14[] = {
+	"a829 6896 2486 73d2 9a49 3164 7ab1 1602",
+	"24ba cfd2 e760 cd2c 33da fd58 4ee1 db19",
+	"5c0c 0e50 880c c875 0645 783f 79d5 b95c",
+	"f7f3 2e97 4564 cb83 eea3 882d 10b2 96a4",
+	"5169 a7a3 2fef 6c53 81d1 f178 d3bf b85c",
+	"2276 cb69 b0d8 1aa3 b3a5 47e5 bc16 24d0",
+	"19a9 1c7c 6d38 918e 754f 7915 53dc d724",
+	"49cb ac41 73c4 3a46 e70f 5699 db70 f716",
+	"e984 cece 3f1d 772c eb11 de11 7451 8ab5",
+	"f0b3 2394 fc86 e998 eab4 39e0 2810 1f79",
+	"b0ac 20ed cce1 407b c5f3 86f5 2c15 592c",
+	"5bbd 6363 88dc 4bf2 94ac 33fb 275d ae5b",
+	"2cb9 a1f2 b660 3eb9 be0e d6e0 dfe3 fc4d",
+	"164e 1d7c c6cb fa5f a071 3d38 e0f2 3bbe",
+	"662b fe05 6a30 d7c9 168a 32c9 040c 8819",
+	"2614 0b11 d5c1 e4e8 8ffd 7f60 7e56 bffc",
+	"a756 1fd6 dae3 4747 25c3 ae27 1bea 935c",
+	"5b7e 8012 5db3 f6e1 4a88 c1b0 781e 30e2",
+	"b235 f537 88b1 10d2 555f ec00 f206 ba47",
+	"6b5a 5b01 cf75 df2d 9df4 9e3c 5cf5 2ebe",
+	"3ec0 4323 e4b2 c412 b3af 7da9 bdf1 5331",
+	"e8ac c21c 27da 405f 025c 666a ffaf 65f4",
+	"f6d9 b8bf efa7 bbb6 b5e8 e308 662e 6f30",
+	"c751 4375 9679 0efd 8774 e99a 8ceb 0e89",
+	"832d 480e 2c26 8806 f225 84e0 3542 6080",
+	"5218 ba99 dcdd 8554 c965 6a66 6503 71bd",
+	"152d b4d6 3f2b ae0c 109e e16f adfc 3aa1",
+	"d99e 7ef6 58c7 8c3c b534 8a48 0ecc 3c9a",
+	"0daa e186 62c1 7904 c035 4283 da1d c5f8",
+};
+
+static const char *keys_101_15[] = {
+	"5942 7363 7cde 78bd 2e0e b186 0517 4e4a",
+	"d046 ef18 ad73 70c5 9a53 0c0e da88 705e",
+	"d9cf cb69 4ddc 4bae 3165 31ea 1a3e 1295",
+	"0126 9d38 2d3f 1a49 7cda ab6c 96a3 3206",
+	"4e8e bd4e 5af3 731f 6c60 0322 cdfe 4e86",
+	"5b82 c5d8 2eb1 0409 7a48 3d57 6ca3 f018",
+	"ca29 a64d be93 ef88 e689 6e22 50e8 1d29",
+	"acfd 1141 0920 7f68 2269 39f2 cbce fbcf",
+	"ea02 6e0b 2de0 90e0 31ec 854e 385c aca5",
+	"1dab 733a fd8e 1425 d4b4 cf46 7788 956c",
+	"7090 af27 156a 8604 61bd 19fb 507a 98e3",
+	"1268 cc4d 52c3 1982 97a6 4272 4855 f13f",
+	"599c b477 a541 a181 6f0f 654e 7ef8 9ee2",
+	"183e 70f2 e9c1 f7ff dd26 65b7 d5fe 6b98",
+	"e77f c562 6857 ca9d cf38 5bcf d1e7 0a6e",
+	"90ba e3bf fc1e 9f70 9d05 4adf 2fca 5dfb",
+	"31ac cb84 d399 69fc c7d4 d315 dc35 2b6c",
+	"11a1 3c11 4e05 0a46 d7b1 7c9a 4bbf 65e1",
+	"2ccf 89a6 d33c df6d b032 a395 7827 8859",
+	"fd6b 64c7 a636 77d7 892c 4729 c884 4b95",
+	"8932 b125 88c9 86ee 996a bbf0 19b2 ccba",
+	"0de0 297c 5670 95bf 298a bd3b b970 f38d",
+	"afbf 6481 dffd 9329 2e51 2137 d33c 7e94",
+	"1d51 28c3 dcb6 6ac1 ad36 b7da 3527 aec2",
+	"e745 e8ba 4c0b bd7e f5f5 9b68 5c02 b238",
+	"14f2 0ffd 1b3d 7d85 ede4 f509 e843 7107",
+	"ca3e d81c 5e5b 73d5 859b 658c c6dc 1021",
+	"87eb 2420 15fa f960 4981 391e 3b57 2bbc",
+	"005b 406f af8a 9f98 4eec b4ff 6e13 65fe",
+	"d524 983c 9f60 1ce8 804c 88b3 d902 0dfe",
+};
+
+static const char *keys_102_0[] = {
+	"dc29 762a 977d b0d4 3cb7 71ea f633 0a29",
+	"b7dd aef2 d529 3a75 fb9e 8c7b c9e1 7f6a",
+	"a66d 0b92 db02 45fd 1cf2 b007 6cd4 ec9f",
+	"0021 3e20 4a0b b354 8f72 9178 9791 b695",
+	"72f6 eb92 cd15 2da9 a668 19f2 6d1c 629b",
+	"bd8e a0cc 2774 b95b 5cbf 8d83 d706 e838",
+	"7dfd bb93 702b 0994 acdc b90e ac93 31ef",
+	"35b5 b048 633e 2b18 1021 ef92 39a2 8f6a",
+	"e46b be05 3824 85f9 8170 49a4 895b c04a",
+	"a19d d800 7a1a 34fc 8234 b459 adff a328",
+	"4930 f2bd e472 4b50 f4b5 a898 484b 5d69",
+	"a6b4 558e 685c a7ef bad4 ceed f978 21cb",
+	"1864 c9bd 4323 a8bd 4416 e990 5b40 4ccf",
+	"f223 5c7c 8d2a 9fd6 fa44 3cde 2e2e 9abe",
+	"b90d 7d30 b2ae 432f dba2 0c12 5514 502c",
+	"dec0 5b46 35e6 23e4 4026 93fb 3581 0f62",
+	"f600 501f 516d e575 1b60 ab2d 404b 0ce9",
+	"45c4 7333 f5e4 1853 0668 c6da ff04 db74",
+	"934d 638d edd5 deed 4850 1825 369c 3e9d",
+	"da16 280b 3093 0a67 aae7 fe12 0b27 dd86",
+	"68cc 42a9 126e fe35 b85e a08d 8b0f 2f9c",
+	"db65 38ba 29dc d2d4 be2a 3d0f 1aff d0a8",
+	"27ee 6ce1 235b 42bd 7a2e fd88 9237 9b00",
+	"4799 11ba 373f effa 6b6b ceb0 6da9 b551",
+	"5dd3 104c a1d0 7b4d 84d6 61a2 9cbd ac39",
+	"fe0e b10d f9c8 fbcb e27b 5542 d89e 9d98",
+	"bfde 09f2 e83a 9eb5 9e15 6978 207d e69e",
+	"a412 e334 288c 1f0f 52cb 0aad b816 2972",
+	"5be0 7069 6266 7905 5bba 101c e96a d403",
+};
+
+static const char *keys_102_1[] = {
+	"aab6 db11 2962 546e 4006 67e6 b632 d8a7",
+	"3139 b84c 09a5 d1e6 17d2 a5f6 9539 0252",
+	"5cea 6c17 7a01 362a e231 1e93 8987 bcaa",
+	"da5e 7d35 e31c 4f0d 46eb c304 d4af f780",
+	"69e5 f538 4446 6f0d 1147 4ff8 b777 578e",
+	"823e 092a 8ee6 c941 4524 0ffb 0968 7214",
+	"14e1 1c4e ae27 b982 7f31 a6e0 5bbe 231a",
+	"c7e6 b459 5f94 02c1 813b 435e 421e 6af2",
+	"434a b148 ce58 6701 dcdb 19d1 0a01 77ec",
+	"f52c defe d842 c595 833e 84bd eba3 daee",
+	"e31f 5eb3 2523 18a4 7f6f e66f eefc 951d",
+	"aa8d d888 a1fc 5be7 5aba 248b 4642 0cac",
+	"ccce 691a 410d 976d 039c 2a4d 0fb7 7062",
+	"510e 7ab0 7aee 04c2 7434 8487 336b 5759",
+	"2113 6a45 0027 7c2f 4089 44ba db8f d405",
+	"9cb2 b49f 2e51 3a9b 9872 3324 dc89 a6e3",
+	"819d e491 2cc9 6e02 2ae9 d982 5f38 1035",
+	"da47 fb3c 1d42 6eba fa21 1cf2 8236 e599",
+	"ee31 d958 55f6 a06e 2776 1177 0f98 fd89",
+	"4fa0 05bc c000 89a1 15ea 2e42 1b1d e18a",
+	"930b 541e 0037 cd15 b132 3640 4008 240c",
+	"cf5c 10a0 57f4 8ba3 7189 e6bd ee64 2ce4",
+	"5062 62d1 a70d 3100 a673 9bee 50eb 3cb6",
+	"2ec9 0ed9 c720 6f4c 7abb 4275 6e6f d369",
+	"8ed9 c6a7 1bac 9ab8 56c3 0503 3bbf c6cf",
+	"1295 66fc 4c33 c341 c479 1c0f ba90 91be",
+	"d1df b008 e63b 0f46 3e87 5189 6abd cadb",
+	"ce78 1809 89c0 3c80 e9dc ca22 0bef 71d0",
+};
+
+static const char *keys_102_2[] = {
+	"4b40 70f5 93fc 6998 e092 3ba5 6c6c b32b",
+	"d26e 1468 44de 417e c596 0397 389d 85b2",
+	"5105 6295 649d 6769 b1cf 8b95 c57d bdb7",
+	"6844 b056 c078 8a87 996b 495b fddc 174e",
+	"641e 9b8c ed8c f280 486f 4e12 ddba 8012",
+	"db43 c956 3f6e 5c1a a053 5b81 2067 e1b6",
+	"267b 8663 4dac 2ae1 72b2 2db2 5bd7 7db5",
+	"5ee2 7852 d7d4 ae52 e41e 4347 58d5 8429",
+	"351d 7969 ba9f e266 7a27 20a8 1f72 24f3",
+	"2d5e 1d43 5d61 7b5c 01f6 67c5 00f4 04e8",
+	"21f7 b850 7316 71ae 7558 aed8 f748 b419",
+	"a156 0466 f350 a8cf 6d94 b7c1 9d39 2142",
+	"4d46 e2ae 7709 c3e8 4237 d47f 0a85 a938",
+	"87e5 dcbb 63af 251e 3b07 b280 9389 bfaa",
+	"685a 2b0f 5001 65dc e04d d20b fc87 1617",
+	"70d3 56ee 5ac1 fa6c 7d21 e69f 5282 9bd1",
+	"64d3 4219 0a3b 233b 6845 00d0 38d2 171d",
+	"b3d9 73d4 3c51 1e4f 62fe 3a27 78b5 9de5",
+	"c4d1 8159 b2fc 6e4c 0b08 cf70 17f5 3419",
+	"af78 ec18 a7b6 c564 e97b 12ab 2ea2 a76f",
+	"55d2 e105 a20e cca6 4dfe cba1 9f45 bac0",
+	"2ce8 661c 251a 2e03 40dc 8f17 b496 5fca",
+	"3b72 0fa5 a31a d70f 0ae4 1fdb 8a2d 86b4",
+	"76a0 f3ea 702e b870 9bae 9ba5 d9bd a13f",
+	"e975 96bd 8627 23cb 7fb7 415f 41b5 8851",
+	"0c6f c649 f90b 47d4 3d98 24ac e8bb 3e6b",
+	"c19b 5529 0904 2f10 ede4 b0d6 c994 f31b",
+	"275a ca3e fee6 0882 401a 19b6 8014 cdfc",
+};
+
 #define KEYS(x)		keys_ ## x, N_ITEMS(keys_ ## x)
 
 /**
@@ -574,22 +390,16 @@ struct tokkey {
 	uint count;			/**< Amount of keys defined */
 } token_keys[] = {
 	/* maj min PL  tag lvl #  timestamp     key array          ISO date   */
-	{ { 1, 0,  0, '\0', 0, 0, 1377986400 }, KEYS(100_0) },	/* 2013-09-01 */
-	{ { 1, 0,  1, '\0', 0, 0, 1388444400 }, KEYS(100_1) },	/* 2013-12-31 */
-	{ { 1, 1,  0, '\0', 0, 0, 1404252000 }, KEYS(101_0) },	/* 2014-07-02 */
-	{ { 1, 1,  1, '\0', 0, 0, 1409608800 }, KEYS(101_1) },	/* 2014-09-02 */
-	{ { 1, 1,  2, '\0', 0, 0, 1426892400 }, KEYS(101_2) },	/* 2015-03-21 */
-	{ { 1, 1,  3, '\0', 0, 0, 1428444000 }, KEYS(101_3) },	/* 2015-04-08 */
-	{ { 1, 1,  4, '\0', 0, 0, 1441749600 }, KEYS(101_4) },	/* 2015-09-09 */
-	{ { 1, 1,  5, '\0', 0, 0, 1444255200 }, KEYS(101_5) },	/* 2015-10-08 */
-	{ { 1, 1,  6, '\0', 0, 0, 1446937200 }, KEYS(101_6) },	/* 2015-11-08 */
-	{ { 1, 1,  7, '\0', 0, 0, 1449961200 }, KEYS(101_7) },	/* 2015-12-13 */
-	{ { 1, 1,  8, '\0', 0, 0, 1450393200 }, KEYS(101_8) },	/* 2015-12-18 */
 	{ { 1, 1,  9, '\0', 0, 0, 1457218800 }, KEYS(101_9) },	/* 2016-03-06 */
 	{ { 1, 1, 10, '\0', 0, 0, 1472680800 }, KEYS(101_10) },	/* 2016-09-01 */
 	{ { 1, 1, 11, '\0', 0, 0, 1478818800 }, KEYS(101_11) },	/* 2016-11-11 */
 	{ { 1, 1, 12, '\0', 0, 0, 1505858400 }, KEYS(101_12) },	/* 2017-09-20 */
 	{ { 1, 1, 13, '\0', 0, 0, 1508623200 }, KEYS(101_13) },	/* 2017-10-22 */
+	{ { 1, 1, 14, '\0', 0, 0, 1538604000 }, KEYS(101_14) },	/* 2018-10-04 */
+	{ { 1, 1, 15, '\0', 0, 0, 1563055200 }, KEYS(101_15) },	/* 2019-07-14 */
+	{ { 1, 2,  0, '\0', 0, 0, 1594245600 }, KEYS(102_0) },	/* 2020-07-09 */
+	{ { 1, 2,  1, '\0', 0, 0, 1626040800 }, KEYS(102_1) },	/* 2021-07-12 */
+	{ { 1, 2,  2, '\0', 0, 0, 1645743600 }, KEYS(102_2) },	/* 2022-02-25 */
 };
 
 #undef KEYS
@@ -629,6 +439,13 @@ tok_strerror(tok_error_t errnum)
 	return tok_errstr[errnum];
 }
 
+/*
+ * This is the date when the banning time was changed for gtk-gnutella,
+ * moving from 1 year to a little bit more than 2 years.
+ */
+#define TOK_POLICY_DATE_CHANGE	1625954400		/* 2021-07-11 */
+#define TOK_POLICY_OLD_BAN		(86400 * 365)	/* 1-year */
+
 /**
  * Based on the timestamp, determine the proper token keys to use limiting
  * to the first ``count'' items.
@@ -638,7 +455,6 @@ tok_strerror(tok_error_t errnum)
 static const struct tokkey *
 find_tokkey_upto(time_t now, size_t count)
 {
-	time_t adjusted = now - VERSION_ANCIENT_BAN;
 	uint i;
 
 	if (GNET_PROPERTY(version_debug) > 4) {
@@ -651,15 +467,43 @@ find_tokkey_upto(time_t now, size_t count)
 	for (i = 0; i < count; i++) {
 		const struct tokkey *tk = &token_keys[i];
 
-		if (GNET_PROPERTY(version_debug) > 4) {
-			g_debug("%s: index=%u, ver.timestamp=%u, adjusted=%u (%s)",
-				G_STRFUNC, i, (unsigned) tk->ver.timestamp, (unsigned) adjusted,
-				tk->ver.timestamp > adjusted ? "OK" :
-					i + 1 == count ? "FAILED" : "no");
-		}
+		/*
+		 * Prior to TOK_POLICY_DATE_CHANGE, tokens were selected based on
+		 * an expiration time of TOK_POLICY_OLD_BAN seconds.  To remain
+		 * compatible with all the other gtk-gnutella out there, we need
+		 * to continue this selection as long as the token's timestamp
+		 * pre-dates the policy change.
+		 * 		--RAM, 2021-07-11
+		 */
 
-		if (tk->ver.timestamp > adjusted)
-			return tk;
+		if (tk->ver.timestamp < TOK_POLICY_DATE_CHANGE) {
+			/* Older policy */
+			time_t old_adjusted = now - TOK_POLICY_OLD_BAN;
+
+			if (GNET_PROPERTY(version_debug) > 4) {
+				g_debug("%s: (old) index=%u, ver.timestamp=%u, adjusted=%u (%s)",
+					G_STRFUNC, i, (unsigned) tk->ver.timestamp,
+					(unsigned) old_adjusted,
+					tk->ver.timestamp > old_adjusted ? "OK" :
+						i + 1 == count ? "FAILED" : "no");
+			}
+			if (tk->ver.timestamp > old_adjusted)
+				return tk;
+		} else {
+			/* New policy */
+			time_t adjusted = now - VERSION_ANCIENT_BAN;
+
+			if (GNET_PROPERTY(version_debug) > 4) {
+				g_debug("%s: (new) index=%u, ver.timestamp=%u, adjusted=%u (%s)",
+					G_STRFUNC, i, (unsigned) tk->ver.timestamp,
+					(unsigned) adjusted,
+					tk->ver.timestamp > adjusted ? "OK" :
+						i + 1 == count ? "FAILED" : "no");
+			}
+
+			if (tk->ver.timestamp > adjusted)
+				return tk;
+		}
 	}
 
 	return NULL;
@@ -762,7 +606,7 @@ find_tokkey_version(const version_t *ver, time_t now)
 			G_STRFUNC, i, N_ITEMS(token_keys));
 	}
 
-	i++;									/* We need a count, not an index */
+	i++;								/* We need a count, not an index */
 	i = MIN(i, N_ITEMS(token_keys));	/* In case loop did not match */
 
 	return find_tokkey_upto_fallback(now, i);
@@ -831,7 +675,7 @@ tok_crc(uint32 crc, const struct tokkey *tk)
 	i = tk->count;
 	while (i-- > 0) {
 		const char *k = *keys++;
-		crc = crc32_update(crc, k, strlen(k));
+		crc = crc32_update(crc, k, vstrlen(k));
 	}
 	crc ^= (crc >> 8);
 	crc &= 0x00ff00ffU;
@@ -871,9 +715,9 @@ tok_generate(time_t now, const char *version)
 	digest[6] |= idx & 0xffU;	/* Has 5 bits for the index */
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, digest, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &sha1);
 	memcpy(&digest[7], sha1.data, SHA1_RAW_SIZE);
 
@@ -977,8 +821,7 @@ tok_short_version(void)
  * @returns error code, or TOK_OK if token is valid.
  */
 tok_error_t
-tok_version_valid(
-	const char *version, const char *tokenb64, int len, host_addr_t addr)
+tok_version_valid(const char *version, const char *tokenb64, int len)
 {
 	time_t now = tm_time();
 	time_t stamp;
@@ -999,7 +842,7 @@ tok_version_valid(
 	int lvlsize;
 	uint i;
 
-	end = strchr(tokenb64, ';');		/* After 25/02/2003 */
+	end = vstrchr(tokenb64, ';');		/* After 25/02/2003 */
 	toklen = end ? (end - tokenb64) : len;
 
 	/*
@@ -1013,13 +856,6 @@ tok_version_valid(
 		return TOK_BAD_ENCODING;
 
 	stamp = (time_t) peek_be32(&token);
-
-	/*
-	 * Use that stamp, whose precision is TOKEN_LIFE, to update our
-	 * clock skew if necessary.
-	 */
-
-	clock_update(stamp, TOKEN_LIFE, addr);
 
 	if (ABS(stamp - clock_loc2gmt(now)) > TOKEN_CLOCK_SKEW)
 		return TOK_BAD_STAMP;
@@ -1038,9 +874,9 @@ tok_version_valid(
 	key = tk->keys[idx];
 
 	SHA1_reset(&ctx);
-	SHA1_input(&ctx, key, strlen(key));
+	SHA1_input(&ctx, key, vstrlen(key));
 	SHA1_input(&ctx, token, 7);
-	SHA1_input(&ctx, version, strlen(version));
+	SHA1_input(&ctx, version, vstrlen(version));
 	SHA1_result(&ctx, &digest);
 
 	if (0 != memcmp(&token[7], digest.data, SHA1_RAW_SIZE))
@@ -1081,7 +917,7 @@ tok_version_valid(
 	if (lvllen & 0x3)
 		return TOK_BAD_LEVEL_LENGTH;
 
-	lvllen = base64_decode_into(end, lvllen, lvldigest, sizeof(lvldigest));
+	lvllen = base64_decode_into(end, lvllen, ARYLEN(lvldigest));
 
 	if (lvllen == 0 || (lvllen & 0x1))
 		return TOK_BAD_LEVEL_ENCODING;

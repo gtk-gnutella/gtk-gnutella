@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -311,11 +311,9 @@ rudp_alloc(const host_addr_t addr, uint16 port, uint8 conn_id)
 	g_return_val_if_fail(0 != port, NULL);
 
 	if (!rudp_find(addr, port, conn_id)) {
-		static const struct rudp_con zero_con;
 		struct rudp_con *con;
 
-		WALLOC(con);
-		*con = zero_con;
+		WALLOC0(con);
 		con->addr = addr;
 		con->port = port;
 		con->conn_id = conn_id;
@@ -452,7 +450,7 @@ rudp_send_syn(struct rudp_con *con)
 			 mb = con->out.buffers[con->out.rd];
 			 g_return_if_fail(mb);
 
-			 rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
+			 rudp_send_packet(con, pmsg_start(mb), pmsg_size(mb));
 		}
 		break;
 	case RUDP_ST_ESTABLISHED:
@@ -684,7 +682,7 @@ rudp_handle_ack(struct rudp_con *con, const void *data)
 				const struct rudp_header *header;
 				uint16 s;
 
-				header = cast_to_constpointer(pmsg_read_base(mb));
+				header = cast_to_constpointer(pmsg_start(mb));
 				s = peek_be16(header->seq_no);
 				if (s == seq_no || s < start) {
 					pmsg_free(mb);
@@ -1137,7 +1135,7 @@ rudp_foreach_pending(void *data, void *unused_udata)
 		tm_now(&now);
 
 		if (tm_elapsed_ms(&now, &con->out.last_event) > 1000) {
-			rudp_send_packet(con, pmsg_read_base(mb), pmsg_size(mb));
+			rudp_send_packet(con, pmsg_start(mb), pmsg_size(mb));
 		}
 	}
 }

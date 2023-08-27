@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -266,7 +266,7 @@ tt_internal_hash(const struct tth *a, const struct tth *b, struct tth *dst)
 	buf.bytes[0] = 0x01;
 	memcpy(&buf.bytes[1 + 0 * TIGERSIZE], a, TIGERSIZE);
 	memcpy(&buf.bytes[1 + 1 * TIGERSIZE], b, TIGERSIZE);
-	tiger(buf.bytes, sizeof buf.bytes, dst->data);
+	tiger(ARYLEN(buf.bytes), dst->data);
 }
 
 static void
@@ -494,7 +494,7 @@ tt_check_digest(const char * const expected, const void *data, size_t size)
 	tt_digest(&ctx, &hash);
 
 	ZERO(&digest);
-	base32_encode(digest, sizeof digest, hash.data, sizeof hash.data);
+	base32_encode(ARYLEN(digest), ARYLEN(hash.data));
 	digest[N_ITEMS(digest) - 1] = '\0';
 
 	if (0 != strcmp(expected, digest)) {
@@ -517,14 +517,14 @@ tt_check(void)
 	{
 		char buf[1024];
 		memset(buf, 'A', sizeof buf);
-		tt_check_digest("L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA", buf, sizeof buf);
+		tt_check_digest("L66Q4YVNAFWVS23X2HJIRA5ZJ7WXR3F26RSASFA", ARYLEN(buf));
 	}
 
 	/* test case: 1025x 'A' */
 	{
 		char buf[1025];
 		memset(buf, 'A', sizeof buf);
-		tt_check_digest("PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY", buf, sizeof buf);
+		tt_check_digest("PZMRYHGY6LTBEH63ZWAHDORHSYTLO4LEFUIKHWY", ARYLEN(buf));
 	}
 }
 

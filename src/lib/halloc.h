@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -46,13 +46,13 @@
 #define halloc0(_s)	halloc0_track(_s, _WHERE_, __LINE__)
 
 void *halloc_track(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 void *halloc0_track(size_t size,
-	const char *file, int line) G_MALLOC;
+	const char *file, int line) G_MALLOC G_NON_NULL;
 #else
 #ifndef TRACK_MALLOC
-void *halloc(size_t size) G_MALLOC;
-void *halloc0(size_t size) G_MALLOC;
+void *halloc(size_t size) G_MALLOC G_NON_NULL;
+void *halloc0(size_t size) G_MALLOC G_NON_NULL;
 #endif
 #endif	/* TRACK_ZALLOC */
 
@@ -62,9 +62,9 @@ void *halloc0(size_t size) G_MALLOC;
 
 #ifndef TRACK_MALLOC
 void hfree(void *ptr);
-void *hrealloc(void *old, size_t size) WARN_UNUSED_RESULT;
+void *hrealloc(void *old, size_t size) G_NON_NULL WARN_UNUSED_RESULT;
 
-static inline void * G_MALLOC
+static inline void * G_MALLOC G_NON_NULL
 hcopy(const void *p, size_t size)
 {
 	void *cp = halloc(size);
@@ -90,18 +90,6 @@ struct sha1;
 void halloc_dump_stats_log(struct logagent *la, unsigned options);
 void halloc_stats_digest(struct sha1 *digest);
 
-#ifdef TRACK_MALLOC
-
-#define HFREE_NULL(p)	\
-G_STMT_START {			\
-	if (p) {			\
-		free_track((p), _WHERE_, __LINE__); \
-		p = NULL;		\
-	}					\
-} G_STMT_END
-
-#else	/* !TRACK_MALLOC */
-
 #define HFREE_NULL(p)	\
 G_STMT_START {			\
 	if (p) {			\
@@ -109,8 +97,6 @@ G_STMT_START {			\
 		p = NULL;		\
 	}					\
 } G_STMT_END
-
-#endif	/* TRACK_MALLOC */
 
 #define HALLOC_ARRAY(p,n)			\
 G_STMT_START {						\

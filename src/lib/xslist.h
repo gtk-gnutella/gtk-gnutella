@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -279,6 +279,8 @@ xslist_contains(const xslist_t *list, const void *p)
 void xslist_init(xslist_t *list, size_t offset, size_t link_offset);
 void xslist_discard(xslist_t *list);
 void xslist_clear(xslist_t *list);
+void xslist_mark_removed(const xslist_t *list, void *data);
+void xslist_link_mark_removed(const xslist_t *list, xslink_t *lk);
 size_t xslist_load(xslist_t *list,
 	void *head, size_t offset, size_t link_offset);
 

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -74,6 +74,8 @@ enum cevent_magic {
 	CEVENT_EXT_MAGIC = 0x6a8fe830
 };
 
+#define CEVENT_TRIGGERED ((cq_time_t) -1)	/* Flags triggered events */
+
 /**
  * Callout queue event.
  */
@@ -129,6 +131,12 @@ static inline ALWAYS_INLINE bool
 cevent_is_extended(const cevent_t *ce)
 {
 	return CEVENT_EXT_MAGIC == ce->ce_magic;
+}
+
+static inline ALWAYS_INLINE bool
+cevent_has_triggered(const cevent_t *ce)
+{
+	return CEVENT_TRIGGERED == ce->ce_time;
 }
 
 /**
@@ -402,6 +410,64 @@ EV_CQ_LOCK(const cevent_t *ev)
 	return cq;
 }
 
+static const char *
+cq_to_string(const cqueue_t *cq)
+{
+	buf_t *b = buf_private(G_STRFUNC, 80);
+
+	if G_UNLIKELY(NULL == cq)
+		return "NULL";
+
+	if (CQUEUE_MAGIC != cq->cq_magic && CSUBQUEUE_MAGIC != cq->cq_magic) {
+		buf_printf(b, "bad cq magic 0x%x", cq->cq_magic);
+	} else {
+		buf_printf(b, "c%sq \"%s\" at t=%s",
+			CSUBQUEUE_MAGIC == cq->cq_magic ? "sub" : "",
+			cq->cq_name, cq_time_to_string(cq->cq_time)
+		);
+	}
+
+	return buf_data(b);
+}
+
+static const char *
+ev_to_string_b(const cevent_t *ev, buf_t *b)
+{
+	if G_UNLIKELY(NULL == ev)
+		return "NULL";
+
+	if (CEVENT_MAGIC != ev->ce_magic && CEVENT_EXT_MAGIC != ev->ce_magic) {
+		buf_printf(b, "bad ev magic 0x%x", ev->ce_magic);
+	} else {
+		buf_printf(b, "%s(%p)",
+			stacktrace_function_name(ev->ce_fn), ev->ce_arg);
+		if (cevent_is_extended(ev)) {
+			const struct cevent_ext *evx = cast_to_cevent_ext(ev);
+			buf_catf(b, ", refcnt=%d", evx->cex_refcnt);
+		}
+		buf_catf(b, " scheduled at t=%s in %s",
+			CEVENT_TRIGGERED == ev->ce_time ?
+				"<now>" : cq_time_to_string(ev->ce_time),
+			cq_to_string(ev->ce_cq));
+	}
+
+	return buf_data(b);
+}
+
+static const char *
+ev_to_string(const cevent_t *ev)
+{
+	buf_t *b = buf_private(G_STRFUNC, 128);
+	return ev_to_string_b(ev, b);
+}
+
+static const char *
+ev_to_string2(const cevent_t *ev)
+{
+	buf_t *b = buf_private(G_STRFUNC, 128);
+	return ev_to_string_b(ev, b);
+}
+
 /**
  * Did the event trigger?
  */
@@ -422,17 +488,19 @@ ev_triggered(const cevent_t *ev)
 	if G_UNLIKELY(cevent_is_extended(ev)) {
 		const struct cevent_ext *evx = cast_to_cevent_ext(ev);
 		g_assert(evx->cex_refcnt <= 2);
-		return 1 == evx->cex_refcnt;
+		g_assert(equiv(1 == evx->cex_refcnt, cevent_has_triggered(ev)));
+	} else {
+		g_assert(!cevent_has_triggered(ev));
 	}
 
-	return FALSE;
+	return cevent_has_triggered(ev);
 }
 
 /**
- * Free callout queue event.
+ * Free callout queue event, without checking whether it's part of the list.
  */
 static void
-ev_free(cevent_t *ev)
+ev_forced_free(cevent_t *ev)
 {
 	cevent_check(ev);
 
@@ -452,6 +520,19 @@ ev_free(cevent_t *ev)
 }
 
 /**
+ * Free callout queue event.
+ */
+static void
+ev_free(cevent_t *ev)
+{
+	cevent_check(ev);
+	/* Event must no longer be part of a callout queue list */
+	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
+
+	ev_forced_free(ev);
+}
+
+/**
  * Link event into the callout queue.
  */
 static void
@@ -465,39 +546,28 @@ ev_link(cevent_t *ev)
 	cevent_check(ev);
 
 	cq = ev->ce_cq;
+
 	cqueue_check(cq);
-	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
+	g_assert(ev->ce_time >= cq->cq_time);
+	g_assert(NULL == ev->ce_bnext && NULL == ev->ce_bprev);
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	trigger = ev->ce_time;
 	cq->cq_items++;
+	ch = &cq->cq_hash[EV_HASH(trigger)];
 
-	/*
-	 * Important corner case: we may be rescheduling an event BEFORE
-	 * the current clock time, in which case we must insert the event
-	 * in the current bucket, so it gets fired during the current
-	 * cq_clock() run.
-	 */
-
-	if (trigger <= cq->cq_time)
-		ch = cq->cq_current;
-	else
-		ch = &cq->cq_hash[EV_HASH(trigger)];
-
-	g_assert(ch);
+	g_assert(ch != NULL);
 
 	/*
 	 * If bucket is empty, the event is the new head.
 	 */
 
-	if (ch->ch_head == NULL) {
-		g_assert(ch->ch_tail == NULL);
+	if (NULL == ch->ch_head) {
+		g_assert(NULL == ch->ch_tail);
 		ch->ch_tail = ch->ch_head = ev;
-		ev->ce_bnext = ev->ce_bprev = NULL;
+		/* This is a precondition: ev->ce_bnext = ev->ce_bprev = NULL; */
 		return;
 	}
-
-	g_assert(ch->ch_tail);
 
 	/*
 	 * If item is larger than the tail, insert at the end right away.
@@ -505,11 +575,12 @@ ev_link(cevent_t *ev)
 
 	hev = ch->ch_tail;
 
-	g_assert(hev->ce_bnext == NULL);
+	cevent_check(hev);
+	g_assert(NULL == hev->ce_bnext);
 
 	if (trigger >= hev->ce_time) {
 		hev->ce_bnext = ev;
-		ev->ce_bnext = NULL;
+		/* This is a precondition: ev->ce_bnext = NULL; */
 		ev->ce_bprev = hev;
 		ch->ch_tail = ev;
 		return;
@@ -521,12 +592,13 @@ ev_link(cevent_t *ev)
 
 	hev = ch->ch_head;
 
-	g_assert(hev->ce_bprev == NULL);
+	cevent_check(hev);
+	g_assert(NULL == hev->ce_bprev);
 
 	if (trigger < hev->ce_time) {
 		hev->ce_bprev = ev;
 		ev->ce_bnext = hev;
-		ev->ce_bprev = NULL;
+		/* This is a precondition: ev->ce_bprev = NULL; */
 		ch->ch_head = ev;
 		return;
 	}
@@ -535,12 +607,16 @@ ev_link(cevent_t *ev)
 	 * Insert before the first item whose trigger will come after ours.
 	 */
 
-	for (hev = hev->ce_bnext; hev; hev = hev->ce_bnext) {
+	for (hev = hev->ce_bnext; hev != NULL; hev = hev->ce_bnext) {
+		cevent_check(hev);
+		g_assert(hev->ce_bprev != NULL);
+
 		if (trigger < hev->ce_time) {
+			/* Inserting `ev' before `hev', which is not the head of list */
 			hev->ce_bprev->ce_bnext = ev;
 			ev->ce_bprev = hev->ce_bprev;
-			hev->ce_bprev = ev;
 			ev->ce_bnext = hev;
+			hev->ce_bprev = ev;
 			return;
 		}
 	}
@@ -558,29 +634,60 @@ ev_unlink(cevent_t *ev)
 	cqueue_t *cq;
 
 	cevent_check(ev);
+
 	cq = ev->ce_cq;
+
 	cqueue_check(cq);
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	ch = &cq->cq_hash[EV_HASH(ev->ce_time)];
 	cq->cq_items--;
 
+	/* Bucket cannot be empty or `ev' is not part of the callout list! */
+	g_assert_log(ch->ch_head != NULL && ch->ch_tail != NULL,
+		"%s(): bucket #%u for ev%s=%p %s(%p) in cq \"%s\" has head=%p, tail=%p",
+		G_STRFUNC, (uint) EV_HASH(ev->ce_time),
+		cevent_is_extended(ev) ? "x" : "", ev,
+		stacktrace_function_name(ev->ce_fn), ev->ce_arg, cq->cq_name,
+		ch->ch_head, ch->ch_tail);
+
+	/* Since bucket is not empty, verify pointers are valid */
+	cevent_check(ch->ch_head);
+	cevent_check(ch->ch_tail);
+
+	/* Head has no previous, tail has no next, by definition */
+	g_assert(NULL == ch->ch_head->ce_bprev);
+	g_assert(NULL == ch->ch_tail->ce_bnext);
+
 	/*
 	 * Unlinking the item is straigthforward, unlike insertion!
 	 */
 
-	if (ch->ch_head == ev)
+	if (ch->ch_head == ev) {
+		g_assert(NULL == ev->ce_bprev);
 		ch->ch_head = ev->ce_bnext;
-	if (ch->ch_tail == ev)
+	}
+	if (ch->ch_tail == ev) {
+		g_assert(NULL == ev->ce_bnext);
 		ch->ch_tail = ev->ce_bprev;
+	}
 
-	if (ev->ce_bprev)
+	if (ev->ce_bprev != NULL) {
+		cevent_check(ev->ce_bprev);
 		ev->ce_bprev->ce_bnext = ev->ce_bnext;
-	if (ev->ce_bnext)
+	}
+	if (ev->ce_bnext != NULL) {
+		cevent_check(ev->ce_bnext);
 		ev->ce_bnext->ce_bprev = ev->ce_bprev;
+	}
 
-	g_assert(ch->ch_head == NULL || ch->ch_head->ce_bprev == NULL);
-	g_assert(ch->ch_tail == NULL || ch->ch_tail->ce_bnext == NULL);
+	/* Flag event as removed, for ev_link() assertions */
+	ev->ce_bnext = NULL;
+	ev->ce_bprev = NULL;
+
+	/* Postcondition: head and tail are still correct */
+	g_assert(NULL == ch->ch_head || NULL == ch->ch_head->ce_bprev);
+	g_assert(NULL == ch->ch_tail || NULL == ch->ch_tail->ce_bnext);
 }
 
 /**
@@ -661,12 +768,12 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
 		 * will keep the returned value in a variable.
 		 */
 
-		WALLOC(evx);
+		WALLOC0(evx);
 		ev = &evx->event;
 		ev->ce_magic = CEVENT_EXT_MAGIC;
 		evx->cex_refcnt = 2;				/* One by queue, one by thread */
 	} else {
-		WALLOC(ev);
+		WALLOC0(ev);
 		ev->ce_magic = CEVENT_MAGIC;
 	}
 
@@ -679,7 +786,7 @@ cq_insert(cqueue_t *cq, int delay, cq_service_t fn, void *arg)
  * @param cq		the callout queue that dispatched the event
  * @param ev_ptr	reference to the event
  * @param zero		TRUE if cq_zero() was called
- * @param locked	TRUE if we must warn when the call this unlocked
+ * @param locked	TRUE if we must warn when they call this unlocked
  * @param caller	name of our caller for logging
  */
 static void
@@ -711,10 +818,23 @@ cq_event_called(cqueue_t *cq, cevent_t **ev_ptr,
 
 	g_assert_log(ev == cq->cq_call || (NULL == ev && cq->cq_call_extended),
 		"%s() not called on current event from %s(): "
-		"%p points to ev=%p, current is %s%p",
+		"%p points to ev=%p {%s}, current is %s%p {%s}",
 		caller, stacktrace_function_name(cq->cq_call_fn),
-		ev_ptr, ev, cq->cq_call_extended ? "foreign " : "",
-		cq->cq_call);
+		ev_ptr, ev, ev_to_string(ev), cq->cq_call_extended ? "foreign " : "",
+		cq->cq_call, ev_to_string2(cq->cq_call));
+
+	/*
+	 * We no longer free the event before dispatching callbacks, to be able
+	 * to perform some sanity checks afterwards (such as accessing the magic
+	 * number, as in the assertion above).
+	 *
+	 * So we may as well make sure the event is valid here.
+	 *
+	 * 		--RAM, 2022-01-10
+	 */
+
+	if (ev != NULL)
+		cevent_check(ev);
 
 	if G_UNLIKELY(NULL == ev) {
 		s_warning("%s(): recording of event %s() not synchronized with lock?",
@@ -877,7 +997,7 @@ bool
 cq_cancel(cevent_t **handle_ptr)
 {
 	cevent_t *ev = *handle_ptr;
-	bool triggered = FALSE;
+	bool triggered;
 
 	if (ev != NULL) {
 		cqueue_t *cq;
@@ -889,16 +1009,18 @@ cq_cancel(cevent_t **handle_ptr)
 
 		cq = EV_CQ_LOCK(ev);
 
-		if G_LIKELY(!ev_triggered(ev)) {
+		triggered = ev_triggered(ev);
+
+		if G_LIKELY(!triggered) {
 			g_assert(cq->cq_items > 0);
 			ev_unlink(ev);
-		} else {
-			triggered = TRUE;
 		}
 
 		CQ_UNLOCK(cq);
 		ev_free(ev);
 		*handle_ptr = NULL;
+	} else {
+		triggered = TRUE;	/* NULL event given, must have triggered */
 	}
 
 	return triggered;
@@ -920,6 +1042,11 @@ cq_resched(cevent_t *ev, int delay)
 {
 	cqueue_t *cq;
 
+	cevent_check(ev);
+	g_assert_log(delay >= 0,
+		"%s(): delay=%d for %s(%p)",
+		G_STRFUNC, delay, stacktrace_function_name(ev->ce_fn), ev->ce_arg);
+
 	cq = EV_CQ_LOCK(ev);
 
 	if G_UNLIKELY(ev_triggered(ev)) {
@@ -927,14 +1054,6 @@ cq_resched(cevent_t *ev, int delay)
 		s_carp("%s() called on already triggered event", G_STRFUNC);
 		return FALSE;
 	}
-
-	/*
-	 * If is perfectly possible that whilst running cq_clock() and
-	 * expiring an event, some other event gets rescheduled BEFORE the
-	 * current clock time. Hence the assertion below.
-	 */
-
-	g_assert(ev->ce_time > cq->cq_time || cq->cq_current);
 
 	/*
 	 * Events are sorted into the callout queue by trigger time, and are also
@@ -997,6 +1116,15 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	cq_service_t fn;
 	void *arg;
 
+	cevent_check(ev);
+	cqueue_check(ev->ce_cq);
+
+	g_assert_log(ev->ce_cq == cq,
+		"%s(): ev%s=%p for %s(%p) belongs to cq \"%s\" but expiring cq \"%s\"",
+		G_STRFUNC, cevent_is_extended(ev) ? "x" : "", ev,
+		stacktrace_function_name(ev->ce_fn), ev->ce_arg,
+		ev->ce_cq->cq_name, cq->cq_name);
+
 	assert_mutex_is_owned(&cq->cq_lock);
 
 	/*
@@ -1009,6 +1137,7 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	 */
 
 	ev_unlink(ev);
+	ev->ce_time = CEVENT_TRIGGERED;
 
 	fn = ev->ce_fn;
 	arg = ev->ce_arg;
@@ -1019,13 +1148,12 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 		evx->cex_refcnt--;					/* Was fired */
 		cq->cq_call_extended = TRUE;
 	} else {
-		ev_free(ev);
 		cq->cq_call_extended = FALSE;
 	}
 
 	/*
-	 * Record the address of the event being dispatched.  Even though it may
-	 * have been freed, we allow one cq_zero() call on it.
+	 * Record the address of the event being dispatched.
+	 * We allow one cq_zero() call on it.
 	 */
 
 	cq->cq_call = ev;
@@ -1047,14 +1175,21 @@ cq_expire_internal(cqueue_t *cq, cevent_t *ev)
 	(*fn)(cq, arg);		/* Callback invoked with queue unlocked */
 	CQ_LOCK(cq);
 
-	/*
-	 * If the event was extended and they did not call cq_zero(),
-	 * then we assume they do not own any reference on the event to
-	 * call cq_cancel(), and therefore we need to free the event
-	 * immediately.
-	 */
+	if (!cq->cq_call_extended) {
+		/*
+		 * The event was not extended, and whether or not they called
+		 * cq_zero(), we may safely free it now.
+		 */
 
-	if G_UNLIKELY(cq->cq_call_extended && NULL != cq->cq_call) {
+		ev_free(ev);
+	} else if (NULL != cq->cq_call) {
+		/*
+		 * If the event was extended and they did not call cq_zero(),
+		 * then we assume they do not own any reference on the event to
+		 * call cq_cancel(), and therefore we need to free the event
+		 * immediately.
+		 */
+
 		if (cq_debugging(0)) {
 			s_debug("CQ called-out %s() did not call cq_zero() on event %p",
 				stacktrace_function_name(fn), ev);
@@ -1247,7 +1382,7 @@ done:
 		s_debug("CQ: %squeue \"%s\" %striggered %zu event%s (%d item%s)",
 			cq->cq_magic == CSUBQUEUE_MAGIC ? "sub" : "",
 			cq->cq_name, NULL == old_current ? "" : "recursively",
-			processed, plural(processed), cq->cq_items, plural(cq->cq_items));
+			PLURAL(processed), PLURAL(cq->cq_items));
 	}
 
 	/*
@@ -1371,7 +1506,7 @@ cq_delay(const cqueue_t *cq)
 	if (cq_debugging(4)) {
 		s_debug("%s(%s): %smin delay is %d, scanned %d bucket%s",
 			G_STRFUNC, cq->cq_name, adjusted ? "adjusted " : "",
-			delay, i, plural(i));
+			delay, PLURAL(i));
 	}
 
 	return delay;
@@ -2052,7 +2187,7 @@ cq_time_to_string(cq_time_t t)
 	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_BUFLEN);
 	char *p = buf_data(b);
 
-	uint64_to_string_buf(t, p, buf_size(b));
+	uint64_to_gstring_buf(t, p, buf_size(b));
 	return p;
 }
 
@@ -2277,7 +2412,7 @@ cq_free(cqueue_t *cq)
 	for (ch = cq->cq_hash, i = 0; i < HASH_SIZE; i++, ch++) {
 		for (ev = ch->ch_head; ev; ev = ev_next) {
 			ev_next = ev->ce_bnext;
-			ev_free(ev);
+			ev_forced_free(ev);
 		}
 	}
 

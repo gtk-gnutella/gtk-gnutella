@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -244,7 +244,7 @@ kuid_to_string(const kuid_t *kuid)
 {
 	static char buf[SHA1_BASE32_SIZE + 1];
 
-	return sha1_to_base32_buf(cast_to_constpointer(&kuid->v), buf, sizeof buf);
+	return sha1_to_base32_buf(cast_to_constpointer(&kuid->v), ARYLEN(buf));
 }
 
 /**
@@ -257,7 +257,7 @@ kuid_to_hex_string(const kuid_t *kuid)
 {
 	static char buf[KUID_HEX_BUFLEN];
 
-	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
+	bin_to_hex_buf(kuid, KUID_RAW_SIZE, ARYLEN(buf));
 
 	return buf;
 }
@@ -272,7 +272,7 @@ kuid_to_hex_string2(const kuid_t *kuid)
 {
 	static char buf[KUID_HEX_BUFLEN];
 
-	bin_to_hex_buf(kuid, KUID_RAW_SIZE, buf, sizeof buf);
+	bin_to_hex_buf(kuid, KUID_RAW_SIZE, ARYLEN(buf));
 
 	return buf;
 }

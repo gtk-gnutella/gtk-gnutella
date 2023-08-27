@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -159,17 +159,21 @@ compat_poll(struct pollfd *fds, unsigned int n, int timeout)
 	if (timeout != 0)
 		thread_in_syscall_set(TRUE);
 
-#ifdef USE_SELECT_FOR_POLL
-	r = emulate_poll_with_select(fds, n, timeout);
-#elif defined(MINGW32)
+#if defined(MINGW32)
 	/*
 	 * Only Windows versions starting at Vista have WSAPoll(), but we
 	 * know all Windows have select() under MinGW.
+	 *
+	 * There are rumors that WSAPoll() has a bug with sockets connecting
+	 * to non-responsive hosts -- they never trigger even when TCP times
+	 * out its connection sequence.  To be confirmed by testing at large.
 	 */
 	if (mingw_has_wsapoll())
 		r = mingw_poll(fds, n, timeout);
 	else
 		r = emulate_poll_with_select(fds, n, timeout);
+#elif defined(USE_SELECT_FOR_POLL)
+	r = emulate_poll_with_select(fds, n, timeout);
 #else	/* !USE_SELECT_FOR_POLL */
 	r = poll(fds, n, timeout);
 #endif	/* USE_SELECT_FOR_POLL */

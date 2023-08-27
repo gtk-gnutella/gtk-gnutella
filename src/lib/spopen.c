@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -44,7 +44,7 @@
  * escaping of possible shell meta-characters.
  *
  * As is traditional for this family of functions in the litterature,
- * the radix "spopen" is supplemented with additional letter which give
+ * the radix "spopen" is supplemented with additional letters which give
  * a hint towards the function signature...
  *
  * The first letter is either 'l' or 'v':

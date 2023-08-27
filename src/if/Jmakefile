@@ -21,11 +21,23 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
 ;# $Id$
+
+/*
+ * We disable parallelism here because it does not seem to behave correctly.
+ *
+ * This may be due to the autogen program generating 3 files at the same
+ * time and all these files being declared as make targets.
+ *
+ * The .NOTPARALLEL directive will request sequential running for all the
+ * targets in this Makefile.  It is supported by GNU make but should be
+ * silently ignored by other make programs.
+ */
+.NOTPARALLEL:
 
 SetSubdirs(bridge gen)
 DependSubdirs()

@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -682,7 +682,9 @@ sequence_backward_iterator(const sequence_t *s, bool check)
 		si->u.li = list_iter_after_tail(s->u.l);
 		break;
 	case SEQUENCE_PSLIST:
-		si->u.psl = pslist_last(s->u.psl);
+		if (check)
+			goto panic;
+		si->u.psl = s->u.psl;	/* Forward iteration from head */
 		break;
 	case SEQUENCE_PLIST:
 		si->u.pl = plist_last(s->u.pl);

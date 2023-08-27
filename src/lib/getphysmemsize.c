@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -36,9 +36,17 @@
 #include "vmm.h"
 #include "getphysmemsize.h"
 
+#ifndef _SC_PHYS_PAGES
+/*
+ * Only include <sys/sysctl.h> if we're going to actually need it.
+ * Indeed, that header file is now deprecated on linux, but since linux
+ * has sysconf(), we don't really need to include that file there!
+ * 		--RAM, 2020-11-10.
+ */
 #if defined(I_SYS_SYSCTL) && defined(HAS_SYSCTL)
 #include <sys/sysctl.h>
 #endif
+#endif	/* !_SC_PHYS_PAGES */
 
 #ifdef I_INVENT
 #include <invent.h>

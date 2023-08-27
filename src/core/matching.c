@@ -19,7 +19,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -67,7 +67,7 @@ typedef uint64 st_mask_t;
  * We're building an inverted index of all the file names by linking
  * together all the names having in common sequences of two chars.
  *
- * For instance, given the filenames "foo", "bar", "ar" and "arc", we'll
+ * For instance, given the strings "foo", "bar", "ar" and "arc", we'll
  * have the following bins:
  *
  *    bin["fo"] = { "foo" };
@@ -77,7 +77,7 @@ typedef uint64 st_mask_t;
  *    bin["rc"] = { "arc" };
  *
  * Now assume we're looking for "arc". We're scanning the pattern to find
- * the bin which has the less amount of files listed insided.  The patterns
+ * the bin which has the less amount of strings listed inside.  The patterns
  * gives us the bins "ar" and "rc", and:
  *
  *    bin["ar"] has 3 items
@@ -512,7 +512,7 @@ st_insert_item(search_table_t *table,
 	entry->sf = shared_file_ref(sf);
 	entry->mask = mask_hash(entry->string);
 
-	len = strlen(entry->string);
+	len = vstrlen(entry->string);
 	for (i = 0; i < len - 1; i++) {
 		uint key = st_key(set, &entry->string[i]);
 
@@ -580,12 +580,12 @@ entry_match(const char *text, size_t tlen,
 		size_t j, offset = 0, amount = wovec[i].amount;
 
 		if (pw[i] == NULL)
-			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len);
+			pw[i] = pattern_compile_fast(wovec[i].word, wovec[i].len, FALSE);
 
 		for (j = 0; j < amount; j++) {
 			const char *pos;
 
-			pos = pattern_qsearch(pw[i], text, tlen, offset, qs_begin);
+			pos = pattern_search(pw[i], text, tlen, offset, qs_begin);
 			if (pos)
 				offset = (pos - text) + pattern_len(pw[i]);
 			else
@@ -705,7 +705,7 @@ st_run_search(
 
 	g_assert(implies(SEARCH_ALIAS == mode, NULL == qhv));
 
-	len = strlen(search);
+	len = vstrlen(search);
 
 	/*
 	 * Find smallest bin
@@ -909,7 +909,7 @@ st_run_search(
 			"scanned %d/%d bin entr%s, "
 			"compiled %u/%u pattern%s, got %d match%s",
 			G_STRFUNC, scanned, best_bin_size, plural_y(scanned),
-			compiled, wocnt, plural(compiled), nres, plural_es(nres));
+			compiled, wocnt, plural(compiled), PLURAL_ES(nres));
 	}
 
 	/*

@@ -56,6 +56,8 @@
 #include "thread.h"
 #include "walloc.h"
 
+#include "override.h"
+
 const char *progpath;
 static bool verbose, sigpipe;
 const char *redirect_child;
@@ -235,7 +237,7 @@ static void
 read_message(int fd, const char expect[], size_t expectlen)
 {
 	char buf[80];
-	int r = read(fd, buf, sizeof buf);
+	int r = read(fd, ARYLEN(buf));
 	if (-1 == r)
 		s_error("%s(): cannot read from fd #%d: %m", G_STRFUNC, fd);
 	if (UNSIGNED(r) != expectlen)
@@ -317,19 +319,19 @@ test_spopenve(void)
 
 	fd[0] = fd[1] = SPOPEN_ASIS;
 
-	concat_strings(buf, sizeof buf, test, "x.plain", verb, NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.plain", verb, NULL_PTR);
 	pfd = verbose_spopen(NULL, progpath, "r", fd, "-X", buf, NULL_PTR);
 	READ_MESSAGE(pfd);
 	test_child_expect(pfd, TRUE);
 
 	test = "t=env,";
 
-	concat_strings(buf, sizeof buf, test, verb, ",envp", NULL_PTR);
+	concat_strings(ARYLEN(buf), test, verb, ",envp", NULL_PTR);
 	pfd = verbose_spopen(NULL, progpath, "w", fd, "-X", buf, NULL_PTR);
 	WRITE_MESSAGE(pfd);
 	test_child_expect(pfd, TRUE);
 
-	concat_strings(buf, sizeof buf, test, "x.vars", verb, ",envp", NULL_PTR);
+	concat_strings(ARYLEN(buf), test, "x.vars", verb, ",envp", NULL_PTR);
 	pfd = verbose_spopen(envp, progpath, "w", fd, "-X", buf, NULL_PTR);
 	WRITE_MESSAGE(pfd);
 	test_child_expect(pfd, TRUE);
@@ -349,7 +351,7 @@ test_spopenve(void)
 
 		test = "t=file,";
 
-		concat_strings(buf, sizeof buf, test, "x.read", verb, NULL_PTR);
+		concat_strings(ARYLEN(buf), test, "x.read", verb, NULL_PTR);
 		pfd = verbose_spopen(NULL, progpath, "r", fd, "-X", buf, NULL_PTR);
 		READ_FILEMSG(pfd);
 		test_child_expect(pfd, TRUE);
@@ -359,7 +361,7 @@ test_spopenve(void)
 		fd[0] = file_open(redirect_child, O_WRONLY | O_TRUNC | O_CREAT, 0);
 		g_assert(fd[0] != -1);
 
-		concat_strings(buf, sizeof buf, test, "x.write", verb, NULL_PTR);
+		concat_strings(ARYLEN(buf), test, "x.write", verb, NULL_PTR);
 		pfd = verbose_spopen(NULL, progpath, "w", fd, "-X", buf, NULL_PTR);
 		WRITE_FILEMSG2(pfd);
 		test_child_expect(pfd, TRUE);
@@ -384,7 +386,7 @@ test_spopenve(void)
 
 		test = "t=epipe,";
 
-		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		concat_strings(ARYLEN(buf), test, verb, NULL_PTR);
 		pfd = verbose_spopen(NULL, progpath, "w", NULL, "-X", buf, NULL_PTR);
 
 		signal_catch(SIGPIPE, caught_sigpipe);
@@ -411,7 +413,7 @@ test_spopenve(void)
 			(ulong) sppidof(pfd));
 		spclose(pfd);
 
-		concat_strings(buf, sizeof buf, test, verb, NULL_PTR);
+		concat_strings(ARYLEN(buf), test, verb, NULL_PTR);
 		pfd = verbose_spopen(NULL, progpath, "w", NULL, "-X", buf, NULL_PTR);
 
 		signal_catch(SIGPIPE, SIG_IGN);
@@ -533,7 +535,7 @@ x_spopenve_file(const htable_t *xv)
 	int r;
 
 	if (x_wants(xv, "x.read") || x_wants(xv, "x.write")) {
-		r = read(STDIN_FILENO, buf, sizeof buf);
+		r = read(STDIN_FILENO, ARYLEN(buf));
 		x_check(r != -1);
 		write_message(STDOUT_FILENO, buf, r);
 	}
@@ -562,7 +564,7 @@ x_record(const char *value)
 
 	while ((tok = strtok_next(s, ","))) {
 		char *kv = h_strdup(tok);
-		char *eq = strstr(kv, "=");		/* What follows is the value */
+		char *eq = strchr(kv, '=');		/* What follows is the value */
 
 		if (NULL == eq) {
 			htable_insert(xv, kv, "y");	/* No value, assume "y" (for yes) */
@@ -632,7 +634,6 @@ main(int argc, char **argv)
 {
 	extern int optind;
 	extern char *optarg;
-	extern char **environ;
 	const char options[] = "hvpr:z:X:";
 	int c;
 

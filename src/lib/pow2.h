@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -41,6 +41,7 @@ uint64 next_pow2_64(uint64 n) G_CONST;
 int highest_bit_set(uint32 n) G_PURE;
 int highest_bit_set64(uint64 n) G_PURE;
 int ctz64(uint64 n) G_CONST;
+int clz64(uint64 n) G_CONST;
 uint8 reverse_byte(uint8 b) G_CONST;
 
 /**
@@ -81,7 +82,7 @@ popcount(uint32 x)
 
 	x -= (x >> 1) & 0x55555555;
 	x = (x & 0x33333333) + ((x >> 2) & 0x33333333);
-	return ((x + (x >> 4) & 0xf0f0f0f) * 0x1010101) >> 24;
+	return (((x + (x >> 4)) & 0xf0f0f0f) * 0x1010101) >> 24;
 }
 #endif	/* HAS_BUILTIN_POPCOUNT */
 
@@ -176,6 +177,19 @@ int bits_set(uint8 b) G_PURE;
 static inline ALWAYS_INLINE G_CONST int
 bits_set32(uint32 v)
 {
+	return popcount(v);
+}
+
+/**
+ * @returns amount of bits set in a 64-bit value.
+ */
+static inline ALWAYS_INLINE G_CONST int
+bits_set64(uint64 v)
+{
+	if G_LIKELY(v <= 0xffffffffU)
+		return bits_set32(v);
+	else
+		return bits_set32((uint32) v) + bits_set32(v >> 32);
 	return popcount(v);
 }
 

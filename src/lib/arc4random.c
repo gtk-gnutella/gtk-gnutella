@@ -20,7 +20,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -150,8 +150,8 @@ arc4_stir(struct arc4_stream *as)
 	for (n = 0; n < 4; n++) {
 		unsigned char buf[ARC4_BOXES];
 
-		entropy_fill(buf, sizeof buf);
-		arc4_addrandom(as, buf, sizeof buf);
+		entropy_fill(ARYLEN(buf));
+		arc4_addrandom(as, ARYLEN(buf));
 	}
 
 	/*
@@ -193,8 +193,6 @@ arc4_getword(struct arc4_stream *as)
 
 	return (val);
 }
-
-#ifndef HAS_ARC4RANDOM
 
 static spinlock_t arc4_lck = SPINLOCK_INIT;
 
@@ -276,18 +274,8 @@ arc4random64(void)
 	lo = arc4_getword(&rs);
 	ARC4_UNLOCK;
 
-	return ((uint64) hi << 32) | (uint64) lo;
+	return UINT64_VALUE(hi, lo);
 }
-#else
-/**
- * @return 64-bit random number.
- */
-uint64
-arc4random64(void)
-{
-	return ((uint64) arc4random() << 32) | (uint64) arc4random();
-}
-#endif	/* !HAS_ARC4RANDOM */
 
 /**
  * Perform random initialization if not already done.
@@ -367,7 +355,7 @@ arc4_thread_rand64(void)
 	hi = arc4_getword(as);
 	lo = arc4_getword(as);
 
-	return ((uint64) hi << 32) | (uint64) lo;
+	return UINT64_VALUE(hi, lo);
 }
 
 /**

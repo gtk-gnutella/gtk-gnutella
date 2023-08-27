@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -57,7 +57,7 @@ array_init(const void *data, size_t size)
 static inline struct array
 array_from_string(const char *str)
 {
-	return array_init(str, strlen(str));
+	return array_init(str, vstrlen(str));
 }
 
 #endif /* _array_h_ */

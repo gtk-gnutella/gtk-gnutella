@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -31,6 +31,7 @@
 #include "lib/http_range.h"
 #include "lib/iso3166.h"		/* For iso3166_code_is_valid() */
 #include "lib/list.h"
+#include "lib/pmsg.h"			/* For pmsg_t */
 #include "lib/slist.h"
 #include "lib/tm.h"				/* For tm_t */
 
@@ -196,7 +197,7 @@ struct dl_pipeline {
 	enum dl_pipeline_magic magic;	/**< Magic number */
 	dl_pipeline_status_t status;	/**< Current status of this HTTP request */
 	struct dl_chunk chunk;			/**< Requested chunk */
-	struct http_buffer *req;		/**< Partially sent HTTP request */
+	pmsg_t *req;					/**< Partially sent HTTP request */
 	pmsg_t *extra;					/**< Extra data received */
 };
 
@@ -240,7 +241,7 @@ struct download {
 	struct gnutella_socket *socket;
 	struct file_object *out_file;	/**< downloaded file */
 	uint32 overlap_size;		/**< Size of the overlapping window on resume */
-	struct http_buffer *req;	/**< HTTP request, when partially sent */
+	pmsg_t *req;				/**< HTTP request, when partially sent */
 	struct dl_buffers *buffers;	/**< Buffers for reading, only when active */
 
 	time_t start_date;			/**< Download start date */

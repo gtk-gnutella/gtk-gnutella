@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -81,11 +81,9 @@ struct dime_record {
 struct dime_record *
 dime_record_alloc(void)
 {
-	static const struct dime_record zero_record;
 	struct dime_record *record;
 
-	WALLOC(record);
-	*record = zero_record;
+	WALLOC0(record);
 	return record;
 }
 
@@ -231,7 +229,7 @@ dime_log_truncated_record(const char *name, const struct dime_record *header,
 		(header->flags & DIME_F_MB) ? " [MB]" : "",
 		(header->flags & DIME_F_ME) ? " [ME]" : "",
 		(header->flags & DIME_F_CF) ? " [CF]" : "",
-		announced, dime_ceil(announced), real, plural(real));
+		announced, dime_ceil(announced), PLURAL(real));
 }
 
 /**
@@ -383,7 +381,7 @@ dime_record_set_id(struct dime_record *record, const char *id)
 
 	g_return_val_if_fail(record, FALSE);
 
-	length = id ? strlen(id) : 0;
+	length = id ? vstrlen(id) : 0;
 	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->id = id;
@@ -399,7 +397,7 @@ dime_record_set_type(struct dime_record *record,
 
 	g_return_val_if_fail(record, FALSE);
 
-	length = type ? strlen(type) : 0;
+	length = type ? vstrlen(type) : 0;
 	g_return_val_if_fail(length < (uint16)-1, FALSE);
 
 	record->type = type;

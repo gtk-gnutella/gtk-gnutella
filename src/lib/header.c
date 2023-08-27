@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -246,9 +246,9 @@ hfield_dump(const header_field_t *h, FILE *out)
 			char buf[80];
 			const char *p = s;
 			int c;
-			size_t len = strlen(s);
-			str_bprintf(buf, sizeof buf, "<%u non-printable byte%s>",
-				(unsigned) len, plural(len));
+			size_t len = vstrlen(s);
+			str_bprintf(ARYLEN(buf), "<%u non-printable byte%s>",
+				(unsigned) PLURAL(len));
 			fputs(buf, out);
 			while ((c = *p++)) {
 				if (is_ascii_print(c) || is_ascii_space(c))
@@ -770,7 +770,7 @@ header_fmt_make(const char *field, const char *separator,
 	hf->frozen = FALSE;
 	hf->max_size = max_size;
 	hf->sep = atom_str_get(separator ? separator : "");
-	hf->seplen = strlen(hf->sep);
+	hf->seplen = vstrlen(hf->sep);
 	hf->stripped_seplen = stripped_strlen(hf->sep, hf->seplen);
 	str_cat(hf->header, field);
 	STR_CAT(hf->header, ": ");
@@ -894,7 +894,7 @@ header_fmt_append_full(header_fmt_t *hf, const char *str,
 		return FALSE;
 
 	gslen = str_len(hf->header);
-	len = strlen(str);
+	len = vstrlen(str);
 	curlen = hf->current_len;
 	g_assert(size_is_non_negative(curlen));
 
@@ -962,7 +962,7 @@ header_fmt_append(header_fmt_t *hf, const char *str, const char *separator)
 	header_fmt_check(hf);
 	g_assert(!hf->frozen);
 
-	seplen = (separator == NULL) ? 0 : strlen(separator);
+	seplen = (separator == NULL) ? 0 : vstrlen(separator);
 
 	return header_fmt_append_full(hf, str, separator, seplen, (size_t)-1);
 }

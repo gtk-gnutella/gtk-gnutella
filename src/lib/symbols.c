@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -44,13 +44,14 @@
 #include "base16.h"
 #include "bfd_util.h"
 #include "constants.h"
+#include "cstr.h"
 #include "eslist.h"
 #include "file.h"
-#include "glib-missing.h"		/* For g_strlcpy() */
 #include "halloc.h"
 #include "htable.h"
 #include "log.h"
 #include "misc.h"
+#include "omalloc.h"
 #include "parse.h"
 #include "path.h"
 #include "rwlock.h"
@@ -103,6 +104,7 @@ symbols_check(const struct symbols * const s)
 
 #define SYMBOLS_WRITE_LOCK(x)	rwlock_wlock(&(x)->lock)
 #define SYMBOLS_WRITE_UNLOCK(x)	rwlock_wunlock(&(x)->lock)
+#define SYMBOLS_WRITE_LOCKED(x)	rwlock_is_busy(&(x)->lock)
 
 enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
 
@@ -112,14 +114,14 @@ enum symbols_loadinfo_magic { SYMBOLS_LOADINFO_MAGIC = 0x4e1edc1d };
  * happened after the fact.
  *
  * These structures are linked together to form a single list that will be
- * flushed as soon as symbols_set_verbose() is called.
+ * flushed to logs as soon as symbols_set_verbose() is called.
  */
 struct symbols_loadinfo {
 	enum symbols_loadinfo_magic magic;
 	size_t count;
 	size_t stripped;
 	size_t offset;
-	char *path;
+	const char *path;
 	const char *method;
 	uint garbage:1;
 	uint mismatch:1;
@@ -145,36 +147,135 @@ static spinlock_t symbols_loaded_slk = SPINLOCK_INIT;
 #define SYMBOLS_LOADED_UNLOCK	spinunlock(&symbols_loaded_slk)
 
 /**
+ * Return string version of the self-assessed symbol quality.
+ */
+const char *
+symbol_quality_string(const enum symbol_quality sq)
+{
+	switch (sq) {
+	case SYMBOL_Q_GOOD:		return "good";
+	case SYMBOL_Q_STALE:	return "stale";
+	case SYMBOL_Q_MISMATCH:	return "mismatch";
+	case SYMBOL_Q_GARBAGE:	return "garbage";
+	case SYMBOL_Q_MAX:		break;
+	}
+
+	return "UNKNOWN";
+}
+
+/**
+ * Export internal info from `sli' into user-visible `uli' structure.
+ */
+static void
+symbols_export_info(
+	struct symbol_load_info *uli,
+	const struct symbols_loadinfo *sli)
+{
+	symbols_loadinfo_check(sli);
+
+#define UCP(x)	uli->x = sli->x
+
+	UCP(count);
+	UCP(stripped);
+	UCP(offset);
+	UCP(path);
+	UCP(method);
+	UCP(secs);
+	UCP(when);
+
+	if (sli->garbage)
+		uli->quality = SYMBOL_Q_GARBAGE;
+	else if (sli->mismatch)
+		uli->quality = SYMBOL_Q_MISMATCH;
+	else
+		uli->quality = SYMBOL_Q_GOOD;
+
+#undef UCP
+}
+
+/**
+ * Iterate over the list of loaded symbols and invoke callback on each of
+ * them.
+ *
+ * The callback will be invoked with a "struct symbol_load_info" data.
+ *
+ * @param cb	callback to invoke
+ * @param udata	opaque user data supplied to callback
+ */
+void
+symbols_load_foreach(cdata_fn_t cb, void *udata)
+{
+	const struct symbols_loadinfo *sli;
+
+	SYMBOLS_LOADED_LOCK;
+
+	ESLIST_FOREACH_DATA(&symbols_loaded, sli) {
+		struct symbol_load_info uli;
+
+		symbols_export_info(&uli, sli);
+		(*cb)(&uli, udata);
+	}
+
+	SYMBOLS_LOADED_UNLOCK;
+}
+
+/**
+ * Return information about the first symbol load operation, NULL if none.
+ * This is a pointer to static data.
+ */
+const struct symbol_load_info *
+symbols_load_first(void)
+{
+	const struct symbols_loadinfo *sli;
+	static struct symbol_load_info uli;
+
+	SYMBOLS_LOADED_LOCK;
+	sli = eslist_head(&symbols_loaded);
+	SYMBOLS_LOADED_UNLOCK;
+
+	if (NULL == sli)
+		return NULL;
+
+	symbols_export_info(&uli, sli);
+
+	return &uli;
+}
+
+/**
  * Log symbol loading if requested.
  */
 static void
-symbols_log_loaded(const char *path,
-	const char *method, size_t count, size_t stripped,
-	size_t offset, bool garbage, bool mismatch, double secs, double ago)
+symbols_log_loaded(const struct symbols_loadinfo *sli)
 {
-	if (symbols_verbose) {
-		char buf[20];
+	char buf[20];
+	tm_t now;
+	double ago;
 
-		buf[0] = '\0';
-		if (ago != 0.0)
-			str_bprintf(buf, sizeof buf, " %.3f secs ago", ago);
+	symbols_loadinfo_check(sli);
 
-		s_info("loaded %zu symbol%s for \"%s\" via %s in %.3f secs%s",
-			count, plural(count), path, method, secs, buf);
+	if (!symbols_verbose)
+		return;
 
-		if (stripped != 0) {
-			s_message("stripped %zu duplicate symbol%s",
-				stripped, plural(stripped));
-		}
-		if (offset != 0) {
-			s_message("will be offsetting symbol addresses by 0x%lx (%ld)",
-				(unsigned long) offset, (long) offset);
-		}
-		if (garbage) {
-			s_warning("loaded symbols are pure garbage");
-		} else if (mismatch) {
-			s_warning("loaded symbols are partially inaccurate");
-		}
+	tm_now_exact(&now);
+	ago = tm_elapsed_f(&now, &sli->when);
+
+	buf[0] = '\0';
+	if (ago != 0.0)
+		str_bprintf(ARYLEN(buf), " %.3f secs ago", ago);
+
+	s_info("loaded %zu symbol%s from \"%s\" via %s in %.3f secs%s",
+		PLURAL(sli->count), sli->path, sli->method, sli->secs, buf);
+
+	if (sli->stripped != 0)
+		s_message("stripped %zu duplicate symbol%s", PLURAL(sli->stripped));
+	if (sli->offset != 0) {
+		s_message("will be offsetting symbol addresses by 0x%lx (%ld)",
+			(unsigned long) sli->offset, (long) sli->offset);
+	}
+	if (sli->garbage) {
+		s_warning("loaded symbols are pure garbage");
+	} else if (sli->mismatch) {
+		s_warning("loaded symbols are partially inaccurate");
 	}
 }
 
@@ -187,33 +288,40 @@ symbols_notify_loaded(const char *path,
 	const char *method, size_t count, size_t stripped, size_t offset,
 	bool garbage, bool mismatch, double secs)
 {
+	struct symbols_loadinfo *sli;
+
+	/*
+	 * This information is recorded and never gets freed.
+	 *
+	 * In case of a crash later, we'll peruse this information and propagate
+	 * it into the crash log so that we know how confident we can be about
+	 * the symbolic information we are logging.
+	 *
+	 * If everything goes well, there must be only one single loading of
+	 * the symbols for each path, hence we can use omalloc() to allocate
+	 * that structure.
+	 */
+
+	OMALLOC0(sli);
+	sli->magic = SYMBOLS_LOADINFO_MAGIC;
+	sli->path = ostrdup_readonly(path);
+	sli->method = method;	/* Since `method' points to static string */
+	sli->count = count;
+	sli->stripped = stripped;
+	sli->offset = offset;
+	sli->garbage = booleanize(garbage);
+	sli->mismatch = booleanize(mismatch);
+	sli->secs = secs;
+	tm_now_exact(&sli->when);
+
 	SYMBOLS_LOADED_LOCK;
-
-	if (!symbols_verbose_set) {
-		struct symbols_loadinfo *sli;
-
-		XMALLOC0(sli);
-		sli->magic = SYMBOLS_LOADINFO_MAGIC;
-		sli->path = xstrdup(path);
-		sli->method = method;
-		sli->count = count;
-		sli->stripped = stripped;
-		sli->offset = offset;
-		sli->garbage = booleanize(garbage);
-		sli->mismatch = booleanize(mismatch);
-		sli->secs = secs;
-		tm_now_exact(&sli->when);
-
-		eslist_append(&symbols_loaded, sli);
-
-		SYMBOLS_LOADED_UNLOCK;
-		return;
-	}
-
+	eslist_append(&symbols_loaded, sli);
 	SYMBOLS_LOADED_UNLOCK;
 
-	symbols_log_loaded(path, method, count, stripped,
-		offset, garbage, mismatch, secs, 0.0);
+	if (!symbols_verbose_set)
+		return;
+
+	symbols_log_loaded(sli);
 }
 
 /**
@@ -223,19 +331,11 @@ static void
 symbols_loaded_process(void *data, void *udata)
 {
 	struct symbols_loadinfo *sli = data;
-	tm_t now;
 
 	symbols_loadinfo_check(sli);
 	(void) udata;
 
-	tm_now_exact(&now);
-	symbols_log_loaded(sli->path, sli->method, sli->count,
-		sli->stripped, sli->offset, sli->garbage, sli->mismatch, sli->secs,
-		tm_elapsed_f(&now, &sli->when));
-
-	XFREE_NULL(sli->path);
-	sli->magic = 0;
-	xfree(sli);
+	symbols_log_loaded(sli);
 }
 
 /**
@@ -249,9 +349,8 @@ symbols_set_verbose(bool verbose)
 	SYMBOLS_LOADED_LOCK;
 
 	if (!symbols_verbose_set) {
-		eslist_foreach(&symbols_loaded, symbols_loaded_process, NULL);
-		eslist_clear(&symbols_loaded);
 		symbols_verbose_set = TRUE;
+		eslist_foreach(&symbols_loaded, symbols_loaded_process, NULL);
 	}
 
 	SYMBOLS_LOADED_UNLOCK;
@@ -322,7 +421,7 @@ symbols_make(size_t capacity, bool once)
 
 	g_assert(size_is_non_negative(capacity));
 
-	s = xmalloc0(sizeof *s);
+	XMALLOC0(s);
 	s->magic = SYMBOLS_MAGIC;
 	s->once = booleanize(once);
 	s->size = capacity;
@@ -392,7 +491,7 @@ symbols_normalize(const char *name, bool atom)
 	 * gcc sometimes appends '.part' or other suffix to routine names.
 	 */
 
-	dot = strchr(name, '.');
+	dot = vstrchr(name, '.');
 	tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 
 	/*
@@ -409,7 +508,7 @@ symbols_normalize(const char *name, bool atom)
 	 */
 
 	if (is_running_on_mingw() && tmp == name) {
-		dot = strchr(name, '@');
+		dot = vstrchr(name, '@');
 		tmp = NULL == dot ? deconstify_char(name) : xstrndup(name, dot - name);
 	}
 
@@ -655,9 +754,9 @@ symbols_fmt_name(char *buf, size_t buflen, const char *name, size_t offset)
 {
 	size_t namelen;
 
-	namelen = g_strlcpy(buf, name, buflen);
+	namelen = cstr_lcpy(buf, buflen, name);
 	if (namelen >= buflen - 2)
-		return;
+		return;		/* No room for adding any offset */
 
 	if (offset != 0) {
 		buf[namelen] = '+';
@@ -707,7 +806,9 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 
 	if (!SYMBOLS_READ_TRYLOCK(st)) {
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
+		goto done;
 	} else if G_UNLIKELY(!st->sorted || 0 == st->count) {
+		SYMBOLS_READ_UNLOCK(st);
 		symbols_fmt_pointer(b, sizeof buf[0], pc);
 	} else {
 		struct symbol *s;
@@ -715,12 +816,14 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 		s = symbols_lookup(st, pc);
 
 		if (NULL == s || &st->base[st->count - 1] == s) {
+			SYMBOLS_READ_UNLOCK(st);
 			symbols_fmt_pointer(b, sizeof buf[0], pc);
 		} else {
 			size_t off = 0;
 			const void *addr = const_ptr_add_offset(pc, st->offset);
+			bool garbage;
 
-			if (st->garbage) {
+			if ((garbage = st->garbage)) {
 				b[0] = '?';
 				off = 1;
 			} else if (st->mismatch) {
@@ -734,25 +837,28 @@ symbols_name(const symbols_t *st, const void *pc, bool offset)
 			symbols_fmt_name(&b[off], sizeof buf[0] - off, s->name,
 				offset ? ptr_diff(addr, s->addr) : 0);
 
+			SYMBOLS_READ_UNLOCK(st);
+
 			/*
 			 * If symbols are garbage, add the hexadecimal pointer to the
 			 * name so that we have a little chance of figuring out what
 			 * the routine was.
 			 */
 
-			if (st->garbage) {
+			if (garbage) {
 				char ptr[POINTER_BUFLEN + CONST_STRLEN(" ()")];
 
-				g_strlcpy(ptr, " (", sizeof ptr);
-				pointer_to_string_buf(pc, &ptr[2], sizeof ptr - 2);
-				clamp_strcat(ptr, sizeof ptr, ")");
+				cstr_lcpy(ARYLEN(ptr), " (");
+				pointer_to_string_buf(pc, ARYPOSLEN(ptr, 2));
+				clamp_strcat(ARYLEN(ptr), ")");
 				clamp_strcat(b, sizeof buf[0], ptr);
 			}
 		}
 	}
 
-	SYMBOLS_READ_UNLOCK(st);
+	/* FALL THROUGH */
 
+done:
 	return b;
 }
 
@@ -784,6 +890,45 @@ symbols_addr(const symbols_t *st, const void *pc)
 	SYMBOLS_READ_UNLOCK(st);
 
 	return p;
+}
+
+/**
+ * Light version of the symbols_name_only() routine which attempts to minimize
+ * the resources required to compute the information.
+ *
+ * This is light in that there is no need to format, and that we do not
+ * attempt to lock the symbols, only bailing out when the symbols are
+ * already write-locked.
+ *
+ * This can cause races and this routine should only be used during crashing,
+ * to help translate information about PC and stack traces into digestable
+ * names.
+ *
+ * @param st		the symbol table
+ * @param pc		the PC to translate into symbolic form
+ * @param offset	where offset is written, if non-NULL
+ *
+ * @return symbolic name for given pc offset, if found, NULL otherwise.
+ */
+const char *
+symbols_name_light(const symbols_t *st, const void *pc, size_t *offset)
+{
+	struct symbol *s;
+
+	symbols_check(st);
+
+	if (SYMBOLS_WRITE_LOCKED(st))
+		return NULL;		/* Already locked, symbols being loaded */
+
+	s = symbols_find(st, pc);
+
+	if (NULL == s)
+		return NULL;
+
+	if (offset != NULL)
+		*offset = ptr_diff(const_ptr_add_offset(pc, st->offset), s->addr);
+
+	return s->name;
 }
 
 /*
@@ -820,12 +965,13 @@ symbols_name_only(const symbols_t *st, const void *pc, bool offset)
 	if (NULL == s)
 		goto done;
 
-	if (0 == offset) {
-		name = s->name;
-	} else {
+	if (offset) {
+		/* Need to format string into a thread-private buffer */
 		name = b;
 		addr = const_ptr_add_offset(pc, st->offset);
 		symbols_fmt_name(b, sizeof buf[0], s->name, ptr_diff(addr, s->addr));
+	} else {
+		name = s->name;		/* Already a constant string, is thread-safe */
 	}
 
 done:
@@ -860,7 +1006,7 @@ symbols_by_name(const symbols_t *st)
 }
 
 #define FN(x) \
-	{ (func_ptr_t) x, STRINGIFY(x) }
+	{ func_cast(func_ptr_t, x), STRINGIFY(x) }
 
 /**
  * Known symbols that we want to check.
@@ -1084,7 +1230,7 @@ symbols_sha1(const char *file, struct sha1 *digest)
 		char buf[512];
 		int r;
 
-		r = read(fd, buf, sizeof buf);
+		r = read(fd, ARYLEN(buf));
 
 		if (-1 == r) {
 			close(fd);
@@ -1154,7 +1300,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	char line[512];
 	int i = 0;
 
-	if (!symbols_read_line(f, line, sizeof line))
+	if (!symbols_read_line(f, ARYLEN(line)))
 		return FALSE;
 
 	/*
@@ -1180,7 +1326,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 	 *		--RAM, 2013-10-03
 	 */
 
-	while (symbols_read_line(f, line, sizeof line)) {
+	while (symbols_read_line(f, ARYLEN(line))) {
 		char *p;
 
 		if ('\0' == line[0])		/* Reached end of header */
@@ -1192,7 +1338,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 		p = is_strcaseprefix(line, "SHA1");
 
 		if (NULL == p) {
-			if (NULL == strchr(line, ':'))
+			if (NULL == vstrchr(line, ':'))
 				return FALSE;		/* Not an HTTP header */
 			continue;
 		}
@@ -1212,7 +1358,7 @@ symbols_extract_sha1(FILE *f, struct sha1 nm[2])
 
 		if (
 			SHA1_RAW_SIZE !=
-				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, strlen(p))
+				base16_decode(&nm[i++], SHA1_RAW_SIZE, p, vstrlen(p))
 		)
 			return FALSE;
 	}
@@ -1379,15 +1525,15 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 		 */
 
 		while ((c = *p++)) {
-			if (strchr(meta, c)) {
+			if (vstrchr(meta, c)) {
 				s_warning("found shell meta-character '%c' in path \"%s\", "
 					"not loading symbols", c, exe);
 				goto use_pre_computed;
 			}
 		}
 
-		rw = str_bprintf(tmp, sizeof tmp, "nm -p %s", exe);
-		if (rw != strlen(exe) + CONST_STRLEN("nm -p ")) {
+		rw = str_bprintf(ARYLEN(tmp), "nm -p %s", exe);
+		if (rw != vstrlen(exe) + CONST_STRLEN("nm -p ")) {
 			s_warning("full path \"%s\" too long, cannot load symbols", exe);
 			goto use_pre_computed;
 		}
@@ -1407,7 +1553,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 #endif	/* MINGW32 */
 
 retry:
-	while (fgets(tmp, sizeof tmp, f)) {
+	while (fgets(ARYLEN(tmp), f)) {
 		symbols_parse_nm(st, tmp);
 	}
 
@@ -1474,19 +1620,19 @@ unlock:
 /**
  * Return self-assessed symbol quality.
  */
-enum stacktrace_sym_quality
+enum symbol_quality
 symbols_quality(const symbols_t *st)
 {
 	symbols_check(st);
 
 	if (st->garbage)
-		return STACKTRACE_SYM_GARBAGE;
+		return SYMBOL_Q_GARBAGE;
 	else if (st->mismatch)
-		return STACKTRACE_SYM_MISMATCH;
+		return SYMBOL_Q_MISMATCH;
 	else if (st->stale)
-		return STACKTRACE_SYM_STALE;
+		return SYMBOL_Q_STALE;
 	else
-		return STACKTRACE_SYM_GOOD;
+		return SYMBOL_Q_GOOD;
 }
 
 /**

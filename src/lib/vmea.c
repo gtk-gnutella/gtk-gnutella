@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -288,8 +288,7 @@ failed:
 		"%s(): cannot allocate %'zu bytes (used %'zu bytes out of %'zu reserved"
 			" with %zu allocation%s and %zu freeing%s)",
 			G_STRFUNC, size, vr->allocated, vr->capacity,
-			vr->allocations, plural(vr->allocations),
-			vr->freeings, plural(vr->freeings));
+			PLURAL(vr->allocations), PLURAL(vr->freeings));
 	return NULL;
 
 allocated:
@@ -297,6 +296,7 @@ allocated:
 	vr->allocations++;
 	spinunlock(&vr->lock);
 	vmea_stacktrace(size, TRUE);
+	vmm_validate(p, size);
 	return p;
 }
 
@@ -349,6 +349,8 @@ vmea_free(void *p, size_t size)
 		 * We found memory that falls within the emergency region.  Free it!
 		 */
 
+		vmm_invalidate(p, size);
+
 		n = vmm_page_count(size);
 		first = vmm_page_count(ptr_diff(p, vr->memory));
 
@@ -368,15 +370,13 @@ vmea_free(void *p, size_t size)
 }
 
 /**
- * @return amount of memory currently reserved
+ * @return amount of memory initially reserved, regardless of whether
+ * we already invoked vmea_close().
  */
 size_t
 vmea_capacity(void)
 {
 	struct vmea_region *vr = &vmea_region;
-
-	if G_UNLIKELY(NULL == vr->bitmap)
-		return 0;
 
 	return vr->capacity;
 }

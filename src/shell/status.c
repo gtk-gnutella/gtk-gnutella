@@ -18,7 +18,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -70,9 +70,10 @@ static char empty[] = "";
 enum shell_reply
 shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 {
-	const char *cur;
+	const char *cur, *tot;
 	const option_t options[] = {
 		{ "i", &cur },
+		{ "t", &tot },
 	};
 	int parsed;
 	char buf[2048];
@@ -178,7 +179,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			fd = empty;
 		}
 
-		str_bprintf(flags, sizeof flags,
+		str_bprintf(ARYLEN(flags),
 			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
 			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
@@ -200,7 +201,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			fw, dht,
 			settings_is_ultra() ? "UP" : "LF");
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"+%s+\n"
 			"| %-18s%51s |\n"
 			"|%s|\n",
@@ -230,7 +231,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			blackout = "None";
 		}
 
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"|   Mode: %-9s                   Last Switch: %-19s%2s|\n"
 			"| Uptime: %-9s                    Last Check: %-19s%2s|\n"
 			"|   Port: %-9u                      Blackout: %-7s%14s|\n"
@@ -252,7 +253,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
 	case NET_USE_IPV4:
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| IPv4: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr()),
 			short_time_ascii(delta_time(now, GNET_PROPERTY(current_ip_stamp))));
@@ -262,11 +263,11 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	/* IPv6 info */
 	switch (GNET_PROPERTY(network_protocol)) {
 	case NET_USE_BOTH:
-		str_bprintf(buf, sizeof buf, "|%s|\n", dashes);
+		str_bprintf(ARYLEN(buf), "|%s|\n", dashes);
 		shell_write(sh, buf);
 		/* FALL THROUGH */
 	case NET_USE_IPV6:
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| IPv6: %-44s Since: %-12s|\n",
 			host_addr_to_string(listen_addr6()),
 			short_time_ascii(
@@ -275,7 +276,7 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	/* Node counts */
-	str_bprintf(buf, sizeof buf,
+	str_bprintf(ARYLEN(buf),
 		"|%s|\n"
 		"| Peers: %-7u Ultra %4u/%-7u  Leaf %4u/%-6u  G2 hub %4u/%-4u |\n"
 		"|            Downloads %4u/%-4u  Uploads %4u/%-7u Browse %4u/%-4u |\n"
@@ -304,45 +305,70 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		short_string_t gnet_in, http_in, leaf_in, gnet_out, http_out, leaf_out;
 		short_string_t dht_in, dht_out;
 		gnet_bw_stats_t bw_stats, bw2_stats;
-		const char *bwtype = cur ? "(cur)" : "(avg)";
+		const char *bwtype = tot ? "(sum)" : cur ? "(cur)" : "(avg)";
 
-		gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
-		gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
-		gnet_in = short_rate_get_string(
-			cur ? bw_stats.current + bw2_stats.current
-				: bw_stats.average + bw2_stats.average, metric);
+		if (tot) {
+			gnet_in = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_up_in) +
+				GNET_PROPERTY(bc_gnet_udp_in), metric);
 
-		gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
-		gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
-		gnet_out = short_rate_get_string(
-			cur ? bw_stats.current + bw2_stats.current
-				: bw_stats.average + bw2_stats.average, metric);
+			gnet_out = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_up_out) +
+				GNET_PROPERTY(bc_gnet_udp_out), metric);
 
-		gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
-		http_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			http_in =
+				long_value_get_string(GNET_PROPERTY(bc_http_in), metric);
+			http_out =
+				long_value_get_string(GNET_PROPERTY(bc_http_out), metric);
 
-		gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
-		http_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			leaf_in  = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_leaf_in), metric);
+			leaf_out = long_value_get_string(
+				GNET_PROPERTY(bc_gnet_tcp_leaf_out), metric);
 
-		gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
-		leaf_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			dht_in =
+				long_value_get_string( GNET_PROPERTY(bc_dht_in), metric);
+			dht_out =
+				long_value_get_string(GNET_PROPERTY(bc_dht_out), metric);
+		} else {
+			gnet_get_bw_stats(BW_GNET_IN, &bw_stats);
+			gnet_get_bw_stats(BW_GNET_UDP_IN, &bw2_stats);
+			gnet_in = short_rate_get_string(
+				cur ? bw_stats.current + bw2_stats.current
+					: bw_stats.average + bw2_stats.average, metric);
 
-		gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
-		leaf_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_GNET_OUT, &bw_stats);
+			gnet_get_bw_stats(BW_GNET_UDP_OUT, &bw2_stats);
+			gnet_out = short_rate_get_string(
+				cur ? bw_stats.current + bw2_stats.current
+					: bw_stats.average + bw2_stats.average, metric);
 
-		gnet_get_bw_stats(BW_DHT_IN, &bw_stats);
-		dht_in = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_HTTP_IN, &bw_stats);
+			http_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
 
-		gnet_get_bw_stats(BW_DHT_OUT, &bw_stats);
-		dht_out = short_rate_get_string(
-			cur ? bw_stats.current : bw_stats.average, metric);
+			gnet_get_bw_stats(BW_HTTP_OUT, &bw_stats);
+			http_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
 
-		str_bprintf(buf, sizeof buf,
+			gnet_get_bw_stats(BW_LEAF_IN, &bw_stats);
+			leaf_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_LEAF_OUT, &bw_stats);
+			leaf_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_DHT_IN, &bw_stats);
+			dht_in = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+
+			gnet_get_bw_stats(BW_DHT_OUT, &bw_stats);
+			dht_out = short_rate_get_string(
+				cur ? bw_stats.current : bw_stats.average, metric);
+		}
+
+		str_bprintf(ARYLEN(buf),
 			"| %-70s|\n"
 			"|%71s|\n"
 			"| %5s  In:  %13s %13s %13s %13s   |\n"
@@ -359,9 +385,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		char line[128];
 		bool metric = GNET_PROPERTY(display_metric_units);
 
-		str_bprintf(buf, sizeof buf, "|%s|\n", equals);
+		str_bprintf(ARYLEN(buf), "|%s|\n", equals);
 		shell_write(sh, buf);
-		concat_strings(line, sizeof line,
+		concat_strings(ARYLEN(line),
 			"Shares ",
 			uint64_to_string(shared_files_scanned()),
 			" file",
@@ -370,13 +396,13 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 			short_kb_size(shared_kbytes_scanned(), metric),
 			" total",
 			NULL_PTR);
-		str_bprintf(buf, sizeof buf,
+		str_bprintf(ARYLEN(buf),
 			"| %-35s Up: %-11s Down: %-11s |\n",
 			line,
 			short_byte_size(GNET_PROPERTY(ul_byte_count), metric),
 			short_byte_size2(GNET_PROPERTY(dl_byte_count), metric));
 		shell_write(sh, buf);
-		str_bprintf(buf, sizeof buf, "+%s+\n", dashes);
+		str_bprintf(ARYLEN(buf), "+%s+\n", dashes);
 		shell_write(sh, buf);
 	}
 
@@ -395,9 +421,10 @@ shell_help_status(int argc, const char *argv[])
 	g_assert(argv);
 	g_assert(argc > 0);
 
-	return "status [-i]\n"
+	return "status [-it]\n"
 		"Display status pane summary\n"
 		"-i : display instantaneous bandwidth instead of average\n"
+		"-t : display total bandwidth used instead\n"
 		"Upper-right corner flags mimic status icons in the GUI:\n"
 		"(from left to right in lightening order)\n"
 		"  UMP           port mapping configured via UPnP\n"

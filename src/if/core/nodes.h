@@ -17,7 +17,7 @@
  *  You should have received a copy of the GNU General Public License
  *  along with gtk-gnutella; if not, write to the Free Software
  *  Foundation, Inc.:
- *      59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+ *      51 Franklin Street, Fifth Floor, Boston, MA 02110-1301 USA
  *----------------------------------------------------------------------
  */
 
@@ -264,7 +264,7 @@ typedef struct gnet_node_status {
 	uint32 udp_rtt;			/**< RTT in ms over UDP */
 
     uint    shutdown_remain;	/**< Number of seconds before shutdown */
-    char    message[128];		/**< Additional information */
+    char    message[192];		/**< Additional information */
 } gnet_node_status_t;
 
 typedef struct gnet_node_info {
