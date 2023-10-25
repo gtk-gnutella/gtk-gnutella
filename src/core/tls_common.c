@@ -749,7 +749,7 @@ static void
 tls_print_session_info(const host_addr_t addr, uint16 port,
 	gnutls_session_t session, bool incoming)
 {
-	const char *proto, *cert, *kx, *ciph, *mac, *comp;
+	const char *proto, *cert, *kx, *ciph, *mac;
 
 	g_return_if_fail(session);
 
@@ -757,7 +757,6 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 	cert = gnutls_certificate_type_get_name(
 				gnutls_certificate_type_get(session));
 	kx = gnutls_kx_get_name(gnutls_kx_get(session));
-	comp = gnutls_compression_get_name(gnutls_compression_get(session));
 	ciph = gnutls_cipher_get_name(gnutls_cipher_get(session));
 	mac = gnutls_mac_get_name(gnutls_mac_get (session));
 
@@ -769,16 +768,14 @@ tls_print_session_info(const host_addr_t addr, uint16 port,
 		"    Certificate:  %s\n"
 		"    Key Exchange: %s\n"
 		"    Cipher:       %s\n"
-		"    MAC:          %s\n"
-		"    Compression:  %s",
+		"    MAC:          %s",
 		incoming ? "incoming" : "outgoing",
 		session, host_addr_port_to_string(addr, port),
 		NULL_STRING(proto),
 		NULL_STRING(cert),
 		NULL_STRING(kx),
 		NULL_STRING(ciph),
-		NULL_STRING(mac),
-		NULL_STRING(comp)
+		NULL_STRING(mac)
 	);
 }
 
