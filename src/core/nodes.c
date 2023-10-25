@@ -3226,25 +3226,27 @@ node_bye_v(gnutella_node_t *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (mq_pending(n->outq) == 0) {
-		if (GNET_PROPERTY(node_debug) > 2)
+		if (GNET_PROPERTY(node_debug) > 2) {
 			g_debug("successfully sent BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
+		}
 
-			if (n->flags & NODE_F_BYE_WAIT) {
-				g_assert(pending_byes > 0);
-				pending_byes--;
-				n->flags &= ~NODE_F_BYE_WAIT;
-			}
+		if (n->flags & NODE_F_BYE_WAIT) {
+			g_assert(pending_byes > 0);
+			pending_byes--;
+			n->flags &= ~NODE_F_BYE_WAIT;
+		}
 
-			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
-				/* Socket could have been nullified on a write error */
-				socket_tx_shutdown(n->socket);
-			}
-			node_shutdown_mode(n, BYE_GRACE_DELAY);
+		if (n->socket != NULL && !socket_uses_tls(n->socket)) {
+			/* Socket could have been nullified on a write error */
+			socket_tx_shutdown(n->socket);
+		}
+		node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
-		if (GNET_PROPERTY(node_debug) > 2)
+		if (GNET_PROPERTY(node_debug) > 2) {
 			g_debug("delayed sending of BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
+		}
 
 		n->flags |= NODE_F_BYE_SENT;
 
