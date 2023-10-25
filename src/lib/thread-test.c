@@ -1044,6 +1044,9 @@ test_fork(bool safe)
 	emit("--- test of thread_fork(%s) done!", bool_to_string(safe));
 }
 
+/* We are provoking infinite recursion on purpose here */
+G_IGNORE_PUSH(-Winfinite-recursion)
+
 static int
 overflow_routine(void *arg)
 {
@@ -1059,6 +1062,8 @@ overflow_routine(void *arg)
 
 	return overflow_routine(c) + c[1];
 }
+
+G_IGNORE_POP
 
 static void
 overflow_handler(int unused_sig)

@@ -196,7 +196,14 @@ rand31_random_seed(void)
 		g_assert_not_reached(); /* We never longjmp() */
 	}
 	seed += binary_hash(ARYLEN(env));
+
+	/* garbage[] is left un-initialized on purpose! */
+	G_IGNORE_PUSH(-Wmaybe-uninitialized);
+
 	seed += binary_hash(ARYLEN(garbage));
+
+	G_IGNORE_POP;
+
 	discard = binary_hash2(ARYLEN(env));
 	discard ^= binary_hash2(VARLEN(now));
 	discard += getpid();

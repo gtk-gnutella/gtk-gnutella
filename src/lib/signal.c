@@ -539,7 +539,12 @@ sig_compute_pc_index(void)
 	 * here by falling into g_assert_not_reached().
 	 */
 
+	/* We are not de-referencing an array pointer, I know */
+	G_IGNORE_PUSH(-Warray-bounds);
+
 	*(int volatile *) p = 1;	/* We expect this to raise a SIGSEGV */
+
+	G_IGNORE_POP;
 	g_assert_not_reached();
 }
 

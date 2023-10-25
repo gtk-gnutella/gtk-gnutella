@@ -1103,6 +1103,12 @@ thread_qid_hash(thread_qid_t qid)
 static inline ALWAYS_INLINE void
 thread_stack_update(struct thread_element *te)
 {
+	/*
+	 * Yes, we are storing local variable addresses here, but we are never
+	 * de-referencing them, all we want is their address, precisely.
+	 */
+	G_IGNORE_PUSH(-Wdangling-pointer=);
+
 	te->last_sp = &te;
 	if (thread_sp_direction > 0) {
 		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) > 0)
@@ -1111,6 +1117,8 @@ thread_stack_update(struct thread_element *te)
 		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) < 0)
 			te->top_sp = &te;
 	}
+
+	G_IGNORE_POP;
 }
 
 /**
@@ -9619,7 +9627,12 @@ thread_launch_register(struct thread_element *te)
 	if (NULL == stack) {
 		void *red;
 
+		/* We do not care that "t" is un-initialized! */
+		G_IGNORE_PUSH(-Wmaybe-uninitialized);
+
 		stack = vmm_page_start(&t);
+
+		G_IGNORE_POP;
 
 		/*
 		 * The stack was not allocated by thread_launch(), or the allocation
@@ -9830,8 +9843,8 @@ thread_launch(struct thread_element *te,
 	pthread_attr_init(&attr);
 
 	if (stack != 0) {
-		stacksize = MAX(PTHREAD_STACK_MIN, stack);
-		stacksize = MAX(stacksize, THREAD_STACK_MIN);
+		stacksize = MAX((size_t) PTHREAD_STACK_MIN, stack);
+		stacksize = MAX(stacksize, (size_t) THREAD_STACK_MIN);
 	} else {
 		stacksize = MAX(THREAD_STACK_DFLT, PTHREAD_STACK_MIN);
 	}
