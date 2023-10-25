@@ -1107,7 +1107,9 @@ thread_stack_update(struct thread_element *te)
 	 * Yes, we are storing local variable addresses here, but we are never
 	 * de-referencing them, all we want is their address, precisely.
 	 */
+#if HAS_GCC(12, 0)
 	G_IGNORE_PUSH(-Wdangling-pointer=);
+#endif
 
 	te->last_sp = &te;
 	if (thread_sp_direction > 0) {
@@ -1118,7 +1120,9 @@ thread_stack_update(struct thread_element *te)
 			te->top_sp = &te;
 	}
 
+#if HAS_GCC(12, 0)
 	G_IGNORE_POP;
+#endif
 }
 
 /**
