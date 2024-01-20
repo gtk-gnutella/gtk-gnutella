@@ -24834,7 +24834,7 @@ re_mi_generate_min_max(struct re_mi_gen_ctx *mig, const re_mi_element_t *me,
 		 */
 		TRACK_KEEP(i);
 	} else if (!atomic) {
-		uint a, b, c, i = 0, t = 0;
+		uint a, b = 0, c, i = 0, t = 0;
 
 		/*
 		 * Greedy repetition: X{n,m}, non atomic (can backtrack)
