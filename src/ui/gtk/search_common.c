@@ -1903,14 +1903,15 @@ search_gui_real_store_searches(void)
 
       	path_old = h_strdup_printf("%s.old", path);
 		if (NULL != path_old) {
-        	g_warning(
-            	_("Found old searches file. The search information has been\n"
-            	"stored in the new XML format and the old file is renamed to\n"
-            	"%s"), path_old);
-        	if (-1 == rename(path, path_old))
-          		g_warning(_("could not rename %s as %s: %m\n"
-                	"The XML file will not be used "
+			g_warning(
+				_("Found old searches file. The search information has been\n"
+				"stored in the new XML format and the old file is renamed to\n"
+				"%s"), path_old);
+			if (-1 == rename(path, path_old)) {
+				g_warning(_("could not rename %s as %s: %m\n"
+					"The XML file will not be used "
 					"unless this problem is resolved."), path, path_old);
+			}
 			HFREE_NULL(path_old);
 		}
     }
