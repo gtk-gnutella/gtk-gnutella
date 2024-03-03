@@ -1,3 +1,59 @@
+# v 1.2.3  2024-03-03  [stable]
+
+This is a maintenance release with minor bug fixes.
+
+Improvements:
+- Allow final address to be used as a search and sorting column in GUI.
+- Do not hide the "random stats" shell command in the help.
+- Shell "node add" now supports g2:IP:port for G2 nodes.
+
+Bug Fixes:
+- Avoid assertion failure in xmalloc() when the page size is not 4K
+- Fix build on NetBSD with SSP.
+- Avoid conflicting symbol with NetBSD's powerpc/frame.h
+- Force supervisor to quit if child gets a SIGKILL.
+- Forgot to set te->ptid in discovered threads.
+
+Under the Hood:
+- Add aq_on_available() to hide waiter object.
+- Add debugging #define XMALLOC_DISABLED to remap xmalloc() to malloc().
+- Add randomness every minute instead of 30 seconds.
+- Dump held locks when suspending thread with locks.
+- Fix thread_lock_dump() logic.
+- Recent version of glib define G_NORETURN already.
+- Use library popcount() if it exists.
+- Use an integer for atomic_lock_t (or it fails on Darwin ppc32).
+- atio_get_lock(): no need to hash file descriptor.
+- crash_hook_add(): watch out for early inits.
+- crash_init(): ignore subsequent calls, loudly.
+- crash_mode(): disable locking on concurrent crash.
+- dump_hex_vec(): do not re-emit header if reached end.
+- entropy_collect_gateway(): cache initial gateway information.
+- entropy_harvest_many(): accelerate processing.
+- evq_close(): forgot to free local callout queue.
+- getgateway(): avoid endless warnings.
+- hashlist: avoid race condition for moveto operations.
+- random_double_generate(): ensure value is in [0, 1[.
+- ripening_set_expire(): remove faulty assertion.
+- rwlock_deadlocked(): trace locking thread owner.
+- rwlock_lock_granted(): verify waiter presence.
+- rwlock_readers_downto(): issue a memory barrier.
+- shared_file_free(): give more details on assert failure.
+- semaphore_emulate(): was not handling timeout properly.
+- sig_get_pc_index(): also trap SIGBUS for OS/X.
+- socket_tls_upgrade(): synchronous upgrade logged but no longer fatal.
+- str_private(): must use NOT_LEAKING_Z() for walloc().
+- str_slice(): change semantics of `to'.
+- thread_element_reset(): also clear lock stack overflow.
+- thread_lock_dump(): can now omit details if necessary.
+- thread_lock_released(): give more context on problems.
+- thread_sig_handle(): add default handling of TSIG_TERM.
+- vmm_mmap_anonymous(): optimize re-locking.
+- walloc_get_zone(): do not keep lock whilst allocating zone.
+- xmalloc_chunk_allocate(): validate chunk head is sound.
+- zalloc: do not keep lock whilst extending the zone.
+- zget(): limit scope of global spinlock to a minimum.
+
 # v 1.2.2  2022-02-25  [stable]
 
 This is a maintenance release with major bug fixes.
