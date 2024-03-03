@@ -229,13 +229,13 @@ install.man:
 
 install-data-no: all
 install-data-yes: all
-	$(mkinstalldirs) $(DESTDIR)$(datadir)
+	test -d $(DESTDIR)$(datadir) || $(mkinstalldirs) $(DESTDIR)$(datadir)
 	@catalogs='$(CATALOGS)'; \
 	for cat in $$catalogs; do \
 	  cat=`basename $$cat`; \
 	  lang=`echo $$cat | sed -e 's/\.gmo$$//'`; \
 	  dir=$(localedir)/$$lang/LC_MESSAGES; \
-	  $(mkinstalldirs) $(DESTDIR)$$dir; \
+	  test -d $(DESTDIR)$$dir || $(mkinstalldirs) $(DESTDIR)$$dir; \
 	  if test -r $$cat; then realcat=$$cat; else realcat=$(srcdir)/$$cat; fi; \
 	  $(INSTALL_DATA) $$realcat $(DESTDIR)$$dir/$(DOMAIN).mo; \
 	  echo "installing $$realcat as $(DESTDIR)$$dir/$(DOMAIN).mo"; \
@@ -275,13 +275,13 @@ installdirs: installdirs-exec installdirs-data
 installdirs-exec:
 installdirs-data-no:
 installdirs-data-yes:
-	$(mkinstalldirs) $(DESTDIR)$(datadir)
+	test -d $(DESTDIR)$(datadir) || $(mkinstalldirs) $(DESTDIR)$(datadir)
 	@catalogs='$(CATALOGS)'; \
 	for cat in $$catalogs; do \
 	  cat=`basename $$cat`; \
 	  lang=`echo $$cat | sed -e 's/\.gmo$$//'`; \
 	  dir=$(localedir)/$$lang/LC_MESSAGES; \
-	  $(mkinstalldirs) $(DESTDIR)$$dir; \
+	  test -d $(DESTDIR)$$dir || $(mkinstalldirs) $(DESTDIR)$$dir; \
 	  for lc in '' $(EXTRA_LOCALE_CATEGORIES); do \
 	    if test -n "$$lc"; then \
 	      if (cd $(DESTDIR)$(localedir)/$$lang && LC_ALL=C ls -l -d $$lc 2>/dev/null) | grep ' -> ' >/dev/null; then \
