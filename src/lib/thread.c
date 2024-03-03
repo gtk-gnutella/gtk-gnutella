@@ -2255,7 +2255,7 @@ thread_element_reset(struct thread_element *te)
 #endif
 
 	thread_set(te->tid, THREAD_INVALID);
-	te->ptid = (pthread_t) 0;
+	ZERO(&te->ptid);		/* Is not necessary a scalar value */
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
 	te->high_qid = te->high_sig_qid = 0;
