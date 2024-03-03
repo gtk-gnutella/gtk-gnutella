@@ -93,7 +93,7 @@ host_addr_t listen_addr_primary_net(host_net_t net);
 #define SFP_NO_CONFIG	(1U << 0)	/**< Don't include the config directory */
 #define SFP_ALL			(1U << 1)	/**< Include all fallbacks */
 
-uint settings_file_path_load(file_path_t fp[], const char *file, uint flags);
+uint settings_file_path_load(file_path_t fp[4], const char *file, uint flags);
 
 #endif /* _core_settings_h_ */
 

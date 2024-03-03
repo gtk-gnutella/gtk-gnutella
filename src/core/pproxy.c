@@ -1620,9 +1620,7 @@ pproxy_set_add(pproxy_set_t *ps, const host_addr_t addr, uint16 port)
 
 	gnet_host_set(&host, addr, port);
 
-	if (hash_list_contains(ps->proxies, &host)) {
-		hash_list_moveto_head(ps->proxies, &host);
-	} else {
+	if (NULL == hash_list_moveto_head(ps->proxies, &host)) {
 		hash_list_prepend(ps->proxies, gnet_host_dup(&host));
 		pproxy_set_trim(ps);
 		added = TRUE;
@@ -1651,11 +1649,8 @@ pproxy_set_add_vec(pproxy_set_t *ps, const gnet_host_vec_t *vec)
 		if (!host_is_valid(addr, port))
 			continue;
 
-		if (hash_list_contains(ps->proxies, &host)) {
-			hash_list_moveto_head(ps->proxies, &host);
-		} else {
+		if (NULL == hash_list_moveto_head(ps->proxies, &host))
 			hash_list_prepend(ps->proxies, gnet_host_dup(&host));
-		}
 	}
 
 	pproxy_set_trim(ps);
@@ -1680,11 +1675,8 @@ pproxy_set_add_array(pproxy_set_t *ps, gnet_host_t *proxies, int proxy_count)
 		if (!host_is_valid(addr, port))
 			continue;
 
-		if (hash_list_contains(ps->proxies, host)) {
-			hash_list_moveto_head(ps->proxies, host);
-		} else {
+		if (NULL == hash_list_moveto_head(ps->proxies, host))
 			hash_list_prepend(ps->proxies, gnet_host_dup(host));
-		}
 	}
 
 	pproxy_set_trim(ps);

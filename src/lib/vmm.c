@@ -1564,9 +1564,10 @@ pmap_insert_mapped(struct pmap *pm, const void *start, size_t size)
  *
  * @param size		amount of bytes we want
  * @param hole		if non-NULL, identified VM hole of at least size bytes.
+ * @param locked	whether the pmap is already locked
  */
 static void *
-vmm_mmap_anonymous(size_t size, const void *hole)
+vmm_mmap_anonymous(size_t size, const void *hole, bool locked)
 #if defined(HAS_MMAP) || defined(MINGW32)
 {
 	static int failed;
@@ -1622,12 +1623,14 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 		 * reason the memory was released and we could not notice it.
 		 */
 
-		rwlock_wlock(&pm->lock);		/* Begin critical section */
+		if (!locked)
+			rwlock_wlock(&pm->lock);		/* Begin critical section */
 
 		pmap_overrule(pm, p, size, VMF_NATIVE);
 
 		if (NULL == hint) {
-			rwlock_wunlock(&pm->lock);
+			if (!locked)
+				rwlock_wunlock(&pm->lock);
 			goto done;
 		}
 
@@ -1668,7 +1671,9 @@ vmm_mmap_anonymous(size_t size, const void *hole)
 					pmap_identify_foreign(pm, hint, p, size);
 			}
 		}
-		rwlock_wunlock(&pm->lock);		/* End critical section */
+
+		if (!locked)
+			rwlock_wunlock(&pm->lock);		/* End critical section */
 	} else if (hint != NULL) {
 		/*
 		 * Allocation took place at the hinted address.
@@ -1957,7 +1962,7 @@ alloc_pages(size_t size, bool update_pmap)
 		}
 	}
 
-	p = vmm_mmap_anonymous(size, hole);
+	p = vmm_mmap_anonymous(size, hole, update_pmap);
 
 	if G_UNLIKELY(NULL == p) {
 		/*
@@ -1997,7 +2002,7 @@ alloc_pages(size_t size, bool update_pmap)
 			}
 		}
 
-		p = vmm_mmap_anonymous(size, hole);
+		p = vmm_mmap_anonymous(size, hole, update_pmap);
 
 		if (p != NULL) {
 			/* We're going to crash and restart, don't update statistics */
@@ -3124,9 +3129,11 @@ retry:
 		VMM_STATS_INCX(move_lock_upgraded);
 	}
 
+	/* We got the write lock */
+
 	VMM_STATS_INCX(move_system_attempted);
 
-	p = vmm_mmap_anonymous(size, p);
+	p = vmm_mmap_anonymous(size, p, TRUE);
 
 	if (NULL == p)
 		goto no_pmap;		/* Ouch, could not allocate memory! */
@@ -3141,7 +3148,7 @@ retry:
 	 */
 
 	page_allocated(pm, p, size, TRUE);
-	rwlock_unlock(&pm->lock, wlock);
+	rwlock_wunlock(&pm->lock);
 
 	/*
 	 * See whether we have a better pointer with cached pages.
@@ -3596,7 +3603,7 @@ free_pages_vector(void *vec[], size_t vcnt, size_t size)
 	 * Because the pmap has already been updated, we can release all the
 	 * pages without holding the write lock.
 	 *
-	 * We downgrade to a read lock though to prevent another allocator for
+	 * We downgrade to a read lock though to prevent another allocator from
 	 * trying to allocate from the regions we removed in the pmap, when the
 	 * corresponding pages are still held in the process.
 	 *		--RAM, 2015-04-06
@@ -4386,9 +4393,7 @@ retry:
 				goto retry;
 		}
 
-		/*
-		 * We have the write lock.
-		 */
+		/* We have the write lock */
 
 		pmap_remove(pm, base, nsize_fast(n));
 
@@ -4871,13 +4876,11 @@ failed:
 static void *
 vmm_alloc_core(size_t size)
 {
-	struct pmap *pm;
-	bool wlock;
+	struct pmap *pm = vmm_pmap();
+	bool wlock = FALSE;
 	size_t n;
 	void *p, *c, *t;
 
-	pm = vmm_pmap();
-	wlock = FALSE;
 	size = round_pagesize_fast(size);
 	n = pagecount_fast(size);
 
@@ -4916,7 +4919,9 @@ retry:
 			goto retry;
 	}
 
-	p = vmm_mmap_anonymous(size, p);
+	/* We have the write lock */
+
+	p = vmm_mmap_anonymous(size, p, TRUE);
 
 	if (NULL == p)
 		goto no_pmap;	/* Ouch, no memory allocation possible! */
@@ -4931,7 +4936,7 @@ retry:
 	 */
 
 	page_allocated(pm, p, size, TRUE);
-	rwlock_unlock(&pm->lock, wlock);
+	rwlock_wunlock(&pm->lock);
 
 	/*
 	 * At this stage, either `c' was NULL or we allocated a better region.

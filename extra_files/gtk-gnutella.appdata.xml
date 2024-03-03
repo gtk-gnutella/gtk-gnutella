@@ -30,9 +30,9 @@
   </ul>
  </description>
  <screenshots>
-  <screenshot type="default" width="1250" height="742">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-network.png</screenshot>
-  <screenshot width="818"  height="444">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-ruleset-editor.png</screenshot>
-  <screenshot width="1250" height="742">http://gtk-gnutella.sourceforge.net/images/shots/1.1/gtk-gnutella-1.1-searches.png</screenshot>
+  <screenshot type="default" width="1250" height="742">https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-network.png</screenshot>
+  <screenshot width="818"  height="444">https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-ruleset-editor.png</screenshot>
+  <screenshot width="1250" height="742">https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-searches.png</screenshot>
  </screenshots>
  <url type="homepage">http://gtk-gnutella.sf.net/</url>
  <updatecontact>gtk-gnutella-devel@lists.sourceforge.net</updatecontact>

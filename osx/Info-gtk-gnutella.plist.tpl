@@ -7,7 +7,7 @@
     <key>CFBundleExecutable</key>
     <string>Gtk-Gnutella</string>
     <key>CFBundleGetInfoString</key>
-    <string>CFBundleShortVersionStringPlaceHolder, (C) 2000-2011 gtk-gnutella http://gtk-gnutella.sourceforge.net</string>
+    <string>CFBundleShortVersionStringPlaceHolder, (C) 2000-2011 gtk-gnutella https://gtk-gnutella.sourceforge.io</string>
     <key>CFBundleIconFile</key>
     <string>gtk-gnutella.icns</string>
     <key>CFBundleIdentifier</key>

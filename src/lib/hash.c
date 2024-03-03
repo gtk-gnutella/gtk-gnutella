@@ -852,7 +852,9 @@ hash_resize_as_needed(struct hash *h)
 {
 	hash_check(h);
 	assert_hash_locked(h);
-	g_assert(h->kset.items + h->kset.tombs <= h->kset.size);
+	g_assert_log(h->kset.items + h->kset.tombs <= h->kset.size,
+		"items=%zu, tombs=%zu, size=%zu (refcnt=%zu)",
+		h->kset.items, h->kset.tombs, h->kset.size, h->refcnt);
 
 	/*
 	 * Never resize when iterating, since this would perturb the order

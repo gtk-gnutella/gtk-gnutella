@@ -2382,7 +2382,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
 	 *
 	 */
-	while (fgets(ARYLEN(prop_tmp), config)) {
+	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
 		char *s, *k, *v;
 		int c;
 		property_t prop;

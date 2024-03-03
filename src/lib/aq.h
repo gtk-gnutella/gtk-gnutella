@@ -34,6 +34,8 @@
 #ifndef _aq_h_
 #define _aq_h_
 
+#include "inputevt.h"		/* For inputevt_handler_t */
+
 struct async_queue;
 typedef struct async_queue aqueue_t;
 
@@ -60,6 +62,8 @@ size_t aq_put(aqueue_t *aq, void *data);
 void *aq_remove(aqueue_t *aq);
 void *aq_timed_remove(aqueue_t *aq, const struct tmval *timeout);
 void *aq_remove_try(aqueue_t *aq);
+
+unsigned aq_on_available(aqueue_t *aq, inputevt_handler_t callback);
 
 void aq_lock(aqueue_t *aq);
 void aq_unlock(aqueue_t *aq);

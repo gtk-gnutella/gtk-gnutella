@@ -36,6 +36,7 @@
 #include "exit2str.h"
 
 #include "buf.h"
+#include "log.h"
 #include "signal.h"
 
 #include "override.h"			/* Must be the last header included */
@@ -43,6 +44,41 @@
 #ifdef I_SYS_WAIT
 #include <sys/wait.h>
 #endif
+
+/**
+ * Determine whether the child waitpid() status indicates that it received
+ * a fatal signal.
+ *
+ * @param status	the child waitpid() status
+ *
+ * @return the signal that killed the process, or 0 (which is not a valid
+ * signal number) to indicate that the process did not die because of a signal.
+ */
+int
+exit_was_killed_by_signal(int status)
+{
+	int signo = 0;
+
+	if (WIFEXITED(status))
+		return 0;
+
+	if (WIFSIGNALED(status)) {
+		signo = WTERMSIG(status);
+
+		if (0 == signo) {
+			s_warning("%s(): forcing SIGTERM as killing signal", G_STRFUNC);
+			signo = SIGTERM;
+		}
+	} else if (WIFSTOPPED(status)) {
+		signo = WSTOPSIG(status);
+	} else if (WIFCONTINUED(status)) {
+#ifdef SIGCONT
+		signo = SIGCONT;
+#endif
+	}
+
+	return signo;
+}
 
 /**
  * Converts process exit status into human-readable string.

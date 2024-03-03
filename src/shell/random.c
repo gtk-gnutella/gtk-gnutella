@@ -281,7 +281,8 @@ shell_help_random(int argc, const char *argv[])
 		"-b : amount of random bytes to generate (implies -x), max 4096.\n"
 		"-n : amount of numbers or sequences of random bytes (1024 max).\n"
 		"-s : use RC4-encrypted WELL instead of AJE randomness.\n"
-		"-x : display numbers in hexadecimal.\n";
+		"-x : display numbers in hexadecimal.\n"
+		"(see also 'help random stats')\n";
 }
 
 /* vi: set ts=4 sw=4 cindent: */

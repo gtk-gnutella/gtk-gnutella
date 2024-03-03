@@ -1221,9 +1221,7 @@ guess_alive_update(const gnet_host_t *h)
 	 * GUESS queries, until it can load data from the larger disk cache.
 	 */
 
-	if (hash_list_contains(alive_cache, h)) {
-		hash_list_moveto_head(alive_cache, h);
-	} else {
+	if (NULL == hash_list_moveto_head(alive_cache, h)) {
 		while (hash_list_length(alive_cache) > GUESS_ALIVE_CACHE_SIZE) {
 			gnet_host_t *host = hash_list_remove_tail(alive_cache);
 			atom_host_free(host);
@@ -1245,8 +1243,7 @@ guess_traffic_from(const gnet_host_t *h, uint32 flags)
 	struct qkdata *qk;
 	struct qkdata new_qk;
 
-	if (hash_list_contains(link_cache, h))
-		hash_list_moveto_head(link_cache, h);
+	(void) hash_list_moveto_head(link_cache, h);
 
 	guess_alive_update(h);
 

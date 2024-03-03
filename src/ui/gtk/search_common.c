@@ -1903,14 +1903,15 @@ search_gui_real_store_searches(void)
 
       	path_old = h_strdup_printf("%s.old", path);
 		if (NULL != path_old) {
-        	g_warning(
-            	_("Found old searches file. The search information has been\n"
-            	"stored in the new XML format and the old file is renamed to\n"
-            	"%s"), path_old);
-        	if (-1 == rename(path, path_old))
-          		g_warning(_("could not rename %s as %s: %m\n"
-                	"The XML file will not be used "
+			g_warning(
+				_("Found old searches file. The search information has been\n"
+				"stored in the new XML format and the old file is renamed to\n"
+				"%s"), path_old);
+			if (-1 == rename(path, path_old)) {
+				g_warning(_("could not rename %s as %s: %m\n"
+					"The XML file will not be used "
 					"unless this problem is resolved."), path, path_old);
+			}
 			HFREE_NULL(path_old);
 		}
     }
@@ -1941,6 +1942,40 @@ search_gui_retrieve_searches(void)
 	 	/* The actual update will be done through search_gui_timer() */
 		search->list_refreshed = FALSE;		/* Force update later */
 	}
+}
+
+/**
+ * @return a string showing the address information for the given
+ *         result record. The return string uses a static buffer.
+ * @note   If the result is from a local search or browse host, NULL
+ *		   is returned.
+ */
+const gchar *
+search_gui_get_address(const struct results_set *rs)
+{
+	static gchar addr_buf[128];
+	size_t n;
+
+	results_set_check(rs);
+
+	if (ST_LOCAL & rs->status)
+		return NULL;
+
+	n = host_addr_to_string_buf(rs->addr, ARYLEN(addr_buf));
+
+	/*
+	 * For successful OOBv3 results, append a "+" to the ip address.
+	 * For GUESS query results, append a "~" to the ip address.
+	 */
+
+	if ((ST_GOOD_TOKEN & rs->status) && n < sizeof addr_buf) {
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "+");
+		n++;
+	}
+	if ((ST_GUESS & rs->status) && n < sizeof addr_buf) {
+		cstr_bcpy(ARYPOSLEN(addr_buf, n), "~");
+	}
+	return addr_buf;
 }
 
 /**
@@ -4565,6 +4600,7 @@ search_gui_column_title(int column)
 	g_return_val_if_fail(column < c_sr_num, NULL);
 
 	switch ((enum c_sr_columns) column) {
+	case c_sr_address:	return _("Address");
 	case c_sr_filename:	return _("Filename");
 	case c_sr_ext:		return _("Extension");
 	case c_sr_charset:	return _("Encoding");
@@ -4596,6 +4632,7 @@ search_gui_column_justify_right(int column)
 	g_return_val_if_fail(column < c_sr_num, FALSE);
 
 	switch ((enum c_sr_columns) column) {
+	case c_sr_address:	return FALSE;
 	case c_sr_filename:	return FALSE;
 	case c_sr_ext:		return FALSE;
 	case c_sr_charset:	return FALSE;

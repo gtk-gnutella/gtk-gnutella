@@ -2625,6 +2625,15 @@ crash_mode(enum crash_level level, bool external)
 		atomic_mb();
 	} else if (!crash_is_crashing_thread(&stid)) {
 		/*
+		 * If the level is critical enough, we may be stuck
+		 * somewhere and never recover, so disable all locking now.
+		 * 		--RAM, 2022-12-29
+		 */
+
+		if (level >= CRASH_LVL_DEADLOCKED)
+			thread_lock_disable(FALSE);		/* Be loud about it */
+
+		/*
 		 * Ensure we do not endlessly log concurrent calls because for some
 		 * reason there is another cause for calling crash_mode() during
 		 * the processing of s_rawarn() or thread_halt().
@@ -3768,6 +3777,18 @@ crash_init(const char *argv0, const char *progname,
 	if (NULL == argv0)
 		s_minierror("%s(): called with NULL argv0!", G_STRFUNC);
 
+	if (vars != NULL) {
+		/* Run crash_init() only once: subsequent calls are loudly ignored */
+		static bool traced;
+		if (!traced) {
+			traced = TRUE;
+			s_minicarp("%s(): ignoring subsequent call!", G_STRFUNC);
+		} else {
+			s_miniwarn("%s(): ignoring yet another subsequent call!", G_STRFUNC);
+		}
+		return;
+	}
+
 	ZERO(&iv);
 
 	vars = &iv;
@@ -4212,6 +4233,15 @@ crash_dumper_add(const callback_fn_t dumper)
 	}
 }
 
+static int
+crash_hook_item_filename_cmp(const void *a, const void *b)
+{
+	const crash_hook_item_t *ai = a;
+	const crash_hook_item_t *bi = b;
+
+	return strcmp(ai->filename, bi->filename);
+}
+
 /**
  * Record a crash hook for a file.
  */
@@ -4231,26 +4261,34 @@ crash_hook_add(const char *filename, const callback_fn_t hook)
 	 *		--RAM, 2015-03-11
 	 */
 
-	if G_UNLIKELY(NULL == vars) {
-		crash_hook_item_t *ci;
-
-		WALLOC0(ci);
-		ci->filename = filename;		/* Must be a static item */
-		ci->hook = hook;
-		eslist_append(&crash_hooks, ci);
-		return;
-	}
+	if G_UNLIKELY(NULL == vars)
+		goto record_aside;
 
 	/*
 	 * Only one crash hook can be added per file.
 	 */
 
-	if (hash_table_contains(vars->hooks, filename)) {
+	if G_UNLIKELY(NULL == vars->hooks) {
+		/*
+		 * Still in very early init: crash_init() called but hash table
+		 * not yet created -- search in the list!.
+		 */
+		const crash_hook_item_t key = { filename, NULL, SLINK_NULL };
+		const crash_hook_item_t *ci =
+			eslist_find(&crash_hooks, &key, crash_hook_item_filename_cmp);
+		if (NULL == ci)
+			goto record_aside;
+		s_minicarp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
+			stacktrace_function_name(hook),
+			filename, stacktrace_routine_name(ci->hook, FALSE));
+	}
+	else if (hash_table_contains(vars->hooks, filename)) {
 		const void *oldhook = hash_table_lookup(vars->hooks, filename);
 		s_carp("CRASH cannot add hook \"%s\" for \"%s\", already have \"%s\"",
 			stacktrace_function_name(hook),
 			filename, stacktrace_routine_name(oldhook, FALSE));
-	} else {
+	}
+	else {
 		ck_writable(vars->hookmem);			/* Holds the hash table object */
 
 		hash_table_writable(vars->hooks);
@@ -4258,6 +4296,18 @@ crash_hook_add(const char *filename, const callback_fn_t hook)
 		hash_table_readonly(vars->hooks);
 
 		ck_readonly(vars->hookmem);
+	}
+
+	return;
+
+record_aside:
+	{
+		crash_hook_item_t *ci;
+
+		WALLOC0(ci);
+		ci->filename = filename;		/* Must be a static item */
+		ci->hook = hook;
+		eslist_append(&crash_hooks, ci);
 	}
 }
 

@@ -1018,6 +1018,19 @@ thread_lock_stack_allocate(struct thread_lock_stack *tls, size_t capacity)
 }
 
 /**
+ * Clear a thread lock stack.
+ */
+static void
+thread_lock_stack_clear(struct thread_lock_stack *tls)
+{
+	g_assert(size_is_positive(tls->capacity));
+	g_assert(tls->arena != NULL);
+
+	tls->count = 0;
+	tls->overflow = FALSE;
+}
+
+/**
  * Initialize the lock stack for the thread element.
  */
 static void
@@ -1035,6 +1048,16 @@ thread_lock_stack_init(struct thread_element *te)
 	 */
 
 	thread_lock_stack_allocate(&te->waits, THREAD_LOCK_NESTED);
+}
+
+/**
+ * Reset the lock stacks for the thread element.
+ */
+static void
+thread_lock_stack_reset(struct thread_element *te)
+{
+	thread_lock_stack_clear(&te->locks);
+	thread_lock_stack_clear(&te->waits);
 }
 
 /**
@@ -1080,6 +1103,14 @@ thread_qid_hash(thread_qid_t qid)
 static inline ALWAYS_INLINE void
 thread_stack_update(struct thread_element *te)
 {
+	/*
+	 * Yes, we are storing local variable addresses here, but we are never
+	 * de-referencing them, all we want is their address, precisely.
+	 */
+#if HAS_GCC(12, 0)
+	G_IGNORE_PUSH(-Wdangling-pointer=);
+#endif
+
 	te->last_sp = &te;
 	if (thread_sp_direction > 0) {
 		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) > 0)
@@ -1088,6 +1119,10 @@ thread_stack_update(struct thread_element *te)
 		if G_UNLIKELY(ptr_cmp(&te, te->top_sp) < 0)
 			te->top_sp = &te;
 	}
+
+#if HAS_GCC(12, 0)
+	G_IGNORE_POP;
+#endif
 }
 
 /**
@@ -2212,8 +2247,7 @@ thread_element_reset(struct thread_element *te)
 
 	THREAD_LOCK(te);
 
-	te->locks.count = 0;
-	te->waits.count = 0;
+	thread_lock_stack_reset(te);
 	thread_element_clear_name(te);
 
 #ifdef MINGW32
@@ -2221,6 +2255,7 @@ thread_element_reset(struct thread_element *te)
 #endif
 
 	thread_set(te->tid, THREAD_INVALID);
+	te->ptid = (pthread_t) 0;
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
 	te->high_qid = te->high_sig_qid = 0;
@@ -2822,6 +2857,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->ptid = pthread_self();
 	te->running = TRUE;
 	te->last_seen = tm_time_raw();
 	te->cancelable = FALSE;
@@ -3061,6 +3097,7 @@ thread_main_element(thread_t t)
 	te->last_seen = tm_time_raw();
 	te->valid = TRUE;
 	thread_set(te->tid, t);
+	te->ptid = pthread_self();
 	te->main_thread = TRUE;
 	te->name = "main";
 	te->cancelable = FALSE;
@@ -4897,7 +4934,24 @@ recheck:
 
 		handler = te->sigh[s - 1];
 
-		if G_UNLIKELY(TSIG_IGN == handler || TSIG_DFL == handler) {
+		if (TSIG_IGN == handler) {
+			THREAD_STATS_INCX(signals_ignored);
+			continue;
+		}
+
+		if (TSIG_DFL == handler) {
+			/*
+			 * Handle signals for which we have no explicit signal handler
+			 * installed by the thread.
+			 *
+			 * By default, the signal is ignored unless it is TSIG_TERM.
+			 */
+			switch (s) {
+			case TSIG_TERM:
+				thread_exit(NULL);
+				g_assert_not_reached();
+				break;
+			}
 			THREAD_STATS_INCX(signals_ignored);
 			continue;
 		}
@@ -5452,7 +5506,7 @@ thread_suspend_others(bool lockwait)
 	if (lockwait && busy != 0) {
 		size_t cnt = thread_element_lock_count(te);
 		if (0 != cnt) {
-			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s",
+			s_carp("%s() waiting on %u busy thread%s whilst holding %zu lock%s:",
 				G_STRFUNC, PLURAL(busy), PLURAL(cnt));
 			thread_lock_dump(te);
 		}
@@ -6836,9 +6890,13 @@ thread_lock_waited_for(const void *lock)
  *
  * This routine is called during critical conditions and therefore it must
  * use as little resources as possible and be as safe as possible.
+ *
+ * @param fd		the file descriptor on which dumping is done
+ * @param te		the thread element for which we want to dump held locks
+ * @param details	whether to give details about the locks
  */
 static void
-thread_lock_dump_fd(int fd, const struct thread_element *te)
+thread_lock_dump_fd(int fd, const struct thread_element *te, bool details)
 {
 	const struct thread_lock_stack *tls = &te->locks;
 	unsigned i;
@@ -6918,7 +6976,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 		case THREAD_LOCK_ANY:
 			g_assert_not_reached();
 		case THREAD_LOCK_SPINLOCK:
-			{
+			if (details) {
 				const spinlock_t *s = l->lock;
 				if (!mem_is_valid_range(PTRLEN(s))) {
 					print_str(" FREED");			/* 7 */
@@ -6937,7 +6995,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			break;
 		case THREAD_LOCK_RLOCK:
 		case THREAD_LOCK_WLOCK:
-			{
+			if (details) {
 				const rwlock_t *rw = l->lock;
 				char rdbuf[UINT_DEC_BUFLEN];
 				char wrbuf[UINT_DEC_BUFLEN];
@@ -6978,7 +7036,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			}
 			break;
 		case THREAD_LOCK_QLOCK:
-			{
+			if (details) {
 				const qlock_t *q = l->lock;
 
 				if (!mem_is_valid_range(q, sizeof *q)) {
@@ -7023,7 +7081,7 @@ thread_lock_dump_fd(int fd, const struct thread_element *te)
 			}
 			break;
 		case THREAD_LOCK_MUTEX:
-			{
+			if (details) {
 				const mutex_t *m = l->lock;
 				if (!mem_is_valid_range(PTRLEN(m))) {
 					print_str(" FREED");			/* 7 */
@@ -7082,7 +7140,8 @@ thread_lock_dump(const struct thread_element *te)
 	if (0 != te->waits.count)
 		thread_lock_waiting_dump_fd(STDERR_FILENO, te);
 
-	thread_lock_dump_fd(STDERR_FILENO, te);
+	thread_lock_dump_fd(STDERR_FILENO, te,
+			0 == atomic_int_get(&thread_locks_disabled));
 }
 
 /**
@@ -7108,7 +7167,7 @@ thread_lock_dump_all(int fd)
 			thread_lock_waiting_dump_fd(fd, te);
 
 		if (0 != thread_element_lock_count(te))
-			thread_lock_dump_fd(fd, te);
+			thread_lock_dump_fd(fd, te, TRUE);
 
 	next:
 		if (locked)
@@ -7144,7 +7203,7 @@ thread_lock_dump_if_any(int fd, uint id)
 			thread_lock_waiting_dump_fd(fd, te);
 
 		if (0 != thread_element_lock_count(te))
-			thread_lock_dump_fd(fd, te);
+			thread_lock_dump_fd(fd, te, TRUE);
 	}
 }
 
@@ -7240,6 +7299,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 * Do not perturb the waiting state we had in the crashing thread,
 		 * in case we are deadlocking.
 		 */
+
+		g_assert(size_is_non_negative(tls->count));
+		g_assert(tls->capacity >= tls->count);
 
 		if G_UNLIKELY(problematic) {
 			if (0 != tls->count) {
@@ -7660,6 +7722,9 @@ thread_lock_got(const void *lock, enum thread_lock_kind kind,
 	tls = &te->locks;
 	thread_element_stack_check(te);
 
+	g_assert(size_is_non_negative(tls->count));
+	g_assert(tls->capacity >= tls->count);
+
 	if G_UNLIKELY(tls->capacity == tls->count) {
 		if (tls->overflow)
 			return;				/* Already signaled, we're crashing */
@@ -7946,19 +8011,33 @@ thread_lock_released(const void *lock, enum thread_lock_kind kind,
 				lock, i + 1, tls->count);
 			thread_lock_dump(te);
 
-			/*
-			 * If crashing, it's interesting to learn about possible
-			 * out-of-order unlocking, because it may point to a true
-			 * bug in the crash handling, but let processing continue
-			 * to be able to dump useful information anyway.
-			 */
-
 			if (
 				!thread_is_crashing() &&
 				0 == atomic_int_get(&thread_locks_disabled)
 			) {
 				s_error("out-of-order %s release",
 					thread_lock_kind_to_string(kind));
+			} else {
+				const char *crashing = "";
+				const char *name = "";
+
+				/*
+				 * If crashing, it's interesting to learn about possible
+				 * out-of-order unlocking, because it may point to a true
+				 * bug in the crash handling, but let processing continue
+				 * to be able to dump useful information anyway.
+				 */
+
+				if (thread_in_crash_mode()) {
+					crashing = " in ";
+					name = thread_id_name(
+						atomic_int_get(&thread_crash_mode_stid));
+				}
+
+				s_rawcrit("releasing point (crashing=%s%s%s, locks_disabled=%s):",
+					bool_to_string(thread_in_crash_mode()), crashing, name,
+					bool_to_string(0 != atomic_int_get(&thread_locks_disabled))
+				);
 			}
 
 			return;
@@ -8190,7 +8269,7 @@ thread_assert_no_locks(const char *routine)
 	size_t cnt = thread_element_lock_count(te);
 
 	if G_UNLIKELY(0 != cnt) {
-		s_warning("%s(): %s currently holds %zu lock%s",
+		s_warning("%s(): %s currently holds %zu lock%s:",
 			routine, thread_element_name(te), PLURAL(cnt));
 		thread_lock_dump(te);
 		s_error("%s() expected no locks, found %zu held", routine, cnt);
@@ -9378,6 +9457,32 @@ thread_timed_block_self(unsigned events, const tm_t *tmout)
 }
 
 /**
+ * Block execution of current thread until a thread_unblock() is posted to it
+ * or until we go past the specified ending time.
+ *
+ * When this routine returns, the thread has either been successfully unblocked
+ * and is resuming its execution normally or the timeout expired.
+ *
+ * @note
+ * This routine is a cancellation point.
+ *
+ * @param events	the amount of events returned by thread_block_prepare()
+ * @param end		absolute time when we must stop waiting (NULL = no limit)
+ *
+ * @return TRUE if we were properly unblocked, FALSE if we timed out.
+ */
+bool
+thread_block_self_until(unsigned events, const tm_t *end)
+{
+	struct thread_element *te = thread_get_element();
+
+	if (NULL == end || tm_remaining_ms(end) > THREAD_SUSPEND_TIMEOUT * 1000)
+		thread_assert_no_locks(G_STRFUNC);
+
+	return thread_element_block_until(te, events, end);
+}
+
+/**
  * Unblock thread blocked via thread_block_self().
  *
  * @return 0 if OK, -1 on error with errno set.
@@ -9526,7 +9631,12 @@ thread_launch_register(struct thread_element *te)
 	if (NULL == stack) {
 		void *red;
 
+		/* We do not care that "t" is un-initialized! */
+		G_IGNORE_PUSH(-Wmaybe-uninitialized);
+
 		stack = vmm_page_start(&t);
+
+		G_IGNORE_POP;
 
 		/*
 		 * The stack was not allocated by thread_launch(), or the allocation
@@ -9737,8 +9847,8 @@ thread_launch(struct thread_element *te,
 	pthread_attr_init(&attr);
 
 	if (stack != 0) {
-		stacksize = MAX(PTHREAD_STACK_MIN, stack);
-		stacksize = MAX(stacksize, THREAD_STACK_MIN);
+		stacksize = MAX((size_t) PTHREAD_STACK_MIN, stack);
+		stacksize = MAX(stacksize, (size_t) THREAD_STACK_MIN);
 	} else {
 		stacksize = MAX(THREAD_STACK_DFLT, PTHREAD_STACK_MIN);
 	}

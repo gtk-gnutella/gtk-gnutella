@@ -53,6 +53,8 @@ typedef struct slink {
 	struct slink *next;
 } slink_t;
 
+#define SLINK_NULL	{ NULL }	/* For static initializations */
+
 enum eslist_magic { ESLIST_MAGIC = 0x1662f297 };
 
 /**

@@ -623,9 +623,10 @@ rwlock_deadlocked(const rwlock_t *rw, bool reading, unsigned elapsed,
 
 #ifdef RWLOCK_WRITER_DEBUG
 	if (rw->file != NULL) {
-		s_rawinfo("rwlock (%c) %p %s %s:%u",
+		s_rawinfo("rwlock (%c) %p owned by %s %s %s:%u",
 			reading ? 'R' : 'W', rw,
-			rw->writers != 0 ? "owned by " : "traced to",
+			RWLOCK_WFREE == rw->owner ? "nobody" : thread_id_name(rw->owner),
+			rw->writers != 0 ? "from" : "traced to",
 			rw->file, rw->line);
 	}
 #endif
@@ -822,20 +823,28 @@ rwlock_wait(const rwlock_t *rw, bool reading,
 	}
 }
 
+struct rwlock_grant_wait {
+	struct rwlock_waiting *wc;
+	const rwlock_t *rw;
+	const char *file;
+	int line;
+};
+
 static bool
 rwlock_lock_granted(void *p)
 {
-	struct rwlock_waiting *wc = p;
+	struct rwlock_grant_wait *gw = p;
+	struct rwlock_waiting *wc = gw->wc;
+	rwlock_t *rw = deconstify_pointer(gw->rw);
 
 	g_assert(RWLOCK_WAITING_MAGIC == wc->magic);
+	rwlock_check(rw);
 
 	/*
 	 * Have we reached our turn in the wait queue?
-	 *
-	 * Because wc->ok is updated within a spinlock critical section, there
-	 * is no need to issue a memory (read) barrier here, the data was already
-	 * synchronized by the release of the lock.
 	 */
+
+	atomic_mb();	/* Ensure we read a proper wc->ok */
 
 	if (wc->ok) {
 		wc->magic = 0;	/* Structure is on the stack, will become invalid */
@@ -854,6 +863,34 @@ rwlock_lock_granted(void *p)
 		return TRUE;
 	}
 
+	/*
+	 * If we still have to wait, then there must still be waiters on the lock:
+	 * at least ourselves.
+	 *
+	 * We need to lock the rwlock since the rw->waiters field and the wc->ok
+	 * fields are both updated with the lock taken, and therefore there could
+	 * be a race condition.
+	 */
+
+	RWLOCK_LOCK(rw);
+
+	/* Have to re-check wc->ok now that we got the lock */
+
+	if (wc->ok) {
+		RWLOCK_UNLOCK(rw);
+		wc->magic = 0;	/* Structure is on the stack, will become invalid */
+		return TRUE;
+	}
+
+	g_assert_log(rw->waiters != 0,
+		"%s(): no more waiters on rwlock %p waited for at %s:%u: "
+		"owner=%s, readers=%u, writers=%u (write_waiters=%u)",
+		G_STRFUNC, rw, gw->file, gw->line,
+		RWLOCK_WFREE == rw->owner ? "nobody" : thread_id_name(rw->owner),
+		rw->readers, rw->writers, rw->write_waiters);
+
+	RWLOCK_UNLOCK(rw);
+
 	return FALSE;
 }
 
@@ -869,7 +906,15 @@ static inline void
 rwlock_wait_grant(const rwlock_t *rw, struct rwlock_waiting *wc,
 	const char *file, unsigned line)
 {
-	rwlock_wait(rw, wc->reading, rwlock_lock_granted, wc, file, line);
+	struct rwlock_grant_wait args;
+
+	args.wc = wc;
+	/* Remaining arguments used only with assertions */
+	args.rw = rw;
+	args.file = file;
+	args.line = line;
+
+	rwlock_wait(rw, wc->reading, rwlock_lock_granted, &args, file, line);
 }
 
 struct rwlock_readers_wait {
@@ -892,12 +937,9 @@ rwlock_readers_downto(void *p)
 	 * Since the thread stuck in the loop has acquired the write
 	 * lock, no further readers can come in and therefore we shall
 	 * eventually get out.
-	 *
-	 * Because rw->readers is updated within a spinlock critical
-	 * section, there is no need to issue a memory (read) barrier
-	 * here, the data was already synchronized by the release of
-	 * the lock.
 	 */
+
+	atomic_mb();	/* Ensure we read a proper rw->readers */
 
 	if (arg->count == arg->rw->readers)
 		return TRUE;
@@ -906,6 +948,8 @@ rwlock_readers_downto(void *p)
 		thread_check_suspended();
 		return TRUE;
 	}
+
+	g_assert(arg->count < arg->rw->readers);
 
 	return FALSE;
 }
@@ -1123,13 +1167,13 @@ rwlock_rgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 	if G_UNLIKELY(!got) {
 		rwlock_wait_grant(rw, &wc, file, line);
-		rwlock_readers_record(rw, file, line);
-		if (account)
-			rwlock_read_account(rw, file, line);
-	} else if (account) {
-		rwlock_readers_record(rw, file, line);
-		rwlock_read_account(rw, file, line);
+		/* We now have the read lock */
 	}
+
+	rwlock_readers_record(rw, file, line);
+
+	if (account)
+		rwlock_read_account(rw, file, line);
 
 	/* Ensure there are no overflows */
 
@@ -1228,18 +1272,20 @@ rwlock_wgrab(rwlock_t *rw, const char *file, unsigned line, bool account)
 
 		rwlock_wait_grant(rw, &wc, file, line);
 
-		rwlock_writer_record(rw, file, line);
-
-		if (account)
-			rwlock_write_account(rw, file, line);
-
+		/* This is necessarily the first time we grab the write lock */
 		g_assert(1 == rw->writers || rwlock_pass_through);
-	}
-	else {
+
+		/* Therefore, record the place where we got it */
 		rwlock_writer_record(rw, file, line);
-		if (account)
-			rwlock_write_account(rw, file, line);
+	} else {
+		/* Only save the place where we first got the write lock */
+		if (1 == rw->writers) {		/* Braces necessary, body can be empty */
+			rwlock_writer_record(rw, file, line);
+		}
 	}
+
+	if (account)
+		rwlock_write_account(rw, file, line);
 }
 
 /**
@@ -1339,7 +1385,6 @@ rwlock_rgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 		s_rawinfo("LOCK contention for read-lock %p at %s:%u", rw, file, line);
 	}
 
-
 	return got;
 }
 
@@ -1426,7 +1471,12 @@ rwlock_wgrab_try_from(rwlock_t *rw, const char *file, unsigned line)
 	RWLOCK_UNLOCK(rw);
 
 	if G_LIKELY(got) {
-		rwlock_writer_record(rw, file, line);
+		/* Only save the place where we first got the write lock */
+		if (1 == rw->writers) {		/* Braces necessary, body can be empty */
+			rwlock_writer_record(rw, file, line);
+		}
+
+		/* But always account all (recursive) instances of the write lock */
 		rwlock_write_account(rw, file, line);
 	} else if G_UNLIKELY(rwlock_contention_trace) {
 		s_rawinfo("LOCK contention for write-lock %p at %s:%u", rw, file, line);
@@ -1555,15 +1605,17 @@ rwlock_upgrade_from(rwlock_t *rw, const char *file, unsigned line)
 
 	/*
 	 * We just ended a spinlock, acting as a memory barrier, so we can
-	 * immediately check for readers.
+	 * immediately check for readers: we need to wait when there are other
+	 * readers besides ourselves before being able to proceeed with the
+	 * write lock.
 	 */
 
 	if G_UNLIKELY(need_wait && !rwlock_pass_through)
 		rwlock_wait_readers(rw, count, file, line);
 
 	/*
-	 * Upgrading means the last instance of the lock on the stack now becomes
-	 * a write lock, and the locking point is updated.
+	 * Upgrading means the last instance of the lock on the lock stack now
+	 * becomes a write lock, and the locking point is updated.
 	 */
 
 	rwlock_upgrade_account(rw, file, line);

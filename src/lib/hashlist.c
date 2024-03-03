@@ -891,53 +891,59 @@ hash_list_head(const hash_list_t *hl)
 }
 
 /**
- * Move entry to the head of the list.
+ * Move entry to the head of the list if it exists.
+ *
+ * @return the moved entry if found, NULL otherwise.
  */
-void
+void *
 hash_list_moveto_head(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(size_is_positive(elist_count(&hl->list)));
 
 	hash_list_synchronize(hl);
 
 	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
-	g_assert(item != NULL);
+
+	if (NULL == item)
+		hash_list_return(hl, NULL);
 
 	elist_moveto_head(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
-	hash_list_return_void(hl);
+	hash_list_return(hl, item);
 }
 
 /**
- * Move entry to the tail of the list.
+ * Move entry to the tail of the list if it exists.
+ *
+ * @return the moved entry if found, NULL otherwise.
  */
-void
+void *
 hash_list_moveto_tail(hash_list_t *hl, const void *key)
 {
 	struct hash_list_item *item;
 
 	hash_list_check(hl);
-	g_assert(size_is_positive(elist_count(&hl->list)));
 
 	hash_list_synchronize(hl);
 
 	g_assert(1 == hl->refcount);
 
 	item = hikset_lookup(hl->ht, key);
-	g_assert(item != NULL);
+
+	if (NULL == item)
+		hash_list_return(hl, NULL);
 
 	elist_moveto_tail(&hl->list, item);
 	hl->stamp++;
 
 	hash_list_regression(hl);
-	hash_list_return_void(hl);
+	hash_list_return(hl, item);
 }
 
 /**

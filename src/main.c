@@ -2156,6 +2156,12 @@ main_supervise(void)
 			children, (ulong) pid, exit2str(status),
 			short_time_ascii(delta_time(end, start)));
 
+		if (SIGKILL == exit_was_killed_by_signal(status)) {
+			/* Could indicate child was the target of an OOM kill by kernel */
+			s_warning("child got a SIGKILL, forcing supervisor exit as well");
+			status = 0;
+		}
+
 		if (0 == status) {
 			s_info("supervisor exiting, launched %lu child%s over %s",
 				PLURAL_CHILD(children),

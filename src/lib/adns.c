@@ -746,7 +746,6 @@ adns_reply_callback(void *data, int source, inputevt_cond_t condition)
 static void
 adns_helper_init(void)
 {
-	waiter_t *waiter;
 	struct adns_helper_args *args;
 	int r;
 
@@ -759,17 +758,13 @@ adns_helper_init(void)
 	 * and the other side frees these data after processing them.
 	 *
 	 * In order for the main thread to know when there are data to read from
-	 * the answer queue, we add a waiter object to the asynchronous queue,
-	 * and insert its file descriptor to the main I/O event set.
+	 * the answer queue, we add an I/O callback for monitoring from the
+	 * main I/O event set.
 	 */
 
-	waiter = waiter_make(NULL);
 	adns_req = aq_make();
 	adns_ans = aq_make();
-	aq_waiter_add(adns_ans, waiter);
-	adns_reply_event_id = inputevt_add(waiter_fd(waiter), INPUT_EVENT_RX,
-			adns_reply_callback, waiter);
-	waiter_destroy_null(&waiter);	/* Is now referenced by the queue */
+	adns_reply_event_id = aq_on_available(adns_ans, adns_reply_callback);
 
 	WALLOC(args);
 	args->requests = adns_req;

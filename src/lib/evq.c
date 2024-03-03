@@ -331,6 +331,7 @@ void
 evq_close(void)
 {
 	atomic_bool_set(&evq_run, FALSE);
+
 	if (THREAD_INVALID_ID == evq_thread_id)
 		return;
 	if (-1 != thread_kill(evq_thread_id, TSIG_TERM)) {
@@ -347,7 +348,13 @@ evq_close(void)
 		tmout.tv_sec = 2;
 		tmout.tv_usec = 0;
 
-		if (!thread_timed_wait(evq_thread_id, &tmout, NULL)) {
+		if (thread_timed_wait(evq_thread_id, &tmout, NULL)) {
+			/*
+			 * Since there is no signal handler installed for TSIG_TERM,
+			 * the private callout queue may not have been cleaned up.
+			 */
+			cq_free_null(&ev_queue);
+		} else {
 			s_warning("%s(): signalled %s but it did not end yet",
 				G_STRFUNC, thread_id_name(evq_thread_id));
 		}

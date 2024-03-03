@@ -293,6 +293,14 @@
 #error "Install GLib 2.x to compile gtk-gnutella against GLib 2.x."
 #endif
 
+#define HAS_GLIB(major, minor) \
+	((GLIB_MAJOR_VERSION > (major)) || \
+	 (GLIB_MAJOR_VERSION == (major) && GLIB_MINOR_VERSION >= (minor)))
+
+#if HAS_GLIB(2,67)
+#define g_memdup g_memdup2
+#endif
+
 typedef uint64 filesize_t; /**< Use filesize_t to hold filesizes */
 
 #ifdef HAS_SCHED_YIELD

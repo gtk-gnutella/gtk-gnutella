@@ -1553,7 +1553,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 #endif	/* MINGW32 */
 
 retry:
-	while (fgets(ARYLEN(tmp), f)) {
+	while (fgets(tmp, sizeof(tmp), f)) {
 		symbols_parse_nm(st, tmp);
 	}
 

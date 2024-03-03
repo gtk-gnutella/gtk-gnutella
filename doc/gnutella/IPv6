@@ -12,7 +12,7 @@ Hi,
 consider this a follow-up to the below mentioned thread:
 http://groups.yahoo.com/group/the_gdf/messages/8898
 
-gtk-gnutella ( http://gtk-gnutella.sourceforge.net/ ) has been
+gtk-gnutella ( https://gtk-gnutella.sourceforge.io/ ) has been
 extended to support IPv6 in current CVS. While it's working, it should
 still be considered experimental. Therefore, the relevant new GGEP
 extensions are only defined in the GTKG namespace:

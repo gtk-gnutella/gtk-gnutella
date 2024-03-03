@@ -42,7 +42,6 @@
 #include "common.h"
 
 #include "atio.h"
-#include "hashing.h"
 #include "pow2.h"
 #include "spinlock.h"
 
@@ -75,7 +74,7 @@ atio_get_lock(int fd)
 {
 	STATIC_ASSERT(IS_POWER_OF_2(ATIO_HASH_MASK + 1));
 
-	return &atio_access[integer_hash_fast(fd) & ATIO_HASH_MASK];
+	return &atio_access[fd & ATIO_HASH_MASK];
 }
 
 /**

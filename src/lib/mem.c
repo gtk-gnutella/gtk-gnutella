@@ -53,7 +53,7 @@
 
 typedef struct mem_pipe {
 	int fd[2];
-	uint8 flags[2];
+	atomic_lock_t flags[2];
 	const char *name;
 	spinlock_t lock;
 } mem_pipe_t;

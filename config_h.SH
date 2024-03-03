@@ -602,6 +602,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_poll HAS_POLL		/**/
 
+/* HAS_POPCOUNT:
+ *	This symbol, if defined, indicates that the popcount routine is
+ *	available to count the amount of '1' bits in a word.
+ */
+#$d_popcount HAS_POPCOUNT	/**/
+
 /* HAS_POPEN:
  *	This symbol, if defined, indicates that the popen routine is
  *	available to open a pipe from a process.

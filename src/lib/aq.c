@@ -50,45 +50,7 @@
  * It is possible to add an asynchronous waiter object to the queue which will
  * get signaled when there is pending data to read.  This allows an I/O-driven
  * thread to select() on the waiter's file descriptor to get informed that
- * there is pending data on the queue.
- *
- * Here is pseudo-code showing how to add an asynchronous waiter object and
- * tie it to the event loop:
- *
- * Setup:
- *
- *     waiter_t *waiter = waiter_make(NULL);
- *     unsigned id;     // id is a "global" variable
- *     aqueue_t *aq;    // aq is a "global" variable
- *
- *     aq = aq_make();
- *     aq_waiter_add(aq, waiter);
- *     id = inputevt_add(waiter_fd(waiter), INPUT_EVENT_RX, callback, waiter);
- *     waiter_destroy_null(&waiter);
- *
- * The callback (I/O):
- *
- *     void callback(void *data, int source, inputevt_cond_t condition)
- *     {
- *          waiter_t *w = data;
- *          void *item;
- *
- *          waiter_ack(w);
- *
- *          while (NULL != (item = aq_remove_try(aq))) {	// aq is "global"
- *               // whatever processing on item
- *          }
- *     }
- *
- * Cleanup code:
- *
- *     inputevt_remove(&id);
- *     aq_destroy_null(&aq);
- *
- * Note that the waiter object is ref-counted and can be "destroyed" as soon
- * as it has been given to the queue and its reference given as argument for
- * the I/O callback.  If no further reference exists, it will be reclaimed when
- * the queue is destroyed.
+ * there is pending data on the queue.  See aq_on_available().
  *
  * @author Raphael Manfredi
  * @date 2013
@@ -97,6 +59,7 @@
 #include "common.h"
 
 #include "aq.h"
+
 #include "atomic.h"
 #include "cond.h"
 #include "eslist.h"
@@ -469,6 +432,63 @@ aq_remove_try(aqueue_t *aq)
 	}
 
 	return data;
+}
+
+/**
+ * Install I/O event that will trigger whenever there is data available to
+ * read in the queue.
+ *
+ * Here is pseudo-code showing how to add an asynchronous waiter object and
+ * tie it to the event loop:
+ *
+ * Setup:
+ *
+ *     unsigned id;     // id is a "global" variable
+ *     aqueue_t *aq;    // aq is a "global" variable
+ *
+ *     aq = aq_make();
+ *     id = aq_on_available(aq, callback);
+ *
+ * The callback (I/O):
+ *
+ *     void callback(void *data, int source, inputevt_cond_t condition)
+ *     {
+ *          waiter_t *w = data;
+ *          void *item;
+ *
+ *          waiter_ack(w);
+ *
+ *          while (NULL != (item = aq_remove_try(aq))) {	// aq is "global"
+ *               // whatever processing on item
+ *          }
+ *     }
+ *
+ * Cleanup code:
+ *
+ *     inputevt_remove(&id);
+ *     aq_destroy_null(&aq);
+ */
+unsigned
+aq_on_available(aqueue_t *aq, inputevt_handler_t callback)
+{
+	unsigned id;
+	waiter_t *w;
+
+	aq_check(aq);
+
+	/*
+	 * Note that the waiter object is ref-counted and can be "destroyed" as soon
+	 * as it has been given to the queue and its reference given as argument for
+	 * the I/O callback.  If no further reference exists, it will be reclaimed
+	 * when the queue is destroyed.
+	 */
+
+	w = waiter_make(NULL);
+	aq_waiter_add(aq, w);
+	id = inputevt_add(waiter_fd(w), INPUT_EVENT_RX, callback, w);
+	waiter_destroy_null(&w);
+
+	return id;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

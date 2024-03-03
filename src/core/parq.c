@@ -5208,7 +5208,7 @@ parq_upload_load_queue(void)
 	entry = zero_entry;
 	bit_array_init(tag_used, NUM_PARQ_TAGS);
 
-	while (fgets(ARYLEN(line), f)) {
+	while (fgets(line, sizeof(line), f)) {
 		const char *tag_name, *value;
 		char *colon;
 		bool damaged;
@@ -5607,7 +5607,7 @@ parq_close_pre(void)
 	 * First locate all queued items (dead or alive). And place them in the
 	 * 'to be removed' list.
 	 */
-	for (queues = ul_parqs; queues != NULL; queues = queues->next) {
+	PLIST_FOREACH(ul_parqs, queues) {
 		struct parq_ul_queue *queue = queues->data;
 
 		PLIST_FOREACH(queue->by_position, dl) {

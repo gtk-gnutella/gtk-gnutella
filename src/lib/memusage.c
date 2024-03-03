@@ -535,11 +535,16 @@ memusage_set_stack_accounting(memusage_t *mu, bool on)
 	MEMUSAGE_THREAD_UNLOCK(mu);
 }
 
-struct callframe {
+/**
+ * On NetBSD/powerpc, a header file defines callframe already;
+ * work around this.
+*/
+struct my_callframe {
 	size_t calls;
 	const struct stackatom *frame;
 	const struct memusage_counter *mc;
 };
+#define callframe my_callframe
 
 /**
  * qsort() callback for sorting callframe items by decreasing call amount.

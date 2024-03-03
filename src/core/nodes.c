@@ -3226,25 +3226,27 @@ node_bye_v(gnutella_node_t *n, int code, const char *reason, va_list ap)
 	 */
 
 	if (mq_pending(n->outq) == 0) {
-		if (GNET_PROPERTY(node_debug) > 2)
+		if (GNET_PROPERTY(node_debug) > 2) {
 			g_debug("successfully sent BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
+		}
 
-			if (n->flags & NODE_F_BYE_WAIT) {
-				g_assert(pending_byes > 0);
-				pending_byes--;
-				n->flags &= ~NODE_F_BYE_WAIT;
-			}
+		if (n->flags & NODE_F_BYE_WAIT) {
+			g_assert(pending_byes > 0);
+			pending_byes--;
+			n->flags &= ~NODE_F_BYE_WAIT;
+		}
 
-			if (n->socket != NULL && !socket_uses_tls(n->socket)) {
-				/* Socket could have been nullified on a write error */
-				socket_tx_shutdown(n->socket);
-			}
-			node_shutdown_mode(n, BYE_GRACE_DELAY);
+		if (n->socket != NULL && !socket_uses_tls(n->socket)) {
+			/* Socket could have been nullified on a write error */
+			socket_tx_shutdown(n->socket);
+		}
+		node_shutdown_mode(n, BYE_GRACE_DELAY);
 	} else {
-		if (GNET_PROPERTY(node_debug) > 2)
+		if (GNET_PROPERTY(node_debug) > 2) {
 			g_debug("delayed sending of BYE %d \"%s\" to %s",
 				code, n->error_str, node_infostr(n));
+		}
 
 		n->flags |= NODE_F_BYE_SENT;
 
@@ -8664,12 +8666,13 @@ node_udp_route_get_addr_port(const host_addr_t addr, uint16 port,
  */
 static void
 node_add_internal(struct gnutella_socket *s, const host_addr_t addr,
-	uint16 port, uint32 flags, bool g2)
+	uint16 port, uint32 flags)
 {
 	gnutella_node_t *n;
 	bool incoming = FALSE;
 	uint major = 0, minor = 0;
 	bool forced = 0 != (SOCK_F_FORCE & flags);
+	bool g2 = 0 != (SOCK_F_G2 & flags);
 
 	flags |= GNET_PROPERTY(tls_enforce) ? SOCK_F_TLS : 0;
 
@@ -8900,11 +8903,14 @@ node_add_socket(struct gnutella_socket *s)
 	 * during handshaking.
 	 */
 
-	node_add_internal(s, s->addr, s->port, 0, FALSE);
+	node_add_internal(s, s->addr, s->port, 0);
 }
 
 /**
  * Add new Gnutella node.
+ *
+ * If flags specifies SOCK_F_G2 then the connection will be negotiated using
+ * the G2 protocol.
  */
 void
 node_add(const host_addr_t addr, uint16 port, uint32 flags)
@@ -8923,30 +8929,18 @@ node_add(const host_addr_t addr, uint16 port, uint32 flags)
 	)
 		return;
 
-	node_add_internal(NULL, addr, port, flags, FALSE);
+	node_add_internal(NULL, addr, port, flags);
 }
 
 /**
  * Add new G2 node.
+ *
+ * This is a convenience routine.
  */
 void
 node_g2_add(const host_addr_t addr, uint16 port, uint32 flags)
 {
-	if (!is_host_addr(addr) || !port)
-		return;
-
-	if (
-		!(SOCK_F_FORCE & flags) &&
-		(
-			hostiles_is_bad(addr) ||
-			hcache_node_is_bad(addr) ||
-			node_had_recent_connect_failure(addr, port) ||
-			node_had_recent_connect_attempt(addr, port)
-		)
-	)
-		return;
-
-	node_add_internal(NULL, addr, port, flags, TRUE);
+	node_add(addr, port, flags | SOCK_F_G2);
 }
 
 struct node_add_by_name_data {
@@ -8996,9 +8990,10 @@ node_add_by_name(const char *host, uint16 port, uint32 flags)
 		!adns_resolve(host, settings_dns_net(), &node_add_by_name_helper, data)
 	) {
 		/*	node_add_by_name_helper() was already invoked! */
-		if (GNET_PROPERTY(node_debug) > 0)
-			g_warning("node_add_by_name: "
-				"adns_resolve() failed in synchronous mode");
+		if (GNET_PROPERTY(node_debug) > 0) {
+			g_warning("%s(): adns_resolve() failed in synchronous mode",
+				G_STRFUNC);
+		}
 		return;
 	}
 }

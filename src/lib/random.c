@@ -102,7 +102,7 @@
 
 #include "override.h"			/* Must be the last header included */
 
-#define RANDOM_ENTROPY_PERIOD	(30 * 1000)	/* ms: entropy propagation period */
+#define RANDOM_ENTROPY_PERIOD (60 * 1000)	/* ms: entropy propagation period */
 
 /**
  * Pseudo Random Number Generators managed by this library and for which
@@ -165,7 +165,11 @@ static struct random_stats {
 	AU64(random_double_generate);		/* Calls to routine */
 	AU64(random_add);					/* Calls to routine */
 	AU64(random_add_pool);				/* Calls to routine */
+	AU64(random_add_cycles);			/* Cycling through buffer */
+	AU64(random_add_flushes);			/* Counts random buffer flushes */
 	AU64(random_added_fire);			/* Calls to routine */
+	AU64(random_aje_added);				/* Calls to aje_addrandom() */
+	AU64(random_aje_throttled);			/* Calls to aje_addrandom() avoided */
 	AU64(random_stats_digest);			/* Calls to routine */
 } random_stats;
 
@@ -732,6 +736,32 @@ random_byte_cmwc_add(void *p)
 	random_byte_data_free(rbd);
 }
 
+#define RANDOM_AJE_FEED_INTERVAL 500000		/* us: 0.5 seconds */
+
+/*
+ * Are we allowed to feed AJE?
+ *
+ * @note: we are called from random_add_pool() under spinlock protection.
+ */
+static bool
+random_aje_may_feed(void)
+{
+	static tm_t last_feed;
+	tm_t now;
+
+	tm_now_exact(&now);
+
+	if (tm_elapsed_us(&now, &last_feed) >= RANDOM_AJE_FEED_INTERVAL) {
+		last_feed = now;		/* struct copy */
+		return TRUE;
+	}
+
+	RANDOM_STATS_INC(random_aje_throttled);
+	return FALSE;
+}
+
+#define RANDOM_ADD_CYCLING	1024
+
 /**
  * Add collected random byte(s) to the random pool used by random_bytes(),
  * flushing to the random number generator when enough has been collected.
@@ -746,10 +776,11 @@ random_add_pool(void *buf, size_t len)
 {
 	static uint8 data[256];
 	static size_t idx;
+	static size_t cycles;
 	static spinlock_t pool_slk = SPINLOCK_INIT;
 	uchar *p;
 	size_t n;
-	bool flushed = FALSE;
+	bool flushed = FALSE, added = FALSE;
 
 	RANDOM_STATS_INC(random_add_pool);
 	RANDOM_STATS_ADD(input_random_add_pool, len);
@@ -769,17 +800,49 @@ random_add_pool(void *buf, size_t len)
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < N_ITEMS(data));
 
-	for (p = buf, n = len; n != 0; p++, n--) {
-		data[idx++] = *p;
+	for (p = buf, n = len; n != 0; n--) {
+		data[idx++] ^= *p++;
 
 		/*
 		 * Feed extra bytes when we have enough.
 		 */
 
 		if G_UNLIKELY(idx >= N_ITEMS(data)) {
+			/*
+			 * Before feeding random bytes, cycle over buffer XORing data
+			 * for RANDOM_ADD_CYCLING times.  The idea is to make sure
+			 * we do not spread random data to the PRNGs too often, but when
+			 * we do, it is as random as possible!
+			 *
+			 * The exception is the AJE global instance, which must be feed
+			 * on a regular basis with fresh randomness.
+			 *
+			 * 		--RAM, 2023-01-17
+			 */
+
+			if (cycles++ < RANDOM_ADD_CYCLING) {
+				RANDOM_STATS_INC(random_add_cycles);
+				idx = 0;
+
+				/*
+				 * Add only once per call to random_add_pool(), and not
+				 * too frequently.
+				 */
+				if (!added && random_aje_may_feed()) {
+					RANDOM_STATS_INC(random_aje_added);
+					aje_addrandom(ARYLEN(data));
+					added = TRUE;
+				}
+
+				continue;
+			}
+
+			/* Time to add random data to one of the PRNGs */
+
+			RANDOM_STATS_INC(random_add_flushes);
 			random_add(ARYLEN(data));
 			ZERO(&data);		/* Hide them now */
-			idx = 0;
+			idx = cycles = 0;
 			flushed = TRUE;
 		}
 	}
@@ -1156,6 +1219,7 @@ random_add(const void *data, size_t datalen)
 	 * the periodically scheduled random_entropy() call.
 	 */
 
+	RANDOM_STATS_INC(random_aje_added);
 	aje_addrandom(data, datalen);
 
 	/*
@@ -1238,6 +1302,21 @@ random_double_generate(random_fn_t rf)
 	dc.d.e = exponent;
 	dc.d.mh = (high & ((1U << 20) - 1));	/* Chops leading "1" in bit 20 */
 	dc.d.ml = low;
+
+	if G_UNLIKELY(dc.value < 0.0 || dc.value >= 1.0) {
+		double v = dc.value;
+
+		if (v < 0.0)
+			v = - v;
+
+		if (v >= 1.0)
+			v = 0.999999999999999;
+
+		s_carp_once("%s(): generated %.15lf, returning %.15lf",
+			G_STRFUNC, dc.value, v);
+
+		dc.value = v;
+	}
 
 	return dc.value;
 }
@@ -1345,7 +1424,11 @@ random_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(random_double_generate);
 	DUMP64(random_add);
 	DUMP64(random_add_pool);
+	DUMP64(random_add_cycles);
+	DUMP64(random_add_flushes);
 	DUMP64(random_added_fire);
+	DUMP64(random_aje_added);
+	DUMP64(random_aje_throttled);
 	DUMP64(random_stats_digest);
 
 #undef DUMP64

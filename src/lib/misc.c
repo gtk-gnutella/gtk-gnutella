@@ -1791,17 +1791,20 @@ dump_hex_vec(FILE *out, const char *title, const iovec_t *iov, size_t iovcnt)
 			iovec_set_len(v, iovec_len(v) - DUMP_LINE_LENGTH);
 		}
 
-		if (0 == length % 256) {
-			if (length != 0) {
-				fputc('\n', out);	/* break after 256 byte chunk */
-			}
-			fputs("Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
-				"0123456789abcdef\n", out);
-		}
-
 		dumping = MIN(len, DUMP_LINE_LENGTH);
-		dump_hex_line(out, start, dumping, length);
-		length += dumping;
+
+		if (dumping != 0) {
+			if (0 == length % 256) {
+				if (length != 0) {
+					fputc('\n', out);	/* break after 256 byte chunk */
+				}
+				fputs("Offset  0  1  2  3  4  5  6  7   8  9  a  b  c  d  e  f  "
+					"0123456789abcdef\n", out);
+			}
+
+			dump_hex_line(out, start, dumping, length);
+			length += dumping;
+		}
 	}
 
 	WFREE_ARRAY(xiov, iovcnt);

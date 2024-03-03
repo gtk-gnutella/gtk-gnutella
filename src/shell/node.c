@@ -62,13 +62,23 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 		goto error;
 
 	host = argv[1];
+
 	endptr = is_strprefix(host, "tls:");
 	if (endptr) {
 		host = endptr;
 		flags |= SOCK_F_TLS;
 	}
-	if (!string_to_host_or_addr(host, &endptr, NULL))
+
+	endptr = is_strprefix(host, "g2:");
+	if (endptr) {
+		host = endptr;
+		flags |= SOCK_F_G2;
+	}
+
+	if (!string_to_host_or_addr(host, &endptr, NULL)) {
+		shell_set_msg(sh, _("Unparseable hostname:port or IP:port"));
 		goto error;
+	}
 
 	switch (endptr[0]) {
 	case ':':
@@ -83,6 +93,7 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 		port_str = NULL;
 		break;
 	default:
+		shell_set_msg(sh, _("Expected ':' to introduce port"));
 		goto error;
 	}
 	if (argc > 2 && !port_str) {
@@ -100,7 +111,7 @@ shell_exec_node_add(struct gnutella_shell *sh, int argc, const char *argv[])
 	}
 
 	node_add_by_name(host, port, flags);
-	shell_set_msg(sh, _("Node added"));
+	shell_set_msg(sh, (flags & SOCK_F_G2) ? _("G2 node added") : _("Node added"));
 	return REPLY_READY;
 
 error:
@@ -201,7 +212,9 @@ shell_help_node(int argc, const char *argv[])
 	if (argc > 1) {
 		if (0 == ascii_strcasecmp(argv[1], "add")) {
 			return "node add <ip>[:<port>]\n"
-				"add connection to specified <ip>[:<port>]\n";
+				"add Gnutella connection to specified <ip>[:<port>]\n"
+				"use prefix \"tls:\" to force a Gnutella TLS connection\n"
+				"use prefix \"g2:\" to force a G2 connection to a hub\n";
 		} else if (0 == ascii_strcasecmp(argv[1], "drop")) {
 			return "node drop <ip>[:<port>]\n"
 				"drop connection to specified <ip>[:<port>]\n";

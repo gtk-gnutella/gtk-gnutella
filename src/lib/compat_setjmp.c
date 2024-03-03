@@ -147,7 +147,7 @@ longjmp_validate(const char *caller,
 	 * We must still be deeper in the call stack at the time of longjmp(),
 	 * or the context is completely invalid.
 	 *
-	 * This is imperfect of couse, we could have grown the stack since we
+	 * This is imperfect of course, we could have grown the stack since we
 	 * returned and not be able to detect the situation where the context is
 	 * truly gone, but it will detect some blatant mistakes.
 	 *
@@ -185,7 +185,7 @@ longjmp_flag_used(struct compat_jmpbuf_ctx *x,
  * Wrapper for the longjmp() call to restore the signal handler level.
  *
  * @note
- * The jmp_buf type here is not the system one but the one we redefine.
+ * The jmp_buf type here is not the system one but the one we redefined.
  */
 void
 compat_longjmp(jmp_buf env, int val,
@@ -209,7 +209,7 @@ compat_longjmp(jmp_buf env, int val,
  * Wrapper for the siglongjmp() call to restore the signal handler level.
  *
  * @note
- * The sigjmp_buf type here is not the system one but the one we redefine.
+ * The sigjmp_buf type here is not the system one but the one we redefined.
  */
 void
 compat_siglongjmp(sigjmp_buf env, int val,

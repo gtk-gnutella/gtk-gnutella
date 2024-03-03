@@ -9,7 +9,7 @@ msgstr ""
 "Project-Id-Version: gtk-gnutella\n"
 "Report-Msgid-Bugs-To: gtk-gnutella-devel@lists.sf.net\n"
 "POT-Creation-Date: 2021-07-12 21:45+0200\n"
-"PO-Revision-Date: 2018-06-02 16:25+0300\n"
+"PO-Revision-Date: 2022-02-25 20:55+0300\n"
 "Last-Translator: mauron\n"
 "Language-Team: French (http://www.transifex.com/gtk-gnutella/gtk-gnutella/"
 "language/fr/)\n"
@@ -18,7 +18,7 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n > 1);\n"
-"X-Generator: Poedit 2.0.6\n"
+"X-Generator: Poedit 3.0\n"
 
 msgid "Harmful version banned, upgrade required"
 msgstr "Version néfaste bannie, mise à jour requise"
@@ -418,9 +418,8 @@ msgstr "Timeout"
 msgid "Requeued due to timeout"
 msgstr "Remis dans la file après timeout"
 
-#, fuzzy
 msgid "File info being freed"
-msgstr "Information sur le fichier réinitialisée"
+msgstr "Informations de fichier en cours de vidage"
 
 msgid "Partial file removed"
 msgstr "Fichier partiel supprimé"
@@ -738,11 +737,11 @@ msgstr "$GTK_GNUTELLA_DIR doit pointer vers un chemin absolu !"
 
 #, c-format
 msgid "creating configuration directory \"%s\""
-msgstr "Création du répertoire de configuration « %s »"
+msgstr "création du répertoire de configuration « %s »"
 
 #, c-format
 msgid "creating directory \"%s\" for %s"
-msgstr "Création du répertoire « %s » pour %s"
+msgstr "création du répertoire « %s » pour %s"
 
 #, c-format
 msgid "Another gtk-gnutella supervisor is running as PID %lu"
@@ -757,7 +756,7 @@ msgstr ""
 
 #, c-format
 msgid "If PID %lu is not a gtk-gnutella process, run:"
-msgstr ""
+msgstr "Si le PID %lu n'est pas un processus gtk-gnutella, exécutez :"
 
 msgid "Cannot proceed without valid configuration directory"
 msgstr "Ne peut continuer sans un répertoire de configuration valide"
@@ -937,11 +936,11 @@ msgid "Cannot send whole HTTP status after OPTIONS"
 msgstr "Impossible d'envoyer l'état HTTP complet après OPTIONS"
 
 msgid "EOF while sinking"
-msgstr ""
+msgstr "EOF lors de la mise à la poubelle"
 
 #, c-format
 msgid "Read error while sinking: %m"
-msgstr ""
+msgstr "Erreur de lecteur lors de la mise à la poubelle : %m"
 
 msgid "Content Too Large"
 msgstr "Contenu trop grand"
@@ -1069,9 +1068,8 @@ msgstr "G2 correspondances sur la base de données locale"
 msgid "G2 hits on local partial files"
 msgstr "G2 correspondances sur les fichiers locaux partiels"
 
-#, fuzzy
 msgid "Hits on aliased queries"
-msgstr "Résultats sur une recherche « quoi de neuf ? »"
+msgstr "Résultats sur les requêtes aliasées"
 
 msgid "Query hits received for OOB-proxied queries"
 msgstr "Résultats de recherche reçus pour les recherches via proxy OOB"
@@ -1103,50 +1101,47 @@ msgstr ""
 "sûr connu"
 
 msgid "OOB hits we claimed after notification"
-msgstr ""
+msgstr "Résultats OOB que nous avons demandés après notification"
 
 msgid "OOB hits subset that we claimed securely"
 msgstr ""
+"Sous ensemble de résultats OOB que nous avons demandé de façon sécurisée"
 
 msgid "OOB hit-notifications discarded due to popularity"
-msgstr ""
+msgstr "Notifications de résultats OOB supprimées en raison de la popularité"
 
 msgid "OOB hit-notifications processed under tight bandwidth"
-msgstr ""
+msgstr "Notifications de résultats OOB traitées sous bande passante limitée"
 
 msgid "Notifications sent for local OOB hits"
-msgstr ""
+msgstr "Notifications envoyées pour les résultats OOB locaux"
 
 msgid "Notifications reliably sent for local OOB hits"
-msgstr ""
+msgstr "Notifications envoyés de façon sécurisée pour les résultats OOB locaux"
 
-#, fuzzy
 msgid "Claimed locally-generated OOB hits"
-msgstr "Résultats OOB locaux non demandés"
+msgstr "Résultats OOB générés localement et demandés"
 
-#, fuzzy
 msgid "Claimed locally-generated reliable OOB hits"
-msgstr "Résultats OOB locaux non demandés"
+msgstr "Résultats OOB fiables générés localement et demandés"
 
 msgid "Unclaimed locally-generated OOB hits"
 msgstr "Résultats OOB locaux non demandés"
 
-#, fuzzy
 msgid "Unclaimed locally-generated reliable OOB hits"
-msgstr "Résultats OOB locaux non demandés"
+msgstr "Résultats OOB fiables non demandés et générés localement"
 
 msgid "Partially claimed locally-generated OOB hits"
 msgstr "Résultats OOB locaux demandés partiellement"
 
-#, fuzzy
 msgid "Partially claimed locally-generated reliable OOB hits"
-msgstr "Résultats OOB locaux demandés partiellement"
+msgstr "Résultats OOB fiables partiellement demandés et générés localement"
 
 msgid "Expired delivery for local OOB hits"
-msgstr ""
+msgstr "Livraison expirée pour lesrésultats OOB locaux"
 
 msgid "Expired delivery for local reliable OOB hits"
-msgstr ""
+msgstr "Livraison expirée pour les résultats OOB  locaux fiables"
 
 msgid "Spurious OOB hit claiming received"
 msgstr "Fausse demande de résultats OOB reçue"
@@ -1155,7 +1150,7 @@ msgid "Unrequested OOB hits received"
 msgstr "Résultats OOB reçus mais non demandés"
 
 msgid "OOB querying hosts banned for some time"
-msgstr ""
+msgstr "Hôtes d'interrogation OOB interdits pendant un certain temps"
 
 msgid "Received query hits for untracked queries"
 msgstr "Résultats reçus pour une recherche non traquée"
@@ -1332,25 +1327,25 @@ msgid "UDP read-ahead datagram max delay"
 msgstr "UDP lecture anticipée datagramme retard max"
 
 msgid "UDP push messages received for FW<->FW connections"
-msgstr "Messages UDP push reçus pour les connexions PF<->PF"
+msgstr "UDP messages push reçus pour les connexions PF<->PF"
 
 msgid "UDP push messages requesting FW<->FW connection with ourselves"
-msgstr "Messages UDP push demandant une connexion PF<->PF avec nous"
+msgstr "UDP messages push demandant une connexion PF<->PF avec nous"
 
 msgid "UDP push messages patched for FW<->FW connections"
-msgstr "Messages UDP push patchés pour les connexions PF<->PF"
+msgstr "UDP messages push patchés pour les connexions PF<->PF"
 
 msgid "UDP UHC pings received"
 msgstr "UDP pings UHC reçus"
 
 msgid "UDP UHC pongs sent"
-msgstr "Pongs UDP UDP envoyés"
+msgstr "UDP pongs UHC envoyés"
 
 msgid "UDP messages with bogus source IP"
-msgstr "Messages UDP avec source IP invalide"
+msgstr "UDP messages avec une source IP invalide"
 
 msgid "UDP messages from shunned IP (discarded)"
-msgstr "Messages UDP depuis une IP évitée (rejetés)"
+msgstr "UDP messages depuis une IP évitée (rejetés)"
 
 msgid "UDP truncated incoming messages"
 msgstr "UDP messages entrants tronqués"
@@ -1374,76 +1369,76 @@ msgid "Uncompressed UDP messages due to no gain"
 msgstr "Messages UDP non compressés car pas de gain"
 
 msgid "UDP scheduler directly sent (P_DATA)"
-msgstr ""
+msgstr "Ordonnanceur UDP envoyé directement (P_DATA)"
 
 msgid "UDP scheduler directly sent (P_CONTROL)"
-msgstr ""
+msgstr "Ordonnanceur UDP envoyé directement (P_CONTROL)"
 
 msgid "UDP scheduler directly sent (P_URGENT)"
-msgstr ""
+msgstr "Ordonnanceur UDP envoyé directement (P_URGENT)"
 
 msgid "UDP scheduler directly sent (P_HIGHEST)"
-msgstr ""
+msgstr "Ordonnanceur UDP envoyé directement (P_HIGHEST)"
 
 msgid "UDP scheduler flow controlled (P_DATA)"
-msgstr ""
+msgstr "Ordonnanceur UDP contrôle de flux (P_DATA)"
 
 msgid "UDP scheduler flow controlled (P_CONTROL)"
-msgstr ""
+msgstr "Ordonnanceur UDP contrôle de flux (P_CONTROL)"
 
 msgid "UDP scheduler flow controlled (P_URGENT)"
-msgstr ""
+msgstr "Ordonnanceur UDP contrôle de flux (P_URGENT)"
 
 msgid "UDP scheduler flow controlled (P_HIGHEST)"
-msgstr ""
+msgstr "Ordonnanceur UDP contrôle de flux (P_HIGHEST)"
 
 msgid "UDP scheduler message enqueued (P_DATA)"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis en file d'attente (P_DATA)"
 
 msgid "UDP scheduler message enqueued (P_CONTROL)"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis en file d'attente (P_CONTROL)"
 
 msgid "UDP scheduler message enqueued (P_URGENT)"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis en file d'attente (P_URGENT)"
 
 msgid "UDP scheduler message enqueued (P_HIGHEST)"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis en file d'attente (P_HIGHEST)"
 
 msgid "UDP scheduler message finally sent (P_DATA)"
-msgstr ""
+msgstr "Ordonnanceur UPD message finalement envoyé (P_DATA)"
 
 msgid "UDP scheduler message finally sent (P_CONTROL)"
-msgstr ""
+msgstr "Ordonnanceur UPD message finalement envoyé (P_CONTROL)"
 
 msgid "UDP scheduler message finally sent (P_URGENT)"
-msgstr ""
+msgstr "Ordonnanceur UPD message finalement envoyé (P_URGENT)"
 
 msgid "UDP scheduler message finally sent (P_HIGHEST)"
-msgstr ""
+msgstr "Ordonnanceur UPD message finalement envoyé (P_HIGHEST)"
 
 msgid "UDP scheduler message timeout (P_DATA)"
-msgstr ""
+msgstr "Ordonnanceur UDP délai d'expiration du message (P_DATA)"
 
 msgid "UDP scheduler message timeout (P_CONTROL)"
-msgstr ""
+msgstr "Ordonnanceur UDP délai d'expiration du message (P_CONTROL)"
 
 msgid "UDP scheduler message timeout (P_URGENT)"
-msgstr ""
+msgstr "Ordonnanceur UDP délai d'expiration du message (P_URGENT)"
 
 msgid "UDP scheduler message timeout (P_HIGHEST)"
-msgstr ""
+msgstr "Ordonnanceur UDP délai d'expiration du message (P_HIGHEST)"
 
 msgid "UDP scheduler message dropped: port=0"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis au rebut : port=0"
 
 msgid "UDP scheduler message dropped: no socket"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis au rebut : pas de socket"
 
 msgid "UDP scheduler message dropped: I/O error"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis au rebut : erreur E/S"
 
 msgid "UDP scheduler message dropped: no longer needed"
-msgstr ""
+msgstr "Ordonnanceur UDP message mis au rebut : n'est plus nécessaire"
 
 msgid "Ambiguous UDP messages received"
 msgstr "Messages UDP reçus ambigus"
@@ -1476,13 +1471,11 @@ msgstr ""
 "UDP semi-fiable total des messages envoyés partiellement à cause d'un "
 "embouteillage"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed after EAR negative ACK"
-msgstr "UDP semi-fiable messages fiables proposés pour la transmission"
+msgstr "UDP semi-fiable messages fiables vidés suite à des EAR négatifs ACK"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages flushed before lingering"
-msgstr "UDP semi-fiable messages fiables proposés pour la transmission"
+msgstr "UDP semi-fiable messages fiables vidés avant l'attente"
 
 msgid "Semi-reliable UDP TX messages currently lingering"
 msgstr "UDP semi-fiable messages TX actuellement en attente"
@@ -1493,27 +1486,29 @@ msgstr "UDP semi-fiable messages fiables proposés pour la transmission"
 msgid "Semi-reliable UDP reliable messages correctly transmited"
 msgstr "UDP semi-fiable messages UDP fiables transmis correctement"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages fully acknowledged whilst lingering"
-msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+msgstr ""
+"UDP semi-fiable messages UDP fiables pleinement reconnus avec des accusés de "
+"réception pendant l'attente"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages fully acknowledged after flush"
-msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+msgstr ""
+"UDP semi-fiable messages UDP fiables pleinement reconnus avec des accusés de "
+"réception après le vidage"
 
 msgid "Semi-reliable UDP reliable messages not fully sent"
 msgstr "UDP semi-fiable messages fiables pa complétement envoyés"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages not fully sent despite flush"
-msgstr "UDP semi-fiable messages fiables pa complétement envoyés"
+msgstr ""
+"UDP semi-fiable messages fiables pas complètement envoyés malgré le vidage"
 
 msgid "Semi-reliable UDP reliable messages partially acknowledged"
 msgstr ""
+"UDP semi-fiable messages fiables avec des accusés de réception partiels"
 
-#, fuzzy
 msgid "Semi-reliable UDP reliable messages with no acknowledgment at all"
-msgstr "UDP semi-fiable messages UDP fiables non reconnus pleinement"
+msgstr "UDP semi-fiable messages UDP fiables sans aucun accusé de réception"
 
 msgid "Semi-reliable UDP reliable TX with 1 fragment sent"
 msgstr "UDP semi-fiable TX fiable avec 1 fragment envoyé"
@@ -1608,10 +1603,11 @@ msgstr "UDP semi-fiable envois de fragments évités"
 msgid "Semi-reliable UDP fragments sent too many times"
 msgstr "UDP semi-fiable fragments UDP émis trop de fois"
 
-#, fuzzy
 msgid ""
 "Semi-reliable UDP messages dropped after fragments over-sent with no ACKs"
-msgstr "UDP semi-fiable fragments fiables énvoyés"
+msgstr ""
+"UDP semi-fiable messages mis au rebut  après le sur-envoi de fragments sans "
+"ACK"
 
 msgid "Semi-reliable UDP fragments not resent whilst lingering"
 msgstr "UDP semi-fiable fragments non réexpédiés lors de l'attente"
@@ -1625,9 +1621,8 @@ msgstr "UDP semi-fiable cumul des accusés de réception reçus"
 msgid "Semi-reliable UDP extended acknowledgments received"
 msgstr "UDP semi-fiable accusés de réception étendues reçues"
 
-#, fuzzy
 msgid "Semi-reliable UDP acknowledgments received whilst lingering"
-msgstr "UDP semi-fiable fragments reçus lors de l'attente"
+msgstr "UDP semi-fiable accusés de réception reçus durant l'attente"
 
 msgid "Semi-reliable UDP spurious acknowledgments received"
 msgstr "UDP semi-fiable accusés de réception contrefaits reçues"
@@ -1669,7 +1664,7 @@ msgid "Semi-reliable UDP acknowledgments received after sending EARs"
 msgstr "UDP semi-fiable accusés de réception reçus après l'envoi d'EARs"
 
 msgid "Semi-reliable UDP fragments received"
-msgstr "Fragments UDP semi-fiables reçus"
+msgstr "UDP semi-fiable fragments reçus"
 
 msgid "Semi-reliable UDP duplicate fragments received"
 msgstr "UDP semi-fiable fragments dupliqués reçus"
@@ -1699,10 +1694,10 @@ msgid "Semi-reliable UDP messages inflated incorrectly"
 msgstr "UDP semi-fiable messages décompressés incorrectement"
 
 msgid "Semi-reliable UDP unreliable messages received"
-msgstr "Messages UDP semi-fiables douteux reçus"
+msgstr "UDP semi-fiable messages douteux reçus"
 
 msgid "Semi-reliable UDP empty messages received"
-msgstr "Messages UDP vides semi-fiables reçus"
+msgstr "UDP semi-fiable messages vides reçus"
 
 msgid "Semi-reliable UDP reliable RX 1-frag messages received"
 msgstr "UDP semi-fiable RX fiable 1-frag messages reçus"
@@ -1788,28 +1783,30 @@ msgstr "UDP semi-fiable accusés de réception étendus émis"
 msgid "Semi-reliable UDP avoided acknowledgment sendings"
 msgstr "UDP semi-fiable envois évités d'accusés de réception"
 
-#, fuzzy
 msgid "Semi-reliable UDP flushing pending ACKs on duplicate fragment"
-msgstr "UDP semi-fiable fragments dupliqués reçus"
+msgstr "UDP semi-fiable vidage des ACK en attente sur le fragment en double"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments after EAR"
-msgstr "UDP semi-fiable accusés de réception reçus après l'envoi d'EARs"
+msgstr ""
+"UDP semi-fiable ré-accusation de réception de fragments reçus après EAR"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments after duplicate"
-msgstr "UDP semi-fiable fragments reçus mis au rebut"
+msgstr ""
+"UDP semi-fiable ré-accusation de réception de fragments reçus après des "
+"fragments reçus après duplication"
 
-#, fuzzy
 msgid "Semi-reliable UDP re-acknowledging received fragments before expiration"
-msgstr "UDP semi-fiable fragments reçus mis au rebut"
+msgstr ""
+"UDP semi-fiable ré-accusation de réception des fragments reçus avant "
+"l'expiration"
 
-#, fuzzy
 msgid "Semi-reliable UDP resent ACKs during re-acknowledging"
-msgstr "UDP semi-fiable envois de fragments évités"
+msgstr ""
+"UDP semi-fiable ACK réexpédiés lors des l'envoi de nouveaux accusés de "
+"réception"
 
 msgid "Semi-reliable UDP EARs received"
-msgstr "EARs UDP semi-fiables reçus"
+msgstr "UDP semi-fiable EAR reçus"
 
 msgid "Semi-reliable UDP EARs received for unknown message"
 msgstr "UDP semi-fiable EARs reçus pour un message inconnu"
@@ -1818,7 +1815,7 @@ msgid "Semi-reliable UDP EARs received whilst lingering"
 msgstr "UDP semi-fiable EARs reçus lors de l'attente"
 
 msgid "Semi-reliable UDP fragments from hostile IP addresses"
-msgstr "Fragments UDP semi-fiables depuis les adresses IP hostiles"
+msgstr "UDP semi-fiable fragments depuis les adresses IP hostiles"
 
 msgid "UDP G2 hits rerouted to hub for delivery"
 msgstr "UDP résultats G2 redirigés vers un hub pour livraison"
@@ -1884,10 +1881,10 @@ msgid "Ignored downloaded data"
 msgstr "Données téléchargées ignorées"
 
 msgid "Ignoring requested after data mismatch"
-msgstr "Données ignorées après une mésentente."
+msgstr "Données ignorées après une mésentente"
 
 msgid "Ignoring requested to preserve connection"
-msgstr "Mises à la poubelle pour garder la connexion"
+msgstr "Mises à la poubelle pour conserver la connexion"
 
 msgid "Ignoring requested due to aggressive swarming"
 msgstr "Mises à la poubelle dues au butinage agressif"
@@ -1946,10 +1943,10 @@ msgid "Re-seeding of orphan downloads through upload requests"
 msgstr "Reprises de téléchargements orphelins sur requête de téléchargement"
 
 msgid "RUDP sent bytes"
-msgstr "Octets RUDP envoyés"
+msgstr "RUDP octets envoyés"
 
 msgid "RUDP received bytes"
-msgstr "Octets RUDP reçus"
+msgstr "RUDP octets reçus"
 
 msgid "DHT estimated amount of nodes"
 msgstr "DHT estimation du nombre de noeuds"
@@ -3810,8 +3807,8 @@ msgid ""
 "widespread, this is the easiest option."
 msgstr ""
 "Si gtk-gnutella doit supprimer automatiquement le fichier quand une "
-"disparité se produit et reprendre du début. Tant que les Tiger Tree Hashes "
-"ne sont pas assez répandus, c'est la solution la plus simple."
+"disparité se produit et reprendre du début. Tant que les Tiger Tree Hash ne "
+"sont pas assez répandus, c'est la solution la plus simple."
 
 msgid ""
 "The amount of bytes which gtk-gnutella will strip off the already downloaded "
@@ -4614,7 +4611,7 @@ msgstr ""
 "packets_tx.dump."
 
 msgid "Debug level the TCP message queues"
-msgstr "Niveau de débogage pour la file de messages TCP."
+msgstr "Niveau de débogage pour la file de messages TCP"
 
 msgid "Debug level for the UDP message queue."
 msgstr "Niveau de débogage pour la file de messages UDP."
@@ -5324,60 +5321,68 @@ msgid ""
 "Whether OOB hit indications should be sent reliably over UDP when remote "
 "querying end has indicated support for semi-reliable UDP"
 msgstr ""
+"Si les indications de résultats OOB devraient être envoyées de façon fiable "
+"via UDP lorsque la partie effectuant une requête distante a indiqué la prise "
+"en charge de l'UDP semi-fiable"
 
-#, fuzzy
 msgid "Debug level for the ADNS (asynchronous DNS) thread."
-msgstr "Niveau de débogage pour le code de synchronisation du temps."
+msgstr "Niveau de débogage pour le thread ADNS (DNS asynchrone)."
 
-#, fuzzy
 msgid "Total outgoing HTTP traffic in bytes for this session."
-msgstr "Limite de bande passante pour le trafic HTTP sortant en octets/sec."
+msgstr "Total du trafic en octets HTTP sortants pour cette session."
 
 msgid "Total outgoing Gnutella TCP UP traffic in bytes for this session."
-msgstr ""
+msgstr "Total du trafic en octets Gnutella TCP UP sortants pour cette session."
 
 msgid "Total outgoing Gnutella TCP leaf traffic in bytes for this session."
 msgstr ""
+"Total du trafic en octets TCP Gnutella feuille sortants pour cette session."
 
 msgid "Total outgoing Gnutella UDP traffic in bytes for this session."
-msgstr ""
+msgstr "Total du trafic en octets Gnutella UDP sortants pour cette session."
 
-#, fuzzy
 msgid "Total outgoing DHT traffic in bytes for this session."
-msgstr "Limite de bande passante pour le trafic HTTP sortant en octets/sec."
+msgstr "Total du trafic en octets DHT sortants pour cette session."
 
 msgid ""
 "Total outgoing traffic in bytes on the loopback address for this session."
 msgstr ""
+"Total du trafic en octets sortants sur l'adresse de bouclage pour cette "
+"session."
 
 msgid ""
 "Total outgoing traffic in bytes on the private addresses for this session."
 msgstr ""
+"Total du trafic sortant en octets sur des adresses privées pour cette "
+"session."
 
-#, fuzzy
 msgid "Total incoming HTTP traffic in bytes for this session."
-msgstr "Limite de bande passante pour le trafic HTTP entrant en octets/sec."
+msgstr "Total du trafic HTTP entrant en octets pour cette session."
 
 msgid "Total incoming Gnutella TCP UP traffic in bytes for this session."
-msgstr ""
+msgstr "Total du trafic entrant Gnutella TCP UP en octets  pour cette session."
 
 msgid "Total incoming Gnutella TCP leaf traffic in bytes for this session."
 msgstr ""
+"Total du trafic entrant Gnutella TCP feuille en octets pour cette session."
 
 msgid "Total incoming Gnutella UDP traffic in bytes for this session."
-msgstr ""
+msgstr "Total du trafic entrant Gnutella UDP en octets pour cette session."
 
-#, fuzzy
 msgid "Total incoming DHT traffic in bytes for this session."
-msgstr "Limite de bande passante pour le trafic HTTP entrant en octets/sec."
+msgstr "Total du trafic DHT entrant en octets pour cette session."
 
 msgid ""
 "Total incoming traffic in bytes on the loopback address for this session."
 msgstr ""
+"Total du trafic entrant en octets sur l'adresse de bouclage pour cette "
+"session."
 
 msgid ""
 "Total incoming traffic in bytes on the private addresses for this session."
 msgstr ""
+"Total du trafic entrant en octets sur des adresses privées pour cette "
+"session."
 
 msgid "disable"
 msgstr "désactiver"
@@ -6398,7 +6403,7 @@ msgid "Marshall Islands"
 msgstr "Îles Marshall"
 
 msgid "Macedonia"
-msgstr "Macédoine"
+msgstr "Macédoine du Nord"
 
 msgid "Mali"
 msgstr "Mali"
@@ -6701,7 +6706,7 @@ msgid "Samoa"
 msgstr "Samoa"
 
 msgid "Kosovo"
-msgstr ""
+msgstr "Kosovo"
 
 msgid "Yemen"
 msgstr "Yémen"
@@ -6763,7 +6768,7 @@ msgid "locale_get_language|en"
 msgstr "fr"
 
 msgid "unofficial build, accessing files from"
-msgstr "Build non officiel avec accès aux fichiers de ce répertoire :"
+msgstr "build non officiel avec accès aux fichiers de ce répertoire :"
 
 msgid "URL missing"
 msgstr "URL manquant"
@@ -6869,7 +6874,7 @@ msgid "Unknown property \"%s\""
 msgstr "Propriété « %s » inconnue"
 
 msgid "Value: "
-msgstr "Valeur :"
+msgstr "Valeur : "
 
 msgid "Value found and displayed"
 msgstr "Valeur trouvée et affichée"
@@ -6932,14 +6937,14 @@ msgid "un-parseable argument #%u in command"
 msgstr "arguments #%u non compris dans la commande"
 
 msgid "Malformed command"
-msgstr "commande mal formée"
+msgstr "Commande mal formée"
 
 #, c-format
 msgid "Unknown command: \"%s\""
 msgstr "Commande « %s » inconnue"
 
 msgid "Help: "
-msgstr "Aide :"
+msgstr "Aide : "
 
 msgid "Filename"
 msgstr "Nom de fichier"
@@ -7205,7 +7210,7 @@ msgid "no default filter"
 msgstr "pas de filtre par défaut"
 
 msgid "[no hash]"
-msgstr "[pas de hash]"
+msgstr "[pas de hachage]"
 
 msgid "Filter"
 msgstr "Filtre"
@@ -7567,7 +7572,7 @@ msgid "Bandwidth limits for HTTP traffic"
 msgstr "Limites de bande passante pour le trafic HTTP"
 
 msgid "Bandwidth limits for the Distributed Hash Table"
-msgstr "Limites de bande passante pour la table de hash distribuée (DHT)"
+msgstr "Limites de bande passante pour la table de hachage distribuée (DHT)"
 
 msgid "Bandwidth targets for node lookups"
 msgstr "Bande passante cible pour les recherches de noeuds"
@@ -7804,7 +7809,7 @@ msgid "Details"
 msgstr "Détails"
 
 msgid "Discard results without SHA-1 hashes"
-msgstr "Écarter les résultats sans hashs SHA-1"
+msgstr "Écarter les résultats sans hachage SHA-1"
 
 msgid "Discard spam"
 msgstr "Écarter le spam"
@@ -8253,7 +8258,7 @@ msgid "Measured HTTP latency:"
 msgstr "Latence HTTP mesurée :"
 
 msgid "Meet us on #gtk-gnutella at irc.libera.chat."
-msgstr "Rencontrez nous sur #gtk-gnutella sur irc.libera.chat."
+msgstr "Rencontrez-nous sur #gtk-gnutella sur irc.libera.chat."
 
 msgid "Min/Max:"
 msgstr "Min/Max :"
@@ -8600,7 +8605,7 @@ msgid "Running in ultrapeer mode."
 msgstr "Tourne en mode ultrapeer."
 
 msgid "SHA1 hash (not editable, add from search popup)"
-msgstr "hash SHA1 (pas éditable, ajouter depuis la fenêtre de recherche)"
+msgstr "Hachage SHA1 (pas éditable, ajouter depuis la fenêtre de recherche)"
 
 msgid "Save"
 msgstr "Sauver"
@@ -8950,8 +8955,8 @@ msgstr "Version"
 msgid "Vidar Madsen"
 msgstr "Vidar Madsen"
 
-msgid "Visit http://gtk-gnutella.sourceforge.net/."
-msgstr "Visitez http://gtk-gnutella.sourceforge.net/."
+msgid "Visit https://gtk-gnutella.sourceforge.io/."
+msgstr "Visitez https://gtk-gnutella.sourceforge.io/."
 
 msgid "Volume:"
 msgstr "Volume :"
@@ -9052,7 +9057,7 @@ msgid "_Deletion coeff. (0-100)"
 msgstr "_Coeff. de suppression (0-100)"
 
 msgid "_Download RX buffer:"
-msgstr "Tampon RX de _téléchargement :\" "
+msgstr "Tampon RX de _téléchargement :"
 
 msgid "_Download selected"
 msgstr "_Télécharger la sélection"
@@ -9479,17 +9484,15 @@ msgstr "Copier vers le presse-papiers"
 msgid "_Remove filter"
 msgstr "_Supprimer le filtre"
 
-#, fuzzy
 msgid "Meet us on #gtk-gnutella at libera.chat."
-msgstr "Rencontrez nous sur #gtk-gnutella sur irc.libera.chat."
+msgstr "Rencontrez-nous sur #gtk-gnutella sur libera.chat"
 
-#, fuzzy
 msgid ""
 "This product includes IP2Location LITE data, available from\n"
 "https://lite.ip2location.com/"
 msgstr ""
-"Ce produit inclut des données GeoIP créées par MaxMind, disponibles sur\n"
-"http://maxmind.com/"
+"Ce produit inclut des données IP2Location LITE, disponibles sur\n"
+"https://lite.ip2location.com/"
 
 msgid "_Close"
 msgstr "_Fermer"
@@ -9660,7 +9663,7 @@ msgid "unit_of_time|s"
 msgstr "s"
 
 msgid "Gnutella Distributed Hash Table"
-msgstr "Table de hash distribuée de Gnutella"
+msgstr "Table de hachage distribuée de Gnutella"
 
 msgid "Maximum percentage of connection slots a vendor can occupy."
 msgstr ""
@@ -9682,7 +9685,7 @@ msgid "Show a status _icon"
 msgstr "Afficher une _icône de statut"
 
 msgid "Avg. downtime of this servent"
-msgstr "Downtime moyen de ce servent :"
+msgstr "Downtime moyen de ce servent"
 
 msgid ", "
 msgstr ", "
@@ -9788,12 +9791,10 @@ msgstr[1] "%d secondes"
 
 msgid ""
 "<html><head><title>Frequently Asked Questions</title></head><body><p>The FAQ "
-"document could not be loaded. Please read the <a href=\"http://gtk-gnutella."
-"sourceforge.net/?page=faq\">FAQ online</a> instead.</p></body></html>"
+"document could not be loaded. Please read the <a href=\"https://gtk-gnutella.sourceforge.io/?page=faq\">FAQ online</a> instead.</p></body></html>"
 msgstr ""
 "<html><head><title>Questions fréquemment posées</title></head><body><p>Le "
-"document FAQ ne peut pas être chargé. Merci de lire la <a href=\"http://gtk-"
-"gnutella.sourceforge.net/?page=faq\">FAQ en ligne</a> à la place.</p></"
+"document FAQ ne peut pas être chargé. Merci de lire la <a href=\"https://gtk-gnutella.sourceforge.io/?page=faq\">FAQ en ligne</a> à la place.</p></"
 "body></html>"
 
 msgid ""
@@ -9911,8 +9912,8 @@ msgstr " le précédent a pris %s en interrogeant %zu %s avec %zu %s gardé"
 
 msgid "host"
 msgid_plural "hosts"
-msgstr[0] "Hôte"
-msgstr[1] "Hôtes"
+msgstr[0] "hôte"
+msgstr[1] "hôtes"
 
 msgid "hit"
 msgid_plural "hits"
@@ -10196,14 +10197,12 @@ msgstr "Lecture du cache des Ultra..."
 msgid ""
 "<html><head><title>Ancient version detected!</title></"
 "head><body><h1>Warning</h1><p>This version of gtk-gnutella is pretty old. "
-"Please visit <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
-"gnutella.sourceforge.net/</a> and update your copy of gtk-gnutella.</p></"
+"Please visit <a href=\"https://gtk-gnutella.sourceforge.io/\">https://gtk-gnutella.sourceforge.io/</a> and update your copy of gtk-gnutella.</p></"
 "body></html>"
 msgstr ""
 "<html><head><title>Ancienne version détectée !</title></"
 "head><body><h1>Attention</h1><p>Cette version de gtk-gnutella est ancienne. "
-"Merci de visiter <a href=\"http://gtk-gnutella.sourceforge.net/\">http://gtk-"
-"gnutella.sourceforge.net/</a> et de mettre à jour votre copie de gtk-"
+"Merci de visiter <a href=\"https://gtk-gnutella.sourceforge.io/\">https://gtk-gnutella.sourceforge.io/</a> et de mettre à jour votre copie de gtk-"
 "gnutella.</p></body></html>"
 
 msgid "*** RUNNING AN OLD VERSION! ***"
@@ -10242,7 +10241,7 @@ msgid "Address/port changed to: %s"
 msgstr "Adresse/Port changé en : %s"
 
 msgid "no sources"
-msgstr "Pas de source"
+msgstr "pas de source"
 
 #, c-format
 msgid "%u source"
@@ -10296,9 +10295,9 @@ msgstr "(rapide) "
 msgid " E=%u"
 msgstr " E=%u"
 
-#, fuzzy, c-format
+#, c-format
 msgid "%s(%s)%s%s TR: %s %s#%u"
-msgstr "%s(%s) TR : %s %s#%u"
+msgstr "%s(%s)%s%s TR : %s %s#%u"
 
 msgid "stalled"
 msgstr "bloqué"
@@ -10337,6 +10336,9 @@ msgstr "Envoi de QUEUE, se connecte..."
 
 msgid "Sent QUEUE, waiting for headers..."
 msgstr "QUEUE envoyé, en attente des en-têtes..."
+
+#~ msgid "Meet us on #gtk-gnutella at irc.freenode.net."
+#~ msgstr "Rencontrez nous sur #gtk-gnutella sur irc.freenode.net."
 
 #~ msgid "Not an ultra node"
 #~ msgstr "Pas un noeud ultra"

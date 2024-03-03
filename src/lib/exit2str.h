@@ -38,6 +38,7 @@
  * Public interface.
  */
 
+int exit_was_killed_by_signal(int status);
 const char *exit2str(int status);
 
 #endif	/* _exit2str_h_ */

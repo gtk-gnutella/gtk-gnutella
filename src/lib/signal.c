@@ -539,7 +539,12 @@ sig_compute_pc_index(void)
 	 * here by falling into g_assert_not_reached().
 	 */
 
+	/* We are not de-referencing an array pointer, I know */
+	G_IGNORE_PUSH(-Warray-bounds);
+
 	*(int volatile *) p = 1;	/* We expect this to raise a SIGSEGV */
+
+	G_IGNORE_POP;
 	g_assert_not_reached();
 }
 
@@ -602,20 +607,44 @@ done:
 static int
 sig_get_pc_index(void)
 {
-	struct sigaction sa, osa;
+	int sigs[] = {
+		SIGSEGV
+#ifdef SIGBUS
+		/* On OS/X, sig_compute_pc_index() triggers a SIGBUS, not a SIGSEGV */
+		, SIGBUS
+#endif
+	};
+	struct sigaction sa[N_ITEMS(sigs)], osa[N_ITEMS(sigs)];
+	size_t i;
 
-	sigemptyset(&sa.sa_mask);
-	sa.sa_flags = SA_SIGINFO;
-	sa.sa_sigaction = sig_get_pc_handler;
+	for (i = 0; i < N_ITEMS(sigs); i++) {
+		sigemptyset(&sa[i].sa_mask);
+		sa[i].sa_flags = SA_SIGINFO;
+		sa[i].sa_sigaction = sig_get_pc_handler;
+	}
 
-	if (-1 == sigaction(SIGSEGV, &sa, &osa)) {
-		s_warning("%s(): sigaction() setup failed: %m", G_STRFUNC);
-		return -1;
+	for (i = 0; i < N_ITEMS(sigs); i++) {
+		if ( -1 == sigaction(sigs[i], &sa[i], &osa[i])) {
+			size_t j;
+
+			s_warning("%s(): sigaction(%s) setup failed: %m",
+				G_STRFUNC, signal_name(sigs[i]));
+
+			for (j = 0; j < i; j++) {
+				if (-1 == sigaction(sigs[j], &osa[j], &sa[j]))
+					s_critical("%s(): sigaction(%s) restore failed: %m",
+						G_STRFUNC, signal_name(sigs[j]));
+			}
+			return SIG_PC_UNAVAILABLE;
+		}
 	}
 
 	if (Sigsetjmp(sig_pc_env, TRUE)) {
-		if (-1 == sigaction(SIGSEGV, &osa, &sa))
-			s_critical("%s(): sigaction() restore failed: %m", G_STRFUNC);
+		for (i = 0; i < N_ITEMS(sigs); i++) {
+			if (-1 == sigaction(sigs[i], &osa[i], &sa[i]))
+				s_critical("%s(): sigaction(%s) restore failed: %m",
+					G_STRFUNC, signal_name(sigs[i]));
+		}
 		return sig_pc_regnum;
 	}
 

@@ -55,7 +55,7 @@ log_abort(void)
 }
 
 typedef unsigned char uint8;
-typedef volatile uint8 atomic_lock_t;
+typedef volatile uint atomic_lock_t;
 
 const bool TRUE = 1;
 const bool FALSE = 0;

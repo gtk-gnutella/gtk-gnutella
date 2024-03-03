@@ -95,6 +95,19 @@
 
 #include "override.h"		/* Must be the last header included */
 
+/*
+ * This can be enabled to completely short-circuit xmalloc() and have it
+ * route everything back to the system malloc(), for debugging / investigation
+ * purposes.
+ *
+ * It does not remove most of the code though, this is only for debugging.
+ * 		--RAM, 2022-12-29
+ */
+#if 0
+#define XMALLOC_DISABLED
+#undef XMALLOC_IS_MALLOC
+#endif
+
 #if 0
 #define XMALLOC_SORT_SAFETY		/* Adds expensive sort checking assertions */
 #endif
@@ -626,6 +639,19 @@ void
 set_xmalloc_debug(uint32 level)
 {
 	xmalloc_debug = level;
+}
+
+/**
+ * Is xmalloc() remapped to malloc()?
+ */
+bool
+xmalloc_is_malloc(void)
+{
+#ifdef XMALLOC_IS_MALLOC
+	return TRUE;
+#else
+	return FALSE;
+#endif
 }
 
 /**
@@ -3649,19 +3675,6 @@ xmalloc_block_setup(void *p, size_t len)
 }
 
 /**
- * Is xmalloc() remapped to malloc()?
- */
-bool
-xmalloc_is_malloc(void)
-{
-#ifdef XMALLOC_IS_MALLOC
-	return TRUE;
-#else
-	return FALSE;
-#endif
-}
-
-/**
  * Compute checksum of the "constant" part of the chunk header.
  */
 static inline uint32
@@ -3686,7 +3699,7 @@ xmalloc_chunk_tag(const struct xchunk *xck)
 	 *
 	 * 		xc_size <= XM_THREAD_MAXSIZE (512)
 	 * 		xc_stid < THREAD_MAX (64)
-	 *		xc_capacity <= 4096 / 8 = 512
+	 *		xc_capacity <= xmalloc_pagesize / 8 = 512 (for 4K-pages)
 	 *
 	 * This makes the tag we compute below completely unique for a valid chunk,
 	 * with no collision possible.
@@ -3735,7 +3748,7 @@ xmalloc_chunk_is_valid(const struct xchunk *xck)
 			(xck->xc_size <= XM_THREAD_MAXSIZE) +
 			(xck->xc_size != 0) +
 			(xmalloc_round(xck->xc_size) == xck->xc_size) +
-			(xck->xc_capacity < 4096 / XMALLOC_ALIGNBYTES)	/* 4096 = page size */
+			(xck->xc_capacity < xmalloc_pagesize / XMALLOC_ALIGNBYTES)
 		) &&
 		xmalloc_chunk_tag(xck) == xck->xc_tag &&
 		xmalloc_chunk_checksum(xck) == xck->xc_cksum;
@@ -3867,6 +3880,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 	struct xchunk *xck;
 	unsigned capacity, offset;
 
+	g_assert(xmalloc_round(ch->blocksize) == ch->blocksize);
+
 	/*
 	 * Each allocated thread-specific chunk looks like this:
 	 *
@@ -3892,6 +3907,8 @@ xmalloc_chunk_allocate(const struct xchunkhead *ch, unsigned stid)
 
 	capacity = (xmalloc_pagesize - sizeof *xck) / ch->blocksize;
 	offset = xmalloc_pagesize - capacity * ch->blocksize;
+
+	g_assert(capacity < xmalloc_pagesize / XMALLOC_ALIGNBYTES);
 
 	/*
 	 * Try to allocate from the page pool if available.
@@ -4440,6 +4457,7 @@ xmalloc_thread_ended(unsigned stid)
 	}
 }
 
+#ifndef XMALLOC_DISABLED
 /**
  * Allocate a block from the thread-specific pool.
  *
@@ -4680,6 +4698,7 @@ xmalloc_thread_free(void *p)
 
 	return TRUE;
 }
+#endif	/* !XMALLOC_DISABLED */
 
 #ifdef XMALLOC_IS_MALLOC
 #undef malloc
@@ -4731,6 +4750,21 @@ static size_t xalign_allocated(const void *p);
 static void *
 xallocate(size_t size, bool can_vmm, bool can_thread)
 {
+#ifdef XMALLOC_DISABLED
+	void *p = malloc(size);
+	(void) can_vmm;
+	(void) can_thread;
+
+	if G_UNLIKELY(NULL == p) {
+		s_error_from(_WHERE_, "%s(): cannot allocate %zu bytes", G_STRFUNC, size);
+
+		/* Suppress compiler warning about unused routines */
+		xmalloc_chunkhead_alloc(NULL, 0);
+		xmalloc_freelist_alloc(0, NULL);
+		xmalloc_block_setup(NULL, 0);
+	}
+	return p;
+#else
 	size_t len;
 	void *p;
 	uint stid;
@@ -4976,6 +5010,7 @@ skip_pool:
 	}
 
 	g_assert_not_reached();
+#endif	/* XMALLOC_DISABLED */
 }
 
 /**
@@ -5134,6 +5169,10 @@ xstrfreev(char **str)
 size_t
 xallocated(const void *p)
 {
+#ifdef XMALLOC_DISABLED
+	(void) p;
+	return 0;
+#else
 	size_t len;
 	const struct xheader *xh;
 
@@ -5167,6 +5206,7 @@ xallocated(const void *p)
 	}
 
 	return xh->length - XHEADER_SIZE;	/* User size, substract overhead */
+#endif	/* XMALLOC_DISABLED */
 }
 
 /**
@@ -5175,6 +5215,10 @@ xallocated(const void *p)
 size_t
 xpallocated(const void *p)
 {
+#ifdef XMALLOC_DISABLED
+	(void) p;
+	return 0;
+#else
 	const struct xheader *xh;
 
 	if G_UNLIKELY(NULL == p)
@@ -5196,6 +5240,7 @@ xpallocated(const void *p)
 	}
 
 	return xh->length - XHEADER_SIZE;	/* User size, substract overhead */
+#endif	/* XMALLOC_DISABLED */
 }
 
 /**
@@ -5204,6 +5249,9 @@ xpallocated(const void *p)
 void
 xfree(void *p)
 {
+#ifdef XMALLOC_DISABLED
+	free(p);
+#else
 	struct xheader *xh;
 	bool is_vmm;
 
@@ -5324,6 +5372,7 @@ xfree(void *p)
 	ONCE_FLAG_RUN(xmalloc_early_inited, xmalloc_early_init);
 
 	xmalloc_freelist_add(xh, xh->length, XM_COALESCE_ALL | XM_COALESCE_SMART);
+#endif	/* XMALLOC_DISABLED */
 }
 
 /**
@@ -5343,6 +5392,10 @@ xfree(void *p)
 static void *
 xreallocate(void *p, size_t size, bool can_thread)
 {
+#ifdef XMALLOC_DISABLED
+	(void) can_thread;
+	return realloc(p, size);
+#else
 	struct xheader *xh = ptr_add_offset(p, -XHEADER_SIZE);
 	size_t newlen;
 	void *np;
@@ -5908,6 +5961,7 @@ realloc_from_thread:
 	}
 
 	return np;
+#endif	/* XMALLOC_DISABLED */
 }
 
 /**

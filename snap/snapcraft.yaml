@@ -1,0 +1,66 @@
+name: gtk-gnutella
+version: '1.1.14'
+summary: The Most Efficient Gnutella Client
+description: |
+    gtk-gnutella is a server/client for the Gnutella peer-to-peer network.
+    It runs on Microsoft Windows, MacOS and every Unix-like system which supports GTK+ (1.2 or above)
+
+grade: devel # must be 'stable' to release into candidate/stable channels
+confinement: devmode # use 'strict' once you have the right plugs and slots
+    
+parts:
+  gtk-gnutella:
+    plugin: autotools
+    override-build: |
+        ./build.sh --prefix=/
+        make install INSTALL_PREFIX=$SNAPCRAFT_PART_INSTALL
+    build-packages:
+      - g++
+      - make
+      - libsdl1.2-dev
+      - libpng12-dev
+      - libsdl-net1.2-dev
+      - libsdl-sound1.2-dev
+      - libasound2-dev
+      - libgtk2.0-dev
+      - gettext
+      - libxpm-dev #attempt to correct "couldn't find pixmap file"
+      - libxpm4 #attempt to correct "couldn't find pixmap file"
+      - libcanberra-gtk-module #attempt to correct Failed to load module "canberra-gtk-module"
+      - libatk-bridge2.0-0 #attempt to correct Failed to load module "atk-bridge"
+      - libgail-common #attempt to correct Failed to load module "gail"
+      - libgail-3-0 #attempt to correct Failed to load module "gail"
+      - libgail18 #attempt to correct Failed to load module "gail"
+      #NOT FOUND - appmenu-gtk-module-common #attempting to correct Failed to load module "appmenu-gtk-module"
+      #NOT FOUND - appmenu-gtk2-module #attempting to correct Failed to load module "appmenu-gtk-module"
+      #NOT FOUND - libappmenu-gtk2-parser0 #attempting to correct Failed to load module "appmenu-gtk-module"
+      
+    source-type: git
+    source: https://github.com/gtk-gnutella/gtk-gnutella.git
+
+#parts:
+#  desktop-gtk2:
+
+apps:
+  gtk-gnutella:
+    command: bin/gtk-gnutella
+
+#GTK attempt based on https://forum.snapcraft.io/t/improving-theme-support-for-gtk-2-apps/7693
+plugs:
+  gtk-2-engines:
+    interface: content
+    target: $SNAP/lib/gtk-2.0
+    default-provider: gtk2-common-themes:gtk-2-engines
+  gtk-2-themes:
+    interface: content
+    target: $SNAP/share/themes
+    default-provider: gtk2-common-themes:gtk-2-themes
+  icon-themes:
+    interface: content
+    target: $SNAP/share/icons
+    default-provider: gtk-common-themes:icon-themes
+    
+environment:
+  GTK_PATH: $SNAP/lib/gtk-2.0
+  GTK_DATA_PREFIX: $SNAP
+  XDG_DATA_DIRS: $SNAP/share:$XDG_DATA_DIRS

@@ -725,12 +725,10 @@ ripening_set_expire(ripening_table_t *rt,
 	 * Compute the previous expiration time of the first value in the table.
 	 */
 
-	if (rt->expire_ev != NULL) {
+	{
 		const struct ripening_key *rv = erbtree_head(&rt->tree);
-		g_assert(rv != NULL);
-		old = rv->expire;
-	} else {
-		old = 0;
+		/* If rv is NULL, then there are no values registered yet */
+		old = NULL == rv ? 0 : rv->expire;
 	}
 
 	if (existed) {
