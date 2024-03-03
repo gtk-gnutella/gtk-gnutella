@@ -1233,7 +1233,7 @@ create_dlg_about (void)
   gtk_box_pack_start (GTK_BOX (vbox67), label488, FALSE, TRUE, 0);
   gtk_label_set_justify (GTK_LABEL (label488), GTK_JUSTIFY_CENTER);
 
-  label489 = gtk_label_new (_("Visit http://gtk-gnutella.sourceforge.net/."));
+  label489 = gtk_label_new (_("Visit http://gtk-gnutella.sourceforge.io/."));
   gtk_widget_set_name (label489, "label489");
   gtk_widget_show (label489);
   gtk_box_pack_start (GTK_BOX (vbox67), label489, FALSE, TRUE, 0);
