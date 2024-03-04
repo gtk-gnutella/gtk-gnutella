@@ -50,6 +50,7 @@
 #include "balloc.h"
 
 #include "atomic.h"
+#include "casts.h"
 
 #include "override.h"		/* Must be the last header included */
 
@@ -70,6 +71,8 @@ enum balloc_magic { BALLOC_MAGIC = 0x4b6a2215 };
 typedef struct balloc {
 	enum balloc_magic magic;		/**< Magic number */
 	atomic_lock_t lock;				/**< Concurrency lock */
+	size_t size;					/**< Size of each individual block */
+	size_t length;					/**< Total buffer length */
 	void *avail;					/**< Next available block, NULL if full */
 } balloc_t;
 
@@ -78,6 +81,16 @@ balloc_check(const balloc_t * const b)
 {
 	g_assert(b != NULL);
 	g_assert(BALLOC_MAGIC == b->magic);
+}
+
+static inline void
+balloc_belongs(const balloc_t * const b, const void *p)
+{
+	g_assert_log(ptr_cmp(p, ptr_add_offset_const(PTRLEN(b))) >= 0,
+		"p=%p not after buffer base %p (offset %zu)", p, PTRLEN(b));
+	g_assert_log(ptr_cmp(p, ptr_add_offset_const(b, b->length - b->size)) <= 0,
+		"p=%p is not in buffer range [%p, %p] (%zu bytes) for %zu-byte blocks",
+		p, b, ptr_add_offset_const(b, b->length - 1), b->length, b->size);
 }
 
 /**
@@ -95,9 +108,13 @@ balloc_cram(balloc_t *b, size_t size, size_t buflen)
 	void *next = NULL;
 
 	balloc_check(b);
+	g_assert_log((ulong) start == balloc_round(start),
+		"%s(): base %p is not properly aligned", G_STRFUNC, b);
 	g_assert_log((ulong) end == balloc_round(end),
-		"%s(): buffer length %zu is not properly aligned or base %p is weird",
-		G_STRFUNC, buflen, b);
+		"%s(): buffer length %zu is not properly aligned", G_STRFUNC, buflen);
+
+	b->length = buflen;
+	b->size   = size;
 
 	/*
 	 * We can't assume we have enough room between "start" and "end" to
@@ -237,6 +254,7 @@ balloc_free(void *base, void *p)
 	balloc_t *b = base;
 
 	balloc_check(b);
+	balloc_belongs(b, p);
 
 	balloc_lock(b);
 
@@ -265,6 +283,7 @@ balloc_free_pslist(void *base, pslist_t *pl)
 	balloc_lock(b);
 
 	for (l = pl; l != NULL; l = next) {
+		balloc_belongs(b, l);
 		next = l->next;
 		/* Put back cell block at head of free list */
 		*(void **) l = b->avail;
