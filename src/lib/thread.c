@@ -129,6 +129,10 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#if 0
+#define THREAD_DEBUG			/* Turn on extra debugging / consistency */
+#endif
+
 /**
  * To quickly access thread-private data, we introduce the notion of Quasi
  * Thread Ids, or QIDs: they are not unique for a given thread but no two
@@ -1981,6 +1985,7 @@ thread_element_mark_reusable_locked(struct thread_element *te)
 
 	te->reusable = TRUE;	/* Allow reuse */
 	te->valid = FALSE;		/* Holds stale values now */
+	thread_set(te->tid, THREAD_INVALID);
 }
 
 /**
@@ -2370,6 +2375,8 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 
 		if G_LIKELY(te != xte) {
 			if G_UNLIKELY(thread_eq(t, xte->tid)) {
+				bool cleared = FALSE;
+
 				/*
 				 * When we have a TID match, the thread element is
 				 * necessary defunct.  Since we're holding a spinlock
@@ -2378,10 +2385,31 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 
 				THREAD_LOCK(xte);
 				if G_LIKELY(thread_eq(t, xte->tid)) {
+					cleared = TRUE;	/* Warn outside of critical region */
 					thread_set(xte->tid, THREAD_INVALID);
 					thread_set(tstid[i], THREAD_INVALID);
 				}
 				THREAD_UNLOCK(xte);
+
+				/*
+				 * Normally, this should never happen for created threads.
+				 * hence loudly warn.  For discovered thread, it is hard
+				 * to be as assertive, but it is interesting to know that
+				 * it happens.
+				 *
+				 * If the thread element is not valid, there is little
+				 * reason to warn, but if it is invalid, this information
+				 * should have been cleared already.
+				 *
+				 * All considered, it makes sense to always emit a critical
+				 * note when this happens as it could hint to some other
+				 * low-level lurking bug.
+				 */
+
+				if (cleared) {
+					s_critical("%s(): cleared TID=%lu for %s from %s",
+						G_STRFUNC, t, thread_id_name(xte->stid), thread_name());
+				}
 			}
 		}
 	}
@@ -5850,7 +5878,22 @@ thread_element_set(struct thread_element *te, const void **element)
 	 * 		--RAM, 2020-02-12
 	 */
 
-	return G_LIKELY(thread_main_started) ? te->tid : thread_self();
+	if G_LIKELY(thread_main_started) {
+#ifdef THREAD_DEBUG
+		g_assert_log(thread_eq(te->tid, thread_self()),
+			"%s(): te->tid=%lu, thread_self()=%lu (te->stid=%d, %s, valid=%s)",
+			G_STRFUNC, te->tid, thread_self(), te->stid,
+			thread_id_name(te->stid), bool_to_string(te->valid));
+
+		g_assert_log(thread_eq(tstid[te->stid], te->tid),
+			"%s(): te->stid=%u, tstid[%u]=%lu, te->tid=%lu",
+			G_STRFUNC, te->stid, te->stid, tstid[te->stid], te->tid);
+#endif	/* THREAD_DEBUG */
+
+		return te->tid;
+	}
+
+	return thread_self();
 }
 
 /**
