@@ -949,7 +949,17 @@ rwlock_readers_downto(void *p)
 		return TRUE;
 	}
 
-	g_assert(arg->count < arg->rw->readers);
+	/*
+	 * Since we checked above, threads holding the extra readers could have
+	 * released them already, hence we may have reached the count now.
+	 *
+	 * Therefore the assertion must use "<=" and not "<" for the comparison.
+	 *
+	 * It is OK if we missed the fact that we reached the targeted value, we
+	 * will see it the next time the predicate is evaluated.
+	 */
+
+	g_assert(arg->count <= arg->rw->readers);
 
 	return FALSE;
 }
