@@ -550,24 +550,26 @@ static void G_NORETURN
 mutex_log_error(const mutex_t *m, const char *file, unsigned line)
 {
 	thread_t t = thread_current();
+	thread_t s = thread_self();
 
 #ifdef SPINLOCK_DEBUG
 	s_minierror("thread #%u expected to own mutex %p (%s%s) at %s:%u"
 		" (depth=%zu, owner=thread #%d [%lu] from %s:%u,"
-		" current/self=[%lu, %lu] #%d)",
+		" current/self=[%lu, %lu] #%d/%d)",
 		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
 		spinlock_is_held(&m->lock) ? "" : " unlocked",
 		file, line, m->depth, thread_stid_from_thread(m->owner),
 		(ulong) m->owner, m->lock.file, m->lock.line,
-		(ulong) t, (ulong) thread_self(), thread_stid_from_thread(t));
+		(ulong) t, (ulong) s,
+		thread_stid_from_thread(t), thread_stid_from_thread(s));
 #else	/* !SPINLOCK_DEBUG */
 	s_minierror("thread #%u expected to own mutex %p (%s%s) at %s:%u"
-		" (depth=%zu, owner=thread #%d [%lu], current/self=[%lu, %lu] #%d)",
+		" (depth=%zu, owner=thread #%d [%lu], current/self=[%lu, %lu] #%d/%d)",
 		thread_small_id(), m, thread_lock_holds(m) ? "known" : "hidden",
 		spinlock_is_held(&m->lock) ? "" : " unlocked",
 		file, line, m->depth, thread_stid_from_thread(m->owner),
-		(ulong) m->owner, (ulong) t, (ulong) thread_self(),
-		thread_stid_from_thread(t));
+		(ulong) m->owner, (ulong) t, (ulong) s,
+		thread_stid_from_thread(t), thread_stid_from_thread(s));
 #endif	/* SPINLOCK_DEBUG */
 }
 
