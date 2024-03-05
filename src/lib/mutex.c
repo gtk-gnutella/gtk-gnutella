@@ -628,8 +628,13 @@ mutex_not_owned(const mutex_t *m, const char *file, unsigned line)
 		return;		/* Ignore when we're crashing */
 	}
 
-	s_minicrit("mutex %p not owned at %s:%u in %s",
-		m, file, line, thread_name());
+	s_minicrit("mutex %p %s at %s:%u in %s (owner=%s)",
+		m,
+		spinlock_is_held_fast(&m->lock) ? "not owned" : "unlocked",
+		file, line, thread_name(),
+		spinlock_is_held_fast(&m->lock) ?
+			thread_safe_id_name(thread_stid_from_thread(m->owner)) : "none"
+	);
 
 	mutex_log_error(m, file, line);
 }
