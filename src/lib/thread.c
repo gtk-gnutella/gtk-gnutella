@@ -3940,31 +3940,23 @@ retry:
 	} else {
 		/*
 		 * For discovered threads, we need to be smarter and look at whether
-		 * the thread ID is not being one of a known thread.  If it is, then
-		 * we can extend the QID range for next time.
+		 * the thread ID is not being one of a known thread.
 		 */
 
 		te = thread_find_tid(t);
 		if (te != NULL) {
-			if (te->discovered) {
-				thread_set(te->tid, t);
-				thread_element_update_qid_range(te, qid);
-				goto created;
-			}
-			g_assert(!thread_eq(THREAD_INVALID, te->tid));
+			g_assert(thread_eq(te->tid, t));
+			goto created;	/* To release the mutex */
+		} else {
+			/*
+			 * We found no thread bearing that ID, we've discovered a new thread.
+			 */
+
+			te = thread_reuse_element();
 		}
-
-		/*
-		 * We found no thread bearing that ID, we've discovered a new thread.
-		 */
-
-		te = thread_reuse_element();
 	}
 
 	if (te != NULL) {
-		if (!te->discovered)
-			atomic_uint_inc(&thread_discovered);
-
 		/*
 		 * We have a thread element for the discovered thread, and hence a
 		 * thread ID.  It is critical to let the xmalloc() layer know that this
@@ -3974,8 +3966,17 @@ retry:
 
 		xmalloc_thread_starting(te->stid);
 
-		thread_set(tstid[te->stid], t);
-		thread_instantiate(te, t);
+		/*
+		 * Only instantiate a new thread if the thread ID changed.
+		 */
+
+		if (!thread_eq(te->tid, t)) {
+			atomic_uint_inc(&thread_discovered);
+
+			thread_set(tstid[te->stid], t);
+			thread_instantiate(te, t);
+		}
+
 		goto created;
 	}
 
