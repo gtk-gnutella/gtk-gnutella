@@ -2885,6 +2885,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->detached = TRUE;		/* Cannot join with a thread we discovered */
 	te->ptid = pthread_self();
 	te->running = TRUE;
 	te->last_seen = tm_time_raw();
