@@ -639,6 +639,7 @@ orderlib=''
 ranlib=''
 package=''
 spackage=''
+d_pcre2_8=''
 pkgsrc=''
 prefix=''
 prefixexp=''
@@ -746,7 +747,7 @@ usesocks=''
 defvoidused=15
 
 : private initializations
-libswanted="bfd iberty sendfile z iconv m intl dl"
+libswanted="pcre2-8 bfd iberty sendfile z iconv m intl dl"
 
 : Find the basic shell for Bourne shell scripts
 case "$sh" in
@@ -7358,6 +7359,27 @@ cyn=pause
 set d_pause
 eval $trylink
 
+: see whether we have pcre2 for 8-bit chars
+$cat >try.c <<EOC
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+int main(void)
+{
+	pcre2_code *c;
+	int err;
+	PCRE2_SIZE pos;
+
+	c = pcre2_compile(
+			(unsigned char *) "", PCRE2_ZERO_TERMINATED, 0,
+			&err, &pos, NULL
+	);
+	return NULL == c;
+}
+EOC
+cyn="whether PCRE2 (8-bit) is available"
+set d_pcre2_8 -lpcre2-8
+eval $trylink
+
 : see if this is a sys/file.h system
 val=''
 set sys/file.h val
@@ -11688,6 +11710,7 @@ d_open3='$d_open3'
 d_openat='$d_openat'
 d_os2='$d_os2'
 d_pause='$d_pause'
+d_pcre2_8='$d_pcre2_8'
 d_phostname='$d_phostname'
 d_pipe2='$d_pipe2'
 d_poll='$d_poll'

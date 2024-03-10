@@ -32,13 +32,9 @@
 
 #include "common.h"
 
-/**
- * Set to TRUE to allow comparisons with PCRE.
- *
- * To be able to link correctly, the Makefile must be manually adjusted to
- * include the -lpcre2-8 linking flag to the COMMON_LIBS variable.
- */
+#ifdef HAS_PCRE2_8
 #define RE_PCRE 1
+#endif
 
 #if RE_PCRE
 #define PCRE2_CODE_UNIT_WIDTH 8
