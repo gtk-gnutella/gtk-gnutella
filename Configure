@@ -6503,7 +6503,7 @@ int main()
 		0,
 #endif
 		ulimit(4,0));
-		exit(0);
+		return 0;
 }
 EOCP
 		if $cc $ccflags -DGETPARAM_H -o nofile nofile.c $libs >/dev/null 2>&1 \
@@ -7127,6 +7127,7 @@ eval $trylink
 
 : see if mempcpy exists
 $cat >try.c <<EOC
+#define _GNU_SOURCE
 #include <string.h>
 
 void *copy(void *d, const void *s, unsigned n)
@@ -7150,6 +7151,7 @@ eval $trylink
 
 : see if memrchr exists
 $cat >try.c <<EOC
+#define _GNU_SOURCE
 #include <string.h>
 int main(void)
 {
@@ -7370,6 +7372,7 @@ eval $setvar
 
 : see if pipe2 exists
 $cat >try.c <<EOC
+#define _GNU_SOURCE
 #$i_unistd I_UNISTD
 #$i_sysfile I_SYS_FILE
 #ifdef I_UNISTD
@@ -7894,6 +7897,7 @@ eval $trylink
 
 : see if semtimedop exists
 $cat >try.c <<EOC
+#define _GNU_SOURCE
 #include <sys/types.h>
 #include <sys/ipc.h>
 #include <sys/sem.h>
@@ -9349,6 +9353,12 @@ case "$eagain" in
 #include <sys/types.h>
 #include <signal.h>
 #include <stdlib.h>
+#include <stdio.h>
+#include <string.h>
+#$i_unistd I_UNISTD
+#ifdef I_UNISTD
+#include <unistd.h>
+#endif
 #define MY_O_NONBLOCK $o_nonblock
 extern int errno;
 $signal_t blech(x) int x; { exit(3); }
@@ -9783,10 +9793,11 @@ case "$install" in
 		done
 	done
 	$cat >try.c <<EOC
+#include <stdio.h>
 int main()
 {
 	printf("OK\n");
-	exit(0);
+	return 0;
 }
 EOC
 	if $cc -o try try.c >/dev/null 2>&1; then
@@ -10320,10 +10331,11 @@ esac
 : see if ar generates random libraries by itself
 echo " "
 echo "Checking how to generate random libraries on your machine..." >&4
-echo 'int bar1() { return bar2(); }' > bar1.c
-echo 'int bar2() { return 2; }' > bar2.c
+echo 'int bar2(void ); int bar1(void) { return bar2(); }' > bar1.c
+echo 'int bar2(void) { return 2; }' > bar2.c
 $cat > foo.c <<'EOP'
-int main() { printf("%d\n", bar1()); return 0; }
+#include <stdio.h>
+int bar1(void); int main(void) { printf("%d\n", bar1()); return 0; }
 EOP
 $cc $ccflags -c bar1.c >/dev/null 2>&1
 $cc $ccflags -c bar2.c >/dev/null 2>&1
