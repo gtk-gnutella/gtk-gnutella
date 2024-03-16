@@ -67,7 +67,7 @@
  * Instead of using an array of 256 pointers at each trie node, which is
  * going to be mostly full of NULL, we only allocate the memory required.
  *
- * The 32-byte bit field is used to store which letters are present and have
+ * The bit field is used to store which letters are present and have
  * a corresponding child listed in the children[] array.
  *
  * It is the number of set bits (up to the bit we're testing, not included)
@@ -85,11 +85,7 @@
  * Compared to a 256-pointer array that would use 2 KiB alone!
  */
 struct trie_node {
-	union {
-		/* One bit per valid child */
-		uint32 words[TRIE_CHILD_BYTES];
-		bit_array_t field[BIT_ARRAY_SIZE(TRIE_ALPHABET)];
-	} c;
+	bit_array_t field[BIT_ARRAY_SIZE(TRIE_ALPHABET)]; /* One bit per valid child */
 	struct trie_node **children;		/* Dynamically allocated */
 	struct trie_node *parent;			/* Parent node, for traversal */
 	uint16 child_count;					/* For verifications and traversal */
@@ -245,61 +241,24 @@ trie_create(void)
 static uint G_FAST
 trie_get_index(const trie_node_t *tn, int c, bool must_have)
 {
-	size_t n, wn;
 	uint i;
-	uint32 w, mask;
 
 	g_assert(tn != NULL);
 	g_assert(c >= 0 && c < TRIE_ALPHABET);
+
+	g_assert_log(equiv(must_have, bit_array_get(tn->field, c)),
+		"%s(): must_have=%s, child #%d '%c'",
+		G_STRFUNC, bool_to_string(must_have), c, c);
 
 	/*
 	 * We need to count how many bits are set up to this letter.
 	 */
 
-	/*
-	 * FIXME: this code only works on 64-bit little-endian machines
-	 * or on 32-bit machines.  Not on 64-bit big-endian ones due
-	 * to the ordering of uint32 within a long.
-	 */
+	i = bit_array_count_set(tn->field, 0, MAX(0, c - 1));
 
-
-#if IS_BIG_ENDIAN && LONGSIZE > 4
-#error "trie_get_index(): code cannot handle big-endian 64-bit machines"
-#endif
-
-	STATIC_ASSERT(sizeof(tn->c.words) == sizeof(tn->c.field));
-
-	wn = c / TRIE_UINT32_BITS;	/* Word into which letter falls */
-	i = 0;
-
-	for (n = 0; n < wn; n++) {
-		i += popcount(tn->c.words[n]);
-	}
-
-	/*
-	 * For the word where the bit falls in, we mask out that bit and
-	 * all the bits that are *larger* than it in the word.
-	 */
-
-	mask = 1U << (c & 0x1f);	/* c & 0x1f == c % 32 */
-	w = tn->c.words[wn];
-
-	g_assert_log(implies(must_have, 0 != (w & mask)),
-		"%s(): child #%d '%c' missing in node %p (wn=%zu, w=0x%x, mask=0x%x)",
-		G_STRFUNC, c, c, tn, wn, w, mask);
-
-	g_assert_log(implies(!must_have, 0 == (w & mask)),
-		"%s(): child #%d '%c' already present in node %p",
-		G_STRFUNC, c, c, tn);
-
-	mask--;						/* Child bit now zero, lower bits are set */
-	i += popcount(w & mask);
-
-	g_assert_log(implies(must_have, i < tn->child_count),
-		"%s(): i=%u, child_count=%u", G_STRFUNC, i, tn->child_count);
-
-	g_assert_log(implies(!must_have, i <= tn->child_count),
-		"%s(): i=%u, child_count=%u", G_STRFUNC, i, tn->child_count);
+	g_assert_log(i < tn->child_count + UNSIGNED(!must_have),
+		"%s(): i=%u, child_count=%u, must_have=%s",
+		G_STRFUNC, i, tn->child_count, bool_to_string(must_have));
 
 	/*
 	 * `i' now holds the amount of children that precede `c'.
@@ -327,7 +286,7 @@ trie_node_child(const trie_node_t *tn, int c)
 	g_assert(tn != NULL);
 	g_assert(c >= 0 && c < TRIE_ALPHABET);
 
-	if (!bit_array_get(tn->c.field, c))
+	if (!bit_array_get(tn->field, c))
 		return NULL;
 
 	i = trie_get_index(tn, c, TRUE);
@@ -612,7 +571,7 @@ trie_add_child(trie_node_t *tn, trie_node_t *cn, int c)
 	capacity = TRIE_NODE_CHILD_CAP(tn);
 	HREALLOC_ARRAY(tn->children, capacity);
 	ARRAY_INSERT(tn->children, i, capacity, cn);
-	bit_array_set(tn->c.field, c);
+	bit_array_set(tn->field, c);
 	cn->parent = tn;
 
 	g_assert(cn == trie_node_child(tn, c));
@@ -646,7 +605,7 @@ trie_remove_child(trie_node_t *tn, trie_node_t *cn, int c)
 	tn->child_count--;
 	capacity--;
 	HREALLOC_ARRAY(tn->children, capacity);
-	bit_array_clear(tn->c.field, c);
+	bit_array_clear(tn->field, c);
 
 	g_assert(NULL == trie_node_child(tn, c));
 
@@ -2245,7 +2204,7 @@ trie_collapse_enter(const trie_context_t *uc, void *udata)
 		g_assert(tn->is_collapsed);
 
 		str_putc(s, cn->arc);		/* Append to radix */
-		tn->c = cn->c;				/* Copy bitmap */
+		memcpy(tn->field, cn->field, sizeof(cn->field));	/* Copy bitmap */
 		hfree(tn->children);		/* Had only one child */
 		tn->children = cn->children;
 		tn->child_count = cn->child_count;
