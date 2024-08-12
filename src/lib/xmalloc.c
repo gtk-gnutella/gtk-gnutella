@@ -797,7 +797,7 @@ xmalloc_long_term(void)
 	 * library and avoid creating some objects too early: we wish to avoid
 	 * sbrk() allocation if possible.
 	 *
-	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * The GC is now only installed when vmm_set_strategy() is called to
 	 * install a long-term allocation strategy.  Hence we know that the VMM
 	 * layer is up.
 	 *		--RAM, 2015-12-02
