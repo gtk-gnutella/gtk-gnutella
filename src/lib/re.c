@@ -31537,6 +31537,15 @@ re_mi_match(struct re_exec_ctx *rec)
 	REX_ENTRY;
 	PRIVLOG_SAVE_LEVEL(indent);
 
+	/* Must capture context before re_exec_check_stack() is called */
+
+	if ((ret = Setjmp(rec->matched))) {
+		PRIVLOG_RESTORE_LEVEL(indent);
+		if (ret <= 0)
+			REX_RETURN(bool, "[after longjmp()] %d", ret);
+		g_assert_not_reached();
+	}
+
 	re_exec_check_stack(rec);	/* Just starting, track minimal usage so far */
 
 	ZERO(&ctx.regs);
@@ -31563,12 +31572,6 @@ re_mi_match(struct re_exec_ctx *rec)
 	if (NULL == tp) {
 		ret = 0;
 		goto failed;
-	}
-
-	if ((ret = Setjmp(rec->matched))) {
-		PRIVLOG_RESTORE_LEVEL(indent);
-		if (ret <= 0)
-			REX_RETURN(bool, "[after longjmp()] %d", ret);
 	}
 
 	ctx.start_tp = rec->tp = tp;
