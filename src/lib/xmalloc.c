@@ -6084,10 +6084,16 @@ static void
 xgc_free_all(struct xgc_allocator *xga)
 {
 	struct xgc_page *p, *next;
+	size_t total = 0;
 
 	for (p = xga->head; p != NULL; p = next) {
 		next = p->next;
 		vmm_core_free(p, xmalloc_pagesize);
+		total += xmalloc_pagesize;
+	}
+
+	if (xmalloc_debugging(0)) {
+		s_debug("XM GC freed %'zu bytes allocated during run", total);
 	}
 }
 
