@@ -3230,21 +3230,23 @@ zgc_find_free_block(zone_t *zone)
 
 found:
 	g_assert_log(zgc_within_subzone(szi, blk),
-		"%s(): blk=%p, szi=[%p, %p] (szi_free_cnt=%u)",
-		G_STRFUNC, blk, szi->szi_base, szi->szi_end - 1, szi->szi_free_cnt);
+		"%s(): blk=%p, szi=[%p, %p] (szi_free_cnt=%u) for %zu-byte zone",
+		G_STRFUNC, blk, szi->szi_base, szi->szi_end - 1, szi->szi_free_cnt,
+		zone->zn_size);
 
 	szi->szi_free = (char **) *blk;
 	szi->szi_free_cnt--;
 
 	g_assert_log((0 == szi->szi_free_cnt) == (NULL == szi->szi_free),
-		"%s(): szi_free_cnt=%u, szi_free=%p",
-		G_STRFUNC, szi->szi_free_cnt, szi->szi_free);
+		"%s(): szi_free_cnt=%u, szi_free=%p for %zu-byte zone",
+		G_STRFUNC, szi->szi_free_cnt, szi->szi_free, zone->zn_size);
 
 	g_assert_log(
 		0 == szi->szi_free_cnt || zgc_within_subzone(szi, szi->szi_free),
-		"%s(): szi_free_cnt=%u, szi_free=%p, szi=[%p, %p]",
+		"%s(): szi_free_cnt=%u, szi_free=%p, szi=[%p, %p] for %zu-byte zone",
 		G_STRFUNC, szi->szi_free_cnt, szi->szi_free,
-		szi->szi_base, szi->szi_end - 1);
+		szi->szi_base, szi->szi_end - 1,
+		zone->zn_size);
 
 	safety_assert(zgc_subzinfo_valid(zone, szi));
 
