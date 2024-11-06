@@ -89,6 +89,7 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	compat_getrusage.c \
 	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
@@ -124,15 +125,15 @@ LSRC = \
 	eval.c \
 	event.c \
 	evq.c \
-	exit.c \
 	exit2str.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
-	file_object.c \
 	filehead.c \
 	filelock.c \
 	filename.c \
+	file_object.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
@@ -240,8 +241,8 @@ LSRC = \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
-	tm.c \
 	tmalloc.c \
+	tm.c \
 	tokenizer.c \
 	tqsort.c \
 	tsig.c \
