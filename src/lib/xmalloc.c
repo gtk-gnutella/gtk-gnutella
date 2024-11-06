@@ -916,6 +916,45 @@ xmalloc_should_split(size_t current, size_t wanted)
 }
 
 /**
+ * Compute the base address of the heap, once.
+ */
+static void
+xmalloc_init_break(void)
+{
+	if G_UNLIKELY(lowest_break != NULL || current_break != NULL)
+		return;
+
+#ifdef HAS_SBRK
+	lowest_break = current_break = sbrk(0);
+#else
+	s_error("%s(): cannot get initial heap break address: %m", G_STRFUNC);
+#endif	/* HAS_SBRK */
+}
+
+/**
+ * Is memory pointer before the current break, meaning it is in the data
+ * or BSS segment, assuming the usual VM architecture for processes:
+ *
+ *  |  Text
+ *  |  Data
+ *  |  BSS
+ *	|   <- break
+ *	|  Heap
+ *	|  Mappable Memory
+ *	|  Stack
+ *  v
+ * Increasing VM addresses
+ */
+bool
+xmalloc_ptr_is_static(const void *p)
+{
+	if G_UNLIKELY(lowest_break == NULL)
+		xmalloc_init_break();
+
+	return ptr_cmp(p, lowest_break) < 0;
+}
+
+/**
  * Allocate more core, when the VMM layer is still uninitialized.
  *
  * Allocation is done in a system-dependent way: sbrk() on UNIX,
@@ -950,19 +989,8 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	 * Initialize the heap break point if not done so already.
 	 */
 
-	if G_UNLIKELY(NULL == lowest_break) {
-
-#ifdef HAS_SBRK
-		current_break = sbrk(0);
-#else
-		current_break = (void *) -1;
-#endif	/* HAS_SBRK */
-
-		lowest_break = current_break;
-		if ((void *) -1 == current_break) {
-			s_error("cannot get initial heap break address: %m");
-		}
-	}
+	if G_UNLIKELY(NULL == lowest_break)
+		xmalloc_init_break();
 
 	/*
 	 * The VMM layer has not been initialized yet: allocate from the heap.
