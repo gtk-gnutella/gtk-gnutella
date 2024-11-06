@@ -647,6 +647,7 @@ static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
 static bool thread_stack_noinit;		/* Whether to skip stack allocation */
+static bool thread_exit_mode_on;		/* When thread_exit_mode() was called */
 static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 static int thread_locks_disabled;		/* Whether locks were disabled */
@@ -3541,6 +3542,16 @@ again:
 static bool
 thread_suspend_self(struct thread_element *te)
 {
+	size_t locks = thread_element_lock_count(te);
+
+	/*
+	 * When exiting, we don't care if we are in the middle of a lock sequence,
+	 * suspend yourself!
+	 */
+
+	if (thread_exit_mode_on)
+		goto suspend;
+
 	/*
 	 * We cannot let a thread holding spinlocks or mutexes to suspend itself
 	 * since that could cause a deadlock with the concurrent thread that will
@@ -3548,8 +3559,13 @@ thread_suspend_self(struct thread_element *te)
 	 * whilst it holds an internal mutex.
 	 */
 
-	g_assert(0 == thread_element_lock_count(te));
+	if G_UNLIKELY(0 != locks) {
+		thread_lock_dump(te);
+		s_error("%s(): attempt to supsend while holding %zu lock%s",
+			G_STRFUNC, PLURAL(locks));
+	}
 
+suspend:
 	return thread_suspend_loop(te);
 }
 
@@ -8424,6 +8440,8 @@ thread_crash_mode(bool disable_locks)
 void G_COLD
 thread_exit_mode(void)
 {
+	thread_exit_mode_on = TRUE;
+
 	/*
 	 * We're going to suspend all the other threads, which is necessary since
 	 * final cleanup is going to run with minimal resources and we do not
