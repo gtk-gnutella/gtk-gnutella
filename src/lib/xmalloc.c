@@ -2291,10 +2291,8 @@ xfl_binary_lookup(void **array, const void *p,
 	for (;;) {
 		int c;
 
-		if G_UNLIKELY(low >= high) {
-			mid = (size_t) -1;	/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low >= high)
+			goto not_found;
 
 		mid = (low + high) / 2;
 		c = xm_ptr_cmp(p, array[mid]);
@@ -2308,10 +2306,13 @@ xfl_binary_lookup(void **array, const void *p,
 
 	}
 
+	return mid;
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low;
 
-	return mid;
+	return (size_t) -1;
 }
 
 /**
@@ -7635,7 +7636,7 @@ xalign_type_str(const struct xaligned *xa)
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
  * of a new item should happen (in which case the returned value must be -1).
  *
- * @return index within the array where ``p'' is stored, * -1 if not found.
+ * @return index within the array where ``p'' is stored, -1 if not found.
  */
 static size_t G_HOT
 xa_lookup(const void *p, size_t *low_ptr)
@@ -7656,10 +7657,8 @@ xa_lookup(const void *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -7671,10 +7670,13 @@ xa_lookup(const void *p, size_t *low_ptr)
 			break;				/* Found */
 	}
 
+	return (size_t) (mid - &aligned[0]);
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low - &aligned[0];
 
-	return NULL == mid ? (size_t) -1 : (size_t) (mid - &aligned[0]);
+	return (size_t) -1;
 }
 
 /**
