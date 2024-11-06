@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015, 2018, 2024 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,12 +39,14 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2015
+ * @date 1996-2000, 2007, 2010-2015, 2018, 2024
  */
 
 #include "common.h"
 
 #include <math.h>		/* For frexp() and isfinite() */
+
+#include "str.h"
 
 #include "ascii.h"
 #include "ckalloc.h"
@@ -55,7 +57,6 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
-#include "str.h"
 #include "stringify.h"		/* For logging */
 #include "thread.h"
 #include "unsigned.h"
@@ -479,7 +480,7 @@ str_private(const void *key, size_t szhint)
  * If specified length is (size_t) -1, it is computed using strlen().
  */
 str_t *
-str_make(char *ptr, size_t len)
+str_make(const char *ptr, size_t len)
 {
 	str_t *str;
 
@@ -491,6 +492,7 @@ str_make(char *ptr, size_t len)
 
 	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
+	str->s_flags |= STR_OBJECT;				/* Signals: we allocated the object */
 	str->s_len = len;						/* Final NUL not accounted for */
 	memcpy(str->s_data, ptr, len);			/* Don't copy trailing NUL */
 
