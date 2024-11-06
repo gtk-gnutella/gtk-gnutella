@@ -2698,6 +2698,8 @@ log_set_duplicate(enum log_file which, int dupfd)
 	logfile[which].crash_fd = dupfd;
 }
 
+static once_flag_t log_init_done;
+
 /**
  * Set a managed log file.
  */
@@ -2709,10 +2711,12 @@ log_set(enum log_file which, const char *path)
 	log_file_check(which);
 	g_assert(path != NULL);
 
+	ONCE_FLAG_RUN(log_init_done, log_init);
+
 	lf = &logfile[which];
 
-	if (NULL == lf->path || strcmp(path, lf->path) != 0)
-		lf->changed = log_inited;	/* Pending a reopen when inited */
+	if (NULL == lf->path || 0 != strcmp(path, lf->path))
+		lf->changed = TRUE;	/* Pending a reopen */
 
 	if (atoms_are_inited) {
 		if (lf->path_is_atom)
