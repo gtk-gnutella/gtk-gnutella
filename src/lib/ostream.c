@@ -78,6 +78,10 @@ struct ostream {
 		str_t *s;			/**< str_cat() */
 	} u;
 	unsigned ioerr:1;		/**< Set on I/O error */
+	unsigned tty_known:1;	/**< Did we compute "is_tty"? */
+	unsigned is_tty:1;		/**< Is output done to a tty? */
+	unsigned std_known:1;	/**< Did we compute "is_std"? */
+	unsigned is_std:1;		/**< Is output done to stdout or stderr? */
 };
 
 static inline void
@@ -125,6 +129,61 @@ ostream_free(ostream_t *os)
 
 	os->magic = 0;
 	WFREE(os);
+}
+
+/**
+ * Is output done to a tty?
+ */
+bool
+ostream_is_tty(const ostream_t *os)
+{
+	ostream_t *os_w;
+
+	ostream_check(os);
+
+	if (os->tty_known)
+		return os->is_tty;		/* Cached value */
+
+	os_w = deconstify_pointer(os);
+
+	if (ostream_is_file(os)) {
+		int fd = (OSTREAM_T_FILE == os->type) ? fileno(os->u.f) : os->u.fd;
+		os_w->is_tty = isatty(fd);
+	} else
+		os_w->is_tty = FALSE;
+
+	os_w->tty_known = TRUE;		/* Mark result as known */
+
+	return os->is_tty;
+}
+
+/**
+ * Is output done to stdout or stderr?
+ */
+bool
+ostream_is_std(const ostream_t *os)
+{
+	ostream_t *os_w;
+
+	ostream_check(os);
+
+	if (os->std_known)
+		return os->is_std;		/* Cached value */
+
+	os_w = deconstify_pointer(os);
+	os_w->is_std = FALSE;
+
+	if (OSTREAM_T_FILE == os->type && (os->u.f == stdout || os->u.f == stderr))
+		os_w->is_std = TRUE;
+	else if (
+		OSTREAM_T_FD == os->type &&
+		(os->u.fd == STDOUT_FILENO || os->u.fd == STDERR_FILENO)
+	)
+		os_w->is_std = TRUE;
+
+	os_w->std_known = TRUE;		/* Mark result as known */
+
+	return os->is_std;
 }
 
 /**

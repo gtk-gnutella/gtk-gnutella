@@ -49,6 +49,8 @@ typedef struct ostream ostream_t;
 
 bool ostream_is_file(const ostream_t *os);
 bool ostream_is_memory(const ostream_t *os);
+bool ostream_is_tty(const ostream_t *os);
+bool ostream_is_std(const ostream_t *os);
 ostream_t *ostream_open_memory(void);
 struct slist *ostream_close_memory(ostream_t *os);
 ostream_t *ostream_open_fd(int fd);
