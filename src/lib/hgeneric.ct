@@ -312,6 +312,41 @@ h<generic>_thread_safe(h<generic>_t *hx)
 }
 
 /**
+ * Mark hash <generic> as read-only.
+ */
+void
+h<generic>_read_only(h<generic>_t *hx)
+{
+	h<generic>_check(hx);
+
+	hash_read_only(HASH(hx));
+}
+
+/**
+ * Mark hash <generic> as read-write.
+ */
+void
+h<generic>_read_write(h<generic>_t *hx)
+{
+	h<generic>_check(hx);
+
+	hash_read_write(HASH(hx));
+}
+
+/**
+ * Set minimum expected item count for hash <generic>.
+ *
+ * @return the chosen amount of slots.
+ */
+size_t
+h<generic>_min_count(h<generic>_t *hx, size_t count)
+{
+	h<generic>_check(hx);
+
+	return hash_min_count(HASH(hx), count);
+}
+
+/**
  * Lock the hash <generic> to allow a sequence of operations to be atomically
  * conducted.
  *
@@ -372,6 +407,38 @@ htable_insert(htable_t *ht, const void *key, void *value)
 
 	hash_return_void(HASH(ht));
 }
+
+/**
+ * Insert item in hash table provided the key was not already present.
+ *
+ * If the key was already present, the value is ignored.
+ *
+ * @param ht		the hash table
+ * @param key		the key
+ * @param value		the value
+ *
+ * @return TRUE if value was inserted (indicating key was not present), FALSE
+ * if the key was present (and the value was left as-is, not replaced).
+ */
+bool
+htable_insert_if_missing(htable_t *ht, const void *key, void *value)
+{
+	size_t idx;
+
+	htable_check(ht);
+
+	hash_synchronize(HASH(ht));
+
+	idx = hash_insert_key_if_missing(HASH(ht), key);
+
+	if ((size_t) -1 == idx)
+		hash_return(HASH(ht), FALSE);
+
+	ht->values[idx] = value;
+	ht->stamp++;
+
+	hash_return(HASH(ht), TRUE);
+}
 @end	/* TABLE */
 @if SET
 /**
@@ -393,6 +460,34 @@ hset_insert(hset_t *hs, const void *key)
 	hs->stamp++;
 
 	hash_return_void(HASH(hs));
+}
+
+/**
+ * Insert item in hash set if not already present.
+ *
+ * @param hs		the hash set
+ * @param key		the key
+
+ * @return TRUE if item was inserted (indicating it was missing), FALSE
+ * if the item was already there.
+ */
+bool
+hset_insert_if_missing(hset_t *hs, const void *key)
+{
+	size_t idx;
+
+	hset_check(hs);
+
+	hash_synchronize(HASH(hs));
+
+	idx = hash_insert_key_if_missing(HASH(hs), key);
+
+	if ((size_t) -1 == idx)
+		hash_return(HASH(hs), FALSE);
+
+	hs->stamp++;
+
+	hash_return(HASH(hs), TRUE);
 }
 @end	/* SET */
 
@@ -883,6 +978,15 @@ h<generic>_iter_remove(h<generic>_iter_t *hxi)
 	hash_unsynchronize(HASH(hx));
 
 	hxi->deleted = TRUE;
+}
+
+/**
+ * Memory used by the data structure.
+ */
+size_t
+h<generic>_memsize(const h<generic>_t *hx)
+{
+	return sizeof(*hx) + hash_memsize(HASH(hx));
 }
 
 /**

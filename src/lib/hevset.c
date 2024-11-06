@@ -298,6 +298,41 @@ hevset_thread_safe(hevset_t *ht)
 }
 
 /**
+ * Mark hash set as read-only.
+ */
+void
+hevset_read_only(hevset_t *ht)
+{
+	hevset_check(ht);
+
+	hash_read_only(HASH(ht));
+}
+
+/**
+ * Mark hash set as read-write.
+ */
+void
+hevset_read_write(hevset_t *ht)
+{
+	hevset_check(ht);
+
+	hash_read_write(HASH(ht));
+}
+
+/**
+ * Set minimum expected item count for hash set.
+ *
+ * @return the chosen amount of slots.
+ */
+size_t
+hevset_min_count(hevset_t *ht, size_t count)
+{
+	hevset_check(ht);
+
+	return hash_min_count(HASH(ht), count);
+}
+
+/**
  * Lock the hash set to allow a sequence of operations to be atomically
  * conducted.
  *
@@ -361,6 +396,31 @@ hevset_insert_key(hevset_t *ht, const void *key)
 }
 
 /**
+ * Same as hevset_insert_key(), but does nothing if key is already present.
+ *
+ * @return TRUE if key was missing and therefore inserted.
+ */
+bool
+hevset_insert_key_if_missing(hevset_t *ht, const void *key)
+{
+	size_t idx;
+
+	hevset_check(ht);
+	g_assert(key != NULL);
+
+	hash_synchronize(HASH(ht));
+
+	idx = hash_insert_key_if_missing(HASH(ht), key);
+
+	if ((size_t) -1 == idx)
+		hash_return(HASH(ht), FALSE);
+
+	ht->stamp++;
+
+	hash_return(HASH(ht), TRUE);
+}
+
+/**
  * Insert item in hash set.
  *
  * Any previously existing value for the key is replaced by the new one.
@@ -374,18 +434,28 @@ hevset_insert_key(hevset_t *ht, const void *key)
 void
 hevset_insert(hevset_t *ht, const void *value)
 {
-	const void *key;
-
 	hevset_check(ht);
 	g_assert(value != NULL);
 
-	key = const_ptr_add_offset(value, ht->offset);
-	hash_synchronize(HASH(ht));
+	hevset_insert_key(ht, const_ptr_add_offset(value, ht->offset));
+}
 
-	hash_insert_key(HASH(ht), key);
-	ht->stamp++;
+/**
+ * Same as hevset_insert(), but does nothing if key is already present.
+ *
+ * @return TRUE if key was missing and therefore inserted.
+ */
+bool
+hevset_insert_if_missing(hevset_t *ht, const void *value)
+{
+	hevset_check(ht);
+	g_assert(value != NULL);
 
-	hash_return_void(HASH(ht));
+	return
+		hevset_insert_key_if_missing(
+			ht,
+			const_ptr_add_offset(value, ht->offset)
+		);
 }
 
 /**
@@ -735,6 +805,15 @@ hevset_iter_remove(hevset_iter_t *hxi)
 
 	hash_unsynchronize(HASH(hx));
 	hxi->deleted = TRUE;
+}
+
+/**
+ * Memory used by the data structure.
+ */
+size_t
+hevset_memsize(const hevset_t *hx)
+{
+	return sizeof(*hx) + hash_memsize(HASH(hx));
 }
 
 /**
