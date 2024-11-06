@@ -50,6 +50,7 @@ int mem_protection(const void *p);
 
 bool mem_is_valid_ptr(const void *p);
 bool mem_is_valid_range(const void *p, size_t len);
+size_t mem_is_valid_string(const char *p, size_t maxlen);
 
 bool mem_is_writable(const void *p);
 bool mem_is_writable_range(const void *p, size_t len);
