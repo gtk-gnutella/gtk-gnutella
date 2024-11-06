@@ -1121,7 +1121,7 @@ entropy_collect_timing(SHA1_context *ctx, bool slow)
 	v[0] = tm_cputime(&v[1], &v[2]);
 
 	if (slow) {
-		compat_usleep_nocancel(2000);	/* 2 ms */
+		compat_usleep_nocancel(100);	/* 0.1 ms */
 	} else {
 		entropy_delay();			/* create small, unpredictable delay */
 	}
@@ -1175,10 +1175,10 @@ entropy_self_feed(SHA1_context *ctx)
  *
  * @param digest			where generated random 160 bits are output
  * @param can_malloc		if FALSE, make sure we never malloc()
- * @param slow				whether we can sleep for 2 ms
+ * @param slow				whether we can sleep for 0.1 ms
  *
  * @attention
- * This is a slow operation, and the routine can even sleep for 2 ms, so it
+ * This is a slow operation, and the routine can even sleep for 0.1 ms, so it
  * must be called only when a truly random seed is required, ideally only
  * during initialization.
  */
@@ -1587,7 +1587,7 @@ entropy_aje_inited(void)
  * during initialization.
  *
  * @attention
- * This is a slow operation, and the routine will even sleep for 2 ms the
+ * This is a slow operation, and the routine will even sleep for 0.1 ms the
  * first time it is invoked.
  */
 static void G_COLD
@@ -1721,7 +1721,7 @@ entropy_do_fill(void *buffer, size_t len)
  * during initialization.
  *
  * @attention
- * This is a slow operation, and the routine will even sleep for 2 ms the
+ * This is a slow operation, and the routine will even sleep for 0.1 ms the
  * first time it is invoked.
  *
  * @note
