@@ -1170,6 +1170,30 @@ strip_exponent_leading_zeroes(str_t *s)
 	}
 }
 
+/* Ensure we do not produce 0.0000 values */
+static bool
+displays_as_zero(str_t *s)
+{
+	size_t off = 0;
+	size_t len = str_len(s);
+
+	/* Handle the decimal part */
+
+	if ('-' == str_at(s, off))   off++;			/* Could be -0.00 */
+	if ('0' != str_at(s, off++)) return FALSE;
+	if (off == len)              return TRUE;
+	if ('.' != str_at(s, off++)) return FALSE;
+
+	/* Handle the fractional part, stopping at first non-zero value */
+
+	while (off < len) {
+		if ('0' != str_at(s, off++))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
 /**
  * Formats double to string striving to limit output to DOUBLE_STRLEN characters
  * if possible, switching to scientific notation with less mantissa digits if
@@ -1194,10 +1218,10 @@ double_to_string(double v)
 	str_printf(s, "%.*g", dec, v);
 	strip_exponent_leading_zeroes(s);
 
-	/* See if we have an integer we can round */
+	/* See if we have a large-enough integer we can round */
 	if (str_len(s) > DOUBLE_STRLEN) {
 		long vd = (long) v;
-		if (vd != 0 && fabs(vd - v) < 1.0)
+		if (labs(vd) > 1e4 && fabs(vd - v) < 1.0)
 			str_printf(s, "%ld%s", vd, (fabs(vd - v) < 1e-8) ? "" : ".");
 	}
 
@@ -1205,6 +1229,10 @@ double_to_string(double v)
 	while (--dec >= 0 && str_len(s) > DOUBLE_STRLEN) {
 		str_printf(s, "%.*g", dec, v);
 		strip_exponent_leading_zeroes(s);
+		if (v != 0.0 && displays_as_zero(s)) {
+			str_printf(s, "%.*e", sci, v);
+			break;
+		}
 	}
 
 	while (--sci >= 0 && str_len(s) > DOUBLE_STRLEN) {
