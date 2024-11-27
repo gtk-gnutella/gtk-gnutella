@@ -39,17 +39,11 @@
  *** Native types.
  ***/
 
-#ifndef __cplusplus
+#ifndef HAS_BOOL
 /* In C++, "bool" is a builtin type, cannot redefine it */
-#if 0	/* Not yet */
-typedef enum bool {
-	BOOL_FALSE=0,
-	BOOL_TRUE = 1
-} bool;
-#else
+/* C23 has also added "bool" as a new builtin type */
 typedef int bool;
-#endif
-#endif	/* !C++ */
+#endif	/* !HAS_BOOL */
 
 #if CHARSIZE == 1
 typedef signed char int8;

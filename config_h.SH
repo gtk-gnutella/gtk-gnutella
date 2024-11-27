@@ -175,6 +175,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BOOL:
+ *	This symbol, if defined, indicates that the "bool" type is available
+ *	and that no "typedef int bool;" statement be used to define it.
+ */
+#$d_bool HAS_BOOL		/**/
+
 /* HAS_BSEARCH:
  *	This symbol, if defined, indicates that the bsearch() routine
  *	is available to perform a binary search on a sorted array.
