@@ -69,9 +69,9 @@ typedef unsigned int thread_key_t;	/* Local thread storage key */
 #define THREAD_SUSPEND_TIMEOUT	90	/**< secs: thread max suspension time */
 
 /**
- * Minimum thread stack requested: 24K on 32-bit systems, 32K on 64-bit ones.
+ * Minimum thread stack requested: 48K on 32-bit systems, 80K on 64-bit ones.
  */
-#define THREAD_STACK_MIN	MAX(4096 * PTRSIZE, 24576)
+#define THREAD_STACK_MIN	(8192 * (PTRSIZE + 2))
 
 /**
  * Thread creation flags.
