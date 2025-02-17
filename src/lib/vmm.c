@@ -4491,7 +4491,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			if (0 == lopc->current)
 				continue;
 
-			spinlock(&lopc->lock);
+			if (!spinlock_try(&lopc->lock))
+				continue;
 
 			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
@@ -4542,7 +4543,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (0 == hopc->current)
 			continue;
 
-		spinlock(&hopc->lock);
+		if (!spinlock_try(&hopc->lock))
+			continue;
 
 		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
@@ -4588,7 +4590,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			if (0 == lopc->current)
 				continue;
 
-			spinlock(&lopc->lock);
+			if (!spinlock_try(&lopc->lock))
+				continue;
 
 			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
@@ -4636,7 +4639,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (0 == hopc->current)
 			continue;
 
-		spinlock(&hopc->lock);
+		if (!spinlock_try(&hopc->lock))
+			continue;
 
 		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
