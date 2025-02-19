@@ -7396,6 +7396,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 * Detect recursion if we are registered to wait for a lock and
 		 * we come back here stating that we are going to wait for the same
 		 * exact lock!
+		 *
+		 * If we are in a signal handler, it is probably useless, if not
+		 * very probably harmful, to log a backtrace.
 		 */
 
 		if (0 == tls->count) {
@@ -7405,11 +7408,14 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 
 			for (i = 0; i < tls->count; i++) {
 				if (lock == tls->arena[i].lock) {
-					te->recursive_lockwait = TRUE;
-					s_miniwarn("recursive waiting on %s %p at %s:%u",
-						thread_lock_kind_to_string(kind), lock, file, line);
-					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
-					s_where(1);
+					s_miniwarn("recursive waiting on %s %p at %s:%u%s",
+						thread_lock_kind_to_string(kind), lock, file, line,
+						te->in_signal_handler ? " (in sig handler)" : "");
+					if (!te->in_signal_handler) {
+						te->recursive_lockwait = TRUE;
+						thread_lock_waiting_dump_fd(STDERR_FILENO, te);
+						s_where(1);
+					}
 					break;
 				}
 			}
