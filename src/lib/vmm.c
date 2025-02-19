@@ -2678,19 +2678,28 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 	if G_UNLIKELY(vmm_crashing)
 		return;
 
-	if (locked) {
+	if (rwlock_rlock_try(&pm->lock))
+		goto locked;
+
+	if (locked || thread_sighandler_level() > 0) {
 		/*
 		 * Must prevent deadlocks if we are called with a spinlock held.
 		 * Since this is only used for assertions, it's OK to not always
 		 * be able to run it.
+		 *
+		 * If we are handling a signal, there is no telling if we were not
+		 * slepping, waiting for a lock, hence assumed we are in a locked
+		 * state and do nothing.
 		 */
-
-		if (!rwlock_rlock_try(&pm->lock))
-			return;
+		return;
 	} else {
+		/* Should be safe to wait */
 		rwlock_rlock(&pm->lock);
+
+		/* FALL THROUGH */
 	}
 
+locked:
 	vmf = pmap_lookup(vmm_pmap(), base, NULL);
 
 	g_assert(vmf != NULL);
