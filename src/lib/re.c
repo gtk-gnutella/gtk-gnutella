@@ -17211,8 +17211,8 @@ typedef enum {
 		 *
 		 * To optimize short opcodes for simple operations that can occur
 		 * many times, we abuse the ZERO instruction (OP code = 0) to pack
-		 * other useful 1-byte instructions by using its trailing bytes
-		 * to code up to 16 1-byte simple instructions.
+		 * other useful 1-byte instructions by using its trailing bits
+		 * to encode up to 16 1-byte simple instructions.
 		 */
 	RE_OP_ZERO = 0,		/* RE_OP_ZERO must be 0 (instruction architecture) */
 
