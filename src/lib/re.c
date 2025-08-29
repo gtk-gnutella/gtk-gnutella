@@ -20201,7 +20201,7 @@ G_STMT_START {														\
 																	\
 	if G_UNLIKELY(RE_OP_ESCAPE == ir.opcode) {						\
 		ir.of.code  = *pc++;										\
-		ir.opcode   = 16 + ir.of.v.op;								\
+		ir.opcode   = (RE_OP_ESCAPE + 1) + ir.of.v.op;				\
 	}																\
 } G_STMT_END
 
