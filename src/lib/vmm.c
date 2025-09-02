@@ -2208,10 +2208,8 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -2224,9 +2222,15 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = (NULL == mid ? low : mid) - &pm->array[0];
+		*low_ptr = mid - &pm->array[0];
 
 	return deconstify_pointer(mid);
+
+not_found:
+	if (low_ptr != NULL)
+		*low_ptr = low - &pm->array[0];
+
+	return NULL;
 }
 
 /**
@@ -3669,10 +3673,8 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -3684,10 +3686,13 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 			break;				/* Found */
 	}
 
+	return (size_t) (mid - &pc->info[0]);
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low - &pc->info[0];
 
-	return NULL == mid ? (size_t) -1 : (size_t) (mid - &pc->info[0]);
+	return (size_t) -1;
 }
 
 /**

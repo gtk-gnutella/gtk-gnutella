@@ -415,6 +415,41 @@ hikset_thread_safe(hikset_t *hx)
 }
 
 /**
+ * Mark hash set as read-only.
+ */
+void
+hikset_read_only(hikset_t *hx)
+{
+	hikset_check(hx);
+
+	hash_read_only(HASH(hx));
+}
+
+/**
+ * Mark hash set as read-write.
+ */
+void
+hikset_read_write(hikset_t *hx)
+{
+	hikset_check(hx);
+
+	hash_read_write(HASH(hx));
+}
+
+/**
+ * Set minimum expected item count for hash set.
+ *
+ * @return the chosen amount of slots.
+ */
+size_t
+hikset_min_count(hikset_t *hx, size_t count)
+{
+	hikset_check(hx);
+
+	return hash_min_count(HASH(hx), count);
+}
+
+/**
  * Lock the hash set to allow a sequence of operations to be atomically
  * conducted.
  *
@@ -484,6 +519,40 @@ hikset_insert_key(hikset_t *hik, const void *keyptr)
 }
 
 /**
+ * Same as hikset_insert_key(), but does nothing if key is already present.
+ *
+ * @param ht		the hash table
+ * @param keyptr	pointer to the key field in the value
+ *
+ * @return TRUE if key was missing and therefore inserted.
+ */
+bool
+hikset_insert_key_if_missing(hikset_t *hik, const void *keyptr)
+{
+	size_t idx;
+
+	hikset_check(hik);
+	g_assert(keyptr != NULL);
+
+	/*
+	 * We're really inserting the address within the value where the key
+	 * is stored.  It will be hashed through hikset_key_hash() which
+	 * will perform the necessary indirection.
+	 */
+
+	hash_synchronize(HASH(hik));
+
+	idx = hash_insert_key_if_missing(HASH(hik), keyptr);
+
+	if ((size_t) -1 == idx)
+		hash_return(HASH(hik), FALSE);
+
+	hik->stamp++;
+
+	hash_return(HASH(hik), TRUE);
+}
+
+/**
  * Insert item in hash set.
  *
  * Any previously existing value for the key is replaced by the new one.
@@ -497,24 +566,28 @@ hikset_insert_key(hikset_t *hik, const void *keyptr)
 void
 hikset_insert(hikset_t *hik, const void *value)
 {
-	void * const *key;		/* Pointer to the key field in the value */
-
 	hikset_check(hik);
 	g_assert(value != NULL);
 
-	/*
-	 * We're really inserting the address within the value where the key
-	 * is stored.  It will be hashed through hikset_key_hash() which
-	 * will perform the necessary indirection.
-	 */
+	hikset_insert_key(hik, const_ptr_add_offset(value, hik->offset));
+}
 
-	key = const_ptr_add_offset(value, hik->offset);
-	hash_synchronize(HASH(hik));
+/**
+ * Same as hikset_insert(), but does nothing if key is already present.
+ *
+ * @return TRUE if key was missing and therefore inserted.
+ */
+bool
+hikset_insert_if_missing(hikset_t *hik, const void *value)
+{
+	hikset_check(hik);
+	g_assert(value != NULL);
 
-	hash_insert_key(HASH(hik), key);
-	hik->stamp++;
-
-	hash_return_void(HASH(hik));
+	return
+		hikset_insert_key_if_missing(
+			hik,
+			const_ptr_add_offset(value, hik->offset)
+		);
 }
 
 /**
@@ -877,6 +950,15 @@ hikset_iter_remove(hikset_iter_t *hxi)
 	hash_unsynchronize(HASH(hx));
 
 	hxi->deleted = TRUE;
+}
+
+/**
+ * Memory used by the data structure.
+ */
+size_t
+hikset_memsize(const hikset_t *hx)
+{
+	return sizeof(*hx) + hash_memsize(HASH(hx));
 }
 
 /**

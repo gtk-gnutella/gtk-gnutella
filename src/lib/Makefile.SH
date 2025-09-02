@@ -1,5 +1,5 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-36]
-: $X-Id: Jmake.tmpl 183 2015-04-12 09:48:11Z rmanfredi $
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-258]
+: $X-Id$
 
 case $CONFIG in
 '')
@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
+GLIB_CFLAGS =  $glibcflags
 SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
+DBUS_CFLAGS =  $dbuscflags
 GLIB_LDFLAGS =  $glibldflags
 COMMON_LIBS =  $libs
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
-DBUS_CFLAGS =  $dbuscflags
-GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -75,7 +75,7 @@ GLIB_CFLAGS =  $glibcflags
 $spitshell >>Makefile <<'!NO!SUBS!'
 ########################################################################
 # Jmake rules for building libraries, programs, scripts, and data files
-# $X-Id: Jmake.rules 195 2015-04-27 21:30:17Z rmanfredi $
+# $X-Id$
 
 ########################################################################
 # Force 'make depend' to be performed first -- do not edit
@@ -161,6 +161,7 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	compat_getrusage.c \
 	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
@@ -196,15 +197,15 @@ LSRC = \
 	eval.c \
 	event.c \
 	evq.c \
-	exit.c \
 	exit2str.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
-	file_object.c \
 	filehead.c \
 	filelock.c \
 	filename.c \
+	file_object.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
@@ -312,8 +313,8 @@ LSRC = \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
-	tm.c \
 	tmalloc.c \
+	tm.c \
 	tokenizer.c \
 	tqsort.c \
 	tsig.c \
@@ -369,6 +370,7 @@ LOBJ = \
 	ckalloc.o \
 	cmwc.o \
 	cobs.o \
+	compat_getrusage.o \
 	compat_gettid.o \
 	compat_misc.o \
 	compat_pause.o \
@@ -404,15 +406,15 @@ LOBJ = \
 	eval.o \
 	event.o \
 	evq.o \
-	exit.o \
 	exit2str.o \
+	exit.o \
 	fast_assert.o \
 	fd.o \
 	file.o \
-	file_object.o \
 	filehead.o \
 	filelock.o \
 	filename.o \
+	file_object.o \
 	float.o \
 	fragcheck.o \
 	frand.o \
@@ -520,8 +522,8 @@ LOBJ = \
 	tiger.o \
 	tigertree.o \
 	timestamp.o \
-	tm.o \
 	tmalloc.o \
+	tm.o \
 	tokenizer.o \
 	tqsort.o \
 	tsig.o \

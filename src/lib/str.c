@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015, 2018, 2024 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,12 +39,14 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2015
+ * @date 1996-2000, 2007, 2010-2015, 2018, 2024
  */
 
 #include "common.h"
 
 #include <math.h>		/* For frexp() and isfinite() */
+
+#include "str.h"
 
 #include "ascii.h"
 #include "ckalloc.h"
@@ -55,7 +57,6 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
-#include "str.h"
 #include "stringify.h"		/* For logging */
 #include "thread.h"
 #include "unsigned.h"
@@ -479,7 +480,7 @@ str_private(const void *key, size_t szhint)
  * If specified length is (size_t) -1, it is computed using strlen().
  */
 str_t *
-str_make(char *ptr, size_t len)
+str_make(const char *ptr, size_t len)
 {
 	str_t *str;
 
@@ -491,6 +492,7 @@ str_make(char *ptr, size_t len)
 
 	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
+	str->s_flags |= STR_OBJECT;				/* Signals: we allocated the object */
 	str->s_len = len;						/* Final NUL not accounted for */
 	memcpy(str->s_data, ptr, len);			/* Don't copy trailing NUL */
 
@@ -1987,6 +1989,27 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
 
+/*
+ * This macro can be used to debug the floating point formatting in case
+ * there is a problem somewhere.
+ *
+ * It is possible to add these formatting instructions:
+ *
+ * 		STR_DEBUG("%s", "whatever")
+ *
+ * which will emit the corresponding error message via s_debug(), prefixed by
+ * a line stating the routine and where the debugging message happens.
+ *
+ * That code is not meant to stay, hence we do not conditionally define
+ * STR_DEBUG() to do nothing when not debugging.
+ */
+#define STR_DEBUG(...) G_STMT_START {							\
+	if G_UNLIKELY(format_verbose && 1 == format_recursion) {	\
+		s_debug("%s(): STR_DEBUG at %s:", G_STRFUNC, G_STRLOC);	\
+		s_debug(__VA_ARGS__);									\
+	}															\
+} G_STMT_END
+
 /**
  * Append formatted floating point value.
  *
@@ -2063,17 +2086,24 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 	switch (fpclassify(nv)) {
 	case FP_NAN:
-		if (is_ascii_upper(c)) {
-			elen = 4;
-			eptr = "NAN*";
-		} else {
-			elen = 3;
+		elen = 3;
+		if (is_ascii_upper(c) && c != 'F')
+			eptr = "NAN";
+		else if ('F' == c)
+			eptr = "NaN";
+		else
 			eptr = "nan";
-		}
 		break;
 	case FP_INFINITE:
 		mptr -= 3;
-		clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
+		{
+			const char *infinite = "inf";
+			if (is_ascii_upper(c) && c != 'F')
+				infinite = "INF";
+			else if ('F' == c)
+				infinite = "Inf";
+			clamp_memcpy(mptr, 3, infinite, 3);
+		}
 		if (nv < 0)
 			*--mptr = '-';
 		else if (plus)
@@ -2154,10 +2184,11 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 				gm_snprintf(ARYLEN(buf), "%g", nv);
 				s_debug("%s with \"%%%c\": m=\"%.*s\" "
 					"(len=%zu, asked=%s), e=%d "
-					"[precis=%zu, digits=%zu, alt=%s]",
+					"[precis=%zu, digits=%zu, alt=%c, dragon=%c]",
 					buf, c, (int) mlen, m, mlen,
 					asked_dragon ? "none" : size_t_to_string(asked),
-					e, precis, digits, alt ? "y" : "n");
+					e, precis, digits, alt ? 'y' : 'n',
+					dragon_fmt ? 'y' : 'n');
 			}
 
 			/*
@@ -2375,7 +2406,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 						i = MIN(i, mlen);
 
 						/* Trailing fixed zeros to emit */
-						if (i < precis)
+						if (i < precis && i != mlen)
 							fzeros = precis - i;
 
 						rlen = str_fround(m, mlen, i, ARYLEN(r));
@@ -2441,9 +2472,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			char buf[32];
 			gm_snprintf(ARYLEN(buf), "%g", nv);
 			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
-				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
+				"expptr=\"%.*s\", dot=%zu->\"%s\", zeros<e=%zu, d=%zu, "
 				"a=%zu, f=%zu>",
-				buf, c, elen, (int) elen, eptr, explen, expptr,
+				buf, c, elen, (int) elen, eptr, explen, expptr, dot,
 				2 == dot ? "0." :
 				1 == dot ? "." : "",
 				ezeros, dzeros, azeros, fzeros);
@@ -3713,6 +3744,25 @@ error:
 }
 
 /**
+ * A dedicated string comparison to special-case double formatting.
+ */
+static int
+str_test_cmp(char *standard, const char *produced, bool is_double)
+{
+	if (is_double) {
+		str_test_fix_exponent(standard);
+
+		/* NaN and Inf are compared case-insensitively */
+		if (vstrcasestr(standard, "nan") || vstrcasestr(standard, "inf"))
+			return strcasecmp(standard, produced);
+
+		/* FALL THROUGH */
+	}
+
+	return strcmp(standard, produced);
+}
+
+/**
  * Non-regression tests for the str_vncatf() formatting routine.
  *
  * Aborts execution on failure.
@@ -3732,6 +3782,7 @@ str_test(bool verbose)
 #define DOUBLE		3.45e8
 #define LN2			0.69314718056
 #define INF			HUGE_VAL
+#define NAN_DBL		(0.0 / 0.0)
 #define S			TRUE			/* Standard */
 #define X			FALSE			/* Excluded from snprintf() consistency */
 
@@ -4028,6 +4079,14 @@ str_test(bool verbose)
 		{ "%.17F",		X, MLEN,	13005952380.952381,	"13005952380.952381" },
 		{ "%.17g",		S, MLEN,	1300595238.0952381,	"1300595238.0952382" },
 		{ "%.17g",		S, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%f",			S, MLEN,	NAN_DBL,		"nan" },
+		{ "%E",			S, MLEN,	NAN_DBL,		"NAN" },
+		{ "%G",			S, MLEN,	NAN_DBL,		"NAN" },
+		{ "%g",			S, MLEN,	NAN_DBL,		"nan" },
+		/* #170 */
+		{ "%F",			S, MLEN,	NAN_DBL,		"NaN" },
+		{ "%F",			S, MLEN,	INF,			"Inf" },
+		{ "%F",			S, MLEN,	-INF,			"-Inf" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\
@@ -4056,14 +4115,14 @@ str_test(bool verbose)
 		if (t->std) {											\
 			char std[MLEN];										\
 			char value[MLEN];									\
+			bool is_double =									\
+				0 == ptr_cmp(&test_##what##s, &test_doubles);	\
 			/* Avoid truncation warning in logs */				\
 			gm_snprintf_unchecked(ARYLEN(std),					\
 				t->fmt, t->value);								\
 			std[t->buflen - 1] = '\0';	/* Truncate here */		\
-			if (0 == ptr_cmp(&test_##what##s, &test_doubles))	\
-				str_test_fix_exponent(std);						\
 			gm_snprintf(ARYLEN(value), vfmt, t->value);			\
-			if (0 != strcmp(std, buf)) {						\
+			if (0 != str_test_cmp(std, buf, is_double)) {		\
 				discrepancies++;								\
 				if (verbose) g_message(							\
 					"formatting %s \"%s\" in test #%u/%zu "		\

@@ -3616,6 +3616,12 @@ crash_ctl(enum crash_alter_mode mode, int flags)
 
 	g_assert(CRASH_FLAG_SET == mode || CRASH_FLAG_CLEAR == mode);
 
+	if G_UNLIKELY(NULL == vars) {
+		s_carp("%s(): called before crash_init(), ignoring %s of flags 0x%x",
+			G_STRFUNC, CRASH_FLAG_SET == mode ? "setting" : "clearing", flags);
+		return;
+	}
+
 	value = booleanize(CRASH_FLAG_SET == mode);
 
 	if (CRASH_F_PAUSE & flags)

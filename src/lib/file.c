@@ -739,13 +739,13 @@ file_create_missing(const char *path, int flags, int mode)
  * is TRUE.
  */
 static FILE *
-do_fopen(const char *path, const char *mode, bool missing)
+do_fopen(const char *path, const char *mode, bool missing, bool absolute)
 {
 	char m;
 	FILE *f;
 	const char *what;
 
-	if (!is_absolute_path(path)) {
+	if (absolute && !is_absolute_path(path)) {
 		s_carp("%s(): will not open relative path \"%s\"", G_STRFUNC, path);
 		errno = EPERM;
 		return NULL;
@@ -794,7 +794,19 @@ do_fopen(const char *path, const char *mode, bool missing)
 FILE *
 file_fopen(const char *path, const char *mode)
 {
-	return do_fopen(path, mode, FALSE);
+	return do_fopen(path, mode, FALSE, TRUE);
+}
+
+/**
+ * Open file (relative path allowed), returning FILE pointer on success,
+ * NULL on error.
+ *
+ * Errors are logged as a warning.
+ */
+FILE *
+file_fopen_relative(const char *path, const char *mode)
+{
+	return do_fopen(path, mode, FALSE, FALSE);
 }
 
 /**
@@ -805,7 +817,7 @@ file_fopen(const char *path, const char *mode)
 FILE *
 file_fopen_missing(const char *path, const char *mode)
 {
-	return do_fopen(path, mode, TRUE);
+	return do_fopen(path, mode, TRUE, TRUE);
 }
 
 /**
