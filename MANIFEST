@@ -156,6 +156,7 @@ extra_files/ja/FAQ
 extra_files/ja/Jmakefile
 extra_files/ja/Makefile.SH
 extra_files/Jmakefile
+extra_files/logfilter.sample Sample logfilter configuration
 extra_files/magnet.svg
 extra_files/Makefile.SH
 extra_files/robots.txt       Default hints for web crawlers
