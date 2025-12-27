@@ -214,6 +214,8 @@ bool ext_has_ascii_word(const extvec_t *e);
 
 void ext_dump(FILE *fd, const extvec_t *extvec, int extcnt,
 	const char *prefix, const char *postfix, bool payload);
+void ext_dump_fd(int fd, const extvec_t *exv, int exvcnt,
+	const char *prefix, const char *postfix, bool payload);
 
 const void *ext_payload(const extvec_t *e);
 uint16 ext_paylen(const extvec_t *e);

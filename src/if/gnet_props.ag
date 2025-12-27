@@ -5717,6 +5717,15 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+	};
+};
+
+prop = {
+    name = "logfilter_debug";
+    desc = "Debug level for log filtering.";
+    type = guint32;
+    data = {
+        default = 0;
     };
 };
 

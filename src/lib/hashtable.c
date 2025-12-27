@@ -975,15 +975,17 @@ hash_table_insert(hash_table_t *ht, const void *key, const void *value)
 void
 hash_table_status(const hash_table_t *ht)
 {
-	fprintf(stderr,
-		"hash_table_status:\n"
-		"ht=%p\n"
-		"num_held=%lu\n"
-		"num_bins=%lu\n"
-		"bin_fill=%lu\n",
-		ht,
-		(unsigned long) ht->num_held,
-		(unsigned long) ht->num_bins, (unsigned long) ht->bin_fill);
+	LOG_FOREACH(fd,
+		dump_writef(fd,
+			"hash_table_status:\n"
+			"ht=%p\n"
+			"num_held=%lu\n"
+			"num_bins=%lu\n"
+			"bin_fill=%lu\n",
+			ht,
+			(unsigned long) ht->num_held,
+			(unsigned long) ht->num_bins, (unsigned long) ht->bin_fill);
+	);
 }
 #endif	/* UNUSED */
 

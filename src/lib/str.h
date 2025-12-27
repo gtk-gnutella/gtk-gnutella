@@ -109,6 +109,7 @@ void str_remove(str_t *str, ssize_t idx, size_t n);
 void str_chomp(str_t *s);
 int str_chop(str_t *s);
 bool str_replace(str_t *str, ssize_t idx, size_t amt, const char *string);
+bool str_replace_len(str_t *, ssize_t idx, size_t amt, const char *str, size_t n);
 void str_reverse(str_t *s);
 void str_escape(str_t *str, int c, int e);
 size_t str_copyout(str_t *s, char *dest, size_t dest_size);
@@ -116,6 +117,9 @@ size_t str_copyout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
 size_t str_reverse_copyout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout(str_t *s, char *dest, size_t dest_size);
 size_t str_memout_offset(str_t *s, size_t off, char *dest, size_t dest_size);
+int str_cmp(const str_t *a, const str_t *b);
+int str_cmp_text(const str_t *s, const char *text);
+int str_cmp_text_len(const str_t *s, const char *text, size_t n);
 int str_at(const str_t *s, ssize_t offset);
 ssize_t str_chr(const str_t *s, int c);
 ssize_t str_chr_at(const str_t *s, int c, ssize_t offset);
@@ -125,9 +129,16 @@ str_t *str_slice(const str_t *s, ssize_t from, ssize_t to);
 str_t *str_substr(const str_t *s, ssize_t from, size_t length);
 bool str_has_suffix_len(const str_t *, const char *suf, size_t len, size_t *ix);
 bool str_has_suffix(const str_t *, const char *suf, size_t *ix);
+bool str_has_prefix_len(const str_t *s, ssize_t off, const char *pre, size_t len);
+bool str_has_prefix(const str_t *s, ssize_t off, const char *pre);
 bool str_is_truncated(const str_t * const s);
 void str_set_silent_truncation(str_t * const s, bool on);
 size_t str_strip_trailing_nuls(str_t *s);
+bool str_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
+bool str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos);
+bool str_ctrl_escape(str_t *s, bool strip_crlf);
+bool str_unprintable_escape(str_t *s, bool strip_crlf);
+bool str_unsafe_escape(str_t *s, bool strip_crlf);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);
@@ -175,6 +186,9 @@ size_t str_test(bool verbose);
 
 #define STR_HAS_SUFFIX(s, p, i)	\
 	str_has_suffix_len((s), (p), STR_CONST_LEN(p), (i))
+
+#define STR_HAS_PREFIX(s, o, p)	\
+	str_has_prefix_len((s), (o), (p), STR_CONST_LEN(p))
 
 #endif /* _str_h_ */
 

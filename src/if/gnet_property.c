@@ -1134,6 +1134,8 @@ gboolean gnet_property_variable_running_topless		= FALSE;
 static const gboolean gnet_property_variable_running_topless_default = FALSE;
 gboolean gnet_property_variable_send_oob_ind_reliably		= TRUE;
 static const gboolean gnet_property_variable_send_oob_ind_reliably_default = TRUE;
+guint32  gnet_property_variable_logfilter_debug		= 0;
+static const guint32  gnet_property_variable_logfilter_debug_default = 0;
 guint32  gnet_property_variable_adns_debug		= 0;
 static const guint32  gnet_property_variable_adns_debug_default = 0;
 guint64  gnet_property_variable_bc_http_out		= 0;
@@ -11450,13 +11452,13 @@ gnet_prop_init(void) {
 
 
 	/*
-	 * PROP_ADNS_DEBUG:
+	 * PROP_LOGFILTER_DEBUG:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[489].name = "adns_debug";
-	gnet_property->props[489].desc = _("Debug level for the ADNS (asynchronous DNS) thread.");
-	gnet_property->props[489].ev_changed = event_new("adns_debug_changed");
+	gnet_property->props[489].name = "logfilter_debug";
+	gnet_property->props[489].desc = _("Debug level for log filtering.");
+	gnet_property->props[489].ev_changed = event_new("logfilter_debug_changed");
 	gnet_property->props[489].save = TRUE;
 	gnet_property->props[489].internal = FALSE;
 	gnet_property->props[489].vector_size = 1;
@@ -11464,11 +11466,33 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[489].type				= PROP_TYPE_GUINT32;
-	gnet_property->props[489].data.guint32.def	= (void *) &gnet_property_variable_adns_debug_default;
-	gnet_property->props[489].data.guint32.value = (void *) &gnet_property_variable_adns_debug;
+	gnet_property->props[489].data.guint32.def	= (void *) &gnet_property_variable_logfilter_debug_default;
+	gnet_property->props[489].data.guint32.value = (void *) &gnet_property_variable_logfilter_debug;
 	gnet_property->props[489].data.guint32.choices = NULL;
-	gnet_property->props[489].data.guint32.max	= 20;
-	gnet_property->props[489].data.guint32.min	= 0;
+	gnet_property->props[489].data.guint32.max	= 0xFFFFFFFF;
+	gnet_property->props[489].data.guint32.min	= 0x00000000;
+
+
+	/*
+	 * PROP_ADNS_DEBUG:
+	 *
+	 * General data:
+	 */
+	gnet_property->props[490].name = "adns_debug";
+	gnet_property->props[490].desc = _("Debug level for the ADNS (asynchronous DNS) thread.");
+	gnet_property->props[490].ev_changed = event_new("adns_debug_changed");
+	gnet_property->props[490].save = TRUE;
+	gnet_property->props[490].internal = FALSE;
+	gnet_property->props[490].vector_size = 1;
+	mutex_init(&gnet_property->props[490].lock);
+
+	/* Type specific data: */
+	gnet_property->props[490].type				= PROP_TYPE_GUINT32;
+	gnet_property->props[490].data.guint32.def	= (void *) &gnet_property_variable_adns_debug_default;
+	gnet_property->props[490].data.guint32.value = (void *) &gnet_property_variable_adns_debug;
+	gnet_property->props[490].data.guint32.choices = NULL;
+	gnet_property->props[490].data.guint32.max	= 20;
+	gnet_property->props[490].data.guint32.min	= 0;
 
 
 	/*
@@ -11476,31 +11500,9 @@ gnet_prop_init(void) {
 	 *
 	 * General data:
 	 */
-	gnet_property->props[490].name = "bc_http_out";
-	gnet_property->props[490].desc = _("Total outgoing HTTP traffic in bytes for this session.");
-	gnet_property->props[490].ev_changed = event_new("bc_http_out_changed");
-	gnet_property->props[490].save = TRUE;
-	gnet_property->props[490].internal = FALSE;
-	gnet_property->props[490].vector_size = 1;
-	mutex_init(&gnet_property->props[490].lock);
-
-	/* Type specific data: */
-	gnet_property->props[490].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[490].data.guint64.def	= (void *) &gnet_property_variable_bc_http_out_default;
-	gnet_property->props[490].data.guint64.value = (void *) &gnet_property_variable_bc_http_out;
-	gnet_property->props[490].data.guint64.choices = NULL;
-	gnet_property->props[490].data.guint64.max	= (guint64) -1;
-	gnet_property->props[490].data.guint64.min	= 0x0000000000000000;
-
-
-	/*
-	 * PROP_BC_GNET_TCP_UP_OUT:
-	 *
-	 * General data:
-	 */
-	gnet_property->props[491].name = "bc_gnet_tcp_up_out";
-	gnet_property->props[491].desc = _("Total outgoing Gnutella TCP UP traffic in bytes for this session.");
-	gnet_property->props[491].ev_changed = event_new("bc_gnet_tcp_up_out_changed");
+	gnet_property->props[491].name = "bc_http_out";
+	gnet_property->props[491].desc = _("Total outgoing HTTP traffic in bytes for this session.");
+	gnet_property->props[491].ev_changed = event_new("bc_http_out_changed");
 	gnet_property->props[491].save = TRUE;
 	gnet_property->props[491].internal = FALSE;
 	gnet_property->props[491].vector_size = 1;
@@ -11508,21 +11510,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[491].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[491].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_up_out_default;
-	gnet_property->props[491].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_up_out;
+	gnet_property->props[491].data.guint64.def	= (void *) &gnet_property_variable_bc_http_out_default;
+	gnet_property->props[491].data.guint64.value = (void *) &gnet_property_variable_bc_http_out;
 	gnet_property->props[491].data.guint64.choices = NULL;
 	gnet_property->props[491].data.guint64.max	= (guint64) -1;
 	gnet_property->props[491].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_GNET_TCP_LEAF_OUT:
+	 * PROP_BC_GNET_TCP_UP_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[492].name = "bc_gnet_tcp_leaf_out";
-	gnet_property->props[492].desc = _("Total outgoing Gnutella TCP leaf traffic in bytes for this session.");
-	gnet_property->props[492].ev_changed = event_new("bc_gnet_tcp_leaf_out_changed");
+	gnet_property->props[492].name = "bc_gnet_tcp_up_out";
+	gnet_property->props[492].desc = _("Total outgoing Gnutella TCP UP traffic in bytes for this session.");
+	gnet_property->props[492].ev_changed = event_new("bc_gnet_tcp_up_out_changed");
 	gnet_property->props[492].save = TRUE;
 	gnet_property->props[492].internal = FALSE;
 	gnet_property->props[492].vector_size = 1;
@@ -11530,21 +11532,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[492].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[492].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_leaf_out_default;
-	gnet_property->props[492].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_leaf_out;
+	gnet_property->props[492].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_up_out_default;
+	gnet_property->props[492].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_up_out;
 	gnet_property->props[492].data.guint64.choices = NULL;
 	gnet_property->props[492].data.guint64.max	= (guint64) -1;
 	gnet_property->props[492].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_GNET_UDP_OUT:
+	 * PROP_BC_GNET_TCP_LEAF_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[493].name = "bc_gnet_udp_out";
-	gnet_property->props[493].desc = _("Total outgoing Gnutella UDP traffic in bytes for this session.");
-	gnet_property->props[493].ev_changed = event_new("bc_gnet_udp_out_changed");
+	gnet_property->props[493].name = "bc_gnet_tcp_leaf_out";
+	gnet_property->props[493].desc = _("Total outgoing Gnutella TCP leaf traffic in bytes for this session.");
+	gnet_property->props[493].ev_changed = event_new("bc_gnet_tcp_leaf_out_changed");
 	gnet_property->props[493].save = TRUE;
 	gnet_property->props[493].internal = FALSE;
 	gnet_property->props[493].vector_size = 1;
@@ -11552,21 +11554,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[493].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[493].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_udp_out_default;
-	gnet_property->props[493].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_udp_out;
+	gnet_property->props[493].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_leaf_out_default;
+	gnet_property->props[493].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_leaf_out;
 	gnet_property->props[493].data.guint64.choices = NULL;
 	gnet_property->props[493].data.guint64.max	= (guint64) -1;
 	gnet_property->props[493].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_DHT_OUT:
+	 * PROP_BC_GNET_UDP_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[494].name = "bc_dht_out";
-	gnet_property->props[494].desc = _("Total outgoing DHT traffic in bytes for this session.");
-	gnet_property->props[494].ev_changed = event_new("bc_dht_out_changed");
+	gnet_property->props[494].name = "bc_gnet_udp_out";
+	gnet_property->props[494].desc = _("Total outgoing Gnutella UDP traffic in bytes for this session.");
+	gnet_property->props[494].ev_changed = event_new("bc_gnet_udp_out_changed");
 	gnet_property->props[494].save = TRUE;
 	gnet_property->props[494].internal = FALSE;
 	gnet_property->props[494].vector_size = 1;
@@ -11574,21 +11576,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[494].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[494].data.guint64.def	= (void *) &gnet_property_variable_bc_dht_out_default;
-	gnet_property->props[494].data.guint64.value = (void *) &gnet_property_variable_bc_dht_out;
+	gnet_property->props[494].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_udp_out_default;
+	gnet_property->props[494].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_udp_out;
 	gnet_property->props[494].data.guint64.choices = NULL;
 	gnet_property->props[494].data.guint64.max	= (guint64) -1;
 	gnet_property->props[494].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_LOOPBACK_OUT:
+	 * PROP_BC_DHT_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[495].name = "bc_loopback_out";
-	gnet_property->props[495].desc = _("Total outgoing traffic in bytes on the loopback address for this session.");
-	gnet_property->props[495].ev_changed = event_new("bc_loopback_out_changed");
+	gnet_property->props[495].name = "bc_dht_out";
+	gnet_property->props[495].desc = _("Total outgoing DHT traffic in bytes for this session.");
+	gnet_property->props[495].ev_changed = event_new("bc_dht_out_changed");
 	gnet_property->props[495].save = TRUE;
 	gnet_property->props[495].internal = FALSE;
 	gnet_property->props[495].vector_size = 1;
@@ -11596,21 +11598,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[495].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[495].data.guint64.def	= (void *) &gnet_property_variable_bc_loopback_out_default;
-	gnet_property->props[495].data.guint64.value = (void *) &gnet_property_variable_bc_loopback_out;
+	gnet_property->props[495].data.guint64.def	= (void *) &gnet_property_variable_bc_dht_out_default;
+	gnet_property->props[495].data.guint64.value = (void *) &gnet_property_variable_bc_dht_out;
 	gnet_property->props[495].data.guint64.choices = NULL;
 	gnet_property->props[495].data.guint64.max	= (guint64) -1;
 	gnet_property->props[495].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_PRIVATE_OUT:
+	 * PROP_BC_LOOPBACK_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[496].name = "bc_private_out";
-	gnet_property->props[496].desc = _("Total outgoing traffic in bytes on the private addresses for this session.");
-	gnet_property->props[496].ev_changed = event_new("bc_private_out_changed");
+	gnet_property->props[496].name = "bc_loopback_out";
+	gnet_property->props[496].desc = _("Total outgoing traffic in bytes on the loopback address for this session.");
+	gnet_property->props[496].ev_changed = event_new("bc_loopback_out_changed");
 	gnet_property->props[496].save = TRUE;
 	gnet_property->props[496].internal = FALSE;
 	gnet_property->props[496].vector_size = 1;
@@ -11618,21 +11620,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[496].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[496].data.guint64.def	= (void *) &gnet_property_variable_bc_private_out_default;
-	gnet_property->props[496].data.guint64.value = (void *) &gnet_property_variable_bc_private_out;
+	gnet_property->props[496].data.guint64.def	= (void *) &gnet_property_variable_bc_loopback_out_default;
+	gnet_property->props[496].data.guint64.value = (void *) &gnet_property_variable_bc_loopback_out;
 	gnet_property->props[496].data.guint64.choices = NULL;
 	gnet_property->props[496].data.guint64.max	= (guint64) -1;
 	gnet_property->props[496].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_HTTP_IN:
+	 * PROP_BC_PRIVATE_OUT:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[497].name = "bc_http_in";
-	gnet_property->props[497].desc = _("Total incoming HTTP traffic in bytes for this session.");
-	gnet_property->props[497].ev_changed = event_new("bc_http_in_changed");
+	gnet_property->props[497].name = "bc_private_out";
+	gnet_property->props[497].desc = _("Total outgoing traffic in bytes on the private addresses for this session.");
+	gnet_property->props[497].ev_changed = event_new("bc_private_out_changed");
 	gnet_property->props[497].save = TRUE;
 	gnet_property->props[497].internal = FALSE;
 	gnet_property->props[497].vector_size = 1;
@@ -11640,21 +11642,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[497].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[497].data.guint64.def	= (void *) &gnet_property_variable_bc_http_in_default;
-	gnet_property->props[497].data.guint64.value = (void *) &gnet_property_variable_bc_http_in;
+	gnet_property->props[497].data.guint64.def	= (void *) &gnet_property_variable_bc_private_out_default;
+	gnet_property->props[497].data.guint64.value = (void *) &gnet_property_variable_bc_private_out;
 	gnet_property->props[497].data.guint64.choices = NULL;
 	gnet_property->props[497].data.guint64.max	= (guint64) -1;
 	gnet_property->props[497].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_GNET_TCP_UP_IN:
+	 * PROP_BC_HTTP_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[498].name = "bc_gnet_tcp_up_in";
-	gnet_property->props[498].desc = _("Total incoming Gnutella TCP UP traffic in bytes for this session.");
-	gnet_property->props[498].ev_changed = event_new("bc_gnet_tcp_up_in_changed");
+	gnet_property->props[498].name = "bc_http_in";
+	gnet_property->props[498].desc = _("Total incoming HTTP traffic in bytes for this session.");
+	gnet_property->props[498].ev_changed = event_new("bc_http_in_changed");
 	gnet_property->props[498].save = TRUE;
 	gnet_property->props[498].internal = FALSE;
 	gnet_property->props[498].vector_size = 1;
@@ -11662,21 +11664,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[498].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[498].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_up_in_default;
-	gnet_property->props[498].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_up_in;
+	gnet_property->props[498].data.guint64.def	= (void *) &gnet_property_variable_bc_http_in_default;
+	gnet_property->props[498].data.guint64.value = (void *) &gnet_property_variable_bc_http_in;
 	gnet_property->props[498].data.guint64.choices = NULL;
 	gnet_property->props[498].data.guint64.max	= (guint64) -1;
 	gnet_property->props[498].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_GNET_TCP_LEAF_IN:
+	 * PROP_BC_GNET_TCP_UP_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[499].name = "bc_gnet_tcp_leaf_in";
-	gnet_property->props[499].desc = _("Total incoming Gnutella TCP leaf traffic in bytes for this session.");
-	gnet_property->props[499].ev_changed = event_new("bc_gnet_tcp_leaf_in_changed");
+	gnet_property->props[499].name = "bc_gnet_tcp_up_in";
+	gnet_property->props[499].desc = _("Total incoming Gnutella TCP UP traffic in bytes for this session.");
+	gnet_property->props[499].ev_changed = event_new("bc_gnet_tcp_up_in_changed");
 	gnet_property->props[499].save = TRUE;
 	gnet_property->props[499].internal = FALSE;
 	gnet_property->props[499].vector_size = 1;
@@ -11684,21 +11686,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[499].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[499].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_leaf_in_default;
-	gnet_property->props[499].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_leaf_in;
+	gnet_property->props[499].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_up_in_default;
+	gnet_property->props[499].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_up_in;
 	gnet_property->props[499].data.guint64.choices = NULL;
 	gnet_property->props[499].data.guint64.max	= (guint64) -1;
 	gnet_property->props[499].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_GNET_UDP_IN:
+	 * PROP_BC_GNET_TCP_LEAF_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[500].name = "bc_gnet_udp_in";
-	gnet_property->props[500].desc = _("Total incoming Gnutella UDP traffic in bytes for this session.");
-	gnet_property->props[500].ev_changed = event_new("bc_gnet_udp_in_changed");
+	gnet_property->props[500].name = "bc_gnet_tcp_leaf_in";
+	gnet_property->props[500].desc = _("Total incoming Gnutella TCP leaf traffic in bytes for this session.");
+	gnet_property->props[500].ev_changed = event_new("bc_gnet_tcp_leaf_in_changed");
 	gnet_property->props[500].save = TRUE;
 	gnet_property->props[500].internal = FALSE;
 	gnet_property->props[500].vector_size = 1;
@@ -11706,21 +11708,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[500].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[500].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_udp_in_default;
-	gnet_property->props[500].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_udp_in;
+	gnet_property->props[500].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_tcp_leaf_in_default;
+	gnet_property->props[500].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_tcp_leaf_in;
 	gnet_property->props[500].data.guint64.choices = NULL;
 	gnet_property->props[500].data.guint64.max	= (guint64) -1;
 	gnet_property->props[500].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_DHT_IN:
+	 * PROP_BC_GNET_UDP_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[501].name = "bc_dht_in";
-	gnet_property->props[501].desc = _("Total incoming DHT traffic in bytes for this session.");
-	gnet_property->props[501].ev_changed = event_new("bc_dht_in_changed");
+	gnet_property->props[501].name = "bc_gnet_udp_in";
+	gnet_property->props[501].desc = _("Total incoming Gnutella UDP traffic in bytes for this session.");
+	gnet_property->props[501].ev_changed = event_new("bc_gnet_udp_in_changed");
 	gnet_property->props[501].save = TRUE;
 	gnet_property->props[501].internal = FALSE;
 	gnet_property->props[501].vector_size = 1;
@@ -11728,21 +11730,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[501].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[501].data.guint64.def	= (void *) &gnet_property_variable_bc_dht_in_default;
-	gnet_property->props[501].data.guint64.value = (void *) &gnet_property_variable_bc_dht_in;
+	gnet_property->props[501].data.guint64.def	= (void *) &gnet_property_variable_bc_gnet_udp_in_default;
+	gnet_property->props[501].data.guint64.value = (void *) &gnet_property_variable_bc_gnet_udp_in;
 	gnet_property->props[501].data.guint64.choices = NULL;
 	gnet_property->props[501].data.guint64.max	= (guint64) -1;
 	gnet_property->props[501].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_LOOPBACK_IN:
+	 * PROP_BC_DHT_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[502].name = "bc_loopback_in";
-	gnet_property->props[502].desc = _("Total incoming traffic in bytes on the loopback address for this session.");
-	gnet_property->props[502].ev_changed = event_new("bc_loopback_in_changed");
+	gnet_property->props[502].name = "bc_dht_in";
+	gnet_property->props[502].desc = _("Total incoming DHT traffic in bytes for this session.");
+	gnet_property->props[502].ev_changed = event_new("bc_dht_in_changed");
 	gnet_property->props[502].save = TRUE;
 	gnet_property->props[502].internal = FALSE;
 	gnet_property->props[502].vector_size = 1;
@@ -11750,21 +11752,21 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[502].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[502].data.guint64.def	= (void *) &gnet_property_variable_bc_loopback_in_default;
-	gnet_property->props[502].data.guint64.value = (void *) &gnet_property_variable_bc_loopback_in;
+	gnet_property->props[502].data.guint64.def	= (void *) &gnet_property_variable_bc_dht_in_default;
+	gnet_property->props[502].data.guint64.value = (void *) &gnet_property_variable_bc_dht_in;
 	gnet_property->props[502].data.guint64.choices = NULL;
 	gnet_property->props[502].data.guint64.max	= (guint64) -1;
 	gnet_property->props[502].data.guint64.min	= 0x0000000000000000;
 
 
 	/*
-	 * PROP_BC_PRIVATE_IN:
+	 * PROP_BC_LOOPBACK_IN:
 	 *
 	 * General data:
 	 */
-	gnet_property->props[503].name = "bc_private_in";
-	gnet_property->props[503].desc = _("Total incoming traffic in bytes on the private addresses for this session.");
-	gnet_property->props[503].ev_changed = event_new("bc_private_in_changed");
+	gnet_property->props[503].name = "bc_loopback_in";
+	gnet_property->props[503].desc = _("Total incoming traffic in bytes on the loopback address for this session.");
+	gnet_property->props[503].ev_changed = event_new("bc_loopback_in_changed");
 	gnet_property->props[503].save = TRUE;
 	gnet_property->props[503].internal = FALSE;
 	gnet_property->props[503].vector_size = 1;
@@ -11772,11 +11774,33 @@ gnet_prop_init(void) {
 
 	/* Type specific data: */
 	gnet_property->props[503].type				= PROP_TYPE_GUINT64;
-	gnet_property->props[503].data.guint64.def	= (void *) &gnet_property_variable_bc_private_in_default;
-	gnet_property->props[503].data.guint64.value = (void *) &gnet_property_variable_bc_private_in;
+	gnet_property->props[503].data.guint64.def	= (void *) &gnet_property_variable_bc_loopback_in_default;
+	gnet_property->props[503].data.guint64.value = (void *) &gnet_property_variable_bc_loopback_in;
 	gnet_property->props[503].data.guint64.choices = NULL;
 	gnet_property->props[503].data.guint64.max	= (guint64) -1;
 	gnet_property->props[503].data.guint64.min	= 0x0000000000000000;
+
+
+	/*
+	 * PROP_BC_PRIVATE_IN:
+	 *
+	 * General data:
+	 */
+	gnet_property->props[504].name = "bc_private_in";
+	gnet_property->props[504].desc = _("Total incoming traffic in bytes on the private addresses for this session.");
+	gnet_property->props[504].ev_changed = event_new("bc_private_in_changed");
+	gnet_property->props[504].save = TRUE;
+	gnet_property->props[504].internal = FALSE;
+	gnet_property->props[504].vector_size = 1;
+	mutex_init(&gnet_property->props[504].lock);
+
+	/* Type specific data: */
+	gnet_property->props[504].type				= PROP_TYPE_GUINT64;
+	gnet_property->props[504].data.guint64.def	= (void *) &gnet_property_variable_bc_private_in_default;
+	gnet_property->props[504].data.guint64.value = (void *) &gnet_property_variable_bc_private_in;
+	gnet_property->props[504].data.guint64.choices = NULL;
+	gnet_property->props[504].data.guint64.max	= (guint64) -1;
+	gnet_property->props[504].data.guint64.min	= 0x0000000000000000;
 
 	gnet_property->by_name = htable_create(HASH_KEY_STRING, 0);
 	for (n = 0; n < GNET_PROPERTY_NUM; n ++) {

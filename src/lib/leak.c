@@ -305,8 +305,8 @@ leak_dump(const leak_set_t *ls)
 		size_t avg = l->lr->size / (0 == l->lr->count ? 1 : l->lr->count);
 		s_warning("%zu bytes (%zu block%s, average %zu byte%s) from:",
 			l->lr->size, PLURAL(l->lr->count), PLURAL(avg));
-		stacktrace_atom_decorate(stderr, l->u.sa,
-			STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
+		stacktrace_atom_decorate_fd(STDERR_FILENO, l->u.sa,
+				STACKTRACE_F_ORIGIN | STACKTRACE_F_SOURCE);
 	}
 
 	xfree(filler.leaks);

@@ -72,6 +72,9 @@ bool xfmt_tree_prologue_dump(const xnode_t *root, FILE *f);
 bool xfmt_tree_dump_extended(const xnode_t *root, FILE *f,
 	uint32 options, const struct xfmt_prefix *pvec, size_t pvcnt,
 	const char *default_ns);
+
+bool xfmt_tree_dump_fd(int fd, const xnode_t *root);
+
 size_t xfmt_tree_to_buffer(const xnode_t *root,
 	void *buf, size_t len, uint32 options);
 char *xfmt_tree_to_string(const xnode_t *root, uint32 options);

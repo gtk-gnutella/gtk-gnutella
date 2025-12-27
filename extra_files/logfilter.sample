@@ -1,0 +1,79 @@
+# Sample logfilter
+# Copy this file as ~/.gtk-gnutella/logfilter to enable log filtering
+
+yellow = "yellow; faint";
+gray = "bright black";
+violet = "magenta; faint";
+pink = "bright magenta";
+green = "green";
+mustard = "bright yellow; faint";
+
+options {
+	highlight = "inverse"
+	match     = "underline"
+	where     = "start"
+}
+
+enable {
+	level = critical: color "red; bold";
+	level = warning: color "red; faint";
+	level = info: color "green; faint";
+	level = debug: color gray;
+	level > warning: nolevel;
+	routine /^signal_trampoline/: color "red; bold", next;
+	match;	# Always show matching.
+	/\b(error|failed|can't|cannot|couldn't|could not|did not)\b/i:
+		color "bright red", next, highlight 1;
+	/\b(unhandled|unexpected|unavailable)\b/i:
+		color "red", next, highlight 1;
+	/\b(abuse)\b/i:
+		color yellow, next, highlight 1;
+	/(ignoring)/: highlight 1, next;
+	/\b(impossible)\b/: color "red";	# No "highlight", regex will be simplified
+	# For debugging bad coloring
+	/\bBOOT\b/: color "bg=white; bright black", next;
+	/\bLOCK\b/: copy "lock.log", next;
+	/\bLOCK\b/ {
+		nomatch, color "faint; blue";
+		/\b(sleeping)\b/: highlight 1, next;
+		/\b(contention|busy)\b/: routine, where, highlight 1, stop;
+		#match, next;		# Show me where LOCK matched and continue
+	}
+	/\b(G2)\b/i: highlight 1, next;
+	/freeing subzone/: color green; next;
+	/\bDUP\b/: color mustard; next;
+	/#[a-f\d]{32}/i: next;		# Highlight GUIDs
+	/\bduplicate\b/i: color yellow, next;
+	/\bbad hostile\b/i: color gray, nolevel, next;
+	/DBSTORE|DBMW|SDBM|sdbm/: color violet, next;
+	/BGTASK/: color pink, level, next;
+	routine /^upnp_/: copy "upnp.log", next;
+	mingw_valloc(), /failed to commit/: carp *mini, next;
+	find_tokkey_upto(): nolog, stop;
+	host_timer(): nolog;
+	check_cpu_usage(): nolog;
+	guess_periodic_bw(), /active=0/: nolog;
+	/dispatching results/: tag "RESULTS", next;
+	# Customize logging by file origin, processing will stop on first match
+	# unless rule requests an explicit "next", since by default, we operate
+	# under "nobreak", i.e. the first match stops processing further rules.
+	"logfilter.c": routine, next;
+	"zalloc.c": routine, nolevel, next;
+	"xmalloc.c" {
+		nolevel, routine, where, log, next;
+		routine /^xmalloc_dump/: noroutine, nowhere;
+	}
+	"main.c": routine, nowhere, nolevel;
+	file m|core/|: routine, where;
+	file m|lib/|: routine, where;
+	file m|sdbm/|: routine, where;
+	file m|ui/|: routine, where;
+	file m|dht/|: routine, where;
+	file m|xml/|: routine, where;
+	file m|upnp/|: routine, where;
+	file m|if/|: routine, where;
+	# Should have been trapped by one of the file tests above
+	# So anything that remains is flagged explicitly
+	tag "!!FOREIGN!!", routine, where;
+}
+

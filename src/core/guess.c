@@ -4711,7 +4711,9 @@ guess_query_dump(const guess_t *gq, const gnutella_node_t *n, const pmsg_t *mb)
 	str_t *s = str_private(G_STRFUNC, 80);
 
 	str_printf(s, "GUESS query \"%s\" to %s", gq->query, node_infostr(n));
-	dump_hex(stderr, str_2c(s), pmsg_phys_base(mb), pmsg_written_size(mb));
+	LOG_FOREACH(fd,
+		dump_hex_fd(fd, str_2c(s), pmsg_phys_base(mb), pmsg_written_size(mb));
+	);
 }
 
 /**

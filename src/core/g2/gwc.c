@@ -843,8 +843,10 @@ gwc_got_reply(const http_async_t *ha,
 		g_debug("----Got GWC reply from %s:",
 			host_addr_to_string(s->addr));
 		if (log_printable(LOG_STDERR)) {
-			fprintf(stderr, "%s\n", status);
-			header_dump(stderr, header, "----");
+			LOG_FOREACH(fd,
+				dump_writef(fd, "%s\n", status);
+				header_dump_fd(fd, header, "----");
+			);
 		}
 	}
 }

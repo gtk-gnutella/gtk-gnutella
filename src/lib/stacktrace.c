@@ -43,6 +43,7 @@
 #include "crash.h"		/* For print_str() and crash_signame() */
 #include "dl_util.h"
 #include "eslist.h"
+#include "fd.h"
 #include "file.h"
 #include "halloc.h"
 #include "hashing.h"	/* For binary_hash() */
@@ -854,16 +855,19 @@ stack_sym_trylock(const char *caller)
 /**
  * Print array of PCs, using symbolic names if possible.
  *
- * @param f			where to print the stack
+ * @param fd		where to print the stack
  * @param stack		array of Program Counters making up the stack
  * @param count		number of items in stack[] to print, at most.
  */
 static void
-stack_print(FILE *f, void * const *stack, size_t count)
+stack_print(int fd, void * const *stack, size_t count)
 {
 	size_t i;
 	int stid = -1;
 	bool locked = TRUE;
+	char buf[128];
+
+	g_return_if_fail(is_valid_fd(fd));
 
 	stacktrace_load_symbols();
 
@@ -885,9 +889,11 @@ stack_print(FILE *f, void * const *stack, size_t count)
 			break;
 
 		if (stid >= 0)
-			fprintf(f, "\t[%d] %s\n", stid, where);
+			str_bprintf(ARYLEN(buf), "\t[%d] %s\n", stid, where);
 		else
-			fprintf(f, "\t%s\n", where);
+			str_bprintf(ARYLEN(buf), "\t%s\n", where);
+
+		IGNORE_RESULT(write(fd, buf, vstrlen(buf)));
 
 		if (stack_reached_main(where))
 			break;
@@ -1518,7 +1524,8 @@ stacktrace_print(FILE *f, const struct stacktrace *st)
 {
 	g_assert(st != NULL);
 
-	stack_print(f, st->stack, st->len);
+	fflush(f);
+	stack_print(fileno(f), st->stack, st->len);
 }
 
 /**
@@ -1529,7 +1536,8 @@ stacktrace_atom_print(FILE *f, const struct stackatom *st)
 {
 	g_assert(st != NULL);
 
-	stack_print(f, st->stack, st->len);
+	fflush(f);
+	stack_print(fileno(f), st->stack, st->len);
 }
 
 /**
@@ -1542,6 +1550,18 @@ stacktrace_atom_decorate(FILE *f, const struct stackatom *st, uint flags)
 	g_assert(st != NULL);
 
 	stack_print_decorated(f, thread_small_id(), st->stack, st->len, flags);
+}
+
+/**
+ * Print decorated stack trace atom to specified fd, using symbolic names
+ * if possible.
+ */
+void
+stacktrace_atom_decorate_fd(int fd, const struct stackatom *st, uint flags)
+{
+	g_assert(st != NULL);
+
+	stack_safe_print_decorated(fd, thread_small_id(), st->stack, st->len, flags);
 }
 
 /**
@@ -1739,6 +1759,98 @@ stacktrace_routine_name(const void *pc, bool offset)
 }
 
 /**
+ * Figure out symbolic information from the PC.
+ */
+void
+stacktrace_pc_info(const void *pc, stackinfo_t *info)
+{
+	bfd_env_t *be = stacktrace_be;
+	const void *base;		/* Mapping base for shared object */
+	bfd_ctx_t *bc = NULL;
+	const char *pathname = NULL;
+
+	/*
+	 * The logic here mimics that of stack_print_decorated_to().
+	 */
+
+	if (NULL == be)
+		be = bfd_util_init();
+
+	base = dl_util_get_base(pc);
+
+	if (base != NULL) {
+		struct symbol_loc loc;
+
+		pathname = dl_util_get_path(pc);
+
+		if (pathname != NULL) {
+			if (!is_absolute_path(pathname) && stack_is_our_text(pc)) {
+				if (!file_exists(pathname))
+					pathname = program_path;
+			}
+		}
+
+		if (pathname != NULL) {
+			bc = bfd_util_get_context(be, pathname);
+			bfd_util_compute_offset(bc, pointer_to_ulong(base));
+		}
+
+		ZERO(&loc);
+
+		if (bc != NULL && bfd_util_has_symbols(bc)) {
+			const void *call = const_ptr_add_offset(pc, -2);
+			bool located = bfd_util_locate(bc, call, &loc);
+
+			if (!located) {
+				call = const_ptr_add_offset(pc, -(PTRSIZE + 1));
+				located = bfd_util_locate(bc, call, &loc);
+			}
+
+			if (located) {
+				info->routine = loc.function;
+				info->line    = loc.line;
+				info->file    = NULL == loc.file ?
+					NULL : stacktrace_pretty_filepath(loc.file);
+				return;
+			}
+		}
+	}
+
+	/*
+	 * Will have to get the routine name via another way, and use
+	 * the shared object (library) or executable as the source file,
+	 * with a line number staying at 0.
+	 */
+
+	if (stacktrace_symbols != NULL) {
+		const char *sym = symbols_name_only(stacktrace_symbols, pc, FALSE);
+
+		if (NULL == sym)
+			sym = dl_util_get_name(pc);
+
+		if (NULL == sym)
+			sym = symbols_name(stacktrace_symbols, pc, FALSE);
+
+		info->routine = sym;
+	} else {
+		/* This will be simply the hexadecimal value */
+		info->routine = symbols_name(NULL, pc, FALSE);
+	}
+
+	/* Fake the shared object file or executable filename as source file */
+
+	if (NULL == pathname)
+		pathname = program_path;
+
+	if (pathname != NULL)
+		info->file = filepath_basename(pathname);
+	else
+		info->file = NULL;
+
+	info->line = 0;
+}
+
+/**
  * Return start of routine.
  *
  * @param pc		the PC within the routine
@@ -1758,13 +1870,27 @@ stacktrace_routine_start(const void *pc)
  * Print current stack trace to specified file.
  */
 void
+stacktrace_where_print_fd(int fd)
+{
+	void *stack[STACKTRACE_DEPTH_MAX];
+	size_t count;
+
+	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
+	stack_print(fd, stack, count);
+}
+
+/**
+ * Print current stack trace to specified file.
+ */
+void
 stacktrace_where_print(FILE *f)
 {
 	void *stack[STACKTRACE_DEPTH_MAX];
 	size_t count;
 
 	count = stacktrace_safe_unwind(stack, N_ITEMS(stack), 1);
-	stack_print(f, stack, count);
+	fflush(f);
+	stack_print(fileno(f), stack, count);
 }
 
 /**

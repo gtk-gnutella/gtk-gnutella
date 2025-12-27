@@ -7220,7 +7220,9 @@ buffer_operation(enum track_operation op,
 				"%s (%'zu %s bytes starting %p) at \"%s:%d\" (issue #%zu)",
 				track_operation_to_string(op),
 				track_mem(user_mem), p, file, line, vmm_buffer.missed);
-			stacktrace_where_print(stderr);
+			LOG_FOREACH(fd,
+				stacktrace_where_print_fd(fd);
+			);
 		}
 	} else {
 		size_t i = vmm_buffer.idx++;
@@ -7350,10 +7352,14 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
 #ifdef MALLOC_FRAMES
 		s_warning("VMM %s page %p was allocated from:",
 			track_mem(xpt->user), p);
-		stacktrace_atom_print(stderr, xpt->ast);
+		LOG_FOREACH(fd,
+			stacktrace_atom_print_fd(fd, xpt->ast);
+		);
 #endif
 		s_warning("VMM current stack:");
-		stacktrace_where_print(stderr);
+		LOG_FOREACH(fd,
+			stacktrace_where_print_fd(fd);
+		);
 
 		vmm_free_record_desc(p, pt);
 	}
@@ -7742,7 +7748,9 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_FRAMES
 	s_message("%s block %p allocated from: ", track_mem(pt->user), k);
-	stacktrace_atom_print(stderr, pt->ast);
+	LOG_FOREACH(fd,
+		stacktrace_atom_print_fd(fd, pt->ast);
+	);
 #endif
 }
 

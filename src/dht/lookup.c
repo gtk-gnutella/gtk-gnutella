@@ -1127,7 +1127,9 @@ lookup_value_create(nlookup_t *nl, float load,
 					nid_to_string(&nl->lid), dht_value_to_string(v),
 					knode_to_string(kn));
 				if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-					dht_value_dump(stderr, v);
+					LOG_FOREACH(fd,
+						dht_value_dump(fd, v);
+					);
 				}
 			}
 			map_insert(fv->values, v, v);
@@ -1231,7 +1233,9 @@ lookup_value_append(nlookup_t *nl, float load,
 					nid_to_string(&nl->lid), dht_value_to_string(v),
 					knode_to_string(kn));
 				if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-					dht_value_dump(stderr, v);
+					LOG_FOREACH(fd,
+						dht_value_dump(fd, v);
+					);
 				}
 			}
 			g_assert(fv->vcnt < fv->vsize);
@@ -1274,7 +1278,9 @@ lookup_value_append(nlookup_t *nl, float load,
 						nid_to_string(&nl->lid), dht_value_to_string(v),
 						knode_to_string(kn));
 					if (GNET_PROPERTY(dht_lookup_debug) > 5) {
-						dht_value_dump(stderr, v);
+						LOG_FOREACH(fd,
+							dht_value_dump(fd, v);
+						);
 					}
 				}
 				g_assert(fv->vcnt < fv->vsize);

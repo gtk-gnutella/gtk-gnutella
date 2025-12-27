@@ -112,6 +112,7 @@
 #include "lib/http_range.h"
 #include "lib/idtable.h"
 #include "lib/iso3166.h"
+#include "lib/log.h"
 #include "lib/magnet.h"
 #include "lib/palloc.h"
 #include "lib/parse.h"
@@ -727,8 +728,11 @@ download_pipeline_socket_feed(struct download *d, pmsg_t *mb)
 	if (GNET_PROPERTY(download_debug) > 5) {
 		g_debug("%s(): propagated %d pipelined bytes from %s for \"%s\"",
 			G_STRFUNC, r, download_host_info(d), download_pathname(d));
-		if (GNET_PROPERTY(download_debug) > 8)
-			dump_hex(stderr, "Propagated bytes", s->buf, r);
+		if (GNET_PROPERTY(download_debug) > 8) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Propagated bytes", s->buf, r);
+			);
+		}
 	}
 }
 
@@ -9848,8 +9852,10 @@ download_check_status(struct download *d, header_t *header, int code)
 			download_host_info(d));
 
 		if (GNET_PROPERTY(download_debug)) {
-			dump_hex(stderr, "Status Line", getline_str(d->socket->getline),
-				MIN(getline_length(d->socket->getline), 80));
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Status Line", getline_str(d->socket->getline),
+					MIN(getline_length(d->socket->getline), 80));
+			);
 		}
 		if (0 == d->served_reqs) {
 			/*
@@ -11663,7 +11669,9 @@ download_reply(struct download *d, header_t *header, bool ok)
 		g_debug("----Got %sreply #%u from %s:\n%s",
 			ok ? "" : "INCOMPLETE ", d->served_reqs,
 			host_addr_to_string(s->addr), status);
-		header_dump(stderr, header, "----");
+		LOG_FOREACH(fd,
+			header_dump_fd(fd, header, "----");
+		);
 	}
 
 	/*
@@ -13412,7 +13420,9 @@ download_write_request(void *data, int unused_source, inputevt_cond_t cond)
 			d->keep_alive ? "follow-up" : "initial",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			pmsg_phys_len(r));
-		dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, pmsg_phys_base(r), pmsg_phys_len(r), "----");
+		);
 	}
 
 	/*
@@ -14029,7 +14039,9 @@ picked:
 			(d->server->attrs & DLS_A_FAKE_G2) ? ", fake-g2" : "",
 			host_addr_port_to_string(download_addr(d), download_port(d)),
 			(uint) rw);
-		dump_string(stderr, request_buf, rw, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, request_buf, rw, "----");
+		);
 	}
 
 fully_sent:
@@ -14104,7 +14116,9 @@ download_push_ready(struct download *d, getline_t *empty)
 		g_debug(
 			"%s(): file \"%s\": push reply was not followed by an empty line",
 			G_STRFUNC, download_basename(d));
-		dump_hex(stderr, "Extra GIV data", getline_str(empty), MIN(len, 80));
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "Extra GIV data", getline_str(empty), MIN(len, 80));
+		);
 		download_stop(d, GTA_DL_ERROR, _("Malformed push reply"));
 		return;
 	}
@@ -14582,7 +14596,9 @@ download_push_ack(struct gnutella_socket *s)
 
 	if (GNET_PROPERTY(download_trace) & SOCK_TRACE_IN) {
 		g_debug("----Got GIV from %s:", host_addr_to_string(s->addr));
-		dump_string(stderr, giv, getline_length(s->getline), "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, giv, getline_length(s->getline), "----");
+		);
 	}
 
 	/*

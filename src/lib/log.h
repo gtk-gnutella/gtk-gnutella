@@ -36,6 +36,11 @@
 
 #include "common.h"
 
+#include "logfilter.h"
+#include "pslist.h"
+
+#define LOG_MSG_MAXLEN	512	/**< Maximum length in sigh, or mini/raw logs */
+
 enum log_file {
 	LOG_STDOUT = 0,
 	LOG_STDERR,
@@ -54,6 +59,12 @@ struct logstat {
 
 struct logagent;
 typedef struct logagent logagent_t;
+
+typedef struct logcolor {
+	const char *initial;	/**< If non-NULL, need to reset default color */
+	const char *leading;	/**< First escape sequence to establish new color */
+	const char *closing;	/**< Final escape sequence to old color */
+} logcolor_t;
 
 /*
  * Public interface.
@@ -88,37 +99,210 @@ int log_get_fd(enum log_file which);
 
 /*
  * Safe logging interface (to avoid recursive logging, or from signal handlers).
+ *
+ * When logfilter is supported, trap the high-level messages that we can
+ * possibly filter out or enrich dynamically at runtime.
  */
 
-void s_critical(const char *format, ...) G_PRINTF(1, 2);
-void s_error(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
-int s_error_expr(const char *format, ...) G_PRINTF(1, 2);
+#if LOGFILTER_SUPPORTED
+
+#define s_carp(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_carp_once(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP | LF_USR_ONCE \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_critical(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP \
+	}; \
+	logfilter_log(G_LOG_LEVEL_CRITICAL, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_warning(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_message(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_MESSAGE, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_info(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_INFO, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_debug(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_DEBUG, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minilog(flags, ...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG \
+	}; \
+	logfilter_log((flags), &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minicarp(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP | LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minicarp_once(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP | LF_USR_ONCE | LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minicrit(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP | LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_CRITICAL, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_miniwarn(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minimsg(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_MESSAGE, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_miniinfo(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_INFO, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_minidbg(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_DEBUG, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_rawcrit(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, \
+		LF_USR_CARP | LF_USR_MINILOG | LF_USR_RAWLOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_CRITICAL, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_rawwarn(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG | LF_USR_RAWLOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_rawmsg(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG | LF_USR_RAWLOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_MESSAGE, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_rawinfo(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG | LF_USR_RAWLOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_INFO, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define s_rawdebug(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_MINILOG | LF_USR_RAWLOG \
+	}; \
+	logfilter_log(G_LOG_LEVEL_DEBUG, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#else	/* !LOGFILTER_SUPPORTED */
 void s_carp(const char *format, ...) G_PRINTF(1, 2);
 void s_carp_once(const char *format, ...) G_PRINTF(1, 2);
-void s_minicarp(const char *format, ...) G_PRINTF(1, 2);
-void s_minicarp_once(const char *format, ...) G_PRINTF(1, 2);
-void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_PRINTF(2, 3);
+void s_critical(const char *format, ...) G_PRINTF(1, 2);
 void s_warning(const char *format, ...) G_PRINTF(1, 2);
 void s_message(const char *format, ...) G_PRINTF(1, 2);
 void s_info(const char *format, ...) G_PRINTF(1, 2);
 void s_debug(const char *format, ...) G_PRINTF(1, 2);
+
+void s_minilog(GLogLevelFlags flags, const char *fmt, ...) G_PRINTF(2, 3);
+void s_minicarp(const char *format, ...) G_PRINTF(1, 2);
+void s_minicarp_once(const char *format, ...) G_PRINTF(1, 2);
+void s_minicrit(const char *format, ...) G_PRINTF(1, 2);
+void s_miniwarn(const char *format, ...) G_PRINTF(1, 2);
+void s_minimsg(const char *format, ...) G_PRINTF(1, 2);
+void s_miniinfo(const char *format, ...) G_PRINTF(1, 2);
+void s_minidbg(const char *format, ...) G_PRINTF(1, 2);
+
+void s_rawcrit(const char *format, ...) G_PRINTF(1, 2);
+void s_rawwarn(const char *format, ...) G_PRINTF(1, 2);
+void s_rawmsg(const char *format, ...) G_PRINTF(1, 2);
+void s_rawinfo(const char *format, ...) G_PRINTF(1, 2);
+void s_rawdebug(const char *format, ...) G_PRINTF(1, 2);
+#endif	/* LOGFILTER_SUPPORTED */
+
+void s_logv(GLogLevelFlags l, const char *fmt, va_list args) G_PRINTF(2, 0);
+void s_error(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
+int s_error_expr(const char *format, ...) G_PRINTF(1, 2);
+void s_minierror(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
+
 void s_fatal_exit(int status, const char *format, ...)
 	G_PRINTF(2, 3) G_NORETURN;
 void s_error_from(const char *file, const char *fmt, ...)
 	G_PRINTF(2, 3) G_NORETURN;
 void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args)
 	G_PRINTF(3, 0);
-void s_minierror(const char *format, ...) G_PRINTF(1, 2) G_NORETURN;
-void s_minicrit(const char *format, ...) G_PRINTF(1, 2);
-void s_miniwarn(const char *format, ...) G_PRINTF(1, 2);
-void s_minimsg(const char *format, ...) G_PRINTF(1, 2);
-void s_miniinfo(const char *format, ...) G_PRINTF(1, 2);
-void s_minidbg(const char *format, ...) G_PRINTF(1, 2);
-void s_rawcrit(const char *format, ...) G_PRINTF(1, 2);
-void s_rawwarn(const char *format, ...) G_PRINTF(1, 2);
-void s_rawmsg(const char *format, ...) G_PRINTF(1, 2);
-void s_rawinfo(const char *format, ...) G_PRINTF(1, 2);
-void s_rawdebug(const char *format, ...) G_PRINTF(1, 2);
 void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a)
 	G_PRINTF(4, 0);
 
@@ -126,6 +310,7 @@ void s_line_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
 
 void s_stacktrace(bool no_stdio, unsigned offset) NO_INLINE;
 void s_where(unsigned offset) NO_INLINE;
+void s_where_fd(int fd, unsigned offset) NO_INLINE;
 
 /*
  * These routines should not be called directly, use the macros below.
@@ -188,6 +373,58 @@ void log_debug(logagent_t *la, const char *format, ...) G_PRINTF(2, 3);
  */
 
 size_t log_vbprintf(char *dst, size_t size, const char *fmt, va_list args);
+
+/*
+ * These routines are only visible to the logfilter.
+ */
+
+#ifdef LOGFILTER_SOURCE
+struct str;
+void *log_string_get(const char *caller, const char *fmt, struct str **msg);
+void log_string_release(void *saved);
+void log_check_truncated(struct str *s);
+void log_emit(
+	GLogLevelFlags level, struct str *msg,
+	const logcolor_t *color, const char *prefix,
+	unsigned stid, bool in_sigh, bool copy, bool raw);
+void
+log_emit_fd(
+	int fd,
+	GLogLevelFlags level, struct str *msg,
+	const logcolor_t *color, const char *prefix,
+	unsigned stid, bool in_sigh, bool raw);
+#endif	/* LOGFILTER_SOURCE */
+
+/**
+ * This macro can be used to send output to all the logfiles that the
+ * logfilter would send a message to if it came from that routine and place.
+ *
+ * When the logfilter is not supported, it simply sends output to stderr.
+ *
+ * @param fd_		the int variable containing the file descriptor
+ * @param code_		the code block using fd_ to send data to the logs
+ */
+#if LOGFILTER_SUPPORTED
+#define LOG_FOREACH(fd_, code_)					\
+G_STMT_START {									\
+	static const logfilter_data_t logdata_ =	\
+		{ _WHERE_, G_STRFUNC, __LINE__, 0 };	\
+	pslist_t *list_ = logfilter_fds(&logdata_);	\
+	pslist_t *l_ = list_;						\
+	while (l_ != NULL)  {						\
+		int fd_ = pointer_to_int(l_->data);		\
+		l_ = l_->next;							\
+		code_									\
+	}											\
+	logfilter_fds_cleanup(list_);				\
+} G_STMT_END
+#else	/* !LOGFILTER_SUPPORTED */
+#define LOG_FOREACH(fd_, code_) \
+G_STMT_START {					\
+	int fd_ = STDERR_FILENO;	\
+	code_						\
+} G_STMT_END
+#endif	/* LOGFILTER_SUPPORTED */
 
 #endif /* _log_h_ */
 

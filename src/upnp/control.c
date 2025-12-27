@@ -346,8 +346,11 @@ upnp_ctrl_soap_reply(const soap_rpc_t *sr, xnode_t *root, void *arg)
 	if (GNET_PROPERTY(upnp_debug) > 1) {
 		g_debug("UPNP got SOAP reply for %s", ucd->action);
 
-		if (GNET_PROPERTY(upnp_debug) > 2)
-			xfmt_tree_dump(root, stderr);
+		if (GNET_PROPERTY(upnp_debug) > 2) {
+			LOG_FOREACH(fd,
+				xfmt_tree_dump_fd(fd, root);
+			);
+		}
 	}
 
 	ucd->sr = NULL;		/* Done with SOAP request */
@@ -480,7 +483,9 @@ upnp_ctrl_soap_error(const soap_rpc_t *sr,
 		} else {
 			if (GNET_PROPERTY(upnp_debug)) {
 				g_warning("UPNP \"%s\" un-parseable SOAP fault:", ucd->action);
-				xfmt_tree_dump(fault, stderr);
+				LOG_FOREACH(fd,
+					xfmt_tree_dump_fd(fd, fault);
+				);
 			}
 			code = UPNP_ERR_UNPARSEABLE;
 		}

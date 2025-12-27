@@ -519,7 +519,9 @@ retry:
 			g_debug("----%s HTTP status to %s (%lu bytes):",
 				(size_t) sent == rw ? "Sent" : "Sending",
 				host_addr_to_string(s->addr), (ulong) rw);
-			dump_string(stderr, header, rw, "----");
+			LOG_FOREACH(fd,
+				dump_string_fd(fd, header, rw, "----");
+			);
 		}
 	}
 
@@ -1890,7 +1892,9 @@ http_async_sent_head(const http_async_t *unused_ha,
 		g_debug("----Sent HTTP request%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
-		dump_string(stderr, req, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, req, len, "----");
+		);
 	}
 }
 
@@ -1914,7 +1918,9 @@ http_async_sent_data(const http_async_t *unused_ha,
 		g_debug("----Sent HTTP data%s to %s (%u bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), (unsigned) len);
-		dump_string(stderr, data, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, data, len, "----");
+		);
 	}
 }
 
@@ -1936,8 +1942,10 @@ http_async_got_reply(const http_async_t *unused_ha,
 		if (log_printable(LOG_STDERR)) {
 			g_debug("----Got HTTP reply from %s:",
 				host_addr_to_string(s->addr));
-			fprintf(stderr, "%s\n", status);
-			header_dump(stderr, header, "----");
+			LOG_FOREACH(fd,
+				dump_writef(fd, "%s\n", status);
+				header_dump_fd(fd, header, "----");
+			);
 		}
 	}
 }
@@ -3689,10 +3697,14 @@ http_transaction_done(char *data, size_t len, int code, header_t *h, void *arg)
 		g_message("HTTP async wget of \"%s\" SUCCEEDED (%zu byte%s)",
 			url, PLURAL(len));
 		g_debug("---- Begin HTTP Header ----");
-		header_dump(stderr, h, NULL);
+		LOG_FOREACH(fd,
+			header_dump_fd(fd, h, NULL);
+		);
 		g_debug("---- End HTTP Header ----");
 		g_debug("---- Begin HTTP Payload ----");
-		write(STDERR_FILENO, data, len);
+		LOG_FOREACH(fd,
+			IGNORE_RESULT(write(fd, data, len));
+		);
 		g_debug("---- End HTTP Payload ----");
 		hfree(data);
 

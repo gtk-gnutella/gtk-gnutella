@@ -34,8 +34,9 @@
 #ifndef _glog_h_
 #define _glog_h_
 
-#include "stacktrace.h"		/* For stacktrace_caller_known() */
 #include "log.h"			/* For log_abort() */
+#include "logfilter.h"
+#include "stacktrace.h"		/* For stacktrace_caller_known() */
 
 /*
  * Trap all glib-defined logging and redirect them to our own.
@@ -61,7 +62,67 @@
 #undef g_critical
 #undef g_error
 
-#if defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
+#if LOGFILTER_SUPPORTED
+
+#define g_error(...)	gl_error(G_LOG_DOMAIN,  __VA_ARGS__)
+
+#define g_carp(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_carp_once(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP | LF_USR_ONCE \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_critical(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, LF_USR_CARP \
+	}; \
+	logfilter_log(G_LOG_LEVEL_CRITICAL, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_warning(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_WARNING, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_message(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_MESSAGE, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_info(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_INFO, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#define g_debug(...) \
+G_STMT_START { \
+	static const logfilter_data_t logdata_ = { \
+		_WHERE_, G_STRFUNC, __LINE__, 0 \
+	}; \
+	logfilter_log(G_LOG_LEVEL_DEBUG, &logdata_, __VA_ARGS__); \
+} G_STMT_END
+
+#elif defined (__STDC_VERSION__) && __STDC_VERSION__ >= 199901L
 #define g_carp(...)					\
 	G_STMT_START {					\
 		gl_log(G_LOG_DOMAIN,		\

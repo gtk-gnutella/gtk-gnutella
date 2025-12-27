@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-DBUS_CFLAGS =  $dbuscflags
-GLIB_CFLAGS =  $glibcflags
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
 GLIB_LDFLAGS =  $glibldflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o
+DBUS_CFLAGS =  $dbuscflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 COMMON_LIBS =  $libs
+GLIB_CFLAGS =  $glibcflags
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -161,6 +161,7 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	color.c \
 	compat_getrusage.c \
 	compat_gettid.c \
 	compat_misc.c \
@@ -206,12 +207,14 @@ LSRC = \
 	filelock.c \
 	filename.c \
 	file_object.c \
+	file_rotate.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
 	ftw.c \
 	gen-iprange.c \
+	gen-re.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -242,11 +245,14 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	istream.c \
 	launch.c \
 	leak.c \
 	list.c \
 	listener.c \
 	log.c \
+	logfilter.c \
+	lru_cache.c \
 	magnet.c \
 	malloc.c \
 	map.c \
@@ -276,6 +282,7 @@ LSRC = \
 	plist.c \
 	pmsg.c \
 	pow2.c \
+	privlog.c \
 	product.c \
 	progname.c \
 	prop.c \
@@ -284,6 +291,7 @@ LSRC = \
 	rand31.c \
 	random.c \
 	rbtree.c \
+	re.c \
 	regex.c \
 	ripening.c \
 	rwlock.c \
@@ -302,6 +310,8 @@ LSRC = \
 	stacktrace.c \
 	stats.c \
 	str.c \
+	str_subst_str.c \
+	str_subst_re.c \
 	stringify.c \
 	strpcpy.c \
 	strtok.c \
@@ -318,6 +328,8 @@ LSRC = \
 	tm.c \
 	tokenizer.c \
 	tqsort.c \
+	trie.c \
+	trie_fmt.c \
 	tsig.c \
 	url.c \
 	urn.c \
@@ -371,6 +383,7 @@ LOBJ = \
 	ckalloc.o \
 	cmwc.o \
 	cobs.o \
+	color.o \
 	compat_getrusage.o \
 	compat_gettid.o \
 	compat_misc.o \
@@ -416,12 +429,14 @@ LOBJ = \
 	filelock.o \
 	filename.o \
 	file_object.o \
+	file_rotate.o \
 	float.o \
 	fragcheck.o \
 	frand.o \
 	fs_free_space.o \
 	ftw.o \
 	gen-iprange.o \
+	gen-re.o \
 	gentime.o \
 	getcpucount.o \
 	getdate.o \
@@ -452,11 +467,14 @@ LOBJ = \
 	iprange.o \
 	ipset.o \
 	iso3166.o \
+	istream.o \
 	launch.o \
 	leak.o \
 	list.o \
 	listener.o \
 	log.o \
+	logfilter.o \
+	lru_cache.o \
 	magnet.o \
 	malloc.o \
 	map.o \
@@ -486,6 +504,7 @@ LOBJ = \
 	plist.o \
 	pmsg.o \
 	pow2.o \
+	privlog.o \
 	product.o \
 	progname.o \
 	prop.o \
@@ -494,6 +513,7 @@ LOBJ = \
 	rand31.o \
 	random.o \
 	rbtree.o \
+	re.o \
 	regex.o \
 	ripening.o \
 	rwlock.o \
@@ -512,6 +532,8 @@ LOBJ = \
 	stacktrace.o \
 	stats.o \
 	str.o \
+	str_subst_str.o \
+	str_subst_re.o \
 	stringify.o \
 	strpcpy.o \
 	strtok.o \
@@ -528,6 +550,8 @@ LOBJ = \
 	tm.o \
 	tokenizer.o \
 	tqsort.o \
+	trie.o \
+	trie_fmt.o \
 	tsig.o \
 	url.o \
 	urn.o \
@@ -704,6 +728,17 @@ random-test:  random-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  random-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: re-test
+
+local_realclean::
+	$(RM) re-test$(_EXE)
+
+re-test:  re-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  re-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 all:: sort-test
 
 local_realclean::
@@ -759,6 +794,17 @@ thread-test:  thread-test.o  libshared.a
 		$(MV) $@$(_EXE) $@~$(_EXE); fi
 	$(CC) -o $@$(_EXE)  thread-test.o $(JLDFLAGS)  libshared.a $(LIBS)
 
+all:: trie-test
+
+local_realclean::
+	$(RM) trie-test$(_EXE)
+
+trie-test:  trie-test.o  libshared.a
+	-$(RM) $@$(_EXE)
+	if test -f $@$(_EXE); then \
+		$(MV) $@$(_EXE) $@~$(_EXE); fi
+	$(CC) -o $@$(_EXE)  trie-test.o $(JLDFLAGS)  libshared.a $(LIBS)
+
 gen-iprange.c:   $(IF)/gen/iprange.c
 	$(RM) -f $@
 	$(LN) $? $@
@@ -767,6 +813,15 @@ local_depend::  gen-iprange.c
 
 local_realclean::
 	$(RM) -f  gen-iprange.c
+
+gen-re.c:   $(IF)/gen/re.c
+	$(RM) -f $@
+	$(LN) $? $@
+
+local_depend::  gen-re.c
+
+local_realclean::
+	$(RM) -f  gen-re.c
 
 ########################################################################
 # Common rules for all Makefiles -- do not edit

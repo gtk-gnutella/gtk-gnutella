@@ -97,6 +97,7 @@
 #include "lib/hstrfn.h"
 #include "lib/http_range.h"
 #include "lib/log.h"
+#include "lib/logfilter.h"
 #include "lib/mutex.h"
 #include "lib/omalloc.h"
 #include "lib/palloc.h"
@@ -122,7 +123,8 @@
 
 #define SETTINGS_RANDOM_SEED	4096	/* Amount of random bytes saved */
 
-static const char config_file[] = "config_gnet";
+static const char config_file[]    = "config_gnet";
+static const char logfilter_file[] = "logfilter";
 
 static const mode_t IPC_DIR_MODE     = S_IRUSR | S_IWUSR | S_IXUSR; /* 0700 */
 static const mode_t CONFIG_DIR_MODE  =
@@ -326,9 +328,11 @@ settings_mkdir(const char *path, bool fatal)
 
 /**
  * Initializes "config_dir", "home_dir", "crash_dir", etc...
+ *
+ * @param logfilter		whether to initialize the logfilter
  */
 void G_COLD
-settings_early_init(void)
+settings_early_init(bool logfilter)
 {
 	config_dir = h_strdup(getenv("GTK_GNUTELLA_DIR"));
 	home_dir = gethomedir();
@@ -372,6 +376,20 @@ G_STMT_START { \
 	CREATE_DIRECTORY(dht_db_dir, "dht-db", "DHT database files");
 
 #undef CREATE_DIRECTORY
+
+	/*
+	 * Initialize the logfilter layer, if there is a "logfilter" file.
+	 * This is done early to ensure logs are immediately filtered.
+	 */
+
+	if (logfilter) {
+		char *file = make_pathname(config_dir, logfilter_file);
+
+		if (logfilter_install(file))
+			s_info("logfilter installed, using %s", file);
+
+		HFREE_NULL(file);
+	}
 }
 
 /**
@@ -2729,6 +2747,7 @@ SETTINGS_CB(inputevt_trace,			bool,	inputevt_set_trace)
 SETTINGS_CB(lib_debug,				uint32,	set_library_debug)
 SETTINGS_CB(lib_stats,				uint32,	set_library_stats)
 SETTINGS_CB(lock_contention_trace,	bool,	lock_contention_trace_set)
+SETTINGS_CB(logfilter_debug,		uint32,	logfilter_set_debug)
 SETTINGS_CB(lock_sleep_trace,		bool,	lock_sleep_trace_set)
 SETTINGS_CB(node_online_mode,		bool, 	node_set_online_mode)
 SETTINGS_CB(omalloc_debug,			uint32,	set_omalloc_debug)
@@ -3218,6 +3237,11 @@ static prop_map_t property_map[] = {
     {
         PROP_LIB_DEBUG,
         lib_debug_changed,
+        TRUE
+    },
+    {
+        PROP_LOGFILTER_DEBUG,
+        logfilter_debug_changed,
         TRUE
     },
     {

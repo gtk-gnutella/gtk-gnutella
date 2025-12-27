@@ -139,7 +139,7 @@ const char *dht_value_to_string(const dht_value_t *v);
 
 unsigned dht_value_hash(const void *key);
 bool dht_value_eq(const void *v1, const void *v2);
-void dht_value_dump(FILE *out, const dht_value_t *v);
+void dht_value_dump(int fd, const dht_value_t *v);
 
 #endif /* _if_dht_value_h */
 

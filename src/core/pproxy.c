@@ -714,7 +714,9 @@ pproxy_request(struct pproxy *pp, header_t *header)
 	if (GNET_PROPERTY(push_proxy_trace) & SOCK_TRACE_IN) {
 		g_debug("----Push-proxy request from %s:\n%s",
 			host_addr_to_string(s->addr), request);
-		header_dump(stderr, header, "----");
+		LOG_FOREACH(fd,
+			header_dump_fd(fd, header, "----");
+		);
 	}
 
 	/*
@@ -1294,7 +1296,9 @@ cproxy_sent_request(const struct http_async *unused_ha,
 		g_debug("----Sent push-proxy request%s to %s (%zu bytes):",
 			deferred ? " completely" : "",
 			host_addr_port_to_string(s->addr, s->port), len);
-		dump_string(stderr, req, len, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, req, len, "----");
+		);
 	}
 }
 
@@ -1316,8 +1320,10 @@ cproxy_got_reply(const struct http_async *unused_ha,
 		g_debug("----Got push-proxy reply from %s:",
 			host_addr_to_string(s->addr));
 		if (log_printable(LOG_STDERR)) {
-			fprintf(stderr, "%s\n", status);
-			header_dump(stderr, header, "----");
+			LOG_FOREACH(fd,
+				dump_writef(fd, "%s\n", status);
+				header_dump_fd(fd, header, "----");
+			);
 		}
 	}
 }

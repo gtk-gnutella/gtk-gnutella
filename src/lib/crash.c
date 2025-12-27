@@ -97,6 +97,7 @@
 #include "hstrfn.h"
 #include "iovec.h"
 #include "log.h"
+#include "logfilter.h"			/* For logfilter_crash_mode() */
 #include "mempcpy.h"
 #include "misc.h"				/* For english_strerror() */
 #include "mutex.h"				/* For mutex_crash_mode() */
@@ -2608,6 +2609,15 @@ crash_mode(enum crash_level level, bool external)
 	int stid;
 
 	g_assert(level != CRASH_LVL_NONE);
+
+	/*
+	 * If we're crashing, immediately disable the logfilter, in case we
+	 * are crashing from something the logfilter is doing or using: we
+	 * want to be able to get meaningful traces from now on!
+	 */
+
+	if (level >= CRASH_LVL_FAILURE)
+		logfilter_crash_mode();
 
 	/*
 	 * Record the ID of the first crashing thread.

@@ -539,6 +539,7 @@ extern const gboolean gnet_property_variable_lock_contention_trace;
 extern const gboolean gnet_property_variable_lock_sleep_trace;
 extern const gboolean gnet_property_variable_running_topless;
 extern const gboolean gnet_property_variable_send_oob_ind_reliably;
+extern const guint32	gnet_property_variable_logfilter_debug;
 extern const guint32	gnet_property_variable_adns_debug;
 extern const guint64	gnet_property_variable_bc_http_out;
 extern const guint64	gnet_property_variable_bc_gnet_tcp_up_out;

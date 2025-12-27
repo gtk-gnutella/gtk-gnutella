@@ -49,6 +49,7 @@ struct g2_tree;
 
 bool g2_tfmt_tree(const struct g2_tree *root, struct ostream *os, uint32 opt);
 bool g2_tfmt_tree_dump(const struct g2_tree *root, FILE *f, uint32 opt);
+bool g2_tfmt_tree_dump_fd(int fd, const struct g2_tree *root, uint32 opt);
 
 #endif /* _core_g2_tfmt_h_ */
 

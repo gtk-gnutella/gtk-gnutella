@@ -76,6 +76,7 @@ void header_free_null(header_t **o_ptr);
 void header_reset(header_t *o);
 int header_append(header_t *o, const char *text, int len);
 void header_dump(FILE *out, const header_t *o, const char *trailer);
+void header_dump_fd(int fd, const header_t *o, const char *trailer);
 const char *header_strerror(uint errnum);
 char *header_get(const header_t *o, const char *field);
 char *header_get_extended(const header_t *o, const char *field, size_t *lptr);

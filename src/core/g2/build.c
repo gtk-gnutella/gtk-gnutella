@@ -813,7 +813,9 @@ g2_build_qh2_flush(struct g2_qh2_builder *ctx)
 			NULL == ctx->n ?
 				stacktrace_function_name(ctx->cb) : node_infostr(ctx->n),
 			NULL == ctx->n ? "()" : "", pmsg_size(mb));
-		g2_tfmt_tree_dump(ctx->t, stderr, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
+		LOG_FOREACH(fd,
+			g2_tfmt_tree_dump_fd(fd, ctx->t, G2FMT_O_PAYLOAD | G2FMT_O_PAYLEN);
+		);
 	}
 
 	if (ctx->n != NULL)
