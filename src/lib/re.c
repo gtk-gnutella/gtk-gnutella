@@ -26350,8 +26350,8 @@ re_mi_generate_trie_node(struct re_mi_gen_trie_ctx *mit, const trie_node_t *tn)
 		 *    ./re-test -E "b|cd.|e"		// ROUTEX with DATA class
 		 *    ./re-test -E "b|c.|d"			// ROUTEX using XLOAD_A
 		 *    ./re-test -E "b|c.|d."		// ROUTEX using XLOAD_A
-		 *    ./re-test -E "b|cd|d"			// MATXHX (eXact MATCH)
-		 *    ./re-test -E "b|cd|cde|d"		// MATXH
+		 *    ./re-test -E "b|cd|d"			// MATCHX (eXact MATCH)
+		 *    ./re-test -E "b|cd|cde|d"		// MATCH
 		 *    ./re-test -E "b|cd|cde|d."	// ROUTE
 		 *    ./re-test -E "b|cd.|cde|d."	// ROUTE (spot the difference?)
 		 */
