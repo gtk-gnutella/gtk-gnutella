@@ -386,7 +386,7 @@ str_match_rec_internal(const char *caller, const str_t *s, ssize_t offset,
  * @return TRUE if a match occurred, with `pos' filled if supplied, otherwise
  * FALSE with `pos' left untouched.
  */
-bool
+static bool
 str_match_re_plain_internal(const str_t *s, ssize_t offset,
 	const char *caller, const char *pat, uint32 cflags, re_match_t *pos)
 {
