@@ -3247,7 +3247,7 @@ test_str_subst_re(void)
 	str_destroy(t);
 
 	t = str_clone(s);
-	cnt = str_subst_re(t, "(\\w+)(\\s+)(\\w+)", "$3$2$1", "og");
+	cnt = str_subst_re(t, "(\\w+)(\\s+)(\\w+)", "$3$2$1", "ogq");
 	g_assert(3 == cnt);
 	CHECK(t, "is This set a words of.");
 

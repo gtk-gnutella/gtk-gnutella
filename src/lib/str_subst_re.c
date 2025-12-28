@@ -514,6 +514,7 @@ str_case_match_re_plain_offset(const str_t *s,
  * "i": case-insensitive match
  * "n": no group capturing -- all capturing groups transformed in non-capturing
  * "o": once -- compile pattern, but do not bother to cache it
+ * "q": quick compilation -- do not bother trying to optimize pattern
  *
  * When the "c" option is supplied, we ignore `offset' and instead use the
  * ending position in pos[0] to continue matching further.  This means that
@@ -558,6 +559,7 @@ str_match_re_full(const str_t *s, ssize_t offset,
 			case 'n': cflags |= RE_F_NOSUB;      break;
 			case 'o': cache_re = FALSE;          break;
 			case 's': cflags |= RE_F_NEWLINE;    break;
+			case 'q': cflags |= RE_F_NO_OPTIM;   break;
 			default:
 				s_carp("%s(): unknown matching option '%c', ignoring",
 					G_STRFUNC, c);
@@ -741,6 +743,7 @@ str_match_new(const str_t *s, int match, re_match_t *pos, size_t npos)
  * "i": case-insensitive match
  * "n": no group capturing -- all capturing groups transformed in non-capturing
  * "o": once -- compile pattern, but do not bother to cache it
+ * "q": quick compilation -- do not bother trying to optimize pattern
  *
  * @param s			the string over which matching is attempted
  * @param offset	the string offset at which matching must start
@@ -777,6 +780,7 @@ str_match_re_keep_offset(
 			case 'n': cflags |= RE_F_NOSUB;      break;
 			case 'o': cache_re = FALSE;          break;
 			case 's': cflags |= RE_F_NEWLINE;    break;
+			case 'q': cflags |= RE_F_NO_OPTIM;   break;
 			default:
 				s_carp("%s(): unknown matching option '%c', ignoring",
 					G_STRFUNC, c);
@@ -1322,6 +1326,7 @@ str_subst_re_internal(
 			case 'o': cache_re = FALSE;          break;
 			case 's': cflags |= RE_F_NEWLINE;    break;
 			case 'g': all = TRUE;                break;
+			case 'q': cflags |= RE_F_NO_OPTIM;   break;
 			default:
 				s_carp("%s(): unknown matching option '%c', ignoring",
 					caller, c);
@@ -1356,6 +1361,7 @@ str_subst_re_internal(
  * "n": no group capturing -- all capturing groups transformed in non-capturing
  * "o": once -- compile pattern, but do not bother to cache it
  * "g": general -- replaces all occurrences of the specified pattern
+ * "q": quick compilation -- do not bother trying to optimize pattern
  *
  * @param s			the string over which matching is attempted
  * @param pat		the regular expression pattern to match
@@ -1382,6 +1388,7 @@ str_subst_re_plain(str_t *s, const char *pat, const char *repl, const char *opt)
  * "n": no group capturing -- all capturing groups transformed in non-capturing
  * "o": once -- compile pattern, but do not bother to cache it
  * "g": general -- replaces all occurrences of the specified pattern
+ * "q": quick compilation -- do not bother trying to optimize pattern
  *
  * @param s			the string over which matching is attempted
  * @param pat		the regular expression pattern to match
