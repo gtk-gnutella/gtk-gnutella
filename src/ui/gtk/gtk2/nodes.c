@@ -337,10 +337,10 @@ nodes_gui_update_node_info(struct node_data *data, gnet_node_info_t *info)
 {
     gnet_node_status_t status;
 
-    g_assert(info != NULL);
+	g_assert(info != NULL);
 
-    if (data == NULL)
-        data = find_node(info->node_id);
+	if (data == NULL)
+		data = find_node(info->node_id);
 
 	g_assert(NULL != data);
 	g_assert(data->node_id == info->node_id);
