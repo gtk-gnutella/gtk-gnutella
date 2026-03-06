@@ -163,6 +163,33 @@ struct atom_info {
 #endif	/* PTRSIZE > 4 */
 
 /**
+ * Computes the memory overhead for having an atom, regardless of its
+ * type.
+ *
+ * This does not account for the size of the atom itself (string, SHA1, etc.)
+ * but rather the internal memory overhead required to manage the atom:
+ * 	- the key and value pointers in the hash table
+ * 	- the atom_info structure on 32-bit machines
+ * 	- the size of the atom_t header structure.
+ *
+ * We also do not account for the general hash table overhead: this is
+ * negligible when we have many atoms, given that we already account for the
+ * pointers required by the key and value in that table.
+ */
+size_t
+atom_mem_overhead(void)
+{
+	size_t overhead =
+		sizeof(atom_t) +			/* Header (can be zero bytes) */
+		2 * sizeof(void *);			/* Key/value pointers in hash table */
+
+	if (4 == sizeof(void *))
+		overhead += sizeof(struct atom_info);
+
+	return overhead + 2 * sizeof(void *);	/* Key and value pointers */
+}
+
+/**
  * Return the atom's length from the information stored in the hash table.
  */
 static inline size_t
@@ -194,7 +221,6 @@ atom_info_refcnt(void *p)
 		return ATOM_REFCNT(pointer_to_ulong(p));
 	}
 }
-
 
 static inline atom_t *
 atom_from_arena(const void *key)

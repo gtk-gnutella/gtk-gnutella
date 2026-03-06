@@ -455,11 +455,9 @@ ghc_get_hosts(void)
 {
 	/*
 	 * Make sure we don't probe the global cache more than once at a time.
-	 * Ancient versions are denied the right to contact host caches and
-	 * must find out hosts another way.
 	 */
 
-	if (ghc_connecting || GNET_PROPERTY(ancient_version))
+	if (ghc_connecting)
 		return;
 
 	g_message("BOOT will be contacting a GHC");

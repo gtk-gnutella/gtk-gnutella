@@ -1,0 +1,39 @@
+?RCS: $Id$
+?RCS:
+?RCS: @COPYRIGHT@
+?RCS:
+?MAKE:d_pcre2_8: cat Trylink
+?MAKE:	-pick add $@ %<
+?S:d_pcre2_8:
+?S:	This variable is defined if the PCRE2 library is available for handling
+?S:	8-bit characters.
+?S:.
+?C:HAS_PCRE2_8:
+?C:	This symbol, if defined, indicates that the PCRE2 library is available
+?C:	with 8-bit characters.  To use it, one must include <prce2.h> and define
+?C:	PCRE2_CODE_UNIT_WIDTH to 8 prior to that inclusion.
+?C:.
+?H:#$d_pcre2_8 HAS_PCRE2_8	/**/
+?H:.
+?LINT:set d_pcre2_8
+: see whether we have pcre2 for 8-bit chars
+$cat >try.c <<EOC
+#define PCRE2_CODE_UNIT_WIDTH 8
+#include <pcre2.h>
+int main(void)
+{
+	pcre2_code *c;
+	int err;
+	PCRE2_SIZE pos;
+
+	c = pcre2_compile(
+			(unsigned char *) "", PCRE2_ZERO_TERMINATED, 0,
+			&err, &pos, NULL
+	);
+	return NULL == c;
+}
+EOC
+cyn="whether PCRE2 (8-bit) is available"
+set d_pcre2_8 -lpcre2-8
+eval $trylink
+

@@ -6432,9 +6432,9 @@ vxml_run_callback_test(int num, const char *name,
 }
 
 static void
-vxml_tree_dump(const xnode_t *root, FILE *f)
+vxml_tree_dump(const xnode_t *root, int fd)
 {
-	ostream_t *os = ostream_open_file(f);
+	ostream_t *os = ostream_open_fd(fd);
 	xfmt_tree(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS);
 	ostream_close(os);
 }
@@ -6445,9 +6445,9 @@ static struct xfmt_prefix vxml_xfmt_prefixes[] = {
 };
 
 static void
-vxml_tree_extended_dump(const xnode_t *root, FILE *f, const char *default_ns)
+vxml_tree_extended_dump(const xnode_t *root, int fd, const char *default_ns)
 {
-	ostream_t *os = ostream_open_file(f);
+	ostream_t *os = ostream_open_fd(fd);
 
 	xfmt_tree_extended(root, os, XFMT_O_PROLOGUE | XFMT_O_SKIP_BLANKS,
 		vxml_xfmt_prefixes, N_ITEMS(vxml_xfmt_prefixes), default_ns);
@@ -6481,7 +6481,9 @@ vxml_run_tree_test(int num, const char *name,
 
 	if (vxml_debugging(0) && VXML_E_OK == e) {
 		g_info("VXML test #%d -- parsed tree of \"%s\":", num, name);
-		vxml_tree_dump(root, stderr);
+		LOG_FOREACH(fd,
+			vxml_tree_dump(root, fd);
+		);
 	}
 
 	return VXML_E_OK == e ? root : NULL;
@@ -6865,7 +6867,9 @@ vxml_test(void)
 
 	if (vxml_debugging(0)) {
 		g_debug("VXML extended tree dump with default namespace:");
-		vxml_tree_extended_dump(root, stderr, "urn:x-ns");
+		LOG_FOREACH(fd,
+			vxml_tree_extended_dump(root, fd, "urn:x-ns");
+		);
 	}
 
 	xnode_tree_free(root);

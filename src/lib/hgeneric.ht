@@ -82,6 +82,9 @@ h<generic>_t *h<generic>_create_any_real(hash_fn_t primary,
 void h<generic>_free_null(h<generic>_t **);
 void h<generic>_clear(h<generic>_t *);
 void h<generic>_thread_safe(h<generic>_t *);
+void h<generic>_read_only(h<generic>_t *);
+void h<generic>_read_write(h<generic>_t *);
+size_t h<generic>_min_count(h<generic>_t *, size_t count);
 void h<generic>_lock(h<generic>_t *);
 void h<generic>_unlock(h<generic>_t *);
 
@@ -89,6 +92,7 @@ bool h<generic>_contains(const h<generic>_t *, const void *key);
 const void *h<generic>_random(const h<generic>_t *);
 @if TABLE
 void htable_insert(htable_t *, const void *key, void *value);
+bool htable_insert_if_missing(htable_t *, const void *key, void *value);
 void *htable_lookup(const htable_t *, const void *key);
 bool htable_lookup_extended(const htable_t *, const void *key,
 	const void **keyptr, void **valptr);
@@ -104,6 +108,7 @@ htable_insert_const(htable_t *ht, const void *key, const void *value)
 @end
 @if SET
 void hset_insert(hset_t *, const void *key);
+bool hset_insert_if_missing(hset_t *, const void *key);
 void *hset_lookup(const hset_t *, const void *key);
 bool hset_contains_extended(const hset_t *, const void *key,
 	const void **keyptr);
@@ -126,6 +131,8 @@ bool htable_iter_next(htable_iter_t *, const void **kp, void **vp);
 bool hset_iter_next(hset_iter_t *, const void **kp);
 @end
 void h<generic>_iter_remove(h<generic>_iter_t *);
+
+size_t h<generic>_memsize(const h<generic>_t *);
 
 @if TABLE
 void htable_test(void);

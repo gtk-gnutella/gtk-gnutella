@@ -3929,7 +3929,8 @@ malloc_show_settings_log(logagent_t *la)
 #endif
 
 	/*
-	 * Log malloc configuration.
+	 * Log malloc configuration: nothing will be output if none of the optional
+	 * settings that can be configured have been enabled.
 	 */
 
 #ifdef USE_HALLOC
@@ -3997,7 +3998,8 @@ malloc_show_settings_log(logagent_t *la)
 #endif
 
 	if (has_setting) {
-		log_message(la, "malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+		log_message(la, "malloc settings: %s%s%s%s%s%s%s%s%s%s%s%s%s%s%s",
+			settings.use_halloc ? "USE_HALLOC " : "",
 			settings.track_vmm ? "TRACK_VMM " : "",
 			settings.track_malloc ? "TRACK_MALLOC " : "",
 			settings.track_zalloc ? "TRACK_ZALLOC " : "",

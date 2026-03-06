@@ -797,7 +797,7 @@ xmalloc_long_term(void)
 	 * library and avoid creating some objects too early: we wish to avoid
 	 * sbrk() allocation if possible.
 	 *
-	 * The GC is now only installed then vmm_set_strategy() is called to
+	 * The GC is now only installed when vmm_set_strategy() is called to
 	 * install a long-term allocation strategy.  Hence we know that the VMM
 	 * layer is up.
 	 *		--RAM, 2015-12-02
@@ -916,6 +916,45 @@ xmalloc_should_split(size_t current, size_t wanted)
 }
 
 /**
+ * Compute the base address of the heap, once.
+ */
+static void
+xmalloc_init_break(void)
+{
+	if G_UNLIKELY(lowest_break != NULL || current_break != NULL)
+		return;
+
+#ifdef HAS_SBRK
+	lowest_break = current_break = sbrk(0);
+#else
+	s_error("%s(): cannot get initial heap break address: %m", G_STRFUNC);
+#endif	/* HAS_SBRK */
+}
+
+/**
+ * Is memory pointer before the current break, meaning it is in the data
+ * or BSS segment, assuming the usual VM architecture for processes:
+ *
+ *  |  Text
+ *  |  Data
+ *  |  BSS
+ *	|   <- break
+ *	|  Heap
+ *	|  Mappable Memory
+ *	|  Stack
+ *  v
+ * Increasing VM addresses
+ */
+bool
+xmalloc_ptr_is_static(const void *p)
+{
+	if G_UNLIKELY(lowest_break == NULL)
+		xmalloc_init_break();
+
+	return ptr_cmp(p, lowest_break) < 0;
+}
+
+/**
  * Allocate more core, when the VMM layer is still uninitialized.
  *
  * Allocation is done in a system-dependent way: sbrk() on UNIX,
@@ -950,19 +989,8 @@ xmalloc_addcore_from_heap(size_t len, bool can_log)
 	 * Initialize the heap break point if not done so already.
 	 */
 
-	if G_UNLIKELY(NULL == lowest_break) {
-
-#ifdef HAS_SBRK
-		current_break = sbrk(0);
-#else
-		current_break = (void *) -1;
-#endif	/* HAS_SBRK */
-
-		lowest_break = current_break;
-		if ((void *) -1 == current_break) {
-			s_error("cannot get initial heap break address: %m");
-		}
-	}
+	if G_UNLIKELY(NULL == lowest_break)
+		xmalloc_init_break();
 
 	/*
 	 * The VMM layer has not been initialized yet: allocate from the heap.
@@ -2263,10 +2291,8 @@ xfl_binary_lookup(void **array, const void *p,
 	for (;;) {
 		int c;
 
-		if G_UNLIKELY(low >= high) {
-			mid = (size_t) -1;	/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low >= high)
+			goto not_found;
 
 		mid = (low + high) / 2;
 		c = xm_ptr_cmp(p, array[mid]);
@@ -2280,10 +2306,13 @@ xfl_binary_lookup(void **array, const void *p,
 
 	}
 
+	return mid;
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low;
 
-	return mid;
+	return (size_t) -1;
 }
 
 /**
@@ -6084,10 +6113,16 @@ static void
 xgc_free_all(struct xgc_allocator *xga)
 {
 	struct xgc_page *p, *next;
+	size_t total = 0;
 
 	for (p = xga->head; p != NULL; p = next) {
 		next = p->next;
 		vmm_core_free(p, xmalloc_pagesize);
+		total += xmalloc_pagesize;
+	}
+
+	if (xmalloc_debugging(0)) {
+		s_debug("XM GC freed %'zu bytes allocated during run", total);
 	}
 }
 
@@ -7601,7 +7636,7 @@ xalign_type_str(const struct xaligned *xa)
  * If ``low_ptr'' is non-NULL, it is written with the index where insertion
  * of a new item should happen (in which case the returned value must be -1).
  *
- * @return index within the array where ``p'' is stored, * -1 if not found.
+ * @return index within the array where ``p'' is stored, -1 if not found.
  */
 static size_t G_HOT
 xa_lookup(const void *p, size_t *low_ptr)
@@ -7622,10 +7657,8 @@ xa_lookup(const void *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -7637,10 +7670,13 @@ xa_lookup(const void *p, size_t *low_ptr)
 			break;				/* Found */
 	}
 
+	return (size_t) (mid - &aligned[0]);
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low - &aligned[0];
 
-	return NULL == mid ? (size_t) -1 : (size_t) (mid - &aligned[0]);
+	return (size_t) -1;
 }
 
 /**

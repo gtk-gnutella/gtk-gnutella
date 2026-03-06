@@ -759,8 +759,11 @@ wrealloc(void *old, size_t old_size, size_t new_size)
 	if (NULL == old)
 		return walloc(new_size);
 
-	if (old_rounded == new_rounded)
+	if (old_rounded == new_rounded) {
+		if (old_size > walloc_max)
+			return old;
 		return wmove(old, old_size);	/* Move around if interesting */
+	}
 
 	if G_UNLIKELY(new_rounded > walloc_max || old_rounded > walloc_max)
 		goto resize_block;

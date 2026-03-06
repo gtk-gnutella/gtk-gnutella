@@ -71,7 +71,6 @@ char *tok_version(void);
 char *tok_short_version(void);
 tok_error_t tok_version_valid(
 	const char *version, const char *tokenb64, int len);
-bool tok_is_ancient(time_t now);
 
 #endif	/* _core_token_h_ */
 

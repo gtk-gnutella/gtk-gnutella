@@ -85,6 +85,7 @@
 #include "lib/cstr.h"
 #include "lib/dbmw.h"
 #include "lib/dbstore.h"
+#include "lib/fd.h"
 #include "lib/hashing.h"
 #include "lib/host_addr.h"
 #include "lib/hset.h"
@@ -425,14 +426,13 @@ dht_value_length(const dht_value_t *v)
 }
 
 void
-dht_value_dump(FILE *out, const dht_value_t *v)
+dht_value_dump(int fd, const dht_value_t *v)
 {
-	if (!log_file_printable(out))
-		return;
+	g_return_if_fail(is_valid_fd(fd));
 
-	fprintf(out, "%s\n", dht_value_to_string(v));
+	dump_writef(fd, "%s\n", dht_value_to_string(v));
 	if (v->data != NULL) {
-		dump_hex(out, "Value Data", v->data, v->length);
+		dump_hex_fd(fd, "Value Data", v->data, v->length);
 	}
 }
 
@@ -1749,9 +1749,11 @@ values_publish(const knode_t *kn, const dht_value_t *v)
 		g_assert(v->length == vd->length);	/* Ensured by preceding code */
 
 		if (0 != memcmp(data, v->data, v->length)) {
-			if (GNET_PROPERTY(dht_storage_debug) > 15)
-				dump_hex(stderr, "Old value payload", data, length);
-
+			if (GNET_PROPERTY(dht_storage_debug) > 15) {
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "Old value payload", data, length);
+				);
+			}
 			what = "value data";
 			goto mismatch;
 		}
@@ -1831,8 +1833,11 @@ values_store(const knode_t *kn, const dht_value_t *v, bool token)
 			kuid_eq(v->creator->id, kn->id) ? "original" : "copy");
 
 		/* v->data can be NULL if DHT value is larger than our maximum */
-		if (v->data && GNET_PROPERTY(dht_storage_debug) > 15)
-			dump_hex(stderr, "Value payload", v->data, v->length);
+		if (v->data && GNET_PROPERTY(dht_storage_debug) > 15) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Value payload", v->data, v->length);
+			);
+		}
 	}
 
 	/*

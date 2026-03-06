@@ -341,12 +341,16 @@ log:
 
 		if (len != 0 && !(flags & HSTL_STATIC)) {
 			if (len <= GTA_HEADER_SIZE) {
-				dump_hex(stderr, "UDP datagram", header, len);
+				LOG_FOREACH(fd,
+					dump_hex_fd(fd, "UDP datagram", header, len);
+				);
 			} else {
 				iovec_t iov[2];
 				iovec_set(&iov[0], header, GTA_HEADER_SIZE);
 				iovec_set(&iov[1], payload, len - GTA_HEADER_SIZE);
-				dump_hex_vec(stderr, "UDP datagram", iov, N_ITEMS(iov));
+				LOG_FOREACH(fd,
+					dump_hex_vec_fd(fd, "UDP datagram", iov, N_ITEMS(iov));
+				);
 			}
 		}
 	}
@@ -781,7 +785,9 @@ udp_intuit_traffic_type(const gnutella_socket_t *s,
 						host_addr_port_to_string(s->addr, s->port),
 						len, size, function, hops, ttl,
 						gnutella_header_get_size(data));
-					dump_hex(stderr, "UDP ambiguous datagram", data, len);
+					LOG_FOREACH(fd,
+						dump_hex_fd(fd, "UDP ambiguous datagram", data, len);
+					);
 				}
 
 				switch (function) {

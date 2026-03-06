@@ -79,7 +79,6 @@ typedef struct version_ext {
 
 void version_init(bool hide);
 void version_close(void);
-void version_ancient_warn(void);
 bool version_check(const char *str, const char *token, const host_addr_t);
 int version_cmp(const version_t *a, const version_t *b);
 int version_build_cmp(const version_t *a, const version_t *b);

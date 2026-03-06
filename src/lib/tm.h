@@ -142,7 +142,7 @@ tm_is_negative(const tm_t * const t)
 static inline double
 tm2f(const tm_t * const t)
 {
-	return (double) t->tv_sec + t->tv_usec / 1000000.0;
+	return (double) t->tv_sec + 1e-6 * (double) t->tv_usec;
 }
 
 /**
@@ -151,11 +151,11 @@ tm2f(const tm_t * const t)
 static inline ulong
 tm2ms(const tm_t * const t)
 {
-	return (ulong) t->tv_sec * 1000UL + (ulong) t->tv_usec / 1000U;
+	return (ulong) t->tv_sec * 1000UL + (ulong) (t->tv_usec / 1000U);
 }
 
 /**
- * Convert timeval description into microseconds.
+ * Convert nanosecond description into microseconds value.
  */
 static inline ulong
 tm2us(const tm_t * const t)
@@ -164,7 +164,7 @@ tm2us(const tm_t * const t)
 }
 
 /**
- * Convert timespec description into nanoseconds.
+ * Convert nanosecond structure into nanoseconds value.
  */
 static inline ulong
 tmn2ns(const tm_nano_t * const t)
@@ -173,12 +173,12 @@ tmn2ns(const tm_nano_t * const t)
 }
 
 /**
- * Convert timespec description into floating point representation.
+ * Convert nanosecond description into floating point representation.
  */
 static inline double
 tmn2f(const tm_nano_t * const t)
 {
-	return (double) t->tv_sec + t->tv_nsec / 1000000000.0;
+	return (double) t->tv_sec + 1e-9 * (double) t->tv_nsec;
 }
 
 void tm_init(bool time_thread);

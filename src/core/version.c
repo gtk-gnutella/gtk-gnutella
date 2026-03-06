@@ -677,20 +677,6 @@ version_check(const char *str, const char *token, const host_addr_t addr)
 
 		error = tok_version_valid(str, token, vstrlen(token));
 
-		/*
-		 * Unfortunately, if our token has expired, we can no longer
-		 * validate the tokens of the remote peers, since they are using
-		 * a different set of keys.
-		 *
-		 * This means an expired GTKG will blindly trust well-formed remote
-		 * tokens at face value.  But it's their fault, they should not run
-		 * an expired version!
-		 *		--RAM, 2005-12-21
-		 */
-
-		if (error == TOK_BAD_KEYS && tok_is_ancient(tm_time()))
-			error = TOK_OK;		/* Our keys have expired, cannot validate */
-
 		if (error != TOK_OK) {
             if (GNET_PROPERTY(version_debug)) {
                 g_debug("vendor string \"%s\" [%s] has wrong token "
@@ -862,10 +848,7 @@ version_build_string(void)
 void G_COLD
 version_init(bool hide)
 {
-	time_t now;
-
 	version_string = ostrdup_readonly(version_build_internal(hide));
-	now = tm_time();
 
 	{
 		bool ok;
@@ -912,99 +895,6 @@ version_init(bool hide)
 			(((tmp->tm_year + 1900 - 2000) & 0x0f) << 4) | (tmp->tm_mon + 1);
 	} else
 		version_code = 0;
-
-	/*
-	 * The property system is not up when this is called, but we need
-	 * to set this variable correctly.
-	 */
-
-	if (
-		tok_is_ancient(now) ||
-		delta_time(now, our_version.timestamp) > VERSION_ANCIENT_WARN
-	) {
-		*deconstify_bool(&GNET_PROPERTY(ancient_version)) = TRUE;
-	}
-}
-
-/**
- * Called after GUI initialized to warn them about an ancient version.
- * (over a year old).
- *
- * If the version being ran is not a stable one, warn after 60 days, otherwise
- * warn after a year.  If we're not "expired" yet but are approaching the
- * deadline, start to remind them.
- */
-void
-version_ancient_warn(void)
-{
-	time_t now = tm_time();
-	time_delta_t lifetime, remain, elapsed;
-	time_t s;
-
-	g_assert(our_version.timestamp != 0);	/* version_init() called */
-
-	/*
-	 * Must reset the property to FALSE so that if it changes and becomes
-	 * TRUE, then the necessary GUI callbacks will get triggered.  Indeed,
-	 * setting a property to its ancient value is not considered a change,
-	 * and rightfully so!
-	 */
-
-	gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, FALSE);
-
-	elapsed = delta_time(now, our_version.timestamp);
-
-	if (elapsed > VERSION_ANCIENT_WARN || tok_is_ancient(now)) {
-		static bool warned = FALSE;
-		if (GNET_PROPERTY(version_debug)) {
-			g_debug("VERSION our_version = %s (elapsed = %ld, token %s)",
-				timestamp_to_string(our_version.timestamp),
-				(long) elapsed, tok_is_ancient(now) ? "ancient" : "ok");
-		}
-		if (!warned) {
-			g_warning("version of gtk-gnutella is too old, please upgrade!");
-			warned = TRUE;
-		}
-        gnet_prop_set_boolean_val(PROP_ANCIENT_VERSION, TRUE);
-		return;
-	}
-
-	/*
-	 * Check whether we're nearing ancient version status, to warn them
-	 * beforehand that the version will become old soon.
-	 */
-
-	lifetime = VERSION_ANCIENT_WARN;
-	remain = delta_time(lifetime, elapsed);
-
-	g_assert(remain >= 0);		/* None of the checks above have fired */
-
-	/*
-	 * Try to see whether the token will expire within the next
-	 * VERSION_ANCIENT_REMIND secs, looking for the minimum cutoff date.
-	 *
-	 * Indeed, it is possible to emit new versions without issuing a
-	 * new set of token keys, thereby constraining the lifetime of the
-	 * version.  This is usually what happens for bug-fixing releases
-	 * that do not introduce significant Gnutella features.
-	 */
-
-	s = time_advance(now, VERSION_ANCIENT_REMIND);
-	for (/* NOTHING */; delta_time(s, now) > 0; s -= SECS_PER_DAY) {
-		if (!tok_is_ancient(s))
-			break;
-	}
-
-	remain = MIN(remain, delta_time(s, now));
-
-	/*
-	 * Let them know when version will expire soon...
-	 */
-
-	if (remain < VERSION_ANCIENT_REMIND) {
-        gnet_prop_set_guint32_val(PROP_ANCIENT_VERSION_LEFT_DAYS,
-			remain / SECS_PER_DAY);
-	}
 }
 
 /**

@@ -1335,9 +1335,12 @@ socket_timer(time_t now)
 			if (GNET_PROPERTY(socket_debug)) {
 				g_warning("connection from %s timed out (%d bytes read)",
 					  host_addr_to_string(s->addr), (int) s->pos);
-				if (s->pos > 0)
-					dump_hex(stderr, "Connection Header",
-						s->buf, MIN(s->pos, 80));
+				if (s->pos > 0) {
+					LOG_FOREACH(fd,
+						dump_hex_fd(fd, "Connection Header",
+							s->buf, MIN(s->pos, 80));
+					);
+				}
 			}
 
 			to_remove = pslist_prepend(to_remove, s);
@@ -1934,7 +1937,9 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	if (count < 1) {
 		g_warning("%s(): incoming buffer full, disconnecting from %s",
 			 G_STRFUNC, host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data", s->buf, MIN(s->pos, 256));
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "Leading Data", s->buf, MIN(s->pos, 256));
+		);
 		socket_destroy(s, "Incoming buffer full");
 		return;
 	}
@@ -1975,8 +1980,10 @@ socket_read(void *data, int source, inputevt_cond_t cond)
 	case READ_OVERFLOW:
 		g_warning("%s(): first line too long, disconnecting from %s",
 			 G_STRFUNC, host_addr_to_string(s->addr));
-		dump_hex(stderr, "Leading Data",
-			getline_str(s->getline), MIN(getline_length(s->getline), 256));
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "Leading Data",
+				getline_str(s->getline), MIN(getline_length(s->getline), 256));
+		);
 		if (
 			is_strprefix(s->buf, "GET ") ||
 			is_strprefix(s->buf, "HEAD ") ||
@@ -2221,8 +2228,11 @@ unknown:
 		size_t len = getline_length(s->getline);
 		g_warning("%s(): got unknown incoming connection from %s, dropping!",
 			G_STRFUNC, host_addr_to_string(s->addr));
-		if (len > 0)
-			dump_hex(stderr, "First Line", first, MIN(len, 160));
+		if (len > 0) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "First Line", first, MIN(len, 160));
+			);
+		}
 	}
 	if (vstrstr(first, "HTTP")) {
 		http_send_status(HTTP_UPLOAD, s, 501, FALSE, NULL, 0,

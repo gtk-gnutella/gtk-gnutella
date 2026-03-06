@@ -129,6 +129,10 @@
 
 #include "override.h"			/* Must be the last header included */
 
+#if 0
+#define THREAD_DEBUG			/* Turn on extra debugging / consistency */
+#endif
+
 /**
  * To quickly access thread-private data, we introduce the notion of Quasi
  * Thread Ids, or QIDs: they are not unique for a given thread but no two
@@ -643,6 +647,7 @@ static uint thread_pending_reuse;		/* Threads waiting to be reused */
 static uint thread_running;				/* Created threads running */
 static uint thread_discovered;			/* Amount of discovered threads */
 static bool thread_stack_noinit;		/* Whether to skip stack allocation */
+static bool thread_exit_mode_on;		/* When thread_exit_mode() was called */
 static int thread_crash_mode_enabled;	/* Whether we entered crash mode */
 static int thread_crash_mode_stid = -1;	/* STID of the crashing thread */
 static int thread_locks_disabled;		/* Whether locks were disabled */
@@ -1981,6 +1986,7 @@ thread_element_mark_reusable_locked(struct thread_element *te)
 
 	te->reusable = TRUE;	/* Allow reuse */
 	te->valid = FALSE;		/* Holds stale values now */
+	thread_set(te->tid, THREAD_INVALID);
 }
 
 /**
@@ -2255,7 +2261,7 @@ thread_element_reset(struct thread_element *te)
 #endif
 
 	thread_set(te->tid, THREAD_INVALID);
-	te->ptid = (pthread_t) 0;
+	ZERO(&te->ptid);		/* Is not necessary a scalar value */
 	te->last_qid = (thread_qid_t) -1;
 	te->low_qid = te->low_sig_qid = (thread_qid_t) -1;
 	te->high_qid = te->high_sig_qid = 0;
@@ -2370,6 +2376,8 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 
 		if G_LIKELY(te != xte) {
 			if G_UNLIKELY(thread_eq(t, xte->tid)) {
+				bool cleared = FALSE;
+
 				/*
 				 * When we have a TID match, the thread element is
 				 * necessary defunct.  Since we're holding a spinlock
@@ -2378,10 +2386,31 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 
 				THREAD_LOCK(xte);
 				if G_LIKELY(thread_eq(t, xte->tid)) {
+					cleared = TRUE;	/* Warn outside of critical region */
 					thread_set(xte->tid, THREAD_INVALID);
 					thread_set(tstid[i], THREAD_INVALID);
 				}
 				THREAD_UNLOCK(xte);
+
+				/*
+				 * Normally, this should never happen for created threads.
+				 * hence loudly warn.  For discovered thread, it is hard
+				 * to be as assertive, but it is interesting to know that
+				 * it happens.
+				 *
+				 * If the thread element is not valid, there is little
+				 * reason to warn, but if it is invalid, this information
+				 * should have been cleared already.
+				 *
+				 * All considered, it makes sense to always emit a critical
+				 * note when this happens as it could hint to some other
+				 * low-level lurking bug.
+				 */
+
+				if (cleared) {
+					s_critical("%s(): cleared TID=%lu for %s from %s",
+						G_STRFUNC, t, thread_id_name(xte->stid), thread_name());
+				}
 			}
 		}
 	}
@@ -2857,6 +2886,7 @@ thread_instantiate(struct thread_element *te, thread_t t)
 	thread_cleanup(te);
 	thread_element_reset(te);
 	te->discovered = TRUE;
+	te->detached = TRUE;		/* Cannot join with a thread we discovered */
 	te->ptid = pthread_self();
 	te->running = TRUE;
 	te->last_seen = tm_time_raw();
@@ -3512,6 +3542,16 @@ again:
 static bool
 thread_suspend_self(struct thread_element *te)
 {
+	size_t locks = thread_element_lock_count(te);
+
+	/*
+	 * When exiting, we don't care if we are in the middle of a lock sequence,
+	 * suspend yourself!
+	 */
+
+	if (thread_exit_mode_on)
+		goto suspend;
+
 	/*
 	 * We cannot let a thread holding spinlocks or mutexes to suspend itself
 	 * since that could cause a deadlock with the concurrent thread that will
@@ -3519,8 +3559,13 @@ thread_suspend_self(struct thread_element *te)
 	 * whilst it holds an internal mutex.
 	 */
 
-	g_assert(0 == thread_element_lock_count(te));
+	if G_UNLIKELY(0 != locks) {
+		thread_lock_dump(te);
+		s_error("%s(): attempt to supsend while holding %zu lock%s",
+			G_STRFUNC, PLURAL(locks));
+	}
 
+suspend:
 	return thread_suspend_loop(te);
 }
 
@@ -3911,31 +3956,23 @@ retry:
 	} else {
 		/*
 		 * For discovered threads, we need to be smarter and look at whether
-		 * the thread ID is not being one of a known thread.  If it is, then
-		 * we can extend the QID range for next time.
+		 * the thread ID is not being one of a known thread.
 		 */
 
 		te = thread_find_tid(t);
 		if (te != NULL) {
-			if (te->discovered) {
-				thread_set(te->tid, t);
-				thread_element_update_qid_range(te, qid);
-				goto created;
-			}
-			g_assert(!thread_eq(THREAD_INVALID, te->tid));
+			g_assert(thread_eq(te->tid, t));
+			goto created;	/* To release the mutex */
+		} else {
+			/*
+			 * We found no thread bearing that ID, we've discovered a new thread.
+			 */
+
+			te = thread_reuse_element();
 		}
-
-		/*
-		 * We found no thread bearing that ID, we've discovered a new thread.
-		 */
-
-		te = thread_reuse_element();
 	}
 
 	if (te != NULL) {
-		if (!te->discovered)
-			atomic_uint_inc(&thread_discovered);
-
 		/*
 		 * We have a thread element for the discovered thread, and hence a
 		 * thread ID.  It is critical to let the xmalloc() layer know that this
@@ -3945,8 +3982,17 @@ retry:
 
 		xmalloc_thread_starting(te->stid);
 
-		thread_set(tstid[te->stid], t);
-		thread_instantiate(te, t);
+		/*
+		 * Only instantiate a new thread if the thread ID changed.
+		 */
+
+		if (!thread_eq(te->tid, t)) {
+			atomic_uint_inc(&thread_discovered);
+
+			thread_set(tstid[te->stid], t);
+			thread_instantiate(te, t);
+		}
+
 		goto created;
 	}
 
@@ -5850,7 +5896,22 @@ thread_element_set(struct thread_element *te, const void **element)
 	 * 		--RAM, 2020-02-12
 	 */
 
-	return G_LIKELY(thread_main_started) ? te->tid : thread_self();
+	if G_LIKELY(thread_main_started) {
+#ifdef THREAD_DEBUG
+		g_assert_log(thread_eq(te->tid, thread_self()),
+			"%s(): te->tid=%lu, thread_self()=%lu (te->stid=%d, %s, valid=%s)",
+			G_STRFUNC, te->tid, thread_self(), te->stid,
+			thread_id_name(te->stid), bool_to_string(te->valid));
+
+		g_assert_log(thread_eq(tstid[te->stid], te->tid),
+			"%s(): te->stid=%u, tstid[%u]=%lu, te->tid=%lu",
+			G_STRFUNC, te->stid, te->stid, tstid[te->stid], te->tid);
+#endif	/* THREAD_DEBUG */
+
+		return te->tid;
+	}
+
+	return thread_self();
 }
 
 /**
@@ -7335,6 +7396,9 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 		 * Detect recursion if we are registered to wait for a lock and
 		 * we come back here stating that we are going to wait for the same
 		 * exact lock!
+		 *
+		 * If we are in a signal handler, it is probably useless, if not
+		 * very probably harmful, to log a backtrace.
 		 */
 
 		if (0 == tls->count) {
@@ -7344,11 +7408,14 @@ thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 
 			for (i = 0; i < tls->count; i++) {
 				if (lock == tls->arena[i].lock) {
-					te->recursive_lockwait = TRUE;
-					s_miniwarn("recursive waiting on %s %p at %s:%u",
-						thread_lock_kind_to_string(kind), lock, file, line);
-					thread_lock_waiting_dump_fd(STDERR_FILENO, te);
-					s_where(1);
+					s_miniwarn("recursive waiting on %s %p at %s:%u%s",
+						thread_lock_kind_to_string(kind), lock, file, line,
+						te->in_signal_handler ? " (in sig handler)" : "");
+					if (!te->in_signal_handler) {
+						te->recursive_lockwait = TRUE;
+						thread_lock_waiting_dump_fd(STDERR_FILENO, te);
+						s_where(1);
+					}
 					break;
 				}
 			}
@@ -8379,6 +8446,8 @@ thread_crash_mode(bool disable_locks)
 void G_COLD
 thread_exit_mode(void)
 {
+	thread_exit_mode_on = TRUE;
+
 	/*
 	 * We're going to suspend all the other threads, which is necessary since
 	 * final cleanup is going to run with minimal resources and we do not

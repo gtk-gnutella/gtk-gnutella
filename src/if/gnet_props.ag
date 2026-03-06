@@ -41,22 +41,6 @@ prop = {
 };
 
 prop = {
-    name = "ancient_version";
-    desc = "Indicates that gtk-gnutella finds the version you run "
-           "very VERY old.  You should upgrade as soon as possible "
-		   "to avoid suffering from non-optimal Gnutella support that "
-		   "may not only damage your abilities to search and download "
-		   "but also harm the network since you're not supporting the "
-		   "newest features.";
-    type = boolean;
-    save = FALSE;
-	internal = TRUE;
-    data = {
-        default = FALSE;
-    };
-};
-
-prop = {
     name = "new_version_str";
     desc = "gtk-gnutella found a newer version on the Gnet and gives "
            "information about it here.";
@@ -3047,16 +3031,6 @@ prop = {
 };
 
 prop = {
-    name = "ancient_version_left_days";
-    desc = "Indicates that gtk-gnutella will expire in that many days.";
-    type = guint32;
-    save = FALSE;
-    data = {
-        default = 365;
-    };
-};
-
-prop = {
 	name = "file_descriptor_shortage";
 	desc = "When set, gtk-gnutella is running short on file descriptors, "
 		"but normal operations are still possible. "
@@ -5717,6 +5691,15 @@ prop = {
     type = boolean;
     data = {
         default = TRUE;
+	};
+};
+
+prop = {
+    name = "logfilter_debug";
+    desc = "Debug level for log filtering.";
+    type = guint32;
+    data = {
+        default = 0;
     };
 };
 

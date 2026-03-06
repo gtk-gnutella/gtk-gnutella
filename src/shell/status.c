@@ -180,10 +180,9 @@ shell_exec_status(struct gnutella_shell *sh, int argc, const char *argv[])
 		}
 
 		str_bprintf(ARYLEN(flags),
-			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
+			"<%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s%s>",
 			pmp,
 			GNET_PROPERTY(download_queue_frozen) ? "DFZ " : empty,
-			GNET_PROPERTY(ancient_version) ? "CLK " : empty,
 			GNET_PROPERTY(tcp_no_listening) ? "!TL " : empty,
 			GNET_PROPERTY(net_buffer_shortage) ? "!IP " : empty,
 			fd,

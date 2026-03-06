@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 1996-2000, 2007, 2010-2015 Raphael Manfredi
+ * Copyright (c) 1996-2000, 2007, 2010-2015, 2018, 2024 Raphael Manfredi
  *
  * This code given by Raphael Manfredi, extracted from his fm2html package.
  * Also contains some code borrowed from Perl: routine str_vncatf().
@@ -39,12 +39,14 @@
  * Memory must be released with hfree().
  *
  * @author Raphael Manfredi
- * @date 1996-2000, 2007, 2010-2015
+ * @date 1996-2000, 2007, 2010-2015, 2018, 2024
  */
 
 #include "common.h"
 
 #include <math.h>		/* For frexp() and isfinite() */
+
+#include "str.h"
 
 #include "ascii.h"
 #include "ckalloc.h"
@@ -55,7 +57,6 @@
 #include "mempcpy.h"
 #include "misc.h"			/* For clamp_strcpy() and symbolic_errno() */
 #include "omalloc.h"
-#include "str.h"
 #include "stringify.h"		/* For logging */
 #include "thread.h"
 #include "unsigned.h"
@@ -479,7 +480,7 @@ str_private(const void *key, size_t szhint)
  * If specified length is (size_t) -1, it is computed using strlen().
  */
 str_t *
-str_make(char *ptr, size_t len)
+str_make(const char *ptr, size_t len)
 {
 	str_t *str;
 
@@ -491,6 +492,7 @@ str_make(char *ptr, size_t len)
 
 	WALLOC(str);
 	(void) str_create(str, len + 1);		/* Allow for trailing NUL */
+	str->s_flags |= STR_OBJECT;				/* Signals: we allocated the object */
 	str->s_len = len;						/* Final NUL not accounted for */
 	memcpy(str->s_data, ptr, len);			/* Don't copy trailing NUL */
 
@@ -1248,6 +1250,9 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 }
 
 /**
+ * Same as str_replace() but the length of the replacement string has been
+ * computed already (means that the string does not need to be NUL-terminated).
+ *
  * Replace amount characters starting at position idx (included) with the
  * content of the specified string. If the starting position is negative,
  * it is interpreted as an offset relative to the end of the string, i.e. -1
@@ -1261,20 +1266,21 @@ str_remove(str_t *str, ssize_t idx, size_t n)
  * @param idx		starting index (inclusive) of substring to replace
  * @param amount	length of substring to replace in "str"
  * @param string	replacement string
+ * @param length	length of replacement string
  *
  * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
  */
 bool
-str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
+str_replace_len(
+	str_t *str, ssize_t idx, size_t amount, const char *string, size_t length)
 {
-	size_t length;
 	size_t len;
 
 	str_check(str);
 	g_assert(size_is_non_negative(amount));
+	g_assert(size_is_non_negative(length));
 	g_assert(string != NULL);
 
-	length = vstrlen(string);
 	len = str->s_len;
 
 	if (idx < 0)						/* Stands for chars before end */
@@ -1323,6 +1329,113 @@ str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
 	str_instr(str, idx, string, length);
 
 	return TRUE;
+}
+
+/**
+ * Replace amount characters starting at position idx (included) with the
+ * content of the specified string. If the starting position is negative,
+ * it is interpreted as an offset relative to the end of the string, i.e. -1
+ * is the last character.
+ *
+ * If "amount" is greater than the number of characters held in the string
+ * after the starting index, then "amount"  is silently truncated down to the
+ * actual amount of bytes held until the end of the original string.
+ *
+ * @param str		the string in which we wish to replace some parts
+ * @param idx		starting index (inclusive) of substring to replace
+ * @param amount	length of substring to replace in "str"
+ * @param string	replacement string (must be NUL-terminated)
+ *
+ * @return TRUE if we replaced, FALSE if we ignored due to out-of-bound index.
+ */
+bool
+str_replace(str_t *str, ssize_t idx, size_t amount, const char *string)
+{
+	g_assert(string != NULL);
+
+	return str_replace_len(str, idx, amount, string, vstrlen(string));
+}
+
+/**
+ * Lookup for needle within the string.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ * @param icase		whether to ignore case when matching
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+static bool
+str_lookup_internal(
+	const str_t *s, ssize_t off, const char *needle, size_t *pos, bool icase)
+{
+	const char *haystack, *p;
+	size_t len;
+	str_t *h = deconstify_pointer(s);	/* Writable version for str_2c() */
+
+	str_check(s);
+
+	len = s->s_len;
+
+	if (off < 0)				/* Stands for chars before end */
+		off += len;
+
+	if G_UNLIKELY(off < 0 || (size_t) off >= len)	/* Outside boundaries*/
+		return FALSE;
+
+	haystack = str_2c(h) + off;	/* NUL-terminated string now */
+	p = icase ? vstrcasestr(haystack, needle) : vstrstr(haystack, needle);
+
+	if (NULL == p)
+		return FALSE;
+
+	if (pos != NULL)
+		*pos = p - haystack + off;
+
+	return TRUE;
+}
+
+/**
+ * Lookup for needle within the string.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+bool
+str_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos)
+{
+	return str_lookup_internal(s, off, needle, pos, FALSE);
+}
+
+/**
+ * Perform case-insensitive lookup of needle within the string.
+ *
+ * If the starting offset is negative, it is interpreted as an offset
+ * relative to the end of the string, i.e. -1 is the last character.
+ *
+ * @param s			the string
+ * @param off		starting offset (negative refers to end of string)
+ * @param needle	the needle string we're looking for
+ * @param pos		filled with position of needle after a match, if non-NULL
+ *
+ * @return TRUE if there is a match, with `pos' filled with starting index,
+ * FALSE otherwise.
+ */
+bool
+str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *pos)
+{
+	return str_lookup_internal(s, off, needle, pos, TRUE);
 }
 
 /**
@@ -1547,6 +1660,74 @@ str_reverse_copyout(str_t *s, char *dest, size_t dest_size)
 }
 
 /**
+ * Compares two string, as strcmp() would on C strings.
+ *
+ * @return 0 if strings are equal, -1 if a < b and +1 otherwise.
+ */
+int
+str_cmp(const str_t *a, const str_t *b)
+{
+	size_t la = str_len(a), lb = str_len(b);
+
+	if (la == lb) {
+		return memcmp(a->s_data, b->s_data, la);
+	} else if (la < lb) {
+		int c = memcmp(a->s_data, b->s_data, la);
+		if (0 != c)
+			return c;
+		return -1;		/* a is shorter than b */
+	} else {
+		int c = memcmp(a->s_data, b->s_data, lb);
+		if (0 != c)
+			return c;
+		return +1;		/* a is longer than b */
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compares string, with first `n' bytes of C string `text'.
+ *
+ * @return 0 if strings are equal, -1 if a < text and +1 otherwise.
+ */
+int
+str_cmp_text_len(const str_t *a, const char *text, size_t n)
+{
+	size_t la = str_len(a);
+
+	g_assert(text != NULL);
+	g_assert(size_is_non_negative(n));
+
+	if (la == n) {
+		return memcmp(a->s_data, text, n);
+	} else if (la < n) {
+		int c = memcmp(a->s_data, text, la);
+		if (0 != c)
+			return c;
+		return -1;		/* a is shorter than text */
+	} else {
+		int c = memcmp(a->s_data, text, n);
+		if (0 != c)
+			return c;
+		return +1;		/* a is longer than text */
+	}
+
+	g_assert_not_reached();
+}
+
+/**
+ * Compares string, with C string `text'.
+ *
+ * @return 0 if strings are equal, -1 if a < text and +1 otherwise.
+ */
+int
+str_cmp_text(const str_t *s, const char *text)
+{
+	return str_cmp_text_len(s, text, vstrlen(text));
+}
+
+/**
  * Fetch character at given offset.  Read from the end of the string when
  * the offset is negative, -1 being the last character, 0 being the first.
  *
@@ -1594,6 +1775,207 @@ str_escape(str_t *str, int c, int e)
 		idx++;							/* Skip escaped char */
 		len++;							/* One more char in string */
 	}
+}
+
+/**
+ * Callback for str_inplace_escape() to determine whether a character needs
+ * to be escaped or not.
+ */
+typedef bool (*str_safe_fn_t)(uchar c);
+
+static const char str_hex_alphabet[] = "0123456789ABCDEF";
+
+static bool
+str_char_is_space(uchar c)
+{
+	return ' ' == c || '\t' == c || '\n' == c;
+}
+
+static bool
+str_char_is_printable(uchar c)
+{
+	return isprint(c);
+}
+
+static bool
+str_char_is_safe(uchar c)
+{
+	return isprint(c) || str_char_is_space(c);
+}
+
+static bool
+str_char_is_not_ctrl(uchar c)
+{
+	return !is_ascii_cntrl(c) || str_char_is_space(c);
+}
+
+/**
+ * Perform the in-place escaping.
+ *
+ * All characters for which the `cb' predicate returns FALSE will be escaped
+ * by a "\xhh" sequence.
+ *
+ * @param s			the string to escape
+ * @paral cm		the predicate telling which characters are safe as-is
+ * @param no_crlf	if TRUE, remove the CR in a CR LF sequence
+ *
+ * @return TRUE if we had space to escape characters, FALSE otherwise.
+ */
+static bool
+str_inplace_escape(str_t *s, str_safe_fn_t cb, bool no_crlf)
+{
+	size_t escapes = 0;
+	const uchar *p;
+	uchar *q;
+	size_t i, len, shift;
+	bool had_nul = FALSE, has_crlf = FALSE;
+
+	/*
+	 * To be efficient, the algorithm works in 2 passes:
+	 *
+	 * The first pass computes how much extra space we are going to need.
+	 * Assume we need to perform 3 escapes, which will add 9 chars.
+	 *
+	 * We then determine whether we have enough room to perform the escaping,
+	 * shift the whole string by 9 characters (in our example) and then
+	 * move back all the characters to their position, performing escaping
+	 * on the fly.
+	 */
+
+	/*
+	 * First pass: determine how many escapes we need to do.
+	 *
+	 * We do not account for the stripping of the CR in a CR LF sequence,
+	 * because we want to be able to perform escaping quickly and hence
+	 * we need to figure out the maximum shifting we'll have to do.
+	 */
+
+	len = s->s_len;
+
+	if G_UNLIKELY(0 == len)
+		return FALSE;
+
+	p = (uchar *) s->s_data;
+
+	if G_UNLIKELY('\0' == p[len - 1]) {
+		len--;				/* Already NUL terminated, don't escape that NUL */
+		had_nul = TRUE;
+	}
+
+	if (no_crlf) {
+		for (i = 0; i < len; i++) {
+			if (!has_crlf && '\r' == *p && i < len - 1 && '\n' == p[1])
+				has_crlf = TRUE;
+			if (!(*cb)(*p++))
+				escapes++;
+		}
+	} else {
+		for (i = 0; i < len; i++) {
+			if (!(*cb)(*p++))
+				escapes++;
+		}
+	}
+
+	if (0 == escapes && !(has_crlf && no_crlf))
+		return TRUE;		/* Nothing to escape */
+
+	/*
+	 * Determine whether we have enough space, again not counting any
+	 * CR LF stripping.
+	 */
+
+	shift = size_saturate_mult(3, escapes);
+
+	if (str_avail(s) < size_saturate_add(len, shift))
+		return FALSE;
+
+	str_makeroom(s, shift);
+	g_assert(len + shift <= s->s_size);
+
+	memmove(ptr_add_offset(s->s_data, shift), s->s_data, len);
+
+	/*
+	 * Second pass: perform the escaping as needed.
+	 */
+
+	q = (uchar *) s->s_data;
+	p = q + shift;				/* Where we shifted string to above */
+
+	for (i = 0; i < len; i++) {
+		uchar c = *p++;
+
+		if ('\r' == c && no_crlf && i < len - 1 && '\n' == *p)
+			continue;	/* Spip CR in CR LF sequence */
+
+		if ((*cb)(c)) {
+			*q++ = c;
+		} else {
+			*q++ = '\\';
+			*q++ = 'x';
+			*q++ = str_hex_alphabet[c >> 4];
+			*q++ = str_hex_alphabet[c & 0xf];
+		}
+	}
+
+	if G_UNLIKELY(had_nul)
+		*q++ = '\0';			/* Restore un-escaped trailing NUL */
+
+	/*
+	 * Adjust string length.
+	 */
+
+	s->s_len = ptr_diff(q, s->s_data);
+
+	g_assert(s->s_len <= s->s_size);
+
+	return TRUE;
+}
+
+/**
+ * Escape (in-place) all control characters that are not a "space" (SPACE /
+ * TAB / LF characters) by using the hexadecimal form "\xhh".
+ *
+ * @param s				string to escape
+ * @param strip_crlf	whether to drop the CR character in a CR LF sequence
+ *
+ * @return TRUE if we were able to escape all the characters, FALSE if the
+ * string data buffer is not resizable and is not holding enough room, in
+ * which case no escaping is done at all.
+ */
+bool
+str_ctrl_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_not_ctrl, strip_crlf);
+}
+
+/**
+ * Escape (in-place) all non-printable character.
+ *
+ * @return TRUE if we were able to escape all the characters.
+ */
+bool
+str_unprintable_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_printable, strip_crlf);
+}
+
+/**
+ * Escape (in-place) all unsafe character.
+ *
+ * A character is unsafe if it is non-printable and not a SPACE / TAB / LF.
+ *
+ * @return TRUE if we were able to escape all the characters.
+ */
+bool
+str_unsafe_escape(str_t *s, bool strip_crlf)
+{
+	str_check(s);
+
+	return str_inplace_escape(s, str_char_is_safe, strip_crlf);
 }
 
 /**
@@ -1848,6 +2230,58 @@ str_substr(const str_t *s, ssize_t from, size_t length)
 }
 
 /**
+ * Check whether string starts with some prefix at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @param s			the string we're checking for prefix
+ * @param off		offset at which prefix is expected (negative from end)
+ * @param prefix	the prefix string to check
+ * @param len		length of prefix string
+ *
+ * @return TRUE if prefix is found.
+ */
+bool
+str_has_prefix_len(const str_t *s, ssize_t off, const char *prefix, size_t len)
+{
+	size_t start;
+
+	str_check(s);
+	g_assert(prefix != NULL);
+	g_assert(size_is_non_negative(len));
+
+	start = str_offset_safe(s, off);
+
+	if (start + len <= s->s_len) {
+		const char *p = &s->s_data[start];
+		return 0 == memcmp(p, prefix, len);
+	}
+
+	return FALSE;
+}
+
+/**
+ * Check whether string starts with some prefix at given offset.
+ *
+ * A negative offset is interpreted starting from the end of the string,
+ * with -1 being the last character.
+ *
+ * @param s			the string we're checking for prefix
+ * @param off		offset at which prefix is expected (negative from end)
+ * @param prefix	the prefix string to check
+ *
+ * @return TRUE if prefix is found.
+ */
+bool
+str_has_prefix(const str_t *s, ssize_t off, const char *prefix)
+{
+	g_assert(prefix != NULL);
+
+	return str_has_prefix_len(s, off, prefix, vstrlen(prefix));
+}
+
+/**
  * Check whether string has given suffix of known length.
  *
  * If it has the suffix and "idx" is non-NULL, the starting offset of the
@@ -1987,6 +2421,27 @@ str_fround(const char *mbuf, size_t mlen, size_t pos, char *rbuf, size_t rlen)
 #define BIT_DIGITS(n)	(((n)*146)/485 + 1)			/* log2(10) =~ 146/485 */
 #define TYPE_DIGITS(t)	BIT_DIGITS(sizeof(t) * 8)
 
+/*
+ * This macro can be used to debug the floating point formatting in case
+ * there is a problem somewhere.
+ *
+ * It is possible to add these formatting instructions:
+ *
+ * 		STR_DEBUG("%s", "whatever")
+ *
+ * which will emit the corresponding error message via s_debug(), prefixed by
+ * a line stating the routine and where the debugging message happens.
+ *
+ * That code is not meant to stay, hence we do not conditionally define
+ * STR_DEBUG() to do nothing when not debugging.
+ */
+#define STR_DEBUG(...) G_STMT_START {							\
+	if G_UNLIKELY(format_verbose && 1 == format_recursion) {	\
+		s_debug("%s(): STR_DEBUG at %s:", G_STRFUNC, G_STRLOC);	\
+		s_debug(__VA_ARGS__);									\
+	}															\
+} G_STMT_END
+
 /**
  * Append formatted floating point value.
  *
@@ -2063,17 +2518,24 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 
 	switch (fpclassify(nv)) {
 	case FP_NAN:
-		if (is_ascii_upper(c)) {
-			elen = 4;
-			eptr = "NAN*";
-		} else {
-			elen = 3;
+		elen = 3;
+		if (is_ascii_upper(c) && c != 'F')
+			eptr = "NAN";
+		else if ('F' == c)
+			eptr = "NaN";
+		else
 			eptr = "nan";
-		}
 		break;
 	case FP_INFINITE:
 		mptr -= 3;
-		clamp_memcpy(mptr, 3, is_ascii_upper(c) ? "INF" : "inf", 3);
+		{
+			const char *infinite = "inf";
+			if (is_ascii_upper(c) && c != 'F')
+				infinite = "INF";
+			else if ('F' == c)
+				infinite = "Inf";
+			clamp_memcpy(mptr, 3, infinite, 3);
+		}
 		if (nv < 0)
 			*--mptr = '-';
 		else if (plus)
@@ -2154,10 +2616,11 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 				gm_snprintf(ARYLEN(buf), "%g", nv);
 				s_debug("%s with \"%%%c\": m=\"%.*s\" "
 					"(len=%zu, asked=%s), e=%d "
-					"[precis=%zu, digits=%zu, alt=%s]",
+					"[precis=%zu, digits=%zu, alt=%c, dragon=%c]",
 					buf, c, (int) mlen, m, mlen,
 					asked_dragon ? "none" : size_t_to_string(asked),
-					e, precis, digits, alt ? "y" : "n");
+					e, precis, digits, alt ? 'y' : 'n',
+					dragon_fmt ? 'y' : 'n');
 			}
 
 			/*
@@ -2375,7 +2838,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 						i = MIN(i, mlen);
 
 						/* Trailing fixed zeros to emit */
-						if (i < precis)
+						if (i < precis && i != mlen)
 							fzeros = precis - i;
 
 						rlen = str_fround(m, mlen, i, ARYLEN(r));
@@ -2441,9 +2904,9 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 			char buf[32];
 			gm_snprintf(ARYLEN(buf), "%g", nv);
 			s_debug("%s as \"%%%c\": elen=%zu, eptr=\"%.*s\", "
-				"expptr=\"%.*s\", dot=\"%s\", zeros<e=%zu, d=%zu, "
+				"expptr=\"%.*s\", dot=%zu->\"%s\", zeros<e=%zu, d=%zu, "
 				"a=%zu, f=%zu>",
-				buf, c, elen, (int) elen, eptr, explen, expptr,
+				buf, c, elen, (int) elen, eptr, explen, expptr, dot,
 				2 == dot ? "0." :
 				1 == dot ? "." : "",
 				ezeros, dzeros, azeros, fzeros);
@@ -3713,6 +4176,25 @@ error:
 }
 
 /**
+ * A dedicated string comparison to special-case double formatting.
+ */
+static int
+str_test_cmp(char *standard, const char *produced, bool is_double)
+{
+	if (is_double) {
+		str_test_fix_exponent(standard);
+
+		/* NaN and Inf are compared case-insensitively */
+		if (vstrcasestr(standard, "nan") || vstrcasestr(standard, "inf"))
+			return strcasecmp(standard, produced);
+
+		/* FALL THROUGH */
+	}
+
+	return strcmp(standard, produced);
+}
+
+/**
  * Non-regression tests for the str_vncatf() formatting routine.
  *
  * Aborts execution on failure.
@@ -3732,6 +4214,7 @@ str_test(bool verbose)
 #define DOUBLE		3.45e8
 #define LN2			0.69314718056
 #define INF			HUGE_VAL
+#define NAN_DBL		(0.0 / 0.0)
 #define S			TRUE			/* Standard */
 #define X			FALSE			/* Excluded from snprintf() consistency */
 
@@ -4028,6 +4511,14 @@ str_test(bool verbose)
 		{ "%.17F",		X, MLEN,	13005952380.952381,	"13005952380.952381" },
 		{ "%.17g",		S, MLEN,	1300595238.0952381,	"1300595238.0952382" },
 		{ "%.17g",		S, MLEN,	13005952380.952381,	"13005952380.952381" },
+		{ "%f",			S, MLEN,	NAN_DBL,		"nan" },
+		{ "%E",			S, MLEN,	NAN_DBL,		"NAN" },
+		{ "%G",			S, MLEN,	NAN_DBL,		"NAN" },
+		{ "%g",			S, MLEN,	NAN_DBL,		"nan" },
+		/* #170 */
+		{ "%F",			S, MLEN,	NAN_DBL,		"NaN" },
+		{ "%F",			S, MLEN,	INF,			"Inf" },
+		{ "%F",			S, MLEN,	-INF,			"-Inf" },
 	};
 
 #define TEST(what, vfmt) G_STMT_START {							\
@@ -4056,14 +4547,14 @@ str_test(bool verbose)
 		if (t->std) {											\
 			char std[MLEN];										\
 			char value[MLEN];									\
+			bool is_double =									\
+				0 == ptr_cmp(&test_##what##s, &test_doubles);	\
 			/* Avoid truncation warning in logs */				\
 			gm_snprintf_unchecked(ARYLEN(std),					\
 				t->fmt, t->value);								\
 			std[t->buflen - 1] = '\0';	/* Truncate here */		\
-			if (0 == ptr_cmp(&test_##what##s, &test_doubles))	\
-				str_test_fix_exponent(std);						\
 			gm_snprintf(ARYLEN(value), vfmt, t->value);			\
-			if (0 != strcmp(std, buf)) {						\
+			if (0 != str_test_cmp(std, buf, is_double)) {		\
 				discrepancies++;								\
 				if (verbose) g_message(							\
 					"formatting %s \"%s\" in test #%u/%zu "		\
@@ -4116,6 +4607,55 @@ str_test(bool verbose)
 			vsn_count, our_count);
 		g_assert(vstrlen(vsnp) == vsn_count);	/* Consistency check */
 		g_assert(sizeof vsnp - 1 == vsn_count);	/* Ensure we filled buffer */
+	}
+
+	/*
+	 * Make sure escaping routines work.
+	 */
+
+	{
+		str_t s, l;
+		char smallbuf[4];
+		char largebuf[128];
+		bool ok;
+		const char two[] = "\f\r\n";
+		const char two_escaped_crlf[] = "\\x0C\\x0D\n";
+		const char two_escaped_nocrlf[] = "\\x0C\n";
+		const char strippable[] = "A\r\nAnd\t\a escaped";
+		const char strippable_escaped[] = "A\nAnd\t\\x07 escaped";
+		const char strippable_unsafe[] = "A\\x0D\nAnd\t\\x07 escaped";
+
+		str_new_buffer(&s, ARYLEN(smallbuf), 0);
+		str_new_buffer(&l, ARYLEN(largebuf), 0);
+
+		str_cpy(&s, two);
+		ok = str_ctrl_escape(&s, TRUE);
+		g_assert_log(!ok, "str_ctrl_escape() cannot succeed in small buffer");
+
+#define EXPECT(x)	\
+	g_assert_log(ok, "str_ctrl_escape() must succeed in large buffer"); \
+	g_assert_log(0 == strcmp(str_2c(&l), x), \
+		"expected \"%s\" but got \"%s\" as escaped text", x, str_2c(&l));
+
+		str_cpy(&l, two);
+		ok = str_ctrl_escape(&l, FALSE);
+		EXPECT(two_escaped_crlf);
+
+		str_cpy(&l, two);
+		ok = str_ctrl_escape(&l, TRUE);
+		EXPECT(two_escaped_nocrlf);
+
+		str_cpy(&l, strippable);
+		ok = str_ctrl_escape(&l, TRUE);
+		EXPECT(strippable_escaped);
+		g_assert(str_len(&l) == CONST_STRLEN(strippable_escaped));
+
+		str_cpy(&l, strippable);
+		ok = str_unsafe_escape(&l, FALSE);
+		EXPECT(strippable_unsafe);
+		g_assert(str_len(&l) == CONST_STRLEN(strippable_unsafe));
+
+#undef EXPECT
 	}
 
 	return discrepancies;

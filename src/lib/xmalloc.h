@@ -190,6 +190,7 @@ size_t xallocated(const void *p);
 size_t xpallocated(const void *p);
 
 bool xmalloc_block_info(const void *p, uint *tid, size_t *len);
+bool xmalloc_ptr_is_static(const void *p);
 
 #ifndef TRACK_MALLOC
 static inline void * G_MALLOC G_NON_NULL

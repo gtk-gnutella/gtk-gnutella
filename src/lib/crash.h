@@ -44,7 +44,7 @@
 #include "common.h"
 #include "atio.h"
 
-/**
+/*
  * The following macros are intended for use in signal handlers, or wherever it
  * is important to be signal-safe, to record strings to be printed in an I/O
  * vector, which is then to be flushed via writev(), which is an atomic
@@ -130,6 +130,102 @@ G_STMT_START { \
 } G_STMT_END
 
 #define getpos_str() (print_str_iov_cnt_)
+
+/*
+ * Second-generation macros, in the same spirit as the ones defined above
+ * but with less hidden variables.  And an ability to pass the constructed
+ * vector to other routines, or have it constructed by a helper routine.
+ * 		--RAM, 2018-09-28
+ *
+ * The following macros are intended for use in signal handlers, or wherever it
+ * is important to be signal-safe, to record strings to be printed in an I/O
+ * vector, which is then to be flushed via writev(), which is an atomic
+ * syscall.
+ *
+ * The following example demonstrates typical use:
+ *
+ *	{
+ *		DECLARE_VSTR(v, 10); // Can add up to 10 strings
+ *	    unsigned after_header;
+ *
+ * 		g_assert(capacity_vstr(v) >= 10);	// For instance, if passed to routine
+ *
+ * 		print_vstr(v, "Some constant text: ");
+ *		after_header = getpos_vstr(v);
+ * 		print_vstr(v, some_variable_text);
+ * 		print_vstr(v, "\n");	// Append a newline character
+ *		flush_err_vstr(v);		// Sent all strings to STDERR_FILENO with writev()
+ *
+ *		// The collected strings are still valid and flush_vstr()
+ *		// or flush_err_vstr() can be used multiple times.
+ *
+ *		rewind_vstr(v, after_header); // rewind to offset 1; keep the first string
+ *		print_vstr(v, some_other_text);
+ *		flush_vstr(v, fd);	// Sent all strings to file descriptor fd with writev()
+ *	}
+ *
+ * @attention
+ * There is no formatting done here, this is not a printf()-like function.
+ * It only records an array of constant strings in a vector.
+ */
+
+typedef struct print_str_iov {
+	uint cnt;			/**< Count: amount of items held in iov */
+	uint cap;			/**< Capacity: size of the iov[] array */
+	iovec_t *iov;		/**< Array capable of holding `cap' items */
+} print_str_iov_t;
+
+/**
+ * Declare vectorized string container that can be refered to by n_ and
+ * whose hardwired capacity is cap_.
+ *
+ * The variable is of type print_str_iov_t *, in case it needs to be passed
+ * to another function.
+ */
+#define DECLARE_VSTR(n_, cap_) 						\
+	iovec_t print_str_iov_ ## n_[cap_];				\
+	print_str_iov_t print_str_struct_ ## n_ =		\
+		{ 0, (cap_), print_str_iov_ ## n_ };		\
+	print_str_iov_t *n_ = &print_str_struct_ ## n_
+
+#define print_vstr(n_, text_)									\
+G_STMT_START {													\
+	const char *pt_ = (text_);									\
+	print_str_iov_t *v_ = (n_);									\
+	if (pt_ != NULL && v_->cnt < v_->cap) {						\
+		iovec_set(&v_->iov[v_->cnt++], pt_, strlen(pt_));		\
+	} else {													\
+		iovec_set(&v_->iov[v_->cap - 1], 						\
+			TRUNCATION_STR, sizeof TRUNCATION_STR - 1);			\
+	}															\
+} G_STMT_END
+
+/*
+ * Do not use atio_writev() here, on purpose.
+ *
+ * These routines are called during exceptional circumstances and we need
+ * to limit the amout of resources required.
+ */
+#define flush_vstr(n_, fd_)	IGNORE_RESULT(writev((fd_), (n_)->iov, (n_)->cnt))
+
+/*
+ * This one uses atio_writev() and should be used for "regular" message, where
+ * it's OK to use extra resources because we're likely not on an error path.
+ */
+#define flush_vstr_atomic(n_, fd_) \
+	IGNORE_RESULT(atio_writev((fd_), (n_)->iov, (n_)->cnt))
+
+#define rewind_vstr(n_, i_)			\
+G_STMT_START {						\
+	unsigned ri_ = (i_);			\
+	print_str_iov_t *v_ = (n_);		\
+	if (ri_ <= v_->cnt)				\
+		v_->cnt = ri_;				\
+} G_STMT_END
+
+#define getpos_vstr(n_)		((n_)->cnt)
+#define capacity_vstr(n_)	((n_)->cap)
+
 
 /**
  * Print an "unsigned long" as decimal NUL-terminated string into supplied

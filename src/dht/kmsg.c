@@ -214,9 +214,11 @@ kmsg_handle(knode_t *kn,
 	if (GNET_PROPERTY(dht_debug > 1)) {
 		g_debug("DHT got %s from %s",
 			kmsg_infostr(header), knode_to_string(kn));
-		if (len && (GNET_PROPERTY(dht_trace) & SOCK_TRACE_IN))
-			dump_hex(stderr, "UDP payload", payload, len);
-
+		if (len && (GNET_PROPERTY(dht_trace) & SOCK_TRACE_IN)) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "UDP payload", payload, len);
+			);
+		}
 	}
 
 	function = kademlia_header_get_function(header);
@@ -266,9 +268,12 @@ warn_no_header_extension(const knode_t *kn,
 		g_warning("DHT unhandled extended header (%u byte%s) in %s from %s",
 			PLURAL(extlen), kmsg_name(function),
 			knode_to_string(kn));
-		if (GNET_PROPERTY(dht_debug) > 15)
-			dump_hex(stderr, "Kademlia extra header",
-				kademlia_header_end(header), extlen);
+		if (GNET_PROPERTY(dht_debug) > 15) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Kademlia extra header",
+					kademlia_header_end(header), extlen);
+			);
+		}
 	}
 }
 
@@ -287,9 +292,12 @@ warn_unparsed_trailer(const knode_t *kn, const kademlia_header_t *header,
 			"has %zu byte%s of unparsed trailing data (ignored)",
 			kmsg_name(function), knode_to_string(kn),
 			PLURAL(unparsed));
-		if (GNET_PROPERTY(dht_debug) > 15)
-			dump_hex(stderr, "Unparsed trailing data",
-				bstr_read_base(bs), unparsed);
+		if (GNET_PROPERTY(dht_debug) > 15) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Unparsed trailing data",
+					bstr_read_base(bs), unparsed);
+			);
+		}
 	}
 }
 
@@ -856,7 +864,9 @@ k_handle_ping(knode_t *kn, gnutella_node_t *n,
 	if (len && GNET_PROPERTY(dht_debug)) {
 		g_warning("DHT unhandled PING payload (%zu byte%s) from %s",
 			PLURAL(len), knode_to_string(kn));
-		dump_hex(stderr, "Kademlia Ping payload", payload, len);
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "Kademlia Ping payload", payload, len);
+		);
 	}
 
 	/*
@@ -1275,7 +1285,9 @@ k_handle_find_node(knode_t *kn, gnutella_node_t *n,
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_NODE payload (%zu byte%s) from %s",
 				PLURAL(len), knode_to_string(kn));
-			dump_hex(stderr, "Kademlia FIND_NODE payload", payload, len);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Kademlia FIND_NODE payload", payload, len);
+			);
 		}
 		gnet_dht_stats_count_dropped(n,
 			KDA_MSG_FIND_NODE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
@@ -1534,7 +1546,9 @@ k_handle_find_value(knode_t *kn, gnutella_node_t *n,
 		if (GNET_PROPERTY(dht_debug)) {
 			g_warning("DHT bad FIND_VALUE payload (%zu byte%s) from %s",
 				PLURAL(len), knode_to_string(kn));
-			dump_hex(stderr, "Kademlia FIND_VALUE payload", payload, len);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Kademlia FIND_VALUE payload", payload, len);
+			);
 		}
 		gnet_dht_stats_count_dropped(n,
 			KDA_MSG_FIND_VALUE_REQUEST, MSG_DROP_DHT_UNPARSEABLE);
@@ -1762,7 +1776,9 @@ kmsg_send_mb(knode_t *kn, pmsg_t *mb)
 		g_debug("DHT sending %s (%d bytes) to %s, RTT=%u",
 			kmsg_infostr(pmsg_phys_base(mb)), len, knode_to_string(kn), kn->rtt);
 		if (GNET_PROPERTY(dht_trace) & SOCK_TRACE_OUT)
-			dump_hex(stderr, "UDP datagram", pmsg_phys_base(mb), len);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "UDP datagram", pmsg_phys_base(mb), len);
+			);
 	}
 
 	kn->last_sent = tm_time();
@@ -2546,7 +2562,10 @@ hostile_checked:
 		weird_header &&
 		GNET_PROPERTY(dht_debug) && GNET_PROPERTY(log_weird_dht_headers)
 	) {
-		dump_hex(stderr, "DHT Header", data, extended_length + KDA_HEADER_SIZE);
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, "DHT Header",
+				data, extended_length + KDA_HEADER_SIZE);
+		);
 	}
 
 	/*
@@ -2568,8 +2587,11 @@ drop:
 			node_udp_is_old(n) ? "OLD " : "",
 			len, gmsg_infostr_full(data, len),
 			host_addr_port_to_string(addr, port), reason);
-		if (len && GNET_PROPERTY(dht_debug) > 10)
-			dump_hex(stderr, "UDP datagram", data, len);
+		if (len && GNET_PROPERTY(dht_debug) > 10) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "UDP datagram", data, len);
+			);
+		}
 	}
 }
 

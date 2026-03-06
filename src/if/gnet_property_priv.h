@@ -52,7 +52,6 @@
 
 extern const gboolean gnet_property_variable_reading_hostfile;
 extern const gboolean gnet_property_variable_reading_ultrafile;
-extern const gboolean gnet_property_variable_ancient_version;
 extern const char   *gnet_property_variable_new_version_str;
 extern const guint32	gnet_property_variable_up_connections;
 extern const guint32	gnet_property_variable_normal_connections;
@@ -307,7 +306,6 @@ extern const guint32	gnet_property_variable_qrp_hashed_keywords;
 extern const guint32	gnet_property_variable_qrp_patch_raw_length;
 extern const guint32	gnet_property_variable_qrp_patch_length;
 extern const guint32	gnet_property_variable_qrp_patch_comp_ratio;
-extern const guint32	gnet_property_variable_ancient_version_left_days;
 extern const gboolean gnet_property_variable_file_descriptor_shortage;
 extern const gboolean gnet_property_variable_file_descriptor_runout;
 extern const gboolean gnet_property_variable_convert_spaces;
@@ -539,6 +537,7 @@ extern const gboolean gnet_property_variable_lock_contention_trace;
 extern const gboolean gnet_property_variable_lock_sleep_trace;
 extern const gboolean gnet_property_variable_running_topless;
 extern const gboolean gnet_property_variable_send_oob_ind_reliably;
+extern const guint32	gnet_property_variable_logfilter_debug;
 extern const guint32	gnet_property_variable_adns_debug;
 extern const guint64	gnet_property_variable_bc_http_out;
 extern const guint64	gnet_property_variable_bc_gnet_tcp_up_out;

@@ -262,8 +262,11 @@ is_local_addr(const host_addr_t addr)
 static void
 inet_where(void)
 {
-	if (GNET_PROPERTY(fw_debug) > 1)
-		stacktrace_where_sym_print_offset(stderr, 1);
+	if (GNET_PROPERTY(fw_debug) > 1) {
+		LOG_FOREACH(fd,
+			s_where_fd(fd, 1);
+		);
+	}
 }
 
 /***

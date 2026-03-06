@@ -33,6 +33,7 @@
 #include "getdate.h"
 #include "halloc.h"
 #include "hstrfn.h"
+#include "log.h"
 #include "misc.h"
 #include "mutex.h"
 #include "parse.h"
@@ -1164,8 +1165,10 @@ prop_set_storage(prop_set_t *ps, property_t prop, const char *src,
 
 	if (debug >= 5) {
 		s_debug("PROP updated property [%s] (binary):", d->name);
-		dump_hex(stderr, d->name,
-			(const char *) d->data.storage.value, d->vector_size);
+		LOG_FOREACH(fd,
+			dump_hex_fd(fd, d->name,
+				(const char *) d->data.storage.value, d->vector_size);
+		);
 	}
 
 	prop_emit_prop_changed(d, ps, prop);
@@ -2382,7 +2385,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 	 * ([[:blank:]]*)(("[^"]*")|([^[:space:]]*))
 	 *
 	 */
-	while (fgets(prop_tmp, sizeof(prop_tmp), config)) {
+	while (fgets(ARYLEN(prop_tmp), config)) {
 		char *s, *k, *v;
 		int c;
 		property_t prop;

@@ -1023,7 +1023,7 @@ static struct {
 	FN(make_pathname),
 	FN(parse_pointer),
 	FN(pointer_to_string_buf),
-	FN(s_info),
+	FN(s_where),
 	FN(short_size),
 	FN(str_bprintf),
 	FN(symbols_sort),
@@ -1553,7 +1553,7 @@ symbols_load_from(symbols_t *st, const char *exe, const  char *lpath)
 #endif	/* MINGW32 */
 
 retry:
-	while (fgets(tmp, sizeof(tmp), f)) {
+	while (fgets(ARYLEN(tmp), f)) {
 		symbols_parse_nm(st, tmp);
 	}
 

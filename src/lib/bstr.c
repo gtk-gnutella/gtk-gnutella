@@ -160,7 +160,7 @@ bstr_open(const void *arena, size_t len, uint32 flags)
 	reset_stream(bs, arena, len, flags);
 
 	if (len == 0)
-		error_eos(bs, 0, "bstr_open");
+		error_eos(bs, 0, G_STRFUNC);
 
 	return bs;
 }
@@ -183,7 +183,7 @@ bstr_reset(bstr_t *bs, const void *arena, size_t len, uint32 flags)
 	reset_stream(bs, arena, len, flags);
 
 	if (len == 0)
-		error_eos(bs, 0, "bstr_reset");
+		error_eos(bs, 0, G_STRFUNC);
 }
 
 /**

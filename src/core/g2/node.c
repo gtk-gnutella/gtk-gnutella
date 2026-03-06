@@ -301,7 +301,9 @@ g2_node_drop(const char *routine, gnutella_node_t *n, const g2_tree_t *t,
 	gnet_stats_count_dropped(n, MSG_DROP_G2_UNEXPECTED);
 
 	if (GNET_PROPERTY(log_dropped_g2)) {
-		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
+		LOG_FOREACH(fd,
+			g2_tfmt_tree_dump_fd(fd, t, G2FMT_O_PAYLEN);
+		);
 	}
 }
 
@@ -1031,8 +1033,11 @@ g2_node_handle(gnutella_node_t *n)
 			g_warning("%s(): cannot deserialize /%s from %s",
 				G_STRFUNC, g2_msg_raw_name(n->data, n->size), node_infostr(n));
 		}
-		if (GNET_PROPERTY(log_bad_g2))
-			dump_hex(stderr, "G2 Packet", n->data, n->size);
+		if (GNET_PROPERTY(log_bad_g2)) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "G2 Packet", n->data, n->size);
+			);
+		}
 		return;
 	} else if (plen != n->size) {
 		if (GNET_PROPERTY(g2_debug) > 0 || GNET_PROPERTY(log_bad_g2)) {
@@ -1040,14 +1045,19 @@ g2_node_handle(gnutella_node_t *n)
 				G_STRFUNC, plen, g2_msg_raw_name(n->data, n->size),
 				node_infostr(n), n->size);
 		}
-		if (GNET_PROPERTY(log_bad_g2))
-			dump_hex(stderr, "G2 Packet", n->data, n->size);
+		if (GNET_PROPERTY(log_bad_g2)) {
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "G2 Packet", n->data, n->size);
+			);
+		}
 		hostiles_dynamic_add(n->addr,
 			"cannot parse incoming messages", HSTL_GIBBERISH);
 		goto done;
 	} else if (GNET_PROPERTY(g2_debug) > 19) {
 		g_debug("%s(): received packet from %s", G_STRFUNC, node_infostr(n));
-		g2_tfmt_tree_dump(t, stderr, G2FMT_O_PAYLEN);
+		LOG_FOREACH(fd,
+			g2_tfmt_tree_dump_fd(fd, t, G2FMT_O_PAYLEN);
+		);
 	}
 
 	type = g2_msg_name_type(g2_tree_name(t));

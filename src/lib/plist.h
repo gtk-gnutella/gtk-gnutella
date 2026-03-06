@@ -104,6 +104,8 @@ plist_t *plist_insert_before(plist_t *pl,
 plist_t *plist_insert_after(plist_t *pl,
 	plist_t *sibling, void *data) WARN_UNUSED_RESULT;
 plist_t *plist_concat(plist_t *l1, plist_t *l2) WARN_UNUSED_RESULT;
+plist_t *plist_concat_after(plist_t *l1,
+	plist_t *s, plist_t *l2) WARN_UNUSED_RESULT;
 plist_t *plist_remove(plist_t *pl, const void *data) WARN_UNUSED_RESULT;
 plist_t *plist_remove_all(plist_t *pl, const void *data) WARN_UNUSED_RESULT;
 plist_t *plist_remove_link(plist_t *pl, plist_t *cell);

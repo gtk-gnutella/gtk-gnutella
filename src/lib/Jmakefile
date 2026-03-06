@@ -89,6 +89,8 @@ LSRC = \
 	ckalloc.c \
 	cmwc.c \
 	cobs.c \
+	color.c \
+	compat_getrusage.c \
 	compat_gettid.c \
 	compat_misc.c \
 	compat_pause.c \
@@ -124,21 +126,23 @@ LSRC = \
 	eval.c \
 	event.c \
 	evq.c \
-	exit.c \
 	exit2str.c \
+	exit.c \
 	fast_assert.c \
 	fd.c \
 	file.c \
-	file_object.c \
 	filehead.c \
 	filelock.c \
 	filename.c \
+	file_object.c \
+	file_rotate.c \
 	float.c \
 	fragcheck.c \
 	frand.c \
 	fs_free_space.c \
 	ftw.c \
 	gen-iprange.c \
+	gen-re.c \
 	gentime.c \
 	getcpucount.c \
 	getdate.c \
@@ -169,11 +173,14 @@ LSRC = \
 	iprange.c \
 	ipset.c \
 	iso3166.c \
+	istream.c \
 	launch.c \
 	leak.c \
 	list.c \
 	listener.c \
 	log.c \
+	logfilter.c \
+	lru_cache.c \
 	magnet.c \
 	malloc.c \
 	map.c \
@@ -196,12 +203,14 @@ LSRC = \
 	pagetable.c \
 	palloc.c \
 	parse.c \
+	parse_double.c \
 	path.c \
 	patricia.c \
 	pattern.c \
 	plist.c \
 	pmsg.c \
 	pow2.c \
+	privlog.c \
 	product.c \
 	progname.c \
 	prop.c \
@@ -210,6 +219,7 @@ LSRC = \
 	rand31.c \
 	random.c \
 	rbtree.c \
+	re.c \
 	regex.c \
 	ripening.c \
 	rwlock.c \
@@ -228,6 +238,8 @@ LSRC = \
 	stacktrace.c \
 	stats.c \
 	str.c \
+	str_subst_str.c \
+	str_subst_re.c \
 	stringify.c \
 	strpcpy.c \
 	strtok.c \
@@ -240,10 +252,12 @@ LSRC = \
 	tiger.c \
 	tigertree.c \
 	timestamp.c \
-	tm.c \
 	tmalloc.c \
+	tm.c \
 	tokenizer.c \
 	tqsort.c \
+	trie.c \
+	trie_fmt.c \
 	tsig.c \
 	url.c \
 	urn.c \
@@ -359,14 +373,17 @@ NormalTestTarget(ftw)
 NormalTestTarget(launch)
 NormalTestTarget(pattern)
 NormalTestTarget(random)
+NormalTestTarget(re)
 NormalTestTarget(sort)
 NormalTestTarget(spopen)
 NormalTestTarget(stack)
 NormalTestTarget(stat)
 NormalTestTarget(thread)
+NormalTestTarget(trie)
 
 #define LinkGenInterface(file)	@!\
 LinkSourceFileAlias(file, $(IF)/gen, gen-file)
 
 LinkGenInterface(iprange.c)
+LinkGenInterface(re.c)
 

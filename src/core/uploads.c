@@ -1386,7 +1386,9 @@ handle_push_request(gnutella_node_t *n, const g2_tree_t *t)
 						if (GNET_PROPERTY(ggep_debug) > 3) {
 							g_warning("%s bad GGEP \"%s\" (dumping)",
 									gmsg_node_infostr(n), ext_ggep_id_str(e));
-							ext_dump(stderr, e, 1, "....", "\n", TRUE);
+							LOG_FOREACH(fd,
+								ext_dump_fd(fd, e, 1, "....", "\n", TRUE);
+							);
 						}
 						break;
 					}
@@ -3444,7 +3446,9 @@ upload_connect_conf(struct upload *u)
 			sent, rw, u->name, host_addr_to_string(s->addr));
 	} else if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 		g_debug("----Sent GIV to %s:", host_addr_to_string(s->addr));
-		dump_string(stderr, giv, rw, "----");
+		LOG_FOREACH(fd,
+			dump_string_fd(fd, giv, rw, "----");
+		);
 	}
 
 	if ((size_t) sent != rw) {
@@ -4817,7 +4821,9 @@ upload_write_status(void *data, int unused_source, inputevt_cond_t cond)
 		if (GNET_PROPERTY(upload_trace) & SOCK_TRACE_OUT) {
 			g_debug("----Sent HTTP status completely to %s (%zu bytes):",
 				host_addr_to_string(s->addr), pmsg_phys_len(r));
-			dump_string(stderr, pmsg_phys_base(r), pmsg_phys_len(r), "----");
+			LOG_FOREACH(fd,
+				dump_string_fd(fd, pmsg_phys_base(r), pmsg_phys_len(r), "----");
+			);
 		}
 	}
 
@@ -6191,7 +6197,9 @@ upload_request(struct upload *u, header_t *header)
 			u->from_browser ? " (via browser)" : "",
 			u->was_actively_queued ? " (was queued)" : "",
 			u->request);
-		header_dump(stderr, header, "----");
+		LOG_FOREACH(fd,
+			header_dump_fd(fd, header, "----");
+		);
 	}
 
 	if (u->last_was_error)

@@ -178,7 +178,7 @@ binary(uint64 p)
 /**
  * Swap two items from array.
  */
-static void G_HOT
+static void G_HOT G_FAST
 swap_items(array const *ary, size_t a, size_t b)
 {
 	if (ary->aligned) {
@@ -207,7 +207,7 @@ swap_items(array const *ary, size_t a, size_t b)
 /**
  * Compare two items in the array.
  */
-static int G_HOT
+static int G_HOT G_FAST
 cmp_items(array const *ary, size_t a, size_t b)
 {
 	if (ary->aligned) {
@@ -233,7 +233,7 @@ cmp_items(array const *ary, size_t a, size_t b)
  * @param r			root of the stretch
  * @param s			description of current stretch
  */
-static void G_HOT
+static void G_FAST
 sift(array const *ary, size_t r, stretch s)
 {
 	while (s.b >= 3) {
@@ -257,7 +257,7 @@ sift(array const *ary, size_t r, stretch s)
  * @param r			root of the stretch
  * @param s			description of stretches to concatenate
  */
-static void G_HOT
+static void G_FAST
 trinkle(array const *ary, size_t r, stretch s)
 {
 	DEBUG(("trinkle(%p, %zu, (%u, %s))\n", ary, r, s.b, binary(s.p)));
@@ -301,7 +301,7 @@ trinkle(array const *ary, size_t r, stretch s)
  * @param r			root of the stretch
  * @param stretch	description of stretches to trinkle
  */
-static void G_HOT
+static void G_FAST
 semitrinkle(array const *ary, size_t r, stretch s)
 {
 	size_t r1 = r - s.c;
@@ -322,7 +322,7 @@ semitrinkle(array const *ary, size_t r, stretch s)
  * @param first		first index to sort
  * @param N			amount ot items to sort
  */
-static void
+static void G_FAST
 smoothsort(array const *ary, size_t first, size_t N)
 {
 	stretch s = { 1, 1, 1 };

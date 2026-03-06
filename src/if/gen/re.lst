@@ -1,0 +1,45 @@
+#
+# Regular expression parsing error codes.
+#
+
+Prefix: RE_E_
+Lowercase: no
+I18N: no
+#Count:
+Enum: re_error_code_t
+Enum-Init: 0
+Enum-File: re.h
+Symbolic: re_error_names
+Description: re_error_code_str
+Enum-To-Symbolic: re_symbolic_error
+Enum-To-Description: re_strerror
+Enum-To-Code: re.c
+Enum-To-Header: re.h
+Protection-Prefix: if_gen
+
+OK							"OK"
+ERROR						"Generic catch-all error"
+INCOMPLETE_ESCAPE			"Incomplete escape sequence"
+INCOMPLETE_CHAR_CLASS		"Incomplete character class definition"
+INVALID_CHAR_CLASS_RANGE	"Invalid character class range"
+BAD_CHAR_CLASS_RANGE		"Bad character class range"
+UNKNOWN_POSIX_CLASS			"Unknown POSIX class name"
+CHAR_CLASS_CANNOT_MATCH		"Character class cannot match anything"
+INVALID_HEXA_DIGIT			"Invalid hexadecimal digit"
+INVALID_OCTAL_DIGIT			"Invalid octal digit"
+UNPARSEABLE_NUMBER			"Cannot parse number"
+NUMBER_OUT_OF_RANGE			"Number out of range"
+ORPHAN_REPETITION			"Orphan repetition, not applicable to anything"
+INCOMPLETE_REPEAT_RANGE		"Incomplete repeat range definition"
+INCONSISTENT_RANGE			"Inconsistent repeat range"
+EXPECTED_CLOSING_BRACE		"Was expecting a '}' to close sequence"
+CANNOT_ALTER_ONCE_MATCH		"Cannot alter greediness / atomicity of once match"
+NULL_REPETITION				"Repetition count cannot be zero"
+INCOMPLETE_GROUP			"Incomplete group"
+GROUP_CAPTURE_NEEDED		"Needs group capture when using back-references"
+UNKNOWN_GROUP_REF			"Reference to an unknown capturing group"
+UNKNOWN_GROUP_TYPE			"Unknown group type after leading '(?' sequence"
+NO_REPEAT_ON_LOOK_AROUND	"Cannot use repetitions on look-around assertions"
+LOOK_BEHIND_VARIABLE_WIDTH 	"Look-behind assertion must match a constant width"
+END_SEEN					"No character can follow a '$' end anchor"
+LATE_START					"Start anchor '^' can only be given at the start"

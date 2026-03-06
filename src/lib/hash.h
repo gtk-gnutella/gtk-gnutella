@@ -93,10 +93,12 @@ struct hkeys {
 		size_t keysize;			/* Fixed-length of keys */
 	} uk;
 	unsigned bits:6;			/* log2(size) -- large enough to hold 63 */
+	unsigned minbits:6;			/* log2(size_min) -- large enough to hold 63 */
 	unsigned resize:1;			/* Too many hops, rebuild or resize */
 	unsigned has_values:1;		/* Whether keys have associated values */
 	unsigned raw_memory:1;		/* Don't use walloc(), use VMM and xpmalloc() */
 	unsigned relocate:10;		/* Attempts for arena relocation */
+	unsigned read_only:1;		/* Table marked read-only (shared with no locks) */
 };
 
 #define HASH(x)		((struct hash *) (x))
@@ -151,6 +153,9 @@ struct hash {
  * Thread-safe synchronization support.
  */
 
+void hash_read_only(struct hash *h);
+void hash_read_write(struct hash *h);
+
 void hash_thread_safe(struct hash *h);
 
 #define hash_synchronize(h) G_STMT_START {			\
@@ -203,9 +208,11 @@ void hash_arena_allocate(struct hash *h, size_t bits);
 void hash_arena_free(struct hash *h);
 bool hash_resize_as_needed(struct hash *h);
 size_t hash_insert_key(struct hash *h, const void *key);
+size_t hash_insert_key_if_missing(struct hash *h, const void *key);
 size_t hash_lookup_key(struct hash *h, const void *key);
 bool hash_delete_key(struct hash *h, const void *key);
 bool hash_erect_tombstone(struct hash *h, size_t idx);
+size_t hash_min_count(struct hash *h, size_t count);
 
 void hash_refcnt_inc(const struct hash *h);
 void hash_refcnt_dec(const struct hash *h);
@@ -221,6 +228,7 @@ void hash_clear(struct hash *h);
 size_t hash_count(const struct hash *h);
 size_t hash_random(const struct hash *h, const void **keyptr);
 void hash_free(struct hash *h);
+size_t hash_memsize(const struct hash *h);
 
 #endif /* _hash_h_ */
 

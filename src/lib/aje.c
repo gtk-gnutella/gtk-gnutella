@@ -706,10 +706,10 @@ aje_init(aje_state_t *as)
 
 	aje_add_entropy(as, ARYLEN(buf));
 
-	for (i = 0; i < 8; i++) {
-		entropy_fill(ARYLEN(buf));
-		aje_add_entropy(as, ARYLEN(buf));
+	entropy_fill(ARYLEN(buf));
+	aje_add_entropy(as, ARYLEN(buf));
 
+	for (i = 0; i < 8; i++) {
 		random_bytes_with(entropy_minirand, ARYLEN(buf));
 		aje_add_entropy(as, ARYLEN(buf));
 	}

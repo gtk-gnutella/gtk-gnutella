@@ -2208,10 +2208,8 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -2224,9 +2222,15 @@ pmap_lookup(const struct pmap *pm, const void *p, size_t *low_ptr)
 	}
 
 	if (low_ptr != NULL)
-		*low_ptr = (NULL == mid ? low : mid) - &pm->array[0];
+		*low_ptr = mid - &pm->array[0];
 
 	return deconstify_pointer(mid);
+
+not_found:
+	if (low_ptr != NULL)
+		*low_ptr = low - &pm->array[0];
+
+	return NULL;
 }
 
 /**
@@ -2674,19 +2678,28 @@ assert_vmm_is_allocated(const void *base, size_t size, vmf_type_t type,
 	if G_UNLIKELY(vmm_crashing)
 		return;
 
-	if (locked) {
+	if (rwlock_rlock_try(&pm->lock))
+		goto locked;
+
+	if (locked || thread_sighandler_level() > 0) {
 		/*
 		 * Must prevent deadlocks if we are called with a spinlock held.
 		 * Since this is only used for assertions, it's OK to not always
 		 * be able to run it.
+		 *
+		 * If we are handling a signal, there is no telling if we were not
+		 * slepping, waiting for a lock, hence assumed we are in a locked
+		 * state and do nothing.
 		 */
-
-		if (!rwlock_rlock_try(&pm->lock))
-			return;
+		return;
 	} else {
+		/* Should be safe to wait */
 		rwlock_rlock(&pm->lock);
+
+		/* FALL THROUGH */
 	}
 
+locked:
 	vmf = pmap_lookup(vmm_pmap(), base, NULL);
 
 	g_assert(vmf != NULL);
@@ -3669,10 +3682,8 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 	/* Binary search */
 
 	for (;;) {
-		if G_UNLIKELY(low > high) {
-			mid = NULL;		/* Not found */
-			break;
-		}
+		if G_UNLIKELY(low > high)
+			goto not_found;
 
 		mid = low + (high - low) / 2;
 
@@ -3684,10 +3695,13 @@ vpc_lookup(const struct page_cache *pc, const char *p, size_t *low_ptr)
 			break;				/* Found */
 	}
 
+	return (size_t) (mid - &pc->info[0]);
+
+not_found:
 	if (low_ptr != NULL)
 		*low_ptr = low - &pc->info[0];
 
-	return NULL == mid ? (size_t) -1 : (size_t) (mid - &pc->info[0]);
+	return (size_t) -1;
 }
 
 /**
@@ -4486,7 +4500,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			if (0 == lopc->current)
 				continue;
 
-			spinlock(&lopc->lock);
+			if (!spinlock_try(&lopc->lock))
+				continue;
 
 			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
@@ -4537,7 +4552,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (0 == hopc->current)
 			continue;
 
-		spinlock(&hopc->lock);
+		if (!spinlock_try(&hopc->lock))
+			continue;
 
 		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
@@ -4583,7 +4599,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 			if (0 == lopc->current)
 				continue;
 
-			spinlock(&lopc->lock);
+			if (!spinlock_try(&lopc->lock))
+				continue;
 
 			if G_UNLIKELY(0 == lopc->current) {
 				spinunlock(&lopc->lock);
@@ -4631,7 +4648,8 @@ page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr)
 		if (0 == hopc->current)
 			continue;
 
-		spinlock(&hopc->lock);
+		if (!spinlock_try(&hopc->lock))
+			continue;
 
 		if G_UNLIKELY(0 == hopc->current) {
 			spinunlock(&hopc->lock);
@@ -7202,7 +7220,9 @@ buffer_operation(enum track_operation op,
 				"%s (%'zu %s bytes starting %p) at \"%s:%d\" (issue #%zu)",
 				track_operation_to_string(op),
 				track_mem(user_mem), p, file, line, vmm_buffer.missed);
-			stacktrace_where_print(stderr);
+			LOG_FOREACH(fd,
+				stacktrace_where_print_fd(fd);
+			);
 		}
 	} else {
 		size_t i = vmm_buffer.idx++;
@@ -7332,10 +7352,14 @@ vmm_alloc_record_desc(const void *p, const struct page_track *pt)
 #ifdef MALLOC_FRAMES
 		s_warning("VMM %s page %p was allocated from:",
 			track_mem(xpt->user), p);
-		stacktrace_atom_print(stderr, xpt->ast);
+		LOG_FOREACH(fd,
+			stacktrace_atom_print_fd(fd, xpt->ast);
+		);
 #endif
 		s_warning("VMM current stack:");
-		stacktrace_where_print(stderr);
+		LOG_FOREACH(fd,
+			stacktrace_where_print_fd(fd);
+		);
 
 		vmm_free_record_desc(p, pt);
 	}
@@ -7724,7 +7748,9 @@ vmm_log_pages(const void *k, void *v, void *leaksort)
 
 #ifdef MALLOC_FRAMES
 	s_message("%s block %p allocated from: ", track_mem(pt->user), k);
-	stacktrace_atom_print(stderr, pt->ast);
+	LOG_FOREACH(fd,
+		stacktrace_atom_print_fd(fd, pt->ast);
+	);
 #endif
 }
 

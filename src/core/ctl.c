@@ -610,9 +610,6 @@ ctl_limit(const host_addr_t ha, unsigned flags)
 	if (ISO3166_INVALID == code)
 		return FALSE;
 
-	if (GNET_PROPERTY(ancient_version))
-		return FALSE;
-
 	cflags = pointer_to_uint(
 		htable_lookup(ctl_by_country, uint_to_pointer(code)));
 

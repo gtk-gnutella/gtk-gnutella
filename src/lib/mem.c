@@ -45,6 +45,7 @@
 #include "fd.h"					/* For is_a_fifo() */
 #include "file.h"
 #include "log.h"
+#include "misc.h"
 #include "spinlock.h"
 #include "unsigned.h"
 #include "vmm.h"
@@ -445,6 +446,68 @@ bool
 mem_is_writable_range(const void *p, size_t len)
 {
 	return mem_is_accessible(p, len, mem_is_writable);
+}
+
+/**
+ * Is pointer to string valid?
+ *
+ * This routine does not take locks during normal operations.
+ *
+ * This is a costly check involving kernel operations to verify whether
+ * the pointer lies in the virtual address space of the process.  It should
+ * only be used in exceptional situations, not as part of routinely executed
+ * assertions for instance.
+ *
+ * @param p			start of string
+ * @param maxlen	maximum length we need to probe (0 = unlimited)
+ *
+ * @return length of string, (size_t) -1 if we encountered invalid memory,
+ * (size_t) -2 if we reached maxlen before seeing a trailing NUL.
+ */
+size_t
+mem_is_valid_string(const char *p, size_t maxlen)
+{
+	const char *end = const_ptr_add_offset(p, maxlen);
+	const void *page;
+	size_t len = 0;
+	size_t pagesz = compat_pagesize();
+
+	g_assert(size_is_non_negative(maxlen));
+
+	/*
+	 * The kernel handles permissions at the page-level granularity, so if
+	 * we can access one byte in the page, we can access the whole page.
+	 */
+
+	page = vmm_page_start(p);
+
+	do {
+		size_t clen, check;
+		const char *start;
+
+		if (!mem_is_valid_ptr(page))
+			return (size_t) -1;		/* Invalid memory before NUL */
+
+		if (ptr_cmp(page, p)  <= 0) {
+			/* First time in the loop */
+			start = p;
+			check = ptr_diff(vmm_page_next(p), p);
+		} else {
+			/* Next time in the loop */
+			start = page;
+			check = pagesz;
+		}
+
+		clen = clamp_strlen(start, check);
+		len += clen;
+
+		if (clen < check)
+			return len;
+
+		page = vmm_page_next(page);
+	} while (0 == maxlen || ptr_cmp(page, end) < 0);
+
+	return (size_t) -2;		/* Did not find any NUL before we hit maxlen */
 }
 
 static int mem_done = 0;

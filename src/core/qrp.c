@@ -5453,8 +5453,10 @@ qrt_build_query_target(
 		}
 		if (qrp_debugging(4) && source != NULL) {
 			/* Skip search flags (2 first bytes) */
-			dump_hex(stderr, "Query Payload",
-				source->data + 2, source->size - 2);
+			LOG_FOREACH(fd,
+				dump_hex_fd(fd, "Query Payload",
+					source->data + 2, source->size - 2);
+			);
 		}
 		return NULL;
 	}

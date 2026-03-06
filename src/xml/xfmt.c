@@ -38,6 +38,7 @@
 #include "xnode.h"
 
 #include "lib/ascii.h"
+#include "lib/fd.h"
 #include "lib/halloc.h"
 #include "lib/hset.h"
 #include "lib/hstrfn.h"
@@ -1214,6 +1215,27 @@ bool
 xfmt_tree(const xnode_t *root, ostream_t *os, uint32 options)
 {
 	return xfmt_tree_extended(root, os, options, NULL, 0, NULL);
+}
+
+/**
+ * Convenience routine: dump tree without prologue to specified fd, skipping
+ * pure white space nodes.
+ *
+ * @param fd		opened file descriptor where we should dump the tree
+ * @param root		tree to dump
+ *
+ * @return TRUE on success.
+ */
+bool
+xfmt_tree_dump_fd(int fd, const xnode_t *root)
+{
+	ostream_t *os;
+
+	g_return_val_if_fail(is_valid_fd(fd), FALSE);
+
+	os = ostream_open_fd(fd);
+	xfmt_tree(root, os, XFMT_O_SKIP_BLANKS);
+	return 0 == ostream_close(os);
 }
 
 /**

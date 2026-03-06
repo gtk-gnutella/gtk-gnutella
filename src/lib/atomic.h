@@ -63,9 +63,7 @@ typedef volatile uint atomic_lock_t;
 
 static inline ALWAYS_INLINE void
 atomic_release(atomic_lock_t *p) {
-	/* Prefer this to __sync_lock_release(p) which is obscurely documented */
-	*p = 0;
-	atomic_mb();
+	__sync_lock_release(p);
 }
 
 static inline ALWAYS_INLINE bool
@@ -207,14 +205,6 @@ atomic_ptr_xchg_if_eq(void **p, void *ov, void *nv)
 static inline bool
 atomic_acquire(atomic_lock_t *lock)
 {
-	/*
-	 * Our locking protocol issues a memory barrier after a lock has been
-	 * released, to make sure the changes to the locking object are widely
-	 * visible to all processors.
-	 *
-	 * Therefore, it is not necessary to issue a memory barrier here.
-	 */
-
 	return atomic_test_and_set(lock);
 }
 

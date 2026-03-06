@@ -222,6 +222,8 @@ atom_addr_free(const struct packed_host_addr *k)
 void atoms_init(void);
 void atoms_close(void);
 
+size_t atom_mem_overhead(void);
+
 static inline bool
 atom_is_str(const char *k)
 {

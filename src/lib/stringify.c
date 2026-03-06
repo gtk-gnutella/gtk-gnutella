@@ -36,6 +36,8 @@
 
 #include "common.h"
 
+#include <math.h>
+
 #include "stringify.h"
 
 #include "ascii.h"
@@ -385,6 +387,32 @@ uint64_to_string_buf(uint64 v, char *dst, size_t size)
 }
 
 size_t
+int_to_string_buf(int v, char *dst, size_t size)
+{
+	char buf[UINT_DEC_BUFLEN + 1];
+	char *p;
+	bool neg;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+	neg = v < 0;
+
+	do {
+		int d = v % 10;
+
+		v /= 10;
+		*p++ = dec_digit(neg ? -d : d);
+	} while (0 != v);
+
+	if (neg)
+		*p++ = '-';
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 uint_to_string_buf(unsigned v, char *dst, size_t size)
 {
 	char buf[UINT_DEC_BUFLEN];
@@ -729,6 +757,36 @@ fileoffset_t_to_string(fileoffset_t v)
 }
 
 size_t
+int_to_gstring_buf(int v, char *dst, size_t size)
+{
+	char buf[UINT_DEC_GRP_BUFLEN + 1];
+	char *p;
+	bool neg;
+	unsigned n;
+
+	g_assert(0 == size || NULL != dst);
+	g_assert(size <= INT_MAX);
+
+	p = buf;
+	neg = v < 0;
+	n = 0;
+
+	do {
+		int d = v % 10;
+
+		v /= 10;
+		if (0 == n++ % 3 && n != 1)
+			*p++ = ',';
+		*p++ = dec_digit(neg ? -d : d);
+	} while (0 != v);
+
+	if (neg)
+		*p++ = '-';
+
+	return reverse_strlcpy(dst, size, buf, p - buf);
+}
+
+size_t
 int32_to_gstring_buf(int32 v, char *dst, size_t size)
 {
 	char buf[UINT32_DEC_GRP_BUFLEN + 1];
@@ -930,6 +988,19 @@ uint64_to_gstring(uint64 v)
 }
 
 const char *
+int_to_gstring(int v)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT_DEC_GRP_BUFLEN + 1);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = int_to_gstring_buf(v, p, sz);
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
 uint_to_gstring(unsigned v)
 {
 	buf_t *b = buf_private(G_STRFUNC, UINT_DEC_GRP_BUFLEN);
@@ -965,6 +1036,36 @@ filesize_to_gstring(filesize_t v)
 	STATIC_ASSERT((filesize_t)-1 <= (uint64)-1);
 
 	n = uint64_to_gstring_buf(v, p, sz);
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+int32_to_string_grp(int32 v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT32_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		int32_to_gstring_buf(v, p, sz) : int32_to_string_buf(v, p, sz);
+
+	g_assert(n > 0);
+	g_assert(n < sz);
+	return p;
+}
+
+const char *
+int64_to_string_grp(int64 v, bool groupped)
+{
+	buf_t *b = buf_private(G_STRFUNC, UINT64_DEC_GRP_BUFLEN);
+	char *p = buf_data(b);
+	size_t n, sz = buf_size(b);
+
+	n = groupped ?
+		int64_to_gstring_buf(v, p, sz) : int64_to_string_buf(v, p, sz);
+
 	g_assert(n > 0);
 	g_assert(n < sz);
 	return p;
@@ -1045,6 +1146,101 @@ filesize_to_string_grp(filesize_t v, bool groupped)
 	g_assert(n > 0);
 	g_assert(n < sz);
 	return p;
+}
+
+#define DOUBLE_DECIMAL	5	/* Max amount of decimals we want */
+#define DOUBLE_STRLEN	7	/* Max length before switching to scientific */
+#define DOUBLE_SCI		3	/* Max amount of decimals in scientific format */
+
+/* Converts 1.25e-02 or 1.25e+02  to 1.25e-2 and 1.25e2 respectively */
+static void
+strip_exponent_leading_zeroes(str_t *s)
+{
+	ssize_t offset;
+
+	/* Strip leading zeroes after exponent */
+	if (-1 != (offset = str_chr(s, 'e'))) {
+		offset++;								/* skip 'e' */
+		if ('+' == str_at(s, offset))
+			str_remove(s, offset, 1);			/* strip '+' */
+		else if ('-' == str_at(s, offset))
+			offset++;							/* skip '-' */
+		while ('0' == str_at(s, offset))
+			str_remove(s, offset, 1);			/* leading 0 */
+	}
+}
+
+/* Ensure we do not produce 0.0000 values */
+static bool
+displays_as_zero(str_t *s)
+{
+	size_t off = 0;
+	size_t len = str_len(s);
+
+	/* Handle the decimal part */
+
+	if ('-' == str_at(s, off))   off++;			/* Could be -0.00 */
+	if ('0' != str_at(s, off++)) return FALSE;
+	if (off == len)              return TRUE;
+	if ('.' != str_at(s, off++)) return FALSE;
+
+	/* Handle the fractional part, stopping at first non-zero value */
+
+	while (off < len) {
+		if ('0' != str_at(s, off++))
+			return FALSE;
+	}
+
+	return TRUE;
+}
+
+/**
+ * Formats double to string striving to limit output to DOUBLE_STRLEN characters
+ * if possible, switching to scientific notation with less mantissa digits if
+ * necessary to keep below the limit.
+ */
+const char *
+double_to_string(double v)
+{
+	str_t *s = str_private(G_STRFUNC, FILESIZE_DEC_GRP_BUFLEN);
+	int dec = DOUBLE_DECIMAL;
+	int sci = 1 + DOUBLE_SCI;
+
+	switch (fpclassify(v)) {
+	case FP_NAN:
+		return "NaN";
+	case FP_INFINITE:
+		return v < 0 ? "-Inf" : "+Inf";
+	default:
+		break;
+	}
+
+	str_printf(s, "%.*g", dec, v);
+	strip_exponent_leading_zeroes(s);
+
+	/* See if we have a large-enough integer we can round */
+	if (str_len(s) > DOUBLE_STRLEN) {
+		long vd = (long) v;
+		if (labs(vd) > 1e4 && fabs(vd - v) < 1.0)
+			str_printf(s, "%ld%s", vd, (fabs(vd - v) < 1e-8) ? "" : ".");
+	}
+
+	/* Be reasonable, don't show too many digits */
+	while (--dec >= 0 && str_len(s) > DOUBLE_STRLEN) {
+		str_printf(s, "%.*g", dec, v);
+		strip_exponent_leading_zeroes(s);
+		if (v != 0.0 && displays_as_zero(s)) {
+			str_printf(s, "%.*e", sci, v);
+			break;
+		}
+	}
+
+	while (--sci >= 0 && str_len(s) > DOUBLE_STRLEN) {
+		str_printf(s, "%.*e", sci, v);
+		strip_exponent_leading_zeroes(s);
+	}
+
+	return str_2c(s);
 }
 
 /**
@@ -1605,6 +1801,26 @@ bool_to_string(bool v)
 		str_bprintf(p, sz, "TRUE=%d", v);	/* Visual indication of weirdness */
 		return p;
 	}
+}
+
+/**
+ * Amount of digits required to print out a number in base 10.
+ *
+ * We need n = 1 + E[log10(x)] base-10 digits to represent x.
+ *
+ * Returns an int, because this is typically used as a printf("%*x") argument
+ * and it takes an int.  Besides, even the largest number we can store within a
+ * size_t on a 64-bit machine is going to require simply 20 digits!
+ */
+int
+n_digits(size_t number)
+{
+	static double log10 = 2.30258509299404568401;	/* This is log(10) */
+
+	if G_UNLIKELY(0 == number)
+		return 1;
+
+	return 1 + (int) floor(log(number) / log10);
 }
 
 /* vi: set ts=4 sw=4 cindent: */

@@ -81,12 +81,17 @@ hikset_t *hikset_create_any_real(size_t offset, hash_fn_t primary, eq_fn_t eq);
 void hikset_free_null(hikset_t **);
 void hikset_clear(hikset_t *);
 void hikset_thread_safe(hikset_t *);
+void hikset_read_only(hikset_t *);
+void hikset_read_write(hikset_t *);
+size_t hikset_min_count(hikset_t *hx, size_t count);
 void hikset_lock(hikset_t *);
 void hikset_unlock(hikset_t *);
 
 bool hikset_contains(const hikset_t *, const void *key);
 void hikset_insert_key(hikset_t *hik, const void *keyptr);
+bool hikset_insert_key_if_missing(hikset_t *hik, const void *keyptr);
 void hikset_insert(hikset_t *, const void *value);
+bool hikset_insert_if_missing(hikset_t *, const void *value);
 void *hikset_lookup(const hikset_t *, const void *key);
 bool hikset_lookup_extended(const hikset_t *, const void *key, void **valptr);
 void *hikset_random(const hikset_t *);
@@ -99,6 +104,8 @@ hikset_iter_t *hikset_iter_new(const hikset_t *);
 void hikset_iter_release(hikset_iter_t **);
 bool hikset_iter_next(hikset_iter_t *, void **kp);
 void hikset_iter_remove(hikset_iter_t *);
+
+size_t hikset_memsize(const hikset_t *);
 
 #endif /* _hikset_h_ */
 

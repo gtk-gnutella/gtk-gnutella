@@ -522,12 +522,53 @@ plist_concat(plist_t *l1, plist_t *l2)
 {
 	if (l2 != NULL) {
 		plist_t *last = plist_last(l1);
+		g_assert(NULL == l2->prev);		/* At the head of l2 */
 		if (last != NULL)
 			last->next = l2;
 		else
 			l1 = l2;
 		l2->prev = last;
 	}
+
+	return l1;
+}
+
+/**
+ * Adds second list after sibling from first list.
+ *
+ * The second list becomes part of the first list, physically, i.e. the cells
+ * are not copied.
+ *
+ * @param l1		the head of the first list
+ * @param sibling	the cell after which we need to insert a new cell
+ * @param l2		the head of the second list
+ *
+ * @return the new head of the list.
+ */
+plist_t *
+plist_concat_after(plist_t *l1, plist_t *sibling, plist_t *l2)
+{
+	plist_t *last;
+
+	g_assert(NULL != l1 || NULL == sibling);
+
+	if G_UNLIKELY(NULL == l2)
+		return l1;
+
+	if G_UNLIKELY(NULL == sibling || NULL == l1)
+		return plist_concat(l1, l2);
+
+	last = plist_last(l2);
+
+	g_assert(NULL == l2->prev);		/* At the head of l2 */
+	g_assert(last != NULL);			/* Since l2 was not NULL */
+
+	last->next = sibling->next;
+	if (sibling->next != NULL)
+		sibling->next->prev = last;
+
+	l2->prev = sibling;
+	sibling->next = l2;
 
 	return l1;
 }

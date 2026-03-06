@@ -205,7 +205,7 @@ reverse_byte(uint8 b)
 #if LONGSIZE == 8
 
 /*
- Here is the explaination of what the algorithm does on 64-bit machines:
+ Here is the explanation of what the algorithm does on 64-bit machines:
  We need 80 columns to document this properly, hence the unusual formatting.
  -----------------------------------------------------------------------------
                                                                      abcd efgh

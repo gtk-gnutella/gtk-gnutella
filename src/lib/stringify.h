@@ -141,6 +141,7 @@ const char *filesize_to_string2(filesize_t);
 const char *filesize_to_string3(filesize_t);
 const char *ipv6_to_string(const uint8 *ipv6);
 const char *ipv6_to_string2(const uint8 *ipv6);
+const char *double_to_string(double v);
 size_t ipv6_to_string_buf(const uint8 *ipv6, char *dst, size_t size);
 
 char *hex_escape(const char *name, bool strict);
@@ -155,11 +156,13 @@ size_t int32_to_gstring_buf(int32 v, char *dst, size_t size);
 size_t int64_to_gstring_buf(int64 v, char *dst, size_t size);
 size_t uint32_to_gstring_buf(uint32 v, char *dst, size_t size);
 size_t uint64_to_gstring_buf(uint64 v, char *dst, size_t size);
+size_t int_to_gstring_buf(int v, char *dst, size_t size);
 size_t uint_to_gstring_buf(unsigned v, char *dst, size_t size);
 size_t ulong_to_gstring_buf(unsigned long v, char *dst, size_t size);
 size_t size_t_to_gstring_buf(size_t v, char *dst, size_t size);
 const char *uint32_to_gstring(uint32);
 const char *uint64_to_gstring(uint64);
+const char *int_to_gstring(int v);
 const char *uint_to_gstring(unsigned v);
 const char *size_t_to_gstring(size_t v);
 const char *filesize_to_gstring(filesize_t v);
@@ -168,8 +171,11 @@ const char *filesize_to_gstring(filesize_t v);
  * Optionally groupped by thousands.
  */
 
+const char *int32_to_string_grp(int32, bool);
+const char *int64_to_string_grp(int64, bool);
 const char *uint32_to_string_grp(uint32, bool);
 const char *uint64_to_string_grp(uint64, bool);
+const char *int_to_string_grp(int, bool);
 const char *uint_to_string_grp(unsigned, bool);
 const char *size_t_to_string_grp(size_t, bool);
 const char *filesize_to_string_grp(filesize_t, bool);
@@ -190,6 +196,8 @@ size_t time_locale_to_string_buf(time_t date, char *dst, size_t size);
 size_t time_t_to_string_buf(time_t v, char *dst, size_t size);
 const char *time_t_to_string(time_t);
 const char *bool_to_string(bool);
+
+int n_digits(size_t number) G_PURE;
 
 /*
  * Miscellaneous stringifications.

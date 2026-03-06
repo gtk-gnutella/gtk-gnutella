@@ -720,7 +720,8 @@ halloc_glib12_check(void)
 	p = g_strdup("");
 	if (0 == halloc_get_size(p, &type)) {
 		static GMemVTable zero_vtable;
-		fprintf(stderr, "WARNING: Resetting g_mem_set_vtable\n");
+		fprintf(stderr,
+			"WARNING: %s(): resetting g_mem_set_vtable\n", G_STRFUNC);
 		g_mem_set_vtable(&zero_vtable);
 	} else {
 		G_FREE_NULL(p);

@@ -43,6 +43,7 @@
 #include "tm.h"
 
 #include "atomic.h"
+#include "compat_getrusage.h"
 #include "compat_sleep_ms.h"
 #include "gentime.h"
 #include "listener.h"
@@ -780,46 +781,6 @@ tm_equal(const void *a, const void *b)
 	return ta->tv_sec == tb->tv_sec && ta->tv_usec == tb->tv_usec;
 }
 
-/***
- *** CPU time computation.
- ***/
-
-#ifdef HAS_TIMES
-/**
- * Return amount of clock ticks per second.
- */
-static long
-clock_hz(void)
-{
-	static long freq = 0;	/* Cached amount of clock ticks per second */
-
-	if G_UNLIKELY(freq <= 0) {
-#ifdef _SC_CLK_TCK
-		errno = ENOTSUP;
-		freq = sysconf(_SC_CLK_TCK);
-		if (-1L == freq)
-			g_warning("sysconf(_SC_CLK_TCK) failed: %m");
-#endif
-	}
-
-	if G_UNLIKELY(freq <= 0) {
-#if defined(CLK_TCK)
-		freq = CLK_TCK;			/* From <time.h> */
-#elif defined(HZ)
-		freq = HZ;				/* From <sys/param.h> ususally */
-#elif defined(CLOCKS_PER_SEC)
-		/* This is actually for clock() but should be OK. */
-		freq = CLOCKS_PER_SEC;	/* From <time.h> */
-#else
-		freq = 1;
-#error	"unable to determine clock frequency base"
-#endif
-	}
-
-	return freq;
-}
-#endif	/* HAS_TIMES */
-
 /**
  * Fill supplied variables with CPU usage time (user and kernel), if not NULL.
  *
@@ -828,58 +789,17 @@ clock_hz(void)
 double
 tm_cputime(double *user, double *sys)
 {
-	static bool getrusage_failed;
-	double u;
-	double s;
+	double u, s;
+	struct compat_rusage usage;
+	tm_t tu, ts;
 
-	if (!getrusage_failed) {
-#if defined(HAS_GETRUSAGE)
-		struct rusage usage;
+	(void) compat_getrusage(RUSAGE_SELF, &usage);
 
-		errno = ENOTSUP;
-		if G_UNLIKELY(-1 == getrusage(RUSAGE_SELF, &usage)) {
-			u = 0;
-			s = 0;
-			g_warning("getrusage(RUSAGE_SELF, ...) failed: %m");
-		} else {
-			tm_t tu, ts;
+	timeval_to_tm(&tu, &usage.ru_utime);
+	timeval_to_tm(&ts, &usage.ru_stime);
 
-			timeval_to_tm(&tu, &usage.ru_utime);
-			timeval_to_tm(&ts, &usage.ru_stime);
-
-			u = tm2f(&tu);
-			s = tm2f(&ts);
-		}
-#else
-		getrusage_failed = TRUE;
-#endif /* HAS_GETRUSAGE */
-	} else {
-		/* For stupid compilers */
-		u = 0;
-		s = 0;
-	}
-
-	if (getrusage_failed) {
-#if defined(HAS_TIMES)
-		struct tms t;
-
-		(void) times(&t);
-
-		u = (double) t.tms_utime / (double) clock_hz();
-		s = (double) t.tms_stime / (double) clock_hz();
-#else
-		static bool warned = FALSE;
-
-		if (!warned) {
-			g_warning("getrusage() is unusable and times() is missing");
-			g_warning("will be unable to monitor CPU usage; using wall clock.");
-			warned = TRUE;
-		}
-
-		u = (double) tm_time_exact();	/* Wall clock */
-		s = 0.0;						/* We have no way of knowing that */
-#endif	/* HAS_TIMES */
-	}
+	u = tm2f(&tu);
+	s = tm2f(&ts);
 
 	if (user) *user = u;
 	if (sys)  *sys  = s;

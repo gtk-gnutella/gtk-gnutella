@@ -175,6 +175,12 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_bindtxtcode HAS_BIND_TEXTDOMAIN_CODESET		/**/
 
+/* HAS_BOOL:
+ *	This symbol, if defined, indicates that the "bool" type is available
+ *	and that no "typedef int bool;" statement be used to define it.
+ */
+#$d_bool HAS_BOOL		/**/
+
 /* HAS_BSEARCH:
  *	This symbol, if defined, indicates that the bsearch() routine
  *	is available to perform a binary search on a sorted array.
@@ -1480,6 +1486,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_usegtk1 USE_GTK1    /**/
 #$d_usegtk2 USE_GTK2    /**/
+
+/* HAS_PCRE2_8:
+ *	This symbol, if defined, indicates that the PCRE2 library is available
+ *	with 8-bit characters.  To use it, one must include <prce2.h> and define
+ *	PCRE2_CODE_UNIT_WIDTH to 8 prior to that inclusion.
+ */
+#$d_pcre2_8 HAS_PCRE2_8	/**/
 
 /* USE_REMOTE_CTRL:
  * This symbol is defined when they want remote control support.

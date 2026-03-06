@@ -109,6 +109,7 @@
 
 #include "endian.h"
 #include "hashing.h"
+#include "pow2.h"
 #include "rand31.h"
 #include "random.h"
 #include "unsigned.h"
@@ -213,7 +214,7 @@ hash_hops_max(const struct hkeys *hk)
 	if G_UNLIKELY(hk->size <= HASH_LINE_ITEMS)
 		return HASH_LINE_ITEMS;			/* Allows to loop over all keys */
 
-	return HASH_HOPS_MIN + (hk->bits - HASH_MIN_BITS) / 2;
+	return HASH_HOPS_MIN + (hk->bits - hk->minbits) / 2;
 }
 
 /**
@@ -292,6 +293,7 @@ hash_arena_allocate(struct hash *h, size_t bits)
 
 	hk->size = 1UL << bits;
 	hk->bits = bits;
+	hk->minbits = MAX(hk->minbits, HASH_MIN_BITS);
 	hk->tombs = 0;
 	hk->resize = FALSE;
 
@@ -329,9 +331,12 @@ hash_arena_relocate(struct hash *h)
 	 * If we're in the process of an iteration, make sure we do not
 	 * relocate as that would perturb the iteration pointers: we wish
 	 * to avoid pointer arithmetic in the loops.
+	 *
+	 * Also if the table is read-only, we cannot perform the operation
+	 * since we have no locks to rely on.
 	 */
 
-	if G_UNLIKELY(0 != h->refcnt)
+	if G_UNLIKELY(0 != h->refcnt || h->kset.read_only)
 		return;
 
 	/*
@@ -407,6 +412,33 @@ hash_arena_free(struct hash *h)
 		mutex_destroy(h->lock);
 		WFREE(h->lock);
 	}
+}
+
+/**
+ * Computes the memory used for storage of the keys/values in the table.
+ *
+ * This does NOT count the memory used by the actual keys and values.
+ */
+size_t
+hash_memsize(const struct hash *h)
+{
+	const struct hkeys *hk = &h->kset;
+	size_t mem;
+
+	hash_check(h);
+
+	/*
+	 * Note that we do not count the memory of the hash structure itself
+	 * here: the hash structure is itself embedded in the real structure
+	 * (for instance hikset or htable) and will be counted there.
+	 */
+
+	mem = hash_arena_size(hk->size, hk->has_values);
+
+	if (h->lock != NULL)
+		mem += sizeof(*h->lock);
+
+	return mem;
 }
 
 /**
@@ -573,7 +605,7 @@ hash_keyset_equals(const struct hkeys *hk, const void *k1, const void *k2)
  * @return TRUE if key was found with kidx now holding the index of the key,
  * FALSE otherwise with kidx now holding the insertion index for the key.
  */
-static bool G_HOT
+static bool G_HOT G_FAST
 hash_keyset_lookup(struct hkeys *hk, const void *key, unsigned hv,
 	size_t *kidx, size_t *tombidx)
 {
@@ -714,6 +746,7 @@ hash_erect_tombstone(struct hash *h, size_t idx)
 
 	hash_check(h);
 	assert_hash_locked(h);
+	g_assert(!h->kset.read_only);
 	g_assert(size_is_non_negative(idx));
 	g_assert(idx < h->kset.size);
 
@@ -736,17 +769,19 @@ static bool
 hash_resize_min(struct hash *h)
 {
 	assert_hash_locked(h);
+	g_assert(!h->kset.read_only);
+	g_assert(0 != h->kset.minbits);
 
-	if G_UNLIKELY(HASH_MIN_BITS == h->kset.bits) {
+	if G_UNLIKELY(h->kset.minbits == h->kset.bits) {
 		memset(h->kset.hashes, 0,
-			(1U << HASH_MIN_BITS) * sizeof h->kset.hashes[0]);
+			(1UL << h->kset.minbits) * sizeof h->kset.hashes[0]);
 		h->kset.tombs = 0;
 		h->kset.relocate = 0;
 		h->kset.resize = FALSE;
 		return FALSE;
 	} else {
 		hash_arena_kset_free(h);
-		hash_arena_allocate(h, HASH_MIN_BITS);
+		hash_arena_allocate(h, h->kset.minbits);
 		return TRUE;
 	}
 }
@@ -788,21 +823,25 @@ hash_resize(struct hash *h, enum hash_resize_mode mode)
 	case HASH_RESIZE_SHRINK:
 		g_assert(size_is_positive(h->kset.bits));
 		g_assert(h->kset.items <= h->kset.size / 2);	/* Can loop once */
-		do {
-			h->kset.bits--;
-			h->kset.size = 1UL << h->kset.bits;
-		} while
-			(h->kset.items < h->kset.size / 4 && h->kset.bits > HASH_MIN_BITS);
+		if (h->kset.bits > h->kset.minbits + 1) {
+			size_t target;
+			do {
+				h->kset.bits--;
+				target = 1UL << h->kset.bits;
+			} while (h->kset.items < target / 4 && h->kset.bits > h->kset.minbits);
+		}
 		goto size_computed;
 	case HASH_RESIZE_CACHELINE:
 		g_assert(size_is_positive(h->kset.bits));
 		g_assert(h->kset.items <= HASH_LINE_ITEMS);
 		g_assert(h->kset.items <= h->kset.size / 2);	/* Can loop once */
-		do {
-			h->kset.bits--;
-			h->kset.size = 1UL << h->kset.bits;
-		} while
-			(h->kset.items < h->kset.size / 2 && h->kset.bits > HASH_MIN_BITS);
+		if (h->kset.bits > h->kset.minbits + 1) {
+			size_t target;
+			do {
+				h->kset.bits--;
+				target = 1UL << h->kset.bits;
+			} while (h->kset.items < target / 2 && h->kset.bits > h->kset.minbits);
+		}
 		goto size_computed;
 	case HASH_RESIZE_MAXMODE:
 		break;
@@ -859,9 +898,12 @@ hash_resize_as_needed(struct hash *h)
 	/*
 	 * Never resize when iterating, since this would perturb the order
 	 * of the keys and mess up with the iterator's position tracking.
+	 *
+	 * Also never resize when the table was made read-only since we have
+	 * no locks anymore.
 	 */
 
-	if G_UNLIKELY(0 != h->refcnt)
+	if G_UNLIKELY(0 != h->refcnt || h->kset.read_only)
 		return FALSE;
 
 	if (h->kset.items <= HASH_LINE_ITEMS) {
@@ -882,7 +924,7 @@ hash_resize_as_needed(struct hash *h)
 
 		if (
 			h->kset.items + 1 < h->kset.size / 2 &&	/* Note the hysteresis */
-			h->kset.bits > HASH_MIN_BITS
+			h->kset.bits > h->kset.minbits
 		) {
 			hash_resize(h, HASH_RESIZE_CACHELINE);	/* Table is oversized */
 			return TRUE;
@@ -920,7 +962,7 @@ hash_resize_as_needed(struct hash *h)
 	}
 
 	if (h->kset.items < h->kset.size / 4) {
-		if (h->kset.bits > HASH_MIN_BITS) {
+		if (h->kset.bits > h->kset.minbits) {
 			hash_resize(h, HASH_RESIZE_SHRINK);		/* Table is oversized */
 			return TRUE;
 		}
@@ -969,10 +1011,13 @@ hash_resize_as_needed(struct hash *h)
 }
 
 /**
- * Insert key in table, returning index where insertion was made.
+ * Insert key in table (if not already present when "when_missing" is set),
+ *
+ * @return index where insertion was made or (size_t) -1 if key was
+ * already present and "when_missing" was TRUE.
  */
-size_t
-hash_insert_key(struct hash *h, const void *key)
+static size_t
+hash_insert_key_internal(struct hash *h, const void *key, bool when_missing)
 {
 	bool found;
 	unsigned hv;
@@ -980,6 +1025,7 @@ hash_insert_key(struct hash *h, const void *key)
 
 	hash_check(h);
 	assert_hash_locked(h);
+	g_assert(!h->kset.read_only);
 
 	/*
 	 * When table is small, don't resize immediately because maybe the
@@ -1010,7 +1056,10 @@ hash_insert_key(struct hash *h, const void *key)
 		found = hash_keyset_lookup(&h->kset, key, hv, &idx, &tombidx);
 	}
 
-	if (!found) {
+	if (found) {
+		if (when_missing)
+			return (size_t) -1;
+	} else {
 		g_assert(size_is_non_negative(idx));
 		g_assert(idx < h->kset.size);
 		g_assert(h->kset.items < h->kset.size);
@@ -1031,9 +1080,29 @@ hash_insert_key(struct hash *h, const void *key)
 }
 
 /**
- * Lookup key in table, returning index where key was found or -1 if absent.
+ * Insert key in table, returning index where insertion was made.
  */
 size_t
+hash_insert_key(struct hash *h, const void *key)
+{
+	return hash_insert_key_internal(h, key, FALSE);
+}
+
+/**
+ * Insert key in table if missing, returning index where insertion was made,
+ * or (size_t) -1 when key was already present and no insertion was made.
+ */
+size_t
+hash_insert_key_if_missing(struct hash *h, const void *key)
+{
+	return hash_insert_key_internal(h, key, TRUE);
+}
+
+
+/**
+ * Lookup key in table, returning index where key was found or -1 if absent.
+ */
+size_t G_HOT G_FAST
 hash_lookup_key(struct hash *h, const void *key)
 {
 	bool found;
@@ -1079,20 +1148,15 @@ no_resize:
 		 * the order of the keys.
 		 */
 
-		if G_UNLIKELY((size_t) -1 != tombidx && 0 == h->refcnt) {
+		if G_UNLIKELY(
+			(size_t) -1 != tombidx &&
+			0 == h->refcnt &&
+			!h->kset.read_only
+		) {
 			const void **values = NULL;
 
-			G_PREFETCH_R(&hv);
-			G_PREFETCH_R(&h->kset.keys[idx]);
-			G_PREFETCH_W(&h->kset.keys[tombidx]);
-			G_PREFETCH_W(&h->kset.hashes[tombidx]);
-			G_PREFETCH_W(&h->kset.hashes[idx]);
-
-			if (h->kset.has_values) {
+			if (h->kset.has_values)
 				values = (*h->ops->get_values)(h);
-				G_PREFETCH_W(values[tombidx]);
-				G_PREFETCH_R(values[idx]);
-			}
 
 			g_assert(tombidx != idx);
 			g_assert(size_is_positive(h->kset.tombs));
@@ -1124,6 +1188,7 @@ hash_delete_key(struct hash *h, const void *key)
 
 	hash_check(h);
 	assert_hash_locked(h);
+	g_assert(!h->kset.read_only);
 
 	hv = hash_compute_primary(&h->kset, key);
 	found = hash_keyset_lookup(&h->kset, key, hv, &idx, NULL);
@@ -1151,6 +1216,7 @@ hash_clear(struct hash *h)
 {
 	hash_check(h);
 	g_assert(0 == h->refcnt);
+	g_assert(!h->kset.read_only);
 
 	hash_synchronize(h);
 
@@ -1331,6 +1397,111 @@ hash_thread_safe(struct hash *h)
 
 	WALLOC0(h->lock);
 	mutex_init(h->lock);
+}
+
+/**
+ * Mark the hash as read-only.
+ *
+ * The purpose of making a hashed structure read-only is to make it possible
+ * to share it among several threads for reading, making the use of locks
+ * superfluous.
+ *
+ * If the table was made thread-safe already, then a loud warning is emitted
+ * and the thread-safe nature is removed: concurrent read accesses will never
+ * alter the data structure.
+ *
+ * It is up to the application to ensure that when the destruction of the
+ * read-only table occurs, the thread is the only one holding a pointer to it!
+ */
+void
+hash_read_only(struct hash *h)
+{
+	hash_check(h);
+
+	hash_synchronize(h);
+
+	/*
+	 * No need to warn if the table was already read-only, it is harmless to
+	 * call it multiple times.
+	 */
+
+	if (h->kset.read_only) {
+		g_assert(NULL == h->lock);
+		return;		/* We know the lock was removed */
+	}
+
+	h->kset.read_only = TRUE;		/* Table can no longer be modified */
+
+	if (h->lock != NULL) {
+		mutex_destroy(h->lock);	/* This will unlock if we locked on entry */
+		WFREE(h->lock);
+		h->lock = NULL;
+
+		s_carp("%s(): keyhash was thread-safe, it is now read-only", G_STRFUNC);
+	}
+}
+
+/**
+ * Mark the hash as read-write again by clearing the read-only flag.
+ *
+ * It is up to the application to ensure that, when it reverts the read-only
+ * flag, the only thread having access to that hash is the calling thread!
+ */
+void
+hash_read_write(struct hash *h)
+{
+	hash_check(h);
+
+	/* Because a read-only table has no locks, no need to synchronize */
+
+	if (!h->kset.read_only)
+		return;		/* Already read-write */
+
+	h->kset.read_only = FALSE;
+}
+
+/**
+ * Set minimum amount of items expected in the hashed structure.
+ *
+ * This can be used when we know beforehand how many values we are going to
+ * insert in the hash so that we can correctly pre-size the arena to avoid
+ * constant re-allocation and rebuilds whilst inserting keys.
+ *
+ * @return the chosen amount of slots.
+ */
+size_t
+hash_min_count(struct hash *h, size_t count)
+{
+	struct hkeys *hk = &h->kset;
+	int bits;
+
+	hash_check(h);
+	g_assert(!h->kset.read_only);
+	g_assert(size_is_positive(count));
+
+	bits = highest_bit_set64(count) + !is_pow2(count);
+
+	g_assert(bits >= 0);
+
+	/* Do not shrink table */
+
+	if (bits >= hk->minbits) {
+		/*
+		 * How many slots do we need?
+		 *
+		 * We are going to assume that we need a table half-full, hence double
+		 * the size requested by incresing the amount of bits by 1.
+		 */
+
+		hk->minbits = bits + 1;
+
+		if (hk->minbits > hk->bits) {
+			h->kset.bits = h->kset.minbits;
+			hash_resize(h, HASH_RESIZE_SAME);
+		}
+	}
+
+	return 1UL << hk->minbits;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

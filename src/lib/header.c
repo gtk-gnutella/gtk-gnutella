@@ -216,10 +216,10 @@ hfield_append(header_field_t *h, const char *text)
 }
 
 /**
- * Dump field on specified file descriptor.
+ * Dump field at the end of supplied string.
  */
 static void
-hfield_dump(const header_field_t *h, FILE *out)
+hfield_dump(const header_field_t *h, str_t *s)
 {
 	slist_iter_t *iter;
 	bool first;
@@ -227,37 +227,34 @@ hfield_dump(const header_field_t *h, FILE *out)
 	header_field_check(h);
 	g_assert(h->lines);
 
-	fprintf(out, "%s: ", h->name);
+	str_catf(s, "%s: ", h->name);
 
 	first = TRUE;
 	iter = slist_iter_on_head(h->lines);
 	for (/* NOTHING */; slist_iter_has_item(iter); slist_iter_next(iter)) {
-		const char *s;
+		const char *v;
 
 		if (first)
 			first = FALSE;
 		else
-			fputs("    ", out);			/* Continuation line */
+			STR_CAT(s, "    ");			/* Continuation line */
 
-		s = slist_iter_current(iter);
-		if (is_printable_iso8859_string(s)) {
-			fputs(s, out);
+		v = slist_iter_current(iter);
+		if (is_printable_iso8859_string(v)) {
+			str_cat(s, v);
 		} else {
-			char buf[80];
-			const char *p = s;
+			const char *p = v;
 			int c;
-			size_t len = vstrlen(s);
-			str_bprintf(ARYLEN(buf), "<%u non-printable byte%s>",
-				(unsigned) PLURAL(len));
-			fputs(buf, out);
+			size_t len = vstrlen(v);
+			str_catf(s, "<%zu non-printable byte%s>", PLURAL(len));
 			while ((c = *p++)) {
 				if (is_ascii_print(c) || is_ascii_space(c))
-					fputc(c, out);
+					str_putc(s, c);
 				else
-					fputc('.', out);	/* Less visual clutter than '?' */
+					str_putc(s, '.');	/* Less visual clutter than '?' */
 			}
 		}
-		fputc('\n', out);
+		str_putc(s, '\n');
 	}
 	slist_iter_free(&iter);
 }
@@ -658,22 +655,40 @@ header_dump_item(void *p, void *user_data)
 }
 
 /**
+ * Dump whole header to specified file descriptor, atomically.
+ * If a non-NULL trailer string is supploed, print it, followed by a final "\n".
+ */
+void
+header_dump_fd(int fd, const header_t *o, const char *trailer)
+{
+	str_t *s = str_new(2048);
+
+	header_check(o);
+
+	if (o->fields != NULL)
+		slist_foreach(o->fields, header_dump_item, s);
+
+	if (trailer != NULL) {
+		str_cat(s, trailer);
+		str_putc(s, '\n');
+	}
+
+	IGNORE_RESULT(write(fd, str_2c(s), str_len(s)));
+
+	str_destroy_null(&s);
+}
+
+/**
  * Dump whole header on specified file, followed by trailer string
  * (if not NULL) and a final "\n".
  */
 void
 header_dump(FILE *out, const header_t *o, const char *trailer)
 {
-	header_check(o);
-
 	if (!log_file_printable(out))
 		return;
 
-	if (o->fields) {
-		slist_foreach(o->fields, header_dump_item, out);
-	}
-	if (trailer)
-		fprintf(out, "%s\n", trailer);
+	header_dump_fd(fileno(out), o, trailer);
 }
 
 /***

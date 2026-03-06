@@ -97,6 +97,7 @@
 #include "hstrfn.h"
 #include "iovec.h"
 #include "log.h"
+#include "logfilter.h"			/* For logfilter_crash_mode() */
 #include "mempcpy.h"
 #include "misc.h"				/* For english_strerror() */
 #include "mutex.h"				/* For mutex_crash_mode() */
@@ -2610,6 +2611,15 @@ crash_mode(enum crash_level level, bool external)
 	g_assert(level != CRASH_LVL_NONE);
 
 	/*
+	 * If we're crashing, immediately disable the logfilter, in case we
+	 * are crashing from something the logfilter is doing or using: we
+	 * want to be able to get meaningful traces from now on!
+	 */
+
+	if (level >= CRASH_LVL_FAILURE)
+		logfilter_crash_mode();
+
+	/*
 	 * Record the ID of the first crashing thread.
 	 *
 	 * This thread can never be suspended or it will not be able to
@@ -3615,6 +3625,12 @@ crash_ctl(enum crash_alter_mode mode, int flags)
 	uint8 value;
 
 	g_assert(CRASH_FLAG_SET == mode || CRASH_FLAG_CLEAR == mode);
+
+	if G_UNLIKELY(NULL == vars) {
+		s_carp("%s(): called before crash_init(), ignoring %s of flags 0x%x",
+			G_STRFUNC, CRASH_FLAG_SET == mode ? "setting" : "clearing", flags);
+		return;
+	}
 
 	value = booleanize(CRASH_FLAG_SET == mode);
 
