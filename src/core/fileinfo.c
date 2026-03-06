@@ -7377,7 +7377,7 @@ file_info_dht_query(const sha1_t *sha1)
 void
 file_info_slow_timer(void)
 {
-	if (!dht_bootstrapped() || GNET_PROPERTY(ancient_version))
+	if (!dht_bootstrapped())
 		return;
 
 	hikset_foreach(fi_by_outname, fi_dht_check, NULL);

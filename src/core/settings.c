@@ -2571,7 +2571,7 @@ country_limits_changed(property_t prop)
     char *limits;
 
 	limits = gnet_prop_get_string(prop, NULL, 0);
-	ctl_parse(GNET_PROPERTY(ancient_version) ? NULL : limits);
+	ctl_parse(limits);
     G_FREE_NULL(limits);
     return FALSE;
 }

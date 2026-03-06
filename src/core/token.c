@@ -620,7 +620,22 @@ find_tokkey_upto_fallback(time_t now, size_t count)
 static inline const struct tokkey *
 find_tokkey(time_t now)
 {
-	return find_tokkey_upto(now, N_ITEMS(token_keys));
+	/*
+	 * Starting with 1.3.0, we no longer say:
+	 *
+	 * 		return find_tokkey_upto(now, N_ITEMS(token_keys));
+	 *
+	 * because we no longer wish to expire tokens. There will be no
+	 * ancient versions any more, as the Gnutella protocol and
+	 * gtk-gnutella are both completely stable and unlikely to evolve.
+	 *
+	 * Therefore, use the latest keys available, always.
+	 * 		--RAM, 2026-03-06
+	 */
+
+	(void) now;	/* Parameter no longer used */
+
+	return &token_keys[N_ITEMS(token_keys) - 1];
 }
 
 /**
@@ -1025,16 +1040,6 @@ tok_version_valid(const char *version, const char *tokenb64, int len)
 		return TOK_SHORT_LEVEL;
 
 	return TOK_OK;
-}
-
-/**
- * Check whether the version is too ancient to be able to generate a proper
- * token string identifiable by remote parties.
- */
-bool
-tok_is_ancient(time_t now)
-{
-	return find_tokkey(now) == NULL;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

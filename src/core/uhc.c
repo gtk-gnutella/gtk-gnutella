@@ -565,11 +565,9 @@ uhc_get_hosts(void)
 {
 	/*
 	 * Make sure we don't probe host caches more than once at a time.
-	 * Ancient versions are denied the right to contact host caches and
-	 * must find out hosts another way.
 	 */
 
-	if (uhc_connecting || GNET_PROPERTY(ancient_version))
+	if (uhc_connecting)
 		return;
 
 	if (!udp_active()) {

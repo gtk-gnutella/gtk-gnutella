@@ -1540,7 +1540,6 @@ slow_main_timer(time_t now)
 	switch (i) {
 	case 0:
 		dmesh_store();
-		version_ancient_warn();
 		break;
 	case 1:
 		dmesh_ban_store();
@@ -2656,7 +2655,6 @@ main(int argc, char **argv)
 	(void) tm_time_exact();
 	cq_main_insert(1000, scan_files_once, NULL);
 	bsched_enable_all();
-	version_ancient_warn();
 	dht_attempt_bootstrap();
 	http_test();
 	vxml_test();

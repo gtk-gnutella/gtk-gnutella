@@ -855,9 +855,7 @@ can_become_ultra(time_t now)
 
 	return avg_servent_uptime && avg_ip_uptime && node_uptime &&
 		not_firewalled && enough_fd && enough_mem && enough_bw &&
-		good_udp_support &&
-		!GNET_PROPERTY(ancient_version);
-		/* Old versions don't become ultrapeers */
+		good_udp_support;
 }
 
 /**
@@ -1059,16 +1057,6 @@ node_slow_timer(time_t now)
 			no_leaves_connected = now;
 	} else
 		no_leaves_connected = 0;
-
-	/*
-	 * It is more harmful to the network to run an ancient version as an
-	 * ultra peer, less so as a leaf node.
-	 */
-
-	if (!settings_is_leaf() && tok_is_ancient(now)) {
-		gnet_prop_set_guint32_val(PROP_CURRENT_PEERMODE, NODE_P_LEAF);
-		return;
-	}
 
 	/*
 	 * If we're in "auto" mode and we're still running as a leaf node,

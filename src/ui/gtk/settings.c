@@ -3860,23 +3860,6 @@ static prop_map_t property_map[] = {
     ),
     PROP_ENTRY(
         gui_main_window,
-        PROP_ANCIENT_VERSION,
-        ancient_version_changed,
-        TRUE,
-		/* need eventbox because image has no tooltip */
-        "eventbox_image_ancient",
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_main_window,
-        PROP_ANCIENT_VERSION_LEFT_DAYS,
-        ancient_version_left_days_changed,
-        FALSE,
-        NULL,
-        FREQ_UPDATES, 0
-    ),
-    PROP_ENTRY(
-        gui_main_window,
         PROP_NEW_VERSION_STR,
         new_version_str_changed,
         TRUE,
