@@ -851,6 +851,8 @@ src/lib/ipset.c
 src/lib/ipset.h
 src/lib/iso3166.c
 src/lib/iso3166.h
+src/lib/istream.c
+src/lib/istream.h
 src/lib/launch.c
 src/lib/launch.h
 src/lib/launch-test.c
@@ -861,6 +863,8 @@ src/lib/listener.c
 src/lib/listener.h
 src/lib/list.h
 src/lib/log.c
+src/lib/logfilter.c
+src/lib/logfilter.h
 src/lib/log.h
 src/lib/lru_cache.c
 src/lib/lru_cache.h
@@ -912,9 +916,9 @@ src/lib/pagetable.h
 src/lib/palloc.c
 src/lib/palloc.h
 src/lib/parse.c
-src/lib/parse.h
 src/lib/parse_double.c
 src/lib/parse_double.h
+src/lib/parse.h
 src/lib/path.c
 src/lib/path.h
 src/lib/patricia.c
