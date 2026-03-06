@@ -1,5 +1,7 @@
 # Sample logfilter
 # Copy this file as ~/.gtk-gnutella/logfilter to enable log filtering
+#
+# Read src/lib/logfilter.c for the specifications.
 
 yellow = "yellow; faint";
 gray = "bright black";

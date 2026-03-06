@@ -39,11 +39,11 @@
 
 #define GTA_PRODUCT_NAME	"gtk-gnutella"	/**< Normally "gtk-gnutella" */
 #define GTA_VERSION			1			/**< major version */
-#define GTA_SUBVERSION 		2			/**< minor version */
-#define GTA_PATCHLEVEL 		3			/**< patch level or teeny version */
+#define GTA_SUBVERSION 		3			/**< minor version */
+#define GTA_PATCHLEVEL 		0			/**< patch level or teeny version */
 #define GTA_REVISION 		"stable"	/**< unstable, beta, stable */
 #define GTA_REVCHAR			""			/**< (u)nstable, (b)eta, "" -> stable */
-#define GTA_RELEASE			"2024-03-03"	/**< ISO 8601 format YYYY-MM-DD */
+#define GTA_RELEASE			"2026-03-06"	/**< ISO 8601 format YYYY-MM-DD */
 #define GTA_WEBSITE			"https://gtk-gnutella.sourceforge.io/"
 #define GTA_VENDOR_CODE		"GTKG"
 #define GTA_PRODUCT_NICK	"gtkg"
