@@ -107,6 +107,28 @@ str_len(const str_t *s)
 	return s->s_len;
 }
 
+/*
+ * How many bytes do we have to physically add new ones to the string
+ * without having to resize the buffer?
+ *
+ * @return amount of available room in string.
+ */
+static size_t
+str_avail_phys(const str_t *s)
+{
+	size_t avail;
+
+	str_check(s);
+
+	/*
+	 * s_len does not account trailing NUL and we must leave one character
+	 * at the end to allow str_2c() to operate
+	 */
+
+	avail = s->s_size - s->s_len;
+	return 0 == avail ? 0 : avail - 1;	/* Must leave room for tailing NUL */
+}
+
 /**
  * Check the available room we have in string to add new bytes to it.
  *
@@ -121,14 +143,8 @@ str_avail(const str_t *s)
 {
 	str_check(s);
 
-	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
-		size_t avail = s->s_size - s->s_len;
-		if ('\0' == s->s_data[s->s_len - 1])
-			avail++;		/* Already NUL-terminated */
-		if (avail <= 1)
-			return 0;		/* Must leave room for tailing NUL */
-		return avail - 1;	/* Trailing NUL accounted */
-	}
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR))
+		return str_avail_phys(s);
 
 	return MAX_INT_VAL(size_t);		/* No limits but virtual memory */
 }
@@ -953,6 +969,23 @@ str_cpy(str_t *str, const char *string)
  * Copy string argument into the string structure, keeping trailing NUL as
  * a hidden char (thereby making the arena a C string).
  *
+ * This is a safe operation that will NOT resize the string if it is not
+ * large enough, but will instead truncate the string.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cpy_trunc(str_t *str, const char *string)
+{
+	str_check(str);
+
+	return str_cpy_len_trunc(str, string, vstrlen(string));
+}
+
+/**
+ * Copy string argument into the string structure, keeping trailing NUL as
+ * a hidden char (thereby making the arena a C string).
+ *
  * Since the len is provided, the data need not have a trailing NUL.
  * Although it may contain embedded NUL, it should not however because this
  * will disrupt the perception of the resulting string as C string.
@@ -967,6 +1000,21 @@ str_cpy_len(str_t *str, const char *string, size_t len)
 }
 
 /**
+ * Same as str_cpy_len() but will NOT extend the string if there is no room,
+ * truncating it by discarding trailing characters.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cpy_len_trunc(str_t *str, const char *string, size_t len)
+{
+	str_check(str);
+
+	str_reset(str);
+	return str_cat_len_trunc(str, string, len);
+}
+
+/**
  * Append C string argument (i.e. has a trailing NUL) into the string structure,
  * keeping this trailing NUL as a hidden char (not accounted for in s_len).
  */
@@ -977,6 +1025,24 @@ str_cat(str_t *str, const char *string)
 	g_assert(string != NULL);
 
 	str_cat_len(str, string, vstrlen(string));
+}
+
+/**
+ * Append C string argument (i.e. has a trailing NUL) into the string structure,
+ * keeping this trailing NUL as a hidden char (not accounted for in s_len).
+ *
+ * This will NOT resize the string if there is not enough room but truncate
+ * it instead.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cat_trunc(str_t *str, const char *string)
+{
+	str_check(str);
+	g_assert(string != NULL);
+
+	return str_cat_len_trunc(str, string, vstrlen(string));
 }
 
 /**
@@ -999,6 +1065,76 @@ str_cat_len(str_t *str, const char *string, size_t len)
 	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
 	memcpy(str->s_data + str->s_len, string, len);
 	str->s_len += len;				/* Trailing NUL remains hidden */
+}
+
+/**
+ * Append "len" bytes of data to string.
+ *
+ * Since the len is provided, the data need not have a trailing NUL.
+ * Although it may contain embedded NUL, it should not however because this
+ * will disrupt the perception of the resulting string as C string.
+ *
+ * This will NOT resize the string if there is not enough room but truncate
+ * it instead.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cat_len_trunc(str_t *str, const char *string, size_t len)
+{
+	size_t avail, added;
+
+	str_check(str);
+	g_assert(string != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if G_UNLIKELY(0 == len)
+		return TRUE;
+
+	avail = str_avail_phys(str);
+	added = MIN(avail, len);
+
+	if (added != 0) {
+		memcpy(str->s_data + str->s_len, string, added);
+		str->s_len += added;		/* Trailing NUL remains hidden */
+	}
+
+	if (added == len)
+		return TRUE;
+
+	/*
+	 * String was truncated.
+	 */
+
+	str->s_flags |= STR_TRUNCATED;
+
+	if (0 == (str->s_flags & STR_SILENT_TRUNCATE)) {
+#define TKEY	func_to_pointer(str_cat_len_trunc)
+
+		bool recursion = thread_private_get(TKEY) != NULL;
+
+		/*
+		 * This routine MUST be recursion-safe since it is used
+		 * by logfilter_logv().
+		 *
+		 * Hence the use of a thread-private variable to record
+		 * recursions before invoking s_minicarp(), even though
+		 * logfilter_logv() invokes str_set_silent_truncation(TRUE).
+		 */
+
+		if (!recursion) {
+			thread_private_add(TKEY, uint_to_pointer(1));
+			s_minicarp("truncated output within %zu-byte buffer "
+				"(%zu written, %zu available) with only \"%*s\" appended "
+				"(%zu byte%s requested)",
+				str->s_size, added, avail, (int) added, string, PLURAL(len));
+			thread_private_remove(TKEY);
+		}
+	}
+
+#undef TKEY
+
+	 return FALSE;
 }
 
 /**

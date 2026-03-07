@@ -5606,7 +5606,7 @@ logfilter_logv(
 		 * This also allows us to detect recursion in logging, just as
 		 * s_logv() would detect it.
 		 *
-		 * The string is non-resizable and capped to LOG_MSG_MAXLEN bytes.
+		 * The string is non-resizable and capped to LOG_MSG_REGULAR_LEN bytes.
 		 * When we are done logging, we need to return it to the logging
 		 * layer, along with the "saved" pointer (a NULL pointer indicates
 		 * that recursion was detected).
@@ -5630,7 +5630,7 @@ logfilter_logv(
 		}
 	} else {
 		/*
-		 * Use minimal resources!
+		 * Use minimal resources! String capped to LOG_MSG_MAXLEN bytes.
 		 */
 
 		saved = NULL;
@@ -5647,7 +5647,7 @@ logfilter_logv(
 	if (format)
 		str_vprintf(msg, fmt, args);
 	else
-		str_cpy(msg, fmt);	/* Already supplied formatted string */
+		str_cpy_trunc(msg, fmt);	/* Already supplied formatted string */
 
 	log_check_truncated(msg);
 
