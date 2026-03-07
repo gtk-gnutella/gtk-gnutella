@@ -2348,7 +2348,7 @@ prop_load_from_file(prop_set_t *ps, const char *dir, const char *filename)
 		return TRUE;
 
 	path = make_pathname(dir, filename);
-	config = file_fopen(path, "r");
+	config = file_fopen_missing(path, "r");
 	if (!config) {
 		HFREE_NULL(path);
 		return TRUE;
