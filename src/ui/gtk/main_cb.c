@@ -385,7 +385,6 @@ on_dlg_ancient_delete_event(GtkWidget *unused_widget, GdkEvent *unused_event,
 	(void) unused_event;
 	(void) unused_udata;
 
-	ancient_version_dialog_hide();
 	return TRUE;
 }
 
