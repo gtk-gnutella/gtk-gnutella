@@ -1781,7 +1781,8 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 
 	pathname = make_pathname(dir, filename);
 	if (-1 == stat(pathname, &sb)) {
-		s_warning("%s(): could not stat \"%s\": %m", G_STRFUNC, pathname);
+		if (ENOENT != errno)
+			s_warning("%s(): could not stat \"%s\": %m", G_STRFUNC, pathname);
 	} else {
 		/*
 		 * Rename old config file if they changed it whilst we were running.
