@@ -2679,9 +2679,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 		const void *pc = stacktrace_caller(3);
 
 		log_compute_data(pc, level, &data);
-		G_IGNORE_PUSH(-Wformat-nonliteral);
 		logfilter_logv(level, &data, 1, message, FALSE, NULL);
-		G_IGNORE_POP;
 		goto logged;
 	}
 
