@@ -27,6 +27,7 @@
 #include "prop.h"
 
 #include "ascii.h"
+#include "atomic.h"
 #include "concat.h"
 #include "debug.h"
 #include "file.h"
@@ -597,13 +598,13 @@ prop_emit_prop_changed(const prop_def_t *d, prop_set_t *ps, property_t prop)
 	assert_mutex_is_owned(&d->lock);
 
 	/*
-	 * Triggering of callbacks happen with the property definition locked
+	 * Triggering of callbacks happens with the property definition locked
 	 * by the thread.  The callback does not need to bother with locking.
 	 */
 
 	event_trigger(d->ev_changed, T_VETO(prop_changed_listener_t, (prop)));
 
-	if (d->save) {
+	if (d->save && !atomic_bool_get(&ps->dirty)) {
 		PROP_SET_LOCK(ps);
 		ps->dirty = TRUE;
 		PROP_SET_UNLOCK(ps);
