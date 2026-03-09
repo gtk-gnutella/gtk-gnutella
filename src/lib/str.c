@@ -83,6 +83,33 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 #define STR_THREAD			(1 << 2)	/**< String is thread-private */
 #define STR_TRUNCATED		(1 << 3)	/**< Truncation occurred at tail */
 #define STR_SILENT_TRUNCATE	(1 << 4)	/**< No verbose report on truncation */
+#define STR_READ_ONLY		(1 << 5)	/**< String is read-only */
+
+/**
+ * @return whether string is read-only.
+ */
+bool
+str_is_read_only(const str_t *s)
+{
+	str_check(s);
+
+	return booleanize(s->s_flags & STR_READ_ONLY);
+}
+
+/**
+ * Switch read-only status of string.
+ */
+void
+str_set_read_only(str_t *s, bool on)
+{
+	str_check(s);
+
+	if (on)
+		s->s_flags |= STR_READ_ONLY;
+	else
+		s->s_flags &= ~STR_READ_ONLY;
+}
+
 
 /**
  * @return length of string.
@@ -107,6 +134,28 @@ str_len(const str_t *s)
 	return s->s_len;
 }
 
+/*
+ * How many bytes do we have to physically add new ones to the string
+ * without having to resize the buffer?
+ *
+ * @return amount of available room in string.
+ */
+static size_t
+str_avail_phys(const str_t *s)
+{
+	size_t avail;
+
+	str_check(s);
+
+	/*
+	 * s_len does not account trailing NUL and we must leave one character
+	 * at the end to allow str_2c() to operate
+	 */
+
+	avail = s->s_size - s->s_len;
+	return 0 == avail ? 0 : avail - 1;	/* Must leave room for tailing NUL */
+}
+
 /**
  * Check the available room we have in string to add new bytes to it.
  *
@@ -121,14 +170,8 @@ str_avail(const str_t *s)
 {
 	str_check(s);
 
-	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR)) {
-		size_t avail = s->s_size - s->s_len;
-		if ('\0' == s->s_data[s->s_len - 1])
-			avail++;		/* Already NUL-terminated */
-		if (avail <= 1)
-			return 0;		/* Must leave room for tailing NUL */
-		return avail - 1;	/* Trailing NUL accounted */
-	}
+	if (G_UNLIKELY(s->s_flags & STR_FOREIGN_PTR))
+		return str_avail_phys(s);
 
 	return MAX_INT_VAL(size_t);		/* No limits but virtual memory */
 }
@@ -357,6 +400,49 @@ str_foreign(str_t *str, char *ptr, size_t size, size_t len)
 	str->s_len = len;
 	str->s_size = size;
 	str->s_data = ptr;
+}
+
+/**
+ * Initialize a pre-allocated string structure with supplied C string pointer,
+ * pointing to a NUL-terminated string of `len' bytes. The resulting string is
+ * made "foreign" since we don't own its pointer.
+ *
+ * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute its length.
+ *
+ * @param str		pointer to existing (and initialized) string object
+ * @param ptr		start of buffer where string data is held
+ * @param len		length of existing string, computed if (size_t) -1
+ */
+void
+str_from(str_t *str, char *ptr, size_t len)
+{
+	size_t computed_len;
+
+	g_assert(str != NULL);
+	g_assert(ptr != NULL);
+	g_assert(size_is_non_negative(len + 1));
+
+	computed_len = vstrlen(ptr);
+
+	str->s_magic = STR_MAGIC;
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = ptr;
+	str->s_len = ((size_t) -1 == len) ? computed_len : len;
+	str->s_size = len + 1;
+
+	g_assert(str->s_len <= str->s_size);
+	g_assert(str->s_len <= computed_len);
+}
+
+/**
+ * Same as str_from(), but string is marked read-only.
+ */
+void
+str_from_read_only(str_t *str, const char *ptr, size_t len)
+{
+	str_from(str, deconstify_char(ptr), len);
+	str_check(str);
+	str->s_flags |= STR_READ_ONLY;
 }
 
 /**
@@ -919,6 +1005,7 @@ void
 str_putc(str_t *str, int c)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
  	str_makeroom(str, 1);
 	str->s_data[str->s_len++] = (uchar) c;
@@ -931,6 +1018,7 @@ void
 str_reset(str_t *str)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	str->s_len = 0;
 	str->s_flags &= ~STR_TRUNCATED;
@@ -953,6 +1041,23 @@ str_cpy(str_t *str, const char *string)
  * Copy string argument into the string structure, keeping trailing NUL as
  * a hidden char (thereby making the arena a C string).
  *
+ * This is a safe operation that will NOT resize the string if it is not
+ * large enough, but will instead truncate the string.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cpy_trunc(str_t *str, const char *string)
+{
+	str_check(str);
+
+	return str_cpy_len_trunc(str, string, vstrlen(string));
+}
+
+/**
+ * Copy string argument into the string structure, keeping trailing NUL as
+ * a hidden char (thereby making the arena a C string).
+ *
  * Since the len is provided, the data need not have a trailing NUL.
  * Although it may contain embedded NUL, it should not however because this
  * will disrupt the perception of the resulting string as C string.
@@ -964,6 +1069,21 @@ str_cpy_len(str_t *str, const char *string, size_t len)
 
 	str_reset(str);
 	str_cat_len(str, string, len);
+}
+
+/**
+ * Same as str_cpy_len() but will NOT extend the string if there is no room,
+ * truncating it by discarding trailing characters.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cpy_len_trunc(str_t *str, const char *string, size_t len)
+{
+	str_check(str);
+
+	str_reset(str);
+	return str_cat_len_trunc(str, string, len);
 }
 
 /**
@@ -980,6 +1100,24 @@ str_cat(str_t *str, const char *string)
 }
 
 /**
+ * Append C string argument (i.e. has a trailing NUL) into the string structure,
+ * keeping this trailing NUL as a hidden char (not accounted for in s_len).
+ *
+ * This will NOT resize the string if there is not enough room but truncate
+ * it instead.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cat_trunc(str_t *str, const char *string)
+{
+	str_check(str);
+	g_assert(string != NULL);
+
+	return str_cat_len_trunc(str, string, vstrlen(string));
+}
+
+/**
  * Append "len" bytes of data to string.
  *
  * Since the len is provided, the data need not have a trailing NUL.
@@ -990,6 +1128,7 @@ void
 str_cat_len(str_t *str, const char *string, size_t len)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -999,6 +1138,77 @@ str_cat_len(str_t *str, const char *string, size_t len)
 	str_makeroom(str, len + 1);		/* Allow for trailing NUL */
 	memcpy(str->s_data + str->s_len, string, len);
 	str->s_len += len;				/* Trailing NUL remains hidden */
+}
+
+/**
+ * Append "len" bytes of data to string.
+ *
+ * Since the len is provided, the data need not have a trailing NUL.
+ * Although it may contain embedded NUL, it should not however because this
+ * will disrupt the perception of the resulting string as C string.
+ *
+ * This will NOT resize the string if there is not enough room but truncate
+ * it instead.
+ *
+ * @return TRUE if addition was successful, FALSE if data was truncated.
+ */
+bool
+str_cat_len_trunc(str_t *str, const char *string, size_t len)
+{
+	size_t avail, added;
+
+	str_check(str);
+	g_assert(!str_is_read_only(str));
+	g_assert(string != NULL);
+	g_assert(size_is_non_negative(len));
+
+	if G_UNLIKELY(0 == len)
+		return TRUE;
+
+	avail = str_avail_phys(str);
+	added = MIN(avail, len);
+
+	if (added != 0) {
+		memcpy(str->s_data + str->s_len, string, added);
+		str->s_len += added;		/* Trailing NUL remains hidden */
+	}
+
+	if (added == len)
+		return TRUE;
+
+	/*
+	 * String was truncated.
+	 */
+
+	str->s_flags |= STR_TRUNCATED;
+
+	if (0 == (str->s_flags & STR_SILENT_TRUNCATE)) {
+#define TKEY	func_to_pointer(str_cat_len_trunc)
+
+		bool recursion = thread_private_get(TKEY) != NULL;
+
+		/*
+		 * This routine MUST be recursion-safe since it is used
+		 * by logfilter_logv().
+		 *
+		 * Hence the use of a thread-private variable to record
+		 * recursions before invoking s_minicarp(), even though
+		 * logfilter_logv() invokes str_set_silent_truncation(TRUE).
+		 */
+
+		if (!recursion) {
+			thread_private_add(TKEY, uint_to_pointer(1));
+			s_minicarp("truncated output within %zu-byte buffer "
+				"(%zu written, %zu available) with only \"%*s\" appended "
+				"(%zu byte%s requested)",
+				str->s_size, added, avail, (int) added, string, PLURAL(len));
+			thread_private_remove(TKEY);
+		}
+	}
+
+#undef TKEY
+
+	 return FALSE;
 }
 
 /**
@@ -1013,6 +1223,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 	char c;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1052,6 +1263,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 	bool fits = TRUE;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1099,6 +1311,7 @@ str_shift(str_t *str, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(n));
 
 	if G_UNLIKELY(0 == n)
@@ -1132,6 +1345,7 @@ str_ichar(str_t *str, ssize_t idx, int c)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	len = str->s_len;
 
@@ -1187,6 +1401,7 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(n));
 
@@ -1225,6 +1440,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(n));
 
 	len = str->s_len;
@@ -1277,6 +1493,7 @@ str_replace_len(
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(amount));
 	g_assert(size_is_non_negative(length));
 	g_assert(string != NULL);
@@ -1448,6 +1665,7 @@ str_chomp(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1472,6 +1690,7 @@ str_chop(str_t *s)
 	int c;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1496,6 +1715,7 @@ str_strip_trailing_nuls(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1524,6 +1744,7 @@ str_reverse(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1762,6 +1983,7 @@ str_escape(str_t *str, int c, int e)
 	size_t idx;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	len = str->s_len;
 
@@ -1829,6 +2051,8 @@ str_inplace_escape(str_t *s, str_safe_fn_t cb, bool no_crlf)
 	uchar *q;
 	size_t i, len, shift;
 	bool had_nul = FALSE, has_crlf = FALSE;
+
+	g_assert(!str_is_read_only(s));
 
 	/*
 	 * To be efficient, the algorithm works in 2 passes:
@@ -2495,6 +2719,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 	size_t remain = maxlen;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(maxlen));
 
 	/*
@@ -3186,6 +3411,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	size_t processed = 0;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
 

@@ -97,7 +97,7 @@ struct fileinfo_data {
 };
 
 static gnet_fi_t last_shown;
-static gboolean  last_shown_valid;
+static bool  last_shown_valid;
 
 static htable_t *fi_handles;	/* gnet_fi_t -> row */
 static hset_t *fi_updates;		/* gnet_fi_t */
@@ -105,12 +105,12 @@ static hset_t *src_updates;		/* gnet_src_t */
 
 static enum nb_downloads_page current_page;
 
-static gboolean update_download_clear_needed;
-static gboolean download_gui_visible;
+static bool update_download_clear_needed;
+static bool download_gui_visible;
 
 static regex_t *filter_regex;
-static gboolean filter_regex_invert;
-static gboolean filter_regex_case_sensitive;
+static bool filter_regex_invert;
+static bool filter_regex_case_sensitive;
 
 /**
  * Remember that we need to check for cleared downloads at the next
@@ -246,7 +246,7 @@ downloads_gui_pipeline_range_string(const struct download *d)
 	char range_start[64];
 	filesize_t length;
 	struct dl_pipeline *dp;
-	gboolean metric;
+	bool metric;
 
 	download_check(d);
 	dl_pipeline_check(d->pipeline);
@@ -586,7 +586,7 @@ downloads_gui_status_string(const struct download *d)
 		if (d->pos + download_buffered(d) > d->chunk.start) {
 			guint32 avg_bps, bps;
 			filesize_t downloaded;
-			gboolean stalled;
+			bool stalled;
 
 			downloaded = d->pos - d->chunk.start + download_buffered(d);
 			if (d->bio) {
@@ -1304,7 +1304,7 @@ fi_gui_sources_get_popup_menu(void)
    	return GTK_MENU(gui_popup_sources());
 }
 
-static gboolean
+static bool
 fi_gui_file_visible(const struct fileinfo_data *file)
 {
 	if (!file->matched)
@@ -1707,7 +1707,7 @@ fi_gui_file_update(gnet_fi_t handle)
 	}
 }
 
-gboolean
+bool
 fi_gui_rename(const char *filename)
 {
 	g_return_val_if_fail(filename, FALSE);
@@ -2075,7 +2075,7 @@ fi_gui_files_column_title(int column)
 	return NULL;
 }
 
-gboolean
+bool
 fi_gui_files_column_justify_right(int column)
 {
 	g_return_val_if_fail(column >= 0, FALSE);
@@ -2224,7 +2224,7 @@ notebook_downloads_init(void)
 
 struct select_by_regex {
 	regex_t expr;
-	gboolean invert;
+	bool invert;
 	unsigned matches, total_nodes;
 };
 
@@ -2271,7 +2271,7 @@ static void
 fi_gui_select_by_regex(const char *regex)
 {
 	struct select_by_regex ctx;
-	gboolean case_sensitive;
+	bool case_sensitive;
     int ret, flags;
 
 	ctx.matches = 0;
@@ -2376,7 +2376,7 @@ filter_regex_clear(void)
 	}
 }
 
-gboolean
+bool
 fi_gui_filter_active(void)
 {
 	return NULL != filter_regex;

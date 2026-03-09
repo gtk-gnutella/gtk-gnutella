@@ -35,13 +35,14 @@
 
 #include "str_subst_re.h"
 
-#include "ascii.h"
 #include "alloca.h"
+#include "ascii.h"
 #include "halloc.h"
 #include "hashing.h"
 #include "hstrfn.h"
 #include "log.h"
 #include "lru_cache.h"
+#include "mempcpy.h"
 #include "once.h"
 #include "re.h"
 #include "str.h"

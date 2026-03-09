@@ -58,38 +58,38 @@ G_IGNORE(-Wunknown-pragmas);		/* clang does not know -Wpragmas */
 G_IGNORE(-Wpragmas);				/* For gcc, not clang */
 G_IGNORE(-Wunused-const-variable);	/* Appears in clang version 3.4.1 */
 
-gboolean gui_property_variable_monitor_enabled		= FALSE;
-static const gboolean gui_property_variable_monitor_enabled_default = FALSE;
+bool gui_property_variable_monitor_enabled		= FALSE;
+static const bool gui_property_variable_monitor_enabled_default = FALSE;
 guint32  gui_property_variable_monitor_max_items		= 25;
 static const guint32  gui_property_variable_monitor_max_items_default = 25;
-gboolean gui_property_variable_search_hide_downloaded		= FALSE;
-static const gboolean gui_property_variable_search_hide_downloaded_default = FALSE;
+bool gui_property_variable_search_hide_downloaded		= FALSE;
+static const bool gui_property_variable_search_hide_downloaded_default = FALSE;
 guint32  gui_property_variable_nodes_col_widths[NODES_VISIBLE_COLUMNS]	 = { 130, 50, 120, 20, 30, 30, 80 };
 static const guint32  gui_property_variable_nodes_col_widths_default[NODES_VISIBLE_COLUMNS] = { 130, 50, 120, 20, 30, 30, 80 };
-gboolean gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS]	 = { 1,1,1,1,1,1,1,1};
-static const gboolean gui_property_variable_nodes_col_visible_default[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
+bool gui_property_variable_nodes_col_visible[NODES_VISIBLE_COLUMNS]	 = { 1,1,1,1,1,1,1,1};
+static const bool gui_property_variable_nodes_col_visible_default[NODES_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,1};
 guint32  gui_property_variable_file_info_col_widths[FILEINFO_VISIBLE_COLUMNS]	 = { 240, 80, 80, 80, 80, 80, 80, 80, 80, 80 };
 static const guint32  gui_property_variable_file_info_col_widths_default[FILEINFO_VISIBLE_COLUMNS] = { 240, 80, 80, 80, 80, 80, 80, 80, 80, 80 };
-gboolean gui_property_variable_file_info_col_visible[FILEINFO_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
-static const gboolean gui_property_variable_file_info_col_visible_default[FILEINFO_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+bool gui_property_variable_file_info_col_visible[FILEINFO_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
+static const bool gui_property_variable_file_info_col_visible_default[FILEINFO_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1, 1, 1, 1 };
 guint32  gui_property_variable_sources_col_widths[SOURCES_VISIBLE_COLUMNS]	 = { 100, 100, 100, 100, 100, 100 };
 static const guint32  gui_property_variable_sources_col_widths_default[SOURCES_VISIBLE_COLUMNS] = { 100, 100, 100, 100, 100, 100 };
 guint32  gui_property_variable_search_list_col_widths[SEARCH_LIST_VISIBLE_COLUMNS]	 = { 80, 20, 20 };
 static const guint32  gui_property_variable_search_list_col_widths_default[SEARCH_LIST_VISIBLE_COLUMNS] = { 80, 20, 20 };
-gboolean gui_property_variable_search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]	 = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0 };
-static const gboolean gui_property_variable_search_results_col_visible_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0 };
+bool gui_property_variable_search_results_col_visible[SEARCH_RESULTS_VISIBLE_COLUMNS]	 = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0 };
+static const bool gui_property_variable_search_results_col_visible_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = { 1,1,1,1,1,1,1,0,0,0,0,0,0,0,0,0 };
 guint32  gui_property_variable_search_results_col_widths[SEARCH_RESULTS_VISIBLE_COLUMNS]	 = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40, 40};
 static const guint32  gui_property_variable_search_results_col_widths_default[SEARCH_RESULTS_VISIBLE_COLUMNS] = {  210, 30, 50, 80, 30, 120, 90, 40,   40, 40, 40, 40, 40,  40, 40, 40, 40};
 guint32  gui_property_variable_search_stats_col_widths[3]	 = { 200, 80, 80 };
 static const guint32  gui_property_variable_search_stats_col_widths_default[3] = { 200, 80, 80 };
 guint32  gui_property_variable_ul_stats_col_widths[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]	 = { 200, 80, 80, 80, 80, 80, 80 };
 static const guint32  gui_property_variable_ul_stats_col_widths_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 200, 80, 80, 80, 80, 80, 80 };
-gboolean gui_property_variable_ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1 };
-static const gboolean gui_property_variable_ul_stats_col_visible_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
+bool gui_property_variable_ul_stats_col_visible[UPLOAD_STATS_GUI_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1 };
+static const bool gui_property_variable_ul_stats_col_visible_default[UPLOAD_STATS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
 guint32  gui_property_variable_uploads_col_widths[UPLOADS_GUI_VISIBLE_COLUMNS]	 = { 200, 120, 36, 80, 80, 80, 80 };
 static const guint32  gui_property_variable_uploads_col_widths_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 200, 120, 36, 80, 80, 80, 80 };
-gboolean gui_property_variable_uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1 };
-static const gboolean gui_property_variable_uploads_col_visible_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
+bool gui_property_variable_uploads_col_visible[UPLOADS_GUI_VISIBLE_COLUMNS]	 = { 1, 1, 1, 1, 1, 1, 1 };
+static const bool gui_property_variable_uploads_col_visible_default[UPLOADS_GUI_VISIBLE_COLUMNS] = { 1, 1, 1, 1, 1, 1, 1 };
 guint32  gui_property_variable_filter_rules_col_widths[4]	 = { 10, 240, 80, 40 };
 static const guint32  gui_property_variable_filter_rules_col_widths_default[4] = { 10, 240, 80, 40 };
 guint32  gui_property_variable_filter_filters_col_widths[3]	 = { 80, 40, 20 };
@@ -128,60 +128,60 @@ guint32  gui_property_variable_gui_debug		= 0;
 static const guint32  gui_property_variable_gui_debug_default = 0;
 guint32  gui_property_variable_filter_main_divider_pos		= 140;
 static const guint32  gui_property_variable_filter_main_divider_pos_default = 140;
-gboolean gui_property_variable_search_results_show_tabs		= FALSE;
-static const gboolean gui_property_variable_search_results_show_tabs_default = FALSE;
-gboolean gui_property_variable_searchbar_visible		= TRUE;
-static const gboolean gui_property_variable_searchbar_visible_default = TRUE;
-gboolean gui_property_variable_sidebar_visible		= TRUE;
-static const gboolean gui_property_variable_sidebar_visible_default = TRUE;
-gboolean gui_property_variable_menubar_visible		= TRUE;
-static const gboolean gui_property_variable_menubar_visible_default = TRUE;
-gboolean gui_property_variable_statusbar_visible		= TRUE;
-static const gboolean gui_property_variable_statusbar_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_uploads_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_uploads_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_downloads_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_downloads_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_connections_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_connections_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_in_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_in_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_out_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_out_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_gin_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_gin_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_gout_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_gout_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_glin_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_glin_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_glout_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_glout_visible_default = TRUE;
-gboolean gui_property_variable_autohide_bws_gleaf		= TRUE;
-static const gboolean gui_property_variable_autohide_bws_gleaf_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_in_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_in_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_out_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_out_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_gin_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_gin_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_gout_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_gout_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_glin_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_glin_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_glout_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_glout_avg_default = FALSE;
-gboolean gui_property_variable_search_sort_casesense		= FALSE;
-static const gboolean gui_property_variable_search_sort_casesense_default = FALSE;
+bool gui_property_variable_search_results_show_tabs		= FALSE;
+static const bool gui_property_variable_search_results_show_tabs_default = FALSE;
+bool gui_property_variable_searchbar_visible		= TRUE;
+static const bool gui_property_variable_searchbar_visible_default = TRUE;
+bool gui_property_variable_sidebar_visible		= TRUE;
+static const bool gui_property_variable_sidebar_visible_default = TRUE;
+bool gui_property_variable_menubar_visible		= TRUE;
+static const bool gui_property_variable_menubar_visible_default = TRUE;
+bool gui_property_variable_statusbar_visible		= TRUE;
+static const bool gui_property_variable_statusbar_visible_default = TRUE;
+bool gui_property_variable_progressbar_uploads_visible		= TRUE;
+static const bool gui_property_variable_progressbar_uploads_visible_default = TRUE;
+bool gui_property_variable_progressbar_downloads_visible		= TRUE;
+static const bool gui_property_variable_progressbar_downloads_visible_default = TRUE;
+bool gui_property_variable_progressbar_connections_visible		= TRUE;
+static const bool gui_property_variable_progressbar_connections_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_in_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_in_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_out_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_out_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_gin_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_gin_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_gout_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_gout_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_glin_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_glin_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_glout_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_glout_visible_default = TRUE;
+bool gui_property_variable_autohide_bws_gleaf		= TRUE;
+static const bool gui_property_variable_autohide_bws_gleaf_default = TRUE;
+bool gui_property_variable_progressbar_bws_in_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_in_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_out_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_out_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_gin_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_gin_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_gout_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_gout_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_glin_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_glin_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_glout_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_glout_avg_default = FALSE;
+bool gui_property_variable_search_sort_casesense		= FALSE;
+static const bool gui_property_variable_search_sort_casesense_default = FALSE;
 guint32  gui_property_variable_search_sort_default_order		= 0;
 static const guint32  gui_property_variable_search_sort_default_order_default = 0;
 guint32  gui_property_variable_search_sort_default_column		= -1;
 static const guint32  gui_property_variable_search_sort_default_column_default = -1;
-gboolean gui_property_variable_search_discard_spam		= TRUE;
-static const gboolean gui_property_variable_search_discard_spam_default = TRUE;
-gboolean gui_property_variable_search_discard_hashless		= TRUE;
-static const gboolean gui_property_variable_search_discard_hashless_default = TRUE;
-gboolean gui_property_variable_search_jump_to_created		= TRUE;
-static const gboolean gui_property_variable_search_jump_to_created_default = TRUE;
+bool gui_property_variable_search_discard_spam		= TRUE;
+static const bool gui_property_variable_search_discard_spam_default = TRUE;
+bool gui_property_variable_search_discard_hashless		= TRUE;
+static const bool gui_property_variable_search_discard_hashless_default = TRUE;
+bool gui_property_variable_search_jump_to_created		= TRUE;
+static const bool gui_property_variable_search_jump_to_created_default = TRUE;
 guint32  gui_property_variable_search_stats_mode		= 0;
 static const guint32  gui_property_variable_search_stats_mode_default = 0;
 static const prop_def_choice_t gui_property_variable_search_stats_mode_choices[] = {
@@ -195,18 +195,18 @@ guint32  gui_property_variable_search_stats_update_interval		= 200;
 static const guint32  gui_property_variable_search_stats_update_interval_default = 200;
 guint32  gui_property_variable_search_stats_delcoef		= 25;
 static const guint32  gui_property_variable_search_stats_delcoef_default = 25;
-gboolean gui_property_variable_confirm_quit		= TRUE;
-static const gboolean gui_property_variable_confirm_quit_default = TRUE;
-gboolean gui_property_variable_show_tooltips		= TRUE;
-static const gboolean gui_property_variable_show_tooltips_default = TRUE;
-gboolean gui_property_variable_expert_mode		= FALSE;
-static const gboolean gui_property_variable_expert_mode_default = FALSE;
-gboolean gui_property_variable_gnet_stats_perc		= FALSE;
-static const gboolean gui_property_variable_gnet_stats_perc_default = FALSE;
-gboolean gui_property_variable_gnet_stats_bytes		= FALSE;
-static const gboolean gui_property_variable_gnet_stats_bytes_default = FALSE;
-gboolean gui_property_variable_gnet_stats_hops		= FALSE;
-static const gboolean gui_property_variable_gnet_stats_hops_default = FALSE;
+bool gui_property_variable_confirm_quit		= TRUE;
+static const bool gui_property_variable_confirm_quit_default = TRUE;
+bool gui_property_variable_show_tooltips		= TRUE;
+static const bool gui_property_variable_show_tooltips_default = TRUE;
+bool gui_property_variable_expert_mode		= FALSE;
+static const bool gui_property_variable_expert_mode_default = FALSE;
+bool gui_property_variable_gnet_stats_perc		= FALSE;
+static const bool gui_property_variable_gnet_stats_perc_default = FALSE;
+bool gui_property_variable_gnet_stats_bytes		= FALSE;
+static const bool gui_property_variable_gnet_stats_bytes_default = FALSE;
+bool gui_property_variable_gnet_stats_hops		= FALSE;
+static const bool gui_property_variable_gnet_stats_hops_default = FALSE;
 guint32  gui_property_variable_gnet_stats_source		= 0;
 static const guint32  gui_property_variable_gnet_stats_source_default = 0;
 static const prop_def_choice_t gui_property_variable_gnet_stats_source_choices[] = {
@@ -242,60 +242,60 @@ static const prop_def_choice_t gui_property_variable_gnet_stats_drop_reasons_typ
 	{N_("Total"), MSG_TOTAL},
 	{NULL, 0}
 };
-gboolean gui_property_variable_gnet_stats_with_headers		= TRUE;
-static const gboolean gui_property_variable_gnet_stats_with_headers_default = TRUE;
-gboolean gui_property_variable_gnet_stats_drop_perc		= FALSE;
-static const gboolean gui_property_variable_gnet_stats_drop_perc_default = FALSE;
+bool gui_property_variable_gnet_stats_with_headers		= TRUE;
+static const bool gui_property_variable_gnet_stats_with_headers_default = TRUE;
+bool gui_property_variable_gnet_stats_drop_perc		= FALSE;
+static const bool gui_property_variable_gnet_stats_drop_perc_default = FALSE;
 guint32  gui_property_variable_gnet_stats_general_col_widths[2]	 = { 240, 55 };
 static const guint32  gui_property_variable_gnet_stats_general_col_widths_default[2] = { 240, 55 };
-gboolean gui_property_variable_clear_uploads_complete		= TRUE;
-static const gboolean gui_property_variable_clear_uploads_complete_default = TRUE;
-gboolean gui_property_variable_clear_uploads_failed		= TRUE;
-static const gboolean gui_property_variable_clear_uploads_failed_default = TRUE;
-gboolean gui_property_variable_node_show_uptime		= TRUE;
-static const gboolean gui_property_variable_node_show_uptime_default = TRUE;
-gboolean gui_property_variable_node_show_handshake_version		= FALSE;
-static const gboolean gui_property_variable_node_show_handshake_version_default = FALSE;
-gboolean gui_property_variable_node_show_detailed_info		= FALSE;
-static const gboolean gui_property_variable_node_show_detailed_info_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_txc		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_txc_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rxc		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rxc_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_tx_wire		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_tx_wire_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rx_wire		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rx_wire_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_tx_speed		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_tx_speed_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rx_speed		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rx_speed_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_tx_queries		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_tx_queries_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rx_queries		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rx_queries_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_tx_hits		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_tx_hits_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rx_hits		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rx_hits_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_gen_queries		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_gen_queries_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_sq_queries		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_sq_queries_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_tx_dropped		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_tx_dropped_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rx_dropped		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rx_dropped_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_qrp_stats		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_qrp_stats_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_dbw		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_dbw_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_rt		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_rt_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_shared_size		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_shared_size_default = FALSE;
-gboolean gui_property_variable_show_gnet_info_shared_files		= FALSE;
-static const gboolean gui_property_variable_show_gnet_info_shared_files_default = FALSE;
+bool gui_property_variable_clear_uploads_complete		= TRUE;
+static const bool gui_property_variable_clear_uploads_complete_default = TRUE;
+bool gui_property_variable_clear_uploads_failed		= TRUE;
+static const bool gui_property_variable_clear_uploads_failed_default = TRUE;
+bool gui_property_variable_node_show_uptime		= TRUE;
+static const bool gui_property_variable_node_show_uptime_default = TRUE;
+bool gui_property_variable_node_show_handshake_version		= FALSE;
+static const bool gui_property_variable_node_show_handshake_version_default = FALSE;
+bool gui_property_variable_node_show_detailed_info		= FALSE;
+static const bool gui_property_variable_node_show_detailed_info_default = FALSE;
+bool gui_property_variable_show_gnet_info_txc		= FALSE;
+static const bool gui_property_variable_show_gnet_info_txc_default = FALSE;
+bool gui_property_variable_show_gnet_info_rxc		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rxc_default = FALSE;
+bool gui_property_variable_show_gnet_info_tx_wire		= FALSE;
+static const bool gui_property_variable_show_gnet_info_tx_wire_default = FALSE;
+bool gui_property_variable_show_gnet_info_rx_wire		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rx_wire_default = FALSE;
+bool gui_property_variable_show_gnet_info_tx_speed		= FALSE;
+static const bool gui_property_variable_show_gnet_info_tx_speed_default = FALSE;
+bool gui_property_variable_show_gnet_info_rx_speed		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rx_speed_default = FALSE;
+bool gui_property_variable_show_gnet_info_tx_queries		= FALSE;
+static const bool gui_property_variable_show_gnet_info_tx_queries_default = FALSE;
+bool gui_property_variable_show_gnet_info_rx_queries		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rx_queries_default = FALSE;
+bool gui_property_variable_show_gnet_info_tx_hits		= FALSE;
+static const bool gui_property_variable_show_gnet_info_tx_hits_default = FALSE;
+bool gui_property_variable_show_gnet_info_rx_hits		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rx_hits_default = FALSE;
+bool gui_property_variable_show_gnet_info_gen_queries		= FALSE;
+static const bool gui_property_variable_show_gnet_info_gen_queries_default = FALSE;
+bool gui_property_variable_show_gnet_info_sq_queries		= FALSE;
+static const bool gui_property_variable_show_gnet_info_sq_queries_default = FALSE;
+bool gui_property_variable_show_gnet_info_tx_dropped		= FALSE;
+static const bool gui_property_variable_show_gnet_info_tx_dropped_default = FALSE;
+bool gui_property_variable_show_gnet_info_rx_dropped		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rx_dropped_default = FALSE;
+bool gui_property_variable_show_gnet_info_qrp_stats		= FALSE;
+static const bool gui_property_variable_show_gnet_info_qrp_stats_default = FALSE;
+bool gui_property_variable_show_gnet_info_dbw		= FALSE;
+static const bool gui_property_variable_show_gnet_info_dbw_default = FALSE;
+bool gui_property_variable_show_gnet_info_rt		= FALSE;
+static const bool gui_property_variable_show_gnet_info_rt_default = FALSE;
+bool gui_property_variable_show_gnet_info_shared_size		= FALSE;
+static const bool gui_property_variable_show_gnet_info_shared_size_default = FALSE;
+bool gui_property_variable_show_gnet_info_shared_files		= FALSE;
+static const bool gui_property_variable_show_gnet_info_shared_files_default = FALSE;
 guint32  gui_property_variable_search_accumulation_period		= 5;
 static const guint32  gui_property_variable_search_accumulation_period_default = 5;
 guint32  gui_property_variable_treemenu_nodes_expanded[nb_main_page_num]	 = { 1, 1, 1, 1, 1, 1, 1, 1,  };
@@ -325,38 +325,38 @@ static const prop_def_choice_t gui_property_variable_search_lifetime_choices[] =
 	{N_("2 weeks"), 336},
 	{NULL, 0}
 };
-gboolean gui_property_variable_status_icon_enabled		= TRUE;
-static const gboolean gui_property_variable_status_icon_enabled_default = TRUE;
-gboolean gui_property_variable_autohide_bws_dht		= TRUE;
-static const gboolean gui_property_variable_autohide_bws_dht_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_dht_in_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_dht_in_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_dht_out_visible		= TRUE;
-static const gboolean gui_property_variable_progressbar_bws_dht_out_visible_default = TRUE;
-gboolean gui_property_variable_progressbar_bws_dht_in_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_dht_in_avg_default = FALSE;
-gboolean gui_property_variable_progressbar_bws_dht_out_avg		= FALSE;
-static const gboolean gui_property_variable_progressbar_bws_dht_out_avg_default = FALSE;
-gboolean gui_property_variable_search_media_type_audio		= FALSE;
-static const gboolean gui_property_variable_search_media_type_audio_default = FALSE;
-gboolean gui_property_variable_search_media_type_video		= FALSE;
-static const gboolean gui_property_variable_search_media_type_video_default = FALSE;
-gboolean gui_property_variable_search_media_type_document		= FALSE;
-static const gboolean gui_property_variable_search_media_type_document_default = FALSE;
-gboolean gui_property_variable_search_media_type_image		= FALSE;
-static const gboolean gui_property_variable_search_media_type_image_default = FALSE;
-gboolean gui_property_variable_search_media_type_archive		= FALSE;
-static const gboolean gui_property_variable_search_media_type_archive_default = FALSE;
-gboolean gui_property_variable_search_discard_alien_ip		= TRUE;
-static const gboolean gui_property_variable_search_discard_alien_ip_default = TRUE;
-gboolean gui_property_variable_search_restart_when_pending		= FALSE;
-static const gboolean gui_property_variable_search_restart_when_pending_default = FALSE;
-gboolean gui_property_variable_search_discard_banned_guid		= TRUE;
-static const gboolean gui_property_variable_search_discard_banned_guid_default = TRUE;
-gboolean gui_property_variable_search_display_guess_stats		= TRUE;
-static const gboolean gui_property_variable_search_display_guess_stats_default = TRUE;
-gboolean gui_property_variable_guess_stats_show_total		= TRUE;
-static const gboolean gui_property_variable_guess_stats_show_total_default = TRUE;
+bool gui_property_variable_status_icon_enabled		= TRUE;
+static const bool gui_property_variable_status_icon_enabled_default = TRUE;
+bool gui_property_variable_autohide_bws_dht		= TRUE;
+static const bool gui_property_variable_autohide_bws_dht_default = TRUE;
+bool gui_property_variable_progressbar_bws_dht_in_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_dht_in_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_dht_out_visible		= TRUE;
+static const bool gui_property_variable_progressbar_bws_dht_out_visible_default = TRUE;
+bool gui_property_variable_progressbar_bws_dht_in_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_dht_in_avg_default = FALSE;
+bool gui_property_variable_progressbar_bws_dht_out_avg		= FALSE;
+static const bool gui_property_variable_progressbar_bws_dht_out_avg_default = FALSE;
+bool gui_property_variable_search_media_type_audio		= FALSE;
+static const bool gui_property_variable_search_media_type_audio_default = FALSE;
+bool gui_property_variable_search_media_type_video		= FALSE;
+static const bool gui_property_variable_search_media_type_video_default = FALSE;
+bool gui_property_variable_search_media_type_document		= FALSE;
+static const bool gui_property_variable_search_media_type_document_default = FALSE;
+bool gui_property_variable_search_media_type_image		= FALSE;
+static const bool gui_property_variable_search_media_type_image_default = FALSE;
+bool gui_property_variable_search_media_type_archive		= FALSE;
+static const bool gui_property_variable_search_media_type_archive_default = FALSE;
+bool gui_property_variable_search_discard_alien_ip		= TRUE;
+static const bool gui_property_variable_search_discard_alien_ip_default = TRUE;
+bool gui_property_variable_search_restart_when_pending		= FALSE;
+static const bool gui_property_variable_search_restart_when_pending_default = FALSE;
+bool gui_property_variable_search_discard_banned_guid		= TRUE;
+static const bool gui_property_variable_search_discard_banned_guid_default = TRUE;
+bool gui_property_variable_search_display_guess_stats		= TRUE;
+static const bool gui_property_variable_search_display_guess_stats_default = TRUE;
+bool gui_property_variable_guess_stats_show_total		= TRUE;
+static const bool gui_property_variable_guess_stats_show_total_default = TRUE;
 guint32  gui_property_variable_fileinfo_notebook_tab		= 0;
 static const guint32  gui_property_variable_fileinfo_notebook_tab_default = 0;
 guint32  gui_property_variable_main_notebook_tab		= 0;
@@ -2993,7 +2993,7 @@ gui_prop_crash_dump(void)
  */
 void
 gui_prop_add_prop_changed_listener(
-	property_t prop, prop_changed_listener_t l, gboolean init)
+	property_t prop, prop_changed_listener_t l, bool init)
 {
 	prop_add_prop_changed_listener(gui_property, prop, l, init);
 }
@@ -3004,7 +3004,7 @@ gui_prop_add_prop_changed_listener(
  */
 void
 gui_prop_add_prop_changed_listener_full(
-	property_t prop, prop_changed_listener_t l, gboolean init,
+	property_t prop, prop_changed_listener_t l, bool init,
 	enum frequency_type freq, guint32 interval)
 {
 	prop_add_prop_changed_listener_full(gui_property, prop, l, init,
@@ -3020,14 +3020,14 @@ gui_prop_remove_prop_changed_listener(
 
 void
 gui_prop_set_boolean(
-	property_t prop, const gboolean *src, size_t offset, size_t length)
+	property_t prop, const bool *src, size_t offset, size_t length)
 {
 	prop_set_boolean(gui_property, prop, src, offset, length);
 }
 
-gboolean *
+bool *
 gui_prop_get_boolean(
-	property_t prop, gboolean *t, size_t offset, size_t length)
+	property_t prop, bool *t, size_t offset, size_t length)
 {
 	return prop_get_boolean(gui_property, prop, t, offset, length);
 }
@@ -3161,13 +3161,13 @@ gui_prop_description(property_t p)
 	return prop_description(gui_property, p);
 }
 
-gboolean
+bool
 gui_prop_is_saved(property_t p)
 {
 	return prop_is_saved(gui_property, p);
 }
 
-gboolean
+bool
 gui_prop_is_internal(property_t p)
 {
 	return prop_is_internal(gui_property, p);
@@ -3199,7 +3199,7 @@ const prop_set_stub_t *
 gui_prop_get_stub(void)
 {
 	static prop_set_stub_t stub;
-	static gboolean inited;
+	static bool inited;
 
 	if G_LIKELY(inited)
 		return &stub;

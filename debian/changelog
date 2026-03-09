@@ -1,3 +1,9 @@
+gtk-gnutella (1.3.1-1) unstable; urgency=high
+
+  * New upstream release fixing major bug and compilation errors.
+
+ -- Raphael Manfredi <Raphael_Manfredi@pobox.com>  Mon,  9 Mar 2026 13:29:54 +0000
+
 gtk-gnutella (1.3.0-1) unstable; urgency=high
 
   * New upstream release since 1.2.3 has "expired".

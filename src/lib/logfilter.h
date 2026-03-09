@@ -100,7 +100,12 @@ logfilter_log(GLogLevelFlags flags,
 void NON_NULL_PARAM((2))
 logfilter_logv(GLogLevelFlags flags,
 		const logfilter_data_t * const data,
-		size_t offset, const char *fmt, bool format, va_list args) G_PRINTF(4, 0);
+		size_t offset, const char *fmt, bool format, va_list args);
+
+void NON_NULL_PARAM((2))
+logfilter_logv_no_args(
+	GLogLevelFlags flags, const logfilter_data_t * const data,
+	size_t offset, const char *fmt, ...);
 
 pslist_t *logfilter_fds(const logfilter_data_t *data);
 void logfilter_fds_cleanup(pslist_t *);

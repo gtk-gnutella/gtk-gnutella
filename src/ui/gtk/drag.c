@@ -45,7 +45,7 @@
 
 struct drag_context {
 	drag_get_data_cb get_data;
-	gboolean uri_list;
+	bool uri_list;
 };
 
 /**
@@ -76,10 +76,10 @@ drag_free(struct drag_context **ptr)
 }
 
 #if GTK_CHECK_VERSION(2,0,0)
-gboolean
+bool
 drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 {
-	gboolean ret = FALSE;
+	bool ret = FALSE;
 	GtkTreePath *path;
 
 	g_return_val_if_fail(model, FALSE);
@@ -99,7 +99,7 @@ drag_get_iter(GtkTreeView *tv, GtkTreeModel **model, GtkTreeIter *iter)
 
 
 static inline void
-selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
+selection_set_data(GtkSelectionData *data, const char *text, bool uri_list)
 {
 	if (uri_list) {
 		const char *uris[2];
@@ -122,7 +122,7 @@ selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
 #define object_unref(obj)	gtk_object_unref(GTK_OBJECT(obj))
 
 static inline void
-selection_set_data(GtkSelectionData *data, const char *text, gboolean uri_list)
+selection_set_data(GtkSelectionData *data, const char *text, bool uri_list)
 {
 	size_t len;
 
@@ -207,7 +207,7 @@ destroy(GtkObject *widget, void *udata)
  * the widget as text. The context can be attached to multiple widgets.
  */
 static void
-drag_attach(GtkWidget *widget, drag_get_data_cb callback, gboolean uri_list)
+drag_attach(GtkWidget *widget, drag_get_data_cb callback, bool uri_list)
 {
     static const GtkTargetEntry text_targets[] = {
 #if GTK_CHECK_VERSION(2,0,0)

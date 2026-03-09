@@ -1227,18 +1227,23 @@ log_string_release(void *saved)
  * It is suitable to be called (directly or through its wrappers) when we are
  * about to terminate the process anyway, so preserving errno is not critical.
  *
+ * When `format` is FALSE, the `fmt` string is used as-is. Otherwise, it
+ * is expected to be a printf() format, the values to format being passed
+ * in the `args` variadic list.
+ *
  * @param level		glib-compatible log level flags
  * @param raw		if TRUE, carefully avoid taking locks, use safe routines
  * @param copy		whether to copy message to stdout as well
  * @param fmt		formatting string
+ * @param format	if TRUE, must process `fmt` as a printf() format.
  * @param args		variable argument list to format
  *
  * @attention
  * This routine will clobber "errno" if an error occurs.
  */
 void
-s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
-	const char *fmt, va_list args)
+s_rawlogv_format(GLogLevelFlags level, bool raw, bool copy,
+	const char *fmt, bool format, va_list args)
 {
 	char data[LOG_MSG_MAXLEN];
 	const char *prefix;
@@ -1284,16 +1289,49 @@ s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
 			stid = thread_small_id();				/* New discovered thread! */
 	}
 
-	/*
-	 * Because str_vncatf() is recursion-safe, we know we can't return
-	 * to here through it.
-	 */
+	if (format) {
+		/*
+		 * Because str_vncatf() is recursion-safe, we know we can't return
+		 * to here through it.
+		 */
 
-	len = log_vbprintf(ARYLEN(data), fmt, args);	/* Uses str_vncatf() */
-	str_new_buffer(&msg, ARYLEN(data), len);
-	str_strip_trailing_nuls(&msg);
+		len = log_vbprintf(ARYLEN(data), fmt, args);	/* Uses str_vncatf() */
+		str_new_buffer(&msg, ARYLEN(data), len);
+		str_strip_trailing_nuls(&msg);
+	} else {
+		str_from_read_only(&msg, fmt, (size_t) -1);
+	}
 
 	log_emit(level, &msg, NULL, prefix, stid, TRUE, copy, raw);
+}
+
+/**
+ * Raw logging service, in case of recursion or other drastic conditions.
+ *
+ * This routine never allocates memory, by-passes stdio and does NOT save
+ * errno (since accessing errno in multi-threaded programs needs to access
+ * some pthread-data that may not be accessible if we corrupted memory).
+ *
+ * When the ``raw'' argument is set, it also carefully avoids taking locks,
+ * using a non-atomic log flushing, etc..
+ *
+ * It is suitable to be called (directly or through its wrappers) when we are
+ * about to terminate the process anyway, so preserving errno is not critical.
+ *
+ * @param level		glib-compatible log level flags
+ * @param raw		if TRUE, carefully avoid taking locks, use safe routines
+ * @param copy		whether to copy message to stdout as well
+ * @param fmt		formatting string
+ * @param args		variable argument list to format
+ *
+ * @attention
+ * This routine will clobber "errno" if an error occurs.
+ */
+void
+s_rawlogv(GLogLevelFlags level, bool raw, bool copy,
+	const char *fmt, va_list args)
+{
+	s_rawlogv_format(level, raw, copy, fmt, TRUE, args);
 }
 
 /**
@@ -2679,7 +2717,7 @@ log_handler(const char *domain, GLogLevelFlags level,
 		const void *pc = stacktrace_caller(3);
 
 		log_compute_data(pc, level, &data);
-		logfilter_logv(level, &data, 1, message, FALSE, NULL);
+		logfilter_logv_no_args(level, &data, 1, message);
 		goto logged;
 	}
 

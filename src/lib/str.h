@@ -81,6 +81,8 @@ str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(const char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t size, size_t len);
 void str_new_buffer(str_t *str, char *ptr, size_t size, size_t len);
+void str_from(str_t *str, char *ptr, size_t len);
+void str_from_read_only(str_t *str, const char *ptr, size_t len);
 void str_free(str_t *str);
 void str_discard(str_t *str);
 void str_destroy(str_t *str);
@@ -139,6 +141,11 @@ bool str_case_lookup(const str_t *s, ssize_t off, const char *needle, size_t *po
 bool str_ctrl_escape(str_t *s, bool strip_crlf);
 bool str_unprintable_escape(str_t *s, bool strip_crlf);
 bool str_unsafe_escape(str_t *s, bool strip_crlf);
+
+bool str_cpy_trunc(str_t *str, const char *string);
+bool str_cpy_len_trunc(str_t *str, const char *string, size_t len);
+bool str_cat_trunc(str_t *str, const char *string);
+bool str_cat_len_trunc(str_t *str, const char *string, size_t len);
 
 size_t str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args);
 size_t str_vcatf(str_t *str, const char *fmt, va_list args);

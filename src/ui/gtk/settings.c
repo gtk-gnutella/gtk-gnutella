@@ -1372,81 +1372,17 @@ hostcache_size_changed(property_t prop)
     return FALSE;
 }
 
+/*
+ * Hide the image for "ancient versions" in the GUI toolbar, unconditionally,
+ * since we no longer support ancient versions.
+ */
 static void
-ancient_version_dialog(gboolean show)
+ancient_version_hide(void)
 {
-	static struct html_view *ancient_html_view;
-
-	if (show) {
-		static const gchar msg[] = N_(
-			"<html>"
-			"<head>"
-			"<title>Ancient version detected!</title>"
-			"</head>"
-			"<body>"
-			"<h1>Warning</h1>"
-			"<p>"
-			"This version of gtk-gnutella is pretty old. Please visit "
-			"<a href=\"https://gtk-gnutella.sourceforge.io/\">"
-			"https://gtk-gnutella.sourceforge.io/</a> and "
-			"update your copy of gtk-gnutella."
-			"</p>"
-			"</body>"
-			"</html>"
-		);
-
-		html_view_free(&ancient_html_view);
-		ancient_html_view = html_view_load_memory(
-				gui_dlg_ancient_lookup("textview_ancient"),
-				array_from_string(msg));
-		gtk_widget_show(gui_dlg_ancient());
-		if (gui_dlg_ancient()->window) {
-			gdk_window_raise(gui_dlg_ancient()->window);
-		}
-	} else {
-		html_view_free(&ancient_html_view);
-		if (gui_dlg_ancient()) {
-			gtk_widget_hide(gui_dlg_ancient());
-		}
-	}
-}
-
-void
-ancient_version_dialog_show(void)
-{
-	if (!main_gui_ancient_is_disabled())
-		ancient_version_dialog(TRUE);
-}
-
-void
-ancient_version_dialog_hide(void)
-{
-	if (!main_gui_ancient_is_disabled())
-		ancient_version_dialog(FALSE);
-}
-
-static gboolean
-ancient_version_changed(property_t prop)
-{
-    prop_map_t *map_entry = settings_gui_get_map_entry(prop);
-    const prop_set_stub_t *stub = map_entry->stub;
-    GtkWidget *top = map_entry->fn_toplevel();
-    GtkWidget *w;
-    gboolean b;
-
-    w = lookup_widget(top, map_entry->wid);
-    stub->boolean.get(prop, &b, 0, 1);
-
-    if (b) {
-		ancient_version_dialog_show();
-        statusbar_gui_message(15, _("*** RUNNING AN OLD VERSION! ***"));
-        gtk_widget_show(w);
-    } else {
-        gtk_widget_hide(w);
-		shrink_frame_status();
-    }
-
-    return FALSE;
+    GtkWidget *top = gui_main_window();
+    GtkWidget *w = lookup_widget(top, "eventbox_image_ancient");
+    gtk_widget_hide(w);
+	shrink_frame_status();
 }
 
 static gboolean
@@ -1643,24 +1579,6 @@ file_descriptor_warn_changed(property_t prop)
 				_("*** FILE DESCRIPTORS RUNNING LOW! ***"));
 	} else
 		shrink_frame_status();
-
-    return FALSE;
-}
-
-static gboolean
-ancient_version_left_days_changed(property_t prop)
-{
-    guint32 remain;
-
-    gnet_prop_get_guint32_val(prop, &remain);
-
-	if (remain == 0)
-		statusbar_gui_message(15, _("*** Please update gtk-gnutella ***"));
-	else
-		statusbar_gui_message(15,
-			NG_("*** VERSION WILL BECOME OLD IN %d DAY! ***",
-				"*** VERSION WILL BECOME OLD IN %d DAYS! ***", remain),
-			remain);
 
     return FALSE;
 }
@@ -6256,6 +6174,7 @@ settings_gui_init(void)
     }
 
     settings_gui_init_prop_map();
+	ancient_version_hide();
 
 	/*
 	 * If they don't have requested compilation of the "remote shell", disable
