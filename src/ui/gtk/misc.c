@@ -96,10 +96,10 @@ gui_update_files_scanned(void)
 }
 
 void
-gui_allow_rescan_dir(gboolean flag)
+gui_allow_rescan_dir(bool flag)
 {
 	gtk_widget_set_sensitive
-        (gui_dlg_prefs_lookup("button_config_rescan_dir"), flag);
+        (gui_dlg_prefs_lookup("button_config_rescan_dir"), (gboolean) flag);
 }
 
 /**

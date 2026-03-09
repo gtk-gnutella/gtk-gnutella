@@ -480,7 +480,7 @@ fi_gui_files_select_helper(GtkCList *unused_clist, int row, void *user_data)
 }
 
 GSList *
-fi_gui_get_selected_sources(gboolean unselect)
+fi_gui_get_selected_sources(bool unselect)
 {
 	return fi_gui_collect_selected(clist_download_sources,
 			fi_gui_sources_select_helper,
@@ -488,7 +488,7 @@ fi_gui_get_selected_sources(gboolean unselect)
 }
 
 GSList *
-fi_gui_get_selected_files(gboolean unselect)
+fi_gui_get_selected_files(bool unselect)
 {
 	return fi_gui_collect_selected(clist_download_files,
 			fi_gui_files_select_helper,

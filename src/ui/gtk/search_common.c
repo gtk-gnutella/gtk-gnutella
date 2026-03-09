@@ -830,11 +830,11 @@ search_gui_configured_media_type(void)
  * @note `*search' may be set to NULL even on success. You have to check this
  *		 explicitely.
  */
-gboolean
+bool
 search_gui_new_search(const gchar *query, guint32 flags, search_t **search)
 {
     guint32 timeout;
-	gboolean ret;
+	bool ret;
 
     gnet_prop_get_guint32_val(PROP_SEARCH_REISSUE_TIMEOUT, &timeout);
 
@@ -1657,7 +1657,7 @@ search_gui_create_search_with_filter(const char *name, guint32 flags)
     default_filter = option_menu_get_selected_data(GTK_OPTION_MENU(
 					gui_main_window_lookup("optionmenu_search_filter")));
 
-	if (SEARCH_NEW_SUCCESS != search_gui_new_search(name, flags, &search)) {
+	if (!search_gui_new_search(name, flags, &search)) {
 		gdk_beep();
 		return;
 	}
@@ -3206,7 +3206,7 @@ search_gui_filter_new(search_t *sch, GList *rules)
 	}
 }
 
-gboolean
+bool
 search_gui_new_search_full(const gchar *query_str, unsigned mtype,
 	time_t create_time, guint lifetime, guint32 reissue_timeout,
 	gint sort_col, gint sort_order, guint32 flags, search_t **search_ptr)

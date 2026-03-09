@@ -112,7 +112,7 @@ const char *fi_gui_source_column_text(const struct download *, int column);
 
 void fi_gui_fi_status_changed(gnet_fi_t handle);
 void fi_gui_files_cursor_update(void);
-gboolean fi_gui_filter_active(void);
+bool fi_gui_filter_active(void);
 
 int fileinfo_data_cmp(const struct fileinfo_data *,
 	const struct fileinfo_data *, int column);
@@ -124,12 +124,12 @@ const char *fi_gui_file_get_filename(const struct fileinfo_data *);
 unsigned fi_gui_file_get_progress(const struct fileinfo_data *);
 char *fi_gui_file_get_magnet(const struct fileinfo_data *);
 
-gboolean fi_gui_rename(const char *filename);
+bool fi_gui_rename(const char *filename);
 
 unsigned fi_gui_source_get_progress(const struct download *);
 
 const char *fi_gui_files_column_title(int column);
-gboolean fi_gui_files_column_justify_right(int column);
+bool fi_gui_files_column_justify_right(int column);
 
 GtkMenu *fi_gui_sources_get_popup_menu(void);
 
@@ -183,8 +183,8 @@ enum fi_gui_detail {
 
 void fi_gui_append_detail(enum fi_gui_detail, const char *title, const char *value);
 
-GSList *fi_gui_get_selected_files(gboolean unselect);
-GSList *fi_gui_get_selected_sources(gboolean unselect);
+GSList *fi_gui_get_selected_files(bool unselect);
+GSList *fi_gui_get_selected_sources(bool unselect);
 
 #endif /* _gtk_downloads_common_h_ */
 /* vi: set ts=4 sw=4 cindent: */

@@ -31,7 +31,7 @@
 #ifdef GUI_SOURCES
 
 void gui_update_files_scanned(void);
-void gui_allow_rescan_dir(gboolean flag);
+void gui_allow_rescan_dir(bool flag);
 
 #endif /* GUI_SOURCES */
 #endif /* _if_ui_gtk_misc_h_ */

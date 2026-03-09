@@ -46,7 +46,7 @@ void drag_attach_text(GtkWidget *, drag_get_data_cb);
 void drag_attach_uri(GtkWidget *, drag_get_data_cb);
 
 #if GTK_CHECK_VERSION(2,0,0)
-gboolean drag_get_iter(GtkTreeView *, GtkTreeModel **, GtkTreeIter *);
+bool drag_get_iter(GtkTreeView *, GtkTreeModel **, GtkTreeIter *);
 #endif /* GTK+ >= 2 */
 
 #endif /* _drag_init_h_ */
