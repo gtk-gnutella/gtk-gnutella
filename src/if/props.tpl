@@ -108,8 +108,8 @@ const char *[=(. func-prefix)=]_to_string(property_t prop);
 const char *[=(. func-prefix)=]_to_typed_string(property_t prop);
 const char *[=(. func-prefix)=]_default_to_string(property_t);
 const char *[=(. func-prefix)=]_description(property_t);
-gboolean [=(. func-prefix)=]_is_saved(property_t);
-gboolean [=(. func-prefix)=]_is_internal(property_t);
+bool [=(. func-prefix)=]_is_saved(property_t);
+bool [=(. func-prefix)=]_is_internal(property_t);
 prop_type_t [=(. func-prefix)=]_type(property_t);
 void [=(. func-prefix)=]_set_from_string(property_t, const char *);
 
@@ -122,7 +122,7 @@ void [=(. func-prefix)=]_unlock(property_t);
  * Property-change listeners
  */
 void [=(. func-prefix)=]_add_prop_changed_listener(
-	property_t, prop_changed_listener_t, gboolean);
+	property_t, prop_changed_listener_t, bool);
 void [=(. func-prefix)=]_remove_prop_changed_listener(
 	property_t, prop_changed_listener_t);
 
@@ -132,18 +132,18 @@ void [=(. func-prefix)=]_remove_prop_changed_listener(
  * The *_val macros are shortcuts for single scalar properties.
  */
 void [=(. func-prefix)=]_set_boolean(
-	property_t, const gboolean *, size_t, size_t);
-gboolean *[=(. func-prefix)=]_get_boolean(
-	property_t, gboolean *, size_t, size_t);
+	property_t, const bool *, size_t, size_t);
+bool *[=(. func-prefix)=]_get_boolean(
+	property_t, bool *, size_t, size_t);
 
 static inline void
-[=(. func-prefix)=]_set_boolean_val(property_t p, gboolean value)
+[=(. func-prefix)=]_set_boolean_val(property_t p, bool value)
 {
 	[=(. func-prefix)=]_set_boolean(p, &value, 0, 1);
 }
 
 static inline void
-[=(. func-prefix)=]_get_boolean_val(property_t p, gboolean *value_ptr)
+[=(. func-prefix)=]_get_boolean_val(property_t p, bool *value_ptr)
 {
 	[=(. func-prefix)=]_get_boolean(p, value_ptr, 0, 1);
 }
@@ -293,7 +293,7 @@ gpointer [=(. func-prefix)=]_get_storage(property_t, gpointer, size_t);
 			(get "data.value") (string-downcase (get "name")))))
 =][=
 CASE type=][=
-= boolean=]extern const gboolean [=(. item)=][=
+= boolean=]extern const bool [=(. item)=][=
 = guint32=]extern const guint32	[=(. item)=][=
 = guint64=]extern const guint64	[=(. item)=][=
 = ip	 =]extern const host_addr_t	[=(. item)=][=
@@ -361,7 +361,7 @@ static const char	[=(. item)=]_default[[=vector_size=]];
 host_addr_t	[=(. item)=];[=
 	ELSE=][=
 		(define vtype (cond
-			((= (get "type") "boolean")		"gboolean ")
+			((= (get "type") "boolean")		"bool ")
 			((= (get "type") "guint32")		"guint32  ")
 			((= (get "type") "guint64")		"guint64  ")
 			((= (get "type") "multichoice") "guint32  ")
@@ -649,7 +649,7 @@ void
  */
 void
 [=(. func-prefix)=]_add_prop_changed_listener(
-	property_t prop, prop_changed_listener_t l, gboolean init)
+	property_t prop, prop_changed_listener_t l, bool init)
 {
 	prop_add_prop_changed_listener([=(. prop-set)=], prop, l, init);
 }
@@ -660,7 +660,7 @@ void
  */
 void
 [=(. func-prefix)=]_add_prop_changed_listener_full(
-	property_t prop, prop_changed_listener_t l, gboolean init,
+	property_t prop, prop_changed_listener_t l, bool init,
 	enum frequency_type freq, guint32 interval)
 {
 	prop_add_prop_changed_listener_full([=(. prop-set)=], prop, l, init,
@@ -676,14 +676,14 @@ void
 
 void
 [=(. func-prefix)=]_set_boolean(
-	property_t prop, const gboolean *src, size_t offset, size_t length)
+	property_t prop, const bool *src, size_t offset, size_t length)
 {
 	prop_set_boolean([=(. prop-set)=], prop, src, offset, length);
 }
 
-gboolean *
+bool *
 [=(. func-prefix)=]_get_boolean(
-	property_t prop, gboolean *t, size_t offset, size_t length)
+	property_t prop, bool *t, size_t offset, size_t length)
 {
 	return prop_get_boolean([=(. prop-set)=], prop, t, offset, length);
 }
@@ -817,13 +817,13 @@ const char *
 	return prop_description([=(. prop-set)=], p);
 }
 
-gboolean
+bool
 [=(. func-prefix)=]_is_saved(property_t p)
 {
 	return prop_is_saved([=(. prop-set)=], p);
 }
 
-gboolean
+bool
 [=(. func-prefix)=]_is_internal(property_t p)
 {
 	return prop_is_internal([=(. prop-set)=], p);
@@ -855,7 +855,7 @@ const prop_set_stub_t *
 [=(. func-prefix)=]_get_stub(void)
 {
 	static prop_set_stub_t stub;
-	static gboolean inited;
+	static bool inited;
 
 	if G_LIKELY(inited)
 		return &stub;

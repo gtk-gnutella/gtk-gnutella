@@ -559,8 +559,8 @@ const char *gnet_prop_to_string(property_t prop);
 const char *gnet_prop_to_typed_string(property_t prop);
 const char *gnet_prop_default_to_string(property_t);
 const char *gnet_prop_description(property_t);
-gboolean gnet_prop_is_saved(property_t);
-gboolean gnet_prop_is_internal(property_t);
+bool gnet_prop_is_saved(property_t);
+bool gnet_prop_is_internal(property_t);
 prop_type_t gnet_prop_type(property_t);
 void gnet_prop_set_from_string(property_t, const char *);
 
@@ -573,7 +573,7 @@ void gnet_prop_unlock(property_t);
  * Property-change listeners
  */
 void gnet_prop_add_prop_changed_listener(
-	property_t, prop_changed_listener_t, gboolean);
+	property_t, prop_changed_listener_t, bool);
 void gnet_prop_remove_prop_changed_listener(
 	property_t, prop_changed_listener_t);
 
@@ -583,18 +583,18 @@ void gnet_prop_remove_prop_changed_listener(
  * The *_val macros are shortcuts for single scalar properties.
  */
 void gnet_prop_set_boolean(
-	property_t, const gboolean *, size_t, size_t);
-gboolean *gnet_prop_get_boolean(
-	property_t, gboolean *, size_t, size_t);
+	property_t, const bool *, size_t, size_t);
+bool *gnet_prop_get_boolean(
+	property_t, bool *, size_t, size_t);
 
 static inline void
-gnet_prop_set_boolean_val(property_t p, gboolean value)
+gnet_prop_set_boolean_val(property_t p, bool value)
 {
 	gnet_prop_set_boolean(p, &value, 0, 1);
 }
 
 static inline void
-gnet_prop_get_boolean_val(property_t p, gboolean *value_ptr)
+gnet_prop_get_boolean_val(property_t p, bool *value_ptr)
 {
 	gnet_prop_get_boolean(p, value_ptr, 0, 1);
 }
