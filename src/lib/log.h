@@ -305,6 +305,9 @@ void s_minilogv(GLogLevelFlags, bool copy, const char *fmt, va_list args)
 	G_PRINTF(3, 0);
 void s_rawlogv(GLogLevelFlags, bool raw, bool copy, const char *f, va_list a)
 	G_PRINTF(4, 0);
+void
+s_rawlogv_format(GLogLevelFlags level, bool raw, bool copy,
+	const char *fmt, bool format, va_list args);
 
 void s_line_writef(int fd, const char *fmt, ...) G_PRINTF(2, 3);
 

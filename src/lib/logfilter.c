@@ -5517,6 +5517,21 @@ struct lf_reserve {
 static struct lf_reserve logfilter_reserved[THREAD_MAX];
 
 /**
+ * Wrapper for logfilter_logv() when there is no trailing variadic arguments.
+ */
+void
+logfilter_logv_no_args(
+	GLogLevelFlags flags, const logfilter_data_t * const data,
+	size_t offset, const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt); /* A dummy va_list since nothing is expected */
+    logfilter_logv(flags, data, offset, fmt, FALSE, ap);
+    va_end(ap);
+}
+
+/**
  * This is the main entry point for logging when logfilter is enabled.
  *
  * @param flags		glib-compatible log-level flags
@@ -5563,7 +5578,7 @@ logfilter_logv(
 	 */
 
 	if G_UNLIKELY(logfilter_crashing) {
-		s_rawlogv(flags, TRUE, TRUE, fmt, args);
+		s_rawlogv_format(flags, TRUE, TRUE, fmt, format, args);
 		goto bypassed;
 	}
 
@@ -5587,7 +5602,8 @@ logfilter_logv(
 	 */
 
 	if (r->logging) {
-		s_rawlogv(flags | G_LOG_FLAG_RECURSION, TRUE, FALSE, fmt, args);
+		s_rawlogv_format(flags | G_LOG_FLAG_RECURSION,
+			TRUE, FALSE, fmt, format, args);
 		goto bypassed;
 	}
 
@@ -5620,12 +5636,13 @@ logfilter_logv(
 		saved = log_string_get(data->routine, fmt, &msg);
 
 		if G_UNLIKELY(NULL == saved) {
-			s_rawlogv(flags | G_LOG_FLAG_RECURSION, TRUE, FALSE, fmt, args);
+			s_rawlogv_format(flags | G_LOG_FLAG_RECURSION,
+				TRUE, FALSE, fmt, format, args);
 			goto done;
 		}
 
 		if G_UNLIKELY(NULL == msg) {
-			s_rawlogv(flags, FALSE, FALSE, fmt, args);
+			s_rawlogv_format(flags, FALSE, FALSE, fmt, format, args);
 			goto done;		/* No memory to process message, sorry */
 		}
 	} else {
