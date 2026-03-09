@@ -83,6 +83,33 @@ static unsigned format_recursion;	/* Prevents recursive verbose debugging */
 #define STR_THREAD			(1 << 2)	/**< String is thread-private */
 #define STR_TRUNCATED		(1 << 3)	/**< Truncation occurred at tail */
 #define STR_SILENT_TRUNCATE	(1 << 4)	/**< No verbose report on truncation */
+#define STR_READ_ONLY		(1 << 5)	/**< String is read-only */
+
+/**
+ * @return whether string is read-only.
+ */
+bool
+str_is_read_only(const str_t *s)
+{
+	str_check(s);
+
+	return booleanize(s->s_flags & STR_READ_ONLY);
+}
+
+/**
+ * Switch read-only status of string.
+ */
+void
+str_set_read_only(str_t *s, bool on)
+{
+	str_check(s);
+
+	if (on)
+		s->s_flags |= STR_READ_ONLY;
+	else
+		s->s_flags &= ~STR_READ_ONLY;
+}
+
 
 /**
  * @return length of string.
@@ -373,6 +400,45 @@ str_foreign(str_t *str, char *ptr, size_t size, size_t len)
 	str->s_len = len;
 	str->s_size = size;
 	str->s_data = ptr;
+}
+
+/**
+ * Initialize a pre-allocated string structure with supplied C string pointer,
+ * pointing to a NUL-terminated string of `len' bytes. The resulting string is
+ * made "foreign" since we don't own its pointer.
+ *
+ * The string is marked read-only when `writable` is FALSE, since it is
+ * initialized from a potentially const string.
+ *
+ * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute its length.
+ *
+ * @param str		pointer to existing (and initialized) string object
+ * @param ptr		start of buffer where string data is held
+ * @param len		length of existing string, computed if (size_t) -1
+ * @param writable	whether string can be modified
+ */
+void
+str_from(str_t *str, const char *ptr, size_t len, bool writable)
+{
+	size_t computed_len;
+
+	g_assert(str != NULL);
+	g_assert(ptr != NULL);
+	g_assert(size_is_non_negative(len + 1));
+
+	computed_len = vstrlen(ptr);
+
+	str->s_magic = STR_MAGIC;
+	str->s_flags = STR_FOREIGN_PTR;
+	str->s_data = deconstify_char(ptr);
+	str->s_len = ((size_t) -1 == len) ? computed_len : len;
+	str->s_size = len + 1;
+
+	if (!writable)
+		str->s_flags |= STR_READ_ONLY;
+
+	g_assert(str->s_len <= str->s_size);
+	g_assert(str->s_len <= computed_len);
 }
 
 /**
@@ -935,6 +1001,7 @@ void
 str_putc(str_t *str, int c)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
  	str_makeroom(str, 1);
 	str->s_data[str->s_len++] = (uchar) c;
@@ -947,6 +1014,7 @@ void
 str_reset(str_t *str)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	str->s_len = 0;
 	str->s_flags &= ~STR_TRUNCATED;
@@ -1056,6 +1124,7 @@ void
 str_cat_len(str_t *str, const char *string, size_t len)
 {
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1085,6 +1154,7 @@ str_cat_len_trunc(str_t *str, const char *string, size_t len)
 	size_t avail, added;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1149,6 +1219,7 @@ str_ncat(str_t *str, const char *string, size_t len)
 	char c;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1188,6 +1259,7 @@ str_ncat_safe(str_t *str, const char *string, size_t len)
 	bool fits = TRUE;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(len));
 
@@ -1235,6 +1307,7 @@ str_shift(str_t *str, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(n));
 
 	if G_UNLIKELY(0 == n)
@@ -1268,6 +1341,7 @@ str_ichar(str_t *str, ssize_t idx, int c)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	len = str->s_len;
 
@@ -1323,6 +1397,7 @@ str_instr(str_t *str, ssize_t idx, const char *string, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(string != NULL);
 	g_assert(size_is_non_negative(n));
 
@@ -1361,6 +1436,7 @@ str_remove(str_t *str, ssize_t idx, size_t n)
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(n));
 
 	len = str->s_len;
@@ -1413,6 +1489,7 @@ str_replace_len(
 	size_t len;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(amount));
 	g_assert(size_is_non_negative(length));
 	g_assert(string != NULL);
@@ -1584,6 +1661,7 @@ str_chomp(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1608,6 +1686,7 @@ str_chop(str_t *s)
 	int c;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1632,6 +1711,7 @@ str_strip_trailing_nuls(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1660,6 +1740,7 @@ str_reverse(str_t *s)
 	size_t len;
 
 	str_check(s);
+	g_assert(!str_is_read_only(s));
 
 	len = s->s_len;
 
@@ -1898,6 +1979,7 @@ str_escape(str_t *str, int c, int e)
 	size_t idx;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 
 	len = str->s_len;
 
@@ -1965,6 +2047,8 @@ str_inplace_escape(str_t *s, str_safe_fn_t cb, bool no_crlf)
 	uchar *q;
 	size_t i, len, shift;
 	bool had_nul = FALSE, has_crlf = FALSE;
+
+	g_assert(!str_is_read_only(s));
 
 	/*
 	 * To be efficient, the algorithm works in 2 passes:
@@ -2631,6 +2715,7 @@ str_fcat_safe(str_t *str, size_t maxlen, double nv, const char f,
 	size_t remain = maxlen;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(maxlen));
 
 	/*
@@ -3322,6 +3407,7 @@ str_vncatf(str_t *str, size_t maxlen, const char *fmt, va_list args)
 	size_t processed = 0;
 
 	str_check(str);
+	g_assert(!str_is_read_only(str));
 	g_assert(size_is_non_negative(maxlen));
 	g_assert(fmt != NULL);
 

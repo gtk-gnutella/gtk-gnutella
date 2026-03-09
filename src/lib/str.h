@@ -81,6 +81,7 @@ str_t *str_create(str_t *str, size_t szhint);
 str_t *str_make(const char *ptr, size_t len);
 void str_foreign(str_t *str, char *buffer, size_t size, size_t len);
 void str_new_buffer(str_t *str, char *ptr, size_t size, size_t len);
+void str_from(str_t *str, const char *ptr, size_t len, bool writable);
 void str_free(str_t *str);
 void str_discard(str_t *str);
 void str_destroy(str_t *str);
