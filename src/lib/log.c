@@ -1299,7 +1299,7 @@ s_rawlogv_format(GLogLevelFlags level, bool raw, bool copy,
 		str_new_buffer(&msg, ARYLEN(data), len);
 		str_strip_trailing_nuls(&msg);
 	} else {
-		str_from(&msg, fmt, (size_t) -1, FALSE);
+		str_from_read_only(&msg, fmt, (size_t) -1);
 	}
 
 	log_emit(level, &msg, NULL, prefix, stid, TRUE, copy, raw);

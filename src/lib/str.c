@@ -407,18 +407,14 @@ str_foreign(str_t *str, char *ptr, size_t size, size_t len)
  * pointing to a NUL-terminated string of `len' bytes. The resulting string is
  * made "foreign" since we don't own its pointer.
  *
- * The string is marked read-only when `writable` is FALSE, since it is
- * initialized from a potentially const string.
- *
  * If `len' is (size_t) -1, an strlen() is ran on `ptr' to compute its length.
  *
  * @param str		pointer to existing (and initialized) string object
  * @param ptr		start of buffer where string data is held
  * @param len		length of existing string, computed if (size_t) -1
- * @param writable	whether string can be modified
  */
 void
-str_from(str_t *str, const char *ptr, size_t len, bool writable)
+str_from(str_t *str, char *ptr, size_t len)
 {
 	size_t computed_len;
 
@@ -430,15 +426,23 @@ str_from(str_t *str, const char *ptr, size_t len, bool writable)
 
 	str->s_magic = STR_MAGIC;
 	str->s_flags = STR_FOREIGN_PTR;
-	str->s_data = deconstify_char(ptr);
+	str->s_data = ptr;
 	str->s_len = ((size_t) -1 == len) ? computed_len : len;
 	str->s_size = len + 1;
 
-	if (!writable)
-		str->s_flags |= STR_READ_ONLY;
-
 	g_assert(str->s_len <= str->s_size);
 	g_assert(str->s_len <= computed_len);
+}
+
+/**
+ * Same as str_from(), but string is marked read-only.
+ */
+void
+str_from_read_only(str_t *str, const char *ptr, size_t len)
+{
+	str_from(str, deconstify_char(ptr), len);
+	str_check(str);
+	str->s_flags |= STR_READ_ONLY;
 }
 
 /**
