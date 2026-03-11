@@ -2143,7 +2143,7 @@ mingw_environment_block(char * const envp[], int *flags)
 			/*
 			 * If there is a NUL byte before '=' or the '=' sign is indeed
 			 * followed by a NUL, then we can safely assume this is UTF-16
-			 * since and ANSI version would have bytes and no NUL before the
+			 * since an ANSI version would have bytes and no NUL before the
 			 * end of the string.
 			 */
 
