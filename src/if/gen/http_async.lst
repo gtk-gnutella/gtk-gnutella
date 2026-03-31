@@ -12,7 +12,7 @@ Enum-File: http_async.h
 #Symbolic:
 Description: http_async_error_str
 #Enum-To-Symbolic:
-Enum-To-Description: http_async_strerror
+Enum-To-Description: http_async_strerror_raw
 Enum-To-Code: http_async.c
 Enum-To-Header: http_async.h
 Protection-Prefix: if_gen

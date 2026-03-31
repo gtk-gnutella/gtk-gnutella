@@ -88,6 +88,28 @@ http_url_error_t http_url_errno;	/**< Error from http_url_parse() */
 static pslist_t *sl_outgoing = NULL;	/**< To spot reply timeouts */
 
 /**
+ * @return the English description of the enum value.
+ */
+const char *
+http_async_strerror(http_async_error_t x)
+{
+	const char *msg = http_async_strerror_raw(x);
+
+	/*
+	 * Errors involving a bad URL can also probe into http_url_errno to
+	 * provide additional error information on the URL parsing itself.
+	 */
+
+	if (HTTP_ASYNC_BAD_URL == x) {
+		str_t *s = str_private(G_STRFUNC, 80);
+		str_printf(s, "%s (%s)", msg, http_url_strerror(http_url_errno));
+		return str_2c(s);
+	}
+
+	return msg;
+}
+
+/**
  * Send HTTP status on socket, with code and reason.
  *
  * If `hev' is non-null, it points to a vector of http_extra_desc_t items,

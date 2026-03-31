@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Apr  5 12:17:58 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue Mar 31 11:14:52 2026 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl http_async.lst
  */
@@ -40,7 +40,7 @@ static const char *http_async_error_str[] = {
  * @return the English description of the enum value.
  */
 const char *
-http_async_strerror(http_async_error_t x)
+http_async_strerror_raw(http_async_error_t x)
 {
 	if G_UNLIKELY(UNSIGNED(x) >= N_ITEMS(http_async_error_str)) {
 		str_t *s = str_private(G_STRFUNC, 80);

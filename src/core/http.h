@@ -400,6 +400,8 @@ http_async_t *http_async_wget(const char *url,
 void http_close(void);
 void http_test(void);
 
+const char *http_async_strerror(http_async_error_t x);
+
 #endif	/* _core_http_h_ */
 
 /* vi: set ts=4 sw=4 cindent: */
