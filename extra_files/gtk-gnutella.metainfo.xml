@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Copyright 2013 Raphael Manfredi <Raphael_Manfredi@pobox.com> -->
+<!-- Copyright 2014 Jeroen Asselman <jeroen@asselman.com> -->
+<component type="desktop-application">
+
+  <id>gtk-gnutella.desktop</id>
+
+  <launchable type="desktop-id">gtk-gnutella.desktop</launchable>
+
+  <name>gtk-gnutella</name>
+
+  <developer id="io.sourceforge.gtk-gnutella">
+  <name>gtk-gnutella Project</name>
+  </developer>
+
+  <metadata_license>CC0-1.0</metadata_license>
+  <project_license>GPL-2.0-or-later</project_license>
+
+  <summary>Access the Gnutella and G2 network via this servent</summary>
+  <summary xml:lang="fr">Accédez aux réseaux Gnutella et G2 avec ce client</summary>
+  <summary xml:lang="tr">Bu istemciyle Gnutella ve G2 ağlarına erişin</summary>
+
+  <!-- Untranslated/default description MUST NOT have xml:lang -->
+  <description>
+    <p>
+      gtk-gnutella allows you to join the Gnutella and G2 network, search,
+      share and download files.
+    </p>
+    <p>
+      After joining the network, type words in the search area and the client
+      will search for files shared on the network matching that name.
+      You can then click an entry and attempt to download it.
+    </p>
+    <p>
+      It is compatible with other Gnutella servents from other vendors and
+      exchanges data seamlessly on the same network.
+    </p>
+    <p>Highlights:</p>
+    <ul>
+      <li>TLS support for Gnutella and HTTP connections</li>
+      <li>UPnP and NAT-PMP support for automatic port forwarding</li>
+      <li>Distributed Hash Table (DHT) support</li>
+      <li>Powerful filtering engine</li>
+    </ul>
+
+    <p xml:lang="fr">
+      gtk-gnutella vous permet de rejoindre les réseaux Gnutella et G2,
+      de chercher, partager et télécharger des fichiers.
+    </p>
+    <p xml:lang="fr">
+      Après avoir rejoint le réseau, tapez des mots dans le champ de recherche
+      et le client créera une recherche pour les fichiers partagés sur le
+      réseau.
+      Vous pouvez ensuite cliquer sur un élément et tenter de le télécharger.
+    </p>
+    <p xml:lang="fr">
+      Il est compatible avec tous les clients Gnutella d'autres éditeurs.
+    </p>
+    <p xml:lang="fr">Points forts :</p>
+    <ul>
+      <li xml:lang="fr">Prise en charge de TLS pour les connexions Gnutella et
+          HTTP</li>
+      <li xml:lang="fr">Prise en charge d'UPnP et NAT-PMP pour la redirection
+          automatique des ports.</li>
+      <li xml:lang="fr">Table de hachage distribuée (DHT)</li>
+      <li xml:lang="fr">Moteur de filtrage puissant</li>
+    </ul>
+
+    <p xml:lang="tr">
+      gtk-gnutella, Gnutella ve G2 ağına katılmanıza, dosya aramanıza,
+      paylaşmanıza ve indirmenize imkân tanır.
+    </p>
+    <p xml:lang="tr">
+      Ağa katıldıktan sonra arama alanına sözcükler yazın; istemci,
+      ağda paylaşılan ve bu adla eşleşen dosyaları arayacaktır.
+      Ardından bir girdiye tıklayıp indirmeyi deneyebilirsiniz.
+    </p>
+    <p xml:lang="tr">
+      Diğer üreticilerin tüm Gnutella istemcileriyle uyumludur:
+      aynı ağa katılır ve diğer istemcilerle sorunsuz biçimde veri alışverişi
+      yapar.
+    </p>
+    <p xml:lang="tr">Öne çıkan özellikler:</p>
+    <ul>
+      <li xml:lang="tr">Gnutella ve HTTP bağlantıları için TLS desteği</li>
+      <li xml:lang="tr">Otomatik port yönlendirme için UPnP ve NAT-PMP desteği</li>
+      <li xml:lang="tr">Alternatif konumlar ve itme vekilleri bulmak için
+          Dağıtık Karma Tablosu (DHT)</li>
+      <li xml:lang="tr">Güçlü filtreleme motoru</li>
+    </ul>
+  </description>
+
+  <screenshots>
+
+    <screenshot type="default">
+      <image type="source"
+             width="1250"
+             height="742">
+        https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-network.png
+      </image>
+      <caption>Main network view showing peers and connections</caption>
+      <caption xml:lang="fr">Vue principale de réseau affichant les pairs et les connexions</caption>
+      <caption xml:lang="tr">Eşleri ve bağlantıları gösteren ana ağ sekmesi</caption>
+    </screenshot>
+
+    <screenshot>
+      <image type="source"
+             width="818"
+             height="444">
+        https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-ruleset-editor.png
+      </image>
+      <caption>Window displaying the filter rules editor</caption>
+      <caption xml:lang="fr">Fenêtre affichant l'éditeur des règles de filtrage</caption>
+      <caption xml:lang="tr">Süzgeç kurallarını görüntüleyen pencere</caption>
+    </screenshot>
+
+    <screenshot>
+      <image type="source"
+             width="1250"
+             height="742">
+        https://gtk-gnutella.sourceforge.io/images/shots/1.1/gtk-gnutella-1.1-searches.png
+      </image>
+      <caption>Tab showing search results that can be downloaded</caption>
+      <caption xml:lang="fr">Onglet affichant des recherches dont les résultats peuvent être téléchargés</caption>
+      <caption xml:lang="tr">Sonuçları indirilebilir aramaları görüntüleyen sekme</caption>
+    </screenshot>
+
+  </screenshots>
+
+  <url type="homepage">https://gtk-gnutella.sourceforge.io/</url>
+  <url type="bugtracker">https://sourceforge.net/p/gtk-gnutella/_list/tickets</url>
+
+  <update_contact>
+    gtk-gnutella-devel@lists.sourceforge.net
+  </update_contact>
+
+  <content_rating type="oars-1.1"/>
+
+</component>
