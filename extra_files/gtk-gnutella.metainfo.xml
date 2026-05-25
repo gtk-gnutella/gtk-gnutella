@@ -129,6 +129,7 @@
 
   <url type="homepage">https://gtk-gnutella.sourceforge.io/</url>
   <url type="bugtracker">https://sourceforge.net/p/gtk-gnutella/_list/tickets</url>
+  <url type="donation">https://gtk-gnutella.sourceforge.io/?lang=en&amp;page=donate</url>
 
   <update_contact>
     gtk-gnutella-devel@lists.sourceforge.net
