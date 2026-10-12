@@ -1,3 +1,11 @@
+# v 1.3.2  2026-10-12  [stable]
+
+This is an urgent release fixing bugs.
+
+Bug Fixes:
+- Fix spurious crash on DHT node lookup results without query tokens
+- Regenerate proper identification keys
+
 # v 1.3.1  2026-03-09  [stable]
 
 This is an urgent release fixing bugs.

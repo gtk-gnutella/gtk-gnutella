@@ -1,5 +1,5 @@
 /*
- * Generated on Sat Apr  5 12:17:58 2014 by enum-msg.pl -- DO NOT EDIT
+ * Generated on Tue Mar 31 11:14:52 2026 by enum-msg.pl -- DO NOT EDIT
  *
  * Command: ../../../scripts/enum-msg.pl http_async.lst
  */
@@ -32,7 +32,7 @@ typedef enum {
 	HTTP_ASYNC_MAN_FAILURE
 } http_async_error_t;
 
-const char *http_async_strerror(http_async_error_t x);
+const char *http_async_strerror_raw(http_async_error_t x);
 
 #endif /* _if_gen_http_async_h_ */
 

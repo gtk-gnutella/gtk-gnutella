@@ -571,10 +571,21 @@ lookup_free_results(lookup_rs_t *rs)
 	for (i = 0; i < rs->path_len; i++) {
 		lookup_rc_t *rc = &rs->path[i];
 
+		if G_UNLIKELY(NULL == rc->token) {
+			g_assert(0 == rc->token_len);
+			s_warning_once_per(
+				LOG_PERIOD_SECOND,
+				"DHT no token in node lookup results from %s",
+				knode_to_string(rc->kn)
+			);
+		} else {
+			wfree(rc->token, rc->token_len);
+		}
+
 		knode_free(rc->kn);
-		wfree(rc->token, rc->token_len);
 		rc->kn = NULL;
 		rc->token = NULL;
+		rc->token_len = 0;
 	}
 
 	WFREE_ARRAY(rs->path, rs->path_len);
