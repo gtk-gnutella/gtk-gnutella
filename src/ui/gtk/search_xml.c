@@ -804,9 +804,10 @@ rule_to_xml(xnode_t *parent, rule_t *r)
         /*
          * If r->u.sha1.hash is NULL, we just omit the hash.
          */
-       	if (r->u.sha1.hash != NULL)
+       	if (r->u.sha1.hash != NULL) {
            	xnode_prop_set(newxml, TAG_RULE_SHA1_HASH,
 				sha1_base32(r->u.sha1.hash));
+		}
 
 		g_assert(utf8_is_valid_string(r->u.sha1.filename));
 		xnode_prop_set(newxml, TAG_RULE_SHA1_FILENAME, r->u.sha1.filename);
