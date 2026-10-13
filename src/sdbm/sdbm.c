@@ -2120,7 +2120,7 @@ validpage(DBM *db, long pagb)
 				removed++;
 			} else {
 				/* Can happen on I/O error with big keys */
-				s_warning("sdbm: \"%s\": cannot remove key #%d/%d "
+				s_carp("sdbm: \"%s\": cannot remove key #%d/%d "
 					"not belonging to page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
@@ -2129,7 +2129,7 @@ validpage(DBM *db, long pagb)
 			if (delipair(db, pag, i, FALSE)) {
 				corrupted++;
 			} else {
-				s_warning("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "
+				s_carp("sdbm: \"%s\": cannot remove corrupted entry #%d/%d "
 					"in page #%ld",
 					sdbm_name(db), k, n / 2, pagb);
 			}
@@ -2139,13 +2139,13 @@ validpage(DBM *db, long pagb)
 	if G_UNLIKELY(removed > 0 || corrupted > 0) {
 		if (removed > 0) {
 			db->removed_keys += removed;
-			s_warning("sdbm: \"%s\": removed %d/%d key%s "
+			s_carp("sdbm: \"%s\": removed %d/%d key%s "
 				"not belonging to page #%ld", sdbm_name(db),
 				removed, n / 2, plural(removed), pagb);
 		}
 		if (corrupted > 0) {
 			db->removed_keys += corrupted;
-			s_warning("sdbm: \"%s\": removed %d/%d corrupted entr%s "
+			s_carp("sdbm: \"%s\": removed %d/%d corrupted entr%s "
 				"on page #%ld", sdbm_name(db),
 				corrupted, n / 2, plural_y(corrupted), pagb);
 		}

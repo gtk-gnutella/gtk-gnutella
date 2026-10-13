@@ -625,7 +625,7 @@ big_ffree(DBM *db, size_t bno)
 	 */
 
 	if (!size_is_positive(bno) || 0 == (bno & (BIG_BITCOUNT - 1))) {
-		s_warning("sdbm: \"%s\": attempt to free invalid block #%ld",
+		s_carp("sdbm: \"%s\": attempt to free invalid block #%ld",
 			sdbm_name(db), (long) bno);
 		return;
 	}
@@ -642,7 +642,7 @@ big_ffree(DBM *db, size_t bno)
 	 */
 
 	if (bmap >= dbg->bitmaps) {
-		s_warning("sdbm: \"%s\": "
+		s_carp("sdbm: \"%s\": "
 			"freed block #%ld falls within invalid bitmap #%ld (max %ld)",
 			sdbm_name(db), (long) bno, bmap, dbg->bitmaps - 1);
 		return;
@@ -658,7 +658,7 @@ big_ffree(DBM *db, size_t bno)
 	 */
 
 	if (!bit_field_get(dbg->bitbuf, i)) {
-		s_warning("sdbm: \"%s\": freed block #%ld was already marked as free",
+		s_carp("sdbm: \"%s\": freed block #%ld was already marked as free",
 			sdbm_name(db), (long) bno);
 		return;
 	}
@@ -1451,14 +1451,14 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 		size_t bit;
 
 		if (!big_block_is_allocated(db, bno)) {
-			s_warning("sdbm: \"%s\": "
+			s_carp("sdbm: \"%s\": "
 				"block %d/%d in %s from .pag #%ld "
 				"refers to unallocated block %zu in .dat",
 				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno, bno);
 			return FALSE;
 		}
 		if (prev_bno != 0 && bno <= prev_bno) {
-			s_warning("sdbm: \"%s\": "
+			s_carp("sdbm: \"%s\": "
 				"block %d/%d in %s from .pag #%ld "
 				"not in ordered list (corrupted?)",
 				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno);
@@ -1482,7 +1482,7 @@ big_file_check(const char *what, DBM *db, const void *bvec, int bcnt)
 
 		map = ptr_add_offset(db->big->bitcheck, bmap * BIG_BLKSIZE);
 		if (bit_field_get(map, bit)) {
-			s_warning("sdbm: \"%s\": "
+			s_carp("sdbm: \"%s\": "
 				"block %d/%d in %s from .pag #%ld "
 				"refers to already seen block %zu in .dat",
 				sdbm_name(db), bcnt - n + 1, bcnt, what, db->pagbno, bno);
@@ -1508,7 +1508,7 @@ bigkey_check(DBM *db, const char *bkey, size_t blen)
 	size_t len = big_length(bkey);
 
 	if (bigkey_length(len) != blen) {
-		s_warning("sdbm: \"%s\": found inconsistent key length %zu, "
+		s_carp("sdbm: \"%s\": found inconsistent key length %zu, "
 			"would span %zu bytes in .pag #%ld instead of the %zu present",
 			sdbm_name(db), len, bigkey_length(len), db->pagbno, blen);
 		return FALSE;
@@ -1532,7 +1532,7 @@ bigval_check(DBM *db, const char *bval, size_t blen)
 	size_t len = big_length(bval);
 
 	if (bigval_length(len) != blen) {
-		s_warning("sdbm: \"%s\": found inconsistent value length %zu, "
+		s_carp("sdbm: \"%s\": found inconsistent value length %zu, "
 			"would span %zu bytes in .pag #%ld instead of the %zu present",
 			sdbm_name(db), len, bigkey_length(len), db->pagbno, blen);
 		return FALSE;
