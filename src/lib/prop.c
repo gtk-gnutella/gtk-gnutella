@@ -1793,10 +1793,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 			char *old = h_strconcat(pathname, ".old", NULL_PTR);
 			s_warning("%s(): config file \"%s\" changed whilst I was running",
 				G_STRFUNC, pathname);
-			if (-1 == rename(pathname, old))
-				s_warning("%s(): unable to rename \"%s\" as \"%s\": %m",
-					G_STRFUNC, pathname, old);
-			else
+			if (0 == file_rename(G_STRFUNC, pathname, old))
 				s_warning("%s(): renamed old copy as \"%s\"", G_STRFUNC, old);
 			HFREE_NULL(old);
 		}
@@ -2010,10 +2007,7 @@ prop_save_to_file(prop_set_t *ps, const char *dir, const char *filename)
 	 */
 
 	if (0 == file_sync_fclose(config)) {
-		if (-1 == rename(newfile, pathname)) {
-			s_warning("%s(): could not rename \"%s\" as \"%s\": %m",
-				G_STRFUNC, newfile, pathname);
-		} else {
+		if (0 == file_rename(G_STRFUNC, newfile, pathname)) {
 			if (-1 == stat(pathname, &sb)) {
 				s_warning("%s(): could not stat \"%s\": %m",
 					G_STRFUNC, pathname);

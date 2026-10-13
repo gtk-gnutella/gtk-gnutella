@@ -373,10 +373,7 @@ test_spopenve(void)
 		READ_FILEMSG2(f);
 		close(f);
 
-		if (-1 == unlink(redirect_child)) {
-			s_warning("%s(): could not unlink %s: %m",
-				G_STRFUNC, redirect_child);
-		}
+		(void) file_unlink(G_STRFUNC, redirect_child);
 	}
 
 	if (sigpipe) {

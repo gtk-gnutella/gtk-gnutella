@@ -505,10 +505,8 @@ file_config_close(FILE *out, const file_path_t *fv)
 	if (NULL == path_new)
 		goto failed;
 
-	if (-1 == rename(path_new, path)) {
-		s_warning("could not rename \"%s\" as \"%s\": %m", path_new, path);
+	if (-1 == file_rename(G_STRFUNC, path_new, path))
 		goto failed;
-	}
 
 	success = TRUE;
 
@@ -923,6 +921,100 @@ file_accmode_to_string(const int accmode)
 	case O_RDONLY:	return "O_RDONLY";
 	default:		return "UNKNOWN_ACCMODE";
 	}
+}
+
+/**
+ * Rename file, flagging errors.
+ *
+ * @param name		caller function name
+ * @param oldpath	original path
+ * @param newpath	new path
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+file_rename(const char *name, const char *oldpath, const char *newpath)
+{
+	g_assert(name != NULL);
+	g_assert(oldpath != NULL);
+	g_assert(newpath != NULL);
+
+	if (-1 == rename(oldpath, newpath)) {
+		s_miniwarn("%s(): cannot rename \"%s\" as \"%s\": %m",
+			name, oldpath, newpath);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * Rename file, flagging errors loudly with a stack trace.
+ *
+ * @param name		caller function name
+ * @param oldpath	original path
+ * @param newpath	new path
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+file_rename_carp(const char *name, const char *oldpath, const char *newpath)
+{
+	g_assert(name != NULL);
+	g_assert(oldpath != NULL);
+	g_assert(newpath != NULL);
+
+	if (-1 == rename(oldpath, newpath)) {
+		s_carp("%s(): cannot rename \"%s\" as \"%s\": %m",
+			name, oldpath, newpath);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * Unlink file, flagging errors.
+ *
+ * @param name		caller function name
+ * @param path		file to delete
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+file_unlink(const char *name, const char *path)
+{
+	g_assert(name != NULL);
+	g_assert(path != NULL);
+
+	if (-1 == unlink(path)) {
+		s_miniwarn("%s(): cannot unlink \"%s\": %m", name, path);
+		return -1;
+	}
+
+	return 0;
+}
+
+/**
+ * Unlink file, flagging error loudly with a stack trace.
+ *
+ * @param name		caller function name
+ * @param path		file to delete
+ *
+ * @return 0 if OK, -1 on error with errno set.
+ */
+int
+file_unlink_carp(const char *name, const char *path)
+{
+	g_assert(name != NULL);
+	g_assert(path != NULL);
+
+	if (-1 == unlink(path)) {
+		s_carp("%s(): cannot unlink \"%s\": %m", name, path);
+		return -1;
+	}
+
+	return 0;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

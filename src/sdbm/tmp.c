@@ -433,10 +433,8 @@ done:
 			tmpfile, tmp_action_to_string(action), ext);
 	}
 
-	if (file_is_empty(tmpfile)) {
-		if (-1 == unlink(tmpfile))
-			s_warning("%s(): cannot unlink empty %s: %m", G_STRFUNC, tmpfile);
-	}
+	if (file_is_empty(tmpfile))
+		(void) file_unlink(G_STRFUNC, tmpfile);
 
 	filelock_free_null(&fl);
 

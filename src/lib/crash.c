@@ -5159,8 +5159,7 @@ crash_save_current_stackframe(unsigned offset)
 static void
 crash_directory_unlink(const char *path)
 {
-	if (-1 == unlink(path))
-		g_warning("%s(): cannot unlink %s: %m", G_STRFUNC, path);
+	(void) file_unlink(G_STRFUNC, path);
 }
 
 /**

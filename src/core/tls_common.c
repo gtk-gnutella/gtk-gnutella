@@ -221,7 +221,7 @@ failed:
 	/* FALL THROUGH */
 error:
 	fd_close(&fd);			/* On Windows, needs to close before unlink() */
-	(void) unlink(file);
+	(void) file_unlink(G_STRFUNC, file);
 	/* FALL THROUGH */
 done:
 	gnutls_x509_privkey_deinit(key);
@@ -461,7 +461,7 @@ failed:
 	/* FALL THROUGH */
 error:
 	fd_close(&fd);			/* On Windows, needs to close before unlink() */
-	(void) unlink(file);
+	(void) file_unlink(G_STRFUNC, file);
 	/* FALL THROUGH */
 done:
 	gnutls_x509_privkey_deinit(key);

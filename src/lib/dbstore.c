@@ -374,12 +374,8 @@ dbstore_move_file(const char *old_path, const char *new_path, const char *ext)
 	char *old_file = h_strconcat(old_path, ext, NULL_PTR);
 	char *new_file = h_strconcat(new_path, ext, NULL_PTR);
 
-	if (file_exists(old_file)) {
-		if (-1 == rename(old_file, new_file)) {
-			s_carp("could not rename \"%s\" as \"%s\": %m",
-				old_file, new_file);
-		}
-	}
+	if (file_exists(old_file))
+		(void) file_rename_carp(G_STRFUNC, old_file, new_file);
 
 	HFREE_NULL(old_file);
 	HFREE_NULL(new_file);
@@ -414,11 +410,8 @@ dbstore_unlink_file(const char *path, const char *ext)
 {
 	char *file = h_strconcat(path, ext, NULL_PTR);
 
-	if (file_exists(file)) {
-		if (-1 == unlink(file)) {
-			s_carp("could not unlink \"%s\": %m", file);
-		}
-	}
+	if (file_exists(file))
+		(void) file_unlink_carp(G_STRFUNC, file);
 
 	HFREE_NULL(file);
 }

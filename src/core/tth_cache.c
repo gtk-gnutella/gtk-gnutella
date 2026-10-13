@@ -279,7 +279,7 @@ tth_cache_remove(const struct tth *tth)
 	g_return_if_fail(tth);
 
 	pathname = tth_cache_pathname(tth);
-	unlink(pathname);
+	(void) file_unlink(G_STRFUNC, pathname);
 	HFREE_NULL(pathname);
 }
 

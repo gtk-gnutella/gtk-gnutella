@@ -61,6 +61,7 @@
 #include "color.h"
 #include "crash.h"
 #include "fd.h"				/* For is_valid_fd() */
+#include "file.h"			/* For file_unlink() and file_rename() */
 #include "glog.h"
 #include "halloc.h"
 #include "hashing.h"		/* For string_mix_hash() and string_eq() */
@@ -3085,7 +3086,7 @@ log_rename(enum log_file which, const char *newname)
 		}
 	}
 
-	if (-1 == rename(lf->path, newname)) {
+	if (-1 == file_rename(G_STRFUNC, lf->path, newname)) {
 		saved_errno = errno;
 		ok = FALSE;
 	}
@@ -3101,14 +3102,11 @@ log_rename(enum log_file which, const char *newname)
 	if (is_running_on_mingw()) {
 		const char *tmp = str_smsg("%s.__tmp__", lf->path);
 		IGNORE_RESULT(freopen(lf->path, "a", lf->f));
-		if (-1 == unlink(tmp)) {
-			s_warning("cannot unlink temporary log file \"%s\": %m", tmp);
-		}
+		(void) file_unlink(G_STRFUNC, tmp);
 	}
 
 	if (!ok) {
 		errno = saved_errno;
-		s_warning("could not rename \"%s\" as \"%s\": %m", lf->path, newname);
 		return FALSE;
 	}
 

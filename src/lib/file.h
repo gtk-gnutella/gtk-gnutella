@@ -84,6 +84,11 @@ FILE *file_fopen(const char *path, const char *mode);
 FILE *file_fopen_relative(const char *path, const char *mode);
 FILE *file_fopen_missing(const char *path, const char *mode);
 
+int file_rename(const char *name, const char *oldpath, const char *newpath);
+int file_rename_carp(const char *name, const char *oldpath, const char *newpath);
+int file_unlink(const char *name, const char *path);
+int file_unlink_carp(const char *name, const char *path);
+
 /*
  * File line predicates.
  */

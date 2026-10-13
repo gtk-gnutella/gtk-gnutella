@@ -1782,9 +1782,8 @@ big_open_lazy(DBM *db, bool force)
 	}
 
 	if (0 == buf.st_size) {
-		if (-1 != unlink(db->datname)) {
+		if (-1 != file_unlink(G_STRFUNC, db->datname))
 			errno = 0;
-		}
 		return -1;
 	}
 
@@ -1872,9 +1871,8 @@ big_clear(DBM *db)
 
 		if (-1 == big_open_lazy(db, FALSE)) {
 			if (EEXIST == errno) {
-				if (-1 != unlink(db->datname)) {
+				if (-1 != file_unlink(G_STRFUNC, db->datname))
 					errno = 0;
-				}
 			}
 			return 0 == errno;
 		}
@@ -1888,7 +1886,7 @@ big_clear(DBM *db)
 	dbg->bitbno = -1;
 	WFREE_NULL(dbg->bitbuf, BIG_BLKSIZE);
 
-	if (-1 == unlink(db->datname))
+	if (-1 == file_unlink(G_STRFUNC, db->datname))
 		return FALSE;
 
 	return TRUE;

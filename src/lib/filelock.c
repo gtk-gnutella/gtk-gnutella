@@ -170,8 +170,7 @@ filelock_unlock(filelock_t *fl)
 	 */
 
 	fd_forget_and_close(&fl->fd);
-	if (-1 == unlink(fl->path))
-		s_miniwarn("%s(): cannot remove \"%s\": %m", G_STRFUNC, fl->path);
+	(void) file_unlink(G_STRFUNC, fl->path);
 }
 
 /**
@@ -791,9 +790,7 @@ locked:
 
 	if (filelock_is_check_only(p)) {
 		fd_forget_and_close(&fd);
-		if (-1 == unlink(path)) {
-			s_warning("%s(): cannot unlink \"%s\": %m", G_STRFUNC, path);
-		}
+		(void) file_unlink(G_STRFUNC, path);
 		errno = ESTALE;			/* Lock could be taken */
 		return NULL;
 	}

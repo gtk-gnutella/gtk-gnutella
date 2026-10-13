@@ -145,8 +145,8 @@ move_d_sighandler(struct bgtask *unused_h, void *u, bgsig_t sig)
 		 * when we are relaunched.
 		 */
 
-		if (md->target != NULL && -1 == unlink(md->target))
-			g_warning("cannot unlink \"%s\": %m", md->target);
+		if (md->target != NULL)
+			(void) file_unlink(G_STRFUNC, md->target);
 		break;
 	default:
 		break;
@@ -388,8 +388,8 @@ move_d_end(struct bgtask *h, void *ctx, void *item)
 
 		file_object_moved(download_pathname(md->d), md->target);
 	} else {
-		if (md->target != NULL && -1 == unlink(md->target))
-			g_warning("cannot unlink \"%s\": %m", md->target);
+		if (md->target != NULL)
+			(void) file_unlink(G_STRFUNC, md->target);
 	}
 
 	/* FALL THROUGH */

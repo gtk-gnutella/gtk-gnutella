@@ -829,12 +829,8 @@ compat_socket_close(int sd)
 
 	sock_un_check(sun);
 
-	if (sun->listening) {
-		if (-1 == unlink(sun->path)) {
-			s_warning("cannot unlink emulated UNIX socket file \"%s\": %m",
-				sun->path);
-		}
-	}
+	if (sun->listening)
+		(void) file_unlink(G_STRFUNC, sun->path);
 
 	sock_un_remove(sd, sun);
 
