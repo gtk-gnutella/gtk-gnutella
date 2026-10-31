@@ -2317,8 +2317,10 @@ retry:
 			 * retry another extension.
 			 */
 
-			if (pm->count != pm->size)
+			if (pm->count != pm->size) {
+				pm->extending = was_extending;
 				return;
+			}
 
 			if (vmm_debugging(0))
 				s_miniwarn("VMM however pmap is still full, extending again!");
