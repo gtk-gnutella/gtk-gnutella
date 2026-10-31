@@ -203,6 +203,7 @@ static size_t kernel_pagesize = 0;
 static size_t kernel_pagemask = 0;
 static unsigned kernel_pageshift = 0;
 static bool kernel_mapaddr_increasing;
+static bool kernel_hints_work = TRUE;
 static once_flag_t vmm_early_inited;
 static once_flag_t vmm_inited;
 static bool vmm_fully_inited;
@@ -1572,7 +1573,7 @@ vmm_mmap_anonymous(size_t size, const void *hole, bool locked)
 {
 	static int failed;
 	void *p;
-	void *hint = deconstify_pointer(hole);
+	void *hint = kernel_hints_work ? deconstify_pointer(hole) : NULL;
 	static uint64 hint_followed;
 
 	if G_UNLIKELY(failed)
@@ -6586,6 +6587,8 @@ vmm_post_init(void)
 			kernel_mapaddr_increasing ? "increasing" : "decreasing");
 		s_minidbg("VMM stack grows by %s addresses",
 			sp_direction > 0 ? "increasing" : "decreasing");
+		s_minidbg("VMM kernel allocation hint works: %s",
+			bool_to_string(kernel_hints_work));
 		s_minidbg("VMM running in thread #%u", thread_small_id());
 	}
 
@@ -6667,6 +6670,49 @@ vmm_post_init(void)
 }
 
 /**
+ * Determine whether the kernel honors hints for anonymous mappings.
+ *
+ * We test a known-free address by releasing a page and requesting
+ * that same address again.
+ *
+ * Called during early, single-threaded VMM initialization.
+ */
+static void G_COLD
+vmm_probe_kernel_hints(void)
+{
+	unsigned i;
+	unsigned followed = 0;
+
+	/*
+	 * This is meant to detect kernels like FreeBSD which do not follow
+	 * hints but rather randomize the address within the memory space (a
+	 * feature called ASLR). However, this can be tuned on or off, so we
+	 * need a runtime test.	--RAM, 2026-10-31
+	 */
+
+	for (i = 0; i < 4; i++) {
+		void *p, *q;
+
+		p = vmm_mmap_anonymous(kernel_pagesize, NULL, FALSE);
+		if (NULL == p)
+			break;
+
+		free_pages(p, kernel_pagesize, FALSE);
+
+		q = vmm_mmap_anonymous(kernel_pagesize, p, FALSE);
+		if (NULL == q)
+			break;
+
+		if (q == p)
+			followed++;
+
+		free_pages(q, kernel_pagesize, FALSE);
+	}
+
+	kernel_hints_work = (4 == followed);
+}
+
+/**
  * Initialize the VMM layer, once.
  */
 static void G_COLD
@@ -6731,6 +6777,12 @@ vmm_early_init_once(void)
 		free_pages(p, kernel_pagesize, FALSE);
 	}
 #endif
+
+	/*
+	 * Check whether kernel follows region hints for anonymous mmap().
+	 */
+	vmm_probe_kernel_hints();
+
 #ifdef TRACK_VMM
 	vmm_track_init();
 #endif
