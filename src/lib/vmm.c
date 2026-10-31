@@ -857,19 +857,21 @@ vmm_dump_pmap_log(logagent_t *la)
 	 */
 
 	for (i = 0; /* empty */; i++) {
+		size_t capacity;
+
 		rwlock_rlock(&pm->lock);
-		count = pm->count;
+		capacity = pm->size;			/* We use total capacity on purpose */
 		rwlock_runlock(&pm->lock);
 
-		length = count * sizeof array[0];
+		length = capacity * sizeof array[0];
 		array = vmm_alloc(length);		/* Call without any lock on pmap */
 
 		rwlock_rlock(&pm->lock);
+		count = pm->count;
 		size = pm->size;
 
-		if (count >= pm->count) {
-			/* OK if the count decreased, our array is large enough */
-			count = pm->count;			/* Refresh in case it decreased */
+		if (count <= capacity) {
+			/* OK our allocated array is large enough */
 			memcpy(array, pm->array, count * sizeof array[0]);
 			rwlock_runlock(&pm->lock);
 			break;		/* Got the copy of pmap in correctly-sized array */
