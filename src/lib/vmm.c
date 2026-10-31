@@ -1175,9 +1175,9 @@ retry:
 							goto retry;
 					}
 
-					pmap_discard_index(pm, i);
 					*hole_ptr = start;
 					result = ptr_diff(next->start, start);
+					pmap_discard_index(pm, i);
 					goto done;
 				}
 
@@ -1219,9 +1219,9 @@ retry:
 							goto retry;
 					}
 
-					pmap_discard_index(pm, i - 1);
 					*hole_ptr = end;
 					result = ptr_diff(end, prev->end);
+					pmap_discard_index(pm, i - 1);
 					goto done;
 				}
 
