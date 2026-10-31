@@ -3128,6 +3128,9 @@ vmm_move_internal(void *base, size_t len, bool user_mem)
 	rwlock_rlock(&pm->lock);
 
 retry:
+	if G_UNLIKELY(!kernel_hints_work)
+		goto no_pmap;	/* Hints do not work, do not waste system calls */
+
 	p = deconstify_pointer(vmm_probe_hole(pm, size));
 
 	if G_UNLIKELY(NULL == p)
@@ -4921,6 +4924,9 @@ vmm_alloc_core(size_t size)
 	rwlock_rlock(&pm->lock);
 
 retry:
+	if G_UNLIKELY(!kernel_hints_work)
+		goto no_pmap;	/* Without working hints, no need to speculate */
+
 	p = deconstify_pointer(vmm_probe_hole(pm, size));
 
 	if G_UNLIKELY(NULL == p)
