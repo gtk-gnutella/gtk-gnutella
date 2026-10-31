@@ -6229,6 +6229,7 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(magazine_allocations);
 	DUMP(magazine_freeings);
 	DUMP(magazine_freeings_frag);
+	log_info(la, "VMM hints_work = %s", bool_to_string(kernel_hints_work));
 	DUMP(hints_followed);
 	DUMP(hints_ignored);
 	DUMP(alloc_from_cache);
