@@ -1513,21 +1513,19 @@ vmm_upper_hole_update(struct pmap *pm, size_t idx)
 	 */
 
 	if (kernel_mapaddr_increasing) {
+		upper.p = vmf->end;
 		if G_UNLIKELY(pm->count - 1 == idx) {
-			upper.p = vmf->end;
 			upper.len = SIZE_MAX;
 		} else {
 			struct vm_fragment *next = &pm->array[idx + 1];
-			upper.p = next->start;
 			upper.len = ptr_diff(next->start, vmf->end);	/* Can be 0 */
 		}
 	} else {
+		upper.p = vmf->start;
 		if G_UNLIKELY(0 == idx) {
-			upper.p = vmf->start;
 			upper.len = SIZE_MAX;
 		} else {
 			struct vm_fragment *prev = &pm->array[idx - 1];
-			upper.p = prev->end;
 			upper.len = ptr_diff(vmf->start, prev->end);	/* Can be 0 */
 		}
 	}
