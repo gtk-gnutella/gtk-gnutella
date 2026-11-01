@@ -317,6 +317,9 @@ static struct vmm_stats {
 	AU64(move_user_requested);		/**< Number of vmm_move() calls honored */
 	AU64(move_core_requested);		/**< Number of vmm_core_move() calls honored */
 	AU64(move_system_attempted);	/**< System allocation try in vmm_move() */
+	AU64(move_system_alloc_failed);	/**< System allocation failed in vmm_move() */
+	AU64(move_system_not_better);	/**< Allocation in vmm_move() was not better */
+	AU64(move_system_better);		/**< Allocation in vmm_move() was better */
 	AU64(move_magazine_attempted);	/**< Magazine allocation try in vmm_move() */
 	AU64(move_lock_upgraded);		/**< Could upgrade read-lock in vmm_move() */
 	AU64(move_lock_not_upgraded);	/**< Waited for write-lock in vmm_move() */
@@ -365,6 +368,12 @@ static struct vmm_stats {
 	uint64 pmap_foreign_discarded_pages;	/**< Foreign pages discarded */
 	AU64(pmap_overruled);			/**< Regions overruled by kernel */
 	AU64(pmap_dropped);				/**< Dropped regions while extending pmap */
+	AU64(pmap_native_new);			/**< New native fragment recorded */
+	AU64(pmap_native_extended);		/**< New native fragment coalesced */
+	AU64(pmap_native_bridged);		/**< New native fragment bridged fragments */
+	AU64(pmap_native_removed);		/**< Native fragment removed from pmap */
+	AU64(pmap_native_trimmed);		/**< Native fragment trimmed during removal */
+	AU64(pmap_native_split);		/**< Native fragment split during removal */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
 	uint64 hole_updated;			/**< Times we updated the cached hole */
@@ -2411,6 +2420,8 @@ pmap_insert_region(struct pmap *pm,
 			idx, start, size, vmf_to_string(prev));
 
 		if (prev->type == type && prev->end == start) {
+			bool bridged = FALSE;
+
 			prev->end = end;
 			prev->mtime = tm_time();
 
@@ -2434,8 +2445,16 @@ pmap_insert_region(struct pmap *pm,
 					 */
 
 					pmap_drop(pm, idx);
+					bridged = TRUE;
+
+					if (VMF_NATIVE == type)
+						VMM_STATS_INCX(pmap_native_bridged);
 				}
 			}
+
+			if (!bridged && VMF_NATIVE == type)
+				VMM_STATS_INCX(pmap_native_extended);
+
 			idx--;
 			goto done;
 		}
@@ -2451,6 +2470,10 @@ pmap_insert_region(struct pmap *pm,
 		if (next->type == type && next->start == end) {
 			next->start = start;
 			next->mtime = tm_time();
+
+			if (VMF_NATIVE == type)
+				VMM_STATS_INCX(pmap_native_extended);
+
 			goto done;
 		}
 
@@ -2460,6 +2483,9 @@ pmap_insert_region(struct pmap *pm,
 
 		ARRAY_MAKEROOM(pm->array, idx, pm->count, pm->size);
 	}
+
+	if (VMF_NATIVE == type)
+		VMM_STATS_INCX(pmap_native_new);
 
 	pm->count++;
 	vmf = &pm->array[idx];
@@ -3154,10 +3180,13 @@ retry:
 
 	p = vmm_mmap_anonymous(size, p, TRUE);
 
-	if (NULL == p)
+	if G_UNLIKELY(NULL == p) {
+		VMM_STATS_INCX(move_system_alloc_failed);
 		goto no_pmap;		/* Ouch, could not allocate memory! */
+	}
 
 	if (!vmm_pointer_is_better(base, p)) {
+		VMM_STATS_INCX(move_system_not_better);
 		vmm_free_fragment(G_STRFUNC, p, size);
 		goto no_pmap;		/* Did not find better place */
 	}
@@ -3168,6 +3197,7 @@ retry:
 
 	page_allocated(pm, p, size, TRUE);
 	rwlock_wunlock(&pm->lock);
+	VMM_STATS_INCX(move_system_better);
 
 	/*
 	 * See whether we have a better pointer with cached pages.
@@ -3342,6 +3372,9 @@ pmap_remove_whole_region(struct pmap *pm, const void *p, size_t size)
 	g_assert(size_is_non_negative(idx) && idx < pm->count);
 
 	pmap_drop(pm, idx);
+
+	if (vmf_is_native(vmf))
+		VMM_STATS_INCX(pmap_native_removed);
 }
 
 /**
@@ -3380,6 +3413,9 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 				vmf->start = end;			/* Known fragment reduced */
 				vmf->mtime = tm_time();
 				g_assert(ptr_cmp(vmf->start, vend) < 0);
+
+				if (vmf_is_native(vmf))
+					VMM_STATS_INCX(pmap_native_trimmed);
 			}
 		} else {
 			g_assert(ptr_cmp(vmf->start, p) < 0);
@@ -3395,6 +3431,11 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 						vmf_type_str(vmf->type), size / 1024, p);
 				}
 				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+				if (vmf_is_native(vmf))
+					VMM_STATS_INCX(pmap_native_split);
+			} else {
+				if (vmf_is_native(vmf))
+					VMM_STATS_INCX(pmap_native_trimmed);
 			}
 		}
 	} else {
@@ -3440,12 +3481,18 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 		} else {
 			vmf->start = end;			/* Known fragment reduced */
 			vmf->mtime = tm_time();
+
+			if (vmf_is_native(vmf))
+				VMM_STATS_INCX(pmap_native_trimmed);
 		}
 	} else {
 		vmf->end = p;
 		vmf->mtime = tm_time();
 
-		if (end != vend) {
+		if (end == vend) {
+			if (vmf_is_native(vmf))
+				VMM_STATS_INCX(pmap_native_trimmed);
+		} else {
 			/*
 			 * Insert trailing part back as a region of the same type.
 			 *
@@ -3465,6 +3512,8 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 			if G_LIKELY(!pm->extending) {
 				/* Normal case */
 				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
+				if (vmf_is_native(vmf))
+					VMM_STATS_INCX(pmap_native_split);
 			} else if (vmf_is_foreign(vmf)) {
 				/* Exceptional: pamp is full, dropping foreign region */
 				if (vmm_debugging(0)) {
@@ -6222,6 +6271,9 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(move_core_succeeded);
 	DUMP(move_core_bytes_copied);
 	DUMP64(move_system_attempted);
+	DUMP64(move_system_alloc_failed);
+	DUMP64(move_system_not_better);
+	DUMP64(move_system_better);
 	DUMP64(move_magazine_attempted);
 	DUMP(move_alloc_from_cache);
 	DUMP(move_alloc_from_system);
@@ -6278,6 +6330,12 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(pmap_foreign_discarded_pages);
 	DUMP64(pmap_overruled);
 	DUMP64(pmap_dropped);
+	DUMP64(pmap_native_new);
+	DUMP64(pmap_native_extended);
+	DUMP64(pmap_native_bridged);
+	DUMP64(pmap_native_removed);
+	DUMP64(pmap_native_trimmed);
+	DUMP64(pmap_native_split);
 
 	/*
 	 * These variables are not updated with the VMM stats lock but whith
