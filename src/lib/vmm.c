@@ -6320,6 +6320,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(move_cache_over_system);
 	DUMP64(move_cache_only);
 	DUMP64(move_magazine_supersede);
+	DUMP64(move_source_cached);
+	DUMP64(move_source_released);
 	DUMP64(move_lock_upgraded);
 	DUMP64(move_lock_not_upgraded);
 	DUMP(magazine_allocations);
