@@ -326,6 +326,8 @@ static struct vmm_stats {
 	AU64(move_user_inner);			/**< Inner region declined for vmm_move() */
 	AU64(move_user_failed);			/**< Move from vmm_move() unsuccessful */
 	AU64(move_core_failed);			/**< Move from vmm_core_move() unsuccessful */
+	AU64(move_source_cached);		/**< On successful move, source was cached */
+	AU64(move_source_released);		/**< On successful move, source was freed */
 	uint64 move_user_succeeded;		/**< Move from vmm_move() successful */
 	uint64 move_core_succeeded;		/**< Move from vmm_core_move() successful */
 	uint64 move_user_bytes_copied;	/**< Bytes moved around by vmm_move() */
@@ -535,7 +537,19 @@ static void vmm_reserve_stack(size_t amount);
 static void *page_cache_find_pages(size_t n, bool user_mem, bool emergency);
 static bool page_cache_coalesce_pages(void **base_ptr, size_t *pages_ptr);
 static void page_cache_free_all(bool locked);
-static void vmm_free_internal(void *p, size_t size, bool user_mem);
+
+/**
+ * Fate of the region passed to vmm_free_internal().
+ */
+typedef enum {
+	VMM_FREE_CACHED,
+	VMM_FREE_RELEASED,
+	VMM_FREE_EMERGENCY,
+	VMM_FREE_SKIPPED,
+	VMM_FREE_RETAINED
+} vmm_free_result_t;
+
+static vmm_free_result_t vmm_free_internal(void *p, size_t size, bool user_mem);
 
 /**
  * @return whether VMM is in crash mode.
@@ -3289,7 +3303,22 @@ success:
 	 * want to make that region re-allocatable by the thread after freeing it!
 	 */
 
-	vmm_free_internal(base, len, user_mem);
+	{
+		vmm_free_result_t fate = vmm_free_internal(base, len, user_mem);
+
+		switch (fate) {
+		case VMM_FREE_CACHED:
+			VMM_STATS_INCX(move_source_cached);
+			break;
+		case VMM_FREE_RELEASED:
+		case VMM_FREE_EMERGENCY:
+			VMM_STATS_INCX(move_source_released);
+			break;
+		case VMM_FREE_SKIPPED:
+		case VMM_FREE_RETAINED:
+			break;
+		}
+	}
 
 	return p;
 
@@ -5166,10 +5195,14 @@ vmm_should_cache(const void *p, size_t n)
  * used by other memory allocators, not by "users": that memory was not
  * accounted for as being used by this layer but rather as "core" memory,
  * i.e. resource for other memory allocators.
+ *
+ * @return the fate of the region (cached, released, etc.).
  */
-static void
+static vmm_free_result_t
 vmm_free_internal(void *p, size_t size, bool user_mem)
 {
+	vmm_free_result_t result = VMM_FREE_SKIPPED;
+
 	g_assert(0 == size || p);
 	g_assert(size_is_non_negative(size));
 
@@ -5189,7 +5222,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 	if G_UNLIKELY(vmm_crashing) {
 		if (!vmm_oom_detected)
-			return;
+			return VMM_FREE_SKIPPED;	/* Crashing, leave memory around */
 	}
 
 	/*
@@ -5203,7 +5236,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 
 	if G_UNLIKELY(vmm_oom_detected) {
 		if (vmea_free(p, size))
-			return;			/* Returned to emergency region */
+			return VMM_FREE_EMERGENCY;	/* Returned to emergency region */
 	}
 
 	/*
@@ -5234,11 +5267,13 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			vmm_invalidate_pages(p, size);
 			page_cache_coalesce_pages(&p, &m);
 			if (page_cache_insert_pages(p, m)) {
+				result = VMM_FREE_CACHED;
 				VMM_STATS_LOCK;
 				vmm_stats.free_to_cache++;
 				vmm_stats.free_to_cache_pages += n;
 				vmm_rawdebug("%s(%zu): [H] p=%p", G_STRFUNC, nsize_fast(m), p);
 			} else {
+				result = stop_freeing ? VMM_FREE_RETAINED : VMM_FREE_RELEASED;
 				vmm_rawdebug("%s(%zu): [D] p=%p", G_STRFUNC, nsize_fast(m), p);
 				VMM_STATS_LOCK;		/* For later below */
 			}
@@ -5246,6 +5281,7 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			size_t m = n;
 			page_cache_coalesce_pages(&p, &m);
 			free_pages(p, nsize_fast(m), TRUE);
+			result = stop_freeing ? VMM_FREE_RETAINED : VMM_FREE_RELEASED;
 			vmm_rawdebug("%s(%zu): [F] p=%p", G_STRFUNC, nsize_fast(m), p);
 			VMM_STATS_LOCK;
 			vmm_stats.free_to_system++;
@@ -5276,6 +5312,8 @@ vmm_free_internal(void *p, size_t size, bool user_mem)
 			memusage_remove(vmm_stats.core_mem, size);
 		}
 	}
+
+	return result;
 }
 
 /*
