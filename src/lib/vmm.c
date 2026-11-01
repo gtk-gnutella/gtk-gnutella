@@ -3459,9 +3459,9 @@ pmap_remove(struct pmap *pm, const void *p, size_t size)
 						"fragments VM space",
 						vmf_type_str(vmf->type), size / 1024, p);
 				}
-				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 				if (vmf_is_native(vmf))
 					VMM_STATS_INCX(pmap_native_split);
+				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 			} else {
 				if (vmf_is_native(vmf))
 					VMM_STATS_INCX(pmap_native_trimmed);
@@ -3540,9 +3540,9 @@ pmap_remove_from(struct pmap *pm, struct vm_fragment *vmf,
 
 			if G_LIKELY(!pm->extending) {
 				/* Normal case */
-				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 				if (vmf_is_native(vmf))
 					VMM_STATS_INCX(pmap_native_split);
+				pmap_insert_region(pm, end, ptr_diff(vend, end), vmf->type);
 			} else if (vmf_is_foreign(vmf)) {
 				/* Exceptional: pamp is full, dropping foreign region */
 				if (vmm_debugging(0)) {
