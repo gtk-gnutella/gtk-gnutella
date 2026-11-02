@@ -376,6 +376,7 @@ static struct vmm_stats {
 	AU64(pmap_native_removed);		/**< Native fragment removed from pmap */
 	AU64(pmap_native_trimmed);		/**< Native fragment trimmed during removal */
 	AU64(pmap_native_split);		/**< Native fragment split during removal */
+	uint64 pmap_count_max;			/**< Maximum amount of pmap entries seen */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
 	uint64 hole_updated;			/**< Times we updated the cached hole */
@@ -2507,6 +2508,12 @@ pmap_insert_region(struct pmap *pm,
 	vmf->end = end;
 	vmf->type = type;
 	vmf->mtime = tm_time();
+
+	if (ATOMIC_GET(&vmm_stats.pmap_count_max) < pm->count) {
+		VMM_STATS_LOCK;
+		vmm_stats.pmap_count_max = MAX(vmm_stats.pmap_count_max, pm->count);
+		VMM_STATS_UNLOCK;
+	}
 
 done:
 	/*
@@ -6398,6 +6405,8 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP(hole_invalidated);
 	DUMP(hole_updated);
 	DUMP(hole_unchanged);
+
+	DUMP(pmap_count_max);
 
 #undef DUMP
 #define DUMP(x) log_info(la, "VMM pmap_%s = %s", #x,	\
