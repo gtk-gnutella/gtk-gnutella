@@ -618,7 +618,6 @@ src/if/ui/gtk/statusbar.h
 src/if/ui/gtk/uploads.h
 src/if/ui/gtk/upload_stats.h
 src/Jmakefile
-src/lib/Jmakefile
 src/lib/adns.c
 src/lib/adns.h
 src/lib/aging.c
@@ -637,6 +636,8 @@ src/lib/array.h
 src/lib/array_util.h
 src/lib/ascii.c
 src/lib/ascii.h
+src/lib/aslr.c
+src/lib/aslr.h
 src/lib/atio.c
 src/lib/atio.h
 src/lib/atomic.h
@@ -853,6 +854,7 @@ src/lib/iso3166.c
 src/lib/iso3166.h
 src/lib/istream.c
 src/lib/istream.h
+src/lib/Jmakefile
 src/lib/launch.c
 src/lib/launch.h
 src/lib/launch-test.c

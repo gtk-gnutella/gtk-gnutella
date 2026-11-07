@@ -2070,6 +2070,7 @@ main_supervise(void)
 
 	thread_set_main(TRUE);				/* Main thread will block! */
 	settings_unique_instance(TRUE);		/* Supervisor process */
+	aslr_disable();						/* No address space randomization */
 
 	/*
 	 * On Windows, when they launch us via the GUI (99% of the use cases)

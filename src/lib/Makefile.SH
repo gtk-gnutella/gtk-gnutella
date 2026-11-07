@@ -57,12 +57,12 @@ YACC = $yacc
 # Automatically generated parameters -- do not edit
 
 USRINC = $usrinc
-OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
-GLIB_LDFLAGS =  $glibldflags
-DBUS_CFLAGS =  $dbuscflags
-SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 COMMON_LIBS =  $libs
+OBJECTS =  \$(LOBJ)  filelock-test.o  float-test.o  ftw-test.o  launch-test.o  pattern-test.o  random-test.o  re-test.o  sort-test.o  spopen-test.o  stack-test.o  stat-test.o  thread-test.o  trie-test.o
 GLIB_CFLAGS =  $glibcflags
+DBUS_CFLAGS =  $dbuscflags
+GLIB_LDFLAGS =  $glibldflags
+SOURCES =  \$(LSRC)  filelock-test.c  float-test.c  ftw-test.c  launch-test.c  pattern-test.c  random-test.c  re-test.c  sort-test.c  spopen-test.c  stack-test.c  stat-test.c  thread-test.c  trie-test.c
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -142,6 +142,7 @@ LSRC = \
 	arc4random.c \
 	argv.c \
 	ascii.c \
+	aslr.c \
 	atio.c \
 	atoms.c \
 	balloc.c \
@@ -364,6 +365,7 @@ LOBJ = \
 	arc4random.o \
 	argv.o \
 	ascii.o \
+	aslr.o \
 	atio.o \
 	atoms.o \
 	balloc.o \

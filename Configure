@@ -18,7 +18,7 @@
 
 # $Id$
 #
-# Generated on Wed Nov 27 13:40:28 CET 2024 [metaconfig 3.5-263]
+# Generated on Sat Nov  7 14:55:10 CET 2026 [metaconfig 3.5-263]
 
 cat >c1$$ <<EOF
 ARGGGHHHH!!!!!
@@ -408,6 +408,7 @@ d_posix_fadvise=''
 d_posix_memalign=''
 d_pread=''
 d_preadv=''
+d_procctl=''
 d_proginvocname=''
 d_ptattr_setstack=''
 d_pwrite=''
@@ -7611,6 +7612,20 @@ cyn=preadv
 set d_preadv
 eval $trylink
 
+: see if procctl exists
+$cat >try.c <<EOC
+#include <sys/procctl.h>
+int main(void)
+{
+	static int ret, number = 0;
+	ret |= procctl(P_PID, 0, PROC_REAP_ACQUIRE, &number);
+	return ret ? 0 : 1;
+}
+EOC
+cyn=procctl
+set d_procctl
+eval $trylink
+
 : do we have the program_invocation_name variable?
 $cat >try.c <<EOC
 #include <stdio.h>
@@ -11721,6 +11736,7 @@ d_posix_fadvise='$d_posix_fadvise'
 d_posix_memalign='$d_posix_memalign'
 d_pread='$d_pread'
 d_preadv='$d_preadv'
+d_procctl='$d_procctl'
 d_proginvocname='$d_proginvocname'
 d_ptattr_setstack='$d_ptattr_setstack'
 d_pwage='$d_pwage'

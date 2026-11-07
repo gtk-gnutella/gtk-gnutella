@@ -643,6 +643,13 @@ sed <<!GROK!THIS! >$CONFIG_H -e 's!^#undef\(.*/\)\*!/\*#define\1 \*!' -e 's!^#un
  */
 #$d_preadv HAS_PREADV		/**/
 
+/* HAS_PROCCTL:
+ *	This symbol, if defined, indicates that the procctl routine is
+ *	available to control process behaviour and that of its future'
+ *	children.
+ */
+#$d_procctl HAS_PROCCTL	/**/
+
 /* HAS_PROGRAM_INVOCATION_NAME:
  *	This symbol is defined when the C startup sets the two variables
  *	program_invocation_name and program_invocation_short_name.  To get
