@@ -1475,7 +1475,7 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 	hostiles_flags_t *hostile)
 {
 	const pslist_t *sl;
-	uint8 has_ct = 0, has_tth = 0, has_xml = 0, expected_xml = 0;
+	uint8 has_ct = 0, has_xml = 0, expected_xml = 0;
 	bool logged = FALSE;
 
 	PSLIST_FOREACH(rs->records, sl) {
@@ -1587,7 +1587,6 @@ search_results_identify_spam(const gnutella_node_t *n, gnet_results_set_t *rs,
 			*hostile |= HSTL_NO_WHATS_NEW;
 		}
 
-		has_tth |= NULL != rc->tth;
 		has_xml |= NULL != rc->xml;
 		has_ct  |= (time_t)-1 != rc->create_time;
 
