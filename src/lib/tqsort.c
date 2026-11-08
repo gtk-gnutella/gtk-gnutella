@@ -97,7 +97,7 @@
 #define TQSORT_THR_PER_CPU	4
 
 /* stack size requested for each thread */
-#define TQSORT_STACK		THREAD_STACK_MIN
+#define TQSORT_STACK	(THREAD_STACK_MIN + 32768U * PTRSIZE)
 
 /*
  * Maximum stack depth we allow before switching to xqsort().
