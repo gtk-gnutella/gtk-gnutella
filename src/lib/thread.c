@@ -2086,6 +2086,16 @@ thread_element_reclaim(cqueue_t *cq, void *data)
 
 	cq_event(cq);
 
+#ifdef THREAD_DEBUG
+	s_rawdebug("%s(): stid=%u, entry=%s(%p)",
+		G_STRFUNC, te->stid,
+		NULL == te->entry_name ?
+			stacktrace_function_name(te->entry) :
+			te->entry_name,
+		te->argument
+	);
+#endif	/* THREAD_DEBUG */
+
 	/*
 	 * Join with the thread, which should be completely terminated by now
 	 * (hence we should not block) and then mark it ended.
@@ -2142,6 +2152,16 @@ thread_exiting(struct thread_element *te)
 	 */
 
 	if (te->detached) {
+#ifdef THREAD_DEBUG
+		s_rawdebug("%s(): stid=%u, entry=%s(%p)",
+			G_STRFUNC, te->stid,
+			NULL == te->entry_name ?
+				stacktrace_function_name(te->entry) :
+				te->entry_name,
+			te->argument
+		);
+#endif	/* THREAD_DEBUG */
+		/* Ensures call will be done outside of the exiting thread */
 		evq_raw_insert(THREAD_HOLD_TIME, thread_element_reclaim, te);
 		if (NULL == te->stack) {
 			if (is_running_on_mingw()) {

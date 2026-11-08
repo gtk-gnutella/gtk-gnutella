@@ -433,7 +433,7 @@ evq_event_free(struct evq_event *eve)
 	 * events.
 	 */
 
-	if G_LIKELY(ev_queue != NULL && !thread_is_exiting())
+	if G_LIKELY(ev_queue != NULL)
 		cq_cancel(&eve->ev);
 
 	eve->magic = 0;
@@ -936,7 +936,7 @@ evq_add(int delay, notify_fn_t fn, const void *arg, bool cancelable)
 	evq_init();
 
 	if G_UNLIKELY(NULL == ev_queue || thread_is_exiting())
-		return NULL;		/* Shutdowning */
+		return NULL;		/* Shutdowning or thread is about to die */
 
 	q = evq_get(id);
 
@@ -1041,7 +1041,7 @@ evq_cancel(evq_event_t **eve_ptr)
 {
 	evq_event_t *eve = *eve_ptr;
 
-	if G_UNLIKELY(NULL == ev_queue || thread_is_exiting())
+	if G_UNLIKELY(NULL == ev_queue)
 		return;		/* Shutdowning */
 
 	if (eve != NULL) {
@@ -1169,7 +1169,7 @@ evq_raw_insert(int delay, cq_service_t fn, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == ev_queue || thread_is_exiting())
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
 	ev = cq_insert(ev_queue, delay, fn, arg);
@@ -1194,7 +1194,7 @@ evq_raw_idle_add(cq_invoke_t event, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == ev_queue || thread_is_exiting())
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
 	ci = cq_idle_add(ev_queue, event, arg);
@@ -1220,7 +1220,7 @@ evq_raw_periodic_add(int period, cq_invoke_t event, void *arg)
 
 	evq_init();
 
-	if G_UNLIKELY(NULL == ev_queue || thread_is_exiting())
+	if G_UNLIKELY(NULL == ev_queue)
 		return NULL;	/* Shutdowning */
 
 	cp = cq_periodic_add(ev_queue, period, event, arg);
