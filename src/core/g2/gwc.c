@@ -296,7 +296,7 @@ gwc_retrieve(void)
 {
 	file_path_t fp[4], *fpv;
 	uint len, added;
-	int line, idx;
+	int idx;
 	FILE *in;
 	char tmp[1024];
 
@@ -321,12 +321,9 @@ retry:
 	 * Retrieve each line, counting the amount of entries added.
 	 */
 
-	line = 0;
 	added = 0;
 
 	while (fgets(tmp, sizeof(tmp), in)) {
-		line++;
-
 		if (tmp[0] == '#')		/* Skip comments */
 			continue;
 
