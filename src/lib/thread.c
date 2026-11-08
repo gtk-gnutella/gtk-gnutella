@@ -9697,7 +9697,7 @@ thread_launch_register(struct thread_element *te)
 	if (stack != NULL) {
 		const void *end = const_ptr_add_offset(stack, stack_len);
 
-		if G_UNLIKELY(ptr_cmp(&t, stack) < 0 || ptr_cmp(&t, end) >= 0) {
+		if G_UNLIKELY(ptr_cmp(&qid, stack) < 0 || ptr_cmp(&qid, end) >= 0) {
 			thread_stack_noinit = TRUE;
 			atomic_mb();
 			stack = NULL;
@@ -9722,12 +9722,7 @@ thread_launch_register(struct thread_element *te)
 	if (NULL == stack) {
 		void *red;
 
-		/* We do not care that "t" is un-initialized! */
-		G_IGNORE_PUSH(-Wmaybe-uninitialized);
-
-		stack = vmm_page_start(&t);
-
-		G_IGNORE_POP;
+		stack = vmm_page_start(&qid);
 
 		/*
 		 * The stack was not allocated by thread_launch(), or the allocation
