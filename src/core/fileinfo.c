@@ -4562,7 +4562,7 @@ file_info_update(const struct download *d, filesize_t from, filesize_t to,
 	slink_t *sl;
 	fileinfo_t *fi;
 	bool found = FALSE;
-	int n, againcount = 0;
+	int againcount = 0;
 	bool need_merging;
 	const struct download *newval;
 
@@ -4636,9 +4636,9 @@ again:
 	 */
 
 	for (
-		n = 0, prevfc = NULL, sl = eslist_first(&fi->chunklist);
+		prevfc = NULL, sl = eslist_first(&fi->chunklist);
 		sl != NULL;
-		n++, prevfc = fc, sl = eslist_next(sl)
+		prevfc = fc, sl = eslist_next(sl)
 	) {
 		fc = eslist_data(&fi->chunklist, sl);
 
