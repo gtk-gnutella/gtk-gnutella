@@ -710,7 +710,7 @@ vmm_warn_once(const char *format, ...)
 static void G_COLD
 init_stack_shape(void)
 {
-	int sp;
+	int sp = 1;			/* Value unused, just shut-up compiler warning */
 
 	sp_direction = alloca_stack_direction();
 	stack_base = page_start(&sp);
@@ -6646,8 +6646,9 @@ vmm_post_init(void)
 		unsigned vmm_cache_free:1;
 		unsigned vmm_magazine_free:1;
 		unsigned vmm_log_ops:1;
-	} settings = { FALSE };
+	} settings;
 
+	ZERO(&settings);
 	crash_hook_add(_WHERE_, vmm_crash_hook);
 
 	/*
