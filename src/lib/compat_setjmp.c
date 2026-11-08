@@ -81,7 +81,7 @@ void
 setjmp_prep(jmp_buf env,
 	const char *file, uint line, const char *routine)
 {
-	int sp;
+	int sp = 1;		/* Value never used, just shut-up compiler warning */
 
 	setjmp_fill_ctx(&env->x, SETJMP_MAGIC, &sp, file, line, routine);
 }
@@ -97,7 +97,7 @@ sigsetjmp_prep(sigjmp_buf env,
 	int savesigs,
 	const char *file, uint line, const char *routine)
 {
-	int sp;
+	int sp = 1;		/* Value never used, just shut-up compiler warning */
 
 	setjmp_fill_ctx(&env->x, SIGSETJMP_MAGIC, &sp, file, line, routine);
 
