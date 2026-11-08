@@ -57,7 +57,7 @@ static int NO_INLINE
 alloca_stack_direction_compute(void)
 {
 	static void *old_sp;
-	int sp = 1;					/* Value never used, just shut-up warnings */
+	int sp = 0;					/* Value never used, just shut-up warnings */
 
 	if (NULL == old_sp) {
 		old_sp = &sp;

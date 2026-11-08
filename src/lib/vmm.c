@@ -710,7 +710,7 @@ vmm_warn_once(const char *format, ...)
 static void G_COLD
 init_stack_shape(void)
 {
-	int sp = 1;			/* Value unused, just shut-up compiler warning */
+	int sp = 0;			/* Value unused, just shut-up compiler warning */
 
 	sp_direction = alloca_stack_direction();
 	stack_base = page_start(&sp);

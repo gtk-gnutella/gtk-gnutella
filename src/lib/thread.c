@@ -1085,7 +1085,7 @@ thread_quasi_id_fast(const void *sp)
 thread_qid_t
 thread_quasi_id(void)
 {
-	int sp;
+	int sp = 0;		/* Unused, simply avoid compiler warning */
 
 	if G_UNLIKELY(!thread_inited)
 		thread_init();
@@ -3913,7 +3913,7 @@ static struct thread_element *
 thread_get_element(void)
 {
 	unsigned stid, idx;
-	thread_qid_t qid;
+	thread_qid_t qid = 0;		/* Initialized to avoid compiler warning */
 	thread_t t;
 	struct thread_element *te;
 	int retries;
@@ -4489,7 +4489,7 @@ thread_safe_small_id_sp(const void *sp)
 unsigned
 thread_safe_small_id(void)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoids compiler warning */
 	thread_qid_t qid;
 	int stid;
 
@@ -4537,7 +4537,7 @@ thread_safe_small_id(void)
 unsigned
 thread_small_id(void)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Init avoids compiler warning */
 	int stid;
 
 	/*
@@ -5225,7 +5225,7 @@ thread_check_suspended_element(struct thread_element *te, bool sigs)
 bool
 thread_check_suspended(void)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;
 
 	te = thread_find(&te);
 
@@ -5398,7 +5398,7 @@ size_t
 thread_suspend_others(bool lockwait)
 {
 	static bool suspending[THREAD_MAX];
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoids compiler warning */
 	size_t i, n = 0;
 	unsigned busy = 0, busy_skipped = 0;
 
@@ -5607,7 +5607,7 @@ thread_unsuspend_others(void)
 {
 	bool locked;
 	size_t i, n = 0;
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoids compiler warning */
 
 	atomic_uint_dec(&thread_suspend_depth);
 
@@ -5951,7 +5951,7 @@ thread_element_set(struct thread_element *te, const void **element)
 thread_t
 thread_current_element(const void **element)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoids compiler warning */
 	thread_qid_t qid;
 	unsigned idx;
 
@@ -6054,7 +6054,9 @@ thread_is_single(void)
 		if (count > 1) {
 			return FALSE;
 		} else {
-			struct thread_element *te = thread_find(&te);
+			struct thread_element *te = NULL;	/* Avoids compiler warning */
+
+			te = thread_find(&te);
 
 			if (NULL == te || te->stid != 0)
 				return FALSE;
@@ -6784,7 +6786,7 @@ thread_to_string(const thread_t t)
 void
 thread_pending_add(int increment)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoid compiler warning */
 
 	te = thread_find(&te);
 	if G_UNLIKELY(NULL == te)
@@ -7367,7 +7369,7 @@ const void *
 thread_lock_waiting_element(const void *lock, enum thread_lock_kind kind,
 	const char *file, unsigned line)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoid compiler warning */
 	struct thread_lock *l;
 
 	te = thread_find(&te);
@@ -8493,7 +8495,7 @@ void
 thread_lock_deadlock(const volatile void *lock)
 {
 	static int deadlocked;
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoid compiler warning */
 	struct thread_element *towner;
 	struct thread_lock *l;
 	enum thread_lock_kind kind = THREAD_LOCK_ANY;
@@ -8764,7 +8766,7 @@ thread_fork(bool safe)
 void
 thread_forked(void)
 {
-	struct thread_element *te;
+	struct thread_element *te = NULL;	/* Avoid compiler warning */
 	unsigned i;
 
 	te = thread_find(&te);
@@ -9673,13 +9675,13 @@ static void
 thread_launch_register(struct thread_element *te)
 {
 	thread_t t;
-	thread_qid_t qid;
+	thread_qid_t qid = 0;	/* Init avoids compiler warning below */
 	unsigned idx;
 	const void *stack;
 	size_t stack_len;
 	bool free_old_stack = FALSE;
 
-	qid = thread_quasi_id_fast(&t);
+	qid = thread_quasi_id_fast(&qid);
 	idx = thread_qid_hash(qid);
 
 	/*
@@ -12056,7 +12058,7 @@ thread_os_kill(uint id, int signo)
 static void
 thread_interrupt_handle(int signo)
 {
-	struct thread_element *te, *cte;
+	struct thread_element *te = NULL, *cte;	/* Init avoids compiler warning */
 	struct thread_interrupt_cb *ti;
 
 	g_assert(THREAD_SIGINTR == signo);
