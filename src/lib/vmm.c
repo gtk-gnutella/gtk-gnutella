@@ -3261,6 +3261,16 @@ success:
 	 * However, if the size of the VM region is such that it is subject to
 	 * allocation through thread magazines, we may have a better object still
 	 * in these magazines...  Worth a try.
+	 *
+	 * At this stage:
+	 *
+	 * - p owns the selected destination, from either the system or the
+	 *   page cache.
+	 * - c is either NULL or equal to p.
+	 * - All other temporary allocations have been released or returned to
+	 *   the cache.
+	 *
+	 * A magazine allocation may still supersede p.
 	 */
 
 	t = NULL;
