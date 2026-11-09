@@ -6870,6 +6870,7 @@ vmm_early_init_once(void)
 #endif
 	init_kernel_pagesize();
 	init_stack_shape();
+	tm_now_exact_raw(NULL);		/* Initializes cached time for tm_time() */
 
 	for (i = 0; i < VMM_CACHE_LINES; i++) {
 		struct page_cache *pc = &page_cache[i];
