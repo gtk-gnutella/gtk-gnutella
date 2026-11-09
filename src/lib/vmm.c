@@ -4277,6 +4277,7 @@ page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 	struct vm_upper_hole upper;
 	struct page_cache *pc = NULL;
 	enum vmm_strategy strategy = vmm_strategy;
+	size_t size = nsize_fast(n);
 
 	g_assert(size_is_positive(n));
 
@@ -4326,20 +4327,18 @@ page_cache_find_pages(size_t n, bool user_mem, bool emergency)
 	upper = vmm_upper_hole;		/* struct copy */
 	VMM_UPPER_HOLE_UNLOCK;
 
-	if (pagecount_fast(upper.len) >= n) {
+	if (len < size && upper.len >= size) {
 		hole = upper.p;
 		len = upper.len;
 	}
 
-	if (pagecount_fast(len) < n) {
+	if (len < size) {
 		hole = NULL;
 	} else if (!kernel_mapaddr_increasing) {
-		size_t length = nsize_fast(n);
+		g_assert((size_t) -1 != size);
+		g_assert(ptr_diff(hole, NULL) > size);
 
-		g_assert((size_t) -1 != length);
-		g_assert(ptr_diff(hole, NULL) > length);
-
-		hole = const_ptr_add_offset(hole, -length);
+		hole = const_ptr_add_offset(hole, -size);
 	}
 
 	if G_UNLIKELY(hole != NULL) {
