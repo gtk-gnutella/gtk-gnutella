@@ -1675,7 +1675,7 @@ vmm_mmap_anonymous(size_t size, const void *hole, bool locked)
 		 *		--RAM, 2015-04-07
 		 */
 
-		if (!pm->extending && !is_running_on_mingw()) {
+		if (locked && !pm->extending && !is_running_on_mingw()) {
 			if (
 				ptr_cmp(hint, ptr_add_offset(p, size)) < 0 &&
 				ptr_cmp(hint, p) >= 0
@@ -1768,18 +1768,12 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 	/*
 	 * The page could not be allocated, so clearly it is a foreign zone.
 	 *
-	 * We must NOT handle foreign zone if we are in a recursive allocation
+	 * We must NOT handle foreign zones if we are in a recursive allocation
 	 * pattern (for instance when trying to extend the region where the pmap
 	 * is stored) or when we are not going to update the pmap.
-	 *
-	 * Since our caller vmm_mmap_anonymous() will forcefully grab another
-	 * write-lock when it calls us, and we know the pmap is also write-locked
-	 * when we are going to update it after the allocation, the nominal depth
-	 * here is 2.  Anything smaller and we will not update the pmap, anything
-	 * greater and we are recursing!
 	 */
 
-	if (2 != rwlock_writers(&pm->lock))
+	if (1 != rwlock_writers(&pm->lock))
 		return;
 
 	if (vmm_debugging(0)) {
