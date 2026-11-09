@@ -376,6 +376,11 @@ static struct vmm_stats {
 	AU64(pmap_native_removed);		/**< Native fragment removed from pmap */
 	AU64(pmap_native_trimmed);		/**< Native fragment trimmed during removal */
 	AU64(pmap_native_split);		/**< Native fragment split during removal */
+	AU64(pmap_foreign_skipped);		/**< Foreign detect skipped during recursion */
+	AU64(pmap_foreign_identified);	/**< Foreign regions identified */
+	uint64 pmap_foreign_probe_attempts;	/**< Probes for following foreign pages */
+	uint64 pmap_foreign_extra_pages;	/**< Additional pages added to region */
+	uint64 pmap_foreign_probe_limited;	/**< PMAP_FOREIGN_TRY pages were probed */
 	uint64 pmap_count_max;			/**< Maximum amount of pmap entries seen */
 	uint64 hole_reused;				/**< Amount of times we use cached hole */
 	uint64 hole_invalidated;		/**< Times we invalidate cached hole */
@@ -1761,6 +1766,7 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 	const struct vm_fragment *vmf;
 	void *start, *limit;
 	size_t n, inc;
+	size_t probes = 0, extra = 0;
 
 	assert_rwlock_is_owned(&pm->lock);
 	g_assert(len <= kernel_pagesize);
@@ -1773,8 +1779,12 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 	 * is stored) or when we are not going to update the pmap.
 	 */
 
-	if (1 != rwlock_writers(&pm->lock))
+	if (1 != rwlock_writers(&pm->lock)) {
+		VMM_STATS_INCX(pmap_foreign_skipped);
 		return;
+	}
+
+	VMM_STATS_INCX(pmap_foreign_identified);
 
 	if (vmm_debugging(0)) {
 		s_minidbg("VMM page %p is foreign", hint);
@@ -1815,6 +1825,7 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 		if (NULL != pmap_lookup(pm, start, NULL))
 			break;		/* Reached a known region */
 
+		probes++;
 		p = vmm_valloc(start, kernel_pagesize);
 
 		if (MAP_FAILED == p)
@@ -1831,6 +1842,16 @@ pmap_identify_foreign(struct pmap *pm, void *hint, void *allocated, size_t len)
 		}
 
 		pmap_insert_foreign(pm, start, kernel_pagesize);	/* Still foreign */
+		extra++;
+	}
+
+	if (probes != 0) {
+		VMM_STATS_LOCK;
+		vmm_stats.pmap_foreign_probe_attempts += probes;
+		vmm_stats.pmap_foreign_extra_pages += extra;
+		if (n >= PMAP_FOREIGN_TRY)
+			vmm_stats.pmap_foreign_probe_limited++;
+		VMM_STATS_UNLOCK;
 	}
 }
 
@@ -6377,6 +6398,11 @@ vmm_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(pmap_native_removed);
 	DUMP64(pmap_native_trimmed);
 	DUMP64(pmap_native_split);
+	DUMP64(pmap_foreign_skipped);
+	DUMP64(pmap_foreign_identified);
+	DUMP(pmap_foreign_probe_attempts);
+	DUMP(pmap_foreign_extra_pages);
+	DUMP(pmap_foreign_probe_limited);
 
 	/*
 	 * These variables are not updated with the VMM stats lock but whith
