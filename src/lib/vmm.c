@@ -1267,8 +1267,6 @@ retry:
 	}
 
 done:
-	rwlock_unlock(&pm->lock, wlock);
-
 	/*
 	 * This is just a hint, it's OK if, by the time we fill it in, it's been
 	 * obsoleted by concurrent allocation in the VM space.
@@ -1286,6 +1284,7 @@ done:
 		VMM_HOLE_UNLOCK;
 	}
 
+	rwlock_unlock(&pm->lock, wlock);
 	return result;
 }
 
