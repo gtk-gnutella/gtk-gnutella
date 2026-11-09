@@ -3307,7 +3307,22 @@ success:
 	 */
 
 	VMM_STATS_LOCK;
-	update_allocation_stats(size, n, user_mem, FALSE);
+	if G_UNLIKELY(p == t) {
+	    if (user_mem) {
+			/* Magazine page is already accounted as user memory */
+			vmm_stats.allocations++;
+			vmm_stats.allocations_user++;
+		} else {
+			/* Reclassify magazine page from user to core */
+			vmm_stats.user_memory -= size;
+			vmm_stats.user_pages -= n;
+			vmm_stats.user_blocks--;
+
+			update_allocation_stats(size, n, FALSE, FALSE);
+		}
+	} else {
+		update_allocation_stats(size, n, user_mem, FALSE);
+	}
 	if (user_mem) {
 		vmm_stats.move_user_succeeded++;
 		vmm_stats.move_user_bytes_copied += len;
@@ -3325,6 +3340,12 @@ success:
 		vmm_stats.move_alloc_from_system++;
 	}
 	VMM_STATS_UNLOCK;
+
+	if G_UNLIKELY(p == t && !user_mem) {
+		/* Reclassify magazine page from user to core */
+		memusage_remove(vmm_stats.user_mem, size);
+		memusage_add(vmm_stats.core_mem, size);
+	}
 
 	memcpy(p, base, len);		/* Not `size': skip possible unused tail */
 
@@ -5125,18 +5146,28 @@ success:
 
 	VMM_STATS_LOCK;
 	vmm_stats.core_smart_alloc++;
-	update_allocation_stats(size, n, FALSE, FALSE);
 	if G_UNLIKELY(p == c) {
 		vmm_stats.core_from_cache++;
 		vmm_stats.core_from_cache_pages += n;
 	} else if G_UNLIKELY(p == t) {
 		vmm_stats.core_from_magazine++;
 		vmm_stats.core_from_magazine_pages += n;
+		/* Reclassify magazine page from user to core */
+		vmm_stats.user_memory -= size;
+		vmm_stats.user_pages -= n;
+		vmm_stats.user_blocks--;
 	} else {
 		vmm_stats.core_from_system++;
 		vmm_stats.core_from_system_pages += n;
 	}
+	update_allocation_stats(size, n, FALSE, FALSE);
 	VMM_STATS_UNLOCK;
+
+	if G_UNLIKELY(p == t) {
+		/* Reclassify magazine page from user to core */
+		memusage_remove(vmm_stats.user_mem, size);
+		memusage_add(vmm_stats.core_mem, size);
+	}
 
 	return p;
 
