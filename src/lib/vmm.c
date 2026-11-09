@@ -5900,6 +5900,8 @@ page_cache_timer(void *unused_udata)
 
 	pc = &page_cache[page_cache_line];
 
+	/* Use same logic as in page_cache_find_pages() */
+
 	/*
 	 * Compute the first hole capable of holding a region of the same size as
 	 * the one used by this cache line.  This allows us to avoid freeing
@@ -5919,14 +5921,14 @@ page_cache_timer(void *unused_udata)
 	upper = vmm_upper_hole;		/* struct copy */
 	VMM_UPPER_HOLE_UNLOCK;
 
-	if (upper.len >= pc->chunksize) {
+	if (len < pc->chunksize && upper.len >= pc->chunksize) {
 		len = upper.len;
 		hole = upper.p;
 	}
 
 	if (len >= pc->chunksize) {
 		if (!kernel_mapaddr_increasing)
-			hole = const_ptr_add_offset(hole, -len);
+			hole = const_ptr_add_offset(hole, -pc->chunksize);
 	} else {
 		hole = NULL;
 	}
