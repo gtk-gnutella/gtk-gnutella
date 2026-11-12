@@ -635,6 +635,16 @@ static struct thread_element *thread_next_te;
  */
 static uint8 thread_qid_cache[THREAD_QID_CACHE];
 
+/**
+  * Array tracking join dependencies to detect deadlocks during thread_join():
+  * [i] == 0 => no join pending for thread #i
+  * [i] == n => thread #i waiting for thread #(n - 1)
+  *
+  * The thread_join_to[] array is only updated under thread_join_slk protection.
+  */
+static uint8 thread_join_to[THREAD_MAX];
+static spinlock_t thread_join_slk = SPINLOCK_INIT;
+
 static bool thread_inited;
 static int thread_pagesize = 4096;		/* Safe default: 4K pages */
 static int thread_pageshift = 12;		/* Safe default: 4K pages */
@@ -8809,6 +8819,9 @@ thread_forked(void)
 	te->discovered = TRUE;
 	te->last_seen = tm_time_raw();
 
+	ZERO(thread_join_to);		/* Nobody is waiting for anyone */
+	spinlock_init(&thread_join_slk);
+
 	/*
 	 * FIXME:
 	 * If thread_forked() is really used through thread_fork() then we'll
@@ -10389,7 +10402,7 @@ thread_exit_internal(void *value, const void *sp)
 	 */
 
 	if (!te->detached) {
-		bool join_requested = FALSE;
+		unsigned joining_id = THREAD_INVALID_ID;
 
 		te->exit_value = value;
 
@@ -10402,11 +10415,11 @@ thread_exit_internal(void *value, const void *sp)
 		THREAD_LOCK(te);
 		te->join_pending = TRUE;		/* Thread is terminated */
 		if (te->join_requested)
-			join_requested = TRUE;
+			joining_id = te->joining_id;
 		THREAD_UNLOCK(te);
 
-		if (join_requested)
-			thread_unblock(te->joining_id);
+		if (joining_id != THREAD_INVALID_ID)
+			thread_unblock(joining_id);
 	} else {
 		/*
 		 * Since pthread_exit() can malloc, we need to let thread_small_id()
@@ -11007,15 +11020,93 @@ thread_cancel_test(void)
 }
 
 /**
+ * Clear any indication that given thread is waiting to join with another.
+ */
+static void
+thread_clear_joining(unsigned id)
+{
+	g_assert(id < THREAD_MAX);
+
+	spinlock_raw(&thread_join_slk);
+	thread_join_to[id] = 0;
+	spinunlock_raw(&thread_join_slk);
+}
+
+/**
+ * The thread_join() context for the cleanup callback.
+ */
+struct thread_join_context {
+    struct thread_element *self;
+    struct thread_element *target;
+    bool claimed;
+};
+
+/**
  * Invoked when a thread issuing a thread_join() operation is cancelled.
  */
 static void
 thread_join_cancelled(void *arg)
 {
-	unsigned id = pointer_to_uint(arg);
+	struct thread_join_context *jc = arg;
+	struct thread_element *te   = jc->target;
+	struct thread_element *self = jc->self;
 
-	s_carp("thread %s cancelled whilst joining with %s",
-		thread_name(), thread_id_name(id));
+	thread_element_check(self);
+	thread_element_check(te);
+
+	g_assert(thread_small_id() == self->stid);
+
+	s_carp("thread %s cancelled whilst joining with %s %s claiming it",
+		thread_name(), thread_id_name(te->stid),
+		jc->claimed ? "after" : "before");
+
+	if (jc->claimed) {
+		THREAD_LOCK(te);
+
+		thread_clear_joining(self->stid);
+
+		/*
+		 * Since the current thread is being cancelled, it's no longer requesting
+		 * a join with the target thread.
+		 */
+
+		te->joining_id = THREAD_INVALID_ID;
+		te->join_requested = FALSE;
+		THREAD_UNLOCK(te);
+	}
+}
+
+/**
+ * Check whether adding an edge from -> to would create a cycle.
+ *
+ * Must be called with thread_join_slk held.
+ */
+static bool
+thread_join_would_deadlock(unsigned from, unsigned to)
+{
+    unsigned i;
+
+	g_assert(spinlock_is_held(&thread_join_slk));
+
+    for (i = 0; i < THREAD_MAX; i++) {
+        uint8 next;
+
+        if (to == from)
+            return TRUE;
+
+        next = thread_join_to[to];
+
+        if (0 == next)
+            return FALSE;
+
+        to = next - 1;
+    }
+
+    /*
+     * We traversed THREAD_MAX dependencies without finding
+     * a terminal node. The graph is already cyclic or corrupt.
+     */
+    return TRUE;
 }
 
 /**
@@ -11035,10 +11126,35 @@ static int
 thread_join_internal(unsigned id, void **result, bool nowait)
 {
 	struct thread_element *te, *tself;
+	unsigned self = thread_small_id();
 	unsigned events;
+	struct thread_join_context jc;
+
+	/*
+	 * Validate pthread / thread consistency since we're going to call
+	 * thread_pjoin(te) at some point below if everything is OK.
+	 */
+
+	tself = thread_get_element();
+
+	g_assert(pthread_equal(tself->ptid, pthread_self()));
+	g_assert(tself->stid == self);
 
 	g_assert(thread_main_stid != id);	/* Can't join with main thread */
-	g_assert(id != thread_small_id());	/* Can't join with oneself */
+
+	if (id == self) {					/* Can't join with oneself */
+		errno = EDEADLK;
+		s_critical("%s: %s attempting to join with itself",
+			G_STRFUNC, thread_id_name(self));
+		return -1;
+	}
+
+	/*
+	 * If we're going to wait, we better not be holding any locks!
+	 */
+
+	if (!nowait)
+		thread_assert_no_locks(G_STRFUNC);
 
 	/*
 	 * Thread-joining is a thread cancellation point, and we honour that but
@@ -11050,12 +11166,25 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 	 * cancelled in the middle of a thread_join().
 	 */
 
-	thread_cleanup_push(thread_join_cancelled, uint_to_pointer(id));
-
 	te = thread_get_element_by_id(id);
-	if (NULL == te)
-		goto error;
 
+	jc.self    = tself;
+	jc.target  = te;
+	jc.claimed = FALSE;
+
+	thread_cleanup_push(thread_join_cancelled, &jc);
+
+	if (NULL == te)
+		goto error_unlocked;
+
+	/*
+	 * This is not required if nowait=TRUE, but still doing it because it
+	 * makes code maintenance easier.
+	 */
+
+	events = thread_block_prepare();
+
+	THREAD_LOCK(te);
 	if (
 		!te->created ||				/* Not a thread we created */
 		te->join_requested ||		/* Another thread already wants joining */
@@ -11070,40 +11199,29 @@ thread_join_internal(unsigned id, void **result, bool nowait)
 		goto error;
 	}
 
-	tself = thread_get_element();
+	/*
+	 * Validate the dependency before publishing it, making sure joining
+	 * would not create a circular dependency.
+	 */
 
-	THREAD_LOCK(tself);
-	if (tself->join_requested && tself->joining_id == id) {
-		THREAD_UNLOCK(tself);
-		errno = EDEADLK;			/* Trying to join with each other! */
-		goto error;
+	spinlock_raw(&thread_join_slk);
+
+	if (thread_join_to[self] != 0 || thread_join_would_deadlock(self, id)) {
+		errno = EDEADLK;
+		goto error_join_locked;
 	}
-	THREAD_UNLOCK(tself);
 
 	/*
-	 * Note that the critical section below contains both a check for
-	 * te->join_pending and the setting of te->join_requested. See the
-	 * pending critical section in thread_exit() which does the opposite:
-	 * it sets te->join_pending and checks te->join_requested in its
-	 * critical section.  Hence, no matter which critical section is done
-	 * first, there will be no race condition and no permanent blocking.
+	 * If they do not want to wait and the target thread is still running,
+	 * then we cannot join with it yet.
 	 */
 
-	THREAD_LOCK(te);
-retry:
-	events = tself->unblock_events;	/* a.k.a. thread_block_prepare() */
-	if (te->join_pending)
-		goto joinable;
-
-	/*
-	 * Thread is still running.
-	 */
-
-	if (nowait) {
-		THREAD_UNLOCK(te);
+	if (nowait && !te->join_pending) {
 		errno = EAGAIN;				/* Thread still running, call later */
-		goto error;
+		goto error_join_locked;
 	}
+
+	thread_join_to[self] = id + 1;	/* Publish new joining dependency */
 
 	/*
 	 * We're going to block, waiting for the thread to exit.
@@ -11114,33 +11232,35 @@ retry:
 
 	te->joining_id = tself->stid;
 	te->join_requested = TRUE;
-	THREAD_UNLOCK(te);
 
-	/*
-	 * The "events" variable prevents any race condition here between the
-	 * time we set te->join_requested, unlock and attempt to block: there is
-	 * room for the thread to actually terminate during this small period of
-	 * time and post us an unblock event, which we would then lose since
-	 * we're not blocked yet.
-	 */
+	jc.claimed = TRUE;		/* Flags that claiming was done */
 
-	thread_block_self(events);		/* Wait for thread termination */
+	spinunlock_raw(&thread_join_slk);
 
-	/*
-	 * This could be a spurious wakeup if the waiting thread is cancelled
-	 * for instance, or receives a signal.
-	 */
+	while (!te->join_pending) {
+		THREAD_UNLOCK(te);
 
-	THREAD_LOCK(te);
-	if (!te->join_pending) {
-		goto retry;
+		/*
+		 * The "events" variable prevents any race condition here between the
+		 * time we set te->join_requested, unlock and attempt to block: there is
+		 * room for the thread to actually terminate during this small period of
+		 * time and post us an unblock event, which we would then lose since
+		 * we're not blocked yet.
+		 */
+
+		thread_block_self(events);
+		events = thread_block_prepare();
+
+		/*
+		 * This could be a spurious wakeup if the waiting thread is cancelled
+		 * for instance, or receives a signal. Loop again and exit only
+		 * when te->join_pending becomes set.
+		 */
+
+		THREAD_LOCK(te);
 	}
 
 	g_assert(tself->stid == te->joining_id);
-
-	/* FALL THROUGH */
-
-joinable:
 	THREAD_UNLOCK(te);
 
 	if (result != NULL)
@@ -11154,11 +11274,21 @@ joinable:
 	 */
 
 	thread_pjoin(te);
+	thread_clear_joining(self);
 	thread_exiting(te);
 	return 0;					/* OK, successfuly joined */
 
+error_join_locked:
+	spinunlock_raw(&thread_join_slk);
+	/* FALL THROUGH */
 error:
+	THREAD_UNLOCK(te);
+	/* FALL THROUGH */
+error_unlocked:
 	thread_cleanup_pop(FALSE);
+	if (jc.claimed)				/* Paranoid */
+		thread_clear_joining(self);
+
 	return -1;
 }
 
