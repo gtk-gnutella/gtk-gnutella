@@ -486,6 +486,7 @@ static struct thread_stats {
 	AU64(qid_cache_self_check);		/* Check thread using thread_self() */
 	AU64(qid_cache_clash);			/* Amount of QID clashes */
 	AU64(qid_cache_miss);			/* Amount of QID lookup misses */
+	AU64(qid_cache_invalid);		/* Amount of QID lookup for invalid threads */
 	AU64(lookup_by_qid);			/* Amount of thread lookups by QID */
 	AU64(lookup_by_tid);			/* Amount of thread lookups by TID */
 	AU64(locks_tracked);			/* Amount of locks tracked */
@@ -1321,6 +1322,11 @@ thread_element_matches(struct thread_element *te, const thread_qid_t qid)
 {
 	if G_UNLIKELY(NULL == te) {
 		THREAD_STATS_INCX(qid_cache_miss);
+		return FALSE;
+	}
+
+	if G_UNLIKELY(!te->valid || te->reusable) {
+		THREAD_STATS_INCX(qid_cache_invalid);
 		return FALSE;
 	}
 
@@ -12748,6 +12754,7 @@ thread_dump_stats_log(logagent_t *la, unsigned options)
 	DUMP64(qid_cache_self_check);
 	DUMP64(qid_cache_clash);
 	DUMP64(qid_cache_miss);
+	DUMP64(qid_cache_invalid);
 	DUMP64(lookup_by_qid);
 	DUMP64(lookup_by_tid);
 	DUMP64(locks_tracked);
