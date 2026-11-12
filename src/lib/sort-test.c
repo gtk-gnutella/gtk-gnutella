@@ -53,6 +53,7 @@
 
 static size_t item_size;
 static bool qsort_only;
+static bool tqsort_only;
 static bool degenerative;
 static bool silent_mode, verbose_mode;
 static unsigned initial_seed;
@@ -65,7 +66,7 @@ static void G_NORETURN
 usage(void)
 {
 	fprintf(stderr,
-		"Usage: %s [-htDQSV] [-c items] [-n loops] [-s item_size]\n"
+		"Usage: %s [-htDQSTV] [-c items] [-n loops] [-s item_size]\n"
 		"       [-N main-loops] [-R seed]\n"
 		"  -c : sets item count to test\n"
 		"  -h : prints this help message\n"
@@ -77,6 +78,7 @@ usage(void)
 		"  -Q : only test our xqsort() versus libc's qsort()\n"
 		"  -R : seed for repeatable random key sequence\n"
 		"  -S : silent mode -- do not print anything for successful tests\n"
+		"  -T : only exercise tqsort() tests\n"
 		"  -V : verbose mode -- print status after each successful test\n"
 		, getprogname());
 	exit(EXIT_FAILURE);
@@ -703,16 +705,19 @@ run(void *array, size_t cnt, size_t isize, bool chrono, size_t loops,
 
 	current_test = what;
 
+	timeit(tqsort_test, loops, array, cnt, isize, chrono, what, "tqsort");
+	if (tqsort_only)
+		goto done;
 	if (!qsort_only)
 		timeit(xsort_test, loops, array, cnt, isize, chrono, what, "xsort");
 	timeit(xqsort_test, loops, array, cnt, isize, chrono, what, "xqsort");
 	timeit(qsort_test, loops, array, cnt, isize, chrono, what, "qsort");
-	timeit(tqsort_test, loops, array, cnt, isize, chrono, what, "tqsort");
 	if (!qsort_only) {
 		timeit(smsort_test, loops, array, cnt, isize, chrono, what, "smooth");
 		timeit(smsorte_test, loops, array, cnt, isize, chrono, what, "smoothe");
 	}
 
+done:
 	current_test = NULL;
 }
 
@@ -830,7 +835,7 @@ main(int argc, char **argv)
 	int c;
 	size_t i;
 	unsigned rseed = 0;
-	const char options[] = "c:hn:s:tDN:QR:SV";
+	const char options[] = "c:hn:s:tDN:QR:STV";
 
 	progstart(argc, argv);
 
@@ -862,6 +867,9 @@ main(int argc, char **argv)
 			break;
 		case 'S':			/* silent mode */
 			silent_mode = TRUE;
+			break;
+		case 'T':			/* only test tqsort() */
+			tqsort_only = TRUE;
 			break;
 		case 'V':			/* verbose mode */
 			verbose_mode = TRUE;
