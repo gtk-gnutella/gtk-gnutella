@@ -2530,6 +2530,15 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 	te->valid = TRUE;
 
 	/*
+	 * Prepare QID cache for new thread.
+	 */
+
+	{
+		thread_qid_t current_qid = thread_quasi_id_fast(&qid);
+		thread_qid_cache_set(thread_qid_hash(current_qid), te, current_qid);
+	}
+
+	/*
 	 * Need to enter critical section now since we're updating global thread
 	 * contextual information and this needs to happen atomically.
 	 */
