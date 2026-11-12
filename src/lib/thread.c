@@ -2653,8 +2653,8 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 				}
 
 				if (
-					xte->low_qid <= te->low_qid &&
-					xte->high_qid >= te->high_qid
+				    xte->low_qid >= te->low_qid &&
+					xte->high_qid <= te->high_qid
 				) {
 					/* [xte] fully embedded within [te] range */
 					dead_thread = TRUE;
