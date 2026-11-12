@@ -2084,11 +2084,18 @@ thread_pjoin(struct thread_element *te)
 	int error;
 
 	error = pthread_join(te->ptid, NULL);
+
 	if (error != 0) {
 		errno = error;
 		s_error("%s(): pthread_join() failed on %s: %m",
 			G_STRFUNC, thread_element_name(te));
 	}
+
+	/* This thread is completely terminated */
+	THREAD_LOCK(te);
+	thread_set(te->tid, THREAD_INVALID);
+	thread_set(tstid[te->stid], THREAD_INVALID);
+	THREAD_UNLOCK(te);
 
 	if (is_running_on_mingw()) {
 		/*
@@ -2426,6 +2433,13 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 		if G_LIKELY(te != xte) {
 			if G_UNLIKELY(thread_eq(t, xte->tid)) {
 				bool cleared = FALSE;
+				struct {
+					bool created;
+					bool exit_started;
+					bool join_pending;
+					bool exiting;
+					bool reusable;
+				} x;
 
 				/*
 				 * When we have a TID match, the thread element is
@@ -2438,6 +2452,12 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 					cleared = TRUE;	/* Warn outside of critical region */
 					thread_set(xte->tid, THREAD_INVALID);
 					thread_set(tstid[i], THREAD_INVALID);
+					/* Capture for logging */
+					x.created = xte->created;
+					x.exit_started = xte->exit_started;
+					x.join_pending = xte->join_pending;
+					x.exiting = xte->exiting;
+					x.reusable = xte->reusable;
 				}
 				THREAD_UNLOCK(xte);
 
@@ -2457,8 +2477,12 @@ thread_element_unique_thread(struct thread_element *te, thread_t t)
 				 */
 
 				if (cleared) {
-					s_critical("%s(): cleared TID=%lu for %s from %s",
-						G_STRFUNC, t, thread_id_name(xte->stid), thread_name());
+					s_critical("%s(): cleared TID=%lu for %s from %s\n"
+						"\t[reusable=%u, created=%u, exiting=%u,\n"
+						"\t\texit_started=%u, join_pending=%u]",
+						G_STRFUNC, t, thread_id_name(xte->stid), thread_name(),
+						x.reusable, x.created, x.exiting,
+						x.exit_started, x.join_pending);
 				}
 			}
 		}
