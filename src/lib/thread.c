@@ -2041,6 +2041,19 @@ thread_ended(struct thread_element *te)
 {
 	g_assert(te->created);
 
+	/*
+	 * We can now declare the thread element invalid. No part of the QID space
+	 * of that thread can be associated with this dead thread which will no
+	 * longer run.
+	 *
+	 * Still, the thread_element is not completely cleared and therefore not
+	 * marked reusable yet.
+	 */
+
+	THREAD_LOCK(te);
+	te->valid = FALSE;
+	THREAD_UNLOCK(te);
+
 	if (te->stack != NULL)
 		thread_stack_free(te);
 
