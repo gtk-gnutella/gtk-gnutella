@@ -4728,20 +4728,38 @@ mingw_sendto(socket_fd_t sockfd, const void *buf, size_t len, int flags,
  *** Memory allocation routines.
  ***/
 
+/*
+ * Windows XP virtual memory allocator.
+ *
+ * A reservation and a commitment are distinct operations.  We reserve one
+ * large arena early, and commit pages there on demand.  Other allocations
+ * are tracked, so an arbitrary VMM hint can never make us commit somebody
+ * else's reservation.  Reservations are kept for the process lifetime, as
+ * the VMM can decommit and later reuse subregions of an allocation.
+ */
+struct mingw_vm_region {
+	struct mingw_vm_region *next;
+	void *base;
+	size_t size;
+};
+
 static struct {
-	void *reserved;			/* Reserved memory */
-	void *base;				/* Next available base for reserved memory */
+	void *reserved;			/* Main arena's initial reservation */
+	void *base;				/* Next-fit cursor in the arena */
 	const void *heap_break;	/* Initial heap break */
-	size_t consumed;		/* Consumed space in reserved memory */
-	size_t size;			/* Size for hinted allocation */
+	size_t size;			/* Size for hinted allocations */
 	size_t later;			/* Size of "later" memory we did not reserve */
 	size_t physical;		/* Physical RAM available */
 	size_t available;		/* Virtual memory initially available */
 	size_t allocated;		/* Memory we allocated */
 	size_t baseline;		/* Committed memory at VMM init time */
+	size_t granularity;		/* OS allocation granularity */
+	size_t page_size;		/* OS page size */
+	struct mingw_vm_region *extra; /* Additional owned reservations */
 	bool stop_vfree;		/* VMM no longer freeing allocated memory */
-	int hinted;
 } mingw_vmm;
+
+static spinlock_t mingw_vmm_slk = SPINLOCK_INIT;
 
 /**
  * Called with TRUE when the VMM layer is shutting down, no longer freeing
@@ -4765,7 +4783,6 @@ mingw_mem_committed(void)
 		return c.PagefileUsage;
 
 	errno = mingw_last_error();
-
 	s_warning_once_per(LOG_PERIOD_MINUTE,
 		"%s(): cannot compute process memory usage: %m", G_STRFUNC);
 
@@ -4775,342 +4792,398 @@ mingw_mem_committed(void)
 
 /**
  * Initialize the VM region we're going to manage through the VMM layer.
+ *
+ * Choose the size from ACTUALLY FREE address space, rather than computing
+ * it from the theoretical maximum user-space address.  In particular, we
+ * never release a successful reservation merely to try to reserve it again.
  */
 static void
 mingw_vmm_init(void)
 {
-	SYSTEM_INFO system_info;
-	void *mem_later;
-	size_t mem_latersize;
-	size_t mem_size;
-	size_t mem_available;
-	size_t granularity;
+	SYSTEM_INFO si;
+	MEMORY_BASIC_INFORMATION mbi;
+	uintptr_t at, limit;
+	size_t largest = 0, total = 0, target, step;
 
 	mingw_vmm.baseline = mingw_mem_committed();
-
-	/*
-	 * Determine maximum possible memory first
-	 *
-	 * Don't use GetNativeSystemInfo(), rely on GetSsystemInfo()
-	 * so that we get proper results for the 32-bit environment
-	 * if running under WOW64.
-	 */
-
-	GetSystemInfo(&system_info);
-
-	granularity = round_pagesize(system_info.dwAllocationGranularity);
-	granularity = MAX(granularity, VMM_GRANULARITY);	/* Speed up init */
-
-	mingw_vmm.size =
-		system_info.lpMaximumApplicationAddress
-		-
-		system_info.lpMinimumApplicationAddress;
-
+	GetSystemInfo(&si);
+	mingw_vmm.granularity = si.dwAllocationGranularity;
+	mingw_vmm.page_size = si.dwPageSize;
 	mingw_vmm.physical = getphysmemsize();
 	mingw_vmm.heap_break = vmm_page_start(mingw_sbrk(0));
 
-	/*
-	 * Declare some space for future allocations without hinting.
-	 * We initially reserve about 80% of the virtual address space,
-	 * with VMM_MINSIZE at least but we make sure we have also room
-	 * available for non-VMM allocations.
-	 */
+	at = (uintptr_t) si.lpMinimumApplicationAddress;
+	limit = (uintptr_t) si.lpMaximumApplicationAddress;
 
-	mem_size = mingw_vmm.size;		/* For the VMM space, theoretical max */
-	mem_latersize = mem_size;		/* For non-hinted allocation */
+	while (at <= limit && VirtualQuery((void *) at, VARLEN(mbi))) {
+		uintptr_t next = (uintptr_t) mbi.BaseAddress + mbi.RegionSize;
+		size_t n;
 
-reserve_less:
-	mem_latersize *= 0.9;
-	mem_latersize = MAX(mem_latersize, VMM_MINSIZE);
-	mingw_vmm.later = mem_latersize;
-	mem_later = VirtualAlloc(NULL,
-		mem_latersize, MEM_RESERVE, PAGE_NOACCESS);
-
-	if (NULL == mem_later) {
-		if (VMM_MINSIZE == mem_latersize) {
-			errno = mingw_last_error();
-			s_error("could not reserve %s of memory: %m",
-				compact_size(mem_latersize, FALSE));
-		} else {
-			goto reserve_less;
+		if (next <= at)
+			break;
+		/* Do not count bytes above the process's user address limit. */
+		n = (size_t) (MIN(next, limit + 1) - at);
+		if (MEM_FREE == mbi.State) {
+			largest = MAX(largest, n);
+			total += n;
 		}
+		at = next;
 	}
 
-	/*
-	 * Try to reserve the remaining virtual space, asking for as
-	 * much as we can and reducing the requested size by the
-	 * system's granularity until we get a success status.
-	 */
+	mingw_vmm.available = total;
+	/* Leave at least about 20% of the largest hole unreserved. */
+	target = (largest / 5) * 4;
+	target -= target % mingw_vmm.granularity;
+	step = MAX(VMM_GRANULARITY, mingw_vmm.granularity);
 
-	mingw_vmm.size = round_pagesize(mem_size - mem_latersize);
-
-	while (
-		NULL == mingw_vmm.reserved && mingw_vmm.size > VMM_MINSIZE
-	) {
-		mingw_vmm.reserved = VirtualAlloc(
-			NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
-
-		if (NULL == mingw_vmm.reserved)
-			mingw_vmm.size -= granularity;
+	for (; target >= VMM_MINSIZE; target -= MIN(step, target)) {
+		mingw_vmm.reserved = VirtualAlloc(NULL, target,
+			MEM_RESERVE | MEM_TOP_DOWN, PAGE_NOACCESS);
+		if (mingw_vmm.reserved != NULL)
+			break;
 	}
-
-	VirtualFree(mem_later, 0, MEM_RELEASE);
-
-	mem_available = mem_latersize + mingw_vmm.size;
-	mingw_vmm.available = mem_available;
-
-	/*
-	 * We are trying to balance reserved space within the total available space,
-	 * and we can directly compute the value X of the "mem_latersize" we want,
-	 * satisfying:
-	 *
-	 *		available = X + size
-	 *		size = 80% * available
-	 *
-	 * This trivially solves to: X = 20% * available.  The assumption
-	 * made here is that the total memory size we computed above as
-	 * "mem_available" is going to be constant.
-	 *		--RAM, 2015-11-04
-	 */
-
-	mem_latersize = 0.2 * mem_available;
-	mingw_vmm.later = mem_latersize;
-	mingw_vmm.size = mem_available - mem_latersize;
-
-	/*
-	 * Now that we know how much we can reserve for the VMM layer,
-	 * free everything and redo the VMM reservation so that we let
-	 * the kernel pick the highest possible address space, so as to
-	 * leave optimal growing space for the other allocators.
-	 *		--RAM, 2015-10-16
-	 */
-
-	VirtualFree(mingw_vmm.reserved, 0, MEM_RELEASE);
-
-	mingw_vmm.reserved = VirtualAlloc(
-		NULL, mingw_vmm.size, MEM_RESERVE, PAGE_NOACCESS);
 
 	if (NULL == mingw_vmm.reserved) {
-		s_error("could not reserve %s of memory: %m",
-				compact_size(mingw_vmm.size, FALSE));
+		errno = mingw_last_error();
+		s_error("cannot reserve a Windows VMM arena (largest free hole %s): %m",
+			compact_size(largest, FALSE));
 	}
 
+	mingw_vmm.size = target;
+	mingw_vmm.later = total - target;
 	mingw_vmm.base = mingw_vmm.reserved;
 	mingw_vmm_inited = TRUE;
+}
+
+/* All these helpers run under mingw_vmm_slk unless stated otherwise. */
+
+static bool
+mingw_vmm_owned_base(const void *base)
+{
+	struct mingw_vm_region *r;
+
+	if (base == mingw_vmm.reserved)
+		return TRUE;
+
+	for (r = mingw_vmm.extra; r != NULL; r = r->next) {
+		if (base == r->base)
+			return TRUE;
+	}
+
+	return FALSE;
+}
+
+/*
+ * Commit a hinted range only if ALL its pages are decommitted pages owned by
+ * this allocator.  A VMM region may straddle adjacent VirtualAlloc reservations;
+ * Windows needs a separate commit for each such reservation.
+ *
+ * On a failure after a partial commit, undo those commits before falling back.
+ * All the pages have been verified as MEM_RESERVE beforehand, so no preexisting
+ * mapping is disturbed by that rollback.
+ */
+static void *
+mingw_vmm_commit(void *p, size_t size)
+{
+	uintptr_t start = (uintptr_t) p, end = start + size;
+	uintptr_t at, until;
+	MEMORY_BASIC_INFORMATION mbi;
+
+	if (end <= start)
+		return NULL;
+
+	/* Common case: the entire hint lies in one owned, reserved region. */
+	if (VirtualQuery(p, VARLEN(mbi)) != 0 &&
+		mbi.State == MEM_RESERVE && mbi.RegionSize >= size &&
+		mingw_vmm_owned_base(mbi.AllocationBase)) {
+		return VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
+	}
+
+	/* First pass: prevalidate every page in the entire requested range. */
+	for (at = start; at < end; at = until) {
+		if (0 == VirtualQuery((void *) at, VARLEN(mbi)))
+			return NULL;
+		until = (uintptr_t) mbi.BaseAddress + mbi.RegionSize;
+		if (until <= at || mbi.State != MEM_RESERVE ||
+			!mingw_vmm_owned_base(mbi.AllocationBase))
+			return NULL;
+		until = MIN(until, end);
+	}
+
+	/* Second pass: commit each reservation's portion separately. */
+	for (at = start; at < end; at = until) {
+		void *q;
+
+		if (0 == VirtualQuery((void *) at, VARLEN(mbi)))
+			break;
+		until = MIN((uintptr_t) mbi.BaseAddress + mbi.RegionSize, end);
+		q = VirtualAlloc((void *) at, until - at,
+			MEM_COMMIT, PAGE_READWRITE);
+		if (NULL == q)
+			break;
+	}
+
+	if (at == end)
+		return p;
+
+	/* Roll back only the chunks committed by the second pass. */
+	for (until = start; until < at; ) {
+		uintptr_t next;
+
+		if (0 == VirtualQuery((void *) until, VARLEN(mbi)))
+			s_error("%s(): VirtualQuery() failed during commit rollback", G_STRFUNC);
+		next = MIN((uintptr_t) mbi.BaseAddress + mbi.RegionSize, at);
+		if (next <= until ||
+			!VirtualFree((void *) until, next - until, MEM_DECOMMIT))
+			s_error("%s(): cannot undo a partial Windows VM commit", G_STRFUNC);
+		until = next;
+	}
+	return NULL;
+}
+
+/* Allocate a fresh, separately reserved block and register its ownership. */
+static void *
+mingw_vmm_reserve_new(void *hint, size_t size)
+{
+	struct mingw_vm_region *r;
+	void *p;
+
+	r = HeapAlloc(GetProcessHeap(), 0, sizeof *r);
+	if (NULL == r)
+		return NULL;
+	p = VirtualAlloc(hint, size, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+	if (NULL == p) {
+		HeapFree(GetProcessHeap(), 0, r);
+		return NULL;
+	}
+	if (hint != NULL && p != hint) {
+		/* A fixed-address reservation must never be silently rounded. */
+		VirtualFree(p, 0, MEM_RELEASE);
+		HeapFree(GetProcessHeap(), 0, r);
+		return NULL;
+	}
+	r->base = p;
+	r->size = (size + mingw_vmm.page_size - 1) & ~(mingw_vmm.page_size - 1);
+	r->next = mingw_vmm.extra;
+	mingw_vmm.extra = r;
+	return p;
+}
+
+/*
+ * Find and commit a decommitted hole in one of our reservations.  The search
+ * region is a single reservation; a hinted allocation can nevertheless cross
+ * adjacent ones through mingw_vmm_commit().
+ */
+static void *
+mingw_vmm_commit_hole(void *base, size_t length, size_t size,
+	uintptr_t begin, uintptr_t stop)
+{
+	uintptr_t pos = begin;
+	uintptr_t end = (uintptr_t) base + length;
+
+	while (pos < stop && pos < end) {
+		MEMORY_BASIC_INFORMATION mbi;
+		uintptr_t next;
+		void *p;
+
+		if (0 == VirtualQuery((void *) pos, VARLEN(mbi)))
+			break;
+		next = (uintptr_t) mbi.BaseAddress + mbi.RegionSize;
+		if (next <= pos)
+			break;
+		if (mbi.State == MEM_RESERVE && mbi.AllocationBase == base &&
+			size <= end - pos && size <= stop - pos &&
+			size <= next - pos) {
+			/* Ownership and contiguous reservation were just verified. */
+			p = VirtualAlloc((void *) pos, size, MEM_COMMIT, PAGE_READWRITE);
+			if (p != NULL)
+				return p;
+		}
+		pos = next;
+	}
+	return NULL;
+}
+
+/* Next-fit search for uncommitted pages in the initial reservation. */
+static void *
+mingw_vmm_commit_arena(size_t size)
+{
+	uintptr_t arena = (uintptr_t) mingw_vmm.reserved;
+	uintptr_t end = arena + mingw_vmm.size;
+	uintptr_t cursor = (uintptr_t) mingw_vmm.base;
+	void *p;
+
+	p = mingw_vmm_commit_hole(mingw_vmm.reserved, mingw_vmm.size,
+		size, cursor, end);
+	if (NULL == p)
+		p = mingw_vmm_commit_hole(mingw_vmm.reserved, mingw_vmm.size,
+			size, arena, cursor);
+	if (p != NULL) {
+		uintptr_t after = (uintptr_t) p + size;
+		mingw_vmm.base = (void *) (after == end ? arena : after);
+	}
+	return p;
+}
+
+/* Reuse previously decommitted external allocations before reserving more. */
+static void *
+mingw_vmm_commit_extra(size_t size)
+{
+	struct mingw_vm_region *r;
+
+	for (r = mingw_vmm.extra; r != NULL; r = r->next) {
+		uintptr_t start = (uintptr_t) r->base;
+		void *p = mingw_vmm_commit_hole(r->base, r->size, size,
+			start, start + r->size);
+		if (p != NULL)
+			return p;
+	}
+	return NULL;
 }
 
 void *
 mingw_valloc(void *hint, size_t size)
 {
 	void *p = NULL;
+	bool external = FALSE;
 
-	if G_UNLIKELY(NULL == hint) {
-		if (mingw_vmm.hinted >= 0) {
-			static spinlock_t valloc_slk = SPINLOCK_INIT;
-
-			spinlock(&valloc_slk);
-
-			if G_UNLIKELY(NULL == mingw_vmm.reserved)
-				mingw_vmm_init();
-
-			if (vmm_is_debugging(0)) {
-				s_debug("no hint given for %s allocation #%d",
-					compact_size(size, FALSE), mingw_vmm.hinted);
-			}
-
-			mingw_vmm.hinted++;
-			if G_UNLIKELY(mingw_vmm.consumed + size > mingw_vmm.size) {
-				spinunlock(&valloc_slk);
-				/* We don't want a stacktrace, use s_minilog() directly */
-				s_minilog(G_LOG_LEVEL_CRITICAL,
-					"%s(): out of reserved memory for %zu bytes",
-					G_STRFUNC, size);
-				goto failed;
-			}
-			p = mingw_vmm.base;
-			mingw_vmm.base = ptr_add_offset(mingw_vmm.base, size);
-			mingw_vmm.consumed += size;
-			spinunlock(&valloc_slk);
-		} else {
-			/*
-			 * Non-hinted request after hinted requests have been used.
-			 * Allow usage of non-reserved space.
-			 */
-
-			p = VirtualAlloc(NULL, size,
-					MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-			if (p == NULL) {
-				/* We don't want a stacktrace, use s_minilog() directly */
-				errno = mingw_last_error();
-				s_minilog(G_LOG_LEVEL_CRITICAL,
-					"%s(): cannot allocate %'zu bytes: %m", G_STRFUNC, size);
-				goto failed;
-			}
-
-			/*
-			 * Warn them, since this VM region space will never be released
-			 * to the system: the memory will be decomitted when the region
-			 * is freed, but the space will be taken, fragmenting the VM space.
-			 *		--RAM, 2015-04-06
-			 *
-			 * When the VMM layer stops freeing memory, it uses NULL hints,
-			 * at which point we don't want to warn about non-hinted memory
-			 * allocations since we're shutting down!
-			 *		--RAM, 2015-04-07
-			 *
-			 * During crashes, the VMM layer always requests NULL hints.
-			 *		--RAM, 2015-10-24
-			 *
-			 * During pmap extensions, the VMM layer also requests NULL hints.
-			 *		--RAM, 2015-11-08
-			 */
-
-			if (
-				!mingw_vmm.stop_vfree &&
-				!vmm_is_extending() &&
-				!vmm_is_crashing()
-			) {
-				s_minicarp("%s(): non-hinted allocation of %'zu bytes at %p",
-					G_STRFUNC, size, p);
-			}
-
-			goto allocated;
-		}
-	} else {
-		if G_UNLIKELY(mingw_vmm.hinted >= 0) {
-			mingw_vmm.hinted = -1;	/* Can now handle non-hinted allocs */
-			atomic_mb();
-		}
-		p = hint;
+	if (0 == size) {
+		errno = ENOMEM;
+		return MAP_FAILED;
 	}
 
-	p = VirtualAlloc(p, size, MEM_COMMIT, PAGE_READWRITE);
-
-	if (p == NULL) {
-		/* We don't want a stacktrace, use s_minilog() directly */
-		errno = mingw_last_error();
-		s_minilog(G_LOG_LEVEL_CRITICAL,
-			"%s(): failed to commit %'zu bytes at %p: %m",
-			G_STRFUNC, size, hint);
-
-		/*
-		 * If errno is EFAULT and the hint was not NULL, then it means we have
-		 * selected an address that lies too close to the end of the initially
-		 * reserved memory segment, and it cannot be fully committed by the
-		 * kernel.
-		 *		--RAM, 2015-04-06
-		 */
-
-		if (hint != NULL && EFAULT == errno) {
-			/*
-			 * In order to allow the process to continue, we're going to try
-			 * to allocate memory outside our reserved region.  If we can,
-			 * we request a clean application restart.  Otherwise, we'll let
-			 * our caller handle the situation since there is nothing else
-			 * we can do from down here.
-			 *		--RAM, 2015-04-06
-			 */
-
-			p = VirtualAlloc(NULL, size,
-					MEM_COMMIT | MEM_RESERVE, PAGE_READWRITE);
-
-			if (p != NULL) {
-				crash_restart("%s(): had to allocate %'zu bytes "
-					"outside reserved region at %p", G_STRFUNC, size, p);
-				goto allocated;
-			}
-
-			/* FALL THROUGH, p is still NULL */
-		}
-
-		goto failed;
+	/*
+	 * Crash handling must not acquire our allocator lock: the fault could
+	 * have happened while that lock was held.  Emergency mappings are never
+	 * freed and need not be tracked in the ordinary VMM map.
+	 */
+	if G_UNLIKELY(vmm_is_crashing()) {
+		p = VirtualAlloc(NULL, size,
+			MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+		if (p != NULL)
+			return p;
+		errno = ENOMEM;
+		return MAP_FAILED;
 	}
 
-	/* FALL THROUGH */
+	spinlock(&mingw_vmm_slk);
+	if (NULL == mingw_vmm.reserved)
+		mingw_vmm_init();
+	/* The VMM allocates whole pages; rounding here could overlap pages. */
+	g_assert(0 == size % mingw_vmm.page_size);
 
-allocated:
-	mingw_vmm.allocated += size;
+	if (hint != NULL) {
+		/* First try an owned, decommitted range. */
+		p = mingw_vmm_commit(hint, size);
+
+		/* Outside our reservations: try a new EXACT reservation only when
+		 * aligned to the OS allocation granularity. */
+		if (NULL == p &&
+			0 == ((uintptr_t) hint % mingw_vmm.granularity)) {
+			MEMORY_BASIC_INFORMATION mbi;
+			if (VirtualQuery(hint, VARLEN(mbi)) != 0 &&
+				mbi.State == MEM_FREE && mbi.RegionSize >= size) {
+				p = mingw_vmm_reserve_new(hint, size);
+				external = p != NULL;
+			}
+		}
+	}
+
+	/* Hints are preferences.  If not usable, find another location. */
+	if (NULL == p)
+		p = mingw_vmm_commit_arena(size);
+	if (NULL == p)
+		p = mingw_vmm_commit_extra(size);
+	if (NULL == p) {
+		p = mingw_vmm_reserve_new(NULL, size);
+		external = p != NULL;
+	}
+
+	if (p != NULL)
+		mingw_vmm.allocated += size;
+	spinunlock(&mingw_vmm_slk);
+
+	if (NULL == p) {
+		/* The upper VMM treats an allocation failure as out-of-memory. */
+		errno = ENOMEM;
+		return MAP_FAILED;
+	}
+
+	if (external && hint == NULL && !mingw_vmm.stop_vfree &&
+		!vmm_is_extending()) {
+		s_minicarp("%s(): allocated %'zu bytes outside VMM arena at %p",
+			G_STRFUNC, size, p);
+	}
 	return p;
-
-failed:
-	errno = ENOMEM;		/* Expected errno value from VMM layer */
-	return MAP_FAILED;
 }
 
+/* Unused by the current Windows VMM, but safe if it is ever invoked. */
 int
 mingw_vfree(void *addr, size_t size)
 {
-	(void) addr;
-	(void) size;
-
-	/*
-	 * VMM hint should always be respected. So this function should not
-	 * be reached from VMM, except when we are out-of-memory and
-	 * mingw_valloc() tried to allocate outside the reserved region.
-	 *
-	 * Since we also tell the VMM layer on Windows to avoid testing to see
-	 * whether we're hitting "foreign" regions, this routine still can never
-	 * be called.
-	 */
-
-	s_error("%s(): should not be called on Windows", G_STRFUNC);
+	s_carp_once("%s(): should not be called on Windows", G_STRFUNC);
+	return mingw_vfree_fragment(addr, size);
 }
 
 int
 mingw_vfree_fragment(void *addr, size_t size)
 {
-	void *end = ptr_add_offset(mingw_vmm.reserved, mingw_vmm.size);
+	uintptr_t pos = (uintptr_t) addr;
+	uintptr_t end = pos + size;
+	DWORD error = 0;
+	size_t decommitted = 0;
 
-	g_assert_log(mingw_vmm.allocated >= size,
-		"%s(): attempt to free unallocated memory (%'zu bytes at %p): "
-			"has total of %'zu allocated bytes",
-		G_STRFUNC, size, addr, mingw_vmm.allocated);
-
-	mingw_vmm.allocated -= size;
-
-	if (ptr_cmp(mingw_vmm.reserved, addr) <= 0 && ptr_cmp(end, addr) > 0) {
-		/* Allocated in reserved space */
-		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
-			errno = mingw_last_error();
-			return -1;
-		}
-	} else {
-		/*
-		 * Now  that we have emergency allocations, we can no longer use
-		 * MEM_RELEASE, even if the region is not in the (initially)
-		 * non-reserved space.  The reason is that we would have to
-		 * use:
-		 *
-		 *		VirtualFree(addr, 0, MEM_RELEASE)
-		 *
-		 * (i.e. pass 0 as the size parameter) and that would decommit
-		 * and release the *whole range* starting at addr.  But because of
-		 * the way the VMM layer works and keeps track of allocated regions,
-		 * they can be coalesced and we cannot ensure we're not going to
-		 * start freeing region A, that happens to be adjacent to region B,
-		 * and passing the start of region A would release region B as well!
-		 *
-		 * To avoid this, memory allocated outside the reserved region is
-		 * never released, only decommitted.
-		 */
-
-		/* Allocated in non-reserved space */
-		if (!VirtualFree(addr, size, MEM_DECOMMIT)) {
-			errno = mingw_last_error();
-			return -1;
-		}
+	if (0 == size || end < pos) {
+		errno = EINVAL;
+		return -1;
 	}
 
+	spinlock(&mingw_vmm_slk);
+	while (pos < end) {
+		MEMORY_BASIC_INFORMATION mbi;
+		uintptr_t next;
+		size_t n;
+
+		if (0 == VirtualQuery((void *) pos, VARLEN(mbi))) {
+			error = GetLastError();
+			break;
+		}
+		if (mbi.State != MEM_COMMIT ||
+			!mingw_vmm_owned_base(mbi.AllocationBase)) {
+			error = ERROR_INVALID_ADDRESS;
+			break;
+		}
+		next = (uintptr_t) mbi.BaseAddress + mbi.RegionSize;
+		if (next <= pos) {
+			error = ERROR_INVALID_ADDRESS;
+			break;
+		}
+		n = (size_t) (MIN(next, end) - pos);
+		if (!VirtualFree((void *) pos, n, MEM_DECOMMIT)) {
+			error = GetLastError();
+			break;
+		}
+		decommitted += n;
+		pos += n;
+	}
+	if (mingw_vmm.allocated >= decommitted)
+		mingw_vmm.allocated -= decommitted;
+	else
+		mingw_vmm.allocated = 0;
+	spinunlock(&mingw_vmm_slk);
+
+	if (error != 0) {
+		errno = mingw_win2posix(error);
+		return -1;
+	}
 	return 0;
 }
 
 int
 mingw_mprotect(void *addr, size_t len, int prot)
 {
-	DWORD oldProtect = 0;
 	DWORD newProtect;
-	BOOL res;
+	uintptr_t pos = (uintptr_t) addr, end = pos + len;
 
 	/*
 	 * The PROT_GUARD is specific to Windows and is convenient to create
@@ -5139,21 +5212,41 @@ mingw_mprotect(void *addr, size_t len, int prot)
 		newProtect = PAGE_READWRITE | PAGE_GUARD;
 		break;
 	default:
-		s_critical("%s(): unsupported protection flags 0x%x", G_STRFUNC, prot);
-		res = EINVAL;
+		errno = EINVAL;
 		return -1;
 	}
 
-	res = VirtualProtect((LPVOID) addr, len, newProtect, &oldProtect);
-	if (!res) {
-		errno = mingw_last_error();
-		if (vmm_is_debugging(0)) {
-			s_debug("VMM mprotect(%p, %zu) failed: errno=%m", addr, len);
+	if (0 == len || end < pos) {
+		errno = EINVAL;
+		return -1;
+	}
+	/* VirtualProtect cannot cross independently reserved ranges. */
+	while (pos < end) {
+		MEMORY_BASIC_INFORMATION mbi;
+		uintptr_t next;
+		DWORD oldProtect;
+
+		if (0 == VirtualQuery((void *) pos, VARLEN(mbi))) {
+			errno = mingw_last_error();
+			return -1;
 		}
-		return -1;
+		if (mbi.State != MEM_COMMIT) {
+			errno = EFAULT;
+			return -1;
+		}
+		next = (uintptr_t) mbi.BaseAddress + mbi.RegionSize;
+		if (next <= pos) {
+			errno = EFAULT;
+			return -1;
+		}
+		if (!VirtualProtect((void *) pos,
+			(size_t) (MIN(next, end) - pos), newProtect, &oldProtect)) {
+			errno = mingw_last_error();
+			return -1;
+		}
+		pos = MIN(next, end);
 	}
-
-	return 0;	/* OK */
+	return 0;
 }
 
 /**
@@ -5182,6 +5275,9 @@ mingw_log_meminfo(const void *p)
 		s_rawdebug("\tAllocationBase: %p", mbi.AllocationBase);
 		s_rawdebug("\tRegionSize: %'lu", mbi.RegionSize);
 		s_rawdebug("\tAllocationProtect: 0x%lx", mbi.AllocationProtect);
+		s_rawdebug("\tState: 0x%lx", mbi.State);
+		s_rawdebug("\tProtect: 0x%lx", mbi.Protect);
+		s_rawdebug("\tType: 0x%lx", mbi.Type);
 	}
 }
 
@@ -5580,9 +5676,9 @@ mingw_getrlimit(int resource, struct rlimit *rlim)
 		if G_LIKELY(mingw_vmm_inited) {
 			/*
 			 * Assume the data segment (heap) will grow up to the start
-			 * of the reserved region we have, since now that region is
-			 * put at the lowest possible address.  This only approximates
-			 * the truth.
+			 * of the reserved region we have.  The region is deliberately
+			 * reserved near the high end of the address space, but the gap
+			 * may still contain other mappings: this is only an upper bound.
 			 *		--RAM, 2015-10-16
 			 */
 			rlim->rlim_max = ptr_diff(mingw_vmm.reserved, mingw_vmm.heap_break);
@@ -6964,7 +7060,7 @@ void mingw_vmm_post_init(void)
 {
 	void *cur_break = mingw_sbrk(0);
 
-	s_info("VMM process has %s of virtual space",
+	s_info("VMM process initially had %s of free virtual address space",
 		compact_size(mingw_vmm.available, FALSE));
 	s_info("VMM reserved %s of virtual space at [%p, %p[",
 		compact_size(mingw_vmm.size, FALSE),
@@ -6974,7 +7070,7 @@ void mingw_vmm_post_init(void)
 		compact_size(mingw_vmm.later, FALSE));
 	s_info("VMM had %s already committed at startup",
 		compact_size(mingw_vmm.baseline, FALSE));
-	s_info("VMM will be using %s of VM space at most",
+	s_info("VMM main reservation plus initial commitment totals %s",
 		compact_size(mingw_vmm.size + mingw_vmm.baseline, FALSE));
 
 	/*
