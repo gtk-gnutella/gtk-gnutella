@@ -413,6 +413,22 @@ struct thread_element {
 	unsigned joining_id;			/**< ID of the joining thread */
 	uint8 join_requested;			/**< Whether thread_join() was requested */
 	uint8 join_pending;				/**< Whether thread exited, pending join */
+	/*
+	 * In the same spirit as join_requeste above, this field is no longer
+	 * part of the bitfield. It is now atomically written and declared volatile
+	 * to be able to be read without the compiler caching its accesses.
+	 */
+	volatile uint8 valid;			/**< Whether thread is valid */
+	/*
+	 * These used to be in the bitfield but not always updated with locks.
+	 * And in dire conditions, locking may not be possible for some of them.
+	 * It is therefore safer to leave them out of that bitfield.
+	 */
+	uint8 in_backtrace;				/**< Records thread backtracing */
+	uint8 recursive_lockwait;		/**< Detected recursive lock waiting */
+	uint8 stack_overflow;			/**< Stack overflow was detected */
+	uint8 deadlocked;				/**< Whether thread reported deadlock */
+	uint8 atomic_name;				/**< Whether name is an atomic string */
 	unsigned unblock_events;		/**< Counts unblock events received */
 	void *exit_value;				/**< Final thread exit value */
 	tsigset_t sig_mask;				/**< Signal mask */
@@ -427,8 +443,6 @@ struct thread_element {
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint running:1;					/**< Whether thread is running */
-	uint deadlocked:1;				/**< Whether thread reported deadlock */
-	uint valid:1;					/**< Whether thread is valid */
 	uint creating:1;				/**< Whether thread is being created */
 	uint exiting:1;					/**< Whether thread is exiting */
 	uint suspended:1;				/**< Whether thread is suspended */
@@ -442,11 +456,7 @@ struct thread_element {
 	uint cancelable:1;				/**< Whether thread is cancelable */
 	uint sleeping:1;				/**< Whether thread is sleeping */
 	uint exit_started:1;			/**< Started to process exiting */
-	uint atomic_name:1;				/**< Whether name is an atomic string */
-	uint stack_overflow:1;			/**< Stack overflow was detected */
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
-	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
-	uint in_backtrace:1;			/**< Records thread backtracing */
 	/* Bitfield end */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
@@ -2009,8 +2019,8 @@ thread_element_mark_reusable_locked(struct thread_element *te)
 		G_STRFUNC, thread_element_lock_count(te),
 		thread_element_name_raw(te));
 
-	te->reusable = TRUE;	/* Allow reuse */
-	te->valid = FALSE;		/* Holds stale values now */
+	te->reusable = TRUE;			/* Allow reuse */
+	ATOMIC_SET(&te->valid, FALSE);	/* Holds stale values now */
 	thread_set(te->tid, THREAD_INVALID);
 }
 
@@ -2059,9 +2069,7 @@ thread_ended(struct thread_element *te)
 	 * marked reusable yet.
 	 */
 
-	THREAD_LOCK(te);
-	te->valid = FALSE;
-	THREAD_UNLOCK(te);
+	ATOMIC_SET(&te->valid, FALSE);
 
 	if (te->stack != NULL)
 		thread_stack_free(te);
@@ -2333,7 +2341,7 @@ thread_element_reset(struct thread_element *te)
 	te->top_qid = 0;
 	te->last_sp = NULL;
 	te->top_sp = NULL;
-	te->valid = FALSE;		/* Flags an incorrectly instantiated element */
+	ATOMIC_SET(&te->valid, FALSE);	/* Flags element incorrectly instantiated */
 	te->creating = FALSE;
 	te->exiting = FALSE;
 	te->stack = NULL;
@@ -2507,8 +2515,10 @@ thread_element_common_init(struct thread_element *te, thread_t t)
 {
 	assert_mutex_is_owned(&thread_insert_mtx);
 
+	THREAD_LOCK(te);			/* Protect accesses to the bitfield */
 	te->creating = FALSE;
-	te->valid = TRUE;
+	THREAD_UNLOCK(te);
+	ATOMIC_SET(&te->valid, TRUE);
 	thread_stid_tie(te->stid, t);
 	thread_private_clear_warn(te);
 	thread_local_clear_warn(te);
@@ -2584,7 +2594,7 @@ thread_element_tie(struct thread_element *te, thread_t t, const void *base)
 
 	thread_set(te->tid, t);
 	thread_qid_cache_force(te->stid, te->low_qid, te->high_qid);
-	te->valid = TRUE;
+	ATOMIC_SET(&te->valid, TRUE);
 
 	/*
 	 * Prepare QID cache for new thread.
@@ -2956,7 +2966,9 @@ thread_will_exit(void *arg)
 		"%s(): thread #%u not discovered (%s created)",
 		G_STRFUNC, te->stid, te->created ? "was" : "neither");
 
+	THREAD_LOCK(te);			/* Must protect biftield updates */
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+	THREAD_UNLOCK(te);
 
 	thread_common_exit(te, NULL, NULL);
 	thread_gone(te);
@@ -3105,7 +3117,7 @@ thread_new_element(unsigned stid)
 	thread_init_element(te);
 
 	thread_stack_init_shape(te, &te);
-	te->valid = TRUE;				/* Minimally ready */
+	ATOMIC_SET(&te->valid, TRUE);	/* Minimally ready */
 	te->discovered = TRUE;			/* Assume it was discovered */
 	te->last_seen = tm_time_raw();
 
@@ -3217,7 +3229,7 @@ thread_main_element(thread_t t)
 	te->wfd[0] = te->wfd[1] = INVALID_FD;
 	te->discovered = TRUE;
 	te->last_seen = tm_time_raw();
-	te->valid = TRUE;
+	ATOMIC_SET(&te->valid, TRUE);
 	thread_set(te->tid, t);
 	te->ptid = pthread_self();
 	te->main_thread = TRUE;
@@ -8906,7 +8918,7 @@ thread_forked(void)
 		xmalloc_thread_ended(xte->stid);
 		thread_element_reset(xte);
 		xte->reusable = TRUE;
-		xte->valid = FALSE;
+		ATOMIC_SET(&xte->valid, FALSE);
 		xte->main_thread = FALSE;
 	}
 
@@ -9868,7 +9880,9 @@ thread_launch_register(struct thread_element *te)
 	if G_UNLIKELY(free_old_stack)
 		thread_stack_free(te);
 
+	THREAD_LOCK(te);		/* Protect access to bitfield */
 	te->running = TRUE;		/* Thread is now running on its own */
+	THREAD_UNLOCK(te);
 }
 
 /**
