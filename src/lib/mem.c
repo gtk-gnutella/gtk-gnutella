@@ -510,9 +510,14 @@ mem_is_valid_string(const char *p, size_t maxlen)
 	return (size_t) -2;		/* Did not find any NUL before we hit maxlen */
 }
 
-static int mem_done = 0;
-static bool mem_prot_checks_working;
-static bool mem_valid_checks_working;
+enum mem_test_state {
+    MEM_TEST_RUNNING  = 1U << 0,
+    MEM_TEST_FINISHED = 1U << 1,
+    MEM_TEST_VALID_OK = 1U << 2,
+    MEM_TEST_PROT_OK  = 1U << 3
+};
+
+static uint mem_test_state;
 
 /**
  * Return whether memory validity checks are possible.
@@ -524,7 +529,16 @@ static bool mem_valid_checks_working;
 bool
 mem_validity_testable(void)
 {
-	return mem_valid_checks_working;
+	static bool ok;
+
+	/* Be optimist */
+	if (ok)
+		return TRUE;
+
+	if (atomic_uint_get(&mem_test_state) & MEM_TEST_VALID_OK)
+		return ok = TRUE;
+
+	return FALSE;
 }
 
 /**
@@ -538,7 +552,16 @@ mem_validity_testable(void)
 bool
 mem_protection_testable(void)
 {
-	return mem_prot_checks_working;
+	static bool ok;
+
+	/* Be optimist */
+	if (ok)
+		return TRUE;
+
+	if (atomic_uint_get(&mem_test_state) & MEM_TEST_PROT_OK)
+		return ok = TRUE;
+
+	return FALSE;
 }
 
 /**
@@ -547,36 +570,47 @@ mem_protection_testable(void)
 void
 mem_test(void)
 {
-	static const char str[] = "x";
+    static const char str[] = "x";
+    bool valid = TRUE, prot = TRUE;
+    uint result = MEM_TEST_FINISHED;
+    bool ok;
 
-	if (0 != atomic_int_inc(&mem_done))
-		return;		/* Already done */
+    if (!atomic_uint_xchg_if_eq(&mem_test_state, 0, MEM_TEST_RUNNING))
+        return;         /* Already running or completed */
 
-	/* Be optimist */
-	mem_valid_checks_working = TRUE;
-	mem_prot_checks_working  = TRUE;
+    if (!mem_is_valid_ptr(str) || mem_is_valid_ptr(NULL)) {
+        s_miniwarn("%s(): cannot check whether a pointer is valid", G_STRFUNC);
+        valid = FALSE;
+    }
 
-	if (!mem_is_valid_ptr(str) || mem_is_valid_ptr(NULL)) {
-		s_warning("%s(): cannot check whether a pointer is valid", G_STRFUNC);
-		mem_valid_checks_working = FALSE;
-	}
+    if (mem_is_writable(str) || mem_is_writable(mem_test)) {
+        s_miniwarn("%s(): writable memory checks may not be working", G_STRFUNC);
+        prot = FALSE;
+    }
 
-	if (mem_is_writable(str) || mem_is_writable(mem_test)) {
-		s_warning("%s(): writable memory checks may not be working", G_STRFUNC);
-		mem_prot_checks_working = FALSE;
-	}
+    if (MEM_PROT_NONE == mem_protection(str)) {
+        s_miniwarn("%s(): memory protection checks are not working", G_STRFUNC);
+        prot = FALSE;
+    }
 
-	if (MEM_PROT_NONE == mem_protection(str)) {
-		s_warning("%s(): memory protection checks are not working", G_STRFUNC);
-		mem_prot_checks_working = FALSE;
-	}
+    g_assert('x' == str[0]);
 
-	g_assert('x' == str[0]);	/* mem_protection() leaves memory intact */
+    if (!mem_is_valid_range(ARYLEN(str))) {
+        s_miniwarn("%s(): memory range checks are not working", G_STRFUNC);
+        valid = FALSE;
+    }
 
-	if (!mem_is_valid_range(ARYLEN(str))) {
-		s_warning("%s(): memory range checks are not working", G_STRFUNC);
-		mem_valid_checks_working = FALSE;
-	}
+    if (valid)
+        result |= MEM_TEST_VALID_OK;
+    if (prot)
+        result |= MEM_TEST_PROT_OK;
+
+    /*
+     * Publish the complete results atomically, after all the
+     * checks and their initialization side effects.
+     */
+    ok = atomic_uint_xchg_if_eq(&mem_test_state, MEM_TEST_RUNNING, result);
+    g_assert(ok);
 }
 
 /* vi: set ts=4 sw=4 cindent: */
