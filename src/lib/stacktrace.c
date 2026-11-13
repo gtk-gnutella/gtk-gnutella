@@ -146,14 +146,14 @@ stacktrace_crash_mode(void)
 /**
  * Is PC a valid routine address?
  */
-static inline bool G_CONST
+static inline bool
 valid_ptr(const void *pc)
 {
 	ulong v = pointer_to_ulong(pc);
 
 	return v >= 0x1000 &&
 		v < MAX_INT_VAL(ulong) - 0x1000 &&
-		mem_is_valid_ptr(pc);
+		mem_is_valid_ptr_noinit(pc);
 }
 
 /**

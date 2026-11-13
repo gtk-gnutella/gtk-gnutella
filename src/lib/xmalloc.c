@@ -71,7 +71,7 @@
 #include "evq.h"
 #include "hashing.h"
 #include "log.h"
-#include "mem.h"			/* For mem_is_valid_ptr() */
+#include "mem.h"			/* For mem_is_valid_ptr_noinit() */
 #include "mempcpy.h"
 #include "memusage.h"
 #include "misc.h"			/* For short_size() and clamp_strlen() */
@@ -8923,7 +8923,7 @@ xmalloc_freelist_check(logagent_t *la, unsigned flags)
 				continue;	/* Prudent */
 			}
 
-			if (!mem_is_valid_ptr(p)) {
+			if (!mem_is_valid_ptr_noinit(p)) {
 				if (flags & XMALLOC_FLCF_VERBOSE) {
 					log_warning(la,
 						"XM item #%u p=%p in freelist #%u is unreadable",

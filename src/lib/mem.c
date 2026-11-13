@@ -284,6 +284,35 @@ retry:
 }
 
 /**
+ * Is pointer valid, without initializing the checking machinery?
+ *
+ * Intended for use in critical contexts, such as stack unwinding
+ * during lock contention.
+ *
+ * This routine does not take locks during normal operations.
+ *
+ * If the reading pipe is unavailable, assume the pointer is valid.
+ *
+ * @return FALSE only when the kernel reports EFAULT.
+ */
+bool
+mem_is_valid_ptr_noinit(const void *p)
+{
+    mem_pipe_t *mp = &mem_fr;
+    char c;
+
+    if G_UNLIKELY(!mem_initialized_pipe(mp))
+        return TRUE;
+
+    if (-1 == write(mp->fd[1], p, 1))
+        return EFAULT != errno;
+
+    (void) read(mp->fd[0], &c, 1);
+
+    return TRUE;
+}
+
+/**
  * Probe address to determine wheher the memory is readable or writable.
  *
  * If a page is not readable, it is assumed to not be writable.  We do not

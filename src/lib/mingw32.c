@@ -7081,7 +7081,7 @@ static inline bool
 valid_ptr(const void * const p)
 {
 	ulong v = pointer_to_ulong(p);
-	return v > 0x1000 && v < 0xfffff000 && mem_is_valid_ptr(p);
+	return v > 0x1000 && v < 0xfffff000 && mem_is_valid_ptr_noinit(p);
 }
 
 static inline bool
