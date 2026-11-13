@@ -403,7 +403,16 @@ struct thread_element {
 	int pending;					/**< Pending messages to emit */
 	int interrupt;					/**< Interrupt depth count */
 	socket_fd_t wfd[2];				/**< For the block/unblock interface */
+	/*
+	 * Keep join_requested and join_pending as bytes, outside the bitfield
+	 * below because we really need them to be independently stored or that
+	 * could mess-up the thread joining protocol, even though fields in
+	 * the bitfield are updated with the structure locked.
+	 * 	--RAM, 2026-11-13
+	 */
 	unsigned joining_id;			/**< ID of the joining thread */
+	uint8 join_requested;			/**< Whether thread_join() was requested */
+	uint8 join_pending;				/**< Whether thread exited, pending join */
 	unsigned unblock_events;		/**< Counts unblock events received */
 	void *exit_value;				/**< Final thread exit value */
 	tsigset_t sig_mask;				/**< Signal mask */
@@ -414,6 +423,7 @@ struct thread_element {
 	int in_signal_handler;			/**< Counts signal handler nesting */
 	int sleep_interruptible;		/**< Shall a signal interrupt blocking? */
 	uint termination_key;			/**< For releasing the termination dam */
+	/* Bitfield start */
 	uint created:1;					/**< Whether thread created by ourselves */
 	uint discovered:1;				/**< Whether thread was discovered */
 	uint running:1;					/**< Whether thread is running */
@@ -426,8 +436,6 @@ struct thread_element {
 	uint timed_blocked:1;			/**< Whether thread blocking with timeout */
 	uint unblocked:1;				/**< Whether unblocking was requested */
 	uint detached:1;				/**< Whether thread is detached */
-	uint join_requested:1;			/**< Whether thread_join() was requested */
-	uint join_pending:1;			/**< Whether thread exited, pending join */
 	uint reusable:1;				/**< Whether element is reusable */
 	uint main_thread:1;				/**< Whether this is the main thread */
 	uint cancelled:1;				/**< Whether thread has been cancelled */
@@ -439,6 +447,7 @@ struct thread_element {
 	uint in_syscall:1;				/**< Thread in a system call, no locks */
 	uint recursive_lockwait:1;		/**< Detected recursive lock waiting */
 	uint in_backtrace:1;			/**< Records thread backtracing */
+	/* Bitfield end */
 	enum thread_cancel_state cancl;	/**< Thread cancellation state */
 	struct thread_lock_stack locks;	/**< Locks held by thread */
 	struct thread_lock_stack waits;	/**< Locks on which thread is waiting */
@@ -2334,6 +2343,7 @@ thread_element_reset(struct thread_element *te)
 	te->unblocked = FALSE;
 	te->join_requested = FALSE;
 	te->join_pending = FALSE;
+	te->joining_id = THREAD_INVALID_ID;
 	te->reusable = FALSE;
 	te->detached = FALSE;
 	te->created = FALSE;
@@ -10343,7 +10353,10 @@ thread_exit_internal(void *value, const void *sp)
 	 * futher cancel requests.
 	 */
 
+	THREAD_LOCK(te);			/* Protect bitfield updates */
 	te->exit_started = TRUE;	/* Signals we have begun exiting the thread */
+	THREAD_UNLOCK(te);
+
 	te->cancl = THREAD_CANCEL_DISABLE;
 
 	/*
