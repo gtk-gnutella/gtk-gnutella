@@ -42,6 +42,7 @@ enum shell_reply {
 };
 
 struct gnutella_shell;
+struct shell_grammar;
 
 typedef enum shell_reply (*shell_cmd_handler_t)(struct gnutella_shell *,
 							int argc, const char **argv);
@@ -80,10 +81,20 @@ int shell_options_parse(struct gnutella_shell *,
 	SHELL_HELP_PROTO(name); \
 	SHELL_SUMMARY_PROTO(name);
 
+/*
+ * Converted shell commands supply a static grammar instead of using a
+ * legacy dispatcher.
+ */
+#define SHELL_GRAMMAR_CMD(name,t) \
+	const struct shell_grammar *shell_grammar_ ## name (void); \
+	SHELL_HELP_PROTO(name); \
+	SHELL_SUMMARY_PROTO(name);
+
 #undef shutdown		/* On Windows, this is redefined */
 
 #include "cmd.inc"
 #undef SHELL_CMD
+#undef SHELL_GRAMMAR_CMD
 
 #undef SHELL_EXEC_PROTO
 #undef SHELL_HELP_PROTO

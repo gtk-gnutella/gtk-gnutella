@@ -1,4 +1,4 @@
-: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-255]
+: Makefile.SH generated from Jmake.tmpl and Jmakefile [jmake 3.5-263]
 : $X-Id$
 
 case $CONFIG in
@@ -52,8 +52,8 @@ SED = $sed
 
 USRINC = $usrinc
 GLIB_CFLAGS =  $glibcflags
-OBJECTS =   \$(OBJ)
 SOURCES =   \$(SRC)
+OBJECTS =   \$(OBJ)
 
 ########################################################################
 # New suffixes and associated building rules -- edit with care
@@ -105,6 +105,7 @@ SRC = \
 	search.c \
 	set.c \
 	shell.c \
+	syntax.c \
 	shutdown.c \
 	stats.c \
 	status.c \
@@ -139,6 +140,7 @@ OBJ = \
 	search.o \
 	set.o \
 	shell.o \
+	syntax.o \
 	shutdown.o \
 	stats.o \
 	status.o \
@@ -146,7 +148,7 @@ OBJ = \
 	thread.o \
 	uploads.o \
 	version.o \
-	whatis.o 
+	whatis.o
 
 # Those extra flags are expected to be user-defined
 CFLAGS = -I$(TOP) -I.. $(GLIB_CFLAGS) -DCORE_SOURCES -DCURDIR=$(CURRENT)
@@ -279,4 +281,3 @@ Makefiles.SH::
 !NO!SUBS!
 chmod 644 Makefile
 $eunicefix Makefile
-

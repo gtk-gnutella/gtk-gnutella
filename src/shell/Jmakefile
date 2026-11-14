@@ -52,6 +52,7 @@ SRC = \
 	search.c \
 	set.c \
 	shell.c \
+	syntax.c \
 	shutdown.c \
 	stats.c \
 	status.c \

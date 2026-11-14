@@ -210,6 +210,12 @@ options_parse(const char *argv[], const option_t *ovec, int osize)
 		}
 	}
 
+	/* A value-taking switch at the very end still requires its argument. */
+	if (current != NULL) {
+		str_bprintf(ARYLEN(error_string),
+			"missing value for -%c", current->letter[0]);
+		return -1;
+	}
 	return i;
 }
 

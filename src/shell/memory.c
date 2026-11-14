@@ -1,6 +1,6 @@
 /*
  * Copyright (c) 2009, Christian Biere
- * Copyright (c) 2011, Raphael Manfredi
+ * Copyright (c) 2011, 2026 Raphael Manfredi
  *
  *----------------------------------------------------------------------
  * This file is part of gtk-gnutella.
@@ -28,15 +28,29 @@
  *
  * The "memory" command.
  *
+ * This module declares its complete grammar in shell_grammar_memory(),
+ * adjacent to the leaf handlers.  The shell's syntax engine builds a
+ * read-only parser only when the first actual shell command is received.
+ * It expands unique prefixes and parses node-specific options, SIZE and
+ * ADDRESS arguments in the main thread before scheduling a memory worker.
+ *
+ * The show handlers use the pre-resolved argc/argv adapter; stats, check,
+ * usage and dump consume an immutable parsed invocation.  Other shell
+ * commands remain on the original dispatch path until converted.
+ *
+ * To extend this command, update the declarative grammar below, not the
+ * central parser.  Keyword ambiguity and option validity are automatic.
+ *
  * @author Christian Biere
  * @date 2009
  * @author Raphael Manfredi
- * @date 2011
+ * @date 2011, 2026
  */
 
 #include "common.h"
 
 #include "cmd.h"
+#include "syntax.h"
 
 #include "lib/ascii.h"
 #include "lib/dump_options.h"
@@ -99,35 +113,17 @@ read_memory(int fd[2], const unsigned char *addr, size_t length,
 
 static enum shell_reply	G_UNUSED	/* May be unused */
 shell_exec_memory_dump(struct gnutella_shell *sh,
-	int argc, const char *argv[])
+	const shell_invocation_t *inv)
 {
-	const unsigned char *addr;
-	const char *endptr;
-	size_t length;
-	int error, fd[2];
+	const unsigned char *addr = shell_invocation_pointer(inv, 2);;
+	size_t length = shell_invocation_size(inv, 3);;
+	int fd[2];
 	str_t *s;
 
 	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (2 != argc) {
-		shell_set_formatted(sh, "Invalid parameter count (%d)", argc);
-		goto failure;
-	}
-	addr = parse_pointer(argv[0], &endptr, &error);
-	if (error || NULL == addr || '\0' != *endptr) {
-		shell_set_msg(sh, "Bad address");
-		goto failure;
-	}
-	length = parse_size(argv[1], &endptr, 10, &error);
-	if (error || '\0' != *endptr) {
-		shell_set_msg(sh, "Bad length");
-		goto failure;
-	}
 
 	if (pipe(fd) < 0) {
-		shell_set_msg(sh, "pipe() failed");
+		shell_set_msg(sh, str_smsg("pipe() failed: %m"));
 		goto failure;
 	}
 
@@ -391,37 +387,6 @@ shell_exec_memory_show_zones(struct gnutella_shell *sh,
 	return memory_run_shower(sh, zalloc_dump_zones_log, "ZALLOC ");
 }
 
-static enum shell_reply
-shell_exec_memory_show(struct gnutella_shell *sh,
-	int argc, const char *argv[])
-{
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2)
-		return REPLY_ERROR;
-
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_show_## name(sh, argc - 1, argv + 1); \
-} G_STMT_END
-
-	CMD(hole);
-	CMD(magazines);
-	CMD(options);
-	CMD(pcache);
-	CMD(pmap);
-	CMD(pools);
-	CMD(xmalloc);
-	CMD(zones);
-
-#undef CMD
-
-	shell_set_formatted(sh, _("Unknown operation \"show %s\""), argv[1]);
-	return REPLY_ERROR;
-}
-
 #define STATS_USAGE		(1 << 0)
 
 static const char STATS_USAGE_STR[] = "usage";
@@ -506,55 +471,6 @@ shell_exec_memory_stats_omalloc(struct gnutella_shell *sh,
 }
 
 static enum shell_reply
-shell_exec_memory_stats(struct gnutella_shell *sh,
-	int argc, const char *argv[])
-{
-	const char *pretty, *usage;
-	const option_t options[] = {
-		{ "p", &pretty },		/* pretty-print */
-		{ "u", &usage },		/* usage stats, if available */
-	};
-	int parsed;
-	unsigned opt = 0;
-	unsigned which = 0;
-
-	shell_check(sh);
-
-	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
-	if (parsed < 0)
-		return REPLY_ERROR;
-
-	argv += parsed;	/* args[0] is first command argument */
-	argc -= parsed;	/* counts only command arguments now */
-
-	if (argc < 1)
-		return REPLY_ERROR;
-
-	if (pretty != NULL)
-		opt |= DUMP_OPT_PRETTY;
-	if (usage != NULL)
-		which |= STATS_USAGE;
-
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[0], #name)) \
-		return shell_exec_memory_stats_## name(sh, opt, which); \
-} G_STMT_END
-
-	CMD(halloc);
-	CMD(palloc);
-	CMD(tmalloc);
-	CMD(vmm);
-	CMD(xmalloc);
-	CMD(zalloc);
-	CMD(omalloc);
-
-#undef CMD
-
-	shell_set_formatted(sh, _("Unknown operation \"stats %s\""), argv[0]);
-	return REPLY_ERROR;
-}
-
-static enum shell_reply
 shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
 	bool verbose, bool summary)
 {
@@ -581,154 +497,82 @@ shell_exec_memory_check_xmalloc(struct gnutella_shell *sh,
 	return REPLY_READY;
 }
 
-static enum shell_reply
-shell_exec_memory_check(struct gnutella_shell *sh,
-	int argc, const char *argv[])
-{
-	const char *verbose, *summary;
-	const option_t options[] = {
-		{ "v", &verbose },		/* verbosely report */
-		{ "s", &summary },		/* silent report, only show summary status */
-	};
-	int parsed;
-
-	shell_check(sh);
-
-	parsed = shell_options_parse(sh, argv, options, N_ITEMS(options));
-	if (parsed < 0)
-		return REPLY_ERROR;
-
-	argv += parsed;	/* args[0] is first command argument */
-	argc -= parsed;	/* counts only command arguments now */
-
-	if (argc < 1)
-		return REPLY_ERROR;
-
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[0], #name)) \
-		return shell_exec_memory_check_## name(sh, \
-			verbose != NULL, summary != NULL); \
-} G_STMT_END
-
-	CMD(xmalloc);
-
-#undef CMD
-
-	shell_set_formatted(sh, _("Unknown operation \"check %s\""), argv[0]);
-	return REPLY_ERROR;
+/*
+ * Common option parsing for "memory stats" commands: -p and -u
+ *
+ * Options are parsed once by syntax.c, before the worker starts. */
+#define MEMORY_STATS_HANDLER(name) \
+static enum shell_reply \
+memory_stats_ ## name (struct gnutella_shell *sh, \
+	const shell_invocation_t *inv) \
+{ \
+	unsigned opt = shell_invocation_option(inv, "stats", 'p') ?  \
+		DUMP_OPT_PRETTY : 0; \
+	unsigned which = shell_invocation_option(inv, "stats", 'u') ? \
+		STATS_USAGE : 0; \
+	return shell_exec_memory_stats_ ## name(sh, opt, which); \
 }
 
+MEMORY_STATS_HANDLER(halloc)
+MEMORY_STATS_HANDLER(omalloc)
+MEMORY_STATS_HANDLER(palloc)
+MEMORY_STATS_HANDLER(tmalloc)
+MEMORY_STATS_HANDLER(vmm)
+MEMORY_STATS_HANDLER(xmalloc)
+MEMORY_STATS_HANDLER(zalloc)
+#undef MEMORY_STATS_HANDLER
+
 static enum shell_reply
-shell_exec_memory_usage_zone(struct gnutella_shell *sh,
-	int argc, const char *argv[])
+memory_check_xmalloc(struct gnutella_shell *sh, const shell_invocation_t *inv)
 {
-	size_t size;
-	const char *endptr;
-	int error;
-	bool ok;
+	return shell_exec_memory_check_xmalloc(sh,
+		shell_invocation_option(inv, "check", 'v'),
+		shell_invocation_option(inv, "check", 's')
+	);
+}
+
+/* The SIZE argument has already been validated in the main thread. */
+static enum shell_reply
+memory_usage_zone_set(struct gnutella_shell *sh,
+	const shell_invocation_t *inv, bool enable)
+{
+	size_t size = shell_invocation_size(inv, 3);
 
 	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
 
-	if (argc < 3)
-		return REPLY_ERROR;
-
-	/*
-	 * Parse the zone size.
-	 */
-
-	size = parse_size(argv[1], &endptr, 10, &error);
-	if (error || '\0' != *endptr) {
-		shell_set_formatted(sh, "Cannot parse zone size \"%s\"", argv[1]);
-		goto failed;
-	}
-
-	/*
-	 * Action: on, off or show.
-	 */
-
-	if (0 == ascii_strcasecmp(argv[2], "on")) {
-		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, TRUE);
-	} else if (0 == ascii_strcasecmp(argv[2], "off")) {
-		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, FALSE);
-	} else if (0 == ascii_strcasecmp(argv[2], "show")) {
-		logagent_t *la = log_agent_string_make(65536, NULL);
-		ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SHOW, la);
-		if (ok)
-			shell_write(sh, log_agent_string_get(la));
-		log_agent_free_null(&la);
-	} else {
-		shell_set_formatted(sh, "Unknown action \"%s\" on zone %zu",
-			argv[2], size);
-		goto failed;
-	}
-
-	if (!ok) {
-		shell_set_formatted(sh, "Operation failed");
+	if (!zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SET, enable)) {
+		shell_set_msg(sh, "Operation failed");
 		return REPLY_ERROR;
 	}
-
 	return REPLY_READY;
-
-failed:
-	return REPLY_ERROR;
 }
 
 static enum shell_reply
-shell_exec_memory_usage(struct gnutella_shell *sh,
-	int argc, const char *argv[])
+memory_usage_zone_on(struct gnutella_shell *sh, const shell_invocation_t *inv)
 {
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
-
-	if (argc < 2)
-		return REPLY_ERROR;
-
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_usage_## name(sh, argc - 1, argv + 1); \
-} G_STMT_END
-
-	CMD(zone);
-
-#undef CMD
-
-	shell_set_formatted(sh, _("Unknown operation \"usage %s\""), argv[1]);
-	return REPLY_ERROR;
+	return memory_usage_zone_set(sh, inv, TRUE);
 }
 
-/**
- * Handles the memory command.
- */
-enum shell_reply
-shell_exec_memory(struct gnutella_shell *sh, int argc, const char *argv[])
+static enum shell_reply
+memory_usage_zone_off(struct gnutella_shell *sh, const shell_invocation_t *inv)
 {
-	shell_check(sh);
-	g_assert(argv);
-	g_assert(argc > 0);
+	return memory_usage_zone_set(sh, inv, FALSE);
+}
 
-	if (argc < 2)
-		return REPLY_ERROR;
+static enum shell_reply
+memory_usage_zone_show(struct gnutella_shell *sh,
+	const shell_invocation_t *inv)
+{
+	size_t size = shell_invocation_size(inv, 3);
+	logagent_t *la = log_agent_string_make(65536, NULL);
+	bool ok = zalloc_stack_accounting_ctrl(size, ZALLOC_SA_SHOW, la);
 
-#define CMD(name) G_STMT_START { \
-	if (0 == ascii_strcasecmp(argv[1], #name)) \
-		return shell_exec_memory_ ## name(sh, argc - 1, argv + 1); \
-} G_STMT_END
-
-#ifdef ALLOW_DUMP
-	CMD(dump);
-#endif
-	CMD(check);
-	CMD(show);
-	CMD(stats);
-	CMD(usage);
-
-#undef CMD
-
-	shell_set_formatted(sh, _("Unknown operation \"%s\""), argv[1]);
-	return REPLY_ERROR;
+	if (ok)
+		shell_write(sh, log_agent_string_get(la));
+	else
+		shell_set_msg(sh, "Operation failed");
+	log_agent_free_null(&la);
+	return ok ? REPLY_READY : REPLY_ERROR;
 }
 
 const char *
@@ -788,6 +632,81 @@ shell_help_memory(int argc, const char *argv[])
 		;
 	}
 	return NULL;
+}
+
+
+/*
+ * All syntax is declared here, near the implementing handlers.  The callback
+ * merely exposes immutable data and is called once at parser construction.
+ * No options or keywords are parsed in any of the migrated handlers.
+ */
+
+static const shell_option_desc_t memory_stats_options[] = {
+    { "p" },		/* pretty-print by groupping thousands */
+	{ "u" }			/* show usage stats, if available */
+};
+static const shell_option_desc_t memory_check_options[] = {
+    { "s" },		/* silent report, only show summary status */
+	{ "v" }			/* verbosely report */
+};
+static const shell_grammar_t memory_show[] = {
+    SHELL_LEGACY_LEAF("hole", shell_exec_memory_show_hole),
+    SHELL_LEGACY_LEAF("magazines", shell_exec_memory_show_magazines),
+    SHELL_LEGACY_LEAF("options", shell_exec_memory_show_options),
+    SHELL_LEGACY_LEAF("pcache", shell_exec_memory_show_pcache),
+    SHELL_LEGACY_LEAF("pmap", shell_exec_memory_show_pmap),
+    SHELL_LEGACY_LEAF("pools", shell_exec_memory_show_pools),
+    SHELL_LEGACY_LEAF("xmalloc", shell_exec_memory_show_xmalloc),
+    SHELL_LEGACY_LEAF("zones", shell_exec_memory_show_zones)
+};
+static const shell_grammar_t memory_stats[] = {
+    SHELL_LEAF("halloc", memory_stats_halloc),
+    SHELL_LEAF("omalloc", memory_stats_omalloc),
+    SHELL_LEAF("palloc", memory_stats_palloc),
+    SHELL_LEAF("tmalloc", memory_stats_tmalloc),
+    SHELL_LEAF("vmm", memory_stats_vmm),
+    SHELL_LEAF("xmalloc", memory_stats_xmalloc),
+    SHELL_LEAF("zalloc", memory_stats_zalloc)
+};
+static const shell_grammar_t memory_check[] = {
+    SHELL_LEAF("xmalloc", memory_check_xmalloc)
+};
+static const shell_grammar_t memory_zone_actions[] = {
+    SHELL_LEAF("on", memory_usage_zone_on),
+    SHELL_LEAF("off", memory_usage_zone_off),
+    SHELL_LEAF("show", memory_usage_zone_show)
+};
+static const shell_grammar_t memory_zone_sizes[] = {
+    SHELL_VALUE_BRANCH("zone size", SHELL_SYNTAX_SIZE, memory_zone_actions)
+};
+static const shell_grammar_t memory_usage[] = {
+    SHELL_BRANCH("zone", memory_zone_sizes)
+};
+#ifdef ALLOW_DUMP
+static const shell_grammar_t memory_dump_length[] = {
+    SHELL_VALUE_LEAF("length", SHELL_SYNTAX_SIZE, shell_exec_memory_dump)
+};
+static const shell_grammar_t memory_dump_address[] = {
+    SHELL_VALUE_BRANCH("address", SHELL_SYNTAX_POINTER, memory_dump_length)
+};
+#endif
+static const shell_grammar_t memory_commands[] = {
+#ifdef ALLOW_DUMP
+    SHELL_BRANCH("dump", memory_dump_address),
+#endif
+    SHELL_BRANCH_OPTS("check", memory_check_options, memory_check),
+    SHELL_BRANCH("show", memory_show),
+    SHELL_BRANCH_OPTS("stats", memory_stats_options, memory_stats),
+    SHELL_BRANCH("usage", memory_usage)
+};
+
+const shell_grammar_t *
+shell_grammar_memory(void)
+{
+    static const shell_grammar_t grammar =
+        SHELL_BRANCH("memory", memory_commands);
+
+    return &grammar;
 }
 
 /* vi: set ts=4 sw=4 cindent: */

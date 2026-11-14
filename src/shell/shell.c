@@ -26,7 +26,19 @@
  * @ingroup shell
  * @file
  *
- * Main command parser and dispatcher.
+ * Main command tokenizer and dispatcher.
+ *
+ * Tokenization still takes place here, preserving quotes and semicolons.
+ * On the first nonempty command, a once-protected initialization builds the
+ * read-only syntax tree from cmd.inc registrations and static grammar callbacks.
+ * The main thread resolves every command, parses its options and validates
+ * typed operands before dispatching the final handler (possibly to a worker).
+ * Converted commands use shell_invocation_t; legacy commands still receive
+ * argc/argv and parse their remaining arguments themselves.  See syntax.c.
+ *
+ * Completed abbreviations are announced as 100- continuations BEFORE any
+ * handler output.  The final 100 line is retained for expanded commands even
+ * on a noninteractive connection, to terminate that continuation correctly.
  *
  * @author Richard Eckart
  * @date 2002-2003
@@ -38,6 +50,7 @@
 
 #include "shell.h"
 #include "cmd.h"
+#include "syntax.h"
 
 #include "core/settings.h"
 #include "core/sockets.h"
@@ -61,6 +74,7 @@
 #include "lib/iovec.h"
 #include "lib/pmsg.h"
 #include "lib/pslist.h"
+#include "lib/once.h"
 #include "lib/random.h"
 #include "lib/sha1.h"
 #include "lib/slist.h"
@@ -94,6 +108,7 @@ struct gnutella_shell {
 	struct gnutella_socket *socket;
 	inputevt_cond_t cond;	/** Current I/O event condition */
 	slist_t *output;
+	char *parsed_command;	/**< Current command with expanded keywords */
 	char *msg;   			/**< Additional information to reply code */
 	time_t last_update; 	/**< Last update (needed for timeout) */
 	uint64 line_count;		/**< Number of input lines after HELO */
@@ -104,6 +119,7 @@ struct gnutella_shell {
 	uint interactive:1;		/**< Interactive mode? */
 	uint async:1;			/**< In the middle of asynchronous processing */
 	uint eof:1;				/**< Got EOF on the input side */
+	uint cmd_expanded:1;	/**< Sent a 100- expansion continuation */
 };
 
 void
@@ -118,7 +134,24 @@ shell_check(const struct gnutella_shell * const sh)
 #define SHELL_UNLOCK(sh)	spinunlock(&sh->lock)
 
 static elist_t shells = ELIST_INIT(offsetof(struct gnutella_shell, lnk));
-static htable_t *shell_cmds;
+
+/* The X-macro is the sole top-level registration table. */
+static const shell_command_def_t shell_command_defs[] = {
+#define SHELL_CMD(x,t) { #x, booleanize(t), shell_exec_ ## x, NULL },
+#define SHELL_GRAMMAR_CMD(x,t) { #x, booleanize(t), NULL, shell_grammar_ ## x },
+#include "cmd.inc"
+#undef SHELL_GRAMMAR_CMD
+#undef SHELL_CMD
+};
+static once_flag_t shell_parser_once;
+static shell_parser_t *shell_parser;
+
+static void
+shell_parser_init_once(void)
+{
+    shell_parser = shell_parser_create(shell_command_defs,
+        N_ITEMS(shell_command_defs));
+}
 
 static bool shell_interpret_line(struct gnutella_shell *sh, const char *line);
 static void shell_interpret_data(struct gnutella_shell *sh);
@@ -167,9 +200,9 @@ shell_free(struct gnutella_shell *sh)
 	spinlock_destroy(&sh->lock);
 	HFREE_NULL(sh->msg);
 	HFREE_NULL(sh->pending.msg);
+	HFREE_NULL(sh->parsed_command);
 
-	sh->magic = 0;
-	WFREE(sh);
+	WFREE0(sh);
 }
 
 /**
@@ -589,58 +622,6 @@ error:
 }
 
 /**
- * Fetch handler for the command.
- *
- * @param cmd		command name (lower-cased)
- * @param threaded	if non-NULL, set with whether processing can be threaded
- *
- * @return command handler based on command name (case-insensitive).
- */
-static shell_cmd_handler_t
-shell_cmd_get_handler(const char *cmd, bool *threaded)
-{
-	static const struct shellcmd {
-		const char * const cmd;
-		shell_cmd_handler_t handler;
-		bool threadable;
-	} commands[] = {
-#define SHELL_CMD(x,t)	{ #x, shell_exec_ ## x, booleanize(t) },
-#include "cmd.inc"
-#undef	SHELL_CMD
-	};
-	struct shellcmd *scd;
-	size_t i;
-
-	g_return_val_if_fail(cmd, NULL);
-
-	/*
-	 * Build table for quick lookups.
-	 */
-
-	if G_UNLIKELY(NULL == shell_cmds) {
-		shell_cmds = htable_create(HASH_KEY_STRING, 0);
-
-		for (i = 0; i < N_ITEMS(commands); i++) {
-			char *name = xstrdup(commands[i].cmd);
-
-			ascii_strlower(name, name);		/* In-place conversion */
-			htable_insert(shell_cmds, constant_str(name),
-				deconstify_pointer(&commands[i]));
-			xfree(name);
-		}
-	}
-
-	scd = htable_lookup(shell_cmds, cmd);
-	if (scd != NULL) {
-		if (threaded != NULL)
-			*threaded = scd->threadable;
-		return scd->handler;
-	}
-
-	return NULL;
-}
-
-/**
  * Flush any pending line.
  */
 static void
@@ -665,7 +646,8 @@ shell_post_handle(struct gnutella_shell *sh, enum shell_reply reply_code)
 {
 	shell_check(sh);
 
-	shell_pending_flush(sh, !sh->interactive);
+	/* Keep pending replies as continuations after an expansion notice. */
+	shell_pending_flush(sh, !sh->interactive && !sh->cmd_expanded);
 	if (NULL == sh->msg) {
 		switch (reply_code) {
 		case REPLY_ERROR:
@@ -686,9 +668,11 @@ shell_post_handle(struct gnutella_shell *sh, enum shell_reply reply_code)
 static void
 shell_handler_done(struct gnutella_shell *sh, enum shell_reply reply_code)
 {
+	shell_check(sh);
+
 	if (
 		REPLY_NONE != reply_code &&
-		!(!sh->interactive && REPLY_READY == reply_code)
+		!(!sh->interactive && !sh->cmd_expanded && REPLY_READY == reply_code)
 	) {
 		/*
 		 * On error, when running non-interactively, remind them
@@ -696,9 +680,11 @@ shell_handler_done(struct gnutella_shell *sh, enum shell_reply reply_code)
 		 */
 
 		if (REPLY_ERROR == reply_code && !sh->interactive) {
+			const char *cmd = sh->parsed_command != NULL ?
+				sh->parsed_command : getline_str(sh->socket->getline);
 			shell_write(sh, uint32_to_string(reply_code));
 			shell_write(sh, "-Error for: \"");
-			shell_write(sh, getline_str(sh->socket->getline));
+			shell_write(sh, cmd);
 			shell_write(sh, "\"\n");
 		}
 
@@ -706,6 +692,8 @@ shell_handler_done(struct gnutella_shell *sh, enum shell_reply reply_code)
 		shell_write_msg(sh);
 		shell_write(sh, "\n");
 	}
+	sh->cmd_expanded = FALSE;
+	HFREE_NULL(sh->parsed_command);
 }
 
 /**
@@ -713,8 +701,8 @@ shell_handler_done(struct gnutella_shell *sh, enum shell_reply reply_code)
  */
 struct shell_async_args {
 	struct gnutella_shell *sh;
-	shell_cmd_handler_t handler;
-	const char *next;				/* First character unparsed in line */
+	shell_invocation_t *inv;
+	const char *next;
 	const char **argv;
 	int argc;
 	enum shell_reply reply_code;
@@ -732,8 +720,8 @@ shell_resume_processing(void *p)
 	bool ok;
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): resuming in main after %s()%s",
-			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+		s_debug("%s(%p): resuming shell processing%s",
+			G_STRFUNC, sh,
 			sh->shutdown ? " [\"shutdown\" on]" : "");
 	}
 
@@ -777,22 +765,22 @@ shell_async_handler(void *p)
 	thread_set_name("async shell handler");
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
-		s_debug("%s(%p): invoking %s() asynchronously for \"%s\"",
-			G_STRFUNC, sh, stacktrace_function_name(args->handler),
-			args->argv[0]);
+		s_debug("%s(%p): invoking \"%s\" asynchronously",
+			G_STRFUNC, sh, shell_invocation_command(args->inv));
 	}
 
-	args->reply_code = args->handler(sh, args->argc, args->argv);
+	args->reply_code = shell_invocation_execute(sh, args->inv);
 
 	shell_post_handle(sh, args->reply_code);
 	shell_handler_done(sh, args->reply_code);
 
 	if (GNET_PROPERTY(shell_debug) > 1) {
 		s_debug("%s(%p): done with %s() for \"%s\"",
-			G_STRFUNC, sh, stacktrace_function_name(args->handler),
+			G_STRFUNC, sh, stacktrace_function_name(args->inv),
 			args->argv[0]);
 	}
 
+	shell_invocation_free(&args->inv);
 	shell_free_argv(&args->argv);
 	shell_post_handle(sh, args->reply_code);
 
@@ -849,17 +837,39 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 	if (argc < 1) {
 		reply_code = REPLY_NONE;
 	} else {
-		shell_cmd_handler_t handler;
-		char *cmd = deconstify_char(argv[0]);
-		bool threadable;
+		shell_invocation_t *inv = NULL;
+		bool parsed;
 
-		ascii_strlower(cmd, cmd);	/* In-place conversion */
-		handler = shell_cmd_get_handler(cmd, &threadable);
+		ONCE_FLAG_RUNWAIT(shell_parser_once, shell_parser_init_once);
 
-		if (handler != NULL) {
-			HFREE_NULL(sh->pending.msg);
+		parsed = shell_parser_resolve(shell_parser, sh, argc, argv, &inv);
 
-			if (threadable) {
+		/*
+		 * Resolution may have expanded some keywords before encountering
+		 * an error.  Preserve this partially or fully canonical command
+		 * until its final reply has been emitted.
+		 *
+		 * The resolver is allowed to modify argv even when it fails.
+		 */
+		HFREE_NULL(sh->parsed_command);
+		sh->parsed_command = h_strjoinv(" ", (char **) argv);
+
+		if (!parsed) {
+			reply_code = REPLY_ERROR;
+			shell_post_handle(sh, reply_code);
+			goto done;
+		}
+		HFREE_NULL(sh->pending.msg);
+
+		if (shell_invocation_expanded(inv)) {
+			shell_write(sh, "100-Expanded as: ");
+			shell_write(sh, sh->parsed_command);
+			shell_write(sh, "\n");
+			sh->cmd_expanded = TRUE;
+		}
+
+		{
+			if (shell_invocation_threadable(inv)) {
 				struct shell_async_args *args;
 
 				/*
@@ -875,11 +885,11 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 				args->next = *endptr;
 				args->argc = argc;
 				args->argv = argv;
-				args->handler = handler;
+				args->inv  = inv;
 
 				if (GNET_PROPERTY(shell_debug) > 1) {
 					s_debug("%s(%p): can call %s() asynchronously for \"%s\"",
-						G_STRFUNC, sh, stacktrace_function_name(handler),
+						G_STRFUNC, sh, stacktrace_function_name(inv),
 						argv[0]);
 				}
 
@@ -910,16 +920,13 @@ shell_exec(struct gnutella_shell *sh, const char *line, const char **endptr)
 			}
 
 		synchronous:
-
-			reply_code = (*handler)(sh, argc, argv);
+			reply_code = shell_invocation_execute(sh, inv);
 			shell_post_handle(sh, reply_code);
-		} else {
-			char buf[80];
-			str_bprintf(ARYLEN(buf), _("Unknown command: \"%s\""), argv[0]);
-			shell_set_msg(sh, buf);
-			reply_code = REPLY_ERROR;
 		}
+		shell_invocation_free(&inv);
 	}
+
+done:
 	shell_free_argv(&argv);
 
 	return reply_code;
@@ -1557,7 +1564,7 @@ shell_close(void)
 	while (NULL != (sh = elist_head(&shells))) {
 		shell_destroy(sh);
 	}
-	htable_free_null(&shell_cmds);
+	/* Deliberately retain the read-only parser for the process lifetime. */
 }
 
 /* vi: set ts=4 sw=4 cindent: */
